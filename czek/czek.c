@@ -7,14 +7,16 @@
 
 #include <sys/time.h>
 
+#include "mpi.h"
+
 #include "magma.h"
 #include "magma_lapack.h"
 
 #include "czek.h"
 
 /*===========================================================================*/
-
 /* Timer function */
+
 double get_time() {
   struct timeval tv;
   double result;
@@ -25,8 +27,8 @@ double get_time() {
 }
 
 /*===========================================================================*/
-
 /* Czekanowski Similarity Metric between Two Vectors */
+
 /* v1, v2 = double vectors, len = the size of the vectors */
 Float_t czekanowski(int len, Float_t * v1, Float_t * v2) {
   int i = 0;
@@ -42,13 +44,14 @@ Float_t czekanowski(int len, Float_t * v1, Float_t * v2) {
 }
 
 /*===========================================================================*/
-
 /* Czekanowski Similarity Metric between Two Vectors.
    Variant with restrict keyword */
-Float_t czekanowski_alt(int len, Float_t * const __restrict__ v1, Float_t * const __restrict__ v2) {
+
+Float_t czekanowski_alt(int len, Float_t * const __restrict__ v1,
+                                 Float_t * const __restrict__ v2) {
   int i = 0;
-  Float_t numerator = (Float_t)0;
-  Float_t denominator = (Float_t)0;
+  Float_t numerator = 0;
+  Float_t denominator = 0;
 
   for(i = 0; i < len; ++i) {
     numerator += ( v1[i] < v2[i] ? v1[i] : v2[i] );
@@ -59,15 +62,15 @@ Float_t czekanowski_alt(int len, Float_t * const __restrict__ v1, Float_t * cons
 }
 
 /*===========================================================================*/
-
 /* Inlinable min function for czek metric. */
+
 Float_t min_op(Float_t a, Float_t b) {
   return a < b ? a : b;
 }
 
 /*===========================================================================*/
-
 /* Compute the numerator for the czek metric. */
+
 Float_t czekanowski_numerator(int len, Float_t * const __restrict__ v1, Float_t * const __restrict__ v2) {
   int i = 0;
   Float_t result = (Float_t)0;
@@ -80,11 +83,11 @@ Float_t czekanowski_numerator(int len, Float_t * const __restrict__ v1, Float_t 
 }
 
 /*===========================================================================*/
-
 /* Compute simple sum of elements of a vector. */
+
 Float_t vector_sum(int len, Float_t * const __restrict__ v1) {
   int i = 0;
-  Float_t result = (Float_t)0;
+  Float_t result = 0;
 
   for(i = 0; i < len; ++i) {
     result += ( v1[i] );
@@ -94,8 +97,8 @@ Float_t vector_sum(int len, Float_t * const __restrict__ v1) {
 }
 
 /*===========================================================================*/
+/* Compute a checksum of the czek result values. */
 
-/* Compute a checksum of the czek values. */
 Float_t checksum( Float_t* czek_vals, int numvec) {
   int i = 0;
   int j = 0;
@@ -111,6 +114,7 @@ Float_t checksum( Float_t* czek_vals, int numvec) {
 #endif
 
 #if 1
+  /*---Compute weighted sum of values---*/
   for (i = 0; i < (numvec)-1; ++i) {
     for (j = i+1; j < (numvec); ++j) {
       result += (1 + j + (numvec)*1.*(i)) *
@@ -119,14 +123,18 @@ Float_t checksum( Float_t* czek_vals, int numvec) {
   }
 #endif
 
+  /*---Sum the result across nodes if appropriate---*/
+  Float_t tmp = result;
+  MPI_Allreduce(&tmp, &result, 1, MPI_Float_t, MPI_SUM, MPI_COMM_WORLD);
+
   return result;
 }
 
 /*===========================================================================*/
 /*===========================================================================*/
-
 /* Process all pairwise combinations of vectors (We do czek(i,j) and */
 /* not czek(j,i) since the result is the same. */
+
 void process_vectors(struct _vector *vectors, int numvec, int numfield,
                      FILE *fp) {
   int i = 0;
@@ -136,22 +144,19 @@ void process_vectors(struct _vector *vectors, int numvec, int numfield,
   for (i = 0; i < numvec-1; i++) {
     for (j = i+1; j < numvec; j++) {
       czek = czekanowski(numfield, vectors[i].data, vectors[j].data);
-#ifndef NO_PRINT
       fprintf(fp, "%s\t%.4f\t%s\n", vectors[i].id, czek, vectors[j].id);
-#endif
     }  
   }
 }
 
 /*===========================================================================*/
-
 /* Alternate computation of Czekanowski metric for all pairwise combinations.
    For this version, time the computations, without counting I/O. */
+
 void process_vectors_alt(struct _vector *vectors, int numvec, int numfield,
                      FILE *fp) {
   int i = 0;
   int j = 0;
-  Float_t czek = 0.0;
   Float_t* czek_vals = 0;
   double time1 = 0.0;
   double time2 = 0.0;
@@ -162,41 +167,47 @@ void process_vectors_alt(struct _vector *vectors, int numvec, int numfield,
 
   for (i = 0; i < numvec-1; ++i) {
     for (j = i+1; j < numvec; ++j) {
-      czek = czekanowski(numfield, vectors[i].data, vectors[j].data);
+      const Float_t czek =
+                       czekanowski(numfield, vectors[i].data, vectors[j].data);
       czek_vals[j+numvec*i] = czek;
     }  
   }
 
   time2 = get_time();
 
+#ifndef NO_PRINT
   for (i = 0; i < numvec-1; ++i) {
     for (j = i+1; j < numvec; ++j) {
-      czek = czek_vals[j+numvec*i];
-#ifndef NO_PRINT
+      Float_t czek = czek_vals[j+numvec*i];
       fprintf(fp, "%s\t%.4f\t%s\n", vectors[i].id, czek, vectors[j].id);
-#endif
     }  
   }
+#endif
 
-  printf("alt  numvec %i numfield %i "
-         "time: %.6f "
-         "checksum %.15e\n",
-         numvec, numfield, time2-time1, checksum(czek_vals, numvec));
+  /*---Output result summary on proc 0---*/
+  Float_t cksum = checksum(czek_vals, numvec);
+  int comm_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+  if (comm_rank == 0) {
+    printf("alt  numvec %i numfield %i "
+           "time: %.6f "
+           "checksum %.15e\n",
+           numvec, numfield, time2-time1, cksum);
+  }
 
   free(czek_vals);
 }
 
 /*===========================================================================*/
-
 /* Alternate computation of Czekanowski metric for all pairwise combinations.
    For this version, change the ordering of computations, memory layout to
    attempt to improve speed. (wasn't very effective) */
+
 void process_vectors_alt2(struct _vector *vectors, int numvec, int numfield,
                      FILE *fp) {
   int i = 0;
   int j = 0;
   int k = 0;
-  Float_t czek = 0.0;
   Float_t* czek_vals = 0;
   Float_t* czek_numerators = 0;
   Float_t* czek_denominators = 0;
@@ -259,19 +270,25 @@ void process_vectors_alt2(struct _vector *vectors, int numvec, int numfield,
 
   /* Output */
 
+#ifndef NO_PRINT
   for (i = 0; i < numvec-1; ++i) {
     for (j = i+1; j < numvec; ++j) {
-      czek = czek_vals[j+numvec*i];
-#ifndef NO_PRINT
+      const Float_t czek = czek_vals[j+numvec*i];
       fprintf(fp, "%s\t%.4f\t%s\n", vectors[i].id, czek, vectors[j].id);
-#endif
     }  
   }
+#endif
 
-  printf("alt2 numvec %i numfield %i "
-         "time: %.6f "
-         "checksum %.15e\n",
-         numvec, numfield, time2-time1, checksum(czek_vals, numvec));
+  /*---Output result summary on proc 0---*/
+  Float_t cksum = checksum(czek_vals, numvec);
+  int comm_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+  if (comm_rank == 0) {
+    printf("alt  numvec %i numfield %i "
+           "time: %.6f "
+           "checksum %.15e\n",
+           numvec, numfield, time2-time1, cksum);
+  }
 
   free(czek_vals);
   free(czek_numerators);
@@ -280,10 +297,10 @@ void process_vectors_alt2(struct _vector *vectors, int numvec, int numfield,
 }
 
 /*===========================================================================*/
-
 /* Alternate computation of Czekanowski metric for all pairwise combinations.
    For this version, apply blocking of vectors, to try to get better
    reuse of elements read into cache. (helped some) */
+
 void process_vectors_alt3(struct _vector *vectors, int numvec, int numfield,
                      FILE *fp) {
   int i = 0;
@@ -310,33 +327,38 @@ void process_vectors_alt3(struct _vector *vectors, int numvec, int numfield,
 
   time2 = get_time();
 
+#ifndef NO_PRINT
   for (i = 0; i < numvec-1; ++i) {
     for (j = i+1; j < numvec; ++j) {
-      czek = czek_vals[j+numvec*i];
-#ifndef NO_PRINT
+      const Float_t czek = czek_vals[j+numvec*i];
       fprintf(fp, "%s\t%.4f\t%s\n", vectors[i].id, czek, vectors[j].id);
-#endif
     }  
   }
+#endif
 
-  printf("alt3 numvec %i numfield %i "
-         "time: %.6f "
-         "checksum %.15e\n",
-         numvec, numfield, time2-time1, checksum(czek_vals, numvec));
+  /*---Output result summary on proc 0---*/
+  Float_t cksum = checksum(czek_vals, numvec);
+  int comm_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+  if (comm_rank == 0) {
+    printf("alt  numvec %i numfield %i "
+           "time: %.6f "
+           "checksum %.15e\n",
+           numvec, numfield, time2-time1, cksum);
+  }
 
   free(czek_vals);
 }
 
 /*===========================================================================*/
-
 /* Alternate computation of Czekanowski metric for all pairwise combinations.
    For this version, separate out the denominator computation, compute
    using individual vector sums. (helped some) */
+
 void process_vectors_alt4(struct _vector *vectors, int numvec, int numfield,
                      FILE *fp) {
   int i = 0;
   int j = 0;
-  Float_t czek = (Float_t)0;
   Float_t czek_numerator = (Float_t)0;
   Float_t* czek_vals = 0;
   Float_t* vector_sums = 0;
@@ -364,26 +386,31 @@ void process_vectors_alt4(struct _vector *vectors, int numvec, int numfield,
 
   time2 = get_time();
 
+#ifndef NO_PRINT
   for (i = 0; i < numvec-1; ++i) {
     for (j = i+1; j < numvec; ++j) {
-      czek = czek_vals[j+numvec*i];
-#ifndef NO_PRINT
+      const Float_t czek = czek_vals[j+numvec*i];
       fprintf(fp, "%s\t%.4f\t%s\n", vectors[i].id, czek, vectors[j].id);
-#endif
     }  
   }
+#endif
 
-  printf("alt4 numvec %i numfield %i "
-         "time: %.6f "
-         "checksum %.15e\n",
-         numvec, numfield, time2-time1, checksum(czek_vals, numvec));
+  /*---Output result summary on proc 0---*/
+  Float_t cksum = checksum(czek_vals, numvec);
+  int comm_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+  if (comm_rank == 0) {
+    printf("alt  numvec %i numfield %i "
+           "time: %.6f "
+           "checksum %.15e\n",
+           numvec, numfield, time2-time1, cksum);
+  }
 
   free(czek_vals);
   free(vector_sums);
 }
 
 /*===========================================================================*/
-
 /* Compute the strict triangular part of A^T * A, with scalar multiplication
    replaced with the "min" operation. */
 
@@ -412,16 +439,15 @@ void matrix_matrix_min_product(int numvec, int numfield,
 }
 
 /*===========================================================================*/
-
 /* Alternate computation of Czekanowski metric for all pairwise combinations.
    For this version, separate the numerator calculation and use a
    matrix-matrix-product-like computation. */
+
 void process_vectors_alt5(struct _vector *vectors, int numvec, int numfield,
                      FILE *fp) {
   int i = 0;
   int j = 0;
   int k = 0;
-  Float_t czek = (Float_t)0;
   Float_t* __restrict__ czek_vals = 0;
   Float_t* __restrict__ vector_sums = 0;
   Float_t* __restrict__ vector_matrix = 0;
@@ -455,19 +481,25 @@ void process_vectors_alt5(struct _vector *vectors, int numvec, int numfield,
 
   time2 = get_time();
 
+#ifndef NO_PRINT
   for (i = 0; i < numvec-1; ++i) {
     for (j = i+1; j < numvec; ++j) {
-      czek = czek_vals[j+numvec*i];
-#ifndef NO_PRINT
+      const Float_t czek = czek_vals[j+numvec*i];
       fprintf(fp, "%s\t%.4f\t%s\n", vectors[i].id, czek, vectors[j].id);
-#endif
     }  
   }
+#endif
 
-  printf("alt5 numvec %i numfield %i "
-         "time: %.6f "
-         "checksum %.15e\n",
-         numvec, numfield, time2-time1, checksum(czek_vals, numvec));
+  /*---Output result summary on proc 0---*/
+  Float_t cksum = checksum(czek_vals, numvec);
+  int comm_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+  if (comm_rank == 0) {
+    printf("alt  numvec %i numfield %i "
+           "time: %.6f "
+           "checksum %.15e\n",
+           numvec, numfield, time2-time1, cksum);
+  }
 
   free(czek_vals);
   free(vector_sums);
@@ -475,7 +507,6 @@ void process_vectors_alt5(struct _vector *vectors, int numvec, int numfield,
 }
 
 /*===========================================================================*/
-
 /* Alternate computation of Czekanowski metric for all pairwise combinations.
    For this version, use modified magma library.
 
@@ -486,12 +517,12 @@ void process_vectors_alt5(struct _vector *vectors, int numvec, int numfield,
    This version uses the code for the older NVIDIA Tesla GPUS.  It is likely
    that other code in magma e.g. for Fermi would give higher performance.
  */
+
 void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
                      FILE *fp) {
   int i = 0;
   int j = 0;
   int k = 0;
-  Float_t czek = (Float_t)0;
   Float_t* __restrict__ vector_sums = 0;
   Float_t* czek_vals = 0;
   Float_t* vector_matrix = 0;
@@ -589,19 +620,25 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
 
   time2 = get_time();
 
+#ifndef NO_PRINT
   for (i = 0; i < numvec-1; ++i) {
     for (j = i+1; j < numvec; ++j) {
-      czek = czek_vals[j+numvec*i];
-#ifndef NO_PRINT
+      const Float_t czek = czek_vals[j+numvec*i];
       fprintf(fp, "%s\t%.4f\t%s\n", vectors[i].id, czek, vectors[j].id);
-#endif
     }  
   }
+#endif
 
-  printf("alt6 numvec %i numfield %i "
-         "time: %.6f "
-         "checksum %.15e\n",
-         numvec, numfield, time2-time1, checksum(czek_vals, numvec));
+  /*---Output result summary on proc 0---*/
+  Float_t cksum = checksum(czek_vals, numvec);
+  int comm_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+  if (comm_rank == 0) {
+    printf("alt  numvec %i numfield %i "
+           "time: %.6f "
+           "checksum %.15e\n",
+           numvec, numfield, time2-time1, cksum);
+  }
 
   /* Free memory */
 
@@ -618,9 +655,9 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
 
 /*===========================================================================*/
 /*===========================================================================*/
-
 /* Read in the vectors (ids and data) and dynamically allocate */
 /* memory as needed. */
+
 struct _vector *read_vectors(FILE *fp, int *numvec, int *numfield) {
   int i = 0;
   int c = 0;               /* Character we read in */
@@ -769,3 +806,5 @@ void free_vectors(struct _vector *vectors, int numvec) {
     free(vectors);
   } 
 }
+
+/*===========================================================================*/

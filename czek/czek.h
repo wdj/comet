@@ -30,6 +30,7 @@
 #define NO_PRINT
 
 typedef double Float_t;
+enum{MPI_Float_t = MPI_DOUBLE};
 
 struct _vector {
   char id[MAXFIELDSIZE];
