@@ -7,8 +7,8 @@ CC      = cc
 
 #CFLAGS  += -pedantic -Wall -O2
 CFLAGS  += -Wall -O2 -finline-functions -finline-limit=1000
-CFLAGS  += -I../magma-1.6.2-minproduct/include $(CRAY_CUDATOOLKIT_INCLUDE_OPTS) -DADD_
-LFLAGS = $(LDFLAGS) -L../magma-1.6.2-minproduct/lib -lmagma $(CRAY_CUDATOOLKIT_POST_LINK_OPTS) -lcublas
+CFLAGS  += -I../magma/magma_minproduct-1.6.2/include $(CRAY_CUDATOOLKIT_INCLUDE_OPTS) -DADD_
+LFLAGS = $(LDFLAGS) -L../magma/magma_minproduct-1.6.2/lib -lmagma_minproduct $(CRAY_CUDATOOLKIT_POST_LINK_OPTS) -lcublas
 
 ifneq ($(NCOPIES_V),)
   CFLAGS += -DNCOPIES_V=$(NCOPIES_V)

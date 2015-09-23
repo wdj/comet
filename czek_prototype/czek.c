@@ -9,8 +9,8 @@
 
 #include "mpi.h"
 
-#include "magma.h"
-#include "magma_lapack.h"
+#include "magma_minproduct.h"
+#include "magma_minproduct_lapack.h"
 
 #include "czek.h"
 
@@ -531,11 +531,11 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
 
   vector_sums = malloc(numvec*sizeof(Float_t));
 
-  magma_init();
+  magma_minproduct_init();
 
   /* Allocate magma CPU memory for vectors and for czek_vals result */
-  magma_dmalloc_pinned(&czek_vals,numvec*numvec);
-  magma_dmalloc_pinned(&vector_matrix,numvec*numfield);
+  magma_minproduct_dmalloc_pinned(&czek_vals,numvec*numvec);
+  magma_minproduct_dmalloc_pinned(&vector_matrix,numvec*numfield);
 
   /* Copy in vectors */
 
@@ -550,8 +550,8 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
   Float_t* d_vector_matrix = 0;
   Float_t* d_czek_vals = 0;
 
-  magma_dmalloc(&d_vector_matrix, numvec*numfield);
-  magma_dmalloc(&d_czek_vals, numvec*numvec);
+  magma_minproduct_dmalloc(&d_vector_matrix, numvec*numfield);
+  magma_minproduct_dmalloc(&d_czek_vals, numvec*numvec);
 
   /* Initialize result to zero (apparently is required) */
   for (i = 0; i < numvec; ++i) {
@@ -562,11 +562,11 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
 
   /* Send matrix to GPU */
 
-  magma_dsetmatrix(numvec, numvec, czek_vals, numvec,
+  magma_minproduct_dsetmatrix(numvec, numvec, czek_vals, numvec,
                                  d_czek_vals, numvec);
 
 /*
-  magma_dgetmatrix(numvec, numvec, d_czek_vals, numvec, 
+  magma_minproduct_dgetmatrix(numvec, numvec, d_czek_vals, numvec, 
                                      czek_vals, numvec);
 */
 
@@ -580,14 +580,14 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
 
   /* Send matrix to GPU */
 
-  magma_dsetmatrix(numfield, numvec, vector_matrix, numfield,
+  magma_minproduct_dsetmatrix(numfield, numvec, vector_matrix, numfield,
                                    d_vector_matrix, numfield);
 
   /* Perform pseudo matrix-matrix product */
 
-  magmablas_dgemm_tesla(
-    MagmaTrans,
-    MagmaNoTrans,
+  magma_minproductblas_dgemm_tesla(
+    Magma_minproductTrans,
+    Magma_minproductNoTrans,
     numvec,
     numvec,
     numfield,
@@ -602,7 +602,7 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
 
   /* Copy result from GPU */
 
-  magma_dgetmatrix(numvec, numvec, d_czek_vals, numvec, 
+  magma_minproduct_dgetmatrix(numvec, numvec, d_czek_vals, numvec, 
                                      czek_vals, numvec);
 
 /*
@@ -642,13 +642,13 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
 
   /* Free memory */
 
-  magma_free(d_czek_vals);
-  magma_free(d_vector_matrix);
+  magma_minproduct_free(d_czek_vals);
+  magma_minproduct_free(d_vector_matrix);
 
-  magma_free_pinned(czek_vals);
-  magma_free_pinned(vector_matrix);
+  magma_minproduct_free_pinned(czek_vals);
+  magma_minproduct_free_pinned(vector_matrix);
 
-  magma_finalize();
+  magma_minproduct_finalize();
 
   free(vector_sums);
 }

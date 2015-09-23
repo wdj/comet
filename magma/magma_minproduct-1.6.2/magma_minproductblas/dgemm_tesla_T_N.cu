@@ -13,7 +13,7 @@
 /*
  * daxpy computes c += alpha*b, where b and c are 16-element vectors.
  */
-if 0
+#if 0
 static __device__ double mult_op(double a, double b)
 {
     return a * b;
