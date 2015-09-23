@@ -1,0 +1,36 @@
+#!/bin/bash
+#==============================================================================
+#
+# Create a custom version of Magma with its own namespace.
+#
+#==============================================================================
+
+TAG="${1:-}"
+if [ "$TAG" = "" ] ; then 
+  echo "Usage: clone_magma <tag>"
+  exit 1
+fi
+
+MAGMA="magma-1.6.2"
+#rm -rf $MAGMA
+
+echo "Unpacking ..."
+
+gunzip <${MAGMA}.tar.gz | tar xf -
+
+echo "Changing strings in each file ..."
+
+#for file in `find $MAGMA -name '*' -type f -print` ; do
+for file in `grep -ril 'magma' $MAGMA` ; do
+  sed -i "s/[mM][aA][gG][mM][aA]/&_$TAG/g" $file
+done
+
+echo "Renaming files and directories ..."
+
+#---NOTE: this is somewhat brittle, may brek if ordering is wrong.
+
+for item in `find $MAGMA -iname '*magma*' -print | sort | tac` ; do
+  mv $item `echo $item | sed -e "s/\(.*\)\([mM][aA][gG][mM][aA]\)\(.*\)/\1\2_$TAG\3/g"`
+done
+
+#==============================================================================

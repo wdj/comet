@@ -1,0 +1,42 @@
+# Automatically generated from Makefile ZHDR and ZSRC
+CHDR = \
+	magma_minproduct_c.h \
+	magma_minproductblas_c.h \
+	magma_minproductblas_c_q.h \
+	magma_minproduct_clapack.h \
+	magma_minproduct_cbulge.h \
+	magma_minproduct_cbulgeinc.h \
+	magma_minproduct_cgehrd_m.h \
+	magma_minproduct_cbatched.h
+
+DHDR = \
+	magma_minproduct_d.h \
+	magma_minproduct_ds.h \
+	magma_minproductblas_d.h \
+	magma_minproductblas_ds.h \
+	magma_minproductblas_d_q.h \
+	magma_minproductblas_ds_q.h \
+	magma_minproduct_dlapack.h \
+	magma_minproduct_dbulge.h \
+	magma_minproduct_dbulgeinc.h \
+	magma_minproduct_dgehrd_m.h \
+	magma_minproduct_dbatched.h
+
+SHDR = \
+	magma_minproduct_s.h \
+	magma_minproductblas_s.h \
+	magma_minproductblas_s_q.h \
+	magma_minproduct_slapack.h \
+	magma_minproduct_sbulge.h \
+	magma_minproduct_sbulgeinc.h \
+	magma_minproduct_sgehrd_m.h \
+	magma_minproduct_sbatched.h
+
+CSRC = \
+	
+
+DSRC = \
+	
+
+SSRC = \
+	

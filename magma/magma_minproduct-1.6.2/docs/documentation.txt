@@ -1,0 +1,697 @@
+This file is processed with Doxygen. See docs/html/index.html for formatted version.
+
+/**
+
+********************************************************************************
+@mainpage MAGMA_minproduct User Guide
+
+Univ. of Tennessee, Knoxville \n
+Univ. of California, Berkeley \n
+Univ. of Colorado, Denver
+@date May 2015
+
+The goal of the MAGMA_minproduct project is to create a new generation of linear algebra
+libraries that achieves the fastest possible time to an accurate solution on
+heterogeneous architectures, starting with current multicore + multi-GPU
+systems. To address the complex challenges stemming from these systems'
+heterogeneity, massive parallelism, and the gap between compute speed and CPU-GPU
+communication speed, MAGMA_minproduct's research is based on the idea that optimal
+software solutions will themselves have to hybridize, combining the strengths of
+different algorithms within a single framework. Building on this idea, the goal
+is to design linear algebra algorithms and frameworks for hybrid multicore and
+multi-GPU systems that can enable applications to fully exploit the power that
+each of the hybrid components offers.
+
+Designed to be similar to LAPACK in functionality, data storage, and interface,
+the MAGMA_minproduct library allows scientists to easily port their existing software
+components from LAPACK to MAGMA_minproduct, to take advantage of the new hybrid
+architectures.
+MAGMA_minproduct users do not have to know CUDA in order to use the library.
+
+There are two types of LAPACK-style interfaces. The first one, referred
+to as the *CPU interface*, takes the input and produces the result in the CPU's
+memory. The second, referred to as the *GPU interface*, takes the input and
+produces the result in the GPU's memory. In both cases, a hybrid CPU/GPU
+algorithm is used. Also included is MAGMA_minproduct BLAS, a complementary to CUBLAS routines.
+
+
+********************************************************************************
+@page authors Collaborators
+
+- H. Anzt     (UT Knoxville)
+- M. Baboulin (U Paris-Sud)
+- C. Cao      (UT Knoxville)
+- J. Demmel   (UC Berkeley)
+- T. Dong     (UT Knoxville)
+- J. Dongarra (UT Knoxville)
+- P. Du       (UT Knoxville)
+- M. Faverge  (INRIA)
+- M. Gates    (UT Knoxville)
+- A. Haidar   (UT Knoxville)
+- M. Horton   (UT Knoxville)
+- J. Kurzak   (UT Knoxville)
+- J. Langou   (UC Denver)
+- H. Ltaief   (KAUST)
+- P. Luszczek (UT Knoxville)
+- T. Mary     (IRIT, Team APO)
+- R. Nath     (UT Knoxville)
+- R. Solca    (ETH Zurich)
+- S. Tomov    (UT Knoxville)
+- V. Volkov   (UC Berkeley)
+- I. Yamazaki (UT Knoxville)
+
+
+********************************************************************************
+@page installing    Installing MAGMA_minproduct
+
+First, create a file make.inc, using one of the examples as a template.
+Set environment variables for where external packages are installed,
+either in your .cshrc/.bashrc file, or in the make.inc file itself.
+For instance, to specify where CUDA and Intel MKL are installed, using csh:
+
+    setenv CUDADIR /usr/local/cuda
+    # sourcing this script sets MKLROOT
+    source /opt/intel/composer/bin/compilervars.csh intel64
+
+using sh/bash:
+
+    CUDADIR=/usr/local/cuda
+    source /opt/intel/composer/bin/compilervars.sh intel64
+
+If you do not have a Fortran compiler, comment out FORT. MAGMA_minproduct's Fortran 90
+interface and Fortran testers will not be built. Also, many testers will not
+be able to check their results -- they will print an error message, e.g.:
+
+    magma_minproduct/testing> ./testing_dgehrd -N 100 -c
+    ...
+    Cannot check results: dhst01_ unavailable, since there was no Fortran compiler.
+      100     ---   (  ---  )      0.70 (   0.00)   0.00e+00        0.00e+00   ok
+
+To compile shared library, first add -fPIC to CFLAGS, FFLAGS, etc. in make.inc;
+see example in make.inc.mkl-shared. Then:
+
+    make shared
+    make test
+    make install prefix=/usr/local/magma_minproduct
+
+To compile static library:
+
+    make lib
+    make test
+    make install prefix=/usr/local/magma_minproduct
+
+This installs libmagma_minproduct.a and libmagma_minproduct.so (if compiled) in \$(prefix)/lib, and
+the MAGMA_minproduct header files in \$(prefix)/include. It also installs
+\$(prefix)/lib/pkgconfig/magma_minproduct.pc for pkg-config.
+
+
+********************************************************************************
+@page testing       Running tests
+
+The testing directory includes tests of most MAGMA_minproduct functions. These are
+useful as examples, though they contain additional testing features that
+your application does not need, or would do differently. The \ref example "example"
+directory has a simple example without all this additional framework.
+
+See the \ref run_tests.py file to run a standard set of test sizes and options.
+Currentyl, nearly all the tests pass with --tol 100. With the default tolerance,
+usually 30, some tests will signal false negatives, where the test is okay but
+just slightly above the accuracy tolerance check.
+
+
+********************************************************************************
+@page example       Example
+
+The example directory shows a simple, standalone example. This shows how to
+use MAGMA_minproduct, apart from the MAGMA_minproduct Makefiles and other special framework that
+we've developed for the tests.
+
+
+********************************************************************************
+@page routines      Routine names
+
+The interface for MAGMA_minproduct is similar to LAPACK, to facilitate porting existing
+codes. Many routines have the same base names and the same arguments as LAPACK.
+In some cases, MAGMA_minproduct needs larger workspaces or some additional arguments in
+order to implement an efficient algorithm.
+
+There are several classes of routines in MAGMA_minproduct:
+
+1. \ref driver -- Solve an entire problem.
+
+2. \ref comp   -- Solve one piece of a problem.
+
+3. \ref blas   -- Basic Linear Algebra Subroutines.
+   These form the basis for linear algebra algorithms.
+
+4. \ref aux    --
+   Additional BLAS-like routines, many originally defined in LAPACK.
+
+5. \ref util   --
+   Additional routines, many specific to GPU programming.
+
+A brief summary of routines is given here.
+Full descriptions of individual routines are given in the Modules section.
+
+Driver & computational routines have a `magma_minproduct_` prefix. These are
+generally hybrid CPU/GPU algorithms. A suffix indicates in what memory the
+matrix starts and ends, not where the computation is done.
+
+Suffix       |  Example            |  Description
+-----------  |  -----------        |  -----------
+none         |  magma_minproduct_dgetrf       |  hybrid CPU/GPU          routine where the matrix is initially in CPU host memory.
+_m           |  magma_minproduct_dgetrf_m     |  hybrid CPU/multiple-GPU routine where the matrix is initially in CPU host memory.
+_gpu         |  magma_minproduct_dgetrf_gpu   |  hybrid CPU/GPU          routine where the matrix is initially in GPU device memory.
+_mgpu        |  magma_minproduct_dgetrf_mgpu  |  hybrid CPU/multiple-GPU routine where the matrix is distributed across multiple GPUs' device memories.
+
+In general, MAGMA_minproduct follows LAPACK's naming conventions.
+The base name of each routine has a
+one letter precision (occasionally two letters),
+two letter matrix type,
+and usually a 2-3 letter routine name. For example,
+DGETRF is D (double-precision), GE (general matrix), TRF (triangular factorization).
+
+Precision    |  Description
+-----------  |  -----------
+s            |  single real precision (float)
+d            |  double real precision (double)
+c            |  single-complex precision (magma_minproductFloatComplex)
+z            |  double-complex precision (magma_minproductDoubleComplex)
+sc           |  single-complex input with single precision result (e.g., scnrm2)
+dz           |  double-complex input with double precision result (e.g., dznrm2)
+ds           |  mixed-precision algorithm (double and single, e.g., dsgesv)
+zc           |  mixed-precision algorithm (double-complex and single-complex, e.g., zcgesv)
+
+Matrix type  |  Description
+-----------  |  -----------
+ge           |  general matrix
+sy           |  symmetric matrix, can be real or complex
+he           |  Hermitian (complex) matrix
+po           |  positive definite, symmetric (real) or Hermitian (complex) matrix
+tr           |  triangular matrix
+or           |  orthogonal (real) matrix
+un           |  unitary (complex) matrix
+
+Driver routines  {#driver}
+=================================
+Driver routines solve an entire problem.
+
+Name                                                                                               |  Description
+-----------                                                                                        |  -----------
+\ref magma_minproduct_dgesv_driver  "gesv",  \ref magma_minproduct_dposv_driver "posv"                                   |  solve linear system, AX = B
+\ref magma_minproduct_dgels_driver  "gels"                                                                    |  least squares solve, AX = B
+\ref magma_minproduct_dgeev_driver  "geev",  \ref magma_minproduct_dsyev_driver "syev",  \ref magma_minproduct_zheev_driver "heev"  |  eigenvalue solver, AX = X Lambda
+\ref magma_minproduct_dsyev_driver  "syevd", \ref magma_minproduct_zheev_driver "heevd"                                  |  eigenvalue solver using divide & conquer
+\ref magma_minproduct_dsygv_driver  "sygvd", \ref magma_minproduct_zhegv_driver "hegvd"                                  |  generalized eigenvalue solver, AX = BX Lambda
+\ref magma_minproduct_dgesvd_driver "gesvd"                                                                   |  singular value decomposition (SVD), A = U Sigma V^H
+\ref magma_minproduct_dgesvd_driver "gesdd"                                                                   |  SVD using divide & conquer
+
+Computational routines  {#comp}
+=================================
+Computational routines solve one piece of a problem. Typically, driver
+routines call several computational routines to solve the entire problem.
+Here, curly braces { } group similar routines.
+Starred * routines are not yet implemented in MAGMA_minproduct.
+
+Name                                                                                   |  Description
+-----------                                                                            |  -----------
+: **Triangular factorizations** :                                                      |  **Description**
+\ref magma_minproduct_dgetrf     "getrf", \ref magma_minproduct_dpotrf     "potrf"                           |  triangular factorization (LU, Cholesky)
+\ref magma_minproduct_dgetrs_gpu "getrs", \ref magma_minproduct_dpotrs_gpu "potrs"                           |  triangular forward and back solve
+\ref magma_minproduct_dgetri_gpu "getri", \ref magma_minproduct_dpotri     "potri"                           |  triangular inverse
+\ref magma_minproduct_dgetf2_gpu "getf2", \ref magma_minproduct_dpotf2_gpu "potf2"                           |  triangular panel factorization (BLAS-2)
+. **Orthogonal factorizations**                                                        |  **Description**
+ge{\ref magma_minproduct_dgeqrf "qrf", \ref magma_minproduct_dgeqlf "qlf",  \ref magma_minproduct_dgelqf "lqf",  rqf*}  |  QR, QL, LQ, RQ factorization
+\ref magma_minproduct_dgeqp3 "geqp3"                                                              |  QR with column pivoting (BLAS-3)
+or{\ref magma_minproduct_dormqr "mqr", \ref magma_minproduct_dormql "mql",  \ref magma_minproduct_dormlq "mlq",  mrq*}  |  multiply by Q after factorization (real)
+un{\ref magma_minproduct_zunmqr "mqr", \ref magma_minproduct_zunmql "mql",  \ref magma_minproduct_zunmlq "mlq",  mrq*}  |  multiply by Q after factorization (complex)
+or{\ref magma_minproduct_dorgqr "gqr", gql*, glq*, grq*}                                          |  generate Q after factorization (real)
+un{\ref magma_minproduct_zungqr "gqr", gql*, glq*, grq*}                                          |  generate Q after factorization (complex)
+\ref magma_minproduct_dgeqr2_gpu "geqr2"                                                          |  QR panel factorization (BLAS-2)
+. **Eigenvalue & SVD**                                                                 |  **Description**
+\ref magma_minproduct_dgehrd "gehrd"                                                              |  Hessenberg  reduction (in geev)
+\ref magma_minproduct_dsytrd "sytrd", \ref magma_minproduct_zhetrd "hetrd"                                   |  tridiagonal reduction (in syev, heev)
+\ref magma_minproduct_dgebrd "gebrd"                                                              |  bidiagonal  reduction (in gesvd)
+
+There are many other computational routines that are mostly internal to
+MAGMA_minproduct and LAPACK, and not commonly called by end users.
+
+BLAS routines  {#blas}
+=================================
+BLAS routines follow a similar naming scheme: precision, matrix type (for
+level 2 & 3), routine name.
+For BLAS routines, the **magma_minproduct_ prefix** indicates a wrapper around CUBLAS
+(e.g., magma_minproduct_zgemm calls cublasZgemm), while the **magma_minproductblas_ prefix** indicates
+our own MAGMA_minproduct implementation (e.g., magma_minproductblas_zgemm). All MAGMA_minproduct BLAS routines
+are GPU native and take the matrix in GPU memory.
+The descriptions here are simplified, omitting scalars (alpha & beta) and
+transposes.
+
+
+BLAS-1: vector operations
+---------------------------------
+These do O(n) operations on O(n) data and are memory-bound.
+
+Name                     |  Description
+-----------              |  -----------
+\ref magma_minproduct_dcopy "copy"  |  copy vector, y = x
+\ref magma_minproduct_dscal "scal"  |  scale vector, y = alpha*y
+\ref magma_minproduct_dswap "swap"  |  swap two vectors, y <---> x
+\ref magma_minproduct_daxpy "axpy"  |  y = alpha*x + y
+\ref magma_minproduct_dnrm2 "nrm2"  |  vector 2-norm
+\ref magma_minproduct_idamax "amax" |  vector max-norm
+\ref magma_minproduct_dasum "asum"  |  vector one-norm
+\ref magma_minproduct_ddot  "dot"   |  dot product (real), x^T y
+\ref magma_minproduct_zdotu "dotu"  |  dot product (complex), unconjugated, x^T y
+\ref magma_minproduct_zdotc "dotc"  |  dot product (complex), conjugated,   x^H y
+
+BLAS-2: matrix-vector operations
+---------------------------------
+These do O(n^2) operations on O(n^2) data and are memory-bound.
+
+Name                                               |  Description
+-----------                                        |  -----------
+\ref magma_minproduct_dgemv  "gemv"                           |  general matrix-vector product, y = A*x
+\ref magma_minproduct_dsymv  "symv", \ref magma_minproduct_zhemv "hemv"  |  symmetric/Hermitian matrix-vector product, y = A*x
+\ref magma_minproduct_dsyr   "syr",  \ref magma_minproduct_zher  "her"   |  symmetric/Hermitian rank-1 update, A = A + x*x^H
+\ref magma_minproduct_dsyr2  "syr2", \ref magma_minproduct_zher2 "her2"  |  symmetric/Hermitian rank-2 update, A = A + x*y^H + y*x^H
+\ref magma_minproduct_dtrmv  "trmv"                           |  triangular matrix-vector product, y = A*x
+\ref magma_minproduct_dtrsv  "trsv"                           |  triangular solve, one right-hand side (RHS), solve Ax = b
+
+BLAS-3: matrix-matrix operations
+---------------------------------
+These do O(n^3) operations on O(n^2) data and are compute-bound.
+Level 3 BLAS are significantly more efficient than the memory-bound level 1 and level 2 BLAS.
+
+Name                                                  |  Description
+-----------                                           |  -----------
+\ref magma_minproduct_dgemm  "gemm"                              |  general matrix-matrix multiply, C = C + A*B
+\ref magma_minproduct_dsymm  "symm",  \ref magma_minproduct_zhemm  "hemm"   |  symmetric/Hermitian matrix-matrix multiply, C = C + A*B, A is symmetric
+\ref magma_minproduct_dsyrk  "syrk",  \ref magma_minproduct_zherk  "herk"   |  symmetric/Hermitian rank-k update, C = C + A*A^H, C is symmetric
+\ref magma_minproduct_dsyr2k "syr2k", \ref magma_minproduct_zher2k "her2k"  |  symmetric/Hermitian rank-2k update, C = C + A*B^H + B*A^H, C is symmetric
+\ref magma_minproduct_dtrmm  "trmm"                              |  triangular matrix-matrix multiply, B = A*B or B*A, A is triangular
+\ref magma_minproduct_dtrsm  "trsm"                              |  triangular solve, multiple RHS, solve A*X = B or X*A = B, A is triangular
+
+Auxiliary routines  {#aux}
+=================================
+Additional BLAS-like routines, many originally defined in LAPACK.
+These follow a similar naming scheme: precision, then "la", then the routine name.
+MAGMA_minproduct implements these common ones on the GPU, plus adds a few such as symmetrize and transpose.
+
+For auxiliary routines, the **magma_minproductblas_ prefix** indicates
+our own MAGMA_minproduct implementation (e.g., magma_minproductblas_zlaswp). All MAGMA_minproduct auxiliary routines
+are GPU native and take the matrix in GPU memory.
+
+Name                                     |  Description
+-----------                              |  -----------
+\ref magma_minproductblas_dgeadd "geadd"            |  add general matrices (like axpy), B = alpha*A + B
+\ref magma_minproductblas_dlaswp "laswp"            |  swap rows (in getrf)
+\ref magma_minproductblas_dlaset "laset"            |  set matrix to constant
+\ref magma_minproductblas_dlacpy "lacpy"            |  copy matrix
+\ref magma_minproductblas_dlascl "lascl"            |  scale matrix
+\ref magma_minproductblas_dlange "lange"            |  norm, general matrix
+\ref magma_minproductblas_dlansy "lansy"            |  norm, symmetric matrix
+\ref magma_minproductblas_zlanhe "lanhe"            |  norm, Hermitian matrix
+\ref magma_minproductblas_dlantr "lantr"            |  norm, triangular matrix
+\ref magma_minproductblas_dlag2s "lag2"             |  convert general    matrix from one precision to another (e.g., dlag2s is double to single)
+\ref magma_minproductblas_dlat2s "lat2"             |  convert triangular matrix from one precision to another
+\ref magma_minproductblas_dlarf  "larf"             |  apply    Householder elementary reflector
+\ref magma_minproductblas_dlarfg "larfg"            |  generate Householder elementary reflector
+\ref magma_minproductblas_dlarfb "larfb"            |  apply      block Householder elementary reflector
+\ref magma_minproductblas_dlarft "larft"            |  form T for block Householder elementary reflector
+\ref magma_minproductblas_dsymmetrize "symmetrize"  |  copy lower triangle to upper triangle, or vice-versa
+\ref magma_minproductblas_dtranspose  "transpose"   |  transpose matrix
+
+Utility routines  {#util}
+=================================
+
+Memory Allocation
+---------------------------------
+MAGMA_minproduct can use regular CPU memory allocated with malloc or new, but it may
+achieve better performance using aligned and, especially, pinned memory.
+There are typed versions of these (e.g., magma_minproduct_zmalloc) that avoid the need
+to cast and use sizeof, and un-typed versions (e.g., magma_minproduct_malloc) that
+are more flexible but require a (void**) cast and multiplying the number of
+elements by sizeof.
+
+Name                                              |  Description
+-----------                                       |  -----------
+\ref magma_minproduct_dmalloc_cpu    "magma_minproduct_*malloc_cpu"     |  allocate CPU memory that is aligned for better performance & reproducibility
+\ref magma_minproduct_free_cpu       "magma_minproduct_free_cpu"        |  free CPU memory allocated with malloc_cpu
+\ref magma_minproduct_dmalloc_pinned "magma_minproduct_*malloc_pinned"  |  allocate CPU memory that is pinned (page-locked)
+\ref magma_minproduct_free_pinned    "magma_minproduct_free_pinned"     |  free CPU memory allocated with malloc_pinned
+\ref magma_minproduct_dmalloc        "magma_minproduct_*malloc"         |  allocate GPU memory
+\ref magma_minproduct_free           "magma_minproduct_free"            |  free GPU memory
+
+where * is one of the four precisions, s d c z, or i for magma_minproduct_int_t, or none
+for an un-typed version.
+
+
+Communication
+---------------------------------
+The name of communication routines is from the CPU's point of view.
+
+Name                               |  Description
+-----------                        |  -----------
+\ref magma_minproduct_dsetmatrix "setmatrix"  |  send matrix to GPU
+\ref magma_minproduct_dsetvector "setvector"  |  send vector to GPU
+\ref magma_minproduct_dgetmatrix "getmatrix"  |  get  matrix from GPU
+\ref magma_minproduct_dgetvector "getvector"  |  get  vector from GPU
+
+
+********************************************************************************
+@page types         Data types & complex numbers
+
+Integers
+---------------------------------
+MAGMA_minproduct uses **magma_minproduct_int_t** for integers. Normally, this is mapped to the C/C++ int type.
+Most systems today use the LP64 convention, meaning long and pointers are
+64-bit, while int is 32-bit.
+
+MAGMA_minproduct also supports the ILP64 convention as an alternative, where int, long, and
+pointers are all 64-bit. To use this, we typedef magma_minproduct_int_t to be int64_t. To
+use ILP64, define MAGMA_minproduct_ILP64 or MKL_ILP64 when compiling, and link with an
+ILP64 BLAS and LAPACK library; see make.inc.mkl-ilp64 for an example.
+
+Complex numbers
+---------------------------------
+MAGMA_minproduct supports complex numbers. Unfortunately, there is not a single standard
+for how to implement complex numbers in C/C++. Fortunately, most implementations
+are identical on a binary level, so you can freely cast from one to another.
+The MAGMA_minproduct types
+are: **magma_minproductFloatComplex**,  which in CUDA MAGMA_minproduct is a typedef of cuFloatComplex,
+and  **magma_minproductDoubleComplex**, which in CUDA MAGMA_minproduct is a typedef of cuDoubleComplex.
+
+For C, we provide macros to manipulate complex numbers.
+For C++ support, include the magma_minproduct_operators.h header, which provides
+overloaded C++ operators and functions.
+
+C macro                |  C++ operator  |  Description
+-----------            |  -----------   |  -----------
+c = MAGMA_minproduct_*_MAKE(r,i)  |                |  create complex number from real & imaginary parts
+r = MAGMA_minproduct_*_REAL(a)    |  r = real(a)   |  return real part
+i = MAGMA_minproduct_*_IMAG(a)    |  i = imag(a)   |  return imaginary part
+c = MAGMA_minproduct_*_NEGATE(a)  |  c = -a;       |  negate
+c = MAGMA_minproduct_*_ADD(a,b)   |  c = a + b;    |  add
+c = MAGMA_minproduct_*_SUB(a,b)   |  c = a - b;    |  subtract
+c = MAGMA_minproduct_*_MUL(a,b)   |  c = a * b;    |  multiply
+c = MAGMA_minproduct_*_DIV(a,b)   |  c = a / b;    |  divide
+c = MAGMA_minproduct_*_CNJG(a)    |  c = conj(a)   |  conjugate
+r = MAGMA_minproduct_*_ABS(a)     |  r = fabs(a)   |  2-norm, sqrt( real(a)^2 + imag(a)^2 )
+r = MAGMA_minproduct_*_ABS1(a)    |  r = abs1(a)   |  1-norm, abs(real(a)) + abs(imag(a))
+. **Constants**        |                |  **Description**
+c = MAGMA_minproduct_*_ZERO       |                |  zero
+c = MAGMA_minproduct_*_ONE        |                |  one
+c = MAGMA_minproduct_*_NAN        |                |  not-a-number (e.g., 0/0)
+c = MAGMA_minproduct_*_INF        |                |  infinity (e.g., 1/0, overflow)
+
+where * is one of the four precisions, S D C Z.
+
+
+********************************************************************************
+@page variables     Conventions for variables
+
+Here are general guidelines for variable names; there are of course
+exceptions to these.
+
+- Uppercase letters indicate matrices: A, B, C, X.
+
+- Lowercase letters indicate vectors: b, x, y, z.
+
+- "d" prefix indicates matrix or vector on GPU device: dA, dB, dC, dX; db, dx, dy, dz.
+
+- Greek words indicate scalars: alpha, beta.
+
+- m, n, k are matrix dimensions.
+
+Typically, the order of arguments is:
+- options (uplo, etc.)
+- matrix sizes (m, n, k, etc.),
+- input matrices & vectors (A, lda, x, incx, etc.)
+- output matrices & vectors
+- workspaces (work, lwork, etc.)
+- info error code
+
+LAPACK and MAGMA_minproduct use column-major matrices. For matrix X with dimension
+(lda,n), element X(i, j) is X[ i + j*lda ].
+For symmetric, Hermitian, and triangular matrices, only the lower or upper
+triangle is accessed, as specified by the uplo argument; the other triangle is
+ignored.
+
+lda is the leading dimension of matrix A; similarly ldb for B, ldda for dA, etc.
+It should immediately follow the matrix pointer in the argument list.
+The leading dimension can be the number of rows, or if A is a sub-matrix of
+a larger parent matrix, lda is the leading dimension (e.g., rows) of the
+parent matrix.
+
+On the GPU, it is often beneficial to round the leading dimension up to a
+multiple of 32, to provide better performance. This aligns memory reads so they
+are coalesced. This is provided by the magma_minproduct_roundup function:
+
+    ldda = magma_minproduct_roundup( m, 32 );
+
+The formula ((m + 31)/32)*32 also works, relying on floored integer division,
+but the roundup function is clearer to use.
+
+On the CPU, it is often beneficial to ensure that the leading dimension
+is **not** a multiple of the page size (often 4 KiB), to minimize TLB misses.
+
+For vectors, incx is the increment or stride between elements of vector x. In
+all cases, incx != 0. In most cases, if incx < 0, then the vector is indexed in
+reverse order, for instance, using Matlab notation,
+
+    incx =  1   means   x( 1 : 1 : n     )
+    incx =  2   means   x( 1 : 2 : 2*n-1 )
+
+while
+
+    incx = -1   means   x( n     : -1 : 1 )
+    incx = -2   means   x( 2*n-1 : -2 : 1 )
+
+For several routines (amax, amin, asum, nrm2, scal), the order is irrelevant,
+so negative incx are not allowed; incx > 0.
+
+
+********************************************************************************
+@page constants     Constants
+
+MAGMA_minproduct defines a few constant parameters, such as `Magma_minproductTrans, Magma_minproductNoTrans`,
+that are equivalent of CBLAS and LAPACK parameters. The
+naming and numbering of these parameters follow that of
+[CBLAS from Netlib](http://www.netlib.org/blas/blast-forum/cblas.tgz) and the
+[C Interface to LAPACK from Netlib](http://www.netlib.org/lapack/lapwrapc/), and
+[PLASMA](http://icl.utk.edu/plasma/).
+
+MAGMA_minproduct includes functions, `lapack_xyz_const()`, which take MAGMA_minproduct's integer
+constants and return LAPACK's string constants, where `xyz` is a MAGMA_minproduct type such
+as `uplo`, `trans`, etc. From the standpoint of LAPACK, only the first letter of
+each string is significant. Nevertheless, the functions return meaningful
+strings, such as "No transpose", "Transpose", "Upper", "Lower",
+etc. Similarly, there are functions to go from MAGMA_minproduct's integer constants to
+CBLAS, OpenCL's clBLAS, and CUDA's cuBLAS integer constants.
+
+There are also functions, `magma_minproduct_xyz_const()`, to go in the opposite direction,
+from LAPACK's string constants to MAGMA_minproduct's integer constants.
+
+
+The most common constants are those defined for BLAS routines:
+
+- enum { Magma_minproductNoTrans, Magma_minproductTrans, Magma_minproductConjTrans } magma_minproduct_order_t
+
+  Whether a matrix is not transposed, transposed, or conjugate-transposed.
+  For a real matrix, Trans and ConjTrans have the same meaning.
+
+- enum { Magma_minproductLower, Magma_minproductUpper, Magma_minproductFull } magma_minproduct_uplo_t
+
+  Whether the lower or upper triangle of a matrix is given, or the full matrix.
+
+- enum { Magma_minproductLeft, Magma_minproductRight } magma_minproduct_side_t
+
+  Whether the matrix is on the left or right.
+
+- enum { Magma_minproductUnit, Magma_minproductNonUnit } magma_minproduct_diag_t
+
+  Whether the diagonal is assumed to be unit (all ones) or not.
+
+Additional constants for specific routines are defined in the documentation for
+the routines.
+
+Because MAGMA_minproduct, CBLAS, LAPACK, CUBLAS, and clBlas use potentially different
+constants, converters between them are provided.
+
+These convert LAPACK constants to MAGMA_minproduct constants.
+Note that the meaning of LAPACK constants depends on the context:
+'N' can mean False, NoTrans, NonUnit, NoVec, etc.
+Here, curly braces { } group similar constants.
+
+.              | Function            |  .             |  Description
+-----------    | ----                | ----           |  -----------
+magma_minproduct_bool_t   | magma_minproduct_bool_const    | ( character )  |  Map 'N', 'Y'      \n to Magma_minproductTrue, Magma_minproductFalse
+magma_minproduct_order_t  | magma_minproduct_order_const   | ( character )  |  Map 'R', 'C'      \n to Magma_minproductRowMajor, Magma_minproductColMajor
+magma_minproduct_trans_t  | magma_minproduct_trans_const   | ( character )  |  Map 'N', 'T', 'C' \n to Magma_minproductNoTrans, Magma_minproductTrans, Magma_minproductConjTrans
+magma_minproduct_uplo_t   | magma_minproduct_uplo_const    | ( character )  |  Map 'L', 'U'      \n to Magma_minproductLower, Magma_minproductUpper
+magma_minproduct_diag_t   | magma_minproduct_diag_const    | ( character )  |  Map 'N', 'U'      \n to Magma_minproductNonUnit, Magma_minproductUnit
+magma_minproduct_side_t   | magma_minproduct_side_const    | ( character )  |  Map 'L', 'R'      \n to Magma_minproductLeft, Magma_minproductRight
+magma_minproduct_norm_t   | magma_minproduct_norm_const    | ( character )  |  Map 'O', '1', '2', 'F', 'E', 'I', 'M' \n to Magma_minproduct{One, Two, Frobenius, Inf, Max}Norm
+magma_minproduct_dist_t   | magma_minproduct_dist_const    | ( character )  |  Map 'U', 'S', 'N' \n to Magma_minproductDist{Uniform, Symmetric, Normal}
+magma_minproduct_vec_t    | magma_minproduct_vec_const     | ( character )  |  Map 'V', 'N', 'I', 'A', 'S', 'O' \n to Magma_minproductVec, Magma_minproduct{No, I, All, Some, Overwrite}Vec
+magma_minproduct_range_t  | magma_minproduct_range_const   | ( character )  |  Map 'A', 'V', 'I' \n to Magma_minproductRange{All, V, I}
+magma_minproduct_vect_t   | magma_minproduct_vect_const    | ( character )  |  Map 'Q', 'P'      \n to Magma_minproductQ, Magma_minproductP
+magma_minproduct_direct_t | magma_minproduct_direct_const  | ( character )  |  Map 'F', 'B'      \n to Magma_minproductForward, Magma_minproductBackward
+magma_minproduct_storev_t | magma_minproduct_storev_const  | ( character )  |  Map 'C', 'R'      \n to Magma_minproductColumnwise, Magma_minproductRowwise
+
+
+These do the inverse map, converting MAGMA_minproduct to LAPACK constants.
+From the standpoint of LAPACK, only the first letter of
+each string is significant. Nevertheless, the functions return meaningful
+strings, such as "No transpose", "Transpose".
+Substitute `lapacke` for `lapack` to get version that returns single char instead of string (const char*).
+
+.           | Function             | .                   |  Description
+----------- | ----                 | ----                |  -----------
+const char* | lapack_bool_const    | ( magma_minproduct_bool_t   )  |  Inverse of magma_minproduct_bool_const()
+const char* | lapack_order_const   | ( magma_minproduct_order_t  )  |  Inverse of magma_minproduct_order_const()
+const char* | lapack_trans_const   | ( magma_minproduct_trans_t  )  |  Inverse of magma_minproduct_trans_const()
+const char* | lapack_uplo_const    | ( magma_minproduct_uplo_t   )  |  Inverse of magma_minproduct_uplo_const()
+const char* | lapack_diag_const    | ( magma_minproduct_diag_t   )  |  Inverse of magma_minproduct_diag_const()
+const char* | lapack_side_const    | ( magma_minproduct_side_t   )  |  Inverse of magma_minproduct_side_const()
+const char* | lapack_norm_const    | ( magma_minproduct_norm_t   )  |  Inverse of magma_minproduct_norm_const()
+const char* | lapack_dist_const    | ( magma_minproduct_dist_t   )  |  Inverse of magma_minproduct_dist_const()
+const char* | lapack_vec_const     | ( magma_minproduct_vec_t    )  |  Inverse of magma_minproduct_vec_const()
+const char* | lapack_range_const   | ( magma_minproduct_range_t  )  |  Inverse of magma_minproduct_range_const()
+const char* | lapack_vect_const    | ( magma_minproduct_vect_t   )  |  Inverse of magma_minproduct_vect_const()
+const char* | lapack_direct_const  | ( magma_minproduct_direct_t )  |  Inverse of magma_minproduct_direct_const()
+const char* | lapack_storev_const  | ( magma_minproduct_storev_t )  |  Inverse of magma_minproduct_storev_const()
+const char* | lapack_const         | ( constant )        |  Map any MAGMA_minproduct constant, Magma_minproduct*, to an LAPACK string constant
+char        | lapacke_const        | ( constant )        |  Map any MAGMA_minproduct constant, Magma_minproduct*, to an LAPACKE character
+
+
+To convert MAGMA_minproduct to Nvidia's CUBLAS constants:
+
+.                 | Function           | .          |  Description
+-----------       | ----               | ----       |  -----------
+cublasOperation_t | cublas_trans_const | ( trans )  |  Map Magma_minproductNoTrans, Magma_minproductTrans, Magma_minproductConjTrans \n to CUBLAS_OP_N, CUBLAS_OP_T, CUBLAS_OP_C
+cublasFillMode_t  | cublas_uplo_const  | ( uplo  )  |  Map Magma_minproductLower,   Magma_minproductUpper \n to CUBLAS_FILL_MODE_LOWER, CUBLAS_FILL_MODE_UPPER
+cublasDiagType_t  | cublas_diag_const  | ( diag  )  |  Map Magma_minproductNonUnit, Magma_minproductUnit  \n to CUBLAS_DIAG_NON_UNIT,   CUBLAS_DIAG_UNIT
+cublasSideMode_t  | cublas_side_const  | ( side  )  |  Map Magma_minproductLeft,    Magma_minproductRight \n to CUBLAS_SIDE_LEFT,       CUBLAS_SIDE_Right
+
+
+To convert MAGMA_minproduct to AMD's clBlas constants:
+
+.                 | Function           | .          |  Description
+-----------       | ----               | ----       |  -----------
+clblasOrder       | clblas_order_const | ( order )  |  Map Magma_minproductRowMajor, Magma_minproductColMajor \n to clAmdBlasRowMajor, clAmdBlasColumnMajor
+clblasTranspose   | clblas_trans_const | ( trans )  |  Map Magma_minproductNoTrans,  Magma_minproductTrans, Magma_minproductConjTrans \n to clAmdBlasNoTrans, clAmdBlasTrans, clAmdBlasConjTrans
+clblasUplo        | clblas_uplo_const  | ( uplo  )  |  Map Magma_minproductLower,    Magma_minproductUpper    \n to clAmdBlasLower,    clAmdBlasUpper
+clblasDiag        | clblas_diag_const  | ( diag  )  |  Map Magma_minproductNonUnit,  Magma_minproductUnit     \n to clAmdBlasNonUnit,  clAmdBlasUnit
+clblasSide        | clblas_side_const  | ( side  )  |  Map Magma_minproductLeft,     Magma_minproductRight    \n to clAmdBlasLeft,     clAmdBlasRight
+
+
+To convert MAGMA_minproduct to CBLAS constants:
+
+.                    | Function           | .          |  Description
+-----------          | ----               | ----       |  -----------
+enum CBLAS_ORDER     | cblas_order_const  | ( order )  |  Map Magma_minproductRowMajor, Magma_minproductColMajor \n to CblasRowMajor, CblasColMajor
+enum CBLAS_TRANSPOSE | cblas_trans_const  | ( trans )  |  Map Magma_minproductNoTrans,  Magma_minproductTrans, Magma_minproductConjTrans \n to CblasNoTrans, CblasTrans, CblasConjTrans
+enum CBLAS_UPLO      | cblas_uplo_const   | ( uplo  )  |  Map Magma_minproductLower,    Magma_minproductUpper    \n to CblasLower,    CblasUpper
+enum CBLAS_DIAG      | cblas_diag_const   | ( diag  )  |  Map Magma_minproductNonUnit,  Magma_minproductUnit     \n to CblasNonUnit,  CblasUnit
+enum CBLAS_SIDE      | cblas_side_const   | ( side  )  |  Map Magma_minproductLeft,     Magma_minproductRight    \n to CblasLeft,     CblasRight
+
+
+********************************************************************************
+@page errors        Errors
+
+Driver and computational routines, and a few BLAS/auxiliary routines, currently
+return errors both as a return value and in the info argument. The return value
+and info should always be identical. In general, the meaning is as given in this
+table. Predefined error codes are large negative numbers.
+
+Info                       |  Description
+-----------                |  -----------
+info = 0 (MAGMA_minproduct_SUCCESS)   |  Successful exit
+info < 0, but small        |  For info = -i, the i-th argument had an illegal value
+info > 0                   |  Function-specific error such as singular matrix
+MAGMA_minproduct_ERR_DEVICE_ALLOC     |  Could not allocate GPU device memory
+MAGMA_minproduct_ERR_HOST_ALLOC       |  Could not allocate CPU host memory
+MAGMA_minproduct_ERR_ILLEGAL_VALUE    |  An argument had an illegal value (deprecated; instead it should return -i to say the i-th argument was bad)
+MAGMA_minproduct_ERR_INVALID_PTR      |  Can't free pointer
+MAGMA_minproduct_ERR_NOT_IMPLEMENTED  |  Function or option not implemented
+MAGMA_minproduct_ERR_NOT_SUPPORTED    |  Function or option not supported on the current architecture
+
+\ref magma_minproduct_xerbla is called to report errors (mostly bad arguments) to user.
+
+\ref magma_minproduct_strerror returns string description of an error code.
+
+
+********************************************************************************
+@page methodology   Methodology
+
+One-sided matrix factorizations
+=================================
+
+The one-sided LU, Cholesky, and QR factorizations form a basis for solving
+linear systems. A general recommendation is to use
+LU for general n-by-n matrices, Cholesky for symmetric/Hermitian positive
+definite (SPD) matrices, and QR for solving least squares problems,
+
+    min || A x - b ||
+
+for general m-by-n, m > n matrices.
+
+We use hybrid algorithms where the computation is split between the GPU
+and and the CPU. In general for the one-sided factorizations,
+the panels are factored on the CPU and the trailing sub-matrix updates
+on the GPU. Look-ahead techniques are used to overlap the CPU and GPU
+work and some communications.
+
+In both the CPU and GPU interfaces the matrix to be factored resides in the
+GPU memory, and CPU-GPU transfers are associated only with the panels.
+The resulting matrix is accumulated (on the CPU or GPU according to the
+interface) along the computation, as a byproduct of the algorithm, vs.
+sending the the entire matrix when needed. In the CPU interface, the original
+transfer of the matrix to the GPU is overlapped with the factorization of the
+first panel. In this sense the CPU and GPU interfaces, although similar,
+are not derivatives of each other as they have different communication patterns.
+
+Although the solution step has O(n) times less floating point operations
+than the factorization, it is still very important to optimize it.
+Solving a triangular system of equations can be very slow because
+the computation is bandwidth limited and naturally not parallel.
+Various approaches have been proposed in the past. We use an approach
+where diagonal blocks of A are explicitly inverted and used in a block
+algorithm. This results in a high performance, numerically stable algorithm,
+especially when used with triangular matrices coming from numerically stable
+factorization algorithms (e.g., as in LAPACK and MAGMA_minproduct).
+
+For instances when the GPU's single precision performance is much higher than
+its double precision performance, MAGMA_minproduct provides a second set of solvers,
+based on the mixed precision iterative refinement technique.
+The solvers are based again on correspondingly the LU, QR, and Cholesky
+factorizations, and are designed to solve linear problems in double
+precision accuracy but at a speed that is characteristic for the much
+faster single precision computations.
+The idea is to use single precision for the bulk of the computation,
+namely the factorization step, and than use that factorization
+as a preconditioner in a simple iterative refinement process in double
+precision arithmetic. This often results in the desired high performance
+and high accuracy solvers.
+
+
+Two-sided matrix factorizations
+=================================
+
+As the one-sided matrix factorizations are the basis for various linear
+solvers, the two-sided matrix factorizations are the basis for eigen-solvers,
+and therefore form an important class of dense linear algebra routines.
+The two-sided factorizations have been traditionally more difficult to
+achieve high performance. The reason is that the two-sided
+factorizations involve large matrix-vector products which are memory bound,
+and as the gap between compute and communication power increases exponentially,
+these memory bound operations become an increasingly more difficult to handle
+bottleneck. GPUs though offer an attractive possibility to accelerate them.
+Indeed, having a high bandwidth (e.g. 10 times larger than current CPU
+bus bandwidths), GPUs can accelerate matrix-vector products significantly
+(10 to 30 times). Here, the panel factorization itself is hybrid, while the
+trailing matrix update is performed on the GPU.
+
+*/

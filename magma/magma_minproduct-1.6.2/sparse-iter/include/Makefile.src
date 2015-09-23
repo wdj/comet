@@ -1,0 +1,19 @@
+# Automatically generated from Makefile ZHDR and ZSRC
+CHDR = \
+	magma_minproductsparse_c.h
+
+DHDR = \
+	magma_minproductsparse_d.h \
+	magma_minproductsparse_ds.h
+
+SHDR = \
+	magma_minproductsparse_s.h
+
+CSRC = \
+	
+
+DSRC = \
+	
+
+SSRC = \
+	
