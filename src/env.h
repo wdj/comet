@@ -16,6 +16,8 @@
 #ifndef _env_h_
 #define _env_h_
 
+#include <assert.h>
+
 #include "mpi.h"
 
 /*===========================================================================*/
@@ -31,7 +33,7 @@
 void insist_(const char *condition_string, const char *file, int line);
 
 /*===========================================================================*/
-/*---Basic types---*/
+/*---Types---*/
 
 /*---Boolean type---*/
 
@@ -46,17 +48,23 @@ enum { Bool_true = 1,
 typedef double Float_t;
 enum { MPI_Float_t = MPI_DOUBLE };
 
+/*---Type ids---*/
+
+enum { DATA_TYPE_ID_FLOAT = 1,
+       DATA_TYPE_ID_BIT = 2
+     };
+
 /*===========================================================================*/
 /*---Environment struct declarations---*/
 
 typedef struct {
-    int metric_type;
-    int num_way;
+    int    metric_type;
+    int    num_way;
     Bool_t global_all2all;
-    int compute_method;
-    int mpi_comm;
-    int num_proc;
-    int proc_num;
+    int    compute_method;
+    int    mpi_comm;
+    int    num_proc;
+    int    proc_num;
 } Env;
 
 enum { METRIC_TYPE_SORENSON = 1,
@@ -74,6 +82,8 @@ void Env_create_from_args(Env* env, int argc, char** argv);
 
 void Env_destroy(Env* env);
 
+int data_type_id_from_metric_type(int metric_type);
+
 /*===========================================================================*/
 /* Timer function */
 
@@ -84,4 +94,3 @@ double get_time();
 #endif /*---_env_h_---*/
 
 /*---------------------------------------------------------------------------*/
-

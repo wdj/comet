@@ -104,6 +104,17 @@ void Env_destroy(Env* env) {
 }
 
 /*===========================================================================*/
+/*---Misc.---*/
+
+int data_type_id_from_metric_type(int metric_type) {
+    if (metric_type==METRIC_TYPE_CZEKANOWSKI) {
+        return DATA_TYPE_ID_FLOAT;
+    }
+    Insist(Bool_false ? "Invalid metric type." : 0);
+    return 0;
+}
+
+/*===========================================================================*/
 /* Timer function */
 
 double get_time() {
