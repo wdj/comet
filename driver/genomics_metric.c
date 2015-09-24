@@ -27,6 +27,7 @@ void load_vectors(Vectors* vectors, Env* env) {
         int field;
         for (field=0; field<vectors->num_field; ++field) {
             /*---Make up a number between 0 and 2---*/
+/*---FIX - randomize with mod function---*/
             double value = 2. *
                 ( field + vectors->num_field * (double)(
                   vector_local + vectors->num_vector_local_max * (double)(
@@ -41,12 +42,10 @@ void load_vectors(Vectors* vectors, Env* env) {
 
 /*===========================================================================*/
 
-#if 0
 void store_metrics(Metrics* metrics, Env* env) {
 
 
 }
-#endif
 
 /*===========================================================================*/
 
@@ -57,6 +56,7 @@ int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
 
     Env env;
+    memset(&env, 0, sizeof(env));
     Env_create_from_args(&env, argc, argv);
 
     /*---Parse remaining unprocessed arguments---*/
@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
     int num_field = -1;
     int num_vector_local = -1;
 
-    int i;
+    int i = 0;
     for (i=0; i<argc; ++i) {
 
         if (strcmp(argv[i], "--num_field")==0) {
@@ -88,6 +88,7 @@ int main(int argc, char** argv) {
     /*---Initialize vectors---*/
 
     Vectors vectors;
+    memset(&vectors, 0, sizeof(vectors));
     Vectors_create(&vectors, data_type_id_from_metric_type(env.metric_type),
                    num_field, num_vector_local, &env);
 
@@ -95,22 +96,35 @@ int main(int argc, char** argv) {
 
     /*---Set up metrics---*/
 
-#if 0
     Metrics metrics;
-#endif
+    memset(&metrics, 0, sizeof(metrics));
+    Metrics_create(&metrics, data_type_id_from_metric_type(env.metric_type),
+                   num_vector_local, &env);
+
+
+
 
 
 
     /*---Calculate metrics---*/
 
+    double time_begin = Env_get_synced_time(&env);
+
+
 #if 0
     compute_metrics(&metrics, &vectors, &env);
 #endif
 
+    double time_end = Env_get_synced_time(&env);
+
+    double time_compute_metrics = time_end - time_begin;
+
+    printf("compute metrics time %.6f\n", time_compute_metrics);
+
 
     /*---Output results---*/
 
-
+    store_metrics(&metrics, &env);
 
 
 

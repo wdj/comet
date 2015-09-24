@@ -20,6 +20,8 @@
 #include <string.h>
 
 #include "mpi.h"
+#include "cuda.h"
+#include "cuda_runtime_api.h"
 
 #include "env.h"
 
@@ -37,10 +39,12 @@ void insist_(const char *condition_string, const char *file, int line) {
 
 void Env_create(Env* env) {
 
-    int mpi_code;
+    int mpi_code = 0;
     env->mpi_comm = MPI_COMM_WORLD;
     mpi_code = MPI_Comm_rank(env->mpi_comm, &(env->proc_num));
+    Assert( mpi_code == MPI_SUCCESS );
     mpi_code = MPI_Comm_size(env->mpi_comm, &(env->num_proc));
+    Assert( mpi_code == MPI_SUCCESS );
 
     /*---Set default values---*/
     env->metric_type = METRIC_TYPE_CZEKANOWSKI;
@@ -56,7 +60,7 @@ void Env_create_from_args(Env* env, int argc, char** argv) {
 
     Env_create(env);
 
-    int i;
+    int i = 0;
     for (i=0; i<argc; ++i) {
 
         if (strcmp(argv[i], "--metric_type")==0) {
@@ -104,6 +108,32 @@ void Env_destroy(Env* env) {
 }
 
 /*===========================================================================*/
+/*---Timer functions---*/
+
+double Env_get_time(Env* env) {
+    Assert(env);
+    struct timeval tv;
+    double result;
+    gettimeofday( &tv, NULL );
+    result = ( (double) tv.tv_sec +
+               (double) tv.tv_usec * 1.e-6 );
+    return result;
+}
+
+/*---------------------------------------------------------------------------*/
+
+double Env_get_synced_time(Env* env) {
+    Assert(env);
+
+    cudaThreadSynchronize();
+    Assert( Env_cuda_last_call_succeeded(env) );
+
+    int mpi_code = MPI_Barrier(env->mpi_comm);
+    Assert( mpi_code == MPI_SUCCESS );
+    return Env_get_time(env);
+}
+
+/*===========================================================================*/
 /*---Misc.---*/
 
 int data_type_id_from_metric_type(int metric_type) {
@@ -114,15 +144,20 @@ int data_type_id_from_metric_type(int metric_type) {
     return 0;
 }
 
-/*===========================================================================*/
-/* Timer function */
+/*---------------------------------------------------------------------------*/
 
-double get_time() {
-  struct timeval tv;
-  double result;
-  gettimeofday( &tv, NULL );
-  result = ( (double) tv.tv_sec +
-             (double) tv.tv_usec * 1.e-6 );
+Bool_t Env_cuda_last_call_succeeded(Env* env) {
+  Bool_t result = Bool_true;
+
+  /*---NOTE: this read of the last error is a destructive read---*/
+  cudaError_t error = cudaGetLastError();
+
+  if ( error != cudaSuccess )
+  {
+      result = Bool_false;
+      printf( "CUDA error detected: %s\n", cudaGetErrorString( error ) );
+  }
+
   return result;
 }
 

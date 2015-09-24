@@ -85,9 +85,15 @@ void Env_destroy(Env* env);
 int data_type_id_from_metric_type(int metric_type);
 
 /*===========================================================================*/
-/* Timer function */
+/*---Timer functions---*/
 
-double get_time();
+double Env_get_time(Env* env);
+double Env_get_synced_time(Env* env);
+
+/*===========================================================================*/
+/*---Misc.---*/
+
+Bool_t Env_cuda_last_call_succeeded(Env* env);
 
 /*===========================================================================*/
 
