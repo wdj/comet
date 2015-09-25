@@ -95,17 +95,20 @@
     #define conj(A)          cuConj(A)
     #define add(A, B)        cuCadd(A, B)
     #define mul(A, B)        cuCmul(A, B)
+    #define fmin(A, B, C)   cuCmul(A,B)
     #define fma(A, B, C) C = cuCfma(A, B, C)
     #define make_FloatingPoint(x, y) make_cuDoubleComplex(x, y);
   #else
     #define conj(A)          cuConjf(A)
     #define add(A, B)        cuCaddf(A, B)
     #define mul(A, B)        cuCmulf(A, B)
+    #define fmin(A, B, C)  cuCmulf(A,B)
     #define fma(A, B, C) C = cuCfmaf(A, B, C)
     #define make_FloatingPoint(x, y) make_cuFloatComplex(x, y);
   #endif
 #else
     #define conj(A)           (A)
+    #define fmin(A, B, C) C += ( (A) < (B) ? (A) : (B) )
     #define add(A, B)         (A+B)
     #define mul(A, B)         (A*B)
     #define fma(A, B, C) C += (A*B)

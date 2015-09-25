@@ -344,7 +344,7 @@ void devfunc_name(precision) (
                       #ifdef CONJ_B
                         fma(rA[m], conj(rB[n]), rC[n][m]);
                       #else
-                        fma(rA[m], rB[n], rC[n][m]);
+                        fmin(rA[m], rB[n], rC[n][m]);
                       #endif
                     #endif
                 }
@@ -419,7 +419,7 @@ void devfunc_name(precision) (
                   #ifdef CONJ_B
                     fma(rA[m], conj(rB[n]), rC[n][m]);
                   #else
-                    fma(rA[m], rB[n], rC[n][m]);
+                    fmin(rA[m], rB[n], rC[n][m]);
                   #endif
                 #endif
             }

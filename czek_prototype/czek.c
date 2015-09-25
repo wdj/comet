@@ -511,7 +511,7 @@ void process_vectors_alt5(struct _vector *vectors, int numvec, int numfield,
    For this version, use modified magma library.
 
    The magma library was modified as follows.  The "daxpy" function near
-   the beginning of the file magma-1.6.2/magmablas/dgemm_tesla_T_N.cu
+   the beginning of the file magma-1.6.2/magmablas/dgemm_T_N.cu
    was modified to replace the multiplies with a "min" operation.
 
    This version uses the code for the older NVIDIA Tesla GPUS.  It is likely
@@ -585,7 +585,7 @@ void process_vectors_alt6(struct _vector *vectors, int numvec, int numfield,
 
   /* Perform pseudo matrix-matrix product */
 
-  magma_minproductblas_dgemm_tesla(
+  magma_minproductblas_dgemm(
     Magma_minproductTrans,
     Magma_minproductNoTrans,
     numvec,
