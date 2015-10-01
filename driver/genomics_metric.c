@@ -20,6 +20,13 @@
 
 /*===========================================================================*/
 
+void usage() {
+
+
+}
+
+/*===========================================================================*/
+
 void load_vectors(Vectors* vectors, Env* env) {
     int vector_local;
     for (vector_local=0; vector_local<vectors->num_vector_local;
@@ -119,8 +126,8 @@ int main(int argc, char** argv) {
 
     double time_compute_metrics = time_end - time_begin;
 
+/* FIX - do checksum */
     printf("compute metrics time %.6f\n", time_compute_metrics);
-
 
     /*---Output results---*/
 
