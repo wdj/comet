@@ -27,10 +27,10 @@
 
 #ifndef Insist
 #define Insist(condition) \
-    (void)((condition) || (insist_ (#condition, __FILE__, __LINE__),0))
+  (void)((condition) || (insist_(#condition, __FILE__, __LINE__), 0))
 #endif
 
-void insist_(const char *condition_string, const char *file, int line);
+void insist_(const char* condition_string, const char* file, int line);
 
 /*===========================================================================*/
 /*---Types---*/
@@ -39,9 +39,7 @@ void insist_(const char *condition_string, const char *file, int line);
 
 typedef int Bool_t;
 
-enum { Bool_true = 1,
-       Bool_false = 0
-     };
+enum { Bool_true = 1, Bool_false = 0 };
 
 /*---Default floating point type---*/
 
@@ -50,31 +48,28 @@ enum { MPI_Float_t = MPI_DOUBLE };
 
 /*---Type ids---*/
 
-enum { DATA_TYPE_ID_FLOAT = 1,
-       DATA_TYPE_ID_BIT = 2
-     };
+enum { DATA_TYPE_ID_FLOAT = 1, DATA_TYPE_ID_BIT = 2 };
 
 /*===========================================================================*/
 /*---Environment struct declarations---*/
 
 typedef struct {
-    int    metric_type;
-    int    num_way;
-    Bool_t global_all2all;
-    int    compute_method;
-    int    mpi_comm;
-    int    num_proc;
-    int    proc_num;
+  int metric_type;
+  int num_way;
+  Bool_t global_all2all;
+  int compute_method;
+  int mpi_comm;
+  int num_proc;
+  int proc_num;
 } Env;
 
-enum { METRIC_TYPE_SORENSON = 1,
-       METRIC_TYPE_CZEKANOWSKI = 2,
-       METRIC_TYPE_CCC = 3
-     };
+enum {
+  METRIC_TYPE_SORENSON = 1,
+  METRIC_TYPE_CZEKANOWSKI = 2,
+  METRIC_TYPE_CCC = 3
+};
 
-enum { COMPUTE_METHOD_CPU = 0,
-       COMPUTE_METHOD_GPU = 1
-     };
+enum { COMPUTE_METHOD_CPU = 0, COMPUTE_METHOD_GPU = 1 };
 
 void Env_create(Env* env);
 
