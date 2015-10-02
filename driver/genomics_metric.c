@@ -79,6 +79,9 @@ void input_vectors(Vectors* vectors, Env* env) {
       index = randomize ( index );
       /*---set---*/
       Float_t value = index / num_vector_elts_total;
+/*
+printf("%e\n",value);
+*/
       Vectors_set(vectors, field, vector_local, value, env);
     } /*---field---*/
   } /*---vector_local---*/
@@ -137,13 +140,13 @@ void finish_parsing(int argc, char** argv, Env* env,
       Insist(env, *num_vector_local >= 0 ?
              "Invalid setting for num_vector_local." : 0);
     } else if (strcmp(argv[i], "--metric_type") == 0) {
-        /*---pass---*/
+        ++i;
     } else if (strcmp(argv[i], "--num_way") == 0) {
-        /*---pass---*/
+        ++i;
     } else if (strcmp(argv[i], "--global_all2all") == 0) {
-        /*---pass---*/
+        ++i;
     } else if (strcmp(argv[i], "--compute_method") == 0) {
-        /*---pass---*/
+        ++i;
     } else {
       if ( env->proc_num==0 ) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);

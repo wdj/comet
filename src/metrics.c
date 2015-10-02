@@ -72,8 +72,8 @@ void Metrics_create(Metrics* metrics,
       int i = 0;
       for (i = 0; i < num_vector_local; ++i) {
         int j = 0;
-        for (j = 0; j < i; ++j) {
-          metrics->index_map[index++] = j + num_vector_local * (size_t)i;
+        for (j = i+1; j < num_vector_local; ++j) {
+          metrics->index_map[index++] = i + num_vector_local * (size_t)j;
         }
       }
     } else /* (env->num_way == 3) */ {
@@ -81,11 +81,11 @@ void Metrics_create(Metrics* metrics,
       int i = 0;
       for (i = 0; i < num_vector_local; ++i) {
         int j = 0;
-        for (j = 0; j < i; ++j) {
+        for (j = i+1; j < num_vector_local; ++j) {
           int k = 0;
-          for (k = 0; k < j; ++k) {
+          for (k = j+1; k < num_vector_local; ++k) {
             metrics->index_map[index++] =
-                k + num_vector_local * (j + num_vector_local * (size_t)i);
+                i + num_vector_local * (j + num_vector_local * (size_t)k);
           }
         }
       }
@@ -140,7 +140,8 @@ double Metrics_checksum(Metrics * metrics, Env * env) {
         {
           int i = 0;
           for ( i = 0; i < metrics->num_elts_local; ++i ) {
-            const size_t i_global = i + metrics->num_elts_local * env->num_proc;
+            const size_t i_global = i + metrics->num_elts_local
+                                      * (size_t) env->num_proc;
             result += ((Float_t*)metrics->data)[i] * randomize( i_global );
           } /*---for i---*/
         }

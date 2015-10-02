@@ -57,7 +57,7 @@ void Metrics_destroy(Metrics* metrics, Env* env);
 double Metrics_checksum(Metrics * metrics, Env * env);
 
 /*===========================================================================*/
-/*---Accessors: index from coord---*/
+/*---Accessors: indexing: contig index from coord---*/
 
 static size_t Metrics_index_from_coord_2(Metrics* metrics,
                                          int i,
@@ -68,12 +68,10 @@ static size_t Metrics_index_from_coord_2(Metrics* metrics,
   Assert(i < metrics->num_vector_local);
   Assert(j >= 0);
   Assert(j < metrics->num_vector_local);
+  Assert(i < j);
   Assert(env);
 
-  Assert(i != j);
-
-  size_t index = i > j ? ((i * (size_t)(i - 1)) >> 1) + j
-                       : ((j * (size_t)(j - 1)) >> 1) + i;
+  size_t index = ((j * (size_t)(j - 1)) >> 1) + i;
   return index;
 }
 
@@ -91,24 +89,54 @@ static size_t Metrics_index_from_coord_3(Metrics* metrics,
   Assert(j < metrics->num_vector_local);
   Assert(k >= 0);
   Assert(k < metrics->num_vector_local);
+  Assert(i < j);
+  Assert(j < k);
   Assert(env);
 
-  Assert(i != j);
-  Assert(i != k);
-
-  size_t index = (i*(size_t)(i-1)*(size_t)(i-2))/6 + (j*(size_t)(j-1))/2 + k;
-
-
-
-/*
-FIX
-      int index = i>j ? ( (i*(i-1))>>1 ) + j : ( (j*(j-1))>>1 ) + i;
-  */
+  size_t index = (k*(size_t)(k-1)*(size_t)(k-2))/6 + (j*(size_t)(j-1))/2 + i;
   return index;
 }
 
 /*===========================================================================*/
-/*---Accessors: coord from index---*/
+/*---Accessors: value from coord---*/
+
+static void Metrics_Float_set_2(Metrics* metrics,
+                                  int i,
+                                  int j,
+                                  Float_t value,
+                                  Env* env) {
+  Assert(metrics);
+  Assert(i >= 0);
+  Assert(i < metrics->num_vector_local);
+  Assert(j >= 0);
+  Assert(j < metrics->num_vector_local);
+  Assert(i < j);
+  Assert(env);
+
+  size_t index = Metrics_index_from_coord_2(metrics, i, j, env);
+  ((Float_t*)(metrics->data))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static Float_t Metrics_Float_get_2(Metrics* metrics,
+                                   int i,
+                                   int j,
+                                   Env* env) {
+  Assert(metrics);
+  Assert(i >= 0);
+  Assert(i < metrics->num_vector_local);
+  Assert(j >= 0);
+  Assert(j < metrics->num_vector_local);
+  Assert(i < j);
+  Assert(env);
+
+  size_t index = Metrics_index_from_coord_2(metrics, i, j, env);
+  return ((Float_t*)(metrics->data))[index];
+}
+
+/*===========================================================================*/
+/*---Accessors: indexing: coord from contig index---*/
 
 static int Metrics_coord0_from_index_2(Metrics* metrics,
                                        size_t index,
@@ -200,19 +228,19 @@ static int Metrics_coord_from_index(Metrics* metrics,
   int result = 0;
 
   switch (env->num_way + 4 * coord_num) {
-    case 2:   /* 2-way, coord 0 */
+    case 2 + 4 * 0:   /* 2-way, coord 0 */
       result = Metrics_coord0_from_index_2(metrics, index, env);
       break;
-    case 6:   /* 2-way, coord 1 */
+    case 2 + 4 * 1:   /* 2-way, coord 1 */
       result = Metrics_coord1_from_index_2(metrics, index, env);
       break;
-    case 3:   /* 3-way, coord 0 */
+    case 3 + 4 * 0:   /* 3-way, coord 0 */
       result = Metrics_coord0_from_index_3(metrics, index, env);
       break;
-    case 7:   /* 3-way, coord 1 */
+    case 3 + 4 * 1:   /* 3-way, coord 1 */
       result = Metrics_coord1_from_index_3(metrics, index, env);
       break;
-    case 11:   /* 3-way, coord 2 */
+    case 3 + 4 * 2:   /* 3-way, coord 2 */
       result = Metrics_coord2_from_index_3(metrics, index, env);
       break;
     default:

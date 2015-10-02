@@ -6,8 +6,16 @@
 #==============================================================================
 
 TAG="${1:-}"
-if [ "$TAG" = "" ] ; then 
+if [ "$TAG" = "" -o "$TAG" = "-h" -o "$TAG" = "--help" ] ; then 
   echo "Usage: clone_magma <tag>"
+  echo "  where <tag> is an alphanumeric string."
+  exit 0
+fi
+
+MATCH="`echo \"$TAG\"X | sed -e 's/[a-zA-Z0-9]//g'`"
+
+if [ "$TAG" != "" ] ; then
+  echo "clone_magma: invalid argument." 1>&2
   exit 1
 fi
 
@@ -27,10 +35,28 @@ done
 
 echo "Renaming files and directories ..."
 
-#---NOTE: this is somewhat brittle, may brek if ordering is wrong.
+#---NOTE: this is somewhat brittle, may break if ordering is wrong.
 
 for item in `find $MAGMA -iname '*magma*' -print | sort | tac` ; do
   mv $item `echo $item | sed -e "s/\(.*\)\([mM][aA][gG][mM][aA]\)\(.*\)/\1\2_$TAG\3/g"`
 done
+
+cat <<EOF
+
+If no errors occurred above, the clone process is now complete.  To
+prepare the cloned Magma code for usage, please do the following:
+
+1. Copy the file make.inc into the new cloned Magma directory.
+
+2. Make the desired changes to Magma, such as redefinition of certain
+   mathematical operations.
+
+3. If desired, add/commit the new Magma clone to the repository.
+
+4. Compile the source code to deploy for usage.
+
+EOF
+
+exit 0
 
 #==============================================================================

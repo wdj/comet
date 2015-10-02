@@ -18,6 +18,15 @@
 /*===========================================================================*/
 
 void compute_metrics(Metrics* metrics, Vectors* vectors, Env* env);
+void compute_metrics_czek_2way_cpu(Metrics* metrics,
+                                   Vectors* vectors,
+                                   Env* env);
+void compute_metrics_czek_2way_gpu(Metrics* metrics,
+                                   Vectors* vectors,
+                                   Env* env);
+
+Float_t vector_sum(int len, Float_t * const __restrict__ v1);
+
 
 /*===========================================================================*/
 

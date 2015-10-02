@@ -28,18 +28,18 @@
 
 typedef int Bool_t;
 
-enum { Bool_true = 1, Bool_false = 0 };
+enum { Bool_true = (1 == 1), Bool_false = (1 == 0) };
 
 /*---Default floating point type---*/
-
-#ifdef FP_PRECISION_DOUBLE
-  typedef double Float_t;
-  enum { MPI_Float_t = MPI_DOUBLE };
-#endif
 
 #ifdef FP_PRECISION_SINGLE
   typedef float Float_t;
   enum { MPI_Float_t = MPI_SINGLE };
+#endif
+
+#ifdef FP_PRECISION_DOUBLE
+  typedef double Float_t;
+  enum { MPI_Float_t = MPI_DOUBLE };
 #endif
 
 /*---Type ids---*/
