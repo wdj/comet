@@ -6,9 +6,12 @@ SHELL   = /bin/sh
 CC      = cc
 
 #CFLAGS  += -pedantic -Wall -O2
-CFLAGS  += -Wall -O2 -finline-functions -finline-limit=1000
+CFLAGS  += -Wall -Wno-unused-function -O2 -finline-functions -finline-limit=1000
 CFLAGS  += -I../magma/magma_minproduct-1.6.2/include $(CRAY_CUDATOOLKIT_INCLUDE_OPTS) -DADD_
 CFLAGS  += -I../src -I.
+CFLAGS += -DFP_PRECISION_DOUBLE
+#CFLAGS += -DFP_PRECISION_SINGLE
+
 LFLAGS = $(LDFLAGS) -L../magma/magma_minproduct-1.6.2/lib -lmagma_minproduct $(CRAY_CUDATOOLKIT_POST_LINK_OPTS) -lcublas
 
 TARGET  = genomics_metric

@@ -31,7 +31,12 @@ typedef struct {
 } Vectors;
 
 /*===========================================================================*/
-/*---Functions---*/
+/*---Null object---*/
+
+Vectors Vectors_null(void);
+
+/*===========================================================================*/
+/*---Vectors pseudo-constructor---*/
 
 void Vectors_create(Vectors* vectors,
                     int data_type_id,
@@ -39,9 +44,13 @@ void Vectors_create(Vectors* vectors,
                     int num_vector_local,
                     Env* env);
 
+/*===========================================================================*/
+/*---Vectors pseudo-destructor---*/
+
 void Vectors_destroy(Vectors* vectors, Env* env);
 
-/*---------------------------------------------------------------------------*/
+/*===========================================================================*/
+/*---Accessors---*/
 
 static void Vectors_float_set(Vectors* vectors,
                               int field,
@@ -59,13 +68,12 @@ static void Vectors_float_set(Vectors* vectors,
 }
 
 /*---------------------------------------------------------------------------*/
-/*---Accessors---*/
 
-__attribute__((unused)) static void Vectors_set(Vectors* vectors,
-                                                int field,
-                                                int vector_local,
-                                                double value,
-                                                Env* env) {
+static void Vectors_set(Vectors* vectors,
+                        int field,
+                        int vector_local,
+                        double value,
+                        Env* env) {
   /*---WARNING: this is inefficient when called in a high-tripcount loop---*/
   Assert(vectors);
   Assert(field >= 0);
@@ -77,17 +85,20 @@ __attribute__((unused)) static void Vectors_set(Vectors* vectors,
     case DATA_TYPE_ID_FLOAT:
       Vectors_float_set(vectors, field, vector_local, (Float_t)value, env);
       return;
+    case DATA_TYPE_ID_BIT:
+        Insist(env, Bool_false ? "Unimplemented." : 0);
+      return;
     default:
-      Insist(Bool_false ? "Invalid data_type_id." : 0);
+      Assert(Bool_false ? "Invalid data_type_id." : 0);
   }
 }
 
 /*---------------------------------------------------------------------------*/
 
-__attribute__((unused)) static Float_t Vectors_float_get(Vectors* const vectors,
-                                                         int field,
-                                                         int vector_local,
-                                                         Env* env) {
+static Float_t Vectors_float_get(Vectors* const vectors,
+                                 int field,
+                                 int vector_local,
+                                 Env* env) {
   Assert(vectors);
   Assert(field >= 0);
   Assert(field < vectors->num_field);

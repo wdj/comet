@@ -1,5 +1,9 @@
 #!/bin/bash -l
 
+#module unload cray-mpich
+#module swap PrgEnv-pgi PrgEnv-gnu
+#module swap gcc/5.1.0 gcc/4.8.2
+#module unload cray-mpich/7.1.0
 module swap PrgEnv-pgi PrgEnv-gnu
 module load cudatoolkit
 module load acml
@@ -17,4 +21,5 @@ fi
 
 make distclean
 make 2>&1
+make clean
 
