@@ -9,6 +9,7 @@ CC      = cc
 CFLAGS  += -Wall -Wno-unused-function -O2 -finline-functions -finline-limit=1000
 CFLAGS  += -fargument-noalias-anything -O2
 CFLAGS  += -I../magma/magma_minproduct-1.6.2/include $(CRAY_CUDATOOLKIT_INCLUDE_OPTS) -DADD_
+CFLAGS  += -Werror
 CFLAGS  += -I../src -I.
 CFLAGS += -DFP_PRECISION_DOUBLE
 #CFLAGS += -DFP_PRECISION_SINGLE

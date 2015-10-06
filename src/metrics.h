@@ -147,7 +147,7 @@ static int Metrics_coord0_from_index_2(Metrics* metrics,
   Assert(env);
   Assert(env->num_way == 2);
 
-  int i = metrics->index_map[index] % metrics->num_elts_local;
+  int i = metrics->index_map[index] % metrics->num_vector_local;
   return i;
 }
 
@@ -162,7 +162,7 @@ static int Metrics_coord1_from_index_2(Metrics* metrics,
   Assert(env);
   Assert(env->num_way == 2);
 
-  int j = metrics->index_map[index] / metrics->num_elts_local;
+  int j = metrics->index_map[index] / metrics->num_vector_local;
   return j;
 }
 
@@ -177,7 +177,7 @@ static int Metrics_coord0_from_index_3(Metrics* metrics,
   Assert(env);
   Assert(env->num_way == 3);
 
-  int i = metrics->index_map[index] % metrics->num_elts_local;
+  int i = metrics->index_map[index] % metrics->num_vector_local;
   return i;
 }
 
@@ -192,8 +192,8 @@ static int Metrics_coord1_from_index_3(Metrics* metrics,
   Assert(env);
   Assert(env->num_way == 3);
 
-  int i = ( metrics->index_map[index] / metrics->num_elts_local )
-                                      % metrics->num_elts_local;
+  int i = ( metrics->index_map[index] / metrics->num_vector_local )
+                                      % metrics->num_vector_local;
   return i;
 }
 
@@ -208,8 +208,8 @@ static int Metrics_coord2_from_index_3(Metrics* metrics,
   Assert(env);
   Assert(env->num_way == 3);
 
-  int i = metrics->index_map[index] / ( metrics->num_elts_local *
-                                        metrics->num_elts_local );
+  int i = metrics->index_map[index] / ( metrics->num_vector_local *
+                                        metrics->num_vector_local );
   return i;
 }
 

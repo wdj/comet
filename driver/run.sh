@@ -11,8 +11,8 @@ WD=$PWD
 pushd $MEMBERWORK/stf006 > /dev/null
 #aprun -n1 $WD/genomics_metric
 echo \
-aprun -n1 $WD/genomics_metric --num_field 1 --num_vector_local 2 --compute_method 0
-aprun -n1 $WD/genomics_metric --num_field 1 --num_vector_local 2 --compute_method 0
+aprun -n1 $WD/genomics_metric --num_field 2 --num_vector_local 3 --compute_method 1
+aprun -n1 $WD/genomics_metric --num_field 2 --num_vector_local 3 --compute_method 1
 popd > /dev/null
 
 #------------------------------------------------------------------------------

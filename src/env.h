@@ -60,12 +60,15 @@ typedef struct {
 } Env;
 
 enum {
-  METRIC_TYPE_SORENSON = 1,
-  METRIC_TYPE_CZEKANOWSKI = 2,
-  METRIC_TYPE_CCC = 3
+  METRIC_TYPE_SORENSON = 0,
+  METRIC_TYPE_CZEKANOWSKI = 1,
+  METRIC_TYPE_CCC = 2,
+  NUM_METRIC_TYPE = 3
 };
 
-enum { COMPUTE_METHOD_CPU = 0, COMPUTE_METHOD_GPU = 1 };
+enum { COMPUTE_METHOD_CPU = 0,
+       COMPUTE_METHOD_GPU = 1,
+       NUM_COMPUTE_METHOD = 2 };
 
 /*===========================================================================*/
 /*---Null object---*/

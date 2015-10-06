@@ -41,8 +41,8 @@ void usage() {
   "        (Required) the number of vectors to be processed on each processor\n"
   "\n"
   "    --metric_type <value>\n"
-  "        metric type to compute (1=Sorenson, 2=Czekanowski (default),\n"
-  "        3=CCC)\n"
+  "        metric type to compute (0=Sorenson, 1=Czekanowski (default),\n"
+  "        2=CCC)\n"
   "\n"
   "    --num_way <value>\n"
   "        dimension of metric to compute (2=2-way, 3=3-way\n"
@@ -59,7 +59,7 @@ void usage() {
 }
 
 /*===========================================================================*/
-/*---Set the vectors to test values---*/
+/*---Set the entries of the vectors---*/
 
 void input_vectors(Vectors* vectors, Env* env) {
 
@@ -96,12 +96,17 @@ void output_metrics(Metrics* metrics, Env* env) {
       {
         size_t index;
         for ( index = 0; index < metrics->num_elts_local; ++index ) {
-          printf("proc: %i  entry: ", env->proc_num);
-          int i = 0;
-          for ( i = 0; i < env->num_way; ++i ) {
-            printf("%i ", Metrics_coord_from_index(metrics, index, i, env));
+          printf("proc: %i, entry (", env->proc_num);
+          int coord_num = 0;
+          for ( coord_num = 0; coord_num < env->num_way; ++coord_num ) {
+            if ( coord_num > 0 ) {
+              printf(",");
+            }
+            /*---Present to the user as 1-based---*/
+            printf("%i", 1 + Metrics_coord_from_index(metrics, index,
+                                                      coord_num, env));
           }
-          printf(" value: %e\n", ((Float_t*)(metrics->data))[index]);
+          printf("): value: %e\n", ((Float_t*)(metrics->data))[index]);
         } /*---for index---*/
       }
       break;
@@ -193,7 +198,7 @@ int main(int argc, char** argv) {
 
   input_vectors(&vectors, &env);
 
-  /*---Set up metrics---*/
+  /*---Set up metrics container for results---*/
 
   Metrics metrics = Metrics_null();
   Metrics_create(&metrics, data_type_id_from_metric_type(env.metric_type, &env),
@@ -206,6 +211,8 @@ int main(int argc, char** argv) {
   compute_metrics(&metrics, &vectors, &env);
 
   double time_end = Env_get_synced_time(&env);
+
+  /*---Output run information---*/
 
   double time_compute_metrics = time_end - time_begin;
 
