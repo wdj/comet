@@ -108,7 +108,11 @@
   #endif
 #else
     #define conj(A)           (A)
+  #ifdef DOUBLE
     #define fmin(A, B, C) C += ( (A) < (B) ? (A) : (B) )
+  #else
+    #define fmin(A, B, C) C += fminf((A), (B))
+  #endif
     #define add(A, B)         (A+B)
     #define mul(A, B)         (A*B)
     #define fma(A, B, C) C += (A*B)
