@@ -34,7 +34,7 @@ enum { Bool_true = (1 == 1), Bool_false = (1 == 0) };
 
 #ifdef FP_PRECISION_SINGLE
   typedef float Float_t;
-  enum { MPI_Float_t = MPI_SINGLE };
+  enum { MPI_Float_t = MPI_FLOAT };
 #endif
 
 #ifdef FP_PRECISION_DOUBLE
@@ -52,7 +52,7 @@ enum { DATA_TYPE_ID_FLOAT = 1, DATA_TYPE_ID_BIT = 2 };
 typedef struct {
   int metric_type;
   int num_way;
-  Bool_t global_all2all;
+  Bool_t all2all;
   int compute_method;
   int mpi_comm;
   int num_proc;

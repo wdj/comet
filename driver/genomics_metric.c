@@ -41,18 +41,21 @@ void usage() {
   "        (Required) the number of vectors to be processed on each processor\n"
   "\n"
   "    --metric_type <value>\n"
-  "        metric type to compute (0=Sorenson, 1=Czekanowski (default),\n"
-  "        2=CCC)\n"
+  "        metric type to compute (sorenson=Sorenson,\n"
+  "        czekanowski=Czekanowski (default), ccc=CCC)\n"
   "\n"
   "    --num_way <value>\n"
   "        dimension of metric to compute (2=2-way, 3=3-way\n"
   "\n"
-  "    --global_all2all\n"
+  "    --all2all\n"
   "        whether to perform global all-to-all as rather than computing\n"
-  "        on each processor separately (1=yes, 0=no (default))\n"
+  "        on each processor separately (yes=yes, no=no (default))\n"
   "\n"
   "    --compute_method\n"
   "        manner of computing the result (0=CPU, 1=GPU)\n"
+  "\n"
+  "    ---verbosity <value>\n"
+  "        verbosity level of output (0=none, 1=some (default) 2=more)\n"
   "\n"
   );
   /* clang-format on */
@@ -123,11 +126,13 @@ void output_metrics(Metrics* metrics, Env* env) {
 
 void finish_parsing(int argc, char** argv, Env* env,
                     int* num_field,
-                    int* num_vector_local) {
+                    int* num_vector_local,
+                    int* verbosity) {
 
   const int uninitialized = -1;
   *num_field = uninitialized;
   *num_vector_local = uninitialized;
+  *verbosity = 1;
 
   int i = 0;
   for (i = 1; i < argc; ++i) {
@@ -144,11 +149,17 @@ void finish_parsing(int argc, char** argv, Env* env,
       *num_vector_local = atoi(argv[i]);
       Insist(env, *num_vector_local >= 0 ?
              "Invalid setting for num_vector_local." : 0);
+    } else if (strcmp(argv[i], "--verbosity") == 0) {
+      ++i;
+      Insist(env, i < argc ? "Missing value for verbosity." : 0);
+      *verbosity = atoi(argv[i]);
+      Insist(env, *verbosity >= 0 ?
+             "Invalid setting for verbosity." : 0);
     } else if (strcmp(argv[i], "--metric_type") == 0) {
         ++i;
     } else if (strcmp(argv[i], "--num_way") == 0) {
         ++i;
-    } else if (strcmp(argv[i], "--global_all2all") == 0) {
+    } else if (strcmp(argv[i], "--all2all") == 0) {
         ++i;
     } else if (strcmp(argv[i], "--compute_method") == 0) {
         ++i;
@@ -188,7 +199,8 @@ int main(int argc, char** argv) {
 
   int num_field = 0;
   int num_vector_local = 0;
-  finish_parsing(argc, argv, &env, &num_field, &num_vector_local);
+  int verbosity = 0;
+  finish_parsing(argc, argv, &env, &num_field, &num_vector_local, &verbosity);
 
   /*---Initialize vectors---*/
 
@@ -218,14 +230,16 @@ int main(int argc, char** argv) {
 
   double checksum = Metrics_checksum ( &metrics, &env );
 
-  if ( env.proc_num==0 ) {
+  if ( env.proc_num==0 && verbosity >0 ) {
     printf("metrics checksum %.17e compute time %.6f\n",
            checksum, time_compute_metrics);
   }
 
   /*---Output results---*/
 
-  output_metrics(&metrics, &env);
+  if ( verbosity > 1 ) {
+    output_metrics(&metrics, &env);
+  }
 
   /*---Finalize---*/
 

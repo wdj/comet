@@ -1,4 +1,14 @@
 #!/bin/bash -l
+#==============================================================================
+#
+# Script to build genomics metrics code.
+#
+# Usage: ./make.sh [single]
+# use single to build single precision version instead of double.
+#
+#==============================================================================
+
+FP_PRECISION="${1:-}"
 
 #module unload cray-mpich
 #module swap PrgEnv-pgi PrgEnv-gnu
@@ -20,6 +30,7 @@ if [ ! -e $MAGMA_DIR/lib/libmagma_minproduct.a ] ; then
 fi
 
 make distclean
-make 2>&1
+make FP_PRECISION=$FP_PRECISION 2>&1
 make clean
 
+#==============================================================================

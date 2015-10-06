@@ -25,7 +25,7 @@ void compute_metrics_sorenson_2way_cpu(Metrics* metrics,
   Assert(vectors != NULL);
   Assert(env != NULL);
 
-  Insist(env, ( ! env->global_all2all ) ? "Unimplemented." : 0);
+  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
   Insist(env, Bool_false ? "Unimplemented." : 0);
 }
@@ -39,7 +39,7 @@ void compute_metrics_sorenson_2way_gpu(Metrics* metrics,
   Assert(vectors != NULL);
   Assert(env != NULL);
 
-  Insist(env, ( ! env->global_all2all ) ? "Unimplemented." : 0);
+  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
   Insist(env, Bool_false ? "Unimplemented." : 0);
 }

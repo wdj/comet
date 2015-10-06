@@ -6,7 +6,7 @@
 # Usage: type the following from the Magma root directory, e.g.,
 # magma_minproduct-1.6.2:
 #
-# ../make.mk
+# ../make.sh
 #
 #==============================================================================
 
@@ -16,3 +16,4 @@ module load acml
 
 make -j8
 
+#==============================================================================

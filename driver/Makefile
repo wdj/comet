@@ -11,8 +11,12 @@ CFLAGS  += -fargument-noalias-anything -O2
 CFLAGS  += -I../magma/magma_minproduct-1.6.2/include $(CRAY_CUDATOOLKIT_INCLUDE_OPTS) -DADD_
 CFLAGS  += -Werror
 CFLAGS  += -I../src -I.
-CFLAGS += -DFP_PRECISION_DOUBLE
-#CFLAGS += -DFP_PRECISION_SINGLE
+
+ifeq ($(FP_PRECISION),single)
+  CFLAGS += -DFP_PRECISION_SINGLE
+else
+  CFLAGS += -DFP_PRECISION_DOUBLE
+endif
 
 LFLAGS = $(LDFLAGS) -L../magma/magma_minproduct-1.6.2/lib -lmagma_minproduct $(CRAY_CUDATOOLKIT_POST_LINK_OPTS) -lcublas
 

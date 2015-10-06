@@ -56,7 +56,7 @@ void Metrics_create(Metrics* metrics,
 
   /*---Compute number of elements etc.---*/
 
-  if (env->global_all2all) {
+  if (env->all2all) {
     if (env->num_way == 2) {
       Insist(env, Bool_false ? "Unimplemented." : 0);
     } else /* (env->num_way == 3) */ {
@@ -90,7 +90,7 @@ void Metrics_create(Metrics* metrics,
         }
       }
     } /*---if num_way---*/
-  } /*---if global_all2all---*/
+  } /*---if all2all---*/
 
   /*---Allocations---*/
 
@@ -132,7 +132,7 @@ double Metrics_checksum(Metrics * metrics, Env * env) {
 
   double result = 0;
 
-  if ( env->global_all2all ) {
+  if ( env->all2all ) {
     Insist(env, Bool_false ? "Unimplemented." : 0);
   } else {
     switch (metrics->data_type_id) {
@@ -156,7 +156,7 @@ double Metrics_checksum(Metrics * metrics, Env * env) {
     int mpi_code = MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE,
                                  MPI_MAX, env->mpi_comm);
     Assert(mpi_code == MPI_SUCCESS);
-  } /*---if global_all2all---*/
+  } /*---if all2all---*/
 
   return result;
 }

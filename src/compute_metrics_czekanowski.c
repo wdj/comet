@@ -30,11 +30,11 @@ void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
   Assert(vectors != NULL);
   Assert(env != NULL);
 
-  Insist(env, ( ! env->global_all2all ) ? "Unimplemented." : 0);
-
-  Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
+  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
   /*---Denominator---*/
+
+  Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
 
   int i = 0;
   for ( i = 0; i < metrics->num_vector_local; ++i ) {
@@ -85,11 +85,11 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   Assert(vectors != NULL);
   Assert(env != NULL);
 
-  Insist(env, ( ! env->global_all2all ) ? "Unimplemented." : 0);
-
-  Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
+  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
   /*---Denominator---*/
+
+  Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
 
   int i = 0;
   for ( i = 0; i < metrics->num_vector_local; ++i ) {
@@ -108,7 +108,6 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 
   magma_minproduct_init();
 
-#ifdef FP_PRECISION_DOUBLE
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors->num_field;
@@ -117,8 +116,14 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   Float_t* h_numer = NULL;
 
   /*---Allocate magma CPU memory for vectors and for result */
+#ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dmalloc_pinned(&h_vectors,numvec*numfield);
   magma_minproduct_dmalloc_pinned(&h_numer,numvec*numvec);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproduct_smalloc_pinned(&h_vectors,numvec*numfield);
+  magma_minproduct_smalloc_pinned(&h_numer,numvec*numvec);
+#endif
 
   /*---Copy in vectors---*/
 
@@ -134,13 +139,25 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   Float_t* d_vectors = NULL;
   Float_t* d_numer = NULL;
 
+#ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dmalloc(&d_vectors, numvec*numfield);
   magma_minproduct_dmalloc(&d_numer, numvec*numvec);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproduct_smalloc(&d_vectors, numvec*numfield);
+  magma_minproduct_smalloc(&d_numer, numvec*numvec);
+#endif
 
   /*---Send vectors to GPU---*/
 
+#ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dsetmatrix(numfield, numvec, h_vectors, numfield,
                                    d_vectors, numfield);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproduct_ssetmatrix(numfield, numvec, h_vectors, numfield,
+                                   d_vectors, numfield);
+#endif
 
   /*---Initialize result matrix to zero (apparently magma requires)---*/
 
@@ -153,12 +170,21 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 
   /*---Send initialized result matrix to GPU---*/
 
-  magma_minproduct_dsetmatrix(numvec, numvec, h_numer, numvec,
-                              d_numer, numvec);
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproduct_dsetmatrix(numvec, numvec, h_numer, numvec, d_numer, numvec);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproduct_ssetmatrix(numvec, numvec, h_numer, numvec, d_numer, numvec);
+#endif
 
   /*---Perform pseudo matrix-matrix product---*/
 
+#ifdef FP_PRECISION_DOUBLE
   magma_minproductblas_dgemm(
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproductblas_sgemm(
+#endif
     Magma_minproductTrans,
     Magma_minproductNoTrans,
     numvec,
@@ -175,8 +201,12 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 
   /*---Copy result from GPU---*/
 
-  magma_minproduct_dgetmatrix(numvec, numvec, d_numer, numvec,
-                              h_numer, numvec);
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproduct_dgetmatrix(numvec, numvec, d_numer, numvec, h_numer, numvec);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproduct_sgetmatrix(numvec, numvec, d_numer, numvec, h_numer, numvec);
+#endif
 
   /*---Combine---*/
 
@@ -196,11 +226,6 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 
   magma_minproduct_free_pinned(h_vectors);
   magma_minproduct_free_pinned(h_numer);
-#endif
-
-#ifdef FP_PRECISION_SINGLE
-  Insist(env, Bool_false ? "Unimplemented." : 0);
-#endif
 
   magma_minproduct_finalize();
 

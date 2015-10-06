@@ -48,7 +48,7 @@ void Env_create(Env* env) {
   /*---Set default values---*/
   env->metric_type = METRIC_TYPE_CZEKANOWSKI;
   env->num_way = 2;
-  env->global_all2all = Bool_false;
+  env->all2all = Bool_false;
   env->compute_method = COMPUTE_METHOD_GPU;
 }
 
@@ -66,13 +66,15 @@ void Env_create_from_args(Env* env, int argc, char** argv) {
     if (strcmp(argv[i], "--metric_type") == 0) {
       ++i;
       Insist(env, i < argc ? "Missing value for metric_type." : 0);
-      env->metric_type = atoi(argv[i]);
-      Insist(env, env->metric_type == METRIC_TYPE_SORENSON ||
-                  env->metric_type == METRIC_TYPE_CZEKANOWSKI ||
-                  env->metric_type == METRIC_TYPE_CCC
-                ? "Invalid setting for metric_type."
-                : 0);
-
+      if (strcmp(argv[i], "sorenson") == 0) {
+        env->metric_type = METRIC_TYPE_SORENSON;
+      } else if (strcmp(argv[i], "czekanowski") == 0) {
+        env->metric_type = METRIC_TYPE_CZEKANOWSKI;
+      } else if (strcmp(argv[i], "ccc") == 0) {
+        env->metric_type = METRIC_TYPE_CCC;
+      } else {
+        Insist(env, Bool_false ? "Invalid setting for metric_type." : 0);
+      }
     } else if (strcmp(argv[i], "--num_way") == 0) {
       ++i;
       Insist(env, i < argc ? "Missing value for num_way." : 0);
@@ -81,24 +83,27 @@ void Env_create_from_args(Env* env, int argc, char** argv) {
                  ? "Invalid setting for num_way."
                  : 0);
 
-    } else if (strcmp(argv[i], "--global_all2all") == 0) {
+    } else if (strcmp(argv[i], "--all2all") == 0) {
       ++i;
-      Insist(env, i < argc ? "Missing value for global_all2all." : 0);
-      env->global_all2all = atoi(argv[i]);
-      Insist(env, env->global_all2all == Bool_false ||
-                  env->global_all2all == Bool_true
-                ? "Invalid setting for global_all2all."
-                : 0);
+      Insist(env, i < argc ? "Missing value for all2all." : 0);
+      if (strcmp(argv[i], "yes") == 0) {
+        env->all2all = Bool_true;
+      } else if (strcmp(argv[i], "no") == 0) {
+        env->all2all = Bool_false;
+      } else {
+        Insist(env, Bool_false ? "Invalid setting for all2all." : 0);
+      }
 
     } else if (strcmp(argv[i], "--compute_method") == 0) {
       ++i;
       Insist(env, i < argc ? "Missing value for compute_method." : 0);
-      env->compute_method = atoi(argv[i]);
-      Insist(env, env->compute_method == COMPUTE_METHOD_CPU ||
-                  env->compute_method == COMPUTE_METHOD_GPU
-                ? "Invalid setting for compute_method."
-                : 0);
-
+      if (strcmp(argv[i], "CPU") == 0) {
+        env->compute_method = COMPUTE_METHOD_CPU;
+      } else if (strcmp(argv[i], "GPU") == 0) {
+        env->compute_method = COMPUTE_METHOD_GPU;
+      } else {
+        Insist(env, Bool_false ? "Invalid setting for compute_method." : 0);
+      }
     } /*---if/else---*/
   }   /*---for i---*/
 }
