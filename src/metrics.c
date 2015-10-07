@@ -44,9 +44,11 @@ void Metrics_create(Metrics* metrics,
   int mpi_code = MPI_Allreduce(&(metrics->num_vector_local),
                                &(metrics->num_vector_local_max), 1, MPI_INT,
                                MPI_MAX, env->mpi_comm);
+  if ( mpi_code ) {} /*---Avoid unused variable warning---*/
   Assert(mpi_code == MPI_SUCCESS);
 
   size_t num_vector_bound = env->num_proc * (size_t) metrics->num_vector;
+  if ( num_vector_bound ) {} /*---Avoid unused variable warning---*/
   Assert( num_vector_bound == (size_t)(int)num_vector_bound
             ? "Vector count too large to store in 32-bit int." : 0 );
 
@@ -155,6 +157,7 @@ double Metrics_checksum(Metrics * metrics, Env * env) {
     const double tmp = result;
     int mpi_code = MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE,
                                  MPI_MAX, env->mpi_comm);
+    if ( mpi_code ) {} /*---Avoid unused variable warning---*/
     Assert(mpi_code == MPI_SUCCESS);
   } /*---if all2all---*/
 

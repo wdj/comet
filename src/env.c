@@ -41,6 +41,7 @@ void Env_create(Env* env) {
   env->mpi_comm = MPI_COMM_WORLD;
 
   int mpi_code = MPI_Comm_rank(env->mpi_comm, &(env->proc_num));
+  if (mpi_code) {} /*---Avoid unused variable warning---*/
   Assert(mpi_code == MPI_SUCCESS);
   mpi_code = MPI_Comm_size(env->mpi_comm, &(env->num_proc));
   Assert(mpi_code == MPI_SUCCESS);
@@ -133,10 +134,14 @@ double Env_get_time(Env* env) {
 double Env_get_synced_time(Env* env) {
   Assert(env);
 
+  /*
   cudaThreadSynchronize();
+  */
+  cudaDeviceSynchronize();
   Assert(Env_cuda_last_call_succeeded(env));
 
   int mpi_code = MPI_Barrier(env->mpi_comm);
+  if (mpi_code) {} /*---Avoid unused variable warning---*/
   Assert(mpi_code == MPI_SUCCESS);
   return Env_get_time(env);
 }

@@ -8,9 +8,7 @@
  */
 /*---------------------------------------------------------------------------*/
 
-/*FIX*/
-#include <stdio.h>
-
+#include <stdio.h> /*FIX*/
 #include <stdlib.h>
 
 #include "magma_minproduct.h"
@@ -20,6 +18,27 @@
 #include "vectors.h"
 #include "metrics.h"
 #include "compute_metrics_czekanowski.h"
+
+/*===========================================================================*/
+
+static void compute_vector_sums(Vectors* vectors,
+                                Float_t* __restrict__ vector_sums,
+                                Env* env) {
+  Assert(vectors != NULL);
+  Assert(vector_sums != NULL);
+  Assert(env != NULL);
+
+  int i = 0;
+  for ( i = 0; i < vectors->num_vector_local; ++i ) {
+    Float_t sum = 0;
+    int field = 0;
+    for ( field = 0; field < vectors->num_field; ++field ) {
+      Float_t value = Vectors_float_get(vectors, field, i, env);
+      sum += value;
+    }
+    vector_sums[i] = sum;
+  }
+}
 
 /*===========================================================================*/
 
@@ -36,19 +55,11 @@ void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
 
   Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
 
-  int i = 0;
-  for ( i = 0; i < metrics->num_vector_local; ++i ) {
-    Float_t sum = 0;
-    int field = 0;
-    for ( field = 0; field < vectors->num_field; ++field ) {
-      Float_t value = Vectors_float_get(vectors, field, i, env);
-      sum += value;
-    }
-    vector_sums[i] = sum;
-  }
+  compute_vector_sums(vectors, vector_sums, env);
 
   /*---Numerator---*/
 
+  int i = 0;
   int j = 0;
   for ( i = 0; i < metrics->num_vector_local; ++i ) {
     for ( j = i+1; j < metrics->num_vector_local; ++j ) {
@@ -91,23 +102,16 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 
   Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
 
-  int i = 0;
-  for ( i = 0; i < metrics->num_vector_local; ++i ) {
-    Float_t sum = 0;
-    int field = 0;
-    for ( field = 0; field < vectors->num_field; ++field ) {
-      Float_t value = Vectors_float_get(vectors, field, i, env);
-      sum += value;
-    }
-    vector_sums[i] = sum;
-  }
+/* .02 / 1.56 */
+  compute_vector_sums(vectors, vector_sums, env);
 
   /*---------------*/
   /*---Numerator---*/
   /*---------------*/
 
-  magma_minproduct_init();
+  int i = 0;
 
+  magma_minproduct_init();
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors->num_field;
@@ -116,6 +120,7 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   Float_t* h_numer = NULL;
 
   /*---Allocate magma CPU memory for vectors and for result */
+
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dmalloc_pinned(&h_vectors,numvec*numfield);
   magma_minproduct_dmalloc_pinned(&h_numer,numvec*numvec);
@@ -124,15 +129,6 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   magma_minproduct_smalloc_pinned(&h_vectors,numvec*numfield);
   magma_minproduct_smalloc_pinned(&h_numer,numvec*numvec);
 #endif
-
-  /*---Copy in vectors---*/
-
-  for (i = 0; i < numvec; ++i) {
-    int k = 0;
-    for (k = 0; k < numfield; ++k) {
-      h_vectors[k+numfield*i] = Vectors_float_get( vectors, k, i, env );
-    }
-  }
 
   /*---Allocate GPU mirrors for CPU arrays---*/
 
@@ -148,16 +144,7 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   magma_minproduct_smalloc(&d_numer, numvec*numvec);
 #endif
 
-  /*---Send vectors to GPU---*/
-
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dsetmatrix(numfield, numvec, h_vectors, numfield,
-                                   d_vectors, numfield);
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproduct_ssetmatrix(numfield, numvec, h_vectors, numfield,
-                                   d_vectors, numfield);
-#endif
+#if 0
 
   /*---Initialize result matrix to zero (apparently magma requires)---*/
 
@@ -177,15 +164,39 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   magma_minproduct_ssetmatrix(numvec, numvec, h_numer, numvec, d_numer, numvec);
 #endif
 
-  /*---Perform pseudo matrix-matrix product---*/
+#endif
+
+  /*---Copy in vectors---*/
+
+/* .08 / 1.56 */
+  for (i = 0; i < numvec; ++i) {
+    int k = 0;
+    for (k = 0; k < numfield; ++k) {
+      h_vectors[k+numfield*i] = Vectors_float_get( vectors, k, i, env );
+    }
+  }
+
+  /*---Send vectors to GPU---*/
 
 #ifdef FP_PRECISION_DOUBLE
-  magma_minproductblas_dgemm(
+  magma_minproduct_dsetmatrix(numfield, numvec, h_vectors, numfield,
+                                   d_vectors, numfield);
 #endif
 #ifdef FP_PRECISION_SINGLE
-  magma_minproductblas_sgemm(
+  magma_minproduct_ssetmatrix(numfield, numvec, h_vectors, numfield,
+                                   d_vectors, numfield);
 #endif
-    Magma_minproductTrans,
+
+  /*---Perform pseudo matrix-matrix product---*/
+
+/* .63 / 1.56 */
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproductblas_dgemm
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproductblas_sgemm
+#endif
+   (Magma_minproductTrans,
     Magma_minproductNoTrans,
     numvec,
     numvec,
@@ -197,7 +208,7 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
     numfield,
     0.0,
     d_numer,
-    numvec );
+    numvec);
 
   /*---Copy result from GPU---*/
 
@@ -210,6 +221,7 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 
   /*---Combine---*/
 
+/* .22 / 1.56 */
   for ( i = 0; i < metrics->num_vector_local; ++i ) {
     int j = 0;
     for ( j = i+1; j < metrics->num_vector_local; ++j ) {
@@ -230,6 +242,36 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   magma_minproduct_finalize();
 
   free( vector_sums );
+}
+
+/*===========================================================================*/
+
+void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
+                                          Vectors* vectors,
+                                          Env* env) {
+  Assert(metrics != NULL);
+  Assert(vectors != NULL);
+  Assert(env != NULL);
+
+  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
+
+  Insist(env, Bool_false ? "Unimplemented." : 0);
+
+}
+
+/*===========================================================================*/
+
+void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
+                                          Vectors* vectors,
+                                          Env* env) {
+  Assert(metrics != NULL);
+  Assert(vectors != NULL);
+  Assert(env != NULL);
+
+  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
+
+  Insist(env, Bool_false ? "Unimplemented." : 0);
+
 }
 
 /*===========================================================================*/

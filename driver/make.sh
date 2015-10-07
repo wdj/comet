@@ -8,8 +8,6 @@
 #
 #==============================================================================
 
-FP_PRECISION="${1:-}"
-
 #module unload cray-mpich
 #module swap PrgEnv-pgi PrgEnv-gnu
 #module swap gcc/5.1.0 gcc/4.8.2
@@ -30,7 +28,8 @@ if [ ! -e $MAGMA_DIR/lib/libmagma_minproduct.a ] ; then
 fi
 
 make distclean
-make FP_PRECISION=$FP_PRECISION 2>&1
+#make FP_PRECISION=$FP_PRECISION 2>&1
+make $* 2>&1
 make clean
 
 #==============================================================================

@@ -23,14 +23,12 @@ void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
 void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
                                           Vectors* vectors,
                                           Env* env);
-#if 0
 void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
                                           Vectors* vectors,
                                           Env* env);
 void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
                                           Vectors* vectors,
                                           Env* env);
-#endif
 
 /*===========================================================================*/
 

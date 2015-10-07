@@ -9,10 +9,20 @@
 WD=$PWD
 #---cd to Lustre to be able to aprun on titan.
 pushd $MEMBERWORK/stf006 > /dev/null
-#aprun -n1 $WD/genomics_metric
-echo \
-aprun -n1 $WD/genomics_metric --num_field 2 --num_vector_local 3 --compute_method GPU --verbosity 2
-aprun -n1 $WD/genomics_metric --num_field 2 --num_vector_local 3 --compute_method GPU --verbosity 2
+
+#for compute_method in CPU GPU ; do
+for compute_method in GPU ; do
+
+  echo \
+  aprun -n1 $WD/../bin/genomics_metric \
+      --num_field 5000 --num_vector_local 5000 \
+      --compute_method $compute_method --verbosity 1
+  aprun -n1 $WD/../bin/genomics_metric \
+      --num_field 5000 --num_vector_local 5000 \
+      --compute_method $compute_method --verbosity 1
+
+done
+
 popd > /dev/null
 
 #------------------------------------------------------------------------------

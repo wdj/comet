@@ -13,13 +13,15 @@ SRCDIR = ../src
 BINDIR = ../bin
 LIBDIR = ../lib
 
-#CFLAGS += -pedantic -Wall -O2
-CFLAGS += -Wall -Wno-unused-function -O2 -finline-functions -finline-limit=1000
-CFLAGS += -fargument-noalias-anything -O2
-CFLAGS += -Werror
-CFLAGS += -I../magma/magma_minproduct-1.6.2/include
-CFLAGS += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS) -DADD_
+CFLAGS += -Wall -Wno-unused-function -pedantic -std=c99 -Werror
 CFLAGS += -I$(SRCDIR) -I$(DRIVERDIR)
+CFLAGS += -I../magma/magma_minproduct-1.6.2/include -DADD_
+CFLAGS += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
+
+CFLAGS_DEBUG = -g
+CFLAGS_RELEASE = -DNDEBUG
+CFLAGS_OPT = -O2 -ffast-math -fargument-noalias-anything
+CFLAGS_OPT += -finline-functions -finline-limit=1000
 
 ifeq ($(FP_PRECISION),single)
   CFLAGS += -DFP_PRECISION_SINGLE
@@ -32,7 +34,7 @@ LFLAGS += -L$(LIBDIR) -lgenomics_metrics
 LFLAGS += -L../magma/magma_minproduct-1.6.2/lib -lmagma_minproduct
 LFLAGS += $(CRAY_CUDATOOLKIT_POST_LINK_OPTS) -lcublas
 
-EXEC  = $(BINDIR)/genomics_metric
+EXEC = $(BINDIR)/genomics_metric
 LIB = $(LIBDIR)/libgenomics_metrics.a
 
 SOURCES = $(shell echo $(DRIVERDIR)/*.c)
@@ -43,10 +45,18 @@ SOURCES_LIB = $(shell echo $(SRCDIR)/*.c)
 HEADERS_LIB = $(shell echo $(SRCDIR)/*.h)
 OBJECTS_LIB = $(SOURCES_LIB:.c=.o)
 
-all: $(EXEC)
+.PHONY: debug
+debug: CFLAGS += $(CFLAGS_DEBUG)
+debug: $(EXEC)
+
+.PHONY: release
+release: CFLAGS += $(CFLAGS_RELEASE) $(CFLAGS_OPT)
+release: $(EXEC)
+
+#all: $(EXEC)
 
 $(EXEC): $(BINDIR) $(OBJECTS) $(LIB)
-	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LFLAGS)
 
 $(LIB): $(LIBDIR) $(LIB)($(OBJECTS_LIB))
 	ranlib $@

@@ -66,9 +66,6 @@ void usage() {
 
 void input_vectors(Vectors* vectors, Env* env) {
 
-  double num_vector_elts_total = ((double)vectors->num_field *
-                                  (double)vectors->num_vector_local_max *
-                                  (double)env->num_proc);
   int vector_local;
   for (vector_local = 0; vector_local < vectors->num_vector_local;
        ++vector_local) {
@@ -80,11 +77,8 @@ void input_vectors(Vectors* vectors, Env* env) {
                      (size_t)env->proc_num));
       /*---randomize---*/
       index = randomize ( index );
-      /*---set---*/
-      Float_t value = index / num_vector_elts_total;
-/*
-printf("%e\n",value);
-*/
+      /*---set to number between 0 and 1---*/
+      Float_t value = index / (Float_t)randomize_max();
       Vectors_set(vectors, field, vector_local, value, env);
     } /*---field---*/
   } /*---vector_local---*/
@@ -156,13 +150,13 @@ void finish_parsing(int argc, char** argv, Env* env,
       Insist(env, *verbosity >= 0 ?
              "Invalid setting for verbosity." : 0);
     } else if (strcmp(argv[i], "--metric_type") == 0) {
-        ++i;
+        ++i; /*---processed elsewhere by Env---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
-        ++i;
+        ++i; /*---processed elsewhere by Env---*/
     } else if (strcmp(argv[i], "--all2all") == 0) {
-        ++i;
+        ++i; /*---processed elsewhere by Env---*/
     } else if (strcmp(argv[i], "--compute_method") == 0) {
-        ++i;
+        ++i; /*---processed elsewhere by Env---*/
     } else {
       if ( env->proc_num==0 ) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
@@ -218,6 +212,11 @@ int main(int argc, char** argv) {
 
   /*---Calculate metrics---*/
 
+  /*---Run once first, discard timing---*/
+  if (env.compute_method == COMPUTE_METHOD_GPU ) {
+    compute_metrics(&metrics, &vectors, &env);
+  }
+
   double time_begin = Env_get_synced_time(&env);
 
   compute_metrics(&metrics, &vectors, &env);
@@ -230,7 +229,7 @@ int main(int argc, char** argv) {
 
   double checksum = Metrics_checksum ( &metrics, &env );
 
-  if ( env.proc_num==0 && verbosity >0 ) {
+  if ( env.proc_num==0 && verbosity > 0 ) {
     printf("metrics checksum %.17e compute time %.6f\n",
            checksum, time_compute_metrics);
   }
@@ -243,6 +242,7 @@ int main(int argc, char** argv) {
 
   /*---Finalize---*/
 
+  Metrics_destroy(&metrics, &env);
   Vectors_destroy(&vectors, &env);
   Env_destroy(&env);
   MPI_Finalize();

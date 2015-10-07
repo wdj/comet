@@ -164,6 +164,14 @@ static size_t randomize( size_t i ) {
 
 /*---------------------------------------------------------------------------*/
 
+static size_t randomize_max() {
+  const size_t im = 714025;
+
+  return im;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static size_t nchoosek( int n, int k ) {
   Assert( n >= 1 );
   Assert( k >= 0 && k <= n );
