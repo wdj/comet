@@ -63,7 +63,7 @@ Float_t czekanowski_alt(int len, Float_t * const __restrict__ v1,
 
 /*===========================================================================*/
 /* Inlinable min function for czek metric. */
-
+///Test comment blah blah blah
 Float_t min_op(Float_t a, Float_t b) {
   return a < b ? a : b;
 }

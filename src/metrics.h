@@ -119,6 +119,29 @@ static void Metrics_Float_set_2(Metrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+static void Metrics_Float_set_3(Metrics* metrics, 
+				  int i,
+				  int j,
+			 	  int k,
+				  Float_t value,
+ 				  Env* env) {
+  Assert(metrics);
+  Assert(i >= 0);
+  Assert(i < metrics->num_vector_local);
+  Assert(j >= 0);
+  Assert(j < metrics->num_vector_local);
+  Assert(k >= 0);
+  Assert(k < metrics->num_vector_local);
+  Assert(i < j);
+  Assert(j < k);
+  Assert(env);
+
+  size_t index = Metrics_index_from_coord_3(metrics, i, j, k, env);
+  ((Float_t*)(metrics->data))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static Float_t Metrics_Float_get_2(Metrics* metrics,
                                    int i,
                                    int j,
@@ -132,6 +155,28 @@ static Float_t Metrics_Float_get_2(Metrics* metrics,
   Assert(env);
 
   size_t index = Metrics_index_from_coord_2(metrics, i, j, env);
+  return ((Float_t*)(metrics->data))[index];
+}
+
+/*---------------------------------------------------------------------------*/
+
+static Float_t Metrics_Float_get_3(Metrics* metrics,
+                                   int i,
+                                   int j,
+ 				   int k,
+                                   Env* env) {
+  Assert(metrics);
+  Assert(i >= 0);
+  Assert(i < metrics->num_vector_local);
+  Assert(j >= 0);
+  Assert(j < metrics->num_vector_local);
+  Assert(k >= 0);
+  Assert(k < metrics->num_vector_local);
+  Assert(i < j);
+  Assert(j < k);
+  Assert(env);
+
+  size_t index = Metrics_index_from_coord_3(metrics, i, j, k, env);
   return ((Float_t*)(metrics->data))[index];
 }
 

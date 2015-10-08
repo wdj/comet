@@ -9,8 +9,8 @@ NPROC=1
 for PROCESS_VECTORS_FN in process_vectors_alt6 process_vectors_alt ; do
 #for NCOPIES_V in 1 2 4 8 16 32 ; do
 #for NCOPIES_F in 1 2 4 8 16 32 ; do
-for NCOPIES_V in 1 ; do
-for NCOPIES_F in 1 ; do
+for NCOPIES_V in 16 ; do
+for NCOPIES_F in 16 ; do
 
   #---skip cases that are likely not to have enough memory.
   if [ $PROCESS_VECTORS_FN = process_vectors_alt -a \
