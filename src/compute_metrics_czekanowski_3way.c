@@ -14,39 +14,6 @@
 #include "czek.h"
 
 /*===========================================================================*/
-
-/* Timer function */
-double get_time() {
-  struct timeval tv;
-  double result;
-  gettimeofday( &tv, NULL );
-  result = ( (double) tv.tv_sec +
-             (double) tv.tv_usec * 1.e-6 );
-  return result;
-}
-
-/*===========================================================================*/
-
-/* Inlinable min function for czek metric. */
-Float_t min_op(Float_t a, Float_t b) {
-  return a < b ? a : b;
-}
-
-/*===========================================================================*/
-
-/* Compute simple sum of elements of a vector. */
-Float_t vector_sum(int len, Float_t * const __restrict__ v1) {
-  int i = 0;
-  Float_t result = (Float_t)0;
-
-  for(i = 0; i < len; ++i) {
-    result += ( v1[i] );
-  }
-
-  return result;
-}
-
-/*===========================================================================*/
 long long binomial_coeff(int n, int k) {
 
   int i = 0;
@@ -98,149 +65,70 @@ long long index_of_comb(int n, int k, int *comb) {
 }
 
 /*===========================================================================*/
+void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
+                                          Vectors* vectors,
+                                          Env* env) {
+  Assert(metrics != NULL);
+  Assert(vectors != NULL);
+  Assert(env != NULL);
 
-/* Czekanowski Similarity Metric between Three Vectors */
-/* v1, v2, v3 = double vectors, len = the size of the vectors */
-/*
-Float_t czekanowski(int len, Float_t * const __restrict__ v1, Float_t * const __restrict__ v2, Float_t * const __restrict__ v3) {
-  int i = 0;
-  Float_t numerator = (Float_t)0;
-  Float_t denominator = (Float_t)0;
-  Float_t temp_var = (Float_t)0;
+  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
-  for(i = 0; i < len; i++) {
-    temp_var = min_op(v1[i], v2[i]);
-    numerator += min_op(v1[i],v2[i]) + min_op(v1[i],v3[i]) + min_op(v2[i],v3[i]) - min_op(temp_var,v3[i]);
-    denominator += (v1[i] + v2[i] + v3[i]);
-  }
+  /*---Denominator---*/
 
-  return (Float_t)3*numerator/((Float_t)2*denominator);
-}
-*/
-Float_t czekanowski(int len, Float_t * const __restrict__ v1, Float_t * const __restrict__ v2, Float_t * const __restrict__ v3) {
-  int i = 0;
-  Float_t numerator = (Float_t)0;
-  Float_t denominator = (Float_t)0;
-  Float_t temp_var = (Float_t)0;
+  Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
 
-  for(i = 0; i < len; i++) {
-    temp_var = min_op(v1[i], v2[i]);
-    numerator += min_op(v1[i],v2[i]) + min_op(v1[i],v3[i]) + min_op(v2[i],v3[i]) - min_op(temp_var,v3[i]);
-    denominator += (v1[i] + v2[i] + v3[i]);
-  }
-
-  return (Float_t)3*numerator/((Float_t)2*denominator);
-}
-
-/*===========================================================================*/
-
-/* Compute the numerator for the czek metric. */
-Float_t czekanowski_numerator(int len, Float_t * const __restrict__ v1, Float_t * const __restrict__ v2, Float_t * const __restrict__ v3) {
-  int i = 0;
-  Float_t result = (Float_t)0;
-
-  for(i = 0; i < len; ++i) {
-    Float_t temp_var = min_op(v1[i], v2[i]);
-    result += min_op(v1[i],v2[i]) + min_op(v1[i],v3[i]) + min_op(v2[i],v3[i]) + min_op(temp_var,v3[i]);
-  }
-
-  return result;
-}
-
-/*===========================================================================*/
-
-/* Compute a checksum of the czek values. */
-Float_t checksum( Float_t* czek_vals, int numvec) {
+  compute_vector_sums(vectors, vector_sums, env);
+ 
+  /*---Numerator---*/
+ 
   int i = 0;
   int j = 0;
   int k = 0;
-  int counter = 0;
-  Float_t result = 0;
 
-#if 0
-  for (i = 0; i < (numvec/NCOPIES_V)-1; ++i) {
-    for (j = i+1; j < (numvec/NCOPIES_V); ++j) {
-      result += (1 + j + (numvec/NCOPIES_V)*1.*(i)) *
-                czek_vals[j+numvec*i];
-    }  
-  }
-#endif
-
-#if 1
-  for (i = 0; i < (numvec)-2; ++i) {
-    for (j = i+1; j < (numvec)-1; ++j) {
-      for (k = j+1; k < (numvec); ++k)   {
-        result += (1 + j + (numvec)*1.*(i + numvec*1.*(k))) *
-                  czek_vals[counter];
-        counter++;
-      }
-    }
-  }
-#endif
-
-  return result;
-}
-
-/*===========================================================================*/
-
-/* Alternate computation of Czekanowski metric for all pairwise combinations.
-   For this version, time the computations, without counting I/O. */
-void process_vectors_alt1(struct _vector *vectors, int numvec, int numfield,
-                     FILE *fp) {
-  int i = 0;
-  int j = 0;
-  int k = 0;
   long long counter = 0;
-  Float_t czek_value = 0.0;
-  Float_t* czek_vals = 0;
-  double time1 = 0.0;
-  double time2 = 0.0;
-
   long long n_choose_3 = binomial_coeff(numvec,3);
   czek_vals = malloc(n_choose_3*sizeof(Float_t));
+
+  for (i = 0; i < metrics->num_vector_local; ++i) {
+    for (j = i+1; j < metrics->num_vector_local; ++j) {
+      for (k = j+1; k < metrics->num_vector_local; ++k)   {
+        Float_t sum = 0;
+        for (field = 0; field < vectors->num_field; ++field) {
+          const Float_t value1 = Vectors_float_get(vectors, field, i, env);
+          const Float_t value2 = Vectors_float_get(vectors, field, j, env);
+          const Float_t value3 = Vectors_float_get(vectors, field, k, env);
+          Float_t min12 = value1 < value2 ? value1 : value2;
+          sum += min12;
+          sum += value1 < value3 ? value1 : value3;
+          sum += value2 < value3 ? value2 : value3;
+          sum -= min12 < value3 ? min12 : value3;
+        } /*---for field---*/
+        Metrics_Float_set_3(metrics, i, j, k, sum, env);
+      } /*---for k---*/
+    } /*---for j---*/
+  } /*---for i---*/
   
-  time1 = get_time();
+  /*---Combine---*/
 
-  for (i = 0; i < numvec-2; ++i) {
-    for (j = i+1; j < numvec-1; ++j) {
-      for (k = j+1; k < numvec; ++k)   {
-        czek_value = czekanowski(numfield, vectors[i].data, vectors[j].data, vectors[k].data);
-        czek_vals[counter] = czek_value;
-        counter++;
-       }
-     }  
-  }
+  for ( i = 0; i < metrics->num_vector_local; ++i ) {
+    for ( j = i+1; j < metrics->num_vector_local; ++j ) {
+      for ( k = j+1; k < metrics->num_vector_local; ++k) {
+        const Float_t numerator = Metrics_Float_get_3(metrics, i, j, k, env);
+        const Float_t denominator = vector_sums[i] + vector_sums[j] + vector_sums[k];
+        Metrics_Float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
+      } /*---for k---*/
+    } /*---for j---*/
+  } /*---for i---*/
 
-  time2 = get_time();
-  
-  counter = 0;
-  for (i = 0; i < numvec-2; ++i) {
-    for (j = i+1; j < numvec-1; ++j) {
-      for (k = j+1; k < numvec; ++k)   {
-        czek_value = czek_vals[counter];
-        counter++;
-#ifndef NO_PRINT
-        fprintf(fp, "%s\t%s\t%s\t%.4f\n", vectors[i].id, vectors[j].id vectors[k].id, czek_value);
-#endif
-      }
-    }  
-  }
+  free( vector_sums );  
 
-  printf("alt1  numvec %i numfield %i "
-         "time: %.6f "
-         "checksum %.15e\n",
-         numvec, numfield, time2-time1, checksum(czek_vals, numvec));
-
-  free(czek_vals);
 }
 
-
 /*===========================================================================*/
-
-/* Alternate computation of Czekanowski metric for all 3-way combinations. Here we
-   use MAGMA to compute matrix-matrix min products */
-void process_vectors_alt2(struct _vector *vectors, int numvec, int numfield,
-                          FILE *fp) {
+void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
+                                          Vectors* vectors,
+                                          Env* env) {
     int i = 0;
     int j = 0;
     int k = 0;
