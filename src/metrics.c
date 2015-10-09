@@ -21,7 +21,7 @@
 
 Metrics Metrics_null() {
   Metrics result;
-  memset( (void*)&result, 0, sizeof(Metrics) );
+  memset((void*)&result, 0, sizeof(Metrics));
   return result;
 }
 
@@ -44,13 +44,16 @@ void Metrics_create(Metrics* metrics,
   int mpi_code = MPI_Allreduce(&(metrics->num_vector_local),
                                &(metrics->num_vector_local_max), 1, MPI_INT,
                                MPI_MAX, env->mpi_comm);
-  if ( mpi_code ) {} /*---Avoid unused variable warning---*/
+  if (mpi_code) {
+  } /*---Avoid unused variable warning---*/
   Assert(mpi_code == MPI_SUCCESS);
 
-  size_t num_vector_bound = env->num_proc * (size_t) metrics->num_vector;
-  if ( num_vector_bound ) {} /*---Avoid unused variable warning---*/
-  Assert( num_vector_bound == (size_t)(int)num_vector_bound
-            ? "Vector count too large to store in 32-bit int." : 0 );
+  size_t num_vector_bound = env->num_proc * (size_t)metrics->num_vector;
+  if (num_vector_bound) {
+  } /*---Avoid unused variable warning---*/
+  Assert(num_vector_bound == (size_t)(int)num_vector_bound
+             ? "Vector count too large to store in 32-bit int."
+             : 0);
 
   mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
                            1, MPI_INT, MPI_SUM, env->mpi_comm);
@@ -65,7 +68,7 @@ void Metrics_create(Metrics* metrics,
       Insist(env, Bool_false ? "Unimplemented." : 0);
     }
   } else {
-    metrics->num_elts_local = nchoosek( num_vector_local, env->num_way );
+    metrics->num_elts_local = nchoosek(num_vector_local, env->num_way);
     metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
     Assert(metrics->index_map != NULL);
     /*---TODO: generalize this to N-way---*/
@@ -74,7 +77,7 @@ void Metrics_create(Metrics* metrics,
       int i = 0;
       for (i = 0; i < num_vector_local; ++i) {
         int j = 0;
-        for (j = i+1; j < num_vector_local; ++j) {
+        for (j = i + 1; j < num_vector_local; ++j) {
           metrics->index_map[index++] = i + num_vector_local * (size_t)j;
         }
       }
@@ -83,16 +86,16 @@ void Metrics_create(Metrics* metrics,
       int i = 0;
       for (i = 0; i < num_vector_local; ++i) {
         int j = 0;
-        for (j = i+1; j < num_vector_local; ++j) {
+        for (j = i + 1; j < num_vector_local; ++j) {
           int k = 0;
-          for (k = j+1; k < num_vector_local; ++k) {
+          for (k = j + 1; k < num_vector_local; ++k) {
             metrics->index_map[index++] =
                 i + num_vector_local * (j + num_vector_local * (size_t)k);
           }
         }
       }
     } /*---if num_way---*/
-  } /*---if all2all---*/
+  }   /*---if all2all---*/
 
   /*---Allocations---*/
 
@@ -112,7 +115,7 @@ void Metrics_create(Metrics* metrics,
 /*===========================================================================*/
 /*---Metrics pseudo-destructor---*/
 
-void Metrics_destroy(Metrics * metrics, Env * env) {
+void Metrics_destroy(Metrics* metrics, Env* env) {
   Assert(metrics);
   Assert(metrics->data);
   Assert(env);
@@ -127,27 +130,25 @@ void Metrics_destroy(Metrics * metrics, Env * env) {
 
 /* This should be invariant, up to roundoff, on CPU vs. GPU. */
 
-double Metrics_checksum(Metrics * metrics, Env * env) {
+double Metrics_checksum(Metrics* metrics, Env* env) {
   Assert(metrics);
   Assert(metrics->data);
   Assert(env);
 
   double result = 0;
 
-  if ( env->all2all ) {
+  if (env->all2all) {
     Insist(env, Bool_false ? "Unimplemented." : 0);
   } else {
     switch (metrics->data_type_id) {
-      case DATA_TYPE_ID_FLOAT:
-        {
-          int i = 0;
-          for ( i = 0; i < metrics->num_elts_local; ++i ) {
-            const size_t i_global = i + metrics->num_elts_local
-                                      * (size_t) env->num_proc;
-            result += ((Float_t*)metrics->data)[i] * randomize( i_global );
-          } /*---for i---*/
-        }
-        break;
+      case DATA_TYPE_ID_FLOAT: {
+        int i = 0;
+        for (i = 0; i < metrics->num_elts_local; ++i) {
+          const size_t i_global =
+              i + metrics->num_elts_local * (size_t)env->num_proc;
+          result += ((Float_t*)metrics->data)[i] * randomize(i_global);
+        } /*---for i---*/
+      } break;
       case DATA_TYPE_ID_BIT:
         Insist(env, Bool_false ? "Unimplemented." : 0);
         break;
@@ -155,9 +156,10 @@ double Metrics_checksum(Metrics * metrics, Env * env) {
         Assert(Bool_false ? "Invalid data type." : 0);
     } /*---switch---*/
     const double tmp = result;
-    int mpi_code = MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE,
-                                 MPI_MAX, env->mpi_comm);
-    if ( mpi_code ) {} /*---Avoid unused variable warning---*/
+    int mpi_code =
+        MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_MAX, env->mpi_comm);
+    if (mpi_code) {
+    } /*---Avoid unused variable warning---*/
     Assert(mpi_code == MPI_SUCCESS);
   } /*---if all2all---*/
 

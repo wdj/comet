@@ -29,7 +29,7 @@ typedef struct {
   int num_vector_local_max;
   size_t num_elts_local;
   int data_type_id;
-  size_t* index_map;  /*---map contig index to linearized Cartesian index---*/
+  size_t* index_map; /*---map contig index to linearized Cartesian index---*/
   void* __restrict__ data;
 } Metrics;
 
@@ -54,7 +54,7 @@ void Metrics_destroy(Metrics* metrics, Env* env);
 /*===========================================================================*/
 /*---Metrics checksum---*/
 
-double Metrics_checksum(Metrics * metrics, Env * env);
+double Metrics_checksum(Metrics* metrics, Env* env);
 
 /*===========================================================================*/
 /*---Accessors: indexing: contig index from coord---*/
@@ -93,7 +93,8 @@ static size_t Metrics_index_from_coord_3(Metrics* metrics,
   Assert(j < k);
   Assert(env);
 
-  size_t index = (k*(size_t)(k-1)*(size_t)(k-2))/6 + (j*(size_t)(j-1))/2 + i;
+  size_t index = (k * (size_t)(k - 1) * (size_t)(k - 2)) / 6 +
+                 (j * (size_t)(j - 1)) / 2 + i;
   return index;
 }
 
@@ -101,10 +102,10 @@ static size_t Metrics_index_from_coord_3(Metrics* metrics,
 /*---Accessors: value from coord---*/
 
 static void Metrics_Float_set_2(Metrics* metrics,
-                                  int i,
-                                  int j,
-                                  Float_t value,
-                                  Env* env) {
+                                int i,
+                                int j,
+                                Float_t value,
+                                Env* env) {
   Assert(metrics);
   Assert(i >= 0);
   Assert(i < metrics->num_vector_local);
@@ -119,12 +120,12 @@ static void Metrics_Float_set_2(Metrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-static void Metrics_Float_set_3(Metrics* metrics, 
-				  int i,
-				  int j,
-			 	  int k,
-				  Float_t value,
- 				  Env* env) {
+static void Metrics_Float_set_3(Metrics* metrics,
+                                int i,
+                                int j,
+                                int k,
+                                Float_t value,
+                                Env* env) {
   Assert(metrics);
   Assert(i >= 0);
   Assert(i < metrics->num_vector_local);
@@ -142,10 +143,7 @@ static void Metrics_Float_set_3(Metrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-static Float_t Metrics_Float_get_2(Metrics* metrics,
-                                   int i,
-                                   int j,
-                                   Env* env) {
+static Float_t Metrics_Float_get_2(Metrics* metrics, int i, int j, Env* env) {
   Assert(metrics);
   Assert(i >= 0);
   Assert(i < metrics->num_vector_local);
@@ -163,7 +161,7 @@ static Float_t Metrics_Float_get_2(Metrics* metrics,
 static Float_t Metrics_Float_get_3(Metrics* metrics,
                                    int i,
                                    int j,
- 				   int k,
+                                   int k,
                                    Env* env) {
   Assert(metrics);
   Assert(i >= 0);
@@ -237,8 +235,8 @@ static int Metrics_coord1_from_index_3(Metrics* metrics,
   Assert(env);
   Assert(env->num_way == 3);
 
-  int i = ( metrics->index_map[index] / metrics->num_vector_local )
-                                      % metrics->num_vector_local;
+  int i = (metrics->index_map[index] / metrics->num_vector_local) %
+          metrics->num_vector_local;
   return i;
 }
 
@@ -253,8 +251,8 @@ static int Metrics_coord2_from_index_3(Metrics* metrics,
   Assert(env);
   Assert(env->num_way == 3);
 
-  int i = metrics->index_map[index] / ( metrics->num_vector_local *
-                                        metrics->num_vector_local );
+  int i = metrics->index_map[index] /
+          (metrics->num_vector_local * metrics->num_vector_local);
   return i;
 }
 
@@ -273,19 +271,19 @@ static int Metrics_coord_from_index(Metrics* metrics,
   int result = 0;
 
   switch (env->num_way + 4 * coord_num) {
-    case 2 + 4 * 0:   /* 2-way, coord 0 */
+    case 2 + 4 * 0: /* 2-way, coord 0 */
       result = Metrics_coord0_from_index_2(metrics, index, env);
       break;
-    case 2 + 4 * 1:   /* 2-way, coord 1 */
+    case 2 + 4 * 1: /* 2-way, coord 1 */
       result = Metrics_coord1_from_index_2(metrics, index, env);
       break;
-    case 3 + 4 * 0:   /* 3-way, coord 0 */
+    case 3 + 4 * 0: /* 3-way, coord 0 */
       result = Metrics_coord0_from_index_3(metrics, index, env);
       break;
-    case 3 + 4 * 1:   /* 3-way, coord 1 */
+    case 3 + 4 * 1: /* 3-way, coord 1 */
       result = Metrics_coord1_from_index_3(metrics, index, env);
       break;
-    case 3 + 4 * 2:   /* 3-way, coord 2 */
+    case 3 + 4 * 2: /* 3-way, coord 2 */
       result = Metrics_coord2_from_index_3(metrics, index, env);
       break;
     default:

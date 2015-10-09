@@ -33,13 +33,13 @@ enum { Bool_true = (1 == 1), Bool_false = (1 == 0) };
 /*---Default floating point type---*/
 
 #ifdef FP_PRECISION_SINGLE
-  typedef float Float_t;
-  enum { MPI_Float_t = MPI_FLOAT };
+typedef float Float_t;
+enum { MPI_Float_t = MPI_FLOAT };
 #endif
 
 #ifdef FP_PRECISION_DOUBLE
-  typedef double Float_t;
-  enum { MPI_Float_t = MPI_DOUBLE };
+typedef double Float_t;
+enum { MPI_Float_t = MPI_DOUBLE };
 #endif
 
 /*---Type ids---*/
@@ -66,9 +66,7 @@ enum {
   NUM_METRIC_TYPE = 3
 };
 
-enum { COMPUTE_METHOD_CPU = 0,
-       COMPUTE_METHOD_GPU = 1,
-       NUM_COMPUTE_METHOD = 2 };
+enum { COMPUTE_METHOD_CPU = 0, COMPUTE_METHOD_GPU = 1, NUM_COMPUTE_METHOD = 2 };
 
 /*===========================================================================*/
 /*---Null object---*/
@@ -110,56 +108,52 @@ void insist_(Env* env,
 
 #ifndef NDEBUG
 /*---Fail compilation and (hopefully) give a filename/line number---*/
-#define Static_Assert( condition ) { int a[ ( condition ) ? 1 : -1 ]; (void)a; }
+#define Static_Assert(condition) \
+  {                              \
+    int a[(condition) ? 1 : -1]; \
+    (void) a;                    \
+  }
 #else
-#define Static_Assert( condition )
+#define Static_Assert(condition)
 #endif
 
 /*===========================================================================*/
 /*---Misc utility functions---*/
 
-static int imin( const int i,
-                 const int j )
-{
-    return i < j ? i : j;
+static int imin(const int i, const int j) {
+  return i < j ? i : j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int imax( const int i,
-                 const int j )
-{
-    return i > j ? i : j;
+static int imax(const int i, const int j) {
+  return i > j ? i : j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int ifloor( const int i,
-                   const int j )
-{
-    Assert( j > 0 );
+static int ifloor(const int i, const int j) {
+  Assert(j > 0);
 
-    return i >= 0 ? i/j : (i-j+1)/j;
+  return i >= 0 ? i / j : (i - j + 1) / j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int iceil( const int i,
-                  const int j )
-{
-    Assert( j > 0 );
+static int iceil(const int i, const int j) {
+  Assert(j > 0);
 
-    return - ifloor( -i, j );
+  return -ifloor(-i, j);
 }
 
 /*---------------------------------------------------------------------------*/
 
-static size_t randomize( size_t i ) {
+static size_t randomize(size_t i) {
   const size_t im = 714025;
   const size_t ia = 4096;
   const size_t ic = 150889;
 
-  return ( i * ia + ic ) % im;
+  return (i * ia + ic) % im;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -172,15 +166,15 @@ static size_t randomize_max() {
 
 /*---------------------------------------------------------------------------*/
 
-static size_t nchoosek( int n, int k ) {
-  Assert( n >= 1 );
-  Assert( k >= 0 && k <= n );
+static size_t nchoosek(int n, int k) {
+  Assert(n >= 1);
+  Assert(k >= 0 && k <= n);
   int i;
   size_t num = 1;
   size_t denom = 1;
-  for ( i = 0; i < k; ++i ) {
-    num *= ( n - i );
-    denom *= ( i + 1 );
+  for (i = 0; i < k; ++i) {
+    num *= (n - i);
+    denom *= (i + 1);
   }
   return num / denom;
 }

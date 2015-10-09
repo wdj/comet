@@ -86,7 +86,7 @@ static void Vectors_set(Vectors* vectors,
       Vectors_float_set(vectors, field, vector_local, (Float_t)value, env);
       return;
     case DATA_TYPE_ID_BIT:
-        Insist(env, Bool_false ? "Unimplemented." : 0);
+      Insist(env, Bool_false ? "Unimplemented." : 0);
       return;
     default:
       Assert(Bool_false ? "Invalid data_type_id." : 0);

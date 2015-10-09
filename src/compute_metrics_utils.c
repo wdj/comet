@@ -22,10 +22,10 @@ void compute_vector_sums(Vectors* vectors,
   Assert(env != NULL);
 
   int i = 0;
-  for ( i = 0; i < vectors->num_vector_local; ++i ) {
+  for (i = 0; i < vectors->num_vector_local; ++i) {
     Float_t sum = 0;
     int field = 0;
-    for ( field = 0; field < vectors->num_field; ++field ) {
+    for (field = 0; field < vectors->num_field; ++field) {
       Float_t value = Vectors_float_get(vectors, field, i, env);
       sum += value;
     }

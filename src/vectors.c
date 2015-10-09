@@ -21,7 +21,7 @@
 
 Vectors Vectors_null() {
   Vectors result;
-  memset( (void*)&result, 0, sizeof(Vectors) );
+  memset((void*)&result, 0, sizeof(Vectors));
   return result;
 }
 
@@ -60,13 +60,16 @@ void Vectors_create(Vectors* vectors,
   int mpi_code = MPI_Allreduce(&(vectors->num_vector_local),
                                &(vectors->num_vector_local_max), 1, MPI_INT,
                                MPI_MAX, env->mpi_comm);
-  if ( mpi_code ) {} /*---Avoid unused variable warning---*/
+  if (mpi_code) {
+  } /*---Avoid unused variable warning---*/
   Assert(mpi_code == MPI_SUCCESS);
 
-  size_t num_vector_bound = env->num_proc * (size_t) vectors->num_vector;
-  if ( num_vector_bound ) {} /*---Avoid unused variable warning---*/
-  Assert( num_vector_bound == (size_t)(int)num_vector_bound
-            ? "Vector count too large to store in 32-bit int." : 0 );
+  size_t num_vector_bound = env->num_proc * (size_t)vectors->num_vector;
+  if (num_vector_bound) {
+  } /*---Avoid unused variable warning---*/
+  Assert(num_vector_bound == (size_t)(int)num_vector_bound
+             ? "Vector count too large to store in 32-bit int."
+             : 0);
 
   mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
                            1, MPI_INT, MPI_SUM, env->mpi_comm);

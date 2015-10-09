@@ -65,23 +65,32 @@ void usage() {
 /*---Set the entries of the vectors---*/
 
 void input_vectors(Vectors* vectors, Env* env) {
-
-  int vector_local;
-  for (vector_local = 0; vector_local < vectors->num_vector_local;
-       ++vector_local) {
-    int field;
-    for (field = 0; field < vectors->num_field; ++field) {
-      /*---compute element unique id---*/
-      size_t index = field + vectors->num_field * (
-                     vector_local + vectors->num_vector_local_max * (
-                     (size_t)env->proc_num));
-      /*---randomize---*/
-      index = randomize ( index );
-      /*---set to number between 0 and 1---*/
-      Float_t value = index / (Float_t)randomize_max();
-      Vectors_set(vectors, field, vector_local, value, env);
-    } /*---field---*/
-  } /*---vector_local---*/
+  switch (data_type_id_from_metric_type(env->metric_type, env)) {
+    case DATA_TYPE_ID_FLOAT: {
+      int vector_local;
+      for (vector_local = 0; vector_local < vectors->num_vector_local;
+           ++vector_local) {
+        int field;
+        for (field = 0; field < vectors->num_field; ++field) {
+          /*---compute element unique id---*/
+          size_t index = field +
+                         vectors->num_field * (vector_local +
+                                               vectors->num_vector_local_max *
+                                                   ((size_t)env->proc_num));
+          /*---randomize---*/
+          index = randomize(index);
+          /*---set to number between 0 and 1---*/
+          Float_t value = index / (Float_t)randomize_max();
+          Vectors_float_set(vectors, field, vector_local, value, env);
+        } /*---field---*/
+      }   /*---vector_local---*/
+    } break;
+    case DATA_TYPE_ID_BIT:
+      Insist(env, Bool_false ? "Unimplemented." : 0);
+      break;
+    default:
+      Assert(Bool_false ? "Invalid data type." : 0);
+  }
 }
 
 /*===========================================================================*/
@@ -89,24 +98,22 @@ void input_vectors(Vectors* vectors, Env* env) {
 
 void output_metrics(Metrics* metrics, Env* env) {
   switch (data_type_id_from_metric_type(env->metric_type, env)) {
-    case DATA_TYPE_ID_FLOAT:
-      {
-        size_t index;
-        for ( index = 0; index < metrics->num_elts_local; ++index ) {
-          printf("proc: %i, entry (", env->proc_num);
-          int coord_num = 0;
-          for ( coord_num = 0; coord_num < env->num_way; ++coord_num ) {
-            if ( coord_num > 0 ) {
-              printf(",");
-            }
-            /*---Present to the user as 1-based---*/
-            printf("%i", 1 + Metrics_coord_from_index(metrics, index,
-                                                      coord_num, env));
+    case DATA_TYPE_ID_FLOAT: {
+      size_t index;
+      for (index = 0; index < metrics->num_elts_local; ++index) {
+        printf("proc: %i, entry (", env->proc_num);
+        int coord_num = 0;
+        for (coord_num = 0; coord_num < env->num_way; ++coord_num) {
+          if (coord_num > 0) {
+            printf(",");
           }
-          printf("): value: %e\n", ((Float_t*)(metrics->data))[index]);
-        } /*---for index---*/
-      }
-      break;
+          /*---Present to the user as 1-based---*/
+          printf("%i",
+                 1 + Metrics_coord_from_index(metrics, index, coord_num, env));
+        }
+        printf("): value: %e\n", ((Float_t*)(metrics->data))[index]);
+      } /*---for index---*/
+    } break;
     case DATA_TYPE_ID_BIT:
       Insist(env, Bool_false ? "Unimplemented." : 0);
       break;
@@ -118,11 +125,12 @@ void output_metrics(Metrics* metrics, Env* env) {
 /*===========================================================================*/
 /*---Parse remaining unprocessed arguments---*/
 
-void finish_parsing(int argc, char** argv, Env* env,
+void finish_parsing(int argc,
+                    char** argv,
+                    Env* env,
                     int* num_field,
                     int* num_vector_local,
                     int* verbosity) {
-
   const int uninitialized = -1;
   *num_field = uninitialized;
   *num_vector_local = uninitialized;
@@ -130,7 +138,6 @@ void finish_parsing(int argc, char** argv, Env* env,
 
   int i = 0;
   for (i = 1; i < argc; ++i) {
-
     if (strcmp(argv[i], "--num_field") == 0) {
       ++i;
       Insist(env, i < argc ? "Missing value for num_field." : 0);
@@ -141,46 +148,46 @@ void finish_parsing(int argc, char** argv, Env* env,
       ++i;
       Insist(env, i < argc ? "Missing value for num_vector_local." : 0);
       *num_vector_local = atoi(argv[i]);
-      Insist(env, *num_vector_local >= 0 ?
-             "Invalid setting for num_vector_local." : 0);
+      Insist(env, *num_vector_local >= 0
+                      ? "Invalid setting for num_vector_local."
+                      : 0);
     } else if (strcmp(argv[i], "--verbosity") == 0) {
       ++i;
       Insist(env, i < argc ? "Missing value for verbosity." : 0);
       *verbosity = atoi(argv[i]);
-      Insist(env, *verbosity >= 0 ?
-             "Invalid setting for verbosity." : 0);
+      Insist(env, *verbosity >= 0 ? "Invalid setting for verbosity." : 0);
     } else if (strcmp(argv[i], "--metric_type") == 0) {
-        ++i; /*---processed elsewhere by Env---*/
+      ++i; /*---processed elsewhere by Env---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
-        ++i; /*---processed elsewhere by Env---*/
+      ++i; /*---processed elsewhere by Env---*/
     } else if (strcmp(argv[i], "--all2all") == 0) {
-        ++i; /*---processed elsewhere by Env---*/
+      ++i; /*---processed elsewhere by Env---*/
     } else if (strcmp(argv[i], "--compute_method") == 0) {
-        ++i; /*---processed elsewhere by Env---*/
+      ++i; /*---processed elsewhere by Env---*/
     } else {
-      if ( env->proc_num==0 ) {
+      if (env->proc_num == 0) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
       }
       Insist(env, Bool_false ? "Error: argument not recognized." : 0);
     } /*---if/else---*/
 
-  }   /*---for i---*/
+  } /*---for i---*/
 
   Insist(env, *num_field != uninitialized ? "Error: num_field not set." : 0);
-  Insist(env, *num_vector_local != uninitialized ?
-                                      "Error: num_vector_local not set." : 0);
+  Insist(env, *num_vector_local != uninitialized
+                  ? "Error: num_vector_local not set."
+                  : 0);
 }
 
 /*===========================================================================*/
 /*---Main---*/
 
 int main(int argc, char** argv) {
-
   /*---Initialize---*/
 
   MPI_Init(&argc, &argv);
 
-  if ( argc == 1 ) {
+  if (argc == 1) {
     usage();
     MPI_Finalize();
     return 0;
@@ -213,7 +220,7 @@ int main(int argc, char** argv) {
   /*---Calculate metrics---*/
 
   /*---Run once first, discard timing---*/
-  if (env.compute_method == COMPUTE_METHOD_GPU ) {
+  if (env.compute_method == COMPUTE_METHOD_GPU) {
     compute_metrics(&metrics, &vectors, &env);
   }
 
@@ -227,16 +234,16 @@ int main(int argc, char** argv) {
 
   double time_compute_metrics = time_end - time_begin;
 
-  double checksum = Metrics_checksum ( &metrics, &env );
+  double checksum = Metrics_checksum(&metrics, &env);
 
-  if ( env.proc_num==0 && verbosity > 0 ) {
-    printf("metrics checksum %.17e compute time %.6f\n",
-           checksum, time_compute_metrics);
+  if (env.proc_num == 0 && verbosity > 0) {
+    printf("metrics checksum %.17e compute time %.6f\n", checksum,
+           time_compute_metrics);
   }
 
   /*---Output results---*/
 
-  if ( verbosity > 1 ) {
+  if (verbosity > 1) {
     output_metrics(&metrics, &env);
   }
 

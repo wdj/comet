@@ -29,5 +29,3 @@ void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
 #endif /*---_compute_metrics_czekanowski_3way_h_---*/
 
 /*---------------------------------------------------------------------------*/
-
-

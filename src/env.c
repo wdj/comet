@@ -30,7 +30,7 @@
 
 Env Env_null() {
   Env result;
-  memset( (void*)&result, 0, sizeof(Env) );
+  memset((void*)&result, 0, sizeof(Env));
   return result;
 }
 
@@ -41,7 +41,8 @@ void Env_create(Env* env) {
   env->mpi_comm = MPI_COMM_WORLD;
 
   int mpi_code = MPI_Comm_rank(env->mpi_comm, &(env->proc_num));
-  if (mpi_code) {} /*---Avoid unused variable warning---*/
+  if (mpi_code) {
+  } /*---Avoid unused variable warning---*/
   Assert(mpi_code == MPI_SUCCESS);
   mpi_code = MPI_Comm_size(env->mpi_comm, &(env->num_proc));
   Assert(mpi_code == MPI_SUCCESS);
@@ -57,7 +58,6 @@ void Env_create(Env* env) {
 /*---Initialize environment---*/
 
 void Env_create_from_args(Env* env, int argc, char** argv) {
-
   /*---Initialize with standard constructor---*/
   Env_create(env);
 
@@ -81,8 +81,8 @@ void Env_create_from_args(Env* env, int argc, char** argv) {
       Insist(env, i < argc ? "Missing value for num_way." : 0);
       env->num_way = atoi(argv[i]);
       Insist(env, env->num_way == 2 || env->num_way == 3
-                 ? "Invalid setting for num_way."
-                 : 0);
+                      ? "Invalid setting for num_way."
+                      : 0);
 
     } else if (strcmp(argv[i], "--all2all") == 0) {
       ++i;
@@ -141,7 +141,8 @@ double Env_get_synced_time(Env* env) {
   Assert(Env_cuda_last_call_succeeded(env));
 
   int mpi_code = MPI_Barrier(env->mpi_comm);
-  if (mpi_code) {} /*---Avoid unused variable warning---*/
+  if (mpi_code) {
+  } /*---Avoid unused variable warning---*/
   Assert(mpi_code == MPI_SUCCESS);
   return Env_get_time(env);
 }
