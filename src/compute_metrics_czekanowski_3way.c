@@ -14,7 +14,7 @@
 #include "env.h"
 #include "vectors.h"
 #include "metrics.h"
-#include "compute_metrics_czekanowski.h"
+#include "compute_metrics_czekanowski_3way.h"
 
 /*===========================================================================*/
 

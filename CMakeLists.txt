@@ -18,7 +18,7 @@ SET(LIB_SOURCES
   src/metrics.c
   src/compute_metrics.c
   src/compute_metrics_ccc.c
-  src/compute_metrics_czekanowski.c
+  src/compute_metrics_czekanowski_2way.c
   src/compute_metrics_czekanowski_3way.c
   src/compute_metrics_sorenson.c
   )
@@ -29,7 +29,7 @@ SET(LIB_INCLUDES
   src/metrics.h
   src/compute_metrics.h
   src/compute_metrics_ccc.h
-  src/compute_metrics_czekanowski.h
+  src/compute_metrics_czekanowski_2way.h
   src/compute_metrics_czekanowski_3way.h
   src/compute_metrics_sorenson.h
   )
