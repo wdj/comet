@@ -63,6 +63,7 @@ void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
     for (j = i+1; j < metrics->num_vector_local; ++j) {
       for (k = j+1; k < metrics->num_vector_local; ++k)   {
         Float_t sum = 0;
+        int field = 0;
         for (field = 0; field < vectors->num_field; ++field) {
           const Float_t value1 = Vectors_float_get(vectors, field, i, env);
           const Float_t value2 = Vectors_float_get(vectors, field, j, env);
@@ -121,7 +122,7 @@ void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
   const int numfield = vectors->num_field;
  
   /*---Initialize MAGMA library---*/
-  magma_init();
+  magma_minproduct_init();
     
   /*---Allocate magma CPU memory for vectors and for result---*/
   Float_t*  h_vectors = NULL; //Data matrix
@@ -268,7 +269,7 @@ void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
         Float_t min_jk = h_matM[k+numvec*j];
         //sum of mins vectors i, j, and k is matB(i,k)
         Float_t min_ijk = h_matB[k+numvec*i];
-        const Float_t numerator = min_ij + min_ik + min_jk - min_ijk
+        const Float_t numerator = min_ij + min_ik + min_jk - min_ijk;
         const Float_t denominator = vector_sums[i] + vector_sums[j] + vector_sums[k];
         Metrics_Float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
       }/*---for k---*/
