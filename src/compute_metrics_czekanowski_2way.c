@@ -91,7 +91,11 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 
   int i = 0;
 
-  magma_minproduct_init();
+  magma_minproduct_int_t magma_code = 0;
+  if ( magma_code ) {} /*---Avoid unused variable warning---*/
+
+  magma_code = magma_minproduct_init();
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors->num_field;
@@ -102,12 +106,16 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 /*---Allocate magma CPU memory for vectors and for result */
 
 #ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dmalloc_pinned(&h_vectors, numvec * numfield);
-  magma_minproduct_dmalloc_pinned(&h_numer, numvec * numvec);
+  magma_code = magma_minproduct_dmalloc_pinned(&h_vectors, numvec * numfield);
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  magma_code = magma_minproduct_dmalloc_pinned(&h_numer, numvec * numvec);
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 #ifdef FP_PRECISION_SINGLE
-  magma_minproduct_smalloc_pinned(&h_vectors, numvec * numfield);
-  magma_minproduct_smalloc_pinned(&h_numer, numvec * numvec);
+  magma_code = magma_minproduct_smalloc_pinned(&h_vectors, numvec * numfield);
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  magma_code = magma_minproduct_smalloc_pinned(&h_numer, numvec * numvec);
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 
   /*---Allocate GPU mirrors for CPU arrays---*/
@@ -116,34 +124,25 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   Float_t* d_numer = NULL;
 
 #ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dmalloc(&d_vectors, numvec * numfield);
-  magma_minproduct_dmalloc(&d_numer, numvec * numvec);
+  magma_code = magma_minproduct_dmalloc(&d_vectors, numvec * numfield);
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  magma_code = magma_minproduct_dmalloc(&d_numer, numvec * numvec);
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 #ifdef FP_PRECISION_SINGLE
-  magma_minproduct_smalloc(&d_vectors, numvec * numfield);
-  magma_minproduct_smalloc(&d_numer, numvec * numvec);
+  magma_code = magma_minproduct_smalloc(&d_vectors, numvec * numfield);
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  magma_code = magma_minproduct_smalloc(&d_numer, numvec * numvec);
+  Assert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
-
-#if 0
 
   /*---Initialize result matrix to zero (apparently magma requires)---*/
 
-  for (i = 0; i < numvec; ++i) {
-    int j = 0;
-    for (j = 0; j < numvec; ++j) {
-      h_numer[j+numvec*i] = 0;
-    }
-  }
-
-  /*---Send initialized result matrix to GPU---*/
-
 #ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dsetmatrix(numvec, numvec, h_numer, numvec, d_numer, numvec);
+  magma_minproductblas_dlaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0, d_numer, numvec);
 #endif
 #ifdef FP_PRECISION_SINGLE
-  magma_minproduct_ssetmatrix(numvec, numvec, h_numer, numvec, d_numer, numvec);
-#endif
-
+  magma_minproductblas_slaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0, d_numer, numvec);
 #endif
 
   /*---Copy in vectors---*/
@@ -159,12 +158,12 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 /*---Send vectors to GPU---*/
 
 #ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dsetmatrix(numfield, numvec, h_vectors, numfield, d_vectors,
-                              numfield);
+  magma_minproduct_dsetmatrix(numfield, numvec, h_vectors,
+                              numfield, d_vectors, numfield);
 #endif
 #ifdef FP_PRECISION_SINGLE
-  magma_minproduct_ssetmatrix(numfield, numvec, h_vectors, numfield, d_vectors,
-                              numfield);
+  magma_minproduct_ssetmatrix(numfield, numvec, h_vectors,
+                              numfield, d_vectors, numfield);
 #endif
 
 /*---Perform pseudo matrix-matrix product---*/
@@ -174,7 +173,7 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   magma_minproductblas_dgemm
 #endif
 #ifdef FP_PRECISION_SINGLE
-      magma_minproductblas_sgemm
+  magma_minproductblas_sgemm
 #endif
       (Magma_minproductTrans, Magma_minproductNoTrans, numvec, numvec, numfield,
        1.0, d_vectors, numfield, d_vectors, numfield, 0.0, d_numer, numvec);
@@ -182,10 +181,12 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 /*---Copy result from GPU---*/
 
 #ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dgetmatrix(numvec, numvec, d_numer, numvec, h_numer, numvec);
+  magma_minproduct_dgetmatrix(numvec, numvec, d_numer, numvec,
+                              h_numer, numvec);
 #endif
 #ifdef FP_PRECISION_SINGLE
-  magma_minproduct_sgetmatrix(numvec, numvec, d_numer, numvec, h_numer, numvec);
+  magma_minproduct_sgetmatrix(numvec, numvec, d_numer, numvec,
+                              h_numer, numvec);
 #endif
 
   /*---Combine---*/
