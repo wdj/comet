@@ -63,16 +63,37 @@ void Metrics_create(Metrics* metrics,
 
   if (env->all2all) {
     if (env->num_way == 2) {
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+      /*---Store strict upper triang of diag block and half
+          ` the off-diag blocks---*/
+      metrics->num_elts_local = nchoosek(num_vector_local, env->num_way) +
+          ( env->num_proc / 2 ) * num_vector_local * num_vector_local;
+      metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
+      Assert(metrics->index_map != NULL);
+      int index = 0;
+      int i = 0;
+      for (i = 0; i < num_vector_local; ++i) {
+        /*---j here is a global index---*/
+        const int beg = env->proc_num * num_vector_local + i + 1;
+        const int end = ( env->proc_num + 1 + ( env->num_proc / 2 ) )
+                        * num_vector_local;
+        int j_unwrapped = 0;
+        for (j_unwrapped = beg; j_unwrapped < end; ++j_unwrapped) {
+          const int j = j_unwrapped % metrics->num_vector;
+          metrics->index_map[index++] = i + num_vector_local * (size_t)j;
+        }
+      } /*---i---*/
     } else /* (env->num_way == 3) */ {
+
       Insist(env, Bool_false ? "Unimplemented." : 0);
+
     }
-  } else {
+  } else { /*---if not all2all---*/
     metrics->num_elts_local = nchoosek(num_vector_local, env->num_way);
     metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
     Assert(metrics->index_map != NULL);
-    /*---TODO: generalize this to N-way---*/
+    /*---LATER: generalize this to N-way---*/
     if (env->num_way == 2) {
+      /*---Need store only strict upper triangular part of matrix---*/
       int index = 0;
       int i = 0;
       for (i = 0; i < num_vector_local; ++i) {
@@ -82,6 +103,7 @@ void Metrics_create(Metrics* metrics,
         }
       }
     } else /* (env->num_way == 3) */ {
+      /*---Need store only strict interior of tetrahedron---*/
       int index = 0;
       int i = 0;
       for (i = 0; i < num_vector_local; ++i) {
@@ -104,9 +126,12 @@ void Metrics_create(Metrics* metrics,
       metrics->data = malloc(metrics->num_elts_local * sizeof(Float_t));
       Assert(metrics->data != NULL);
       break;
-    case DATA_TYPE_ID_BIT:
-      Insist(env, Bool_false ? "Unimplemented." : 0);
-      break;
+    case DATA_TYPE_ID_BIT: {
+      const size_t num_floats_needed = ceil_i8( metrics->num_elts_local,
+                                                8 * sizeof(Float_t) );
+      metrics->data = malloc(num_floats_needed * sizeof(Float_t));
+      Assert(metrics->data != NULL);
+      } break;
     default:
       Assert(Bool_false ? "Invalid data type." : 0);
   }

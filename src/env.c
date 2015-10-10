@@ -102,6 +102,8 @@ void Env_create_from_args(Env* env, int argc, char** argv) {
         env->compute_method = COMPUTE_METHOD_CPU;
       } else if (strcmp(argv[i], "GPU") == 0) {
         env->compute_method = COMPUTE_METHOD_GPU;
+      } else if (strcmp(argv[i], "REF") == 0) {
+        env->compute_method = COMPUTE_METHOD_REFERENCE;
       } else {
         Insist(env, Bool_false ? "Invalid setting for compute_method." : 0);
       }

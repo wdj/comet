@@ -42,6 +42,12 @@ typedef double Float_t;
 enum { MPI_Float_t = MPI_DOUBLE };
 #endif
 
+/*---Types for packed bits objects---*/
+
+typedef double Bits_t;
+
+typedef unsigned long long int ULInt_t;
+
 /*---Type ids---*/
 
 enum { DATA_TYPE_ID_FLOAT = 1, DATA_TYPE_ID_BIT = 2 };
@@ -66,7 +72,10 @@ enum {
   NUM_METRIC_TYPE = 3
 };
 
-enum { COMPUTE_METHOD_CPU = 0, COMPUTE_METHOD_GPU = 1, NUM_COMPUTE_METHOD = 2 };
+enum { COMPUTE_METHOD_CPU = 0,
+       COMPUTE_METHOD_GPU = 1,
+       COMPUTE_METHOD_REFERENCE = 2,
+       NUM_COMPUTE_METHOD = 3 };
 
 /*===========================================================================*/
 /*---Null object---*/
@@ -120,19 +129,19 @@ void insist_(Env* env,
 /*===========================================================================*/
 /*---Misc utility functions---*/
 
-static int imin(const int i, const int j) {
+static int min_i(const int i, const int j) {
   return i < j ? i : j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int imax(const int i, const int j) {
+static int max_i(const int i, const int j) {
   return i > j ? i : j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int ifloor(const int i, const int j) {
+static int floor_i(const int i, const int j) {
   Assert(j > 0);
 
   return i >= 0 ? i / j : (i - j + 1) / j;
@@ -140,10 +149,19 @@ static int ifloor(const int i, const int j) {
 
 /*---------------------------------------------------------------------------*/
 
-static int iceil(const int i, const int j) {
+static int ceil_i(const int i, const int j) {
   Assert(j > 0);
 
-  return -ifloor(-i, j);
+  return -floor_i(-i, j);
+}
+
+/*---------------------------------------------------------------------------*/
+
+static size_t ceil_i8(const size_t i, const size_t j) {
+  Assert(i+1 > 1);
+  Assert(j+1 > 1);
+
+  return  ( i + j - 1 ) / j;
 }
 
 /*---------------------------------------------------------------------------*/

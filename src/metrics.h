@@ -101,7 +101,7 @@ static size_t Metrics_index_from_coord_3(Metrics* metrics,
 /*===========================================================================*/
 /*---Accessors: value from coord---*/
 
-static void Metrics_Float_set_2(Metrics* metrics,
+static void Metrics_float_set_2(Metrics* metrics,
                                 int i,
                                 int j,
                                 Float_t value,
@@ -120,7 +120,7 @@ static void Metrics_Float_set_2(Metrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-static void Metrics_Float_set_3(Metrics* metrics,
+static void Metrics_float_set_3(Metrics* metrics,
                                 int i,
                                 int j,
                                 int k,
@@ -143,7 +143,19 @@ static void Metrics_Float_set_3(Metrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-static Float_t Metrics_Float_get_2(Metrics* metrics, int i, int j, Env* env) {
+static Float_t Metrics_float_get_from_index(Metrics* metrics, int index,
+                                            Env* env) {
+  Assert(metrics);
+  Assert(index >= 0);
+  Assert(index < metrics->num_elts_local);
+  Assert(env);
+
+  return ((Float_t*)(metrics->data))[index];
+}
+
+/*---------------------------------------------------------------------------*/
+
+static Float_t Metrics_float_get_2(Metrics* metrics, int i, int j, Env* env) {
   Assert(metrics);
   Assert(i >= 0);
   Assert(i < metrics->num_vector_local);
@@ -153,12 +165,12 @@ static Float_t Metrics_Float_get_2(Metrics* metrics, int i, int j, Env* env) {
   Assert(env);
 
   size_t index = Metrics_index_from_coord_2(metrics, i, j, env);
-  return ((Float_t*)(metrics->data))[index];
+  return Metrics_float_get_from_index( metrics, index, env );
 }
 
 /*---------------------------------------------------------------------------*/
 
-static Float_t Metrics_Float_get_3(Metrics* metrics,
+static Float_t Metrics_float_get_3(Metrics* metrics,
                                    int i,
                                    int j,
                                    int k,
@@ -175,7 +187,7 @@ static Float_t Metrics_Float_get_3(Metrics* metrics,
   Assert(env);
 
   size_t index = Metrics_index_from_coord_3(metrics, i, j, k, env);
-  return ((Float_t*)(metrics->data))[index];
+  return Metrics_float_get_from_index( metrics, index, env );
 }
 
 /*===========================================================================*/

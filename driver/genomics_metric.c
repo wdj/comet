@@ -52,7 +52,8 @@ void usage() {
   "        on each processor separately (yes=yes, no=no (default))\n"
   "\n"
   "    --compute_method\n"
-  "        manner of computing the result (0=CPU, 1=GPU)\n"
+  "        manner of computing the result (CPU=cpu, GPU=gpu,\n"
+  "        REF=reference method)\n"
   "\n"
   "    ---verbosity <value>\n"
   "        verbosity level of output (0=none, 1=some (default) 2=more)\n"
@@ -66,6 +67,7 @@ void usage() {
 
 void input_vectors(Vectors* vectors, Env* env) {
   switch (data_type_id_from_metric_type(env->metric_type, env)) {
+    /*--------------------*/
     case DATA_TYPE_ID_FLOAT: {
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
@@ -79,15 +81,40 @@ void input_vectors(Vectors* vectors, Env* env) {
                                                    ((size_t)env->proc_num));
           /*---randomize---*/
           index = randomize(index);
-          /*---set to number between 0 and 1---*/
-          Float_t value = index / (Float_t)randomize_max();
+          /*---Calculate random number between 0 and 1---*/
+          Float_t rand_value = index / (Float_t)randomize_max();
+          /*---Create large integer in a specified range, store as float---*/
+          Float_t value = (int)( (1<<27) * rand_value );
           Vectors_float_set(vectors, field, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/
     } break;
-    case DATA_TYPE_ID_BIT:
+    /*--------------------*/
+    case DATA_TYPE_ID_BIT: {
       Insist(env, Bool_false ? "Unimplemented." : 0);
-      break;
+
+      int vector_local;
+      for (vector_local = 0; vector_local < vectors->num_vector_local;
+           ++vector_local) {
+        int field;
+        for (field = 0; field < vectors->num_field; ++field) {
+          /*---compute element unique id---*/
+          size_t index = field +
+                         vectors->num_field * (vector_local +
+                                               vectors->num_vector_local_max *
+                                                   ((size_t)env->proc_num));
+          /*---randomize---*/
+          index = randomize(index);
+          /*---Calculate random number between 0 and 1---*/
+          Float_t rand_value = index / (Float_t)randomize_max();
+          /*---Create single bit value---*/
+          Bool_t value = rand_value < .5 ? Bool_false : Bool_true;
+          Vectors_bit_set(vectors, field, vector_local, value, env);
+        } /*---field---*/
+      }   /*---vector_local---*/
+
+    } break;
+    /*--------------------*/
     default:
       Assert(Bool_false ? "Invalid data type." : 0);
   }
@@ -111,12 +138,15 @@ void output_metrics(Metrics* metrics, Env* env) {
           printf("%i",
                  1 + Metrics_coord_from_index(metrics, index, coord_num, env));
         }
-        printf("): value: %e\n", ((Float_t*)(metrics->data))[index]);
+        printf("): value: %e\n", Metrics_float_get_from_index(
+          metrics, index, env) );
       } /*---for index---*/
     } break;
-    case DATA_TYPE_ID_BIT:
-      Insist(env, Bool_false ? "Unimplemented." : 0);
-      break;
+    case DATA_TYPE_ID_BIT: {
+
+        Insist(env, Bool_false ? "Unimplemented." : 0);
+
+      } break;
     default:
       Assert(Bool_false ? "Invalid data type." : 0);
   }

@@ -40,13 +40,27 @@ void Vectors_create(Vectors* vectors,
 
   /*---Allocations---*/
   switch (data_type_id) {
-    case DATA_TYPE_ID_FLOAT:
-      vectors->data = malloc(num_field * num_vector_local * sizeof(Float_t));
-      Assert(vectors->data != NULL);
-      break;
-    case DATA_TYPE_ID_BIT:
-      Insist(env, Bool_false ? "Unimplemented." : 0);
-      break;
+    case DATA_TYPE_ID_FLOAT: {
+        vectors->num_field_dataval = num_field;
+        vectors->data = malloc( vectors->num_field_dataval *
+                                num_vector_local * sizeof(Float_t));
+        Assert(vectors->data != NULL);
+      } break;
+    case DATA_TYPE_ID_BIT: {
+        Assert( sizeof(Bits_t) == 8 );
+        vectors->num_field_dataval = ceil_i( num_field, 8 * sizeof(Bits_t) );
+        vectors->data = malloc( vectors->num_field_dataval *
+                                num_vector_local * sizeof(Bits_t));
+        Assert(vectors->data != NULL);
+        /*---Ensure final pad bits of each vector are set to zero---*/
+        int vector_local;
+        for ( vector_local = 0; vector_local < num_vector_local;
+              ++vector_local ) {
+          const int dataval_num = Vectors_bit_dataval_num(vectors,
+                            vectors->num_field_dataval-1, vector_local, env);
+          ((ULInt_t*)vectors->data)[dataval_num] = 0;
+        }
+      } break;
     default:
       Assert(Bool_false ? "Invalid data type." : 0);
   }

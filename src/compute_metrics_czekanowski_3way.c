@@ -74,7 +74,7 @@ void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
           sum += value2 < value3 ? value2 : value3;
           sum -= min12 < value3 ? min12 : value3;
         } /*---for field---*/
-        Metrics_Float_set_3(metrics, i, j, k, sum, env);
+        Metrics_float_set_3(metrics, i, j, k, sum, env);
       } /*---for k---*/
     } /*---for j---*/
   } /*---for i---*/
@@ -84,9 +84,9 @@ void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
   for ( i = 0; i < metrics->num_vector_local; ++i ) {
     for ( j = i+1; j < metrics->num_vector_local; ++j ) {
       for ( k = j+1; k < metrics->num_vector_local; ++k) {
-        const Float_t numerator = Metrics_Float_get_3(metrics, i, j, k, env);
+        const Float_t numerator = Metrics_float_get_3(metrics, i, j, k, env);
         const Float_t denominator = vector_sums[i] + vector_sums[j] + vector_sums[k];
-        Metrics_Float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
+        Metrics_float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
       } /*---for k---*/
     } /*---for j---*/
   } /*---for i---*/
@@ -271,7 +271,7 @@ void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
         Float_t min_ijk = h_matB[k+numvec*i];
         const Float_t numerator = min_ij + min_ik + min_jk - min_ijk;
         const Float_t denominator = vector_sums[i] + vector_sums[j] + vector_sums[k];
-        Metrics_Float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
+        Metrics_float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
       }/*---for k---*/
     }/*---for i---*/
   }/*---for j---*/

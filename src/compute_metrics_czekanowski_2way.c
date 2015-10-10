@@ -50,7 +50,7 @@ void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
         const Float_t value2 = Vectors_float_get(vectors, field, j, env);
         sum += value1 < value2 ? value1 : value2;
       } /*---for k---*/
-      Metrics_Float_set_2(metrics, i, j, sum, env);
+      Metrics_float_set_2(metrics, i, j, sum, env);
     } /*---for j---*/
   }   /*---for i---*/
 
@@ -58,9 +58,9 @@ void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
 
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
-      const Float_t numerator = Metrics_Float_get_2(metrics, i, j, env);
+      const Float_t numerator = Metrics_float_get_2(metrics, i, j, env);
       const Float_t denominator = vector_sums[i] + vector_sums[j];
-      Metrics_Float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+      Metrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
     } /*---for j---*/
   }   /*---for i---*/
 
@@ -197,7 +197,7 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
       const Float_t numerator = h_numer[j + numvec * i];
       const Float_t denominator = vector_sums[i] + vector_sums[j];
-      Metrics_Float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+      Metrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
     } /*---for j---*/
   }   /*---for i---*/
 

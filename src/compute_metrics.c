@@ -40,12 +40,22 @@ void compute_metrics(Metrics* metrics, Vectors* vectors, Env* env) {
       break;
 
     case METRIC_TYPE_SORENSON +
+        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (2)):
+      Insist(env, Bool_false ? "Unimplemented." : 0);
+      break;
+
+    case METRIC_TYPE_SORENSON +
         NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (3)):
       Insist(env, Bool_false ? "Unimplemented." : 0);
       break;
 
     case METRIC_TYPE_SORENSON +
         NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (3)):
+      Insist(env, Bool_false ? "Unimplemented." : 0);
+      break;
+
+    case METRIC_TYPE_SORENSON +
+        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (3)):
       Insist(env, Bool_false ? "Unimplemented." : 0);
       break;
 
@@ -60,6 +70,11 @@ void compute_metrics(Metrics* metrics, Vectors* vectors, Env* env) {
       break;
 
     case METRIC_TYPE_CZEKANOWSKI +
+        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (2)):
+      compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
+      break;
+
+    case METRIC_TYPE_CZEKANOWSKI +
         NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (3)):
       compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
       break;
@@ -67,6 +82,11 @@ void compute_metrics(Metrics* metrics, Vectors* vectors, Env* env) {
     case METRIC_TYPE_CZEKANOWSKI +
         NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (3)):
       compute_metrics_czekanowski_3way_gpu(metrics, vectors, env);
+      break;
+
+    case METRIC_TYPE_CZEKANOWSKI +
+        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (3)):
+      compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
       break;
 
     case METRIC_TYPE_CCC +
@@ -80,12 +100,22 @@ void compute_metrics(Metrics* metrics, Vectors* vectors, Env* env) {
       break;
 
     case METRIC_TYPE_CCC +
+        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (2)):
+      Insist(env, Bool_false ? "Unimplemented." : 0);
+      break;
+
+    case METRIC_TYPE_CCC +
         NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (3)):
       Insist(env, Bool_false ? "Unimplemented." : 0);
       break;
 
     case METRIC_TYPE_CCC +
         NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (3)):
+      Insist(env, Bool_false ? "Unimplemented." : 0);
+      break;
+
+    case METRIC_TYPE_CCC +
+        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (3)):
       Insist(env, Bool_false ? "Unimplemented." : 0);
       break;
 
