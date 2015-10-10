@@ -22,20 +22,20 @@
 
 /*===========================================================================*/
 
-void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
-                                          Vectors* vectors,
-                                          Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  Insist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
 
   /*---Denominator---*/
 
-  Float_t* vector_sums = malloc(metrics->num_vector_local * sizeof(Float_t));
+  GMFloat* vector_sums = malloc(metrics->num_vector_local * sizeof(GMFloat));
 
-  compute_vector_sums(vectors, vector_sums, env);
+  gm_compute_vector_sums(vectors, vector_sums, env);
 
   /*---Numerator---*/
 
@@ -43,14 +43,14 @@ void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
   int j = 0;
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
-      Float_t sum = 0;
+      GMFloat sum = 0;
       int field = 0;
       for (field = 0; field < vectors->num_field; ++field) {
-        const Float_t value1 = Vectors_float_get(vectors, field, i, env);
-        const Float_t value2 = Vectors_float_get(vectors, field, j, env);
+        const GMFloat value1 = GMVectors_float_get(vectors, field, i, env);
+        const GMFloat value2 = GMVectors_float_get(vectors, field, j, env);
         sum += value1 < value2 ? value1 : value2;
       } /*---for k---*/
-      Metrics_float_set_2(metrics, i, j, sum, env);
+      GMMetrics_float_set_2(metrics, i, j, sum, env);
     } /*---for j---*/
   }   /*---for i---*/
 
@@ -58,9 +58,9 @@ void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
 
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
-      const Float_t numerator = Metrics_float_get_2(metrics, i, j, env);
-      const Float_t denominator = vector_sums[i] + vector_sums[j];
-      Metrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+      const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
+      const GMFloat denominator = vector_sums[i] + vector_sums[j];
+      GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
     } /*---for j---*/
   }   /*---for i---*/
 
@@ -69,21 +69,21 @@ void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
 
 /*===========================================================================*/
 
-void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
-                                          Vectors* vectors,
-                                          Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  Insist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
 
   /*---Denominator---*/
 
-  Float_t* vector_sums = malloc(metrics->num_vector_local * sizeof(Float_t));
+  GMFloat* vector_sums = malloc(metrics->num_vector_local * sizeof(GMFloat));
 
   /* .02 / 1.56 */
-  compute_vector_sums(vectors, vector_sums, env);
+  gm_compute_vector_sums(vectors, vector_sums, env);
 
   /*---------------*/
   /*---Numerator---*/
@@ -95,45 +95,45 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   if ( magma_code ) {} /*---Avoid unused variable warning---*/
 
   magma_code = magma_minproduct_init();
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors->num_field;
 
-  Float_t* h_vectors = NULL;
-  Float_t* h_numer = NULL;
+  GMFloat* h_vectors = NULL;
+  GMFloat* h_numer = NULL;
 
 /*---Allocate magma CPU memory for vectors and for result */
 
 #ifdef FP_PRECISION_DOUBLE
   magma_code = magma_minproduct_dmalloc_pinned(&h_vectors, numvec * numfield);
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
   magma_code = magma_minproduct_dmalloc_pinned(&h_numer, numvec * numvec);
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_code = magma_minproduct_smalloc_pinned(&h_vectors, numvec * numfield);
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
   magma_code = magma_minproduct_smalloc_pinned(&h_numer, numvec * numvec);
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 
   /*---Allocate GPU mirrors for CPU arrays---*/
 
-  Float_t* d_vectors = NULL;
-  Float_t* d_numer = NULL;
+  GMFloat* d_vectors = NULL;
+  GMFloat* d_numer = NULL;
 
 #ifdef FP_PRECISION_DOUBLE
   magma_code = magma_minproduct_dmalloc(&d_vectors, numvec * numfield);
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
   magma_code = magma_minproduct_dmalloc(&d_numer, numvec * numvec);
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_code = magma_minproduct_smalloc(&d_vectors, numvec * numfield);
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
   magma_code = magma_minproduct_smalloc(&d_numer, numvec * numvec);
-  Assert(magma_code == MAGMA_minproduct_SUCCESS);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 
   /*---Initialize result matrix to zero (apparently magma requires)---*/
@@ -151,7 +151,7 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   for (i = 0; i < numvec; ++i) {
     int k = 0;
     for (k = 0; k < numfield; ++k) {
-      h_vectors[k + numfield * i] = Vectors_float_get(vectors, k, i, env);
+      h_vectors[k + numfield * i] = GMVectors_float_get(vectors, k, i, env);
     }
   }
 
@@ -195,9 +195,9 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
   for (i = 0; i < metrics->num_vector_local; ++i) {
     int j = 0;
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
-      const Float_t numerator = h_numer[j + numvec * i];
-      const Float_t denominator = vector_sums[i] + vector_sums[j];
-      Metrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+      const GMFloat numerator = h_numer[j + numvec * i];
+      const GMFloat denominator = vector_sums[i] + vector_sums[j];
+      GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
     } /*---for j---*/
   }   /*---for i---*/
 
@@ -216,30 +216,30 @@ void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
 
 /*===========================================================================*/
 
-void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
-                                          Vectors* vectors,
-                                          Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  Insist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
 
-  Insist(env, Bool_false ? "Unimplemented." : 0);
+  GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
 
 /*===========================================================================*/
 
-void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
-                                          Vectors* vectors,
-                                          Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  Insist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
 
-  Insist(env, Bool_false ? "Unimplemented." : 0);
+  GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
 
 /*===========================================================================*/

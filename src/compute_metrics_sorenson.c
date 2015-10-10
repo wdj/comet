@@ -18,30 +18,30 @@
 #if 0
 /*===========================================================================*/
 
-void compute_metrics_sorenson_2way_cpu(Metrics* metrics,
-                                       Vectors* vectors,
-                                       Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics_sorenson_2way_cpu(GMMetrics* metrics,
+                                       GMVectors* vectors,
+                                       GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
+  GMInsist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
-  Insist(env, Bool_false ? "Unimplemented." : 0);
+  GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
 
 /*===========================================================================*/
 
-void compute_metrics_sorenson_2way_gpu(Metrics* metrics,
-                                       Vectors* vectors,
-                                       Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics_sorenson_2way_gpu(GMMetrics* metrics,
+                                       GMVectors* vectors,
+                                       GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
+  GMInsist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
-  Insist(env, Bool_false ? "Unimplemented." : 0);
+  GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
 
 /*===========================================================================*/

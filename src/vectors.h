@@ -29,88 +29,88 @@ typedef struct {
   int num_field_dataval;
   int data_type_id;
   void* __restrict__ data;
-} Vectors;
+} GMVectors;
 
 /*===========================================================================*/
 /*---Null object---*/
 
-Vectors Vectors_null(void);
+GMVectors GMVectors_null(void);
 
 /*===========================================================================*/
 /*---Vectors pseudo-constructor---*/
 
-void Vectors_create(Vectors* vectors,
+void GMVectors_create(GMVectors* vectors,
                     int data_type_id,
                     int num_field,
                     int num_vector_local,
-                    Env* env);
+                    GMEnv* env);
 
 /*===========================================================================*/
 /*---Vectors pseudo-destructor---*/
 
-void Vectors_destroy(Vectors* vectors, Env* env);
+void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
 
 /*===========================================================================*/
 /*---Accessors---*/
 
-static void Vectors_float_set(Vectors* vectors,
+static void GMVectors_float_set(GMVectors* vectors,
                               int field,
                               int vector_local,
-                              Float_t value,
-                              Env* env) {
-  Assert(vectors);
-  Assert(field >= 0);
-  Assert(field < vectors->num_field);
-  Assert(vector_local >= 0);
-  Assert(vector_local < vectors->num_vector_local);
+                              GMFloat value,
+                              GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(field >= 0);
+  GMAssert(field < vectors->num_field);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
 
-  ((Float_t*)(vectors->data))[field + vectors->num_field * vector_local] =
+  ((GMFloat*)(vectors->data))[field + vectors->num_field * vector_local] =
       value;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static Float_t Vectors_float_get_from_index(Vectors* const vectors,
+static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
                                             int index,
-                                            Env* env) {
-  Assert(vectors);
-  Assert(index >= 0);
-  Assert(index < vectors->num_vector_local * vectors->num_field);
-  Assert(env);
+                                            GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(index >= 0);
+  GMAssert(index < vectors->num_vector_local * vectors->num_field);
+  GMAssert(env);
 
-  return ((Float_t*)(vectors->data))[index];
+  return ((GMFloat*)(vectors->data))[index];
 }
 
 /*---------------------------------------------------------------------------*/
 
-static Float_t Vectors_float_get(Vectors* const vectors,
+static GMFloat GMVectors_float_get(GMVectors* const vectors,
                                  int field,
                                  int vector_local,
-                                 Env* env) {
-  Assert(vectors);
-  Assert(field >= 0);
-  Assert(field < vectors->num_field);
-  Assert(vector_local >= 0);
-  Assert(vector_local < vectors->num_vector_local);
-  Assert(env);
+                                 GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(field >= 0);
+  GMAssert(field < vectors->num_field);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+  GMAssert(env);
 
-  return Vectors_float_get_from_index( vectors,
+  return GMVectors_float_get_from_index( vectors,
               field + vectors->num_field * vector_local, env );
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int Vectors_bit_dataval_num(Vectors* vectors,
+static int GMVectors_bit_dataval_num(GMVectors* vectors,
                                    int field,
                                    int vector_local,
-                                   Env* env) {
-  Assert(vectors);
-  Assert(field >= 0);
-  Assert(field < vectors->num_field);
-  Assert(vector_local >= 0);
-  Assert(vector_local < vectors->num_vector_local);
+                                   GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(field >= 0);
+  GMAssert(field < vectors->num_field);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
 
-  const int field_dataval_num = field / ( 8 * sizeof(Bits_t) );
+  const int field_dataval_num = field / ( 8 * sizeof(GMBits) );
 
   const int dataval_num = field_dataval_num + vectors->num_field_dataval *
                           vector_local;
@@ -120,70 +120,70 @@ static int Vectors_bit_dataval_num(Vectors* vectors,
 
 /*---------------------------------------------------------------------------*/
 
-static void Vectors_bit_set(Vectors* vectors,
+static void GMVectors_bit_set(GMVectors* vectors,
                             int field,
                             int vector_local,
-                            Bool_t value,
-                            Env* env) {
-  Assert(vectors);
-  Assert(field >= 0);
-  Assert(field < vectors->num_field);
-  Assert(vector_local >= 0);
-  Assert(vector_local < vectors->num_vector_local);
+                            GMBool value,
+                            GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(field >= 0);
+  GMAssert(field < vectors->num_field);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
 
-  const int bit_num = field % ( 8 * sizeof(Bits_t) );
+  const int bit_num = field % ( 8 * sizeof(GMBits) );
 
-  const int dataval_num = Vectors_bit_dataval_num( vectors, field,
+  const int dataval_num = GMVectors_bit_dataval_num( vectors, field,
                                                    vector_local, env );
 
-  Assert( sizeof(ULInt_t) == sizeof(Bits_t) );
-  Assert( sizeof(Bits_t) == 8 );
+  GMAssert( sizeof(GMULInt) == sizeof(GMBits) );
+  GMAssert( sizeof(GMBits) == 8 );
 
-  const ULInt_t mask = ( (ULInt_t) 1 ) << bit_num;
-  ULInt_t* const p = &(((ULInt_t*)(vectors->data))[dataval_num]);
+  const GMULInt mask = ( (GMULInt) 1 ) << bit_num;
+  GMULInt* const p = &(((GMULInt*)(vectors->data))[dataval_num]);
   *p = ( ( *p ) & ( ~ mask ) ) | mask;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static Bool_t Vectors_bit_get(Vectors* const vectors,
+static GMBool GMVectors_bit_get(GMVectors* const vectors,
                               int field,
                               int vector_local,
-                              Env* env) {
-  Assert(vectors);
-  Assert(field >= 0);
-  Assert(field < vectors->num_field);
-  Assert(vector_local >= 0);
-  Assert(vector_local < vectors->num_vector_local);
-  Assert(env);
+                              GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(field >= 0);
+  GMAssert(field < vectors->num_field);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+  GMAssert(env);
 
-  const int bit_num = field % ( 8 * sizeof(Bits_t) );
+  const int bit_num = field % ( 8 * sizeof(GMBits) );
 
-  const int dataval_num = Vectors_bit_dataval_num( vectors, field,
+  const int dataval_num = GMVectors_bit_dataval_num( vectors, field,
                                                    vector_local, env );
 
-  Assert( sizeof(ULInt_t) == sizeof(Bits_t) );
-  Assert( sizeof(Bits_t) == 8 );
+  GMAssert( sizeof(GMULInt) == sizeof(GMBits) );
+  GMAssert( sizeof(GMBits) == 8 );
 
-  Bool_t result = 0;
+  GMBool result = 0;
 
-  ULInt_t* const p = &(((ULInt_t*)(vectors->data))[dataval_num]);
-  result = ( ( *p ) >> bit_num ) & ((ULInt_t)1) ? Bool_true : Bool_false;
+  GMULInt* const p = &(((GMULInt*)(vectors->data))[dataval_num]);
+  result = ( ( *p ) >> bit_num ) & ((GMULInt)1) ? GM_BOOL_TRUE : GM_BOOL_FALSE;
 
   return result;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static Bool_t Vectors_bit_get_from_index(Vectors* const vectors,
+static GMBool GMVectors_bit_get_from_index(GMVectors* const vectors,
                                          int index,
-                                         Env* env) {
-  Assert(vectors);
-  Assert(index >= 0);
-  Assert(index < vectors->num_vector_local * vectors->num_field);
-  Assert(env);
+                                         GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(index >= 0);
+  GMAssert(index < vectors->num_vector_local * vectors->num_field);
+  GMAssert(env);
 
-  return Vectors_bit_get( vectors, index % vectors->num_field,
+  return GMVectors_bit_get( vectors, index % vectors->num_field,
                                    index / vectors->num_field, env );
 }
 

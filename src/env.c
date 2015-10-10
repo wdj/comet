@@ -28,84 +28,84 @@
 /*===========================================================================*/
 /*---Null object---*/
 
-Env Env_null() {
-  Env result;
-  memset((void*)&result, 0, sizeof(Env));
+GMEnv GMEnv_null() {
+  GMEnv result;
+  memset((void*)&result, 0, sizeof(GMEnv));
   return result;
 }
 
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void Env_create(Env* env) {
+void GMEnv_create(GMEnv* env) {
   env->mpi_comm = MPI_COMM_WORLD;
 
   int mpi_code = MPI_Comm_rank(env->mpi_comm, &(env->proc_num));
   if (mpi_code) {
   } /*---Avoid unused variable warning---*/
-  Assert(mpi_code == MPI_SUCCESS);
+  GMAssert(mpi_code == MPI_SUCCESS);
   mpi_code = MPI_Comm_size(env->mpi_comm, &(env->num_proc));
-  Assert(mpi_code == MPI_SUCCESS);
+  GMAssert(mpi_code == MPI_SUCCESS);
 
   /*---Set default values---*/
-  env->metric_type = METRIC_TYPE_CZEKANOWSKI;
+  env->metric_type = GM_METRIC_TYPE_CZEKANOWSKI;
   env->num_way = 2;
-  env->all2all = Bool_false;
-  env->compute_method = COMPUTE_METHOD_GPU;
+  env->all2all = GM_BOOL_FALSE;
+  env->compute_method = GM_COMPUTE_METHOD_GPU;
 }
 
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void Env_create_from_args(Env* env, int argc, char** argv) {
+void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
   /*---Initialize with standard constructor---*/
-  Env_create(env);
+  GMEnv_create(env);
 
   /*---Modify based on user options---*/
   int i = 0;
   for (i = 0; i < argc; ++i) {
     if (strcmp(argv[i], "--metric_type") == 0) {
       ++i;
-      Insist(env, i < argc ? "Missing value for metric_type." : 0);
+      GMInsist(env, i < argc ? "Missing value for metric_type." : 0);
       if (strcmp(argv[i], "sorenson") == 0) {
-        env->metric_type = METRIC_TYPE_SORENSON;
+        env->metric_type = GM_METRIC_TYPE_SORENSON;
       } else if (strcmp(argv[i], "czekanowski") == 0) {
-        env->metric_type = METRIC_TYPE_CZEKANOWSKI;
+        env->metric_type = GM_METRIC_TYPE_CZEKANOWSKI;
       } else if (strcmp(argv[i], "ccc") == 0) {
-        env->metric_type = METRIC_TYPE_CCC;
+        env->metric_type = GM_METRIC_TYPE_CCC;
       } else {
-        Insist(env, Bool_false ? "Invalid setting for metric_type." : 0);
+        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for metric_type." : 0);
       }
     } else if (strcmp(argv[i], "--num_way") == 0) {
       ++i;
-      Insist(env, i < argc ? "Missing value for num_way." : 0);
+      GMInsist(env, i < argc ? "Missing value for num_way." : 0);
       env->num_way = atoi(argv[i]);
-      Insist(env, env->num_way == 2 || env->num_way == 3
+      GMInsist(env, env->num_way == 2 || env->num_way == 3
                       ? "Invalid setting for num_way."
                       : 0);
 
     } else if (strcmp(argv[i], "--all2all") == 0) {
       ++i;
-      Insist(env, i < argc ? "Missing value for all2all." : 0);
+      GMInsist(env, i < argc ? "Missing value for all2all." : 0);
       if (strcmp(argv[i], "yes") == 0) {
-        env->all2all = Bool_true;
+        env->all2all = GM_BOOL_TRUE;
       } else if (strcmp(argv[i], "no") == 0) {
-        env->all2all = Bool_false;
+        env->all2all = GM_BOOL_FALSE;
       } else {
-        Insist(env, Bool_false ? "Invalid setting for all2all." : 0);
+        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for all2all." : 0);
       }
 
     } else if (strcmp(argv[i], "--compute_method") == 0) {
       ++i;
-      Insist(env, i < argc ? "Missing value for compute_method." : 0);
+      GMInsist(env, i < argc ? "Missing value for compute_method." : 0);
       if (strcmp(argv[i], "CPU") == 0) {
-        env->compute_method = COMPUTE_METHOD_CPU;
+        env->compute_method = GM_COMPUTE_METHOD_CPU;
       } else if (strcmp(argv[i], "GPU") == 0) {
-        env->compute_method = COMPUTE_METHOD_GPU;
+        env->compute_method = GM_COMPUTE_METHOD_GPU;
       } else if (strcmp(argv[i], "REF") == 0) {
-        env->compute_method = COMPUTE_METHOD_REFERENCE;
+        env->compute_method = GM_COMPUTE_METHOD_REFERENCE;
       } else {
-        Insist(env, Bool_false ? "Invalid setting for compute_method." : 0);
+        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for compute_method." : 0);
       }
     } /*---if/else---*/
   }   /*---for i---*/
@@ -114,17 +114,17 @@ void Env_create_from_args(Env* env, int argc, char** argv) {
 /*===========================================================================*/
 /*---Finalize environment---*/
 
-void Env_destroy(Env* env) {
+void GMEnv_destroy(GMEnv* env) {
   /*---Make sure no communicator to destroy---*/
-  Assert(env->mpi_comm == MPI_COMM_WORLD);
-  *env = Env_null();
+  GMAssert(env->mpi_comm == MPI_COMM_WORLD);
+  *env = GMEnv_null();
 }
 
 /*===========================================================================*/
 /*---Timer functions---*/
 
-double Env_get_time(Env* env) {
-  Assert(env);
+double GMEnv_get_time(GMEnv* env) {
+  GMAssert(env);
   struct timeval tv;
   gettimeofday(&tv, NULL);
   double result = ((double)tv.tv_sec + (double)tv.tv_usec * 1.e-6);
@@ -133,31 +133,31 @@ double Env_get_time(Env* env) {
 
 /*---------------------------------------------------------------------------*/
 
-double Env_get_synced_time(Env* env) {
-  Assert(env);
+double GMEnv_get_synced_time(GMEnv* env) {
+  GMAssert(env);
 
   /*
   cudaThreadSynchronize();
   */
   cudaDeviceSynchronize();
-  Assert(Env_cuda_last_call_succeeded(env));
+  GMAssert(GMEnv_cuda_last_call_succeeded(env));
 
   int mpi_code = MPI_Barrier(env->mpi_comm);
   if (mpi_code) {
   } /*---Avoid unused variable warning---*/
-  Assert(mpi_code == MPI_SUCCESS);
-  return Env_get_time(env);
+  GMAssert(mpi_code == MPI_SUCCESS);
+  return GMEnv_get_time(env);
 }
 
 /*===========================================================================*/
 /*---Assertions---*/
 
-void insist_(Env* env,
-             const char* condition_string,
-             const char* file,
-             int line) {
+void gm_insist(GMEnv* env,
+               const char* condition_string,
+               const char* file,
+               int line) {
   if (env->proc_num == 0) {
-    fprintf(stderr, "Insist error: \"%s\". At file %s, line %i.\n",
+    fprintf(stderr, "GM insist error: \"%s\". At file %s, line %i.\n",
             condition_string, file, line);
   }
   exit(EXIT_FAILURE);
@@ -166,29 +166,29 @@ void insist_(Env* env,
 /*===========================================================================*/
 /*---Misc.---*/
 
-int data_type_id_from_metric_type(int metric_type, Env* env) {
+int data_type_id_from_metric_type(int metric_type, GMEnv* env) {
   switch (metric_type) {
-    case METRIC_TYPE_SORENSON:
-      Insist(env, Bool_false ? "Unimplemented." : 0);
-    case METRIC_TYPE_CZEKANOWSKI:
-      return DATA_TYPE_ID_FLOAT;
-    case METRIC_TYPE_CCC:
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_SORENSON:
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CZEKANOWSKI:
+      return GM_DATA_TYPE_ID_FLOAT;
+    case GM_METRIC_TYPE_CCC:
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   }
-  Assert(Bool_false ? "Invalid metric type." : 0);
+  GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
   return 0;
 }
 
 /*---------------------------------------------------------------------------*/
 
-Bool_t Env_cuda_last_call_succeeded(Env* env) {
-  Bool_t result = Bool_true;
+GMBool GMEnv_cuda_last_call_succeeded(GMEnv* env) {
+  GMBool result = GM_BOOL_TRUE;
 
   /*---NOTE: this read of the last error is a destructive read---*/
   cudaError_t error = cudaGetLastError();
 
   if (error != cudaSuccess) {
-    result = Bool_false;
+    result = GM_BOOL_FALSE;
     printf("CUDA error detected: %s\n", cudaGetErrorString(error));
   }
 

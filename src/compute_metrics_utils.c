@@ -14,19 +14,19 @@
 
 /*===========================================================================*/
 
-void compute_vector_sums(Vectors* vectors,
-                         Float_t* __restrict__ vector_sums,
-                         Env* env) {
-  Assert(vectors != NULL);
-  Assert(vector_sums != NULL);
-  Assert(env != NULL);
+void gm_compute_vector_sums(GMVectors* vectors,
+                         GMFloat* __restrict__ vector_sums,
+                         GMEnv* env) {
+  GMAssert(vectors != NULL);
+  GMAssert(vector_sums != NULL);
+  GMAssert(env != NULL);
 
   int i = 0;
   for (i = 0; i < vectors->num_vector_local; ++i) {
-    Float_t sum = 0;
+    GMFloat sum = 0;
     int field = 0;
     for (field = 0; field < vectors->num_field; ++field) {
-      Float_t value = Vectors_float_get(vectors, field, i, env);
+      GMFloat value = GMVectors_float_get(vectors, field, i, env);
       sum += value;
     }
     vector_sums[i] = sum;

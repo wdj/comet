@@ -17,9 +17,9 @@
 
 /*===========================================================================*/
 
-void compute_vector_sums(Vectors* vectors,
-                         Float_t* __restrict__ vector_sums,
-                         Env* env);
+void gm_compute_vector_sums(GMVectors* vectors,
+                         GMFloat* __restrict__ vector_sums,
+                         GMEnv* env);
 
 /*===========================================================================*/
 

@@ -17,12 +17,12 @@
 
 /*===========================================================================*/
 
-void compute_metrics_czekanowski_2way_cpu(Metrics* metrics,
-                                          Vectors* vectors,
-                                          Env* env);
-void compute_metrics_czekanowski_2way_gpu(Metrics* metrics,
-                                          Vectors* vectors,
-                                          Env* env);
+void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env);
+void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env);
 
 /*===========================================================================*/
 

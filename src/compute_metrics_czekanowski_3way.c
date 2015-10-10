@@ -18,19 +18,19 @@
 
 /*===========================================================================*/
 
-static void compute_vector_sums(Vectors* vectors,
-                                Float_t* __restrict__ vector_sums,
-                                Env* env) {
-  Assert(vectors != NULL);
-  Assert(vector_sums != NULL);
-  Assert(env != NULL);
+static void gm_compute_vector_sums(GMVectors* vectors,
+                                GMFloat* __restrict__ vector_sums,
+                                GMEnv* env) {
+  GMAssert(vectors != NULL);
+  GMAssert(vector_sums != NULL);
+  GMAssert(env != NULL);
 
   int i = 0;
   for ( i = 0; i < vectors->num_vector_local; ++i ) {
-    Float_t sum = 0;
+    GMFloat sum = 0;
     int field = 0;
     for ( field = 0; field < vectors->num_field; ++field ) {
-      Float_t value = Vectors_float_get(vectors, field, i, env);
+      GMFloat value = GMVectors_float_get(vectors, field, i, env);
       sum += value;
     }
     vector_sums[i] = sum;
@@ -39,20 +39,20 @@ static void compute_vector_sums(Vectors* vectors,
 
 /*===========================================================================*/
 
-void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
-                                          Vectors* vectors,
-                                          Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
+  GMInsist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
   /*---Denominator---*/
 
-  Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
+  GMFloat* vector_sums = malloc(metrics->num_vector_local*sizeof(GMFloat));
 
-  compute_vector_sums(vectors, vector_sums, env);
+  gm_compute_vector_sums(vectors, vector_sums, env);
  
   /*---Numerator---*/
  
@@ -62,19 +62,19 @@ void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i+1; j < metrics->num_vector_local; ++j) {
       for (k = j+1; k < metrics->num_vector_local; ++k)   {
-        Float_t sum = 0;
+        GMFloat sum = 0;
         int field = 0;
         for (field = 0; field < vectors->num_field; ++field) {
-          const Float_t value1 = Vectors_float_get(vectors, field, i, env);
-          const Float_t value2 = Vectors_float_get(vectors, field, j, env);
-          const Float_t value3 = Vectors_float_get(vectors, field, k, env);
-          Float_t min12 = value1 < value2 ? value1 : value2;
+          const GMFloat value1 = GMVectors_float_get(vectors, field, i, env);
+          const GMFloat value2 = GMVectors_float_get(vectors, field, j, env);
+          const GMFloat value3 = GMVectors_float_get(vectors, field, k, env);
+          GMFloat min12 = value1 < value2 ? value1 : value2;
           sum += min12;
           sum += value1 < value3 ? value1 : value3;
           sum += value2 < value3 ? value2 : value3;
           sum -= min12 < value3 ? min12 : value3;
         } /*---for field---*/
-        Metrics_float_set_3(metrics, i, j, k, sum, env);
+        GMMetrics_float_set_3(metrics, i, j, k, sum, env);
       } /*---for k---*/
     } /*---for j---*/
   } /*---for i---*/
@@ -84,9 +84,9 @@ void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
   for ( i = 0; i < metrics->num_vector_local; ++i ) {
     for ( j = i+1; j < metrics->num_vector_local; ++j ) {
       for ( k = j+1; k < metrics->num_vector_local; ++k) {
-        const Float_t numerator = Metrics_float_get_3(metrics, i, j, k, env);
-        const Float_t denominator = vector_sums[i] + vector_sums[j] + vector_sums[k];
-        Metrics_float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
+        const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
+        const GMFloat denominator = vector_sums[i] + vector_sums[j] + vector_sums[k];
+        GMMetrics_float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
       } /*---for k---*/
     } /*---for j---*/
   } /*---for i---*/
@@ -97,20 +97,20 @@ void compute_metrics_czekanowski_3way_cpu(Metrics* metrics,
 
 /*===========================================================================*/
 
-void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
-                                          Vectors* vectors,
-                                          Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  Insist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
+  GMInsist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
 
   /*---Denominator---*/
 
-  Float_t* vector_sums = malloc(metrics->num_vector_local*sizeof(Float_t));
+  GMFloat* vector_sums = malloc(metrics->num_vector_local*sizeof(GMFloat));
 
-  compute_vector_sums(vectors, vector_sums, env);  
+  gm_compute_vector_sums(vectors, vector_sums, env);  
 
   /*---Numerator---*/
 
@@ -125,10 +125,10 @@ void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
   magma_minproduct_init();
     
   /*---Allocate magma CPU memory for vectors and for result---*/
-  Float_t*  h_vectors = NULL; //Data matrix
-  Float_t*  h_matM = NULL; //matrix matrix min product of X^T*X
-  Float_t*  h_matV = NULL; //for fixed index j, column Vi = elementwise mins of Xj and Xi
-  Float_t*  h_matB = NULL; //matrix matrix min product of V^T*X
+  GMFloat*  h_vectors = NULL; //Data matrix
+  GMFloat*  h_matM = NULL; //matrix matrix min product of X^T*X
+  GMFloat*  h_matV = NULL; //for fixed index j, column Vi = elementwise mins of Xj and Xi
+  GMFloat*  h_matB = NULL; //matrix matrix min product of V^T*X
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dmalloc_pinned( &h_vectors, numvec*numfield);
   magma_minproduct_dmalloc_pinned( &h_matM,    numvec*numvec);
@@ -143,10 +143,10 @@ void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
 #endif
   
   /*---Allocate GPU mirrors for CPU arrays---*/
-  Float_t* d_vectors = NULL;
-  Float_t* d_matM = NULL;
-  Float_t* d_matV = NULL;
-  Float_t* d_matB = NULL;
+  GMFloat* d_vectors = NULL;
+  GMFloat* d_matM = NULL;
+  GMFloat* d_matV = NULL;
+  GMFloat* d_matB = NULL;
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dmalloc( &d_vectors, numvec*numfield);
   magma_minproduct_dmalloc( &d_matM,    numvec*numvec);
@@ -164,7 +164,7 @@ void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
   for (i = 0; i < numvec; ++i) {
     int k = 0;
     for (k = 0; k < numfield; ++k) {
-      h_vectors[k+numfield*i] = Vectors_float_get( vectors, k, i, env );
+      h_vectors[k+numfield*i] = GMVectors_float_get( vectors, k, i, env );
     }
   }
   
@@ -263,15 +263,15 @@ void compute_metrics_czekanowski_3way_gpu(Metrics* metrics,
 #endif
     /*---Combine results---*/
     for (i=0; i<j; ++i) {
-      Float_t min_ij = h_matM[j+numvec*i];
+      GMFloat min_ij = h_matM[j+numvec*i];
       for (k = j+1; k < numvec; ++k) {
-        Float_t min_ik = h_matM[k+numvec*i];
-        Float_t min_jk = h_matM[k+numvec*j];
+        GMFloat min_ik = h_matM[k+numvec*i];
+        GMFloat min_jk = h_matM[k+numvec*j];
         //sum of mins vectors i, j, and k is matB(i,k)
-        Float_t min_ijk = h_matB[k+numvec*i];
-        const Float_t numerator = min_ij + min_ik + min_jk - min_ijk;
-        const Float_t denominator = vector_sums[i] + vector_sums[j] + vector_sums[k];
-        Metrics_float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
+        GMFloat min_ijk = h_matB[k+numvec*i];
+        const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
+        const GMFloat denominator = vector_sums[i] + vector_sums[j] + vector_sums[k];
+        GMMetrics_float_set_3(metrics, i, j, k, 3 * numerator / (2 * denominator), env);
       }/*---for k---*/
     }/*---for i---*/
   }/*---for j---*/

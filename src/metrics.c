@@ -19,22 +19,22 @@
 /*===========================================================================*/
 /*---Null object---*/
 
-Metrics Metrics_null() {
-  Metrics result;
-  memset((void*)&result, 0, sizeof(Metrics));
+GMMetrics GMMetrics_null() {
+  GMMetrics result;
+  memset((void*)&result, 0, sizeof(GMMetrics));
   return result;
 }
 
 /*===========================================================================*/
 /*---Metrics pseudo-constructor---*/
 
-void Metrics_create(Metrics* metrics,
+void GMMetrics_create(GMMetrics* metrics,
                     int data_type_id,
                     int num_vector_local,
-                    Env* env) {
-  Assert(metrics);
-  Assert(num_vector_local >= 0);
-  Assert(env);
+                    GMEnv* env) {
+  GMAssert(metrics);
+  GMAssert(num_vector_local >= 0);
+  GMAssert(env);
 
   metrics->data_type_id = data_type_id;
   metrics->num_vector_local = num_vector_local;
@@ -46,18 +46,18 @@ void Metrics_create(Metrics* metrics,
                                MPI_MAX, env->mpi_comm);
   if (mpi_code) {
   } /*---Avoid unused variable warning---*/
-  Assert(mpi_code == MPI_SUCCESS);
+  GMAssert(mpi_code == MPI_SUCCESS);
 
   size_t num_vector_bound = env->num_proc * (size_t)metrics->num_vector;
   if (num_vector_bound) {
   } /*---Avoid unused variable warning---*/
-  Assert(num_vector_bound == (size_t)(int)num_vector_bound
+  GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
              ? "Vector count too large to store in 32-bit int."
              : 0);
 
   mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
                            1, MPI_INT, MPI_SUM, env->mpi_comm);
-  Assert(mpi_code == MPI_SUCCESS);
+  GMAssert(mpi_code == MPI_SUCCESS);
 
   /*---Compute number of elements etc.---*/
 
@@ -68,7 +68,7 @@ void Metrics_create(Metrics* metrics,
       metrics->num_elts_local = nchoosek(num_vector_local, env->num_way) +
           ( env->num_proc / 2 ) * num_vector_local * num_vector_local;
       metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
-      Assert(metrics->index_map != NULL);
+      GMAssert(metrics->index_map != NULL);
       int index = 0;
       int i = 0;
       for (i = 0; i < num_vector_local; ++i) {
@@ -84,13 +84,13 @@ void Metrics_create(Metrics* metrics,
       } /*---i---*/
     } else /* (env->num_way == 3) */ {
 
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     }
   } else { /*---if not all2all---*/
     metrics->num_elts_local = nchoosek(num_vector_local, env->num_way);
     metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
-    Assert(metrics->index_map != NULL);
+    GMAssert(metrics->index_map != NULL);
     /*---LATER: generalize this to N-way---*/
     if (env->num_way == 2) {
       /*---Need store only strict upper triangular part of matrix---*/
@@ -122,32 +122,32 @@ void Metrics_create(Metrics* metrics,
   /*---Allocations---*/
 
   switch (data_type_id) {
-    case DATA_TYPE_ID_FLOAT:
-      metrics->data = malloc(metrics->num_elts_local * sizeof(Float_t));
-      Assert(metrics->data != NULL);
+    case GM_DATA_TYPE_ID_FLOAT:
+      metrics->data = malloc(metrics->num_elts_local * sizeof(GMFloat));
+      GMAssert(metrics->data != NULL);
       break;
-    case DATA_TYPE_ID_BIT: {
+    case GM_DATA_TYPE_ID_BIT: {
       const size_t num_floats_needed = ceil_i8( metrics->num_elts_local,
-                                                8 * sizeof(Float_t) );
-      metrics->data = malloc(num_floats_needed * sizeof(Float_t));
-      Assert(metrics->data != NULL);
+                                                8 * sizeof(GMFloat) );
+      metrics->data = malloc(num_floats_needed * sizeof(GMFloat));
+      GMAssert(metrics->data != NULL);
       } break;
     default:
-      Assert(Bool_false ? "Invalid data type." : 0);
+      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   }
 }
 
 /*===========================================================================*/
 /*---Metrics pseudo-destructor---*/
 
-void Metrics_destroy(Metrics* metrics, Env* env) {
-  Assert(metrics);
-  Assert(metrics->data);
-  Assert(env);
+void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
+  GMAssert(metrics);
+  GMAssert(metrics->data);
+  GMAssert(env);
 
   free(metrics->data);
   free(metrics->index_map);
-  *metrics = Metrics_null();
+  *metrics = GMMetrics_null();
 }
 
 /*===========================================================================*/
@@ -155,37 +155,37 @@ void Metrics_destroy(Metrics* metrics, Env* env) {
 
 /* This should be invariant, up to roundoff, on CPU vs. GPU. */
 
-double Metrics_checksum(Metrics* metrics, Env* env) {
-  Assert(metrics);
-  Assert(metrics->data);
-  Assert(env);
+double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
+  GMAssert(metrics);
+  GMAssert(metrics->data);
+  GMAssert(env);
 
   double result = 0;
 
   if (env->all2all) {
-    Insist(env, Bool_false ? "Unimplemented." : 0);
+    GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } else {
     switch (metrics->data_type_id) {
-      case DATA_TYPE_ID_FLOAT: {
+      case GM_DATA_TYPE_ID_FLOAT: {
         int i = 0;
         for (i = 0; i < metrics->num_elts_local; ++i) {
           const size_t i_global =
               i + metrics->num_elts_local * (size_t)env->num_proc;
-          result += ((Float_t*)metrics->data)[i] * randomize(i_global);
+          result += ((GMFloat*)metrics->data)[i] * randomize(i_global);
         } /*---for i---*/
       } break;
-      case DATA_TYPE_ID_BIT:
-        Insist(env, Bool_false ? "Unimplemented." : 0);
+      case GM_DATA_TYPE_ID_BIT:
+        GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
         break;
       default:
-        Assert(Bool_false ? "Invalid data type." : 0);
+        GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
     } /*---switch---*/
     const double tmp = result;
     int mpi_code =
         MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_MAX, env->mpi_comm);
     if (mpi_code) {
     } /*---Avoid unused variable warning---*/
-    Assert(mpi_code == MPI_SUCCESS);
+    GMAssert(mpi_code == MPI_SUCCESS);
   } /*---if all2all---*/
 
   return result;

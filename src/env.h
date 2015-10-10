@@ -26,31 +26,31 @@
 
 /*---Boolean type---*/
 
-typedef int Bool_t;
+typedef int GMBool;
 
-enum { Bool_true = (1 == 1), Bool_false = (1 == 0) };
+enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
 /*---Default floating point type---*/
 
 #ifdef FP_PRECISION_SINGLE
-typedef float Float_t;
-enum { MPI_Float_t = MPI_FLOAT };
+typedef float GMFloat;
+enum { GM_MPI_FLOAT = MPI_FLOAT };
 #endif
 
 #ifdef FP_PRECISION_DOUBLE
-typedef double Float_t;
-enum { MPI_Float_t = MPI_DOUBLE };
+typedef double GMFloat;
+enum { GM_MPI_FLOAT = MPI_DOUBLE };
 #endif
 
 /*---Types for packed bits objects---*/
 
-typedef double Bits_t;
+typedef double GMBits;
 
-typedef unsigned long long int ULInt_t;
+typedef unsigned long long int GMULInt;
 
 /*---Type ids---*/
 
-enum { DATA_TYPE_ID_FLOAT = 1, DATA_TYPE_ID_BIT = 2 };
+enum { GM_DATA_TYPE_ID_FLOAT = 1, GM_DATA_TYPE_ID_BIT = 2 };
 
 /*===========================================================================*/
 /*---Environment struct declarations---*/
@@ -58,72 +58,72 @@ enum { DATA_TYPE_ID_FLOAT = 1, DATA_TYPE_ID_BIT = 2 };
 typedef struct {
   int metric_type;
   int num_way;
-  Bool_t all2all;
+  GMBool all2all;
   int compute_method;
   int mpi_comm;
   int num_proc;
   int proc_num;
-} Env;
+} GMEnv;
 
 enum {
-  METRIC_TYPE_SORENSON = 0,
-  METRIC_TYPE_CZEKANOWSKI = 1,
-  METRIC_TYPE_CCC = 2,
-  NUM_METRIC_TYPE = 3
+  GM_METRIC_TYPE_SORENSON = 0,
+  GM_METRIC_TYPE_CZEKANOWSKI = 1,
+  GM_METRIC_TYPE_CCC = 2,
+  GM_NUM_METRIC_TYPE = 3
 };
 
-enum { COMPUTE_METHOD_CPU = 0,
-       COMPUTE_METHOD_GPU = 1,
-       COMPUTE_METHOD_REFERENCE = 2,
-       NUM_COMPUTE_METHOD = 3 };
+enum { GM_COMPUTE_METHOD_CPU = 0,
+       GM_COMPUTE_METHOD_GPU = 1,
+       GM_COMPUTE_METHOD_REFERENCE = 2,
+       GM_NUM_COMPUTE_METHOD = 3 };
 
 /*===========================================================================*/
 /*---Null object---*/
 
-Env Env_null(void);
+GMEnv GMEnv_null(void);
 
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void Env_create(Env* env);
+void GMEnv_create(GMEnv* env);
 
-void Env_create_from_args(Env* env, int argc, char** argv);
+void GMEnv_create_from_args(GMEnv* env, int argc, char** argv);
 
 /*===========================================================================*/
 /*---Finalize environment---*/
 
-void Env_destroy(Env* env);
+void GMEnv_destroy(GMEnv* env);
 
 /*===========================================================================*/
 /*---Timer functions---*/
 
-double Env_get_time(Env* env);
-double Env_get_synced_time(Env* env);
+double GMEnv_get_time(GMEnv* env);
+double GMEnv_get_synced_time(GMEnv* env);
 
 /*===========================================================================*/
 /*---Assertions---*/
 
-#define Assert(v) assert(v)
+#define GMAssert(v) assert(v)
 
-#ifndef Insist
-#define Insist(env, condition) \
-  (void)((condition) || (insist_(env, #condition, __FILE__, __LINE__), 0))
+#ifndef GMInsist
+#define GMInsist(env, condition) \
+  (void)((condition) || (gm_insist(env, #condition, __FILE__, __LINE__), 0))
 #endif
 
-void insist_(Env* env,
-             const char* condition_string,
-             const char* file,
-             int line);
+void gm_insist(GMEnv* env,
+               const char* condition_string,
+               const char* file,
+               int line);
 
 #ifndef NDEBUG
 /*---Fail compilation and (hopefully) give a filename/line number---*/
-#define Static_Assert(condition) \
-  {                              \
-    int a[(condition) ? 1 : -1]; \
-    (void) a;                    \
+#define GMStaticAssert(condition) \
+  {                               \
+    int a[(condition) ? 1 : -1];  \
+    (void) a;                     \
   }
 #else
-#define Static_Assert(condition)
+#define GM_StaticAssert(condition)
 #endif
 
 /*===========================================================================*/
@@ -142,7 +142,7 @@ static int max_i(const int i, const int j) {
 /*---------------------------------------------------------------------------*/
 
 static int floor_i(const int i, const int j) {
-  Assert(j > 0);
+  GMAssert(j > 0);
 
   return i >= 0 ? i / j : (i - j + 1) / j;
 }
@@ -150,7 +150,7 @@ static int floor_i(const int i, const int j) {
 /*---------------------------------------------------------------------------*/
 
 static int ceil_i(const int i, const int j) {
-  Assert(j > 0);
+  GMAssert(j > 0);
 
   return -floor_i(-i, j);
 }
@@ -158,8 +158,8 @@ static int ceil_i(const int i, const int j) {
 /*---------------------------------------------------------------------------*/
 
 static size_t ceil_i8(const size_t i, const size_t j) {
-  Assert(i+1 > 1);
-  Assert(j+1 > 1);
+  GMAssert(i+1 > 1);
+  GMAssert(j+1 > 1);
 
   return  ( i + j - 1 ) / j;
 }
@@ -185,8 +185,8 @@ static size_t randomize_max() {
 /*---------------------------------------------------------------------------*/
 
 static size_t nchoosek(int n, int k) {
-  Assert(n >= 1);
-  Assert(k >= 0 && k <= n);
+  GMAssert(n >= 1);
+  GMAssert(k >= 0 && k <= n);
   int i;
   size_t num = 1;
   size_t denom = 1;
@@ -200,9 +200,9 @@ static size_t nchoosek(int n, int k) {
 /*===========================================================================*/
 /*---Misc.---*/
 
-int data_type_id_from_metric_type(int metric_type, Env* env);
+int data_type_id_from_metric_type(int metric_type, GMEnv* env);
 
-Bool_t Env_cuda_last_call_succeeded(Env* env);
+GMBool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 
 /*===========================================================================*/
 

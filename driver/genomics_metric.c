@@ -65,10 +65,10 @@ void usage() {
 /*===========================================================================*/
 /*---Set the entries of the vectors---*/
 
-void input_vectors(Vectors* vectors, Env* env) {
+void input_vectors(GMVectors* vectors, GMEnv* env) {
   switch (data_type_id_from_metric_type(env->metric_type, env)) {
     /*--------------------*/
-    case DATA_TYPE_ID_FLOAT: {
+    case GM_DATA_TYPE_ID_FLOAT: {
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
            ++vector_local) {
@@ -82,16 +82,16 @@ void input_vectors(Vectors* vectors, Env* env) {
           /*---randomize---*/
           index = randomize(index);
           /*---Calculate random number between 0 and 1---*/
-          Float_t rand_value = index / (Float_t)randomize_max();
+          GMFloat rand_value = index / (GMFloat)randomize_max();
           /*---Create large integer in a specified range, store as float---*/
-          Float_t value = (int)( (1<<27) * rand_value );
-          Vectors_float_set(vectors, field, vector_local, value, env);
+          GMFloat value = (int)( (1<<27) * rand_value );
+          GMVectors_float_set(vectors, field, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/
     } break;
     /*--------------------*/
-    case DATA_TYPE_ID_BIT: {
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_DATA_TYPE_ID_BIT: {
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
@@ -106,26 +106,26 @@ void input_vectors(Vectors* vectors, Env* env) {
           /*---randomize---*/
           index = randomize(index);
           /*---Calculate random number between 0 and 1---*/
-          Float_t rand_value = index / (Float_t)randomize_max();
+          GMFloat rand_value = index / (GMFloat)randomize_max();
           /*---Create single bit value---*/
-          Bool_t value = rand_value < .5 ? Bool_false : Bool_true;
-          Vectors_bit_set(vectors, field, vector_local, value, env);
+          GMBool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
+          GMVectors_bit_set(vectors, field, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/
 
     } break;
     /*--------------------*/
     default:
-      Assert(Bool_false ? "Invalid data type." : 0);
+      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   }
 }
 
 /*===========================================================================*/
 /*---Output the result metrics values---*/
 
-void output_metrics(Metrics* metrics, Env* env) {
+void output_metrics(GMMetrics* metrics, GMEnv* env) {
   switch (data_type_id_from_metric_type(env->metric_type, env)) {
-    case DATA_TYPE_ID_FLOAT: {
+    case GM_DATA_TYPE_ID_FLOAT: {
       size_t index;
       for (index = 0; index < metrics->num_elts_local; ++index) {
         printf("proc: %i, entry (", env->proc_num);
@@ -136,19 +136,19 @@ void output_metrics(Metrics* metrics, Env* env) {
           }
           /*---Present to the user as 1-based---*/
           printf("%i",
-                 1 + Metrics_coord_from_index(metrics, index, coord_num, env));
+                 1 + GMMetrics_coord_from_index(metrics, index, coord_num, env));
         }
-        printf("): value: %e\n", Metrics_float_get_from_index(
+        printf("): value: %e\n", GMMetrics_float_get_from_index(
           metrics, index, env) );
       } /*---for index---*/
     } break;
-    case DATA_TYPE_ID_BIT: {
+    case GM_DATA_TYPE_ID_BIT: {
 
-        Insist(env, Bool_false ? "Unimplemented." : 0);
+        GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
       } break;
     default:
-      Assert(Bool_false ? "Invalid data type." : 0);
+      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   }
 }
 
@@ -157,7 +157,7 @@ void output_metrics(Metrics* metrics, Env* env) {
 
 void finish_parsing(int argc,
                     char** argv,
-                    Env* env,
+                    GMEnv* env,
                     int* num_field,
                     int* num_vector_local,
                     int* verbosity) {
@@ -170,41 +170,41 @@ void finish_parsing(int argc,
   for (i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--num_field") == 0) {
       ++i;
-      Insist(env, i < argc ? "Missing value for num_field." : 0);
+      GMInsist(env, i < argc ? "Missing value for num_field." : 0);
       *num_field = atoi(argv[i]);
-      Insist(env, *num_field >= 0 ? "Invalid setting for num_field." : 0);
+      GMInsist(env, *num_field >= 0 ? "Invalid setting for num_field." : 0);
 
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
       ++i;
-      Insist(env, i < argc ? "Missing value for num_vector_local." : 0);
+      GMInsist(env, i < argc ? "Missing value for num_vector_local." : 0);
       *num_vector_local = atoi(argv[i]);
-      Insist(env, *num_vector_local >= 0
+      GMInsist(env, *num_vector_local >= 0
                       ? "Invalid setting for num_vector_local."
                       : 0);
     } else if (strcmp(argv[i], "--verbosity") == 0) {
       ++i;
-      Insist(env, i < argc ? "Missing value for verbosity." : 0);
+      GMInsist(env, i < argc ? "Missing value for verbosity." : 0);
       *verbosity = atoi(argv[i]);
-      Insist(env, *verbosity >= 0 ? "Invalid setting for verbosity." : 0);
+      GMInsist(env, *verbosity >= 0 ? "Invalid setting for verbosity." : 0);
     } else if (strcmp(argv[i], "--metric_type") == 0) {
-      ++i; /*---processed elsewhere by Env---*/
+      ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
-      ++i; /*---processed elsewhere by Env---*/
+      ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--all2all") == 0) {
-      ++i; /*---processed elsewhere by Env---*/
+      ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--compute_method") == 0) {
-      ++i; /*---processed elsewhere by Env---*/
+      ++i; /*---processed elsewhere by GMEnv---*/
     } else {
       if (env->proc_num == 0) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
       }
-      Insist(env, Bool_false ? "Error: argument not recognized." : 0);
+      GMInsist(env, GM_BOOL_FALSE ? "Error: argument not recognized." : 0);
     } /*---if/else---*/
 
   } /*---for i---*/
 
-  Insist(env, *num_field != uninitialized ? "Error: num_field not set." : 0);
-  Insist(env, *num_vector_local != uninitialized
+  GMInsist(env, *num_field != uninitialized ? "Error: num_field not set." : 0);
+  GMInsist(env, *num_vector_local != uninitialized
                   ? "Error: num_vector_local not set."
                   : 0);
 }
@@ -223,8 +223,8 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  Env env = Env_null();
-  Env_create_from_args(&env, argc, argv);
+  GMEnv env = GMEnv_null();
+  GMEnv_create_from_args(&env, argc, argv);
 
   /*---Parse remaining unprocessed arguments---*/
 
@@ -235,36 +235,36 @@ int main(int argc, char** argv) {
 
   /*---Initialize vectors---*/
 
-  Vectors vectors = Vectors_null();
-  Vectors_create(&vectors, data_type_id_from_metric_type(env.metric_type, &env),
+  GMVectors vectors = GMVectors_null();
+  GMVectors_create(&vectors, data_type_id_from_metric_type(env.metric_type, &env),
                  num_field, num_vector_local, &env);
 
   input_vectors(&vectors, &env);
 
   /*---Set up metrics container for results---*/
 
-  Metrics metrics = Metrics_null();
-  Metrics_create(&metrics, data_type_id_from_metric_type(env.metric_type, &env),
+  GMMetrics metrics = GMMetrics_null();
+  GMMetrics_create(&metrics, data_type_id_from_metric_type(env.metric_type, &env),
                  num_vector_local, &env);
 
   /*---Calculate metrics---*/
 
   /*---Run once first, discard timing---*/
-  if (env.compute_method == COMPUTE_METHOD_GPU) {
-    compute_metrics(&metrics, &vectors, &env);
+  if (env.compute_method == GM_COMPUTE_METHOD_GPU) {
+    gm_compute_metrics(&metrics, &vectors, &env);
   }
 
-  double time_begin = Env_get_synced_time(&env);
+  double time_begin = GMEnv_get_synced_time(&env);
 
-  compute_metrics(&metrics, &vectors, &env);
+  gm_compute_metrics(&metrics, &vectors, &env);
 
-  double time_end = Env_get_synced_time(&env);
+  double time_end = GMEnv_get_synced_time(&env);
 
   /*---Output run information---*/
 
   double time_compute_metrics = time_end - time_begin;
 
-  double checksum = Metrics_checksum(&metrics, &env);
+  double checksum = GMMetrics_checksum(&metrics, &env);
 
   if (env.proc_num == 0 && verbosity > 0) {
     printf("metrics checksum %.17e compute time %.6f\n", checksum,
@@ -279,9 +279,9 @@ int main(int argc, char** argv) {
 
   /*---Finalize---*/
 
-  Metrics_destroy(&metrics, &env);
-  Vectors_destroy(&vectors, &env);
-  Env_destroy(&env);
+  GMMetrics_destroy(&metrics, &env);
+  GMVectors_destroy(&vectors, &env);
+  GMEnv_destroy(&env);
   MPI_Finalize();
   return 0;
 }

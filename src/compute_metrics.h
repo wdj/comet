@@ -17,10 +17,10 @@
 
 /*===========================================================================*/
 
-void compute_metrics(Metrics* metrics, Vectors* vectors, Env* env);
+void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
 
 /*
-Float_t vector_sum(int len, Float_t * const __restrict__ v1);
+GMFloat vector_sum(int len, GMFloat * const __restrict__ v1);
 */
 
 /*===========================================================================*/

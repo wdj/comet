@@ -21,106 +21,105 @@
 
 /*===========================================================================*/
 
-void compute_metrics(Metrics* metrics, Vectors* vectors, Env* env) {
-  Assert(metrics != NULL);
-  Assert(vectors != NULL);
-  Assert(env != NULL);
+void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
 
-  switch (env->metric_type +
-          NUM_METRIC_TYPE *
-              (env->compute_method + NUM_COMPUTE_METHOD * (env->num_way))) {
-    case METRIC_TYPE_SORENSON +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (2)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+  switch (env->metric_type + GM_NUM_METRIC_TYPE * (env->compute_method +
+          GM_NUM_COMPUTE_METHOD * (env->num_way))) {
+    case GM_METRIC_TYPE_SORENSON + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_SORENSON +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (2)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_SORENSON + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_SORENSON +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (2)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_SORENSON + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REFERENCE +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_SORENSON +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (3)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_SORENSON + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_SORENSON +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (3)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_SORENSON + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_SORENSON +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (3)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_SORENSON + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REFERENCE +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_CZEKANOWSKI +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (2)):
-      compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
       break;
 
-    case METRIC_TYPE_CZEKANOWSKI +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (2)):
-      compute_metrics_czekanowski_2way_gpu(metrics, vectors, env);
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      gm_compute_metrics_czekanowski_2way_gpu(metrics, vectors, env);
       break;
 
-    case METRIC_TYPE_CZEKANOWSKI +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (2)):
-      compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REFERENCE +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
       break;
 
-    case METRIC_TYPE_CZEKANOWSKI +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (3)):
-      compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
       break;
 
-    case METRIC_TYPE_CZEKANOWSKI +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (3)):
-      compute_metrics_czekanowski_3way_gpu(metrics, vectors, env);
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      gm_compute_metrics_czekanowski_3way_gpu(metrics, vectors, env);
       break;
 
-    case METRIC_TYPE_CZEKANOWSKI +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (3)):
-      compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REFERENCE +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
       break;
 
-    case METRIC_TYPE_CCC +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (2)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_CCC +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (2)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_CCC +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (2)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REFERENCE +
+         GM_NUM_COMPUTE_METHOD * (2)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_CCC +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_CPU + NUM_COMPUTE_METHOD * (3)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_CCC +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_GPU + NUM_COMPUTE_METHOD * (3)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
-    case METRIC_TYPE_CCC +
-        NUM_METRIC_TYPE*(COMPUTE_METHOD_REFERENCE + NUM_COMPUTE_METHOD * (3)):
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REFERENCE +
+         GM_NUM_COMPUTE_METHOD * (3)):
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     default:
-      Insist(env, Bool_false ? "Unimplemented." : 0);
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---switch---*/
 }
 
@@ -128,9 +127,9 @@ void compute_metrics(Metrics* metrics, Vectors* vectors, Env* env) {
 /* Compute simple sum of elements of a vector. */
 
 /*
-Float_t vector_sum(int len, Float_t * const __restrict__ v1) {
+GMFloat vector_sum(int len, GMFloat * const __restrict__ v1) {
   int i = 0;
-  Float_t result = 0;
+  GMFloat result = 0;
 
   for(i = 0; i < len; ++i) {
     result += ( v1[i] );
