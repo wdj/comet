@@ -65,7 +65,7 @@ void GMMetrics_create(GMMetrics* metrics,
     if (env->num_way == 2) {
       /*---Store strict upper triang of diag block and half
           ` the off-diag blocks---*/
-      metrics->num_elts_local = nchoosek(num_vector_local, env->num_way) +
+      metrics->num_elts_local = gm_nchoosek(num_vector_local, env->num_way) +
           ( env->num_proc / 2 ) * num_vector_local * num_vector_local;
       metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
       GMAssert(metrics->index_map != NULL);
@@ -88,7 +88,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     }
   } else { /*---if not all2all---*/
-    metrics->num_elts_local = nchoosek(num_vector_local, env->num_way);
+    metrics->num_elts_local = gm_nchoosek(num_vector_local, env->num_way);
     metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssert(metrics->index_map != NULL);
     /*---LATER: generalize this to N-way---*/
@@ -127,8 +127,8 @@ void GMMetrics_create(GMMetrics* metrics,
       GMAssert(metrics->data != NULL);
       break;
     case GM_DATA_TYPE_BIT: {
-      const size_t num_floats_needed = ceil_i8( metrics->num_elts_local,
-                                                8 * sizeof(GMFloat) );
+      const size_t num_floats_needed = gm_ceil_i8( metrics->num_elts_local,
+                                                   8 * sizeof(GMFloat) );
       metrics->data = malloc(num_floats_needed * sizeof(GMFloat));
       GMAssert(metrics->data != NULL);
       } break;
@@ -171,7 +171,7 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         for (i = 0; i < metrics->num_elts_local; ++i) {
           const size_t i_global =
               i + metrics->num_elts_local * (size_t)env->num_proc;
-          result += ((GMFloat*)metrics->data)[i] * randomize(i_global);
+          result += ((GMFloat*)metrics->data)[i] * gm_randomize(i_global);
         } /*---for i---*/
       } break;
       case GM_DATA_TYPE_BIT:

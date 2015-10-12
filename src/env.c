@@ -166,7 +166,7 @@ void gm_insist(GMEnv* env,
 /*===========================================================================*/
 /*---Misc.---*/
 
-int data_type_id_from_metric_type(int metric_type, GMEnv* env) {
+int gm_data_type_from_metric_type(int metric_type, GMEnv* env) {
   switch (metric_type) {
     case GM_METRIC_TYPE_SORENSON:
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);

@@ -66,7 +66,7 @@ void usage() {
 /*---Set the entries of the vectors---*/
 
 void input_vectors(GMVectors* vectors, GMEnv* env) {
-  switch (data_type_id_from_metric_type(env->metric_type, env)) {
+  switch (gm_data_type_from_metric_type(env->metric_type, env)) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
       int vector_local;
@@ -80,9 +80,9 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
                                                vectors->num_vector_local_max *
                                                    ((size_t)env->proc_num));
           /*---randomize---*/
-          index = randomize(index);
+          index = gm_randomize(index);
           /*---Calculate random number between 0 and 1---*/
-          GMFloat rand_value = index / (GMFloat)randomize_max();
+          GMFloat rand_value = index / (GMFloat)gm_randomize_max();
           /*---Create large integer in a specified range, store as float---*/
           GMFloat value = (int)( (1<<27) * rand_value );
           GMVectors_float_set(vectors, field, vector_local, value, env);
@@ -104,9 +104,9 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
                                                vectors->num_vector_local_max *
                                                    ((size_t)env->proc_num));
           /*---randomize---*/
-          index = randomize(index);
+          index = gm_randomize(index);
           /*---Calculate random number between 0 and 1---*/
-          GMFloat rand_value = index / (GMFloat)randomize_max();
+          GMFloat rand_value = index / (GMFloat)gm_randomize_max();
           /*---Create single bit value---*/
           GMBool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
           GMVectors_bit_set(vectors, field, vector_local, value, env);
@@ -124,7 +124,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
 /*---Output the result metrics values---*/
 
 void output_metrics(GMMetrics* metrics, GMEnv* env) {
-  switch (data_type_id_from_metric_type(env->metric_type, env)) {
+  switch (gm_data_type_from_metric_type(env->metric_type, env)) {
     case GM_DATA_TYPE_FLOAT: {
       size_t index;
       for (index = 0; index < metrics->num_elts_local; ++index) {
@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
   /*---Initialize vectors---*/
 
   GMVectors vectors = GMVectors_null();
-  GMVectors_create(&vectors, data_type_id_from_metric_type(env.metric_type, &env),
+  GMVectors_create(&vectors, gm_data_type_from_metric_type(env.metric_type, &env),
                  num_field, num_vector_local, &env);
 
   input_vectors(&vectors, &env);
@@ -244,7 +244,7 @@ int main(int argc, char** argv) {
   /*---Set up metrics container for results---*/
 
   GMMetrics metrics = GMMetrics_null();
-  GMMetrics_create(&metrics, data_type_id_from_metric_type(env.metric_type, &env),
+  GMMetrics_create(&metrics, gm_data_type_from_metric_type(env.metric_type, &env),
                  num_vector_local, &env);
 
   /*---Calculate metrics---*/

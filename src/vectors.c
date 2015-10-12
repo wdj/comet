@@ -48,7 +48,7 @@ void GMVectors_create(GMVectors* vectors,
       } break;
     case GM_DATA_TYPE_BIT: {
         GMAssert( sizeof(GMBits) == 8 );
-        vectors->num_field_dataval = ceil_i( num_field, 8 * sizeof(GMBits) );
+        vectors->num_field_dataval = gm_ceil_i( num_field, 8 * sizeof(GMBits) );
         vectors->data = malloc( vectors->num_field_dataval *
                                 num_vector_local * sizeof(GMBits));
         GMAssert(vectors->data != NULL);

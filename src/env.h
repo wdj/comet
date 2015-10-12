@@ -139,19 +139,19 @@ void gm_insist(GMEnv* env,
 /*===========================================================================*/
 /*---Misc utility functions---*/
 
-static int min_i(const int i, const int j) {
+static int gm_min_i(const int i, const int j) {
   return i < j ? i : j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int max_i(const int i, const int j) {
+static int gm_max_i(const int i, const int j) {
   return i > j ? i : j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int floor_i(const int i, const int j) {
+static int gm_floor_i(const int i, const int j) {
   GMAssert(j > 0);
 
   return i >= 0 ? i / j : (i - j + 1) / j;
@@ -159,15 +159,15 @@ static int floor_i(const int i, const int j) {
 
 /*---------------------------------------------------------------------------*/
 
-static int ceil_i(const int i, const int j) {
+static int gm_ceil_i(const int i, const int j) {
   GMAssert(j > 0);
 
-  return -floor_i(-i, j);
+  return -gm_floor_i(-i, j);
 }
 
 /*---------------------------------------------------------------------------*/
 
-static size_t ceil_i8(const size_t i, const size_t j) {
+static size_t gm_ceil_i8(const size_t i, const size_t j) {
   GMAssert(i+1 > 1);
   GMAssert(j+1 > 1);
 
@@ -176,7 +176,7 @@ static size_t ceil_i8(const size_t i, const size_t j) {
 
 /*---------------------------------------------------------------------------*/
 
-static size_t randomize(size_t i) {
+static size_t gm_randomize(size_t i) {
   const size_t im = 714025;
   const size_t ia = 4096;
   const size_t ic = 150889;
@@ -186,7 +186,7 @@ static size_t randomize(size_t i) {
 
 /*---------------------------------------------------------------------------*/
 
-static size_t randomize_max() {
+static size_t gm_randomize_max() {
   const size_t im = 714025;
 
   return im;
@@ -194,7 +194,7 @@ static size_t randomize_max() {
 
 /*---------------------------------------------------------------------------*/
 
-static size_t nchoosek(int n, int k) {
+static size_t gm_nchoosek(int n, int k) {
   GMAssert(n >= 1);
   GMAssert(k >= 0 && k <= n);
   int i;
@@ -210,7 +210,7 @@ static size_t nchoosek(int n, int k) {
 /*===========================================================================*/
 /*---Misc.---*/
 
-int data_type_id_from_metric_type(int metric_type, GMEnv* env);
+int gm_data_type_from_metric_type(int metric_type, GMEnv* env);
 
 GMBool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 
