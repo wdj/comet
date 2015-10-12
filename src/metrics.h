@@ -105,6 +105,14 @@ static size_t GMMetrics_index_from_coord_proc_2(GMMetrics* metrics,
 
 /*FIX*/
 
+#if 0
+  size_t end_triangle = ((metrics->num_vector_local * (size_t)
+                         (metrics->num_vector_local - 1)) >> 1);
+
+  size_t ind_triangle = ((j * (size_t)(j - 1)) >> 1) + i;
+#endif
+
+
   size_t index = ((j * (size_t)(j - 1)) >> 1) + i;
 
 
