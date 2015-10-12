@@ -40,13 +40,13 @@ void GMVectors_create(GMVectors* vectors,
 
   /*---Allocations---*/
   switch (data_type_id) {
-    case GM_DATA_TYPE_ID_FLOAT: {
+    case GM_DATA_TYPE_FLOAT: {
         vectors->num_field_dataval = num_field;
         vectors->data = malloc( vectors->num_field_dataval *
                                 num_vector_local * sizeof(GMFloat));
         GMAssert(vectors->data != NULL);
       } break;
-    case GM_DATA_TYPE_ID_BIT: {
+    case GM_DATA_TYPE_BIT: {
         GMAssert( sizeof(GMBits) == 8 );
         vectors->num_field_dataval = ceil_i( num_field, 8 * sizeof(GMBits) );
         vectors->data = malloc( vectors->num_field_dataval *

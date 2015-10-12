@@ -30,6 +30,12 @@ typedef int GMBool;
 
 enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
+/*---Types for packed bits objects---*/
+
+typedef double GMBits;
+
+typedef unsigned long long int GMULInt;
+
 /*---Default floating point type---*/
 
 #ifdef FP_PRECISION_SINGLE
@@ -42,15 +48,19 @@ typedef double GMFloat;
 enum { GM_MPI_FLOAT = MPI_DOUBLE };
 #endif
 
-/*---Types for packed bits objects---*/
+/*---Table for CCC---*/
 
-typedef double GMBits;
+typedef unsigned short int GMUSInt;
 
-typedef unsigned long long int GMULInt;
+typedef struct {
+  GMUSInt data[4][4];
+} GMTable4X4;
 
 /*---Type ids---*/
 
-enum { GM_DATA_TYPE_ID_FLOAT = 1, GM_DATA_TYPE_ID_BIT = 2 };
+enum { GM_DATA_TYPE_FLOAT = 1,
+       GM_DATA_TYPE_BIT = 2,
+       GM_DATA_TYPE_TABLE4X4 = 3 };
 
 /*===========================================================================*/
 /*---Environment struct declarations---*/
@@ -74,7 +84,7 @@ enum {
 
 enum { GM_COMPUTE_METHOD_CPU = 0,
        GM_COMPUTE_METHOD_GPU = 1,
-       GM_COMPUTE_METHOD_REFERENCE = 2,
+       GM_COMPUTE_METHOD_REF = 2,
        GM_NUM_COMPUTE_METHOD = 3 };
 
 /*===========================================================================*/

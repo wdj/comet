@@ -103,7 +103,7 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
       } else if (strcmp(argv[i], "GPU") == 0) {
         env->compute_method = GM_COMPUTE_METHOD_GPU;
       } else if (strcmp(argv[i], "REF") == 0) {
-        env->compute_method = GM_COMPUTE_METHOD_REFERENCE;
+        env->compute_method = GM_COMPUTE_METHOD_REF;
       } else {
         GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for compute_method." : 0);
       }
@@ -171,7 +171,7 @@ int data_type_id_from_metric_type(int metric_type, GMEnv* env) {
     case GM_METRIC_TYPE_SORENSON:
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
     case GM_METRIC_TYPE_CZEKANOWSKI:
-      return GM_DATA_TYPE_ID_FLOAT;
+      return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   }

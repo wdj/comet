@@ -17,20 +17,24 @@
 
 /*===========================================================================*/
 
-#if 0
 void gm_compute_metrics_sorenson_2way_cpu(GMMetrics* metrics,
-                                       GMVectors* vectors,
-                                       GMEnv* env);
+                                          GMVectors* vectors,
+                                          GMEnv* env);
 void gm_compute_metrics_sorenson_2way_gpu(GMMetrics* metrics,
-                                       GMVectors* vectors,
-                                       GMEnv* env);
+                                          GMVectors* vectors,
+                                          GMEnv* env);
+void gm_compute_metrics_sorenson_2way_ref(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env);
 void gm_compute_metrics_sorenson_3way_cpu(GMMetrics* metrics,
-                                       GMVectors* vectors,
-                                       GMEnv* env);
+                                          GMVectors* vectors,
+                                          GMEnv* env);
 void gm_compute_metrics_sorenson_3way_gpu(GMMetrics* metrics,
-                                       GMVectors* vectors,
-                                       GMEnv* env);
-#endif
+                                          GMVectors* vectors,
+                                          GMEnv* env);
+void gm_compute_metrics_sorenson_3way_ref(GMMetrics* metrics,
+                                          GMVectors* vectors,
+                                          GMEnv* env);
 
 /*===========================================================================*/
 

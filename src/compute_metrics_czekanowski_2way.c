@@ -35,7 +35,7 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
 
   GMFloat* vector_sums = malloc(metrics->num_vector_local * sizeof(GMFloat));
 
-  gm_compute_vector_sums(vectors, vector_sums, env);
+  gm_compute_float_vector_sums(vectors, vector_sums, env);
 
   /*---Numerator---*/
 
@@ -83,7 +83,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   GMFloat* vector_sums = malloc(metrics->num_vector_local * sizeof(GMFloat));
 
   /* .02 / 1.56 */
-  gm_compute_vector_sums(vectors, vector_sums, env);
+  gm_compute_float_vector_sums(vectors, vector_sums, env);
 
   /*---------------*/
   /*---Numerator---*/

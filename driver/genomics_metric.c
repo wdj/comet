@@ -68,7 +68,7 @@ void usage() {
 void input_vectors(GMVectors* vectors, GMEnv* env) {
   switch (data_type_id_from_metric_type(env->metric_type, env)) {
     /*--------------------*/
-    case GM_DATA_TYPE_ID_FLOAT: {
+    case GM_DATA_TYPE_FLOAT: {
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
            ++vector_local) {
@@ -90,7 +90,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
       }   /*---vector_local---*/
     } break;
     /*--------------------*/
-    case GM_DATA_TYPE_ID_BIT: {
+    case GM_DATA_TYPE_BIT: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
       int vector_local;
@@ -125,7 +125,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
 
 void output_metrics(GMMetrics* metrics, GMEnv* env) {
   switch (data_type_id_from_metric_type(env->metric_type, env)) {
-    case GM_DATA_TYPE_ID_FLOAT: {
+    case GM_DATA_TYPE_FLOAT: {
       size_t index;
       for (index = 0; index < metrics->num_elts_local; ++index) {
         printf("proc: %i, entry (", env->proc_num);
@@ -142,7 +142,7 @@ void output_metrics(GMMetrics* metrics, GMEnv* env) {
           metrics, index, env) );
       } /*---for index---*/
     } break;
-    case GM_DATA_TYPE_ID_BIT: {
+    case GM_DATA_TYPE_BIT: {
 
         GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 

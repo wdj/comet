@@ -15,7 +15,6 @@
 #include "metrics.h"
 #include "compute_metrics_ccc.h"
 
-#if 0
 /*===========================================================================*/
 
 void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
@@ -45,6 +44,33 @@ void gm_compute_metrics_ccc_2way_gpu(GMMetrics* metrics,
 }
 
 /*===========================================================================*/
-#endif
+
+void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
+                                  GMVectors* vectors,
+                                  GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
+
+  GMInsist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
+
+  GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+}
+
+/*===========================================================================*/
+
+void gm_compute_metrics_ccc_3way_gpu(GMMetrics* metrics,
+                               GMVectors* vectors,
+                               GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
+
+  GMInsist(env, ( ! env->all2all ) ? "Unimplemented." : 0);
+
+  GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+}
+
+/*===========================================================================*/
 
 /*---------------------------------------------------------------------------*/

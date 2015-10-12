@@ -14,9 +14,9 @@
 
 /*===========================================================================*/
 
-void gm_compute_vector_sums(GMVectors* vectors,
-                         GMFloat* __restrict__ vector_sums,
-                         GMEnv* env) {
+void gm_compute_float_vector_sums(GMVectors* vectors,
+                                  GMFloat* __restrict__ vector_sums,
+                                  GMEnv* env) {
   GMAssert(vectors != NULL);
   GMAssert(vector_sums != NULL);
   GMAssert(env != NULL);

@@ -122,11 +122,11 @@ void GMMetrics_create(GMMetrics* metrics,
   /*---Allocations---*/
 
   switch (data_type_id) {
-    case GM_DATA_TYPE_ID_FLOAT:
+    case GM_DATA_TYPE_FLOAT:
       metrics->data = malloc(metrics->num_elts_local * sizeof(GMFloat));
       GMAssert(metrics->data != NULL);
       break;
-    case GM_DATA_TYPE_ID_BIT: {
+    case GM_DATA_TYPE_BIT: {
       const size_t num_floats_needed = ceil_i8( metrics->num_elts_local,
                                                 8 * sizeof(GMFloat) );
       metrics->data = malloc(num_floats_needed * sizeof(GMFloat));
@@ -166,7 +166,7 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
     GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } else {
     switch (metrics->data_type_id) {
-      case GM_DATA_TYPE_ID_FLOAT: {
+      case GM_DATA_TYPE_FLOAT: {
         int i = 0;
         for (i = 0; i < metrics->num_elts_local; ++i) {
           const size_t i_global =
@@ -174,7 +174,7 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
           result += ((GMFloat*)metrics->data)[i] * randomize(i_global);
         } /*---for i---*/
       } break;
-      case GM_DATA_TYPE_ID_BIT:
+      case GM_DATA_TYPE_BIT:
         GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
         break;
       default:
