@@ -29,7 +29,8 @@ typedef struct {
   int num_vector_local_max;
   size_t num_elts_local;
   int data_type_id;
-  size_t* index_map; /*---map contig index to linearized Cartesian index---*/
+  /*---map (contig) index to linearized Cartesian coords---*/
+  size_t* coords_global_from_index;
   void* __restrict__ data;
 } GMMetrics;
 
@@ -56,13 +57,16 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env);
 
 double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env);
 
+
+
+
 /*===========================================================================*/
-/*---Accessors: indexing: contig index from coord---*/
+/*---Accessors: indexing: (contig) index from coord---*/
 
 static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
-                                         int i,
-                                         int j,
-                                         GMEnv* env) {
+                                           int i,
+                                           int j,
+                                           GMEnv* env) {
   GMAssert(metrics);
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
@@ -72,16 +76,48 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
   GMAssert(env);
 
   size_t index = ((j * (size_t)(j - 1)) >> 1) + i;
+  GMAssert( i + metrics->num_vector_local * env->proc_num ==
+            metrics->coords_global_from_index[index] % metrics->num_vector );
+  GMAssert( j + metrics->num_vector_local * env->proc_num ==
+            metrics->coords_global_from_index[index] / metrics->num_vector );
+  return index;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static size_t GMMetrics_index_from_coord_proc_2(GMMetrics* metrics,
+                                                int i,
+                                                int j,
+                                                int j_proc,
+                                                GMEnv* env) {
+  GMAssert(metrics);
+  GMAssert(i >= 0);
+  GMAssert(i < metrics->num_vector_local);
+  GMAssert(j >= 0);
+  GMAssert(j < metrics->num_vector_local);
+  GMAssert(j_proc >= 0);
+  GMAssert(j_proc < env->num_proc);
+
+  GMAssert(i < j);
+
+  GMAssert(env);
+
+
+/*FIX*/
+
+  size_t index = ((j * (size_t)(j - 1)) >> 1) + i;
+
+
   return index;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
-                                         int i,
-                                         int j,
-                                         int k,
-                                         GMEnv* env) {
+                                           int i,
+                                           int j,
+                                           int k,
+                                           GMEnv* env) {
   GMAssert(metrics);
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
@@ -95,7 +131,28 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
 
   size_t index = (k * (size_t)(k - 1) * (size_t)(k - 2)) / 6 +
                  (j * (size_t)(j - 1)) / 2 + i;
+  GMAssert( i + metrics->num_vector_local * env->proc_num ==
+            metrics->coords_global_from_index[index] % metrics->num_vector );
+  GMAssert( j + metrics->num_vector_local * env->proc_num ==
+            ( metrics->coords_global_from_index[index] / metrics->num_vector )
+                                                    % metrics->num_vector );
+  GMAssert( k + metrics->num_vector_local * env->proc_num ==
+            metrics->coords_global_from_index[index] / (metrics->num_vector *
+                                                        metrics->num_vector) );
   return index;
+}
+
+/*===========================================================================*/
+/*---Accessors: value from (contig) index---*/
+
+static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics, int index,
+                                            GMEnv* env) {
+  GMAssert(metrics);
+  GMAssert(index >= 0);
+  GMAssert(index < metrics->num_elts_local);
+  GMAssert(env);
+
+  return ((GMFloat*)(metrics->data))[index];
 }
 
 /*===========================================================================*/
@@ -143,18 +200,6 @@ static void GMMetrics_float_set_3(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics, int index,
-                                            GMEnv* env) {
-  GMAssert(metrics);
-  GMAssert(index >= 0);
-  GMAssert(index < metrics->num_elts_local);
-  GMAssert(env);
-
-  return ((GMFloat*)(metrics->data))[index];
-}
-
-/*---------------------------------------------------------------------------*/
-
 static GMFloat GMMetrics_float_get_2(GMMetrics* metrics, int i, int j, GMEnv* env) {
   GMAssert(metrics);
   GMAssert(i >= 0);
@@ -191,9 +236,9 @@ static GMFloat GMMetrics_float_get_3(GMMetrics* metrics,
 }
 
 /*===========================================================================*/
-/*---Accessors: indexing: coord from contig index---*/
+/*---Accessors: indexing: global coord from (contig) index---*/
 
-static int GMMetrics_coord0_from_index_2(GMMetrics* metrics,
+static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
                                        size_t index,
                                        GMEnv* env) {
   GMAssert(metrics);
@@ -202,13 +247,13 @@ static int GMMetrics_coord0_from_index_2(GMMetrics* metrics,
   GMAssert(env);
   GMAssert(env->num_way == 2);
 
-  int i = metrics->index_map[index] % metrics->num_vector_local;
+  const int i = metrics->coords_global_from_index[index] % metrics->num_vector;
   return i;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int GMMetrics_coord1_from_index_2(GMMetrics* metrics,
+static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
                                        size_t index,
                                        GMEnv* env) {
   GMAssert(metrics);
@@ -217,13 +262,13 @@ static int GMMetrics_coord1_from_index_2(GMMetrics* metrics,
   GMAssert(env);
   GMAssert(env->num_way == 2);
 
-  int j = metrics->index_map[index] / metrics->num_vector_local;
+  const int j = metrics->coords_global_from_index[index] / metrics->num_vector;
   return j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int GMMetrics_coord0_from_index_3(GMMetrics* metrics,
+static int GMMetrics_coord0_global_from_index_3(GMMetrics* metrics,
                                        size_t index,
                                        GMEnv* env) {
   GMAssert(metrics);
@@ -232,13 +277,13 @@ static int GMMetrics_coord0_from_index_3(GMMetrics* metrics,
   GMAssert(env);
   GMAssert(env->num_way == 3);
 
-  int i = metrics->index_map[index] % metrics->num_vector_local;
+  const int i = metrics->coords_global_from_index[index] % metrics->num_vector;
   return i;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int GMMetrics_coord1_from_index_3(GMMetrics* metrics,
+static int GMMetrics_coord1_global_from_index_3(GMMetrics* metrics,
                                        size_t index,
                                        GMEnv* env) {
   GMAssert(metrics);
@@ -247,14 +292,14 @@ static int GMMetrics_coord1_from_index_3(GMMetrics* metrics,
   GMAssert(env);
   GMAssert(env->num_way == 3);
 
-  int i = (metrics->index_map[index] / metrics->num_vector_local) %
-          metrics->num_vector_local;
-  return i;
+  const int j = (metrics->coords_global_from_index[index] /
+                 metrics->num_vector) % metrics->num_vector;
+  return j;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int GMMetrics_coord2_from_index_3(GMMetrics* metrics,
+static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
                                        size_t index,
                                        GMEnv* env) {
   GMAssert(metrics);
@@ -263,13 +308,13 @@ static int GMMetrics_coord2_from_index_3(GMMetrics* metrics,
   GMAssert(env);
   GMAssert(env->num_way == 3);
 
-  int i = metrics->index_map[index] /
-          (metrics->num_vector_local * metrics->num_vector_local);
-  return i;
+  const int k = metrics->coords_global_from_index[index] /
+               (metrics->num_vector * metrics->num_vector);
+  return k;
 }
 
 /*---------------------------------------------------------------------------*/
-static int GMMetrics_coord_from_index(GMMetrics* metrics,
+static int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                     size_t index,
                                     int coord_num,
                                     GMEnv* env) {
@@ -282,21 +327,24 @@ static int GMMetrics_coord_from_index(GMMetrics* metrics,
 
   int result = 0;
 
-  switch (env->num_way + 4 * coord_num) {
+  GMAssert( env->num_way < 4
+            ? "num_way > 3 not currently functional; please modify code" : 0 );
+
+  switch ( env->num_way + 4 * coord_num ) {
     case 2 + 4 * 0: /* 2-way, coord 0 */
-      result = GMMetrics_coord0_from_index_2(metrics, index, env);
+      result = GMMetrics_coord0_global_from_index_2(metrics, index, env);
       break;
     case 2 + 4 * 1: /* 2-way, coord 1 */
-      result = GMMetrics_coord1_from_index_2(metrics, index, env);
+      result = GMMetrics_coord1_global_from_index_2(metrics, index, env);
       break;
     case 3 + 4 * 0: /* 3-way, coord 0 */
-      result = GMMetrics_coord0_from_index_3(metrics, index, env);
+      result = GMMetrics_coord0_global_from_index_3(metrics, index, env);
       break;
     case 3 + 4 * 1: /* 3-way, coord 1 */
-      result = GMMetrics_coord1_from_index_3(metrics, index, env);
+      result = GMMetrics_coord1_global_from_index_3(metrics, index, env);
       break;
     case 3 + 4 * 2: /* 3-way, coord 2 */
-      result = GMMetrics_coord2_from_index_3(metrics, index, env);
+      result = GMMetrics_coord2_global_from_index_3(metrics, index, env);
       break;
     default:
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);

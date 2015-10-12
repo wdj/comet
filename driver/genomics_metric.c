@@ -128,18 +128,18 @@ void output_metrics(GMMetrics* metrics, GMEnv* env) {
     case GM_DATA_TYPE_FLOAT: {
       size_t index;
       for (index = 0; index < metrics->num_elts_local; ++index) {
-        printf("proc: %i, entry (", env->proc_num);
+        printf("element (");
         int coord_num = 0;
         for (coord_num = 0; coord_num < env->num_way; ++coord_num) {
           if (coord_num > 0) {
             printf(",");
           }
           /*---Present to the user as 1-based---*/
-          printf("%i",
-                 1 + GMMetrics_coord_from_index(metrics, index, coord_num, env));
+          printf("%i", 1 +
+            GMMetrics_coord_global_from_index(metrics, index, coord_num, env));
         }
-        printf("): value: %e\n", GMMetrics_float_get_from_index(
-          metrics, index, env) );
+        printf("): value: %e (from proc %i)\n",
+          GMMetrics_float_get_from_index( metrics, index, env), env->proc_num );
       } /*---for index---*/
     } break;
     case GM_DATA_TYPE_BIT: {

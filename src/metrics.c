@@ -67,19 +67,25 @@ void GMMetrics_create(GMMetrics* metrics,
           ` the off-diag blocks---*/
       metrics->num_elts_local = gm_nchoosek(num_vector_local, env->num_way) +
           ( env->num_proc / 2 ) * num_vector_local * num_vector_local;
-      metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
-      GMAssert(metrics->index_map != NULL);
+      metrics->coords_global_from_index = malloc( metrics->num_elts_local *
+                                                  sizeof(size_t));
+      GMAssert(metrics->coords_global_from_index != NULL);
       int index = 0;
       int i = 0;
+
+/*FIX*/
       for (i = 0; i < num_vector_local; ++i) {
+        const size_t i_global = i + num_vector_local * env->proc_num;
         /*---j here is a global index---*/
         const int beg = env->proc_num * num_vector_local + i + 1;
         const int end = ( env->proc_num + 1 + ( env->num_proc / 2 ) )
                         * num_vector_local;
-        int j_unwrapped = 0;
-        for (j_unwrapped = beg; j_unwrapped < end; ++j_unwrapped) {
-          const int j = j_unwrapped % metrics->num_vector;
-          metrics->index_map[index++] = i + num_vector_local * (size_t)j;
+        size_t j_global_unwrapped = 0;
+        for (j_global_unwrapped = beg; j_global_unwrapped < end;
+             ++j_global_unwrapped) {
+          const size_t j_global = j_global_unwrapped % metrics->num_vector;
+          metrics->coords_global_from_index[index++] = i_global +
+                                               metrics->num_vector * j_global;
         }
       } /*---i---*/
     } else /* (env->num_way == 3) */ {
@@ -89,30 +95,38 @@ void GMMetrics_create(GMMetrics* metrics,
     }
   } else { /*---if not all2all---*/
     metrics->num_elts_local = gm_nchoosek(num_vector_local, env->num_way);
-    metrics->index_map = malloc(metrics->num_elts_local * sizeof(size_t));
-    GMAssert(metrics->index_map != NULL);
+    metrics->coords_global_from_index = malloc( metrics->num_elts_local *
+                                                sizeof(size_t));
+    GMAssert(metrics->coords_global_from_index != NULL);
     /*---LATER: generalize this to N-way---*/
     if (env->num_way == 2) {
       /*---Need store only strict upper triangular part of matrix---*/
       int index = 0;
-      int i = 0;
-      for (i = 0; i < num_vector_local; ++i) {
-        int j = 0;
-        for (j = i + 1; j < num_vector_local; ++j) {
-          metrics->index_map[index++] = i + num_vector_local * (size_t)j;
+      int j = 0;
+      for (j = 0; j < num_vector_local; ++j) {
+        const size_t j_global = j + num_vector_local * env->proc_num;
+        int i = 0;
+        for (i = 0; i < j; ++i) {
+          const size_t i_global = i + num_vector_local * env->proc_num;
+          metrics->coords_global_from_index[index++] =
+              i_global + metrics->num_vector * j_global;
         }
       }
     } else /* (env->num_way == 3) */ {
       /*---Need store only strict interior of tetrahedron---*/
       int index = 0;
-      int i = 0;
-      for (i = 0; i < num_vector_local; ++i) {
+      int k = 0;
+      for (k = 0; k < num_vector_local; ++k) {
+        const size_t k_global = k + num_vector_local * env->proc_num;
         int j = 0;
-        for (j = i + 1; j < num_vector_local; ++j) {
-          int k = 0;
-          for (k = j + 1; k < num_vector_local; ++k) {
-            metrics->index_map[index++] =
-                i + num_vector_local * (j + num_vector_local * (size_t)k);
+        for (j = 0; j < k; ++j) {
+          const size_t j_global = j + num_vector_local * env->proc_num;
+          int i = 0;
+          for (i = 0; i < j; ++k) {
+            const size_t i_global = i + num_vector_local * env->proc_num;
+            metrics->coords_global_from_index[index++] =
+                i_global + metrics->num_vector * (
+                j_global + metrics->num_vector * k_global );
           }
         }
       }
@@ -146,7 +160,7 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
   GMAssert(env);
 
   free(metrics->data);
-  free(metrics->index_map);
+  free(metrics->coords_global_from_index);
   *metrics = GMMetrics_null();
 }
 
