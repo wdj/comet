@@ -45,7 +45,11 @@ fi
 #---Installation dir.
 
 if [ "$INSTALL_DIR" = "" ] ; then
-  INSTALL_DIR=${PROJECT_DIR}/../install
+  if [ "$BUILD_TYPE" = "Debug" ] ; then
+    INSTALL_DIR=${PROJECT_DIR}/../install_debug
+  else
+    INSTALL_DIR=${PROJECT_DIR}/../install_release
+  fi
 fi
 
 #---Floting point precision for calculations.

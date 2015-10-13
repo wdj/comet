@@ -31,6 +31,8 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
 
   if ( env->all2all ) {
 
+    /*---Initializations---*/
+
     GMVectors vectors_0 = GMVectors_null();
     GMVectors vectors_1 = GMVectors_null();
 
@@ -49,6 +51,8 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
                                          sizeof(GMFloat));
     GMFloat* vector_sums_offproc = malloc(metrics->num_vector_local *
                                           sizeof(GMFloat));
+
+    /*---Loop over steps of circular shift---*/
 
     int step_num = 0;
     for ( step_num = 0; step_num < num_step; ++step_num ) {
@@ -73,6 +77,8 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
       const int proc_dn = ( env->proc_num - 1 + env->num_proc ) % env->num_proc;
 
       const int mpi_tag = 0;
+
+      /*---Post sends/receives---*/
 
       if ( step_num != num_step - 1 ) {
 
@@ -163,6 +169,8 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
 
     } /*---step_num---*/
 
+    /*---Deallocations---*/
+
     free(vector_sums_onproc);
     free(vector_sums_offproc);
 
@@ -171,13 +179,13 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
 
   } else /*---if ( ! env->all2all )---*/ {
 
-    /*---Denominator---*/
+    /*---Compute sums for denominators---*/
 
     GMFloat* vector_sums = malloc(metrics->num_vector_local * sizeof(GMFloat));
 
     gm_compute_float_vector_sums(vectors, vector_sums, env);
 
-    /*---Numerator---*/
+    /*---Compute numerators---*/
 
     int i = 0;
     int j = 0;
