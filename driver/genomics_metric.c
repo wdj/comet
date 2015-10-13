@@ -138,7 +138,7 @@ void output_metrics(GMMetrics* metrics, GMEnv* env) {
           printf("%i", 1 +
             GMMetrics_coord_global_from_index(metrics, index, coord_num, env));
         }
-        printf("): value: %e (from proc %i)\n",
+        printf("): value: %e    [from proc %i]\n",
           GMMetrics_float_get_from_index( metrics, index, env), env->proc_num );
       } /*---for index---*/
     } break;

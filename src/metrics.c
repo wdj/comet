@@ -65,36 +65,53 @@ void GMMetrics_create(GMMetrics* metrics,
     if (env->num_way == 2) {
       /*---Store strict upper triang of diag block and half
           ` the off-diag blocks---*/
-      metrics->num_elts_local = gm_nchoosek(num_vector_local, env->num_way) +
-          ( env->num_proc / 2 ) * num_vector_local * num_vector_local;
+      const int num_offdiag_block = env->num_proc % 2 == 0 &&
+                                    2 * env->proc_num >= env->num_proc
+        ? ( env->num_proc / 2 ) - 1
+        : ( env->num_proc / 2 );
+      const int nchoosek = num_vector_local >= env->num_way ?
+                           gm_nchoosek(num_vector_local, env->num_way) : 0;
+      metrics->num_elts_local = nchoosek +
+          num_offdiag_block * num_vector_local * num_vector_local;
       metrics->coords_global_from_index = malloc( metrics->num_elts_local *
                                                   sizeof(size_t));
       GMAssert(metrics->coords_global_from_index != NULL);
       int index = 0;
-      int i = 0;
-
-/*FIX*/
-      for (i = 0; i < num_vector_local; ++i) {
-        const size_t i_global = i + num_vector_local * env->proc_num;
-        /*---j here is a global index---*/
-        const int beg = env->proc_num * num_vector_local + i + 1;
-        const int end = ( env->proc_num + 1 + ( env->num_proc / 2 ) )
-                        * num_vector_local;
-        size_t j_global_unwrapped = 0;
-        for (j_global_unwrapped = beg; j_global_unwrapped < end;
-             ++j_global_unwrapped) {
-          const size_t j_global = j_global_unwrapped % metrics->num_vector;
+      /*---Triangle part---*/
+      int j = 0;
+      for (j = 0; j < num_vector_local; ++j) {
+        const size_t j_global = j + num_vector_local * env->proc_num;
+        int i = 0;
+        for (i = 0; i < j; ++i) {
+          const size_t i_global = i + num_vector_local * env->proc_num;
+          metrics->coords_global_from_index[index++] =
+              i_global + metrics->num_vector * j_global;
+        }
+      }
+      /*---Wrapped rectangle part---*/
+      const size_t beg = ( env->proc_num + 1 ) * num_vector_local;
+      const size_t end = ( env->proc_num + num_offdiag_block + 1 ) *
+                         num_vector_local;
+      size_t j_global_unwrapped = 0;
+      for (j_global_unwrapped = beg; j_global_unwrapped < end;
+           ++j_global_unwrapped) {
+        const size_t j_global = j_global_unwrapped % metrics->num_vector;
+        int i = 0;
+        for (i = 0; i < num_vector_local; ++i) {
+          const size_t i_global = i + num_vector_local * env->proc_num;
           metrics->coords_global_from_index[index++] = i_global +
                                                metrics->num_vector * j_global;
         }
-      } /*---i---*/
+      }
     } else /* (env->num_way == 3) */ {
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     }
   } else { /*---if not all2all---*/
-    metrics->num_elts_local = gm_nchoosek(num_vector_local, env->num_way);
+    const int nchoosek = num_vector_local >= env->num_way ?
+                         gm_nchoosek(num_vector_local, env->num_way) : 0;
+    metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index = malloc( metrics->num_elts_local *
                                                 sizeof(size_t));
     GMAssert(metrics->coords_global_from_index != NULL);
@@ -167,6 +184,14 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
 /*===========================================================================*/
 /*---Metrics checksum---*/
 
+static void gm_bubbledown( size_t* i, size_t* j ) {
+  if ( *i < *j ) {
+    const size_t tmp = *i;
+    *i = *j;
+    *j = tmp;
+  }
+}
+
 /* This should be invariant, up to roundoff, on CPU vs. GPU. */
 
 double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
@@ -176,31 +201,44 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   double result = 0;
 
-  if (env->all2all) {
-    GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } else {
-    switch (metrics->data_type_id) {
-      case GM_DATA_TYPE_FLOAT: {
-        int i = 0;
-        for (i = 0; i < metrics->num_elts_local; ++i) {
-          const size_t i_global =
-              i + metrics->num_elts_local * (size_t)env->num_proc;
-          result += ((GMFloat*)metrics->data)[i] * gm_randomize(i_global);
-        } /*---for i---*/
-      } break;
-      case GM_DATA_TYPE_BIT:
-        GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-        break;
-      default:
-        GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
-    } /*---switch---*/
-    const double tmp = result;
-    int mpi_code =
-        MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_MAX, env->mpi_comm);
-    if (mpi_code) {
-    } /*---Avoid unused variable warning---*/
-    GMAssert(mpi_code == MPI_SUCCESS);
-  } /*---if all2all---*/
+  switch (metrics->data_type_id) {
+    case GM_DATA_TYPE_FLOAT: {
+      GMAssert( env->num_way <= 3 ? "This num_way not supported." : 0 );
+      /*---Reflect coords by symmetry to get uniform result---*/
+      size_t coords[3];
+      int index = 0;
+      for (index = 0; index < metrics->num_elts_local; ++index) {
+        coords[2] = 0;
+        int coord_num = 0;
+        for ( coord_num = 0; coord_num < env->num_way; ++coord_num ) {
+          coords[coord_num] =
+             GMMetrics_coord_global_from_index(metrics, index, coord_num, env );
+        }
+        gm_bubbledown( &coords[1], &coords[2] );
+        gm_bubbledown( &coords[0], &coords[1] );
+        gm_bubbledown( &coords[1], &coords[2] );
+        size_t id_global = coords[0];
+        for ( coord_num = 1; coord_num < env->num_way; ++coord_num ) {
+          id_global = id_global * metrics->num_vector + coords[coord_num];
+        }
+        const GMFloat value = GMMetrics_float_get_from_index
+                                                   (metrics, index, env );
+        result +=  value * gm_randomize(id_global);
+      } /*---for i---*/
+    } break;
+    case GM_DATA_TYPE_BIT:
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      break;
+    default:
+      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+  } /*---switch---*/
+
+  const double tmp = result;
+  int mpi_code =
+      MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_SUM, env->mpi_comm);
+  if (mpi_code) {
+  } /*---Avoid unused variable warning---*/
+  GMAssert(mpi_code == MPI_SUCCESS);
 
   return result;
 }

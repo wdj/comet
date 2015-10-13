@@ -139,8 +139,11 @@ double GMEnv_get_synced_time(GMEnv* env) {
   /*
   cudaThreadSynchronize();
   */
-  cudaDeviceSynchronize();
-  GMAssert(GMEnv_cuda_last_call_succeeded(env));
+
+  if ( env->compute_method == GM_COMPUTE_METHOD_GPU ) {
+    cudaDeviceSynchronize();
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  }
 
   int mpi_code = MPI_Barrier(env->mpi_comm);
   if (mpi_code) {
