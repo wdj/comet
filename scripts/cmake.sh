@@ -70,7 +70,7 @@ cmake \
  \
   -DCMAKE_C_FLAGS:STRING="-D$FP_PRECISION -Wall -Wno-unused-function -pedantic -std=c99 -Werror -I$PROJECT_DIR/magma/magma_minproduct-1.6.2/include -DADD_ $CRAY_CUDATOOLKIT_INCLUDE_OPTS" \
   -DCMAKE_C_FLAGS_DEBUG:STRING="-g" \
-  -DCMAKE_C_FLAGS_RELEASE:STRING="-NDEBUG -O3 -ffast-math -fargument-noalias-anything -fstrict-aliasing -finline-functions -finline-limit=1000 -fomit-frame-pointer" \
+  -DCMAKE_C_FLAGS_RELEASE:STRING="-DNDEBUG -O3 -ffast-math -fargument-noalias-anything -fstrict-aliasing -finline-functions -finline-limit=1000 -fomit-frame-pointer" \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-L$PROJECT_DIR/magma/magma_minproduct-1.6.2/lib -lmagma_minproduct $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas" \
  \
   -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v" \
