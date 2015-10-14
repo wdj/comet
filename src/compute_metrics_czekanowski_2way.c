@@ -365,6 +365,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
 /*===========================================================================*/
 
+#if 0
 void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
                                           GMVectors* vectors,
                                           GMEnv* env) {
@@ -390,6 +391,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
+#endif
 
 /*===========================================================================*/
 
