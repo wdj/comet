@@ -13,6 +13,7 @@ mkdir gm_work
 cd gm_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
+git checkout -q tags/v0.1.1
 cd genomics_gpu/magma/magma_minproduct-1.6.2
 ../make.sh
 cd ../../..
