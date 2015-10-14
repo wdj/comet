@@ -139,8 +139,9 @@ void GMMetrics_create(GMMetrics* metrics,
         for (j = 0; j < k; ++j) {
           const size_t j_global = j + num_vector_local * env->proc_num;
           int i = 0;
-          for (i = 0; i < j; ++k) {
+          for (i = 0; i < j; ++i) {
             const size_t i_global = i + num_vector_local * env->proc_num;
+            GMAssert( index < metrics->num_elts_local );
             metrics->coords_global_from_index[index++] =
                 i_global + metrics->num_vector * (
                 j_global + metrics->num_vector * k_global );
