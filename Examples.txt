@@ -42,7 +42,7 @@ cd $MEMBERWORK/stf006/gm_work
 #--------------------
 
 for compute_method in CPU GPU ; do
-  aprun -n1 install_debug/bin/genomics_metric \
+  aprun -n1 ./install_debug/bin/genomics_metric \
       --num_field 2 --num_vector_local 3 \
       --compute_method $compute_method --verbosity 2
   echo
@@ -65,7 +65,7 @@ Application 1138400 resources: utime ~0s, stime ~1s, Rss ~156828, inblocks ~827,
 #--------------------
 
 for compute_method in CPU GPU ; do
-  aprun -n1 install_release/bin/genomics_metric \
+  aprun -n1 ./install_release/bin/genomics_metric \
       --num_field 5000 --num_vector_local 6000 \
       --compute_method $compute_method --verbosity 1
   echo
@@ -82,7 +82,7 @@ Application 1138402 resources: utime ~4s, stime ~3s, Rss ~1186544, inblocks ~736
 #--------------------
 
 for nproc in {1..4} ; do
-  aprun -n$nproc -N1 install_release/bin/genomics_metric \
+  aprun -n$nproc -N1 ./install_release/bin/genomics_metric \
       --num_field 5000 --num_vector_local 6000 \
       --compute_method GPU --verbosity 1
   echo
@@ -106,7 +106,7 @@ Application 1138406 resources: utime ~16s, stime ~12s, Rss ~1192256, inblocks ~3
 
 for nproc in {1..4} ; do
   num_vector_local=$(( 6000 / $nproc ))
-  aprun -n$nproc -N1 install_release/bin/genomics_metric \
+  aprun -n$nproc -N1 ./install_release/bin/genomics_metric \
       --num_field 500 --num_vector_local $num_vector_local \
       --all2all yes --compute_method CPU --verbosity 1
   echo
@@ -129,7 +129,7 @@ Application 1138412 resources: utime ~12s, stime ~4s, Rss ~118288, inblocks ~322
 #--------------------
 
 for compute_method in CPU GPU ; do
-  aprun -n1 install_release/bin/genomics_metric \
+  aprun -n1 ./install_release/bin/genomics_metric \
       --num_field 1000 --num_vector_local 1000 --num_way 3 \
       --compute_method $compute_method --verbosity 1
   echo
