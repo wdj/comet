@@ -13,7 +13,7 @@ mkdir gm_work
 cd gm_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-git checkout -q tags/v0.1.2
+git checkout -q tags/v0.1.3
 cd genomics_gpu/magma/magma_minproduct-1.6.2
 ../make.sh
 cd ../../..
@@ -27,7 +27,41 @@ cd build_release
 env BUILD_TYPE=Release ../genomics_gpu/scripts/cmake.sh
 ../genomics_gpu/scripts/make.sh
 
---------------------
+-------------------------------------------------------------------------------
+
+genomics_metric: calculation of comparison metrics from genomics data
+
+Usage:
+
+    genomics_metric <option> ...
+
+Options:
+
+    --num_field <value>
+        (Required) the number of elements in each vector
+
+    --num_vector_local <value>
+        (Required) the number of vectors to be processed on each processor
+
+    --metric_type <value>
+        metric type to compute (sorenson=Sorenson,
+        czekanowski=Czekanowski (default), ccc=CCC)
+
+    --num_way <value>
+        dimension of metric to compute (2=2-way, 3=3-way
+
+    --all2all
+        whether to perform global all-to-all as rather than computing
+        on each processor separately (yes=yes, no=no (default))
+
+    --compute_method
+        manner of computing the result (CPU=cpu, GPU=gpu,
+        REF=reference method)
+
+    ---verbosity <value>
+        verbosity level of output (0=none, 1=some (default) 2=more)
+
+-------------------------------------------------------------------------------
 
 # The folloowing test runs assume:
 
