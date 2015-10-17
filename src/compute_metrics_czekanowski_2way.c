@@ -22,6 +22,134 @@
 
 /*===========================================================================*/
 
+void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
+                                                     GMVectors* vectors,
+                                                     GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
+
+  /*---Initializations---*/
+
+  int data_type = gm_data_type_from_metric_type(env->metric_type, env);
+
+  GMFloat* vector_sums_onproc = GMFloat_malloc(metrics->num_vector_local);
+  GMFloat* vector_sums_offproc = GMFloat_malloc(metrics->num_vector_local);
+
+  /*---Create size-2 circular buffer of vectors objects for send/recv---*/
+
+  GMVectors vectors_0 = GMVectors_null();
+  GMVectors vectors_1 = GMVectors_null();
+
+  GMVectors_create(&vectors_0, data_type, vectors->num_field,
+                   vectors->num_vector_local, env);
+  GMVectors_create(&vectors_1, data_type, vectors->num_field,
+                   vectors->num_vector_local, env);
+
+  GMVectors* vectors_01[2] = {&vectors_0, &vectors_1};
+
+  /*---Result matrix is diagonal block and half the blocks to the right
+       (including wraparound to left side of matrix when appropriate).
+       For even number of procs, block rows of lower half of matrix
+       have one less block to make correct count---*/
+
+  const int num_step = 1 + (env->num_proc / 2);
+
+  /*---Loop over steps of circular shift of vectors objects---*/
+
+  int step_num = 0;
+  for (step_num = 0; step_num < num_step; ++step_num) {
+
+    const GMBool is_comp_step = step_num >= 0 && step_num < num_step;
+    const GMBool is_first_comp_step = step_num == 0;
+    const GMBool is_last_comp_step = step_num == num_step - 1;
+
+if(is_comp_step){}/*FIX*/
+
+    /*---Left- and right-side vecs, also right-side vecs for next step---*/
+
+    GMVectors* vectors_left = vectors;
+    GMVectors* vectors_right =
+        is_first_comp_step ? vectors : vectors_01[step_num % 2];
+    GMVectors* vectors_right_next = vectors_01[(step_num + 1) % 2];
+
+    /*---Prepare for sends/recvs---*/
+
+    MPI_Request mpi_requests[2];
+
+    int mpi_code = 0;
+    mpi_code = mpi_code ? 0 : 0; /*---Avoid unused variable warning---*/
+
+    const int proc_up = (env->proc_num + 1) % env->num_proc;
+    const int proc_dn = (env->proc_num - 1 + env->num_proc) % env->num_proc;
+
+    /*---Initiate sends/recvs for vecs needed on next step---*/
+
+    if (! is_last_comp_step) {
+      mpi_requests[0] = gm_send_vectors_start(vectors_right, proc_dn, env );
+      mpi_requests[1] = gm_recv_vectors_start(vectors_right_next,
+                                              proc_up, env );
+
+    }
+
+    /*---The proc that owns the "right-side" vectors for the minproduct---*/
+
+    const int j_proc = (env->proc_num + step_num) % env->num_proc;
+
+    /*---Compute numerators---*/
+
+    const GMBool compute_triang_only = is_first_comp_step;
+
+    const GMBool skipped_last_block_lower_half = env->num_proc % 2 == 0 &&
+                  ( 2 * env->proc_num >= env->num_proc ) && is_last_comp_step;
+
+    if ( ! skipped_last_block_lower_half ) {
+      gm_compute_czekanowski_numerators_start(vectors_left, vectors_right,
+                                              metrics, j_proc,
+                                              compute_triang_only, env);
+      gm_compute_czekanowski_numerators_wait(env);
+    }
+
+    /*---Compute sums for denominators---*/
+
+    if (is_first_comp_step) {
+      gm_compute_float_vector_sums(vectors_left, vector_sums_onproc, env);
+    } else {
+      gm_compute_float_vector_sums(vectors_right, vector_sums_offproc, env);
+    }
+
+    GMFloat* vector_sums_left = vector_sums_onproc;
+    GMFloat* vector_sums_right =
+        is_first_comp_step ? vector_sums_onproc : vector_sums_offproc;
+
+    /*---Combine numerators, denominators to obtain final result---*/
+
+    if ( ! skipped_last_block_lower_half ) {
+      gm_compute_czekanowski_combine(metrics, vector_sums_left,
+                                     vector_sums_right, j_proc,
+                                     compute_triang_only, env);
+    }
+
+    /*---Wait for sends/recvs to complete---*/
+
+    if (! is_last_comp_step) {
+      gm_send_vectors_wait(&(mpi_requests[0]), env);
+      gm_recv_vectors_wait(&(mpi_requests[1]), env);
+    }
+
+  } /*---step_num---*/
+
+  /*---Deallocations---*/
+
+  free(vector_sums_onproc);
+  free(vector_sums_offproc);
+
+  GMVectors_destroy(&vectors_0, env);
+  GMVectors_destroy(&vectors_1, env);
+}
+
+/*===========================================================================*/
+
 void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
                                              GMVectors* vectors,
                                              GMEnv* env) {
@@ -63,7 +191,7 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
     for (step_num = 0; step_num < num_step; ++step_num) {
 
       const GMBool is_first_step = step_num == 0;
-      const GMBool is_last_step = step_num != num_step - 1;
+      const GMBool is_last_step = step_num == num_step - 1;
 
       /*---The proc that owns the "right-side" vectors for the minproduct---*/
 
@@ -81,8 +209,7 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
       MPI_Request mpi_requests[2];
 
       int mpi_code = 0;
-      if (mpi_code) {
-      } /*---Avoid unused variable warning---*/
+      mpi_code = mpi_code ? 0 : 0; /*---Avoid unused variable warning---*/
 
       const int proc_up = (env->proc_num + 1) % env->num_proc;
       const int proc_dn = (env->proc_num - 1 + env->num_proc) % env->num_proc;
@@ -91,7 +218,7 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
 
       /*---Initiate sends/recvs for vecs needed on next step---*/
 
-      if (is_last_step) {
+      if (! is_last_step) {
         mpi_code = MPI_Isend(
             (void*)vectors_right->data, vectors_right->num_dataval_local,
             GM_MPI_FLOAT, proc_dn, mpi_tag, env->mpi_comm, &(mpi_requests[0]));
@@ -164,7 +291,7 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
 
       /*---Wait for sends/recvs to complete---*/
 
-      if (is_last_step) {
+      if (! is_last_step) {
         MPI_Status mpi_status;
         mpi_code = MPI_Waitall(2, &(mpi_requests[0]), &mpi_status);
         GMAssert(mpi_code == MPI_SUCCESS);
@@ -231,7 +358,10 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  if (env->all2all) {
+    gm_compute_metrics_czekanowski_2way_all2all_gpu(metrics, vectors, env);
+    return;
+  }
 
   /*---Denominator---*/
 
@@ -247,8 +377,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   int i = 0;
 
   magma_minproduct_int_t magma_code = 0;
-  if (magma_code) {
-  } /*---Avoid unused variable warning---*/
+  magma_code = magma_code ? 0 : 0; /*---Avoid unused variable warning---*/
 
   magma_code = magma_minproduct_init();
   GMAssert(magma_code == MAGMA_minproduct_SUCCESS);

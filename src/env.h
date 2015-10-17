@@ -20,6 +20,8 @@
 #include <assert.h>
 
 #include "mpi.h"
+#include "cuda.h"
+#include "cuda_runtime.h"
 
 /*===========================================================================*/
 /*---Types---*/
@@ -73,6 +75,10 @@ typedef struct {
   int mpi_comm;
   int num_proc;
   int proc_num;
+  cudaStream_t stream_compute;
+  cudaStream_t stream_vectors;
+  cudaStream_t stream_metrics;
+  GMBool are_cuda_streams_initialized;
 } GMEnv;
 
 enum {
@@ -100,6 +106,8 @@ GMEnv GMEnv_null(void);
 void GMEnv_create(GMEnv* env);
 
 void GMEnv_create_from_args(GMEnv* env, int argc, char** argv);
+
+void GMEnv_initialize_streams(GMEnv* env);
 
 /*===========================================================================*/
 /*---Finalize environment---*/

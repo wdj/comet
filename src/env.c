@@ -21,7 +21,6 @@
 
 #include "mpi.h"
 #include "cuda.h"
-#include "cuda_runtime_api.h"
 
 #include "env.h"
 
@@ -52,6 +51,12 @@ void GMEnv_create(GMEnv* env) {
   env->num_way = 2;
   env->all2all = GM_BOOL_FALSE;
   env->compute_method = GM_COMPUTE_METHOD_GPU;
+
+  /*---Prepare for lazy intialization of cuda streams---*/
+  env->are_cuda_streams_initialized = GM_BOOL_FALSE;
+  env->stream_compute = 0;
+  env->stream_vectors = 0;
+  env->stream_metrics = 0;
 }
 
 /*===========================================================================*/
@@ -113,11 +118,38 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
 }
 
 /*===========================================================================*/
+/*---Initialize cuda streams---*/
+
+void GMEnv_initialize_streams(GMEnv* env) {
+  GMAssert(env != NULL );
+
+  if ( ! env->are_cuda_streams_initialized ) {
+    env->stream_compute = 0;
+    cudaStreamCreate( & env->stream_vectors );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+    cudaStreamCreate( & env->stream_metrics );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+    env->are_cuda_streams_initialized = GM_BOOL_TRUE;
+  }
+}
+
+/*===========================================================================*/
 /*---Finalize environment---*/
 
 void GMEnv_destroy(GMEnv* env) {
+  GMAssert(env != NULL );
+
   /*---Make sure no communicator to destroy---*/
   GMAssert(env->mpi_comm == MPI_COMM_WORLD);
+
+  if ( env->compute_method == GM_COMPUTE_METHOD_GPU &&
+       env->are_cuda_streams_initialized ) {
+    cudaStreamDestroy( env->stream_vectors );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+    cudaStreamDestroy( env->stream_metrics );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  }
+
   *env = GMEnv_null();
 }
 
