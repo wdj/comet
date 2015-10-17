@@ -41,7 +41,7 @@ for compute_method in GPU ; do
 #      --compute_method $compute_method --verbosity 1
 
   aprun -n1 $EXEC \
-      --num_field 50 --num_vector_local 60 --num_way 3 \
+      --num_field 100 --num_vector_local 100 --num_way 3 \
       --compute_method $compute_method --verbosity 1
 
   #aprun -n1 -N1 $EXEC \

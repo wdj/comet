@@ -184,6 +184,16 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
                               numfield);
 #endif
 
+/*---Initialize result matrix to zero (apparently magma requires)---*/
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproductblas_dlaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
+                              d_matM, numvec);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproductblas_slaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
+                              d_matM, numvec);
+#endif
+
 /*---Perform pseudo matrix-matrix product matM=vectors^T*vectors---*/
 #ifdef FP_PRECISION_DOUBLE
   magma_minproductblas_dgemm
@@ -227,6 +237,16 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
 #ifdef FP_PRECISION_SINGLE
     magma_minproduct_ssetmatrix(numfield, numvec, h_matV, numfield, d_matV,
                                 numfield);
+#endif
+
+/*---Initialize result matrix to zero (apparently magma requires)---*/
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproductblas_dlaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
+                              d_matB, numvec);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproductblas_slaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
+                              d_matB, numvec);
 #endif
 
 /*---Perform matrix-matrix product matB = matV^T*vectors---*/
