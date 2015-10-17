@@ -199,6 +199,14 @@ GMBool GMEnv_cuda_last_call_succeeded(GMEnv* env) {
   return result;
 }
 
+/*---------------------------------------------------------------------------*/
+
+GMFloat* GMFloat_malloc( size_t n ) {
+  GMFloat* result = (GMFloat*)malloc( n * sizeof(GMFloat) );
+  GMAssert(result);
+  return result;
+}
+
 /*===========================================================================*/
 
 /*---------------------------------------------------------------------------*/

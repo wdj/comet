@@ -216,6 +216,8 @@ int gm_data_type_from_metric_type(int metric_type, GMEnv* env);
 
 GMBool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 
+GMFloat* GMFloat_malloc( size_t n );
+
 /*===========================================================================*/
 
 #endif /*---_env_h_---*/

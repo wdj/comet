@@ -28,7 +28,6 @@
 typedef struct {
   int num_vector;
   int num_vector_local;
-  int num_vector_local_max;
   size_t num_elts_local;
   int data_type_id;
   /*---map (contig) index to linearized Cartesian coords---*/

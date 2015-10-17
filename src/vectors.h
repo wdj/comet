@@ -25,7 +25,7 @@ typedef struct {
   int num_field;
   int num_vector;
   int num_vector_local;
-  int num_vector_local_max;
+  size_t num_dataval_local;
   int num_field_dataval;
   int data_type_id;
   void* __restrict__ data;

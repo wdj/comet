@@ -77,7 +77,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
           /*---compute element unique id---*/
           size_t index = field +
                          vectors->num_field * (vector_local +
-                                               vectors->num_vector_local_max *
+                                               vectors->num_vector_local *
                                                    ((size_t)env->proc_num));
           /*---randomize---*/
           index = gm_randomize(index);
@@ -101,7 +101,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
           /*---compute element unique id---*/
           size_t index = field +
                          vectors->num_field * (vector_local +
-                                               vectors->num_vector_local_max *
+                                               vectors->num_vector_local *
                                                    ((size_t)env->proc_num));
           /*---randomize---*/
           index = gm_randomize(index);
