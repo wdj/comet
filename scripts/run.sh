@@ -50,7 +50,7 @@ for compute_method in CPU GPU ; do
   #    --num_field 1 --num_vector_local 4 --all2all yes \
   #    --compute_method $compute_method --verbosity 2
   aprun -n4 -N1 $EXEC \
-      --num_field 10 --num_vector_local 20 --all2all yes \
+      --num_field 10 --num_vector_local 20 --all2all no \
       --compute_method $compute_method --verbosity 1
   #aprun -n4 -N1 $EXEC \
   #    --num_field 1 --num_vector_local 1 --all2all yes \

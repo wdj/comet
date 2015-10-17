@@ -10,6 +10,9 @@
 
 #include "cuda.h"
 
+#include "magma_minproduct.h"
+#include "magma_minproduct_lapack.h"
+
 #include "env.h"
 #include "vectors.h"
 #include "metrics.h"
@@ -37,6 +40,53 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
 
 /*===========================================================================*/
 
+GMFloatMirroredPointer GMFloat_malloc_magma_minproduct(size_t n, GMEnv* env) {
+  GMAssert(n+1 >= 1);
+  GMAssert(env != NULL);
+
+  magma_minproduct_int_t magma_code = 0;
+  magma_code = magma_code*1; /*---Avoid unused variable warning---*/
+
+  GMFloatMirroredPointer p = GMFloatMirroredPointer_null();
+
+#ifdef FP_PRECISION_DOUBLE
+  magma_code = magma_minproduct_dmalloc_pinned((GMFloat**)&p.h, n);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_code = magma_minproduct_smalloc_pinned((GMFloat**)&p.h, n);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+#endif
+
+#ifdef FP_PRECISION_DOUBLE
+  magma_code = magma_minproduct_dmalloc((GMFloat**)&p.d, n);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_code = magma_minproduct_smalloc((GMFloat**)&p.d, n);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+#endif
+
+  return p;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void GMFloat_free_magma_minproduct(GMFloatMirroredPointer* p, GMEnv* env) {
+  GMAssert(p != NULL);
+  GMAssert(env != NULL);
+
+  magma_minproduct_int_t magma_code = 0;
+  magma_code = magma_code*1; /*---Avoid unused variable warning---*/
+
+  magma_minproduct_free_pinned(p->h);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+  magma_minproduct_free(p->d);
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+}
+
+/*===========================================================================*/
+
 MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   GMEnv* env) {
@@ -47,7 +97,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   const int mpi_tag = 0;
   MPI_Request mpi_request;
   int mpi_code = 0;
-  mpi_code = mpi_code ? 0 : 0; /*---Avoid unused variable warning---*/
+  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Isend(
       (void*)vectors->data, vectors->num_dataval_local,
@@ -69,7 +119,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   const int mpi_tag = 0;
   MPI_Request mpi_request;
   int mpi_code = 0;
-  mpi_code = mpi_code ? 0 : 0; /*---Avoid unused variable warning---*/
+  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Irecv(
       (void*)vectors->data, vectors->num_dataval_local,
@@ -87,7 +137,7 @@ void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 
   MPI_Status mpi_status;
   int mpi_code = 0;
-  mpi_code = mpi_code ? 0 : 0; /*---Avoid unused variable warning---*/
+  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Wait(mpi_request, &mpi_status);
   GMAssert(mpi_code == MPI_SUCCESS);
@@ -101,7 +151,7 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 
   MPI_Status mpi_status;
   int mpi_code = 0;
-  mpi_code = mpi_code ? 0 : 0; /*---Avoid unused variable warning---*/
+  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Wait(mpi_request, &mpi_status);
   GMAssert(mpi_code == MPI_SUCCESS);
@@ -141,8 +191,11 @@ void gm_compute_czekanowski_numerators_start(GMVectors* vectors_left,
       } /*---for i---*/
     }   /*---for j---*/
   } else /* if (env->compute_method == GM_COMPUTE_METHOD_GPU) */ {
+
     /*FIX*/
     if ( 1 ) {
+    /*FIX*/
+
     int j = 0;
     for (j = 0; j < numerators->num_vector_local; ++j) {
       const int i_max = compute_triang_only ? j : numerators->num_vector_local;
@@ -160,15 +213,30 @@ void gm_compute_czekanowski_numerators_start(GMVectors* vectors_left,
         GMMetrics_float_set_all2all_2(numerators, i, j, j_proc, numerator, env);
       } /*---for i---*/
     }   /*---for j---*/
+
     /*FIX*/
     } else {
     /*FIX*/
-      GMEnv_initialize_streams(env);
+
+    GMEnv_initialize_streams(env);
+
+    magma_minproduct_int_t magma_code = 0;
+    magma_code = magma_code*1; /*---Avoid unused variable warning---*/
+
+    magma_code = magma_minproduct_init();
+    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
 
 
+
+
+    magma_code = magma_minproduct_finalize();
+    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+
+    /*FIX*/
     }
     /*FIX*/
+
   } /*---if---*/
 }
 

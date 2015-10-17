@@ -39,9 +39,9 @@ GMEnv GMEnv_null() {
 void GMEnv_create(GMEnv* env) {
   env->mpi_comm = MPI_COMM_WORLD;
 
-  int mpi_code = MPI_Comm_rank(env->mpi_comm, &(env->proc_num));
-  if (mpi_code) {
-  } /*---Avoid unused variable warning---*/
+  int mpi_code = 0;
+  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
+  mpi_code = MPI_Comm_rank(env->mpi_comm, &(env->proc_num));
   GMAssert(mpi_code == MPI_SUCCESS);
   mpi_code = MPI_Comm_size(env->mpi_comm, &(env->num_proc));
   GMAssert(mpi_code == MPI_SUCCESS);
@@ -178,9 +178,10 @@ double GMEnv_get_synced_time(GMEnv* env) {
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
   }
 
-  int mpi_code = MPI_Barrier(env->mpi_comm);
-  if (mpi_code) {
-  } /*---Avoid unused variable warning---*/
+  int mpi_code = 0;
+  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
+
+  mpi_code = MPI_Barrier(env->mpi_comm);
   GMAssert(mpi_code == MPI_SUCCESS);
   return GMEnv_get_time(env);
 }

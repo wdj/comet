@@ -21,6 +21,10 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
                                   GMFloat* __restrict__ vector_sums,
                                   GMEnv* env);
 
+GMFloatMirroredPointer GMFloat_malloc_magma_minproduct(size_t n, GMEnv* env);
+
+void GMFloat_free_magma_minproduct(GMFloatMirroredPointer* p, GMEnv* env);
+
 MPI_Request gm_send_vectors_start(GMVectors* vectors, 
                                   int proc_num,
                                   GMEnv* env);
@@ -48,6 +52,7 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
                                     int j_proc,
                                     GMBool compute_triang_only,
                                     GMEnv* env);
+
 
 
 /*===========================================================================*/

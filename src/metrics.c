@@ -41,18 +41,18 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute global values---*/
 
-  size_t num_vector_bound = env->num_proc * (size_t)metrics->num_vector;
-  if (num_vector_bound) {
-  } /*---Avoid unused variable warning---*/
+  size_t num_vector_bound = 0;
+  num_vector_bound = num_vector_bound*1; /*---Avoid unused variable warning---*/
+  num_vector_bound = env->num_proc * (size_t)metrics->num_vector;
   GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
                ? "Vector count too large to store in 32-bit int."
                : 0);
 
-  int mpi_code = MPI_Allreduce(&(metrics->num_vector_local),
-                               &(metrics->num_vector), 1, MPI_INT, MPI_SUM,
-                               env->mpi_comm);
-  if (mpi_code) {
-  } /*---Avoid unused variable warning---*/
+  int mpi_code = 0;
+  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
+  mpi_code = MPI_Allreduce(&(metrics->num_vector_local),
+                           &(metrics->num_vector), 1, MPI_INT, MPI_SUM,
+                           env->mpi_comm);
   GMAssert(mpi_code == MPI_SUCCESS);
 
   /*---Compute number of elements etc.---*/
@@ -232,10 +232,10 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   } /*---switch---*/
 
   const double tmp = result;
-  int mpi_code =
-      MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_SUM, env->mpi_comm);
-  if (mpi_code) {
-  } /*---Avoid unused variable warning---*/
+  int mpi_code = 0;
+  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
+  mpi_code = MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_SUM,
+                           env->mpi_comm);
   GMAssert(mpi_code == MPI_SUCCESS);
 
   return result;

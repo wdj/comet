@@ -64,6 +64,22 @@ enum {
   GM_DATA_TYPE_TABLE4X4 = 3
 };
 
+/*---Dual CPU/GPU pointer---*/
+
+typedef struct {
+  GMFloat* __restrict__ h;
+  GMFloat* __restrict__ d;
+} GMFloatMirroredPointer;
+
+/*---Null object---*/
+
+static GMFloatMirroredPointer GMFloatMirroredPointer_null(void) {
+  GMFloatMirroredPointer p;
+  p.h = 0;
+  p.d = 0;
+  return p;
+}
+
 /*===========================================================================*/
 /*---Environment struct declarations---*/
 
