@@ -157,7 +157,83 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssert(mpi_code == MPI_SUCCESS);
 }
 
+/*===========================================================================*/
+
+void gm_set_float_vectors_start(GMVectors* vectors,
+                                GMFloatMirroredPointer* vectors_buf,
+                                GMEnv* env) {
+  GMAssert(vectors != NULL);
+  GMAssert(vectors_buf != NULL);
+  GMAssert(env != NULL);
+
+  const int numvec = vectors->num_vector_local;
+  const int numfield = vectors->num_field;
+
+  /*---Send vectors to GPU---*/
+
+  if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    GMEnv_initialize_streams(env);
+#ifdef FP_PRECISION_DOUBLE
+    magma_minproduct_dsetmatrix_async(numfield, numvec, vectors_buf->h,
+                     numfield, vectors_buf->d, numfield, env->stream_vectors);
+#endif
+#ifdef FP_PRECISION_SINGLE
+    magma_minproduct_ssetmatrix_async(numfield, numvec, vectors_buf->h,
+                     numfield, vectors_buf->d, numfield, env->stream_vectors);
+#endif
+  }
+}
+
 /*---------------------------------------------------------------------------*/
+
+void gm_set_float_vectors_wait(GMEnv* env) {
+  GMAssert(env != NULL);
+
+  if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    GMEnv_initialize_streams(env);
+    cudaStreamSynchronize( env->stream_vectors );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_get_float_metrics_start(GMMetrics* metrics,
+                                GMFloatMirroredPointer* metrics_buf,
+                                GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(metrics_buf != NULL);
+  GMAssert(env != NULL);
+
+  const int numvec = metrics->num_vector_local;
+
+  /*---Send vectors to GPU---*/
+
+  if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    GMEnv_initialize_streams(env);
+#ifdef FP_PRECISION_DOUBLE
+    magma_minproduct_dgetmatrix_async(numvec, numvec, metrics_buf->d,
+                          numvec, metrics_buf->h, numvec, env->stream_metrics);
+#endif
+#ifdef FP_PRECISION_SINGLE
+    magma_minproduct_sgetmatrix_async(numvec, numvec, metrics_buf->d,
+                          numvec, metrics_buf->h, numvec, env->stream_metrics);
+#endif
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_get_float_metrics_wait(GMEnv* env) {
+  GMAssert(env != NULL);
+
+  if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    GMEnv_initialize_streams(env);
+    cudaStreamSynchronize( env->stream_metrics );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  }
+}
+/*===========================================================================*/
 
 void gm_compute_czekanowski_numerators_start(GMVectors* vectors_left,
                                              GMVectors* vectors_right,

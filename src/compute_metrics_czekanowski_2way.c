@@ -390,19 +390,8 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   GMFloatMirroredPointer vectors_buf =
     GMFloat_malloc_magma_minproduct( numvec * (size_t)numfield, env);
 
-  GMFloatMirroredPointer numerator_buf =
+  GMFloatMirroredPointer numerators_buf =
     GMFloat_malloc_magma_minproduct( numvec * (size_t)numvec, env);
-
-/*---Initialize result matrix to zero (apparently magma requires)---*/
-
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproductblas_dlaset(Magma_minproductFull, numvec, numvec,
-                              0.0, 0.0, numerator_buf.d, numvec);
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproductblas_slaset(Magma_minproductFull, numvec, numvec,
-                              0.0, 0.0, numerator_biuf.d, numvec);
-#endif
 
   /*---Copy in vectors---*/
 
@@ -410,22 +399,27 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   for (i = 0; i < numvec; ++i) {
     int k = 0;
     for (k = 0; k < numfield; ++k) {
-      vectors_buf.h[k + numfield * i] = GMVectors_float_get(vectors, k, i, env);
+      vectors_buf.h[k + numfield*i] = GMVectors_float_get(vectors, k, i, env);
     }
   }
 
-/*---Send vectors to GPU---*/
+  /*---Send vectors to GPU---*/
+
+  gm_set_float_vectors_start(vectors, &vectors_buf, env);
+  gm_set_float_vectors_wait(env);
+
+  /*---Initialize result matrix to zero (apparently magma requires)---*/
 
 #ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dsetmatrix(numfield, numvec, vectors_buf.h,
-                              numfield, vectors_buf.d, numfield);
+  magma_minproductblas_dlaset(Magma_minproductFull, numvec, numvec,
+                              0.0, 0.0, numerators_buf.d, numvec);
 #endif
 #ifdef FP_PRECISION_SINGLE
-  magma_minproduct_ssetmatrix(numfield, numvec, vectors_buf.h,
-                              numfield, vectors_buf.d, numfield);
+  magma_minproductblas_slaset(Magma_minproductFull, numvec, numvec,
+                              0.0, 0.0, numerators_buf.d, numvec);
 #endif
 
-/*---Perform pseudo matrix-matrix product---*/
+  /*---Perform pseudo matrix-matrix product---*/
 
 /* .63 / 1.56 */
 #ifdef FP_PRECISION_DOUBLE
@@ -436,18 +430,12 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 #endif
       (Magma_minproductTrans, Magma_minproductNoTrans, numvec, numvec, numfield,
        1.0, vectors_buf.d, numfield, vectors_buf.d, numfield, 0.0,
-       numerator_buf.d, numvec);
+       numerators_buf.d, numvec);
 
-/*---Copy result from GPU---*/
+  /*---Copy result from GPU---*/
 
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dgetmatrix(numvec, numvec, numerator_buf.d,
-                              numvec, numerator_buf.h, numvec);
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproduct_sgetmatrix(numvec, numvec, numerator_buf.d,
-                              numvec, numerator_buf.h, numvec);
-#endif
+  gm_get_float_metrics_start(metrics, &numerators_buf, env);
+  gm_get_float_metrics_wait(env);
 
   /*---Combine---*/
 
@@ -455,7 +443,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   for (i = 0; i < metrics->num_vector_local; ++i) {
     int j = 0;
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
-      const GMFloat numerator = numerator_buf.h[j + numvec * i];
+      const GMFloat numerator = numerators_buf.h[j + numvec * i];
       const GMFloat denominator = vector_sums[i] + vector_sums[j];
       GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
     } /*---for j---*/
@@ -464,7 +452,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   /*---Free memory---*/
 
   GMFloat_free_magma_minproduct( &vectors_buf, env);
-  GMFloat_free_magma_minproduct( &numerator_buf, env);
+  GMFloat_free_magma_minproduct( &numerators_buf, env);
 
   magma_code = magma_minproduct_finalize();
   GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
