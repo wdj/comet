@@ -84,7 +84,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
           /*---Calculate random number between 0 and 1---*/
           GMFloat rand_value = index / (GMFloat)gm_randomize_max();
           /*---Create large integer in a specified range, store as float---*/
-          GMFloat value = (int)( (1<<27) * rand_value );
+          GMFloat value = (int)((1 << 27) * rand_value);
           GMVectors_float_set(vectors, field, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/
@@ -135,18 +135,18 @@ void output_metrics(GMMetrics* metrics, GMEnv* env) {
             printf(",");
           }
           /*---Present to the user as 1-based---*/
-          printf("%i", 1 +
-            GMMetrics_coord_global_from_index(metrics, index, coord_num, env));
+          printf("%i", 1 + GMMetrics_coord_global_from_index(metrics, index,
+                                                             coord_num, env));
         }
         printf("): value: %e    [from proc %i]\n",
-          GMMetrics_float_get_from_index( metrics, index, env), env->proc_num );
+               GMMetrics_float_get_from_index(metrics, index, env),
+               env->proc_num);
       } /*---for index---*/
     } break;
     case GM_DATA_TYPE_BIT: {
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
-        GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-      } break;
+    } break;
     default:
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   }
@@ -179,8 +179,8 @@ void finish_parsing(int argc,
       GMInsist(env, i < argc ? "Missing value for num_vector_local." : 0);
       *num_vector_local = atoi(argv[i]);
       GMInsist(env, *num_vector_local >= 0
-                      ? "Invalid setting for num_vector_local."
-                      : 0);
+                        ? "Invalid setting for num_vector_local."
+                        : 0);
     } else if (strcmp(argv[i], "--verbosity") == 0) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for verbosity." : 0);
@@ -205,8 +205,8 @@ void finish_parsing(int argc,
 
   GMInsist(env, *num_field != uninitialized ? "Error: num_field not set." : 0);
   GMInsist(env, *num_vector_local != uninitialized
-                  ? "Error: num_vector_local not set."
-                  : 0);
+                    ? "Error: num_vector_local not set."
+                    : 0);
 }
 
 /*===========================================================================*/
@@ -236,16 +236,18 @@ int main(int argc, char** argv) {
   /*---Initialize vectors---*/
 
   GMVectors vectors = GMVectors_null();
-  GMVectors_create(&vectors, gm_data_type_from_metric_type(env.metric_type, &env),
-                 num_field, num_vector_local, &env);
+  GMVectors_create(&vectors,
+                   gm_data_type_from_metric_type(env.metric_type, &env),
+                   num_field, num_vector_local, &env);
 
   input_vectors(&vectors, &env);
 
   /*---Set up metrics container for results---*/
 
   GMMetrics metrics = GMMetrics_null();
-  GMMetrics_create(&metrics, gm_data_type_from_metric_type(env.metric_type, &env),
-                 num_vector_local, &env);
+  GMMetrics_create(&metrics,
+                   gm_data_type_from_metric_type(env.metric_type, &env),
+                   num_vector_local, &env);
 
   /*---Calculate metrics---*/
 

@@ -19,10 +19,6 @@
 
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
 
-/*
-GMFloat vector_sum(int len, GMFloat * const __restrict__ v1);
-*/
-
 /*===========================================================================*/
 
 #endif /*---_compute_metrics_h---*/

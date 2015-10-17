@@ -52,15 +52,15 @@ enum { GM_MPI_FLOAT = MPI_DOUBLE };
 
 typedef unsigned short int GMUSInt;
 
-typedef struct {
-  GMUSInt data[4][4];
-} GMTable4X4;
+typedef struct { GMUSInt data[4][4]; } GMTable4X4;
 
 /*---Type ids---*/
 
-enum { GM_DATA_TYPE_FLOAT = 1,
-       GM_DATA_TYPE_BIT = 2,
-       GM_DATA_TYPE_TABLE4X4 = 3 };
+enum {
+  GM_DATA_TYPE_FLOAT = 1,
+  GM_DATA_TYPE_BIT = 2,
+  GM_DATA_TYPE_TABLE4X4 = 3
+};
 
 /*===========================================================================*/
 /*---Environment struct declarations---*/
@@ -82,10 +82,12 @@ enum {
   GM_NUM_METRIC_TYPE = 3
 };
 
-enum { GM_COMPUTE_METHOD_CPU = 0,
-       GM_COMPUTE_METHOD_GPU = 1,
-       GM_COMPUTE_METHOD_REF = 2,
-       GM_NUM_COMPUTE_METHOD = 3 };
+enum {
+  GM_COMPUTE_METHOD_CPU = 0,
+  GM_COMPUTE_METHOD_GPU = 1,
+  GM_COMPUTE_METHOD_REF = 2,
+  GM_NUM_COMPUTE_METHOD = 3
+};
 
 /*===========================================================================*/
 /*---Null object---*/
@@ -168,10 +170,10 @@ static int gm_ceil_i(const int i, const int j) {
 /*---------------------------------------------------------------------------*/
 
 static size_t gm_ceil_i8(const size_t i, const size_t j) {
-  GMAssert(i+1 > 1);
-  GMAssert(j+1 > 1);
+  GMAssert(i + 1 > 1);
+  GMAssert(j + 1 > 1);
 
-  return  ( i + j - 1 ) / j;
+  return (i + j - 1) / j;
 }
 
 /*---------------------------------------------------------------------------*/

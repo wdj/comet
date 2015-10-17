@@ -18,17 +18,17 @@
 /*===========================================================================*/
 
 void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
-                                  GMVectors* vectors,
-                                  GMEnv* env);
+                                     GMVectors* vectors,
+                                     GMEnv* env);
 void gm_compute_metrics_ccc_2way_gpu(GMMetrics* metrics,
-                                  GMVectors* vectors,
-                                  GMEnv* env);
+                                     GMVectors* vectors,
+                                     GMEnv* env);
 void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
-                                  GMVectors* vectors,
-                                  GMEnv* env);
+                                     GMVectors* vectors,
+                                     GMEnv* env);
 void gm_compute_metrics_ccc_3way_gpu(GMMetrics* metrics,
-                                  GMVectors* vectors,
-                                  GMEnv* env);
+                                     GMVectors* vectors,
+                                     GMEnv* env);
 
 /*===========================================================================*/
 

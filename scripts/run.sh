@@ -22,7 +22,7 @@ EXEC=$WD/../install/bin/genomics_metric
 pushd $MEMBERWORK/$ACCOUNT > /dev/null
 
 #for compute_method in CPU GPU ; do
-for compute_method in CPU GPU ; do
+for compute_method in GPU ; do
 
   #echo \
   #aprun -n1 $EXEC \
@@ -32,10 +32,14 @@ for compute_method in CPU GPU ; do
   #    --num_field 5000 --num_vector_local 6000 \
   #    --compute_method $compute_method --verbosity 1
 
-  echo \
-  aprun -n1 $EXEC \
-      --num_field 50 --num_vector_local 60 --num_way 3 \
-      --compute_method $compute_method --verbosity 1
+#  echo \
+#  aprun -n1 $EXEC \
+#      --num_field 50 --num_vector_local 60 --num_way 3 \
+#      --compute_method $compute_method --verbosity 1
+#  aprun -n1 $EXEC \
+#      --num_field 50 --num_vector_local 60 --num_way 3 \
+#      --compute_method $compute_method --verbosity 1
+
   aprun -n1 $EXEC \
       --num_field 50 --num_vector_local 60 --num_way 3 \
       --compute_method $compute_method --verbosity 1

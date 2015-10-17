@@ -81,8 +81,8 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
       GMInsist(env, i < argc ? "Missing value for num_way." : 0);
       env->num_way = atoi(argv[i]);
       GMInsist(env, env->num_way == 2 || env->num_way == 3
-                      ? "Invalid setting for num_way."
-                      : 0);
+                        ? "Invalid setting for num_way."
+                        : 0);
 
     } else if (strcmp(argv[i], "--all2all") == 0) {
       ++i;
@@ -105,7 +105,8 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
       } else if (strcmp(argv[i], "REF") == 0) {
         env->compute_method = GM_COMPUTE_METHOD_REF;
       } else {
-        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for compute_method." : 0);
+        GMInsist(env,
+                 GM_BOOL_FALSE ? "Invalid setting for compute_method." : 0);
       }
     } /*---if/else---*/
   }   /*---for i---*/
@@ -140,7 +141,7 @@ double GMEnv_get_synced_time(GMEnv* env) {
   cudaThreadSynchronize();
   */
 
-  if ( env->compute_method == GM_COMPUTE_METHOD_GPU ) {
+  if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
     cudaDeviceSynchronize();
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
   }
