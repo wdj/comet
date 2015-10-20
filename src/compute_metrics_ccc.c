@@ -86,10 +86,20 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
             (void*)vectors_right->data, vectors_right->num_dataval_local,
             GM_MPI_FlOAT, proc_dn, mpi_tag, env->mpi_comm, &(mpi_requests[0]));
         GMAssert(mpi_code == MPI_SUCCESS);
+      
+ 
+        mpi_code = MPI_Irecv((void*)vectors_right_next->data,
+                             vectors_right_next->num_dataval_local, GM_MPI_FLOAT,
+                             proc_up, mpi_tag, env->mpi_comm, &(mpi_requests[1]));
+        GMAssert(mpi_code == MPI_SUCCESS);
+
       } /*---if step_num---*/
 
       /*---Compute frequency factors F_i = 1 - f_i/q---*/
       /*---We need to add a field in vectors that holds the frequencies and alleles---*/
+
+      /*---Compute metrics---*/
+
 
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
