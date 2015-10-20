@@ -207,6 +207,14 @@ GMFloat* GMFloat_malloc( size_t n ) {
   return result;
 }
 
+/*---------------------------------------------------------------------------*/
+
+GMUSInt* GMUSInt_malloc( size_t n) {
+  GMUSInt* result = (GMUSInt*)malloc( n*sizeof(GMUSInt) );
+  GMAssert(result);
+  return result;
+}
+
 /*===========================================================================*/
 
 /*---------------------------------------------------------------------------*/

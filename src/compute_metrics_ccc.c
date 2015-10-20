@@ -29,7 +29,14 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
     /*---Initializations---*/
 
     int data_type = gm_data_type_from_metric_type(env->metric_type, env);
+    
+    GMUSInt* tally_matrix_onproc = GMUSInt_malloc(metrics->num_vector_local);
+    GMUSInt* tally_matrix_offproc = GMUSInt_malloc(metric->num_vector_local);
+    //result_matrix = [ll, hh, lh, hl];
+    GMFloat* result_matrix_onproc = GMFloat_malloc(4*metrics->num_vector_local);    
+    GMFloat* result_matrix_offproc = GMFloat_malloc(4*metrics->num_vector_local);    
 
+ 
     /*--Create size-2 circular buffer of vectors objects for send/recv---*/
     
     GMVectors vectors_0 = GMVectors_null();
@@ -101,6 +108,16 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
       /*---Compute metrics---*/
 
 
+    }/*---for step_num---*/ 
+
+  } else /*---if (! env->all2all )---*/ {
+
+    /*---Compute frequency factors F_i = 1 - f_i/q---*/
+    /*---We need to add a field in vectors that holds the frequencies and alleles---*/
+
+    /*---Compute metrics---*/
+
+  }/*---if (env->all2all )---*/
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
