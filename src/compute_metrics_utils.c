@@ -18,6 +18,7 @@
 #include "metrics.h"
 
 /*===========================================================================*/
+/*---Compute the sum of elements of each vector on CPU, for denom---*/
 
 void gm_compute_float_vector_sums(GMVectors* vectors,
                                   GMFloat* __restrict__ vector_sums,
@@ -39,6 +40,7 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
 }
 
 /*===========================================================================*/
+/*---Allocate/free host and device memory---*/
 
 GMFloatMirroredPointer GMFloat_malloc_magma_minproduct(size_t n, GMEnv* env) {
   GMAssert(n+1 >= 1);
@@ -51,21 +53,19 @@ GMFloatMirroredPointer GMFloat_malloc_magma_minproduct(size_t n, GMEnv* env) {
 
 #ifdef FP_PRECISION_DOUBLE
   magma_code = magma_minproduct_dmalloc_pinned((GMFloat**)&p.h, n);
-  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_code = magma_minproduct_smalloc_pinned((GMFloat**)&p.h, n);
-  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
 #ifdef FP_PRECISION_DOUBLE
   magma_code = magma_minproduct_dmalloc((GMFloat**)&p.d, n);
-  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_code = magma_minproduct_smalloc((GMFloat**)&p.d, n);
-  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 #endif
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
   return p;
 }
@@ -86,6 +86,7 @@ void GMFloat_free_magma_minproduct(GMFloatMirroredPointer* p, GMEnv* env) {
 }
 
 /*===========================================================================*/
+/*---Start/end MPI send/receive of vectors data---*/
 
 MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int proc_num,
@@ -158,6 +159,7 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 }
 
 /*===========================================================================*/
+/*---Start/end transfer of vectors data to GPU---*/
 
 void gm_set_float_vectors_start(GMVectors* vectors,
                                 GMFloatMirroredPointer* vectors_buf,
@@ -196,7 +198,8 @@ void gm_set_float_vectors_wait(GMEnv* env) {
   }
 }
 
-/*---------------------------------------------------------------------------*/
+/*===========================================================================*/
+/*---Start/end transfer of metrics data from GPU---*/
 
 void gm_get_float_metrics_start(GMMetrics* metrics,
                                 GMFloatMirroredPointer* metrics_buf,
@@ -234,21 +237,30 @@ void gm_get_float_metrics_wait(GMEnv* env) {
   }
 }
 /*===========================================================================*/
+/*---Start/end calculation of numerators---*/
 
-void gm_compute_czekanowski_numerators_start(GMVectors* vectors_left,
-                                             GMVectors* vectors_right,
-                                             GMMetrics* numerators,
-                                             int j_proc,
-                                             GMBool compute_triang_only,
-                                             GMEnv* env) {
+void gm_compute_czekanowski_numerators_start(
+                                      GMVectors* vectors_left,
+                                      GMVectors* vectors_right,
+                                      GMMetrics* numerators,
+                                      GMFloatMirroredPointer* vectors_left_buf,
+                                      GMFloatMirroredPointer* vectors_right_buf,
+                                      GMFloatMirroredPointer* numerators_buf,
+                                      int j_proc,
+                                      GMBool compute_triang_only,
+                                      GMEnv* env) {
   GMAssert(vectors_left != NULL);
   GMAssert(vectors_right != NULL);
   GMAssert(numerators != NULL);
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
 
-  if (env->compute_method == GM_COMPUTE_METHOD_CPU ||
-      env->compute_method == GM_COMPUTE_METHOD_REF ) {
+  /*----------------------------------------*/
+  if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
+  /*----------------------------------------*/
+
+    /*---Perform pseudo matrix-matrix product---*/
+
     int j = 0;
     for (j = 0; j < numerators->num_vector_local; ++j) {
       const int i_max = compute_triang_only ? j : numerators->num_vector_local;
@@ -266,54 +278,42 @@ void gm_compute_czekanowski_numerators_start(GMVectors* vectors_left,
         GMMetrics_float_set_all2all_2(numerators, i, j, j_proc, numerator, env);
       } /*---for i---*/
     }   /*---for j---*/
+
+  /*----------------------------------------*/
   } else /* if (env->compute_method == GM_COMPUTE_METHOD_GPU) */ {
+  /*----------------------------------------*/
 
-    /*FIX*/
-    if ( 1 ) {
-    /*FIX*/
+    /*---Initialize result matrix to zero (apparently magma requires)---*/
 
-    int j = 0;
-    for (j = 0; j < numerators->num_vector_local; ++j) {
-      const int i_max = compute_triang_only ? j : numerators->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        GMFloat numerator = 0;
-        int field = 0;
-        for (field = 0; field < vectors_left->num_field; ++field) {
-          const GMFloat value1 =
-              GMVectors_float_get(vectors_left, field, i, env);
-          const GMFloat value2 =
-              GMVectors_float_get(vectors_right, field, j, env);
-          numerator += value1 < value2 ? value1 : value2;
-        } /*---for k---*/
-        GMMetrics_float_set_all2all_2(numerators, i, j, j_proc, numerator, env);
-      } /*---for i---*/
-    }   /*---for j---*/
+#ifdef FP_PRECISION_DOUBLE
+    magma_minproductblas_dlaset
+#endif
+#ifdef FP_PRECISION_SINGLE
+    magma_minproductblas_slaset
+#endif
+        (Magma_minproductFull,
+        numerators->num_vector_local, numerators->num_vector_local,
+        0.0, 0.0, numerators_buf->d, numerators->num_vector_local);
 
-    /*FIX*/
-    } else {
-    /*FIX*/
+    /*---Perform pseudo matrix-matrix product---*/
 
-    GMEnv_initialize_streams(env);
+/* .63 / 1.56 */
+#ifdef FP_PRECISION_DOUBLE
+    magma_minproductblas_dgemm
+#endif
+#ifdef FP_PRECISION_SINGLE
+    magma_minproductblas_sgemm
+#endif
+        (Magma_minproductTrans, Magma_minproductNoTrans,
+         vectors_left->num_vector_local, vectors_left->num_vector_local,
+         vectors_left->num_field, 1.0,
+         vectors_left_buf->d, vectors_left->num_field,
+         vectors_right_buf->d, vectors_left->num_field,
+         0.0, numerators_buf->d, vectors_left->num_vector_local);
 
-    magma_minproduct_int_t magma_code = 0;
-    magma_code = magma_code*1; /*---Avoid unused variable warning---*/
-
-    magma_code = magma_minproduct_init();
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-
-
-
-
-
-    magma_code = magma_minproduct_finalize();
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-
-    /*FIX*/
-    }
-    /*FIX*/
-
+  /*----------------------------------------*/
   } /*---if---*/
+  /*----------------------------------------*/
 }
 
 /*---------------------------------------------------------------------------*/
@@ -328,9 +328,11 @@ void gm_compute_czekanowski_numerators_wait(GMEnv* env) {
   }
 }
 
-/*---------------------------------------------------------------------------*/
+/*===========================================================================*/
+/*---Combine numerators and denominators on CPU to get final result---*/
 
 void gm_compute_czekanowski_combine(GMMetrics* metrics,
+                                    GMFloatMirroredPointer* metrics_buf,
                                     GMFloat* __restrict__ vector_sums_left,
                                     GMFloat* __restrict__ vector_sums_right,
                                     int j_proc,
@@ -342,19 +344,50 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
 
-  int j = 0;
-  for (j = 0; j < metrics->num_vector_local; ++j) {
-    const int i_max = compute_triang_only ? j : metrics->num_vector_local;
-    int i = 0;
-    for (i = 0; i < i_max; ++i) {
-      const GMFloat numerator =
-          GMMetrics_float_get_all2all_2(metrics, i, j, j_proc, env);
-      const GMFloat denominator =
-          vector_sums_left[i] + vector_sums_right[j];
-      GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
-                                    2 * numerator / denominator, env);
-    } /*---for i---*/
-  }   /*---for j---*/
+  /*---For CPU case, copy numerator out of metrics struct which is temporarily
+       holding numerators.
+       For GPU case, directly access the metrics_buf holding the numerators.
+  ---*/
+
+
+  /*----------------------------------------*/
+  if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
+  /*----------------------------------------*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator = GMMetrics_float_get_all2all_2(
+                                                   metrics, i, j, j_proc, env);
+        const GMFloat denominator = vector_sums_left[i] + vector_sums_right[j];
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
+                                      2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+/*---TODO: here and elsewhere check for unlikely case denom is/nearly zero---*/
+
+  /*----------------------------------------*/
+  } else {
+  /*----------------------------------------*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator = metrics_buf->h[i +
+                                              metrics->num_vector_local * j];
+        const GMFloat denominator = vector_sums_left[i] + vector_sums_right[j];
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
+                                      2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+
+  /*----------------------------------------*/
+  } /*---if---*/
+  /*----------------------------------------*/
 }
 
 /*===========================================================================*/

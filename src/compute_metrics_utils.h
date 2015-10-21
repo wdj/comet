@@ -57,16 +57,21 @@ void gm_get_float_metrics_wait(GMEnv* env);
 
 /*----------*/
 
-void gm_compute_czekanowski_numerators_start(GMVectors* vectors_left,
-                                             GMVectors* vectors_right,
-                                             GMMetrics* numerators, 
-                                             int j_proc,
-                                             GMBool compute_triang_only, 
-                                             GMEnv* env);
+void gm_compute_czekanowski_numerators_start(
+                                     GMVectors* vectors_left,
+                                     GMVectors* vectors_right,
+                                     GMMetrics* numerators,
+                                     GMFloatMirroredPointer* vectors_left_buf,
+                                     GMFloatMirroredPointer* vectors_right_buf,
+                                     GMFloatMirroredPointer* numerators_buf,
+                                     int j_proc,
+                                     GMBool compute_triang_only,
+                                     GMEnv* env);
 
 void gm_compute_czekanowski_numerators_wait(GMEnv* env);
 
 void gm_compute_czekanowski_combine(GMMetrics* metrics,
+                                    GMFloatMirroredPointer* metrics_buf,
                                     GMFloat* __restrict__ vector_sums_left,
                                     GMFloat* __restrict__ vector_sums_right,
                                     int j_proc,
