@@ -30,13 +30,11 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
 
     int data_type = gm_data_type_from_metric_type(env->metric_type, env);
     
-    GMUSInt* tally_matrix_onproc = GMUSInt_malloc(metrics->num_vector_local);
-    GMUSInt* tally_matrix_offproc = GMUSInt_malloc(metric->num_vector_local);
-    //result_matrix = [ll, hh, lh, hl];
-    GMFloat* result_matrix_onproc = GMFloat_malloc(4*metrics->num_vector_local);    
-    GMFloat* result_matrix_offproc = GMFloat_malloc(4*metrics->num_vector_local);    
+    GMFloat* freq_onproc = GMFloat_malloc(2 * metrics->num_vector_local);
+    GMFloat* freq_offproc = GMFloat_malloc(2 * metrics->num_vector_local);
+    GMFloat* allele_onproc = (char *) malloc(2 * metrics->num_vector_local * sizeof(char)); 
+    GMFloat* allele_offproc = (char *) malloc(2 * metrics->num_vector_local * sizeof(char)); 
 
- 
     /*--Create size-2 circular buffer of vectors objects for send/recv---*/
     
     GMVectors vectors_0 = GMVectors_null();
@@ -102,20 +100,131 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
 
       } /*---if step_num---*/
 
-      /*---Compute frequency factors F_i = 1 - f_i/q---*/
-      /*---We need to add a field in vectors that holds the frequencies and alleles---*/
-
       /*---Compute metrics---*/
+      
+      const GMBool compute_triang_only = is_first_step;
 
+      const GMBool skipped_last_block_lower_half = env->num_proc % 2 == 0 &&
+                        ( 2 * env->proc_num >= env->num_proc ) && is_last_step;
+  
+      if ( ! skipped_last_block_lower_half ) {
+        int j = 0;
+        for (j = 0; j < metrics->num_vector_local; ++j) {
+          const int i_max = compute_triang_only ? j : metrics->num_vector_local;
+          int i = 0;
+          for (i = 0; i < i_max; ++i) {
+            /*---Add up number of individuals with each relationship---*/
+            GMFloat* tally = GMFloat_malloc(16);
+            int index1 = 0;
+            int index2 = 0;
+            for (k = 0; k < numInd; k++) {
+              index1 = (int)GMVectors_float_get(vectors, field, i, env);
+              index2 = (int)GMVectors_float_get(vectors, field, j, env);
+              tally[(index1 + 4*index2)]++;
+            }
 
+            /*---Adjust proportionate contributions of each relationship---*/
+            tally[5] /= 4.0; // both heterozygous
+            tally[4] /= 2.0; // one heterozygous, the other homozygous
+            tally[1] /= 2.0; // one heterozygous, the other homozygous
+            tally[9] /= 2.0; // one heterozygous, the other homozygous
+            tally[6] /= 2.0; // one heterozygous, the other homozygous
+
+            /*---Count how many individuals have no missing data---*/
+            int noMissing = 0;
+            int col = 0;
+            int row = 0;
+            for (col = 0; col < 3; col++) {
+              for (row = 0; row < 3; row++) {
+                noMissing += (int)tally[row+4*col];
+              }
+            }
+            
+            /*---Initialize the four output metrics: ll, lh, hl, and hh--*/
+            /*---TO DO: How do we incorporate these 4 output metrics into the metric struct?---*/
+            int numSnps = metrics->num_vector_local;
+            ll = (float *) malloc(numSnps*numSnps*sizeof(float));
+  	    lh = (float *) malloc(numSnps*numSnps*sizeof(float));
+            hl = (float *) malloc(numSnps*numSnps*sizeof(float));
+            hh = (float *) malloc(numSnps*numSnps*sizeof(float));
+
+            /*---Compute four relationship values---*/
+            ll[j+numSnps*i] = tally[0] + tally[4] + tally[2] + tally[5];
+            lh[j+numSnps*i] = tally[4] + tally[8] + tally[5] + tally[9];
+            hl[j+numSnps*i] = tally[1] + tally[5] + tally[2] + tally[6];
+            hh[j+numSnps*i] = tally[5] + tally[9] + tally[6] + tally[10];
+
+            /*---Find average by dividing by number of individuals---*/
+            ll[j+numSnps*i] /= (float)noMissing;
+            lh[j+numSnps*i] /= (float)noMissing;
+            hl[j+numSnps*i] /= (float)noMissing;
+            hh[j+numSnps*i] /= (float)noMissing;
+          }
+        }
+      }
     }/*---for step_num---*/ 
 
   } else /*---if (! env->all2all )---*/ {
+    
+    int i = 0;
+    for (i = 0; i < metrics->num_vector_local; ++i) {
+      int j = 0;
+      for (j = i + 1; j < metrics->num_vector_local; ++j) {
 
-    /*---Compute frequency factors F_i = 1 - f_i/q---*/
-    /*---We need to add a field in vectors that holds the frequencies and alleles---*/
+        /*---Add up number of individuals with each relationship---*/
+        GMFloat* tally = GMFloat_malloc(16);
+        int index1 = 0;
+        int index2 = 0;
+        for (k = 0; k < numInd; k++) {
+          index1 = (int)GMVectors_float_get(vectors, field, i, env);
+          index2 = (int)GMVectors_float_get(vectors, field, j, env); 
+          tally[(index1 + 4*index2)]++;
+        }
+         
+        /*---Adjust proportionate contributions of each relationship---*/
+        tally[5] /= 4.0; // both heterozygous
+        tally[4] /= 2.0; // one heterozygous, the other homozygous
+        tally[1] /= 2.0; // one heterozygous, the other homozygous
+        tally[9] /= 2.0; // one heterozygous, the other homozygous
+        tally[6] /= 2.0; // one heterozygous, the other homozygous
 
-    /*---Compute metrics---*/
+        /*---Count how many individuals have no missing data---*/
+        int noMissing = 0;
+        int col = 0;
+        int row = 0;
+        for (col = 0; col < 3; col++) {
+          for (row = 0; row < 3; row++) {
+            noMissing += (int)tally[row+4*col];
+          }
+        }
+
+        /*---Initialize the four output metrics: ll, lh, hl, and hh--*
+        /*---TO DO: How do we incorporate these 4 output metrics into the metric struct?---*/
+        int numSnps = metrics->num_vector_local;
+        ll = (float *) malloc(numSnps*numSnps*sizeof(float));
+        lh = (float *) malloc(numSnps*numSnps*sizeof(float));
+        hl = (float *) malloc(numSnps*numSnps*sizeof(float));
+        hh = (float *) malloc(numSnps*numSnps*sizeof(float));
+
+        /*---Compute four relationship values---*/
+        ll[j+numSnps*i] = tally[0] + tally[4] + tally[2] + tally[5];
+        lh[j+numSnps*i] = tally[4] + tally[8] + tally[5] + tally[9];
+        hl[j+numSnps*i] = tally[1] + tally[5] + tally[2] + tally[6];
+        hh[j+numSnps*i] = tally[5] + tally[9] + tally[6] + tally[10];
+
+        /*---Find average by dividing by number of individuals---*/
+        ll[j+numSnps*i] /= (float)noMissing;
+        lh[j+numSnps*i] /= (float)noMissing;
+        hl[j+numSnps*i] /= (float)noMissing;
+        hh[j+numSnps*i] /= (float)noMissing;
+ 
+        /*---Multiply by frequency factors---*/
+        ll[j+numSnps*i] *= freq[i] * freq[j]; 
+        lh[j+numSnps*i] *= freq[i] * freq[j+numSnps];
+        hl[j+numSnps*i] *= freq[i+numSnps] * freq[j];
+        hh[j+numSnps*i] *= freq[i+numSnps] * freq[j+numSnps];
+      }
+    }
 
   }/*---if (env->all2all )---*/
 
