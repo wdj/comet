@@ -97,7 +97,6 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     const GMBool is_first_comp_step = step_num == 0;
     const GMBool is_last_comp_step = step_num == num_step - 1;
     const GMBool is_fill_step = step_num < num_step;
-    const GMBool is_drain_step = step_num >= 0;
 
     /*---Which entry of double buffered data items to use---*/
 
@@ -118,6 +117,8 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     GMFloatMirroredPointer* vectors_right_buf_next 
                                              = &vectors_buf_01[index_01_next];
 */
+    GMFloatMirroredPointer* metrics_buf = &metrics_buf_01[index_01];
+
 
     /*---Prepare for sends/recvs---*/
 
@@ -141,21 +142,18 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
 
     const int j_proc = (env->proc_num + step_num) % env->num_proc;
 
-    const GMBool skipped_last_block_lower_half = env->num_proc % 2 == 0 &&
-                ( 2 * env->proc_num >= env->num_proc ) && is_last_comp_step;
+    const GMBool skipped_last_block_lower_half = ( env->num_proc % 2 == 0 ) &&
+                ( 2 * env->proc_num >= env->num_proc ) &&
+                is_last_comp_step;
 
     const GMBool do_compute_block = is_compute_step &&
                                  ! skipped_last_block_lower_half;
 
     const GMBool do_compute_triang_only = is_first_comp_step;
 
-    if ( is_compute_step ) {
+    /*---Commence numerators computation---*/
 
-      /*---Compute numerators---*/
-
-      if ( do_compute_block ) {
-
-
+    if ( is_compute_step && do_compute_block ) {
 
         /*---Copy in vectors---*/
         for (i = 0; i < vectors->num_vector_local; ++i) {
@@ -178,44 +176,50 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
         gm_set_float_vectors_start(vectors_right, vectors_right_buf, env);
         gm_set_float_vectors_wait(env);
 
-
-
-/*FIX metrics_buf_01[0]*/
+        /*---Compute numerators---*/
         gm_compute_czekanowski_numerators_start(vectors_left, vectors_right,
-             metrics, vectors_left_buf, vectors_right_buf, &metrics_buf_01[0],
+             metrics, vectors_left_buf, vectors_right_buf, metrics_buf,
              j_proc, do_compute_triang_only, env);
 
+    } /*---is_compute_step ...---*/
+
+    /*---GPU case: wait for prev step get metrics to complete, then combine---*/
 
 
-
-
-        /*---Copy result from GPU---*/
-/*FIX metrics_buf_01[0]*/
-        gm_get_float_metrics_start(metrics, &metrics_buf_01[0], env);
+#if 0
+    if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
+      if ( is_compute_step_prev && do_compute_block_prev ) {
         gm_get_float_metrics_wait(env);
-
-
-
-
-
-
-#if 0
-
-GPU case:
-get metrics prev wait
-combine prev
-
-#endif
-
-        gm_compute_czekanowski_numerators_wait(env);
-#if 0
-
-GPU case:
-get metrics this start
-
-#endif
+        GMFloat* vector_sums_left = vector_sums_onproc;
+        GMFloat* vector_sums_right =
+            is_first_comp_step ? vector_sums_onproc : vector_sums_offproc;
+        gm_compute_czekanowski_combine(metrics, metrics_buf_prev,
+                                       vector_sums_left,
+                                     vector_sums_right, j_proc_prev,
+                                       do_compute_triang_only, env);
       }
+    }
+#endif
 
+    /*---Wait for numerators computation complete---*/
+
+    if ( is_compute_step && do_compute_block ) {
+        gm_compute_czekanowski_numerators_wait(env);
+    } /*---is_compute_step ...---*/
+
+    /*---Commence copy of numerators back from GPU---*/
+
+    if ( is_compute_step && do_compute_block ) {
+        gm_get_float_metrics_start(metrics, metrics_buf, env);
+    } /*---is_compute_step ...---*/
+
+#if 1
+    if ( is_compute_step && do_compute_block ) {
+        gm_get_float_metrics_wait(env);
+    } /*---is_compute_step ...---*/
+#endif
+
+    if ( is_compute_step && do_compute_block ) {
       /*---Compute sums for denominators---*/
 
       if (is_first_comp_step) {
@@ -227,21 +231,22 @@ get metrics this start
 
     /*---Combine numerators, denominators to obtain final result---*/
 
-    if ( is_drain_step ) {
+#if 0
+    if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
+#endif
+      if ( is_compute_step && do_compute_block ) {
+        GMFloat* vector_sums_left = vector_sums_onproc;
+        GMFloat* vector_sums_right =
+            is_first_comp_step ? vector_sums_onproc : vector_sums_offproc;
 
-      GMFloat* vector_sums_left = vector_sums_onproc;
-      GMFloat* vector_sums_right =
-          is_first_comp_step ? vector_sums_onproc : vector_sums_offproc;
-
-      if ( do_compute_block ) {
-/*FIX metrics_buf_01[0]*/
-        gm_compute_czekanowski_combine(metrics, &metrics_buf_01[0],
+        gm_compute_czekanowski_combine(metrics, metrics_buf,
                                        vector_sums_left,
                                        vector_sums_right, j_proc,
                                        do_compute_triang_only, env);
       }
-
+#if 0
     }
+#endif
 
     /*---Wait for sends/recvs to complete---*/
 
@@ -251,15 +256,6 @@ get metrics this start
     }
 
   } /*---step_num---*/
-
-#if 0
-
-
-
-
-
-
-#endif
 
   /*----------------------------------------*/
   /*---End loop over steps of circular shift of vectors objects---*/
