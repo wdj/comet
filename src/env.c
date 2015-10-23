@@ -124,7 +124,8 @@ void GMEnv_initialize_streams(GMEnv* env) {
   GMAssert(env != NULL );
 
   if ( ! env->are_cuda_streams_initialized ) {
-    env->stream_compute = 0;
+    cudaStreamCreate( & env->stream_compute );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
     cudaStreamCreate( & env->stream_vectors );
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
     cudaStreamCreate( & env->stream_metrics );
@@ -144,6 +145,8 @@ void GMEnv_destroy(GMEnv* env) {
 
   if ( env->compute_method == GM_COMPUTE_METHOD_GPU &&
        env->are_cuda_streams_initialized ) {
+    cudaStreamDestroy( env->stream_compute );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
     cudaStreamDestroy( env->stream_vectors );
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
     cudaStreamDestroy( env->stream_metrics );

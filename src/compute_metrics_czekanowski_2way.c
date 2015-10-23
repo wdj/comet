@@ -53,6 +53,9 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
   if (env->compute_method == GM_COMPUTE_METHOD_GPU ) {
     magma_code = magma_minproduct_init();
     GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+    /*---need this -- see http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf page 14 ---*/
+    magma_code = magma_minproductblasSetKernelStream(env->stream_compute);
+    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
   }
 
   /*---Allocate GPU buffers---*/
@@ -524,6 +527,8 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   magma_code = magma_code*1; /*---Avoid unused variable warning---*/
 
   magma_code = magma_minproduct_init();
+  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+  magma_code = magma_minproductblasSetKernelStream(env->stream_compute);
   GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
   const int num_vec = metrics->num_vector_local;
