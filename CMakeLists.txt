@@ -15,6 +15,7 @@ SET(INCLUDE_DIRS
 SET(LIB_SOURCES
   src/env.c
   src/vectors.c
+  src/vector_sums.c
   src/metrics.c
   src/compute_metrics.c
   src/compute_metrics_utils.c
@@ -27,6 +28,7 @@ SET(LIB_SOURCES
 SET(LIB_INCLUDES
   src/env.h
   src/vectors.h
+  src/vector_sums.h
   src/metrics.h
   src/compute_metrics.h
   src/compute_metrics_utils.h

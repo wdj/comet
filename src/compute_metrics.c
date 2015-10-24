@@ -31,6 +31,9 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   switch (env->metric_type +
           GM_NUM_METRIC_TYPE *
               (env->compute_method + GM_NUM_COMPUTE_METHOD * (env->num_way))) {
+
+    /*--------------------*/
+
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (2)):
@@ -67,6 +70,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
       gm_compute_metrics_sorenson_3way_ref(metrics, vectors, env);
       break;
 
+    /*--------------------*/
+
     case GM_METRIC_TYPE_CZEKANOWSKI +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (2)):
@@ -102,6 +107,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
                             GM_NUM_COMPUTE_METHOD * (3)):
       gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
       break;
+
+    /*--------------------*/
 
     case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                                                   GM_NUM_COMPUTE_METHOD * (2)):

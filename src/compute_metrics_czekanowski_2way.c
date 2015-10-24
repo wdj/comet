@@ -15,6 +15,7 @@
 #include "magma_minproduct_lapack.h"
 
 #include "env.h"
+#include "vector_sums.h"
 #include "vectors.h"
 #include "metrics.h"
 #include "compute_metrics_utils.h"
@@ -22,9 +23,9 @@
 
 /*===========================================================================*/
 
-void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
-                                                     GMVectors* vectors,
-                                                     GMEnv* env) {
+void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
+                                                 GMVectors* vectors,
+                                                 GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
@@ -34,8 +35,10 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
   const int data_type = gm_data_type_from_metric_type(env->metric_type, env);
   int i = 0;
 
-  GMFloat* vector_sums_onproc = GMFloat_malloc(metrics->num_vector_local);
-  GMFloat* vector_sums_offproc = GMFloat_malloc(metrics->num_vector_local);
+  GMVectorSums vector_sums_onproc = GMVectorSums_null();
+  GMVectorSums vector_sums_offproc = GMVectorSums_null();
+  GMVectorSums_create(&vector_sums_onproc, vectors, env);
+  GMVectorSums_create(&vector_sums_offproc, vectors, env);
 
   /*---Create double buffer of vectors objects for send/recv---*/
 
@@ -47,35 +50,23 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
 
   /*---Magma initializations---*/
 
-  magma_minproduct_int_t magma_code = 0;
-  magma_code = magma_code*1; /*---Avoid unused variable warning---*/
-
-  if (env->compute_method == GM_COMPUTE_METHOD_GPU ) {
-    magma_code = magma_minproduct_init();
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-    /*---need this -- see http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf page 14 ---*/
-    magma_code = magma_minproductblasSetKernelStream(env->stream_compute);
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-  }
+  gm_magma_initialize(env);
 
   /*---Allocate GPU buffers---*/
   /*---To overlap transfers with compute, set up double buffers for the
        vectors sent to the GPU and the metrics received from the GPU.---*/
 
-  GMFloatMirroredPointer metrics_buf_01[2];
-  GMFloatMirroredPointer vectors_buf_01[2];
-  GMFloatMirroredPointer vectors_buf = GMFloatMirroredPointer_null();
+  GMMirroredPointer metrics_buf_01[2];
+  GMMirroredPointer vectors_buf_01[2];
+  GMMirroredPointer vectors_buf = GMMirroredPointer_null();
   for ( i = 0 ; i < 2 ; ++i ) {
-    vectors_buf_01[i] =
-      GMFloat_malloc_magma_minproduct( vectors->num_vector_local * (size_t)
-                                       vectors->num_field, env);
-    metrics_buf_01[i] =
-      GMFloat_malloc_magma_minproduct( metrics->num_vector_local * (size_t)
-                                       metrics->num_vector_local, env);
+    vectors_buf_01[i] = gm_malloc_magma( vectors->num_vector_local * (size_t)
+                                         vectors->num_field, env);
+    metrics_buf_01[i] = gm_malloc_magma( metrics->num_vector_local * (size_t)
+                                         metrics->num_vector_local, env);
   }
-  vectors_buf =
-    GMFloat_malloc_magma_minproduct( vectors->num_vector_local * (size_t)
-                                     vectors->num_field, env);
+  vectors_buf = gm_malloc_magma( vectors->num_vector_local * (size_t)
+                                 vectors->num_field, env);
 
   /*---Result matrix is diagonal block and half the blocks to the right
        (including wraparound to left side of matrix when appropriate).
@@ -88,7 +79,7 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
   /*---Begin loop over steps of circular shift of vectors objects---*/
   /*----------------------------------------*/
 
-  /*---Add extra step at begin and at end to prime/drain pipeline---*/
+  /*---Add extra step at end to drain pipeline---*/
   const int extra_step = 1;
 
   int step_num = 0;
@@ -121,18 +112,18 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
                                                        &vectors_01[index_01];
     GMVectors* vectors_right_next = &vectors_01[index_01_next];
 
-    GMFloatMirroredPointer* vectors_left_buf = &vectors_buf;
-    GMFloatMirroredPointer* vectors_right_buf = is_first_compute_step ?
+    GMMirroredPointer* vectors_left_buf = &vectors_buf;
+    GMMirroredPointer* vectors_right_buf = is_first_compute_step ?
                                      &vectors_buf : &vectors_buf_01[index_01];
-    GMFloatMirroredPointer* vectors_right_buf_next 
+    GMMirroredPointer* vectors_right_buf_next 
                                              = &vectors_buf_01[index_01_next];
 
     /*---Point to metrics buffers---*/
 
-    GMFloatMirroredPointer* metrics_buf = &metrics_buf_01[index_01];
-    GMFloatMirroredPointer* metrics_buf_prev = &metrics_buf_01[index_01_prev];
+    GMMirroredPointer* metrics_buf = &metrics_buf_01[index_01];
+    GMMirroredPointer* metrics_buf_prev = &metrics_buf_01[index_01_prev];
 
-    /*---Prepare for sends/recvs procs for communication---*/
+    /*---Prepare for sends/recvs: procs for communication---*/
 
     const int proc_up = (env->proc_num + 1) % env->num_proc;
     const int proc_dn = (env->proc_num - 1 + env->num_proc) % env->num_proc;
@@ -150,9 +141,9 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     /*---First step: send (left) vecs to GPU---*/
 
     if ( is_first_compute_step ) {
-      gm_float_vectors_to_buf(vectors_left, vectors_left_buf, env);
-      gm_set_float_vectors_start(vectors_left, vectors_left_buf, env);
-      gm_set_float_vectors_wait(env);
+      gm_vectors_to_buf(vectors_left, vectors_left_buf, env);
+      gm_set_vectors_start(vectors_left, vectors_left_buf, env);
+      gm_set_vectors_wait(env);
     }
 
     /*---The proc that owns the "right-side" vecs for the minproduct---*/
@@ -192,7 +183,7 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     /*---Send right vectors to GPU end---*/
 
     if ( is_compute_step && do_compute_block ) {
-      gm_set_float_vectors_wait(env);
+      gm_set_vectors_wait(env);
     }
 
     /*----------*/
@@ -200,7 +191,7 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     /*----------*/
 
     if ( is_compute_step && do_compute_block ) {
-      gm_compute_czekanowski_numerators_start(vectors_left, vectors_right,
+      gm_compute_numerators_start(vectors_left, vectors_right,
            metrics, vectors_left_buf, vectors_right_buf, metrics_buf,
            j_proc, do_compute_triang_only, env);
     }
@@ -210,14 +201,14 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
 
     if ( env->compute_method == GM_COMPUTE_METHOD_GPU ) {
       if ( is_compute_step_prev && do_compute_block_prev ) {
-        gm_get_float_metrics_wait(env);
-        GMFloat* vector_sums_left = vector_sums_onproc;
-        GMFloat* vector_sums_right = is_first_compute_step_prev ?
-                                     vector_sums_onproc : vector_sums_offproc;
-        gm_compute_czekanowski_combine(metrics, metrics_buf_prev,
-                                       vector_sums_left,
-                                       vector_sums_right, j_proc_prev,
-                                       do_compute_triang_only_prev, env);
+        gm_get_metrics_wait(env);
+        GMVectorSums* vector_sums_left = &vector_sums_onproc;
+        GMVectorSums* vector_sums_right = is_first_compute_step_prev
+                                           ? &vector_sums_onproc
+                                           : &vector_sums_offproc;
+        gm_compute_combine(metrics, metrics_buf_prev,
+                           vector_sums_left, vector_sums_right, j_proc_prev,
+                           do_compute_triang_only_prev, env);
       }
     }
 
@@ -230,9 +221,8 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     /*---Send right vectors for next step to GPU start---*/
 
     if ( is_compute_step_next && do_compute_block_next ) {
-      gm_float_vectors_to_buf(vectors_right_next, vectors_right_buf_next, env);
-      gm_set_float_vectors_start(vectors_right_next, vectors_right_buf_next,
-                                 env);
+      gm_vectors_to_buf(vectors_right_next, vectors_right_buf_next, env);
+      gm_set_vectors_start(vectors_right_next, vectors_right_buf_next, env);
     }
 
     /*----------*/
@@ -240,22 +230,22 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     /*----------*/
 
     if ( is_compute_step && do_compute_block ) {
-        gm_compute_czekanowski_numerators_wait(env);
+        gm_compute_numerators_wait(env);
     }
 
     /*---Commence copy of completed numerators back from GPU---*/
 
     if ( is_compute_step && do_compute_block ) {
-        gm_get_float_metrics_start(metrics, metrics_buf, env);
+        gm_get_metrics_start(metrics, metrics_buf, env);
     }
 
     /*---Compute sums for denominators---*/
 
     if ( is_compute_step && do_compute_block ) {
       if (is_first_compute_step) {
-        gm_compute_float_vector_sums(vectors_left, vector_sums_onproc, env);
+        gm_compute_vector_sums(vectors_left, &vector_sums_onproc, env);
       } else {
-        gm_compute_float_vector_sums(vectors_right, vector_sums_offproc, env);
+        gm_compute_vector_sums(vectors_right, &vector_sums_offproc, env);
       }
     }
 
@@ -263,13 +253,13 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
 
     if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
       if ( is_compute_step && do_compute_block ) {
-        GMFloat* vector_sums_left = vector_sums_onproc;
-        GMFloat* vector_sums_right =
-            is_first_compute_step ? vector_sums_onproc : vector_sums_offproc;
-        gm_compute_czekanowski_combine(metrics, metrics_buf,
-                                       vector_sums_left,
-                                       vector_sums_right, j_proc,
-                                       do_compute_triang_only, env);
+        GMVectorSums* vector_sums_left = &vector_sums_onproc;
+        GMVectorSums* vector_sums_right = is_first_compute_step
+                                           ? &vector_sums_onproc
+                                           : &vector_sums_offproc;
+        gm_compute_combine(metrics, metrics_buf,
+                           vector_sums_left, vector_sums_right, j_proc,
+                           do_compute_triang_only, env);
       }
     }
 
@@ -285,8 +275,8 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
   /*---End loop over steps of circular shift of vectors objects---*/
   /*----------------------------------------*/
 
-  free(vector_sums_onproc);
-  free(vector_sums_offproc);
+  GMVectorSums_destroy(&vector_sums_onproc, env);
+  GMVectorSums_destroy(&vector_sums_offproc, env);
 
   for ( i = 0 ; i < 2 ; ++i ) {
     GMVectors_destroy(&vectors_01[i], env);
@@ -295,15 +285,12 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
   /*---Magma terminations---*/
 
   for ( i = 0 ; i < 2 ; ++i ) {
-    GMFloat_free_magma_minproduct( &metrics_buf_01[i], env );
-    GMFloat_free_magma_minproduct( &vectors_buf_01[i], env );
+    gm_free_magma( &metrics_buf_01[i], env );
+    gm_free_magma( &vectors_buf_01[i], env );
   }
-  GMFloat_free_magma_minproduct( &vectors_buf, env );
+  gm_free_magma( &vectors_buf, env );
 
-  if (env->compute_method == GM_COMPUTE_METHOD_GPU ) {
-    magma_code = magma_minproduct_finalize();
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-  }
+  gm_magma_finalize(env);
 }
 
 /*===========================================================================*/
@@ -517,7 +504,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   GMAssert(env != NULL);
 
   if (env->all2all) {
-    gm_compute_metrics_czekanowski_2way_all2all_gpu(metrics, vectors, env);
+    gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);
     return;
   }
 
@@ -547,11 +534,11 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   /*---Allocate magma CPU memory for vectors and for result */
 
-  GMFloatMirroredPointer vectors_buf =
-    GMFloat_malloc_magma_minproduct( num_vec * (size_t)num_field, env);
+  GMMirroredPointer vectors_buf =
+    gm_malloc_magma( num_vec * (size_t)num_field, env);
 
-  GMFloatMirroredPointer numerators_buf =
-    GMFloat_malloc_magma_minproduct( num_vec * (size_t)num_vec, env);
+  GMMirroredPointer numerators_buf =
+    gm_malloc_magma( num_vec * (size_t)num_vec, env);
 
   /*---Copy in vectors---*/
 
@@ -559,14 +546,14 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   for (i = 0; i < num_vec; ++i) {
     int k = 0;
     for (k = 0; k < num_field; ++k) {
-      vectors_buf.h[k + num_field*i] = GMVectors_float_get(vectors, k, i, env);
+      ((GMFloat*)vectors_buf.h)[k + num_field*i] = GMVectors_float_get(vectors, k, i, env);
     }
   }
 
   /*---Send vectors to GPU---*/
 
-  gm_set_float_vectors_start(vectors, &vectors_buf, env);
-  gm_set_float_vectors_wait(env);
+  gm_set_vectors_start(vectors, &vectors_buf, env);
+  gm_set_vectors_wait(env);
 
   /*---Initialize result matrix to zero (apparently magma requires)---*/
 
@@ -594,8 +581,8 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   /*---Copy result from GPU---*/
 
-  gm_get_float_metrics_start(metrics, &numerators_buf, env);
-  gm_get_float_metrics_wait(env);
+  gm_get_metrics_start(metrics, &numerators_buf, env);
+  gm_get_metrics_wait(env);
 
   /*---Combine---*/
 
@@ -603,7 +590,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   for (i = 0; i < metrics->num_vector_local; ++i) {
     int j = 0;
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
-      const GMFloat numerator = numerators_buf.h[j + num_vec * i];
+      const GMFloat numerator = ((GMFloat*)numerators_buf.h)[j + num_vec * i];
       const GMFloat denominator = vector_sums[i] + vector_sums[j];
       GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
     } /*---for j---*/
@@ -611,8 +598,8 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   /*---Free memory---*/
 
-  GMFloat_free_magma_minproduct( &vectors_buf, env);
-  GMFloat_free_magma_minproduct( &numerators_buf, env);
+  gm_free_magma( &vectors_buf, env);
+  gm_free_magma( &numerators_buf, env);
 
   magma_code = magma_minproduct_finalize();
   GMAssert(magma_code == MAGMA_minproduct_SUCCESS);

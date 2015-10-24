@@ -25,6 +25,16 @@
 #include "env.h"
 
 /*===========================================================================*/
+/*---Types---*/
+
+GMMirroredPointer GMMirroredPointer_null(void) {
+  GMMirroredPointer p;
+  p.h = NULL;
+  p.d = NULL;
+  return p;
+}
+
+/*===========================================================================*/
 /*---Null object---*/
 
 GMEnv GMEnv_null() {

@@ -22,7 +22,7 @@ EXEC=$WD/../install_debug/bin/genomics_metric
 pushd $MEMBERWORK/$ACCOUNT > /dev/null
 
 #for compute_method in CPU GPU ; do
-for compute_method in GPU ; do
+for compute_method in CPU GPU ; do
 
   #echo \
   #aprun -n1 $EXEC \
