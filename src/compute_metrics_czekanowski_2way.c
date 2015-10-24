@@ -105,6 +105,7 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
 
     const GMBool is_last_compute_step = step_num == num_step-1;
     const GMBool is_last_compute_step_prev = step_num-1 == num_step-1;
+    const GMBool is_last_compute_step_next = step_num+1 == num_step-1;
 
     /*---Which entry of double buffered data items to use---*/
 
@@ -112,7 +113,7 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     const int index_01_prev = ( step_num-1 + 2 ) % 2;
     const int index_01_next = ( step_num+1 + 2 ) % 2;
 
-    /*---Denote left/right-side vecs, also right-side vecs for next step.
+    /*---Point to left/right-side vecs, also right-side vecs for next step.
          Here we are computing V^T W, for V, W containing column vectors---*/
 
     GMVectors* vectors_left = vectors;
@@ -123,11 +124,10 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     GMFloatMirroredPointer* vectors_left_buf = &vectors_buf;
     GMFloatMirroredPointer* vectors_right_buf = is_first_compute_step ?
                                      &vectors_buf : &vectors_buf_01[index_01];
-/*FIX
     GMFloatMirroredPointer* vectors_right_buf_next 
                                              = &vectors_buf_01[index_01_next];
-*/
-    /*---Denote metrics buffers---*/
+
+    /*---Point to metrics buffers---*/
 
     GMFloatMirroredPointer* metrics_buf = &metrics_buf_01[index_01];
     GMFloatMirroredPointer* metrics_buf_prev = &metrics_buf_01[index_01_prev];
@@ -147,6 +147,14 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
                                               proc_up, env );
     }
 
+    /*---First step: send (left) vecs to GPU---*/
+
+    if ( is_first_compute_step ) {
+      gm_float_vectors_to_buf(vectors_left, vectors_left_buf, env);
+      gm_set_float_vectors_start(vectors_left, vectors_left_buf, env);
+      gm_set_float_vectors_wait(env);
+    }
+
     /*---The proc that owns the "right-side" vecs for the minproduct---*/
 
     const int j_proc = (env->proc_num + step_num) % env->num_proc;
@@ -164,50 +172,38 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
     const GMBool skipped_last_block_lower_half_prev = skipping_active &&
                 is_last_compute_step_prev;
 
+    const GMBool skipped_last_block_lower_half_next = skipping_active &&
+                is_last_compute_step_next;
+
     const GMBool do_compute_block = is_compute_step &&
                                  ! skipped_last_block_lower_half;
 
     const GMBool do_compute_block_prev = is_compute_step_prev &&
                                  ! skipped_last_block_lower_half_prev;
 
+    const GMBool do_compute_block_next = is_compute_step_next &&
+                                 ! skipped_last_block_lower_half_next;
+
     /*---Main diagonal block only computes strict upper triangular part---*/
 
     const GMBool do_compute_triang_only = is_first_compute_step;
     const GMBool do_compute_triang_only_prev = is_first_compute_step_prev;
 
-    /*---Commence numerators computation---*/
+    /*---Send right vectors to GPU end---*/
 
     if ( is_compute_step && do_compute_block ) {
+      gm_set_float_vectors_wait(env);
+    }
 
-      if ( env->compute_method == GM_COMPUTE_METHOD_GPU ) {
-        /*---Copy vectors into GPU buffers if needed---*/
-        for (i = 0; i < vectors->num_vector_local; ++i) {
-          int k = 0;
-          for (k = 0; k < vectors->num_field; ++k) {
-            vectors_left_buf->h[k + vectors->num_field*i] =
-              GMVectors_float_get(vectors_left, k, i, env);
-          }
-        }
-        for (i = 0; i < vectors->num_vector_local; ++i) {
-          int k = 0;
-          for (k = 0; k < vectors->num_field; ++k) {
-            vectors_right_buf->h[k + vectors->num_field*i] =
-              GMVectors_float_get(vectors_right, k, i, env);
-          }
-        }
-        /*---Send vectors to GPU---*/
-        gm_set_float_vectors_start(vectors_left, vectors_left_buf, env);
-        gm_set_float_vectors_wait(env);
-        gm_set_float_vectors_start(vectors_right, vectors_right_buf, env);
-        gm_set_float_vectors_wait(env);
-      }
+    /*----------*/
+    /*---Commence numerators computation---*/
+    /*----------*/
 
-      /*---Compute numerators---*/
+    if ( is_compute_step && do_compute_block ) {
       gm_compute_czekanowski_numerators_start(vectors_left, vectors_right,
            metrics, vectors_left_buf, vectors_right_buf, metrics_buf,
            j_proc, do_compute_triang_only, env);
-
-    } /*---is_compute_step ...---*/
+    }
 
     /*---GPU case: wait for prev step get metrics to complete, then combine.
          Note this is hidden under GPU computation---*/
@@ -225,7 +221,23 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
       }
     }
 
+    /*---Wait for recvs to complete---*/
+
+    if ( is_compute_step_next ) {
+      gm_recv_vectors_wait(&(mpi_requests[1]), env);
+    }
+
+    /*---Send right vectors for next step to GPU start---*/
+
+    if ( is_compute_step_next && do_compute_block_next ) {
+      gm_float_vectors_to_buf(vectors_right_next, vectors_right_buf_next, env);
+      gm_set_float_vectors_start(vectors_right_next, vectors_right_buf_next,
+                                 env);
+    }
+
+    /*----------*/
     /*---Wait for numerators computation to complete---*/
+    /*----------*/
 
     if ( is_compute_step && do_compute_block ) {
         gm_compute_czekanowski_numerators_wait(env);
@@ -261,11 +273,10 @@ void gm_compute_metrics_czekanowski_2way_all2all_gpu(GMMetrics* metrics,
       }
     }
 
-    /*---Wait for sends/recvs to complete---*/
+    /*---Wait for sends to complete---*/
 
     if ( is_compute_step_next ) {
       gm_send_vectors_wait(&(mpi_requests[0]), env);
-      gm_recv_vectors_wait(&(mpi_requests[1]), env);
     }
 
   } /*---step_num---*/

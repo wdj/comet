@@ -236,6 +236,30 @@ void gm_get_float_metrics_wait(GMEnv* env) {
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
   }
 }
+
+/*===========================================================================*/
+/*---CPU-GPU transfer nbuffer manipulation---*/
+
+void gm_float_vectors_to_buf(GMVectors* vectors,
+                             GMFloatMirroredPointer* vectors_buf,
+                             GMEnv* env) {
+  GMAssert(vectors != NULL);
+  GMAssert(vectors_buf != NULL);
+  GMAssert(env != NULL);
+
+  if ( env->compute_method == GM_COMPUTE_METHOD_GPU ) {
+    int i = 0;
+    /*---Copy vectors into GPU buffers if needed---*/
+    for (i = 0; i < vectors->num_vector_local; ++i) {
+      int k = 0;
+      for (k = 0; k < vectors->num_field; ++k) {
+        vectors_buf->h[k + vectors->num_field*i] =
+          GMVectors_float_get(vectors, k, i, env);
+      }
+    }
+  }
+}
+
 /*===========================================================================*/
 /*---Start/end calculation of numerators---*/
 

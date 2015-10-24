@@ -57,6 +57,13 @@ void gm_get_float_metrics_wait(GMEnv* env);
 
 /*----------*/
 
+void gm_float_vectors_to_buf(GMVectors* vectors,
+                             GMFloatMirroredPointer* vectors_buf,
+                             GMEnv* env);
+
+
+/*----------*/
+
 void gm_compute_czekanowski_numerators_start(
                                      GMVectors* vectors_left,
                                      GMVectors* vectors_right,
