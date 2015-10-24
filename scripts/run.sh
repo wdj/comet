@@ -21,6 +21,8 @@ EXEC=$WD/../install_debug/bin/genomics_metric
 #---cd to Lustre to be able to aprun on titan.
 pushd $MEMBERWORK/$ACCOUNT > /dev/null
 
+for all2all in yes no; do
+
 #for compute_method in CPU GPU ; do
 for compute_method in CPU GPU ; do
 
@@ -51,12 +53,15 @@ for compute_method in CPU GPU ; do
   #    --compute_method $compute_method --verbosity 2
   for n in 1 3 ; do
   aprun -n$n -N1 $EXEC \
-      --num_field 10 --num_vector_local $(( 24 / $n )) --all2all yes \
+      --num_field 10 --num_vector_local 24 --all2all $all2all \
+      --num_field 10 --num_vector_local $(( 24 / $n )) --all2all $all2all  \
       --compute_method $compute_method --verbosity 1
   done
   #aprun -n4 -N1 $EXEC \
   #    --num_field 1 --num_vector_local 1 --all2all yes \
   #    --compute_method $compute_method --verbosity 2
+
+done
 
 done
 

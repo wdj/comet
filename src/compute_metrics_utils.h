@@ -12,6 +12,7 @@
 #define _compute_metrics_utils_h_
 
 #include "env.h"
+#include "vector_sums.h"
 #include "vectors.h"
 #include "metrics.h"
 

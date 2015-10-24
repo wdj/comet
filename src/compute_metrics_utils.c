@@ -50,22 +50,30 @@ void gm_compute_vector_sums(GMVectors* vectors,
   GMAssert(env != NULL);
 
   switch (env->metric_type) {
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
 
       gm_compute_float_vector_sums(vectors, (GMFloat*)vector_sums->data, env);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     default:
+    /*----------------------------------------*/
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
@@ -83,12 +91,16 @@ void gm_magma_initialize(GMEnv* env) {
   }
 
   switch (env->metric_type) {
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
 
       magma_minproduct_int_t magma_code = 0;
       magma_code = magma_code*1; /*---Avoid unused variable warning---*/
@@ -100,12 +112,16 @@ void gm_magma_initialize(GMEnv* env) {
       GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     default:
+    /*----------------------------------------*/
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
@@ -122,12 +138,16 @@ void gm_magma_finalize(GMEnv* env) {
   }
 
   switch (env->metric_type) {
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
 
       magma_minproduct_int_t magma_code = 0;
       magma_code = magma_code*1; /*---Avoid unused variable warning---*/
@@ -136,12 +156,16 @@ void gm_magma_finalize(GMEnv* env) {
       GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     default:
+    /*----------------------------------------*/
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
@@ -162,12 +186,16 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
   }
 
   switch (env->metric_type) {
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
 
       magma_minproduct_int_t magma_code = 0;
       magma_code = magma_code*1; /*---Avoid unused variable warning---*/
@@ -189,12 +217,16 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
       GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     default:
+    /*----------------------------------------*/
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
@@ -213,12 +245,16 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
   }
 
   switch (env->metric_type) {
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
 
       magma_minproduct_int_t magma_code = 0;
       magma_code = magma_code*1; /*---Avoid unused variable warning---*/
@@ -229,12 +265,16 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
       GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     default:
+    /*----------------------------------------*/
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
@@ -528,24 +568,32 @@ void gm_compute_numerators_start( GMVectors* vectors_left,
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
 
   switch (env->metric_type) {
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
 
       gm_compute_czekanowski_numerators_start(vectors_left, vectors_right,
            numerators, vectors_left_buf, vectors_right_buf, numerators_buf,
            j_proc, do_compute_triang_only, env);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     default:
+    /*----------------------------------------*/
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
@@ -585,9 +633,10 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
        For GPU case, directly access the metrics_buf holding the numerators.
   ---*/
 
+  const GMBool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
 
   /*----------------------------------------*/
-  if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
+  if ( env->compute_method != GM_COMPUTE_METHOD_GPU && env->all2all ) {
   /*----------------------------------------*/
 
     int j = 0;
@@ -597,12 +646,52 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator = GMMetrics_float_get_all2all_2(
                                                    metrics, i, j, j_proc, env);
-        const GMFloat denominator = vector_sums_left[i] + vector_sums_right[j];
+        /*---Don't use two pointers pointing to the same thing---*/
+        const GMFloat denominator = are_vector_sums_aliased
+                       ? vector_sums_left[i] + vector_sums_left[j]
+                       : vector_sums_left[i] + vector_sums_right[j];
         GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
                                       2 * numerator / denominator, env);
       } /*---for i---*/
     }   /*---for j---*/
 /*---TODO: here and elsewhere check for unlikely case denom is/nearly zero---*/
+
+  /*----------------------------------------*/
+  } else if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
+  /*----------------------------------------*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator = GMMetrics_float_get_all2all_2(
+                                                   metrics, i, j, j_proc, env);
+        /*---Don't use two pointers pointing to the same thing---*/
+        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
+        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+
+  /*----------------------------------------*/
+  } else if ( env->all2all ) {
+  /*----------------------------------------*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator = ((GMFloat*)metrics_buf->h)[i +
+                                              metrics->num_vector_local * j];
+        /*---Don't use two pointers pointing to the same thing---*/
+        const GMFloat denominator = are_vector_sums_aliased
+                       ? vector_sums_left[i] + vector_sums_left[j]
+                       : vector_sums_left[i] + vector_sums_right[j];
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
+                                      2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/
 
   /*----------------------------------------*/
   } else {
@@ -615,11 +704,12 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator = ((GMFloat*)metrics_buf->h)[i +
                                               metrics->num_vector_local * j];
-        const GMFloat denominator = vector_sums_left[i] + vector_sums_right[j];
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
-                                      2 * numerator / denominator, env);
+        /*---Don't use two pointers pointing to the same thing---*/
+        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
+        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
     }   /*---for j---*/
+
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -642,12 +732,16 @@ void gm_compute_combine(GMMetrics* metrics,
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
 
   switch (env->metric_type) {
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
 
       gm_compute_czekanowski_combine(metrics,
                                     metrics_buf,
@@ -658,12 +752,16 @@ void gm_compute_combine(GMMetrics* metrics,
                                     env);
 
     } break;
+    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
+    /*----------------------------------------*/
     default:
+    /*----------------------------------------*/
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/

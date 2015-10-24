@@ -14,28 +14,8 @@
 #include "env.h"
 #include "vectors.h"
 #include "metrics.h"
+#include "compute_metrics_utils.h"
 #include "compute_metrics_czekanowski_3way.h"
-
-/*===========================================================================*/
-
-static void gm_compute_vector_sums(GMVectors* vectors,
-                                   GMFloat* __restrict__ vector_sums,
-                                   GMEnv* env) {
-  GMAssert(vectors != NULL);
-  GMAssert(vector_sums != NULL);
-  GMAssert(env != NULL);
-
-  int i = 0;
-  for (i = 0; i < vectors->num_vector_local; ++i) {
-    GMFloat sum = 0;
-    int field = 0;
-    for (field = 0; field < vectors->num_field; ++field) {
-      GMFloat value = GMVectors_float_get(vectors, field, i, env);
-      sum += value;
-    }
-    vector_sums[i] = sum;
-  }
-}
 
 /*===========================================================================*/
 
@@ -52,7 +32,7 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
 
   GMFloat* vector_sums = malloc(metrics->num_vector_local * sizeof(GMFloat));
 
-  gm_compute_vector_sums(vectors, vector_sums, env);
+  gm_compute_float_vector_sums(vectors, vector_sums, env);
 
   /*---Numerator---*/
 
@@ -111,7 +91,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
 
   GMFloat* vector_sums = malloc(metrics->num_vector_local * sizeof(GMFloat));
 
-  gm_compute_vector_sums(vectors, vector_sums, env);
+  gm_compute_float_vector_sums(vectors, vector_sums, env);
 
   /*---Numerator---*/
 
@@ -203,6 +183,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
 #endif
       (Magma_minproductTrans, Magma_minproductNoTrans, numvec, numvec, numfield,
        1.0, d_vectors, numfield, d_vectors, numfield, 0.0, d_matM, numvec);
+  gm_compute_numerators_wait(env); /*---added - WJ---*/
 
 /*---Copy matM from GPU---*/
 
@@ -259,6 +240,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
         (Magma_minproductTrans, Magma_minproductNoTrans, numvec, numvec,
          numfield, 1.0, d_matV, numfield, d_vectors, numfield, 0.0, d_matB,
          numvec);
+  gm_compute_numerators_wait(env); /*---added - WJ---*/
 
 /*---Copy matB from GPU---*/
 #ifdef FP_PRECISION_DOUBLE

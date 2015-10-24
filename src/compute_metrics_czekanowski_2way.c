@@ -23,9 +23,9 @@
 
 /*===========================================================================*/
 
-void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
-                                                 GMVectors* vectors,
-                                                 GMEnv* env) {
+void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
+                                     GMVectors* vectors,
+                                     GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
@@ -186,9 +186,9 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
       gm_set_vectors_wait(env);
     }
 
-    /*----------*/
+    /*--------------------*/
     /*---Commence numerators computation---*/
-    /*----------*/
+    /*--------------------*/
 
     if ( is_compute_step && do_compute_block ) {
       gm_compute_numerators_start(vectors_left, vectors_right,
@@ -212,6 +212,11 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
       }
     }
 
+    /*---ISSUE: it may be possible to increase performance by swapping the
+         two code blocks below and the one code block above.  It depends
+         on the relative speeds.  If these would be put in two different
+         CPU threads, then it wouldn't matter---*/
+
     /*---Wait for recvs to complete---*/
 
     if ( is_compute_step_next ) {
@@ -225,9 +230,9 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
       gm_set_vectors_start(vectors_right_next, vectors_right_buf_next, env);
     }
 
-    /*----------*/
+    /*--------------------*/
     /*---Wait for numerators computation to complete---*/
-    /*----------*/
+    /*--------------------*/
 
     if ( is_compute_step && do_compute_block ) {
         gm_compute_numerators_wait(env);
@@ -303,195 +308,46 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
   GMAssert(env != NULL);
 
   if (env->all2all) {
+    gm_compute_metrics_2way_all2all(metrics, vectors, env);
+    return;
+  }
 
-    /*---Initializations---*/
+  /*---Compute sums for denominators---*/
 
-    int data_type = gm_data_type_from_metric_type(env->metric_type, env);
+  GMFloat* vector_sums = GMFloat_malloc(metrics->num_vector_local);
 
-    GMFloat* vector_sums_onproc = GMFloat_malloc(metrics->num_vector_local);
-    GMFloat* vector_sums_offproc = GMFloat_malloc(metrics->num_vector_local);
+  gm_compute_float_vector_sums(vectors, vector_sums, env);
 
-    /*---Create size-2 circular buffer of vectors objects for send/recv---*/
+  /*---Compute numerators---*/
 
-    GMVectors vectors_0 = GMVectors_null();
-    GMVectors vectors_1 = GMVectors_null();
+  int i = 0;
+  int j = 0;
+  for (i = 0; i < metrics->num_vector_local; ++i) {
+    for (j = i + 1; j < metrics->num_vector_local; ++j) {
+      GMFloat sum = 0;
+      int field = 0;
+      for (field = 0; field < vectors->num_field; ++field) {
+        const GMFloat value1 = GMVectors_float_get(vectors, field, i, env);
+        const GMFloat value2 = GMVectors_float_get(vectors, field, j, env);
+        sum += value1 < value2 ? value1 : value2;
+      } /*---for k---*/
+      GMMetrics_float_set_2(metrics, i, j, sum, env);
+    } /*---for j---*/
+  }   /*---for i---*/
 
-    GMVectors_create(&vectors_0, data_type, vectors->num_field,
-                     vectors->num_vector_local, env);
-    GMVectors_create(&vectors_1, data_type, vectors->num_field,
-                     vectors->num_vector_local, env);
+  /*---Combine---*/
 
-    GMVectors* vectors_01[2] = {&vectors_0, &vectors_1};
+  for (i = 0; i < metrics->num_vector_local; ++i) {
+    for (j = i + 1; j < metrics->num_vector_local; ++j) {
+      const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
+      const GMFloat denominator = vector_sums[i] + vector_sums[j];
+      GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+    } /*---for j---*/
+  }   /*---for i---*/
 
-    /*---Result matrix is diagonal block and half the blocks to the right
-         (including wraparound to left side of matrix when appropriate).
-         For even number of procs, block rows of lower half of matrix
-         have one less block to make correct count---*/
+  /*---Deallocations---*/
 
-    const int num_step = 1 + (env->num_proc / 2);
-
-    /*---Loop over steps of circular shift of vectors objects---*/
-
-    int step_num = 0;
-    for (step_num = 0; step_num < num_step; ++step_num) {
-
-      const GMBool is_first_step = step_num == 0;
-      const GMBool is_last_step = step_num == num_step - 1;
-
-      /*---The proc that owns the "right-side" vectors for the minproduct---*/
-
-      const int j_proc = (env->proc_num + step_num) % env->num_proc;
-
-      /*---Left- and right-side vecs, also right-side vecs for next step---*/
-
-      GMVectors* vectors_left = vectors;
-      GMVectors* vectors_right =
-          is_first_step ? vectors : vectors_01[step_num % 2];
-      GMVectors* vectors_right_next = vectors_01[(step_num + 1) % 2];
-
-      /*---Initialize sends/recvs---*/
-
-      MPI_Request mpi_requests[2];
-
-      int mpi_code = 0;
-      mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
-
-      const int proc_up = (env->proc_num + 1) % env->num_proc;
-      const int proc_dn = (env->proc_num - 1 + env->num_proc) % env->num_proc;
-
-      const int mpi_tag = 0;
-
-      /*---Initiate sends/recvs for vecs needed on next step---*/
-
-      if (! is_last_step) {
-        mpi_code = MPI_Isend(
-            (void*)vectors_right->data, vectors_right->num_dataval_local,
-            GM_MPI_FLOAT, proc_dn, mpi_tag, env->mpi_comm, &(mpi_requests[0]));
-        GMAssert(mpi_code == MPI_SUCCESS);
-
-        mpi_code =
-            MPI_Irecv((void*)vectors_right_next->data,
-                      vectors_right_next->num_dataval_local, GM_MPI_FLOAT,
-                      proc_up, mpi_tag, env->mpi_comm, &(mpi_requests[1]));
-        GMAssert(mpi_code == MPI_SUCCESS);
-
-      } /*---if step_num---*/
-
-      /*---Compute sums for denominators---*/
-
-      if (is_first_step) {
-        gm_compute_float_vector_sums(vectors_left, vector_sums_onproc, env);
-      } else {
-        gm_compute_float_vector_sums(vectors_right, vector_sums_offproc, env);
-      }
-
-      GMFloat* vector_sums_left = vector_sums_onproc;
-      GMFloat* vector_sums_right =
-          is_first_step ? vector_sums_onproc : vector_sums_offproc;
-
-      /*---Compute numerators---*/
-
-      const GMBool compute_triang_only = is_first_step;
-
-      const GMBool skipped_last_block_lower_half = env->num_proc % 2 == 0 &&
-                        ( 2 * env->proc_num >= env->num_proc ) && is_last_step;
-
-      if ( ! skipped_last_block_lower_half ) {
-        int j = 0;
-        for (j = 0; j < metrics->num_vector_local; ++j) {
-          const int i_max = compute_triang_only ? j : metrics->num_vector_local;
-          int i = 0;
-          for (i = 0; i < i_max; ++i) {
-          GMFloat sum = 0;
-            int field = 0;
-            for (field = 0; field < vectors->num_field; ++field) {
-              const GMFloat value1 =
-                  GMVectors_float_get(vectors_left, field, i, env);
-              const GMFloat value2 =
-                  GMVectors_float_get(vectors_right, field, j, env);
-              sum += value1 < value2 ? value1 : value2;
-            } /*---for k---*/
-            GMMetrics_float_set_all2all_2(metrics, i, j, j_proc, sum, env);
-          } /*---for i---*/
-        }   /*---for j---*/
-      } /*---if---*/
-
-      /*---Combine---*/
-
-      if ( ! skipped_last_block_lower_half ) {
-        int j = 0;
-        for (j = 0; j < metrics->num_vector_local; ++j) {
-          const int i_max = compute_triang_only ? j : metrics->num_vector_local;
-          int i = 0;
-          for (i = 0; i < i_max; ++i) {
-            const GMFloat numerator =
-                GMMetrics_float_get_all2all_2(metrics, i, j, j_proc, env);
-            const GMFloat denominator =
-                vector_sums_left[i] + vector_sums_right[j];
-            GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
-                                          2 * numerator / denominator, env);
-          } /*---for i---*/
-        }   /*---for j---*/
-      } /*---if---*/
-
-      /*---Wait for sends/recvs to complete---*/
-
-      if (! is_last_step) {
-        MPI_Status mpi_status;
-        mpi_code = MPI_Waitall(2, &(mpi_requests[0]), &mpi_status);
-        GMAssert(mpi_code == MPI_SUCCESS);
-      }
-
-    } /*---step_num---*/
-
-    /*---Deallocations---*/
-
-    free(vector_sums_onproc);
-    free(vector_sums_offproc);
-
-    GMVectors_destroy(&vectors_0, env);
-    GMVectors_destroy(&vectors_1, env);
-
-  } else /*---if ( ! env->all2all )---*/ {
-
-    /*---Compute sums for denominators---*/
-
-    GMFloat* vector_sums = GMFloat_malloc(metrics->num_vector_local);
-
-    gm_compute_float_vector_sums(vectors, vector_sums, env);
-
-    /*---Compute numerators---*/
-
-    int i = 0;
-    int j = 0;
-    for (i = 0; i < metrics->num_vector_local; ++i) {
-      for (j = i + 1; j < metrics->num_vector_local; ++j) {
-        GMFloat sum = 0;
-        int field = 0;
-        for (field = 0; field < vectors->num_field; ++field) {
-          const GMFloat value1 = GMVectors_float_get(vectors, field, i, env);
-          const GMFloat value2 = GMVectors_float_get(vectors, field, j, env);
-          sum += value1 < value2 ? value1 : value2;
-        } /*---for k---*/
-        GMMetrics_float_set_2(metrics, i, j, sum, env);
-      } /*---for j---*/
-    }   /*---for i---*/
-
-    /*---Combine---*/
-
-    for (i = 0; i < metrics->num_vector_local; ++i) {
-      for (j = i + 1; j < metrics->num_vector_local; ++j) {
-        const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
-        const GMFloat denominator = vector_sums[i] + vector_sums[j];
-        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
-      } /*---for j---*/
-    }   /*---for i---*/
-
-    /*---Deallocations---*/
-
-    free(vector_sums);
-
-  } /*---if ( env->all2all )---*/
+  free(vector_sums);
 }
 
 /*===========================================================================*/
@@ -504,30 +360,23 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   GMAssert(env != NULL);
 
   if (env->all2all) {
-    gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);
+    gm_compute_metrics_2way_all2all(metrics, vectors, env);
     return;
   }
 
   /*---Denominator---*/
 
-  GMFloat* vector_sums = GMFloat_malloc(metrics->num_vector_local);
+  GMVectorSums vector_sums = GMVectorSums_null();
+  GMVectorSums_create(&vector_sums, vectors, env);
 
   /* .02 / 1.56 */
-  gm_compute_float_vector_sums(vectors, vector_sums, env);
+  gm_compute_vector_sums(vectors, &vector_sums, env);
 
   /*---------------*/
   /*---Numerator---*/
   /*---------------*/
 
-  int i = 0;
-
-  magma_minproduct_int_t magma_code = 0;
-  magma_code = magma_code*1; /*---Avoid unused variable warning---*/
-
-  magma_code = magma_minproduct_init();
-  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-  magma_code = magma_minproductblasSetKernelStream(env->stream_compute);
-  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+  gm_magma_initialize(env);
 
   const int num_vec = metrics->num_vector_local;
   const int num_field = vectors->num_field;
@@ -543,41 +392,18 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   /*---Copy in vectors---*/
 
   /* .08 / 1.56 */
-  for (i = 0; i < num_vec; ++i) {
-    int k = 0;
-    for (k = 0; k < num_field; ++k) {
-      ((GMFloat*)vectors_buf.h)[k + num_field*i] = GMVectors_float_get(vectors, k, i, env);
-    }
-  }
+  gm_vectors_to_buf(vectors, &vectors_buf, env);
 
   /*---Send vectors to GPU---*/
 
   gm_set_vectors_start(vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
 
-  /*---Initialize result matrix to zero (apparently magma requires)---*/
+  gm_compute_numerators_start(vectors, vectors,
+       metrics, &vectors_buf, &vectors_buf, &numerators_buf,
+       env->proc_num, GM_BOOL_TRUE, env);
 
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproductblas_dlaset(Magma_minproductFull, num_vec, num_vec,
-                              0.0, 0.0, numerators_buf.d, num_vec);
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproductblas_slaset(Magma_minproductFull, num_vec, num_vec,
-                              0.0, 0.0, numerators_buf.d, num_vec);
-#endif
-
-  /*---Perform pseudo matrix-matrix product---*/
-
-/* .63 / 1.56 */
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproductblas_dgemm
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproductblas_sgemm
-#endif
-      (Magma_minproductTrans, Magma_minproductNoTrans, num_vec, num_vec,
-       num_field, 1.0, vectors_buf.d, num_field, vectors_buf.d, num_field, 0.0,
-       numerators_buf.d, num_vec);
+  gm_compute_numerators_wait(env);
 
   /*---Copy result from GPU---*/
 
@@ -587,24 +413,18 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   /*---Combine---*/
 
   /* .22 / 1.56 */
-  for (i = 0; i < metrics->num_vector_local; ++i) {
-    int j = 0;
-    for (j = i + 1; j < metrics->num_vector_local; ++j) {
-      const GMFloat numerator = ((GMFloat*)numerators_buf.h)[j + num_vec * i];
-      const GMFloat denominator = vector_sums[i] + vector_sums[j];
-      GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
-    } /*---for j---*/
-  }   /*---for i---*/
+  gm_compute_combine(metrics, &numerators_buf,
+                     &vector_sums, &vector_sums, env->proc_num,
+                     GM_BOOL_TRUE, env);
 
   /*---Free memory---*/
+
+  GMVectorSums_destroy(&vector_sums, env);
 
   gm_free_magma( &vectors_buf, env);
   gm_free_magma( &numerators_buf, env);
 
-  magma_code = magma_minproduct_finalize();
-  GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-
-  free(vector_sums);
+  gm_magma_finalize(env);
 }
 
 /*---------------------------------------------------------------------------*/
