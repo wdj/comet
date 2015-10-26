@@ -113,52 +113,7 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
           const int i_max = compute_triang_only ? j : metrics->num_vector_local;
           int i = 0;
           for (i = 0; i < i_max; ++i) {
-            /*---Add up number of individuals with each relationship---*/
-            GMFloat* tally = GMFloat_malloc(16);
-            int index1 = 0;
-            int index2 = 0;
-            for (k = 0; k < numInd; k++) {
-              index1 = (int)GMVectors_float_get(vectors, field, i, env);
-              index2 = (int)GMVectors_float_get(vectors, field, j, env);
-              tally[(index1 + 4*index2)]++;
-            }
 
-            /*---Adjust proportionate contributions of each relationship---*/
-            tally[5] /= 4.0; // both heterozygous
-            tally[4] /= 2.0; // one heterozygous, the other homozygous
-            tally[1] /= 2.0; // one heterozygous, the other homozygous
-            tally[9] /= 2.0; // one heterozygous, the other homozygous
-            tally[6] /= 2.0; // one heterozygous, the other homozygous
-
-            /*---Count how many individuals have no missing data---*/
-            int noMissing = 0;
-            int col = 0;
-            int row = 0;
-            for (col = 0; col < 3; col++) {
-              for (row = 0; row < 3; row++) {
-                noMissing += (int)tally[row+4*col];
-              }
-            }
-            
-            /*---Initialize the four output metrics: ll, lh, hl, and hh--*/
-            /*---TO DO: How do we incorporate these 4 output metrics into the metric struct?---*/
-            int numSnps = metrics->num_vector_local;
-            ll = (float *) malloc(numSnps*numSnps*sizeof(float));
-  	    lh = (float *) malloc(numSnps*numSnps*sizeof(float));
-            hl = (float *) malloc(numSnps*numSnps*sizeof(float));
-            hh = (float *) malloc(numSnps*numSnps*sizeof(float));
-
-            /*---Compute four relationship values---*/
-            ll[j+numSnps*i] = tally[0] + tally[4] + tally[2] + tally[5];
-            lh[j+numSnps*i] = tally[4] + tally[8] + tally[5] + tally[9];
-            hl[j+numSnps*i] = tally[1] + tally[5] + tally[2] + tally[6];
-            hh[j+numSnps*i] = tally[5] + tally[9] + tally[6] + tally[10];
-
-            /*---Find average by dividing by number of individuals---*/
-            ll[j+numSnps*i] /= (float)noMissing;
-            lh[j+numSnps*i] /= (float)noMissing;
-            hl[j+numSnps*i] /= (float)noMissing;
-            hh[j+numSnps*i] /= (float)noMissing;
           }
         }
       }
@@ -175,6 +130,7 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
         GMFloat* tally = GMFloat_malloc(16);
         int index1 = 0;
         int index2 = 0;
+        int numInd = vectors->numfield;
         for (k = 0; k < numInd; k++) {
           index1 = (int)GMVectors_float_get(vectors, field, i, env);
           index2 = (int)GMVectors_float_get(vectors, field, j, env); 
@@ -189,7 +145,7 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
         tally[6] /= 2.0; // one heterozygous, the other homozygous
 
         /*---Count how many individuals have no missing data---*/
-        int noMissing = 0;
+        int numInd = vectors->numfield;
         int col = 0;
         int row = 0;
         for (col = 0; col < 3; col++) {
