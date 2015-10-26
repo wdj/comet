@@ -87,16 +87,16 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---Determine what kind of step this is---*/
 
-    const GMBool is_compute_step = step_num >= 0 && step_num < num_step;
-    const GMBool is_compute_step_prev = step_num-1 >=0 && step_num-1 < num_step;
-    const GMBool is_compute_step_next = step_num+1 >=0 && step_num+1 < num_step;
+    const _Bool is_compute_step = step_num >= 0 && step_num < num_step;
+    const _Bool is_compute_step_prev = step_num-1 >=0 && step_num-1 < num_step;
+    const _Bool is_compute_step_next = step_num+1 >=0 && step_num+1 < num_step;
 
-    const GMBool is_first_compute_step = step_num == 0;
-    const GMBool is_first_compute_step_prev = step_num-1 == 0;
+    const _Bool is_first_compute_step = step_num == 0;
+    const _Bool is_first_compute_step_prev = step_num-1 == 0;
 
-    const GMBool is_last_compute_step = step_num == num_step-1;
-    const GMBool is_last_compute_step_prev = step_num-1 == num_step-1;
-    const GMBool is_last_compute_step_next = step_num+1 == num_step-1;
+    const _Bool is_last_compute_step = step_num == num_step-1;
+    const _Bool is_last_compute_step_prev = step_num-1 == num_step-1;
+    const _Bool is_last_compute_step_next = step_num+1 == num_step-1;
 
     /*---Which entry of double buffered data items to use---*/
 
@@ -153,32 +153,32 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---To remove redundancies from symmetry, skip some blocks---*/
 
-    const GMBool skipping_active =
+    const _Bool skipping_active =
                 ( env->num_proc % 2 == 0 ) &&
                 ( 2 * env->proc_num >= env->num_proc );
 
-    const GMBool skipped_last_block_lower_half = skipping_active &&
+    const _Bool skipped_last_block_lower_half = skipping_active &&
                 is_last_compute_step;
 
-    const GMBool skipped_last_block_lower_half_prev = skipping_active &&
+    const _Bool skipped_last_block_lower_half_prev = skipping_active &&
                 is_last_compute_step_prev;
 
-    const GMBool skipped_last_block_lower_half_next = skipping_active &&
+    const _Bool skipped_last_block_lower_half_next = skipping_active &&
                 is_last_compute_step_next;
 
-    const GMBool do_compute_block = is_compute_step &&
+    const _Bool do_compute_block = is_compute_step &&
                                  ! skipped_last_block_lower_half;
 
-    const GMBool do_compute_block_prev = is_compute_step_prev &&
+    const _Bool do_compute_block_prev = is_compute_step_prev &&
                                  ! skipped_last_block_lower_half_prev;
 
-    const GMBool do_compute_block_next = is_compute_step_next &&
+    const _Bool do_compute_block_next = is_compute_step_next &&
                                  ! skipped_last_block_lower_half_next;
 
     /*---Main diagonal block only computes strict upper triangular part---*/
 
-    const GMBool do_compute_triang_only = is_first_compute_step;
-    const GMBool do_compute_triang_only_prev = is_first_compute_step_prev;
+    const _Bool do_compute_triang_only = is_first_compute_step;
+    const _Bool do_compute_triang_only_prev = is_first_compute_step_prev;
 
     /*---Send right vectors to GPU end---*/
 

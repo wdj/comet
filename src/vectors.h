@@ -123,7 +123,7 @@ static int GMVectors_bit_dataval_num(GMVectors* vectors,
 static void GMVectors_bit_set(GMVectors* vectors,
                               int field,
                               int vector_local,
-                              GMBool value,
+                              _Bool value,
                               GMEnv* env) {
   GMAssert(vectors);
   GMAssert(field >= 0);
@@ -146,7 +146,7 @@ static void GMVectors_bit_set(GMVectors* vectors,
 
 /*---------------------------------------------------------------------------*/
 
-static GMBool GMVectors_bit_get(GMVectors* const vectors,
+static _Bool GMVectors_bit_get(GMVectors* const vectors,
                                 int field,
                                 int vector_local,
                                 GMEnv* env) {
@@ -165,7 +165,7 @@ static GMBool GMVectors_bit_get(GMVectors* const vectors,
   GMAssert(sizeof(GMULInt) == sizeof(GMBits));
   GMAssert(sizeof(GMBits) == 8);
 
-  GMBool result = 0;
+  _Bool result = 0;
 
   GMULInt* const p = &(((GMULInt*)(vectors->data))[dataval_num]);
   result = ((*p) >> bit_num) & ((GMULInt)1) ? GM_BOOL_TRUE : GM_BOOL_FALSE;
@@ -175,7 +175,7 @@ static GMBool GMVectors_bit_get(GMVectors* const vectors,
 
 /*---------------------------------------------------------------------------*/
 
-static GMBool GMVectors_bit_get_from_index(GMVectors* const vectors,
+static _Bool GMVectors_bit_get_from_index(GMVectors* const vectors,
                                            int index,
                                            GMEnv* env) {
   GMAssert(vectors);

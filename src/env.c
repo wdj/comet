@@ -231,8 +231,8 @@ int gm_data_type_from_metric_type(int metric_type, GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-GMBool GMEnv_cuda_last_call_succeeded(GMEnv* env) {
-  GMBool result = GM_BOOL_TRUE;
+_Bool GMEnv_cuda_last_call_succeeded(GMEnv* env) {
+  _Bool result = GM_BOOL_TRUE;
 
   /*---NOTE: this read of the last error is a destructive read---*/
   cudaError_t error = cudaGetLastError();

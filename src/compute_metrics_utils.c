@@ -480,7 +480,7 @@ void gm_compute_czekanowski_numerators_start(
                                       GMMirroredPointer* vectors_right_buf,
                                       GMMirroredPointer* numerators_buf,
                                       int j_proc,
-                                      GMBool do_compute_triang_only,
+                                      _Bool do_compute_triang_only,
                                       GMEnv* env) {
   GMAssert(vectors_left != NULL);
   GMAssert(vectors_right != NULL);
@@ -559,7 +559,7 @@ void gm_compute_numerators_start( GMVectors* vectors_left,
                                   GMMirroredPointer* vectors_right_buf,
                                   GMMirroredPointer* numerators_buf,
                                   int j_proc,
-                                  GMBool do_compute_triang_only,
+                                  _Bool do_compute_triang_only,
                                   GMEnv* env) {
   GMAssert(vectors_left != NULL);
   GMAssert(vectors_right != NULL);
@@ -620,7 +620,7 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
                                     GMFloat* __restrict__ vector_sums_left,
                                     GMFloat* __restrict__ vector_sums_right,
                                     int j_proc,
-                                    GMBool do_compute_triang_only,
+                                    _Bool do_compute_triang_only,
                                     GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_left != NULL);
@@ -633,7 +633,7 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
        For GPU case, directly access the metrics_buf holding the numerators.
   ---*/
 
-  const GMBool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
+  const _Bool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
 
   /*----------------------------------------*/
   if ( env->compute_method != GM_COMPUTE_METHOD_GPU && env->all2all ) {
@@ -723,7 +723,7 @@ void gm_compute_combine(GMMetrics* metrics,
                         GMVectorSums* vector_sums_left,
                         GMVectorSums* vector_sums_right,
                         int j_proc,
-                        GMBool do_compute_triang_only,
+                        _Bool do_compute_triang_only,
                         GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_left != NULL);

@@ -82,7 +82,7 @@ void gm_compute_numerators_start( GMVectors* vectors_left,
                                   GMMirroredPointer* vectors_right_buf,
                                   GMMirroredPointer* numerators_buf,
                                   int j_proc,
-                                  GMBool compute_triang_only,
+                                  _Bool compute_triang_only,
                                   GMEnv* env);
 
 void gm_compute_numerators_wait(GMEnv* env);
@@ -92,7 +92,7 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
                                     GMFloat* __restrict__ vector_sums_left,
                                     GMFloat* __restrict__ vector_sums_right,
                                     int j_proc,
-                                    GMBool compute_triang_only,
+                                    _Bool compute_triang_only,
                                     GMEnv* env);
 
 void gm_compute_combine(GMMetrics* metrics,
@@ -100,7 +100,7 @@ void gm_compute_combine(GMMetrics* metrics,
                         GMVectorSums* vector_sums_left,
                         GMVectorSums* vector_sums_right,
                         int j_proc, 
-                        GMBool do_compute_triang_only,
+                        _Bool do_compute_triang_only,
                         GMEnv* env);
 
 /*===========================================================================*/

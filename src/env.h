@@ -28,8 +28,6 @@
 
 /*---Boolean type---*/
 
-typedef int GMBool;
-
 enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
 /*---Types for packed bits objects---*/
@@ -79,7 +77,7 @@ GMMirroredPointer GMMirroredPointer_null(void);
 typedef struct {
   int metric_type;
   int num_way;
-  GMBool all2all;
+  _Bool all2all;
   int compute_method;
   int mpi_comm;
   int num_proc;
@@ -87,7 +85,7 @@ typedef struct {
   cudaStream_t stream_compute;
   cudaStream_t stream_vectors;
   cudaStream_t stream_metrics;
-  GMBool are_cuda_streams_initialized;
+  _Bool are_cuda_streams_initialized;
 } GMEnv;
 
 enum {
@@ -231,7 +229,7 @@ static size_t gm_nchoosek(int n, int k) {
 
 int gm_data_type_from_metric_type(int metric_type, GMEnv* env);
 
-GMBool GMEnv_cuda_last_call_succeeded(GMEnv* env);
+_Bool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 
 GMFloat* GMFloat_malloc( size_t n );
 

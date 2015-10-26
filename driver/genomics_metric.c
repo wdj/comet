@@ -108,7 +108,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
           /*---Calculate random number between 0 and 1---*/
           GMFloat rand_value = index / (GMFloat)gm_randomize_max();
           /*---Create single bit value---*/
-          GMBool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
+          _Bool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
           GMVectors_bit_set(vectors, field, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/
