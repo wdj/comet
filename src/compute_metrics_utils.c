@@ -400,6 +400,50 @@ void gm_set_vectors_wait(GMEnv* env) {
 }
 
 /*===========================================================================*/
+/*---Start/end transfer of generic matrix to GPU---*/
+//---Added by James Nance---//
+void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
+                                 int mat_dim1, int mat_dim2, GMEnv* env) {
+  GMAssert(matrix_buf != NULL);
+  GMAssert(mat_dim1 != NULL);
+  GMAssert(mat_dim2 != NULL);
+  GMAssert(env != NULL);
+
+  if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    return;
+  }
+
+  /*---Send vectors to GPU---*/
+
+  GMEnv_initialize_streams(env);
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproduct_dsetmatrix_async(mat_dim1, mat_dim2,
+                   (GMFloat*)matrix_buf->h, mat_dim1,
+                   (GMFloat*)matrix_buf->d, mat_dim1, env->stream_vectors);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproduct_ssetmatrix_async(mat_dim1, mat_dim2,
+                   (GMFloat*)matrix_buf->h, mat_dim1,
+                   (GMFloat*)matrix_buf->d, mat_dim1, env->stream_vectors);
+#endif
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_set_matrix_wait(GMEnv* env) {
+  GMAssert(env != NULL);
+
+  if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    return;
+  }
+
+  GMEnv_initialize_streams(env);
+  cudaStreamSynchronize( env->stream_vectors );//Does this line need to be changed?? -JN
+  GMAssert(GMEnv_cuda_last_call_succeeded(env));
+}
+
+/*===========================================================================*/
 /*---Start/end transfer of metrics data from GPU---*/
 
 void gm_get_metrics_start(GMMetrics* metrics,
@@ -433,6 +477,51 @@ void gm_get_metrics_start(GMMetrics* metrics,
 /*---------------------------------------------------------------------------*/
 
 void gm_get_metrics_wait(GMEnv* env) {
+  GMAssert(env != NULL);
+
+  if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    return;
+  }
+
+  GMEnv_initialize_streams(env);
+  cudaStreamSynchronize( env->stream_metrics );
+  GMAssert(GMEnv_cuda_last_call_succeeded(env));
+}
+
+/*===========================================================================*/
+/*---Start/end transfer of generic matrix from GPU---*/
+//---Added by James Nance---//
+void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
+                         int mat_dim1, int mat_dim2,
+                         GMEnv* env) {
+  
+  GMAssert(matrix_buf != NULL);
+  GMAssert(mat_dim1 != NULL);
+  GMAssert(mat_dim2 != NULL);
+  GMAssert(env != NULL);
+
+  if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    return;
+  }
+
+  /*---Send vectors to GPU---*/
+
+  GMEnv_initialize_streams(env);
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproduct_dgetmatrix_async(mat_dim1, mat_dim2,
+                        (GMFloat*)matrix_buf->d, mat_dim1,
+                        (GMFloat*)matrix_buf->h, mat_dim2, env->stream_metrics);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproduct_sgetmatrix_async(mat_dim1, mat_dim2,
+                        (GMFloat*)matrix_buf->d, mat_dim1,
+                        (GMFloat*)matrix_buf->h, mat_dim2, env->stream_metrics);
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_get_matrix_wait(GMEnv* env) {
   GMAssert(env != NULL);
 
   if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
@@ -659,20 +748,34 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
   /*----------------------------------------*/
   } else if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
   /*----------------------------------------*/
+ 
 
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        const GMFloat numerator = GMMetrics_float_get_all2all_2(
-                                                   metrics, i, j, j_proc, env);
-        /*---Don't use two pointers pointing to the same thing---*/
-        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
-        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
-      } /*---for i---*/
-    }   /*---for j---*/
-
+    if ( env->num_way == 2 ) {
+      int j = 0;
+      for (j = 0; j < metrics->num_vector_local; ++j) {
+        const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+        int i = 0;
+        for (i = 0; i < i_max; ++i) {
+          const GMFloat numerator = GMMetrics_float_get_all2all_2(
+                                                     metrics, i, j, j_proc, env);
+          /*---Don't use two pointers pointing to the same thing---*/
+          const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
+          GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+        } /*---for i---*/
+      }   /*---for j---*/
+    } else { //---Added by James Nance---//
+      for (i = 0; i < metrics->num_vector_local; ++i) {
+        for (j = i + 1; j < metrics->num_vector_local; ++j) {
+          for (k = j + 1; k < metrics->num_vector_local; ++k) {
+            const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
+            const GMFloat denominator =
+                vector_sums_left[i] + vector_sums_left[j] + vector_sums_left[k];
+            GMMetrics_float_set_3(metrics, i, j, k,
+                                  3 * numerator / (2 * denominator), env);
+          } /*---for k---*/
+        }   /*---for j---*/
+      }     /*---for i---*/
+    }
   /*----------------------------------------*/
   } else if ( env->all2all ) {
   /*----------------------------------------*/

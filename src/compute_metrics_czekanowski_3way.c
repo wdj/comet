@@ -30,7 +30,7 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
 
   /*---Denominator---*/
 
-  GMFloat* vector_sums = malloc(metrics->num_vector_local * sizeof(GMFloat));
+  GMFloat* vector_sums = GMFLoat_malloc((metrics->num_vector_local);
 
   gm_compute_float_vector_sums(vectors, vector_sums, env);
 
@@ -115,52 +115,29 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   GMMirroredPointer h_matB =
     gm_malloc_magma ( numvec * (size_t)numvec, env); // B = X^T minprod V
 
-  /*---Allocate GPU mirrors for CPU arrays---*/
-  GMFloat* d_vectors = NULL;
-  GMFloat* d_matM = NULL;
-  GMFloat* d_matV = NULL;
-  GMFloat* d_matB = NULL;
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dmalloc(&d_vectors, numvec * numfield);
-  magma_minproduct_dmalloc(&d_matM, numvec * numvec);
-  magma_minproduct_dmalloc(&d_matV, numfield * numvec);
-  magma_minproduct_dmalloc(&d_matB, numvec * numvec);
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproduct_smalloc(&d_vectors, numvec * numfield);
-  magma_minproduct_smalloc(&d_matM, numvec * numvec);
-  magma_minproduct_smalloc(&d_matV, numfield * numvec);
-  magma_minproduct_smalloc(&d_matB, numvec * numvec);
-#endif
-
   /*---Copy in vectors---*/
-  gm_vectors_to_buf(vectors, &vectors_buf, env);
+  gm_vectors_to_buf(vectors, &h_vectors, env);
 
-/*---Send matrix vectors to GPU---*/
-
+  /*---Send matrix vectors to GPU---*/
   gm_set_vectors_start(vectors, &h_vectors, env);
   gm_set_vectors_wait(env);
 
 
-/*---Perform pseudo matrix-matrix product matM=vectors^T*vectors---*/
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproductblas_dgemm
-#endif
-#ifdef FP_PRECISION_SINGLE
-      magma_minproductblas_sgemm
-#endif
-      (Magma_minproductTrans, Magma_minproductNoTrans, numvec, numvec, numfield,
-       1.0, d_vectors, numfield, d_vectors, numfield, 0.0, d_matM, numvec);
-  gm_compute_numerators_wait(env); /*---added - WJ---*/
+  /*---Perform pseudo matrix-matrix product matM=vectors^T*vectors---*/
+  /*
+    My matM is the same as the 2way "numerators" variable, so I should 
+    be able to use the same function from the 2-way implementation.
+  */
+  gm_compute_numerators_start(vectors, vectors, 
+       metrics, &h_vectors, &h_vectors, &h_matM,
+       env->proc_num, GM_BOOL_TRUE, env);
+
+  gm_compute_numerators_wait(env);
 
 /*---Copy matM from GPU---*/
 
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dgetmatrix(numvec, numvec, d_matM, numvec, h_matM, numvec);
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproduct_sgetmatrix(numvec, numvec, d_matM, numvec, h_matM, numvec);
-#endif
+  gm_get_metrics_start(metrics, &h_matM, env);
+  gm_get_metrics_wait(env);
 
   /*---Process all combinations starting with j, i, k---*/
   for (j = 1; j < numvec - 1; ++j) {
@@ -175,20 +152,12 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
                 : h_vectors[k + numfield * j];
       }
     }
+    /*---Send matrix matV to GPU---*/
+    gm_set_matrix_start(h_matV, numfield, numvec, env);
+    gm_set_matrix_wait(env);
 
-/*---Send matrix matV to GPU---*/
-// magma_minproduct_Xsetmatrix(M, N, host_matrix, leading_dim_of_host,
-// device_matrix, leading_dim_of_dev);
-#ifdef FP_PRECISION_DOUBLE
-    magma_minproduct_dsetmatrix(numfield, numvec, h_matV, numfield, d_matV,
-                                numfield);
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_minproduct_ssetmatrix(numfield, numvec, h_matV, numfield, d_matV,
-                                numfield);
-#endif
+    /*---Initialize result matrix to zero (apparently magma requires)---*/
 
-/*---Initialize result matrix to zero (apparently magma requires)---*/
 #ifdef FP_PRECISION_DOUBLE
   magma_minproductblas_dlaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
                               d_matB, numvec);
@@ -211,12 +180,18 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   gm_compute_numerators_wait(env); /*---added - WJ---*/
 
 /*---Copy matB from GPU---*/
+  /*
+  gm_get_matrix_start(h_matB, numvec, numvec, env);
+  gm_get_matrix_wait(env);
+  */
+
 #ifdef FP_PRECISION_DOUBLE
     magma_minproduct_dgetmatrix(numvec, numvec, d_matB, numvec, h_matB, numvec);
 #endif
 #ifdef FP_PRECISION_SINGLE
     magma_minproduct_sgetmatrix(numvec, numvec, d_matB, numvec, h_matB, numvec);
 #endif
+
     /*---Combine results---*/
     for (i = 0; i < j; ++i) {
       GMFloat min_ij = h_matM[j + numvec * i];
@@ -233,6 +208,12 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
       } /*---for k---*/
     }   /*---for i---*/
   }     /*---for j---*/
+
+/*
+  gm_compute_combine(metrics, &h_numerators,
+                     &vector_sums, &vector_sums, env->proc_num,
+                     GM_BOOL_TRUE, env);
+*/
 
   /*---Free memory and finalize---*/
   magma_minproduct_free(d_matM);
