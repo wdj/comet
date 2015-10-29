@@ -26,6 +26,13 @@ echo "Unpacking ..."
 
 gunzip <${MAGMA}.tar.gz | tar xf -
 
+MATCHES=`grep -ri $TAG magma-1.6.2 | wc -l`
+
+if [ $MATCHES != 0 ] then
+  echo "Error: tag string already occurs in Magma source." 1>&2
+  exit 1
+fi
+
 echo "Changing strings in each file ..."
 
 #for file in `find $MAGMA -name '*' -type f -print` ; do
@@ -49,7 +56,8 @@ prepare the cloned Magma code for usage, please do the following:
 1. Copy the file make.inc into the new cloned Magma directory.
 
 2. Make the desired changes to Magma, such as redefinition of certain
-   mathematical operations.
+   mathematical operations. See in particular gemm_stencil.cuh,
+   gemm_stencil_defs.h, dgemm_tesla_T_N.cu in the blas subdirectory.
 
 3. If desired, add/commit the new Magma clone to the repository.
 

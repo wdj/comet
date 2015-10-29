@@ -143,6 +143,10 @@ void gm_insist(GMEnv* env,
                int line);
 
 #ifndef NDEBUG
+#define GM_ASSERTIONS_ON
+#endif
+
+#ifndef NDEBUG
 /*---Fail compilation and (hopefully) give a filename/line number---*/
 #define GMStaticAssert(condition) \
   {                               \

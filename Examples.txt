@@ -13,7 +13,7 @@ mkdir gm_work
 cd gm_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-git checkout -q tags/v0.1.3
+git checkout -q tags/v0.1.4   #---use currently active release tag.
 cd genomics_gpu/magma/magma_minproduct-1.6.2
 ../make.sh
 cd ../../..
@@ -157,6 +157,57 @@ Application 1138411 resources: utime ~9s, stime ~3s, Rss ~122396, inblocks ~2410
 
 metrics checksum 4.28265076818575977e+12 compute time 2.571738
 Application 1138412 resources: utime ~12s, stime ~4s, Rss ~118288, inblocks ~3221, outblocks ~6248
+
+#--------------------
+# 2-way Czekanowski metric, all2all, GPU, one core per node, strong scaling.
+#--------------------
+
+for nproc in {1..4} ; do
+  num_vector_local=$(( 6000 / $nproc ))
+  aprun -n$nproc -N1 ./install_release/bin/genomics_metric \
+      --num_field 500 --num_vector_local $num_vector_local \
+      --all2all yes --compute_method GPU --verbosity 1
+  echo
+done
+
+metrics checksum 4.28265076818539453e+12 compute time 0.841200
+Application 1147794 resources: utime ~1s, stime ~2s, Rss ~1092936, inblocks ~762, outblocks ~1619
+
+metrics checksum 4.28265076818591602e+12 compute time 0.298465
+Application 1147795 resources: utime ~2s, stime ~2s, Rss ~571224, inblocks ~1924, outblocks ~3250
+
+metrics checksum 4.28265076818602002e+12 compute time 0.147514
+Application 1147796 resources: utime ~3s, stime ~3s, Rss ~356532, inblocks ~2898, outblocks ~4869
+
+metrics checksum 4.28265076818575977e+12 compute time 0.112496
+Application 1147797 resources: utime ~4s, stime ~4s, Rss ~319392, inblocks ~3872, outblocks ~6496
+
+#--------------------
+# 2-way Czekanowski metric, all2all, GPU, one core per node, weak scaling,
+# number of nodes proportional to the square of the total number of vectors
+# (and asymptotically proportional to the total work).
+#--------------------
+
+for nproc_sqrt in 1 2 4 8 ; do
+  nproc=$(( $nproc_sqrt * $nproc_sqrt ))
+  num_field=3072
+  num_vector_local=$(( 16384 / $nproc_sqrt ))
+  time aprun -n$nproc -N1 $EXEC \
+    --num_field $num_field --num_vector_local $num_vector_local \
+    --all2all yes --compute_method $compute_method --verbosity 1
+done
+
+metrics checksum 3.19416457956544414e+13 compute time 10.902887
+Application 1147783 resources: utime ~15s, stime ~15s, Rss ~8019820, inblocks ~762, outblocks ~1619
+
+metrics checksum 1.27772353677617906e+14 compute time 5.861507
+Application 1147784 resources: utime ~58s, stime ~26s, Rss ~5011272, inblocks ~3912, outblocks ~6956
+
+metrics checksum 5.11100894647449750e+14 compute time 3.698334
+Application 1147785 resources: utime ~176s, stime ~64s, Rss ~3241436, inblocks ~15624, outblocks ~26864
+
+metrics checksum 2.04442683684379950e+15 compute time 3.344925
+Application 1147786 resources: utime ~755s, stime ~192s, Rss ~2651680, inblocks ~62376, outblocks ~105536
 
 #--------------------
 # 3-way Czekanowski metric.
