@@ -639,6 +639,145 @@ void gm_compute_czekanowski_numerators_start(
   /*----------------------------------------*/
 }
 
+
+/*---------------------------------------------------------------------------*/
+void gm_compute_czekanowski_numerators_3way_start(
+                                      GMVectors* vectors_left,
+                                      GMVectors* vectors_right,
+                                      GMMetrics* numerators,
+                                      GMMirroredPointer* vectors_left_buf,
+                                      GMMirroredPointer* vectors_right_buf,
+                                      //GMMirroredPointer* numerators_buf,
+                                      int j_proc,
+                                      _Bool do_compute_triang_only,
+                                      GMEnv* env) {
+  GMAssert(vectors_left != NULL);
+  GMAssert(vectors_right != NULL);
+  GMAssert(numerators != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+
+  const int numvec = numerators->num_vector_local;
+  const int numfield = vectors_left->num_field;
+ 
+  /*----------------------------------------*/
+  if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
+  /*----------------------------------------*/
+
+  /*----------------------------------------*/
+  } else /* if (env->compute_method == GM_COMPUTE_METHOD_GPU) */ {
+  /*----------------------------------------*/
+   
+    /*---Allocate magma CPU/GPU memory for M = X^T minprod X---*/ 
+    GMMirroredPointer matM_buf =
+      gm_malloc_magma ( numvec * (size_t)numvec, env); // M = X^T minprod X    
+
+    /*---Initialize result matrix to zero (apparently magma requires)---*/
+#ifdef FP_PRECISION_DOUBLE
+    magma_minproductblas_dlaset
+#endif
+#ifdef FP_PRECISION_SINGLE
+    magma_minproductblas_slaset
+#endif
+        (Magma_minproductFull,
+        numvec, numvec,
+        0.0, 0.0, (GMFloat*)matM_buf->d, numvec);
+
+    /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
+
+/* .63 / 1.56 */
+#ifdef FP_PRECISION_DOUBLE
+    magma_minproductblas_dgemm
+#endif
+#ifdef FP_PRECISION_SINGLE
+    magma_minproductblas_sgemm
+#endif
+        (Magma_minproductTrans, Magma_minproductNoTrans,
+         numvec, numvec, numfield, 1.0,
+         (GMFloat*)vectors_left_buf->d, numfield,
+         (GMFloat*)vectors_right_buf->d, numfield,
+         0.0, (GMFloat*)matM_buf->d, numvec);
+
+    /*---Copy matM from GPU---*/
+    gm_get_metrics_start(metrics, &h_matM, env);
+    gm_get_metrics_wait(env);
+     
+    /*---Allocate magma CPU/GPU memory for matrices V and B---*/
+    /* 
+       V = elementwise min of one vector with the rest of the vectors. 
+       The for the jth iteration the ith column of V is the elementwise min of vectors i and j
+       B = X^T minprod V = three way min product
+    */
+    GMMirroredPointer matV_buf =
+      gm_malloc_magma ( numvec * (size_t)numfield, env); 
+    GMMirroredPointer matB_buf =
+      gm_malloc_magma ( numvec * (size_t)numvec, env);
+
+    /*---Process all combinations starting with j, i, k---*/
+    for (j = 1; j < numvec - 1; ++j) {
+      /*---Populate first j-1 columns of matV---*/
+      for (i = 0; i < numvec; ++i) {
+        // Compare columns x_i and x_j element-wise
+        for (k = 0; k < numfield; ++k) {
+          matV_buf->h[k + i * numfield] =
+              vectors_left_buf->h[k + numfield * i] < vectors_right_buf->h[k + numfield * j]
+                  ? vectors_left_buf->h[k + numfield * i]
+                  : vectors_right_buf->h[k + numfield * j];
+      }//---for k---//
+    }//---for i---//
+
+    /*---Send matrix matV to GPU---*/
+    gm_set_matrix_start(matV_buf, numfield, numvec, env);
+    gm_set_matrix_wait(env); 
+
+    /*---Initialize result matrix to zero (apparently magma requires)---*/
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproductblas_dlaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
+                              matB_buf->d, numvec);
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproductblas_slaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
+                              matB_buf->d, numvec);
+#endif
+
+    /*---Perform matrix-matrix product matB = matV^T minprod X---*/
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproductblas_dgemm
+#endif
+#ifdef FP_PRECISION_SINGLE
+   magma_minproductblas_sgemm
+#endif
+        (Magma_minproductTrans, Magma_minproductNoTrans,
+         numvec, numvec, numfield, 1.0,
+         (GMFloat*)matV_buf->d, numfield, 
+         (GMFloat*)vectors_left_buf->d, numfield, 
+         0.0, matB_buf->d, numvec);
+
+    /*---Copy matB from GPU---*/
+    gm_get_matrix_start(matB_buf, numvec, numvec, env);
+    gm_get_matrix_wait(env);
+  
+    /*---Compute numerators---*/
+    for (i = 0; i < j; ++i) {
+      GMFloat min_ij = matM_buf->h[j + numvec * i];
+      for (k = j + 1; k < numvec; ++k) {
+        GMFloat min_ik = matM_buf->h[k + numvec * i];
+        GMFloat min_jk = matM_buf->h[k + numvec * j];
+        // sum of mins vectors i, j, and k is matB(i,k)
+        GMFloat min_ijk = matB_buf->h[k + numvec * i];
+        const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
+        GMMetrics_float_set_3(metrics, i, j, k,
+                              numerator, env);
+      } /*---for k---*/
+    }   /*---for i---*/
+  }     /*---for j---*/
+  
+  /*---Free memory---*/
+  gm_free_magma( &matM_buf, env);
+  gm_free_magma( &matV_buf, env);
+  gm_free_magma( &matB_buf, env);
+
+}
 /*---------------------------------------------------------------------------*/
 
 void gm_compute_numerators_start( GMVectors* vectors_left,
@@ -667,11 +806,15 @@ void gm_compute_numerators_start( GMVectors* vectors_left,
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
     /*----------------------------------------*/
-
-      gm_compute_czekanowski_numerators_start(vectors_left, vectors_right,
-           numerators, vectors_left_buf, vectors_right_buf, numerators_buf,
-           j_proc, do_compute_triang_only, env);
-
+      if ( env-> num_way == 2) {
+        gm_compute_czekanowski_numerators_start(vectors_left, vectors_right,
+             numerators, vectors_left_buf, vectors_right_buf, numerators_buf,
+             j_proc, do_compute_triang_only, env);
+      } else { //---3way added by James Nance---//
+        gm_compute_czekanowski_numerators_3way_start(vectors_left, vectors_right,
+             numerators, vectors_left_buf, vectors_right_buf, numerators_buf,
+             j_proc, do_compute_triang_only, env); 
+      }
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
@@ -750,32 +893,19 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
   /*----------------------------------------*/
  
 
-    if ( env->num_way == 2 ) {
-      int j = 0;
-      for (j = 0; j < metrics->num_vector_local; ++j) {
-        const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-        int i = 0;
-        for (i = 0; i < i_max; ++i) {
-          const GMFloat numerator = GMMetrics_float_get_all2all_2(
-                                                     metrics, i, j, j_proc, env);
-          /*---Don't use two pointers pointing to the same thing---*/
-          const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
-          GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
-        } /*---for i---*/
-      }   /*---for j---*/
-    } else { //---Added by James Nance---//
-      for (i = 0; i < metrics->num_vector_local; ++i) {
-        for (j = i + 1; j < metrics->num_vector_local; ++j) {
-          for (k = j + 1; k < metrics->num_vector_local; ++k) {
-            const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
-            const GMFloat denominator =
-                vector_sums_left[i] + vector_sums_left[j] + vector_sums_left[k];
-            GMMetrics_float_set_3(metrics, i, j, k,
-                                  3 * numerator / (2 * denominator), env);
-          } /*---for k---*/
-        }   /*---for j---*/
-      }     /*---for i---*/
-    }
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator = GMMetrics_float_get_all2all_2(
+                                                   metrics, i, j, j_proc, env);
+        /*---Don't use two pointers pointing to the same thing---*/
+        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
+        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/  
+  
   /*----------------------------------------*/
   } else if ( env->all2all ) {
   /*----------------------------------------*/
@@ -819,6 +949,46 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
   /*----------------------------------------*/
 }
 
+/*===========================================================================*/
+//--Added by James Nance---//
+void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
+                                    //GMMirroredPointer* metrics_buf,
+                                    GMFloat* __restrict__ vector_sums_left,
+                                    GMFloat* __restrict__ vector_sums_right,
+                                    int j_proc,
+                                    _Bool do_compute_triang_only,
+                                    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vector_sums_left != NULL);
+  GMAssert(vector_sums_right != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+ 
+  /*----------------------------------------*/
+  if ( env->all2all ) {
+  /*----------------------------------------*/
+
+    GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+  /*----------------------------------------*/
+  } else {
+  /*----------------------------------------*/
+
+    for (i = 0; i < metrics->num_vector_local; ++i) {
+      for (j = i + 1; j < metrics->num_vector_local; ++j) {
+        for (k = j + 1; k < metrics->num_vector_local; ++k) {
+          const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
+          const GMFloat denominator = vector_sums_left[i] 
+                          + vector_sums_left[j] + vector_sums_left[k];
+          GMMetrics_float_set_3(metrics, i, j, k,
+                              3 * numerator / (2 * denominator), env);
+        } /*---for k---*/
+      } /*---for j---*/
+    } /*---for i---*/
+  } /*--- if (env->all2all) ---*/
+
+}
+
 /*---------------------------------------------------------------------------*/
 
 void gm_compute_combine(GMMetrics* metrics,
@@ -845,14 +1015,22 @@ void gm_compute_combine(GMMetrics* metrics,
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
     /*----------------------------------------*/
-
-      gm_compute_czekanowski_combine(metrics,
-                                    metrics_buf,
-                                    (GMFloat*)vector_sums_left->data,
-                                    (GMFloat*)vector_sums_right->data,
-                                    j_proc,
-                                    do_compute_triang_only,
-                                    env);
+      
+      if (env->num_way == 2) {
+        gm_compute_czekanowski_combine(metrics,
+                                      metrics_buf,
+                                      (GMFloat*)vector_sums_left->data,
+                                      (GMFloat*)vector_sums_right->data,
+                                      j_proc,
+                                      do_compute_triang_only,
+                                      env);
+      } else {
+        gm_compute_czekanowski_3way_combine(metrics,
+                                           (GMFloat*)vector_sums_left->data,
+                                           (GMFloat*)vector_sums_right->data,
+                                           j_proc,
+                                           do_compute_triang_only,
+                                           env);
 
     } break;
     /*----------------------------------------*/
