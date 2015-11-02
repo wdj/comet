@@ -707,20 +707,20 @@ void gm_compute_czekanowski_numerators_3way_start(
       gm_malloc_magma ( numvec * (size_t)numfield, env); 
     GMMirroredPointer matB_buf =
       gm_malloc_magma ( numvec * (size_t)numvec, env);
-
+    
+    /*---Process all combinations starting with j, i, k---*/
     int j = 0;
     int i = 0;
     int k = 0;
-    /*---Process all combinations starting with j, i, k---*/
-    for (j = 1; j < numvec - 1; ++j) {
+    printf("---GPU---\n");
+    for (j = 1; j < numvec-1; ++j) {
       /*---Populate first j-1 columns of matV---*/
       for (i = 0; i < numvec; ++i) {
         // Compare columns x_i and x_j element-wise
         for (k = 0; k < numfield; ++k) {
-          ((GMFloat*)(matV_buf.h))[k + i * numfield] =
-              ((GMFloat*)(vectors_left_buf->h))[k + numfield * i] < ((GMFloat*)(vectors_right_buf->h))[k + numfield * j]
-                  ? ((GMFloat*)(vectors_left_buf->h))[k + numfield * i]
-                  : ((GMFloat*)(vectors_right_buf->h))[k + numfield * j];
+          const GMFloat a = ((GMFloat*)(vectors_left_buf->h))[k + numfield * i];
+          const GMFloat b = ((GMFloat*)(vectors_right_buf->h))[k + numfield * j];
+          ((GMFloat*)(matV_buf.h))[k + i * numfield] = a < b ? a : b;
         }//---for k---//
       }//---for i---//
 
@@ -757,13 +757,14 @@ void gm_compute_czekanowski_numerators_3way_start(
   
      /*---Compute numerators---*/
      for (i = 0; i < j; ++i) {
-       GMFloat min_ij = ((GMFloat*)(matM_buf.h))[j + numvec * i];
+       const GMFloat min_ij = ((GMFloat*)(matM_buf.h))[j + numvec * i];
        for (k = j + 1; k < numvec; ++k) {
-         GMFloat min_ik = ((GMFloat*)(matM_buf.h))[k + numvec * i];
-         GMFloat min_jk = ((GMFloat*)(matM_buf.h))[k + numvec * j];
+         const GMFloat min_ik = ((GMFloat*)(matM_buf.h))[k + numvec * i];
+         const GMFloat min_jk = ((GMFloat*)(matM_buf.h))[k + numvec * j];
          // sum of mins vectors i, j, and k is matB(i,k)
-         GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[k + numvec * i];
+         const GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[k + numvec * i];
          const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
+         //printf("%i,%i,%i . . . numerator = %f\n",i,j,k,numerator);
          GMMetrics_float_set_3(numerators, i, j, k,
                              numerator, env);
         } /*---for k---*/
@@ -951,7 +952,6 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
 /*===========================================================================*/
 //--Added by James Nance---//
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
-                                    //GMMirroredPointer* metrics_buf,
                                     GMFloat* __restrict__ vector_sums_left,
                                     GMFloat* __restrict__ vector_sums_right,
                                     int j_proc,
@@ -975,12 +975,13 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
     int i = 0;
     int j = 0;
     int k = 0;
-    for (i = 0; i < metrics->num_vector_local; ++i) {
-      for (j = i + 1; j < metrics->num_vector_local; ++j) {
+    for (i = 0; i < metrics->num_vector_local-2; ++i) {
+      for (j = i + 1; j < metrics->num_vector_local-1; ++j) {
         for (k = j + 1; k < metrics->num_vector_local; ++k) {
           const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
           const GMFloat denominator = vector_sums_left[i] 
                           + vector_sums_left[j] + vector_sums_left[k];
+          printf("%i,%i,%i . . . numerator = %f . . . denominator = %f\n",i,j,k,numerator,denominator);
           GMMetrics_float_set_3(metrics, i, j, k,
                               3 * numerator / (2 * denominator), env);
         } /*---for k---*/

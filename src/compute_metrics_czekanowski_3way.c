@@ -60,13 +60,14 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
   }     /*---for i---*/
 
   /*---Combine---*/
-
+  printf("---CPU---\n");
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
       for (k = j + 1; k < metrics->num_vector_local; ++k) {
         const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
         const GMFloat denominator =
             vector_sums[i] + vector_sums[j] + vector_sums[k];
+        printf("%i,%i,%i . . . numerator = %f . . . denominator = %f\n",i,j,k,numerator,denominator);
         GMMetrics_float_set_3(metrics, i, j, k,
                               3 * numerator / (2 * denominator), env);
       } /*---for k---*/
@@ -113,8 +114,8 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   gm_set_vectors_wait(env);
 
   /*---Compute numerators---*/
-  gm_compute_czekanowski_numerators_3way_start(vectors, vectors, 
-       metrics, &vectors_buf, &vectors_buf,
+  gm_compute_numerators_start(vectors, vectors, 
+       metrics, &vectors_buf, &vectors_buf, NULL,
        env->proc_num, GM_BOOL_TRUE, env);
   gm_compute_numerators_wait(env);
 
