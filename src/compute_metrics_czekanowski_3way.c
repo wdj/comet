@@ -30,7 +30,7 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
 
   /*---Denominator---*/
 
-  GMFloat* vector_sums = GMFLoat_malloc((metrics->num_vector_local);
+  GMFloat* vector_sums = GMFloat_malloc(metrics->num_vector_local);
 
   gm_compute_float_vector_sums(vectors, vector_sums, env);
 
@@ -113,7 +113,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   gm_set_vectors_wait(env);
 
   /*---Compute numerators---*/
-  gm_compute_numerators_3way_start(vectors, vectors, 
+  gm_compute_czekanowski_numerators_3way_start(vectors, vectors, 
        metrics, &vectors_buf, &vectors_buf,
        env->proc_num, GM_BOOL_TRUE, env);
   gm_compute_numerators_wait(env);
@@ -128,7 +128,6 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   GMVectorSums_destroy( &vector_sums, env);  
 
   gm_free_magma( &vectors_buf, env);
-  gm_free_magma( &numerators_buf, env);
   
   gm_magma_finalize(env);
 

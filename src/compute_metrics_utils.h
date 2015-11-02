@@ -66,6 +66,20 @@ void gm_get_metrics_start(GMMetrics* metrics,
 
 void gm_get_metrics_wait(GMEnv* env);
 
+//---Next 4 functions added by James Nance---//
+
+void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
+                         int mat_dim1, int mat_dim2, 
+                         GMEnv* env);
+
+void gm_set_matrix_wait(GMEnv* env);
+
+void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
+                         int mat_dim1, int mat_dim2,
+                         GMEnv* env);
+
+void gm_get_matrix_wait(GMEnv* env);
+
 /*----------*/
 
 void gm_vectors_to_buf(GMVectors* vectors,
@@ -87,12 +101,29 @@ void gm_compute_numerators_start( GMVectors* vectors_left,
 
 void gm_compute_numerators_wait(GMEnv* env);
 
+void gm_compute_czekanowski_numerators_3way_start(
+                                      GMVectors* vectors_left,
+                                      GMVectors* vectors_right,
+                                      GMMetrics* numerators,
+                                      GMMirroredPointer* vectors_left_buf,
+                                      GMMirroredPointer* vectors_right_buf,
+                                      int j_proc,
+                                      _Bool do_compute_triang_only,
+                                      GMEnv* env);
+
 void gm_compute_czekanowski_combine(GMMetrics* metrics,
                                     GMMirroredPointer* metrics_buf,
                                     GMFloat* __restrict__ vector_sums_left,
                                     GMFloat* __restrict__ vector_sums_right,
                                     int j_proc,
                                     _Bool compute_triang_only,
+                                    GMEnv* env);
+//---Added by James Nance---//
+void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
+                                    GMFloat* __restrict__ vector_sums_left,
+                                    GMFloat* __restrict__ vector_sums_right,
+                                    int j_proc,
+                                    _Bool do_compute_triang_only,
                                     GMEnv* env);
 
 void gm_compute_combine(GMMetrics* metrics,
