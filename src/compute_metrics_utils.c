@@ -18,6 +18,8 @@
 #include "vectors.h"
 #include "metrics.h"
 
+void gm_compute_numerators_wait(GMEnv* env);
+
 /*===========================================================================*/
 /*---Compute the sum of elements of each vector on CPU, for denom---*/
 
@@ -680,6 +682,7 @@ void gm_compute_czekanowski_numerators_3way_start(
         0.0, 0.0, (GMFloat*)(matM_buf.d), numvec);
 
     /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
+#if 0
 ///*
     for (int ri = 0; ri < numvec; ++ri) {
       for (int rj = 0; rj < numfield; ++rj) {
@@ -687,6 +690,7 @@ void gm_compute_czekanowski_numerators_3way_start(
       }
     }
 //*/
+#endif
 /* .63 / 1.56 */
 #ifdef FP_PRECISION_DOUBLE
     magma_minproductblas_dgemm

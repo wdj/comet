@@ -77,15 +77,16 @@ for compute_method in CPU ; do
 #  done
 #  done
 
-  for nproc_sqrt in 1 2 4 8  ; do
-    nproc=$(( $nproc_sqrt * $nproc_sqrt ))
-    num_field=3072
-    num_field=30
-    num_vector_local=$(( 16384 / $nproc_sqrt ))
-    time aprun -n$nproc -N1 $EXEC \
-      --num_field $num_field --num_vector_local $num_vector_local \
-      --all2all yes --compute_method $compute_method --verbosity 1
-  done
+#  for nproc_sqrt in 1 2 4 8  ; do
+#    nproc=$(( $nproc_sqrt * $nproc_sqrt ))
+#    num_field=3072
+#    num_field=30
+#    num_vector_local=$(( 16384 / $nproc_sqrt ))
+#    time aprun -n$nproc -N1 $EXEC \
+#      --num_field $num_field --num_vector_local $num_vector_local \
+#      --all2all yes --compute_method $compute_method --verbosity 1
+#  done
+
 
   #aprun -n4 -N1 $EXEC \
   #    --num_field 1 --num_vector_local 1 --all2all yes \
