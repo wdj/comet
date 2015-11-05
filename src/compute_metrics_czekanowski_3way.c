@@ -60,7 +60,7 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
   }     /*---for i---*/
 
   /*---Combine---*/
-  printf("---CPU---\n");
+  printf("---CPU Implementation---\n");
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
       for (k = j + 1; k < metrics->num_vector_local; ++k) {
@@ -88,6 +88,8 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
 
   GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
 
+  printf("---GPU Implementation---\n");
+
   /*---Denominator---*/
 
   GMVectorSums vector_sums = GMVectorSums_null();
@@ -112,7 +114,13 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   
   gm_set_vectors_start(vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
-
+/*
+  for (int ri = 0; ri < numvec; ++ri) {
+      for (int rj = 0; rj < numfield; ++rj) {
+         printf("X(%i,%i) = %f\n",rj,ri,((GMFloat*)(vectors_buf.h))[rj + ri * numfield]);
+      }
+    }
+*/
   /*---Compute numerators---*/
   gm_compute_numerators_start(vectors, vectors, 
        metrics, &vectors_buf, &vectors_buf, NULL,

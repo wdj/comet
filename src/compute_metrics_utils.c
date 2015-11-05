@@ -506,12 +506,12 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dgetmatrix_async(mat_dim1, mat_dim2,
                         (GMFloat*)matrix_buf->d, mat_dim1,
-                        (GMFloat*)matrix_buf->h, mat_dim2, env->stream_metrics);
+                        (GMFloat*)matrix_buf->h, mat_dim1, env->stream_metrics);
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_minproduct_sgetmatrix_async(mat_dim1, mat_dim2,
                         (GMFloat*)matrix_buf->d, mat_dim1,
-                        (GMFloat*)matrix_buf->h, mat_dim2, env->stream_metrics);
+                        (GMFloat*)matrix_buf->h, mat_dim1, env->stream_metrics);
 #endif
 }
 
@@ -640,7 +640,7 @@ void gm_compute_czekanowski_numerators_start(
 void gm_compute_czekanowski_numerators_3way_start(
                                       GMVectors* vectors_left,
                                       GMVectors* vectors_right,
-                                      GMMetrics* numerators,
+                                      GMMetrics* metrics,
                                       GMMirroredPointer* vectors_left_buf,
                                       GMMirroredPointer* vectors_right_buf,
                                       int j_proc,
@@ -648,11 +648,11 @@ void gm_compute_czekanowski_numerators_3way_start(
                                       GMEnv* env) {
   GMAssert(vectors_left != NULL);
   GMAssert(vectors_right != NULL);
-  GMAssert(numerators != NULL);
+  GMAssert(metrics != NULL);
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
 
-  const int numvec = numerators->num_vector_local;
+  const int numvec = metrics->num_vector_local;
   const int numfield = vectors_left->num_field;
  
   /*----------------------------------------*/
@@ -668,6 +668,7 @@ void gm_compute_czekanowski_numerators_3way_start(
       gm_malloc_magma( numvec * (size_t)numvec, env); // M = X^T minprod X    
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
+
 #ifdef FP_PRECISION_DOUBLE
     magma_minproductblas_dlaset
 #endif
@@ -679,7 +680,13 @@ void gm_compute_czekanowski_numerators_3way_start(
         0.0, 0.0, (GMFloat*)(matM_buf.d), numvec);
 
     /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
-
+///*
+    for (int ri = 0; ri < numvec; ++ri) {
+      for (int rj = 0; rj < numfield; ++rj) {
+         printf("X(%i,%i) = %f\n",rj,ri,((GMFloat*)(vectors_left_buf->d))[rj + ri * numfield]);
+      }
+    }
+//*/
 /* .63 / 1.56 */
 #ifdef FP_PRECISION_DOUBLE
     magma_minproductblas_dgemm
@@ -697,6 +704,13 @@ void gm_compute_czekanowski_numerators_3way_start(
     gm_get_matrix_start(&matM_buf, numvec, numvec, env);
     gm_get_matrix_wait(env);
      
+
+    for (int ii = 0; ii < numvec; ++ii) {
+      for (int jj = 0; jj < numvec; ++jj) {
+         printf("M(%i,%i) = %f\n",ii,jj,((GMFloat*)(matM_buf.h))[ii + jj * numvec]);
+      }
+    }
+
     /*---Allocate magma CPU/GPU memory for matrices V and B---*/
     /* 
        V = elementwise min of one vector with the rest of the vectors. 
@@ -712,7 +726,6 @@ void gm_compute_czekanowski_numerators_3way_start(
     int j = 0;
     int i = 0;
     int k = 0;
-    printf("---GPU---\n");
     for (j = 1; j < numvec-1; ++j) {
       /*---Populate first j-1 columns of matV---*/
       for (i = 0; i < numvec; ++i) {
@@ -721,6 +734,7 @@ void gm_compute_czekanowski_numerators_3way_start(
           const GMFloat a = ((GMFloat*)(vectors_left_buf->h))[k + numfield * i];
           const GMFloat b = ((GMFloat*)(vectors_right_buf->h))[k + numfield * j];
           ((GMFloat*)(matV_buf.h))[k + i * numfield] = a < b ? a : b;
+          //printf("V(%i,%i) = %f\n",k,i,((GMFloat*)(matV_buf.h))[k + i * numfield]);
         }//---for k---//
       }//---for i---//
 
@@ -749,7 +763,7 @@ void gm_compute_czekanowski_numerators_3way_start(
            numvec, numvec, numfield, 1.0,
            (GMFloat*)matV_buf.d, numfield, 
            (GMFloat*)vectors_left_buf->d, numfield, 
-           0.0, matB_buf.d, numvec);
+           0.0, (GMFloat*)matB_buf.d, numvec);
 
        /*---Copy matB from GPU---*/
        gm_get_matrix_start(&matB_buf, numvec, numvec, env);
@@ -765,7 +779,7 @@ void gm_compute_czekanowski_numerators_3way_start(
          const GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[k + numvec * i];
          const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
          //printf("%i,%i,%i . . . numerator = %f\n",i,j,k,numerator);
-         GMMetrics_float_set_3(numerators, i, j, k,
+         GMMetrics_float_set_3(metrics, i, j, k,
                              numerator, env);
         } /*---for k---*/
       }   /*---for i---*/
