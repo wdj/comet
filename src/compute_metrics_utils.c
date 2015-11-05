@@ -700,6 +700,8 @@ void gm_compute_czekanowski_numerators_3way_start(
          (GMFloat*)vectors_right_buf->d, numfield,
          0.0, (GMFloat*)matM_buf.d, numvec);
 
+    gm_compute_numerators_wait(env);
+
     /*---Copy matM from GPU---*/
     gm_get_matrix_start(&matM_buf, numvec, numvec, env);
     gm_get_matrix_wait(env);
@@ -764,6 +766,8 @@ void gm_compute_czekanowski_numerators_3way_start(
            (GMFloat*)matV_buf.d, numfield, 
            (GMFloat*)vectors_left_buf->d, numfield, 
            0.0, (GMFloat*)matB_buf.d, numvec);
+
+       gm_compute_numerators_wait(env);
 
        /*---Copy matB from GPU---*/
        gm_get_matrix_start(&matB_buf, numvec, numvec, env);
