@@ -734,7 +734,11 @@ void gm_compute_czekanowski_numerators_3way_start(
     int k = 0;
     for (j = 1; j < numvec-1; ++j) {
       /*---Populate first j-1 columns of matV---*/
+#if 1
+      for (i = 0; i < j; ++i) {
+#else
       for (i = 0; i < numvec; ++i) {
+#endif
         // Compare columns x_i and x_j element-wise
         for (k = 0; k < numfield; ++k) {
           const GMFloat a = ((GMFloat*)(vectors_left_buf->h))[k + numfield * i];
@@ -745,7 +749,11 @@ void gm_compute_czekanowski_numerators_3way_start(
       }//---for i---//
 
       /*---Send matrix matV to GPU---*/
+#if 1
+      gm_set_matrix_start(&matV_buf, numfield, j, env);
+#else
       gm_set_matrix_start(&matV_buf, numfield, numvec, env);
+#endif
       gm_set_matrix_wait(env); 
 
       /*---Initialize result matrix to zero (apparently magma requires)---*/
@@ -765,16 +773,28 @@ void gm_compute_czekanowski_numerators_3way_start(
 #ifdef FP_PRECISION_SINGLE
       magma_minproductblas_sgemm
 #endif
+#if 1
+          (Magma_minproductTrans, Magma_minproductNoTrans,
+           numvec, j, numfield, 1.0,
+           (GMFloat*)vectors_left_buf->d, numfield,
+           (GMFloat*)matV_buf.d, numfield, 
+           0.0, (GMFloat*)matB_buf.d, numvec);
+#else
           (Magma_minproductTrans, Magma_minproductNoTrans,
            numvec, numvec, numfield, 1.0,
            (GMFloat*)matV_buf.d, numfield, 
            (GMFloat*)vectors_left_buf->d, numfield, 
            0.0, (GMFloat*)matB_buf.d, numvec);
+#endif
 
        gm_compute_numerators_wait(env);
 
        /*---Copy matB from GPU---*/
+#if 1
+       gm_get_matrix_start(&matB_buf, j, numvec, env);
+#else
        gm_get_matrix_start(&matB_buf, numvec, numvec, env);
+#endif
        gm_get_matrix_wait(env);
   
      /*---Compute numerators---*/
@@ -785,6 +805,7 @@ void gm_compute_czekanowski_numerators_3way_start(
          const GMFloat min_jk = ((GMFloat*)(matM_buf.h))[k + numvec * j];
          // sum of mins vectors i, j, and k is matB(i,k)
          const GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[k + numvec * i];
+         //printf("j %i B(%i,%i) %f\n", j, k, i, ((GMFloat*)(matB_buf.h))[k + numvec * i] );
          const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
          //printf("%i,%i,%i . . . numerator = %f\n",i,j,k,numerator);
          GMMetrics_float_set_3(metrics, i, j, k,
