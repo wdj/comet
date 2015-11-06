@@ -603,22 +603,25 @@ void gm_compute_czekanowski_numerators_2way_start(
 
 /*---------------------------------------------------------------------------*/
 void gm_compute_czekanowski_numerators_3way_start(
-                                      GMVectors* vectors_left,
-                                      GMVectors* vectors_right,
+                                      GMVectors* vectors_1,
+                                      GMVectors* vectors_2,
+                                      GMVectors* vectors_3,
                                       GMMetrics* metrics,
-                                      GMMirroredPointer* vectors_left_buf,
-                                      GMMirroredPointer* vectors_right_buf,
+                                      GMMirroredPointer* vectors_1_buf,
+                                      GMMirroredPointer* vectors_2_buf,
+                                      GMMirroredPointer* vectors_3_buf,
                                       int j_proc,
                                       _Bool do_compute_triang_only,
                                       GMEnv* env) {
-  GMAssert(vectors_left != NULL);
-  GMAssert(vectors_right != NULL);
+  GMAssert(vectors_1 != NULL);
+  GMAssert(vectors_2 != NULL);
+  GMAssert(vectors_3 != NULL);
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
 
   const int numvec = metrics->num_vector_local;
-  const int numfield = vectors_left->num_field;
+  const int numfield = vectors_1->num_field;
  
   /*----------------------------------------*/
   if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
@@ -637,15 +640,6 @@ void gm_compute_czekanowski_numerators_3way_start(
     gm_magma_set_matrix_zero_start(&matM_buf, numvec, numvec, env);
 
     /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
-#if 0
-///*
-    for (int ri = 0; ri < numvec; ++ri) {
-      for (int rj = 0; rj < numfield; ++rj) {
-         printf("X(%i,%i) = %f\n",rj,ri,((GMFloat*)(vectors_left_buf->d))[rj + ri * numfield]);
-      }
-    }
-//*/
-#endif
 /* .63 / 1.56 */
 #ifdef FP_PRECISION_DOUBLE
     magma_minproductblas_dgemm
@@ -655,8 +649,8 @@ void gm_compute_czekanowski_numerators_3way_start(
 #endif
         (Magma_minproductTrans, Magma_minproductNoTrans,
          numvec, numvec, numfield, 1.0,
-         (GMFloat*)vectors_left_buf->d, numfield,
-         (GMFloat*)vectors_right_buf->d, numfield,
+         (GMFloat*)vectors_1_buf->d, numfield,
+         (GMFloat*)vectors_2_buf->d, numfield,
          0.0, (GMFloat*)matM_buf.d, numvec);
 
     gm_compute_wait(env);
@@ -665,14 +659,6 @@ void gm_compute_czekanowski_numerators_3way_start(
     gm_get_matrix_start(&matM_buf, numvec, numvec, env);
     gm_get_matrix_wait(env);
      
-#if 0
-    for (int ii = 0; ii < numvec; ++ii) {
-      for (int jj = 0; jj < numvec; ++jj) {
-         printf("M(%i,%i) = %f\n",ii,jj,((GMFloat*)(matM_buf.h))[ii + jj * numvec]);
-      }
-    }
-#endif
-
     /*---Allocate magma CPU/GPU memory for matrices V and B---*/
     /* 
        V = elementwise min of one vector with the rest of the vectors. 
@@ -698,8 +684,8 @@ void gm_compute_czekanowski_numerators_3way_start(
 #endif
         // Compare columns x_i and x_j element-wise
         for (k = 0; k < numfield; ++k) {
-          const GMFloat a = ((GMFloat*)(vectors_left_buf->h))[k + numfield * i];
-          const GMFloat b = ((GMFloat*)(vectors_right_buf->h))[k + numfield * j];
+          const GMFloat a = ((GMFloat*)(vectors_1_buf->h))[k + numfield * i];
+          const GMFloat b = ((GMFloat*)(vectors_2_buf->h))[k + numfield * j];
           ((GMFloat*)(matV_buf.h))[k + i * numfield] = a < b ? a : b;
           //printf("V(%i,%i) = %f\n",k,i,((GMFloat*)(matV_buf.h))[k + i * numfield]);
         }//---for k---//
@@ -727,14 +713,14 @@ void gm_compute_czekanowski_numerators_3way_start(
 #if 1
           (Magma_minproductTrans, Magma_minproductNoTrans,
            numvec, j, numfield, 1.0,
-           (GMFloat*)vectors_left_buf->d, numfield,
+           (GMFloat*)vectors_3_buf->d, numfield,
            (GMFloat*)matV_buf.d, numfield, 
            0.0, (GMFloat*)matB_buf.d, numvec);
 #else
           (Magma_minproductTrans, Magma_minproductNoTrans,
            numvec, numvec, numfield, 1.0,
            (GMFloat*)matV_buf.d, numfield, 
-           (GMFloat*)vectors_left_buf->d, numfield, 
+           (GMFloat*)vectors_3_buf->d, numfield, 
            0.0, (GMFloat*)matB_buf.d, numvec);
 #endif
 
@@ -754,11 +740,9 @@ void gm_compute_czekanowski_numerators_3way_start(
        for (k = j + 1; k < numvec; ++k) {
          const GMFloat min_ik = ((GMFloat*)(matM_buf.h))[k + numvec * i];
          const GMFloat min_jk = ((GMFloat*)(matM_buf.h))[k + numvec * j];
-         // sum of mins vectors i, j, and k is matB(i,k)
+         // sum of mins vectors i, j, and k is matB(k,i)
          const GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[k + numvec * i];
-         //printf("j %i B(%i,%i) %f\n", j, k, i, ((GMFloat*)(matB_buf.h))[k + numvec * i] );
          const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
-         //printf("%i,%i,%i . . . numerator = %f\n",i,j,k,numerator);
          GMMetrics_float_set_3(metrics, i, j, k,
                              numerator, env);
         } /*---for k---*/
@@ -800,17 +784,10 @@ void gm_compute_numerators_start( GMVectors* vectors_left,
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
     /*----------------------------------------*/
-      if ( env-> num_way == 2 ) {
-        gm_compute_czekanowski_numerators_2way_start(
-             vectors_left, vectors_right, numerators,
-             vectors_left_buf, vectors_right_buf, numerators_buf,
-             j_proc, do_compute_triang_only, env);
-      } else { //---if (env-> num_way == 3)
-        gm_compute_czekanowski_numerators_3way_start(
-             vectors_left, vectors_right, numerators,
-             vectors_left_buf, vectors_right_buf,
-             j_proc, do_compute_triang_only, env); 
-      }
+      gm_compute_czekanowski_numerators_2way_start(
+           vectors_left, vectors_right, numerators,
+           vectors_left_buf, vectors_right_buf, numerators_buf,
+           j_proc, do_compute_triang_only, env);
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
@@ -949,14 +926,16 @@ void gm_compute_czekanowski_2way_combine(
 /*===========================================================================*/
 
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
-                                    GMFloat* __restrict__ vector_sums_left,
-                                    GMFloat* __restrict__ vector_sums_right,
+                                    GMFloat* __restrict__ vector_sums_1,
+                                    GMFloat* __restrict__ vector_sums_2,
+                                    GMFloat* __restrict__ vector_sums_3,
                                     int j_proc,
                                     _Bool do_compute_triang_only,
                                     GMEnv* env) {
   GMAssert(metrics != NULL);
-  GMAssert(vector_sums_left != NULL);
-  GMAssert(vector_sums_right != NULL);
+  GMAssert(vector_sums_1 != NULL);
+  GMAssert(vector_sums_2 != NULL);
+  GMAssert(vector_sums_3 != NULL);
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
  
@@ -976,8 +955,8 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
       for (j = i + 1; j < metrics->num_vector_local-1; ++j) {
         for (k = j + 1; k < metrics->num_vector_local; ++k) {
           const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
-          const GMFloat denominator = vector_sums_left[i] 
-                          + vector_sums_left[j] + vector_sums_left[k];
+          const GMFloat denominator = vector_sums_1[i] 
+                          + vector_sums_2[j] + vector_sums_3[k];
           //printf("%i,%i,%i . . . numerator = %f . . . denominator = %f\n",i,j,k,numerator,denominator);
           GMMetrics_float_set_3(metrics, i, j, k,
                               3 * numerator / (2 * denominator), env);
@@ -1015,22 +994,13 @@ void gm_compute_combine(GMMetrics* metrics,
     case GM_METRIC_TYPE_CZEKANOWSKI: {
     /*----------------------------------------*/
       
-      if (env->num_way == 2) {
-        gm_compute_czekanowski_2way_combine(metrics,
-                                            metrics_buf,
-                                            (GMFloat*)vector_sums_left->data,
-                                            (GMFloat*)vector_sums_right->data,
-                                            j_proc,
-                                            do_compute_triang_only,
-                                            env);
-      } else {
-        gm_compute_czekanowski_3way_combine(metrics,
-                                           (GMFloat*)vector_sums_left->data,
-                                           (GMFloat*)vector_sums_right->data,
-                                           j_proc,
-                                           do_compute_triang_only,
-                                           env);
-      }
+      gm_compute_czekanowski_2way_combine(metrics,
+                                          metrics_buf,
+                                          (GMFloat*)vector_sums_left->data,
+                                          (GMFloat*)vector_sums_right->data,
+                                          j_proc,
+                                          do_compute_triang_only,
+                                          env);
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {

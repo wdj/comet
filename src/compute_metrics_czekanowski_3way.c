@@ -114,22 +114,19 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   
   gm_set_vectors_start(vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
-/*
-  for (int ri = 0; ri < numvec; ++ri) {
-      for (int rj = 0; rj < numfield; ++rj) {
-         printf("X(%i,%i) = %f\n",rj,ri,((GMFloat*)(vectors_buf.h))[rj + ri * numfield]);
-      }
-    }
-*/
+  
   /*---Compute numerators---*/
-  gm_compute_numerators_start(vectors, vectors, 
-       metrics, &vectors_buf, &vectors_buf, NULL,
+  gm_compute_czekanowski_numerators_3way_start(vectors, vectors, vectors, 
+       metrics, &vectors_buf, &vectors_buf, &vectors_buf, 
        env->proc_num, GM_BOOL_TRUE, env);
   gm_compute_wait(env);
 
   /*---Combine results---*/
-  gm_compute_combine(metrics, NULL,
-                     &vector_sums, &vector_sums, env->proc_num,
+  gm_compute_czekanowski_3way_combine(metrics,
+                     (GMFloat*)(&vector_sums)->data,
+                     (GMFloat*)(&vector_sums)->data,
+                     (GMFloat*)(&vector_sums)->data,
+                     env->proc_num,
                      GM_BOOL_TRUE, env);
 
   /*---Free memory and finalize---*/

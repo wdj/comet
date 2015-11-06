@@ -128,11 +128,13 @@ void gm_compute_czekanowski_numerators_2way_start(
                                       GMEnv* env);
 
 void gm_compute_czekanowski_numerators_3way_start(
-                                      GMVectors* vectors_left,
-                                      GMVectors* vectors_right,
+                                      GMVectors* vectors_1,
+                                      GMVectors* vectors_2,
+                                      GMVectors* vectors_3,
                                       GMMetrics* numerators,
-                                      GMMirroredPointer* vectors_left_buf,
-                                      GMMirroredPointer* vectors_right_buf,
+                                      GMMirroredPointer* vectors_1_buf,
+                                      GMMirroredPointer* vectors_2_buf,
+                                      GMMirroredPointer* vectors_3_buf,
                                       int j_proc,
                                       _Bool do_compute_triang_only,
                                       GMEnv* env);
@@ -147,8 +149,9 @@ void gm_compute_czekanowski_2way_combine(
                                        GMEnv* env);
 
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
-                                    GMFloat* __restrict__ vector_sums_left,
-                                    GMFloat* __restrict__ vector_sums_right,
+                                    GMFloat* __restrict__ vector_sums_1,
+                                    GMFloat* __restrict__ vector_sums_2,
+                                    GMFloat* __restrict__ vector_sums_3,
                                     int j_proc,
                                     _Bool do_compute_triang_only,
                                     GMEnv* env);
