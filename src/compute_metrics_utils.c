@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*/
 /*!
  * \file   compute_metrics_utils.c
- * \author Wayne Joubert
+ * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
  * \brief  Functions for computing metrics, utilities.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
@@ -17,8 +17,7 @@
 #include "vector_sums.h"
 #include "vectors.h"
 #include "metrics.h"
-
-void gm_compute_numerators_wait(GMEnv* env);
+#include "compute_metrics_utils.h"
 
 /*===========================================================================*/
 /*---Compute the sum of elements of each vector on CPU, for denom---*/
@@ -282,6 +281,23 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
   } /*---case---*/
 }
 
+/*---------------------------------------------------------------------------*/
+
+void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
+                                    int mat_dim1, 
+                                    int mat_dim2,
+                                    GMEnv* env) {
+#ifdef FP_PRECISION_DOUBLE
+  magma_minproductblas_dlaset
+#endif
+#ifdef FP_PRECISION_SINGLE
+  magma_minproductblas_slaset
+#endif
+    (Magma_minproductFull,
+    mat_dim1, mat_dim2,
+    (GMFloat)0, (GMFloat)0, (GMFloat*)matrix_buf->d, mat_dim1);
+}
+
 /*===========================================================================*/
 /*---Start/end MPI send/receive of vectors data---*/
 
@@ -356,54 +372,8 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 }
 
 /*===========================================================================*/
-/*---Start/end transfer of vectors data to GPU---*/
-
-void gm_set_vectors_start(GMVectors* vectors,
-                          GMMirroredPointer* vectors_buf,
-                          GMEnv* env) {
-  GMAssert(vectors != NULL);
-  GMAssert(vectors_buf != NULL);
-  GMAssert(env != NULL);
-
-  if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  const int numvec = vectors->num_vector_local;
-  const int numfield = vectors->num_field;
-
-  /*---Send vectors to GPU---*/
-
-  GMEnv_initialize_streams(env);
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dsetmatrix_async(numfield, numvec,
-                   (GMFloat*)vectors_buf->h, numfield,
-                   (GMFloat*)vectors_buf->d, numfield, env->stream_vectors);
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproduct_ssetmatrix_async(numfield, numvec,
-                   (GMFloat*)vectors_buf->h, numfield,
-                   (GMFloat*)vectors_buf->d, numfield, env->stream_vectors);
-#endif
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_set_vectors_wait(GMEnv* env) {
-  GMAssert(env != NULL);
-
-  if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  GMEnv_initialize_streams(env);
-  cudaStreamSynchronize( env->stream_vectors );
-  GMAssert(GMEnv_cuda_last_call_succeeded(env));
-}
-
-/*===========================================================================*/
 /*---Start/end transfer of generic matrix to GPU---*/
-//---Added by James Nance---//
+
 void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
                                  int mat_dim1, int mat_dim2, GMEnv* env) {
   GMAssert(matrix_buf != NULL);
@@ -419,12 +389,12 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dsetmatrix_async(mat_dim1, mat_dim2,
                    (GMFloat*)matrix_buf->h, mat_dim1,
-                   (GMFloat*)matrix_buf->d, mat_dim1, env->stream_vectors);
+                   (GMFloat*)matrix_buf->d, mat_dim1, env->stream_togpu);
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_minproduct_ssetmatrix_async(mat_dim1, mat_dim2,
                    (GMFloat*)matrix_buf->h, mat_dim1,
-                   (GMFloat*)matrix_buf->d, mat_dim1, env->stream_vectors);
+                   (GMFloat*)matrix_buf->d, mat_dim1, env->stream_togpu);
 #endif
 
 }
@@ -439,58 +409,13 @@ void gm_set_matrix_wait(GMEnv* env) {
   }
 
   GMEnv_initialize_streams(env);
-  cudaStreamSynchronize( env->stream_vectors );//Does this line need to be changed?? -JN
-  GMAssert(GMEnv_cuda_last_call_succeeded(env));
-}
-
-/*===========================================================================*/
-/*---Start/end transfer of metrics data from GPU---*/
-
-void gm_get_metrics_start(GMMetrics* metrics,
-                          GMMirroredPointer* metrics_buf,
-                          GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(metrics_buf != NULL);
-  GMAssert(env != NULL);
-
-  if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  const int numvec = metrics->num_vector_local;
-
-  /*---Send vectors to GPU---*/
-
-  GMEnv_initialize_streams(env);
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dgetmatrix_async(numvec, numvec,
-                        (GMFloat*)metrics_buf->d, numvec,
-                        (GMFloat*)metrics_buf->h, numvec, env->stream_metrics);
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproduct_sgetmatrix_async(numvec, numvec,
-                        (GMFloat*)metrics_buf->d, numvec,
-                        (GMFloat*)metrics_buf->h, numvec, env->stream_metrics);
-#endif
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_get_metrics_wait(GMEnv* env) {
-  GMAssert(env != NULL);
-
-  if (! env->compute_method == GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  GMEnv_initialize_streams(env);
-  cudaStreamSynchronize( env->stream_metrics );
+  cudaStreamSynchronize( env->stream_togpu );
   GMAssert(GMEnv_cuda_last_call_succeeded(env));
 }
 
 /*===========================================================================*/
 /*---Start/end transfer of generic matrix from GPU---*/
-//---Added by James Nance---//
+
 void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
                          int mat_dim1, int mat_dim2,
                          GMEnv* env) {
@@ -502,18 +427,18 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
     return;
   }
 
-  /*---Send vectors to GPU---*/
+  /*---Get vectors from GPU---*/
 
   GMEnv_initialize_streams(env);
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dgetmatrix_async(mat_dim1, mat_dim2,
                         (GMFloat*)matrix_buf->d, mat_dim1,
-                        (GMFloat*)matrix_buf->h, mat_dim1, env->stream_metrics);
+                        (GMFloat*)matrix_buf->h, mat_dim1, env->stream_fromgpu);
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_minproduct_sgetmatrix_async(mat_dim1, mat_dim2,
                         (GMFloat*)matrix_buf->d, mat_dim1,
-                        (GMFloat*)matrix_buf->h, mat_dim1, env->stream_metrics);
+                        (GMFloat*)matrix_buf->h, mat_dim1, env->stream_fromgpu);
 #endif
 }
 
@@ -527,8 +452,52 @@ void gm_get_matrix_wait(GMEnv* env) {
   }
 
   GMEnv_initialize_streams(env);
-  cudaStreamSynchronize( env->stream_metrics );
+  cudaStreamSynchronize( env->stream_fromgpu );
   GMAssert(GMEnv_cuda_last_call_succeeded(env));
+}
+
+/*===========================================================================*/
+/*---Start/end transfer of vectors data to GPU---*/
+
+void gm_set_vectors_start(GMVectors* vectors,
+                          GMMirroredPointer* vectors_buf,
+                          GMEnv* env) {
+  GMAssert(vectors != NULL);
+  GMAssert(vectors_buf != NULL);
+  GMAssert(env != NULL);
+
+  gm_set_matrix_start (vectors_buf, vectors->num_field,
+                       vectors->num_vector_local, env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_set_vectors_wait(GMEnv* env) {
+  GMAssert(env != NULL);
+
+  gm_set_matrix_wait(env);
+}
+
+/*===========================================================================*/
+/*---Start/end transfer of metrics data from GPU---*/
+
+void gm_get_metrics_start(GMMetrics* metrics,
+                          GMMirroredPointer* metrics_buf,
+                          GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(metrics_buf != NULL);
+  GMAssert(env != NULL);
+
+  gm_get_matrix_start(metrics_buf, metrics->num_vector_local,
+                      metrics->num_vector_local, env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_get_metrics_wait(GMEnv* env) {
+  GMAssert(env != NULL);
+
+  gm_get_matrix_wait(env);
 }
 
 /*===========================================================================*/
@@ -556,10 +525,11 @@ void gm_vectors_to_buf(GMVectors* vectors,
   }
 }
 
+
 /*===========================================================================*/
 /*---Start/end calculation of numerators---*/
 
-void gm_compute_czekanowski_numerators_start(
+void gm_compute_czekanowski_numerators_2way_start(
                                       GMVectors* vectors_left,
                                       GMVectors* vectors_right,
                                       GMMetrics* numerators,
@@ -606,15 +576,8 @@ void gm_compute_czekanowski_numerators_start(
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
 
-#ifdef FP_PRECISION_DOUBLE
-    magma_minproductblas_dlaset
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_minproductblas_slaset
-#endif
-        (Magma_minproductFull,
-        numerators->num_vector_local, numerators->num_vector_local,
-        0.0, 0.0, (GMFloat*)numerators_buf->d, numerators->num_vector_local);
+    gm_magma_set_matrix_zero_start(numerators_buf,
+        numerators->num_vector_local, numerators->num_vector_local, env);
 
     /*---Perform pseudo matrix-matrix product---*/
 
@@ -671,15 +634,7 @@ void gm_compute_czekanowski_numerators_3way_start(
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
 
-#ifdef FP_PRECISION_DOUBLE
-    magma_minproductblas_dlaset
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_minproductblas_slaset
-#endif
-        (Magma_minproductFull,
-        numvec, numvec,
-        0.0, 0.0, (GMFloat*)(matM_buf.d), numvec);
+    gm_magma_set_matrix_zero_start(&matM_buf, numvec, numvec, env);
 
     /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
 #if 0
@@ -704,23 +659,25 @@ void gm_compute_czekanowski_numerators_3way_start(
          (GMFloat*)vectors_right_buf->d, numfield,
          0.0, (GMFloat*)matM_buf.d, numvec);
 
-    gm_compute_numerators_wait(env);
+    gm_compute_wait(env);
 
     /*---Copy matM from GPU---*/
     gm_get_matrix_start(&matM_buf, numvec, numvec, env);
     gm_get_matrix_wait(env);
      
-
+#if 0
     for (int ii = 0; ii < numvec; ++ii) {
       for (int jj = 0; jj < numvec; ++jj) {
          printf("M(%i,%i) = %f\n",ii,jj,((GMFloat*)(matM_buf.h))[ii + jj * numvec]);
       }
     }
+#endif
 
     /*---Allocate magma CPU/GPU memory for matrices V and B---*/
     /* 
        V = elementwise min of one vector with the rest of the vectors. 
-       The for the jth iteration the ith column of V is the elementwise min of vectors i and j
+       The for the jth iteration the ith column of V is the elementwise min
+         of vectors i and j
        B = X^T minprod V = three way min product
     */
     GMMirroredPointer matV_buf =
@@ -757,14 +714,8 @@ void gm_compute_czekanowski_numerators_3way_start(
       gm_set_matrix_wait(env); 
 
       /*---Initialize result matrix to zero (apparently magma requires)---*/
-#ifdef FP_PRECISION_DOUBLE
-      magma_minproductblas_dlaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
-                                matB_buf.d, numvec);
-#endif
-#ifdef FP_PRECISION_SINGLE
-      magma_minproductblas_slaset(Magma_minproductFull, numvec, numvec, 0.0, 0.0,
-                                matB_buf.d, numvec);
-#endif
+
+      gm_magma_set_matrix_zero_start(&matB_buf, numvec, numvec, env);
 
       /*---Perform matrix-matrix product matB = matV^T minprod X---*/
 #ifdef FP_PRECISION_DOUBLE
@@ -787,7 +738,7 @@ void gm_compute_czekanowski_numerators_3way_start(
            0.0, (GMFloat*)matB_buf.d, numvec);
 #endif
 
-       gm_compute_numerators_wait(env);
+       gm_compute_wait(env);
 
        /*---Copy matB from GPU---*/
 #if 1
@@ -849,13 +800,15 @@ void gm_compute_numerators_start( GMVectors* vectors_left,
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
     /*----------------------------------------*/
-      if ( env-> num_way == 2) {
-        gm_compute_czekanowski_numerators_start(vectors_left, vectors_right,
-             numerators, vectors_left_buf, vectors_right_buf, numerators_buf,
+      if ( env-> num_way == 2 ) {
+        gm_compute_czekanowski_numerators_2way_start(
+             vectors_left, vectors_right, numerators,
+             vectors_left_buf, vectors_right_buf, numerators_buf,
              j_proc, do_compute_triang_only, env);
-      } else { //---3way added by James Nance---//
-        gm_compute_czekanowski_numerators_3way_start(vectors_left, vectors_right,
-             numerators, vectors_left_buf, vectors_right_buf,
+      } else { //---if (env-> num_way == 3)
+        gm_compute_czekanowski_numerators_3way_start(
+             vectors_left, vectors_right, numerators,
+             vectors_left_buf, vectors_right_buf,
              j_proc, do_compute_triang_only, env); 
       }
     } break;
@@ -877,7 +830,7 @@ void gm_compute_numerators_start( GMVectors* vectors_left,
 
 /*---------------------------------------------------------------------------*/
 
-void gm_compute_numerators_wait(GMEnv* env) {
+void gm_compute_wait(GMEnv* env) {
   GMAssert(env != NULL);
 
   if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
@@ -890,7 +843,8 @@ void gm_compute_numerators_wait(GMEnv* env) {
 /*===========================================================================*/
 /*---Combine numerators and denominators on CPU to get final result---*/
 
-void gm_compute_czekanowski_combine(GMMetrics* metrics,
+void gm_compute_czekanowski_2way_combine(
+                                    GMMetrics* metrics,
                                     GMMirroredPointer* metrics_buf,
                                     GMFloat* __restrict__ vector_sums_left,
                                     GMFloat* __restrict__ vector_sums_right,
@@ -993,7 +947,7 @@ void gm_compute_czekanowski_combine(GMMetrics* metrics,
 }
 
 /*===========================================================================*/
-//--Added by James Nance---//
+
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
                                     GMFloat* __restrict__ vector_sums_left,
                                     GMFloat* __restrict__ vector_sums_right,
@@ -1024,7 +978,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
           const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
           const GMFloat denominator = vector_sums_left[i] 
                           + vector_sums_left[j] + vector_sums_left[k];
-          printf("%i,%i,%i . . . numerator = %f . . . denominator = %f\n",i,j,k,numerator,denominator);
+          //printf("%i,%i,%i . . . numerator = %f . . . denominator = %f\n",i,j,k,numerator,denominator);
           GMMetrics_float_set_3(metrics, i, j, k,
                               3 * numerator / (2 * denominator), env);
         } /*---for k---*/
@@ -1062,13 +1016,13 @@ void gm_compute_combine(GMMetrics* metrics,
     /*----------------------------------------*/
       
       if (env->num_way == 2) {
-        gm_compute_czekanowski_combine(metrics,
-                                      metrics_buf,
-                                      (GMFloat*)vector_sums_left->data,
-                                      (GMFloat*)vector_sums_right->data,
-                                      j_proc,
-                                      do_compute_triang_only,
-                                      env);
+        gm_compute_czekanowski_2way_combine(metrics,
+                                            metrics_buf,
+                                            (GMFloat*)vector_sums_left->data,
+                                            (GMFloat*)vector_sums_right->data,
+                                            j_proc,
+                                            do_compute_triang_only,
+                                            env);
       } else {
         gm_compute_czekanowski_3way_combine(metrics,
                                            (GMFloat*)vector_sums_left->data,

@@ -235,7 +235,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*--------------------*/
 
     if ( is_compute_step && do_compute_block ) {
-        gm_compute_numerators_wait(env);
+        gm_compute_wait(env);
     }
 
     /*---Commence copy of completed numerators back from GPU---*/
@@ -403,7 +403,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
        metrics, &vectors_buf, &vectors_buf, &numerators_buf,
        env->proc_num, GM_BOOL_TRUE, env);
 
-  gm_compute_numerators_wait(env);
+  gm_compute_wait(env);
 
   /*---Copy result from GPU---*/
 

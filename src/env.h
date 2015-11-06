@@ -83,8 +83,8 @@ typedef struct {
   int num_proc;
   int proc_num;
   cudaStream_t stream_compute;
-  cudaStream_t stream_vectors;
-  cudaStream_t stream_metrics;
+  cudaStream_t stream_togpu;
+  cudaStream_t stream_fromgpu;
   _Bool are_cuda_streams_initialized;
 } GMEnv;
 
