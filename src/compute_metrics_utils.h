@@ -16,6 +16,11 @@
 #include "vectors.h"
 #include "metrics.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 
 void gm_compute_float_vector_sums(GMVectors* vectors,
@@ -155,6 +160,12 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
                                     int j_proc,
                                     _Bool do_compute_triang_only,
                                     GMEnv* env);
+
+/*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*===========================================================================*/
 

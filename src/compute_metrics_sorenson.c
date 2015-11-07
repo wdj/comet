@@ -15,6 +15,11 @@
 #include "metrics.h"
 #include "compute_metrics_sorenson.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 
 void gm_compute_metrics_sorenson_2way_cpu(GMMetrics* metrics,
@@ -100,5 +105,9 @@ void gm_compute_metrics_sorenson_3way_ref(GMMetrics* metrics,
 }
 
 /*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*---------------------------------------------------------------------------*/

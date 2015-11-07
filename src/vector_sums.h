@@ -14,6 +14,11 @@
 #include "env.h"
 #include "vectors.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Struct declaration---*/
 
@@ -37,6 +42,12 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
 /*---Pseudo-destructor---*/
 
 void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env);
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
+
+/*===========================================================================*/
 
 #endif /*---_vector_sums_h---*/
 

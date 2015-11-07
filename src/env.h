@@ -23,10 +23,19 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Types---*/
 
 /*---Boolean type---*/
+
+#ifdef __cplusplus
+typedef bool _Bool;
+#endif
 
 enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
@@ -236,6 +245,12 @@ int gm_data_type_from_metric_type(int metric_type, GMEnv* env);
 _Bool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 
 GMFloat* GMFloat_malloc( size_t n );
+
+/*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*===========================================================================*/
 

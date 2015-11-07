@@ -15,6 +15,11 @@
 #include "vectors.h"
 #include "metrics.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 
 void gm_compute_metrics_sorenson_2way_cpu(GMMetrics* metrics,
@@ -35,6 +40,12 @@ void gm_compute_metrics_sorenson_3way_gpu(GMMetrics* metrics,
 void gm_compute_metrics_sorenson_3way_ref(GMMetrics* metrics,
                                           GMVectors* vectors,
                                           GMEnv* env);
+
+/*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*===========================================================================*/
 

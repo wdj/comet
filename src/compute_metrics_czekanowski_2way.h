@@ -15,6 +15,11 @@
 #include "vectors.h"
 #include "metrics.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 
 void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
@@ -23,6 +28,12 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
 void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
                                              GMVectors* vectors,
                                              GMEnv* env);
+
+/*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*===========================================================================*/
 

@@ -15,9 +15,20 @@
 #include "vectors.h"
 #include "metrics.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
+
+/*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*===========================================================================*/
 

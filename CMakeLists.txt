@@ -8,6 +8,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project("genomics_gpu")
 
+#--------------------
+
 SET(INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/src
   )
@@ -38,6 +40,10 @@ SET(LIB_INCLUDES
   src/compute_metrics_sorenson.h
   )
 
+#--------------------
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${C_CXX_FLAGS}")
+
 find_package(MPI REQUIRED)
 find_package(CUDA REQUIRED)
 
@@ -55,5 +61,23 @@ install(TARGETS genomics_metrics DESTINATION lib)
 install(FILES ${LIB_INCLUDES} DESTINATION include)
 
 MESSAGE("Compiler ID: ${CMAKE_C_COMPILER_ID}")
+
+#--------------------
+
+if(TESTING) 
+
+  set(CMAKE_CXX_FLAGS "${C_CXX_FLAGS} -isystem ${GTEST_DIR}/include -pthread")
+
+  enable_testing()
+
+  foreach(test_target basic_test)
+    ADD_EXECUTABLE(${test_target} testing/${test_target}.cc)
+    TARGET_LINK_LIBRARIES(${test_target} genomics_metrics)
+    TARGET_LINK_LIBRARIES(${test_target} ${CMAKE_EXE_LINKER_FLAGS})
+    TARGET_LINK_LIBRARIES(${test_target} "-L${GTEST_DIR}/lib -lgtest")
+
+    add_test( ${test_target} aprun -n1 ${CMAKE_CURRENT_BINARY_DIR}/${test_target} )
+  endforeach(test_target)
+endif(TESTING) 
 
 #==============================================================================

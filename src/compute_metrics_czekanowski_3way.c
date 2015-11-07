@@ -17,6 +17,11 @@
 #include "compute_metrics_utils.h"
 #include "compute_metrics_czekanowski_3way.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 
 void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
@@ -138,6 +143,10 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   gm_magma_finalize(env);
 
 }
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*===========================================================================*/
 

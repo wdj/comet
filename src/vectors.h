@@ -18,6 +18,11 @@
 
 #include "env.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Struct declaration---*/
 
@@ -186,6 +191,12 @@ static _Bool GMVectors_bit_get_from_index(GMVectors* const vectors,
   return GMVectors_bit_get(vectors, index % vectors->num_field,
                            index / vectors->num_field, env);
 }
+
+/*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*===========================================================================*/
 

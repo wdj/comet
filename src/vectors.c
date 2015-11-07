@@ -16,6 +16,11 @@
 #include "env.h"
 #include "vectors.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Null object---*/
 
@@ -98,5 +103,11 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
   free(vectors->data);
   *vectors = GMVectors_null();
 }
+
+/*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*---------------------------------------------------------------------------*/

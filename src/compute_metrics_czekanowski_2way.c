@@ -21,6 +21,11 @@
 #include "compute_metrics_utils.h"
 #include "compute_metrics_czekanowski_2way.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 
 void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
@@ -426,5 +431,11 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   gm_magma_finalize(env);
 }
+
+/*---------------------------------------------------------------------------*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*---------------------------------------------------------------------------*/

@@ -16,6 +16,11 @@
 #include "env.h"
 #include "metrics.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Null object---*/
 
@@ -240,5 +245,9 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   return result;
 }
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*---------------------------------------------------------------------------*/

@@ -20,6 +20,11 @@
 #include "metrics.h"
 #include "compute_metrics.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Inform user of usage of command---*/
 
@@ -287,5 +292,11 @@ int main(int argc, char** argv) {
   MPI_Finalize();
   return 0;
 }
+
+/*---------------------------------------------------------------------------*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*---------------------------------------------------------------------------*/

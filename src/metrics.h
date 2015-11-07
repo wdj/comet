@@ -22,6 +22,11 @@
 
 #include "env.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Struct declaration---*/
 
@@ -414,6 +419,12 @@ static int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 
   return result;
 }
+
+/*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*===========================================================================*/
 

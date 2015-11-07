@@ -12,6 +12,11 @@
 #include "vector_sums.h"
 #include "vectors.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Null object---*/
 
@@ -85,6 +90,10 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
   } /*---case---*/
 
 }
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*---------------------------------------------------------------------------*/
 

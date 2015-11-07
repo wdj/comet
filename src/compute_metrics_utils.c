@@ -19,6 +19,11 @@
 #include "metrics.h"
 #include "compute_metrics_utils.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 /*---Compute the sum of elements of each vector on CPU, for denom---*/
 
@@ -1019,5 +1024,9 @@ void gm_compute_combine(GMMetrics* metrics,
 }
 
 /*===========================================================================*/
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*---------------------------------------------------------------------------*/

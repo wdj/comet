@@ -21,6 +21,11 @@
 #include "compute_metrics_czekanowski_3way.h"
 #include "compute_metrics_ccc.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /*===========================================================================*/
 
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
@@ -144,5 +149,9 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---switch---*/
 }
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
 
 /*---------------------------------------------------------------------------*/
