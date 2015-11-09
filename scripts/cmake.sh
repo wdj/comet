@@ -82,7 +82,7 @@ fi
 
 #==============================================================================
 
-cmake \
+time cmake \
   -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
   -DCMAKE_INSTALL_PREFIX:PATH="$INSTALL_DIR" \
  \

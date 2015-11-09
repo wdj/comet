@@ -11,10 +11,10 @@ fi
 module load cudatoolkit
 module load acml
 
-make VERBOSE=1
+time make VERBOSE=1
 
 if [ $? = 0 ] ; then
-  make install
+  time make install
 fi
 
 #==============================================================================

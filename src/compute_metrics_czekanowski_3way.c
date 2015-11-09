@@ -37,21 +37,14 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  /*---TODO: remove when ready---*/
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
-
-  /*---Make the following assumption to greatly simplify the calculations---*/
-
-  GMInsist(env, env->num_proc == 1 || vectors->num_vector_local % 6 == 0
-    ? "3way all2all case requires number of vectors per proc divisible by 6."
-    : 0);
 
   /*---Initializations---*/
 
-/*
+#ifdef i_am_undefined
+
+
   int i = 0;
   int i_proc = env->proc_num;
-*/
 
 
 
@@ -63,6 +56,16 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
 
 
+
+
+
+
+#endif
+
+
+
+  /*---TODO: remove when ready---*/
+  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
 
 
 }
