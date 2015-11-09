@@ -150,6 +150,15 @@ void GMEnv_initialize_streams(GMEnv* env) {
 }
 
 /*===========================================================================*/
+/*---Finish initialization of env struct, make ready for general use---*/
+
+void GMEnv_finish_initializations(GMEnv* env) {
+  GMAssert(env != NULL );
+
+  GMEnv_initialize_streams(env);
+}
+
+/*===========================================================================*/
 /*---Finalize environment---*/
 
 void GMEnv_destroy(GMEnv* env) {

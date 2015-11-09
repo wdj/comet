@@ -506,7 +506,7 @@ void gm_get_metrics_wait(GMEnv* env) {
 }
 
 /*===========================================================================*/
-/*---CPU-GPU transfer nbuffer manipulation---*/
+/*---CPU-GPU transfer buffer manipulation---*/
 
 void gm_vectors_to_buf(GMVectors* vectors,
                        GMMirroredPointer* vectors_buf,
@@ -530,9 +530,123 @@ void gm_vectors_to_buf(GMVectors* vectors,
   }
 }
 
+/*===========================================================================*/
+/*---Start calculation of numerators, 2-way generic---*/
+
+void gm_compute_numerators_2way_start(GMVectors* vectors_left,
+                                      GMVectors* vectors_right,
+                                      GMMetrics* numerators,
+                                      GMMirroredPointer* vectors_left_buf,
+                                      GMMirroredPointer* vectors_right_buf,
+                                      GMMirroredPointer* numerators_buf,
+                                      int j_proc,
+                                      _Bool do_compute_triang_only,
+                                      GMEnv* env) {
+  GMAssert(vectors_left != NULL);
+  GMAssert(vectors_right != NULL);
+  GMAssert(numerators != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+
+  switch (env->metric_type) {
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
+
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
+      gm_compute_czekanowski_numerators_2way_start(
+           vectors_left, vectors_right, numerators,
+           vectors_left_buf, vectors_right_buf, numerators_buf,
+           j_proc, do_compute_triang_only, env);
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
+
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+    } break;
+    /*----------------------------------------*/
+    default:
+    /*----------------------------------------*/
+      /*---Should never get here---*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  } /*---case---*/
+
+}
 
 /*===========================================================================*/
-/*---Start/end calculation of numerators---*/
+/*---Wait for any computation on the GPU top complete---*/
+
+void gm_compute_wait(GMEnv* env) {
+  GMAssert(env != NULL);
+
+  if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    GMEnv_initialize_streams(env);
+    cudaStreamSynchronize( env->stream_compute );
+    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  }
+}
+
+/*===========================================================================*/
+/*---Combine nums and denoms on CPU to get final result, 2-way generic---*/
+
+void gm_compute_2way_combine(GMMetrics* metrics,
+                             GMMirroredPointer* metrics_buf,
+                             GMVectorSums* vector_sums_left,
+                             GMVectorSums* vector_sums_right,
+                             int j_proc,
+                             _Bool do_compute_triang_only,
+                             GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vector_sums_left != NULL);
+  GMAssert(vector_sums_right != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+
+  switch (env->metric_type) {
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_SORENSON: {
+    /*----------------------------------------*/
+
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CZEKANOWSKI: {
+    /*----------------------------------------*/
+      
+      gm_compute_czekanowski_2way_combine(metrics,
+                                          metrics_buf,
+                                          (GMFloat*)vector_sums_left->data,
+                                          (GMFloat*)vector_sums_right->data,
+                                          j_proc,
+                                          do_compute_triang_only,
+                                          env);
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CCC: {
+    /*----------------------------------------*/
+
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+    } break;
+    /*----------------------------------------*/
+    default:
+    /*----------------------------------------*/
+      /*---Should never get here---*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  } /*---case---*/
+
+}
+
+/*===========================================================================*/
+/*---Start calculation of numerators, 2-way Czekanowski---*/
 
 void gm_compute_czekanowski_numerators_2way_start(
                                       GMVectors* vectors_left,
@@ -605,8 +719,9 @@ void gm_compute_czekanowski_numerators_2way_start(
   /*----------------------------------------*/
 }
 
+/*===========================================================================*/
+/*---Start calculation of numerators, 3-way Czekanowski---*/
 
-/*---------------------------------------------------------------------------*/
 void gm_compute_czekanowski_numerators_3way_start(
                                       GMVectors* vectors_1,
                                       GMVectors* vectors_2,
@@ -761,69 +876,9 @@ void gm_compute_czekanowski_numerators_3way_start(
   
   }/*---if GPU---*/
 }
-/*---------------------------------------------------------------------------*/
-
-void gm_compute_numerators_start( GMVectors* vectors_left,
-                                  GMVectors* vectors_right,
-                                  GMMetrics* numerators,
-                                  GMMirroredPointer* vectors_left_buf,
-                                  GMMirroredPointer* vectors_right_buf,
-                                  GMMirroredPointer* numerators_buf,
-                                  int j_proc,
-                                  _Bool do_compute_triang_only,
-                                  GMEnv* env) {
-  GMAssert(vectors_left != NULL);
-  GMAssert(vectors_right != NULL);
-  GMAssert(numerators != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
-
-  switch (env->metric_type) {
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_SORENSON: {
-    /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-    /*----------------------------------------*/
-      gm_compute_czekanowski_numerators_2way_start(
-           vectors_left, vectors_right, numerators,
-           vectors_left_buf, vectors_right_buf, numerators_buf,
-           j_proc, do_compute_triang_only, env);
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CCC: {
-    /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    default:
-    /*----------------------------------------*/
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } /*---case---*/
-
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_compute_wait(GMEnv* env) {
-  GMAssert(env != NULL);
-
-  if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
-    GMEnv_initialize_streams(env);
-    cudaStreamSynchronize( env->stream_compute );
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
-  }
-}
 
 /*===========================================================================*/
-/*---Combine numerators and denominators on CPU to get final result---*/
+/*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
 
 void gm_compute_czekanowski_2way_combine(
                                     GMMetrics* metrics,
@@ -879,7 +934,7 @@ void gm_compute_czekanowski_2way_combine(
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator = GMMetrics_float_get_all2all_2(
                                                    metrics, i, j, j_proc, env);
-        /*---Don't use two pointers pointing to the same thing---*/
+        /*---Don't use two different pointers pointing to the same thing---*/
         const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
@@ -916,7 +971,7 @@ void gm_compute_czekanowski_2way_combine(
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator = ((GMFloat*)metrics_buf->h)[i +
                                               metrics->num_vector_local * j];
-        /*---Don't use two pointers pointing to the same thing---*/
+        /*---Don't use two different pointers pointing to the same thing---*/
         const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
@@ -929,6 +984,7 @@ void gm_compute_czekanowski_2way_combine(
 }
 
 /*===========================================================================*/
+/*---Combine nums and denoms on CPU to get final result, 3-way Czek---*/
 
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
                                     GMFloat* __restrict__ vector_sums_1,
@@ -969,57 +1025,6 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
       } /*---for j---*/
     } /*---for i---*/
   } /*--- if (env->all2all) ---*/
-
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_compute_combine(GMMetrics* metrics,
-                        GMMirroredPointer* metrics_buf,
-                        GMVectorSums* vector_sums_left,
-                        GMVectorSums* vector_sums_right,
-                        int j_proc,
-                        _Bool do_compute_triang_only,
-                        GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vector_sums_left != NULL);
-  GMAssert(vector_sums_right != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
-
-  switch (env->metric_type) {
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_SORENSON: {
-    /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-    /*----------------------------------------*/
-      
-      gm_compute_czekanowski_2way_combine(metrics,
-                                          metrics_buf,
-                                          (GMFloat*)vector_sums_left->data,
-                                          (GMFloat*)vector_sums_right->data,
-                                          j_proc,
-                                          do_compute_triang_only,
-                                          env);
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CCC: {
-    /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    default:
-    /*----------------------------------------*/
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } /*---case---*/
 
 }
 

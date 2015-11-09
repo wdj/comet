@@ -125,6 +125,8 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv);
 
 void GMEnv_initialize_streams(GMEnv* env);
 
+void GMEnv_finish_initializations(GMEnv* env);
+
 /*===========================================================================*/
 /*---Finalize environment---*/
 

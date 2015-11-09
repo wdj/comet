@@ -99,25 +99,25 @@ void gm_vectors_to_buf(GMVectors* vectors,
 
 /*----------*/
 
-void gm_compute_numerators_start( GMVectors* vectors_left,
-                                  GMVectors* vectors_right,
-                                  GMMetrics* numerators,
-                                  GMMirroredPointer* vectors_left_buf,
-                                  GMMirroredPointer* vectors_right_buf,
-                                  GMMirroredPointer* numerators_buf,
-                                  int j_proc,
-                                  _Bool compute_triang_only,
-                                  GMEnv* env);
+void gm_compute_numerators_2way_start( GMVectors* vectors_left,
+                                       GMVectors* vectors_right,
+                                       GMMetrics* numerators,
+                                       GMMirroredPointer* vectors_left_buf,
+                                       GMMirroredPointer* vectors_right_buf,
+                                       GMMirroredPointer* numerators_buf,
+                                       int j_proc,
+                                       _Bool compute_triang_only,
+                                       GMEnv* env);
 
 void gm_compute_wait(GMEnv* env);
 
-void gm_compute_combine(GMMetrics* metrics,
-                        GMMirroredPointer* metrics_buf,
-                        GMVectorSums* vector_sums_left,
-                        GMVectorSums* vector_sums_right,
-                        int j_proc, 
-                        _Bool do_compute_triang_only,
-                        GMEnv* env);
+void gm_compute_2way_combine(GMMetrics* metrics,
+                             GMMirroredPointer* metrics_buf,
+                             GMVectorSums* vector_sums_left,
+                             GMVectorSums* vector_sums_right,
+                             int j_proc, 
+                             _Bool do_compute_triang_only,
+                             GMEnv* env);
 
 /*----------*/
 

@@ -1,9 +1,12 @@
-/****************************************************************/
-/* 3-Way Czekanowski Similarity Metric                          */
-/*                                                              */
-/* Code Author: James Nance                                     */
-/* Created: October, 2015                                       */
-/****************************************************************/
+/*---------------------------------------------------------------------------*/
+/*!
+ * \file   compute_metrics_czekanowski_3way.c
+ * \author James Nance, Wayne Joubert
+ * \date   Fri Oct  9 14:06:44 EDT 2015
+ * \brief  Functions for computing 3-way Czekanowski metrics.
+ * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
+ */
+/*---------------------------------------------------------------------------*/
 
 #include <stdio.h> /*FIX*/
 #include <stdlib.h>
@@ -24,6 +27,48 @@ extern "C"
 
 /*===========================================================================*/
 
+/*---NOTE: This routine currently only handles Czekanowski, but the
+    intent is that it will later be adapted to handle all the metrics---*/
+
+void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
+                                                 GMVectors* vectors,
+                                                 GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
+
+  /*---TODO: remove when ready---*/
+  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+
+  /*---Make the following assumption to greatly simplify the calculations---*/
+
+  GMInsist(env, env->num_proc == 1 || vectors->num_vector_local % 6 == 0
+    ? "3way all2all case requires number of vectors per proc divisible by 6."
+    : 0);
+
+  /*---Initializations---*/
+
+/*
+  int i = 0;
+  int i_proc = env->proc_num;
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+/*===========================================================================*/
+
 void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
                                              GMVectors* vectors,
                                              GMEnv* env) {
@@ -31,7 +76,10 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  if (env->all2all) {
+    gm_compute_metrics_czekanowski_3way_all2all(metrics, vectors, env);
+    return;
+  }
 
   /*---Denominator---*/
 
@@ -91,7 +139,10 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  if (env->all2all) {
+    gm_compute_metrics_czekanowski_3way_all2all(metrics, vectors, env);
+    return;
+  }
 
   //printf("---GPU Implementation---\n");
 
@@ -121,8 +172,9 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   gm_set_vectors_wait(env);
   
   /*---Compute numerators---*/
-  gm_compute_czekanowski_numerators_3way_start(vectors, vectors, vectors, 
-       metrics, &vectors_buf, &vectors_buf, &vectors_buf, 
+  gm_compute_czekanowski_numerators_3way_start(
+       vectors, vectors, vectors, metrics,
+       &vectors_buf, &vectors_buf, &vectors_buf, 
        env->proc_num, GM_BOOL_TRUE, env);
   gm_compute_wait(env);
 
@@ -144,9 +196,10 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
 
 }
 
+/*===========================================================================*/
+
 #ifdef __cplusplus
 } /*---extern "C"---*/
 #endif
 
-/*===========================================================================*/
-
+/*---------------------------------------------------------------------------*/

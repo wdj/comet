@@ -28,17 +28,20 @@ extern "C"
 
 /*===========================================================================*/
 
-void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
-                                     GMVectors* vectors,
-                                     GMEnv* env) {
+/*---NOTE: This routine currently only handles Czekanowski, but the
+    intent is that it will later be adapted to handle all the metrics---*/
+
+void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
+                                                 GMVectors* vectors,
+                                                 GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
   /*---Initializations---*/
 
-  const int data_type = gm_data_type_from_metric_type(env->metric_type, env);
   int i = 0;
+  int i_proc = env->proc_num;
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
   GMVectorSums vector_sums_offproc = GMVectorSums_null();
@@ -49,6 +52,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   GMVectors vectors_01[2];
   for ( i = 0 ; i < 2 ; ++i ) {
+    const int data_type = gm_data_type_from_metric_type(env->metric_type, env);
     GMVectors_create(&vectors_01[i], data_type, vectors->num_field,
                      vectors->num_vector_local, env);
   }
@@ -130,8 +134,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---Prepare for sends/recvs: procs for communication---*/
 
-    const int proc_up = (env->proc_num + 1) % env->num_proc;
-    const int proc_dn = (env->proc_num - 1 + env->num_proc) % env->num_proc;
+    const int proc_up = (i_proc + 1) % env->num_proc;
+    const int proc_dn = (i_proc - 1 + env->num_proc) % env->num_proc;
 
     MPI_Request mpi_requests[2];
 
@@ -153,14 +157,14 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---The proc that owns the "right-side" vecs for the minproduct---*/
 
-    const int j_proc = (env->proc_num + step_num) % env->num_proc;
-    const int j_proc_prev = (env->proc_num + step_num-1) % env->num_proc;
+    const int j_proc = (i_proc + step_num) % env->num_proc;
+    const int j_proc_prev = (i_proc + step_num-1) % env->num_proc;
 
     /*---To remove redundancies from symmetry, skip some blocks---*/
 
     const _Bool skipping_active =
                 ( env->num_proc % 2 == 0 ) &&
-                ( 2 * env->proc_num >= env->num_proc );
+                ( 2 * i_proc >= env->num_proc );
 
     const _Bool skipped_last_block_lower_half = skipping_active &&
                 is_last_compute_step;
@@ -196,7 +200,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*--------------------*/
 
     if ( is_compute_step && do_compute_block ) {
-      gm_compute_numerators_start(vectors_left, vectors_right,
+      gm_compute_numerators_2way_start(vectors_left, vectors_right,
            metrics, vectors_left_buf, vectors_right_buf, metrics_buf,
            j_proc, do_compute_triang_only, env);
     }
@@ -211,9 +215,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         GMVectorSums* vector_sums_right = is_first_compute_step_prev
                                            ? &vector_sums_onproc
                                            : &vector_sums_offproc;
-        gm_compute_combine(metrics, metrics_buf_prev,
-                           vector_sums_left, vector_sums_right, j_proc_prev,
-                           do_compute_triang_only_prev, env);
+        gm_compute_2way_combine(metrics, metrics_buf_prev,
+                                vector_sums_left, vector_sums_right,
+                                j_proc_prev, do_compute_triang_only_prev, env);
       }
     }
 
@@ -267,9 +271,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         GMVectorSums* vector_sums_right = is_first_compute_step
                                            ? &vector_sums_onproc
                                            : &vector_sums_offproc;
-        gm_compute_combine(metrics, metrics_buf,
-                           vector_sums_left, vector_sums_right, j_proc,
-                           do_compute_triang_only, env);
+        gm_compute_2way_combine(metrics, metrics_buf,
+                                vector_sums_left, vector_sums_right, j_proc,
+                                do_compute_triang_only, env);
       }
     }
 
@@ -313,7 +317,7 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
   GMAssert(env != NULL);
 
   if (env->all2all) {
-    gm_compute_metrics_2way_all2all(metrics, vectors, env);
+    gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);
     return;
   }
 
@@ -365,7 +369,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   GMAssert(env != NULL);
 
   if (env->all2all) {
-    gm_compute_metrics_2way_all2all(metrics, vectors, env);
+    gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);
     return;
   }
 
@@ -404,7 +408,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   gm_set_vectors_start(vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
 
-  gm_compute_numerators_start(vectors, vectors,
+  gm_compute_numerators_2way_start(vectors, vectors,
        metrics, &vectors_buf, &vectors_buf, &numerators_buf,
        env->proc_num, GM_BOOL_TRUE, env);
 
@@ -418,9 +422,9 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   /*---Combine---*/
 
   /* .22 / 1.56 */
-  gm_compute_combine(metrics, &numerators_buf,
-                     &vector_sums, &vector_sums, env->proc_num,
-                     GM_BOOL_TRUE, env);
+  gm_compute_2way_combine(metrics, &numerators_buf,
+                          &vector_sums, &vector_sums, env->proc_num,
+                          GM_BOOL_TRUE, env);
 
   /*---Free memory---*/
 

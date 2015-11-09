@@ -237,6 +237,7 @@ int main(int argc, char** argv) {
   int num_vector_local = 0;
   int verbosity = 0;
   finish_parsing(argc, argv, &env, &num_field, &num_vector_local, &verbosity);
+  GMEnv_finish_initializations(&env);
 
   /*---Initialize vectors---*/
 
