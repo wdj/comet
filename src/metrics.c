@@ -126,7 +126,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*--------------------*/
       GMAssert(env->num_way == 3);
       /*---Make the following assumption to greatly simplify calculations---*/
-      GMInsist(env, env->num_proc == 1 || metrics->num_vector_local % 6 == 0
+      GMInsist(env, env->num_proc <= 2 || metrics->num_vector_local % 6 == 0
         ? "3way all2all case requires num vectors per proc divisible by 6."
         : 0);
       metrics->num_elts_local = 0;

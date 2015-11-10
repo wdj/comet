@@ -48,8 +48,13 @@ for compute_method in CPU GPU ; do
 #  done
 
   aprun -n1 -N1 $EXEC \
-      --num_field 1 --num_vector_local 4 --all2all yes \
+      --num_field 1 --num_vector_local 4 --all2all yes --num_way 3 \
       --compute_method $compute_method --verbosity 2
+
+  aprun -n1 -N1 $EXEC \
+      --num_field 1 --num_vector_local 4 --all2all no --num_way 3 \
+      --compute_method $compute_method --verbosity 2
+
 
 
   #for nproc in {1..4} ; do

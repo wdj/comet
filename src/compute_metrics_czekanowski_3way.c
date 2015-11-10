@@ -37,14 +37,66 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
+  /*---Initialize MAGMA library---*/
+
+  gm_magma_initialize(env);
 
   /*---Initializations---*/
 
-#ifdef i_am_undefined
+  const int numvec = metrics->num_vector_local;
+  const int numfield = vectors->num_field;
+
+  //int i = 0;
+  const int i_proc = env->proc_num;
+
+  /*------------------------*/
+  /*---Part 1 Computation: tetrahedron---*/
+  /*------------------------*/
+
+  /*---Denominator---*/
+
+  GMVectorSums vector_sums_i = GMVectorSums_null();
+  GMVectorSums_create(&vector_sums_i, vectors, env);
+  GMVectors* vectors_i = vectors;
+  gm_compute_vector_sums(vectors_i, &vector_sums_i, env);
+
+  /*---Numerator---*/
+
+  /*---Allocate magma CPU memory for vectors and for result---*/
+
+  GMMirroredPointer vectors_i_buf = 
+    gm_malloc_magma ( numvec * (size_t)numfield, env);
+                                                 
+  /*---Copy in vectors---*/
+
+  gm_vectors_to_buf(vectors_i, &vectors_i_buf, env);
+  
+  /*---Send matrix vectors to GPU---*/
+  
+  gm_set_vectors_start(vectors_i, &vectors_i_buf, env);
+  gm_set_vectors_wait(env);
+
+  /*---Compute numerators---*/
+
+  gm_compute_czekanowski_numerators_3way_start(
+       vectors_i, vectors_i, vectors_i, metrics,
+       &vectors_i_buf, &vectors_i_buf, &vectors_i_buf,
+       i_proc, i_proc, env);
+  gm_compute_wait(env);
+  
+  /*---Combine results---*/
+
+  gm_compute_czekanowski_3way_combine(metrics,
+                     (GMFloat*)(&vector_sums_i)->data,
+                     (GMFloat*)(&vector_sums_i)->data,
+                     (GMFloat*)(&vector_sums_i)->data,
+                     i_proc, i_proc, env);
+
+  /*------------------------*/
+  /*---Part 2 Computation: triangular prisms---*/
+  /*------------------------*/
 
 
-  int i = 0;
-  int i_proc = env->proc_num;
 
 
 
@@ -53,6 +105,9 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
 
 
+  /*------------------------*/
+  /*---Part 3 Computation: block sections---*/
+  /*------------------------*/
 
 
 
@@ -60,14 +115,12 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
 
 
-#endif
 
+  /*---Free memory and finalize---*/
 
+  GMVectorSums_destroy(&vector_sums_i, env);
 
-  /*---TODO: remove when ready---*/
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
-
-
+  gm_magma_finalize(env);
 }
 
 /*===========================================================================*/
@@ -147,8 +200,6 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
     return;
   }
 
-  //printf("---GPU Implementation---\n");
-
   /*---Denominator---*/
 
   GMVectorSums vector_sums = GMVectorSums_null();
@@ -178,7 +229,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   gm_compute_czekanowski_numerators_3way_start(
        vectors, vectors, vectors, metrics,
        &vectors_buf, &vectors_buf, &vectors_buf, 
-       env->proc_num, GM_BOOL_TRUE, env);
+       env->proc_num, env->proc_num, env);
   gm_compute_wait(env);
 
   /*---Combine results---*/
@@ -186,8 +237,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
                      (GMFloat*)(&vector_sums)->data,
                      (GMFloat*)(&vector_sums)->data,
                      (GMFloat*)(&vector_sums)->data,
-                     env->proc_num,
-                     GM_BOOL_TRUE, env);
+                     env->proc_num, env->proc_num, env);
 
   /*---Free memory and finalize---*/
 
@@ -196,7 +246,6 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   gm_free_magma( &vectors_buf, env);
   
   gm_magma_finalize(env);
-
 }
 
 /*===========================================================================*/

@@ -81,9 +81,9 @@ static int gm_metrics_3way_section_axis(GMMetrics* metrics,
   GMAssert( i_proc < env->num_proc );
   GMAssert( j_proc < env->num_proc );
   GMAssert( k_proc < env->num_proc );
-  GMAssert( i_proc != j_proc );
-  GMAssert( i_proc != k_proc );
-  GMAssert( k_proc != j_proc );
+  //GMAssert( i_proc != j_proc );
+  //GMAssert( i_proc != k_proc );
+  //GMAssert( k_proc != j_proc );
 
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
 
@@ -107,9 +107,9 @@ static int gm_metrics_3way_section_num(GMMetrics* metrics,
   GMAssert( i_proc < env->num_proc );
   GMAssert( j_proc < env->num_proc );
   GMAssert( k_proc < env->num_proc );
-  GMAssert( i_proc != j_proc );
-  GMAssert( i_proc != k_proc );
-  GMAssert( k_proc != j_proc );
+  //GMAssert( i_proc != j_proc );
+  //GMAssert( i_proc != k_proc );
+  //GMAssert( k_proc != j_proc );
 
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
 
@@ -167,7 +167,8 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
   const int i_proc = env->proc_num;
 
   size_t index = j_proc == i_proc
-               ? GMMetrics_index_from_coord_2(metrics, i, j, env)
+               //? GMMetrics_index_from_coord_2(metrics, i, j, env)
+               ? ((j * (size_t)(j - 1)) >> 1) + i
                : metrics->num_elts_0 +
                  i + metrics->num_vector_local * (
                  j + metrics->num_vector_local * (
