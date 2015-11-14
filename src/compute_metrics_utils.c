@@ -758,6 +758,270 @@ void gm_compute_czekanowski_numerators_3way_start(
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+  GMAssert(k_proc >= 0 && k_proc < env->num_proc);
+
+  const int numvec = metrics->num_vector_local;
+  const int numfield = vectors_1->num_field;
+ 
+  const int i_proc = env->proc_num;
+
+/*
+  const int section_axis = gm_metrics_3way_section_axis(
+                                metrics, i_proc, j_proc, k_proc, env);
+  const int section_num = gm_metrics_3way_section_num(
+                                metrics, i_proc, j_proc, k_proc, env);
+*/
+
+  const _Bool i_is_j_is_k = i_proc == j_proc && j_proc == k_proc;
+/*
+  const _Bool j_is_k = j_proc == k_proc;
+  const _Bool i_isnot_j_isnot_k = i_proc != j_proc && j_proc != k_proc &&
+                                  i_proc != k_proc;
+*/
+
+  /*----------------------------------------*/
+  if (env->compute_method != GM_COMPUTE_METHOD_GPU && env->all2all) {
+  /*----------------------------------------*/
+
+    int k = 0;
+    for (k = 0; k < numvec; ++k) {
+      int j = 0;
+      for (j = 0; j < k; ++j) {
+        const int i_max = i_is_j_is_k ? j : numvec;
+        int i = 0;
+        for (i = 0; i < i_max; ++ i) {
+          GMFloat numerator = 0;
+          int field = 0;
+          for (field = 0; field < numfield; ++field) {
+            const GMFloat val1 = GMVectors_float_get(vectors_1, field, i, env);
+            const GMFloat val2 = GMVectors_float_get(vectors_2, field, j, env);
+            const GMFloat val3 = GMVectors_float_get(vectors_3, field, k, env);
+            const GMFloat min_ij = val1 < val2 ? val1 : val2;
+//            const GMFloat min_ik = val1 < val3 ? val1 : val3;
+//            const GMFloat min_jk = val2 < val3 ? val2 : val3;
+//            const GMFloat min_ijk = min_ij < val3 ? min_ij : val3;
+            numerator += min_ij;
+            numerator += val1 < val3 ? val1 : val3;
+            numerator += val2 < val3 ? val2 : val3;
+            numerator -= min_ij < val3 ? min_ij : val3;
+          } /*---for field---*/
+          GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc, numerator,
+                                        env);
+        }
+      }
+    }
+
+  /*----------------------------------------*/
+  } else if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+  /*----------------------------------------*/
+
+    int k = 0;
+    for (k = 0; k < numvec; ++k) {
+      int j = 0;
+      for (j = 0; j < k; ++j) {
+        int i = 0;
+        for (i = 0; i < j; ++ i) {
+          GMFloat sum = 0;
+          int field = 0;
+          for (field = 0; field < numfield; ++field) {
+            const GMFloat val1 = GMVectors_float_get(vectors_1, field, i, env);
+            const GMFloat val2 = GMVectors_float_get(vectors_2, field, j, env);
+            const GMFloat val3 = GMVectors_float_get(vectors_3, field, k, env);
+            GMFloat min12 = val1 < val2 ? val1 : val2;
+            sum += min12;
+            sum += val1 < val3 ? val1 : val3;
+            sum += val2 < val3 ? val2 : val3;
+            sum -= min12 < val3 ? min12 : val3;
+          } /*---for field---*/
+          GMMetrics_float_set_3(metrics, i, j, k, sum, env);
+        }
+      }
+    }
+
+  /*----------------------------------------*/
+  } else /* if (env->compute_method == GM_COMPUTE_METHOD_GPU) */ {
+  /*----------------------------------------*/
+   
+    /*---Allocate magma CPU/GPU memory for M = X^T minprod X---*/ 
+
+    GMMirroredPointer matM_ij_buf_value =
+      gm_malloc_magma(numvec * (size_t)numvec, env); // M = X^T minprod X    
+    GMMirroredPointer* matM_ij_buf = &matM_ij_buf_value;
+
+    /*---Initialize result matrix to zero (apparently magma requires)---*/
+
+    gm_magma_set_matrix_zero_start(matM_ij_buf, numvec, numvec, env);
+
+    /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
+
+    magma_gemm_start(numvec, numvec, numfield,
+                     vectors_1_buf->d, numfield,
+                     vectors_2_buf->d, numfield,
+                     matM_ij_buf->d, numvec);
+    gm_compute_wait(env);
+
+    /*---Copy matM_ij from GPU---*/
+
+    gm_get_matrix_start(matM_ij_buf, numvec, numvec, env);
+    gm_get_matrix_wait(env);
+
+    /*---If j_proc != i_proc, need to compute the following---*/
+
+    GMMirroredPointer matM_jk_buf_value = i_is_j_is_k
+      ? GMMirroredPointer_null()
+      : gm_malloc_magma(numvec * (size_t)numvec, env);
+
+    GMMirroredPointer* matM_jk_buf = i_is_j_is_k ? matM_ij_buf
+                                                : &matM_jk_buf_value;
+
+    if (! i_is_j_is_k) {
+
+      gm_magma_set_matrix_zero_start(matM_jk_buf, numvec, numvec, env);
+
+      magma_gemm_start( numvec, numvec, numfield,
+                        vectors_2_buf->d, numfield,
+                        vectors_3_buf->d, numfield,
+                        matM_jk_buf->d, numvec);
+      gm_compute_wait(env);
+
+      gm_get_matrix_start(matM_jk_buf, numvec, numvec, env);
+      gm_get_matrix_wait(env);
+    }
+
+    /*---If i_proc != j_proc != k_proc, need to compute the following---*/
+
+    GMMirroredPointer* matM_ik_buf = matM_ij_buf;
+
+
+
+
+
+    /*---Allocate magma CPU/GPU memory for matrices V and B---*/
+    /* 
+       V = elementwise min of one vector with the rest of the vectors. 
+       The for the jth iteration the ith column of V is the elementwise min
+         of vectors i and j
+       B = X^T minprod V = three way min product
+    */
+    GMMirroredPointer matV_buf = gm_malloc_magma (numvec*(size_t)numfield, env);
+    GMMirroredPointer matB_buf = gm_malloc_magma (numvec*(size_t)numvec, env);
+    
+    /*---Process all combinations starting with j, i, k---*/
+
+    int j = 0;
+    int i = 0;
+    int k = 0;
+    int field = 0;
+
+    /*---NOTE: don't need j==numvec-1---*/
+    for (j = 0; j < numvec-1; ++j) {
+
+      const int i_max = i_is_j_is_k ? j : numvec;
+      if (i_max == 0) {
+        continue;
+      }
+
+      /*---Populate leading columns of matV---*/
+
+      for (i = 0; i < i_max; ++i) {
+        // Compare columns x_i and x_j element-wise
+        for (field = 0; field < numfield; ++field) {
+          const GMFloat a = ((GMFloat*)(vectors_1_buf->h))[field + numfield*i];
+          const GMFloat b = ((GMFloat*)(vectors_2_buf->h))[field + numfield*j];
+          ((GMFloat*)(matV_buf.h))[field + numfield*i] = a < b ? a : b;
+        }//---for field---//
+      }//---for i---//
+
+      /*---Send matrix matV to GPU---*/
+
+      gm_set_matrix_start(&matV_buf, numfield, i_max, env);
+      gm_set_matrix_wait(env); 
+
+      /*---Initialize result matrix to zero (apparently magma requires)---*/
+
+      gm_magma_set_matrix_zero_start(&matB_buf, numvec, i_max, env);
+
+      /*---Perform matrix-matrix product matB = matV^T minprod X---*/
+
+      magma_gemm_start(i_max, numvec, numfield,
+                       matV_buf.d, numfield, 
+                       vectors_3_buf->d, numfield,
+                       matB_buf.d, i_max);
+      gm_compute_wait(env);
+
+      /*---Copy matB from GPU---*/
+
+      gm_get_matrix_start(&matB_buf, i_max, numvec, env);
+      gm_get_matrix_wait(env);
+  
+      /*---Compute numerators---*/
+
+      if (! env->all2all) {
+
+        for (i = 0; i < j; ++i) {
+          const GMFloat min_ij = ((GMFloat*)(matM_ij_buf->h))[i + numvec * j];
+          for (k = j + 1; k < numvec; ++k) {
+            const GMFloat min_ik = ((GMFloat*)(matM_ik_buf->h))[i + numvec * k];
+            const GMFloat min_jk = ((GMFloat*)(matM_jk_buf->h))[j + numvec * k];
+            // sum of mins vectors i, j, and k is matB(k,i)
+            const GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[i + i_max * k];
+            const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
+            GMMetrics_float_set_3(metrics, i, j, k, numerator, env);
+          } /*---for k---*/
+        }   /*---for i---*/
+
+      } else /*---if (env->all2all)---*/ {
+
+        for (i = 0; i < i_max; ++i) {
+          const GMFloat min_ij = ((GMFloat*)(matM_ij_buf->h))[i + numvec * j];
+          for (k = j + 1; k < numvec; ++k) {
+            const GMFloat min_ik = ((GMFloat*)(matM_ik_buf->h))[i + numvec * k];
+            const GMFloat min_jk = ((GMFloat*)(matM_jk_buf->h))[j + numvec * k];
+            // sum of mins vectors i, j, and k is matB(k,i)
+            const GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[i + i_max * k];
+            const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
+            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+                                          numerator, env);
+          } /*---for k---*/
+        }   /*---for i---*/
+
+      } /*---if---*/
+
+    } /*---for j---*/
+  
+    /*---Free memory---*/
+
+    gm_free_magma( &matM_ij_buf_value, env);
+    if (i_is_j_is_k) {
+      gm_free_magma( &matM_jk_buf_value, env);
+    }
+    gm_free_magma( &matV_buf, env);
+    gm_free_magma( &matB_buf, env);
+  
+  }/*---if GPU---*/
+}
+
+/*---------------------------------------------------------------------------*/
+
+#if 0
+
+void gm_compute_czekanowski_numerators_3way_serial_start(
+                                      GMVectors* vectors_1,
+                                      GMVectors* vectors_2,
+                                      GMVectors* vectors_3,
+                                      GMMetrics* metrics,
+                                      GMMirroredPointer* vectors_1_buf,
+                                      GMMirroredPointer* vectors_2_buf,
+                                      GMMirroredPointer* vectors_3_buf,
+                                      int j_proc,
+                                      int k_proc,
+                                      GMEnv* env) {
+  GMAssert(vectors_1 != NULL);
+  GMAssert(vectors_2 != NULL);
+  GMAssert(vectors_3 != NULL);
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors_1->num_field;
@@ -859,25 +1123,24 @@ void gm_compute_czekanowski_numerators_3way_start(
                        vectors_3_buf->d, numfield,
                        matV_buf.d, numfield, 
                        matB_buf.d, numvec);
-     gm_compute_wait(env);
+      gm_compute_wait(env);
 
-     /*---Copy matB from GPU---*/
+      /*---Copy matB from GPU---*/
 
-     gm_get_matrix_start(&matB_buf, j, numvec, env);
-     gm_get_matrix_wait(env);
+      gm_get_matrix_start(&matB_buf, j, numvec, env);
+      gm_get_matrix_wait(env);
   
-     /*---Compute numerators---*/
+      /*---Compute numerators---*/
 
-     for (i = 0; i < j; ++i) {
-       const GMFloat min_ij = ((GMFloat*)(matM_buf.h))[j + numvec * i];
-       for (k = j + 1; k < numvec; ++k) {
-         const GMFloat min_ik = ((GMFloat*)(matM_buf.h))[k + numvec * i];
-         const GMFloat min_jk = ((GMFloat*)(matM_buf.h))[k + numvec * j];
-         // sum of mins vectors i, j, and k is matB(k,i)
-         const GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[k + numvec * i];
-         const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
-         GMMetrics_float_set_3(metrics, i, j, k,
-                             numerator, env);
+      for (i = 0; i < j; ++i) {
+        const GMFloat min_ij = ((GMFloat*)(matM_buf.h))[j + numvec * i];
+        for (k = j + 1; k < numvec; ++k) {
+          const GMFloat min_ik = ((GMFloat*)(matM_buf.h))[k + numvec * i];
+          const GMFloat min_jk = ((GMFloat*)(matM_buf.h))[k + numvec * j];
+          // sum of mins vectors i, j, and k is matB(k,i)
+          const GMFloat min_ijk = ((GMFloat*)(matB_buf.h))[k + numvec * i];
+          const GMFloat numerator = min_ij + min_ik + min_jk - min_ijk;
+          GMMetrics_float_set_3(metrics, i, j, k, numerator, env);
         } /*---for k---*/
       }   /*---for i---*/
 
@@ -891,6 +1154,8 @@ void gm_compute_czekanowski_numerators_3way_start(
   
   }/*---if GPU---*/
 }
+
+#endif
 
 /*===========================================================================*/
 /*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
@@ -1013,11 +1278,13 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < env->num_proc);
   GMAssert(k_proc >= 0 && k_proc < env->num_proc);
+  GMAssert(env->proc_num != j_proc || j_proc == k_proc);
+  GMAssert(env->proc_num != k_proc || j_proc == k_proc);
  
   const int i_proc = env->proc_num;
 
   /*----------------------------------------*/
-  if ( env->compute_method != GM_COMPUTE_METHOD_GPU && env->all2all ) {
+  if ( env->all2all ) {
   /*----------------------------------------*/
 
     if (i_proc == j_proc && j_proc == k_proc) {
@@ -1040,51 +1307,31 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
 
     } else if (j_proc == k_proc) {
 
-
-
-
-    } else {
-
-
-
-    }
-
-  /*----------------------------------------*/
-  } else if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
-  /*----------------------------------------*/
-
-    //---not needed because done elsewhere -- ADDRESS THIS. 
-    GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if ( env->all2all ) {
-  /*----------------------------------------*/
-
-    if (i_proc == j_proc && j_proc == k_proc) {
-
       int k = 0;
       for (k = 0; k < metrics->num_vector_local; ++k) {
         int j = 0;
         for (j = 0; j < k; ++j) {
           int i = 0;
-          for (i = 0; i < j; ++i) {
-
-
-/*FIX THIS - MAYBE*/
+          for (i = 0; i < metrics->num_vector_local; ++i) {
             const GMFloat numerator = GMMetrics_float_get_all2all_3(metrics,
                                                   i, j, k, j_proc, k_proc, env);
-
-
             const GMFloat denominator = vector_sums_1[i] 
-                                      + vector_sums_1[j] + vector_sums_1[k];
+                                      + vector_sums_2[j] + vector_sums_2[k];
             GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
                                 3 * numerator / (2 * denominator), env);
           } /*---for i---*/
         } /*---for j---*/
       } /*---for k---*/
 
-    }
+    } else /*---if (i_proc != j_proc && i_proc != k_proc
+                                     && j_proc != k_proc)---*/ {
 
+
+
+
+
+
+    }
 
   /*----------------------------------------*/
   } else {

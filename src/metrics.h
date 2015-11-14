@@ -227,6 +227,8 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   GMAssert(j_proc < env->num_proc);
   GMAssert(k_proc >= 0);
   GMAssert(k_proc < env->num_proc);
+  GMAssert(! (env->proc_num == j_proc && env->proc_num != k_proc));
+  GMAssert(! (env->proc_num == k_proc && env->proc_num != j_proc));
   /*---WARNING: these conditions are not exhaustive---*/
 
   const int i_proc = env->proc_num;
@@ -239,20 +241,27 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                                 metrics, i_proc, j_proc, k_proc, env);
 
   size_t index = j_proc == i_proc && k_proc == i_proc
+
                ? GMMetrics_index_from_coord_3(metrics, i, j, k, env)
+
                : j_proc == k_proc
+
                ? metrics->num_elts_0 +
                  i + nvl * (
-                 GMMetrics_index_from_coord_2(metrics, j, k, env) + nvl * (
-                 i_proc - ( i_proc > j_proc ) ))
-               : metrics->num_elts_0 +
+                 ((k * (size_t)(k - 1)) >> 1) + j + nvl * (
+                 j_proc - ( j_proc > i_proc ) ))
+
+               : metrics->num_elts_01 +
                  i + ( section_axis == 0 ? section_num * nvl : 0 ) +
                      ( section_axis == 0 ? nvl / 6 : nvl ) * (
                  j + ( section_axis == 1 ? section_num * nvl : 0 ) +
                      ( section_axis == 1 ? nvl / 6 : nvl ) * (
                  k + ( section_axis == 2 ? section_num * nvl : 0 ) +
                      ( section_axis == 2 ? nvl / 6 : nvl ) * (
-                 i_proc - ( i_proc > j_proc ) - ( i_proc > k_proc ) )));
+                 j_proc - ( j_proc > i_proc ) - ( j_proc > k_proc ) +
+                                                       (env->num_proc-2) * (
+                 k_proc - ( k_proc > i_proc )  ))));
+
   GMAssert(index >= 0 && index < metrics->num_elts_local);
   return index;
 }
@@ -327,6 +336,7 @@ static void GMMetrics_float_set_3(GMMetrics* metrics,
                                   GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
+  GMAssert(!env->all2all);
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);
