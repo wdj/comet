@@ -252,15 +252,15 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                  j_proc - ( j_proc > i_proc ) ))
 
                : metrics->num_elts_01 +
-                 i + ( section_axis == 0 ? section_num * nvl : 0 ) +
+                 i - ( section_axis == 0 ? section_num * nvl / 6 : 0 ) +
                      ( section_axis == 0 ? nvl / 6 : nvl ) * (
-                 j + ( section_axis == 1 ? section_num * nvl : 0 ) +
+                 j - ( section_axis == 1 ? section_num * nvl / 6 : 0 ) +
                      ( section_axis == 1 ? nvl / 6 : nvl ) * (
-                 k + ( section_axis == 2 ? section_num * nvl : 0 ) +
+                 k - ( section_axis == 2 ? section_num * nvl / 6 : 0 ) +
                      ( section_axis == 2 ? nvl / 6 : nvl ) * (
                  j_proc - ( j_proc > i_proc ) - ( j_proc > k_proc ) +
                                                        (env->num_proc-2) * (
-                 k_proc - ( k_proc > i_proc )  ))));
+                 k_proc - ( k_proc > i_proc ) - ( k_proc > j_proc )  ))));
 
   GMAssert(index >= 0 && index < metrics->num_elts_local);
   return index;
