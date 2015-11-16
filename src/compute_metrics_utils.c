@@ -1371,15 +1371,15 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
 
       const int i_lb = section_axis == 0 ? (section_num * numvec) / 6 : 0;
 
+      const int j_lb = section_axis == 1 ? (section_num * numvec) / 6 : 0;
+
+      const int k_lb = section_axis == 2 ? (section_num * numvec) / 6 : 0;
+
       const int i_ub =
           section_axis == 0 ? ((section_num + 1) * numvec) / 6 : numvec;
 
-      const int j_lb = section_axis == 1 ? (section_num * numvec) / 6 : 0;
-
       const int j_ub =
           section_axis == 1 ? ((section_num + 1) * numvec) / 6 : numvec;
-
-      const int k_lb = section_axis == 2 ? (section_num * numvec) / 6 : 0;
 
       const int k_ub =
           section_axis == 2 ? ((section_num + 1) * numvec) / 6 : numvec;
@@ -1394,9 +1394,10 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
                 metrics, i, j, k, j_proc, k_proc, env);
             const GMFloat denominator =
                 vector_sums_1[i] + vector_sums_2[j] + vector_sums_3[k];
+            const GMFloat value =  ((GMFloat)3) * numerator /
+                                  (((GMFloat)2) * denominator);
             GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
-                                          3 * numerator / (2 * denominator),
-                                          env);
+                                          value, env);
           } /*---for i---*/
         }   /*---for j---*/
       }     /*---for k---*/

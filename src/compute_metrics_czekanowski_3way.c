@@ -187,10 +187,6 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
       const int proc_recv_k = (i_proc + proc_diff_k) % env->num_proc;
       const int k_proc = proc_recv_k;
 
-      if (k_proc == j_proc) {
-        continue;
-      }
-
       MPI_Request mpi_requests_k[2];
 
       mpi_requests_k[0] = gm_send_vectors_start(vectors_i, proc_send_k, env);
@@ -198,6 +194,12 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
       gm_send_vectors_wait(&(mpi_requests_k[0]), env);
       gm_recv_vectors_wait(&(mpi_requests_k[1]), env);
+
+      //---TODO: skip the above communication if not needed.
+
+      if (k_proc == j_proc) {
+        continue;
+      }
 
       gm_vectors_to_buf(vectors_k, &vectors_k_buf, env);
 
