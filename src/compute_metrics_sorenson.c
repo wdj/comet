@@ -16,8 +16,7 @@
 #include "compute_metrics_sorenson.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/

@@ -24,8 +24,7 @@
 #include "cuda_runtime.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
@@ -246,7 +245,7 @@ int gm_data_type_from_metric_type(int metric_type, GMEnv* env);
 
 _Bool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 
-GMFloat* GMFloat_malloc( size_t n );
+GMFloat* GMFloat_malloc(size_t n);
 
 /*===========================================================================*/
 

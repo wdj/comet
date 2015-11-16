@@ -19,8 +19,7 @@
 #include "env.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
@@ -152,9 +151,9 @@ static void GMVectors_bit_set(GMVectors* vectors,
 /*---------------------------------------------------------------------------*/
 
 static _Bool GMVectors_bit_get(GMVectors* const vectors,
-                                int field,
-                                int vector_local,
-                                GMEnv* env) {
+                               int field,
+                               int vector_local,
+                               GMEnv* env) {
   GMAssert(vectors);
   GMAssert(field >= 0);
   GMAssert(field < vectors->num_field);
@@ -181,8 +180,8 @@ static _Bool GMVectors_bit_get(GMVectors* const vectors,
 /*---------------------------------------------------------------------------*/
 
 static _Bool GMVectors_bit_get_from_index(GMVectors* const vectors,
-                                           int index,
-                                           GMEnv* env) {
+                                          int index,
+                                          GMEnv* env) {
   GMAssert(vectors);
   GMAssert(index >= 0);
   GMAssert(index < vectors->num_vector_local * vectors->num_field);

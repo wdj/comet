@@ -13,8 +13,7 @@
 #include "vectors.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
@@ -38,17 +37,14 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
 
   switch (env->metric_type) {
     case GM_METRIC_TYPE_SORENSON: {
-
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-
       vector_sums->data = GMFloat_malloc(vectors->num_vector_local);
 
     } break;
     case GM_METRIC_TYPE_CCC: {
-
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
@@ -56,7 +52,6 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
-
 }
 
 /*===========================================================================*/
@@ -68,19 +63,16 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
 
   switch (env->metric_type) {
     case GM_METRIC_TYPE_SORENSON: {
-
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-
       GMAssert(vector_sums->data != NULL);
       free(vector_sums->data);
       vector_sums->data = NULL;
 
     } break;
     case GM_METRIC_TYPE_CCC: {
-
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
@@ -88,7 +80,6 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
-
 }
 
 #ifdef __cplusplus
@@ -96,4 +87,3 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
 #endif
 
 /*---------------------------------------------------------------------------*/
-

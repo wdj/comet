@@ -21,8 +21,7 @@
 #include "compute_metrics.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/

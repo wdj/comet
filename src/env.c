@@ -25,8 +25,7 @@
 #include "env.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
@@ -55,7 +54,7 @@ void GMEnv_create(GMEnv* env) {
   env->mpi_comm = MPI_COMM_WORLD;
 
   int mpi_code = 0;
-  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
+  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Comm_rank(env->mpi_comm, &(env->proc_num));
   GMAssert(mpi_code == MPI_SUCCESS);
   mpi_code = MPI_Comm_size(env->mpi_comm, &(env->num_proc));
@@ -136,14 +135,14 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
 /*---Initialize cuda streams---*/
 
 void GMEnv_initialize_streams(GMEnv* env) {
-  GMAssert(env != NULL );
+  GMAssert(env != NULL);
 
-  if ( ! env->are_cuda_streams_initialized ) {
-    cudaStreamCreate( & env->stream_compute );
+  if (!env->are_cuda_streams_initialized) {
+    cudaStreamCreate(&env->stream_compute);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
-    cudaStreamCreate( & env->stream_togpu );
+    cudaStreamCreate(&env->stream_togpu);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
-    cudaStreamCreate( & env->stream_fromgpu );
+    cudaStreamCreate(&env->stream_fromgpu);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
     env->are_cuda_streams_initialized = GM_BOOL_TRUE;
   }
@@ -153,7 +152,7 @@ void GMEnv_initialize_streams(GMEnv* env) {
 /*---Finish initialization of env struct, make ready for general use---*/
 
 void GMEnv_finish_initializations(GMEnv* env) {
-  GMAssert(env != NULL );
+  GMAssert(env != NULL);
 
   GMEnv_initialize_streams(env);
 }
@@ -162,18 +161,18 @@ void GMEnv_finish_initializations(GMEnv* env) {
 /*---Finalize environment---*/
 
 void GMEnv_destroy(GMEnv* env) {
-  GMAssert(env != NULL );
+  GMAssert(env != NULL);
 
   /*---Make sure no communicator to destroy---*/
   GMAssert(env->mpi_comm == MPI_COMM_WORLD);
 
-  if ( env->compute_method == GM_COMPUTE_METHOD_GPU &&
-       env->are_cuda_streams_initialized ) {
-    cudaStreamDestroy( env->stream_compute );
+  if (env->compute_method == GM_COMPUTE_METHOD_GPU &&
+      env->are_cuda_streams_initialized) {
+    cudaStreamDestroy(env->stream_compute);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
-    cudaStreamDestroy( env->stream_togpu );
+    cudaStreamDestroy(env->stream_togpu);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
-    cudaStreamDestroy( env->stream_fromgpu );
+    cudaStreamDestroy(env->stream_fromgpu);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
   }
 
@@ -206,7 +205,7 @@ double GMEnv_get_synced_time(GMEnv* env) {
   }
 
   int mpi_code = 0;
-  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
+  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Barrier(env->mpi_comm);
   GMAssert(mpi_code == MPI_SUCCESS);
@@ -261,8 +260,8 @@ _Bool GMEnv_cuda_last_call_succeeded(GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-GMFloat* GMFloat_malloc( size_t n ) {
-  GMFloat* result = (GMFloat*)malloc( n * sizeof(GMFloat) );
+GMFloat* GMFloat_malloc(size_t n) {
+  GMFloat* result = (GMFloat*)malloc(n * sizeof(GMFloat));
   GMAssert(result);
   return result;
 }

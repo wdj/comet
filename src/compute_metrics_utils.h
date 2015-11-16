@@ -17,8 +17,7 @@
 #include "metrics.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
@@ -56,19 +55,15 @@ void magma_gemm_start(magma_minproduct_int_t m,
                       void* dB,
                       magma_minproduct_int_t lddb,
                       void* dC,
-                      magma_minproduct_int_t lddc );
+                      magma_minproduct_int_t lddc);
 
 void gm_compute_wait(GMEnv* env);
 
 /*----------*/
 
-MPI_Request gm_send_vectors_start(GMVectors* vectors, 
-                                  int proc_num,
-                                  GMEnv* env);
+MPI_Request gm_send_vectors_start(GMVectors* vectors, int proc_num, GMEnv* env);
 
-MPI_Request gm_recv_vectors_start(GMVectors* vectors, 
-                                  int proc_num,
-                                  GMEnv* env);
+MPI_Request gm_recv_vectors_start(GMVectors* vectors, int proc_num, GMEnv* env);
 
 void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env);
 
@@ -77,13 +72,15 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env);
 /*----------*/
 
 void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
-                         int mat_dim1, int mat_dim2, 
+                         int mat_dim1,
+                         int mat_dim2,
                          GMEnv* env);
 
 void gm_set_matrix_wait(GMEnv* env);
 
 void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
-                         int mat_dim1, int mat_dim2,
+                         int mat_dim1,
+                         int mat_dim2,
                          GMEnv* env);
 
 void gm_get_matrix_wait(GMEnv* env);
@@ -108,60 +105,59 @@ void gm_vectors_to_buf(GMVectors* vectors,
                        GMMirroredPointer* vectors_buf,
                        GMEnv* env);
 
-
 /*----------*/
 
-void gm_compute_numerators_2way_start( GMVectors* vectors_left,
-                                       GMVectors* vectors_right,
-                                       GMMetrics* numerators,
-                                       GMMirroredPointer* vectors_left_buf,
-                                       GMMirroredPointer* vectors_right_buf,
-                                       GMMirroredPointer* numerators_buf,
-                                       int j_proc,
-                                       _Bool compute_triang_only,
-                                       GMEnv* env);
+void gm_compute_numerators_2way_start(GMVectors* vectors_left,
+                                      GMVectors* vectors_right,
+                                      GMMetrics* numerators,
+                                      GMMirroredPointer* vectors_left_buf,
+                                      GMMirroredPointer* vectors_right_buf,
+                                      GMMirroredPointer* numerators_buf,
+                                      int j_proc,
+                                      _Bool compute_triang_only,
+                                      GMEnv* env);
 
 void gm_compute_2way_combine(GMMetrics* metrics,
                              GMMirroredPointer* metrics_buf,
                              GMVectorSums* vector_sums_left,
                              GMVectorSums* vector_sums_right,
-                             int j_proc, 
+                             int j_proc,
                              _Bool do_compute_triang_only,
                              GMEnv* env);
 
 /*----------*/
 
 void gm_compute_czekanowski_numerators_2way_start(
-                                       GMVectors* vectors_left,
-                                       GMVectors* vectors_right,
-                                       GMMetrics* numerators,
-                                       GMMirroredPointer* vectors_left_buf,
-                                       GMMirroredPointer* vectors_right_buf,
-                                       GMMirroredPointer* numerators_buf,
-                                       int j_proc,
-                                       _Bool do_compute_triang_only,
-                                       GMEnv* env);
+    GMVectors* vectors_left,
+    GMVectors* vectors_right,
+    GMMetrics* numerators,
+    GMMirroredPointer* vectors_left_buf,
+    GMMirroredPointer* vectors_right_buf,
+    GMMirroredPointer* numerators_buf,
+    int j_proc,
+    _Bool do_compute_triang_only,
+    GMEnv* env);
 
 void gm_compute_czekanowski_2way_combine(
-                                       GMMetrics* metrics,
-                                       GMMirroredPointer* metrics_buf,
-                                       GMFloat* __restrict__ vector_sums_left,
-                                       GMFloat* __restrict__ vector_sums_right,
-                                       int j_proc,
-                                       _Bool compute_triang_only,
-                                       GMEnv* env);
+    GMMetrics* metrics,
+    GMMirroredPointer* metrics_buf,
+    GMFloat* __restrict__ vector_sums_left,
+    GMFloat* __restrict__ vector_sums_right,
+    int j_proc,
+    _Bool compute_triang_only,
+    GMEnv* env);
 
 void gm_compute_czekanowski_numerators_3way_start(
-                                         GMVectors* vectors_1,
-                                         GMVectors* vectors_2,
-                                         GMVectors* vectors_3,
-                                         GMMetrics* numerators,
-                                         GMMirroredPointer* vectors_1_buf,
-                                         GMMirroredPointer* vectors_2_buf,
-                                         GMMirroredPointer* vectors_3_buf,
-                                         int j_proc,
-                                         int k_proc,
-                                         GMEnv* env);
+    GMVectors* vectors_1,
+    GMVectors* vectors_2,
+    GMVectors* vectors_3,
+    GMMetrics* numerators,
+    GMMirroredPointer* vectors_1_buf,
+    GMMirroredPointer* vectors_2_buf,
+    GMMirroredPointer* vectors_3_buf,
+    int j_proc,
+    int k_proc,
+    GMEnv* env);
 
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
                                          GMFloat* __restrict__ vector_sums_1,

@@ -15,16 +15,13 @@
 #include "vectors.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
 /*---Struct declaration---*/
 
-typedef struct {
-  void* __restrict__ data;
-} GMVectorSums;
+typedef struct { void* __restrict__ data; } GMVectorSums;
 
 /*===========================================================================*/
 /*---Null object---*/
@@ -52,4 +49,3 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env);
 #endif /*---_vector_sums_h---*/
 
 /*---------------------------------------------------------------------------*/
-

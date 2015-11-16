@@ -21,8 +21,7 @@
 #include "compute_metrics_czekanowski_3way.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
@@ -46,7 +45,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors->num_field;
 
-  //int i = 0;
+  // int i = 0;
   const int i_proc = env->proc_num;
 
   /*------------------------*/
@@ -65,33 +64,31 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
   /*---Allocate magma CPU memory for vectors and for result---*/
 
-  GMMirroredPointer vectors_i_buf = 
-    gm_malloc_magma(numvec * (size_t)numfield, env);
-                                                 
+  GMMirroredPointer vectors_i_buf =
+      gm_malloc_magma(numvec * (size_t)numfield, env);
+
   /*---Copy in vectors---*/
 
   gm_vectors_to_buf(vectors_i, &vectors_i_buf, env);
-  
+
   /*---Send matrix vectors to GPU---*/
-  
+
   gm_set_vectors_start(vectors_i, &vectors_i_buf, env);
   gm_set_vectors_wait(env);
 
   /*---Compute numerators---*/
 
   gm_compute_czekanowski_numerators_3way_start(
-       vectors_i, vectors_i, vectors_i, metrics,
-       &vectors_i_buf, &vectors_i_buf, &vectors_i_buf,
-       i_proc, i_proc, env);
+      vectors_i, vectors_i, vectors_i, metrics, &vectors_i_buf, &vectors_i_buf,
+      &vectors_i_buf, i_proc, i_proc, env);
   gm_compute_wait(env);
-  
+
   /*---Combine results---*/
 
-  gm_compute_czekanowski_3way_combine(metrics,
-                     (GMFloat*)(&vector_sums_i)->data,
-                     (GMFloat*)(&vector_sums_i)->data,
-                     (GMFloat*)(&vector_sums_i)->data,
-                     i_proc, i_proc, env);
+  gm_compute_czekanowski_3way_combine(metrics, (GMFloat*)(&vector_sums_i)->data,
+                                      (GMFloat*)(&vector_sums_i)->data,
+                                      (GMFloat*)(&vector_sums_i)->data, i_proc,
+                                      i_proc, env);
 
   /*------------------------*/
   /*---Part 2 Computation: triangular prisms---*/
@@ -103,30 +100,29 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   GMVectors* vectors_j = &vectors_j_value;
   GMVectors_create(vectors_j, data_type, numfield, numvec, env);
 
-  GMMirroredPointer vectors_j_buf = 
-    gm_malloc_magma(numvec * (size_t)numfield, env);
-                                                 
+  GMMirroredPointer vectors_j_buf =
+      gm_malloc_magma(numvec * (size_t)numfield, env);
+
   GMVectorSums vector_sums_j = GMVectorSums_null();
   GMVectorSums_create(&vector_sums_j, vectors, env);
 
   int proc_diff_j = 0;
-  for (proc_diff_j=1; proc_diff_j<env->num_proc; ++proc_diff_j) {
-
+  for (proc_diff_j = 1; proc_diff_j < env->num_proc; ++proc_diff_j) {
     MPI_Request mpi_requests_j[2];
 
-    const int proc_send_j = (i_proc - proc_diff_j + env->num_proc)
-                                                  % env->num_proc;
+    const int proc_send_j =
+        (i_proc - proc_diff_j + env->num_proc) % env->num_proc;
     const int proc_recv_j = (i_proc + proc_diff_j) % env->num_proc;
     const int j_proc = proc_recv_j;
 
-    mpi_requests_j[0] = gm_send_vectors_start(vectors_i, proc_send_j, env );
-    mpi_requests_j[1] = gm_recv_vectors_start(vectors_j, proc_recv_j, env );
+    mpi_requests_j[0] = gm_send_vectors_start(vectors_i, proc_send_j, env);
+    mpi_requests_j[1] = gm_recv_vectors_start(vectors_j, proc_recv_j, env);
 
     gm_send_vectors_wait(&(mpi_requests_j[0]), env);
     gm_recv_vectors_wait(&(mpi_requests_j[1]), env);
 
     gm_vectors_to_buf(vectors_j, &vectors_j_buf, env);
-  
+
     gm_set_vectors_start(vectors_j, &vectors_j_buf, env);
     gm_set_vectors_wait(env);
 
@@ -135,18 +131,16 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
     /*---Compute numerators---*/
 
     gm_compute_czekanowski_numerators_3way_start(
-         vectors_i, vectors_j, vectors_j, metrics,
-         &vectors_i_buf, &vectors_j_buf, &vectors_j_buf,
-         j_proc, j_proc, env);
+        vectors_i, vectors_j, vectors_j, metrics, &vectors_i_buf,
+        &vectors_j_buf, &vectors_j_buf, j_proc, j_proc, env);
     gm_compute_wait(env);
-  
+
     /*---Combine results---*/
 
-    gm_compute_czekanowski_3way_combine(metrics,
-                       (GMFloat*)(&vector_sums_i)->data,
-                       (GMFloat*)(&vector_sums_j)->data,
-                       (GMFloat*)(&vector_sums_j)->data,
-                       j_proc, j_proc, env);
+    gm_compute_czekanowski_3way_combine(
+        metrics, (GMFloat*)(&vector_sums_i)->data,
+        (GMFloat*)(&vector_sums_j)->data, (GMFloat*)(&vector_sums_j)->data,
+        j_proc, j_proc, env);
 
   } /*---proc_diff_j---*/
 
@@ -158,29 +152,28 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   GMVectors* vectors_k = &vectors_k_value;
   GMVectors_create(vectors_k, data_type, numfield, numvec, env);
 
-  GMMirroredPointer vectors_k_buf = 
-    gm_malloc_magma(numvec * (size_t)numfield, env);
-                                                 
+  GMMirroredPointer vectors_k_buf =
+      gm_malloc_magma(numvec * (size_t)numfield, env);
+
   GMVectorSums vector_sums_k = GMVectorSums_null();
   GMVectorSums_create(&vector_sums_k, vectors, env);
 
-  for (proc_diff_j=1; proc_diff_j<env->num_proc; ++proc_diff_j) {
-
-    const int proc_send_j = (i_proc - proc_diff_j + env->num_proc)
-                                                  % env->num_proc;
+  for (proc_diff_j = 1; proc_diff_j < env->num_proc; ++proc_diff_j) {
+    const int proc_send_j =
+        (i_proc - proc_diff_j + env->num_proc) % env->num_proc;
     const int proc_recv_j = (i_proc + proc_diff_j) % env->num_proc;
     const int j_proc = proc_recv_j;
 
     MPI_Request mpi_requests_j[2];
 
-    mpi_requests_j[0] = gm_send_vectors_start(vectors_i, proc_send_j, env );
-    mpi_requests_j[1] = gm_recv_vectors_start(vectors_j, proc_recv_j, env );
+    mpi_requests_j[0] = gm_send_vectors_start(vectors_i, proc_send_j, env);
+    mpi_requests_j[1] = gm_recv_vectors_start(vectors_j, proc_recv_j, env);
 
     gm_send_vectors_wait(&(mpi_requests_j[0]), env);
     gm_recv_vectors_wait(&(mpi_requests_j[1]), env);
 
     gm_vectors_to_buf(vectors_j, &vectors_j_buf, env);
-  
+
     gm_set_vectors_start(vectors_j, &vectors_j_buf, env);
     gm_set_vectors_wait(env);
 
@@ -188,10 +181,9 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
     int proc_diff_k = 0;
 
-    for (proc_diff_k=1; proc_diff_k<env->num_proc; ++proc_diff_k) {
-
-      const int proc_send_k = (i_proc - proc_diff_k + env->num_proc)
-                                                    % env->num_proc;
+    for (proc_diff_k = 1; proc_diff_k < env->num_proc; ++proc_diff_k) {
+      const int proc_send_k =
+          (i_proc - proc_diff_k + env->num_proc) % env->num_proc;
       const int proc_recv_k = (i_proc + proc_diff_k) % env->num_proc;
       const int k_proc = proc_recv_k;
 
@@ -201,14 +193,14 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
       MPI_Request mpi_requests_k[2];
 
-      mpi_requests_k[0] = gm_send_vectors_start(vectors_i, proc_send_k, env );
-      mpi_requests_k[1] = gm_recv_vectors_start(vectors_k, proc_recv_k, env );
+      mpi_requests_k[0] = gm_send_vectors_start(vectors_i, proc_send_k, env);
+      mpi_requests_k[1] = gm_recv_vectors_start(vectors_k, proc_recv_k, env);
 
       gm_send_vectors_wait(&(mpi_requests_k[0]), env);
       gm_recv_vectors_wait(&(mpi_requests_k[1]), env);
 
       gm_vectors_to_buf(vectors_k, &vectors_k_buf, env);
-  
+
       gm_set_vectors_start(vectors_k, &vectors_k_buf, env);
       gm_set_vectors_wait(env);
 
@@ -217,21 +209,19 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
       /*---Compute numerators---*/
 
       gm_compute_czekanowski_numerators_3way_start(
-           vectors_i, vectors_j, vectors_k, metrics,
-           &vectors_i_buf, &vectors_j_buf, &vectors_k_buf,
-           j_proc, k_proc, env);
+          vectors_i, vectors_j, vectors_k, metrics, &vectors_i_buf,
+          &vectors_j_buf, &vectors_k_buf, j_proc, k_proc, env);
       gm_compute_wait(env);
-  
+
       /*---Combine results---*/
 
-      gm_compute_czekanowski_3way_combine(metrics,
-                         (GMFloat*)(&vector_sums_i)->data,
-                         (GMFloat*)(&vector_sums_j)->data,
-                         (GMFloat*)(&vector_sums_k)->data,
-                         j_proc, k_proc, env);
+      gm_compute_czekanowski_3way_combine(
+          metrics, (GMFloat*)(&vector_sums_i)->data,
+          (GMFloat*)(&vector_sums_j)->data, (GMFloat*)(&vector_sums_k)->data,
+          j_proc, k_proc, env);
 
     } /*---proc_diff_k---*/
-  } /*---proc_diff_j---*/
+  }   /*---proc_diff_j---*/
 
   /*---Free memory and finalize---*/
 
@@ -295,14 +285,15 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
   }     /*---for i---*/
 
   /*---Combine---*/
-  //printf("---CPU Implementation---\n");
+  // printf("---CPU Implementation---\n");
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
       for (k = j + 1; k < metrics->num_vector_local; ++k) {
         const GMFloat numerator = GMMetrics_float_get_3(metrics, i, j, k, env);
         const GMFloat denominator =
             vector_sums[i] + vector_sums[j] + vector_sums[k];
-        //printf("%i,%i,%i . . . numerator = %f . . . denominator = %f\n",i,j,k,numerator,denominator);
+        // printf("%i,%i,%i . . . numerator = %f . . . denominator =
+        // %f\n",i,j,k,numerator,denominator);
         GMMetrics_float_set_3(metrics, i, j, k,
                               3 * numerator / (2 * denominator), env);
       } /*---for k---*/
@@ -340,37 +331,34 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   gm_magma_initialize(env);
 
   /*---Allocate magma CPU memory for vectors and for result---*/
-  GMMirroredPointer vectors_buf = 
-    gm_malloc_magma ( numvec * (size_t)numfield, env); //Data matrix X
+  GMMirroredPointer vectors_buf =
+      gm_malloc_magma(numvec * (size_t)numfield, env);  // Data matrix X
 
   /*---Copy in vectors---*/
   gm_vectors_to_buf(vectors, &vectors_buf, env);
 
   /*---Send matrix vectors to GPU---*/
-  
+
   gm_set_vectors_start(vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
-  
+
   /*---Compute numerators---*/
   gm_compute_czekanowski_numerators_3way_start(
-       vectors, vectors, vectors, metrics,
-       &vectors_buf, &vectors_buf, &vectors_buf, 
-       env->proc_num, env->proc_num, env);
+      vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
+      &vectors_buf, env->proc_num, env->proc_num, env);
   gm_compute_wait(env);
 
   /*---Combine results---*/
-  gm_compute_czekanowski_3way_combine(metrics,
-                     (GMFloat*)(&vector_sums)->data,
-                     (GMFloat*)(&vector_sums)->data,
-                     (GMFloat*)(&vector_sums)->data,
-                     env->proc_num, env->proc_num, env);
+  gm_compute_czekanowski_3way_combine(
+      metrics, (GMFloat*)(&vector_sums)->data, (GMFloat*)(&vector_sums)->data,
+      (GMFloat*)(&vector_sums)->data, env->proc_num, env->proc_num, env);
 
   /*---Free memory and finalize---*/
 
-  GMVectorSums_destroy( &vector_sums, env);  
+  GMVectorSums_destroy(&vector_sums, env);
 
-  gm_free_magma( &vectors_buf, env);
-  
+  gm_free_magma(&vectors_buf, env);
+
   gm_magma_finalize(env);
 }
 

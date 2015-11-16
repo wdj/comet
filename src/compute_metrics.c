@@ -22,8 +22,7 @@
 #include "compute_metrics_ccc.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
@@ -36,7 +35,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   switch (env->metric_type +
           GM_NUM_METRIC_TYPE *
               (env->compute_method + GM_NUM_COMPUTE_METHOD * (env->num_way))) {
-
     /*--------------------*/
 
     case GM_METRIC_TYPE_SORENSON +

@@ -17,8 +17,7 @@
 #include "vectors.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*===========================================================================*/
@@ -47,16 +46,16 @@ void GMVectors_create(GMVectors* vectors,
   switch (data_type_id) {
     case GM_DATA_TYPE_FLOAT: {
       vectors->num_field_dataval = num_field;
-      vectors->num_dataval_local = vectors->num_field_dataval *
-                                   (size_t)num_vector_local;
+      vectors->num_dataval_local =
+          vectors->num_field_dataval * (size_t)num_vector_local;
       vectors->data = malloc(vectors->num_dataval_local * sizeof(GMFloat));
       GMAssert(vectors->data != NULL);
     } break;
     case GM_DATA_TYPE_BIT: {
       GMAssert(sizeof(GMBits) == 8);
       vectors->num_field_dataval = gm_ceil_i(num_field, 8 * sizeof(GMBits));
-      vectors->num_dataval_local = vectors->num_field_dataval *
-                                   (size_t)num_vector_local;
+      vectors->num_dataval_local =
+          vectors->num_field_dataval * (size_t)num_vector_local;
       vectors->data = malloc(vectors->num_field_dataval * sizeof(GMBits));
       GMAssert(vectors->data != NULL);
       /*---Ensure final pad bits of each vector are set to zero---*/
@@ -78,17 +77,17 @@ void GMVectors_create(GMVectors* vectors,
   /*---Compute global values---*/
 
   size_t num_vector_bound = 0;
-  num_vector_bound = num_vector_bound*1; /*---Avoid unused variable warning---*/
+  num_vector_bound =
+      num_vector_bound * 1; /*---Avoid unused variable warning---*/
   num_vector_bound = env->num_proc * (size_t)vectors->num_vector;
   GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
                ? "Vector count too large to store in 32-bit int."
                : 0);
 
   int mpi_code = 0;
-  mpi_code = mpi_code*1; /*---Avoid unused variable warning---*/
-  mpi_code = MPI_Allreduce(&(vectors->num_vector_local),
-                           &(vectors->num_vector), 1, MPI_INT, MPI_SUM,
-                           env->mpi_comm);
+  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+  mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
+                           1, MPI_INT, MPI_SUM, env->mpi_comm);
   GMAssert(mpi_code == MPI_SUCCESS);
 }
 
