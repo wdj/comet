@@ -279,13 +279,13 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
 
   GMAssert(index >= 0 && index < metrics->num_elts_local);
 
-  GMAssert(coords_global_from_index[index] % (nvl*env->num_proc) ==
+  GMAssert(metrics->coords_global_from_index[index] % (nvl*env->num_proc) ==
            i + i_proc * nvl);
 
-  GMAssert((coords_global_from_index[index] / (nvl*env->num_proc))
+  GMAssert((metrics->coords_global_from_index[index] / (nvl*env->num_proc))
                % (nvl*env->num_proc) == j + j_proc * nvl);
 
-  GMAssert((coords_global_from_index[index] / (nvl*env->num_proc))
+  GMAssert((metrics->coords_global_from_index[index] / (nvl*env->num_proc))
                / (nvl*env->num_proc) == k + k_proc * nvl);
 
   return index;
