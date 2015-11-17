@@ -253,7 +253,7 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   const int section_num =
       gm_metrics_3way_section_num(metrics, i_proc, j_proc, k_proc, env);
 
-  size_t index = j_proc == i_proc && k_proc == i_proc
+  size_t index = j_proc == i_proc && k_proc == i_proc && j_proc == k_proc
 
                ? GMMetrics_index_from_coord_3(metrics, i, j, k, env)
 
@@ -261,7 +261,8 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
 
                ? metrics->num_elts_0 +
                  i + nvl * (
-                 ((k * (size_t)(k - 1)) >> 1) + j + nvl * (
+                 ((k * (size_t)(k - 1)) >> 1) + j + 
+                     ((nvl * (size_t)(nvl - 1)) >> 1) * (
                  j_proc - ( j_proc > i_proc ) ))
 
                : metrics->num_elts_01 +
@@ -273,7 +274,7 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                      ( section_axis == 2 ? nvl / 6 : nvl ) * (
                  j_proc - ( j_proc > i_proc ) - ( j_proc > k_proc ) +
                                                        (env->num_proc-2) * (
-                 k_proc - ( k_proc > i_proc ) - ( k_proc > j_proc )  ))));
+                 k_proc - ( k_proc > i_proc ) ))));
 
   /* clang-format on */
 
