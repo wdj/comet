@@ -138,32 +138,6 @@ void GMEnv_initialize_streams(GMEnv* env);
 void GMEnv_terminate_streams(GMEnv* env);
 
 /*===========================================================================*/
-/*---Accessors---*/
-
-static int Env_num_proc(const GMEnv* env) {
-  GMAssert(env != NULL);
-  return env->num_proc;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static int Env_compute_method(const GMEnv* env) {
-  GMAssert(env != NULL);
-  return env->compute_method;
-}
-
-/*---------------------------------------------------------------------------*/
-
-void Env_set_num_proc(GMEnv* env, int num_proc);
-void Env_set_compute_method(GMEnv* env, int compute_method);
-
-/*===========================================================================*/
-/*---Timer functions---*/
-
-double GMEnv_get_time(GMEnv* env);
-double GMEnv_get_synced_time(GMEnv* env);
-
-/*===========================================================================*/
 /*---Assertions---*/
 
 #define GMAssert(v) assert(v)
@@ -192,6 +166,32 @@ void gm_insist(GMEnv* env,
 #else
 #define GM_StaticAssert(condition)
 #endif
+
+/*===========================================================================*/
+/*---Accessors---*/
+
+static int Env_num_proc(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_proc;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_compute_method(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->compute_method;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void Env_set_num_proc(GMEnv* env, int num_proc);
+void Env_set_compute_method(GMEnv* env, int compute_method);
+
+/*===========================================================================*/
+/*---Timer functions---*/
+
+double GMEnv_get_time(GMEnv* env);
+double GMEnv_get_synced_time(GMEnv* env);
 
 /*===========================================================================*/
 /*---Misc utility functions---*/

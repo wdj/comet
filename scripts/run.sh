@@ -25,6 +25,10 @@ pushd $MEMBERWORK/$ACCOUNT > /dev/null
 #for compute_method in CPU GPU ; do
 for compute_method in CPU ; do
 
+  #aprun -n3 -N1 $EXEC \
+  #    --num_field 1 --num_vector_local 2 \
+  #    --compute_method $compute_method --verbosity 2
+
   #echo \
   #aprun -n1 $EXEC \
   #    --num_field 5000 --num_vector_local 6000 \
@@ -57,9 +61,6 @@ for compute_method in CPU ; do
 #      --compute_method $compute_method --verbosity 2
 
 
-
-
-
 #  aprun -n1 -N1 $EXEC \
 #      --num_field 1 --num_vector_local 6 --all2all no --num_way 3 \
 #      --compute_method $compute_method --verbosity 2
@@ -73,19 +74,12 @@ for compute_method in CPU ; do
 #      --compute_method $compute_method --verbosity 2
 
 
-
-
   aprun -n1 -N1 $EXEC \
       --num_field 1 --num_vector_local 18 --all2all yes --num_way 3 \
       --compute_method $compute_method --verbosity 2
-
   aprun -n3 -N1 $EXEC \
       --num_field 1 --num_vector_local 6 --all2all yes --num_way 3 \
       --compute_method $compute_method --verbosity 2
-
-
-
-
 
 
   #for nproc in {1..4} ; do

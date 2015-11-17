@@ -68,7 +68,7 @@ void GMEnv_create(GMEnv* env) {
   env->num_way = 2;
   env->all2all = GM_BOOL_FALSE;
   env->are_cuda_streams_initialized = GM_BOOL_FALSE;
-  Env_set_compute_method(GM_COMPUTE_METHOD_GPU);
+  Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
 }
 
 /*===========================================================================*/
@@ -190,7 +190,7 @@ void GMEnv_destroy(GMEnv* env) {
 void Env_set_num_proc(GMEnv* env, int num_proc) {
   GMAssert(env != NULL);
   GMAssert(num_proc >= 0);
-  GMAssert(num_proc < env->num_proc_world);
+  GMAssert(num_proc <= env->num_proc_world);
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/

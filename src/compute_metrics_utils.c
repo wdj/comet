@@ -745,8 +745,8 @@ void gm_compute_czekanowski_numerators_3way_start(
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
   GMAssert(k_proc >= 0 && k_proc < Env_num_proc(env));
-  GMAssert(!(env->proc_num == j_proc && Env_num_proc(env) != k_proc));
-  GMAssert(!(env->proc_num == k_proc && Env_num_proc(env) != j_proc));
+  GMAssert(!(env->proc_num == j_proc && env->proc_num != k_proc));
+  GMAssert(!(env->proc_num == k_proc && env->proc_num != j_proc));
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors_1->num_field;
