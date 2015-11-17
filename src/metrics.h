@@ -84,11 +84,14 @@ static int gm_metrics_3way_section_axis(GMMetrics* metrics,
   // GMAssert( i_proc != k_proc );
   // GMAssert( k_proc != j_proc );
 
+  /* clang-format off */
+
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
 
-  return i_proc < j_proc && i_proc < k_proc ? 0 :     /*---i axis---*/
-             j_proc < i_proc && j_proc < k_proc ? 1 : /*---j axis---*/
-                 2;                                   /*---k axis---*/
+  return i_proc < j_proc && i_proc < k_proc  ? 0 : /*---i axis---*/
+         j_proc < i_proc && j_proc < k_proc  ? 1 : /*---j axis---*/
+                                               2;  /*---k axis---*/
+  /* clang-format on */
 }
 
 /*---------------------------------------------------------------------------*/
@@ -110,20 +113,18 @@ static int gm_metrics_3way_section_num(GMMetrics* metrics,
   // GMAssert( i_proc != k_proc );
   // GMAssert( k_proc != j_proc );
 
+  /* clang-format off */
+
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
 
-  return i_proc < k_proc && k_proc < j_proc
-             ? 0
-             : i_proc < j_proc && j_proc < k_proc
-                   ? 1
-                   : j_proc < i_proc && i_proc < k_proc
-                         ? 2
-                         : j_proc < k_proc && k_proc < i_proc
-                               ? 3
-                               : k_proc < j_proc && j_proc < i_proc
-                                     ? 4
-                                     :
-                                     /* k_proc < i_proc && i_proc < j_proc ? */ 5;
+  return i_proc < k_proc && k_proc < j_proc ?    0 :
+         i_proc < j_proc && j_proc < k_proc ?    1 :
+         j_proc < i_proc && i_proc < k_proc ?    2 :
+         j_proc < k_proc && k_proc < i_proc ?    3 :
+         k_proc < j_proc && j_proc < i_proc ?    4 :
+      /* k_proc < i_proc && i_proc < j_proc ? */ 5;
+
+  /* clang-format on */
 }
 
 /*===========================================================================*/
@@ -169,19 +170,22 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
   GMAssert(i < j || j_proc != env->proc_num);
   /*---WARNING: these conditions on j_proc are not exhaustive---*/
 
+  /* clang-format off */
+
   const int i_proc = env->proc_num;
 
   size_t index = j_proc == i_proc
-                     //? GMMetrics_index_from_coord_2(metrics, i, j, env)
-                     ? ((j * (size_t)(j - 1)) >> 1) + i
-                     : metrics->num_elts_0 + i +
-                           metrics->num_vector_local *
-                               (j +
-                                metrics->num_vector_local *
-                                    ((j_proc - i_proc - 1 + 2 * env->num_proc) %
-                                     env->num_proc));
+               //? GMMetrics_index_from_coord_2(metrics, i, j, env)
+               ? ((j * (size_t)(j - 1)) >> 1) + i
+               : metrics->num_elts_0 +
+                 i + metrics->num_vector_local * (
+                 j + metrics->num_vector_local * (
+                 (j_proc - i_proc - 1 + 2*env->num_proc) % env->num_proc ));
+
   GMAssert(index >= 0 && index < metrics->num_elts_local);
   return index;
+
+  /* clang-format on */
 }
 
 /*---------------------------------------------------------------------------*/
@@ -238,6 +242,8 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   GMAssert(!(env->proc_num == k_proc && env->proc_num != j_proc));
   /*---WARNING: these conditions are not exhaustive---*/
 
+  /* clang-format off */
+
   const int i_proc = env->proc_num;
 
   const int nvl = metrics->num_vector_local;
@@ -247,32 +253,41 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   const int section_num =
       gm_metrics_3way_section_num(metrics, i_proc, j_proc, k_proc, env);
 
-  size_t index =
-      j_proc == i_proc && k_proc == i_proc
+  size_t index = j_proc == i_proc && k_proc == i_proc
 
-          ? GMMetrics_index_from_coord_3(metrics, i, j, k, env)
+               ? GMMetrics_index_from_coord_3(metrics, i, j, k, env)
 
-          : j_proc == k_proc
+               : j_proc == k_proc
 
-                ? metrics->num_elts_0 + i +
-                      nvl * (((k * (size_t)(k - 1)) >> 1) + j +
-                             nvl * (j_proc - (j_proc > i_proc)))
+               ? metrics->num_elts_0 +
+                 i + nvl * (
+                 ((k * (size_t)(k - 1)) >> 1) + j + nvl * (
+                 j_proc - ( j_proc > i_proc ) ))
 
-                : metrics->num_elts_01 + i -
-                      (section_axis == 0 ? section_num * nvl / 6 : 0) +
-                      (section_axis == 0 ? nvl / 6 : nvl) *
-                          (j - (section_axis == 1 ? section_num * nvl / 6 : 0) +
-                           (section_axis == 1 ? nvl / 6 : nvl) *
-                               (k - (section_axis == 2 ? section_num * nvl / 6
-                                                       : 0) +
-                                (section_axis == 2 ? nvl / 6 : nvl) *
-                                    (j_proc - (j_proc > i_proc) -
-                                     (j_proc > k_proc) +
-                                     (env->num_proc - 2) *
-                                         (k_proc - (k_proc > i_proc) -
-                                          (k_proc > j_proc)))));
+               : metrics->num_elts_01 +
+                 i - ( section_axis == 0 ? section_num * nvl / 6 : 0 ) +
+                     ( section_axis == 0 ? nvl / 6 : nvl ) * (
+                 j - ( section_axis == 1 ? section_num * nvl / 6 : 0 ) +
+                     ( section_axis == 1 ? nvl / 6 : nvl ) * (
+                 k - ( section_axis == 2 ? section_num * nvl / 6 : 0 ) +
+                     ( section_axis == 2 ? nvl / 6 : nvl ) * (
+                 j_proc - ( j_proc > i_proc ) - ( j_proc > k_proc ) +
+                                                       (env->num_proc-2) * (
+                 k_proc - ( k_proc > i_proc ) - ( k_proc > j_proc )  ))));
+
+  /* clang-format on */
 
   GMAssert(index >= 0 && index < metrics->num_elts_local);
+
+  GMAssert(coords_global_from_index[index] % (nvl*env->num_proc) ==
+           i + i_proc * nvl);
+
+  GMAssert((coords_global_from_index[index] / (nvl*env->num_proc))
+               % (nvl*env->num_proc) == j + j_proc * nvl);
+
+  GMAssert((coords_global_from_index[index] / (nvl*env->num_proc))
+               / (nvl*env->num_proc) == k + k_proc * nvl);
+
   return index;
 }
 

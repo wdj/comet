@@ -775,19 +775,19 @@ void gm_compute_czekanowski_numerators_3way_start(
   const int i_lb =
       i_isnot_j_isnot_k && section_axis == 0 ? (section_num * numvec) / 6 : 0;
 
+  const int j_lb =
+      i_isnot_j_isnot_k && section_axis == 1 ? (section_num * numvec) / 6 : 0;
+
+  const int k_lb =
+      i_isnot_j_isnot_k && section_axis == 2 ? (section_num * numvec) / 6 : 0;
+
   const int i_ub = i_isnot_j_isnot_k && section_axis == 0
                        ? ((section_num + 1) * numvec) / 6
                        : numvec;
 
-  const int j_lb =
-      i_isnot_j_isnot_k && section_axis == 1 ? (section_num * numvec) / 6 : 0;
-
   const int j_ub = i_isnot_j_isnot_k && section_axis == 1
                        ? ((section_num + 1) * numvec) / 6
                        : numvec;
-
-  const int k_lb =
-      i_isnot_j_isnot_k && section_axis == 2 ? (section_num * numvec) / 6 : 0;
 
   const int k_ub = i_isnot_j_isnot_k && section_axis == 2
                        ? ((section_num + 1) * numvec) / 6
