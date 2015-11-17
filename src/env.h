@@ -83,13 +83,18 @@ GMMirroredPointer GMMirroredPointer_null(void);
 /*---Environment struct declarations---*/
 
 typedef struct {
+  /*---Settings---*/
   int metric_type;
   int num_way;
   _Bool all2all;
   int compute_method;
+  /*---MPI---*/
   int mpi_comm;
+  int num_proc_world;
   int num_proc;
   int proc_num;
+  _Bool is_proc_active;
+  /*---CUDA---*/
   cudaStream_t stream_compute;
   cudaStream_t stream_togpu;
   cudaStream_t stream_fromgpu;
@@ -119,17 +124,38 @@ GMEnv GMEnv_null(void);
 /*---Initialize environment---*/
 
 void GMEnv_create(GMEnv* env);
-
 void GMEnv_create_from_args(GMEnv* env, int argc, char** argv);
-
-void GMEnv_initialize_streams(GMEnv* env);
-
-void GMEnv_finish_initializations(GMEnv* env);
 
 /*===========================================================================*/
 /*---Finalize environment---*/
 
 void GMEnv_destroy(GMEnv* env);
+
+/*===========================================================================*/
+/*---Manage cuda streams---*/
+
+void GMEnv_initialize_streams(GMEnv* env);
+void GMEnv_terminate_streams(GMEnv* env);
+
+/*===========================================================================*/
+/*---Accessors---*/
+
+static int Env_num_proc(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_proc;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_compute_method(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->compute_method;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void Env_set_num_proc(GMEnv* env, int num_proc);
+void Env_set_compute_method(GMEnv* env, int compute_method);
 
 /*===========================================================================*/
 /*---Timer functions---*/

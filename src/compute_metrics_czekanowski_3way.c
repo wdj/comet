@@ -107,12 +107,12 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   GMVectorSums_create(&vector_sums_j, vectors, env);
 
   int proc_diff_j = 0;
-  for (proc_diff_j = 1; proc_diff_j < env->num_proc; ++proc_diff_j) {
+  for (proc_diff_j = 1; proc_diff_j < Env_num_proc(env); ++proc_diff_j) {
     MPI_Request mpi_requests_j[2];
 
     const int proc_send_j =
-        (i_proc - proc_diff_j + env->num_proc) % env->num_proc;
-    const int proc_recv_j = (i_proc + proc_diff_j) % env->num_proc;
+        (i_proc - proc_diff_j + Env_num_proc(env)) % Env_num_proc(env);
+    const int proc_recv_j = (i_proc + proc_diff_j) % Env_num_proc(env);
     const int j_proc = proc_recv_j;
 
     mpi_requests_j[0] = gm_send_vectors_start(vectors_i, proc_send_j, env);
@@ -158,10 +158,10 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   GMVectorSums vector_sums_k = GMVectorSums_null();
   GMVectorSums_create(&vector_sums_k, vectors, env);
 
-  for (proc_diff_j = 1; proc_diff_j < env->num_proc; ++proc_diff_j) {
+  for (proc_diff_j = 1; proc_diff_j < Env_num_proc(env); ++proc_diff_j) {
     const int proc_send_j =
-        (i_proc - proc_diff_j + env->num_proc) % env->num_proc;
-    const int proc_recv_j = (i_proc + proc_diff_j) % env->num_proc;
+        (i_proc - proc_diff_j + Env_num_proc(env)) % Env_num_proc(env);
+    const int proc_recv_j = (i_proc + proc_diff_j) % Env_num_proc(env);
     const int j_proc = proc_recv_j;
 
     MPI_Request mpi_requests_j[2];
@@ -181,10 +181,10 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
     int proc_diff_k = 0;
 
-    for (proc_diff_k = 1; proc_diff_k < env->num_proc; ++proc_diff_k) {
+    for (proc_diff_k = 1; proc_diff_k < Env_num_proc(env); ++proc_diff_k) {
       const int proc_send_k =
-          (i_proc - proc_diff_k + env->num_proc) % env->num_proc;
-      const int proc_recv_k = (i_proc + proc_diff_k) % env->num_proc;
+          (i_proc - proc_diff_k + Env_num_proc(env)) % Env_num_proc(env);
+      const int proc_recv_k = (i_proc + proc_diff_k) % Env_num_proc(env);
       const int k_proc = proc_recv_k;
 
       MPI_Request mpi_requests_k[2];

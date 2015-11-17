@@ -81,7 +81,7 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
        For even number of procs, block rows of lower half of matrix
        have one less block to make correct count---*/
 
-  const int num_step = 1 + (env->num_proc / 2);
+  const int num_step = 1 + (Env_num_proc(env) / 2);
 
   /*----------------------------------------*/
   /*---Begin loop over steps of circular shift of vectors objects---*/
@@ -133,8 +133,8 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
     /*---Prepare for sends/recvs: procs for communication---*/
 
-    const int proc_up = (i_proc + 1) % env->num_proc;
-    const int proc_dn = (i_proc - 1 + env->num_proc) % env->num_proc;
+    const int proc_up = (i_proc + 1) % Env_num_proc(env);
+    const int proc_dn = (i_proc - 1 + Env_num_proc(env)) % Env_num_proc(env);
 
     MPI_Request mpi_requests[2];
 
@@ -155,13 +155,13 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
     /*---The proc that owns the "right-side" vecs for the minproduct---*/
 
-    const int j_proc = (i_proc + step_num) % env->num_proc;
-    const int j_proc_prev = (i_proc + step_num - 1) % env->num_proc;
+    const int j_proc = (i_proc + step_num) % Env_num_proc(env);
+    const int j_proc_prev = (i_proc + step_num - 1) % Env_num_proc(env);
 
     /*---To remove redundancies from symmetry, skip some blocks---*/
 
     const _Bool skipping_active =
-        (env->num_proc % 2 == 0) && (2 * i_proc >= env->num_proc);
+        (Env_num_proc(env) % 2 == 0) && (2 * i_proc >= Env_num_proc(env));
 
     const _Bool skipped_last_block_lower_half =
         skipping_active && is_last_compute_step;
@@ -205,7 +205,7 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
     /*---GPU case: wait for prev step get metrics to complete, then combine.
          Note this is hidden under GPU computation---*/
 
-    if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
+    if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
       if (is_compute_step_prev && do_compute_block_prev) {
         gm_get_metrics_wait(env);
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
@@ -262,7 +262,7 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
     /*---CPU case: combine numerators, denominators to obtain final result---*/
 
-    if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+    if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
       if (is_compute_step && do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =

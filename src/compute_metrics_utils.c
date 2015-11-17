@@ -90,7 +90,7 @@ void gm_compute_vector_sums(GMVectors* vectors,
 void gm_magma_initialize(GMEnv* env) {
   GMAssert(env != NULL);
 
-  if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
@@ -138,7 +138,7 @@ void gm_magma_initialize(GMEnv* env) {
 void gm_magma_finalize(GMEnv* env) {
   GMAssert(env != NULL);
 
-  if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
@@ -185,7 +185,7 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
 
   GMMirroredPointer p = GMMirroredPointer_null();
 
-  if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return p;
   }
 
@@ -244,7 +244,7 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
   GMAssert(p != NULL);
   GMAssert(env != NULL);
 
-  if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
@@ -330,8 +330,7 @@ void magma_gemm_start(magma_minproduct_int_t m,
 void gm_compute_wait(GMEnv* env) {
   GMAssert(env != NULL);
 
-  if (env->compute_method == GM_COMPUTE_METHOD_GPU) {
-    GMEnv_initialize_streams(env);
+  if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaStreamSynchronize(env->stream_compute);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
   }
@@ -345,7 +344,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   GMEnv* env) {
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
-  GMAssert(proc_num >= 0 && proc_num < env->num_proc);
+  GMAssert(proc_num >= 0 && proc_num < Env_num_proc(env));
 
   const int mpi_tag = 0;
   MPI_Request mpi_request;
@@ -367,7 +366,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   GMEnv* env) {
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
-  GMAssert(proc_num >= 0 && proc_num < env->num_proc);
+  GMAssert(proc_num >= 0 && proc_num < Env_num_proc(env));
 
   const int mpi_tag = 0;
   MPI_Request mpi_request;
@@ -420,13 +419,12 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
   GMAssert(matrix_buf != NULL);
   GMAssert(env != NULL);
 
-  if (!env->compute_method == GM_COMPUTE_METHOD_GPU) {
+  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*---Send vectors to GPU---*/
 
-  GMEnv_initialize_streams(env);
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dsetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h,
                                     mat_dim1, (GMFloat*)matrix_buf->d, mat_dim1,
@@ -444,11 +442,10 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
 void gm_set_matrix_wait(GMEnv* env) {
   GMAssert(env != NULL);
 
-  if (!env->compute_method == GM_COMPUTE_METHOD_GPU) {
+  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
-  GMEnv_initialize_streams(env);
   cudaStreamSynchronize(env->stream_togpu);
   GMAssert(GMEnv_cuda_last_call_succeeded(env));
 }
@@ -463,13 +460,12 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
   GMAssert(matrix_buf != NULL);
   GMAssert(env != NULL);
 
-  if (!env->compute_method == GM_COMPUTE_METHOD_GPU) {
+  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*---Get vectors from GPU---*/
 
-  GMEnv_initialize_streams(env);
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dgetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d,
                                     mat_dim1, (GMFloat*)matrix_buf->h, mat_dim1,
@@ -487,11 +483,10 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
 void gm_get_matrix_wait(GMEnv* env) {
   GMAssert(env != NULL);
 
-  if (!env->compute_method == GM_COMPUTE_METHOD_GPU) {
+  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
-  GMEnv_initialize_streams(env);
   cudaStreamSynchronize(env->stream_fromgpu);
   GMAssert(GMEnv_cuda_last_call_succeeded(env));
 }
@@ -550,7 +545,7 @@ void gm_vectors_to_buf(GMVectors* vectors,
   GMAssert(vectors_buf != NULL);
   GMAssert(env != NULL);
 
-  if (!env->compute_method == GM_COMPUTE_METHOD_GPU) {
+  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
@@ -581,7 +576,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
   GMAssert(vectors_right != NULL);
   GMAssert(numerators != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
 
   switch (env->metric_type) {
     /*----------------------------------------*/
@@ -628,7 +623,7 @@ void gm_compute_2way_combine(GMMetrics* metrics,
   GMAssert(vector_sums_left != NULL);
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
 
   switch (env->metric_type) {
     /*----------------------------------------*/
@@ -679,10 +674,10 @@ void gm_compute_czekanowski_numerators_2way_start(
   GMAssert(vectors_right != NULL);
   GMAssert(numerators != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
 
   /*----------------------------------------*/
-  if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
     /*---Perform pseudo matrix-matrix product---*/
@@ -707,7 +702,7 @@ void gm_compute_czekanowski_numerators_2way_start(
     }   /*---for j---*/
 
     /*----------------------------------------*/
-  } else /* if (env->compute_method == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
@@ -748,10 +743,10 @@ void gm_compute_czekanowski_numerators_3way_start(
   GMAssert(vectors_3 != NULL);
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
-  GMAssert(k_proc >= 0 && k_proc < env->num_proc);
-  GMAssert(!(env->proc_num == j_proc && env->proc_num != k_proc));
-  GMAssert(!(env->proc_num == k_proc && env->proc_num != j_proc));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_proc(env));
+  GMAssert(!(env->proc_num == j_proc && Env_num_proc(env) != k_proc));
+  GMAssert(!(env->proc_num == k_proc && Env_num_proc(env) != j_proc));
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors_1->num_field;
@@ -794,7 +789,7 @@ void gm_compute_czekanowski_numerators_3way_start(
                        : numvec;
 
   /*----------------------------------------*/
-  if (env->compute_method != GM_COMPUTE_METHOD_GPU && env->all2all) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && env->all2all) {
     /*----------------------------------------*/
 
     int k = 0;
@@ -824,7 +819,7 @@ void gm_compute_czekanowski_numerators_3way_start(
     }
 
     /*----------------------------------------*/
-  } else if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
     int k = 0;
@@ -851,7 +846,7 @@ void gm_compute_czekanowski_numerators_3way_start(
     }
 
     /*----------------------------------------*/
-  } else /* if (env->compute_method == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
     /*--------------------*/
@@ -1053,13 +1048,13 @@ void gm_compute_czekanowski_numerators_3way_serial_start(
   GMAssert(vectors_3 != NULL);
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors_1->num_field;
  
   /*----------------------------------------*/
-  if ( env->compute_method != GM_COMPUTE_METHOD_GPU ) {
+  if ( Env_compute_method(env) != GM_COMPUTE_METHOD_GPU ) {
   /*----------------------------------------*/
 
     int i = 0;
@@ -1086,7 +1081,7 @@ void gm_compute_czekanowski_numerators_3way_serial_start(
     }     /*---for i---*/
 
   /*----------------------------------------*/
-  } else /* if (env->compute_method == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
   /*----------------------------------------*/
    
     /*---Allocate magma CPU/GPU memory for M = X^T minprod X---*/ 
@@ -1204,7 +1199,7 @@ void gm_compute_czekanowski_2way_combine(
   GMAssert(vector_sums_left != NULL);
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
 
   /*---For CPU case, copy numerator out of metrics struct which is temporarily
        holding numerators.
@@ -1214,7 +1209,7 @@ void gm_compute_czekanowski_2way_combine(
   const _Bool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
 
   /*----------------------------------------*/
-  if (env->compute_method != GM_COMPUTE_METHOD_GPU && env->all2all) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && env->all2all) {
     /*----------------------------------------*/
 
     int j = 0;
@@ -1237,7 +1232,7 @@ void gm_compute_czekanowski_2way_combine(
          * zero---*/
 
     /*----------------------------------------*/
-  } else if (env->compute_method != GM_COMPUTE_METHOD_GPU) {
+  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
     int j = 0;
@@ -1311,8 +1306,8 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
   GMAssert(vector_sums_2 != NULL);
   GMAssert(vector_sums_3 != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < env->num_proc);
-  GMAssert(k_proc >= 0 && k_proc < env->num_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_proc(env));
   GMAssert(env->proc_num != j_proc || j_proc == k_proc);
   GMAssert(env->proc_num != k_proc || j_proc == k_proc);
 

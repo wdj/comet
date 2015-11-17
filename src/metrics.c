@@ -47,10 +47,12 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute global values---*/
 
+  const int num_proc = Env_num_proc(env);
+
   size_t num_vector_bound = 0;
   num_vector_bound =
       num_vector_bound * 1; /*---Avoid unused variable warning---*/
-  num_vector_bound = env->num_proc * (size_t)metrics->num_vector;
+  num_vector_bound = num_proc * (size_t)metrics->num_vector;
   GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
                ? "Vector count too large to store in 32-bit int."
                : 0);
@@ -69,6 +71,8 @@ void GMMetrics_create(GMMetrics* metrics,
           ? "Currently require number of vecs on a proc to be at least num-way"
           : 0);
 
+  const int i_proc = env->proc_num;
+
   /*---Compute number of elements etc.---*/
 
   /*--------------------*/
@@ -86,9 +90,9 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->num_elts_0 = metrics->num_elts_local;
       /*---Compute size part 2: (wrapped rectangle) i_proc!=j_proc part---*/
       const int num_offdiag_block =
-          env->num_proc % 2 == 0 && 2 * env->proc_num >= env->num_proc
-              ? (env->num_proc / 2) - 1
-              : (env->num_proc / 2);
+          num_proc % 2 == 0 && 2 * i_proc >= num_proc
+              ? (num_proc / 2) - 1
+              : (num_proc / 2);
       metrics->num_elts_local +=
           num_offdiag_block * num_vector_local * num_vector_local;
       /*---Allocate index---*/
@@ -99,25 +103,25 @@ void GMMetrics_create(GMMetrics* metrics,
       int index = 0;
       int j = 0;
       for (j = 0; j < num_vector_local; ++j) {
-        const size_t j_global = j + num_vector_local * env->proc_num;
+        const size_t j_global = j + num_vector_local * i_proc;
         int i = 0;
         for (i = 0; i < j; ++i) {
-          const size_t i_global = i + num_vector_local * env->proc_num;
+          const size_t i_global = i + num_vector_local * i_proc;
           metrics->coords_global_from_index[index++] =
               i_global + metrics->num_vector * j_global;
         }
       }
       /*---Set index part 2: (wrapped rectangle) i_proc!=j_proc part---*/
-      const size_t beg = (env->proc_num + 1) * num_vector_local;
+      const size_t beg = (i_proc + 1) * num_vector_local;
       const size_t end =
-          (env->proc_num + num_offdiag_block + 1) * num_vector_local;
+          (i_proc + num_offdiag_block + 1) * num_vector_local;
       size_t j_global_unwrapped = 0;
       for (j_global_unwrapped = beg; j_global_unwrapped < end;
            ++j_global_unwrapped) {
         const size_t j_global = j_global_unwrapped % metrics->num_vector;
         int i = 0;
         for (i = 0; i < num_vector_local; ++i) {
-          const size_t i_global = i + num_vector_local * env->proc_num;
+          const size_t i_global = i + num_vector_local * i_proc;
           metrics->coords_global_from_index[index++] =
               i_global + metrics->num_vector * j_global;
         }
@@ -128,7 +132,7 @@ void GMMetrics_create(GMMetrics* metrics,
       /*--------------------*/
       GMAssert(env->num_way == 3);
       /*---Make the following assumption to greatly simplify calculations---*/
-      GMInsist(env, env->num_proc <= 2 || metrics->num_vector_local % 6 == 0
+      GMInsist(env, num_proc <= 2 || metrics->num_vector_local % 6 == 0
                         ? "3way all2all case requires num vectors per proc "
                           "divisible by 6."
                         : 0);
@@ -139,11 +143,11 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->num_elts_0 = metrics->num_elts_local;
       /*---Compute size pt 2: (triang prisms) i_proc!=j_proc==k_proc part---*/
       const int nchoosekm1 = gm_nchoosek(num_vector_local, env->num_way - 1);
-      const int num_procm1 = env->num_proc - 1;
+      const int num_procm1 = num_proc - 1;
       metrics->num_elts_local += num_procm1 * nchoosekm1 * num_vector_local;
       metrics->num_elts_01 = metrics->num_elts_local;
       /*---Compute size pt 3: (block sections) i_proc!=j_proc!=k_proc part---*/
-      const int num_procm2 = env->num_proc - 2;
+      const int num_procm2 = num_proc - 2;
       metrics->num_elts_local += num_procm1 * num_procm2 * num_vector_local *
                                  num_vector_local * (num_vector_local / 6);
       /*---Allocate index---*/
@@ -151,8 +155,6 @@ void GMMetrics_create(GMMetrics* metrics,
           malloc(metrics->num_elts_local * sizeof(size_t));
       GMAssert(metrics->coords_global_from_index != NULL);
       /*---Set index part 1: (tetrahedron) i_proc==j_proc==k_proc part---*/
-      const int i_proc = env->proc_num;
-      ;
       int index = 0;
       int k = 0;
       for (k = 0; k < num_vector_local; ++k) {
@@ -175,7 +177,7 @@ void GMMetrics_create(GMMetrics* metrics,
       }
       /*---Set index part 2: (triang prisms) i_proc!=j_proc==k_proc part---*/
       int k_proc = 0;
-      for (k_proc = 0; k_proc < env->num_proc; ++k_proc) {
+      for (k_proc = 0; k_proc < num_proc; ++k_proc) {
         if (k_proc == i_proc) {
           continue;
         }
@@ -199,12 +201,12 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       } /*---k_proc---*/
       /*---Set index part 3: (block sections) i_proc!=j_proc!=k_proc part---*/
-      for (k_proc = 0; k_proc < env->num_proc; ++k_proc) {
+      for (k_proc = 0; k_proc < num_proc; ++k_proc) {
         if (k_proc == i_proc) {
           continue;
         }
         int j_proc = 0;
-        for (j_proc = 0; j_proc < env->num_proc; ++j_proc) {
+        for (j_proc = 0; j_proc < num_proc; ++j_proc) {
           if (j_proc == i_proc || j_proc == k_proc) {
             continue;
           }
@@ -215,18 +217,18 @@ void GMMetrics_create(GMMetrics* metrics,
           const int inc = num_vector_local / 6;
           const int k_min = section_axis == 2 ? (section_num)*inc : 0;
           const int k_max =
-              section_axis == 2 ? (section_num + 1) * inc : num_vector_local;
+              section_axis == 2 ? (section_num + 1)*inc : num_vector_local;
           int k = 0;
           for (k = k_min; k < k_max; ++k) {
             const size_t k_global = k + num_vector_local * k_proc;
             const int j_min = section_axis == 1 ? (section_num)*inc : 0;
             const int j_max =
-                section_axis == 1 ? (section_num + 1) * inc : num_vector_local;
+                section_axis == 1 ? (section_num + 1)*inc : num_vector_local;
             int j = 0;
             for (j = j_min; j < j_max; ++j) {
               const size_t j_global = j + num_vector_local * j_proc;
               const int i_min = section_axis == 0 ? (section_num)*inc : 0;
-              const int i_max = section_axis == 0 ? (section_num + 1) * inc
+              const int i_max = section_axis == 0 ? (section_num + 1)*inc
                                                   : num_vector_local;
               int i = 0;
               for (i = i_min; i < i_max; ++i) {
@@ -259,10 +261,10 @@ void GMMetrics_create(GMMetrics* metrics,
       int index = 0;
       int j = 0;
       for (j = 0; j < num_vector_local; ++j) {
-        const size_t j_global = j + num_vector_local * env->proc_num;
+        const size_t j_global = j + num_vector_local * i_proc;
         int i = 0;
         for (i = 0; i < j; ++i) {
-          const size_t i_global = i + num_vector_local * env->proc_num;
+          const size_t i_global = i + num_vector_local * i_proc;
           metrics->coords_global_from_index[index++] =
               i_global + metrics->num_vector * j_global;
         }
@@ -271,8 +273,6 @@ void GMMetrics_create(GMMetrics* metrics,
     } else /* (env->num_way == 3) */ {
       GMAssert(env->num_way == 3);
       /*---Need store only strict interior of tetrahedron---*/
-      const int i_proc = env->proc_num;
-      ;
       int index = 0;
       int k = 0;
       for (k = 0; k < num_vector_local; ++k) {
