@@ -353,7 +353,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
 
   mpi_code =
       MPI_Isend((void*)vectors->data, vectors->num_dataval_local, GM_MPI_FLOAT,
-                proc_num, mpi_tag, env->mpi_comm, &mpi_request);
+                proc_num, mpi_tag, Env_mpi_comm(env), &mpi_request);
   GMAssert(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
@@ -375,7 +375,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
 
   mpi_code =
       MPI_Irecv((void*)vectors->data, vectors->num_dataval_local, GM_MPI_FLOAT,
-                proc_num, mpi_tag, env->mpi_comm, &mpi_request);
+                proc_num, mpi_tag, Env_mpi_comm(env), &mpi_request);
   GMAssert(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
@@ -745,13 +745,13 @@ void gm_compute_czekanowski_numerators_3way_start(
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
   GMAssert(k_proc >= 0 && k_proc < Env_num_proc(env));
-  GMAssert(!(env->proc_num == j_proc && env->proc_num != k_proc));
-  GMAssert(!(env->proc_num == k_proc && env->proc_num != j_proc));
+  GMAssert(!(Env_proc_num(env) == j_proc && Env_proc_num(env) != k_proc));
+  GMAssert(!(Env_proc_num(env) == k_proc && Env_proc_num(env) != j_proc));
 
   const int numvec = metrics->num_vector_local;
   const int numfield = vectors_1->num_field;
 
-  const int i_proc = env->proc_num;
+  const int i_proc = Env_proc_num(env);
 
   const _Bool i_is_j_is_k = i_proc == j_proc && j_proc == k_proc;
   /*
@@ -1308,10 +1308,10 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
   GMAssert(k_proc >= 0 && k_proc < Env_num_proc(env));
-  GMAssert(env->proc_num != j_proc || j_proc == k_proc);
-  GMAssert(env->proc_num != k_proc || j_proc == k_proc);
+  GMAssert(Env_proc_num(env) != j_proc || j_proc == k_proc);
+  GMAssert(Env_proc_num(env) != k_proc || j_proc == k_proc);
 
-  const int i_proc = env->proc_num;
+  const int i_proc = Env_proc_num(env);
 
   /*----------------------------------------*/
   if (env->all2all) {

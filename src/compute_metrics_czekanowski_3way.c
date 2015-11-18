@@ -46,7 +46,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   const int numfield = vectors->num_field;
 
   // int i = 0;
-  const int i_proc = env->proc_num;
+  const int i_proc = Env_proc_num(env);
 
   /*------------------------*/
   /*---Part 1 Computation: tetrahedron---*/
@@ -347,13 +347,13 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   /*---Compute numerators---*/
   gm_compute_czekanowski_numerators_3way_start(
       vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
-      &vectors_buf, env->proc_num, env->proc_num, env);
+      &vectors_buf, Env_proc_num(env), Env_proc_num(env), env);
   gm_compute_wait(env);
 
   /*---Combine results---*/
   gm_compute_czekanowski_3way_combine(
       metrics, (GMFloat*)(&vector_sums)->data, (GMFloat*)(&vector_sums)->data,
-      (GMFloat*)(&vector_sums)->data, env->proc_num, env->proc_num, env);
+      (GMFloat*)(&vector_sums)->data, Env_proc_num(env), Env_proc_num(env), env);
 
   /*---Free memory and finalize---*/
 

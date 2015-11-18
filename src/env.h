@@ -87,18 +87,18 @@ typedef struct {
   int metric_type;
   int num_way;
   _Bool all2all;
-  int compute_method;
+  int compute_method_;
   /*---MPI---*/
-  int mpi_comm;
-  int num_proc_world;
-  int num_proc;
-  int proc_num;
-  _Bool is_proc_active;
+  int mpi_comm_;
+  int num_proc_world_;
+  int num_proc_;
+  int proc_num_;
+  _Bool is_proc_active_;
   /*---CUDA---*/
   cudaStream_t stream_compute;
   cudaStream_t stream_togpu;
   cudaStream_t stream_fromgpu;
-  _Bool are_cuda_streams_initialized;
+  _Bool are_cuda_streams_initialized_;
 } GMEnv;
 
 enum {
@@ -170,16 +170,37 @@ void gm_insist(GMEnv* env,
 /*===========================================================================*/
 /*---Accessors---*/
 
+static int Env_mpi_comm(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->mpi_comm_;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static int Env_num_proc(const GMEnv* env) {
   GMAssert(env != NULL);
-  return env->num_proc;
+  return env->num_proc_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_proc_num(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->proc_num_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_is_proc_active(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->is_proc_active_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int Env_compute_method(const GMEnv* env) {
   GMAssert(env != NULL);
-  return env->compute_method;
+  return env->compute_method_;
 }
 
 /*---------------------------------------------------------------------------*/

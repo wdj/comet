@@ -40,7 +40,7 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
   /*---Initializations---*/
 
   int i = 0;
-  int i_proc = env->proc_num;
+  int i_proc = Env_proc_num(env);
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
   GMVectorSums vector_sums_offproc = GMVectorSums_null();
@@ -405,7 +405,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   gm_set_vectors_wait(env);
 
   gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
-                                   &vectors_buf, &numerators_buf, env->proc_num,
+                                   &vectors_buf, &numerators_buf, Env_proc_num(env),
                                    GM_BOOL_TRUE, env);
 
   gm_compute_wait(env);
@@ -419,7 +419,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   /* .22 / 1.56 */
   gm_compute_2way_combine(metrics, &numerators_buf, &vector_sums, &vector_sums,
-                          env->proc_num, GM_BOOL_TRUE, env);
+                          Env_proc_num(env), GM_BOOL_TRUE, env);
 
   /*---Free memory---*/
 

@@ -87,7 +87,7 @@ void GMVectors_create(GMVectors* vectors,
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
-                           1, MPI_INT, MPI_SUM, env->mpi_comm);
+                           1, MPI_INT, MPI_SUM, Env_mpi_comm(env));
   GMAssert(mpi_code == MPI_SUCCESS);
 }
 

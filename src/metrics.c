@@ -60,7 +60,7 @@ void GMMetrics_create(GMMetrics* metrics,
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
-                           1, MPI_INT, MPI_SUM, env->mpi_comm);
+                           1, MPI_INT, MPI_SUM, Env_mpi_comm(env));
   GMAssert(mpi_code == MPI_SUCCESS);
 
   /*---Assume the following to simplify calculations---*/
@@ -71,7 +71,7 @@ void GMMetrics_create(GMMetrics* metrics,
           ? "Currently require number of vecs on a proc to be at least num-way"
           : 0);
 
-  const int i_proc = env->proc_num;
+  const int i_proc = Env_proc_num(env);
 
   /*---Compute number of elements etc.---*/
 
@@ -386,7 +386,7 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code =
-      MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_SUM, env->mpi_comm);
+      MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_SUM, Env_mpi_comm(env));
   GMAssert(mpi_code == MPI_SUCCESS);
 
   return result;

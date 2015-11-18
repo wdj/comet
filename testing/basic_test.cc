@@ -30,7 +30,7 @@ GTEST_API_ int main(int argc, char **argv) {
   GMEnv env = GMEnv_null();
   GMEnv_create(&env);
 
-  if (env.proc_num == 0) {
+  if (Env_proc_num(&env) == 0) {
     printf("///////// Running main()  /////////\n");
   }
 

@@ -59,6 +59,10 @@ void usage() {
   "        manner of computing the result (CPU=cpu, GPU=gpu,\n"
   "        REF=reference method)\n"
   "\n"
+  "    --num_proc\n"
+  "        restrict run to this number of the available MPI processes\n"
+  "        (used for testing purposes)\n"
+  "\n"
   "    ---verbosity <value>\n"
   "        verbosity level of output (0=none, 1=some (default) 2=more)\n"
   "\n"
@@ -82,7 +86,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
           size_t index = field +
                          vectors->num_field * (vector_local +
                                                vectors->num_vector_local *
-                                                   ((size_t)env->proc_num));
+                                                  ((size_t)Env_proc_num(env)));
           /*---randomize---*/
           index = gm_randomize(index);
           /*---Calculate random number between 0 and 1---*/
@@ -106,7 +110,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
           size_t index = field +
                          vectors->num_field * (vector_local +
                                                vectors->num_vector_local *
-                                                   ((size_t)env->proc_num));
+                                                  ((size_t)Env_proc_num(env)));
           /*---randomize---*/
           index = gm_randomize(index);
           /*---Calculate random number between 0 and 1---*/
@@ -144,7 +148,7 @@ void output_metrics(GMMetrics* metrics, GMEnv* env) {
         }
         printf("): value: %.17e    [from proc %i]\n",
                GMMetrics_float_get_from_index(metrics, index, env),
-               env->proc_num);
+               Env_proc_num(env));
       } /*---for index---*/
     } break;
     case GM_DATA_TYPE_BIT: {
@@ -198,8 +202,10 @@ void finish_parsing(int argc,
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--compute_method") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
+    } else if (strcmp(argv[i], "--num_proc") == 0) {
+      ++i; /*---processed elsewhere by GMEnv---*/
     } else {
-      if (env->proc_num == 0) {
+      if (Env_proc_num(env) == 0) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
       }
       GMInsist(env, GM_BOOL_FALSE ? "Error: argument not recognized." : 0);
@@ -237,56 +243,61 @@ int main(int argc, char** argv) {
   int verbosity = 0;
   finish_parsing(argc, argv, &env, &num_field, &num_vector_local, &verbosity);
 
-  /*---Initialize vectors---*/
+  if (Env_is_proc_active(&env)) {
 
-  GMVectors vectors = GMVectors_null();
-  GMVectors_create(&vectors,
-                   gm_data_type_from_metric_type(env.metric_type, &env),
-                   num_field, num_vector_local, &env);
+    /*---Initialize vectors---*/
 
-  input_vectors(&vectors, &env);
+    GMVectors vectors = GMVectors_null();
+    GMVectors_create(&vectors,
+                     gm_data_type_from_metric_type(env.metric_type, &env),
+                     num_field, num_vector_local, &env);
 
-  /*---Set up metrics container for results---*/
+    input_vectors(&vectors, &env);
 
-  GMMetrics metrics = GMMetrics_null();
-  GMMetrics_create(&metrics,
-                   gm_data_type_from_metric_type(env.metric_type, &env),
-                   num_vector_local, &env);
+    /*---Set up metrics container for results---*/
 
-  /*---Calculate metrics---*/
+    GMMetrics metrics = GMMetrics_null();
+    GMMetrics_create(&metrics,
+                     gm_data_type_from_metric_type(env.metric_type, &env),
+                     num_vector_local, &env);
 
-  /*---Run once first, discard timing---*/
-  if (Env_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
+    /*---Calculate metrics---*/
+
+    /*---Run once first, discard timing---*/
+    if (Env_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
+      gm_compute_metrics(&metrics, &vectors, &env);
+    }
+
+    double time_begin = GMEnv_get_synced_time(&env);
+
     gm_compute_metrics(&metrics, &vectors, &env);
-  }
 
-  double time_begin = GMEnv_get_synced_time(&env);
+    double time_end = GMEnv_get_synced_time(&env);
 
-  gm_compute_metrics(&metrics, &vectors, &env);
+    /*---Output run information---*/
 
-  double time_end = GMEnv_get_synced_time(&env);
+    double time_compute_metrics = time_end - time_begin;
 
-  /*---Output run information---*/
+    double checksum = GMMetrics_checksum(&metrics, &env);
 
-  double time_compute_metrics = time_end - time_begin;
+    if (Env_proc_num(&env) == 0 && verbosity > 0) {
+      printf("metrics checksum %.17e compute time %.6f\n", checksum,
+             time_compute_metrics);
+    }
 
-  double checksum = GMMetrics_checksum(&metrics, &env);
+    /*---Output results---*/
 
-  if (env.proc_num == 0 && verbosity > 0) {
-    printf("metrics checksum %.17e compute time %.6f\n", checksum,
-           time_compute_metrics);
-  }
+    if (verbosity > 1) {
+      output_metrics(&metrics, &env);
+    }
 
-  /*---Output results---*/
+    /*---Finalize---*/
 
-  if (verbosity > 1) {
-    output_metrics(&metrics, &env);
-  }
+    GMMetrics_destroy(&metrics, &env);
+    GMVectors_destroy(&vectors, &env);
 
-  /*---Finalize---*/
+  } /*---if (Env_is_proc_active(&env))---*/
 
-  GMMetrics_destroy(&metrics, &env);
-  GMVectors_destroy(&vectors, &env);
   GMEnv_destroy(&env);
   MPI_Finalize();
   return 0;
