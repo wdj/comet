@@ -54,7 +54,7 @@ void gm_compute_vector_sums(GMVectors* vectors,
   GMAssert(vector_sums != NULL);
   GMAssert(env != NULL);
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/
@@ -94,7 +94,7 @@ void gm_magma_initialize(GMEnv* env) {
     return;
   }
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/
@@ -114,7 +114,7 @@ void gm_magma_initialize(GMEnv* env) {
       /*---need this -- see
        * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
        * page 14 ---*/
-      magma_code = magma_minproductblasSetKernelStream(env->stream_compute);
+      magma_code = magma_minproductblasSetKernelStream(Env_stream_compute(env));
       GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
 
     } break;
@@ -142,7 +142,7 @@ void gm_magma_finalize(GMEnv* env) {
     return;
   }
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/
@@ -189,7 +189,7 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
     return p;
   }
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/
@@ -248,7 +248,7 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
     return;
   }
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/
@@ -331,7 +331,7 @@ void gm_compute_wait(GMEnv* env) {
   GMAssert(env != NULL);
 
   if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    cudaStreamSynchronize(env->stream_compute);
+    cudaStreamSynchronize(Env_stream_compute(env));
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
   }
 }
@@ -428,12 +428,12 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dsetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h,
                                     mat_dim1, (GMFloat*)matrix_buf->d, mat_dim1,
-                                    env->stream_togpu);
+                                    Env_stream_togpu(env));
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_minproduct_ssetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h,
                                     mat_dim1, (GMFloat*)matrix_buf->d, mat_dim1,
-                                    env->stream_togpu);
+                                    Env_stream_togpu(env));
 #endif
 }
 
@@ -446,7 +446,7 @@ void gm_set_matrix_wait(GMEnv* env) {
     return;
   }
 
-  cudaStreamSynchronize(env->stream_togpu);
+  cudaStreamSynchronize(Env_stream_togpu(env));
   GMAssert(GMEnv_cuda_last_call_succeeded(env));
 }
 
@@ -469,12 +469,12 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
 #ifdef FP_PRECISION_DOUBLE
   magma_minproduct_dgetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d,
                                     mat_dim1, (GMFloat*)matrix_buf->h, mat_dim1,
-                                    env->stream_fromgpu);
+                                    Env_stream_fromgpu(env));
 #endif
 #ifdef FP_PRECISION_SINGLE
   magma_minproduct_sgetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d,
                                     mat_dim1, (GMFloat*)matrix_buf->h, mat_dim1,
-                                    env->stream_fromgpu);
+                                    Env_stream_fromgpu(env));
 #endif
 }
 
@@ -487,7 +487,7 @@ void gm_get_matrix_wait(GMEnv* env) {
     return;
   }
 
-  cudaStreamSynchronize(env->stream_fromgpu);
+  cudaStreamSynchronize(Env_stream_fromgpu(env));
   GMAssert(GMEnv_cuda_last_call_succeeded(env));
 }
 
@@ -578,7 +578,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/
@@ -625,7 +625,7 @@ void gm_compute_2way_combine(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/
@@ -789,7 +789,7 @@ void gm_compute_czekanowski_numerators_3way_start(
                        : numvec;
 
   /*----------------------------------------*/
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && env->all2all) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && Env_all2all(env)) {
     /*----------------------------------------*/
 
     int k = 0;
@@ -982,7 +982,7 @@ void gm_compute_czekanowski_numerators_3way_start(
 
       /*---Compute numerators---*/
 
-      if (!env->all2all) {
+      if (!Env_all2all(env)) {
         for (i = 0; i < j; ++i) {
           const GMFloat min_ij = ((GMFloat*)(matM_ij_buf->h))[i + numvec * j];
           for (k = j + 1; k < numvec; ++k) {
@@ -995,7 +995,7 @@ void gm_compute_czekanowski_numerators_3way_start(
           } /*---for k---*/
         }   /*---for i---*/
 
-      } else /*---if (env->all2all)---*/ {
+      } else /*---if (Env_all2all(env))---*/ {
         for (i = 0; i < i_max; ++i) {
           const GMFloat min_ij = ((GMFloat*)(matM_ij_buf->h))[i + numvec * j];
           for (k = j + 1; k < numvec; ++k) {
@@ -1209,7 +1209,7 @@ void gm_compute_czekanowski_2way_combine(
   const _Bool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
 
   /*----------------------------------------*/
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && env->all2all) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && Env_all2all(env)) {
     /*----------------------------------------*/
 
     int j = 0;
@@ -1249,7 +1249,7 @@ void gm_compute_czekanowski_2way_combine(
     }   /*---for j---*/
 
     /*----------------------------------------*/
-  } else if (env->all2all) {
+  } else if (Env_all2all(env)) {
     /*----------------------------------------*/
 
     int j = 0;
@@ -1314,7 +1314,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
   const int i_proc = Env_proc_num(env);
 
   /*----------------------------------------*/
-  if (env->all2all) {
+  if (Env_all2all(env)) {
     /*----------------------------------------*/
 
     if (i_proc == j_proc && j_proc == k_proc) {

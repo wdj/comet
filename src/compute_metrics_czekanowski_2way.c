@@ -51,7 +51,7 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
   GMVectors vectors_01[2];
   for (i = 0; i < 2; ++i) {
-    const int data_type = gm_data_type_from_metric_type(env->metric_type, env);
+    const int data_type = Env_data_type(env);
     GMVectors_create(&vectors_01[i], data_type, vectors->num_field,
                      vectors->num_vector_local, env);
   }
@@ -312,7 +312,7 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  if (env->all2all) {
+  if (Env_all2all(env)) {
     gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);
     return;
   }
@@ -364,7 +364,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  if (env->all2all) {
+  if (Env_all2all(env)) {
     gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);
     return;
   }

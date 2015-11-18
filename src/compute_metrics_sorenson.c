@@ -28,7 +28,7 @@ void gm_compute_metrics_sorenson_2way_cpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
@@ -42,7 +42,7 @@ void gm_compute_metrics_sorenson_2way_gpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
@@ -56,7 +56,7 @@ void gm_compute_metrics_sorenson_2way_ref(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
@@ -70,7 +70,7 @@ void gm_compute_metrics_sorenson_3way_cpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
@@ -84,7 +84,7 @@ void gm_compute_metrics_sorenson_3way_gpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
@@ -98,7 +98,7 @@ void gm_compute_metrics_sorenson_3way_ref(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  GMInsist(env, (!env->all2all) ? "Unimplemented." : 0);
+  GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }

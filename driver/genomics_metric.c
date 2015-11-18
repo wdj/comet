@@ -74,7 +74,7 @@ void usage() {
 /*---Set the entries of the vectors---*/
 
 void input_vectors(GMVectors* vectors, GMEnv* env) {
-  switch (gm_data_type_from_metric_type(env->metric_type, env)) {
+  switch (Env_data_type(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
       int vector_local;
@@ -132,13 +132,13 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
 /*---Output the result metrics values---*/
 
 void output_metrics(GMMetrics* metrics, GMEnv* env) {
-  switch (gm_data_type_from_metric_type(env->metric_type, env)) {
+  switch (Env_data_type(env)) {
     case GM_DATA_TYPE_FLOAT: {
       size_t index;
       for (index = 0; index < metrics->num_elts_local; ++index) {
         printf("element (");
         int coord_num = 0;
-        for (coord_num = 0; coord_num < env->num_way; ++coord_num) {
+        for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
           if (coord_num > 0) {
             printf(",");
           }
@@ -248,8 +248,7 @@ int main(int argc, char** argv) {
     /*---Initialize vectors---*/
 
     GMVectors vectors = GMVectors_null();
-    GMVectors_create(&vectors,
-                     gm_data_type_from_metric_type(env.metric_type, &env),
+    GMVectors_create(&vectors, Env_data_type(&env),
                      num_field, num_vector_local, &env);
 
     input_vectors(&vectors, &env);
@@ -257,8 +256,7 @@ int main(int argc, char** argv) {
     /*---Set up metrics container for results---*/
 
     GMMetrics metrics = GMMetrics_null();
-    GMMetrics_create(&metrics,
-                     gm_data_type_from_metric_type(env.metric_type, &env),
+    GMMetrics_create(&metrics, Env_data_type(&env),
                      num_vector_local, &env);
 
     /*---Calculate metrics---*/

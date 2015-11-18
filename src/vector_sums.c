@@ -35,7 +35,7 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
   GMAssert(vectors);
   GMAssert(env);
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
@@ -61,7 +61,7 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
   GMAssert(vector_sums);
   GMAssert(env);
 
-  switch (env->metric_type) {
+  switch (Env_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 

@@ -67,7 +67,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   GMInsist(
       env,
-      num_vector_local >= env->num_way
+      num_vector_local >= Env_num_way(env)
           ? "Currently require number of vecs on a proc to be at least num-way"
           : 0);
 
@@ -76,16 +76,16 @@ void GMMetrics_create(GMMetrics* metrics,
   /*---Compute number of elements etc.---*/
 
   /*--------------------*/
-  if (env->all2all) {
+  if (Env_all2all(env)) {
     /*--------------------*/
     /*--------------------*/
-    if (env->num_way == 2) {
+    if (Env_num_way(env) == 2) {
       /*--------------------*/
       /*---Store strict upper triang of diag block and half
            the off-diag blocks - a wrapped-rectangle block-row---*/
       metrics->num_elts_local = 0;
       /*---Compute size part 1: (triangle) i_proc==j_proc part---*/
-      const int nchoosek = gm_nchoosek(num_vector_local, env->num_way);
+      const int nchoosek = gm_nchoosek(num_vector_local, Env_num_way(env));
       metrics->num_elts_local += nchoosek;
       metrics->num_elts_0 = metrics->num_elts_local;
       /*---Compute size part 2: (wrapped rectangle) i_proc!=j_proc part---*/
@@ -128,9 +128,9 @@ void GMMetrics_create(GMMetrics* metrics,
       }
       GMAssert(index == metrics->num_elts_local);
       /*--------------------*/
-    } else /* (env->num_way == 3) */ {
+    } else /* (Env_num_way(env) == 3) */ {
       /*--------------------*/
-      GMAssert(env->num_way == 3);
+      GMAssert(Env_num_way(env) == 3);
       /*---Make the following assumption to greatly simplify calculations---*/
       GMInsist(env, num_proc <= 2 || metrics->num_vector_local % 6 == 0
                         ? "3way all2all case requires num vectors per proc "
@@ -138,11 +138,11 @@ void GMMetrics_create(GMMetrics* metrics,
                         : 0);
       metrics->num_elts_local = 0;
       /*---Compute size pt 1: (tetrahedron) i_proc==j_proc==k_proc part---*/
-      const int nchoosek = gm_nchoosek(num_vector_local, env->num_way);
+      const int nchoosek = gm_nchoosek(num_vector_local, Env_num_way(env));
       metrics->num_elts_local += nchoosek;
       metrics->num_elts_0 = metrics->num_elts_local;
       /*---Compute size pt 2: (triang prisms) i_proc!=j_proc==k_proc part---*/
-      const int nchoosekm1 = gm_nchoosek(num_vector_local, env->num_way - 1);
+      const int nchoosekm1 = gm_nchoosek(num_vector_local, Env_num_way(env) - 1);
       const int num_procm1 = num_proc - 1;
       metrics->num_elts_local += num_procm1 * nchoosekm1 * num_vector_local;
       metrics->num_elts_01 = metrics->num_elts_local;
@@ -248,15 +248,15 @@ void GMMetrics_create(GMMetrics* metrics,
     /*--------------------*/
   } else { /*---if not all2all---*/
            /*--------------------*/
-    const int nchoosek = num_vector_local >= env->num_way
-                             ? gm_nchoosek(num_vector_local, env->num_way)
+    const int nchoosek = num_vector_local >= Env_num_way(env)
+                             ? gm_nchoosek(num_vector_local, Env_num_way(env))
                              : 0;
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssert(metrics->coords_global_from_index != NULL);
     /*---LATER: generalize this to N-way---*/
-    if (env->num_way == 2) {
+    if (Env_num_way(env) == 2) {
       /*---Need store only strict upper triangular part of matrix---*/
       int index = 0;
       int j = 0;
@@ -270,8 +270,8 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
       GMAssert(index == metrics->num_elts_local);
-    } else /* (env->num_way == 3) */ {
-      GMAssert(env->num_way == 3);
+    } else /* (Env_num_way(env) == 3) */ {
+      GMAssert(Env_num_way(env) == 3);
       /*---Need store only strict interior of tetrahedron---*/
       int index = 0;
       int k = 0;
@@ -352,14 +352,14 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   switch (metrics->data_type_id) {
     case GM_DATA_TYPE_FLOAT: {
-      GMAssert(env->num_way <= 3 ? "This num_way not supported." : 0);
+      GMAssert(Env_num_way(env) <= 3 ? "This num_way not supported." : 0);
       /*---Reflect coords by symmetry to get uniform result---*/
       size_t coords[3];
       int index = 0;
       for (index = 0; index < metrics->num_elts_local; ++index) {
         coords[2] = 0;
         int coord_num = 0;
-        for (coord_num = 0; coord_num < env->num_way; ++coord_num) {
+        for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
           coords[coord_num] =
               GMMetrics_coord_global_from_index(metrics, index, coord_num, env);
         }
@@ -367,7 +367,7 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         gm_bubbledown(&coords[0], &coords[1]);
         gm_bubbledown(&coords[1], &coords[2]);
         size_t id_global = coords[0];
-        for (coord_num = 1; coord_num < env->num_way; ++coord_num) {
+        for (coord_num = 1; coord_num < Env_num_way(env); ++coord_num) {
           id_global = id_global * metrics->num_vector + coords[coord_num];
         }
         const GMFloat value =

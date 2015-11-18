@@ -64,9 +64,9 @@ void GMEnv_create(GMEnv* env) {
   Env_set_num_proc(env, env->num_proc_world_);
 
   /*---Set default values---*/
-  env->metric_type = GM_METRIC_TYPE_CZEKANOWSKI;
-  env->num_way = 2;
-  env->all2all = GM_BOOL_FALSE;
+  env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
+  env->num_way_ = 2;
+  env->all2all_ = GM_BOOL_FALSE;
   env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
   Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
 }
@@ -87,19 +87,19 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for metric_type." : 0);
       if (strcmp(argv[i], "sorenson") == 0) {
-        env->metric_type = GM_METRIC_TYPE_SORENSON;
+        env->metric_type_ = GM_METRIC_TYPE_SORENSON;
       } else if (strcmp(argv[i], "czekanowski") == 0) {
-        env->metric_type = GM_METRIC_TYPE_CZEKANOWSKI;
+        env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
       } else if (strcmp(argv[i], "ccc") == 0) {
-        env->metric_type = GM_METRIC_TYPE_CCC;
+        env->metric_type_ = GM_METRIC_TYPE_CCC;
       } else {
         GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for metric_type." : 0);
       }
     } else if (strcmp(argv[i], "--num_way") == 0) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_way." : 0);
-      env->num_way = atoi(argv[i]);
-      GMInsist(env, env->num_way == 2 || env->num_way == 3
+      env->num_way_ = atoi(argv[i]);
+      GMInsist(env, env->num_way_ == 2 || env->num_way_ == 3
                         ? "Invalid setting for num_way."
                         : 0);
 
@@ -107,9 +107,9 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for all2all." : 0);
       if (strcmp(argv[i], "yes") == 0) {
-        env->all2all = GM_BOOL_TRUE;
+        env->all2all_ = GM_BOOL_TRUE;
       } else if (strcmp(argv[i], "no") == 0) {
-        env->all2all = GM_BOOL_FALSE;
+        env->all2all_ = GM_BOOL_FALSE;
       } else {
         GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for all2all." : 0);
       }
@@ -143,12 +143,15 @@ void GMEnv_initialize_streams(GMEnv* env) {
   GMAssert(env != NULL);
 
   if (!env->are_cuda_streams_initialized_) {
-    cudaStreamCreate(&env->stream_compute);
+    cudaStreamCreate(&env->stream_compute_);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
-    cudaStreamCreate(&env->stream_togpu);
+
+    cudaStreamCreate(&env->stream_togpu_);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
-    cudaStreamCreate(&env->stream_fromgpu);
+
+    cudaStreamCreate(&env->stream_fromgpu_);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
+
     env->are_cuda_streams_initialized_ = GM_BOOL_TRUE;
   }
 }
@@ -159,12 +162,15 @@ void GMEnv_terminate_streams(GMEnv* env) {
   GMAssert(env != NULL);
 
   if (env->are_cuda_streams_initialized_) {
-    cudaStreamDestroy(env->stream_compute);
+    cudaStreamDestroy(env->stream_compute_);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
-    cudaStreamDestroy(env->stream_togpu);
+
+    cudaStreamDestroy(env->stream_togpu_);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
-    cudaStreamDestroy(env->stream_fromgpu);
+
+    cudaStreamDestroy(env->stream_fromgpu_);
     GMAssert(GMEnv_cuda_last_call_succeeded(env));
+
     env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
   }
 }
@@ -191,6 +197,39 @@ void GMEnv_destroy(GMEnv* env) {
 
 /*===========================================================================*/
 /*---Accessors---*/
+
+void Env_set_compute_method(GMEnv* env, int compute_method) {
+  GMAssert(env != NULL);
+  GMAssert(compute_method >= 0);
+  GMAssert(compute_method < GM_NUM_COMPUTE_METHOD);
+
+  if (compute_method == GM_COMPUTE_METHOD_GPU) {
+    GMEnv_initialize_streams(env);
+  } else {
+    GMEnv_terminate_streams(env);
+  }
+
+  env->compute_method_ = compute_method;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int Env_data_type(const GMEnv* env) {
+  GMAssert(env != NULL);
+
+  switch (env->metric_type_) {
+    case GM_METRIC_TYPE_SORENSON:
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CZEKANOWSKI:
+      return GM_DATA_TYPE_FLOAT;
+    case GM_METRIC_TYPE_CCC:
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  }
+  GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
+  return 0;
+}
+
+/*---------------------------------------------------------------------------*/
 
 void Env_set_num_proc(GMEnv* env, int num_proc) {
   GMAssert(env != NULL);
@@ -225,19 +264,27 @@ void Env_set_num_proc(GMEnv* env, int num_proc) {
 }
 
 /*---------------------------------------------------------------------------*/
-
-void Env_set_compute_method(GMEnv* env, int compute_method) {
+  
+cudaStream_t Env_stream_compute(const GMEnv* env) {
   GMAssert(env != NULL);
-  GMAssert(compute_method >= 0);
-  GMAssert(compute_method < GM_NUM_COMPUTE_METHOD);
+  GMAssert(env->are_cuda_streams_initialized_);
+  return env->stream_compute_;
+} 
 
-  if (compute_method == GM_COMPUTE_METHOD_GPU) {
-    GMEnv_initialize_streams(env);
-  } else {
-    GMEnv_terminate_streams(env);
-  }
+/*---------------------------------------------------------------------------*/
+  
+cudaStream_t Env_stream_togpu(const GMEnv* env) {
+  GMAssert(env != NULL);
+  GMAssert(env->are_cuda_streams_initialized_);
+  return env->stream_togpu_;
+}
 
-  env->compute_method_ = compute_method;
+/*---------------------------------------------------------------------------*/
+  
+cudaStream_t Env_stream_fromgpu(const GMEnv* env) {
+  GMAssert(env != NULL);
+  GMAssert(env->are_cuda_streams_initialized_);
+  return env->stream_fromgpu_;
 }
 
 /*===========================================================================*/
@@ -276,34 +323,20 @@ double GMEnv_get_synced_time(GMEnv* env) {
 /*===========================================================================*/
 /*---Assertions---*/
 
-void gm_insist(GMEnv* env,
+void gm_insist(const GMEnv* env,
+               const char* message_string,
                const char* condition_string,
                const char* file,
                int line) {
   if (Env_proc_num(env) == 0) {
-    fprintf(stderr, "GM insist error: \"%s\". At file %s, line %i.\n",
-            condition_string, file, line);
+    fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n",
+            message_string, condition_string, file, line);
   }
   exit(EXIT_FAILURE);
 }
 
 /*===========================================================================*/
 /*---Misc.---*/
-
-int gm_data_type_from_metric_type(int metric_type, GMEnv* env) {
-  switch (metric_type) {
-    case GM_METRIC_TYPE_SORENSON:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-    case GM_METRIC_TYPE_CZEKANOWSKI:
-      return GM_DATA_TYPE_FLOAT;
-    case GM_METRIC_TYPE_CCC:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  }
-  GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
-  return 0;
-}
-
-/*---------------------------------------------------------------------------*/
 
 _Bool GMEnv_cuda_last_call_succeeded(GMEnv* env) {
   _Bool result = GM_BOOL_TRUE;

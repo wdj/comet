@@ -94,7 +94,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   /*---Part 2 Computation: triangular prisms---*/
   /*------------------------*/
 
-  const int data_type = gm_data_type_from_metric_type(env->metric_type, env);
+  const int data_type = Env_data_type(env);
 
   GMVectors vectors_j_value = GMVectors_null();
   GMVectors* vectors_j = &vectors_j_value;
@@ -250,7 +250,7 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  if (env->all2all) {
+  if (Env_all2all(env)) {
     gm_compute_metrics_czekanowski_3way_all2all(metrics, vectors, env);
     return;
   }
@@ -314,7 +314,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  if (env->all2all) {
+  if (Env_all2all(env)) {
     gm_compute_metrics_czekanowski_3way_all2all(metrics, vectors, env);
     return;
   }

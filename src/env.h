@@ -84,9 +84,9 @@ GMMirroredPointer GMMirroredPointer_null(void);
 
 typedef struct {
   /*---Settings---*/
-  int metric_type;
-  int num_way;
-  _Bool all2all;
+  int metric_type_;
+  int num_way_;
+  _Bool all2all_;
   int compute_method_;
   /*---MPI---*/
   int mpi_comm_;
@@ -95,9 +95,9 @@ typedef struct {
   int proc_num_;
   _Bool is_proc_active_;
   /*---CUDA---*/
-  cudaStream_t stream_compute;
-  cudaStream_t stream_togpu;
-  cudaStream_t stream_fromgpu;
+  cudaStream_t stream_compute_;
+  cudaStream_t stream_togpu_;
+  cudaStream_t stream_fromgpu_;
   _Bool are_cuda_streams_initialized_;
 } GMEnv;
 
@@ -142,12 +142,16 @@ void GMEnv_terminate_streams(GMEnv* env);
 
 #define GMAssert(v) assert(v)
 
-#ifndef GMInsist
 #define GMInsist(env, condition) \
-  (void)((condition) || (gm_insist(env, #condition, __FILE__, __LINE__), 0))
-#endif
+  (void)((condition) || (gm_insist(env, "Interface error", #condition, \
+                                   __FILE__, __LINE__), 0))
 
-void gm_insist(GMEnv* env,
+#define GMAssertAlways(env, condition) \
+  (void)((condition) || (gm_insist(env, "Assertion error", #condition, \
+                                   __FILE__, __LINE__), 0))
+
+void gm_insist(const GMEnv* env,
+               const char* message_string,
                const char* condition_string,
                const char* file,
                int line);
@@ -169,6 +173,34 @@ void gm_insist(GMEnv* env,
 
 /*===========================================================================*/
 /*---Accessors---*/
+
+static int Env_metric_type(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->metric_type_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_num_way(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_way_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static _Bool Env_all2all(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->all2all_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_compute_method(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->compute_method_;
+}
+
+/*---------------------------------------------------------------------------*/
 
 static int Env_mpi_comm(const GMEnv* env) {
   GMAssert(env != NULL);
@@ -198,15 +230,14 @@ static int Env_is_proc_active(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-static int Env_compute_method(const GMEnv* env) {
-  GMAssert(env != NULL);
-  return env->compute_method_;
-}
-
-/*---------------------------------------------------------------------------*/
+void Env_set_compute_method(GMEnv* env, int compute_method);
+int Env_data_type(const GMEnv* env);
 
 void Env_set_num_proc(GMEnv* env, int num_proc);
-void Env_set_compute_method(GMEnv* env, int compute_method);
+
+cudaStream_t Env_stream_compute(const GMEnv* env);
+cudaStream_t Env_stream_togpu(const GMEnv* env);
+cudaStream_t Env_stream_fromgpu(const GMEnv* env);
 
 /*===========================================================================*/
 /*---Timer functions---*/
@@ -287,8 +318,6 @@ static size_t gm_nchoosek(int n, int k) {
 
 /*===========================================================================*/
 /*---Misc.---*/
-
-int gm_data_type_from_metric_type(int metric_type, GMEnv* env);
 
 _Bool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 

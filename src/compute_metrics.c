@@ -32,8 +32,9 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
-  switch (env->metric_type + GM_NUM_METRIC_TYPE *
-          (Env_compute_method(env) + GM_NUM_COMPUTE_METHOD * (env->num_way))) {
+  switch (Env_metric_type(env) + GM_NUM_METRIC_TYPE * (
+          Env_compute_method(env) + GM_NUM_COMPUTE_METHOD * (
+          Env_num_way(env)))) {
     /*--------------------*/
 
     case GM_METRIC_TYPE_SORENSON +
