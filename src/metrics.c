@@ -341,14 +341,20 @@ static void gm_bubbledown(size_t* i, size_t* j) {
   }
 }
 
-/*---The valueshould be invariant, up to roundoff, on CPU vs. GPU---*/
+/*---------------------------------------------------------------------------*/
 
-double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
+/*---The values hould be invariant, up to roundoff, on CPU vs. GPU---*/
+
+GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   GMAssert(metrics);
   GMAssert(metrics->data);
   GMAssert(env);
 
-  double result = 0;
+  int i = 0;
+  GMChecksum result;
+  for ( i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
+    result.data[i] = 0;
+  }
 
   switch (metrics->data_type_id) {
     case GM_DATA_TYPE_FLOAT: {
@@ -372,7 +378,7 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         }
         const GMFloat value =
             GMMetrics_float_get_from_index(metrics, index, env);
-        result += value * gm_randomize(id_global);
+        result.data[0] += value * gm_randomize(id_global);
       } /*---for i---*/
     } break;
     case GM_DATA_TYPE_BIT:
@@ -382,15 +388,47 @@ double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 
-  const double tmp = result;
+  const double tmp = result.data[0];
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
-  mpi_code =
-      MPI_Allreduce(&tmp, &result, 1, MPI_DOUBLE, MPI_SUM, Env_mpi_comm(env));
+  mpi_code = MPI_Allreduce(&tmp, &result.data[0], 1, MPI_DOUBLE, MPI_SUM,
+                           Env_mpi_comm(env));
   GMAssert(mpi_code == MPI_SUCCESS);
 
   return result;
 }
+
+
+#ifdef xyz
+
+GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
+  GMAssert(metrics);
+  GMAssert(metrics->data);
+  GMAssert(env);
+
+  int i = 0;
+  GMChecksum result;
+  for ( i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
+    result.data[i] = 0;
+  }
+
+
+
+
+
+
+
+
+
+
+  return result;
+}
+
+#endif
+
+
+
+
 
 #ifdef __cplusplus
 } /*---extern "C"---*/

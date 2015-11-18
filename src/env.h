@@ -79,6 +79,14 @@ typedef struct {
 
 GMMirroredPointer GMMirroredPointer_null(void);
 
+/*---Struct with checksum info---*/
+
+enum { GM_CHECKSUM_SIZE = 1 };
+
+typedef struct {
+  double data[GM_CHECKSUM_SIZE];
+} GMChecksum;
+
 /*===========================================================================*/
 /*---Environment struct declarations---*/
 

@@ -62,7 +62,7 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env);
 /*===========================================================================*/
 /*---Metrics checksum---*/
 
-double GMMetrics_checksum(GMMetrics* metrics, GMEnv* env);
+GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env);
 
 /*===========================================================================*/
 /*---Helper functions for 3-way all2all case---*/

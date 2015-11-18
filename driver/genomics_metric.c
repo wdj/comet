@@ -276,11 +276,15 @@ int main(int argc, char** argv) {
 
     double time_compute_metrics = time_end - time_begin;
 
-    double checksum = GMMetrics_checksum(&metrics, &env);
+    GMChecksum checksum = GMMetrics_checksum(&metrics, &env);
 
     if (Env_proc_num(&env) == 0 && verbosity > 0) {
-      printf("metrics checksum %.17e compute time %.6f\n", checksum,
-             time_compute_metrics);
+      printf("metrics checksum");
+      int i = 0;
+      for (i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
+        printf(" %.17e", checksum.data[i]);
+      }
+      printf(" compute time %.6f\n", time_compute_metrics);
     }
 
     /*---Output results---*/
