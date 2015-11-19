@@ -83,16 +83,24 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
         int field;
         for (field = 0; field < vectors->num_field; ++field) {
           /*---compute element unique id---*/
-          size_t index = field +
+          const size_t uid = field +
                          vectors->num_field * (vector_local +
                                                vectors->num_vector_local *
                                                   ((size_t)Env_proc_num(env)));
-          /*---randomize---*/
-          index = gm_randomize(index);
-          /*---Calculate random number between 0 and 1---*/
-          GMFloat rand_value = index / (GMFloat)gm_randomize_max();
-          /*---Create large integer in a specified range, store as float---*/
-          GMFloat value = (int)((1 << 27) * rand_value);
+          /*---Generate large random number---*/
+          size_t rand1 = uid;
+          rand1 = gm_randomize(rand1);
+          rand1 = gm_randomize(rand1);
+          size_t rand2 = uid;
+          rand2 = gm_randomize(rand2);
+          rand2 = gm_randomize(rand2);
+          rand2 = gm_randomize(rand2);
+          size_t rand_value = rand1 + gm_randomize_max() * rand2;
+          /*---Reduce so that after summing num_field times the integer
+               still fully fits in double precision fraction part---*/
+          rand_value >>= (64-52) + gm_log2(vectors->num_field);
+          /*---Store as floating point value---*/
+          GMFloat value = rand_value;
           GMVectors_float_set(vectors, field, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/

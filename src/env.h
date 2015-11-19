@@ -293,6 +293,14 @@ static size_t gm_ceil_i8(const size_t i, const size_t j) {
 
 /*---------------------------------------------------------------------------*/
 
+static size_t gm_randomize_max() {
+  const size_t im = 714025;
+
+  return im;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static size_t gm_randomize(size_t i) {
   const size_t im = 714025;
   const size_t ia = 4096;
@@ -303,10 +311,21 @@ static size_t gm_randomize(size_t i) {
 
 /*---------------------------------------------------------------------------*/
 
-static size_t gm_randomize_max() {
-  const size_t im = 714025;
+static int gm_log2(size_t n) {
+  if (n == 0) {
+    return 0;
+  }
 
-  return im;
+  int result = 0;
+
+  for (result = 0, n--; result <= 8*sizeof(size_t); ++result) {
+    if (n == 0) {
+      break;
+    }
+    n >>= 1;
+  }
+
+  return result;
 }
 
 /*---------------------------------------------------------------------------*/
