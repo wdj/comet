@@ -81,10 +81,10 @@ GMMirroredPointer GMMirroredPointer_null(void);
 
 /*---Struct with checksum info---*/
 
-enum { GM_CHECKSUM_SIZE = 1 };
+enum { GM_CHECKSUM_SIZE = 3 };
 
 typedef struct {
-  double data[GM_CHECKSUM_SIZE];
+  size_t data[GM_CHECKSUM_SIZE];
 } GMChecksum;
 
 /*===========================================================================*/

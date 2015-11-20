@@ -343,6 +343,7 @@ static void gm_bubbledown(size_t* i, size_t* j) {
 
 /*---------------------------------------------------------------------------*/
 
+#if 0
 /*---The values hould be invariant, up to roundoff, on CPU vs. GPU---*/
 
 GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
@@ -397,10 +398,15 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   return result;
 }
-
+#endif
 
 /*---------------------------------------------------------------------------*/
-#ifdef xyz
+
+static size_t gm_lshift(size_t a, int j) {
+  return j > 0 ? a << j : a >> (-j);
+}
+
+/*---------------------------------------------------------------------------*/
 
 GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   GMAssert(metrics);
@@ -411,13 +417,9 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   int i = 0;
   GMChecksum result;
-  for ( i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
+  for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result.data[i] = 0;
   }
-
-
-
-
 
   switch (metrics->data_type_id) {
     /*--------------------*/
@@ -428,14 +430,21 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
       typedef unsigned int UI32;
       typedef size_t UI64;
-      GM_StaticAssert(sizeof(UI32) == 4);
-      GM_StaticAssert(sizeof(UI64) == 8);
+      GMStaticAssert(sizeof(UI32) == 4);
+      GMStaticAssert(sizeof(UI64) == 8);
 
-      UI64 sums[16];
+      UI64 sums_l[16];
       int i = 0;
       for (i = 0; i < 16; ++i) {
-        sums[i] = 0;
+        sums_l[i] = 0;
       }
+
+      const int w = 30;
+      GMAssert(64-2*w >= 4);
+      const UI64 one64 = 1;
+
+      const UI64 lomask = ( one64 << w ) - 1;
+      const UI64 lohimask = ( one64 << (2*w) ) - 1;
 
       UI64 coords[3];
       UI64 index = 0;
@@ -443,7 +452,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         /*---Obtain global coords of metrics elt---*/
         coords[2] = 0;
         for (i = 0; i < Env_num_way(env); ++i) {
-          coords[coord_num] =
+          coords[i] =
               GMMetrics_coord_global_from_index(metrics, index, i, env);
         }
         /*---Reflect coords by symmetry to get uniform result---*/
@@ -459,39 +468,55 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         const UI64 rand1 = gm_randomize(uid + 956158765);
         const UI64 rand2 = gm_randomize(uid + 842467637);
         UI64 rand_value = rand1 + gm_randomize_max() * rand2;
-        /*---Zero out top few bits to make headroom---*/
-        const int w = 30;
-        rand_value = ( rand_value << (64-2*w) ) >> (64-2*w);
+        rand_value &= lohimask;
         /*---Now pick up value of this metrics elt---*/
         const GMFloat value =
             GMMetrics_float_get_from_index(metrics, index, env);
-        /*---Convert to integer.  Store only 60 bits max---*/
+        /*---Convert to integer.  Store only 2*w bits max---*/
         const int log2_value_max = 4;
         GMAssert(value >= 0 && value < (1<<log2_value_max));
-        UI64 ivalue = value * (((UI64)1) << (2*w-log2_value_max));
+        UI64 ivalue = value * (one64 << (2*w-log2_value_max));
         /*---Multiply the two values---*/
         const UI64 a = rand_value;
-        const UI64 alo = (a << (64-w)) >> (64-w);
+        const UI64 alo = a & lomask;
         const UI64 ahi = a >> w;
         const UI64 b = ivalue;
-        const UI64 blo = (b << (64-w)) >> (64-w);
+        const UI64 blo = b & lomask;
         const UI64 bhi = b >> w;
         const UI64 cx = alo * bhi + ahi * blo;
-        UI64 clo = alo * blo + ((cx << (64-w)) >> (64-2*w));
-        UI64 chi = ahi * bhi + (cx > w);
+        UI64 clo = alo * blo + ( (cx & lomask) << w);
+        UI64 chi = ahi * bhi + (cx >> w);
         /*---(move the carry bits)---*/
         chi += clo >> (2*w);
-        clo = (clo << (64-2*w)) >> (64-2*w);
+        clo &= lohimask;
         /*---Split the product into one-char chunks, accumulate to sums---*/
-        for (i=0; i<8; ++i) {
-          sums[0+i] += (clo << (64-8-8*i)) >> (64-8);
-          sums[8+i] += (chi << (64-8-8*i)) >> (64-8);
+        for (i = 0; i < 8; ++i) {
+          sums_l[0+i] += (clo << (64-8-8*i)) >> (64-8);
+          sums_l[8+i] += (chi << (64-8-8*i)) >> (64-8);
         }
-      } /*---for i---*/
+      } /*---for index---*/
 
+      /*---Global sum---*/
+      UI64 sums_g[16];
+      int mpi_code = 0;
+      mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+      mpi_code = MPI_Allreduce(sums_l, sums_g, 16, MPI_UNSIGNED_LONG_LONG,
+                               MPI_SUM, Env_mpi_comm(env));
+      GMAssert(mpi_code == MPI_SUCCESS);
 
+      /*---Combine results---*/
 
-
+      for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+        int j = 0;
+        for (j = 0; j < 16; ++j) {
+          result.data[i] += gm_lshift(sums_g[j], 8*j-60*i) & lohimask;
+        }
+      }
+      /*---(move the carry bits---*/
+      result.data[1] += result.data[0] >> (2*w);
+      result.data[0] &= lohimask;
+      result.data[2] += result.data[1] >> (2*w);
+      result.data[1] &= lohimask;
 
     } break;
     /*--------------------*/
@@ -503,15 +528,9 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 
-
-
-
-
-
   return result;
 }
 
-#endif
 /*---------------------------------------------------------------------------*/
 
 
