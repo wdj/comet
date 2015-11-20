@@ -399,12 +399,15 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 }
 
 
+/*---------------------------------------------------------------------------*/
 #ifdef xyz
 
 GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   GMAssert(metrics);
   GMAssert(metrics->data);
   GMAssert(env);
+
+  /*---Initializations---*/
 
   int i = 0;
   GMChecksum result;
@@ -416,6 +419,90 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
 
 
+  switch (metrics->data_type_id) {
+    /*--------------------*/
+    case GM_DATA_TYPE_FLOAT: {
+      GMAssert(Env_num_way(env) <= 3 ? "This num_way not supported." : 0);
+
+      /*---Initializations---*/
+
+      typedef unsigned int UI32;
+      typedef size_t UI64;
+      GM_StaticAssert(sizeof(UI32) == 4);
+      GM_StaticAssert(sizeof(UI64) == 8);
+
+      UI64 sums[16];
+      int i = 0;
+      for (i = 0; i < 16; ++i) {
+        sums[i] = 0;
+      }
+
+      UI64 coords[3];
+      UI64 index = 0;
+      for (index = 0; index < metrics->num_elts_local; ++index) {
+        /*---Obtain global coords of metrics elt---*/
+        coords[2] = 0;
+        for (i = 0; i < Env_num_way(env); ++i) {
+          coords[coord_num] =
+              GMMetrics_coord_global_from_index(metrics, index, i, env);
+        }
+        /*---Reflect coords by symmetry to get uniform result---*/
+        gm_bubbledown(&coords[1], &coords[2]);
+        gm_bubbledown(&coords[0], &coords[1]);
+        gm_bubbledown(&coords[1], &coords[2]);
+        /*---Construct global id for metrics elt---*/
+        UI64 uid = coords[0];
+        for (i = 1; i < Env_num_way(env); ++i) {
+          uid = uid * metrics->num_vector + coords[i];
+        }
+        /*---Randomize---*/
+        const UI64 rand1 = gm_randomize(uid + 956158765);
+        const UI64 rand2 = gm_randomize(uid + 842467637);
+        UI64 rand_value = rand1 + gm_randomize_max() * rand2;
+        /*---Zero out top few bits to make headroom---*/
+        const int w = 30;
+        rand_value = ( rand_value << (64-2*w) ) >> (64-2*w);
+        /*---Now pick up value of this metrics elt---*/
+        const GMFloat value =
+            GMMetrics_float_get_from_index(metrics, index, env);
+        /*---Convert to integer.  Store only 60 bits max---*/
+        const int log2_value_max = 4;
+        GMAssert(value >= 0 && value < (1<<log2_value_max));
+        UI64 ivalue = value * (((UI64)1) << (2*w-log2_value_max));
+        /*---Multiply the two values---*/
+        const UI64 a = rand_value;
+        const UI64 alo = (a << (64-w)) >> (64-w);
+        const UI64 ahi = a >> w;
+        const UI64 b = ivalue;
+        const UI64 blo = (b << (64-w)) >> (64-w);
+        const UI64 bhi = b >> w;
+        const UI64 cx = alo * bhi + ahi * blo;
+        UI64 clo = alo * blo + ((cx << (64-w)) >> (64-2*w));
+        UI64 chi = ahi * bhi + (cx > w);
+        /*---(move the carry bits)---*/
+        chi += clo >> (2*w);
+        clo = (clo << (64-2*w)) >> (64-2*w);
+        /*---Split the product into one-char chunks, accumulate to sums---*/
+        for (i=0; i<8; ++i) {
+          sums[0+i] += (clo << (64-8-8*i)) >> (64-8);
+          sums[8+i] += (chi << (64-8-8*i)) >> (64-8);
+        }
+      } /*---for i---*/
+
+
+
+
+
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_BIT: {
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+    } break;
+    /*--------------------*/
+    default:
+      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+  } /*---switch---*/
+
 
 
 
@@ -425,6 +512,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 }
 
 #endif
+/*---------------------------------------------------------------------------*/
 
 
 
