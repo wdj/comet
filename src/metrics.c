@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "mpi.h"
 
@@ -403,6 +404,9 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 static size_t gm_lshift(size_t a, int j) {
+  if (j >= 64  || j <= -64) {
+    return 0;
+  }
   return j > 0 ? a << j : a >> (-j);
 }
 
@@ -438,6 +442,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       for (i = 0; i < 16; ++i) {
         sums_l[i] = 0;
       }
+      double sum_d = 0;
 
       const int w = 30;
       GMAssert(64-2*w >= 4);
@@ -486,6 +491,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         const UI64 cx = alo * bhi + ahi * blo;
         UI64 clo = alo * blo + ( (cx & lomask) << w);
         UI64 chi = ahi * bhi + (cx >> w);
+        sum_d += ivalue * (double)rand_value / ((double)(one64<<(2*w)));
         /*---(move the carry bits)---*/
         chi += clo >> (2*w);
         clo &= lohimask;
@@ -495,7 +501,6 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
           sums_l[8+i] += (chi << (64-8-8*i)) >> (64-8);
         }
       } /*---for index---*/
-
       /*---Global sum---*/
       UI64 sums_g[16];
       int mpi_code = 0;
@@ -508,8 +513,9 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
       for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
         int j = 0;
-        for (j = 0; j < 16; ++j) {
-          result.data[i] += gm_lshift(sums_g[j], 8*j-60*i) & lohimask;
+        for (j = 0; j < 8; ++j) {
+          result.data[i] += gm_lshift(sums_g[0+j], 8*j-2*w*i) & lohimask;
+          result.data[i] += gm_lshift(sums_g[8+j], 8*j-2*w*(i-1)) & lohimask;
         }
       }
       /*---(move the carry bits---*/
@@ -517,6 +523,19 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       result.data[0] &= lohimask;
       result.data[2] += result.data[1] >> (2*w);
       result.data[1] &= lohimask;
+
+      /*---Check against floating point result---*/
+
+      const double tmp = sum_d;
+      mpi_code = MPI_Allreduce(&tmp, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
+                               Env_mpi_comm(env));
+      GMAssert(mpi_code == MPI_SUCCESS);
+
+      double result_d = result.data[0] / ((double)(one64<<(2*w))) +
+                        result.data[1] +
+                        result.data[2] * ((double)(one64<<(2*w)));
+      result_d = 1 * result_d; /*---Avoid unused variable warning---*/
+      GMAssert(fabs(sum_d-result_d) < sum_d * 1.e-10);
 
     } break;
     /*--------------------*/
