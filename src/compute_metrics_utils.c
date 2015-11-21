@@ -728,37 +728,41 @@ void gm_compute_czekanowski_numerators_2way_start(
 /*---Start calculation of numerators, 3-way Czekanowski---*/
 
 void gm_compute_czekanowski_numerators_3way_start(
-    GMVectors* vectors_1,
-    GMVectors* vectors_2,
-    GMVectors* vectors_3,
+    GMVectors* vectors_i,
+    GMVectors* vectors_j,
+    GMVectors* vectors_k,
     GMMetrics* metrics,
-    GMMirroredPointer* vectors_1_buf,
-    GMMirroredPointer* vectors_2_buf,
-    GMMirroredPointer* vectors_3_buf,
+    GMMirroredPointer* vectors_i_buf,
+    GMMirroredPointer* vectors_j_buf,
+    GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
     GMEnv* env) {
-  GMAssert(vectors_1 != NULL);
-  GMAssert(vectors_2 != NULL);
-  GMAssert(vectors_3 != NULL);
+  GMAssert(vectors_i != NULL);
+  GMAssert(vectors_j != NULL);
+  GMAssert(vectors_k != NULL);
   GMAssert(metrics != NULL);
+  GMAssert(vectors_i_buf != NULL);
+  GMAssert(vectors_j_buf != NULL);
+  GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
   GMAssert(k_proc >= 0 && k_proc < Env_num_proc(env));
   GMAssert(!(Env_proc_num(env) == j_proc && Env_proc_num(env) != k_proc));
   GMAssert(!(Env_proc_num(env) == k_proc && Env_proc_num(env) != j_proc));
 
+  /*---Initializations---*/
+
   const int numvec = metrics->num_vector_local;
-  const int numfield = vectors_1->num_field;
+  const int numfield = vectors_i->num_field;
 
   const int i_proc = Env_proc_num(env);
 
-  const _Bool i_is_j_is_k = i_proc == j_proc && j_proc == k_proc;
-  /*
-    const _Bool j_is_k = j_proc == k_proc;
-  */
-  const _Bool i_isnot_j_isnot_k =
+  const _Bool is_part1 = i_proc == j_proc && j_proc == k_proc;
+  const _Bool is_part3 =
       i_proc != j_proc && j_proc != k_proc && i_proc != k_proc;
+
+  /*---Get specification of region to be computed for Part 3---*/
 
   const int section_axis =
       gm_metrics_3way_section_axis(metrics, i_proc, j_proc, k_proc, env);
@@ -767,45 +771,73 @@ void gm_compute_czekanowski_numerators_3way_start(
 
   /*---Define bounding box containing region to be computed---*/
 
-  const int i_lb =
-      i_isnot_j_isnot_k && section_axis == 0 ? (section_num * numvec) / 6 : 0;
+  const int i_lb = is_part3 && section_axis == 0 ? (section_num * numvec)/6 : 0;
 
-  const int j_lb =
-      i_isnot_j_isnot_k && section_axis == 1 ? (section_num * numvec) / 6 : 0;
+  const int j_lb = is_part3 && section_axis == 1 ? (section_num * numvec)/6 : 0;
 
-  const int k_lb =
-      i_isnot_j_isnot_k && section_axis == 2 ? (section_num * numvec) / 6 : 0;
+  const int k_lb = is_part3 && section_axis == 2 ? (section_num * numvec)/6 : 0;
 
-  const int i_ub = i_isnot_j_isnot_k && section_axis == 0
+  const int i_ub = is_part3 && section_axis == 0
                        ? ((section_num + 1) * numvec) / 6
                        : numvec;
 
-  const int j_ub = i_isnot_j_isnot_k && section_axis == 1
+  const int j_ub = is_part3 && section_axis == 1
                        ? ((section_num + 1) * numvec) / 6
                        : numvec;
 
-  const int k_ub = i_isnot_j_isnot_k && section_axis == 2
+  const int k_ub = is_part3 && section_axis == 2
                        ? ((section_num + 1) * numvec) / 6
                        : numvec;
 
   /*----------------------------------------*/
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && Env_all2all(env)) {
-    /*----------------------------------------*/
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && ! Env_all2all(env)) {
+  /*----------------------------------------*/
+
+    /*---No off-proc all2all: compute tetrahedron of values---*/
+
+    int k = 0;
+    for (k = 0; k < numvec; ++k) {
+      int j = 0;
+      for (j = 0; j < k; ++j) {
+        int i = 0;
+        for (i = 0; i < j; ++i) {
+          GMFloat sum = 0;
+          int field = 0;
+          for (field = 0; field < numfield; ++field) {
+            const GMFloat val1 = GMVectors_float_get(vectors_i, field, i, env);
+            const GMFloat val2 = GMVectors_float_get(vectors_j, field, j, env);
+            const GMFloat val3 = GMVectors_float_get(vectors_k, field, k, env);
+            GMFloat min12 = val1 < val2 ? val1 : val2;
+            sum += min12;
+            sum += val1 < val3 ? val1 : val3;
+            sum += val2 < val3 ? val2 : val3;
+            sum -= min12 < val3 ? min12 : val3;
+          } /*---for field---*/
+          GMMetrics_float_set_3(metrics, i, j, k, sum, env);
+        }
+      }
+    }
+
+  /*----------------------------------------*/
+  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  /*----------------------------------------*/
+
+    /*---Compute tetrahedron, triang prism or block section---*/
 
     int k = 0;
     for (k = k_lb; k < k_ub; ++k) {
-      const int j_max = i_isnot_j_isnot_k ? j_ub : k;
+      const int j_max = is_part3 ? j_ub : k;
       int j = 0;
       for (j = j_lb; j < j_max; ++j) {
-        const int i_max = i_is_j_is_k ? j : i_ub;
+        const int i_max = is_part1 ? j : i_ub;
         int i = 0;
         for (i = i_lb; i < i_max; ++i) {
           GMFloat numerator = 0;
           int field = 0;
           for (field = 0; field < numfield; ++field) {
-            const GMFloat val1 = GMVectors_float_get(vectors_1, field, i, env);
-            const GMFloat val2 = GMVectors_float_get(vectors_2, field, j, env);
-            const GMFloat val3 = GMVectors_float_get(vectors_3, field, k, env);
+            const GMFloat val1 = GMVectors_float_get(vectors_i, field, i, env);
+            const GMFloat val2 = GMVectors_float_get(vectors_j, field, j, env);
+            const GMFloat val3 = GMVectors_float_get(vectors_k, field, k, env);
             const GMFloat min_ij = val1 < val2 ? val1 : val2;
             const GMFloat min_ik = val1 < val3 ? val1 : val3;
             const GMFloat min_jk = val2 < val3 ? val2 : val3;
@@ -818,35 +850,12 @@ void gm_compute_czekanowski_numerators_3way_start(
       }
     }
 
-    /*----------------------------------------*/
-  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    /*----------------------------------------*/
-
-    int k = 0;
-    for (k = 0; k < numvec; ++k) {
-      int j = 0;
-      for (j = 0; j < k; ++j) {
-        int i = 0;
-        for (i = 0; i < j; ++i) {
-          GMFloat sum = 0;
-          int field = 0;
-          for (field = 0; field < numfield; ++field) {
-            const GMFloat val1 = GMVectors_float_get(vectors_1, field, i, env);
-            const GMFloat val2 = GMVectors_float_get(vectors_2, field, j, env);
-            const GMFloat val3 = GMVectors_float_get(vectors_3, field, k, env);
-            GMFloat min12 = val1 < val2 ? val1 : val2;
-            sum += min12;
-            sum += val1 < val3 ? val1 : val3;
-            sum += val2 < val3 ? val2 : val3;
-            sum -= min12 < val3 ? min12 : val3;
-          } /*---for field---*/
-          GMMetrics_float_set_3(metrics, i, j, k, sum, env);
-        }
-      }
-    }
-
-    /*----------------------------------------*/
+  /*----------------------------------------*/
   } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+  /*----------------------------------------*/
+
+    /*----------------------------------------*/
+    /*---First get the required 2-way ij, jk, ik metrics---*/
     /*----------------------------------------*/
 
     /*--------------------*/
@@ -865,8 +874,8 @@ void gm_compute_czekanowski_numerators_3way_start(
 
     /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
 
-    magma_gemm_start(numvec, numvec, numfield, vectors_1_buf->d, numfield,
-                     vectors_2_buf->d, numfield, matM_ij_buf->d, numvec);
+    magma_gemm_start(numvec, numvec, numfield, vectors_i_buf->d, numfield,
+                     vectors_j_buf->d, numfield, matM_ij_buf->d, numvec);
     gm_compute_wait(env);
 
     /*---Copy matM_ij from GPU---*/
@@ -878,18 +887,20 @@ void gm_compute_czekanowski_numerators_3way_start(
     /*---Compute j_proc - k_proc minproduct---*/
     /*--------------------*/
 
+    /*---Need to compute only if not identical to already computed values---*/
+
     GMMirroredPointer matM_jk_buf_value =
-        !i_is_j_is_k ? gm_malloc_magma(numvec * (size_t)numvec, env)
+        !is_part1 ? gm_malloc_magma(numvec * (size_t)numvec, env)
                      : GMMirroredPointer_null();
 
     GMMirroredPointer* matM_jk_buf =
-        !i_is_j_is_k ? &matM_jk_buf_value : matM_ij_buf;
+        !is_part1 ? &matM_jk_buf_value : matM_ij_buf;
 
-    if (!i_is_j_is_k) {
+    if (!is_part1) {
       gm_magma_set_matrix_zero_start(matM_jk_buf, numvec, numvec, env);
 
-      magma_gemm_start(numvec, numvec, numfield, vectors_2_buf->d, numfield,
-                       vectors_3_buf->d, numfield, matM_jk_buf->d, numvec);
+      magma_gemm_start(numvec, numvec, numfield, vectors_j_buf->d, numfield,
+                       vectors_k_buf->d, numfield, matM_jk_buf->d, numvec);
       gm_compute_wait(env);
 
       gm_get_matrix_start(matM_jk_buf, numvec, numvec, env);
@@ -900,27 +911,29 @@ void gm_compute_czekanowski_numerators_3way_start(
     /*---Compute i_proc - k_proc minproduct---*/
     /*--------------------*/
 
+    /*---Need to compute only if not identical to already computed values---*/
+
     GMMirroredPointer matM_ik_buf_value =
-        i_isnot_j_isnot_k ? gm_malloc_magma(numvec * (size_t)numvec, env)
+        is_part3 ? gm_malloc_magma(numvec * (size_t)numvec, env)
                           : GMMirroredPointer_null();
 
     GMMirroredPointer* matM_ik_buf =
-        i_isnot_j_isnot_k ? &matM_ik_buf_value : matM_ij_buf;
+        is_part3 ? &matM_ik_buf_value : matM_ij_buf;
 
-    if (i_isnot_j_isnot_k) {
+    if (is_part3) {
       gm_magma_set_matrix_zero_start(matM_ik_buf, numvec, numvec, env);
 
-      magma_gemm_start(numvec, numvec, numfield, vectors_1_buf->d, numfield,
-                       vectors_3_buf->d, numfield, matM_ik_buf->d, numvec);
+      magma_gemm_start(numvec, numvec, numfield, vectors_i_buf->d, numfield,
+                       vectors_k_buf->d, numfield, matM_ik_buf->d, numvec);
       gm_compute_wait(env);
 
       gm_get_matrix_start(matM_ik_buf, numvec, numvec, env);
       gm_get_matrix_wait(env);
     }
 
-    /*--------------------*/
-    /*---Prepare for j loop---*/
-    /*--------------------*/
+    /*----------------------------------------*/
+    /*---Now compute ijk piece, via an outer loop over j values---*/
+    /*----------------------------------------*/
 
     /*---Allocate magma CPU/GPU memory for matrices V and B---*/
     /*
@@ -929,33 +942,51 @@ void gm_compute_czekanowski_numerators_3way_start(
          of vectors i and j
        B = X^T minprod V = three way min product
     */
-    GMMirroredPointer matV_buf =
-        gm_malloc_magma(numvec * (size_t)numfield, env);
-    GMMirroredPointer matB_buf = gm_malloc_magma(numvec * (size_t)numvec, env);
+    GMMirroredPointer matV_buf = gm_malloc_magma(numvec*(size_t)numfield, env);
+    GMMirroredPointer matB_buf = gm_malloc_magma(numvec*(size_t)numvec, env);
+
+    /*---Set up pointers to permute the access of axes for Part 3---*/
+
+
 
     /*---Process all combinations starting with j, i, k---*/
 
-    int j = 0;
     int i = 0;
+    int j = 0;
     int k = 0;
     int field = 0;
 
-    /*---NOTE: don't need j==numvec-1---*/
-    for (j = 0; j < numvec - 1; ++j) {
-      const int i_max = i_is_j_is_k ? j : numvec;
-      if (i_max == 0) {
+    const int j_min = 0;
+    const int j_max = numvec;
+
+    /*--------------------*/
+    /*---j loop---*/
+    /*--------------------*/
+
+    for (j = j_min; j < j_max; ++j) {
+
+      const int k_min = j + 1;
+      const int k_max = numvec;
+
+      if (k_min >= k_max) {
+        continue;
+      }
+
+      const int i_min = 0;
+      const int i_max = is_part1 ? j : numvec;
+      if (i_min >= i_max) {
         continue;
       }
 
       /*---Populate leading columns of matV---*/
 
-      for (i = 0; i < i_max; ++i) {
+      for (i = i_min; i < i_max; ++i) {
         // Compare columns x_i and x_j element-wise
         for (field = 0; field < numfield; ++field) {
           const GMFloat a =
-              ((GMFloat*)(vectors_1_buf->h))[field + numfield * i];
+              ((GMFloat*)(vectors_i_buf->h))[field + numfield * i];
           const GMFloat b =
-              ((GMFloat*)(vectors_2_buf->h))[field + numfield * j];
+              ((GMFloat*)(vectors_j_buf->h))[field + numfield * j];
           ((GMFloat*)(matV_buf.h))[field + numfield * i] = a < b ? a : b;
         }  //---for field---//
       }    //---for i---//
@@ -972,7 +1003,7 @@ void gm_compute_czekanowski_numerators_3way_start(
       /*---Perform matrix-matrix product matB = matV^T minprod X---*/
 
       magma_gemm_start(i_max, numvec, numfield, matV_buf.d, numfield,
-                       vectors_3_buf->d, numfield, matB_buf.d, i_max);
+                       vectors_k_buf->d, numfield, matB_buf.d, i_max);
       gm_compute_wait(env);
 
       /*---Copy matB from GPU---*/
@@ -980,12 +1011,12 @@ void gm_compute_czekanowski_numerators_3way_start(
       gm_get_matrix_start(&matB_buf, i_max, numvec, env);
       gm_get_matrix_wait(env);
 
-      /*---Compute numerators---*/
+      /*---Compute numerators using 2-way pieces and ijk piece---*/
 
       if (!Env_all2all(env)) {
-        for (i = 0; i < j; ++i) {
+        for (i = i_min; i < i_max; ++i) {
           const GMFloat min_ij = ((GMFloat*)(matM_ij_buf->h))[i + numvec * j];
-          for (k = j + 1; k < numvec; ++k) {
+          for (k = k_min; k < k_max; ++k) {
             const GMFloat min_ik = ((GMFloat*)(matM_ik_buf->h))[i + numvec * k];
             const GMFloat min_jk = ((GMFloat*)(matM_jk_buf->h))[j + numvec * k];
             // sum of mins vectors i, j, and k is matB(k,i)
@@ -996,9 +1027,9 @@ void gm_compute_czekanowski_numerators_3way_start(
         }   /*---for i---*/
 
       } else /*---if (Env_all2all(env))---*/ {
-        for (i = 0; i < i_max; ++i) {
+        for (i = i_min; i < i_max; ++i) {
           const GMFloat min_ij = ((GMFloat*)(matM_ij_buf->h))[i + numvec * j];
-          for (k = j + 1; k < numvec; ++k) {
+          for (k = k_min; k < k_max; ++k) {
             const GMFloat min_ik = ((GMFloat*)(matM_ik_buf->h))[i + numvec * k];
             const GMFloat min_jk = ((GMFloat*)(matM_jk_buf->h))[j + numvec * k];
             // sum of mins vectors i, j, and k is matB(k,i)
@@ -1009,17 +1040,19 @@ void gm_compute_czekanowski_numerators_3way_start(
           } /*---for k---*/
         }   /*---for i---*/
 
-      } /*---if---*/
+      } /*---if all2all---*/
 
     } /*---for j---*/
 
+    /*--------------------*/
     /*---Free memory---*/
+    /*--------------------*/
 
     gm_free_magma(&matM_ij_buf_value, env);
-    if (!i_is_j_is_k) {
+    if (!is_part1) {
       gm_free_magma(&matM_jk_buf_value, env);
     }
-    if (i_isnot_j_isnot_k) {
+    if (is_part3) {
       gm_free_magma(&matM_ik_buf_value, env);
     }
     gm_free_magma(&matV_buf, env);
@@ -1295,16 +1328,16 @@ void gm_compute_czekanowski_2way_combine(
 /*---Combine nums and denoms on CPU to get final result, 3-way Czek---*/
 
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
-                                         GMFloat* __restrict__ vector_sums_1,
-                                         GMFloat* __restrict__ vector_sums_2,
-                                         GMFloat* __restrict__ vector_sums_3,
+                                         GMFloat* __restrict__ vector_sums_i,
+                                         GMFloat* __restrict__ vector_sums_j,
+                                         GMFloat* __restrict__ vector_sums_k,
                                          int j_proc,
                                          int k_proc,
                                          GMEnv* env) {
   GMAssert(metrics != NULL);
-  GMAssert(vector_sums_1 != NULL);
-  GMAssert(vector_sums_2 != NULL);
-  GMAssert(vector_sums_3 != NULL);
+  GMAssert(vector_sums_i != NULL);
+  GMAssert(vector_sums_j != NULL);
+  GMAssert(vector_sums_k != NULL);
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc(env));
   GMAssert(k_proc >= 0 && k_proc < Env_num_proc(env));
@@ -1315,9 +1348,12 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
 
   /*----------------------------------------*/
   if (Env_all2all(env)) {
+  /*----------------------------------------*/
+
+    /*----------------------------------------*/
+    if (i_proc == j_proc && j_proc == k_proc) {
     /*----------------------------------------*/
 
-    if (i_proc == j_proc && j_proc == k_proc) {
       int k = 0;
       for (k = 0; k < metrics->num_vector_local; ++k) {
         int j = 0;
@@ -1327,7 +1363,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
             const GMFloat numerator = GMMetrics_float_get_all2all_3(
                 metrics, i, j, k, j_proc, k_proc, env);
             const GMFloat denominator =
-                vector_sums_1[i] + vector_sums_1[j] + vector_sums_1[k];
+                vector_sums_i[i] + vector_sums_i[j] + vector_sums_i[k];
             GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
                                           3 * numerator / (2 * denominator),
                                           env);
@@ -1335,7 +1371,10 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
         }   /*---for j---*/
       }     /*---for k---*/
 
+    /*----------------------------------------*/
     } else if (j_proc == k_proc) {
+    /*----------------------------------------*/
+
       int k = 0;
       for (k = 0; k < metrics->num_vector_local; ++k) {
         int j = 0;
@@ -1345,7 +1384,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
             const GMFloat numerator = GMMetrics_float_get_all2all_3(
                 metrics, i, j, k, j_proc, k_proc, env);
             const GMFloat denominator =
-                vector_sums_1[i] + vector_sums_2[j] + vector_sums_2[k];
+                vector_sums_i[i] + vector_sums_j[j] + vector_sums_j[k];
             GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
                                           3 * numerator / (2 * denominator),
                                           env);
@@ -1353,9 +1392,14 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
         }   /*---for j---*/
       }     /*---for k---*/
 
-    } else /*---if (i_proc != j_proc && i_proc != k_proc
-                                     && j_proc != k_proc)---*/ {
+
+    /*----------------------------------------*/
+    } else /*---i_proc != j_proc && i_proc != k_proc && j_proc != k_proc---*/ {
+    /*----------------------------------------*/
+
       const int numvec = metrics->num_vector_local;
+
+      /*---Get specification of region to be computed for Part 3---*/
 
       const int section_axis =
           gm_metrics_3way_section_axis(metrics, i_proc, j_proc, k_proc, env);
@@ -1388,7 +1432,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
             const GMFloat numerator = GMMetrics_float_get_all2all_3(
                 metrics, i, j, k, j_proc, k_proc, env);
             const GMFloat denominator =
-                vector_sums_1[i] + vector_sums_2[j] + vector_sums_3[k];
+                vector_sums_i[i] + vector_sums_j[j] + vector_sums_k[k];
             const GMFloat value =  ((GMFloat)3) * numerator /
                                   (((GMFloat)2) * denominator);
             GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
@@ -1398,9 +1442,9 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
       }     /*---for k---*/
     }
 
-    /*----------------------------------------*/
+  /*----------------------------------------*/
   } else {
-    /*----------------------------------------*/
+  /*----------------------------------------*/
 
     int i = 0;
     for (i = 0; i < metrics->num_vector_local; ++i) {
@@ -1412,14 +1456,14 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
               GMMetrics_float_get_3(metrics, i, j, k, env);
           /*---Don't use two different pointers pointing to the same thing---*/
           const GMFloat denominator =
-              vector_sums_1[i] + vector_sums_1[j] + vector_sums_1[k];
+              vector_sums_i[i] + vector_sums_i[j] + vector_sums_i[k];
           GMMetrics_float_set_3(metrics, i, j, k,
                                 3 * numerator / (2 * denominator), env);
         } /*---for k---*/
       }   /*---for j---*/
     }     /*---for i---*/
 
-    /*----------------------------------------*/
+  /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
 }

@@ -290,9 +290,7 @@ int main(int argc, char** argv) {
       printf("metrics checksum ");
       int i = 0;
       for (i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
-        //printf(" %.17e", checksum.data[i]);
-        printf(i==0 ? "" : "-");
-        printf("%li", checksum.data[GM_CHECKSUM_SIZE-1-i]);
+        printf("%s%li", i==0 ? "" : "-", checksum.data[GM_CHECKSUM_SIZE-1-i]);
       }
       printf(" compute time %.6f\n", time_compute_metrics);
     }
