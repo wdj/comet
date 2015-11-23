@@ -269,7 +269,7 @@ int main(int argc, char** argv) {
 
     /*---Calculate metrics---*/
 
-    /*---Run once first, discard timing---*/
+    /*---Run once first, discard timing: first gpu run is sometimes slow---*/
     if (Env_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
       gm_compute_metrics(&metrics, &vectors, &env);
     }

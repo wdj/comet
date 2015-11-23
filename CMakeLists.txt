@@ -70,7 +70,7 @@ if(TESTING)
 
   enable_testing()
 
-  foreach(test_target basic_test)
+  foreach(test_target system_test)
     ADD_EXECUTABLE(${test_target} testing/${test_target}.cc)
     TARGET_LINK_LIBRARIES(${test_target} genomics_metrics)
     TARGET_LINK_LIBRARIES(${test_target} ${CMAKE_EXE_LINKER_FLAGS})

@@ -913,8 +913,8 @@ void gm_compute_czekanowski_numerators_3way_start(
 
     /*---Need to compute only if not identical to already computed values---*/
 
-    /*---NOTE: for Part 3, this is indexed as (k,i).
-         Otherwise, it is indexed through an alis as (i,k)---*/
+    /*---NOTE: for Part 3, this is indexed directly as (k,i).
+         Otherwise, it is indexed through an alias as (i,k)---*/
 
     GMMirroredPointer matM_kik_buf_value =
         is_part3 ? gm_malloc_magma(numvec * (size_t)numvec, env)
@@ -960,10 +960,12 @@ void gm_compute_czekanowski_numerators_3way_start(
                                                   sax0 ? vectors_k_buf :
                                                   sax1 ? vectors_i_buf :
                                                   sax2 ? vectors_j_buf : 0;
+
     GMMirroredPointer* const vectors_J_buf = !is_part3 ? vectors_j_buf :
                                                   sax0 ? vectors_i_buf :
                                                   sax1 ? vectors_j_buf :
                                                   sax2 ? vectors_k_buf : 0;
+
     GMMirroredPointer* const vectors_K_buf = !is_part3 ? vectors_k_buf :
                                                   sax0 ? vectors_j_buf :
                                                   sax1 ? vectors_k_buf :
@@ -976,10 +978,12 @@ void gm_compute_czekanowski_numerators_3way_start(
                                                  sax0 ? matM_kik_buf :
                                                  sax1 ? matM_ij_buf  :
                                                  sax2 ? matM_jk_buf  : 0;
+
     GMMirroredPointer* const matM_JK_buf  = !is_part3 ? matM_jk_buf  :
                                                  sax0 ? matM_ij_buf  :
                                                  sax1 ? matM_jk_buf  :
                                                  sax2 ? matM_kik_buf : 0;
+
     GMMirroredPointer* const matM_KIK_buf = !is_part3 ? matM_kik_buf :
                                                  sax0 ? matM_jk_buf  :
                                                  sax1 ? matM_kik_buf :
@@ -988,13 +992,9 @@ void gm_compute_czekanowski_numerators_3way_start(
 
     /*---Process all combinations starting with j, i, k---*/
 
-    int I = 0;
-    int J = 0;
-    int K = 0;
-    int field = 0;
-
     const int J_min = is_part3 ? (section_num + 0) * numvec / 6 : 0;
     const int J_max = is_part3 ? (section_num + 1) * numvec / 6 : numvec;
+    int J = 0;
 
     /*--------------------*/
     /*---J loop---*/
@@ -1016,8 +1016,10 @@ void gm_compute_czekanowski_numerators_3way_start(
 
       /*---Populate leading columns of matV---*/
 
+      int I = 0;
       for (I = I_min; I < I_max; ++I) {
         // Compare columns x_i and x_j element-wise
+        int field = 0;
         for (field = 0; field < numfield; ++field) {
           const GMFloat a =
               ((GMFloat*)(vectors_I_buf->h))[field + numfield * I];
@@ -1049,9 +1051,13 @@ void gm_compute_czekanowski_numerators_3way_start(
 
       /*---Compute numerators using 2-way pieces and ijk piece---*/
 
+      /*----------*/
       if (!Env_all2all(env)) {
+      /*----------*/
+
         for (I = I_min; I < I_max; ++I) {
           const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvec*J];
+          int K = 0;
           for (K = K_min; K < K_max; ++K) {
             const GMFloat min_JK  = ((GMFloat*)(matM_JK_buf->h))[J + numvec*K];
             const GMFloat min_KIK = ((GMFloat*)(matM_KIK_buf->h))[K + numvec*I];
@@ -1065,9 +1071,13 @@ void gm_compute_czekanowski_numerators_3way_start(
           } /*---for K---*/
         }   /*---for I---*/
 
+      /*----------*/
       } else /*---if (Env_all2all(env))---*/ {
+      /*----------*/
+
         for (I = I_min; I < I_max; ++I) {
           const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvec*J];
+          int K = 0;
           for (K = K_min; K < K_max; ++K) {
             const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + numvec*K];
             const GMFloat min_KIK = is_part3 ?
@@ -1095,7 +1105,9 @@ void gm_compute_czekanowski_numerators_3way_start(
           } /*---for K---*/
         }   /*---for I---*/
 
-      } /*---if all2all---*/
+      /*----------*/
+      } /*---if (Env_all2all(env))---*/
+      /*----------*/
 
     } /*---for J---*/
 
