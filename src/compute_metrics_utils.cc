@@ -320,8 +320,8 @@ void magma_gemm_start(magma_minproduct_int_t m,
 #ifdef FP_PRECISION_SINGLE
       magma_minproductblas_sgemm
 #endif
-      (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha, dA, ldda,
-       dB, lddb, beta, dC, lddc);
+      (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
+       (GMFloat*)dA, ldda, (GMFloat*)dB, lddb, beta, (GMFloat*)dC, lddc);
 }
 
 /*---------------------------------------------------------------------------*/

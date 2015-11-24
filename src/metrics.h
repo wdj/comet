@@ -144,9 +144,9 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
   GMAssert(i < j);
 
   size_t index = ((j * (size_t)(j - 1)) >> 1) + i;
-  GMAssert(i + metrics->num_vector_local * Env_proc_num(env) ==
+  GMAssert(i + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
-  GMAssert(j + metrics->num_vector_local * Env_proc_num(env) ==
+  GMAssert(j + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
            metrics->coords_global_from_index[index] / metrics->num_vector);
   return index;
 }
@@ -209,12 +209,12 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
 
   size_t index = (k * (size_t)(k - 1) * (size_t)(k - 2)) / 6 +
                  (j * (size_t)(j - 1)) / 2 + i;
-  GMAssert(i + metrics->num_vector_local * Env_proc_num(env) ==
+  GMAssert(i + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
-  GMAssert(j + metrics->num_vector_local * Env_proc_num(env) ==
+  GMAssert(j + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
            (metrics->coords_global_from_index[index] / metrics->num_vector) %
                metrics->num_vector);
-  GMAssert(k + metrics->num_vector_local * Env_proc_num(env) ==
+  GMAssert(k + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
            metrics->coords_global_from_index[index] /
                (metrics->num_vector * metrics->num_vector));
   return index;
@@ -281,14 +281,17 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
 
   GMAssert(index >= 0 && index < metrics->num_elts_local);
 
-  GMAssert(metrics->coords_global_from_index[index] % (nvl*Env_num_proc(env)) ==
-           i + i_proc * nvl);
+  GMAssert(metrics->coords_global_from_index[index] %
+           (nvl*(size_t)Env_num_proc(env)) ==
+           i + i_proc * (size_t)nvl);
 
-  GMAssert((metrics->coords_global_from_index[index] / (nvl*Env_num_proc(env)))
-               % (nvl*Env_num_proc(env)) == j + j_proc * nvl);
+  GMAssert((metrics->coords_global_from_index[index] /
+           (nvl*(size_t)Env_num_proc(env))) %
+           (nvl*Env_num_proc(env)) == j + j_proc * (size_t)nvl);
 
-  GMAssert((metrics->coords_global_from_index[index] / (nvl*Env_num_proc(env)))
-               / (nvl*Env_num_proc(env)) == k + k_proc * nvl);
+  GMAssert((metrics->coords_global_from_index[index] /
+           (nvl*(size_t)Env_num_proc(env))) /
+           (nvl*Env_num_proc(env)) == k + k_proc * (size_t)nvl);
 
   return index;
 }
@@ -302,7 +305,7 @@ static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
   GMAssert(index >= 0);
-  GMAssert(index < metrics->num_elts_local);
+  GMAssert((size_t)index < metrics->num_elts_local);
 
   return ((GMFloat*)(metrics->data))[index];
 }

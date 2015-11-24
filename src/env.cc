@@ -19,14 +19,54 @@
 #include <stddef.h>
 #include <string.h>
 
+#ifdef TESTING
+#include "gtest/gtest.h"
+#endif
+
 #include "mpi.h"
 #include "cuda.h"
 
 #include "env.h"
 
+/*---------------------------------------------------------------------------*/
+
+static void gm_test_wrapper() {
+#ifdef TESTING
+  ASSERT_TRUE(0);
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*===========================================================================*/
+/*---Assertions---*/
+
+void gm_assert(const char* condition_string,
+               const char* file,
+               int line) {
+  fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n",
+          "Assertion error", condition_string, file, line);
+  gm_test_wrapper();
+  exit(EXIT_FAILURE);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_insist(const void* env,
+               const char* condition_string,
+               const char* file,
+               int line) {
+  if (Env_proc_num((const GMEnv*)env) == 0) {
+    fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n",
+            "Interface error", condition_string, file, line);
+  }
+  gm_test_wrapper();
+  exit(EXIT_FAILURE);
+}
 
 /*===========================================================================*/
 /*---Types---*/
@@ -74,7 +114,7 @@ void GMEnv_create(GMEnv* env) {
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
+void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
   GMAssert(env != NULL);
 
   /*---First initialize with standard constructor---*/
@@ -82,7 +122,7 @@ void GMEnv_create_from_args(GMEnv* env, int argc, char** argv) {
 
   /*---Modify based on user options---*/
   int i = 0;
-  for (i = 0; i < argc; ++i) {
+  for (i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--metric_type") == 0) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for metric_type." : 0);
@@ -250,6 +290,7 @@ void Env_set_num_proc(GMEnv* env, int num_proc) {
 
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &env->proc_num_);
   GMAssert(mpi_code == MPI_SUCCESS);
+
   env->is_proc_active_ = env->proc_num_ < num_proc;
   mpi_code = MPI_Comm_split(MPI_COMM_WORLD, env->is_proc_active_,
                                          env->proc_num_, &env->mpi_comm_);
@@ -318,21 +359,6 @@ double GMEnv_get_synced_time(GMEnv* env) {
   mpi_code = MPI_Barrier(Env_mpi_comm(env));
   GMAssert(mpi_code == MPI_SUCCESS);
   return GMEnv_get_time(env);
-}
-
-/*===========================================================================*/
-/*---Assertions---*/
-
-void gm_insist(const GMEnv* env,
-               const char* message_string,
-               const char* condition_string,
-               const char* file,
-               int line) {
-  if (Env_proc_num(env) == 0) {
-    fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n",
-            message_string, condition_string, file, line);
-  }
-  exit(EXIT_FAILURE);
 }
 
 /*===========================================================================*/

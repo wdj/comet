@@ -242,7 +242,7 @@ int main(int argc, char** argv) {
   }
 
   GMEnv env = GMEnv_null();
-  GMEnv_create_from_args(&env, argc, argv);
+  GMEnv_create_from_args(&env, argc, (const char**)argv);
 
   /*---Parse remaining unprocessed arguments---*/
 

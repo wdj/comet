@@ -98,10 +98,10 @@ void GMMetrics_create(GMMetrics* metrics,
           num_offdiag_block * num_vector_local * num_vector_local;
       /*---Allocate index---*/
       metrics->coords_global_from_index =
-          malloc(metrics->num_elts_local * sizeof(size_t));
+          (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
       GMAssert(metrics->coords_global_from_index != NULL);
       /*---Set index part 1: (triangle) i_proc==j_proc part---*/
-      int index = 0;
+      size_t index = 0;
       int j = 0;
       for (j = 0; j < num_vector_local; ++j) {
         const size_t j_global = j + num_vector_local * i_proc;
@@ -153,10 +153,10 @@ void GMMetrics_create(GMMetrics* metrics,
                                  num_vector_local * (num_vector_local / 6);
       /*---Allocate index---*/
       metrics->coords_global_from_index =
-          malloc(metrics->num_elts_local * sizeof(size_t));
+          (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
       GMAssert(metrics->coords_global_from_index != NULL);
       /*---Set index part 1: (tetrahedron) i_proc==j_proc==k_proc part---*/
-      int index = 0;
+      size_t index = 0;
       int k = 0;
       for (k = 0; k < num_vector_local; ++k) {
         const int k_proc = i_proc;
@@ -254,12 +254,12 @@ void GMMetrics_create(GMMetrics* metrics,
                              : 0;
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
-        malloc(metrics->num_elts_local * sizeof(size_t));
+        (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssert(metrics->coords_global_from_index != NULL);
     /*---LATER: generalize this to N-way---*/
     if (Env_num_way(env) == 2) {
       /*---Need store only strict upper triangular part of matrix---*/
-      int index = 0;
+      size_t index = 0;
       int j = 0;
       for (j = 0; j < num_vector_local; ++j) {
         const size_t j_global = j + num_vector_local * i_proc;
@@ -274,7 +274,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } else /* (Env_num_way(env) == 3) */ {
       GMAssert(Env_num_way(env) == 3);
       /*---Need store only strict interior of tetrahedron---*/
-      int index = 0;
+      size_t index = 0;
       int k = 0;
       for (k = 0; k < num_vector_local; ++k) {
         const size_t k_global = k + num_vector_local * i_proc;
@@ -302,7 +302,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   switch (data_type_id) {
     case GM_DATA_TYPE_FLOAT:
-      metrics->data = malloc(metrics->num_elts_local * sizeof(GMFloat));
+      metrics->data = (GMFloat*)malloc(metrics->num_elts_local*sizeof(GMFloat));
       GMAssert(metrics->data != NULL);
       break;
     case GM_DATA_TYPE_BIT: {

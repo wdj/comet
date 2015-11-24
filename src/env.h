@@ -23,12 +23,58 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
+/*===========================================================================*/
+/*---Assertions---*/
+
+#define GMAssertAlways(condition) \
+  (void)((condition) || (gm_assert(#condition, __FILE__, __LINE__), 0))
+
+#define GMInsist(env, condition) \
+  (void)((condition) || (gm_insist(env, #condition, __FILE__, __LINE__), 0))
+
+#ifndef NDEBUG
+#define GM_ASSERTIONS_ON
+#define GMAssert(condition) GMAssertAlways(condition)
+#else
+#define GMAssert(condition)
+#endif
+
+#ifndef NDEBUG
+/*---Fail compilation and (hopefully) give a filename/line number---*/
+#define GMStaticAssert(condition) \
+  {                               \
+    int a[(condition) ? 1 : -1];  \
+    (void) a;                     \
+  }
+#else
+#define GM_StaticAssert(condition)
+#endif
+
+/*---------------------------------------------------------------------------*/
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+void gm_assert(const char* condition_string,
+               const char* file,
+               int line);
+
+void gm_insist(const void* env,
+               const char* condition_string,
+               const char* file,
+               int line);
+
+#ifdef __cplusplus
+} /*---extern "C"---*/
+#endif
+
 /*===========================================================================*/
 /*---Types---*/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*---Boolean type---*/
 
@@ -87,6 +133,15 @@ typedef struct {
   size_t data[GM_CHECKSUM_SIZE];
 } GMChecksum;
 
+static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
+  _Bool result = GM_BOOL_TRUE;
+  int i = 0;
+  for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+    result = result && c1.data[i] == c2.data[i];
+  }
+  return result;
+}
+
 /*===========================================================================*/
 /*---Environment struct declarations---*/
 
@@ -132,7 +187,7 @@ GMEnv GMEnv_null(void);
 /*---Initialize environment---*/
 
 void GMEnv_create(GMEnv* env);
-void GMEnv_create_from_args(GMEnv* env, int argc, char** argv);
+void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv);
 
 /*===========================================================================*/
 /*---Finalize environment---*/
@@ -144,40 +199,6 @@ void GMEnv_destroy(GMEnv* env);
 
 void GMEnv_initialize_streams(GMEnv* env);
 void GMEnv_terminate_streams(GMEnv* env);
-
-/*===========================================================================*/
-/*---Assertions---*/
-
-#define GMAssert(v) assert(v)
-
-#define GMInsist(env, condition) \
-  (void)((condition) || (gm_insist(env, "Interface error", #condition, \
-                                   __FILE__, __LINE__), 0))
-
-#define GMAssertAlways(env, condition) \
-  (void)((condition) || (gm_insist(env, "Assertion error", #condition, \
-                                   __FILE__, __LINE__), 0))
-
-void gm_insist(const GMEnv* env,
-               const char* message_string,
-               const char* condition_string,
-               const char* file,
-               int line);
-
-#ifndef NDEBUG
-#define GM_ASSERTIONS_ON
-#endif
-
-#ifndef NDEBUG
-/*---Fail compilation and (hopefully) give a filename/line number---*/
-#define GMStaticAssert(condition) \
-  {                               \
-    int a[(condition) ? 1 : -1];  \
-    (void) a;                     \
-  }
-#else
-#define GM_StaticAssert(condition)
-#endif
 
 /*===========================================================================*/
 /*---Accessors---*/
@@ -318,7 +339,7 @@ static int gm_log2(size_t n) {
 
   int result = 0;
 
-  for (result = 0, n--; result <= 8*sizeof(size_t); ++result) {
+  for (result = 0, n--; result <= 8*(int)sizeof(size_t); ++result) {
     if (n == 0) {
       break;
     }
