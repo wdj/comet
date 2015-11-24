@@ -30,20 +30,29 @@ extern "C" {
 /*===========================================================================*/
 /*---Set the entries of the vectors---*/
 
-void input_vectors(GMVectors* vectors, GMEnv* env) {
+static void input_vectors(GMVectors* vectors, GMEnv* env) {
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
+
+  if (!Env_is_proc_active(env)) {
+    return;
+  }
+
   switch (Env_data_type(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
            ++vector_local) {
-        int field;
-        for (field = 0; field < vectors->num_field; ++field) {
+        size_t vector = vector_local + vectors->num_vector_local *
+                                              (size_t)Env_proc_num_vector(env);
+        int field_local = 0;
+        for (field_local = 0; field_local < vectors->num_field_local;
+             ++field_local) {
+          size_t field = field_local + vectors->num_field_local *
+                                              (size_t)Env_proc_num_field(env);
           /*---compute element unique id---*/
-          const size_t uid = field +
-                         vectors->num_field * (vector_local +
-                                               vectors->num_vector_local *
-                                                  ((size_t)Env_proc_num(env)));
+          const size_t uid = field + vectors->num_field * vector;
           /*---Generate large random number---*/
           size_t rand1 = uid;
           rand1 = gm_randomize(rand1);
@@ -58,7 +67,7 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
           rand_value >>= (64-52) + gm_log2(vectors->num_field);
           /*---Store as floating point value---*/
           GMFloat value = rand_value;
-          GMVectors_float_set(vectors, field, vector_local, value, env);
+          GMVectors_float_set(vectors, field_local, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/
     } break;
@@ -69,20 +78,23 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
            ++vector_local) {
-        int field;
-        for (field = 0; field < vectors->num_field; ++field) {
+        size_t vector = vector_local + vectors->num_vector_local *
+                                              (size_t)Env_proc_num_vector(env);
+        int field_local;
+        for (field_local = 0; field_local < vectors->num_field_local;
+             ++field_local) {
+          size_t field = field_local + vectors->num_field_local *
+                                              (size_t)Env_proc_num_field(env);
           /*---compute element unique id---*/
-          size_t index = field +
-                         vectors->num_field * (vector_local +
-                                               vectors->num_vector_local *
-                                                  ((size_t)Env_proc_num(env)));
+          const size_t uid = field + vectors->num_field * vector;
+          size_t index = uid;
           /*---randomize---*/
           index = gm_randomize(index);
           /*---Calculate random number between 0 and 1---*/
           GMFloat rand_value = index / (GMFloat)gm_randomize_max();
           /*---Create single bit value---*/
           _Bool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
-          GMVectors_bit_set(vectors, field, vector_local, value, env);
+          GMVectors_bit_set(vectors, field_local, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/
 
@@ -96,7 +108,20 @@ void input_vectors(GMVectors* vectors, GMEnv* env) {
 /*===========================================================================*/
 /*---Output the result metrics values---*/
 
-void output_metrics(GMMetrics* metrics, GMEnv* env) {
+static void output_metrics(GMMetrics* metrics, GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+
+  if (!Env_is_proc_active(env)) {
+    return;
+  }
+
+  /*---Due to redundancy, only results from some processors are needed---*/
+
+  if (Env_proc_num_field(env) != 0) {
+    return;
+  }
+
   switch (Env_data_type(env)) {
     case GM_DATA_TYPE_FLOAT: {
       size_t index;
@@ -128,12 +153,12 @@ void output_metrics(GMMetrics* metrics, GMEnv* env) {
 /*===========================================================================*/
 /*---Parse remaining unprocessed arguments---*/
 
-void finish_parsing(int argc,
-                    const char** argv,
-                    GMEnv* env,
-                    int* num_field,
-                    int* num_vector_local,
-                    int* verbosity) {
+static void finish_parsing(int argc,
+                           const char** argv,
+                           GMEnv* env,
+                           int* num_field,
+                           int* num_vector_local,
+                           int* verbosity) {
   const int uninitialized = -1;
   *num_field = uninitialized;
   *num_vector_local = uninitialized;
@@ -167,7 +192,9 @@ void finish_parsing(int argc,
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--compute_method") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
-    } else if (strcmp(argv[i], "--num_proc") == 0) {
+    } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
+      ++i; /*---processed elsewhere by GMEnv---*/
+    } else if (strcmp(argv[i], "--num_proc_field") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else {
       if (Env_proc_num(env) == 0) {
@@ -182,6 +209,78 @@ void finish_parsing(int argc,
   GMInsist(env, *num_vector_local != uninitialized
                     ? "Error: num_vector_local not set."
                     : 0);
+}
+
+/*===========================================================================*/
+/*---Perform a single metrics computation run---*/
+
+static GMChecksum perform_run(int argc, const char** argv) {
+
+  GMChecksum checksum;
+
+  /*---Initialize environment---*/
+
+  GMEnv env = GMEnv_null();
+  GMEnv_create_from_args(&env, argc, argv);
+
+  /*---Parse remaining unprocessed arguments---*/
+
+  int num_field = 0;
+  int num_vector_local = 0;
+  int verbosity = 0;
+  finish_parsing(argc, argv, &env, &num_field, &num_vector_local, &verbosity);
+
+  /*---Initialize vectors---*/
+
+  GMVectors vectors = GMVectors_null();
+  GMVectors_create(&vectors, Env_data_type(&env),
+                   num_field, num_vector_local, &env);
+
+  input_vectors(&vectors, &env);
+
+  /*---Set up metrics container for results---*/
+
+  GMMetrics metrics = GMMetrics_null();
+  GMMetrics_create(&metrics, Env_data_type(&env),
+                   num_vector_local, &env);
+
+  /*---Calculate metrics---*/
+
+  double time_begin = GMEnv_get_synced_time(&env);
+
+  gm_compute_metrics(&metrics, &vectors, &env);
+
+  double time_end = GMEnv_get_synced_time(&env);
+
+  /*---Output run information---*/
+
+  double time_compute_metrics = time_end - time_begin;
+
+  checksum = GMMetrics_checksum(&metrics, &env);
+
+  if (Env_is_proc_active(&env) && Env_proc_num(&env) == 0 && verbosity > 0) {
+    printf("metrics checksum ");
+    int i = 0;
+    for (i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
+      printf("%s%li", i==0 ? "" : "-", checksum.data[GM_CHECKSUM_SIZE-1-i]);
+    }
+    printf(" compute time %.6f\n", time_compute_metrics);
+  }
+
+  /*---Output results---*/
+
+  if (verbosity > 1) {
+    output_metrics(&metrics, &env);
+  }
+
+  /*---Finalize---*/
+
+  GMMetrics_destroy(&metrics, &env);
+  GMVectors_destroy(&vectors, &env);
+
+  GMEnv_destroy(&env);
+
+  return checksum;
 }
 
 /*---------------------------------------------------------------------------*/

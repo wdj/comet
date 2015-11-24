@@ -32,6 +32,10 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
+  if (!Env_is_proc_active(env)) {
+    return;
+  }
+
   switch (Env_metric_type(env) + GM_NUM_METRIC_TYPE * (
           Env_compute_method(env) + GM_NUM_COMPUTE_METHOD * (
           Env_num_way(env)))) {
@@ -147,6 +151,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---switch---*/
 }
+
+/*===========================================================================*/
 
 #ifdef __cplusplus
 } /*---extern "C"---*/

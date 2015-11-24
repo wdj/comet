@@ -77,9 +77,9 @@ static int gm_metrics_3way_section_axis(GMMetrics* metrics,
   GMAssert(i_proc >= 0);
   GMAssert(j_proc >= 0);
   GMAssert(k_proc >= 0);
-  GMAssert(i_proc < Env_num_proc(env));
-  GMAssert(j_proc < Env_num_proc(env));
-  GMAssert(k_proc < Env_num_proc(env));
+  GMAssert(i_proc < Env_num_proc_vector(env));
+  GMAssert(j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc < Env_num_proc_vector(env));
   // GMAssert( i_proc != j_proc );
   // GMAssert( i_proc != k_proc );
   // GMAssert( k_proc != j_proc );
@@ -106,9 +106,9 @@ static int gm_metrics_3way_section_num(GMMetrics* metrics,
   GMAssert(i_proc >= 0);
   GMAssert(j_proc >= 0);
   GMAssert(k_proc >= 0);
-  GMAssert(i_proc < Env_num_proc(env));
-  GMAssert(j_proc < Env_num_proc(env));
-  GMAssert(k_proc < Env_num_proc(env));
+  GMAssert(i_proc < Env_num_proc_vector(env));
+  GMAssert(j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc < Env_num_proc_vector(env));
   // GMAssert( i_proc != j_proc );
   // GMAssert( i_proc != k_proc );
   // GMAssert( k_proc != j_proc );
@@ -144,9 +144,9 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
   GMAssert(i < j);
 
   size_t index = ((j * (size_t)(j - 1)) >> 1) + i;
-  GMAssert(i + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
+  GMAssert(i + metrics->num_vector_local * (size_t)Env_proc_num_vector(env) ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
-  GMAssert(j + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
+  GMAssert(j + metrics->num_vector_local * (size_t)Env_proc_num_vector(env) ==
            metrics->coords_global_from_index[index] / metrics->num_vector);
   return index;
 }
@@ -166,13 +166,13 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(j_proc >= 0);
-  GMAssert(j_proc < Env_num_proc(env));
-  GMAssert(i < j || j_proc != Env_proc_num(env));
+  GMAssert(j_proc < Env_num_proc_vector(env));
+  GMAssert(i < j || j_proc != Env_proc_num_vector(env));
   /*---WARNING: these conditions on j_proc are not exhaustive---*/
 
   /* clang-format off */
 
-  const int i_proc = Env_proc_num(env);
+  const int i_proc = Env_proc_num_vector(env);
 
   size_t index = j_proc == i_proc
                //? GMMetrics_index_from_coord_2(metrics, i, j, env)
@@ -180,8 +180,8 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
                : metrics->num_elts_0 +
                  i + metrics->num_vector_local * (
                  j + metrics->num_vector_local * (
-                 (j_proc - i_proc - 1 + 2*Env_num_proc(env)) %
-                                          Env_num_proc(env) ));
+                 (j_proc - i_proc - 1 + 2*Env_num_proc_vector(env)) %
+                                          Env_num_proc_vector(env) ));
 
   GMAssert(index >= 0 && index < metrics->num_elts_local);
   return index;
@@ -209,12 +209,12 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
 
   size_t index = (k * (size_t)(k - 1) * (size_t)(k - 2)) / 6 +
                  (j * (size_t)(j - 1)) / 2 + i;
-  GMAssert(i + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
+  GMAssert(i + metrics->num_vector_local * (size_t)Env_proc_num_vector(env) ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
-  GMAssert(j + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
+  GMAssert(j + metrics->num_vector_local * (size_t)Env_proc_num_vector(env) ==
            (metrics->coords_global_from_index[index] / metrics->num_vector) %
                metrics->num_vector);
-  GMAssert(k + metrics->num_vector_local * (size_t)Env_proc_num(env) ==
+  GMAssert(k + metrics->num_vector_local * (size_t)Env_proc_num_vector(env) ==
            metrics->coords_global_from_index[index] /
                (metrics->num_vector * metrics->num_vector));
   return index;
@@ -236,16 +236,18 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(k >= 0);
   GMAssert(j_proc >= 0);
-  GMAssert(j_proc < Env_num_proc(env));
+  GMAssert(j_proc < Env_num_proc_vector(env));
   GMAssert(k_proc >= 0);
-  GMAssert(k_proc < Env_num_proc(env));
-  GMAssert(!(Env_proc_num(env) == j_proc && Env_proc_num(env) != k_proc));
-  GMAssert(!(Env_proc_num(env) == k_proc && Env_proc_num(env) != j_proc));
+  GMAssert(k_proc < Env_num_proc_vector(env));
+  GMAssert(!(Env_proc_num_vector(env) == j_proc &&
+             Env_proc_num_vector(env) != k_proc));
+  GMAssert(!(Env_proc_num_vector(env) == k_proc &&
+             Env_proc_num_vector(env) != j_proc));
   /*---WARNING: these conditions are not exhaustive---*/
 
   /* clang-format off */
 
-  const int i_proc = Env_proc_num(env);
+  const int i_proc = Env_proc_num_vector(env);
 
   const int nvl = metrics->num_vector_local;
 
@@ -274,7 +276,7 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                  k - ( section_axis == 2 ? section_num * nvl / 6 : 0 ) +
                      ( section_axis == 2 ? nvl / 6 : nvl ) * (
                  j_proc - ( j_proc > i_proc ) - ( j_proc > k_proc ) +
-                                                      (Env_num_proc(env)-2) * (
+                                               (Env_num_proc_vector(env)-2) * (
                  k_proc - ( k_proc > i_proc ) ))));
 
   /* clang-format on */
@@ -282,16 +284,16 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   GMAssert(index >= 0 && index < metrics->num_elts_local);
 
   GMAssert(metrics->coords_global_from_index[index] %
-           (nvl*(size_t)Env_num_proc(env)) ==
+           (nvl*(size_t)Env_num_proc_vector(env)) ==
            i + i_proc * (size_t)nvl);
 
   GMAssert((metrics->coords_global_from_index[index] /
-           (nvl*(size_t)Env_num_proc(env))) %
-           (nvl*Env_num_proc(env)) == j + j_proc * (size_t)nvl);
+           (nvl*(size_t)Env_num_proc_vector(env))) %
+           (nvl*Env_num_proc_vector(env)) == j + j_proc * (size_t)nvl);
 
   GMAssert((metrics->coords_global_from_index[index] /
-           (nvl*(size_t)Env_num_proc(env))) /
-           (nvl*Env_num_proc(env)) == k + k_proc * (size_t)nvl);
+           (nvl*(size_t)Env_num_proc_vector(env))) /
+           (nvl*Env_num_proc_vector(env)) == k + k_proc * (size_t)nvl);
 
   return index;
 }
@@ -347,8 +349,8 @@ static void GMMetrics_float_set_all2all_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(j_proc >= 0);
-  GMAssert(j_proc < Env_num_proc(env));
-  GMAssert(i < j || j_proc != Env_proc_num(env));
+  GMAssert(j_proc < Env_num_proc_vector(env));
+  GMAssert(i < j || j_proc != Env_proc_num_vector(env));
   /*---WARNING: these conditions on j_proc are not exhaustive---*/
 
   size_t index =
@@ -397,9 +399,9 @@ static void GMMetrics_float_set_all2all_3(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(k >= 0);
   GMAssert(j_proc >= 0);
-  GMAssert(j_proc < Env_num_proc(env));
+  GMAssert(j_proc < Env_num_proc_vector(env));
   GMAssert(k_proc >= 0);
-  GMAssert(k_proc < Env_num_proc(env));
+  GMAssert(k_proc < Env_num_proc_vector(env));
   /*---WARNING: these conditions are not exhaustive---*/
 
   size_t index = GMMetrics_index_from_coord_all2all_3(metrics, i, j, k, j_proc,
@@ -442,8 +444,8 @@ static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(j_proc >= 0);
-  GMAssert(j_proc < Env_num_proc(env));
-  GMAssert(i < j || j_proc != Env_proc_num(env));
+  GMAssert(j_proc < Env_num_proc_vector(env));
+  GMAssert(i < j || j_proc != Env_proc_num_vector(env));
   /*---WARNING: these conditions on j_proc are not exhaustive---*/
 
   size_t index =
@@ -490,9 +492,9 @@ static GMFloat GMMetrics_float_get_all2all_3(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(k >= 0);
   GMAssert(j_proc >= 0);
-  GMAssert(j_proc < Env_num_proc(env));
+  GMAssert(j_proc < Env_num_proc_vector(env));
   GMAssert(k_proc >= 0);
-  GMAssert(k_proc < Env_num_proc(env));
+  GMAssert(k_proc < Env_num_proc_vector(env));
   /*---WARNING: these conditions are not exhaustive---*/
 
   size_t index = GMMetrics_index_from_coord_all2all_3(metrics, i, j, k, j_proc,

@@ -86,75 +86,8 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  GMEnv env = GMEnv_null();
-  GMEnv_create_from_args(&env, argc, (const char**)argv);
+  perform_run(argc, (const char**)argv);
 
-  /*---Parse remaining unprocessed arguments---*/
-
-  int num_field = 0;
-  int num_vector_local = 0;
-  int verbosity = 0;
-  finish_parsing(argc, (const char**)argv, &env, &num_field,
-                 &num_vector_local, &verbosity);
-
-  if (Env_is_proc_active(&env)) {
-
-    /*---Initialize vectors---*/
-
-    GMVectors vectors = GMVectors_null();
-    GMVectors_create(&vectors, Env_data_type(&env),
-                     num_field, num_vector_local, &env);
-
-    input_vectors(&vectors, &env);
-
-    /*---Set up metrics container for results---*/
-
-    GMMetrics metrics = GMMetrics_null();
-    GMMetrics_create(&metrics, Env_data_type(&env),
-                     num_vector_local, &env);
-
-    /*---Calculate metrics---*/
-
-    /*---Run once first, discard timing: first gpu run is sometimes slow---*/
-    if (Env_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
-      gm_compute_metrics(&metrics, &vectors, &env);
-    }
-
-    double time_begin = GMEnv_get_synced_time(&env);
-
-    gm_compute_metrics(&metrics, &vectors, &env);
-
-    double time_end = GMEnv_get_synced_time(&env);
-
-    /*---Output run information---*/
-
-    double time_compute_metrics = time_end - time_begin;
-
-    GMChecksum checksum = GMMetrics_checksum(&metrics, &env);
-
-    if (Env_proc_num(&env) == 0 && verbosity > 0) {
-      printf("metrics checksum ");
-      int i = 0;
-      for (i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
-        printf("%s%li", i==0 ? "" : "-", checksum.data[GM_CHECKSUM_SIZE-1-i]);
-      }
-      printf(" compute time %.6f\n", time_compute_metrics);
-    }
-
-    /*---Output results---*/
-
-    if (verbosity > 1) {
-      output_metrics(&metrics, &env);
-    }
-
-    /*---Finalize---*/
-
-    GMMetrics_destroy(&metrics, &env);
-    GMVectors_destroy(&vectors, &env);
-
-  } /*---if (Env_is_proc_active(&env))---*/
-
-  GMEnv_destroy(&env);
   MPI_Finalize();
   return 0;
 }

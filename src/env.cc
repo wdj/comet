@@ -93,6 +93,8 @@ GMEnv GMEnv_null() {
 void GMEnv_create(GMEnv* env) {
   GMAssert(env != NULL);
 
+  *env = GMEnv_null();
+
   /*---Initialize MPI info---*/
 
   env->mpi_comm_ = MPI_COMM_WORLD;
@@ -101,7 +103,7 @@ void GMEnv_create(GMEnv* env) {
   mpi_code = MPI_Comm_size(MPI_COMM_WORLD, &env->num_proc_world_);
   GMAssert(mpi_code == MPI_SUCCESS);
 
-  Env_set_num_proc(env, env->num_proc_world_);
+  Env_set_num_proc(env, env->num_proc_world_, 1);
 
   /*---Set default values---*/
   env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
@@ -167,11 +169,16 @@ void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
         GMInsist(env,
                  GM_BOOL_FALSE ? "Invalid setting for compute_method." : 0);
       }
-    } else if (strcmp(argv[i], "--num_proc") == 0) {
+    } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
       ++i;
-      GMInsist(env, i < argc ? "Missing value for num_proc." : 0);
-      const int num_proc = atoi(argv[i]);
-      Env_set_num_proc(env, num_proc);
+      GMInsist(env, i < argc ? "Missing value for num_proc_vector." : 0);
+      const int num_proc_vector = atoi(argv[i]);
+      Env_set_num_proc(env, num_proc_vector, env->num_proc_field_);
+    } else if (strcmp(argv[i], "--num_proc_field") == 0) {
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for num_proc_field." : 0);
+      const int num_proc_field = atoi(argv[i]);
+      Env_set_num_proc(env, env->num_proc_vector_, num_proc_field);
     } /*---if/else---*/
   }   /*---for i---*/
 }
@@ -224,9 +231,13 @@ void GMEnv_destroy(GMEnv* env) {
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  /*---Destroy any nontrivial communicator---*/
+  /*---Destroy any nontrivial communicators---*/
   if (env->mpi_comm_ != MPI_COMM_WORLD) {
     mpi_code = MPI_Comm_free(&(env->mpi_comm_));
+    GMAssert(mpi_code == MPI_SUCCESS);
+    mpi_code = MPI_Comm_free(&(env->mpi_comm_vector_));
+    GMAssert(mpi_code == MPI_SUCCESS);
+    mpi_code = MPI_Comm_free(&(env->mpi_comm_field_));
     GMAssert(mpi_code == MPI_SUCCESS);
   }
 
@@ -271,36 +282,50 @@ int Env_data_type(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-void Env_set_num_proc(GMEnv* env, int num_proc) {
+void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_field) {
   GMAssert(env != NULL);
-  GMAssert(num_proc >= 0);
-  GMAssert(num_proc <= env->num_proc_world_);
+  GMAssert(num_proc_vector >= 0);
+  GMAssert(num_proc_field >= 0);
+  GMAssert(num_proc_vector * num_proc_field <= env->num_proc_world_);
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  /*---Destroy old communictor if necessary---*/
+  /*---Destroy old communicators if necessary---*/
 
   if (env->mpi_comm_ != MPI_COMM_WORLD) {
     mpi_code = MPI_Comm_free(&(env->mpi_comm_));
     GMAssert(mpi_code == MPI_SUCCESS);
+    mpi_code = MPI_Comm_free(&(env->mpi_comm_vector_));
+    GMAssert(mpi_code == MPI_SUCCESS);
+    mpi_code = MPI_Comm_free(&(env->mpi_comm_field_));
+    GMAssert(mpi_code == MPI_SUCCESS);
   }
 
-  /*---Make new communicator---*/
+  /*---Get initial settings---*/
+
+  env->num_proc_vector_ = num_proc_vector;
+  env->num_proc_field_ = num_proc_field;
+  env->num_proc_ = num_proc_vector * num_proc_field;
 
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &env->proc_num_);
   GMAssert(mpi_code == MPI_SUCCESS);
+  env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_;
+  env->proc_num_field_  = env->proc_num_ / env->num_proc_vector_;
 
-  env->is_proc_active_ = env->proc_num_ < num_proc;
+  /*---Make new communicators---*/
+
+  env->is_proc_active_ = env->proc_num_ < env->num_proc_;
   mpi_code = MPI_Comm_split(MPI_COMM_WORLD, env->is_proc_active_,
                                          env->proc_num_, &env->mpi_comm_);
   GMAssert(mpi_code == MPI_SUCCESS);
-
-  /*---Get info---*/
-
-  mpi_code = MPI_Comm_size(env->mpi_comm_, &env->num_proc_);
+  mpi_code = MPI_Comm_split(MPI_COMM_WORLD,
+    env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
+    env->proc_num_, &env->mpi_comm_vector_);
   GMAssert(mpi_code == MPI_SUCCESS);
-  mpi_code = MPI_Comm_rank(env->mpi_comm_, &env->proc_num_);
+  mpi_code = MPI_Comm_split(MPI_COMM_WORLD,
+    env->is_proc_active_ ? env->proc_num_vector_ : env->num_proc_,
+    env->proc_num_, &env->mpi_comm_field_);
   GMAssert(mpi_code == MPI_SUCCESS);
 }
 

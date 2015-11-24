@@ -42,10 +42,41 @@ void GMVectors_create(GMVectors* vectors,
   GMAssert(num_vector_local >= 0);
   GMAssert(env);
 
+  GMInsist(env, num_field % Env_num_proc_field(env) == 0
+    ? "num_proc_field must exactly divide the total number of fields" : 0);
+
+  *vectors = GMVectors_null();
+
+  if (!Env_is_proc_active(env)) {
+    return;
+  }
+
+  vectors->data_type_id = data_type_id;
+  vectors->num_field = num_field;
+  vectors->num_field_local = num_field / Env_num_proc_field(env);
+  vectors->num_vector_local = num_vector_local;
+
+  /*---Compute global values---*/
+
+  size_t num_vector_bound = 0;
+  num_vector_bound =
+      num_vector_bound * 1; /*---Avoid unused variable warning---*/
+  num_vector_bound = Env_num_proc_vector(env) * (size_t)num_vector_local;
+  GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
+               ? "Vector count too large to store in 32-bit int."
+               : 0);
+
+  int mpi_code = 0;
+  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+  mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
+                           1, MPI_INT, MPI_SUM, Env_mpi_comm_vector(env));
+  GMAssert(mpi_code == MPI_SUCCESS);
+
   /*---Allocations---*/
+
   switch (data_type_id) {
     case GM_DATA_TYPE_FLOAT: {
-      vectors->num_field_dataval = num_field;
+      vectors->num_field_dataval = vectors->num_field_local;
       vectors->num_dataval_local =
           vectors->num_field_dataval * (size_t)num_vector_local;
       vectors->data = malloc(vectors->num_dataval_local * sizeof(GMFloat));
@@ -53,7 +84,8 @@ void GMVectors_create(GMVectors* vectors,
     } break;
     case GM_DATA_TYPE_BIT: {
       GMAssert(sizeof(GMBits) == 8);
-      vectors->num_field_dataval = gm_ceil_i(num_field, 8 * sizeof(GMBits));
+      vectors->num_field_dataval = gm_ceil_i(vectors->num_field_local,
+                                             8*sizeof(GMBits));
       vectors->num_dataval_local =
           vectors->num_field_dataval * (size_t)num_vector_local;
       vectors->data = malloc(vectors->num_field_dataval * sizeof(GMBits));
@@ -69,35 +101,19 @@ void GMVectors_create(GMVectors* vectors,
     default:
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   }
-
-  vectors->data_type_id = data_type_id;
-  vectors->num_field = num_field;
-  vectors->num_vector_local = num_vector_local;
-
-  /*---Compute global values---*/
-
-  size_t num_vector_bound = 0;
-  num_vector_bound =
-      num_vector_bound * 1; /*---Avoid unused variable warning---*/
-  num_vector_bound = Env_num_proc(env) * (size_t)vectors->num_vector;
-  GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
-               ? "Vector count too large to store in 32-bit int."
-               : 0);
-
-  int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
-  mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
-                           1, MPI_INT, MPI_SUM, Env_mpi_comm(env));
-  GMAssert(mpi_code == MPI_SUCCESS);
 }
 
 /*===========================================================================*/
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(vectors->data);
-  GMAssert(env);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
+  GMAssert(vectors->data != NULL || !Env_is_proc_active(env));
+
+  if (!Env_is_proc_active(env)) {
+    return;
+  }
 
   free(vectors->data);
   *vectors = GMVectors_null();

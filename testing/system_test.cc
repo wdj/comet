@@ -46,95 +46,26 @@ void create_args(char* argstring, int* argc, const char **argv) {
 
 /*===========================================================================*/
 
-GMChecksum perform_run(const char* options) {
-
-  GMChecksum checksum;
-
-  /*---Convert options string to args---*/
-
-  size_t len = strlen(options);
-  char* argstring = (char*)malloc((len+1)*sizeof(char));
-  strcpy(argstring, options);
-  const char* argv[len+1];
-  int argc = 0;
-
-  create_args(argstring, &argc, argv);
-
-  /*---Initialize environment---*/
-
-  GMEnv env = GMEnv_null();
-  GMEnv_create_from_args(&env, argc, argv);
-
-  /*---Parse remaining unprocessed arguments---*/
-
-  int num_field = 0;
-  int num_vector_local = 0;
-  int verbosity = 0;
-  finish_parsing(argc, argv, &env, &num_field, &num_vector_local, &verbosity);
-
-  if (Env_is_proc_active(&env)) {
-
-    /*---Initialize vectors---*/
-
-    GMVectors vectors = GMVectors_null();
-    GMVectors_create(&vectors, Env_data_type(&env),
-                     num_field, num_vector_local, &env);
-
-    input_vectors(&vectors, &env);
-
-    /*---Set up metrics container for results---*/
-
-    GMMetrics metrics = GMMetrics_null();
-    GMMetrics_create(&metrics, Env_data_type(&env),
-                     num_vector_local, &env);
-
-    /*---Calculate metrics---*/
-
-    /*---Run once first, discard timing: first gpu run is sometimes slow---*/
-    if (Env_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
-      gm_compute_metrics(&metrics, &vectors, &env);
-    }
-
-    double time_begin = GMEnv_get_synced_time(&env);
-
-    gm_compute_metrics(&metrics, &vectors, &env);
-
-    double time_end = GMEnv_get_synced_time(&env);
-
-    /*---Output run information---*/
-
-    double time_compute_metrics = time_end - time_begin;
-
-    checksum = GMMetrics_checksum(&metrics, &env);
-
-    if (Env_proc_num(&env) == 0) {
-      printf("metrics checksum ");
-      int i = 0;
-      for (i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
-        printf("%s%li", i==0 ? "" : "-", checksum.data[GM_CHECKSUM_SIZE-1-i]);
-      }
-      printf(" compute time %.6f\n", time_compute_metrics);
-    }
-
-    /*---Finalize---*/
-
-    GMMetrics_destroy(&metrics, &env);
-    GMVectors_destroy(&vectors, &env);
-
-  } /*---if (Env_is_proc_active(&env))---*/
-
-  GMEnv_destroy(&env);
-
-  free(argstring);
-
-  return checksum;
-}
-
-/*===========================================================================*/
-
 _Bool compare_runs(const char* options1, const char* options2) {
-  GMChecksum checksum1 = perform_run(options1);
-  GMChecksum checksum2 = perform_run(options2);
+
+  /*---Convert options strings to args---*/
+
+  size_t len1 = strlen(options1);
+  char* argstring1 = (char*)malloc((len1+1)*sizeof(char));
+  const char* argv1[len1+1];
+  int argc1 = 0;
+  strcpy(argstring1, options1);
+  create_args(argstring1, &argc1, argv1);
+
+  size_t len2 = strlen(options2);
+  char* argstring2 = (char*)malloc((len2+1)*sizeof(char));
+  const char* argv2[len2+1];
+  int argc2 = 0;
+  strcpy(argstring2, options2);
+  create_args(argstring2, &argc2, argv2);
+
+  GMChecksum checksum1 = perform_run(argc1, argv1);
+  GMChecksum checksum2 = perform_run(argc2, argv2);
 
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
@@ -146,6 +77,9 @@ _Bool compare_runs(const char* options1, const char* options2) {
     }
   }
 
+  free(argstring1);
+  free(argstring2);
+
   return gm_are_checksums_equal(checksum1, checksum2);
 }
 
@@ -153,84 +87,106 @@ _Bool compare_runs(const char* options1, const char* options2) {
 
 TEST(SystemTest,One) {
 
-  //int proc_num = 0;
-  //MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
+  //----------
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
+                                      "--compute_method CPU",
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
+                                      "--compute_method GPU"));
 
   //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 1 --num_vector_local 2 --compute_method CPU",
-    "--num_proc 1 --num_field 1 --num_vector_local 2 --compute_method GPU"));
-
-  //----------
-
-  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU",
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method GPU"));
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                       "--compute_method CPU",
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                       "--compute_method GPU"));
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU",
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU"
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                       "--compute_method CPU",
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                       "--compute_method CPU"
       " --all2all yes"));
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU",
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method GPU"
-      " --all2all yes"));
-
-  //----------
-
-  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU",
-    "--num_proc 2 --num_field 100 --num_vector_local 24 --compute_method CPU"
-      " --all2all yes"));
-
-  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU",
-    "--num_proc 2 --num_field 100 --num_vector_local 24 --compute_method GPU"
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                       "--compute_method CPU",
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                       "--compute_method GPU"
       " --all2all yes"));
 
   //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 1 --num_vector_local 3 --compute_method CPU "
-      "--num_way 3",
-    "--num_proc 1 --num_field 1 --num_vector_local 3 --compute_method GPU "
-      "--num_way 3"));
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                       "--compute_method CPU",
+    "--num_proc_vector 2 --num_field 100 --num_vector_local 24 "
+                                        "--compute_method CPU --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                       "--compute_method CPU",
+    "--num_proc_vector 2 --num_field 100 --num_vector_local 24 "
+                                       "--compute_method GPU --all2all yes"));
 
   //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU "
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
+                                      "--compute_method CPU "
       "--num_way 3",
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method GPU "
-      "--num_way 3"));
-
-  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU "
-      "--num_way 3",
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU "
-      "--num_way 3 --all2all yes"));
-
-  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method GPU "
-      "--num_way 3",
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method GPU "
-      "--num_way 3 --all2all yes"));
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
+                                      "--compute_method GPU --num_way 3"));
 
   //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method CPU "
-      "--num_way 3 --all2all yes",
-    "--num_proc 4 --num_field 100 --num_vector_local 12 --compute_method CPU "
-      "--num_way 3 --all2all yes"));
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                        "--compute_method CPU --num_way 3",
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                        "--compute_method GPU --num_way 3"));
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
-    "--num_proc 1 --num_field 100 --num_vector_local 48 --compute_method GPU "
-      "--num_way 3 --all2all yes",
-    "--num_proc 4 --num_field 100 --num_vector_local 12 --compute_method GPU "
-      "--num_way 3 --all2all yes"));
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                        "--compute_method CPU --num_way 3",
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                        "--compute_method CPU --num_way 3 --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                                        "--compute_method GPU --num_way 3",
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                        "--compute_method GPU --num_way 3 --all2all yes"));
+
+  //----------
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                        "--compute_method CPU --num_way 3 --all2all yes",
+    "--num_proc_vector 4 --num_field 100 --num_vector_local 12 "
+                        "--compute_method CPU --num_way 3 --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
+                        "--compute_method GPU --num_way 3 --all2all yes",
+    "--num_proc_vector 4 --num_field 100 --num_vector_local 12 "
+                        "--compute_method GPU --num_way 3 --all2all yes"));
+
+  //----------
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_proc_field 1 --num_field 2 --num_vector_local 2 "
+                        "--compute_method CPU",
+    "--num_proc_vector 1 --num_proc_field 2 --num_field 2 --num_vector_local 2 "
+                        "--compute_method GPU"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_proc_field 1 --num_field 2 --num_vector_local 3 "
+                        "--compute_method CPU --num_way 3",
+    "--num_proc_vector 1 --num_proc_field 2 --num_field 2 --num_vector_local 3 "
+                        "--compute_method GPU --num_way 3"));
 
   //----------
 }

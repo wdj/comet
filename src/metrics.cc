@@ -41,6 +41,12 @@ void GMMetrics_create(GMMetrics* metrics,
   GMAssert(num_vector_local >= 0);
   GMAssert(env);
 
+  *metrics = GMMetrics_null();
+
+  if (!Env_is_proc_active(env)) {
+    return;
+  }
+
   metrics->data_type_id = data_type_id;
   metrics->num_vector_local = num_vector_local;
   metrics->num_elts_0 = 0;
@@ -48,7 +54,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute global values---*/
 
-  const int num_proc = Env_num_proc(env);
+  const int num_proc = Env_num_proc_vector(env);
 
   size_t num_vector_bound = 0;
   num_vector_bound =
@@ -61,7 +67,7 @@ void GMMetrics_create(GMMetrics* metrics,
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
-                           1, MPI_INT, MPI_SUM, Env_mpi_comm(env));
+                           1, MPI_INT, MPI_SUM, Env_mpi_comm_vector(env));
   GMAssert(mpi_code == MPI_SUCCESS);
 
   /*---Assume the following to simplify calculations---*/
@@ -72,7 +78,7 @@ void GMMetrics_create(GMMetrics* metrics,
           ? "Currently require number of vecs on a proc to be at least num-way"
           : 0);
 
-  const int i_proc = Env_proc_num(env);
+  const int i_proc = Env_proc_num_vector(env);
 
   /*---Compute number of elements etc.---*/
 
@@ -321,8 +327,12 @@ void GMMetrics_create(GMMetrics* metrics,
 
 void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
   GMAssert(metrics);
-  GMAssert(metrics->data);
   GMAssert(env);
+  GMAssert(metrics->data != NULL || !Env_is_proc_active(env));
+
+  if (!Env_is_proc_active(env)) {
+    return;
+  }
 
   free(metrics->data);
   free(metrics->coords_global_from_index);
@@ -344,65 +354,6 @@ static void gm_bubbledown(size_t* i, size_t* j) {
 
 /*---------------------------------------------------------------------------*/
 
-#if 0
-/*---The values hould be invariant, up to roundoff, on CPU vs. GPU---*/
-
-GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
-  GMAssert(metrics);
-  GMAssert(metrics->data);
-  GMAssert(env);
-
-  int i = 0;
-  GMChecksum result;
-  for ( i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
-    result.data[i] = 0;
-  }
-
-  switch (metrics->data_type_id) {
-    case GM_DATA_TYPE_FLOAT: {
-      GMAssert(Env_num_way(env) <= 3 ? "This num_way not supported." : 0);
-      /*---Reflect coords by symmetry to get uniform result---*/
-      size_t coords[3];
-      int index = 0;
-      for (index = 0; index < metrics->num_elts_local; ++index) {
-        coords[2] = 0;
-        int coord_num = 0;
-        for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
-          coords[coord_num] =
-              GMMetrics_coord_global_from_index(metrics, index, coord_num, env);
-        }
-        gm_bubbledown(&coords[1], &coords[2]);
-        gm_bubbledown(&coords[0], &coords[1]);
-        gm_bubbledown(&coords[1], &coords[2]);
-        size_t id_global = coords[0];
-        for (coord_num = 1; coord_num < Env_num_way(env); ++coord_num) {
-          id_global = id_global * metrics->num_vector + coords[coord_num];
-        }
-        const GMFloat value =
-            GMMetrics_float_get_from_index(metrics, index, env);
-        result.data[0] += value * gm_randomize(id_global);
-      } /*---for i---*/
-    } break;
-    case GM_DATA_TYPE_BIT:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-      break;
-    default:
-      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
-  } /*---switch---*/
-
-  const double tmp = result.data[0];
-  int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
-  mpi_code = MPI_Allreduce(&tmp, &result.data[0], 1, MPI_DOUBLE, MPI_SUM,
-                           Env_mpi_comm(env));
-  GMAssert(mpi_code == MPI_SUCCESS);
-
-  return result;
-}
-#endif
-
-/*---------------------------------------------------------------------------*/
-
 static size_t gm_lshift(size_t a, int j) {
   if (j >= 64  || j <= -64) {
     return 0;
@@ -413,9 +364,9 @@ static size_t gm_lshift(size_t a, int j) {
 /*---------------------------------------------------------------------------*/
 
 GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
-  GMAssert(metrics);
-  GMAssert(metrics->data);
-  GMAssert(env);
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(metrics->data != NULL || !Env_is_proc_active(env));
 
   /*---Initializations---*/
 
@@ -423,6 +374,10 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   GMChecksum result;
   for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result.data[i] = 0;
+  }
+
+  if (!Env_is_proc_active(env)) {
+    return result;
   }
 
   switch (metrics->data_type_id) {
@@ -506,7 +461,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       int mpi_code = 0;
       mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
       mpi_code = MPI_Allreduce(sums_l, sums_g, 16, MPI_UNSIGNED_LONG_LONG,
-                               MPI_SUM, Env_mpi_comm(env));
+                               MPI_SUM, Env_mpi_comm_vector(env));
       GMAssert(mpi_code == MPI_SUCCESS);
 
       /*---Combine results---*/
@@ -528,7 +483,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
       const double tmp = sum_d;
       mpi_code = MPI_Allreduce(&tmp, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
-                               Env_mpi_comm(env));
+                               Env_mpi_comm_vector(env));
       GMAssert(mpi_code == MPI_SUCCESS);
 
       double result_d = result.data[0] / ((double)(one64<<(2*w))) +
@@ -550,11 +505,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   return result;
 }
 
-/*---------------------------------------------------------------------------*/
-
-
-
-
+/*===========================================================================*/
 
 #ifdef __cplusplus
 } /*---extern "C"---*/

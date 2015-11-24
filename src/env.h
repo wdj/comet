@@ -153,9 +153,15 @@ typedef struct {
   int compute_method_;
   /*---MPI---*/
   int mpi_comm_;
+  int mpi_comm_vector_;
+  int mpi_comm_field_;
   int num_proc_world_;
   int num_proc_;
+  int num_proc_vector_;
+  int num_proc_field_;
   int proc_num_;
+  int proc_num_vector_;
+  int proc_num_field_;
   _Bool is_proc_active_;
   /*---CUDA---*/
   cudaStream_t stream_compute_;
@@ -238,6 +244,20 @@ static int Env_mpi_comm(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
+static int Env_mpi_comm_vector(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->mpi_comm_vector_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_mpi_comm_field(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->mpi_comm_field_;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static int Env_num_proc(const GMEnv* env) {
   GMAssert(env != NULL);
   return env->num_proc_;
@@ -245,9 +265,37 @@ static int Env_num_proc(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
+static int Env_num_proc_vector(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_proc_vector_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_num_proc_field(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_proc_field_;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static int Env_proc_num(const GMEnv* env) {
   GMAssert(env != NULL);
   return env->proc_num_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_proc_num_vector(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->proc_num_vector_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_proc_num_field(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->proc_num_field_;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -262,7 +310,7 @@ static int Env_is_proc_active(const GMEnv* env) {
 void Env_set_compute_method(GMEnv* env, int compute_method);
 int Env_data_type(const GMEnv* env);
 
-void Env_set_num_proc(GMEnv* env, int num_proc);
+void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_field);
 
 cudaStream_t Env_stream_compute(const GMEnv* env);
 cudaStream_t Env_stream_togpu(const GMEnv* env);

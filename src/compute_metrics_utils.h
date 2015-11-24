@@ -24,10 +24,12 @@ extern "C" {
 
 void gm_compute_float_vector_sums(GMVectors* vectors,
                                   GMFloat* __restrict__ vector_sums,
+                                  GMFloat* __restrict__ vector_sums_tmp,
                                   GMEnv* env);
 
 void gm_compute_vector_sums(GMVectors* vectors,
                             GMVectorSums* vector_sums,
+                            GMVectorSums* vector_sums_tmop,
                             GMEnv* env);
 
 /*----------*/

@@ -39,21 +39,27 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
   /*---Initializations---*/
 
+  const int num_proc = Env_num_proc_vector(env);
+
+  const int numvec = metrics->num_vector_local;
+  const int numfield = vectors->num_field_local;
+
   int i = 0;
-  int i_proc = Env_proc_num(env);
+  int i_proc = Env_proc_num_vector(env);
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
   GMVectorSums vector_sums_offproc = GMVectorSums_null();
+  GMVectorSums vector_sums_tmp = GMVectorSums_null();
   GMVectorSums_create(&vector_sums_onproc, vectors, env);
   GMVectorSums_create(&vector_sums_offproc, vectors, env);
+  GMVectorSums_create(&vector_sums_tmp, vectors, env);
 
   /*---Create double buffer of vectors objects for send/recv---*/
 
   GMVectors vectors_01[2];
   for (i = 0; i < 2; ++i) {
     const int data_type = Env_data_type(env);
-    GMVectors_create(&vectors_01[i], data_type, vectors->num_field,
-                     vectors->num_vector_local, env);
+    GMVectors_create(&vectors_01[i], data_type, numfield, numvec, env);
   }
 
   /*---Magma initializations---*/
@@ -69,19 +75,21 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
   GMMirroredPointer vectors_buf = GMMirroredPointer_null();
   for (i = 0; i < 2; ++i) {
     vectors_buf_01[i] = gm_malloc_magma(
-        vectors->num_vector_local * (size_t)vectors->num_field, env);
+        numvec * (size_t)numfield, env);
     metrics_buf_01[i] = gm_malloc_magma(
-        metrics->num_vector_local * (size_t)metrics->num_vector_local, env);
+        numvec * (size_t)numvec, env);
   }
   vectors_buf = gm_malloc_magma(
-      vectors->num_vector_local * (size_t)vectors->num_field, env);
+      numvec * (size_t)numfield, env);
+  GMMirroredPointer metrics_buf_tmp = gm_malloc_magma(
+        numvec * (size_t)numvec, env);
 
   /*---Result matrix is diagonal block and half the blocks to the right
        (including wraparound to left side of matrix when appropriate).
        For even number of procs, block rows of lower half of matrix
        have one less block to make correct count---*/
 
-  const int num_step = 1 + (Env_num_proc(env) / 2);
+  const int num_step = 1 + (num_proc / 2);
 
   /*----------------------------------------*/
   /*---Begin loop over steps of circular shift of vectors objects---*/
@@ -133,8 +141,8 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
     /*---Prepare for sends/recvs: procs for communication---*/
 
-    const int proc_up = (i_proc + 1) % Env_num_proc(env);
-    const int proc_dn = (i_proc - 1 + Env_num_proc(env)) % Env_num_proc(env);
+    const int proc_up = (i_proc + 1) % num_proc;
+    const int proc_dn = (i_proc - 1 + num_proc) % num_proc;
 
     MPI_Request mpi_requests[2];
 
@@ -155,13 +163,13 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
     /*---The proc that owns the "right-side" vecs for the minproduct---*/
 
-    const int j_proc = (i_proc + step_num) % Env_num_proc(env);
-    const int j_proc_prev = (i_proc + step_num - 1) % Env_num_proc(env);
+    const int j_proc = (i_proc + step_num) % num_proc;
+    const int j_proc_prev = (i_proc + step_num - 1) % num_proc;
 
     /*---To remove redundancies from symmetry, skip some blocks---*/
 
-    const _Bool skipping_active =
-        (Env_num_proc(env) % 2 == 0) && (2 * i_proc >= Env_num_proc(env));
+    const _Bool skipping_active = (num_proc % 2 == 0) &&
+                                  (2 * i_proc >= num_proc);
 
     const _Bool skipped_last_block_lower_half =
         skipping_active && is_last_compute_step;
@@ -208,13 +216,28 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
     if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
       if (is_compute_step_prev && do_compute_block_prev) {
         gm_get_metrics_wait(env);
+
+        GMMirroredPointer* metrics_buf_prev_global =
+          Env_num_proc_field(env) == 1 ? metrics_buf_prev : &metrics_buf_tmp;
+
+        if (Env_num_proc_field(env) > 1) {
+          int mpi_code = 0;
+          mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+          mpi_code = MPI_Allreduce(metrics_buf_prev->h,
+                       metrics_buf_prev_global->h,
+                       numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
+                       Env_mpi_comm_field(env));
+          GMAssert(mpi_code == MPI_SUCCESS);
+        }
+
+
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right = is_first_compute_step_prev
                                               ? &vector_sums_onproc
                                               : &vector_sums_offproc;
-        gm_compute_2way_combine(metrics, metrics_buf_prev, vector_sums_left,
-                                vector_sums_right, j_proc_prev,
-                                do_compute_triang_only_prev, env);
+        gm_compute_2way_combine(metrics, metrics_buf_prev_global,
+                                vector_sums_left, vector_sums_right,
+                                j_proc_prev, do_compute_triang_only_prev, env);
       }
     }
 
@@ -254,9 +277,11 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
     if (is_compute_step && do_compute_block) {
       if (is_first_compute_step) {
-        gm_compute_vector_sums(vectors_left, &vector_sums_onproc, env);
+        gm_compute_vector_sums(vectors_left, &vector_sums_onproc,
+                               &vector_sums_tmp, env);
       } else {
-        gm_compute_vector_sums(vectors_right, &vector_sums_offproc, env);
+        gm_compute_vector_sums(vectors_right, &vector_sums_offproc,
+                               &vector_sums_tmp, env);
       }
     }
 
@@ -287,6 +312,7 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
   GMVectorSums_destroy(&vector_sums_onproc, env);
   GMVectorSums_destroy(&vector_sums_offproc, env);
+  GMVectorSums_destroy(&vector_sums_tmp, env);
 
   for (i = 0; i < 2; ++i) {
     GMVectors_destroy(&vectors_01[i], env);
@@ -299,6 +325,7 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
     gm_free_magma(&vectors_buf_01[i], env);
   }
   gm_free_magma(&vectors_buf, env);
+  gm_free_magma(&metrics_buf_tmp, env);
 
   gm_magma_finalize(env);
 }
@@ -320,8 +347,9 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
   /*---Compute sums for denominators---*/
 
   GMFloat* vector_sums = GMFloat_malloc(metrics->num_vector_local);
+  GMFloat* vector_sums_tmp = GMFloat_malloc(metrics->num_vector_local);
 
-  gm_compute_float_vector_sums(vectors, vector_sums, env);
+  gm_compute_float_vector_sums(vectors, vector_sums, vector_sums_tmp, env);
 
   /*---Compute numerators---*/
 
@@ -330,10 +358,13 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
       GMFloat sum = 0;
-      int field = 0;
-      for (field = 0; field < vectors->num_field; ++field) {
-        const GMFloat value1 = GMVectors_float_get(vectors, field, i, env);
-        const GMFloat value2 = GMVectors_float_get(vectors, field, j, env);
+      int field_local = 0;
+      for (field_local = 0; field_local < vectors->num_field_local;
+           ++field_local) {
+        const GMFloat value1 = GMVectors_float_get(vectors,
+                                                   field_local, i, env);
+        const GMFloat value2 = GMVectors_float_get(vectors,
+                                                   field_local, j, env);
         sum += value1 < value2 ? value1 : value2;
       } /*---for k---*/
       GMMetrics_float_set_2(metrics, i, j, sum, env);
@@ -353,6 +384,7 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
   /*---Deallocations---*/
 
   free(vector_sums);
+  free(vector_sums_tmp);
 }
 
 /*===========================================================================*/
@@ -372,10 +404,12 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   /*---Denominator---*/
 
   GMVectorSums vector_sums = GMVectorSums_null();
+  GMVectorSums vector_sums_tmp = GMVectorSums_null();
   GMVectorSums_create(&vector_sums, vectors, env);
+  GMVectorSums_create(&vector_sums_tmp, vectors, env);
 
   /* .02 / 1.56 */
-  gm_compute_vector_sums(vectors, &vector_sums, env);
+  gm_compute_vector_sums(vectors, &vector_sums, &vector_sums_tmp, env);
 
   /*---------------*/
   /*---Numerator---*/
@@ -383,16 +417,22 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   gm_magma_initialize(env);
 
-  const int num_vec = metrics->num_vector_local;
-  const int num_field = vectors->num_field;
+  const int numvec = metrics->num_vector_local;
+  const int numfield = vectors->num_field_local;
 
   /*---Allocate magma CPU memory for vectors and for result */
 
   GMMirroredPointer vectors_buf =
-      gm_malloc_magma(num_vec * (size_t)num_field, env);
+      gm_malloc_magma(numvec * (size_t)numfield, env);
 
-  GMMirroredPointer numerators_buf =
-      gm_malloc_magma(num_vec * (size_t)num_vec, env);
+  GMMirroredPointer metrics_buf =
+      gm_malloc_magma(numvec * (size_t)numvec, env);
+
+  GMMirroredPointer metrics_buf_tmp =
+      gm_malloc_magma(numvec * (size_t)numvec, env);
+
+  GMMirroredPointer* metrics_buf_local = Env_num_proc_field(env) == 1 ?
+    &metrics_buf : &metrics_buf_tmp;
 
   /*---Copy in vectors---*/
 
@@ -405,28 +445,39 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   gm_set_vectors_wait(env);
 
   gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
-                                   &vectors_buf, &numerators_buf, Env_proc_num(env),
+                                   &vectors_buf, metrics_buf_local,
+                                   Env_proc_num_vector(env),
                                    GM_BOOL_TRUE, env);
-
   gm_compute_wait(env);
 
   /*---Copy result from GPU---*/
 
-  gm_get_metrics_start(metrics, &numerators_buf, env);
+  gm_get_metrics_start(metrics, metrics_buf_local, env);
   gm_get_metrics_wait(env);
+
+  if (Env_num_proc_field(env) > 1) {
+    int mpi_code = 0;
+    mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+    mpi_code = MPI_Allreduce(metrics_buf_local->h, metrics_buf.h,
+                 numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
+                 Env_mpi_comm_field(env));
+    GMAssert(mpi_code == MPI_SUCCESS);
+  }
 
   /*---Combine---*/
 
   /* .22 / 1.56 */
-  gm_compute_2way_combine(metrics, &numerators_buf, &vector_sums, &vector_sums,
-                          Env_proc_num(env), GM_BOOL_TRUE, env);
+  gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
+                          Env_proc_num_vector(env), GM_BOOL_TRUE, env);
 
   /*---Free memory---*/
 
   GMVectorSums_destroy(&vector_sums, env);
+  GMVectorSums_destroy(&vector_sums_tmp, env);
 
   gm_free_magma(&vectors_buf, env);
-  gm_free_magma(&numerators_buf, env);
+  gm_free_magma(&metrics_buf, env);
+  gm_free_magma(&metrics_buf_tmp, env);
 
   gm_magma_finalize(env);
 }

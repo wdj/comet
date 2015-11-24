@@ -27,6 +27,7 @@ extern "C" {
 
 typedef struct {
   int num_field;
+  int num_field_local;
   int num_vector;
   int num_vector_local;
   size_t num_dataval_local;
@@ -58,18 +59,18 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
 /*---Accessors---*/
 
 static void GMVectors_float_set(GMVectors* vectors,
-                                int field,
+                                int field_local,
                                 int vector_local,
                                 GMFloat value,
                                 GMEnv* env) {
   GMAssert(vectors);
-  GMAssert(field >= 0);
-  GMAssert(field < vectors->num_field);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
 
-  ((GMFloat*)(vectors->data))[field + vectors->num_field * vector_local] =
-      value;
+  ((GMFloat*)(vectors->data))[field_local + vectors->num_field_local *
+                              vector_local] = value;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -79,7 +80,7 @@ static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
                                               GMEnv* env) {
   GMAssert(vectors);
   GMAssert(index >= 0);
-  GMAssert(index < vectors->num_vector_local * vectors->num_field);
+  GMAssert(index < vectors->num_vector_local * vectors->num_field_local);
   GMAssert(env);
 
   return ((GMFloat*)(vectors->data))[index];
@@ -88,33 +89,33 @@ static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
 /*---------------------------------------------------------------------------*/
 
 static GMFloat GMVectors_float_get(GMVectors* const vectors,
-                                   int field,
+                                   int field_local,
                                    int vector_local,
                                    GMEnv* env) {
   GMAssert(vectors);
-  GMAssert(field >= 0);
-  GMAssert(field < vectors->num_field);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(env);
 
   return GMVectors_float_get_from_index(
-      vectors, field + vectors->num_field * vector_local, env);
+      vectors, field_local + vectors->num_field_local * vector_local, env);
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMVectors_bit_dataval_num(GMVectors* vectors,
-                                     int field,
+                                     int field_local,
                                      int vector_local,
                                      GMEnv* env) {
   GMAssert(vectors);
-  GMAssert(field >= 0);
-  GMAssert(field < vectors->num_field);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
 
-  const int field_dataval_num = field / (8 * sizeof(GMBits));
+  const int field_dataval_num = field_local / (8 * sizeof(GMBits));
 
   const int dataval_num =
       field_dataval_num + vectors->num_field_dataval * vector_local;
@@ -125,20 +126,20 @@ static int GMVectors_bit_dataval_num(GMVectors* vectors,
 /*---------------------------------------------------------------------------*/
 
 static void GMVectors_bit_set(GMVectors* vectors,
-                              int field,
+                              int field_local,
                               int vector_local,
                               _Bool value,
                               GMEnv* env) {
   GMAssert(vectors);
-  GMAssert(field >= 0);
-  GMAssert(field < vectors->num_field);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
 
-  const int bit_num = field % (8 * sizeof(GMBits));
+  const int bit_num = field_local % (8 * sizeof(GMBits));
 
   const int dataval_num =
-      GMVectors_bit_dataval_num(vectors, field, vector_local, env);
+      GMVectors_bit_dataval_num(vectors, field_local, vector_local, env);
 
   GMAssert(sizeof(GMULInt) == sizeof(GMBits));
   GMAssert(sizeof(GMBits) == 8);
@@ -151,20 +152,20 @@ static void GMVectors_bit_set(GMVectors* vectors,
 /*---------------------------------------------------------------------------*/
 
 static _Bool GMVectors_bit_get(GMVectors* const vectors,
-                               int field,
+                               int field_local,
                                int vector_local,
                                GMEnv* env) {
   GMAssert(vectors);
-  GMAssert(field >= 0);
-  GMAssert(field < vectors->num_field);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(env);
 
-  const int bit_num = field % (8 * sizeof(GMBits));
+  const int bit_num = field_local % (8 * sizeof(GMBits));
 
   const int dataval_num =
-      GMVectors_bit_dataval_num(vectors, field, vector_local, env);
+      GMVectors_bit_dataval_num(vectors, field_local, vector_local, env);
 
   GMAssert(sizeof(GMULInt) == sizeof(GMBits));
   GMAssert(sizeof(GMBits) == 8);
@@ -184,11 +185,11 @@ static _Bool GMVectors_bit_get_from_index(GMVectors* const vectors,
                                           GMEnv* env) {
   GMAssert(vectors);
   GMAssert(index >= 0);
-  GMAssert(index < vectors->num_vector_local * vectors->num_field);
+  GMAssert(index < vectors->num_vector_local * vectors->num_field_local);
   GMAssert(env);
 
-  return GMVectors_bit_get(vectors, index % vectors->num_field,
-                           index / vectors->num_field, env);
+  return GMVectors_bit_get(vectors, index % vectors->num_field_local,
+                           index / vectors->num_field_local, env);
 }
 
 /*===========================================================================*/
