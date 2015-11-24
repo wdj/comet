@@ -12,6 +12,7 @@ project("genomics_gpu")
 
 SET(INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/driver
   )
 
 SET(LIB_SOURCES
