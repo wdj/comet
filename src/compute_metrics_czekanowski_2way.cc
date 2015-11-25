@@ -59,7 +59,8 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
   GMVectors vectors_01[2];
   for (i = 0; i < 2; ++i) {
     const int data_type = Env_data_type(env);
-    GMVectors_create(&vectors_01[i], data_type, numfield, numvec, env);
+    GMVectors_create(&vectors_01[i], data_type, vectors->num_field,
+      numvec, env);
   }
 
   /*---Magma initializations---*/
@@ -338,6 +339,9 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
   GMAssert(metrics != NULL);
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
+
+  GMInsist(env, Env_num_proc_field(env) == 1
+    ? "num_proc_field>1 for CPU case not supported" : 0);
 
   if (Env_all2all(env)) {
     gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);

@@ -28,6 +28,30 @@ extern "C" {
 #endif
 
 /*===========================================================================*/
+/*---Utility to parse a string to construct arguments---*/
+
+static void create_args(char* argstring, int* argc, const char **argv) {
+
+  size_t len = strlen(argstring);
+
+  argv[0] = &argstring[0];
+  *argc = 1;
+  _Bool is_delim_prev = GM_BOOL_TRUE;
+  int i = 0;
+  for (i=0; i<(int)len; ++i) {
+    const _Bool is_delim = argstring[i] == ' ' || argstring[i] == '\t';
+    if (is_delim) {
+      argstring[i] = 0;
+    }
+    if (is_delim_prev && ! is_delim) {
+      argv[*argc] = &(argstring[i]);
+      (*argc)++;
+    }
+    is_delim_prev = is_delim;
+  }
+}
+
+/*===========================================================================*/
 /*---Set the entries of the vectors---*/
 
 static void input_vectors(GMVectors* vectors, GMEnv* env) {

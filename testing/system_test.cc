@@ -21,30 +21,6 @@
 #include "driver_utils.h"
 
 /*===========================================================================*/
-/*---Parse string to construct arguments---*/
-
-void create_args(char* argstring, int* argc, const char **argv) {
-
-  size_t len = strlen(argstring);
-
-  argv[0] = &argstring[0];
-  *argc = 1;
-  _Bool is_delim_prev = GM_BOOL_TRUE;
-  int i = 0;
-  for (i=0; i<(int)len; ++i) {
-    const _Bool is_delim = argstring[i] == ' ' || argstring[i] == '\t';
-    if (is_delim) {
-      argstring[i] = 0;
-    }
-    if (is_delim_prev && ! is_delim) {
-      argv[*argc] = &(argstring[i]);
-      (*argc)++;
-    }
-    is_delim_prev = is_delim;
-  }
-}
-
-/*===========================================================================*/
 
 _Bool compare_runs(const char* options1, const char* options2) {
 
@@ -64,8 +40,12 @@ _Bool compare_runs(const char* options1, const char* options2) {
   strcpy(argstring2, options2);
   create_args(argstring2, &argc2, argv2);
 
+  /*---Do runs---*/
+
   GMChecksum checksum1 = perform_run(argc1, argv1);
   GMChecksum checksum2 = perform_run(argc2, argv2);
+
+  /*---Need test result only on proc 0---*/
 
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
@@ -88,6 +68,8 @@ _Bool compare_runs(const char* options1, const char* options2) {
 TEST(SystemTest,One) {
 
   //----------
+  //---2-way, all2all no
+  //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
@@ -95,20 +77,49 @@ TEST(SystemTest,One) {
     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                                       "--compute_method GPU"));
 
-  //----------
-
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                                        "--compute_method CPU",
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                                        "--compute_method GPU"));
 
+  //----------
+  //---2-way, all2all yes, small
+  //----------
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
+                                       "--compute_method CPU ",
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
+                                       "--compute_method CPU --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
+                                       "--compute_method CPU ",
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
+                                       "--compute_method GPU --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
+                                       "--compute_method CPU ",
+    "--num_proc_vector 2 --num_field 1 --num_vector_local 2 "
+                                       "--compute_method CPU --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
+                                       "--compute_method CPU ",
+    "--num_proc_vector 2 --num_field 1 --num_vector_local 2 "
+                                       "--compute_method GPU --all2all yes"));
+
+  //----------
+  //---2-way, all2all yes, large
+  //----------
+
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                                        "--compute_method CPU",
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
-                                       "--compute_method CPU"
-      " --all2all yes"));
+                                       "--compute_method CPU --all2all yes"));
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -116,8 +127,6 @@ TEST(SystemTest,One) {
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                                        "--compute_method GPU"
       " --all2all yes"));
-
-  //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -132,6 +141,8 @@ TEST(SystemTest,One) {
                                        "--compute_method GPU --all2all yes"));
 
   //----------
+  //---3-way, all2all no
+  //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
@@ -139,14 +150,43 @@ TEST(SystemTest,One) {
       "--num_way 3",
     "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
                                       "--compute_method GPU --num_way 3"));
-
-  //----------
-
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                                         "--compute_method CPU --num_way 3",
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                                         "--compute_method GPU --num_way 3"));
+
+  //----------
+  //---3-way, all2all yes, small
+  //----------
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
+                        "--compute_method CPU --num_way 3",
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
+                        "--compute_method CPU --num_way 3 --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
+                        "--compute_method CPU --num_way 3",
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
+                        "--compute_method GPU --num_way 3 --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 18 "
+                        "--compute_method CPU --num_way 3",
+    "--num_proc_vector 3 --num_field 1 --num_vector_local 6 "
+                        "--compute_method CPU --num_way 3 --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_field 1 --num_vector_local 18 "
+                        "--compute_method CPU --num_way 3",
+    "--num_proc_vector 3 --num_field 1 --num_vector_local 6 "
+                        "--compute_method GPU --num_way 3 --all2all yes"));
+
+  //----------
+  //---3-way, all2all yes, large
+  //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -159,8 +199,6 @@ TEST(SystemTest,One) {
                                         "--compute_method GPU --num_way 3",
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                         "--compute_method GPU --num_way 3 --all2all yes"));
-
-  //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -175,6 +213,8 @@ TEST(SystemTest,One) {
                         "--compute_method GPU --num_way 3 --all2all yes"));
 
   //----------
+  //---num_proc_field
+  //----------
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_proc_field 1 --num_field 2 --num_vector_local 2 "
@@ -183,12 +223,22 @@ TEST(SystemTest,One) {
                         "--compute_method GPU"));
 
   EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_proc_field 1 --num_field 2 --num_vector_local 4 "
+                        "--compute_method CPU",
+    "--num_proc_vector 2 --num_proc_field 2 --num_field 2 --num_vector_local 2 "
+                        "--compute_method GPU --all2all yes"));
+
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
     "--num_proc_vector 1 --num_proc_field 1 --num_field 2 --num_vector_local 3 "
                         "--compute_method CPU --num_way 3",
     "--num_proc_vector 1 --num_proc_field 2 --num_field 2 --num_vector_local 3 "
                         "--compute_method GPU --num_way 3"));
 
-  //----------
+  EXPECT_EQ(GM_BOOL_TRUE, compare_runs(
+    "--num_proc_vector 1 --num_proc_field 1 --num_field 2 --num_vector_local 18"
+                       " --compute_method CPU --num_way 3",
+    "--num_proc_vector 3 --num_proc_field 2 --num_field 2 --num_vector_local 6 "
+                       " --compute_method GPU --num_way 3 --all2all yes"));
 }
 
 /*===========================================================================*/

@@ -76,6 +76,7 @@ void usage() {
 /*---Main---*/
 
 int main(int argc, char** argv) {
+
   /*---Initialize---*/
 
   MPI_Init(&argc, &argv);
@@ -85,6 +86,23 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 0;
   }
+
+  /*---Perform preliminary run on GPU since sometimes first use is slower---*/
+
+  const char* options1 = "--num_proc_vector 1 --num_field 1 --num_vector_local 2"
+                                      " --compute_method GPU";
+  size_t len1 = strlen(options1);
+  char* argstring1 = (char*)malloc((len1+1)*sizeof(char));
+  const char* argv1[len1+1];
+  int argc1 = 0;
+  strcpy(argstring1, options1);
+  create_args(argstring1, &argc1, argv1);
+
+  perform_run(argc1, (const char**)argv1);
+
+  free (argstring1);
+
+  /*---Perform actual run---*/
 
   perform_run(argc, (const char**)argv);
 

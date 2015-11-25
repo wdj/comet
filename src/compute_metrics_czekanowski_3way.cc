@@ -102,7 +102,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
   GMVectors vectors_j_value = GMVectors_null();
   GMVectors* vectors_j = &vectors_j_value;
-  GMVectors_create(vectors_j, data_type, numfield, numvec, env);
+  GMVectors_create(vectors_j, data_type, vectors->num_field, numvec, env);
 
   GMMirroredPointer vectors_j_buf =
       gm_malloc_magma(numvec * (size_t)numfield, env);
@@ -153,7 +153,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
 
   GMVectors vectors_k_value = GMVectors_null();
   GMVectors* vectors_k = &vectors_k_value;
-  GMVectors_create(vectors_k, data_type, numfield, numvec, env);
+  GMVectors_create(vectors_k, data_type, vectors->num_field, numvec, env);
 
   GMMirroredPointer vectors_k_buf =
       gm_malloc_magma(numvec * (size_t)numfield, env);

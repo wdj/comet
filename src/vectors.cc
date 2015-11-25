@@ -42,14 +42,14 @@ void GMVectors_create(GMVectors* vectors,
   GMAssert(num_vector_local >= 0);
   GMAssert(env);
 
-  GMInsist(env, num_field % Env_num_proc_field(env) == 0
-    ? "num_proc_field must exactly divide the total number of fields" : 0);
-
   *vectors = GMVectors_null();
 
   if (!Env_is_proc_active(env)) {
     return;
   }
+
+  GMInsist(env, num_field % Env_num_proc_field(env) == 0
+    ? "num_proc_field must exactly divide the total number of fields" : 0);
 
   vectors->data_type_id = data_type_id;
   vectors->num_field = num_field;
