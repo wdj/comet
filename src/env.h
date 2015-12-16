@@ -102,11 +102,16 @@ typedef double GMFloat;
 enum { GM_MPI_FLOAT = MPI_DOUBLE };
 #endif
 
-/*---Table for CCC---*/
+#if 0
+/*---Types for CCC---*/
 
-typedef unsigned short int GMUSInt;
+// input type - assume unsigned long long int is 64 bit
+typedef struct { unsigned long long int data[2]; } GMBits128;
 
-typedef struct { GMUSInt data[4][4]; } GMTable4X4;
+// output type - 2 64-bit floats, to store 4 taly results
+typedef struct { double data[2] } GMDoubleComplex;
+
+#endif
 
 /*---Type ids---*/
 

@@ -58,6 +58,42 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
 /*===========================================================================*/
 /*---Accessors---*/
 
+#if 0
+static void GMVectors_bitd128_set(GMVectors* vectors,
+                                  int field_local,
+                                  int vector_local,
+                                  int value,
+                                  GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+
+  GMAssert(value >= 0);
+  GMAssert(value < 4);
+
+  // the field is mapped to which GMBits128 entry is used,
+  // which of the two data value is used (2 choices),
+  // and the location in that data value (32 choices).
+  int field_index2 = field_local / 64;
+  int field_index1 = (field_local % 64) / 2;
+  int field_index0 = field_local / 128;
+
+// MUST modify to account for the vector number
+  ((GMBits128*)(vectors->data))[field_index2].data[field_index1]
+
+    |= value << field_index0;
+
+
+
+  ((GMFloat*)(vectors->data))[field_local + vectors->num_field_local *
+                              vector_local] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+#endif
+
 static void GMVectors_float_set(GMVectors* vectors,
                                 int field_local,
                                 int vector_local,
