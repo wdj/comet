@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
   /*---Perform preliminary run on GPU since sometimes first use is slower---*/
 
   const char* options1 = "--num_proc_vector 1 --num_field 1 --num_vector_local 2"
-                                      " --compute_method GPU";
+                                      " --compute_method GPU --verbosity 0";
   size_t len1 = strlen(options1);
   char* argstring1 = (char*)malloc((len1+1)*sizeof(char));
   const char* argv1[len1+1];

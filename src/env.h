@@ -47,7 +47,7 @@
     (void) a;                     \
   }
 #else
-#define GM_StaticAssert(condition)
+#define GMStaticAssert(condition)
 #endif
 
 /*---------------------------------------------------------------------------*/

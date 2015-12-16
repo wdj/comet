@@ -387,9 +387,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
       /*---Initializations---*/
 
-      typedef unsigned int UI32;
       typedef size_t UI64;
-      GMStaticAssert(sizeof(UI32) == 4);
       GMStaticAssert(sizeof(UI64) == 8);
 
       UI64 sums_l[16];
@@ -400,7 +398,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       double sum_d = 0;
 
       const int w = 30;
-      GMAssert(64-2*w >= 4);
+      GMAssertAlways(64-2*w >= 4);
       const UI64 one64 = 1;
 
       const UI64 lomask = ( one64 << w ) - 1;
@@ -434,7 +432,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
             GMMetrics_float_get_from_index(metrics, index, env);
         /*---Convert to integer.  Store only 2*w bits max---*/
         const int log2_value_max = 4;
-        GMAssert(value >= 0 && value < (1<<log2_value_max));
+        GMAssertAlways(value >= 0 && value < (1<<log2_value_max));
         UI64 ivalue = value * (one64 << (2*w-log2_value_max));
         /*---Multiply the two values---*/
         const UI64 a = rand_value;
@@ -462,7 +460,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
       mpi_code = MPI_Allreduce(sums_l, sums_g, 16, MPI_UNSIGNED_LONG_LONG,
                                MPI_SUM, Env_mpi_comm_vector(env));
-      GMAssert(mpi_code == MPI_SUCCESS);
+      GMAssertAlways(mpi_code == MPI_SUCCESS);
 
       /*---Combine results---*/
 
@@ -484,13 +482,13 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       const double tmp = sum_d;
       mpi_code = MPI_Allreduce(&tmp, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
                                Env_mpi_comm_vector(env));
-      GMAssert(mpi_code == MPI_SUCCESS);
+      GMAssertAlways(mpi_code == MPI_SUCCESS);
 
       double result_d = result.data[0] / ((double)(one64<<(2*w))) +
                         result.data[1] +
                         result.data[2] * ((double)(one64<<(2*w)));
       result_d = 1 * result_d; /*---Avoid unused variable warning---*/
-      GMAssert(fabs(sum_d-result_d) < sum_d * 1.e-10);
+      GMAssertAlways(fabs(sum_d-result_d) < sum_d * 1.e-10);
 
     } break;
     /*--------------------*/
@@ -499,7 +497,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
     } break;
     /*--------------------*/
     default:
-      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 
   return result;

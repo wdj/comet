@@ -63,8 +63,8 @@ fi
 #---Whether to build testing code.
 
 if [ "$TESTING" = "" ] ; then
-  #TESTING=OFF
-  TESTING=ON
+  TESTING=OFF
+  #TESTING=ON
 fi
 
 #==============================================================================
