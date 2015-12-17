@@ -13,7 +13,7 @@ mkdir gm_work
 cd gm_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-git checkout -q tags/v0.1.4   #---use currently active release tag.
+git checkout -q tags/v0.2   #---use currently active release tag.
 cd genomics_gpu/magma/magma_minproduct-1.6.2
 ../make.sh
 cd ../../..
@@ -48,15 +48,23 @@ Options:
         czekanowski=Czekanowski (default), ccc=CCC)
 
     --num_way <value>
-        dimension of metric to compute (2=2-way, 3=3-way
+        dimension of metric to compute (2=2-way, 3=3-way)
 
     --all2all
-        whether to perform global all-to-all as rather than computing
+        whether to perform global all-to-all rather than computing
         on each processor separately (yes=yes, no=no (default))
 
     --compute_method
         manner of computing the result (CPU=cpu, GPU=gpu,
         REF=reference method)
+
+    --num_proc_vector
+        number of processors allocated along the dimension of the
+        number of vectors (default is the total number of procs requested)
+
+    --num_proc_field
+        number of processors allocated along the dimension of the
+        number of fields (default is 1) (not available for all methods)
 
     ---verbosity <value>
         verbosity level of output (0=none, 1=some (default) 2=more)
@@ -65,7 +73,7 @@ Options:
 
 # The folloowing test runs assume:
 
-qsub -Astf006 -I -lnodes=4 -lwalltime=2:0:0
+qsub -Astf006 -I -lnodes=8 -lwalltime=2:0:0
 
 cd $MEMBERWORK/stf006/gm_work
 
@@ -225,4 +233,28 @@ Application 9464242 resources: utime ~334s, stime ~3s, Rss ~2611360, inblocks ~7
 
 metrics checksum 4.44761229736546641e+13 compute time 13.531170
 Application 9464329 resources: utime ~37s, stime ~6s, Rss ~2790020, inblocks ~753, outblocks ~1560
+
+#--------------------
+# 3-way Czekanowski metric, all2all.
+#--------------------
+
+for p in 1 2 4 8 ; do
+  aprun -n$p -N1 ./install_release/bin/genomics_metric \
+        --num_field 2048 --num_vector_local $(( 128 * 6 / $p )) \
+        --all2all yes --num_way 3 \
+        --compute_method GPU --verbosity 1
+  echo
+done
+
+metrics checksum 6-283811752468216928-988311188142008880 time 120.270341
+Application 9637601 resources: utime ~176s, stime ~17s, Rss ~9777444, inblocks ~801, outblocks ~1693
+
+metrics checksum 6-283811752468216928-988311188142008880 time 59.712863
+Application 9637622 resources: utime ~176s, stime ~17s, Rss ~5018252, inblocks ~5450, outblocks ~3404
+
+metrics checksum 6-283811752468216928-988311188142008880 time 31.447246
+Application 9637629 resources: utime ~183s, stime ~20s, Rss ~2607756, inblocks ~14380, outblocks ~6789
+
+metrics checksum 6-283811752468216928-988311188142008880 time 21.106007 ops 2.469071e+12 rate 1.169843e+11
+Application 9637654 resources: utime ~222s, stime ~32s, Rss ~1383844, inblocks ~32240, outblocks ~13560
 
