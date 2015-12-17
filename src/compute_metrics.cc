@@ -36,6 +36,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     return;
   }
 
+  double time_begin = GMEnv_get_synced_time(env);
+
   switch (Env_metric_type(env) + GM_NUM_METRIC_TYPE * (
           Env_compute_method(env) + GM_NUM_COMPUTE_METHOD * (
           Env_num_way(env)))) {
@@ -150,6 +152,30 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     default:
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---switch---*/
+
+  double time_end = GMEnv_get_synced_time(env);
+
+  env->time += time_end - time_begin;
+
+  env->ops += (Env_num_way(env) == 2 && ! Env_all2all(env))
+            ?    Env_num_proc_vector(env) * 1. *
+                 vectors->num_vector_local * 1. *
+                 (vectors->num_vector_local - 1) * (1./2.) *
+                 vectors->num_field
+            : (Env_num_way(env) == 2 && Env_all2all(env)) 
+            ?    vectors->num_vector * 1. *
+                 (vectors->num_vector - 1) * (1./2.) *
+                 vectors->num_field
+            : (Env_num_way(env) == 3 && ! Env_all2all(env)) 
+            ?    Env_num_proc_vector(env) * 1. *
+                 vectors->num_vector_local * 1. *
+                 (vectors->num_vector_local - 1) * 1. *
+                 (vectors->num_vector_local - 2) * (1./6.) *
+                 vectors->num_field
+            :    vectors->num_vector * 1. *
+                 (vectors->num_vector - 1) * 1. *
+                 (vectors->num_vector - 2) * (1./6.) *
+                 vectors->num_field;
 }
 
 /*===========================================================================*/

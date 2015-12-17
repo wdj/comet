@@ -270,15 +270,9 @@ static GMChecksum perform_run(int argc, const char** argv) {
 
   /*---Calculate metrics---*/
 
-  double time_begin = GMEnv_get_synced_time(&env);
-
   gm_compute_metrics(&metrics, &vectors, &env);
 
-  double time_end = GMEnv_get_synced_time(&env);
-
   /*---Output run information---*/
-
-  double time_compute_metrics = time_end - time_begin;
 
   checksum = GMMetrics_checksum(&metrics, &env);
 
@@ -288,7 +282,12 @@ static GMChecksum perform_run(int argc, const char** argv) {
     for (i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
       printf("%s%li", i==0 ? "" : "-", checksum.data[GM_CHECKSUM_SIZE-1-i]);
     }
-    printf(" compute time %.6f\n", time_compute_metrics);
+    printf(" time %.6f", env.time);
+    printf(" ops %e", env.ops);
+    if (env.time > 0) {
+      printf(" rate %e", env.ops / env.time);
+    }
+    printf("\n");
   }
 
   /*---Output results---*/

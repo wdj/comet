@@ -156,6 +156,9 @@ typedef struct {
   int num_way_;
   _Bool all2all_;
   int compute_method_;
+  /*---Counters---*/
+  double time;
+  double ops;
   /*---MPI---*/
   int mpi_comm_;
   int mpi_comm_vector_;
@@ -317,9 +320,9 @@ int Env_data_type(const GMEnv* env);
 
 void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_field);
 
-cudaStream_t Env_stream_compute(const GMEnv* env);
-cudaStream_t Env_stream_togpu(const GMEnv* env);
-cudaStream_t Env_stream_fromgpu(const GMEnv* env);
+cudaStream_t Env_stream_compute(GMEnv* env);
+cudaStream_t Env_stream_togpu(GMEnv* env);
+cudaStream_t Env_stream_fromgpu(GMEnv* env);
 
 /*===========================================================================*/
 /*---Timer functions---*/

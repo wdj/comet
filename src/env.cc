@@ -111,6 +111,9 @@ void GMEnv_create(GMEnv* env) {
   env->all2all_ = GM_BOOL_FALSE;
   env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
   Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
+
+  env->time = 0;
+  env->ops = 0;
 }
 
 /*===========================================================================*/
@@ -189,18 +192,21 @@ void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
 void GMEnv_initialize_streams(GMEnv* env) {
   GMAssert(env != NULL);
 
+  /*---NOTE: this is used for lazy initialization---*/
+
   if (!env->are_cuda_streams_initialized_) {
-    cudaStreamCreate(&env->stream_compute_);
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
-
-    cudaStreamCreate(&env->stream_togpu_);
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
-
-    cudaStreamCreate(&env->stream_fromgpu_);
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
-
-    env->are_cuda_streams_initialized_ = GM_BOOL_TRUE;
+    if (env->compute_method_ == GM_COMPUTE_METHOD_GPU) {
+      cudaStreamCreate(&env->stream_compute_);
+      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  
+      cudaStreamCreate(&env->stream_togpu_);
+      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  
+      cudaStreamCreate(&env->stream_fromgpu_);
+      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+    }
   }
+  env->are_cuda_streams_initialized_ = GM_BOOL_TRUE;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -209,17 +215,18 @@ void GMEnv_terminate_streams(GMEnv* env) {
   GMAssert(env != NULL);
 
   if (env->are_cuda_streams_initialized_) {
-    cudaStreamDestroy(env->stream_compute_);
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+    if (env->compute_method_ == GM_COMPUTE_METHOD_GPU) {
+      cudaStreamDestroy(env->stream_compute_);
+      GMAssert(GMEnv_cuda_last_call_succeeded(env));
 
-    cudaStreamDestroy(env->stream_togpu_);
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+      cudaStreamDestroy(env->stream_togpu_);
+      GMAssert(GMEnv_cuda_last_call_succeeded(env));
 
-    cudaStreamDestroy(env->stream_fromgpu_);
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
-
-    env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
+      cudaStreamDestroy(env->stream_fromgpu_);
+      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+    }
   }
+  env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
 }
 
 /*===========================================================================*/
@@ -254,13 +261,15 @@ void Env_set_compute_method(GMEnv* env, int compute_method) {
   GMAssert(compute_method >= 0);
   GMAssert(compute_method < GM_NUM_COMPUTE_METHOD);
 
+  env->compute_method_ = compute_method;
+
+#if 0
   if (compute_method == GM_COMPUTE_METHOD_GPU) {
     GMEnv_initialize_streams(env);
   } else {
     GMEnv_terminate_streams(env);
   }
-
-  env->compute_method_ = compute_method;
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -331,25 +340,34 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_field) {
 
 /*---------------------------------------------------------------------------*/
   
-cudaStream_t Env_stream_compute(const GMEnv* env) {
+cudaStream_t Env_stream_compute(GMEnv* env) {
   GMAssert(env != NULL);
-  GMAssert(env->are_cuda_streams_initialized_);
+  //GMAssert(env->are_cuda_streams_initialized_);
+
+  GMEnv_initialize_streams(env);
+
   return env->stream_compute_;
 } 
 
 /*---------------------------------------------------------------------------*/
   
-cudaStream_t Env_stream_togpu(const GMEnv* env) {
+cudaStream_t Env_stream_togpu(GMEnv* env) {
   GMAssert(env != NULL);
-  GMAssert(env->are_cuda_streams_initialized_);
+  //GMAssert(env->are_cuda_streams_initialized_);
+
+  GMEnv_initialize_streams(env);
+
   return env->stream_togpu_;
 }
 
 /*---------------------------------------------------------------------------*/
   
-cudaStream_t Env_stream_fromgpu(const GMEnv* env) {
+cudaStream_t Env_stream_fromgpu(GMEnv* env) {
   GMAssert(env != NULL);
-  GMAssert(env->are_cuda_streams_initialized_);
+  //GMAssert(env->are_cuda_streams_initialized_);
+
+  GMEnv_initialize_streams(env);
+
   return env->stream_fromgpu_;
 }
 
