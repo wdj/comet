@@ -311,7 +311,7 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->data = (GMFloat*)malloc(metrics->num_elts_local*sizeof(GMFloat));
       GMAssert(metrics->data != NULL);
       break;
-    case GM_DATA_TYPE_BIT: {
+    case GM_DATA_TYPE_BITS1: {
       const size_t num_floats_needed =
           gm_ceil_i8(metrics->num_elts_local, 8 * sizeof(GMFloat));
       metrics->data = malloc(num_floats_needed * sizeof(GMFloat));
@@ -492,7 +492,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
     } break;
     /*--------------------*/
-    case GM_DATA_TYPE_BIT: {
+    case GM_DATA_TYPE_BITS1: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
     } break;
     /*--------------------*/

@@ -98,7 +98,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   /*---Part 2 Computation: triangular prisms---*/
   /*------------------------*/
 
-  const int data_type = Env_data_type(env);
+  const int data_type = Env_data_type_vectors(env);
 
   GMVectors vectors_j_value = GMVectors_null();
   GMVectors* vectors_j = &vectors_j_value;

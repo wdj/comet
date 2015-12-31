@@ -93,6 +93,19 @@ GMEnv GMEnv_null() {
 void GMEnv_create(GMEnv* env) {
   GMAssert(env != NULL);
 
+  GMStaticAssert(sizeof(GMBits1)*8 >= 1);
+  GMStaticAssert(sizeof(GMBits1x64) == 8);
+  GMStaticAssert(sizeof(GMUInt64) == 8);
+  GMStaticAssert(sizeof(GMUInt64) == sizeof(GMBits1x64)); /*---for Magma---*/
+
+  GMStaticAssert(sizeof(GMBits) == 8);
+  GMStaticAssert(sizeof(GMULInt) == 8);
+
+  GMStaticAssert(sizeof(GMBits2)*8 >= 2);
+  GMStaticAssert(sizeof(GMBits2x64) == 16);
+  GMStaticAssert(sizeof(GMTally4) == 16);
+  GMStaticAssert(sizeof(GMTally4) == sizeof(GMBits2x64)); /*---for Magma---*/
+
   *env = GMEnv_null();
 
   /*---Initialize MPI info---*/
@@ -274,7 +287,7 @@ void Env_set_compute_method(GMEnv* env, int compute_method) {
 
 /*---------------------------------------------------------------------------*/
 
-int Env_data_type(const GMEnv* env) {
+int Env_data_type_vectors(const GMEnv* env) {
   GMAssert(env != NULL);
 
   switch (env->metric_type_) {
@@ -283,7 +296,24 @@ int Env_data_type(const GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
+      return GM_DATA_TYPE_BITS2;
+  }
+  GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
+  return 0;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int Env_data_type_metrics(const GMEnv* env) {
+  GMAssert(env != NULL);
+
+  switch (env->metric_type_) {
+    case GM_METRIC_TYPE_SORENSON:
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+    case GM_METRIC_TYPE_CZEKANOWSKI:
+      return GM_DATA_TYPE_FLOAT;
+    case GM_METRIC_TYPE_CCC:
+      return GM_DATA_TYPE_TALLY4;
   }
   GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
   return 0;

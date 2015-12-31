@@ -58,7 +58,7 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
   GMVectors vectors_01[2];
   for (i = 0; i < 2; ++i) {
-    const int data_type = Env_data_type(env);
+    const int data_type = Env_data_type_vectors(env);
     GMVectors_create(&vectors_01[i], data_type, vectors->num_field,
       numvec, env);
   }

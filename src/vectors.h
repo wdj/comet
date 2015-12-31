@@ -26,12 +26,17 @@ extern "C" {
 /*---Struct declaration---*/
 
 typedef struct {
+  /*---Logical sizes---*/
   int num_field;
   int num_field_local;
   int num_vector;
   int num_vector_local;
-  size_t num_dataval_local;
-  int num_field_dataval;
+  /*---Stored sizes---*/
+  int num_bits_per_val;
+  int num_bits_per_packedval;
+  int num_packedval_field_local;
+  size_t num_packedval_local;
+  /*---Other---*/
   int data_type_id;
   void* __restrict__ data;
 } GMVectors;
@@ -56,43 +61,7 @@ void GMVectors_create(GMVectors* vectors,
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
 
 /*===========================================================================*/
-/*---Accessors---*/
-
-#if 0
-static void GMVectors_bitd128_set(GMVectors* vectors,
-                                  int field_local,
-                                  int vector_local,
-                                  int value,
-                                  GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-
-  GMAssert(value >= 0);
-  GMAssert(value < 4);
-
-  // the field is mapped to which GMBits128 entry is used,
-  // which of the two data value is used (2 choices),
-  // and the location in that data value (32 choices).
-  int field_index2 = field_local / 64;
-  int field_index1 = (field_local % 64) / 2;
-  int field_index0 = field_local / 128;
-
-// MUST modify to account for the vector number
-  ((GMBits128*)(vectors->data))[field_index2].data[field_index1]
-
-    |= value << field_index0;
-
-
-
-  ((GMFloat*)(vectors->data))[field_local + vectors->num_field_local *
-                              vector_local] = value;
-}
-
-/*---------------------------------------------------------------------------*/
-#endif
+/*---Accessors: Float---*/
 
 static void GMVectors_float_set(GMVectors* vectors,
                                 int field_local,
@@ -139,7 +108,90 @@ static GMFloat GMVectors_float_get(GMVectors* const vectors,
       vectors, field_local + vectors->num_field_local * vector_local, env);
 }
 
+/*===========================================================================*/
+/*---Accessors: Bits2---*/
+
+static void GMVectors_bits2x64_set(GMVectors* vectors,
+                                   int packedval_field_local,
+                                   int vector_local,
+                                   GMBits2x64 value,
+                                   GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(packedval_field_local >= 0);
+  GMAssert(packedval_field_local < vectors->num_packedval_field_local);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+
+  const int index = packedval_field_local + vectors->num_packedval_field_local *
+                    vector_local;
+
+  ((GMBits2x64*)(vectors->data))[index].data[0] = value.data[0];
+  ((GMBits2x64*)(vectors->data))[index].data[1] = value.data[1];
+}
+
 /*---------------------------------------------------------------------------*/
+
+static void GMVectors_bits2_set(GMVectors* vectors,
+                                int field_local,
+                                int vector_local,
+                                GMBits2 value,
+                                GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+
+  GMAssert(value >= 0 && value < 4);
+
+#if 0
+
+  // the field is mapped to which GMBits128 entry is used,
+  // which of the two data value is used (2 choices),
+  // and the location in that data value (32 choices).
+  int field_index2 = field_local / 64;
+  int field_index1 = (field_local % 64) / 2;
+  int field_index0 = field_local / 128;
+
+// MUST modify to account for the vector number
+  ((GMBits128*)(vectors->data))[field_index2].data[field_index1]
+
+    |= value << field_index0;
+
+
+
+  ((GMFloat*)(vectors->data))[field_local + vectors->num_field_local *
+                              vector_local] = value;
+
+#endif
+
+
+}
+
+/*===========================================================================*/
+/*---Accessors: Bits1---*/
+//---(design is not complete)
+
+static void GMVectors_bits1x64_set(GMVectors* vectors,
+                                   int packedval_field_local,
+                                   int vector_local,
+                                   GMBits1x64 value,
+                                   GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(packedval_field_local >= 0);
+  GMAssert(packedval_field_local < vectors->num_packedval_field_local);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+
+  const int index = packedval_field_local + vectors->num_packedval_field_local *
+                    vector_local;
+
+  ((GMBits1x64*)(vectors->data))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
+
 
 static int GMVectors_bit_dataval_num(GMVectors* vectors,
                                      int field_local,
@@ -154,7 +206,7 @@ static int GMVectors_bit_dataval_num(GMVectors* vectors,
   const int field_dataval_num = field_local / (8 * sizeof(GMBits));
 
   const int dataval_num =
-      field_dataval_num + vectors->num_field_dataval * vector_local;
+      field_dataval_num + vectors->num_packedval_field_local * vector_local;
 
   return dataval_num;
 }

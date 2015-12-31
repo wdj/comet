@@ -62,7 +62,34 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
     return;
   }
 
-  switch (Env_data_type(env)) {
+  switch (Env_data_type_vectors(env)) {
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS1: {
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+      int vector_local;
+      for (vector_local = 0; vector_local < vectors->num_vector_local;
+           ++vector_local) {
+        size_t vector = vector_local + vectors->num_vector_local *
+                                              (size_t)Env_proc_num_vector(env);
+        int field_local;
+        for (field_local = 0; field_local < vectors->num_field_local;
+             ++field_local) {
+          size_t field = field_local + vectors->num_field_local *
+                                              (size_t)Env_proc_num_field(env);
+          /*---compute element unique id---*/
+          const size_t uid = field + vectors->num_field * vector;
+          size_t index = uid;
+          /*---randomize---*/
+          index = gm_randomize(index);
+          /*---Calculate random number between 0 and 1---*/
+          GMFloat rand_value = index / (GMFloat)gm_randomize_max();
+          /*---Create single bit value---*/
+          _Bool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
+          GMVectors_bit_set(vectors, field_local, vector_local, value, env);
+        } /*---field---*/
+      }   /*---vector_local---*/
+    } break;
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
       int vector_local;
@@ -96,31 +123,11 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
       }   /*---vector_local---*/
     } break;
     /*--------------------*/
-    case GM_DATA_TYPE_BIT: {
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+    case GM_DATA_TYPE_BITS2: {
 
-      int vector_local;
-      for (vector_local = 0; vector_local < vectors->num_vector_local;
-           ++vector_local) {
-        size_t vector = vector_local + vectors->num_vector_local *
-                                              (size_t)Env_proc_num_vector(env);
-        int field_local;
-        for (field_local = 0; field_local < vectors->num_field_local;
-             ++field_local) {
-          size_t field = field_local + vectors->num_field_local *
-                                              (size_t)Env_proc_num_field(env);
-          /*---compute element unique id---*/
-          const size_t uid = field + vectors->num_field * vector;
-          size_t index = uid;
-          /*---randomize---*/
-          index = gm_randomize(index);
-          /*---Calculate random number between 0 and 1---*/
-          GMFloat rand_value = index / (GMFloat)gm_randomize_max();
-          /*---Create single bit value---*/
-          _Bool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
-          GMVectors_bit_set(vectors, field_local, vector_local, value, env);
-        } /*---field---*/
-      }   /*---vector_local---*/
+//TODO
+
+
 
     } break;
     /*--------------------*/
@@ -146,7 +153,13 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
     return;
   }
 
-  switch (Env_data_type(env)) {
+  switch (Env_data_type_metrics(env)) {
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS1: {
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+    } break;
+    /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
       size_t index;
       for (index = 0; index < metrics->num_elts_local; ++index) {
@@ -165,10 +178,15 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
                Env_proc_num(env));
       } /*---for index---*/
     } break;
-    case GM_DATA_TYPE_BIT: {
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+    /*--------------------*/
+    case GM_DATA_TYPE_TALLY4: {
+
+//TODO
+
+
 
     } break;
+    /*--------------------*/
     default:
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   }
@@ -257,7 +275,7 @@ static GMChecksum perform_run(int argc, const char** argv) {
   /*---Initialize vectors---*/
 
   GMVectors vectors = GMVectors_null();
-  GMVectors_create(&vectors, Env_data_type(&env),
+  GMVectors_create(&vectors, Env_data_type_vectors(&env),
                    num_field, num_vector_local, &env);
 
   input_vectors(&vectors, &env);
@@ -265,7 +283,7 @@ static GMChecksum perform_run(int argc, const char** argv) {
   /*---Set up metrics container for results---*/
 
   GMMetrics metrics = GMMetrics_null();
-  GMMetrics_create(&metrics, Env_data_type(&env),
+  GMMetrics_create(&metrics, Env_data_type_metrics(&env),
                    num_vector_local, &env);
 
   /*---Calculate metrics---*/

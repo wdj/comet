@@ -369,8 +369,9 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   mpi_code =
-      MPI_Isend((void*)vectors->data, vectors->num_dataval_local, GM_MPI_FLOAT,
-                proc_num, mpi_tag, Env_mpi_comm_vector(env), &mpi_request);
+      MPI_Isend((void*)vectors->data, vectors->num_packedval_local,
+                GM_MPI_FLOAT, proc_num, mpi_tag, Env_mpi_comm_vector(env),
+                &mpi_request);
   GMAssert(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
@@ -391,8 +392,9 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   mpi_code =
-      MPI_Irecv((void*)vectors->data, vectors->num_dataval_local, GM_MPI_FLOAT,
-                proc_num, mpi_tag, Env_mpi_comm_vector(env), &mpi_request);
+      MPI_Irecv((void*)vectors->data, vectors->num_packedval_local,
+                GM_MPI_FLOAT, proc_num, mpi_tag, Env_mpi_comm_vector(env),
+                &mpi_request);
   GMAssert(mpi_code == MPI_SUCCESS);
 
   return mpi_request;

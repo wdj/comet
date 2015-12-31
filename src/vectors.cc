@@ -72,35 +72,81 @@ void GMVectors_create(GMVectors* vectors,
                            1, MPI_INT, MPI_SUM, Env_mpi_comm_vector(env));
   GMAssert(mpi_code == MPI_SUCCESS);
 
-  /*---Allocations---*/
+  /*---Set element sizes---*/
 
   switch (data_type_id) {
+    /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
-      vectors->num_field_dataval = vectors->num_field_local;
-      vectors->num_dataval_local =
-          vectors->num_field_dataval * (size_t)num_vector_local;
-      vectors->data = malloc(vectors->num_dataval_local * sizeof(GMFloat));
-      GMAssert(vectors->data != NULL);
+      vectors->num_bits_per_val = 8 * sizeof(GMFloat);
+      vectors->num_bits_per_packedval = 8 * sizeof(GMFloat);
     } break;
-    case GM_DATA_TYPE_BIT: {
-      GMAssert(sizeof(GMBits) == 8);
-      vectors->num_field_dataval = gm_ceil_i(vectors->num_field_local,
-                                             8*sizeof(GMBits));
-      vectors->num_dataval_local =
-          vectors->num_field_dataval * (size_t)num_vector_local;
-      vectors->data = malloc(vectors->num_field_dataval * sizeof(GMBits));
-      GMAssert(vectors->data != NULL);
-      /*---Ensure final pad bits of each vector are set to zero---*/
-      int vector_local;
-      for (vector_local = 0; vector_local < num_vector_local; ++vector_local) {
-        const int dataval_num = GMVectors_bit_dataval_num(
-            vectors, vectors->num_field_dataval - 1, vector_local, env);
-        ((GMULInt*)vectors->data)[dataval_num] = 0;
-      }
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS2: {
+      vectors->num_bits_per_val = 2;
+      vectors->num_bits_per_packedval = 8 * sizeof(GMBits2x64);
     } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS1: {
+      //---(design is not complete)
+      vectors->num_bits_per_val = 1;
+      vectors->num_bits_per_packedval = 8 * sizeof(GMBits1x64);
+    } break;
+    /*--------------------*/
     default:
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
   }
+
+  /*---Allocations---*/
+
+  vectors->num_packedval_field_local =
+    gm_ceil_i8(vectors->num_field_local *
+               (size_t)(vectors->num_bits_per_val),
+               vectors->num_bits_per_packedval);
+  vectors->num_packedval_local =
+      vectors->num_packedval_field_local * (size_t)num_vector_local;
+  vectors->data = malloc(vectors->num_packedval_local *
+                         (vectors->num_bits_per_packedval / 8 ));
+  GMAssert(vectors->data != NULL);
+
+
+  /*---Ensure final pad bits of each vector are set to zero---*/
+
+  switch (data_type_id) {
+    /*--------------------*/
+    case GM_DATA_TYPE_FLOAT: {
+      /*---NO-OP---*/
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS2: {
+      int vector_local;
+      if (vectors->num_field_local > 0) {
+        const int packedval_field_local
+                                     = vectors->num_packedval_field_local - 1;
+        GMBits2x64 zero = GMBits2x64_null();
+        for (vector_local=0; vector_local<num_vector_local; ++vector_local) {
+          GMVectors_bits2x64_set(vectors, packedval_field_local, vector_local,
+                                 zero, env);
+        }
+      }
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS1: {
+      int vector_local;
+      if (vectors->num_field_local > 0) {
+        const int packedval_field_local
+                                     = vectors->num_packedval_field_local - 1;
+        GMBits1x64 zero = GMBits1x64_null();
+        for (vector_local=0; vector_local<num_vector_local; ++vector_local) {
+          GMVectors_bits1x64_set(vectors, packedval_field_local, vector_local,
+                                 zero, env);
+        }
+      }
+    } break;
+    /*--------------------*/
+    default:
+      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+  }
+
 }
 
 /*===========================================================================*/
