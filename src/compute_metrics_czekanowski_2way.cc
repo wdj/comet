@@ -365,11 +365,11 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
       int field_local = 0;
       for (field_local = 0; field_local < vectors->num_field_local;
            ++field_local) {
-        const GMFloat value1 = GMVectors_float_get(vectors,
-                                                   field_local, i, env);
-        const GMFloat value2 = GMVectors_float_get(vectors,
-                                                   field_local, j, env);
-        sum += value1 < value2 ? value1 : value2;
+        const GMFloat value_i = GMVectors_float_get(vectors,
+                                                    field_local, i, env);
+        const GMFloat value_j = GMVectors_float_get(vectors,
+                                                    field_local, j, env);
+        sum += value_i < value_j ? value_i : value_j;
       } /*---for k---*/
       GMMetrics_float_set_2(metrics, i, j, sum, env);
     } /*---for j---*/

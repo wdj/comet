@@ -66,6 +66,7 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_BITS1: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      //---(design is not complete)
 
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
@@ -86,9 +87,11 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
           GMFloat rand_value = index / (GMFloat)gm_randomize_max();
           /*---Create single bit value---*/
           _Bool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
+          /*---Store---*/
           GMVectors_bit_set(vectors, field_local, vector_local, value, env);
         } /*---field---*/
       }   /*---vector_local---*/
+
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
@@ -102,7 +105,7 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
              ++field_local) {
           size_t field = field_local + vectors->num_field_local *
                                               (size_t)Env_proc_num_field(env);
-          /*---compute element unique id---*/
+          /*---Compute element unique id---*/
           const size_t uid = field + vectors->num_field * vector;
           /*---Generate large random number---*/
           size_t rand1 = uid;
@@ -124,16 +127,34 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
-
-//TODO
-
-
-
+      int vector_local;
+      for (vector_local = 0; vector_local < vectors->num_vector_local;
+           ++vector_local) {
+        size_t vector = vector_local + vectors->num_vector_local *
+                                              (size_t)Env_proc_num_vector(env);
+        int field_local;
+        for (field_local = 0; field_local < vectors->num_field_local;
+             ++field_local) {
+          size_t field = field_local + vectors->num_field_local *
+                                              (size_t)Env_proc_num_field(env);
+          /*---Compute element unique id---*/
+          const size_t uid = field + vectors->num_field * vector;
+          size_t index = uid;
+          /*---Randomize---*/
+          index = gm_randomize(index);
+          /*---Calculate random number between 0 and 3---*/
+          const float float_rand_value = index / (float)gm_randomize_max();
+          /*---Create 2-bit value - make extra sure less than 4---*/
+          GMBits2 value = (int)( (4.-1e-5) * float_rand_value);
+          /*---Store---*/
+          GMVectors_bits2_set(vectors, field_local, vector_local, value, env);
+        } /*---field---*/
+      }   /*---vector_local---*/
     } break;
     /*--------------------*/
     default:
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
-  }
+  } /*---switch---*/
 }
 
 /*===========================================================================*/
@@ -179,7 +200,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
       } /*---for index---*/
     } break;
     /*--------------------*/
-    case GM_DATA_TYPE_TALLY4: {
+    case GM_DATA_TYPE_TALLY2X2: {
 
 //TODO
 

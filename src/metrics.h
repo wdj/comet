@@ -30,15 +30,18 @@ extern "C" {
 /*---Struct declaration---*/
 
 typedef struct {
+  /*---Logical sizes---*/
   int num_vector;
   int num_vector_local;
   size_t num_elts_local;
   size_t num_elts_0;
   size_t num_elts_01;
-  int data_type_id;
-  /*---map (contig) index to linearized Cartesian coords---*/
+  /*---map of (contig) index to linearized Cartesian coords---*/
   size_t* coords_global_from_index;
+  /*---Other---*/
+  int data_type_id;
   void* __restrict__ data;
+  void* __restrict__ data_M;
 } GMMetrics;
 
 /*===========================================================================*/
@@ -312,6 +315,19 @@ static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
   return ((GMFloat*)(metrics->data))[index];
 }
 
+/*---------------------------------------------------------------------------*/
+
+static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
+                                                    int index,
+                                                    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(index >= 0);
+  GMAssert((size_t)index < metrics->num_elts_local);
+
+  return ((GMTally2x2*)(metrics->data))[index];
+}
+
 /*===========================================================================*/
 /*---Accessors: value from (local) coord: set---*/
 
@@ -331,6 +347,26 @@ static void GMMetrics_float_set_2(GMMetrics* metrics,
 
   size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
   ((GMFloat*)(metrics->data))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void GMMetrics_tally2x2_set_2(GMMetrics* metrics,
+                                     int i,
+                                     int j,
+                                     GMTally2x2 value,
+                                     GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(!Env_all2all(env));
+  GMAssert(i >= 0);
+  GMAssert(i < metrics->num_vector_local);
+  GMAssert(j >= 0);
+  GMAssert(j < metrics->num_vector_local);
+  GMAssert(i < j);
+
+  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  ((GMTally2x2*)(metrics->data))[index] = value;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -410,7 +446,7 @@ static void GMMetrics_float_set_all2all_3(GMMetrics* metrics,
 }
 
 /*===========================================================================*/
-/*---Accessors: value from coord: (local) get---*/
+/*---Accessors: value from (local) coord: get---*/
 
 static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
                                      int i,
@@ -431,6 +467,24 @@ static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+static GMTally2x2 GMMetrics_tally2x2_get_2(GMMetrics* metrics,
+                                           int i,
+                                           int j,
+                                           GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(!Env_all2all(env));
+  GMAssert(i >= 0);
+  GMAssert(i < metrics->num_vector_local);
+  GMAssert(j >= 0);
+  GMAssert(j < metrics->num_vector_local);
+  GMAssert(i < j);
+
+  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  return GMMetrics_tally2x2_get_from_index(metrics, index, env);
+}
+
+/*---------------------------------------------------------------------------*/
 static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
                                              int i,
                                              int j,

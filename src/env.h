@@ -84,21 +84,29 @@ typedef bool _Bool;
 
 enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
+/*----------------------------------------*/
 /*---Types for Sorenson metric---*/
 //---(design is not complete)
+/*----------------------------------------*/
 
 /*---For Vectors: single 1-bit value: use unsigned int---*/
 typedef unsigned int GMBits1;
 
 typedef unsigned long long int GMBits1x64;
 
+typedef unsigned long long int GMUInt64;
+
+/*---Return null value; also use static asserts to check sizes---*/
 static GMBits1x64 GMBits1x64_null() {
+  GMStaticAssert(sizeof(GMBits1)*8 >= 1);
+  GMStaticAssert(sizeof(GMBits1x64) == 8);
+  GMStaticAssert(sizeof(GMUInt64) == 8);
+  GMStaticAssert(sizeof(GMUInt64) == sizeof(GMBits1x64)); /*---for Magma---*/
+
   GMBits1x64 value;
   value = 0;
   return value;
 }
-
-typedef unsigned long long int GMUInt64;
 
 //TODO: remove the following.
 
@@ -106,7 +114,9 @@ typedef double GMBits;
 
 typedef unsigned long long int GMULInt;
 
+/*----------------------------------------*/
 /*---Types for Czekanowski metric: floating point type---*/
+/*----------------------------------------*/
 
 #ifdef FP_PRECISION_SINGLE
 typedef float GMFloat;
@@ -118,32 +128,67 @@ typedef double GMFloat;
 enum { GM_MPI_FLOAT = MPI_DOUBLE };
 #endif
 
+/*----------------------------------------*/
 /*---Types for CCC metric---*/
+/*----------------------------------------*/
 
-/*---For Vectors: single 2-bit value (semi-nibble): use unsigned int---*/
+/*---For Vectors: single 2-bit value (semi-nibble):
+     use unsigned int as a container for a single item---*/
 typedef unsigned int GMBits2;
 
-/*---For Vectors: packed: 2 long integers to store 64 semi-nibbles---*/
-typedef struct { unsigned long long int data[2]; } GMBits2x64;
+/*---For Vectors: packed: 2 long integers, used to store 64 semi-nibbles---*/
+typedef unsigned long long int GMBits1_2x64;
+typedef struct { GMBits1_2x64 data[2]; } GMBits2x64;
 
-/*---For Metrics - 2 doubles to store 4 tally results---*/
-typedef struct { double data[2]; } GMTally4;
+/*---For Vectors: largest allowed size of a data value---*/
+enum { GM_BITS2_MAX_VALUE_BITS = 2 };
 
+/*---For metrics: single integer to store a tally result---*/
+typedef unsigned int GMTally1;
+
+/*---For Metrics: 2 doubles to store 4 packed tally results:
+     use 25 bits of each 52-bit mantissa to store a result---*/
+typedef struct { double data[2]; } GMTally2x2;
+
+/*---For Metrics: largest allowed size of a data value---*/
+enum { GM_TALLY1_MAX_VALUE_BITS = 25 };
+
+/*---Return null value; also use static asserts to check sizes---*/
 static GMBits2x64 GMBits2x64_null() {
+  GMStaticAssert(sizeof(GMBits2)*8 >= GM_BITS2_MAX_VALUE_BITS);
+  GMStaticAssert(sizeof(GMBits1_2x64) == 8);
+  GMStaticAssert(sizeof(GMBits2x64) == 2*sizeof(GMBits1_2x64));
+  GMStaticAssert(sizeof(GMBits2x64) == 16);
+  GMStaticAssert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); /*---for Magma---*/
+
   GMBits2x64 value;
   value.data[0] = 0;
   value.data[1] = 0;
   return value;
 }
 
+/*---Return null value; also use static asserts to check sizes---*/
+static GMTally2x2 GMTally2x2_null() {
+  GMStaticAssert(sizeof(GMTally1)*8 >= GM_TALLY1_MAX_VALUE_BITS);
+  GMStaticAssert(sizeof(GMTally2x2) == 16);
+  GMStaticAssert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); /*---for Magma---*/
+
+  GMTally2x2 value;
+  value.data[0] = 0;
+  value.data[1] = 0;
+  return value;
+}
+
+/*----------------------------------------*/
+
 /*---Type ids---*/
 
 enum {
   GM_DATA_TYPE_FLOAT = 1,
   GM_DATA_TYPE_BITS1 = 2,
-  GM_DATA_TYPE_UINT64 = 3,
+  GM_DATA_TYPE_UINT64 = 3, //---(design of this entry is not complete)
   GM_DATA_TYPE_BITS2 = 4,
-  GM_DATA_TYPE_TALLY4 = 5
+  GM_DATA_TYPE_TALLY2X2 = 5
 };
 
 /*---Dual CPU/GPU pointer---*/
