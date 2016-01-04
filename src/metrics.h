@@ -317,6 +317,19 @@ static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+static GMFloat GMMetrics_float_M_get_from_index(GMMetrics* metrics,
+                                                int index,
+                                                GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(index >= 0);
+  GMAssert((size_t)index < metrics->num_elts_local);
+
+  return ((GMFloat*)(metrics->data_M))[index];
+}
+
+/*---------------------------------------------------------------------------*/
+
 static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
                                                     int index,
                                                     GMEnv* env) {
@@ -326,6 +339,47 @@ static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
   GMAssert((size_t)index < metrics->num_elts_local);
 
   return ((GMTally2x2*)(metrics->data))[index];
+}
+
+/*---------------------------------------------------------------------------*/
+
+static GMFloat GMMetrics_czekanowski_get_from_index(GMMetrics* metrics,
+                                                    int index,
+                                                    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(index >= 0);
+  GMAssert((size_t)index < metrics->num_elts_local);
+
+  return GMMetrics_float_get_from_index(metrics, index, env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+static GMFloat GMMetrics_ccc_get_from_index(GMMetrics* metrics,
+                                            int index,
+                                            int i0,
+                                            int i1,
+                                            GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(index >= 0);
+  GMAssert((size_t)index < metrics->num_elts_local);
+  GMAssert(i0 >= 0 && i0 < 2);
+  GMAssert(i1 >= 0 && i1 < 2);
+
+  const GMTally2x2 tally2x2 = GMMetrics_tally2x2_get_from_index(metrics,
+                                                                index, env);
+  const GMUInt64 tally2 = tally2x2.data[i0];
+
+  /*---ISSUE: axis order???---*/
+  const int r = i1 == 0 ? tally2 % (1<<GM_TALLY1_MAX_VALUE_BITS)
+                        : tally2 / (1<<GM_TALLY1_MAX_VALUE_BITS);
+
+  const GMFloat result = r * GMMetrics_float_M_get_from_index(metrics,
+                                                              index, env);
+
+  return result;
 }
 
 /*===========================================================================*/
@@ -347,6 +401,26 @@ static void GMMetrics_float_set_2(GMMetrics* metrics,
 
   size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
   ((GMFloat*)(metrics->data))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void GMMetrics_float_M_set_2(GMMetrics* metrics,
+                                    int i,
+                                    int j,
+                                    GMFloat value,
+                                    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(!Env_all2all(env));
+  GMAssert(i >= 0);
+  GMAssert(i < metrics->num_vector_local);
+  GMAssert(j >= 0);
+  GMAssert(j < metrics->num_vector_local);
+  GMAssert(i < j);
+
+  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  ((GMFloat*)(metrics->data_M))[index] = value;
 }
 
 /*---------------------------------------------------------------------------*/

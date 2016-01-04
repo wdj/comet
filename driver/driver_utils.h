@@ -194,18 +194,38 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
           printf("%i", 1 + GMMetrics_coord_global_from_index(metrics, index,
                                                              coord_num, env));
         }
-        printf("): value: %.17e    [from proc %i]\n",
-               GMMetrics_float_get_from_index(metrics, index, env),
-               Env_proc_num(env));
+        printf("): value:");
+        printf(" %.17e",
+               GMMetrics_czekanowski_get_from_index(metrics, index, env));
+        printf("    [from proc %i]\n", Env_proc_num(env));
       } /*---for index---*/
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
+      size_t index;
+      for (index = 0; index < metrics->num_elts_local; ++index) {
+        printf("element (");
+        int coord_num = 0;
+        for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
+          if (coord_num > 0) {
+            printf(",");
+          }
+          /*---Present to the user as 1-based---*/
+          printf("%i", 1 + GMMetrics_coord_global_from_index(metrics, index,
+                                                             coord_num, env));
+        }
+        printf("): values:");
+        int i;
+        for (i=0; i<2; ++i) {
+          int j;
+          for (j=0; j<2; ++j) {
+            printf(" %.17e",
+                   GMMetrics_ccc_get_from_index(metrics, index, i, j, env));
 
-//TODO
-
-
-
+          }
+        }
+        printf("    [from proc %i]\n", Env_proc_num(env));
+      } /*---for index---*/
     } break;
     /*--------------------*/
     default:

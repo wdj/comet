@@ -59,10 +59,8 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   GMVectors* vectors_i = vectors;
 
   GMVectorSums vector_sums_i = GMVectorSums_null();
-  GMVectorSums vector_sums_tmp = GMVectorSums_null();
   GMVectorSums_create(&vector_sums_i, vectors, env);
-  GMVectorSums_create(&vector_sums_tmp, vectors, env);
-  gm_compute_vector_sums(vectors_i, &vector_sums_i, &vector_sums_tmp, env);
+  GMVectorSums_compute(&vector_sums_i, vectors_i, env);
 
   /*---Numerator---*/
 
@@ -129,7 +127,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
     gm_set_vectors_start(vectors_j, &vectors_j_buf, env);
     gm_set_vectors_wait(env);
 
-    gm_compute_vector_sums(vectors_j, &vector_sums_j, &vector_sums_tmp, env);
+    GMVectorSums_compute(&vector_sums_j, vectors_j, env);
 
     /*---Compute numerators---*/
 
@@ -179,7 +177,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
     gm_set_vectors_start(vectors_j, &vectors_j_buf, env);
     gm_set_vectors_wait(env);
 
-    gm_compute_vector_sums(vectors_j, &vector_sums_j, &vector_sums_tmp, env);
+    GMVectorSums_compute(&vector_sums_j, vectors_j, env);
 
     int proc_diff_k = 0;
 
@@ -207,7 +205,7 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
       gm_set_vectors_start(vectors_k, &vectors_k_buf, env);
       gm_set_vectors_wait(env);
 
-      gm_compute_vector_sums(vectors_k, &vector_sums_k, &vector_sums_tmp, env);
+      GMVectorSums_compute(&vector_sums_k, vectors_k, env);
 
       /*---Compute numerators---*/
 
@@ -234,7 +232,6 @@ void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
   GMVectorSums_destroy(&vector_sums_k, env);
   GMVectorSums_destroy(&vector_sums_j, env);
   GMVectorSums_destroy(&vector_sums_i, env);
-  GMVectorSums_destroy(&vector_sums_tmp, env);
 
   gm_free_magma(&vectors_k_buf, env);
   gm_free_magma(&vectors_j_buf, env);
@@ -333,10 +330,8 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   /*---Denominator---*/
 
   GMVectorSums vector_sums = GMVectorSums_null();
-  GMVectorSums vector_sums_tmp = GMVectorSums_null();
   GMVectorSums_create(&vector_sums, vectors, env);
-  GMVectorSums_create(&vector_sums_tmp, vectors, env);
-  gm_compute_vector_sums(vectors, &vector_sums, &vector_sums_tmp, env);
+  GMVectorSums_compute(&vector_sums, vectors, env);
 
   /*---Numerator---*/
   const int numvec = metrics->num_vector_local;
@@ -372,7 +367,6 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
   /*---Free memory and finalize---*/
 
   GMVectorSums_destroy(&vector_sums, env);
-  GMVectorSums_destroy(&vector_sums_tmp, env);
 
   gm_free_magma(&vectors_buf, env);
 

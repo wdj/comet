@@ -307,19 +307,32 @@ void GMMetrics_create(GMMetrics* metrics,
   /*---Allocations---*/
 
   switch (data_type_id) {
-    case GM_DATA_TYPE_FLOAT:
-      metrics->data = (GMFloat*)malloc(metrics->num_elts_local*sizeof(GMFloat));
-      GMAssert(metrics->data != NULL);
-      break;
+    /*----------*/
     case GM_DATA_TYPE_BITS1: {
+      /*---(design not complete)---*/
       const size_t num_floats_needed =
           gm_ceil_i8(metrics->num_elts_local, 8 * sizeof(GMFloat));
       metrics->data = malloc(num_floats_needed * sizeof(GMFloat));
       GMAssert(metrics->data != NULL);
     } break;
+    /*----------*/
+    case GM_DATA_TYPE_FLOAT:
+      metrics->data = (GMFloat*)malloc(metrics->num_elts_local*sizeof(GMFloat));
+      GMAssert(metrics->data != NULL);
+      break;
+    /*----------*/
+    case GM_DATA_TYPE_TALLY2X2: {
+      metrics->data
+        = (GMTally2x2*)malloc(metrics->num_elts_local*sizeof(GMTally2x2));
+      GMAssert(metrics->data != NULL);
+      metrics->data_M
+        = (GMFloat*)malloc(metrics->num_elts_local*sizeof(GMFloat));
+      GMAssert(metrics->data_M != NULL);
+    } break;
+    /*----------*/
     default:
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
-  }
+  } /*---switch---*/
 }
 
 /*===========================================================================*/
@@ -336,6 +349,9 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
 
   free(metrics->data);
   free(metrics->coords_global_from_index);
+  if (metrics->data_M != NULL) {
+    free(metrics->data_M);
+  }
   *metrics = GMMetrics_null();
 }
 

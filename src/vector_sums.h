@@ -21,7 +21,9 @@ extern "C" {
 /*===========================================================================*/
 /*---Struct declaration---*/
 
-typedef struct { void* __restrict__ data; } GMVectorSums;
+typedef struct {
+  void* __restrict__ data;
+  void* __restrict__ data_tmp; } GMVectorSums;
 
 /*===========================================================================*/
 /*---Null object---*/
@@ -39,6 +41,25 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
 /*---Pseudo-destructor---*/
 
 void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env);
+
+/*===========================================================================*/
+/*---Compute---*/
+
+/*---TODO: use these two functiuon only internally to the (pseudo-)class---*/
+
+void gm_compute_float_vector_sums(GMVectors* vectors,
+                                  GMFloat* __restrict__ vector_sums,
+                                  GMFloat* __restrict__ vector_sums_tmp,
+                                  GMEnv* env);
+
+void gm_compute_bits2_vector_sums(GMVectors* vectors,
+                                  GMFloat* __restrict__ vector_sums,
+                                  GMFloat* __restrict__ vector_sums_tmp,
+                                  GMEnv* env);
+
+void GMVectorSums_compute(GMVectorSums* vector_sums,
+                          GMVectors* vectors,
+                          GMEnv* env);
 
 #ifdef __cplusplus
 } /*---extern "C"---*/

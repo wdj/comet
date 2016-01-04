@@ -12,6 +12,7 @@
 
 #include "env.h"
 #include "vectors.h"
+#include "vector_sums.h"
 #include "metrics.h"
 #include "compute_metrics_ccc.h"
 
@@ -39,16 +40,14 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
+  /*---Compute sums---*/
 
+  GMFloat* vector_sums = GMFloat_malloc(metrics->num_vector_local);
+  GMFloat* vector_sums_tmp = GMFloat_malloc(metrics->num_vector_local);
 
-  /*---Compute sums for denominators---*/
+  gm_compute_bits2_vector_sums(vectors, vector_sums, vector_sums_tmp, env);
 
-//  GMFloat* vector_sums = GMFloat_malloc(metrics->num_vector_local);
-//  GMFloat* vector_sums_tmp = GMFloat_malloc(metrics->num_vector_local);
-
-//  gm_compute_float_vector_sums(vectors, vector_sums, vector_sums_tmp, env);
-
-  /*---Compute numerators---*/
+  /*---Compute R---*/
 
   int i = 0;
   int j = 0;
@@ -80,7 +79,7 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
                         ( (   (value_i & 2) ) && (   (value_j & 1) ) ) +
                         ( (   (value_i & 2) ) && (   (value_j & 2) ) );
 
-// NOTE: "since the sum of all 4 of these relative co-occurences is 1 we really only need to compute 3 of them. Then the last one is just 1 minus the rest.
+// NOTE: "since the sum of all 4 of these relative co-occurences is 1 we really only need to compute 3 of them. Then the last one is just 1 minus the rest."
 
         sum.data[0] += r00 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r01;
         sum.data[1] += r10 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r11;
@@ -89,20 +88,31 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
     } /*---for j---*/
   }   /*---for i---*/
 
-  /*---Combine---*/
+  /*---Compute multipliers---*/
+ 
+  const GMFloat one = 1;
 
-//  for (i = 0; i < metrics->num_vector_local; ++i) {
-//    for (j = i + 1; j < metrics->num_vector_local; ++j) {
+  const GMFloat recip_m = one / vectors->num_field;
+
+  for (i = 0; i < metrics->num_vector_local; ++i) {
+    const GMFloat f_i = ((one / 2 ) * recip_m) * vector_sums[i];
+    for (j = i + 1; j < metrics->num_vector_local; ++j) {
+      const GMFloat f_j = ((one / 2 ) * recip_m) * vector_sums[j];
+      const GMFloat result = ((one / 2 ) * recip_m) *
+                             (one - (2*one/3) * f_i) *
+                             (one - (2*one/3) * f_j);
+      GMMetrics_float_M_set_2(metrics, i, j, result, env);
+
 //      const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
 //      const GMFloat denominator = vector_sums[i] + vector_sums[j];
 //      GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
-//    } /*---for j---*/
-//  }   /*---for i---*/
+    } /*---for j---*/
+  }   /*---for i---*/
 
   /*---Deallocations---*/
 
-//  free(vector_sums);
-//  free(vector_sums_tmp);
+  free(vector_sums);
+  free(vector_sums_tmp);
 }
 
 /*===========================================================================*/

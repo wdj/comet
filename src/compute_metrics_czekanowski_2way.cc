@@ -49,10 +49,8 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
   GMVectorSums vector_sums_offproc = GMVectorSums_null();
-  GMVectorSums vector_sums_tmp = GMVectorSums_null();
   GMVectorSums_create(&vector_sums_onproc, vectors, env);
   GMVectorSums_create(&vector_sums_offproc, vectors, env);
-  GMVectorSums_create(&vector_sums_tmp, vectors, env);
 
   /*---Create double buffer of vectors objects for send/recv---*/
 
@@ -278,11 +276,9 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
     if (is_compute_step && do_compute_block) {
       if (is_first_compute_step) {
-        gm_compute_vector_sums(vectors_left, &vector_sums_onproc,
-                               &vector_sums_tmp, env);
+        GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       } else {
-        gm_compute_vector_sums(vectors_right, &vector_sums_offproc,
-                               &vector_sums_tmp, env);
+        GMVectorSums_compute(&vector_sums_offproc, vectors_right, env);
       }
     }
 
@@ -313,7 +309,6 @@ void gm_compute_metrics_czekanowski_2way_all2all(GMMetrics* metrics,
 
   GMVectorSums_destroy(&vector_sums_onproc, env);
   GMVectorSums_destroy(&vector_sums_offproc, env);
-  GMVectorSums_destroy(&vector_sums_tmp, env);
 
   for (i = 0; i < 2; ++i) {
     GMVectors_destroy(&vectors_01[i], env);
@@ -408,12 +403,10 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   /*---Denominator---*/
 
   GMVectorSums vector_sums = GMVectorSums_null();
-  GMVectorSums vector_sums_tmp = GMVectorSums_null();
   GMVectorSums_create(&vector_sums, vectors, env);
-  GMVectorSums_create(&vector_sums_tmp, vectors, env);
 
   /* .02 / 1.56 */
-  gm_compute_vector_sums(vectors, &vector_sums, &vector_sums_tmp, env);
+  GMVectorSums_compute(&vector_sums, vectors, env);
 
   /*---------------*/
   /*---Numerator---*/
@@ -477,7 +470,6 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   /*---Free memory---*/
 
   GMVectorSums_destroy(&vector_sums, env);
-  GMVectorSums_destroy(&vector_sums_tmp, env);
 
   gm_free_magma(&vectors_buf, env);
   gm_free_magma(&metrics_buf, env);
