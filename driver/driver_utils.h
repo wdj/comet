@@ -169,7 +169,6 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
   }
 
   /*---Due to redundancy, only results from some processors are needed---*/
-
   if (Env_proc_num_field(env) != 0) {
     return;
   }
@@ -184,6 +183,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
     case GM_DATA_TYPE_FLOAT: {
       size_t index;
       for (index = 0; index < metrics->num_elts_local; ++index) {
+        /*---Coordinate---*/
         printf("element (");
         int coord_num = 0;
         for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
@@ -194,6 +194,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
           printf("%i", 1 + GMMetrics_coord_global_from_index(metrics, index,
                                                              coord_num, env));
         }
+        /*---Value---*/
         printf("): value:");
         printf(" %.17e",
                GMMetrics_czekanowski_get_from_index(metrics, index, env));
@@ -204,6 +205,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
     case GM_DATA_TYPE_TALLY2X2: {
       size_t index;
       for (index = 0; index < metrics->num_elts_local; ++index) {
+        /*---Coordinate---*/
         printf("element (");
         int coord_num = 0;
         for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
@@ -214,14 +216,45 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
           printf("%i", 1 + GMMetrics_coord_global_from_index(metrics, index,
                                                              coord_num, env));
         }
+        /*---Value---*/
         printf("): values:");
         int i;
         for (i=0; i<2; ++i) {
           int j;
           for (j=0; j<2; ++j) {
-            printf(" %.17e",
-                   GMMetrics_ccc_get_from_index(metrics, index, i, j, env));
-
+            printf(" %.17e", GMMetrics_ccc_get_from_index_2(metrics, index,
+                                                            i, j, env));
+          }
+        }
+        printf("    [from proc %i]\n", Env_proc_num(env));
+      } /*---for index---*/
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_TALLY4X2: {
+      size_t index;
+      for (index = 0; index < metrics->num_elts_local; ++index) {
+        /*---Coordinate---*/
+        printf("element (");
+        int coord_num = 0;
+        for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
+          if (coord_num > 0) {
+            printf(",");
+          }
+          /*---Present to the user as 1-based---*/
+          printf("%i", 1 + GMMetrics_coord_global_from_index(metrics, index,
+                                                             coord_num, env));
+        }
+        /*---Value---*/
+        printf("): values:");
+        int i;
+        for (i=0; i<2; ++i) {
+          int j;
+          for (j=0; j<2; ++j) {
+            int k;
+            for (k=0; k<2; ++k) {
+              printf(" %.17e", GMMetrics_ccc_get_from_index_3(metrics, index,
+                                                              i, j, k, env));
+            }
           }
         }
         printf("    [from proc %i]\n", Env_proc_num(env));
@@ -230,7 +263,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
     /*--------------------*/
     default:
       GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
-  }
+  } /*---switch---*/
 }
 
 /*===========================================================================*/

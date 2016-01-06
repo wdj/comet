@@ -303,7 +303,7 @@ int Env_data_type_metrics(const GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
-      return GM_DATA_TYPE_TALLY2X2;
+      return env->num_way_ == 2 ? GM_DATA_TYPE_TALLY2X2 : GM_DATA_TYPE_TALLY4X2;
   }
   GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
   return 0;

@@ -146,9 +146,10 @@ enum { GM_BITS2_MAX_VALUE_BITS = 2 };
 /*---For metrics: single integer to store a tally result---*/
 typedef unsigned int GMTally1;
 
-/*---For Metrics: 2 doubles to store 4 packed tally results:
+/*---For Metrics: 2 (4) doubles to store 4 (8) packed tally results:
      use 25 bits of each 52-bit mantissa to store a result---*/
 typedef struct { double data[2]; } GMTally2x2;
+typedef struct { double data[4]; } GMTally4x2;
 
 /*---For Metrics: largest allowed size of a data value---*/
 enum { GM_TALLY1_MAX_VALUE_BITS = 25 };
@@ -179,6 +180,43 @@ static GMTally2x2 GMTally2x2_null() {
   return value;
 }
 
+/*---Return null value; also use static asserts to check sizes---*/
+static GMTally4x2 GMTally4x2_null() {
+  GMStaticAssert(sizeof(GMTally4x2) == 32);
+
+  GMTally4x2 value;
+  value.data[0] = 0;
+  value.data[1] = 0;
+  value.data[2] = 0;
+  value.data[3] = 0;
+  return value;
+}
+
+/*---Get an entry---*/
+static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
+  GMAssert(i0 >= 0 && i0 < 2);
+  GMAssert(i1 >= 0 && i1 < 2);
+
+  const GMUInt64 tally2 = tally2x2.data[i0];
+
+  const GMTally1 result = i1 == 0 ? tally2 % (1<<GM_TALLY1_MAX_VALUE_BITS)
+                                  : tally2 / (1<<GM_TALLY1_MAX_VALUE_BITS);
+  return result;
+}
+
+/*---Get an entry---*/
+static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
+  GMAssert(i0 >= 0 && i0 < 2);
+  GMAssert(i1 >= 0 && i1 < 2);
+  GMAssert(i2 >= 0 && i2 < 2);
+
+  const GMUInt64 tally2 = tally4x2.data[i1 + 2 * i0];
+
+  const GMTally1 result = i2 == 0 ? tally2 % (1<<GM_TALLY1_MAX_VALUE_BITS)
+                                  : tally2 / (1<<GM_TALLY1_MAX_VALUE_BITS);
+  return result;
+}
+
 /*----------------------------------------*/
 
 /*---Type ids---*/
@@ -188,7 +226,8 @@ enum {
   GM_DATA_TYPE_BITS1 = 2,
   GM_DATA_TYPE_UINT64 = 3, //---(design of this entry is not complete)
   GM_DATA_TYPE_BITS2 = 4,
-  GM_DATA_TYPE_TALLY2X2 = 5
+  GM_DATA_TYPE_TALLY2X2 = 5,
+  GM_DATA_TYPE_TALLY4X2 = 6
 };
 
 /*---Dual CPU/GPU pointer---*/
@@ -207,6 +246,15 @@ enum { GM_CHECKSUM_SIZE = 3 };
 typedef struct {
   size_t data[GM_CHECKSUM_SIZE];
 } GMChecksum;
+
+static GMChecksum GMChecksum_null() {
+  GMChecksum result;
+  int i = 0;
+  for (i=0; i<GM_CHECKSUM_SIZE; ++i) {
+    result.data[i] = 0;
+  }
+  return result;
+}
 
 static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
   _Bool result = GM_BOOL_TRUE;
