@@ -35,6 +35,7 @@ GMMetrics GMMetrics_null() {
 
 void GMMetrics_create(GMMetrics* metrics,
                       int data_type_id,
+                      int num_field,
                       int num_vector_local,
                       GMEnv* env) {
   GMAssert(metrics);
@@ -48,9 +49,12 @@ void GMMetrics_create(GMMetrics* metrics,
   }
 
   metrics->data_type_id = data_type_id;
+  metrics->num_field = num_field;
   metrics->num_vector_local = num_vector_local;
   metrics->num_elts_0 = 0;
   metrics->num_elts_01 = 0;
+  metrics->m = num_field;
+  metrics->recip_m = ((GMFloat)1) / num_field;
 
   /*---Compute global values---*/
 
@@ -449,7 +453,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         for (i = 1; i < Env_num_way(env); ++i) {
           uid = uid * metrics->num_vector + coords[i];
         }
-        uid = uid * metrics->data_type_num_values + i_value
+        uid = uid * metrics->data_type_num_values + i_value;
         /*---Randomize---*/
         const UI64 rand1 = gm_randomize(uid + 956158765);
         const UI64 rand2 = gm_randomize(uid + 842467637);

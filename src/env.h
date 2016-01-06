@@ -192,6 +192,20 @@ static GMTally4x2 GMTally4x2_null() {
   return value;
 }
 
+/*---Encode/decode between float and pair of tally values---*/
+
+static GMFloat GMTally1_encode(GMTally1 val0, GMTally1 val1) {
+  return (GMFloat)(val0 + (1<<GM_TALLY1_MAX_VALUE_BITS) * val1);
+}
+
+static void GMTally1_decode(GMTally1* __restrict__ val0,
+                            GMTally1* __restrict__ val1,
+                            GMFloat v) {
+  const GMUInt64 tally2 = (GMUInt64)v;
+  *val0 = tally2 & ((1<<GM_TALLY1_MAX_VALUE_BITS)-1);
+  *val1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
+}
+
 /*---Get an entry---*/
 static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
   GMAssert(i0 >= 0 && i0 < 2);

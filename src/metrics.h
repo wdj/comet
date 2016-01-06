@@ -31,11 +31,16 @@ extern "C" {
 
 typedef struct {
   /*---Logical sizes---*/
+  int num_field;
   int num_vector;
   int num_vector_local;
+  int pad1;
   size_t num_elts_local;
+  /*---Helper values---*/
   size_t num_elts_0;
   size_t num_elts_01;
+  GMFloat m;
+  GMFloat recip_m;
   /*---map of (contig) index to linearized Cartesian coords---*/
   size_t* coords_global_from_index;
   /*---Other---*/
@@ -55,6 +60,7 @@ GMMetrics GMMetrics_null(void);
 
 void GMMetrics_create(GMMetrics* metrics,
                       int data_type_id,
+                      int num_field,
                       int num_vector_local,
                       GMEnv* env);
 
@@ -381,11 +387,26 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
 
   const GMTally2x2 tally2x2 = GMMetrics_tally2x2_get_from_index(metrics,
                                                                 index, env);
-//---NOTE: must check that order is correct.
-  const GMTally1 r = GMTally2x2_get(tally2x2, i0, i1);
+  const GMTally1 rij = GMTally2x2_get(tally2x2, i0, i1);
 
-  const GMFloat result = r * GMMetrics_float_M_get_from_index(metrics,
-                                                              index, env);
+  const GMFloat si1_sj1 = GMMetrics_float_M_get_from_index(metrics, index, env);
+
+  GMTally1 si_1;
+  GMTally1 sj_1;
+  GMTally1_decode(&si_1, &sj_1, si1_sj1);
+
+  const GMTally1 si = i0 == 0 ? (2 * metrics->num_field - si_1) : si_1;
+  const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field - sj_1) : sj_1;
+
+//---TODO: optimize
+  const GMFloat one = 1;
+  const GMFloat m = metrics->m;
+  const GMFloat recip_m = metrics->recip_m;
+
+  /*---Arrange so as to guarantee each factor nonnegative---*/
+  const GMFloat result = ((9 * one / 2) / 4) * recip_m * rij *
+                         (3 * m - si) * (one/3) * recip_m *
+                         (3 * m - sj) * (one/3) * recip_m;
   return result;
 }
 
@@ -407,8 +428,8 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
 
   const GMTally4x2 tally4x2 = GMMetrics_tally4x2_get_from_index(metrics,
                                                                 index, env);
-//---NOTE: must check that order is correct.
-  const GMTally1 r = GMTally4x2_get(tally4x2, i0, i1);
+//---NOTE: must check that the order here is correct.
+  const GMTally1 r = GMTally4x2_get(tally4x2, i0, i1, i2);
 
   const GMFloat result = r * GMMetrics_float_M_get_from_index(metrics,
                                                               index, env);

@@ -54,7 +54,7 @@ static void create_args(char* argstring, int* argc, const char **argv) {
 /*===========================================================================*/
 /*---Set the entries of the vectors---*/
 
-static void input_vectors(GMVectors* vectors, GMEnv* env) {
+static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
   GMAssert(vectors != NULL);
   GMAssert(env != NULL);
 
@@ -89,6 +89,9 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
           _Bool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
           /*---Store---*/
           GMVectors_bit_set(vectors, field_local, vector_local, value, env);
+          /*---Print---*/
+          if (verbosity > 2) {
+          }
         } /*---field---*/
       }   /*---vector_local---*/
 
@@ -119,9 +122,16 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
           /*---Reduce so that after summing num_field times the integer
                still fully fits in double precision fraction part---*/
           rand_value >>= (64-52) + gm_log2(vectors->num_field);
-          /*---Store as floating point value---*/
+          /*---Store---*/
           GMFloat value = rand_value;
           GMVectors_float_set(vectors, field_local, vector_local, value, env);
+          /*---Print---*/
+          if (verbosity > 2) {
+            printf("vec %i vec proc %i field %i field proc %i val %e\n",
+                   vector_local, Env_proc_num_vector(env),
+                   field_local, Env_proc_num_field(env),
+                   value);
+          }
         } /*---field---*/
       }   /*---vector_local---*/
     } break;
@@ -148,6 +158,13 @@ static void input_vectors(GMVectors* vectors, GMEnv* env) {
           GMBits2 value = (int)( (4.-1e-5) * float_rand_value);
           /*---Store---*/
           GMVectors_bits2_set(vectors, field_local, vector_local, value, env);
+          /*---Print---*/
+          if (verbosity > 2) {
+            printf("vec %i vec proc %i field %i field proc %i val %.1i%.1i\n",
+                   vector_local, Env_proc_num_vector(env),
+                   field_local, Env_proc_num_field(env),
+                   value/2, value%2);
+          }
         } /*---field---*/
       }   /*---vector_local---*/
     } break;
@@ -352,13 +369,13 @@ static GMChecksum perform_run(int argc, const char** argv) {
   GMVectors_create(&vectors, Env_data_type_vectors(&env),
                    num_field, num_vector_local, &env);
 
-  input_vectors(&vectors, &env);
+  input_vectors(&vectors, verbosity, &env);
 
   /*---Set up metrics container for results---*/
 
   GMMetrics metrics = GMMetrics_null();
   GMMetrics_create(&metrics, Env_data_type_metrics(&env),
-                   num_vector_local, &env);
+                   num_field, num_vector_local, &env);
 
   /*---Calculate metrics---*/
 
