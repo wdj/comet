@@ -1,0 +1,19 @@
+# Automatically generated from Makefile ZHDR and ZSRC
+CHDR = \
+	magma_tally4sparse_c.h
+
+DHDR = \
+	magma_tally4sparse_d.h \
+	magma_tally4sparse_ds.h
+
+SHDR = \
+	magma_tally4sparse_s.h
+
+CSRC = \
+	
+
+DSRC = \
+	
+
+SSRC = \
+	

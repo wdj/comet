@@ -1,0 +1,25 @@
+var group__magma_tally4__dgeqrf__comp =
+[
+    [ "magma_tally4_dgegqr_gpu", "group__magma_tally4__dgeqrf__comp.html#ga0376527df86ce873c540bd217cb0a50a", null ],
+    [ "magma_tally4_dgeqr2_batched", "group__magma_tally4__dgeqrf__comp.html#ga8b2de8769487f5adfd22085faefb369f", null ],
+    [ "magma_tally4_dgeqr2x2_gpu", "group__magma_tally4__dgeqrf__comp.html#ga806641cdc48e95759e2b35f81c722630", null ],
+    [ "magma_tally4_dgeqr2x3_gpu", "group__magma_tally4__dgeqrf__comp.html#ga4615e017d8e9ec150919b8cd560e006e", null ],
+    [ "magma_tally4_dgeqr2x4_gpu", "group__magma_tally4__dgeqrf__comp.html#gabff6c00940dbe69518f6cb05364af459", null ],
+    [ "magma_tally4_dgeqr2x_gpu", "group__magma_tally4__dgeqrf__comp.html#ga526015d27706d590f221a7535a32cf97", null ],
+    [ "magma_tally4_dgeqrf", "group__magma_tally4__dgeqrf__comp.html#ga472ce8a0ffb5cfdaa1d84b356671adb7", null ],
+    [ "magma_tally4_dgeqrf2_gpu", "group__magma_tally4__dgeqrf__comp.html#ga6998f468207dbed0239ebcfa5f110f8e", null ],
+    [ "magma_tally4_dgeqrf2_mgpu", "group__magma_tally4__dgeqrf__comp.html#gad05542d08a26832ae15510fc5cc46fab", null ],
+    [ "magma_tally4_dgeqrf3_gpu", "group__magma_tally4__dgeqrf__comp.html#gad8eaeb131d5bb14f7f60320081f4d071", null ],
+    [ "magma_tally4_dgeqrf4", "group__magma_tally4__dgeqrf__comp.html#ga3de24e58b8dd0d91f1107c8a00161380", null ],
+    [ "magma_tally4_dgeqrf_batched", "group__magma_tally4__dgeqrf__comp.html#ga2e5775b695cd05e1e61efa2c8b7670c5", null ],
+    [ "magma_tally4_dgeqrf_gpu", "group__magma_tally4__dgeqrf__comp.html#ga20a025e45c396f28377f49be9616f31d", null ],
+    [ "magma_tally4_dgeqrf_ooc", "group__magma_tally4__dgeqrf__comp.html#ga48c9f101bd7829be09b425baadde3ee1", null ],
+    [ "magma_tally4_dorgqr", "group__magma_tally4__dgeqrf__comp.html#ga09f0829a12ccf16d66983440f47f35dd", null ],
+    [ "magma_tally4_dorgqr2", "group__magma_tally4__dgeqrf__comp.html#ga533c1e3a356b9ad35a73d4e01f0d23fb", null ],
+    [ "magma_tally4_dorgqr_gpu", "group__magma_tally4__dgeqrf__comp.html#gaed34f29547a25016b378df030b54ad2e", null ],
+    [ "magma_tally4_dorgqr_m", "group__magma_tally4__dgeqrf__comp.html#gae1ecb5966c9cb28189b88e0dd9b5e3d2", null ],
+    [ "magma_tally4_dormqr", "group__magma_tally4__dgeqrf__comp.html#ga87c875b90a1663dcc8763ba85e284168", null ],
+    [ "magma_tally4_dormqr2_gpu", "group__magma_tally4__dgeqrf__comp.html#ga868135848eabcf127ec4065b2f4fbb48", null ],
+    [ "magma_tally4_dormqr_gpu", "group__magma_tally4__dgeqrf__comp.html#gac24b4a9e59dc66f9b078baac865302d5", null ],
+    [ "magma_tally4_dormqr_m", "group__magma_tally4__dgeqrf__comp.html#gaeab0c0e7c4bb84fc2e0a2e3572998cf8", null ]
+];

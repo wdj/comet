@@ -8,13 +8,13 @@
 TAG="${1:-}"
 if [ "$TAG" = "" -o "$TAG" = "-h" -o "$TAG" = "--help" ] ; then 
   echo "Usage: clone_magma <tag>"
-  echo "  where <tag> is an alphanumeric string."
+  echo "  where <tag> is an alphanumeric string. magma_<tag> is the new library name."
   exit 0
 fi
 
-MATCH="`echo \"$TAG\"X | sed -e 's/[a-zA-Z0-9]//g'`"
+MATCH="`echo \"$TAG\" | sed -e 's/[a-zA-Z0-9]//g'`"
 
-if [ "$TAG" != "" ] ; then
+if [ "$MATCH" != "" ] ; then
   echo "clone_magma: invalid argument." 1>&2
   exit 1
 fi
@@ -28,7 +28,7 @@ gunzip <${MAGMA}.tar.gz | tar xf -
 
 MATCHES=`grep -ri $TAG magma-1.6.2 | wc -l`
 
-if [ $MATCHES != 0 ] then
+if [ $MATCHES != 0 ] ; then
   echo "Error: tag string already occurs in Magma source." 1>&2
   exit 1
 fi
