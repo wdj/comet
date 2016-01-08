@@ -48,8 +48,12 @@ void GMMetrics_create(GMMetrics* metrics,
     return;
   }
 
+  GMInsist(env, num_field % Env_num_proc_field(env) == 0
+    ? "num_proc_field must exactly divide the total number of fields" : 0);
+
   metrics->data_type_id = data_type_id;
   metrics->num_field = num_field;
+  metrics->num_field_local = num_field / Env_num_proc_field(env);
   metrics->num_vector_local = num_vector_local;
   metrics->num_elts_0 = 0;
   metrics->num_elts_01 = 0;

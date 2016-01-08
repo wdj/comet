@@ -20,8 +20,10 @@ SET(LIB_SOURCES
   src/vectors.cc
   src/vector_sums.cc
   src/metrics.cc
+  src/compute_utils_magma.cc
   src/compute_metrics.cc
   src/compute_metrics_utils.cc
+  src/compute_metrics_2way.cc
   src/compute_metrics_ccc.cc
   src/compute_metrics_czekanowski_2way.cc
   src/compute_metrics_czekanowski_3way.cc
@@ -33,8 +35,10 @@ SET(LIB_INCLUDES
   src/vectors.h
   src/vector_sums.h
   src/metrics.h
+  src/compute_utils_magma.h
   src/compute_metrics.h
   src/compute_metrics_utils.h
+  src/compute_metrics_2way.h
   src/compute_metrics_ccc.h
   src/compute_metrics_czekanowski_2way.h
   src/compute_metrics_czekanowski_3way.h

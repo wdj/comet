@@ -15,11 +15,12 @@
 #include "env.h"
 #include "vectors.h"
 #include "metrics.h"
-#include "compute_metrics.h"
+#include "compute_metrics_2way.cc"
 #include "compute_metrics_sorenson.h"
 #include "compute_metrics_czekanowski_2way.h"
 #include "compute_metrics_czekanowski_3way.h"
 #include "compute_metrics_ccc.h"
+#include "compute_metrics.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,7 +42,13 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   switch (Env_metric_type(env) + GM_NUM_METRIC_TYPE * (
           Env_compute_method(env) + GM_NUM_COMPUTE_METHOD * (
           Env_num_way(env)))) {
-    /*--------------------*/
+    /*====================*/
+
+    case GM_METRIC_TYPE_SORENSON +
+        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
+                            GM_NUM_COMPUTE_METHOD * (2)):
+      gm_compute_metrics_sorenson_2way_ref(metrics, vectors, env);
+      break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
@@ -55,10 +62,12 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
       gm_compute_metrics_sorenson_2way_gpu(metrics, vectors, env);
       break;
 
+    /*--------------------*/
+
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_sorenson_2way_ref(metrics, vectors, env);
+                            GM_NUM_COMPUTE_METHOD * (3)):
+      gm_compute_metrics_sorenson_3way_ref(metrics, vectors, env);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
@@ -73,65 +82,86 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
       gm_compute_metrics_sorenson_3way_gpu(metrics, vectors, env);
       break;
 
-    case GM_METRIC_TYPE_SORENSON +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (3)):
-      gm_compute_metrics_sorenson_3way_ref(metrics, vectors, env);
-      break;
+    /*====================*/
+
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF+
+                            GM_NUM_COMPUTE_METHOD * (2)): {
+        if (Env_all2all(env)) {
+          gm_compute_metrics_2way_all2all(metrics, vectors, env);
+        } else {
+          gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
+        }
+      } break;
+
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU+
+                            GM_NUM_COMPUTE_METHOD * (2)): {
+        if (Env_all2all(env)) {
+          gm_compute_metrics_2way_all2all(metrics, vectors, env);
+        } else {
+          gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
+        }
+      } break;
+
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU+
+                            GM_NUM_COMPUTE_METHOD * (2)): {
+        if (Env_all2all(env)) {
+          gm_compute_metrics_2way_all2all(metrics, vectors, env);
+        } else {
+          gm_compute_metrics_czekanowski_2way_gpu(metrics, vectors, env);
+        }
+      } break;
 
     /*--------------------*/
 
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
-                            GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
-      break;
-
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
-                            GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_czekanowski_2way_gpu(metrics, vectors, env);
-      break;
-
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
-      break;
-
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF+
                             GM_NUM_COMPUTE_METHOD * (3)):
       gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
       break;
 
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU+
+                            GM_NUM_COMPUTE_METHOD * (3)):
+      gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
+      break;
+
+    case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU+
                             GM_NUM_COMPUTE_METHOD * (3)):
       gm_compute_metrics_czekanowski_3way_gpu(metrics, vectors, env);
       break;
 
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (3)):
-      gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
-      break;
+    /*====================*/
+
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
+                              GM_NUM_COMPUTE_METHOD * (2)): {
+        if (Env_all2all(env)) {
+          gm_compute_metrics_2way_all2all(metrics, vectors, env);
+        } else {
+          gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
+        }
+      } break;
+
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
+                              GM_NUM_COMPUTE_METHOD * (2)): {
+        if (Env_all2all(env)) {
+          gm_compute_metrics_2way_all2all(metrics, vectors, env);
+        } else {
+          gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
+        }
+      } break;
+
+    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
+                              GM_NUM_COMPUTE_METHOD * (2)): {
+        if (Env_all2all(env)) {
+          gm_compute_metrics_2way_all2all(metrics, vectors, env);
+        } else {
+          gm_compute_metrics_ccc_2way_gpu(metrics, vectors, env);
+        }
+      } break;
 
     /*--------------------*/
 
-    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
-                                                  GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
-      break;
-
-    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
-                                                  GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_ccc_2way_gpu(metrics, vectors, env);
-      break;
-
     case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                                                  GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
+                                                  GM_NUM_COMPUTE_METHOD * (3)):
+      gm_compute_metrics_ccc_3way_cpu(metrics, vectors, env);
       break;
 
     case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
@@ -144,10 +174,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
       gm_compute_metrics_ccc_3way_gpu(metrics, vectors, env);
       break;
 
-    case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                                                  GM_NUM_COMPUTE_METHOD * (3)):
-      gm_compute_metrics_ccc_3way_cpu(metrics, vectors, env);
-      break;
+    /*====================*/
 
     default:
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);

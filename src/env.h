@@ -280,6 +280,21 @@ static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
 }
 
 /*===========================================================================*/
+/*---Special arithmetic operations---*/
+
+static int gm_popcount64(GMUInt64 x) {
+/*---Adapted from https://en.wikipedia.org/wiki/Hamming_weight---*/
+  const GMUInt64 m1  = 0x5555555555555555;
+  const GMUInt64 m2  = 0x3333333333333333;
+  const GMUInt64 m4  = 0x0f0f0f0f0f0f0f0f;
+  const GMUInt64 h01 = 0x0101010101010101;
+  x -= (x >> 1) & m1;
+  x = (x & m2) + ((x >> 2) & m2);
+  x = (x + (x >> 4)) & m4;
+  return (x * h01)>>56;
+}
+
+/*===========================================================================*/
 /*---Environment struct declarations---*/
 
 typedef struct {

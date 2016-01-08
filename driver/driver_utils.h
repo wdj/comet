@@ -127,7 +127,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           GMVectors_float_set(vectors, field_local, vector_local, value, env);
           /*---Print---*/
           if (verbosity > 2) {
-            printf("vec %i vec proc %i field %i field proc %i val %e\n",
+            printf("vec %i vec_proc %i field %i field_proc %i value %e\n",
                    vector_local, Env_proc_num_vector(env),
                    field_local, Env_proc_num_field(env),
                    value);
@@ -160,7 +160,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           GMVectors_bits2_set(vectors, field_local, vector_local, value, env);
           /*---Print---*/
           if (verbosity > 2) {
-            printf("vec %i vec proc %i field %i field proc %i val %.1i%.1i\n",
+            printf("vec %i vec_proc %i field %i field_proc %i value %.1i%.1i\n",
                    vector_local, Env_proc_num_vector(env),
                    field_local, Env_proc_num_field(env),
                    value/2, value%2);

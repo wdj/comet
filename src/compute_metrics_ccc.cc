@@ -14,6 +14,7 @@
 #include "vectors.h"
 #include "vector_sums.h"
 #include "metrics.h"
+#include "compute_metrics_2way.h"
 #include "compute_metrics_ccc.h"
 
 #ifdef __cplusplus
@@ -33,8 +34,7 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
     ? "num_proc_field>1 for CPU case not supported" : 0);
 
   if (Env_all2all(env)) {
-//    gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);
-    GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
+    gm_compute_metrics_2way_all2all(metrics, vectors, env);
     return;
   }
 
@@ -52,13 +52,10 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
   for (i = 0; i < metrics->num_vector_local; ++i) {
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
       GMTally2x2 sum = GMTally2x2_null();
-      int field_local = 0;
-      for (field_local = 0; field_local < vectors->num_field_local;
-           ++field_local) {
-        const GMBits2 value_i = GMVectors_bits2_get(vectors,
-                                                    field_local, i, env);
-        const GMBits2 value_j = GMVectors_bits2_get(vectors,
-                                                    field_local, j, env);
+      int f = 0;
+      for (f = 0; f < vectors->num_field_local; ++f) {
+        const GMBits2 value_i = GMVectors_bits2_get(vectors, f, i, env);
+        const GMBits2 value_j = GMVectors_bits2_get(vectors, f, j, env);
 
         /* clang-format off */
         const int r00 = ( ( !(value_i & 1) ) && ( !(value_j & 1) ) ) +

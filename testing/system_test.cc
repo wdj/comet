@@ -66,7 +66,7 @@ _Bool compare_runs(const char* options1, const char* options2) {
 
 /*===========================================================================*/
 
-TEST(SystemTest,General) {
+void SystemTest_czekanowski_() {
 
   //----------
   //---2-way, all2all no
@@ -244,7 +244,7 @@ TEST(SystemTest,General) {
 
 /*===========================================================================*/
 
-TEST(SystemTest,CCCSimple) {
+void SystemTest_ccc_simple_() {
 
   const int num_field = 5;
   const int num_vector_local = 2;
@@ -254,8 +254,8 @@ TEST(SystemTest,CCCSimple) {
   GMEnv_create(env);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
-  env->all2all_ = GM_BOOL_FALSE;
-  Env_set_compute_method(env, GM_COMPUTE_METHOD_REF);
+  env->all2all_ = GM_BOOL_TRUE;
+  Env_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
   Env_set_num_proc(env, 1, 1);
 
   GMVectors vectors_value = GMVectors_null();
@@ -263,18 +263,17 @@ TEST(SystemTest,CCCSimple) {
   GMVectors_create(vectors, Env_data_type_vectors(env),
                    num_field, num_vector_local, env);
 
-  const int G0 = 0;
-  const int T0 = 1;
-  const int G1 = 0;
-  const int A1 = 1;
-
   if (Env_is_proc_active(env)) {
+    const int G0 = 0;
+    const int T0 = 1;
     int i = 0;
     GMVectors_bits2_set(vectors, i++, 0, 2*G0 + 1*T0 , env);
     GMVectors_bits2_set(vectors, i++, 0, 2*T0 + 1*T0 , env);
     GMVectors_bits2_set(vectors, i++, 0, 2*T0 + 1*T0 , env);
     GMVectors_bits2_set(vectors, i++, 0, 2*T0 + 1*T0 , env);
     GMVectors_bits2_set(vectors, i++, 0, 2*T0 + 1*T0 , env);
+    const int G1 = 0;
+    const int A1 = 1;
     i = 0;
     GMVectors_bits2_set(vectors, i++, 1, 2*G1 + 1*G1 , env);
     GMVectors_bits2_set(vectors, i++, 1, 2*A1 + 1*G1 , env);
@@ -322,6 +321,16 @@ TEST(SystemTest,CCCSimple) {
   GMVectors_destroy(vectors, env);
 
   GMEnv_destroy(env);
+}
+
+/*===========================================================================*/
+
+TEST(SystemTest,czekanowski) {
+  SystemTest_czekanowski_();
+}
+
+TEST(SystemTest,ccc_simple) {
+  SystemTest_ccc_simple_();
 }
 
 /*===========================================================================*/

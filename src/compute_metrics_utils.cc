@@ -8,272 +8,16 @@
  */
 /*---------------------------------------------------------------------------*/
 
-#include "cuda.h"
-
-#include "magma_minproduct.h"
-#include "magma_minproduct_lapack.h"
-
 #include "env.h"
 #include "vector_sums.h"
 #include "vectors.h"
 #include "metrics.h"
+#include "compute_utils_magma.h"
 #include "compute_metrics_utils.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*===========================================================================*/
-/*---Magma setup, teardown---*/
-
-void gm_magma_initialize(GMEnv* env) {
-  GMAssert(env != NULL);
-
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  switch (Env_metric_type(env)) {
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_SORENSON: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
-
-      magma_minproduct_int_t magma_code = 0;
-      magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
-
-      magma_code = magma_minproduct_init();
-      GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-      /*---need this -- see
-       * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
-       * page 14 ---*/
-      magma_code = magma_minproductblasSetKernelStream(Env_stream_compute(env));
-      GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CCC: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    default:
-      /*----------------------------------------*/
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } /*---case---*/
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_magma_finalize(GMEnv* env) {
-  GMAssert(env != NULL);
-
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  switch (Env_metric_type(env)) {
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_SORENSON: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
-
-      magma_minproduct_int_t magma_code = 0;
-      magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
-
-      magma_code = magma_minproduct_finalize();
-      GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CCC: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    default:
-      /*----------------------------------------*/
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } /*---case---*/
-}
-
-/*===========================================================================*/
-/*---Allocate/free host and device memory---*/
-
-GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
-  GMAssert(n + 1 >= 1);
-  GMAssert(env != NULL);
-
-  GMMirroredPointer p = GMMirroredPointer_null();
-
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    return p;
-  }
-
-  switch (Env_metric_type(env)) {
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_SORENSON: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
-
-      magma_minproduct_int_t magma_code = 0;
-      magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
-
-#ifdef FP_PRECISION_DOUBLE
-      magma_code = magma_minproduct_dmalloc_pinned((GMFloat**)&p.h, n);
-#endif
-#ifdef FP_PRECISION_SINGLE
-      magma_code = magma_minproduct_smalloc_pinned((GMFloat**)&p.h, n);
-#endif
-      GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-
-#ifdef FP_PRECISION_DOUBLE
-      magma_code = magma_minproduct_dmalloc((GMFloat**)&p.d, n);
-#endif
-#ifdef FP_PRECISION_SINGLE
-      magma_code = magma_minproduct_smalloc((GMFloat**)&p.d, n);
-#endif
-      GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CCC: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    default:
-      /*----------------------------------------*/
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } /*---case---*/
-
-  return p;
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
-  GMAssert(p != NULL);
-  GMAssert(env != NULL);
-
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  switch (Env_metric_type(env)) {
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_SORENSON: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
-
-      magma_minproduct_int_t magma_code = 0;
-      magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
-
-      magma_minproduct_free_pinned(p->h);
-      GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-      magma_minproduct_free(p->d);
-      GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
-
-    } break;
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_CCC: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
-    default:
-      /*----------------------------------------*/
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } /*---case---*/
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
-                                    int mat_dim1,
-                                    int mat_dim2,
-                                    GMEnv* env) {
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproductblas_dlaset
-#endif
-#ifdef FP_PRECISION_SINGLE
-      magma_minproductblas_slaset
-#endif
-      (Magma_minproductFull, mat_dim1, mat_dim2, (GMFloat)0, (GMFloat)0,
-       (GMFloat*)matrix_buf->d, mat_dim1);
-}
-
-/*---------------------------------------------------------------------------*/
-
-void magma_gemm_start(magma_minproduct_int_t m,
-                      magma_minproduct_int_t n,
-                      magma_minproduct_int_t k,
-                      void* dA,
-                      magma_minproduct_int_t ldda,
-                      void* dB,
-                      magma_minproduct_int_t lddb,
-                      void* dC,
-                      magma_minproduct_int_t lddc) {
-  const GMFloat alpha = 1;
-  const GMFloat beta = 0;
-
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproductblas_dgemm
-#endif
-#ifdef FP_PRECISION_SINGLE
-      magma_minproductblas_sgemm
-#endif
-      (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
-       (GMFloat*)dA, ldda, (GMFloat*)dB, lddb, beta, (GMFloat*)dC, lddc);
-}
-
-/*---------------------------------------------------------------------------*/
-/*---Wait for any computation on the GPU top complete---*/
-
-void gm_compute_wait(GMEnv* env) {
-  GMAssert(env != NULL);
-
-  if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    cudaStreamSynchronize(Env_stream_compute(env));
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
-  }
-}
 
 /*===========================================================================*/
 /*---Start/end MPI send/receive of vectors data---*/
@@ -290,9 +34,18 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
+  const int mpi_type =
+          Env_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
+          GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
+          Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+          GM_MPI_FLOAT :
+          Env_metric_type(env) == GM_METRIC_TYPE_CCC ?
+          MPI_DOUBLE_COMPLEX :
+          0;
+
   mpi_code =
       MPI_Isend((void*)vectors->data, vectors->num_packedval_local,
-                GM_MPI_FLOAT, proc_num, mpi_tag, Env_mpi_comm_vector(env),
+                mpi_type, proc_num, mpi_tag, Env_mpi_comm_vector(env),
                 &mpi_request);
   GMAssert(mpi_code == MPI_SUCCESS);
 
@@ -313,9 +66,18 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
+  const int mpi_type =
+          Env_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
+          GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
+          Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+          GM_MPI_FLOAT :
+          Env_metric_type(env) == GM_METRIC_TYPE_CCC ?
+          MPI_DOUBLE_COMPLEX :
+          0;
+
   mpi_code =
       MPI_Irecv((void*)vectors->data, vectors->num_packedval_local,
-                GM_MPI_FLOAT, proc_num, mpi_tag, Env_mpi_comm_vector(env),
+                mpi_type, proc_num, mpi_tag, Env_mpi_comm_vector(env),
                 &mpi_request);
   GMAssert(mpi_code == MPI_SUCCESS);
 
@@ -351,85 +113,34 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 }
 
 /*===========================================================================*/
-/*---Start/end transfer of generic matrix to GPU---*/
+/*---MPI allreduce operations---*/
 
-void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
-                         int mat_dim1,
-                         int mat_dim2,
-                         GMEnv* env) {
-  GMAssert(matrix_buf != NULL);
+void gm_allreduce_metrics(GMMetrics* metrics,
+                          GMMirroredPointer* metrics_buf_target,
+                          GMMirroredPointer* metrics_buf_source,
+                          GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(metrics_buf_target != NULL);
+  GMAssert(metrics_buf_source != NULL);
   GMAssert(env != NULL);
 
-  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
+  const int numvecl = metrics->num_vector_local;
 
-  /*---Send vectors to GPU---*/
+  const int mpi_type =
+          Env_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
+          GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
+          Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+          GM_MPI_FLOAT :
+          Env_metric_type(env) == GM_METRIC_TYPE_CCC ?
+          MPI_DOUBLE_COMPLEX :
+          0;
 
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dsetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h,
-                                    mat_dim1, (GMFloat*)matrix_buf->d, mat_dim1,
-                                    Env_stream_togpu(env));
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproduct_ssetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h,
-                                    mat_dim1, (GMFloat*)matrix_buf->d, mat_dim1,
-                                    Env_stream_togpu(env));
-#endif
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_set_matrix_wait(GMEnv* env) {
-  GMAssert(env != NULL);
-
-  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  cudaStreamSynchronize(Env_stream_togpu(env));
-  GMAssert(GMEnv_cuda_last_call_succeeded(env));
-}
-
-/*===========================================================================*/
-/*---Start/end transfer of generic matrix from GPU---*/
-
-void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
-                         int mat_dim1,
-                         int mat_dim2,
-                         GMEnv* env) {
-  GMAssert(matrix_buf != NULL);
-  GMAssert(env != NULL);
-
-  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  /*---Get vectors from GPU---*/
-
-#ifdef FP_PRECISION_DOUBLE
-  magma_minproduct_dgetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d,
-                                    mat_dim1, (GMFloat*)matrix_buf->h, mat_dim1,
-                                    Env_stream_fromgpu(env));
-#endif
-#ifdef FP_PRECISION_SINGLE
-  magma_minproduct_sgetmatrix_async(mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d,
-                                    mat_dim1, (GMFloat*)matrix_buf->h, mat_dim1,
-                                    Env_stream_fromgpu(env));
-#endif
-}
-
-/*---------------------------------------------------------------------------*/
-
-void gm_get_matrix_wait(GMEnv* env) {
-  GMAssert(env != NULL);
-
-  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  cudaStreamSynchronize(Env_stream_fromgpu(env));
-  GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  int mpi_code = 0;
+  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+  mpi_code = MPI_Allreduce(metrics_buf_source->h, metrics_buf_target->h,
+               numvecl*(size_t)numvecl, mpi_type, MPI_SUM,
+               Env_mpi_comm_field(env));
+  GMAssert(mpi_code == MPI_SUCCESS);
 }
 
 /*===========================================================================*/
@@ -470,10 +181,27 @@ void gm_get_metrics_start(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-void gm_get_metrics_wait(GMEnv* env) {
+void gm_get_metrics_wait(GMMetrics* metrics,
+                         GMMirroredPointer* metrics_buf,
+                         GMEnv* env) {
   GMAssert(env != NULL);
 
   gm_get_matrix_wait(env);
+
+  if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
+      Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+    /*---Adjust entries because of computation on pad values---*/
+    const int num_seminibbles_pad = 64 - (1 + (metrics->num_field_local-1)%64);
+    const GMFloat adjustment = 4 * num_seminibbles_pad;
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      int i = 0;
+      for (i = 0; i < metrics->num_vector_local; ++i) {
+        ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j].data[0]
+          -= adjustment;
+      } /*---for j---*/
+    }   /*---for i---*/
+  } /*---if---*/
 }
 
 /*===========================================================================*/
@@ -486,19 +214,340 @@ void gm_vectors_to_buf(GMVectors* vectors,
   GMAssert(vectors_buf != NULL);
   GMAssert(env != NULL);
 
-  if (!Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
-  int i = 0;
-  /*---Copy vectors into GPU buffers if needed---*/
-  for (i = 0; i < vectors->num_vector_local; ++i) {
-    int k = 0;
-    for (k = 0; k < vectors->num_field_local; ++k) {
-      ((GMFloat*)vectors_buf->h)[k + vectors->num_field_local * i] =
-          GMVectors_float_get(vectors, k, i, env);
-    }
-  }
+  switch (Env_metric_type(env)) {
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_SORENSON: {
+      /*----------------------------------------*/
+
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CZEKANOWSKI: {
+      /*----------------------------------------*/
+      int i = 0;
+      /*---Copy vectors into GPU buffers if needed---*/
+      for (i = 0; i < vectors->num_vector_local; ++i) {
+        int f = 0;
+        for (f = 0; f < vectors->num_field_local; ++f) {
+          ((GMFloat*)vectors_buf->h)[f + vectors->num_field_local * i] =
+              GMVectors_float_get(vectors, f, i, env);
+        }
+      }
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CCC: {
+      /*----------------------------------------*/
+      int i = 0;
+      /*---Copy vectors into GPU buffers if needed---*/
+      for (i = 0; i < vectors->num_vector_local; ++i) {
+        int f = 0;
+        for (f = 0; f < vectors->num_packedval_field_local; ++f) {
+          ((GMBits2x64*)vectors_buf->h)[f + vectors->num_field_local * i] =
+              GMVectors_bits2x64_get(vectors, f, i, env);
+        }
+      }
+    } break;
+    /*----------------------------------------*/
+    default:
+      /*----------------------------------------*/
+      /*---Should never get here---*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  } /*---case---*/
+}
+
+/*===========================================================================*/
+/*---Start calculation of numerators, 2-way Czekanowski---*/
+
+void gm_compute_czekanowski_numerators_2way_start(
+    GMVectors* vectors_left,
+    GMVectors* vectors_right,
+    GMMetrics* metrics,
+    GMMirroredPointer* vectors_left_buf,
+    GMMirroredPointer* vectors_right_buf,
+    GMMirroredPointer* metrics_buf,
+    int j_proc,
+    _Bool do_compute_triang_only,
+    GMEnv* env) {
+  GMAssert(vectors_left != NULL);
+  GMAssert(vectors_right != NULL);
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+
+  /*----------------------------------------*/
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+    /*----------------------------------------*/
+
+    GMInsist(env, Env_num_proc_field(env) == 1
+      ? "num_proc_field>1 for CPU case not supported" : 0);
+
+    /*---Perform pseudo matrix-matrix product---*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max =
+          do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        GMFloat metric = 0;
+        int f = 0;
+        for (f = 0; f < vectors_left->num_field_local; ++f) {
+          const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
+          const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
+          metric += value1 < value2 ? value1 : value2;
+        } /*---for k---*/
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc, metric, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+
+    /*----------------------------------------*/
+  } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+    /*----------------------------------------*/
+
+    /*---Initialize result matrix to zero (apparently magma requires)---*/
+
+    gm_magma_set_matrix_zero_start(metrics_buf, metrics->num_vector_local,
+                                   metrics->num_vector_local, env);
+
+    /*---Perform pseudo matrix-matrix product---*/
+
+    /* .63 / 1.56 */
+    gm_magma_gemm_start(vectors_left->num_vector_local,
+                        vectors_left->num_vector_local,
+                        vectors_left->num_field_local,
+                        vectors_left_buf->d, vectors_left->num_field_local,
+                        vectors_right_buf->d, vectors_left->num_field_local,
+                        metrics_buf->d, vectors_left->num_vector_local,
+                        env);
+
+    /*----------------------------------------*/
+  } /*---if---*/
+  /*----------------------------------------*/
+}
+
+/*===========================================================================*/
+/*---Start calculation of numerators, 2-way CCC---*/
+
+void gm_compute_ccc_numerators_2way_start(
+    GMVectors* vectors_left,
+    GMVectors* vectors_right,
+    GMMetrics* metrics,
+    GMMirroredPointer* vectors_left_buf,
+    GMMirroredPointer* vectors_right_buf,
+    GMMirroredPointer* metrics_buf,
+    int j_proc,
+    _Bool do_compute_triang_only,
+    GMEnv* env) {
+  GMAssert(vectors_left != NULL);
+  GMAssert(vectors_right != NULL);
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+
+  /*----------------------------------------*/
+  if (Env_compute_method(env) == GM_COMPUTE_METHOD_REF) {
+    /*----------------------------------------*/
+
+    /*---Perform pseudo matrix-matrix product---*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max =
+          do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        GMTally2x2 sum = GMTally2x2_null();
+        int f = 0;
+        for (f = 0; f < vectors_left->num_field_local; ++f) {
+          const GMBits2 value_i = GMVectors_bits2_get(vectors_left, f, i, env);
+          const GMBits2 value_j = GMVectors_bits2_get(vectors_right, f, j, env);
+
+          /* clang-format off */
+          const int r00 = ( ( !(value_i & 1) ) && ( !(value_j & 1) ) ) +
+                          ( ( !(value_i & 1) ) && ( !(value_j & 2) ) ) +
+                          ( ( !(value_i & 2) ) && ( !(value_j & 1) ) ) +
+                          ( ( !(value_i & 2) ) && ( !(value_j & 2) ) );
+          const int r01 = ( ( !(value_i & 1) ) && (  (value_j & 1) ) ) +
+                          ( ( !(value_i & 1) ) && (  (value_j & 2) ) ) +
+                          ( ( !(value_i & 2) ) && (  (value_j & 1) ) ) +
+                          ( ( !(value_i & 2) ) && (  (value_j & 2) ) );
+          const int r10 = ( (  (value_i & 1) ) && ( !(value_j & 1) ) ) +
+                          ( (  (value_i & 1) ) && ( !(value_j & 2) ) ) +
+                          ( (  (value_i & 2) ) && ( !(value_j & 1) ) ) +
+                          ( (  (value_i & 2) ) && ( !(value_j & 2) ) );
+          const int r11 = ( (  (value_i & 1) ) && (  (value_j & 1) ) ) +
+                          ( (  (value_i & 1) ) && (  (value_j & 2) ) ) +
+                          ( (  (value_i & 2) ) && (  (value_j & 1) ) ) +
+                          ( (  (value_i & 2) ) && (  (value_j & 2) ) );
+          /* clang-format on */
+
+#if DOUG_WAY
+          const int vi1 =  ( value_i  & 3) != 0;
+          const int vi0 = ((~value_i) & 3) != 0;
+          const int vj1 =  ( value_j  & 3) != 0;
+          const int vj0 = ((~value_j) & 3) != 0;
+
+          const int a11 = vi1 & vj1;
+
+          const int r11 = a11 +
+#endif
+
+
+// NOTE: "since the sum of all 4 of these relative co-occurences is 1 we really only need to compute 3 of them. Then the last one is just 1 minus the rest."
+
+          /*---Accumulate---*/
+
+          sum.data[0] += r00 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+          sum.data[1] += r10 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+        } /*---for f---*/
+        GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
+      } /*---for j---*/
+    }   /*---for i---*/
+
+  /*----------------------------------------*/
+  } else if (Env_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
+    /*----------------------------------------*/
+
+    GMInsist(env, Env_num_proc_field(env) == 1
+      ? "num_proc_field>1 for CPU case not supported" : 0);
+
+    /*---Perform pseudo matrix-matrix product---*/
+
+    /*---Precompute masks for final packedval_field -
+         can be 1 to 64 inclusive---*/
+
+    const int num_seminibbles = 1 + (vectors_left->num_field_local-1) % 64;
+
+    const GMUInt64 nobits = 0;
+    const GMUInt64 allbits = 0xffffffffffffffff;
+
+    const GMUInt64 lastmask0 = num_seminibbles >= 32 ?
+                               allbits :
+                               allbits >> (64 - 2*num_seminibbles);
+
+    const GMUInt64 lastmask1 = num_seminibbles <= 32 ?
+                               nobits :
+                               num_seminibbles == 64 ?
+                               allbits :
+                               allbits >> (128 - 2*num_seminibbles);
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max =
+          do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        GMTally2x2 sum = GMTally2x2_null();
+        int f = 0;
+        const int f_last = vectors_left->num_packedval_field_local - 1;
+        for (f = 0; f <= f_last ; ++f) {
+          /*---Get masks for active seminibbles in each word---*/
+
+          const GMUInt64 activebits0 = f < f_last ? allbits : lastmask0;
+          const GMUInt64 activebits1 = f < f_last ? allbits : lastmask1;
+
+          /*---Extract input values to process---*/
+          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, f, i, env);
+          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, f, j,
+                                                       env);
+          const GMUInt64 vi0 = vi.data[0];
+          const GMUInt64 vi1 = vi.data[1];
+          const GMUInt64 vj0 = vj.data[0];
+          const GMUInt64 vj1 = vj.data[1];
+
+          /*---Get even, odd bits for each semi-nibble, masked to active---*/
+
+          const GMUInt64 oddbits = 0x5555555555555555;
+
+          const GMUInt64 vi0_0 =  vi0       & oddbits & activebits0;
+          const GMUInt64 vi0_1 = (vi0 >> 1) & oddbits & activebits0;
+          const GMUInt64 vi1_0 =  vi1       & oddbits & activebits1;
+          const GMUInt64 vi1_1 = (vi1 >> 1) & oddbits & activebits1;
+          const GMUInt64 vj0_0 =  vj0       & oddbits & activebits0;
+          const GMUInt64 vj0_1 = (vj0 >> 1) & oddbits & activebits0;
+          const GMUInt64 vj1_0 =  vj1       & oddbits & activebits1;
+          const GMUInt64 vj1_1 = (vj1 >> 1) & oddbits & activebits1;
+
+          /*---Get complements of the same bits, set other bits zero---*/
+
+          const GMUInt64 nvi0_0 = ~ vi0       & oddbits & activebits0;
+          const GMUInt64 nvi0_1 = ~(vi0 >> 1) & oddbits & activebits0;
+          const GMUInt64 nvi1_0 = ~ vi1       & oddbits & activebits1;
+          const GMUInt64 nvi1_1 = ~(vi1 >> 1) & oddbits & activebits1;
+          const GMUInt64 nvj0_0 = ~ vj0       & oddbits & activebits0;
+          const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits & activebits0;
+          const GMUInt64 nvj1_0 = ~ vj1       & oddbits & activebits1;
+          const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits & activebits1;
+
+          const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
+                                      ( (nvi0_0 & nvj0_1) << 1 )) +
+                          gm_popcount64((nvi0_1 & nvj0_0) |
+                                      ( (nvi0_1 & nvj0_1) << 1 )) +
+                          gm_popcount64((nvi1_0 & nvj1_0) |
+                                      ( (nvi1_0 & nvj1_1) << 1 )) +
+                          gm_popcount64((nvi1_1 & nvj1_0) |
+                                      ( (nvi1_1 & nvj1_1) << 1 ));
+          const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
+                                      ( (nvi0_0 &  vj0_1) << 1 )) +
+                          gm_popcount64((nvi0_1 &  vj0_0) |
+                                      ( (nvi0_1 &  vj0_1) << 1 )) +
+                          gm_popcount64((nvi1_0 &  vj1_0) |
+                                      ( (nvi1_0 &  vj1_1) << 1 )) +
+                          gm_popcount64((nvi1_1 &  vj1_0) |
+                                      ( (nvi1_1 &  vj1_1) << 1 ));
+          const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
+                                      ( ( vi0_0 & nvj0_1) << 1 )) +
+                          gm_popcount64(( vi0_1 & nvj0_0) |
+                                      ( ( vi0_1 & nvj0_1) << 1 )) +
+                          gm_popcount64(( vi1_0 & nvj1_0) |
+                                      ( ( vi1_0 & nvj1_1) << 1 )) +
+                          gm_popcount64(( vi1_1 & nvj1_0) |
+                                      ( ( vi1_1 & nvj1_1) << 1 ));
+          const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
+                                      ( ( vi0_0 &  vj0_1) << 1 )) +
+                          gm_popcount64(( vi0_1 &  vj0_0) |
+                                      ( ( vi0_1 &  vj0_1) << 1 )) +
+                          gm_popcount64(( vi1_0 &  vj1_0) |
+                                      ( ( vi1_0 &  vj1_1) << 1 )) +
+                          gm_popcount64(( vi1_1 &  vj1_0) |
+                                      ( ( vi1_1 &  vj1_1) << 1 ));
+
+          /*---Accumulate---*/
+
+          sum.data[0] += r00 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+          sum.data[1] += r10 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+        } /*---for f---*/
+        GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
+      } /*---for j---*/
+    }   /*---for i---*/
+
+    /*----------------------------------------*/
+  } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+    /*----------------------------------------*/
+
+    /*---Initialize result matrix to zero (apparently magma requires)---*/
+
+    gm_magma_set_matrix_zero_start(metrics_buf, metrics->num_vector_local,
+                                   metrics->num_vector_local, env);
+
+    /*---Perform pseudo matrix-matrix product---*/
+
+    gm_magma_gemm_start(vectors_left->num_vector_local,
+                        vectors_left->num_vector_local,
+                        vectors_left->num_field_local,
+                        vectors_left_buf->d, vectors_left->num_field_local,
+                        vectors_right_buf->d, vectors_left->num_field_local,
+                        metrics_buf->d, vectors_left->num_vector_local,
+                        env);
+
+    /*----------------------------------------*/
+  } /*---if---*/
+  /*----------------------------------------*/
 }
 
 /*===========================================================================*/
@@ -538,9 +587,10 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
+      gm_compute_ccc_numerators_2way_start(
+          vectors_left, vectors_right, numerators, vectors_left_buf,
+          vectors_right_buf, numerators_buf, j_proc, do_compute_triang_only,
+          env);
     } break;
     /*----------------------------------------*/
     default:
@@ -548,6 +598,167 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
+}
+
+/*===========================================================================*/
+/*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
+
+void gm_compute_czekanowski_2way_combine(
+    GMMetrics* metrics,
+    GMMirroredPointer* metrics_buf,
+    GMFloat* __restrict__ vector_sums_left,
+    GMFloat* __restrict__ vector_sums_right,
+    int j_proc,
+    _Bool do_compute_triang_only,
+    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vector_sums_left != NULL);
+  GMAssert(vector_sums_right != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+
+  /*---For CPU case, copy numerator out of metrics struct which is temporarily
+       holding numerators.
+       For GPU case, directly access the metrics_buf holding the numerators.
+  ---*/
+
+  const _Bool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
+
+  /*----------------------------------------*/
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && Env_all2all(env)) {
+    /*----------------------------------------*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator =
+            GMMetrics_float_get_all2all_2(metrics, i, j, j_proc, env);
+        /*---Don't use two pointers pointing to the same thing---*/
+        const GMFloat denominator =
+            are_vector_sums_aliased
+                ? vector_sums_left[i] + vector_sums_left[j]
+                : vector_sums_left[i] + vector_sums_right[j];
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
+                                      2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+        /*---TODO: here and elsewhere check for unlikely case denom is/nearly
+         * zero---*/
+
+    /*----------------------------------------*/
+  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+    /*----------------------------------------*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator =
+            GMMetrics_float_get_all2all_2(metrics, i, j, j_proc, env);
+        /*---Don't use two different pointers pointing to the same thing---*/
+        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
+        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+
+    /*----------------------------------------*/
+  } else if (Env_all2all(env)) {
+    /*----------------------------------------*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator =
+            ((GMFloat*)metrics_buf->h)[i + metrics->num_vector_local * j];
+        /*---Don't use two pointers pointing to the same thing---*/
+        const GMFloat denominator =
+            are_vector_sums_aliased
+                ? vector_sums_left[i] + vector_sums_left[j]
+                : vector_sums_left[i] + vector_sums_right[j];
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
+                                      2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+
+    /*----------------------------------------*/
+  } else {
+    /*----------------------------------------*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMFloat numerator =
+            ((GMFloat*)metrics_buf->h)[i + metrics->num_vector_local * j];
+        /*---Don't use two different pointers pointing to the same thing---*/
+        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
+        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+
+    /*----------------------------------------*/
+  } /*---if---*/
+  /*----------------------------------------*/
+}
+
+/*===========================================================================*/
+/*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
+
+void gm_compute_ccc_2way_combine(
+    GMMetrics* metrics,
+    GMMirroredPointer* metrics_buf,
+    GMFloat* __restrict__ vector_sums_left,
+    GMFloat* __restrict__ vector_sums_right,
+    int j_proc,
+    _Bool do_compute_triang_only,
+    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vector_sums_left != NULL);
+  GMAssert(vector_sums_right != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+
+  /*---Compute multipliers---*/
+
+  /*--------------------*/
+  if (Env_all2all(env)) {
+  /*--------------------*/
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
+      const int i_max = do_compute_triang_only ?
+                        j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
+        const GMFloat si1_sj1 = GMTally1_encode(si_1, sj_1);
+        GMMetrics_float_M_set_all2all_2(metrics, i, j, j_proc, si1_sj1, env);
+      }   /*---for i---*/
+    } /*---for j---*/
+  /*--------------------*/
+  } else /*---(!Env_all2all(env))---*/ {
+  /*--------------------*/
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
+      const int i_max = do_compute_triang_only ?
+                        j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
+        const GMFloat si1_sj1 = GMTally1_encode(si_1, sj_1);
+        GMMetrics_float_M_set_2(metrics, i, j, si1_sj1, env);
+      }   /*---for i---*/
+    } /*---for j---*/
+  /*--------------------*/
+  } /*---if---*/
+  /*--------------------*/
 }
 
 /*===========================================================================*/
@@ -570,14 +781,11 @@ void gm_compute_2way_combine(GMMetrics* metrics,
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/
-
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
       /*----------------------------------------*/
-
       gm_compute_czekanowski_2way_combine(metrics, metrics_buf,
                                           (GMFloat*)vector_sums_left->data,
                                           (GMFloat*)vector_sums_right->data,
@@ -586,9 +794,10 @@ void gm_compute_2way_combine(GMMetrics* metrics,
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
+      gm_compute_ccc_2way_combine(metrics, metrics_buf,
+                                  (GMFloat*)vector_sums_left->data,
+                                  (GMFloat*)vector_sums_right->data,
+                                  j_proc, do_compute_triang_only, env);
     } break;
     /*----------------------------------------*/
     default:
@@ -596,77 +805,6 @@ void gm_compute_2way_combine(GMMetrics* metrics,
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
-}
-
-/*===========================================================================*/
-/*---Start calculation of numerators, 2-way Czekanowski---*/
-
-void gm_compute_czekanowski_numerators_2way_start(
-    GMVectors* vectors_left,
-    GMVectors* vectors_right,
-    GMMetrics* numerators,
-    GMMirroredPointer* vectors_left_buf,
-    GMMirroredPointer* vectors_right_buf,
-    GMMirroredPointer* numerators_buf,
-    int j_proc,
-    _Bool do_compute_triang_only,
-    GMEnv* env) {
-  GMAssert(vectors_left != NULL);
-  GMAssert(vectors_right != NULL);
-  GMAssert(numerators != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-
-  /*----------------------------------------*/
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    /*----------------------------------------*/
-
-    GMInsist(env, Env_num_proc_field(env) == 1
-      ? "num_proc_field>1 for CPU case not supported" : 0);
-
-    /*---Perform pseudo matrix-matrix product---*/
-
-    int j = 0;
-    for (j = 0; j < numerators->num_vector_local; ++j) {
-      const int i_max =
-          do_compute_triang_only ? j : numerators->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        GMFloat numerator = 0;
-        int field_local = 0;
-        for (field_local = 0; field_local < vectors_left->num_field_local;
-             ++field_local) {
-          const GMFloat value1 =
-              GMVectors_float_get(vectors_left, field_local, i, env);
-          const GMFloat value2 =
-              GMVectors_float_get(vectors_right, field_local, j, env);
-          numerator += value1 < value2 ? value1 : value2;
-        } /*---for k---*/
-        GMMetrics_float_set_all2all_2(numerators, i, j, j_proc, numerator, env);
-      } /*---for i---*/
-    }   /*---for j---*/
-
-    /*----------------------------------------*/
-  } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
-    /*----------------------------------------*/
-
-    /*---Initialize result matrix to zero (apparently magma requires)---*/
-
-    gm_magma_set_matrix_zero_start(numerators_buf, numerators->num_vector_local,
-                                   numerators->num_vector_local, env);
-
-    /*---Perform pseudo matrix-matrix product---*/
-
-    /* .63 / 1.56 */
-    magma_gemm_start(vectors_left->num_vector_local,
-                  vectors_left->num_vector_local, vectors_left->num_field_local,
-                  vectors_left_buf->d, vectors_left->num_field_local,
-                  vectors_right_buf->d, vectors_left->num_field_local,
-                  numerators_buf->d, vectors_left->num_vector_local);
-
-    /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
 }
 
 /*===========================================================================*/
@@ -840,8 +978,9 @@ void gm_compute_czekanowski_numerators_3way_start(
 
       /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
 
-      magma_gemm_start(numvec, numvec, numfield, vectors_i_buf->d, numfield,
-                    vectors_j_buf->d, numfield, matM_ij_buf_local->d, numvec);
+      gm_magma_gemm_start(numvec, numvec, numfield, vectors_i_buf->d, numfield,
+                          vectors_j_buf->d, numfield, matM_ij_buf_local->d, numvec,
+                          env);
       gm_compute_wait(env);
 
       /*---Copy matM_ij from GPU---*/
@@ -852,6 +991,8 @@ void gm_compute_czekanowski_numerators_3way_start(
       if (Env_num_proc_field(env) > 1) {
         int mpi_code = 0;
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+//XXX - use gm_allreduce_metrics
+//XXX - numvecl, ...
         mpi_code = MPI_Allreduce(matM_ij_buf_local->h, matM_ij_buf->h,
                      numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
                      Env_mpi_comm_field(env));
@@ -878,8 +1019,9 @@ void gm_compute_czekanowski_numerators_3way_start(
 
       gm_magma_set_matrix_zero_start(matM_jk_buf_local, numvec, numvec, env);
 
-      magma_gemm_start(numvec, numvec, numfield, vectors_j_buf->d, numfield,
-                     vectors_k_buf->d, numfield, matM_jk_buf_local->d, numvec);
+      gm_magma_gemm_start(numvec, numvec, numfield, vectors_j_buf->d, numfield,
+                          vectors_k_buf->d, numfield, matM_jk_buf_local->d, numvec,
+                          env);
       gm_compute_wait(env);
 
       gm_get_matrix_start(matM_jk_buf_local, numvec, numvec, env);
@@ -888,6 +1030,7 @@ void gm_compute_czekanowski_numerators_3way_start(
       if (Env_num_proc_field(env) > 1) {
         int mpi_code = 0;
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+//XXX - use gm_allreduce_metrics
         mpi_code = MPI_Allreduce(matM_jk_buf_local->h, matM_jk_buf->h,
                      numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
                      Env_mpi_comm_field(env));
@@ -917,8 +1060,9 @@ void gm_compute_czekanowski_numerators_3way_start(
 
       gm_magma_set_matrix_zero_start(matM_kik_buf_local, numvec, numvec, env);
 
-      magma_gemm_start(numvec, numvec, numfield, vectors_k_buf->d, numfield,
-                    vectors_i_buf->d, numfield, matM_kik_buf_local->d, numvec);
+      gm_magma_gemm_start(numvec, numvec, numfield, vectors_k_buf->d, numfield,
+                          vectors_i_buf->d, numfield, matM_kik_buf_local->d, numvec,
+                          env);
       gm_compute_wait(env);
 
       gm_get_matrix_start(matM_kik_buf_local, numvec, numvec, env);
@@ -927,6 +1071,7 @@ void gm_compute_czekanowski_numerators_3way_start(
       if (Env_num_proc_field(env) > 1) {
         int mpi_code = 0;
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+//XXX - use gm_allreduce_metrics
         mpi_code = MPI_Allreduce(matM_kik_buf_local->h, matM_kik_buf->h,
                      numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
                      Env_mpi_comm_field(env));
@@ -1043,8 +1188,9 @@ void gm_compute_czekanowski_numerators_3way_start(
 
       /*---Perform matrix-matrix product matB = matV^T minprod X---*/
 
-      magma_gemm_start(I_max, numvec, numfield, matV_buf.d, numfield,
-                       vectors_K_buf->d, numfield, matB_buf_local->d, I_max);
+      gm_magma_gemm_start(I_max, numvec, numfield, matV_buf.d, numfield,
+                          vectors_K_buf->d, numfield, matB_buf_local->d, I_max,
+                          env);
       gm_compute_wait(env);
 
       /*---Copy result matrix matB from GPU---*/
@@ -1055,6 +1201,7 @@ void gm_compute_czekanowski_numerators_3way_start(
       if (Env_num_proc_field(env) > 1) {
         int mpi_code = 0;
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+//XXX - use gm_allreduce_metrics
         mpi_code = MPI_Allreduce(matB_buf_local->h, matB_buf.h,
                      numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
                      Env_mpi_comm_field(env));
@@ -1139,113 +1286,6 @@ void gm_compute_czekanowski_numerators_3way_start(
     gm_free_magma(&mat_buf_tmp, env);
 
   } /*---if GPU---*/
-}
-
-/*===========================================================================*/
-/*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
-
-void gm_compute_czekanowski_2way_combine(
-    GMMetrics* metrics,
-    GMMirroredPointer* metrics_buf,
-    GMFloat* __restrict__ vector_sums_left,
-    GMFloat* __restrict__ vector_sums_right,
-    int j_proc,
-    _Bool do_compute_triang_only,
-    GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vector_sums_left != NULL);
-  GMAssert(vector_sums_right != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-
-  /*---For CPU case, copy numerator out of metrics struct which is temporarily
-       holding numerators.
-       For GPU case, directly access the metrics_buf holding the numerators.
-  ---*/
-
-  const _Bool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
-
-  /*----------------------------------------*/
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && Env_all2all(env)) {
-    /*----------------------------------------*/
-
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        const GMFloat numerator =
-            GMMetrics_float_get_all2all_2(metrics, i, j, j_proc, env);
-        /*---Don't use two pointers pointing to the same thing---*/
-        const GMFloat denominator =
-            are_vector_sums_aliased
-                ? vector_sums_left[i] + vector_sums_left[j]
-                : vector_sums_left[i] + vector_sums_right[j];
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
-                                      2 * numerator / denominator, env);
-      } /*---for i---*/
-    }   /*---for j---*/
-        /*---TODO: here and elsewhere check for unlikely case denom is/nearly
-         * zero---*/
-
-    /*----------------------------------------*/
-  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    /*----------------------------------------*/
-
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        const GMFloat numerator =
-            GMMetrics_float_get_all2all_2(metrics, i, j, j_proc, env);
-        /*---Don't use two different pointers pointing to the same thing---*/
-        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
-        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
-      } /*---for i---*/
-    }   /*---for j---*/
-
-    /*----------------------------------------*/
-  } else if (Env_all2all(env)) {
-    /*----------------------------------------*/
-
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        const GMFloat numerator =
-            ((GMFloat*)metrics_buf->h)[i + metrics->num_vector_local * j];
-        /*---Don't use two pointers pointing to the same thing---*/
-        const GMFloat denominator =
-            are_vector_sums_aliased
-                ? vector_sums_left[i] + vector_sums_left[j]
-                : vector_sums_left[i] + vector_sums_right[j];
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
-                                      2 * numerator / denominator, env);
-      } /*---for i---*/
-    }   /*---for j---*/
-
-    /*----------------------------------------*/
-  } else {
-    /*----------------------------------------*/
-
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        const GMFloat numerator =
-            ((GMFloat*)metrics_buf->h)[i + metrics->num_vector_local * j];
-        /*---Don't use two different pointers pointing to the same thing---*/
-        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
-        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
-      } /*---for i---*/
-    }   /*---for j---*/
-
-    /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
 }
 
 /*===========================================================================*/

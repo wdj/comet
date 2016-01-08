@@ -8,15 +8,12 @@
  */
 /*---------------------------------------------------------------------------*/
 
-#include <stdio.h> /*FIX*/
 #include <stdlib.h>
-
-#include "magma_minproduct.h"
-#include "magma_minproduct_lapack.h"
 
 #include "env.h"
 #include "vectors.h"
 #include "metrics.h"
+#include "compute_utils_magma.h"
 #include "compute_metrics_utils.h"
 #include "compute_metrics_czekanowski_3way.h"
 
