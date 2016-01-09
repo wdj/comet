@@ -102,7 +102,7 @@ magma_tally4_ssygst_m(
 #define dB_r(gpui, i, j)  (dw[gpui] + dima*ldda + (i)*nb + (j)*nb*lddbr)
 #define dwork(gpui, i, j) (dw[gpui] + dima*ldda + lddbc*lddbr + (j)*nb*nb + (i)*nb)
 
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
 
     float             d_one      = 1.0;
     float    c_one      = MAGMA_tally4_S_ONE;

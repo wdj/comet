@@ -147,7 +147,7 @@ magma_tally4_dgehrd_m(
     magma_tally4_int_t dpanel, di, nlocal, i, i2, ib, ldwork;
     magma_tally4_int_t iinfo;
     magma_tally4_int_t lquery;
-    struct dgehrd_data data;
+    struct dgehrd_data_tally4 data;
 
     int ngpu = magma_tally4_num_gpus();
     

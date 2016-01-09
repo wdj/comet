@@ -192,7 +192,7 @@ gcc -std=c99   -Wall -pedantic -c magma_tally4.c
 <div class="line"><span class="preprocessor">#endif</span></div>
 <div class="line"></div>
 <div class="line"><span class="comment">// for host pointers, A == A(0,0).</span></div>
-<div class="line">blasf77_zherk( lapack_uplo_const(uplo), lapack_trans_const(trans), &amp;n, &amp;k,</div>
+<div class="line">blasf77_zherk( lapack_uplo_const_tally4(uplo), lapack_trans_const_tally4(trans), &amp;n, &amp;k,</div>
 <div class="line">               &amp;alpha, A,      &amp;lda,</div>
 <div class="line">               &amp;beta,  B(i,j), &amp;ldb );</div>
 <div class="line"></div>

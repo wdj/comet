@@ -197,8 +197,8 @@ magma_tally4_chegvd_m(
     magma_tally4_int_t *iwork, magma_tally4_int_t liwork,
     magma_tally4_int_t *info)
 {
-    const char* uplo_ = lapack_uplo_const( uplo );
-    const char* jobz_ = lapack_vec_const( jobz );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
+    const char* jobz_ = lapack_vec_const_tally4( jobz );
 
     magma_tally4FloatComplex c_one = MAGMA_tally4_C_ONE;
 

@@ -71,8 +71,8 @@ magma_tally4_strtri(
     #define dA(i, j) (dA + (i) + (j)*ldda)
 
     /* Local variables */
-    const char* uplo_ = lapack_uplo_const( uplo );
-    const char* diag_ = lapack_diag_const( diag );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
+    const char* diag_ = lapack_diag_const_tally4( diag );
     magma_tally4_int_t     ldda, nb, nn, j, jb;
     float c_zero     = MAGMA_tally4_S_ZERO;
     float c_one      = MAGMA_tally4_S_ONE;

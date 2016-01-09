@@ -131,7 +131,7 @@ magma_tally4_dlahr2_m(
     double *tau,
     double *T, magma_tally4_int_t ldt,
     double *Y, magma_tally4_int_t ldy,
-    struct dgehrd_data *data )
+    struct dgehrd_data_tally4 *data )
 {
     #define  A(  i, j ) ( A + (i) + (j)*lda)
     #define  Y(  i, j ) ( Y + (i) + (j)*ldy)

@@ -131,7 +131,7 @@ magma_tally4_clahr2_m(
     magma_tally4FloatComplex *tau,
     magma_tally4FloatComplex *T, magma_tally4_int_t ldt,
     magma_tally4FloatComplex *Y, magma_tally4_int_t ldy,
-    struct cgehrd_data *data )
+    struct cgehrd_data_tally4 *data )
 {
     #define  A(  i, j ) ( A + (i) + (j)*lda)
     #define  Y(  i, j ) ( Y + (i) + (j)*ldy)

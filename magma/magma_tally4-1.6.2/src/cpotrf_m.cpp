@@ -91,7 +91,7 @@ magma_tally4_cpotrf_m(
     float                 d_neg_one = -1.0;
     magma_tally4FloatComplex     c_one     = MAGMA_tally4_C_ONE;
     magma_tally4FloatComplex     c_neg_one = MAGMA_tally4_C_NEG_ONE;
-    const char* uplo_  = lapack_uplo_const( uplo  );
+    const char* uplo_  = lapack_uplo_const_tally4( uplo  );
     int upper = (uplo == Magma_tally4Upper);
 
     magma_tally4FloatComplex *dwork[Magma_tally4MaxGPUs], *dt[Magma_tally4MaxGPUs];

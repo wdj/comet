@@ -218,7 +218,7 @@ magma_tally4_storev_t magma_tally4_storev_const( char lapack_char )
 // ----------------------------------------
 // Convert MAGMA_tally4 constants to LAPACK constants.
 
-const char *magma_tally42lapack_constants[] =
+const char *magma_tally42lapack_const_tally4ants[] =
 {
     "No",                                    //  0: Magma_tally4False
     "Yes",                                   //  1: Magma_tally4True (zlatrs)
@@ -319,131 +319,131 @@ const char *magma_tally42lapack_constants[] =
 };
 
 extern "C"
-const char* lapack_const( int magma_tally4_const )
+const char* lapack_const_tally4( int magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally42lapack_Min );
     assert( magma_tally4_const <= Magma_tally42lapack_Max );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_bool_const( magma_tally4_bool_t magma_tally4_const )
+const char* lapack_bool_const_tally4( magma_tally4_bool_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4False );
     assert( magma_tally4_const <= Magma_tally4True  );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_order_const( magma_tally4_order_t magma_tally4_const )
+const char* lapack_order_const_tally4( magma_tally4_order_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4RowMajor );
     assert( magma_tally4_const <= Magma_tally4ColMajor );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_trans_const( magma_tally4_trans_t magma_tally4_const )
+const char* lapack_trans_const_tally4( magma_tally4_trans_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4NoTrans   );
     assert( magma_tally4_const <= Magma_tally4ConjTrans );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_uplo_const ( magma_tally4_uplo_t magma_tally4_const )
+const char* lapack_uplo_const_tally4 ( magma_tally4_uplo_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4Upper );
     assert( magma_tally4_const <= Magma_tally4Full  );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_diag_const ( magma_tally4_diag_t magma_tally4_const )
+const char* lapack_diag_const_tally4 ( magma_tally4_diag_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4NonUnit );
     assert( magma_tally4_const <= Magma_tally4Unit    );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_side_const ( magma_tally4_side_t magma_tally4_const )
+const char* lapack_side_const_tally4 ( magma_tally4_side_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4Left  );
     assert( magma_tally4_const <= Magma_tally4BothSides );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_norm_const  ( magma_tally4_norm_t   magma_tally4_const )
+const char* lapack_norm_const_tally4  ( magma_tally4_norm_t   magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4OneNorm     );
     assert( magma_tally4_const <= Magma_tally4RealMaxNorm );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_dist_const  ( magma_tally4_dist_t   magma_tally4_const )
+const char* lapack_dist_const_tally4  ( magma_tally4_dist_t   magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4DistUniform );
     assert( magma_tally4_const <= Magma_tally4DistNormal );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_sym_const   ( magma_tally4_sym_t    magma_tally4_const )
+const char* lapack_sym_const_tally4   ( magma_tally4_sym_t    magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4HermGeev );
     assert( magma_tally4_const <= Magma_tally4SymPosv  );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_pack_const  ( magma_tally4_pack_t   magma_tally4_const )
+const char* lapack_pack_const_tally4  ( magma_tally4_pack_t   magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4NoPacking );
     assert( magma_tally4_const <= Magma_tally4PackAll   );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_vec_const   ( magma_tally4_vec_t    magma_tally4_const )
+const char* lapack_vec_const_tally4   ( magma_tally4_vec_t    magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4NoVec );
     assert( magma_tally4_const <= Magma_tally4OverwriteVec );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_range_const ( magma_tally4_range_t  magma_tally4_const )
+const char* lapack_range_const_tally4 ( magma_tally4_range_t  magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4RangeAll );
     assert( magma_tally4_const <= Magma_tally4RangeI   );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_vect_const( magma_tally4_vect_t magma_tally4_const )
+const char* lapack_vect_const_tally4( magma_tally4_vect_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4Q );
     assert( magma_tally4_const <= Magma_tally4P );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_direct_const( magma_tally4_direct_t magma_tally4_const )
+const char* lapack_direct_const_tally4( magma_tally4_direct_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4Forward );
     assert( magma_tally4_const <= Magma_tally4Backward );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 extern "C"
-const char* lapack_storev_const( magma_tally4_storev_t magma_tally4_const )
+const char* lapack_storev_const_tally4( magma_tally4_storev_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4Columnwise );
     assert( magma_tally4_const <= Magma_tally4Rowwise    );
-    return magma_tally42lapack_constants[ magma_tally4_const ];
+    return magma_tally42lapack_const_tally4ants[ magma_tally4_const ];
 }
 
 
@@ -560,7 +560,7 @@ const int magma_tally42cublas_constants[] =
 };
 
 extern "C"
-cublasOperation_t    cublas_trans_const ( magma_tally4_trans_t magma_tally4_const )
+cublasOperation_t    cublas_trans_const_tally4 ( magma_tally4_trans_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4NoTrans   );
     assert( magma_tally4_const <= Magma_tally4ConjTrans );
@@ -568,7 +568,7 @@ cublasOperation_t    cublas_trans_const ( magma_tally4_trans_t magma_tally4_cons
 }
 
 extern "C"
-cublasFillMode_t     cublas_uplo_const  ( magma_tally4_uplo_t magma_tally4_const )
+cublasFillMode_t     cublas_uplo_const_tally4  ( magma_tally4_uplo_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4Upper );
     assert( magma_tally4_const <= Magma_tally4Lower );
@@ -576,7 +576,7 @@ cublasFillMode_t     cublas_uplo_const  ( magma_tally4_uplo_t magma_tally4_const
 }
 
 extern "C"
-cublasDiagType_t     cublas_diag_const  ( magma_tally4_diag_t magma_tally4_const )
+cublasDiagType_t     cublas_diag_const_tally4  ( magma_tally4_diag_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4NonUnit );
     assert( magma_tally4_const <= Magma_tally4Unit    );
@@ -584,7 +584,7 @@ cublasDiagType_t     cublas_diag_const  ( magma_tally4_diag_t magma_tally4_const
 }
 
 extern "C"
-cublasSideMode_t     cublas_side_const  ( magma_tally4_side_t magma_tally4_const )
+cublasSideMode_t     cublas_side_const_tally4  ( magma_tally4_side_t magma_tally4_const )
 {
     assert( magma_tally4_const >= Magma_tally4Left  );
     assert( magma_tally4_const <= Magma_tally4Right );

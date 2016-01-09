@@ -149,7 +149,7 @@ This guide is based on the PLASMA coding style guide, though slightly different.
       #endif
 
       // for host pointers, A == A(0,0).
-      blasf77_zherk( lapack_uplo_const(uplo), lapack_trans_const(trans), &n, &k,
+      blasf77_zherk( lapack_uplo_const_tally4(uplo), lapack_trans_const_tally4(trans), &n, &k,
                      &alpha, A,      &lda,
                      &beta,  B(i,j), &ldb );
 

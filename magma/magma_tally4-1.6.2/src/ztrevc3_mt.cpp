@@ -78,7 +78,7 @@ private:
 
 // ---------------------------------------------
 // stores arguments and executes call to zgemm (on CPU)
-// todo - better to store magma_tally4_trans_t and use lapack_trans_const, since there
+// todo - better to store magma_tally4_trans_t and use lapack_trans_const_tally4, since there
 // is no guarantee that the char* string is still valid when the task gets executed.
 class zgemm_task: public magma_tally4_task
 {
@@ -109,7 +109,7 @@ public:
     
     virtual void run()
     {
-        blasf77_zgemm( lapack_trans_const(transA), lapack_trans_const(transB),
+        blasf77_zgemm( lapack_trans_const_tally4(transA), lapack_trans_const_tally4(transB),
                        &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc );
     }
     

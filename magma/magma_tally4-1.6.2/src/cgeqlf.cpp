@@ -210,11 +210,11 @@ magma_tally4_cgeqlf(
                                   &rows, &ib,
                                   A(0, cols), &lda, tau + i, work, &ib);
 
-                cpanel_to_q( Magma_tally4Lower, ib, A(rows-ib,cols), lda, work+ib*ib);
+                cpanel_to_q_tally4( Magma_tally4Lower, ib, A(rows-ib,cols), lda, work+ib*ib);
                 magma_tally4_csetmatrix( rows, ib,
                                   A(0,cols),  lda,
                                   dA(0,cols), ldda );
-                cq_to_panel( Magma_tally4Lower, ib, A(rows-ib,cols), lda, work+ib*ib);
+                cq_to_panel_tally4( Magma_tally4Lower, ib, A(rows-ib,cols), lda, work+ib*ib);
 
                 // Send the triangular part on the GPU
                 magma_tally4_csetmatrix( ib, ib, work, ib, dwork(0), lddwork );

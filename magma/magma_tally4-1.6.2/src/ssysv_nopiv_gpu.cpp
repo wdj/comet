@@ -104,7 +104,7 @@ magma_tally4_ssysv_nopiv_gpu(magma_tally4_uplo_t uplo,  magma_tally4_int_t n, ma
         return MAGMA_tally4_SUCCESS;
     }
 
-    ret = magma_tally4_ssytrf_nopiv_gpu(uplo, n, dA, ldda, info);
+    ret = magma_tally4_ssytrf_nopiv_tally4_gpu(uplo, n, dA, ldda, info);
     if ( (ret != MAGMA_tally4_SUCCESS) || (*info != 0) ) {
         return ret;
     }

@@ -137,8 +137,8 @@ magma_tally4_zunmqr_gpu(
 
     magma_tally4DoubleComplex c_one = MAGMA_tally4_Z_ONE;
 
-    const char* side_  = lapack_side_const( side  );
-    const char* trans_ = lapack_trans_const( trans );
+    const char* side_  = lapack_side_const_tally4( side  );
+    const char* trans_ = lapack_trans_const_tally4( trans );
 
     magma_tally4DoubleComplex_ptr dwork;
     magma_tally4_int_t i, lddwork;

@@ -167,7 +167,7 @@ magma_tally4_chetrd2_gpu(
     #define  A(i_, j_) ( A + (i_) + (j_)*lda )
     #define dA(i_, j_) (dA + (i_) + (j_)*ldda)
 
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
 
     magma_tally4_int_t nb = magma_tally4_get_chetrd_nb( n );
 

@@ -527,8 +527,8 @@ typedef enum {
 
 // When adding constants, remember to do these steps as appropriate:
 // 1)  add magma_tally4_xxxx_const()  converter below and in control/constants.cpp
-// 2a) add to magma_tally42lapack_constants[] in control/constants.cpp
-// 2b) update min & max here, which are used to check bounds for magma_tally42lapack_constants[]
+// 2a) add to magma_tally42lapack_const_tally4ants[] in control/constants.cpp
+// 2b) update min & max here, which are used to check bounds for magma_tally42lapack_const_tally4ants[]
 // 2c) add lapack_xxxx_const() converter below and in control/constants.cpp
 #define Magma_tally42lapack_Min  Magma_tally4False     // 0
 #define Magma_tally42lapack_Max  Magma_tally4Rowwise   // 402
@@ -536,7 +536,7 @@ typedef enum {
 
 // ----------------------------------------
 // string constants for calling Fortran BLAS and LAPACK
-// todo: use translators instead? lapack_const( Magma_tally4Upper )
+// todo: use translators instead? lapack_const_tally4( Magma_tally4Upper )
 #define Magma_tally4RowMajorStr      "Row"
 #define Magma_tally4ColMajorStr      "Col"
 
@@ -604,41 +604,41 @@ magma_tally4_storev_t magma_tally4_storev_const( char lapack_char );
 
 // --------------------
 // Convert MAGMA_tally4 constants to LAPACK(E) constants.
-// The generic lapack_const works for all cases, but the specific routines
-// (e.g., lapack_trans_const) do better error checking.
-const char* lapack_const       ( int            magma_tally4_const );
-const char* lapack_bool_const  ( magma_tally4_bool_t   magma_tally4_const );
-const char* lapack_order_const ( magma_tally4_order_t  magma_tally4_const );
-const char* lapack_trans_const ( magma_tally4_trans_t  magma_tally4_const );
-const char* lapack_uplo_const  ( magma_tally4_uplo_t   magma_tally4_const );
-const char* lapack_diag_const  ( magma_tally4_diag_t   magma_tally4_const );
-const char* lapack_side_const  ( magma_tally4_side_t   magma_tally4_const );
-const char* lapack_norm_const  ( magma_tally4_norm_t   magma_tally4_const );
-const char* lapack_dist_const  ( magma_tally4_dist_t   magma_tally4_const );
-const char* lapack_sym_const   ( magma_tally4_sym_t    magma_tally4_const );
-const char* lapack_pack_const  ( magma_tally4_pack_t   magma_tally4_const );
-const char* lapack_vec_const   ( magma_tally4_vec_t    magma_tally4_const );
-const char* lapack_range_const ( magma_tally4_range_t  magma_tally4_const );
-const char* lapack_vect_const  ( magma_tally4_vect_t   magma_tally4_const );
-const char* lapack_direct_const( magma_tally4_direct_t magma_tally4_const );
-const char* lapack_storev_const( magma_tally4_storev_t magma_tally4_const );
+// The generic lapack_const_tally4 works for all cases, but the specific routines
+// (e.g., lapack_trans_const_tally4) do better error checking.
+const char* lapack_const_tally4       ( int            magma_tally4_const );
+const char* lapack_bool_const_tally4  ( magma_tally4_bool_t   magma_tally4_const );
+const char* lapack_order_const_tally4 ( magma_tally4_order_t  magma_tally4_const );
+const char* lapack_trans_const_tally4 ( magma_tally4_trans_t  magma_tally4_const );
+const char* lapack_uplo_const_tally4  ( magma_tally4_uplo_t   magma_tally4_const );
+const char* lapack_diag_const_tally4  ( magma_tally4_diag_t   magma_tally4_const );
+const char* lapack_side_const_tally4  ( magma_tally4_side_t   magma_tally4_const );
+const char* lapack_norm_const_tally4  ( magma_tally4_norm_t   magma_tally4_const );
+const char* lapack_dist_const_tally4  ( magma_tally4_dist_t   magma_tally4_const );
+const char* lapack_sym_const_tally4   ( magma_tally4_sym_t    magma_tally4_const );
+const char* lapack_pack_const_tally4  ( magma_tally4_pack_t   magma_tally4_const );
+const char* lapack_vec_const_tally4   ( magma_tally4_vec_t    magma_tally4_const );
+const char* lapack_range_const_tally4 ( magma_tally4_range_t  magma_tally4_const );
+const char* lapack_vect_const_tally4  ( magma_tally4_vect_t   magma_tally4_const );
+const char* lapack_direct_const_tally4( magma_tally4_direct_t magma_tally4_const );
+const char* lapack_storev_const_tally4( magma_tally4_storev_t magma_tally4_const );
 
-static inline char lapacke_const       ( int magma_tally4_const            ) { return *lapack_const       ( magma_tally4_const ); }
-static inline char lapacke_bool_const  ( magma_tally4_bool_t   magma_tally4_const ) { return *lapack_bool_const  ( magma_tally4_const ); }
-static inline char lapacke_order_const ( magma_tally4_order_t  magma_tally4_const ) { return *lapack_order_const ( magma_tally4_const ); }
-static inline char lapacke_trans_const ( magma_tally4_trans_t  magma_tally4_const ) { return *lapack_trans_const ( magma_tally4_const ); }
-static inline char lapacke_uplo_const  ( magma_tally4_uplo_t   magma_tally4_const ) { return *lapack_uplo_const  ( magma_tally4_const ); }
-static inline char lapacke_diag_const  ( magma_tally4_diag_t   magma_tally4_const ) { return *lapack_diag_const  ( magma_tally4_const ); }
-static inline char lapacke_side_const  ( magma_tally4_side_t   magma_tally4_const ) { return *lapack_side_const  ( magma_tally4_const ); }
-static inline char lapacke_norm_const  ( magma_tally4_norm_t   magma_tally4_const ) { return *lapack_norm_const  ( magma_tally4_const ); }
-static inline char lapacke_dist_const  ( magma_tally4_dist_t   magma_tally4_const ) { return *lapack_dist_const  ( magma_tally4_const ); }
-static inline char lapacke_sym_const   ( magma_tally4_sym_t    magma_tally4_const ) { return *lapack_sym_const   ( magma_tally4_const ); }
-static inline char lapacke_pack_const  ( magma_tally4_pack_t   magma_tally4_const ) { return *lapack_pack_const  ( magma_tally4_const ); }
-static inline char lapacke_vec_const   ( magma_tally4_vec_t    magma_tally4_const ) { return *lapack_vec_const   ( magma_tally4_const ); }
-static inline char lapacke_range_const ( magma_tally4_range_t  magma_tally4_const ) { return *lapack_range_const ( magma_tally4_const ); }
-static inline char lapacke_vect_const  ( magma_tally4_vect_t   magma_tally4_const ) { return *lapack_vect_const  ( magma_tally4_const ); }
-static inline char lapacke_direct_const( magma_tally4_direct_t magma_tally4_const ) { return *lapack_direct_const( magma_tally4_const ); }
-static inline char lapacke_storev_const( magma_tally4_storev_t magma_tally4_const ) { return *lapack_storev_const( magma_tally4_const ); }
+static inline char lapacke_const_tally4       ( int magma_tally4_const            ) { return *lapack_const_tally4       ( magma_tally4_const ); }
+static inline char lapacke_bool_const_tally4  ( magma_tally4_bool_t   magma_tally4_const ) { return *lapack_bool_const_tally4  ( magma_tally4_const ); }
+static inline char lapacke_order_const_tally4 ( magma_tally4_order_t  magma_tally4_const ) { return *lapack_order_const_tally4 ( magma_tally4_const ); }
+static inline char lapacke_trans_const_tally4 ( magma_tally4_trans_t  magma_tally4_const ) { return *lapack_trans_const_tally4 ( magma_tally4_const ); }
+static inline char lapacke_uplo_const_tally4  ( magma_tally4_uplo_t   magma_tally4_const ) { return *lapack_uplo_const_tally4  ( magma_tally4_const ); }
+static inline char lapacke_diag_const_tally4  ( magma_tally4_diag_t   magma_tally4_const ) { return *lapack_diag_const_tally4  ( magma_tally4_const ); }
+static inline char lapacke_side_const_tally4  ( magma_tally4_side_t   magma_tally4_const ) { return *lapack_side_const_tally4  ( magma_tally4_const ); }
+static inline char lapacke_norm_const_tally4  ( magma_tally4_norm_t   magma_tally4_const ) { return *lapack_norm_const_tally4  ( magma_tally4_const ); }
+static inline char lapacke_dist_const_tally4  ( magma_tally4_dist_t   magma_tally4_const ) { return *lapack_dist_const_tally4  ( magma_tally4_const ); }
+static inline char lapacke_sym_const_tally4   ( magma_tally4_sym_t    magma_tally4_const ) { return *lapack_sym_const_tally4   ( magma_tally4_const ); }
+static inline char lapacke_pack_const_tally4  ( magma_tally4_pack_t   magma_tally4_const ) { return *lapack_pack_const_tally4  ( magma_tally4_const ); }
+static inline char lapacke_vec_const_tally4   ( magma_tally4_vec_t    magma_tally4_const ) { return *lapack_vec_const_tally4   ( magma_tally4_const ); }
+static inline char lapacke_range_const_tally4 ( magma_tally4_range_t  magma_tally4_const ) { return *lapack_range_const_tally4 ( magma_tally4_const ); }
+static inline char lapacke_vect_const_tally4  ( magma_tally4_vect_t   magma_tally4_const ) { return *lapack_vect_const_tally4  ( magma_tally4_const ); }
+static inline char lapacke_direct_const_tally4( magma_tally4_direct_t magma_tally4_const ) { return *lapack_direct_const_tally4( magma_tally4_const ); }
+static inline char lapacke_storev_const_tally4( magma_tally4_storev_t magma_tally4_const ) { return *lapack_storev_const_tally4( magma_tally4_const ); }
 
 
 // --------------------
@@ -655,10 +655,10 @@ clAmdBlasSide        amdblas_side_const ( magma_tally4_side_t  side  );
 // --------------------
 // Convert MAGMA_tally4 constants to CUBLAS constants.
 #if defined(CUBLAS_V2_H_)
-cublasOperation_t    cublas_trans_const ( magma_tally4_trans_t trans );
-cublasFillMode_t     cublas_uplo_const  ( magma_tally4_uplo_t  uplo  );
-cublasDiagType_t     cublas_diag_const  ( magma_tally4_diag_t  diag  );
-cublasSideMode_t     cublas_side_const  ( magma_tally4_side_t  side  );
+cublasOperation_t    cublas_trans_const_tally4 ( magma_tally4_trans_t trans );
+cublasFillMode_t     cublas_uplo_const_tally4  ( magma_tally4_uplo_t  uplo  );
+cublasDiagType_t     cublas_diag_const_tally4  ( magma_tally4_diag_t  diag  );
+cublasSideMode_t     cublas_side_const_tally4  ( magma_tally4_side_t  side  );
 #endif
 
 

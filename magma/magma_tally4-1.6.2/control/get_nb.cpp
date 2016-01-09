@@ -445,22 +445,22 @@ magma_tally4_int_t magma_tally4_get_ssytrf_nb( magma_tally4_int_t m )
 }
 
 /* //////////////////////////////////////////////////////////////////////// */
-magma_tally4_int_t magma_tally4_get_zhetrf_nopiv_nb( magma_tally4_int_t m ) 
+magma_tally4_int_t magma_tally4_get_zhetrf_nopiv_tally4_nb( magma_tally4_int_t m ) 
 {
     return 320; 
 }
 
-magma_tally4_int_t magma_tally4_get_chetrf_nopiv_nb( magma_tally4_int_t m ) 
+magma_tally4_int_t magma_tally4_get_chetrf_nopiv_tally4_nb( magma_tally4_int_t m ) 
 {
     return 96; 
 }
 
-magma_tally4_int_t magma_tally4_get_dsytrf_nopiv_nb( magma_tally4_int_t m ) 
+magma_tally4_int_t magma_tally4_get_dsytrf_nopiv_tally4_nb( magma_tally4_int_t m ) 
 {
     return 320; 
 }
 
-magma_tally4_int_t magma_tally4_get_ssytrf_nopiv_nb( magma_tally4_int_t m ) 
+magma_tally4_int_t magma_tally4_get_ssytrf_nopiv_tally4_nb( magma_tally4_int_t m ) 
 {
     return 96;  
 }

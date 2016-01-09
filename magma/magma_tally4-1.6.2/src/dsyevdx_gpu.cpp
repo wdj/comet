@@ -285,7 +285,7 @@ magma_tally4_dsyevdx_gpu(
         magma_tally4_dmalloc_cpu( &A, lda*n );
         magma_tally4_dgetmatrix( n, n, dA, ldda, A, lda );
         // TODO: deal with range and mout. Use lapack dsyevx? (There is no lapack dsyevdx.)
-        lapackf77_dsyevd( lapack_vec_const(jobz), lapack_uplo_const(uplo),
+        lapackf77_dsyevd( lapack_vec_const_tally4(jobz), lapack_uplo_const_tally4(uplo),
                           &n, A, &lda,
                           w, work, &lwork,
                           iwork, &liwork, info );

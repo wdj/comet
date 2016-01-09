@@ -65,7 +65,7 @@ magma_tally4_clauum(
 #define dA(i, j) (dA + (j)*ldda + (i))
 
     /* Local variables */
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
     magma_tally4_int_t     ldda, nb;
     magma_tally4_int_t i, ib;
     magma_tally4FloatComplex c_one = MAGMA_tally4_C_ONE;

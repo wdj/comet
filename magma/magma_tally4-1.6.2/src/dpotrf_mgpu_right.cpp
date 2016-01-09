@@ -90,7 +90,7 @@ magma_tally4_dpotrf_mgpu_right(
     double mz_one = MAGMA_tally4_D_MAKE( -1.0, 0.0 );
     double             one =  1.0;
     double             m_one = -1.0;
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
 
     magma_tally4_int_t j, nb, d, id, j_local, blkid, crosspoint, prevtrsmrows=0, nqueue = 5;
     double *panel, *tmppanel0, *tmppanel1, *tmppanel, *tmpprevpanel;

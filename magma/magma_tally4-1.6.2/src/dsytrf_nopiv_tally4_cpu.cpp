@@ -5,25 +5,25 @@
        Univ. of Colorado, Denver
        November 2011
 
-       @generated from zhetrf_nopiv_cpu.cpp normal z -> s, Fri Jan 30 19:00:16 2015
+       @generated from zhetrf_nopiv_tally4_cpu.cpp normal z -> d, Fri Jan 30 19:00:17 2015
  
 */
 #include "common_magma_tally4.h"
-#define PRECISION_s
+#define PRECISION_d
 
 #define  A(i, j) ( A[(j)*lda  + (i)])
 #define  C(i, j) ( C[(j)*ldc  + (i)])
 #define  D(i)    ( D[(i)*incD] )
 
 // trailing submatrix update with inner-blocking 
-int ssyrk_d(magma_tally4_uplo_t uplo, magma_tally4_int_t m, magma_tally4_int_t n,
-            float alpha, float *A, magma_tally4_int_t lda,
-            float beta,  float *C, magma_tally4_int_t ldc,
-            float *D, magma_tally4_int_t incD)
+int dsyrk_d(magma_tally4_uplo_t uplo, magma_tally4_int_t m, magma_tally4_int_t n,
+            double alpha, double *A, magma_tally4_int_t lda,
+            double beta,  double *C, magma_tally4_int_t ldc,
+            double *D, magma_tally4_int_t incD)
 {
-    float *Aik;
-    float *Dkk;
-    float *Akj;
+    double *Aik;
+    double *Dkk;
+    double *Akj;
 
     /* Check input arguments */
     if ((uplo != Magma_tally4Lower) && (uplo != Magma_tally4Upper)) {
@@ -57,7 +57,7 @@ int ssyrk_d(magma_tally4_uplo_t uplo, magma_tally4_int_t m, magma_tally4_int_t n
         {
             for(int i=j; i<m; i++)
             {
-                float tmp = MAGMA_tally4_S_ZERO;
+                double tmp = MAGMA_tally4_D_ZERO;
                 Aik = A+i;
                 Dkk = D;
                 Akj = A+j;
@@ -75,7 +75,7 @@ int ssyrk_d(magma_tally4_uplo_t uplo, magma_tally4_int_t m, magma_tally4_int_t n
         {
             for(int i=0; i<=j; i++)
             {
-                float tmp = MAGMA_tally4_S_ZERO;
+                double tmp = MAGMA_tally4_D_ZERO;
                 for(int k=0; k<n; k++)
                 {
                     tmp += A(i, k) * D( k ) * conj( A(k, j) );
@@ -89,13 +89,13 @@ int ssyrk_d(magma_tally4_uplo_t uplo, magma_tally4_int_t m, magma_tally4_int_t n
 
 // trailing submatrix update with inner-blocking, using workshpace that
 // stores D*L'
-int ssyrk_d_workspace(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_int_t k,
-                      float alpha, float *A, magma_tally4_int_t lda,
-                      float beta,  float *C, magma_tally4_int_t ldc,
-                      float *work, magma_tally4_int_t ldw)
+int dsyrk_d_workspace(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_int_t k,
+                      double alpha, double *A, magma_tally4_int_t lda,
+                      double beta,  double *C, magma_tally4_int_t ldc,
+                      double *work, magma_tally4_int_t ldw)
 {
-    float c_one  =  MAGMA_tally4_S_ONE;
-    float c_mone = -MAGMA_tally4_S_ONE;
+    double c_one  =  MAGMA_tally4_D_ONE;
+    double c_mone = -MAGMA_tally4_D_ONE;
 
     /* Check input arguments */
     if ((uplo != Magma_tally4Lower) && (uplo != Magma_tally4Upper)) {
@@ -122,7 +122,7 @@ int ssyrk_d_workspace(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tall
 
     if ( uplo == Magma_tally4Lower )
     {
-         blasf77_sgemm( Magma_tally4NoTransStr, Magma_tally4NoTransStr, 
+         blasf77_dgemm( Magma_tally4NoTransStr, Magma_tally4NoTransStr, 
                         &n, &n, &k,
                         &c_mone, A,    &lda,
                                  work, &ldw,
@@ -130,7 +130,7 @@ int ssyrk_d_workspace(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tall
     }
     else
     {
-         blasf77_sgemm( Magma_tally4NoTransStr, Magma_tally4NoTransStr, 
+         blasf77_dgemm( Magma_tally4NoTransStr, Magma_tally4NoTransStr, 
                         &n, &n, &k,
                         &c_mone, work, &ldw,
                                  A,    &lda,
@@ -140,8 +140,8 @@ int ssyrk_d_workspace(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tall
 }
 
 // diagonal factorization with inner-block
-int ssytrf_diag_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, 
-                      float *A, magma_tally4_int_t lda)
+int dsytrf_diag_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, 
+                      double *A, magma_tally4_int_t lda)
 {
     /* Quick return */
     if (n == 1)
@@ -151,10 +151,10 @@ int ssytrf_diag_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n,
 
     /**/
     magma_tally4_int_t info = 0, ione = 1;
-    float *Ak1k = NULL;
-    float Akk;
-    float done = 1.0;
-    float alpha;
+    double *Ak1k = NULL;
+    double Akk;
+    double done = 1.0;
+    double alpha;
 
     if ( uplo == Magma_tally4Lower )
     {
@@ -165,18 +165,18 @@ int ssytrf_diag_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n,
         Ak1k = A + 1;
 
         for (magma_tally4_int_t k=n-1; k>0; k--) {
-            if ( fabs(Akk) < lapackf77_slamch("Epsilon") ) {
+            if ( fabs(Akk) < lapackf77_dlamch("Epsilon") ) {
                 info = k;
                 return info;
             }
 
             // scale off-diagonals
-            alpha = done / MAGMA_tally4_S_REAL( Akk );
-            blasf77_sscal(&k, &alpha, Ak1k, &ione);
+            alpha = done / MAGMA_tally4_D_REAL( Akk );
+            blasf77_dscal(&k, &alpha, Ak1k, &ione);
 
             // update remaining
-            alpha = - MAGMA_tally4_S_REAL( Akk );
-            blasf77_ssyr(Magma_tally4LowerStr, &k, 
+            alpha = - MAGMA_tally4_D_REAL( Akk );
+            blasf77_dsyr(Magma_tally4LowerStr, &k, 
                          &alpha, Ak1k, &ione, Ak1k + lda, &lda);
 
             /* Move to next diagonal element */
@@ -192,25 +192,25 @@ int ssytrf_diag_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n,
         Ak1k = A + lda;
 
         for (magma_tally4_int_t k=n-1; k>0; k--) {
-            if ( fabs(Akk) < lapackf77_slamch("Epsilon") ) {
+            if ( fabs(Akk) < lapackf77_dlamch("Epsilon") ) {
                 info = k;
                 return info;
             }
 
             // scale off-diagonals
-            alpha = done / MAGMA_tally4_S_REAL( Akk );
-            blasf77_sscal(&k, &alpha, Ak1k, &lda);
+            alpha = done / MAGMA_tally4_D_REAL( Akk );
+            blasf77_dscal(&k, &alpha, Ak1k, &lda);
 
             // update remaining
-            alpha = - MAGMA_tally4_S_REAL( Akk );
+            alpha = - MAGMA_tally4_D_REAL( Akk );
 
             #if defined(PRECISION_z) | defined(PRECISION_c)
-            lapackf77_slacgv(&k, Ak1k, &lda);
+            lapackf77_dlacgv(&k, Ak1k, &lda);
             #endif
-            blasf77_ssyr(Magma_tally4UpperStr, &k, 
+            blasf77_dsyr(Magma_tally4UpperStr, &k, 
                          &alpha, Ak1k, &lda, Ak1k + 1, &lda);
             #if defined(PRECISION_z) | defined(PRECISION_c)
-            lapackf77_slacgv(&k, Ak1k, &lda);
+            lapackf77_dlacgv(&k, Ak1k, &lda);
             #endif
 
             /* Move to next diagonal element */
@@ -225,15 +225,15 @@ int ssytrf_diag_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n,
 
 // main routine
 extern "C" magma_tally4_int_t
-ssytrf_nopiv_cpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_int_t ib,
-                 float *A, magma_tally4_int_t lda,
+dsytrf_nopiv_tally4_cpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_int_t ib,
+                 double *A, magma_tally4_int_t lda,
                  magma_tally4_int_t *info)
 {
     magma_tally4_int_t ione = 1;
-    float alpha;
-    float done = 1.0;
-    float zone  =  MAGMA_tally4_S_ONE;
-    float mzone = -MAGMA_tally4_S_ONE;
+    double alpha;
+    double done = 1.0;
+    double zone  =  MAGMA_tally4_D_ONE;
+    double mzone = -MAGMA_tally4_D_ONE;
 
     /* Check input arguments */
     if (lda < n) {
@@ -252,14 +252,14 @@ ssytrf_nopiv_cpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_in
             magma_tally4_int_t sb = min(n-i, ib);
 
             /* Factorize the diagonal block */
-            *info = ssytrf_diag_nopiv(uplo, sb, &A(i, i), lda);
+            *info = dsytrf_diag_nopiv(uplo, sb, &A(i, i), lda);
             if (*info != 0) return *info;
 
             if ( i + sb < n ) {
                 magma_tally4_int_t height = n - i - sb;
 
                 /* Solve the lower panel ( L21*D11 )*/
-                blasf77_strsm(
+                blasf77_dtrsm(
                     Magma_tally4RightStr, Magma_tally4LowerStr, 
                     Magma_tally4ConjTransStr, Magma_tally4UnitStr,
                     &height, &sb, 
@@ -268,23 +268,23 @@ ssytrf_nopiv_cpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_in
 
                 /* Scale the block to divide by D */
                 for (magma_tally4_int_t k=0; k<sb; k++) {
-                    #define SSYRK_D_WORKSPACE
-                    #ifdef SSYRK_D_WORKSPACE
-                    for (magma_tally4_int_t ii=i+sb; ii<n; ii++) A(i+k, ii) = MAGMA_tally4_S_CNJG(A(ii, i+k));
+                    #define DSYRK_D_WORKSPACE
+                    #ifdef DSYRK_D_WORKSPACE
+                    for (magma_tally4_int_t ii=i+sb; ii<n; ii++) A(i+k, ii) = MAGMA_tally4_D_CNJG(A(ii, i+k));
                     #endif
-                    alpha = done / MAGMA_tally4_S_REAL(A(i+k, i+k));
-                    blasf77_sscal(&height, &alpha, &A(i+sb, i+k), &ione);
-                    A(i+k, i+k) = MAGMA_tally4_S_MAKE(MAGMA_tally4_S_REAL(A(i+k, i+k)), 0.0);
+                    alpha = done / MAGMA_tally4_D_REAL(A(i+k, i+k));
+                    blasf77_dscal(&height, &alpha, &A(i+sb, i+k), &ione);
+                    A(i+k, i+k) = MAGMA_tally4_D_MAKE(MAGMA_tally4_D_REAL(A(i+k, i+k)), 0.0);
                 }
 
                 /* Update the trailing submatrix A22 = A22 - A21 * D11 * A21' */
-                #ifdef SSYRK_D_WORKSPACE
-                ssyrk_d_workspace(Magma_tally4Lower, height, sb,
+                #ifdef DSYRK_D_WORKSPACE
+                dsyrk_d_workspace(Magma_tally4Lower, height, sb,
                                   mzone, &A(i+sb, i), lda,    // A21
                                   zone,  &A(i+sb, i+sb), lda, // A22
                                          &A(i, i+sb), lda);   // workspace, I am writing on upper part :)
                 #else
-                ssyrk_d(Magma_tally4Lower, height, sb,
+                dsyrk_d(Magma_tally4Lower, height, sb,
                         mzone, &A(i+sb, i), lda,    // A21
                         zone,  &A(i+sb, i+sb), lda, // A22
                                &A(i, i), lda+1);    // D11
@@ -296,14 +296,14 @@ ssytrf_nopiv_cpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_in
             magma_tally4_int_t sb = min(n-i, ib);
 
             /* Factorize the diagonal block */
-            *info = ssytrf_diag_nopiv(uplo, sb, &A(i, i), lda);
+            *info = dsytrf_diag_nopiv(uplo, sb, &A(i, i), lda);
             if (*info != 0) return *info;
 
             if ( i + sb < n ) {
                 magma_tally4_int_t height = n - i - sb;
 
                 /* Solve the lower panel ( L21*D11 )*/
-                blasf77_strsm(
+                blasf77_dtrsm(
                     Magma_tally4LeftStr, Magma_tally4UpperStr, 
                     Magma_tally4ConjTransStr, Magma_tally4UnitStr,
                     &sb, &height, 
@@ -312,23 +312,23 @@ ssytrf_nopiv_cpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_in
 
                 /* Scale the block to divide by D */
                 for (magma_tally4_int_t k=0; k<sb; k++) {
-                    #define SSYRK_D_WORKSPACE
-                    #ifdef SSYRK_D_WORKSPACE
-                    for (magma_tally4_int_t ii=i+sb; ii<n; ii++) A(ii, i+k) = MAGMA_tally4_S_CNJG(A(i+k, ii));
+                    #define DSYRK_D_WORKSPACE
+                    #ifdef DSYRK_D_WORKSPACE
+                    for (magma_tally4_int_t ii=i+sb; ii<n; ii++) A(ii, i+k) = MAGMA_tally4_D_CNJG(A(i+k, ii));
                     #endif
-                    alpha = done / MAGMA_tally4_S_REAL(A(i+k, i+k));
-                    blasf77_sscal(&height, &alpha, &A(i+k, i+sb), &lda);
-                    A(i+k, i+k) = MAGMA_tally4_S_MAKE(MAGMA_tally4_S_REAL(A(i+k, i+k)), 0.0);
+                    alpha = done / MAGMA_tally4_D_REAL(A(i+k, i+k));
+                    blasf77_dscal(&height, &alpha, &A(i+k, i+sb), &lda);
+                    A(i+k, i+k) = MAGMA_tally4_D_MAKE(MAGMA_tally4_D_REAL(A(i+k, i+k)), 0.0);
                 }
 
                 /* Update the trailing submatrix A22 = A22 - A21 * D11 * A21' */
-                #ifdef SSYRK_D_WORKSPACE
-                ssyrk_d_workspace(Magma_tally4Upper, height, sb,
+                #ifdef DSYRK_D_WORKSPACE
+                dsyrk_d_workspace(Magma_tally4Upper, height, sb,
                                   mzone, &A(i, i+sb), lda,    // A21
                                   zone,  &A(i+sb, i+sb), lda, // A22
                                          &A(i+sb, i), lda);   // workspace, I am writing on upper part :)
                 #else
-                ssyrk_d(Magma_tally4Upper, height, sb,
+                dsyrk_d(Magma_tally4Upper, height, sb,
                         mzone, &A(i, i+sb), lda,    // A21
                         zone,  &A(i+sb, i+sb), lda, // A22
                                &A(i, i), lda+1);    // D11

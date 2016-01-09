@@ -10,15 +10,15 @@ SHDR = \
 
 CSRC = \
 	magma_tally4_cnan_inf.cpp \
-	cpanel_to_q.cpp \
+	cpanel_to_q_tally4.cpp \
 	cprint.cpp
 
 DSRC = \
 	magma_tally4_dnan_inf.cpp \
-	dpanel_to_q.cpp \
+	dpanel_to_q_tally4.cpp \
 	dprint.cpp
 
 SSRC = \
 	magma_tally4_snan_inf.cpp \
-	spanel_to_q.cpp \
+	spanel_to_q_tally4.cpp \
 	sprint.cpp

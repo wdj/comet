@@ -165,9 +165,9 @@ magma_tally4_zgeqrf2_gpu(
                               &rows, &ib,
                               work_ref(i), &ldwork, tau+i, hwork, &ib);
 
-            zpanel_to_q( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
+            zpanel_to_q_tally4( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
             magma_tally4_zsetmatrix( rows, ib, work_ref(i), ldwork, dA(i,i), ldda );
-            zq_to_panel( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
+            zq_to_panel_tally4( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
 
             if (i + ib < n) {
                 magma_tally4_zsetmatrix( ib, ib, hwork, ib, dwork, lddwork );

@@ -8,7 +8,7 @@
        @author Ichitaro Yamazaki                                                                   
        @author Stan Tomov
 
-       @precisions normal z -> s d c
+       @generated from zhetrf_nopiv_tally4_gpu.cpp normal z -> s, Fri Jan 30 19:00:17 2015
 */
 #include "common_magma_tally4.h"
 #include "trace.h"
@@ -17,7 +17,7 @@
     Purpose   
     =======   
 
-    ZHETRF_nopiv_gpu computes the LDLt factorization of a complex Hermitian   
+    SSYTRF_nopiv_gpu computes the LDLt factorization of a real symmetric   
     matrix A.
 
     The factorization has the form   
@@ -40,8 +40,8 @@
             The order of the matrix A.  N >= 0.   
 
     @param[in,out]
-    dA      COMPLEX_16 array on the GPU, dimension (LDA,N)   
-            On entry, the Hermitian matrix A.  If UPLO = 'U', the leading   
+    dA      REAL array on the GPU, dimension (LDA,N)   
+            On entry, the symmetric matrix A.  If UPLO = 'U', the leading   
             N-by-N upper triangular part of A contains the upper   
             triangular part of the matrix A, and the strictly lower   
             triangular part of A is not referenced.  If UPLO = 'L', the   
@@ -68,12 +68,12 @@
                   positive definite, and the factorization could not be   
                   completed.   
     
-    @ingroup magma_tally4_zhesv_comp
+    @ingroup magma_tally4_ssysv_comp
     ******************************************************************* */
 extern "C" magma_tally4_int_t
-magma_tally4_zhetrf_nopiv_gpu(
+magma_tally4_ssytrf_nopiv_tally4_gpu(
     magma_tally4_uplo_t uplo, magma_tally4_int_t n,
-    magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda,
+    magma_tally4Float_ptr dA, magma_tally4_int_t ldda,
     magma_tally4_int_t *info)
 {
     #define  A(i, j)  (A)
@@ -82,8 +82,8 @@ magma_tally4_zhetrf_nopiv_gpu(
     #define dWt(i, j) (dW +(j)*nb   + (i))
 
     /* Local variables */
-    magma_tally4DoubleComplex zone  = MAGMA_tally4_Z_ONE;
-    magma_tally4DoubleComplex mzone = MAGMA_tally4_Z_NEG_ONE;
+    float zone  = MAGMA_tally4_S_ONE;
+    float mzone = MAGMA_tally4_S_NEG_ONE;
     int                upper = (uplo == Magma_tally4Upper);
     magma_tally4_int_t j, k, jb, nb, ib, iinfo;
 
@@ -104,7 +104,7 @@ magma_tally4_zhetrf_nopiv_gpu(
     if ( n == 0 )
       return MAGMA_tally4_SUCCESS;
 
-    nb = magma_tally4_get_zhetrf_nopiv_nb(n);
+    nb = magma_tally4_get_ssytrf_nopiv_tally4_nb(n);
     ib = min(32, nb); // inner-block for diagonal factorization
 
     magma_tally4_queue_t orig_stream;
@@ -119,15 +119,15 @@ magma_tally4_zhetrf_nopiv_gpu(
     trace_init( 1, 1, 2, stream );
 
     // CPU workspace
-    magma_tally4DoubleComplex *A;
-    if (MAGMA_tally4_SUCCESS != magma_tally4_zmalloc_pinned( &A, nb*nb )) {
+    float *A;
+    if (MAGMA_tally4_SUCCESS != magma_tally4_smalloc_pinned( &A, nb*nb )) {
         *info = MAGMA_tally4_ERR_HOST_ALLOC;
         return *info;
     }
 
     // GPU workspace
-    magma_tally4DoubleComplex_ptr dW;
-    if (MAGMA_tally4_SUCCESS != magma_tally4_zmalloc( &dW, (1+nb)*ldda )) {
+    magma_tally4Float_ptr dW;
+    if (MAGMA_tally4_SUCCESS != magma_tally4_smalloc( &dW, (1+nb)*ldda )) {
         *info = MAGMA_tally4_ERR_DEVICE_ALLOC;
         return *info;
     }
@@ -144,13 +144,13 @@ magma_tally4_zhetrf_nopiv_gpu(
             trace_gpu_start( 0, 0, "get", "get" );
             //magma_tally4_queue_wait_event( stream[1], event );                                                                
             magma_tally4_event_sync(event);
-            magma_tally4_zgetmatrix_async(jb, jb, dA(j, j), ldda, A(j,j), nb, stream[1]);
+            magma_tally4_sgetmatrix_async(jb, jb, dA(j, j), ldda, A(j,j), nb, stream[1]);
             trace_gpu_end( 0, 0 );
 
             // factorize the diagonal block
             magma_tally4_queue_sync(stream[1]);
             trace_cpu_start( 0, "potrf", "potrf" );
-            zhetrf_nopiv_cpu(Magma_tally4Upper, jb, ib, A(j, j), nb, info);
+            ssytrf_nopiv_tally4_cpu(Magma_tally4Upper, jb, ib, A(j, j), nb, info);
             trace_cpu_end( 0 );
             if (*info != 0){
                 *info = *info + j;
@@ -159,21 +159,21 @@ magma_tally4_zhetrf_nopiv_gpu(
             
             // copy A(j,j) back to GPU
             trace_gpu_start( 0, 0, "set", "set" );
-            magma_tally4_zsetmatrix_async(jb, jb, A(j, j), nb, dA(j, j), ldda, stream[0]);
+            magma_tally4_ssetmatrix_async(jb, jb, A(j, j), nb, dA(j, j), ldda, stream[0]);
             trace_gpu_end( 0, 0 );
                 
             if ( (j+jb) < n) {
                 // compute the off-diagonal blocks of current block column
                 magma_tally4blasSetKernelStream( stream[0] );
                 trace_gpu_start( 0, 0, "trsm", "trsm" );
-                magma_tally4_ztrsm(Magma_tally4Left, Magma_tally4Upper, Magma_tally4ConjTrans, Magma_tally4Unit, 
+                magma_tally4_strsm(Magma_tally4Left, Magma_tally4Upper, Magma_tally4ConjTrans, Magma_tally4Unit, 
                             jb, (n-j-jb), 
                             zone, dA(j, j),    ldda, 
                             dA(j, j+jb), ldda);
-                magma_tally4_zcopymatrix( jb, n-j-jb, dA( j, j+jb ), ldda, dWt( 0, j+jb ), nb );
+                magma_tally4_scopymatrix( jb, n-j-jb, dA( j, j+jb ), ldda, dWt( 0, j+jb ), nb );
                 
                 // update the trailing submatrix with D
-                magma_tally4blas_zlascl_diag(Magma_tally4Upper, jb, n-j-jb,
+                magma_tally4blas_slascl_diag(Magma_tally4Upper, jb, n-j-jb,
                                       dA(j,    j), ldda,
                                       dA(j, j+jb), ldda,
                                       &iinfo);
@@ -183,7 +183,7 @@ magma_tally4_zhetrf_nopiv_gpu(
                 trace_gpu_start( 0, 0, "gemm", "gemm" );
                 for (k=j+jb; k<n; k+=nb) {
                     magma_tally4_int_t kb = min(nb,n-k);
-                    magma_tally4_zgemm(Magma_tally4ConjTrans, Magma_tally4NoTrans, kb, n-k, jb,
+                    magma_tally4_sgemm(Magma_tally4ConjTrans, Magma_tally4NoTrans, kb, n-k, jb,
                                 mzone, dWt(0, k), nb, 
                                        dA(j, k), ldda,
                                 zone,  dA(k, k), ldda);
@@ -204,13 +204,13 @@ magma_tally4_zhetrf_nopiv_gpu(
             trace_gpu_start( 0, 0, "get", "get" );
             //magma_tally4_queue_wait_event( stream[0], event );                                                                
             magma_tally4_event_sync(event);
-            magma_tally4_zgetmatrix_async(jb, jb, dA(j, j), ldda, A(j,j), nb, stream[1]);
+            magma_tally4_sgetmatrix_async(jb, jb, dA(j, j), ldda, A(j,j), nb, stream[1]);
             trace_gpu_end( 0, 0 );
             
             // factorize the diagonal block
             magma_tally4_queue_sync(stream[1]);
             trace_cpu_start( 0, "potrf", "potrf" );
-            zhetrf_nopiv_cpu(Magma_tally4Lower, jb, ib, A(j, j), nb, info);
+            ssytrf_nopiv_tally4_cpu(Magma_tally4Lower, jb, ib, A(j, j), nb, info);
             trace_cpu_end( 0 );
             if (*info != 0){
                 *info = *info + j;
@@ -219,21 +219,21 @@ magma_tally4_zhetrf_nopiv_gpu(
 
             // copy A(j,j) back to GPU
             trace_gpu_start( 0, 0, "set", "set" );
-            magma_tally4_zsetmatrix_async(jb, jb, A(j, j), nb, dA(j, j), ldda, stream[0]);
+            magma_tally4_ssetmatrix_async(jb, jb, A(j, j), nb, dA(j, j), ldda, stream[0]);
             trace_gpu_end( 0, 0 );
             
             if ( (j+jb) < n) {
                 // compute the off-diagonal blocks of current block column
                 magma_tally4blasSetKernelStream( stream[0] );
                 trace_gpu_start( 0, 0, "trsm", "trsm" );
-                magma_tally4_ztrsm(Magma_tally4Right, Magma_tally4Lower, Magma_tally4ConjTrans, Magma_tally4Unit, 
+                magma_tally4_strsm(Magma_tally4Right, Magma_tally4Lower, Magma_tally4ConjTrans, Magma_tally4Unit, 
                             (n-j-jb), jb, 
                             zone, dA(j,    j), ldda, 
                             dA(j+jb, j), ldda);
-                magma_tally4_zcopymatrix( n-j-jb,jb, dA( j+jb, j ), ldda, dW( j+jb, 0 ), ldda );
+                magma_tally4_scopymatrix( n-j-jb,jb, dA( j+jb, j ), ldda, dW( j+jb, 0 ), ldda );
                 
                 // update the trailing submatrix with D
-                magma_tally4blas_zlascl_diag(Magma_tally4Lower, n-j-jb, jb,
+                magma_tally4blas_slascl_diag(Magma_tally4Lower, n-j-jb, jb,
                                       dA(j,    j), ldda,
                                       dA(j+jb, j), ldda,
                                       &iinfo);
@@ -243,7 +243,7 @@ magma_tally4_zhetrf_nopiv_gpu(
                 trace_gpu_start( 0, 0, "gemm", "gemm" );
                 for (k=j+jb; k<n; k+=nb) {
                     magma_tally4_int_t kb = min(nb,n-k);
-                    magma_tally4_zgemm(Magma_tally4NoTrans, Magma_tally4ConjTrans, n-k, kb, jb,
+                    magma_tally4_sgemm(Magma_tally4NoTrans, Magma_tally4ConjTrans, n-k, kb, jb,
                                 mzone, dA(k, j), ldda, 
                                        dW(k, 0), ldda,
                                 zone,  dA(k, k), ldda);
@@ -255,7 +255,7 @@ magma_tally4_zhetrf_nopiv_gpu(
         }
     }
     
-    trace_finalize( "zhetrf.svg","trace.css" );
+    trace_finalize( "ssytrf.svg","trace.css" );
     magma_tally4_queue_destroy(stream[0]);
     magma_tally4_queue_destroy(stream[1]);
     magma_tally4_event_destroy( event );
@@ -264,5 +264,5 @@ magma_tally4_zhetrf_nopiv_gpu(
     
     magma_tally4blasSetKernelStream( orig_stream );
     return MAGMA_tally4_SUCCESS;
-} /* magma_tally4_zhetrf_nopiv */
+} /* magma_tally4_ssytrf_nopiv_tally4 */
 

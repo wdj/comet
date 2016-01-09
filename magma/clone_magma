@@ -36,14 +36,99 @@ fi
 echo "Changing strings in each file ..."
 
 #for file in `find $MAGMA -name '*' -type f -print` ; do
+echo "  magma"
 for file in `grep -ril 'magma' $MAGMA` ; do
   sed -i "s/[mM][aA][gG][mM][aA]/&_$TAG/g" $file
+done
+
+NAMES="
+lapack_bool_const
+lapack_order_const
+lapack_trans_const
+lapack_uplo_const
+lapack_diag_const
+lapack_side_const
+lapack_norm_const
+lapack_dist_const
+lapack_sym_const
+lapack_pack_const
+lapack_vec_const
+lapack_range_const
+lapack_vect_const
+lapack_direct_const
+lapack_storev_const
+lapacke_bool_const
+lapacke_order_const
+lapacke_trans_const
+lapacke_uplo_const
+lapacke_diag_const
+lapacke_side_const
+lapacke_norm_const
+lapacke_dist_const
+lapacke_sym_const
+lapacke_pack_const
+lapacke_vec_const
+lapacke_range_const
+lapacke_vect_const
+lapacke_direct_const
+lapacke_storev_const
+zhetrf_nopiv
+zpanel_to_q
+zq_to_panel
+chetrf_nopiv
+cpanel_to_q
+cq_to_panel
+dsytrf_nopiv
+dpanel_to_q
+dq_to_panel
+ssytrf_nopiv
+spanel_to_q
+sq_to_panel
+swp2pswp
+
+lapacke_const
+zgehrd_data
+cgehrd_data
+sgehrd_data
+dgehrd_data
+
+lapack_const
+cublas_trans_const
+cublas_uplo_const
+cublas_diag_const
+cublas_side_const
+"
+
+for name in $NAMES ; do
+  echo "  $name"
+  for file in `grep -ril "$name" $MAGMA` ; do
+    sed -i "s/$name/&_$TAG/g" $file
+  done
 done
 
 echo "Renaming files and directories ..."
 
 #---NOTE: this is somewhat brittle, may break if ordering is wrong.
 
+NAMES="
+zhetrf_nopiv
+zpanel_to_q
+chetrf_nopiv
+cpanel_to_q
+dsytrf_nopiv
+dpanel_to_q
+ssytrf_nopiv
+spanel_to_q
+"
+
+for name in $NAMES ; do
+  echo "  $name"
+  for item in `find $MAGMA -name "${name}*" -print | sort | tac` ; do
+    mv $item `echo $item | sed -e "s/\(.*\)\(${name}\)\(.*\)/\1\2_$TAG\3/g"`
+  done
+done
+
+echo "  magma"
 for item in `find $MAGMA -iname '*magma*' -print | sort | tac` ; do
   mv $item `echo $item | sed -e "s/\(.*\)\([mM][aA][gG][mM][aA]\)\(.*\)/\1\2_$TAG\3/g"`
 done

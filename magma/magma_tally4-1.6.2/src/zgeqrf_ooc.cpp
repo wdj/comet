@@ -195,7 +195,7 @@ magma_tally4_zgeqrf_ooc(
                                     work,  ib,
                                     dwork, lddwork, stream[1] );
 
-            zpanel_to_q(Magma_tally4Upper, ib, A(j,j), lda, work+ib*ib);
+            zpanel_to_q_tally4(Magma_tally4Upper, ib, A(j,j), lda, work+ib*ib);
             magma_tally4_zsetmatrix_async( rows, ib,
                                     A(j,j), lda,
                                     ptr,        rows, stream[1] );
@@ -206,7 +206,7 @@ magma_tally4_zgeqrf_ooc(
                               ptr, rows, dwork,    lddwork,
                               dA(j, 0), ldda, dwork+ib, lddwork);
 
-            zq_to_panel(Magma_tally4Upper, ib, A(j,j), lda, work+ib*ib);
+            zq_to_panel_tally4(Magma_tally4Upper, ib, A(j,j), lda, work+ib*ib);
         }
 
         /* 3. Do a QR on the current part */

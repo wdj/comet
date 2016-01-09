@@ -156,7 +156,7 @@ magma_tally4_dsytrd_mgpu(
 #define dA(id, i, j) (dA[(id)]    + (j)*ldda + (i))
 #define dW(id, i, j) (dW[(id)] + (j)*ldda + (i))
 
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
     
     magma_tally4_int_t nlocal, ldda;
     magma_tally4_int_t nb = magma_tally4_get_dsytrd_nb(n), ib, ib2;

@@ -82,7 +82,7 @@ magma_tally4_zpotrf_gpu(
 #define dA(i, j) (dA + (j)*ldda + (i))
 
     magma_tally4_int_t     j, jb, nb;
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
     magma_tally4DoubleComplex c_one     = MAGMA_tally4_Z_ONE;
     magma_tally4DoubleComplex c_neg_one = MAGMA_tally4_Z_NEG_ONE;
     magma_tally4DoubleComplex *work;

@@ -36,7 +36,7 @@ magma_tally4_int_t magma_tally4_get_cgeqlf_nb( magma_tally4_int_t m );
 magma_tally4_int_t magma_tally4_get_cgehrd_nb( magma_tally4_int_t m );
 magma_tally4_int_t magma_tally4_get_chetrd_nb( magma_tally4_int_t m );
 magma_tally4_int_t magma_tally4_get_chetrf_nb( magma_tally4_int_t m );
-magma_tally4_int_t magma_tally4_get_chetrf_nopiv_nb( magma_tally4_int_t m );
+magma_tally4_int_t magma_tally4_get_chetrf_nopiv_tally4_nb( magma_tally4_int_t m );
 magma_tally4_int_t magma_tally4_get_cgelqf_nb( magma_tally4_int_t m );
 magma_tally4_int_t magma_tally4_get_cgebrd_nb( magma_tally4_int_t m );
 magma_tally4_int_t magma_tally4_get_chegst_nb( magma_tally4_int_t m );
@@ -398,7 +398,7 @@ magma_tally4_chetrf(
     magma_tally4_int_t *info);
 
 magma_tally4_int_t
-magma_tally4_chetrf_nopiv(
+magma_tally4_chetrf_nopiv_tally4(
     magma_tally4_uplo_t uplo, magma_tally4_int_t n,
     magma_tally4FloatComplex *A, magma_tally4_int_t lda,
     magma_tally4_int_t *info);
@@ -464,7 +464,7 @@ magma_tally4_clahef_gpu(
     magma_tally4_int_t *info);
 
 magma_tally4_int_t
-chetrf_nopiv_cpu(
+chetrf_nopiv_tally4_cpu(
     magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_int_t ib,
     magma_tally4FloatComplex *A, magma_tally4_int_t lda,
     magma_tally4_int_t *info);
@@ -896,13 +896,13 @@ magma_tally4_clahr2_m(
     magma_tally4FloatComplex *tau,
     magma_tally4FloatComplex *T, magma_tally4_int_t ldt,
     magma_tally4FloatComplex *Y, magma_tally4_int_t ldy,
-    struct cgehrd_data *data );
+    struct cgehrd_data_tally4 *data );
 
 magma_tally4_int_t
 magma_tally4_clahru_m(
     magma_tally4_int_t n, magma_tally4_int_t ihi, magma_tally4_int_t k, magma_tally4_int_t nb,
     magma_tally4FloatComplex *A, magma_tally4_int_t lda,
-    struct cgehrd_data *data );
+    struct cgehrd_data_tally4 *data );
 
 magma_tally4_int_t
 magma_tally4_cpotrf_m(
@@ -1332,7 +1332,7 @@ magma_tally4_chetrd2_gpu(
     magma_tally4_int_t *info);
 
 magma_tally4_int_t
-magma_tally4_chetrf_nopiv_gpu(
+magma_tally4_chetrf_nopiv_tally4_gpu(
     magma_tally4_uplo_t uplo, magma_tally4_int_t n,
     magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda,
     magma_tally4_int_t *info);
@@ -1609,12 +1609,12 @@ void magma_tally4_cprint_gpu(
     magma_tally4_int_t m, magma_tally4_int_t n,
     magma_tally4FloatComplex_const_ptr dA, magma_tally4_int_t ldda );
 
-void cpanel_to_q(
+void cpanel_to_q_tally4(
     magma_tally4_uplo_t uplo, magma_tally4_int_t ib,
     magma_tally4FloatComplex *A, magma_tally4_int_t lda,
     magma_tally4FloatComplex *work );
 
-void cq_to_panel(
+void cq_to_panel_tally4(
     magma_tally4_uplo_t uplo, magma_tally4_int_t ib,
     magma_tally4FloatComplex *A, magma_tally4_int_t lda,
     magma_tally4FloatComplex *work );

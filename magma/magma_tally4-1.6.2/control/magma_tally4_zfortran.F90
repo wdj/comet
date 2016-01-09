@@ -49,9 +49,9 @@ integer function magma_tally4f_get_zhetrf_nb( m )
     integer :: m
 end function magma_tally4f_get_zhetrf_nb
 
-integer function magma_tally4f_get_zhetrf_nopiv_nb( m )
+integer function magma_tally4f_get_zhetrf_nopiv_tally4_nb( m )
     integer :: m
-end function magma_tally4f_get_zhetrf_nopiv_nb
+end function magma_tally4f_get_zhetrf_nopiv_tally4_nb
 
 integer function magma_tally4f_get_zgelqf_nb( m )
     integer :: m
@@ -598,13 +598,13 @@ subroutine magma_tally4f_zhetrf( uplo, n, A, lda, ipiv, info )
     integer          :: info
 end subroutine magma_tally4f_zhetrf
 
-subroutine magma_tally4f_zhetrf_nopiv( uplo, n, a, lda, info )
+subroutine magma_tally4f_zhetrf_nopiv_tally4( uplo, n, a, lda, info )
     character        :: uplo
     integer          :: n
     complex*16       :: a(*)
     integer          :: lda
     integer          :: info
-end subroutine magma_tally4f_zhetrf_nopiv
+end subroutine magma_tally4f_zhetrf_nopiv_tally4
 
 subroutine magma_tally4f_zhetrd_hb2st( uplo, n, nb, Vblksiz, A, lda, d, e, V, ldv, TAU, compT,  &
         T, ldt )
@@ -1604,13 +1604,13 @@ subroutine magma_tally4f_zhetrd2_gpu( uplo, n, dA, ldda, d, e, tau, wA, ldwa, wo
     integer          :: info
 end subroutine magma_tally4f_zhetrd2_gpu
 
-subroutine magma_tally4f_zhetrf_nopiv_gpu( uplo, n, da, ldda, info )
+subroutine magma_tally4f_zhetrf_nopiv_tally4_gpu( uplo, n, da, ldda, info )
     character        :: uplo
     integer          :: n
     magma_tally4_devptr_t   :: da
     integer          :: ldda
     integer          :: info
-end subroutine magma_tally4f_zhetrf_nopiv_gpu
+end subroutine magma_tally4f_zhetrf_nopiv_tally4_gpu
 
 subroutine magma_tally4f_zlarf_gpu( m, n, dv, dtau, dC, lddc )
     integer          :: m

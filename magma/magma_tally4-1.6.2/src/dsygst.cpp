@@ -89,7 +89,7 @@ magma_tally4_dsygst(
 #define dA(i, j) (dw + (j)*ldda + (i))
 #define dB(i, j) (dw + n*ldda + (j)*lddb + (i))
 
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
     magma_tally4_int_t        nb;
     magma_tally4_int_t        k, kb, kb2;
     double    c_one      = MAGMA_tally4_D_ONE;

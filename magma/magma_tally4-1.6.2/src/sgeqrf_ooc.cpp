@@ -195,7 +195,7 @@ magma_tally4_sgeqrf_ooc(
                                     work,  ib,
                                     dwork, lddwork, stream[1] );
 
-            spanel_to_q(Magma_tally4Upper, ib, A(j,j), lda, work+ib*ib);
+            spanel_to_q_tally4(Magma_tally4Upper, ib, A(j,j), lda, work+ib*ib);
             magma_tally4_ssetmatrix_async( rows, ib,
                                     A(j,j), lda,
                                     ptr,        rows, stream[1] );
@@ -206,7 +206,7 @@ magma_tally4_sgeqrf_ooc(
                               ptr, rows, dwork,    lddwork,
                               dA(j, 0), ldda, dwork+ib, lddwork);
 
-            sq_to_panel(Magma_tally4Upper, ib, A(j,j), lda, work+ib*ib);
+            sq_to_panel_tally4(Magma_tally4Upper, ib, A(j,j), lda, work+ib*ib);
         }
 
         /* 3. Do a QR on the current part */

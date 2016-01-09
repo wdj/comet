@@ -12,7 +12,7 @@ include $(MAGMA_tally4_DIR)/Makefile.internal
 
 ZSRC := \
 	magma_tally4_znan_inf.cpp	\
-	zpanel_to_q.cpp	\
+	zpanel_to_q_tally4.cpp	\
 	zprint.cpp	\
 
 ifeq ($(PGIFORTRAN), 0)

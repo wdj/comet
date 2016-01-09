@@ -192,7 +192,7 @@ magma_tally4_zgeqrf3(magma_tally4_context *cntxt, magma_tally4_int_t m, magma_ta
     /* Unzero upper part of each panel */
     for (k = 0; k < qr_params->np_gpu-1; k++){
       ib = min(qr_params->nb,(n-qr_params->nthreads*qr_params->ob)-qr_params->nb*k);
-      zq_to_panel(Magma_tally4Upper, ib, a + k*qr_params->nb*lda + k*qr_params->nb, lda, 
+      zq_to_panel_tally4(Magma_tally4Upper, ib, a + k*qr_params->nb*lda + k*qr_params->nb, lda, 
           qr_params->w+qr_params->nb*qr_params->nb*k);
     }
 

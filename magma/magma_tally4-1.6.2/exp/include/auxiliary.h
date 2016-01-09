@@ -64,19 +64,19 @@ double GetTimerValue(magma_tally4_timestr_t time_1, magma_tally4_timestr_t time_
 
 void printout_devices();
 
-void spanel_to_q(char uplo, int ib, float *a, int lda, float *work);
-void sq_to_panel(char uplo, int ib, float *a, int lda, float *work);
+void spanel_to_q_tally4(char uplo, int ib, float *a, int lda, float *work);
+void sq_to_panel_tally4(char uplo, int ib, float *a, int lda, float *work);
 
-void swp2pswp(char trans, int n, int *ipiv, int *newipiv);
+void swp2pswp_tally4(char trans, int n, int *ipiv, int *newipiv);
 
-void cpanel_to_q(char uplo, int ib, cuFloatComplex *a, int lda, cuFloatComplex *work);
-void cq_to_panel(char uplo, int ib, cuFloatComplex *a, int lda, cuFloatComplex *work);
+void cpanel_to_q_tally4(char uplo, int ib, cuFloatComplex *a, int lda, cuFloatComplex *work);
+void cq_to_panel_tally4(char uplo, int ib, cuFloatComplex *a, int lda, cuFloatComplex *work);
 
-void dpanel_to_q(char uplo, int ib, double *a, int lda, double *work);
-void dq_to_panel(char uplo, int ib, double *a, int lda, double *work);
+void dpanel_to_q_tally4(char uplo, int ib, double *a, int lda, double *work);
+void dq_to_panel_tally4(char uplo, int ib, double *a, int lda, double *work);
 
-void zpanel_to_q(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex *work);
-void zq_to_panel(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex *work);
+void zpanel_to_q_tally4(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex *work);
+void zq_to_panel_tally4(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex *work);
 
 float getv(float *da);
 

@@ -14,6 +14,6 @@ module swap PrgEnv-pgi PrgEnv-gnu
 module load cudatoolkit
 module load acml
 
-make -j8
+time make -j8
 
 #==============================================================================

@@ -6,20 +6,20 @@
        @date January 2015
 
        @author Mark Gates
-       @precisions normal z -> s d c
+       @generated from zpanel_to_q_tally4.cpp normal z -> d, Fri Jan 30 19:00:20 2015
 */
 #include "common_magma_tally4.h"
 
 // -------------------------
 // Put 0s in the upper triangular part of a panel and 1s on the diagonal.
-// Stores previous values in work array, to be restored later with zq_to_panel.
+// Stores previous values in work array, to be restored later with dq_to_panel_tally4.
 extern "C"
-void zpanel_to_q(magma_tally4_uplo_t uplo, magma_tally4_int_t ib, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4DoubleComplex *work)
+void dpanel_to_q_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t ib, double *A, magma_tally4_int_t lda, double *work)
 {
     magma_tally4_int_t i, j, k = 0;
-    magma_tally4DoubleComplex *col;
-    magma_tally4DoubleComplex c_zero = MAGMA_tally4_Z_ZERO;
-    magma_tally4DoubleComplex c_one  = MAGMA_tally4_Z_ONE;
+    double *col;
+    double c_zero = MAGMA_tally4_D_ZERO;
+    double c_one  = MAGMA_tally4_D_ONE;
     
     if (uplo == Magma_tally4Upper) {
         for(i = 0; i < ib; ++i) {
@@ -52,12 +52,12 @@ void zpanel_to_q(magma_tally4_uplo_t uplo, magma_tally4_int_t ib, magma_tally4Do
 
 
 // -------------------------
-// Restores a panel, after call to zpanel_to_q.
+// Restores a panel, after call to dpanel_to_q_tally4.
 extern "C"
-void zq_to_panel(magma_tally4_uplo_t uplo, magma_tally4_int_t ib, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4DoubleComplex *work)
+void dq_to_panel_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t ib, double *A, magma_tally4_int_t lda, double *work)
 {
     magma_tally4_int_t i, j, k = 0;
-    magma_tally4DoubleComplex *col;
+    double *col;
     
     if (uplo == Magma_tally4Upper) {
         for(i = 0; i < ib; ++i) {

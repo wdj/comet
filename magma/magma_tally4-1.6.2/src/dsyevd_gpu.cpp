@@ -229,7 +229,7 @@ magma_tally4_dsyevd_gpu(
         double *A;
         magma_tally4_dmalloc_cpu( &A, lda*n );
         magma_tally4_dgetmatrix( n, n, dA, ldda, A, lda );
-        lapackf77_dsyevd( lapack_vec_const(jobz), lapack_uplo_const(uplo),
+        lapackf77_dsyevd( lapack_vec_const_tally4(jobz), lapack_uplo_const_tally4(uplo),
                           &n, A, &lda,
                           w, work, &lwork,
                           iwork, &liwork, info );

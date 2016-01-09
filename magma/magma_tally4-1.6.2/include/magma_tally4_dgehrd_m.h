@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-struct dgehrd_data
+struct dgehrd_data_tally4
 {
     magma_tally4_int_t ngpu;
     

@@ -79,7 +79,7 @@ magma_tally4_dpotrf_mgpu(
     magma_tally4_int_t *info)
 {
     magma_tally4_int_t     j, nb, d, lddp, h;
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
     double *work;
     int upper = (uplo == Magma_tally4Upper);
     double *dwork[Magma_tally4MaxGPUs];

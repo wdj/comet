@@ -22,10 +22,10 @@
 // ----------------------------------------
 // Convert MAGMA_tally4 constants to CUBLAS v1 constants, which are the same as lapack.
 // These must be static to avoid conflict with CUBLAS v2 translators.
-#define cublas_trans_const( magma_tally4_const ) lapacke_trans_const( magma_tally4_const )
-#define cublas_side_const(  magma_tally4_const ) lapacke_side_const(  magma_tally4_const )
-#define cublas_diag_const(  magma_tally4_const ) lapacke_diag_const(  magma_tally4_const )
-#define cublas_uplo_const(  magma_tally4_const ) lapacke_uplo_const(  magma_tally4_const )
+#define cublas_trans_const_tally4( magma_tally4_const ) lapacke_trans_const_tally4( magma_tally4_const )
+#define cublas_side_const_tally4(  magma_tally4_const ) lapacke_side_const_tally4(  magma_tally4_const )
+#define cublas_diag_const_tally4(  magma_tally4_const ) lapacke_diag_const_tally4(  magma_tally4_const )
+#define cublas_uplo_const_tally4(  magma_tally4_const ) lapacke_uplo_const_tally4(  magma_tally4_const )
 
 
 // ========================================
@@ -519,7 +519,7 @@ magma_tally4_cgemv(
     magma_tally4FloatComplex_ptr       dy, magma_tally4_int_t incy )
 {
     cublasCgemv(
-        cublas_trans_const( transA ),
+        cublas_trans_const_tally4( transA ),
         m, n,
         alpha, dA, ldda,
                dx, incx,
@@ -677,7 +677,7 @@ magma_tally4_chemv(
     magma_tally4FloatComplex_ptr       dy, magma_tally4_int_t incy )
 {
     cublasChemv(
-        cublas_uplo_const( uplo ),
+        cublas_uplo_const_tally4( uplo ),
         n,
         alpha, dA, ldda,
                dx, incx,
@@ -721,7 +721,7 @@ magma_tally4_cher(
     magma_tally4FloatComplex_ptr       dA, magma_tally4_int_t ldda )
 {
     cublasCher(
-        cublas_uplo_const( uplo ),
+        cublas_uplo_const_tally4( uplo ),
         n,
         alpha, dx, incx,
                dA, ldda );
@@ -772,7 +772,7 @@ magma_tally4_cher2(
     magma_tally4FloatComplex_ptr       dA, magma_tally4_int_t ldda )
 {
     cublasCher2(
-        cublas_uplo_const( uplo ),
+        cublas_uplo_const_tally4( uplo ),
         n,
         alpha, dx, incx,
                dy, incy,
@@ -821,9 +821,9 @@ magma_tally4_ctrmv(
     magma_tally4FloatComplex_ptr       dx, magma_tally4_int_t incx )
 {
     cublasCtrmv(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
-        cublas_diag_const( diag ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
+        cublas_diag_const_tally4( diag ),
         n,
         dA, ldda,
         dx, incx );
@@ -872,9 +872,9 @@ magma_tally4_ctrsv(
     magma_tally4FloatComplex_ptr       dx, magma_tally4_int_t incx )
 {
     cublasCtrsv(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
-        cublas_diag_const( diag ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
+        cublas_diag_const_tally4( diag ),
         n,
         dA, ldda,
         dx, incx );
@@ -943,8 +943,8 @@ magma_tally4_cgemm(
     magma_tally4FloatComplex_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasCgemm(
-        cublas_trans_const( transA ),
-        cublas_trans_const( transB ),
+        cublas_trans_const_tally4( transA ),
+        cublas_trans_const_tally4( transB ),
         m, n, k,
         alpha, dA, ldda,
                dB, lddb,
@@ -1010,8 +1010,8 @@ magma_tally4_csymm(
     magma_tally4FloatComplex_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasCsymm(
-        cublas_side_const( side ),
-        cublas_uplo_const( uplo ),
+        cublas_side_const_tally4( side ),
+        cublas_uplo_const_tally4( uplo ),
         m, n,
         alpha, dA, ldda,
                dB, lddb,
@@ -1069,8 +1069,8 @@ magma_tally4_csyrk(
     magma_tally4FloatComplex_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasCsyrk(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
         n, k,
         alpha, dA, ldda,
         beta,  dC, lddc );
@@ -1136,8 +1136,8 @@ magma_tally4_csyr2k(
     magma_tally4FloatComplex_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasCsyr2k(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
         n, k,
         alpha, dA, ldda,
                dB, lddb,
@@ -1204,8 +1204,8 @@ magma_tally4_chemm(
     magma_tally4FloatComplex_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasChemm(
-        cublas_side_const( side ),
-        cublas_uplo_const( uplo ),
+        cublas_side_const_tally4( side ),
+        cublas_uplo_const_tally4( uplo ),
         m, n,
         alpha, dA, ldda,
                dB, lddb,
@@ -1263,8 +1263,8 @@ magma_tally4_cherk(
     magma_tally4FloatComplex_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasCherk(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
         n, k,
         alpha, dA, ldda,
         beta,  dC, lddc );
@@ -1330,8 +1330,8 @@ magma_tally4_cher2k(
     magma_tally4FloatComplex_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasCher2k(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
         n, k,
         alpha, dA, ldda,
                dB, lddb,
@@ -1392,10 +1392,10 @@ magma_tally4_ctrmm(
     magma_tally4FloatComplex_ptr       dB, magma_tally4_int_t lddb )
 {
     cublasCtrmm(
-        cublas_side_const( side ),
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
-        cublas_diag_const( diag ),
+        cublas_side_const_tally4( side ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
+        cublas_diag_const_tally4( diag ),
         m, n,
         alpha, dA, ldda,
                dB, lddb );
@@ -1455,10 +1455,10 @@ magma_tally4_ctrsm(
     magma_tally4FloatComplex_ptr       dB, magma_tally4_int_t lddb )
 {
     cublasCtrsm(
-        cublas_side_const( side ),
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
-        cublas_diag_const( diag ),
+        cublas_side_const_tally4( side ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
+        cublas_diag_const_tally4( diag ),
         m, n,
         alpha, dA, ldda,
                dB, lddb );

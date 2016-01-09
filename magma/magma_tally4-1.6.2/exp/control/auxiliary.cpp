@@ -159,7 +159,7 @@ void printout_devices( )
       This is auxiliary function used in geqrf and geqlf.  
 */
 extern "C"
-void spanel_to_q(char uplo, int ib, float *a, int lda, float *work){
+void spanel_to_q_tally4(char uplo, int ib, float *a, int lda, float *work){
   int i, j, k = 0;
   float *col;
 
@@ -192,7 +192,7 @@ void spanel_to_q(char uplo, int ib, float *a, int lda, float *work){
       This isauxiliary function usedin geqrf and geqlf.
 */
 extern "C"
-void sq_to_panel(char uplo, int ib, float *a, int lda, float *work){
+void sq_to_panel_tally4(char uplo, int ib, float *a, int lda, float *work){
   int i, j, k = 0;
   float *col;
 
@@ -216,7 +216,7 @@ void sq_to_panel(char uplo, int ib, float *a, int lda, float *work){
    -- Put 0s in the upper triangular part of a panel (and 1s on the diagonal)
 */
 extern "C"
-void cpanel_to_q(char uplo, int ib, float2 *a, int lda, float2 *work){
+void cpanel_to_q_tally4(char uplo, int ib, float2 *a, int lda, float2 *work){
   int i, j, k = 0;
   float2 *col;
 
@@ -254,7 +254,7 @@ void cpanel_to_q(char uplo, int ib, float2 *a, int lda, float2 *work){
    -- Restores a panel (after call to "panel_to_q")
 */
 extern "C"
-void cq_to_panel(char uplo, int ib, float2 *a, int lda, float2 *work){
+void cq_to_panel_tally4(char uplo, int ib, float2 *a, int lda, float2 *work){
   int i, j, k = 0;
   float2 *col;
 
@@ -282,7 +282,7 @@ void cq_to_panel(char uplo, int ib, float2 *a, int lda, float2 *work){
    -- Put 0s in the upper triangular part of a panel (and 1s on the diagonal)
 */
 extern "C"
-void dpanel_to_q(char uplo, int ib, double *a, int lda, double *work){
+void dpanel_to_q_tally4(char uplo, int ib, double *a, int lda, double *work){
   int i, j, k = 0;
   double *col;
 
@@ -314,7 +314,7 @@ void dpanel_to_q(char uplo, int ib, double *a, int lda, double *work){
    -- Restores a panel (after call to "panel_to_q")
 */
 extern "C"
-void dq_to_panel(char uplo, int ib, double *a, int lda, double *work){
+void dq_to_panel_tally4(char uplo, int ib, double *a, int lda, double *work){
   int i, j, k = 0;
   double *col;
 
@@ -338,7 +338,7 @@ void dq_to_panel(char uplo, int ib, double *a, int lda, double *work){
    -- Put 0s in the upper triangular part of a panel (and 1s on the diagonal)
 */
 extern "C"
-void zpanel_to_q(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex *work){
+void zpanel_to_q_tally4(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex *work){
   int i, j, k = 0;
   cuDoubleComplex *col;
 
@@ -376,7 +376,7 @@ void zpanel_to_q(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex
    -- Restores a panel (after call to "panel_to_q")
 */
 extern "C"
-void zq_to_panel(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex *work){
+void zq_to_panel_tally4(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex *work){
   int i, j, k = 0;
   cuDoubleComplex *col;
 
@@ -408,7 +408,7 @@ void zq_to_panel(char uplo, int ib, cuDoubleComplex *a, int lda, cuDoubleComplex
       has to be done sequentially.
 */
 extern "C"
-void swp2pswp(char trans, int n, int *ipiv, int *newipiv){
+void swp2pswp_tally4(char trans, int n, int *ipiv, int *newipiv){
   int i, newind, ind;
   char            trans_[2] = {trans, 0};
   long int    notran = lapackf77_lsame(trans_, "N");

@@ -181,7 +181,7 @@ magma_tally4_dgeqrf2_gpu(
                               &rows, &ib,
                               work_ref(i), &ldwork, tau+i, hwork, &ib);
 
-            dpanel_to_q( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
+            dpanel_to_q_tally4( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
 
             /* download the i-th V matrix */
             magma_tally4_dsetmatrix_async( rows, ib, work_ref(i), ldwork, dA(i,i), ldda, stream[0] );
@@ -198,14 +198,14 @@ magma_tally4_dgeqrf2_gpu(
                                       rows, ib, ib,
                                       dA(i, i   ), ldda, dwork,    lddwork,
                                       dA(i, i+ib), ldda, dwork+ib, lddwork);
-                    dq_to_panel( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
+                    dq_to_panel_tally4( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
                 }
                 else {
                     magma_tally4_dlarfb_gpu( Magma_tally4Left, Magma_tally4ConjTrans, Magma_tally4Forward, Magma_tally4Columnwise,
                                       rows, n-i-ib, ib,
                                       dA(i, i   ), ldda, dwork,    lddwork,
                                       dA(i, i+ib), ldda, dwork+ib, lddwork);
-                    dq_to_panel( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
+                    dq_to_panel_tally4( Magma_tally4Upper, ib, work_ref(i), ldwork, hwork+ib*ib );
                     magma_tally4_dsetmatrix_async( ib, ib,
                                             work_ref(i), ldwork,
                                             dA(i,i),     ldda, stream[1] );

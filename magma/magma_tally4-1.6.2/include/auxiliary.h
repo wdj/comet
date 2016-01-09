@@ -40,7 +40,7 @@ void magma_tally4_indices_1D_bcyclic( magma_tally4_int_t nb, magma_tally4_int_t 
 
 void magma_tally4_print_environment();
 
-void swp2pswp(magma_tally4_trans_t trans, magma_tally4_int_t n, magma_tally4_int_t *ipiv, magma_tally4_int_t *newipiv);
+void swp2pswp_tally4(magma_tally4_trans_t trans, magma_tally4_int_t n, magma_tally4_int_t *ipiv, magma_tally4_int_t *newipiv);
 
 #ifdef __cplusplus
 }

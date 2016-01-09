@@ -224,8 +224,8 @@ magma_tally4_zhegvdx(
     magma_tally4_int_t *iwork, magma_tally4_int_t liwork,
     magma_tally4_int_t *info)
 {
-    const char* uplo_  = lapack_uplo_const( uplo  );
-    const char* jobz_  = lapack_vec_const( jobz  );
+    const char* uplo_  = lapack_uplo_const_tally4( uplo  );
+    const char* jobz_  = lapack_vec_const_tally4( jobz  );
 
     magma_tally4DoubleComplex c_one = MAGMA_tally4_Z_ONE;
 

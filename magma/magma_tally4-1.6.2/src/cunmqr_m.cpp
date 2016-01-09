@@ -138,8 +138,8 @@ magma_tally4_cunmqr_m(
     magma_tally4FloatComplex c_zero = MAGMA_tally4_C_ZERO;
     magma_tally4FloatComplex c_one  = MAGMA_tally4_C_ONE;
 
-    const char* side_  = lapack_side_const( side );
-    const char* trans_ = lapack_trans_const( trans );
+    const char* side_  = lapack_side_const_tally4( side );
+    const char* trans_ = lapack_trans_const_tally4( trans );
 
     // TODO fix memory leak (alloc after argument checks)
     magma_tally4_int_t nb = 128;

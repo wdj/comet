@@ -248,9 +248,9 @@ magma_tally4_zheevr(
     magma_tally4_int_t *iwork, magma_tally4_int_t liwork,
     magma_tally4_int_t *info)
 {
-    const char* uplo_  = lapack_uplo_const( uplo  );
-    const char* jobz_  = lapack_vec_const( jobz  );
-    const char* range_ = lapack_range_const( range );
+    const char* uplo_  = lapack_uplo_const_tally4( uplo  );
+    const char* jobz_  = lapack_vec_const_tally4( jobz  );
+    const char* range_ = lapack_range_const_tally4( range );
     
     magma_tally4_int_t izero = 0;
     magma_tally4_int_t ione = 1;

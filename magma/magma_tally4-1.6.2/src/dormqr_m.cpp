@@ -138,8 +138,8 @@ magma_tally4_dormqr_m(
     double c_zero = MAGMA_tally4_D_ZERO;
     double c_one  = MAGMA_tally4_D_ONE;
 
-    const char* side_  = lapack_side_const( side );
-    const char* trans_ = lapack_trans_const( trans );
+    const char* side_  = lapack_side_const_tally4( side );
+    const char* trans_ = lapack_trans_const_tally4( trans );
 
     // TODO fix memory leak (alloc after argument checks)
     magma_tally4_int_t nb = 128;

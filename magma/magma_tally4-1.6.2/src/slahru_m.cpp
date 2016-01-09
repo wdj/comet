@@ -71,7 +71,7 @@ extern "C" magma_tally4_int_t
 magma_tally4_slahru_m(
     magma_tally4_int_t n, magma_tally4_int_t ihi, magma_tally4_int_t k, magma_tally4_int_t nb,
     float *A, magma_tally4_int_t lda,
-    struct sgehrd_data *data )
+    struct sgehrd_data_tally4 *data )
 {
     #define dA(  d, i, j ) (data->A [d] + (i) + (j)*ldda)
     #define dTi( d       ) (data->Ti[d])

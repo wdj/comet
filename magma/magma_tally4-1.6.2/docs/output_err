@@ -678,20 +678,20 @@
   parameter 'lda'
   parameter 'ipiv'
   parameter 'info'
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv.cpp:17: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv.cpp:17: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv.cpp:17: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv.cpp:17: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv.cpp:17: warning: The following parameters of magma_tally4_ssytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info) are not documented:
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4.cpp:17: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4.cpp:17: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4.cpp:17: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4.cpp:17: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4.cpp:17: warning: The following parameters of magma_tally4_ssytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, float *A, magma_tally4_int_t lda, magma_tally4_int_t *info) are not documented:
   parameter 'uplo'
   parameter 'n'
   parameter 'lda'
   parameter 'info'
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_gpu.cpp:16: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_gpu.cpp:16: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_gpu.cpp:16: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_gpu.cpp:16: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_gpu.cpp:16: warning: The following parameters of magma_tally4_ssytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info) are not documented:
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4_gpu.cpp:16: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4_gpu.cpp:16: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4_gpu.cpp:16: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4_gpu.cpp:16: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_ssytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/ssytrf_nopiv_tally4_gpu.cpp:16: warning: The following parameters of magma_tally4_ssytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Float_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info) are not documented:
   parameter 'uplo'
   parameter 'n'
   parameter 'ldda'
@@ -709,20 +709,20 @@
   parameter 'lda'
   parameter 'ipiv'
   parameter 'info'
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv.cpp:17: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv.cpp:17: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv.cpp:17: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv.cpp:17: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv.cpp:17: warning: The following parameters of magma_tally4_dsytrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info) are not documented:
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4.cpp:17: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4.cpp:17: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4.cpp:17: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4.cpp:17: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4.cpp:17: warning: The following parameters of magma_tally4_dsytrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, double *A, magma_tally4_int_t lda, magma_tally4_int_t *info) are not documented:
   parameter 'uplo'
   parameter 'n'
   parameter 'lda'
   parameter 'info'
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_gpu.cpp:16: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_gpu.cpp:16: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_gpu.cpp:16: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_gpu.cpp:16: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_gpu.cpp:16: warning: The following parameters of magma_tally4_dsytrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info) are not documented:
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4_gpu.cpp:16: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4_gpu.cpp:16: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4_gpu.cpp:16: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4_gpu.cpp:16: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_dsytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/dsytrf_nopiv_tally4_gpu.cpp:16: warning: The following parameters of magma_tally4_dsytrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4Double_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info) are not documented:
   parameter 'uplo'
   parameter 'n'
   parameter 'ldda'
@@ -740,20 +740,20 @@
   parameter 'lda'
   parameter 'ipiv'
   parameter 'info'
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv.cpp:17: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv.cpp:17: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv.cpp:17: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv.cpp:17: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv.cpp:17: warning: The following parameters of magma_tally4_chetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info) are not documented:
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4.cpp:17: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4.cpp:17: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4.cpp:17: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4.cpp:17: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4.cpp:17: warning: The following parameters of magma_tally4_chetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info) are not documented:
   parameter 'uplo'
   parameter 'n'
   parameter 'lda'
   parameter 'info'
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_gpu.cpp:16: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_gpu.cpp:16: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_gpu.cpp:16: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_gpu.cpp:16: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_gpu.cpp:16: warning: The following parameters of magma_tally4_chetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info) are not documented:
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4_gpu.cpp:16: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4_gpu.cpp:16: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4_gpu.cpp:16: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4_gpu.cpp:16: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_chetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/chetrf_nopiv_tally4_gpu.cpp:16: warning: The following parameters of magma_tally4_chetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4FloatComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info) are not documented:
   parameter 'uplo'
   parameter 'n'
   parameter 'ldda'
@@ -771,20 +771,20 @@
   parameter 'lda'
   parameter 'ipiv'
   parameter 'info'
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv.cpp:17: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv.cpp:17: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv.cpp:17: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv.cpp:17: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv.cpp:17: warning: The following parameters of magma_tally4_zhetrf_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info) are not documented:
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4.cpp:17: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4.cpp:17: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4.cpp:17: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4.cpp:17: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4.cpp:17: warning: The following parameters of magma_tally4_zhetrf_nopiv_tally4(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex *A, magma_tally4_int_t lda, magma_tally4_int_t *info) are not documented:
   parameter 'uplo'
   parameter 'n'
   parameter 'lda'
   parameter 'info'
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_gpu.cpp:16: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_gpu.cpp:16: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_gpu.cpp:16: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_gpu.cpp:16: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
-/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_gpu.cpp:16: warning: The following parameters of magma_tally4_zhetrf_nopiv_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info) are not documented:
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4_gpu.cpp:16: warning: argument 'UPLO' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4_gpu.cpp:16: warning: argument 'N' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4_gpu.cpp:16: warning: argument 'LDA' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4_gpu.cpp:16: warning: argument 'INFO' of command @param is not found in the argument list of magma_tally4_zhetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info)
+/Users/mgates/src/magma_tally4-1.6.2/src/zhetrf_nopiv_tally4_gpu.cpp:16: warning: The following parameters of magma_tally4_zhetrf_nopiv_tally4_gpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4DoubleComplex_ptr dA, magma_tally4_int_t ldda, magma_tally4_int_t *info) are not documented:
   parameter 'uplo'
   parameter 'n'
   parameter 'ldda'

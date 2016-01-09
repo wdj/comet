@@ -190,7 +190,7 @@ magma_tally4_sormlq(
     
     if (nb >= k) {
         /* Use CPU code */
-        lapackf77_sormlq( lapack_side_const(side), lapack_trans_const(trans),
+        lapackf77_sormlq( lapack_side_const_tally4(side), lapack_trans_const_tally4(trans),
             &m, &n, &k, A, &lda, tau, C, &ldc, work, &lwork, &iinfo);
     }
     else {
@@ -266,9 +266,9 @@ magma_tally4_sormlq(
             /* 1) set upper triangle of panel in A to identity,
                2) copy the panel from A to the GPU, and
                3) restore A                                      */
-            spanel_to_q( Magma_tally4Lower, ib, A(i,i), lda, T2 );
+            spanel_to_q_tally4( Magma_tally4Lower, ib, A(i,i), lda, T2 );
             magma_tally4_ssetmatrix( ib, nq_i,  A(i,i), lda, dV(0,0), ib );
-            sq_to_panel( Magma_tally4Lower, ib, A(i,i), lda, T2 );
+            sq_to_panel_tally4( Magma_tally4Lower, ib, A(i,i), lda, T2 );
             
             if (left) {
                 /* H or H**H is applied to C(i:m,1:n) */

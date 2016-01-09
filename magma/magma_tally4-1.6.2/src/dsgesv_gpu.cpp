@@ -231,7 +231,7 @@ magma_tally4_dsgesv_gpu(
             *iter = -3;
             goto FALLBACK;
         }
-        swp2pswp( trans, n, ipiv, newipiv );
+        swp2pswp_tally4( trans, n, ipiv, newipiv );
         magma_tally4_setvector( n, sizeof(magma_tally4_int_t), newipiv, 1, dipiv, 1 );
         magma_tally4_free_cpu( newipiv );
     }

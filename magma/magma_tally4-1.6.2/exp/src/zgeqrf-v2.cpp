@@ -254,11 +254,11 @@ magma_tally4_zgeqrf2(magma_tally4_context *cntxt, magma_tally4_int_t m, magma_ta
         if (cnt < qr_params->np_gpu) {
           qr_params->p[cnt]=a;
         }
-        zpanel_to_q(Magma_tally4Upper, ib, a_ref(i,i), lda, qr_params->w+cnt*qr_params->nb*qr_params->nb);
+        zpanel_to_q_tally4(Magma_tally4Upper, ib, a_ref(i,i), lda, qr_params->w+cnt*qr_params->nb*qr_params->nb);
             cublasSetMatrix(rows, ib, sizeof(cuDoubleComplex),
                             a_ref(i,i), lda, da_ref(i,i), ldda);
         if (qr_params->flag == 1)
-          zq_to_panel(Magma_tally4Upper, ib, a_ref(i,i), lda, qr_params->w+cnt*qr_params->nb*qr_params->nb);
+          zq_to_panel_tally4(Magma_tally4Upper, ib, a_ref(i,i), lda, qr_params->w+cnt*qr_params->nb*qr_params->nb);
         
             if (i + ib < n) { 
           cublasSetMatrix(ib, ib, sizeof(cuDoubleComplex), qr_params->t+cnt*nb*nb, ib, dwork, lddwork);

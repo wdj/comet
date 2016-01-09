@@ -71,8 +71,8 @@ magma_tally4_dtrtri_gpu(
 #define dA(i, j) (dA+(j)*ldda + (i))
 
     /* Local variables */
-    const char* uplo_ = lapack_uplo_const( uplo );
-    const char* diag_ = lapack_diag_const( diag );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
+    const char* diag_ = lapack_diag_const_tally4( diag );
     magma_tally4_int_t nb, nn, j, jb;
     //double c_zero     = MAGMA_tally4_D_ZERO;
     double c_one      = MAGMA_tally4_D_ONE;

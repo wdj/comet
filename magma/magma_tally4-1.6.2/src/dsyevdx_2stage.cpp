@@ -176,8 +176,8 @@ magma_tally4_dsyevdx_2stage(
     #define A(i_,j_)  (A  + (i_) + (j_)*lda)
     #define A2(i_,j_) (A2 + (i_) + (j_)*lda2)
     
-    const char* uplo_  = lapack_uplo_const( uplo  );
-    const char* jobz_  = lapack_vec_const( jobz  );
+    const char* uplo_  = lapack_uplo_const_tally4( uplo  );
+    const char* jobz_  = lapack_vec_const_tally4( jobz  );
     double d_one  = 1.;
     magma_tally4_int_t ione = 1;
     magma_tally4_int_t izero = 0;

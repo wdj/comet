@@ -82,7 +82,7 @@ magma_tally4_spotrf_gpu(
 #define dA(i, j) (dA + (j)*ldda + (i))
 
     magma_tally4_int_t     j, jb, nb;
-    const char* uplo_ = lapack_uplo_const( uplo );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
     float c_one     = MAGMA_tally4_S_ONE;
     float c_neg_one = MAGMA_tally4_S_NEG_ONE;
     float *work;

@@ -269,13 +269,13 @@ magma_tally4_dsytrd_sy2sb_mgpu_spec(
             
             /*   Get the current panel (no need for the 1st iteration) */
             if (i > 1 ) {
-                // dpanel_to_q copy the upper oof diagonal part of
+                // dpanel_to_q_tally4 copy the upper oof diagonal part of
                 // the matrix to work to be restored later. acctually
                 // the zero's and one's putted are not used this is only
                 // because we don't have a function that copy only the
                 // upper part of A to be restored after copying the
                 // lookahead panel that has been computted from GPU to CPU.
-                dpanel_to_q(Magma_tally4Upper, pn-1, A(i, i+1), lda, work);
+                dpanel_to_q_tally4(Magma_tally4Upper, pn-1, A(i, i+1), lda, work);
 
                 // find the device who own the panel then send it to the CPU.
                 // below a -1 was added and then a -1 was done on di because of the fortran indexing
@@ -306,7 +306,7 @@ magma_tally4_dsytrd_sy2sb_mgpu_spec(
                 magma_tally4_setdevice( idev );
                 magma_tally4_queue_sync( queues[idev][ nqueue-1 ] );
                 //magma_tally4_setdevice( 0 );
-                dq_to_panel(Magma_tally4Upper, pn-1, A(i, i+1), lda, work);
+                dq_to_panel_tally4(Magma_tally4Upper, pn-1, A(i, i+1), lda, work);
             }
 
             /* ==========================================================
@@ -324,7 +324,7 @@ magma_tally4_dsytrd_sy2sb_mgpu_spec(
 
             /* Prepare V - put 0s in the upper triangular part of the panel
                (and 1s on the diagonal), temporaly storing the original in work */
-            dpanel_to_q(Magma_tally4Upper, pk, A(indi, indj), lda, work);
+            dpanel_to_q_tally4(Magma_tally4Upper, pk, A(indi, indj), lda, work);
 
 
 
@@ -425,7 +425,7 @@ magma_tally4_dsytrd_sy2sb_mgpu_spec(
                             c_one,     dw[dev], pm);
             }
             /* restore the panel it is put here to overlap with the previous GEMM*/
-            dq_to_panel(Magma_tally4Upper, pk, A(indi, indj), lda, work);
+            dq_to_panel_tally4(Magma_tally4Upper, pk, A(indi, indj), lda, work);
             // ===============================================
             //   SYNC TO BE SURE THAT BOTH V AND W ARE DONE
             // ===============================================
@@ -481,11 +481,11 @@ magma_tally4_dsytrd_sy2sb_mgpu_spec(
 
 
                 /* Send the last block to the CPU */
-                dpanel_to_q(Magma_tally4Upper, pk-1, A(n-pk+1, n-pk+2), lda, work);
+                dpanel_to_q_tally4(Magma_tally4Upper, pk-1, A(n-pk+1, n-pk+2), lda, work);
                 magma_tally4_dgetmatrix( pk, pk,
                                   dA(idev, indi, di+1), ldda,
                                   A(n-pk+1, n-pk+1),  lda );
-                dq_to_panel(Magma_tally4Upper, pk-1, A(n-pk+1, n-pk+2), lda, work);
+                dq_to_panel_tally4(Magma_tally4Upper, pk-1, A(n-pk+1, n-pk+2), lda, work);
             }
 
             indi_old = indi;

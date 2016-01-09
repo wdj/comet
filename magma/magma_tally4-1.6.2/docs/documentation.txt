@@ -549,31 +549,31 @@ Substitute `lapacke` for `lapack` to get version that returns single char instea
 
 .           | Function             | .                   |  Description
 ----------- | ----                 | ----                |  -----------
-const char* | lapack_bool_const    | ( magma_tally4_bool_t   )  |  Inverse of magma_tally4_bool_const()
-const char* | lapack_order_const   | ( magma_tally4_order_t  )  |  Inverse of magma_tally4_order_const()
-const char* | lapack_trans_const   | ( magma_tally4_trans_t  )  |  Inverse of magma_tally4_trans_const()
-const char* | lapack_uplo_const    | ( magma_tally4_uplo_t   )  |  Inverse of magma_tally4_uplo_const()
-const char* | lapack_diag_const    | ( magma_tally4_diag_t   )  |  Inverse of magma_tally4_diag_const()
-const char* | lapack_side_const    | ( magma_tally4_side_t   )  |  Inverse of magma_tally4_side_const()
-const char* | lapack_norm_const    | ( magma_tally4_norm_t   )  |  Inverse of magma_tally4_norm_const()
-const char* | lapack_dist_const    | ( magma_tally4_dist_t   )  |  Inverse of magma_tally4_dist_const()
-const char* | lapack_vec_const     | ( magma_tally4_vec_t    )  |  Inverse of magma_tally4_vec_const()
-const char* | lapack_range_const   | ( magma_tally4_range_t  )  |  Inverse of magma_tally4_range_const()
-const char* | lapack_vect_const    | ( magma_tally4_vect_t   )  |  Inverse of magma_tally4_vect_const()
-const char* | lapack_direct_const  | ( magma_tally4_direct_t )  |  Inverse of magma_tally4_direct_const()
-const char* | lapack_storev_const  | ( magma_tally4_storev_t )  |  Inverse of magma_tally4_storev_const()
-const char* | lapack_const         | ( constant )        |  Map any MAGMA_tally4 constant, Magma_tally4*, to an LAPACK string constant
-char        | lapacke_const        | ( constant )        |  Map any MAGMA_tally4 constant, Magma_tally4*, to an LAPACKE character
+const char* | lapack_bool_const_tally4    | ( magma_tally4_bool_t   )  |  Inverse of magma_tally4_bool_const()
+const char* | lapack_order_const_tally4   | ( magma_tally4_order_t  )  |  Inverse of magma_tally4_order_const()
+const char* | lapack_trans_const_tally4   | ( magma_tally4_trans_t  )  |  Inverse of magma_tally4_trans_const()
+const char* | lapack_uplo_const_tally4    | ( magma_tally4_uplo_t   )  |  Inverse of magma_tally4_uplo_const()
+const char* | lapack_diag_const_tally4    | ( magma_tally4_diag_t   )  |  Inverse of magma_tally4_diag_const()
+const char* | lapack_side_const_tally4    | ( magma_tally4_side_t   )  |  Inverse of magma_tally4_side_const()
+const char* | lapack_norm_const_tally4    | ( magma_tally4_norm_t   )  |  Inverse of magma_tally4_norm_const()
+const char* | lapack_dist_const_tally4    | ( magma_tally4_dist_t   )  |  Inverse of magma_tally4_dist_const()
+const char* | lapack_vec_const_tally4     | ( magma_tally4_vec_t    )  |  Inverse of magma_tally4_vec_const()
+const char* | lapack_range_const_tally4   | ( magma_tally4_range_t  )  |  Inverse of magma_tally4_range_const()
+const char* | lapack_vect_const_tally4    | ( magma_tally4_vect_t   )  |  Inverse of magma_tally4_vect_const()
+const char* | lapack_direct_const_tally4  | ( magma_tally4_direct_t )  |  Inverse of magma_tally4_direct_const()
+const char* | lapack_storev_const_tally4  | ( magma_tally4_storev_t )  |  Inverse of magma_tally4_storev_const()
+const char* | lapack_const_tally4         | ( constant )        |  Map any MAGMA_tally4 constant, Magma_tally4*, to an LAPACK string constant
+char        | lapacke_const_tally4        | ( constant )        |  Map any MAGMA_tally4 constant, Magma_tally4*, to an LAPACKE character
 
 
 To convert MAGMA_tally4 to Nvidia's CUBLAS constants:
 
 .                 | Function           | .          |  Description
 -----------       | ----               | ----       |  -----------
-cublasOperation_t | cublas_trans_const | ( trans )  |  Map Magma_tally4NoTrans, Magma_tally4Trans, Magma_tally4ConjTrans \n to CUBLAS_OP_N, CUBLAS_OP_T, CUBLAS_OP_C
-cublasFillMode_t  | cublas_uplo_const  | ( uplo  )  |  Map Magma_tally4Lower,   Magma_tally4Upper \n to CUBLAS_FILL_MODE_LOWER, CUBLAS_FILL_MODE_UPPER
-cublasDiagType_t  | cublas_diag_const  | ( diag  )  |  Map Magma_tally4NonUnit, Magma_tally4Unit  \n to CUBLAS_DIAG_NON_UNIT,   CUBLAS_DIAG_UNIT
-cublasSideMode_t  | cublas_side_const  | ( side  )  |  Map Magma_tally4Left,    Magma_tally4Right \n to CUBLAS_SIDE_LEFT,       CUBLAS_SIDE_Right
+cublasOperation_t | cublas_trans_const_tally4 | ( trans )  |  Map Magma_tally4NoTrans, Magma_tally4Trans, Magma_tally4ConjTrans \n to CUBLAS_OP_N, CUBLAS_OP_T, CUBLAS_OP_C
+cublasFillMode_t  | cublas_uplo_const_tally4  | ( uplo  )  |  Map Magma_tally4Lower,   Magma_tally4Upper \n to CUBLAS_FILL_MODE_LOWER, CUBLAS_FILL_MODE_UPPER
+cublasDiagType_t  | cublas_diag_const_tally4  | ( diag  )  |  Map Magma_tally4NonUnit, Magma_tally4Unit  \n to CUBLAS_DIAG_NON_UNIT,   CUBLAS_DIAG_UNIT
+cublasSideMode_t  | cublas_side_const_tally4  | ( side  )  |  Map Magma_tally4Left,    Magma_tally4Right \n to CUBLAS_SIDE_LEFT,       CUBLAS_SIDE_Right
 
 
 To convert MAGMA_tally4 to AMD's clBlas constants:

@@ -190,7 +190,7 @@ magma_tally4_chetrd_hb2st(
     magma_tally4_int_t mklth   = magma_tally4_get_lapack_numthreads();
     magma_tally4_set_lapack_numthreads(1);
 
-    //const char* uplo_ = lapack_uplo_const( uplo );
+    //const char* uplo_ = lapack_uplo_const_tally4( uplo );
     magma_tally4_int_t INgrsiz=1;
     magma_tally4_int_t blkcnt = magma_tally4_bulge_get_blkcnt(n, nb, Vblksiz);
     magma_tally4_int_t nbtiles = magma_tally4_ceildiv(n, nb);

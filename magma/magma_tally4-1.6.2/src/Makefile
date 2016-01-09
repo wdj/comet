@@ -135,9 +135,9 @@ ZSRC += \
 ZSRC += \
 	zhesv.cpp		\
 	zhetrf.cpp		\
-	zhetrf_nopiv.cpp	\
-	zhetrf_nopiv_cpu.cpp	\
-	zhetrf_nopiv_gpu.cpp	\
+	zhetrf_nopiv_tally4.cpp	\
+	zhetrf_nopiv_tally4_cpu.cpp	\
+	zhetrf_nopiv_tally4_gpu.cpp	\
 	zhetrs_nopiv_gpu.cpp	\
 	zhesv_nopiv_gpu.cpp	\
 	zlahef_gpu.cpp		\

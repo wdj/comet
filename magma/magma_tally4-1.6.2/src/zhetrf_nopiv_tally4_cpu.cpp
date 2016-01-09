@@ -225,7 +225,7 @@ int zhetrf_diag_nopiv(magma_tally4_uplo_t uplo, magma_tally4_int_t n,
 
 // main routine
 extern "C" magma_tally4_int_t
-zhetrf_nopiv_cpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_int_t ib,
+zhetrf_nopiv_tally4_cpu(magma_tally4_uplo_t uplo, magma_tally4_int_t n, magma_tally4_int_t ib,
                  magma_tally4DoubleComplex *A, magma_tally4_int_t lda,
                  magma_tally4_int_t *info)
 {

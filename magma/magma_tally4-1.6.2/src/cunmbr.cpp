@@ -237,7 +237,7 @@ magma_tally4_cunmbr(
         if (nq >= k) {
             /* Q was determined by a call to CGEBRD with nq >= k */
             #if VERSION == 1
-            lapackf77_cunmqr( lapack_side_const(side), lapack_trans_const(trans),
+            lapackf77_cunmqr( lapack_side_const_tally4(side), lapack_trans_const_tally4(trans),
                               &m, &n, &k, A, &lda, tau, C, &ldc, work, &lwork, &iinfo);
             #else
             magma_tally4_cunmqr( side, trans,
@@ -260,7 +260,7 @@ magma_tally4_cunmbr(
             }
             #if VERSION == 1
             nq_1 = nq - 1;
-            lapackf77_cunmqr( lapack_side_const(side), lapack_trans_const(trans),
+            lapackf77_cunmqr( lapack_side_const_tally4(side), lapack_trans_const_tally4(trans),
                               &mi, &ni, &nq_1, A(1,0), &lda, tau, C(i1,i2), &ldc, work, &lwork, &iinfo);
             #else
             magma_tally4_cunmqr( side, trans,
@@ -279,7 +279,7 @@ magma_tally4_cunmbr(
         if (nq > k) {
             /* P was determined by a call to CGEBRD with nq > k */
             #if VERSION == 1
-            lapackf77_cunmlq( lapack_side_const(side), lapack_trans_const(transt),
+            lapackf77_cunmlq( lapack_side_const_tally4(side), lapack_trans_const_tally4(transt),
                               &m, &n, &k, A, &lda, tau, C, &ldc, work, &lwork, &iinfo);
             #else
             magma_tally4_cunmlq( side, transt,
@@ -302,7 +302,7 @@ magma_tally4_cunmbr(
             }
             #if VERSION == 1
             nq_1 = nq - 1;
-            lapackf77_cunmlq( lapack_side_const(side), lapack_trans_const(transt),
+            lapackf77_cunmlq( lapack_side_const_tally4(side), lapack_trans_const_tally4(transt),
                               &mi, &ni, &nq_1, A(0,1), &lda, tau, C(i1,i2), &ldc, work, &lwork, &iinfo);
             #else
             magma_tally4_cunmlq( side, transt,

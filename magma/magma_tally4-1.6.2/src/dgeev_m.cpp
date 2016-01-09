@@ -398,10 +398,10 @@ magma_tally4_dgeev_m(
          *  - including N reserved for gebal/gebak, unused by dtrevc */
         liwrk = lwork - iwrk;
         #if TREVC_VERSION == 1
-        lapackf77_dtrevc( lapack_side_const(side), "B", select, &n, A, &lda, VL, &ldvl,
+        lapackf77_dtrevc( lapack_side_const_tally4(side), "B", select, &n, A, &lda, VL, &ldvl,
                           VR, &ldvr, &n, &nout, &work[iwrk], &ierr );
         #elif TREVC_VERSION == 2
-        lapackf77_dtrevc3( lapack_side_const(side), "B", select, &n, A, &lda, VL, &ldvl,
+        lapackf77_dtrevc3( lapack_side_const_tally4(side), "B", select, &n, A, &lda, VL, &ldvl,
                            VR, &ldvr, &n, &nout, &work[iwrk], &liwrk, &ierr );
         #elif TREVC_VERSION == 3
         magma_tally4_dtrevc3( side, Magma_tally4BacktransVec, select, n, A, lda, VL, ldvl,

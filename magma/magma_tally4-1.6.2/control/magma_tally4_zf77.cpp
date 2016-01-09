@@ -99,10 +99,10 @@ magma_tally4_int_t magma_tally4f_get_zhetrf_nb( magma_tally4_int_t *m )
     return magma_tally4_get_zhetrf_nb( *m );
 }
 
-#define magma_tally4f_get_zhetrf_nopiv_nb FORTRAN_NAME( magma_tally4f_get_zhetrf_nopiv_nb, MAGMA_tally4F_GET_ZHETRF_NOPIV_NB )
-magma_tally4_int_t magma_tally4f_get_zhetrf_nopiv_nb( magma_tally4_int_t *m )
+#define magma_tally4f_get_zhetrf_nopiv_tally4_nb FORTRAN_NAME( magma_tally4f_get_zhetrf_nopiv_tally4_nb, MAGMA_tally4F_GET_ZHETRF_NOPIV_NB )
+magma_tally4_int_t magma_tally4f_get_zhetrf_nopiv_tally4_nb( magma_tally4_int_t *m )
 {
-    return magma_tally4_get_zhetrf_nopiv_nb( *m );
+    return magma_tally4_get_zhetrf_nopiv_tally4_nb( *m );
 }
 
 #define magma_tally4f_get_zgelqf_nb FORTRAN_NAME( magma_tally4f_get_zgelqf_nb, MAGMA_tally4F_GET_ZGELQF_NB )
@@ -771,13 +771,13 @@ void magma_tally4f_zhetrf(
         info );
 }
 
-#define magma_tally4f_zhetrf_nopiv FORTRAN_NAME( magma_tally4f_zhetrf_nopiv, MAGMA_tally4F_ZHETRF_NOPIV )
-void magma_tally4f_zhetrf_nopiv(
+#define magma_tally4f_zhetrf_nopiv_tally4 FORTRAN_NAME( magma_tally4f_zhetrf_nopiv_tally4, MAGMA_tally4F_ZHETRF_NOPIV )
+void magma_tally4f_zhetrf_nopiv_tally4(
     const char* uplo, magma_tally4_int_t *n,
     magma_tally4DoubleComplex *a, magma_tally4_int_t *lda,
     magma_tally4_int_t *info )
 {
-    magma_tally4_zhetrf_nopiv(
+    magma_tally4_zhetrf_nopiv_tally4(
         magma_tally4_uplo_const(*uplo), *n,
         a, *lda,
         info );
@@ -1989,13 +1989,13 @@ void magma_tally4f_zhetrd2_gpu(
         info );
 }
 
-#define magma_tally4f_zhetrf_nopiv_gpu FORTRAN_NAME( magma_tally4f_zhetrf_nopiv_gpu, MAGMA_tally4F_ZHETRF_NOPIV_GPU )
-void magma_tally4f_zhetrf_nopiv_gpu(
+#define magma_tally4f_zhetrf_nopiv_tally4_gpu FORTRAN_NAME( magma_tally4f_zhetrf_nopiv_tally4_gpu, MAGMA_tally4F_ZHETRF_NOPIV_GPU )
+void magma_tally4f_zhetrf_nopiv_tally4_gpu(
     const char* uplo, magma_tally4_int_t *n,
     devptr_t *da, magma_tally4_int_t *ldda,
     magma_tally4_int_t *info )
 {
-    magma_tally4_zhetrf_nopiv_gpu(
+    magma_tally4_zhetrf_nopiv_tally4_gpu(
         magma_tally4_uplo_const(*uplo), *n,
         magma_tally4_zdevptr(da), *ldda,
         info );

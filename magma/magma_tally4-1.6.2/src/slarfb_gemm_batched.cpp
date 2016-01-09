@@ -12,7 +12,7 @@
 */
 
 
-#include "../testing/testings.h"  // muse bed included in order to use cublas_trans_const
+#include "../testing/testings.h"  // muse bed included in order to use cublas_trans_const_tally4
 #include "common_magma_tally4.h"
 
 //#define USE_CUBLAS
@@ -405,33 +405,33 @@ magma_tally4_slarfb_gemm_batched_cugem(
         // When forming H^H C, T gets transposed via transt for m >= n or by trans for m < n.
         
         // W = V' C
-        cublasSgemmBatched(myhandle, cublas_trans_const(Magma_tally4Trans), cublas_trans_const(notransV),
+        cublasSgemmBatched(myhandle, cublas_trans_const_tally4(Magma_tally4Trans), cublas_trans_const_tally4(notransV),
                      k, n, m,
                      &c_one,  (const float**)dV_array,    lddv,
                               (const float**)dC_array,    lddc,
                      &c_zero, dwork_array, ldw, batchCount);
         if (m <= n) {
             // W2 = V T
-            cublasSgemmBatched(myhandle, cublas_trans_const(notransV), cublas_trans_const(trans),
+            cublasSgemmBatched(myhandle, cublas_trans_const_tally4(notransV), cublas_trans_const_tally4(trans),
                          m, k, k,
                          &c_one,  (const float**)dV_array, lddv,
                                   (const float**)dT_array, lddt,
                          &c_zero, dworkvt_array, ldwvt, batchCount);
             // C = C - W2 W = C - V T V' C = (I - V T V') C = H C
-            cublasSgemmBatched(myhandle, cublas_trans_const(Magma_tally4NoTrans), cublas_trans_const(Magma_tally4NoTrans),
+            cublasSgemmBatched(myhandle, cublas_trans_const_tally4(Magma_tally4NoTrans), cublas_trans_const_tally4(Magma_tally4NoTrans),
                          m, n, k,
                          &c_neg_one, (const float**)dworkvt_array,  ldwvt,
                                      (const float**)dwork_array,    ldw,
                          &c_one,     dC_array,       lddc, batchCount);
         } else {
             // W2 = T W  = T  V' C
-            cublasSgemmBatched(myhandle, cublas_trans_const(trans), cublas_trans_const(Magma_tally4NoTrans),
+            cublasSgemmBatched(myhandle, cublas_trans_const_tally4(trans), cublas_trans_const_tally4(Magma_tally4NoTrans),
                          k, n, k,
                          &c_one,  (const float**)dT_array, lddt,
                                   (const float**)dwork_array, ldw,
                          &c_zero, dworkvt_array, ldwvt, batchCount);
             // C = C - V W2 = C - V T V' C = (I - V T V') C = H C
-            cublasSgemmBatched(myhandle, cublas_trans_const(notransV), cublas_trans_const(Magma_tally4NoTrans),
+            cublasSgemmBatched(myhandle, cublas_trans_const_tally4(notransV), cublas_trans_const_tally4(Magma_tally4NoTrans),
                          m, n, k,
                          &c_neg_one, (const float**)dV_array,  lddv,
                                      (const float**)dworkvt_array,  ldwvt,
@@ -444,33 +444,33 @@ magma_tally4_slarfb_gemm_batched_cugem(
         // When forming C H^H, T gets transposed via trans.
         
         // W = C V
-        cublasSgemmBatched(myhandle, cublas_trans_const(Magma_tally4NoTrans), cublas_trans_const(notransV),
+        cublasSgemmBatched(myhandle, cublas_trans_const_tally4(Magma_tally4NoTrans), cublas_trans_const_tally4(notransV),
                      m, k, n,
                      &c_one,  (const float**)dC_array,    lddc,
                               (const float**)dV_array,    lddv,
                      &c_zero, dwork_array, ldw, batchCount);
         if (m <= n) {
             // W2 = W T = C V T
-           cublasSgemmBatched(myhandle, cublas_trans_const(Magma_tally4NoTrans), cublas_trans_const(trans),
+           cublasSgemmBatched(myhandle, cublas_trans_const_tally4(Magma_tally4NoTrans), cublas_trans_const_tally4(trans),
                          m, k, k,
                          &c_one,  (const float**)dwork_array, ldw,
                                   (const float**)dT_array, lddt,
                          &c_zero, dworkvt_array, ldwvt, batchCount);
             // C = C - W2 V' = C - C V T V' = C (I - V T V') = C H
-            cublasSgemmBatched(myhandle, cublas_trans_const(Magma_tally4NoTrans), cublas_trans_const(transV),
+            cublasSgemmBatched(myhandle, cublas_trans_const_tally4(Magma_tally4NoTrans), cublas_trans_const_tally4(transV),
                          m, n, k,
                          &c_neg_one, (const float**)dworkvt_array, ldwvt,
                                      (const float**)dV_array,    lddv,
                          &c_one,     dC_array,    lddc, batchCount);
         } else {
             // W2 = T V'
-            cublasSgemmBatched(myhandle, cublas_trans_const(trans), cublas_trans_const(transV),
+            cublasSgemmBatched(myhandle, cublas_trans_const_tally4(trans), cublas_trans_const_tally4(transV),
                          k, n, k,
                          &c_one,  (const float**)dT_array, lddt,
                                   (const float**)dV_array, lddv,
                          &c_zero, dworkvt_array, ldwvt, batchCount);
             // C = C - W W2 = C - C V T V' = C (I - V T V') = C H
-           cublasSgemmBatched(myhandle, cublas_trans_const(Magma_tally4NoTrans), cublas_trans_const(Magma_tally4NoTrans),
+           cublasSgemmBatched(myhandle, cublas_trans_const_tally4(Magma_tally4NoTrans), cublas_trans_const_tally4(Magma_tally4NoTrans),
                          m, n, k,
                          &c_neg_one, (const float**)dwork_array,   ldw,
                                      (const float**)dworkvt_array, ldwvt,

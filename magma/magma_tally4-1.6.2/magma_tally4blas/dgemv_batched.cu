@@ -401,7 +401,7 @@ void magma_tally4blas_dgemv_batched(
 #endif
     }
     else {
-        fprintf( stderr, "trans = %c is invalid\n", lapacke_trans_const(trans) );
+        fprintf( stderr, "trans = %c is invalid\n", lapacke_trans_const_tally4(trans) );
     }
 }
 

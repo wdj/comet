@@ -155,8 +155,8 @@ magma_tally4_cheevd(
     magma_tally4_int_t *iwork, magma_tally4_int_t liwork,
     magma_tally4_int_t *info)
 {
-    const char* uplo_ = lapack_uplo_const( uplo );
-    const char* jobz_ = lapack_vec_const( jobz );
+    const char* uplo_ = lapack_uplo_const_tally4( uplo );
+    const char* jobz_ = lapack_vec_const_tally4( jobz );
     magma_tally4_int_t ione = 1;
     magma_tally4_int_t izero = 0;
     float d_one = 1.;

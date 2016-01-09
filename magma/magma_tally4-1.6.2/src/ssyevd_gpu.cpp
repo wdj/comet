@@ -229,7 +229,7 @@ magma_tally4_ssyevd_gpu(
         float *A;
         magma_tally4_smalloc_cpu( &A, lda*n );
         magma_tally4_sgetmatrix( n, n, dA, ldda, A, lda );
-        lapackf77_ssyevd( lapack_vec_const(jobz), lapack_uplo_const(uplo),
+        lapackf77_ssyevd( lapack_vec_const_tally4(jobz), lapack_uplo_const_tally4(uplo),
                           &n, A, &lda,
                           w, work, &lwork,
                           iwork, &liwork, info );

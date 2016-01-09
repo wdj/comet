@@ -140,7 +140,7 @@ CPU_INTERFACE:
      * Faster to use LAPACK for potrs than to copy A to GPU. */
     magma_tally4_dpotrf( uplo, n, A, lda, info );
     if ( *info == 0 ) {
-        lapackf77_dpotrs( lapack_uplo_const(uplo), &n, &nrhs, A, &lda, B, &ldb, info );
+        lapackf77_dpotrs( lapack_uplo_const_tally4(uplo), &n, &nrhs, A, &lda, B, &ldb, info );
     }
 
     return *info;

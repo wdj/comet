@@ -44,7 +44,7 @@ extern "C" void  magma_tally4_dstedc_withZ(magma_tally4_vec_t JOBZ, magma_tally4
     magma_tally4_dmalloc_cpu( &WORK,  LWORK  );
     magma_tally4_imalloc_cpu( &IWORK, LIWORK );
     
-    lapackf77_dstedc( lapack_vec_const(JOBZ), &N, D, E, Z, &LDZ, WORK, &LWORK, IWORK, &LIWORK, &INFO);
+    lapackf77_dstedc( lapack_vec_const_tally4(JOBZ), &N, D, E, Z, &LDZ, WORK, &LWORK, IWORK, &LIWORK, &INFO);
     
     if (INFO != 0) {
         printf("=================================================\n");

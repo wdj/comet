@@ -82,9 +82,9 @@ CSRC = \
 	cunmqr_m.cpp \
 	chesv.cpp \
 	chetrf.cpp \
-	chetrf_nopiv.cpp \
-	chetrf_nopiv_cpu.cpp \
-	chetrf_nopiv_gpu.cpp \
+	chetrf_nopiv_tally4.cpp \
+	chetrf_nopiv_tally4_cpu.cpp \
+	chetrf_nopiv_tally4_gpu.cpp \
 	chetrs_nopiv_gpu.cpp \
 	chesv_nopiv_gpu.cpp \
 	clahef_gpu.cpp \
@@ -259,9 +259,9 @@ DSRC = \
 	dormqr_m.cpp \
 	dsysv.cpp \
 	dsytrf.cpp \
-	dsytrf_nopiv.cpp \
-	dsytrf_nopiv_cpu.cpp \
-	dsytrf_nopiv_gpu.cpp \
+	dsytrf_nopiv_tally4.cpp \
+	dsytrf_nopiv_tally4_cpu.cpp \
+	dsytrf_nopiv_tally4_gpu.cpp \
 	dsytrs_nopiv_gpu.cpp \
 	dsysv_nopiv_gpu.cpp \
 	dlasyf_gpu.cpp \
@@ -402,9 +402,9 @@ SSRC = \
 	sormqr_m.cpp \
 	ssysv.cpp \
 	ssytrf.cpp \
-	ssytrf_nopiv.cpp \
-	ssytrf_nopiv_cpu.cpp \
-	ssytrf_nopiv_gpu.cpp \
+	ssytrf_nopiv_tally4.cpp \
+	ssytrf_nopiv_tally4_cpu.cpp \
+	ssytrf_nopiv_tally4_gpu.cpp \
 	ssytrs_nopiv_gpu.cpp \
 	ssysv_nopiv_gpu.cpp \
 	slasyf_gpu.cpp \

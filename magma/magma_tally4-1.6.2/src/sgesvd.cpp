@@ -167,8 +167,8 @@ magma_tally4_sgesvd(
     #define U(i_,j_)  (U  + (i_) + (j_)*ldu)
     #define VT(i_,j_) (VT + (i_) + (j_)*ldvt)
     
-    const char* jobu_  = lapack_vec_const( jobu  );
-    const char* jobvt_ = lapack_vec_const( jobvt );
+    const char* jobu_  = lapack_vec_const_tally4( jobu  );
+    const char* jobvt_ = lapack_vec_const_tally4( jobvt );
     
     const float c_zero          = MAGMA_tally4_S_ZERO;
     const float c_one           = MAGMA_tally4_S_ONE;

@@ -22,10 +22,10 @@
 // ----------------------------------------
 // Convert MAGMA_tally4 constants to CUBLAS v1 constants, which are the same as lapack.
 // These must be static to avoid conflict with CUBLAS v2 translators.
-#define cublas_trans_const( magma_tally4_const ) lapacke_trans_const( magma_tally4_const )
-#define cublas_side_const(  magma_tally4_const ) lapacke_side_const(  magma_tally4_const )
-#define cublas_diag_const(  magma_tally4_const ) lapacke_diag_const(  magma_tally4_const )
-#define cublas_uplo_const(  magma_tally4_const ) lapacke_uplo_const(  magma_tally4_const )
+#define cublas_trans_const_tally4( magma_tally4_const ) lapacke_trans_const_tally4( magma_tally4_const )
+#define cublas_side_const_tally4(  magma_tally4_const ) lapacke_side_const_tally4(  magma_tally4_const )
+#define cublas_diag_const_tally4(  magma_tally4_const ) lapacke_diag_const_tally4(  magma_tally4_const )
+#define cublas_uplo_const_tally4(  magma_tally4_const ) lapacke_uplo_const_tally4(  magma_tally4_const )
 
 
 // ========================================
@@ -519,7 +519,7 @@ magma_tally4_dgemv(
     magma_tally4Double_ptr       dy, magma_tally4_int_t incy )
 {
     cublasDgemv(
-        cublas_trans_const( transA ),
+        cublas_trans_const_tally4( transA ),
         m, n,
         alpha, dA, ldda,
                dx, incx,
@@ -677,7 +677,7 @@ magma_tally4_dsymv(
     magma_tally4Double_ptr       dy, magma_tally4_int_t incy )
 {
     cublasDsymv(
-        cublas_uplo_const( uplo ),
+        cublas_uplo_const_tally4( uplo ),
         n,
         alpha, dA, ldda,
                dx, incx,
@@ -721,7 +721,7 @@ magma_tally4_dsyr(
     magma_tally4Double_ptr       dA, magma_tally4_int_t ldda )
 {
     cublasDsyr(
-        cublas_uplo_const( uplo ),
+        cublas_uplo_const_tally4( uplo ),
         n,
         alpha, dx, incx,
                dA, ldda );
@@ -772,7 +772,7 @@ magma_tally4_dsyr2(
     magma_tally4Double_ptr       dA, magma_tally4_int_t ldda )
 {
     cublasDsyr2(
-        cublas_uplo_const( uplo ),
+        cublas_uplo_const_tally4( uplo ),
         n,
         alpha, dx, incx,
                dy, incy,
@@ -821,9 +821,9 @@ magma_tally4_dtrmv(
     magma_tally4Double_ptr       dx, magma_tally4_int_t incx )
 {
     cublasDtrmv(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
-        cublas_diag_const( diag ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
+        cublas_diag_const_tally4( diag ),
         n,
         dA, ldda,
         dx, incx );
@@ -872,9 +872,9 @@ magma_tally4_dtrsv(
     magma_tally4Double_ptr       dx, magma_tally4_int_t incx )
 {
     cublasDtrsv(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
-        cublas_diag_const( diag ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
+        cublas_diag_const_tally4( diag ),
         n,
         dA, ldda,
         dx, incx );
@@ -943,8 +943,8 @@ magma_tally4_dgemm(
     magma_tally4Double_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasDgemm(
-        cublas_trans_const( transA ),
-        cublas_trans_const( transB ),
+        cublas_trans_const_tally4( transA ),
+        cublas_trans_const_tally4( transB ),
         m, n, k,
         alpha, dA, ldda,
                dB, lddb,
@@ -1010,8 +1010,8 @@ magma_tally4_dsymm(
     magma_tally4Double_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasDsymm(
-        cublas_side_const( side ),
-        cublas_uplo_const( uplo ),
+        cublas_side_const_tally4( side ),
+        cublas_uplo_const_tally4( uplo ),
         m, n,
         alpha, dA, ldda,
                dB, lddb,
@@ -1069,8 +1069,8 @@ magma_tally4_dsyrk(
     magma_tally4Double_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasDsyrk(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
         n, k,
         alpha, dA, ldda,
         beta,  dC, lddc );
@@ -1136,8 +1136,8 @@ magma_tally4_dsyr2k(
     magma_tally4Double_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasDsyr2k(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
         n, k,
         alpha, dA, ldda,
                dB, lddb,
@@ -1204,8 +1204,8 @@ magma_tally4_dsymm(
     magma_tally4Double_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasDsymm(
-        cublas_side_const( side ),
-        cublas_uplo_const( uplo ),
+        cublas_side_const_tally4( side ),
+        cublas_uplo_const_tally4( uplo ),
         m, n,
         alpha, dA, ldda,
                dB, lddb,
@@ -1263,8 +1263,8 @@ magma_tally4_dsyrk(
     magma_tally4Double_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasDsyrk(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
         n, k,
         alpha, dA, ldda,
         beta,  dC, lddc );
@@ -1330,8 +1330,8 @@ magma_tally4_dsyr2k(
     magma_tally4Double_ptr       dC, magma_tally4_int_t lddc )
 {
     cublasDsyr2k(
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
         n, k,
         alpha, dA, ldda,
                dB, lddb,
@@ -1392,10 +1392,10 @@ magma_tally4_dtrmm(
     magma_tally4Double_ptr       dB, magma_tally4_int_t lddb )
 {
     cublasDtrmm(
-        cublas_side_const( side ),
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
-        cublas_diag_const( diag ),
+        cublas_side_const_tally4( side ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
+        cublas_diag_const_tally4( diag ),
         m, n,
         alpha, dA, ldda,
                dB, lddb );
@@ -1455,10 +1455,10 @@ magma_tally4_dtrsm(
     magma_tally4Double_ptr       dB, magma_tally4_int_t lddb )
 {
     cublasDtrsm(
-        cublas_side_const( side ),
-        cublas_uplo_const( uplo ),
-        cublas_trans_const( trans ),
-        cublas_diag_const( diag ),
+        cublas_side_const_tally4( side ),
+        cublas_uplo_const_tally4( uplo ),
+        cublas_trans_const_tally4( trans ),
+        cublas_diag_const_tally4( diag ),
         m, n,
         alpha, dA, ldda,
                dB, lddb );

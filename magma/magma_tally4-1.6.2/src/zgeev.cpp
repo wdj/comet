@@ -384,11 +384,11 @@ magma_tally4_zgeev(
          *  - including N reserved for gebal/gebak, unused by ztrevc */
         irwork = ibal + n;
         #if TREVC_VERSION == 1
-        lapackf77_ztrevc( lapack_side_const(side), "B", select, &n, A, &lda, VL, &ldvl,
+        lapackf77_ztrevc( lapack_side_const_tally4(side), "B", select, &n, A, &lda, VL, &ldvl,
                           VR, &ldvr, &n, &nout, &work[iwrk], &rwork[irwork], &ierr );
         #elif TREVC_VERSION == 2
         liwrk = lwork - iwrk;
-        lapackf77_ztrevc3( lapack_side_const(side), "B", select, &n, A, &lda, VL, &ldvl,
+        lapackf77_ztrevc3( lapack_side_const_tally4(side), "B", select, &n, A, &lda, VL, &ldvl,
                            VR, &ldvr, &n, &nout, &work[iwrk], &liwrk, &rwork[irwork], &ierr );
         #elif TREVC_VERSION == 3
         magma_tally4_ztrevc3( side, Magma_tally4BacktransVec, select, n, A, lda, VL, ldvl,
