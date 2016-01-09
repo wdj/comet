@@ -153,7 +153,7 @@ void gm_set_vectors_start(GMVectors* vectors,
   GMAssert(vectors_buf != NULL);
   GMAssert(env != NULL);
 
-  gm_set_matrix_start(vectors_buf, vectors->num_field_local,
+  gm_set_matrix_start(vectors_buf, vectors->num_packedval_field_local,
                       vectors->num_vector_local, env);
 }
 
@@ -246,8 +246,9 @@ void gm_vectors_to_buf(GMVectors* vectors,
       /*---Copy vectors into GPU buffers if needed---*/
       for (i = 0; i < vectors->num_vector_local; ++i) {
         int f = 0;
-        for (f = 0; f < vectors->num_packedval_field_local; ++f) {
-          ((GMBits2x64*)vectors_buf->h)[f + vectors->num_field_local * i] =
+        const int npfl = vectors->num_packedval_field_local;
+        for (f = 0; f < npfl; ++f) {
+          ((GMBits2x64*)vectors_buf->h)[f + npfl * i] =
               GMVectors_bits2x64_get(vectors, f, i, env);
         }
       }
@@ -537,13 +538,14 @@ void gm_compute_ccc_numerators_2way_start(
 
     /*---Perform pseudo matrix-matrix product---*/
 
-    gm_magma_gemm_start(vectors_left->num_vector_local,
-                        vectors_left->num_vector_local,
-                        vectors_left->num_field_local,
-                        vectors_left_buf->d, vectors_left->num_field_local,
-                        vectors_right_buf->d, vectors_left->num_field_local,
-                        metrics_buf->d, vectors_left->num_vector_local,
-                        env);
+    gm_magma_gemm_start(
+      vectors_left->num_vector_local,
+      vectors_left->num_vector_local,
+      vectors_left->num_packedval_field_local,
+      vectors_left_buf->d, vectors_left->num_packedval_field_local,
+      vectors_right_buf->d, vectors_left->num_packedval_field_local,
+      metrics_buf->d, vectors_left->num_vector_local,
+      env);
 
     /*----------------------------------------*/
   } /*---if---*/
@@ -723,6 +725,40 @@ void gm_compute_ccc_2way_combine(
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+
+  /*---Copy from metrics_buffer---*/
+
+  /*--------------------*/
+  if (Env_all2all(env)) {
+  /*--------------------*/
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ?
+                        j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMTally2x2 value =
+             ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j];
+        GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, value, env);
+      }   /*---for i---*/
+    } /*---for j---*/
+  /*--------------------*/
+  } else /*---(!Env_all2all(env))---*/ {
+  /*--------------------*/
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ?
+                        j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        const GMTally2x2 value =
+             ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j];
+        GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
+      }   /*---for i---*/
+    } /*---for j---*/
+  /*--------------------*/
+  } /*---if---*/
+  /*--------------------*/
 
   /*---Compute multipliers---*/
 

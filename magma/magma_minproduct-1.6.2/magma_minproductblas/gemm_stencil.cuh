@@ -344,7 +344,10 @@ void devfunc_name(precision) (
                       #ifdef CONJ_B
                         fma(rA[m], conj(rB[n]), rC[n][m]);
                       #else
+                        //---BEGIN MODIFIED GENOMICS_METRICS
+                        //fma(rA[m], rB[n], rC[n][m]);
                         fmin(rA[m], rB[n], rC[n][m]);
+                        //---END MODIFIED GENOMICS_METRICS
                       #endif
                     #endif
                 }
@@ -419,7 +422,10 @@ void devfunc_name(precision) (
                   #ifdef CONJ_B
                     fma(rA[m], conj(rB[n]), rC[n][m]);
                   #else
+                    //---BEGIN MODIFIED GENOMICS_METRICS
+                    //fma(rA[m], rB[n], rC[n][m]);
                     fmin(rA[m], rB[n], rC[n][m]);
+                    //---END MODIFIED GENOMICS_METRICS
                   #endif
                 #endif
             }

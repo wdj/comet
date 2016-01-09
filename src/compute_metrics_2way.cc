@@ -36,8 +36,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   const int num_proc = Env_num_proc_vector(env);
 
-  const int numvecl = metrics->num_vector_local;
-  const int numfieldl = vectors->num_field_local;
+  const int numvecl = vectors->num_vector_local;
+  const int numpfieldl = vectors->num_packedval_field_local;
 
   int i = 0;
   int i_proc = Env_proc_num_vector(env);
@@ -68,10 +68,10 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMMirroredPointer vectors_buf = GMMirroredPointer_null();
   GMMirroredPointer metrics_buf_tmp = GMMirroredPointer_null();
   for (i = 0; i < 2; ++i) {
-    vectors_buf_01[i] = gm_malloc_magma(numvecl * (size_t)numfieldl, env);
+    vectors_buf_01[i] = gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
     metrics_buf_01[i] = gm_malloc_magma(numvecl * (size_t)numvecl, env);
   }
-  vectors_buf = gm_malloc_magma(numvecl * (size_t)numfieldl, env);
+  vectors_buf = gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
   metrics_buf_tmp = gm_malloc_magma(numvecl * (size_t)numvecl, env);
 
   /*---Result matrix is diagonal block and half the blocks to the right
@@ -338,13 +338,13 @@ void gm_compute_metrics_2way_local(GMMetrics* metrics,
 
   gm_magma_initialize(env);
 
-  const int numvecl = metrics->num_vector_local;
-  const int numfieldl = vectors->num_field_local;
+  const int numvecl = vectors->num_vector_local;
+  const int numpfieldl = vectors->num_packedval_field_local;
 
   /*---Allocate magma CPU memory for vectors and for result */
 
   GMMirroredPointer vectors_buf =
-      gm_malloc_magma(numvecl * (size_t)numfieldl, env);
+      gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
 
   GMMirroredPointer metrics_buf =
       gm_malloc_magma(numvecl * (size_t)numvecl, env);

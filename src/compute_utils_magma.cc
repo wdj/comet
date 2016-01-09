@@ -13,10 +13,8 @@
 #include "magma_minproduct.h"
 #include "magma_minproduct_lapack.h"
 
-#ifdef TALLY4
 #include "magma_tally4.h"
 #include "magma_tally4_lapack.h"
-#endif
 
 #include "env.h"
 #include "vector_sums.h"
@@ -66,7 +64,6 @@ void gm_magma_initialize(GMEnv* env) {
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
 
-#ifdef TALLY4
       magma_tally4_int_t magma_code = 0;
       magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
@@ -77,7 +74,6 @@ void gm_magma_initialize(GMEnv* env) {
        * page 14 ---*/
       magma_code = magma_tally4blasSetKernelStream(Env_stream_compute(env));
       GMAssert(magma_code == MAGMA_tally4_SUCCESS);
-#endif
 
     } break;
     /*----------------------------------------*/
@@ -120,13 +116,12 @@ void gm_magma_finalize(GMEnv* env) {
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
 
-#ifdef TALLY4
       magma_tally4_int_t magma_code = 0;
       magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
+      //TODO: reset kernel stream (not really needed)
       magma_code = magma_tally4_finalize();
       GMAssert(magma_code == MAGMA_tally4_SUCCESS);
-#endif
 
     } break;
     /*----------------------------------------*/
@@ -186,16 +181,16 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
 
-#ifdef TALLY4
+      typedef magma_tally4DoubleComplex Float_t;
+
       magma_tally4_int_t magma_code = 0;
       magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
-      magma_code = magma_tally4_zmalloc_pinned((GMFloat**)&p.h, n);
+      magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p.h, n);
       GMAssert(magma_code == MAGMA_tally4_SUCCESS);
 
-      magma_code = magma_tally4_zmalloc((GMFloat**)&p.d, n);
+      magma_code = magma_tally4_zmalloc((Float_t**)&p.d, n);
       GMAssert(magma_code == MAGMA_tally4_SUCCESS);
-#endif
 
     } break;
     /*----------------------------------------*/
@@ -243,7 +238,6 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
 
-#ifdef TALLY4
       magma_tally4_int_t magma_code = 0;
       magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
@@ -251,7 +245,6 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
       GMAssert(magma_code == MAGMA_tally4_SUCCESS);
       magma_tally4_free(p->d);
       GMAssert(magma_code == MAGMA_tally4_SUCCESS);
-#endif
 
     } break;
     /*----------------------------------------*/
@@ -268,14 +261,52 @@ void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
                                     int mat_dim1,
                                     int mat_dim2,
                                     GMEnv* env) {
+
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+    return;
+  }
+
+  switch (Env_metric_type(env)) {
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_SORENSON: {
+      /*----------------------------------------*/
+
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CZEKANOWSKI: {
+      /*----------------------------------------*/
+
 #ifdef FP_PRECISION_DOUBLE
-  magma_minproductblas_dlaset
+      magma_minproductblas_dlaset
 #endif
 #ifdef FP_PRECISION_SINGLE
-      magma_minproductblas_slaset
+          magma_minproductblas_slaset
 #endif
-      (Magma_minproductFull, mat_dim1, mat_dim2, (GMFloat)0, (GMFloat)0,
-       (GMFloat*)matrix_buf->d, mat_dim1);
+          (Magma_minproductFull, mat_dim1, mat_dim2, (GMFloat)0, (GMFloat)0,
+           (GMFloat*)matrix_buf->d, mat_dim1);
+
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CCC: {
+      /*----------------------------------------*/
+
+      typedef magma_tally4DoubleComplex Float_t;
+
+      Float_t zero = {0, 0};
+
+      magma_tally4blas_zlaset
+          (Magma_tally4Full, mat_dim1, mat_dim2, zero, zero,
+           (Float_t*)matrix_buf->d, mat_dim1);
+
+    } break;
+    /*----------------------------------------*/
+    default:
+      /*----------------------------------------*/
+      /*---Should never get here---*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  } /*---case---*/
 }
 
 /*---------------------------------------------------------------------------*/
@@ -324,16 +355,16 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
 
-#ifdef TALLY4
-      const magma_tally4DoubleComplex alpha = {1, 1}; //ISSUE: is this correct?
-      const magma_tally4DoubleComplex beta = {0, 0};
+      typedef magma_tally4DoubleComplex Float_t;
+
+      const Float_t alpha = {1, 0};
+      const Float_t beta = {0, 0};
 
       magma_tally4blas_zgemm
         (Magma_tally4Trans, Magma_tally4NoTrans, m, n, k, alpha,
-         (magma_tally4DoubleComplex*)dA, ldda,
-         (magma_tally4DoubleComplex*)dB, lddb, beta,
-         (magma_tally4DoubleComplex*)dC, lddc);
-#endif
+         (Float_t*)dA, ldda,
+         (Float_t*)dB, lddb, beta,
+         (Float_t*)dC, lddc);
 
     } break;
     /*----------------------------------------*/
@@ -402,12 +433,12 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
 
-#ifdef TALLY4
+      typedef magma_tally4DoubleComplex Float_t;
+
       magma_tally4_zsetmatrix_async
-        (mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h,
-         mat_dim1, (GMFloat*)matrix_buf->d, mat_dim1,
+        (mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
+         mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
          Env_stream_togpu(env));
-#endif
 
     } break;
     /*----------------------------------------*/
@@ -477,12 +508,12 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
 
-#ifdef TALLY4
+      typedef magma_tally4DoubleComplex Float_t;
+
       magma_tally4_zgetmatrix_async
-        (mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d,
-         mat_dim1, (GMFloat*)matrix_buf->h, mat_dim1,
+        (mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
+         mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
          Env_stream_fromgpu(env));
-#endif
 
     } break;
     /*----------------------------------------*/

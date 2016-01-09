@@ -13,6 +13,7 @@
 /*
  * daxpy computes c += alpha*b, where b and c are 16-element vectors.
  */
+//---BEGIN MODIFIED GENOMICS_METRICS
 #if 0
 static __device__ double mult_op(double a, double b)
 {
@@ -75,6 +76,7 @@ static __device__ void daxpy(
 }
 #endif
 
+//---END MODIFIED GENOMICS_METRICS
 
 /**
     Purpose:
