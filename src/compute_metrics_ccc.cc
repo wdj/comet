@@ -78,8 +78,8 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
 
 // NOTE: "since the sum of all 4 of these relative co-occurences is 1 we really only need to compute 3 of them. Then the last one is just 1 minus the rest."
 
-        sum.data[0] += r00 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-        sum.data[1] += r10 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+        sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+        sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
       } /*---for field---*/
       GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
     } /*---for j---*/

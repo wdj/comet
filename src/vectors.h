@@ -114,6 +114,42 @@ static GMFloat GMVectors_float_get(GMVectors* const vectors,
 /*===========================================================================*/
 /*---Accessors: Bits2, Bits2x64---*/
 
+static GMBits2 GMVectors_bits2_get(GMVectors* vectors,
+                                   int field_local,
+                                   int vector_local,
+                                   GMEnv* env) {
+  /*---This function gets a single 2-bit value---*/
+  GMAssert(vectors);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
+
+  /*---The field address is expressible as a tuple:
+       which GMBits2x64 value,
+       which of the 2 (size2) data entries,
+       which of the 32 (size1) 2-bit (size0) fields in the data entry
+  ---*/
+
+  const int size0 = 2;
+  const int size1 = 32;
+  const int size2 = 2;
+
+  int field_index0 = field_local % size1;
+  int field_index1 = (field_local / size1) % size2;
+  size_t field_index2 = field_local / (size1 * size2);
+
+  GMBits1_2x64* const __restrict__ address = &( 
+    ((GMBits2x64*)(vectors->data))[
+      field_index2 + vectors->num_packedval_field_local *
+      vector_local].data[field_index1] );
+
+  return (GMBits2)(( (*address) >> (size0*field_index0) ) & ((GMBits1_2x64)3));
+}
+
+/*---------------------------------------------------------------------------*/
+
 static void GMVectors_bits2_set(GMVectors* vectors,
                                 int field_local,
                                 int vector_local,
@@ -147,44 +183,11 @@ static void GMVectors_bits2_set(GMVectors* vectors,
       field_index2 + vectors->num_packedval_field_local *
       vector_local].data[field_index1] );
 
-  *address &= ~ ( ((GMBits1_2x64)3) << (size0*field_index0) );
-  *address |=     value             << (size0*field_index0);
-}
+  *address &= ~ ( ((GMBits1_2x64)3)     << (size0*field_index0) );
+  *address |=     ((GMBits1_2x64)value) << (size0*field_index0);
 
-/*---------------------------------------------------------------------------*/
-
-static GMBits2 GMVectors_bits2_get(GMVectors* vectors,
-                                   int field_local,
-                                   int vector_local,
-                                   GMEnv* env) {
-  /*---This function gets a single 2-bit value---*/
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
-
-  /*---The field address is expressible as a tuple:
-       which GMBits2x64 value,
-       which of the 2 (size2) data entries,
-       which of the 32 (size1) 2-bit (size0) fields in the data entry
-  ---*/
-
-  const int size0 = 2;
-  const int size1 = 32;
-  const int size2 = 2;
-
-  int field_index0 = field_local % size1;
-  int field_index1 = (field_local / size1) % size2;
-  size_t field_index2 = field_local / (size1 * size2);
-
-  GMBits1_2x64* const __restrict__ address = &( 
-    ((GMBits2x64*)(vectors->data))[
-      field_index2 + vectors->num_packedval_field_local *
-      vector_local].data[field_index1] );
-
-  return (GMBits2)(( (*address) >> (size0*field_index0) ) & ((GMBits1_2x64)3));
+  GMAssert(value == GMVectors_bits2_get(vectors, field_local, vector_local,
+                                        env));
 }
 
 /*---------------------------------------------------------------------------*/

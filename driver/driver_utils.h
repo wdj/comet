@@ -127,9 +127,9 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           GMVectors_float_set(vectors, field_local, vector_local, value, env);
           /*---Print---*/
           if (verbosity > 2) {
-            printf("vec %i vec_proc %i field %i field_proc %i value %e\n",
-                   vector_local, Env_proc_num_vector(env),
-                   field_local, Env_proc_num_field(env),
+            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
+                   Env_proc_num_vector(env), vector_local,
+                   Env_proc_num_field(env), field_local, 
                    value);
           }
         } /*---field---*/
@@ -152,6 +152,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           size_t index = uid;
           /*---Randomize---*/
           index = gm_randomize(index);
+          index = gm_randomize(index);
           /*---Calculate random number between 0 and 3---*/
           const float float_rand_value = index / (float)gm_randomize_max();
           /*---Create 2-bit value - make extra sure less than 4---*/
@@ -160,9 +161,9 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           GMVectors_bits2_set(vectors, field_local, vector_local, value, env);
           /*---Print---*/
           if (verbosity > 2) {
-            printf("vec %i vec_proc %i field %i field_proc %i value %.1i%.1i\n",
-                   vector_local, Env_proc_num_vector(env),
-                   field_local, Env_proc_num_field(env),
+            printf("vec_proc %i vec %i field_proc %i field %i value %.1i%.1i\n",
+                   Env_proc_num_vector(env), vector_local,
+                   Env_proc_num_field(env), field_local, 
                    value/2, value%2);
           }
         } /*---field---*/
@@ -381,6 +382,12 @@ static GMChecksum perform_run(int argc, const char** argv) {
 
   gm_compute_metrics(&metrics, &vectors, &env);
 
+  /*---Output results---*/
+
+  if (verbosity > 1) {
+    output_metrics(&metrics, &env);
+  }
+
   /*---Output run information---*/
 
   checksum = GMMetrics_checksum(&metrics, &env);
@@ -397,12 +404,6 @@ static GMChecksum perform_run(int argc, const char** argv) {
       printf(" rate %e", env.ops / env.time);
     }
     printf("\n");
-  }
-
-  /*---Output results---*/
-
-  if (verbosity > 1) {
-    output_metrics(&metrics, &env);
   }
 
   /*---Finalize---*/

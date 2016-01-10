@@ -403,10 +403,14 @@ void gm_compute_ccc_numerators_2way_start(
 
           /*---Accumulate---*/
 
-          sum.data[0] += r00 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-          sum.data[1] += r10 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+          sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+          sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
         } /*---for f---*/
-        GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
+        if (Env_all2all(env)) {
+          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
+        } else {
+          GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
+        }
       } /*---for j---*/
     }   /*---for i---*/
 
@@ -520,10 +524,14 @@ void gm_compute_ccc_numerators_2way_start(
 
           /*---Accumulate---*/
 
-          sum.data[0] += r00 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-          sum.data[1] += r10 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+          sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+          sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
         } /*---for f---*/
-        GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
+        if (Env_all2all(env)) {
+          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
+        } else {
+          GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
+        }
       } /*---for j---*/
     }   /*---for i---*/
 
@@ -728,37 +736,54 @@ void gm_compute_ccc_2way_combine(
 
   /*---Copy from metrics_buffer---*/
 
-  /*--------------------*/
-  if (Env_all2all(env)) {
-  /*--------------------*/
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ?
-                        j : metrics->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        const GMTally2x2 value =
-             ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j];
-        GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, value, env);
-      }   /*---for i---*/
-    } /*---for j---*/
-  /*--------------------*/
-  } else /*---(!Env_all2all(env))---*/ {
-  /*--------------------*/
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ?
-                        j : metrics->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
-        const GMTally2x2 value =
-             ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j];
-        GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
-      }   /*---for i---*/
-    } /*---for j---*/
-  /*--------------------*/
-  } /*---if---*/
-  /*--------------------*/
+  if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+    /*--------------------*/
+    if (Env_all2all(env)) {
+    /*--------------------*/
+      int j = 0;
+      for (j = 0; j < metrics->num_vector_local; ++j) {
+        const int i_max = do_compute_triang_only ?
+                          j : metrics->num_vector_local;
+        int i = 0;
+        for (i = 0; i < i_max; ++i) {
+          const GMTally2x2 value =
+               ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j];
+          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, value, env);
+        }   /*---for i---*/
+      } /*---for j---*/
+    /*--------------------*/
+    } else /*---(!Env_all2all(env))---*/ {
+    /*--------------------*/
+      int j = 0;
+      for (j = 0; j < metrics->num_vector_local; ++j) {
+        const int i_max = do_compute_triang_only ?
+                          j : metrics->num_vector_local;
+        int i = 0;
+        for (i = 0; i < i_max; ++i) {
+          const GMTally2x2 value =
+               ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j];
+          GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
+        }   /*---for i---*/
+      } /*---for j---*/
+    /*--------------------*/
+    } /*---if---*/
+    /*--------------------*/
+  }
+
+#if 0
+      int j = 0;
+      for (j = 0; j < metrics->num_vector_local; ++j) {
+        const int i_max = do_compute_triang_only ?
+                          j : metrics->num_vector_local;
+        int i = 0;
+        for (i = 0; i < i_max; ++i) {
+          const GMTally2x2 value = ((GMTally2x2*)metrics->data)[0];
+
+printf("*********** %.16e %.16e\n", value.data[0], value.data[1]);
+        }   /*---for i---*/
+      } /*---for j---*/
+#endif
+
 
   /*---Compute multipliers---*/
 

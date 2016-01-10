@@ -234,8 +234,8 @@ FloatingPoint_t tally4_compute(
 
           /*---Accumulate---*/
 
-          sum.data[0] += r00 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-          sum.data[1] += r10 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+          sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+          sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
 
 //printf("%i %i %i %i %e %e\n", r00, r01, r10, r11, sum.data[0], sum.data[1]);
     return *(FloatingPoint_t*)&sum;

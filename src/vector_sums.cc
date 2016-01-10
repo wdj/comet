@@ -151,7 +151,8 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
                                           ? vector_sums : vector_sums_tmp;
 
   /*----------*/
-  if (env->compute_method_ == GM_COMPUTE_METHOD_REF) {
+  //if (env->compute_method_ == GM_COMPUTE_METHOD_REF) {
+  if (env->compute_method_ == GM_COMPUTE_METHOD_GPU) {
   /*----------*/
     int i = 0;
     for (i = 0; i < vectors->num_vector_local; ++i) {

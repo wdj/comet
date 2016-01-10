@@ -135,7 +135,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_2way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
+          gm_compute_metrics_2way_local(metrics, vectors, env);
+          //gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
         }
       } break;
 
@@ -144,7 +145,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_2way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
+          gm_compute_metrics_2way_local(metrics, vectors, env);
+          //gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
         }
       } break;
 

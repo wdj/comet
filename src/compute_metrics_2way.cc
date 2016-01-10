@@ -379,7 +379,7 @@ void gm_compute_metrics_2way_local(GMMetrics* metrics,
   /*---Do reduction across field procs if needed---*/
 
   if (Env_num_proc_field(env) > 1) {
-    gm_allreduce_metrics(metrics, metrics_buf_local, &metrics_buf, env);
+    gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
   }
 
   /*---------------*/
