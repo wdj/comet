@@ -399,18 +399,24 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   GMTally1 sj_1;
   GMTally1_decode(&si_1, &sj_1, si1_sj1);
 
+  /*---Get number of 0 bits from number of 1 bits---*/
   const GMTally1 si = i0 == 0 ? (2 * metrics->num_field - si_1) : si_1;
   const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field - sj_1) : sj_1;
 
-//---TODO: optimize
+  /*---Do the following to make floating point arithmetic order-independent---*/
+  const GMTally1 sij_min =  si < sj ? si : sj;
+  const GMTally1 sij_max =  si < sj ? sj : si;
+
+ //---TODO: optimize
   const GMFloat one = 1;
   const GMFloat m = metrics->m;
   const GMFloat recip_m = metrics->recip_m;
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
   const GMFloat result = ((9 * one / 2) / 4) * recip_m * rij *
-                         (3 * m - si) * (one/3) * recip_m *
-                         (3 * m - sj) * (one/3) * recip_m;
+                         (3 * m - sij_min) * (one/3) * recip_m *
+                         (3 * m - sij_max) * (one/3) * recip_m;
+
   return result;
 }
 

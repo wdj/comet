@@ -13,7 +13,7 @@ mkdir gm_work
 cd gm_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-git checkout -q tags/v0.2   #---use currently active release tag.
+git checkout -q tags/v0.3   #---use currently active release tag.
 cd genomics_gpu/magma/magma_minproduct-1.6.2
 ../make.sh
 cd ../../..
@@ -257,4 +257,29 @@ Application 9637629 resources: utime ~183s, stime ~20s, Rss ~2607756, inblocks ~
 
 metrics checksum 6-283811752468216928-988311188142008880 time 21.106007 ops 2.469071e+12 rate 1.169843e+11
 Application 9637654 resources: utime ~222s, stime ~32s, Rss ~1383844, inblocks ~32240, outblocks ~13560
+
+#--------------------
+# 2-way CCC metric, all2all.
+#--------------------
+
+for p in 1 2 4 8 ; do
+  aprun -n$p -N1 ./install_release/bin/genomics_metric \
+        --metric_type ccc \
+        --num_field 32768 --num_vector_local $(( 1024 * 6 / $p )) \
+        --all2all yes --num_way 2 \
+        --compute_method GPU --verbosity 1
+  echo
+done
+
+metrics checksum 0-601335747387234782-436687494557262848 time 7.791593 ops 6.183746e+11 rate 7.936434e+10
+Application 9731457 resources: utime ~16s, stime ~4s, Rss ~2761636, inblocks ~1304, outblocks ~2860
+
+metrics checksum 0-601335747387234782-436687494557262848 time 3.469991 ops 6.183746e+11 rate 1.782064e+11
+Application 9731458 resources: utime ~20s, stime ~5s, Rss ~1181988, inblocks ~6286, outblocks ~5732
+
+metrics checksum 0-601335747387234782-436687494557262848 time 1.241129 ops 6.183746e+11 rate 4.982356e+11
+Application 9731460 resources: utime ~16s, stime ~8s, Rss ~530896, inblocks ~16050, outblocks ~11457
+
+metrics checksum 0-601335747387234782-436687494557262848 time 0.513437 ops 6.183746e+11 rate 1.204383e+12
+Application 9731461 resources: utime ~16s, stime ~15s, Rss ~309528, inblocks ~35578, outblocks ~22896
 

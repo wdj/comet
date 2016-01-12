@@ -194,16 +194,20 @@ static GMTally4x2 GMTally4x2_null() {
 
 /*---Encode/decode between float and pair of tally values---*/
 
-static GMFloat GMTally1_encode(GMTally1 val0, GMTally1 val1) {
-  return (GMFloat)(val0 + (1<<GM_TALLY1_MAX_VALUE_BITS) * val1);
-}
-
 static void GMTally1_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMFloat v) {
   const GMUInt64 tally2 = (GMUInt64)v;
-  *val0 = tally2 & ((1<<GM_TALLY1_MAX_VALUE_BITS)-1);
-  *val1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
+  const GMTally1 v0 = tally2 & ((((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)-1);
+  const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
+  *val0 = v0;
+  *val1 = v1;
+}
+
+static GMFloat GMTally1_encode(GMTally1 val0, GMTally1 val1) {
+  const GMFloat result = (GMFloat)(val0 +
+            (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * val1);
+  return result;
 }
 
 /*---Get an entry---*/
@@ -213,8 +217,8 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
 
   const GMUInt64 tally2 = tally2x2.data[i0];
 
-  const GMTally1 result = i1 == 0 ? tally2 % (1<<GM_TALLY1_MAX_VALUE_BITS)
-                                  : tally2 / (1<<GM_TALLY1_MAX_VALUE_BITS);
+  const GMTally1 result = i1 == 0 ? tally2 % (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)
+                                  : tally2 / (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS);
   return result;
 }
 
@@ -226,8 +230,8 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
 
   const GMUInt64 tally2 = tally4x2.data[i1 + 2 * i0];
 
-  const GMTally1 result = i2 == 0 ? tally2 % (1<<GM_TALLY1_MAX_VALUE_BITS)
-                                  : tally2 / (1<<GM_TALLY1_MAX_VALUE_BITS);
+  const GMTally1 result = i2 == 0 ? tally2 % (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)
+                                  : tally2 / (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS);
   return result;
 }
 

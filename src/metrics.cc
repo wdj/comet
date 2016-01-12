@@ -382,11 +382,14 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
 
 /*---Helper function - perform one bubble sort step---*/
 
-static void gm_bubbledown(size_t* i, size_t* j) {
+static void gm_makegreater(size_t* i, size_t* j, int* ind_i, int* ind_j) {
   if (*i < *j) {
     const size_t tmp = *i;
     *i = *j;
     *j = tmp;
+    const int tmp2 = *ind_i;
+    *ind_i = *ind_j;
+    *ind_j = tmp2;
   }
 }
 
@@ -414,7 +417,9 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
     return result;
   }
 
-  GMAssert(Env_num_way(env) <= 3 ? "This num_way not supported." : 0);
+  enum { num_way_max = 3 };
+
+  GMAssert(Env_num_way(env) <= num_way_max ? "This num_way not supported." : 0);
 
   /*---Initializations---*/
 
@@ -435,21 +440,26 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   const UI64 lomask = ( one64 << w ) - 1;
   const UI64 lohimask = ( one64 << (2*w) ) - 1;
 
-  UI64 coords[3];
+  UI64 coords[num_way_max];
+  int ind_coords[num_way_max];
   UI64 index = 0;
   for (index = 0; index < metrics->num_elts_local; ++index) {
     /*---Obtain global coords of metrics elt---*/
-    coords[2] = 0;
+    for (i = 0; i<num_way_max; ++i) {
+      coords[i] = 0;
+      ind_coords[i] = i;
+    }
     for (i = 0; i < Env_num_way(env); ++i) {
       coords[i] =
           GMMetrics_coord_global_from_index(metrics, index, i, env);
     }
-    /*---Reflect coords by symmetry to get uniform result---*/
-    gm_bubbledown(&coords[1], &coords[2]);
-    gm_bubbledown(&coords[0], &coords[1]);
-    gm_bubbledown(&coords[1], &coords[2]);
+    /*---Reflect coords by symmetry to get uniform result -
+         sort into descending order---*/
+    gm_makegreater(&coords[1], &coords[2], &ind_coords[1], &ind_coords[2]);
+    gm_makegreater(&coords[0], &coords[1], &ind_coords[0], &ind_coords[1]);
+    gm_makegreater(&coords[1], &coords[2], &ind_coords[1], &ind_coords[2]);
 
-    /*---Loop opver data values at this index---*/
+    /*---Loop over data values at this index---*/
     int i_value = 0;
     for (i_value=0; i_value<metrics->data_type_num_values; ++i_value) {
         /*---Construct global id for metrics data vbalue---*/
@@ -476,12 +486,15 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
           } break;
           /*--------------------*/
           case GM_DATA_TYPE_TALLY2X2: {
-            const int i0 =  i_value / 2;
-            const int i1 =  i_value % 2;
+            const int i0_unpermuted =  i_value / 2;
+            const int i1_unpermuted =  i_value % 2;
+            const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
+            const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
             value = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
           } break;
           /*--------------------*/
           case GM_DATA_TYPE_TALLY4X2: {
+            //TODO: permute the indices as needed
             const int i0 =  i_value / 4;
             const int i1 = (i_value / 2 ) % 2;
             const int i2 =  i_value % 2;
@@ -506,7 +519,9 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         const UI64 cx = alo * bhi + ahi * blo;
         UI64 clo = alo * blo + ( (cx & lomask) << w);
         UI64 chi = ahi * bhi + (cx >> w);
-        sum_d += ivalue * (double)rand_value / ((double)(one64<<(2*w)));
+        const double value_d = ivalue * (double)rand_value /
+                               ((double)(one64<<(2*w)));
+        sum_d += value_d;
         /*---(move the carry bits)---*/
         chi += clo >> (2*w);
         clo &= lohimask;

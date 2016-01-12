@@ -93,7 +93,8 @@ void GMVectors_create(GMVectors* vectors,
       vectors->num_bits_per_val = GM_BITS2_MAX_VALUE_BITS;
       vectors->num_bits_per_packedval = bits_per_byte * sizeof(GMBits2x64);
       /*---By design can only store this number of fields for this metric---*/
-      GMInsist(env, 4*num_field < (1<<GM_TALLY1_MAX_VALUE_BITS)
+      GMInsist(env, ((GMUInt64)(4*num_field)) <
+                    (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)
         ? "Number of fields requested is too large for this metric" : 0);
     } break;
     /*--------------------*/

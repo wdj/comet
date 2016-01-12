@@ -151,8 +151,7 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
                                           ? vector_sums : vector_sums_tmp;
 
   /*----------*/
-  //if (env->compute_method_ == GM_COMPUTE_METHOD_REF) {
-  if (env->compute_method_ == GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method_ == GM_COMPUTE_METHOD_REF) {
   /*----------*/
     int i = 0;
     for (i = 0; i < vectors->num_vector_local; ++i) {
@@ -163,6 +162,7 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
         const GMBits2 value = GMVectors_bits2_get(vectors, f, i, env);
         sum += ((value & 1) != 0) + ((value & 2) != 0);
       }
+      GMAssert(sum >= 0 && sum <= 2*vectors->num_field);
       vector_sums_local[i] = sum;
     }
   /*----------*/
@@ -178,6 +178,7 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
         sum += (GMFloat)gm_popcount64(value.data[0]);
         sum += (GMFloat)gm_popcount64(value.data[1]);
       }
+      GMAssert(sum >= 0 && sum <= 2*vectors->num_field);
       vector_sums_local[i] = sum;
     }
   /*----------*/
