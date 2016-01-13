@@ -117,9 +117,8 @@ void GMVectors_create(GMVectors* vectors,
                          (vectors->num_bits_per_packedval / bits_per_byte ));
   GMAssert(vectors->data != NULL);
 
-
-  /*---Ensure final pad bits of each vector are set to zero
-       so that word-wise summations of bits aren't corrupted with bad data---*/
+  /*---Ensure final pad bits of each vector are set to zero so that
+       word-wise summations of bits aren't corrupted with bad trailing data---*/
 
   switch (vectors->data_type_id) {
     /*--------------------*/

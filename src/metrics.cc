@@ -39,6 +39,7 @@ void GMMetrics_create(GMMetrics* metrics,
                       int num_vector_local,
                       GMEnv* env) {
   GMAssert(metrics);
+  GMAssert(num_field >= 0);
   GMAssert(num_vector_local >= 0);
   GMAssert(env);
 

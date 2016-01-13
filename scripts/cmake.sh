@@ -100,11 +100,11 @@ time cmake \
   -DC_AND_CXX_FLAGS:STRING="-D$FP_PRECISION -I$PROJECT_DIR/magma/magma_minproduct-1.6.2/include -DADD_ -I$PROJECT_DIR/magma/magma_tally4-1.6.2/include $CRAY_CUDATOOLKIT_INCLUDE_OPTS" \
  \
   -DCMAKE_C_FLAGS:STRING="-std=c99 -Wall -Wno-unused-function -pedantic -Werror" \
-  -DCMAKE_C_FLAGS_DEBUG:STRING="-g" \
+  -DCMAKE_C_FLAGS_DEBUG:STRING="-g -DGM_ASSERT" \
   -DCMAKE_C_FLAGS_RELEASE:STRING="-DNDEBUG -O3 -ffast-math -fargument-noalias-anything -fstrict-aliasing -finline-functions -finline-limit=1000 -fomit-frame-pointer" \
  \
   -DCMAKE_CXX_FLAGS:STRING="-Wall -Wno-unused-function -Werror" \
-  -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g" \
+  -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -DGM_ASSERT" \
   -DCMAKE_CXX_FLAGS_RELEASE:STRING="-DNDEBUG -O3 -ffast-math -fargument-noalias-anything -fstrict-aliasing -finline-functions -finline-limit=1000 -fomit-frame-pointer" \
  \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="-L$PROJECT_DIR/magma/magma_minproduct-1.6.2/lib -lmagma_minproduct -L$PROJECT_DIR/magma/magma_tally4-1.6.2/lib -lmagma_tally4 $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas" \

@@ -23,6 +23,7 @@ extern "C" {
 
 /*===========================================================================*/
 
+#if 0
 void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
@@ -78,8 +79,8 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
 
 // NOTE: "since the sum of all 4 of these relative co-occurences is 1 we really only need to compute 3 of them. Then the last one is just 1 minus the rest."
 
-        sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-        sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+        sum.data[0] += GMTally1_encode(r00, r01);
+        sum.data[1] += GMTally1_encode(r10, r11);
       } /*---for field---*/
       GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
     } /*---for j---*/
@@ -105,6 +106,7 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
   free(vector_sums);
   free(vector_sums_tmp);
 }
+#endif
 
 /*===========================================================================*/
 
@@ -229,10 +231,11 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
           /* clang-format on */
 
 //---NOTE: must check that order is correct.
-          sum.data[0] += r000 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r001;
-          sum.data[1] += r010 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r011;
-          sum.data[2] += r100 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r101;
-          sum.data[3] += r110 + (1<<GM_TALLY1_MAX_VALUE_BITS) * r111;
+
+          sum.data[0] += GMTally1_encode(r000, r001);
+          sum.data[1] += GMTally1_encode(r010, r011);
+          sum.data[2] += GMTally1_encode(r100, r101);
+          sum.data[3] += GMTally1_encode(r110, r111);
         } /*---for field---*/
         GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
       } /*---for k---*/
@@ -278,6 +281,7 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
 
 /*===========================================================================*/
 
+#if 0
 void gm_compute_metrics_ccc_2way_gpu(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
@@ -289,6 +293,7 @@ void gm_compute_metrics_ccc_2way_gpu(GMMetrics* metrics,
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }
+#endif
 
 /*===========================================================================*/
 

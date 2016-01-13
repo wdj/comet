@@ -21,9 +21,9 @@ extern "C" {
 
 /*===========================================================================*/
 
-void gm_compute_metrics_2way_local(GMMetrics* metrics,
-                                   GMVectors* vectors,
-                                   GMEnv* env);
+void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
+                                        GMVectors* vectors,
+                                        GMEnv* env);
 
 void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                                      GMVectors* vectors,

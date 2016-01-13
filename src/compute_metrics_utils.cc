@@ -403,8 +403,8 @@ void gm_compute_ccc_numerators_2way_start(
 
           /*---Accumulate---*/
 
-          sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-          sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+          sum.data[0] += GMTally1_encode(r00, r01);
+          sum.data[1] += GMTally1_encode(r10, r11);
         } /*---for f---*/
         if (Env_all2all(env)) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
@@ -524,8 +524,8 @@ void gm_compute_ccc_numerators_2way_start(
 
           /*---Accumulate---*/
 
-          sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-          sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+          sum.data[0] += GMTally1_encode(r00, r01);
+          sum.data[1] += GMTally1_encode(r10, r11);
         } /*---for f---*/
         if (Env_all2all(env)) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
@@ -718,7 +718,7 @@ void gm_compute_czekanowski_2way_combine(
 }
 
 /*===========================================================================*/
-/*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
+/*---Combine nums and denoms on CPU to get final result, 2-way CCC---*/
 
 void gm_compute_ccc_2way_combine(
     GMMetrics* metrics,
@@ -749,6 +749,18 @@ void gm_compute_ccc_2way_combine(
           const GMTally2x2 value =
                ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j];
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, value, env);
+#ifdef GM_ASSERT
+        const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+        const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+        const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+        const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+        GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 + (GMUInt64)r11
+                 == (GMUInt64)(4 * metrics->num_field));
+        const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
+        const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
+        GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si_1));
+        GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj_1));
+#endif
         }   /*---for i---*/
       } /*---for j---*/
     /*--------------------*/
@@ -763,27 +775,24 @@ void gm_compute_ccc_2way_combine(
           const GMTally2x2 value =
                ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local*j];
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
+#ifdef GM_ASSERT
+        const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+        const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+        const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+        const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+        GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 + (GMUInt64)r11
+                 == (GMUInt64)(4 * metrics->num_field));
+        const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
+        const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
+        GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si_1));
+        GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj_1));
+#endif
         }   /*---for i---*/
       } /*---for j---*/
     /*--------------------*/
     } /*---if---*/
     /*--------------------*/
   }
-
-#if 0
-      int j = 0;
-      for (j = 0; j < metrics->num_vector_local; ++j) {
-        const int i_max = do_compute_triang_only ?
-                          j : metrics->num_vector_local;
-        int i = 0;
-        for (i = 0; i < i_max; ++i) {
-          const GMTally2x2 value = ((GMTally2x2*)metrics->data)[0];
-
-printf("*********** %.16e %.16e\n", value.data[0], value.data[1]);
-        }   /*---for i---*/
-      } /*---for j---*/
-#endif
-
 
   /*---Compute multipliers---*/
 
@@ -899,8 +908,8 @@ void gm_compute_czekanowski_numerators_3way_start(
 
   /*---Initializations---*/
 
-  const int numvec = metrics->num_vector_local;
-  const int numfield = vectors_i->num_field_local;
+  const int numvecl = metrics->num_vector_local;
+  const int numfieldl = vectors_i->num_field_local;
 
   const int i_proc = Env_proc_num_vector(env);
 
@@ -917,23 +926,23 @@ void gm_compute_czekanowski_numerators_3way_start(
 
   /*---Define bounding box containing region to be computed---*/
 
-  const int i_lb = is_part3 && section_axis == 0 ? (section_num * numvec)/6 : 0;
+  const int i_lb = is_part3 && section_axis == 0 ? (section_num*numvecl)/6 : 0;
 
-  const int j_lb = is_part3 && section_axis == 1 ? (section_num * numvec)/6 : 0;
+  const int j_lb = is_part3 && section_axis == 1 ? (section_num*numvecl)/6 : 0;
 
-  const int k_lb = is_part3 && section_axis == 2 ? (section_num * numvec)/6 : 0;
+  const int k_lb = is_part3 && section_axis == 2 ? (section_num*numvecl)/6 : 0;
 
   const int i_ub = is_part3 && section_axis == 0
-                       ? ((section_num + 1) * numvec) / 6
-                       : numvec;
+                       ? ((section_num + 1) * numvecl) / 6
+                       : numvecl;
 
   const int j_ub = is_part3 && section_axis == 1
-                       ? ((section_num + 1) * numvec) / 6
-                       : numvec;
+                       ? ((section_num + 1) * numvecl) / 6
+                       : numvecl;
 
   const int k_ub = is_part3 && section_axis == 2
-                       ? ((section_num + 1) * numvec) / 6
-                       : numvec;
+                       ? ((section_num + 1) * numvecl) / 6
+                       : numvecl;
 
   /*----------------------------------------*/
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && ! Env_all2all(env)) {
@@ -945,14 +954,14 @@ void gm_compute_czekanowski_numerators_3way_start(
     /*---No off-proc all2all: compute tetrahedron of values---*/
 
     int k = 0;
-    for (k = 0; k < numvec; ++k) {
+    for (k = 0; k < numvecl; ++k) {
       int j = 0;
       for (j = 0; j < k; ++j) {
         int i = 0;
         for (i = 0; i < j; ++i) {
           GMFloat sum = 0;
           int field_local = 0;
-          for (field_local = 0; field_local < numfield; ++field_local) {
+          for (field_local = 0; field_local < numfieldl; ++field_local) {
             const GMFloat val1 = GMVectors_float_get(vectors_i,
                                                      field_local, i, env);
             const GMFloat val2 = GMVectors_float_get(vectors_j,
@@ -989,7 +998,7 @@ void gm_compute_czekanowski_numerators_3way_start(
         for (i = i_lb; i < i_max; ++i) {
           GMFloat numerator = 0;
           int field_local = 0;
-          for (field_local = 0; field_local < numfield; ++field_local) {
+          for (field_local = 0; field_local < numfieldl; ++field_local) {
             const GMFloat val1 = GMVectors_float_get(vectors_i,
                                                      field_local, i, env);
             const GMFloat val2 = GMVectors_float_get(vectors_j,
@@ -1023,11 +1032,11 @@ void gm_compute_czekanowski_numerators_3way_start(
     /*---Allocate magma CPU/GPU memory for M = X^T minprod X---*/
 
     GMMirroredPointer matM_ij_buf_value =
-        gm_malloc_magma(numvec * (size_t)numvec, env);  // M = X^T minprod X
+        gm_malloc_magma(numvecl * (size_t)numvecl, env);  // M = X^T minprod X
     GMMirroredPointer* const matM_ij_buf = &matM_ij_buf_value;
 
     GMMirroredPointer mat_buf_tmp =
-        gm_malloc_magma(numvec * (size_t)numvec, env);
+        gm_malloc_magma(numvecl * (size_t)numvecl, env);
 
     if (GM_BOOL_TRUE) {
       GMMirroredPointer* matM_ij_buf_local = Env_num_proc_field(env) == 1 ?
@@ -1035,28 +1044,28 @@ void gm_compute_czekanowski_numerators_3way_start(
 
       /*---Initialize result matrix to zero (apparently magma requires)---*/
 
-      gm_magma_set_matrix_zero_start(matM_ij_buf_local, numvec, numvec, env);
+      gm_magma_set_matrix_zero_start(matM_ij_buf_local, numvecl, numvecl, env);
 
       /*---Perform pseudo matrix-matrix min product for M = X^T minprod X---*/
 
-      gm_magma_gemm_start(numvec, numvec, numfield, vectors_i_buf->d, numfield,
-                          vectors_j_buf->d, numfield, matM_ij_buf_local->d, numvec,
-                          env);
+      gm_magma_gemm_start(numvecl, numvecl, numfieldl,
+                          vectors_i_buf->d, numfieldl,
+                          vectors_j_buf->d, numfieldl,
+                          matM_ij_buf_local->d, numvecl, env);
       gm_compute_wait(env);
 
       /*---Copy matM_ij from GPU---*/
 
-      gm_get_matrix_start(matM_ij_buf_local, numvec, numvec, env);
+      gm_get_matrix_start(matM_ij_buf_local, numvecl, numvecl, env);
       gm_get_matrix_wait(env);
 
       if (Env_num_proc_field(env) > 1) {
         int mpi_code = 0;
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 //XXX - use gm_allreduce_metrics
-//XXX - numvecl, ...
         mpi_code = MPI_Allreduce(matM_ij_buf_local->h, matM_ij_buf->h,
-                     numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
-                     Env_mpi_comm_field(env));
+                                 numvecl*(size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
+                                 Env_mpi_comm_field(env));
         GMAssert(mpi_code == MPI_SUCCESS);
       }
     }
@@ -1068,7 +1077,7 @@ void gm_compute_czekanowski_numerators_3way_start(
     /*---Need to compute only if not identical to already computed values---*/
 
     GMMirroredPointer matM_jk_buf_value =
-        !is_part1 ? gm_malloc_magma(numvec * (size_t)numvec, env)
+        !is_part1 ? gm_malloc_magma(numvecl * (size_t)numvecl, env)
                      : GMMirroredPointer_null();
 
     GMMirroredPointer* const matM_jk_buf =
@@ -1078,14 +1087,15 @@ void gm_compute_czekanowski_numerators_3way_start(
       GMMirroredPointer* matM_jk_buf_local = Env_num_proc_field(env) == 1 ?
         matM_jk_buf : &mat_buf_tmp;
 
-      gm_magma_set_matrix_zero_start(matM_jk_buf_local, numvec, numvec, env);
+      gm_magma_set_matrix_zero_start(matM_jk_buf_local, numvecl, numvecl, env);
 
-      gm_magma_gemm_start(numvec, numvec, numfield, vectors_j_buf->d, numfield,
-                          vectors_k_buf->d, numfield, matM_jk_buf_local->d, numvec,
-                          env);
+      gm_magma_gemm_start(numvecl, numvecl, numfieldl,
+                          vectors_j_buf->d, numfieldl,
+                          vectors_k_buf->d, numfieldl,
+                          matM_jk_buf_local->d, numvecl, env);
       gm_compute_wait(env);
 
-      gm_get_matrix_start(matM_jk_buf_local, numvec, numvec, env);
+      gm_get_matrix_start(matM_jk_buf_local, numvecl, numvecl, env);
       gm_get_matrix_wait(env);
 
       if (Env_num_proc_field(env) > 1) {
@@ -1093,7 +1103,7 @@ void gm_compute_czekanowski_numerators_3way_start(
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 //XXX - use gm_allreduce_metrics
         mpi_code = MPI_Allreduce(matM_jk_buf_local->h, matM_jk_buf->h,
-                     numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
+                     numvecl*(size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
                      Env_mpi_comm_field(env));
         GMAssert(mpi_code == MPI_SUCCESS);
       }
@@ -1109,7 +1119,7 @@ void gm_compute_czekanowski_numerators_3way_start(
          Otherwise, it is indexed through an alias as (i,k)---*/
 
     GMMirroredPointer matM_kik_buf_value =
-        is_part3 ? gm_malloc_magma(numvec * (size_t)numvec, env)
+        is_part3 ? gm_malloc_magma(numvecl * (size_t)numvecl, env)
                           : GMMirroredPointer_null();
 
     GMMirroredPointer* const matM_kik_buf =
@@ -1119,14 +1129,15 @@ void gm_compute_czekanowski_numerators_3way_start(
       GMMirroredPointer* matM_kik_buf_local = Env_num_proc_field(env) == 1 ?
         matM_kik_buf : &mat_buf_tmp;
 
-      gm_magma_set_matrix_zero_start(matM_kik_buf_local, numvec, numvec, env);
+      gm_magma_set_matrix_zero_start(matM_kik_buf_local, numvecl, numvecl, env);
 
-      gm_magma_gemm_start(numvec, numvec, numfield, vectors_k_buf->d, numfield,
-                          vectors_i_buf->d, numfield, matM_kik_buf_local->d, numvec,
-                          env);
+      gm_magma_gemm_start(numvecl, numvecl, numfieldl,
+                          vectors_k_buf->d, numfieldl,
+                          vectors_i_buf->d, numfieldl,
+                          matM_kik_buf_local->d, numvecl, env);
       gm_compute_wait(env);
 
-      gm_get_matrix_start(matM_kik_buf_local, numvec, numvec, env);
+      gm_get_matrix_start(matM_kik_buf_local, numvecl, numvecl, env);
       gm_get_matrix_wait(env);
 
       if (Env_num_proc_field(env) > 1) {
@@ -1134,7 +1145,7 @@ void gm_compute_czekanowski_numerators_3way_start(
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 //XXX - use gm_allreduce_metrics
         mpi_code = MPI_Allreduce(matM_kik_buf_local->h, matM_kik_buf->h,
-                     numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
+                     numvecl*(size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
                      Env_mpi_comm_field(env));
         GMAssert(mpi_code == MPI_SUCCESS);
       }
@@ -1151,8 +1162,8 @@ void gm_compute_czekanowski_numerators_3way_start(
          of vectors i and j
        B = X^T minprod V = three way min product
     */
-    GMMirroredPointer matV_buf = gm_malloc_magma(numvec*(size_t)numfield, env);
-    GMMirroredPointer matB_buf = gm_malloc_magma(numvec*(size_t)numvec, env);
+    GMMirroredPointer matV_buf = gm_malloc_magma(numvecl*(size_t)numfieldl, env);
+    GMMirroredPointer matB_buf = gm_malloc_magma(numvecl*(size_t)numvecl, env);
 
     /*---Set up pointers to permute the access of axes for Part 3---*/
     /*---We use capitals I, J, K here to denote the permuted axes---*/
@@ -1198,8 +1209,8 @@ void gm_compute_czekanowski_numerators_3way_start(
 
     /*---Process all combinations starting with j, i, k---*/
 
-    const int J_min = is_part3 ? (section_num + 0) * numvec / 6 : 0;
-    const int J_max = is_part3 ? (section_num + 1) * numvec / 6 : numvec;
+    const int J_min = is_part3 ? (section_num + 0) * numvecl / 6 : 0;
+    const int J_max = is_part3 ? (section_num + 1) * numvecl / 6 : numvecl;
     int J = 0;
 
     /*--------------------*/
@@ -1209,13 +1220,13 @@ void gm_compute_czekanowski_numerators_3way_start(
     for (J = J_min; J < J_max; ++J) {
 
       const int I_min = 0;
-      const int I_max = is_part1 ? J : numvec;
+      const int I_max = is_part1 ? J : numvecl;
       if (I_min >= I_max) {
         continue;
       }
 
       const int K_min = is_part3 ? 0 : J + 1;
-      const int K_max = numvec;
+      const int K_max = numvecl;
       if (K_min >= K_max) {
         continue;
       }
@@ -1226,18 +1237,18 @@ void gm_compute_czekanowski_numerators_3way_start(
       for (I = I_min; I < I_max; ++I) {
         // Compare columns x_i and x_j element-wise
         int field_local = 0;
-        for (field_local = 0; field_local < numfield; ++field_local) {
+        for (field_local = 0; field_local < numfieldl; ++field_local) {
           const GMFloat a =
-              ((GMFloat*)(vectors_I_buf->h))[field_local + numfield * I];
+              ((GMFloat*)(vectors_I_buf->h))[field_local + numfieldl * I];
           const GMFloat b =
-              ((GMFloat*)(vectors_J_buf->h))[field_local + numfield * J];
-          ((GMFloat*)(matV_buf.h))[field_local + numfield * I] = a < b ? a : b;
+              ((GMFloat*)(vectors_J_buf->h))[field_local + numfieldl * J];
+          ((GMFloat*)(matV_buf.h))[field_local + numfieldl * I] = a < b ? a : b;
         }  //---for field_local---//
       }    //---for i---//
 
       /*---Send matrix matV to GPU---*/
 
-      gm_set_matrix_start(&matV_buf, numfield, I_max, env);
+      gm_set_matrix_start(&matV_buf, numfieldl, I_max, env);
       gm_set_matrix_wait(env);
 
       /*---Initialize result matrix to zero (apparently magma requires)---*/
@@ -1245,18 +1256,18 @@ void gm_compute_czekanowski_numerators_3way_start(
       GMMirroredPointer* matB_buf_local = Env_num_proc_field(env) == 1 ?
         &matB_buf : &mat_buf_tmp;
 
-      gm_magma_set_matrix_zero_start(matB_buf_local, numvec, I_max, env);
+      gm_magma_set_matrix_zero_start(matB_buf_local, numvecl, I_max, env);
 
       /*---Perform matrix-matrix product matB = matV^T minprod X---*/
 
-      gm_magma_gemm_start(I_max, numvec, numfield, matV_buf.d, numfield,
-                          vectors_K_buf->d, numfield, matB_buf_local->d, I_max,
+      gm_magma_gemm_start(I_max, numvecl, numfieldl, matV_buf.d, numfieldl,
+                          vectors_K_buf->d, numfieldl, matB_buf_local->d, I_max,
                           env);
       gm_compute_wait(env);
 
       /*---Copy result matrix matB from GPU---*/
 
-      gm_get_matrix_start(matB_buf_local, I_max, numvec, env);
+      gm_get_matrix_start(matB_buf_local, I_max, numvecl, env);
       gm_get_matrix_wait(env);
 
       if (Env_num_proc_field(env) > 1) {
@@ -1264,7 +1275,7 @@ void gm_compute_czekanowski_numerators_3way_start(
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 //XXX - use gm_allreduce_metrics
         mpi_code = MPI_Allreduce(matB_buf_local->h, matB_buf.h,
-                     numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
+                     numvecl*(size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
                      Env_mpi_comm_field(env));
         GMAssert(mpi_code == MPI_SUCCESS);
       }
@@ -1276,11 +1287,11 @@ void gm_compute_czekanowski_numerators_3way_start(
       /*----------*/
 
         for (I = I_min; I < I_max; ++I) {
-          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvec*J];
+          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
           int K = 0;
           for (K = K_min; K < K_max; ++K) {
-            const GMFloat min_JK  = ((GMFloat*)(matM_JK_buf->h))[J + numvec*K];
-            const GMFloat min_KIK = ((GMFloat*)(matM_KIK_buf->h))[K + numvec*I];
+            const GMFloat min_JK  = ((GMFloat*)(matM_JK_buf->h))[J + numvecl*K];
+            const GMFloat min_KIK = ((GMFloat*)(matM_KIK_buf->h))[K + numvecl*I];
             // sum of mins vectors i, j, and k is matB(k,i)
             const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max*K];
             const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
@@ -1296,13 +1307,13 @@ void gm_compute_czekanowski_numerators_3way_start(
       /*----------*/
 
         for (I = I_min; I < I_max; ++I) {
-          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvec*J];
+          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
           int K = 0;
           for (K = K_min; K < K_max; ++K) {
-            const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + numvec*K];
+            const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + numvecl*K];
             const GMFloat min_KIK = is_part3 ?
-                                   ((GMFloat*)(matM_KIK_buf->h))[K + numvec*I] :
-                                   ((GMFloat*)(matM_KIK_buf->h))[I + numvec*K];
+                                   ((GMFloat*)(matM_KIK_buf->h))[K + numvecl*I] :
+                                   ((GMFloat*)(matM_KIK_buf->h))[I + numvecl*K];
             // sum of mins vectors i, j, and k is matB(k,i)
             const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max*K];
             const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
@@ -1422,7 +1433,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
     } else /*---i_proc != j_proc && i_proc != k_proc && j_proc != k_proc---*/ {
     /*----------------------------------------*/
 
-      const int numvec = metrics->num_vector_local;
+      const int numvecl = metrics->num_vector_local;
 
       /*---Get specification of region to be computed for Part 3---*/
 
@@ -1433,20 +1444,20 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
 
       /*---Define bounding box containing region to be computed---*/
 
-      const int i_lb = section_axis == 0 ? (section_num * numvec) / 6 : 0;
+      const int i_lb = section_axis == 0 ? (section_num * numvecl) / 6 : 0;
 
-      const int j_lb = section_axis == 1 ? (section_num * numvec) / 6 : 0;
+      const int j_lb = section_axis == 1 ? (section_num * numvecl) / 6 : 0;
 
-      const int k_lb = section_axis == 2 ? (section_num * numvec) / 6 : 0;
+      const int k_lb = section_axis == 2 ? (section_num * numvecl) / 6 : 0;
 
       const int i_ub =
-          section_axis == 0 ? ((section_num + 1) * numvec) / 6 : numvec;
+          section_axis == 0 ? ((section_num + 1) * numvecl) / 6 : numvecl;
 
       const int j_ub =
-          section_axis == 1 ? ((section_num + 1) * numvec) / 6 : numvec;
+          section_axis == 1 ? ((section_num + 1) * numvecl) / 6 : numvecl;
 
       const int k_ub =
-          section_axis == 2 ? ((section_num + 1) * numvec) / 6 : numvec;
+          section_axis == 2 ? ((section_num + 1) * numvecl) / 6 : numvecl;
 
       int k = 0;
       for (k = k_lb; k < k_ub; ++k) {

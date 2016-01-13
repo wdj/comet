@@ -16,8 +16,6 @@
 #ifndef _metrics_h_
 #define _metrics_h_
 
-#include <stdio.h> /*FIX*/
-
 #include <stddef.h>
 
 #include "env.h"
@@ -95,7 +93,6 @@ static int gm_metrics_3way_section_axis(GMMetrics* metrics,
   // GMAssert( i_proc != k_proc );
   // GMAssert( k_proc != j_proc );
 
-
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
 
   /* clang-format off */
@@ -123,7 +120,6 @@ static int gm_metrics_3way_section_num(GMMetrics* metrics,
   // GMAssert( i_proc != j_proc );
   // GMAssert( i_proc != k_proc );
   // GMAssert( k_proc != j_proc );
-
 
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
 
@@ -179,7 +175,6 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
   GMAssert(j_proc < Env_num_proc_vector(env));
   GMAssert(i < j || j_proc != Env_proc_num_vector(env));
   /*---WARNING: these conditions on j_proc are not exhaustive---*/
-
 
   const int i_proc = Env_proc_num_vector(env);
 
@@ -711,27 +706,6 @@ static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
 }
 
 /*---------------------------------------------------------------------------*/
-
-#if 0
-static GMTally2x2 GMMetrics_tally2x2_get_2(GMMetrics* metrics,
-                                           int i,
-                                           int j,
-                                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
-  GMAssert(!Env_all2all(env));
-  GMAssert(i >= 0);
-  GMAssert(i < metrics->num_vector_local);
-  GMAssert(j >= 0);
-  GMAssert(j < metrics->num_vector_local);
-  GMAssert(i < j);
-
-  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
-  return GMMetrics_tally2x2_get_from_index(metrics, index, env);
-}
-
-/*---------------------------------------------------------------------------*/
-#endif
 
 static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
                                              int i,

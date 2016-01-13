@@ -45,7 +45,7 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env);
 /*===========================================================================*/
 /*---Compute---*/
 
-/*---TODO: use these two functiuon only internally to the (pseudo-)class---*/
+/*---TODO: use these two function only internally to the (pseudo-)class---*/
 
 void gm_compute_float_vector_sums(GMVectors* vectors,
                                   GMFloat* __restrict__ vector_sums,

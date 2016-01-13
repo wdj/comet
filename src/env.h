@@ -18,6 +18,7 @@
 
 #include <stddef.h>
 #include <assert.h>
+#include "stdio.h" //FIX
 
 #include "mpi.h"
 #include "cuda.h"
@@ -197,32 +198,48 @@ static GMTally4x2 GMTally4x2_null() {
 static void GMTally1_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMFloat v) {
+  GMAssert(val0 != NULL);
+  GMAssert(val1 != NULL);
   const GMUInt64 tally2 = (GMUInt64)v;
   const GMTally1 v0 = tally2 & ((((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)-1);
   const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
   *val0 = v0;
   *val1 = v1;
+  GMAssert(v == (GMFloat)tally2);
+  GMAssert(v == (GMFloat)(v0 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * v1));
+  GMAssert(v0 >= 0);
+  GMAssert(v1 >= 0);
+  GMAssert(v0 < (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(v1 < (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS));
 }
 
 static GMFloat GMTally1_encode(GMTally1 val0, GMTally1 val1) {
-  const GMFloat result = (GMFloat)(val0 +
-            (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * val1);
+  const GMUInt64 tally2 = val0 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)*val1;
+  const GMFloat result = (GMFloat)tally2;
+  GMAssert(val0 ==
+          (((GMUInt64)result) & ((((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)-1)));
+  GMAssert(val1 == ((GMUInt64)result) >> GM_TALLY1_MAX_VALUE_BITS);
   return result;
 }
 
 /*---Get an entry---*/
+
 static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
   GMAssert(i0 >= 0 && i0 < 2);
   GMAssert(i1 >= 0 && i1 < 2);
 
   const GMUInt64 tally2 = tally2x2.data[i0];
 
-  const GMTally1 result = i1 == 0 ? tally2 % (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)
-                                  : tally2 / (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS);
+  const GMTally1 result = i1 == 0 ?
+                          tally2 % (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) :
+                          tally2 / (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS);
+  GMAssert(result >= 0);
+  GMAssert(result < (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
 
 /*---Get an entry---*/
+
 static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
   GMAssert(i0 >= 0 && i0 < 2);
   GMAssert(i1 >= 0 && i1 < 2);
@@ -230,11 +247,15 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
 
   const GMUInt64 tally2 = tally4x2.data[i1 + 2 * i0];
 
-  const GMTally1 result = i2 == 0 ? tally2 % (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)
-                                  : tally2 / (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS);
+  const GMTally1 result = i2 == 0 ?
+                          tally2 % (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) :
+                          tally2 / (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS);
+  GMAssert(result >= 0);
+  GMAssert(result < (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
 
+/*----------------------------------------*/
 /*----------------------------------------*/
 
 /*---Type ids---*/

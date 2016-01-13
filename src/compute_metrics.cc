@@ -9,7 +9,6 @@
 /*---------------------------------------------------------------------------*/
 
 #include <stdio.h>
-
 #include <stdlib.h>
 
 #include "env.h"
@@ -42,6 +41,9 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   switch (Env_metric_type(env) + GM_NUM_METRIC_TYPE * (
           Env_compute_method(env) + GM_NUM_COMPUTE_METHOD * (
           Env_num_way(env)))) {
+
+    /*====================*/
+    /*---Sorenson---*/
     /*====================*/
 
     case GM_METRIC_TYPE_SORENSON +
@@ -82,6 +84,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
       gm_compute_metrics_sorenson_3way_gpu(metrics, vectors, env);
       break;
 
+    /*====================*/
+    /*---Czekanowski---*/
     /*====================*/
 
     case GM_METRIC_TYPE_CZEKANOWSKI + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF+
@@ -129,13 +133,15 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
       break;
 
     /*====================*/
+    /*---CCC---*/
+    /*====================*/
 
     case GM_METRIC_TYPE_CCC + GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                               GM_NUM_COMPUTE_METHOD * (2)): {
         if (Env_all2all(env)) {
           gm_compute_metrics_2way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_2way_local(metrics, vectors, env);
+          gm_compute_metrics_2way_notall2all(metrics, vectors, env);
           //gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
         }
       } break;
@@ -145,7 +151,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_2way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_2way_local(metrics, vectors, env);
+          gm_compute_metrics_2way_notall2all(metrics, vectors, env);
           //gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
         }
       } break;
@@ -155,7 +161,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_2way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_2way_local(metrics, vectors, env);
+          gm_compute_metrics_2way_notall2all(metrics, vectors, env);
           //gm_compute_metrics_ccc_2way_gpu(metrics, vectors, env);
         }
       } break;

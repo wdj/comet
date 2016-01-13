@@ -321,8 +321,15 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
                          void* dC,
                          magma_minproduct_int_t lddc,
                          GMEnv* env) {
-
-//TODO: put in assertions
+  GMAssert(m >= 0);
+  GMAssert(n >= 0);
+  GMAssert(k >= 0);
+  GMAssert(dA != NULL);
+  GMAssert(dB != NULL);
+  GMAssert(dC != NULL);
+  GMAssert(ldda >= 0);
+  GMAssert(lddb >= 0);
+  GMAssert(env != NULL);
 
   GMAssert(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 

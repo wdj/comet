@@ -8,7 +8,6 @@
  */
 /*---------------------------------------------------------------------------*/
 
-#include "stdio.h" //FIX
 #include "env.h"
 #include "vector_sums.h"
 #include "vectors.h"
@@ -20,6 +19,98 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*===========================================================================*/
+
+void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
+                                        GMVectors* vectors,
+                                        GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vectors != NULL);
+  GMAssert(env != NULL);
+
+  GMAssert(!Env_all2all(env));
+
+  /*---------------*/
+  /*---Denominator---*/
+  /*---------------*/
+
+  GMVectorSums vector_sums = GMVectorSums_null();
+  GMVectorSums_create(&vector_sums, vectors, env);
+
+  /* .02 / 1.56 */
+  GMVectorSums_compute(&vector_sums, vectors, env);
+
+  /*---------------*/
+  /*---Numerator---*/
+  /*---------------*/
+
+  gm_magma_initialize(env);
+
+  const int numvecl = vectors->num_vector_local;
+  const int numpfieldl = vectors->num_packedval_field_local;
+
+  /*---Allocate magma CPU memory for vectors and for result */
+
+  GMMirroredPointer vectors_buf =
+      gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
+
+  GMMirroredPointer metrics_buf =
+      gm_malloc_magma(numvecl * (size_t)numvecl, env);
+
+  GMMirroredPointer metrics_buf_tmp =
+      gm_malloc_magma(numvecl * (size_t)numvecl, env);
+
+  GMMirroredPointer* metrics_buf_local = Env_num_proc_field(env) == 1 ?
+    &metrics_buf : &metrics_buf_tmp;
+
+  /*---Copy in vectors---*/
+
+  /* .08 / 1.56 */
+  gm_vectors_to_buf(vectors, &vectors_buf, env);
+
+  /*---Send vectors to GPU---*/
+
+  gm_set_vectors_start(vectors, &vectors_buf, env);
+  gm_set_vectors_wait(env);
+
+  gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
+                                   &vectors_buf, metrics_buf_local,
+                                   Env_proc_num_vector(env),
+                                   GM_BOOL_TRUE, env);
+  gm_compute_wait(env);
+
+  /*---Copy result from GPU---*/
+
+  gm_get_metrics_start(metrics, metrics_buf_local, env);
+  gm_get_metrics_wait(metrics, metrics_buf_local, env);
+
+  /*---Do reduction across field procs if needed---*/
+
+  if (Env_num_proc_field(env) > 1) {
+    gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
+  }
+
+  /*---------------*/
+  /*---Combine---*/
+  /*---------------*/
+
+  /* .22 / 1.56 */
+  gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
+                          Env_proc_num_vector(env), GM_BOOL_TRUE, env);
+
+  /*---------------*/
+  /*---Free memory---*/
+  /*---------------*/
+
+  GMVectorSums_destroy(&vector_sums, env);
+
+  gm_free_magma(&vectors_buf, env);
+  gm_free_magma(&metrics_buf, env);
+  gm_free_magma(&metrics_buf_tmp, env);
+
+  gm_magma_finalize(env);
+}
 
 /*===========================================================================*/
 
@@ -306,98 +397,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     gm_free_magma(&vectors_buf_01[i], env);
   }
   gm_free_magma(&vectors_buf, env);
-  gm_free_magma(&metrics_buf_tmp, env);
-
-  gm_magma_finalize(env);
-}
-
-/*===========================================================================*/
-
-void gm_compute_metrics_2way_local(GMMetrics* metrics,
-                                   GMVectors* vectors,
-                                   GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
-
-  GMAssert(!Env_all2all(env));
-
-  /*---------------*/
-  /*---Denominator---*/
-  /*---------------*/
-
-  GMVectorSums vector_sums = GMVectorSums_null();
-  GMVectorSums_create(&vector_sums, vectors, env);
-
-  /* .02 / 1.56 */
-  GMVectorSums_compute(&vector_sums, vectors, env);
-
-  /*---------------*/
-  /*---Numerator---*/
-  /*---------------*/
-
-  gm_magma_initialize(env);
-
-  const int numvecl = vectors->num_vector_local;
-  const int numpfieldl = vectors->num_packedval_field_local;
-
-  /*---Allocate magma CPU memory for vectors and for result */
-
-  GMMirroredPointer vectors_buf =
-      gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
-
-  GMMirroredPointer metrics_buf =
-      gm_malloc_magma(numvecl * (size_t)numvecl, env);
-
-  GMMirroredPointer metrics_buf_tmp =
-      gm_malloc_magma(numvecl * (size_t)numvecl, env);
-
-  GMMirroredPointer* metrics_buf_local = Env_num_proc_field(env) == 1 ?
-    &metrics_buf : &metrics_buf_tmp;
-
-  /*---Copy in vectors---*/
-
-  /* .08 / 1.56 */
-  gm_vectors_to_buf(vectors, &vectors_buf, env);
-
-  /*---Send vectors to GPU---*/
-
-  gm_set_vectors_start(vectors, &vectors_buf, env);
-  gm_set_vectors_wait(env);
-
-  gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
-                                   &vectors_buf, metrics_buf_local,
-                                   Env_proc_num_vector(env),
-                                   GM_BOOL_TRUE, env);
-  gm_compute_wait(env);
-
-  /*---Copy result from GPU---*/
-
-  gm_get_metrics_start(metrics, metrics_buf_local, env);
-  gm_get_metrics_wait(metrics, metrics_buf_local, env);
-
-  /*---Do reduction across field procs if needed---*/
-
-  if (Env_num_proc_field(env) > 1) {
-    gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
-  }
-
-  /*---------------*/
-  /*---Combine---*/
-  /*---------------*/
-
-  /* .22 / 1.56 */
-  gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
-                          Env_proc_num_vector(env), GM_BOOL_TRUE, env);
-
-  /*---------------*/
-  /*---Free memory---*/
-  /*---------------*/
-
-  GMVectorSums_destroy(&vector_sums, env);
-
-  gm_free_magma(&vectors_buf, env);
-  gm_free_magma(&metrics_buf, env);
   gm_free_magma(&metrics_buf_tmp, env);
 
   gm_magma_finalize(env);

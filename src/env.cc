@@ -265,14 +265,6 @@ void Env_set_compute_method(GMEnv* env, int compute_method) {
   GMAssert(compute_method < GM_NUM_COMPUTE_METHOD);
 
   env->compute_method_ = compute_method;
-
-#if 0
-  if (compute_method == GM_COMPUTE_METHOD_GPU) {
-    GMEnv_initialize_streams(env);
-  } else {
-    GMEnv_terminate_streams(env);
-  }
-#endif
 }
 
 /*---------------------------------------------------------------------------*/
