@@ -110,7 +110,7 @@ void GMEnv_create(GMEnv* env) {
 
   /*---Set default values---*/
   env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
-  env->num_way_ = 2;
+  env->num_way_ = GM_NUM_WAY_TWO;
   env->all2all_ = GM_BOOL_FALSE;
   env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
   Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
@@ -147,7 +147,8 @@ void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_way." : 0);
       env->num_way_ = atoi(argv[i]);
-      GMInsist(env, env->num_way_ == 2 || env->num_way_ == 3
+      GMInsist(env, env->num_way_ == GM_NUM_WAY_TWO ||
+                    env->num_way_ == GM_NUM_WAY_THREE
                         ? "Invalid setting for num_way."
                         : 0);
 
@@ -295,7 +296,8 @@ int Env_data_type_metrics(const GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
-      return env->num_way_ == 2 ? GM_DATA_TYPE_TALLY2X2 : GM_DATA_TYPE_TALLY4X2;
+      return env->num_way_ == GM_NUM_WAY_TWO ?
+                              GM_DATA_TYPE_TALLY2X2 : GM_DATA_TYPE_TALLY4X2;
   }
   GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
   return 0;

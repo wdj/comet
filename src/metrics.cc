@@ -95,7 +95,7 @@ void GMMetrics_create(GMMetrics* metrics,
   if (Env_all2all(env)) {
     /*--------------------*/
     /*--------------------*/
-    if (Env_num_way(env) == 2) {
+    if (Env_num_way(env) == GM_NUM_WAY_TWO) {
       /*--------------------*/
       /*---Store strict upper triang of diag block and half
            the off-diag blocks - a wrapped-rectangle block-row---*/
@@ -144,9 +144,9 @@ void GMMetrics_create(GMMetrics* metrics,
       }
       GMAssert(index == metrics->num_elts_local);
       /*--------------------*/
-    } else /* (Env_num_way(env) == 3) */ {
+    } else /* (Env_num_way(env) == GM_NUM_WAY_THREE) */ {
       /*--------------------*/
-      GMAssert(Env_num_way(env) == 3);
+      GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
       /*---Make the following assumption to greatly simplify calculations---*/
       GMInsist(env, num_proc <= 2 || metrics->num_vector_local % 6 == 0
                         ? "3way all2all case requires num vectors per proc "
@@ -272,7 +272,7 @@ void GMMetrics_create(GMMetrics* metrics,
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssert(metrics->coords_global_from_index != NULL);
     /*---LATER: generalize this to N-way---*/
-    if (Env_num_way(env) == 2) {
+    if (Env_num_way(env) == GM_NUM_WAY_TWO) {
       /*---Need store only strict upper triangular part of matrix---*/
       size_t index = 0;
       int j = 0;
@@ -286,8 +286,8 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
       GMAssert(index == metrics->num_elts_local);
-    } else /* (Env_num_way(env) == 3) */ {
-      GMAssert(Env_num_way(env) == 3);
+    } else /* (Env_num_way(env) == GM_NUM_WAY_THREE) */ {
+      GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
       /*---Need store only strict interior of tetrahedron---*/
       size_t index = 0;
       int k = 0;
@@ -418,7 +418,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
     return result;
   }
 
-  enum { num_way_max = 3 };
+  enum { num_way_max = GM_NUM_NUM_WAY + 1 };
 
   GMAssert(Env_num_way(env) <= num_way_max ? "This num_way not supported." : 0);
 

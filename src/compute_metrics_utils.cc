@@ -281,7 +281,7 @@ void gm_compute_czekanowski_numerators_2way_start(
   GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
 
   /*----------------------------------------*/
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && Env_all2all(env)) {
     /*----------------------------------------*/
 
     GMInsist(env, Env_num_proc_field(env) == 1
@@ -303,6 +303,31 @@ void gm_compute_czekanowski_numerators_2way_start(
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
         GMMetrics_float_set_all2all_2(metrics, i, j, j_proc, metric, env);
+      } /*---for i---*/
+    }   /*---for j---*/
+
+  /*----------------------------------------*/
+  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+    /*----------------------------------------*/
+
+    GMInsist(env, Env_num_proc_field(env) == 1
+      ? "num_proc_field>1 for CPU case not supported" : 0);
+
+    /*---Perform pseudo matrix-matrix product---*/
+
+    int j = 0;
+    for (j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = j;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        GMFloat metric = 0;
+        int f = 0;
+        for (f = 0; f < vectors_left->num_field_local; ++f) {
+          const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
+          const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
+          metric += value1 < value2 ? value1 : value2;
+        } /*---for k---*/
+        GMMetrics_float_set_2(metrics, i, j, metric, env);
       } /*---for i---*/
     }   /*---for j---*/
 
@@ -663,11 +688,10 @@ void gm_compute_czekanowski_2way_combine(
 
     int j = 0;
     for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      const int i_max = j;
       int i = 0;
       for (i = 0; i < i_max; ++i) {
-        const GMFloat numerator =
-            GMMetrics_float_get_all2all_2(metrics, i, j, j_proc, env);
+        const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
         /*---Don't use two different pointers pointing to the same thing---*/
         const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
@@ -701,7 +725,7 @@ void gm_compute_czekanowski_2way_combine(
 
     int j = 0;
     for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      const int i_max = j;
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator =

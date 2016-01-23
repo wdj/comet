@@ -791,7 +791,7 @@ static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
-  GMAssert(Env_num_way(env) == 2);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_TWO);
 
   const int i = metrics->coords_global_from_index[index] % metrics->num_vector;
   return i;
@@ -806,7 +806,7 @@ static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
-  GMAssert(Env_num_way(env) == 2);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_TWO);
 
   const int j = metrics->coords_global_from_index[index] / metrics->num_vector;
   return j;
@@ -822,7 +822,7 @@ static int GMMetrics_coord0_global_from_index_3(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
-  GMAssert(Env_num_way(env) == 3);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
 
   const int i = metrics->coords_global_from_index[index] % metrics->num_vector;
   return i;
@@ -837,7 +837,7 @@ static int GMMetrics_coord1_global_from_index_3(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
-  GMAssert(Env_num_way(env) == 3);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
 
   const int j =
       (metrics->coords_global_from_index[index] / metrics->num_vector) %
@@ -854,7 +854,7 @@ static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
   GMAssert(env != NULL);
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
-  GMAssert(Env_num_way(env) == 3);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
 
   const int k = metrics->coords_global_from_index[index] /
                 (metrics->num_vector * metrics->num_vector);
@@ -877,8 +877,8 @@ static int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 
   int result = 0;
 
-  GMAssert(Env_num_way(env) < 4
-               ? "num_way > 3 currently not supported"
+  GMAssert(Env_num_way(env) <= GM_NUM_NUM_WAY + 1
+               ? "this num_way currently not supported"
                : 0);
 
   switch (Env_num_way(env) + 4 * coord_num) {

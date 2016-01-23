@@ -364,6 +364,12 @@ enum {
   GM_NUM_COMPUTE_METHOD = 3
 };
 
+enum {
+  GM_NUM_WAY_TWO = 2,
+  GM_NUM_WAY_THREE = 3,
+  GM_NUM_NUM_WAY = 2
+};
+
 /*===========================================================================*/
 /*---Null object---*/
 

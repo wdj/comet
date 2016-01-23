@@ -21,6 +21,7 @@ extern "C" {
 
 /*===========================================================================*/
 
+#if 0
 void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
                                              GMVectors* vectors,
                                              GMEnv* env);
@@ -28,6 +29,7 @@ void gm_compute_metrics_czekanowski_3way_cpu(GMMetrics* metrics,
 void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
                                              GMVectors* vectors,
                                              GMEnv* env);
+#endif
 
 /*===========================================================================*/
 

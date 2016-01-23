@@ -94,7 +94,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_2way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
+          gm_compute_metrics_2way_notall2all(metrics, vectors, env);
+          //gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
         }
       } break;
 
@@ -103,7 +104,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_2way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
+          gm_compute_metrics_2way_notall2all(metrics, vectors, env);
+          //gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
         }
       } break;
 
@@ -112,7 +114,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_2way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_czekanowski_2way_gpu(metrics, vectors, env);
+          gm_compute_metrics_2way_notall2all(metrics, vectors, env);
+          //gm_compute_metrics_czekanowski_2way_gpu(metrics, vectors, env);
         }
       } break;
 
@@ -123,7 +126,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_3way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
+          gm_compute_metrics_3way_notall2all(metrics, vectors, env);
+          //gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
         }
       } break;
 
@@ -132,7 +136,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_3way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
+          gm_compute_metrics_3way_notall2all(metrics, vectors, env);
+          //gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
         }
       } break;
 
@@ -141,7 +146,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         if (Env_all2all(env)) {
           gm_compute_metrics_3way_all2all(metrics, vectors, env);
         } else {
-          gm_compute_metrics_czekanowski_3way_gpu(metrics, vectors, env);
+          gm_compute_metrics_3way_notall2all(metrics, vectors, env);
+          //gm_compute_metrics_czekanowski_3way_gpu(metrics, vectors, env);
         }
       } break;
 
@@ -207,7 +213,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
           gm_compute_metrics_3way_all2all(metrics, vectors, env);
         } else {
           gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-          //gm_compute_metrics_ccc_3way_cpu(metrics, vectors, env);
+          //gm_compute_metrics_ccc_3way_gpu(metrics, vectors, env);
         }
       } break;
 
@@ -221,16 +227,16 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   env->time += time_end - time_begin;
 
-  env->ops += (Env_num_way(env) == 2 && ! Env_all2all(env))
+  env->ops += (Env_num_way(env) == GM_NUM_WAY_TWO && ! Env_all2all(env))
             ?    Env_num_proc_vector(env) * 1. *
                  vectors->num_vector_local * 1. *
                  (vectors->num_vector_local - 1) * (1./2.) *
                  vectors->num_field
-            : (Env_num_way(env) == 2 && Env_all2all(env)) 
+            : (Env_num_way(env) == GM_NUM_WAY_TWO && Env_all2all(env)) 
             ?    vectors->num_vector * 1. *
                  (vectors->num_vector - 1) * (1./2.) *
                  vectors->num_field
-            : (Env_num_way(env) == 3 && ! Env_all2all(env)) 
+            : (Env_num_way(env) == GM_NUM_WAY_THREE && ! Env_all2all(env)) 
             ?    Env_num_proc_vector(env) * 1. *
                  vectors->num_vector_local * 1. *
                  (vectors->num_vector_local - 1) * 1. *

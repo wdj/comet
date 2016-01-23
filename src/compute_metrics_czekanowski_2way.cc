@@ -22,6 +22,7 @@
 extern "C" {
 #endif
 
+#if 0
 /*===========================================================================*/
 
 void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
@@ -175,6 +176,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 }
 
 /*---------------------------------------------------------------------------*/
+#endif
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
