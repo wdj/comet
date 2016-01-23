@@ -155,6 +155,14 @@ typedef struct { double data[4]; } GMTally4x2;
 /*---For Metrics: largest allowed size of a data value---*/
 enum { GM_TALLY1_MAX_VALUE_BITS = 25 };
 
+/*---For Metrics: for packing of multipliers---*/
+typedef GMFloat GMFloat2;
+typedef struct { double data[2]; } GMFloat3;
+
+/*----------------------------------------*/
+/*---Types for CCC metric: functions---*/
+/*----------------------------------------*/
+
 /*---Return null value; also use static asserts to check sizes---*/
 static GMBits2x64 GMBits2x64_null() {
   GMStaticAssert(sizeof(GMBits2)*8 >= GM_BITS2_MAX_VALUE_BITS);
@@ -219,6 +227,35 @@ static GMFloat GMTally1_encode(GMTally1 val0, GMTally1 val1) {
   GMAssert(val0 ==
           (((GMUInt64)result) & ((((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)-1)));
   GMAssert(val1 == ((GMUInt64)result) >> GM_TALLY1_MAX_VALUE_BITS);
+  return result;
+}
+
+/*---Encode/decode for multipliers/sums---*/
+
+static void GMFloat2_decode(GMTally1* __restrict__ val0,
+                            GMTally1* __restrict__ val1,
+                            GMFloat2 v) {
+  GMTally1_decode(val0, val1, v);
+}
+
+static void GMFloat3_decode(GMTally1* __restrict__ val0,
+                            GMTally1* __restrict__ val1,
+                            GMTally1* __restrict__ val2,
+                            GMFloat3 v) {
+  GMTally1_decode(val0, val1, v.data[0]);
+  GMTally1 dummy;
+  GMTally1_decode(val2, &dummy, v.data[1]);
+}
+
+static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
+  return GMTally1_encode(val0, val1);
+}
+
+static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
+  GMFloat3 result; /*---here we should set = null to be super cautious---*/
+  const GMTally1 dummy = 0;
+  result.data[0] = GMTally1_encode(val0, val1);
+  result.data[1] = GMTally1_encode(val2, dummy);
   return result;
 }
 

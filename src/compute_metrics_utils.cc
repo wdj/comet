@@ -831,8 +831,8 @@ void gm_compute_ccc_2way_combine(
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
-        const GMFloat si1_sj1 = GMTally1_encode(si_1, sj_1);
-        GMMetrics_float_M_set_all2all_2(metrics, i, j, j_proc, si1_sj1, env);
+        const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
+        GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_proc, si1_sj1, env);
       }   /*---for i---*/
     } /*---for j---*/
   /*--------------------*/
@@ -846,8 +846,8 @@ void gm_compute_ccc_2way_combine(
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
-        const GMFloat si1_sj1 = GMTally1_encode(si_1, sj_1);
-        GMMetrics_float_M_set_2(metrics, i, j, si1_sj1, env);
+        const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
+        GMMetrics_float2_M_set_2(metrics, i, j, si1_sj1, env);
       }   /*---for i---*/
     } /*---for j---*/
   /*--------------------*/

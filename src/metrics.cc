@@ -328,27 +328,23 @@ void GMMetrics_create(GMMetrics* metrics,
     /*----------*/
     case GM_DATA_TYPE_FLOAT:
 //---TODO: remove thee casts on the mallocs, here and elsewhere.
-      metrics->data = (GMFloat*)malloc(metrics->num_elts_local*sizeof(GMFloat));
+      metrics->data = malloc(metrics->num_elts_local*sizeof(GMFloat));
       GMAssert(metrics->data != NULL);
       metrics->data_type_num_values = 1;
       break;
     /*----------*/
     case GM_DATA_TYPE_TALLY2X2: {
-      metrics->data
-        = (GMTally2x2*)malloc(metrics->num_elts_local*sizeof(GMTally2x2));
+      metrics->data = malloc(metrics->num_elts_local*sizeof(GMTally2x2));
       GMAssert(metrics->data != NULL);
-      metrics->data_M
-        = (GMFloat*)malloc(metrics->num_elts_local*sizeof(GMFloat));
+      metrics->data_M = malloc(metrics->num_elts_local*sizeof(GMFloat2));
       GMAssert(metrics->data_M != NULL);
       metrics->data_type_num_values = 4;
     } break;
     /*----------*/
     case GM_DATA_TYPE_TALLY4X2: {
-      metrics->data
-        = (GMTally4x2*)malloc(metrics->num_elts_local*sizeof(GMTally4x2));
+      metrics->data = malloc(metrics->num_elts_local*sizeof(GMTally4x2));
       GMAssert(metrics->data != NULL);
-      metrics->data_M
-        = (GMFloat*)malloc(metrics->num_elts_local*sizeof(GMFloat));
+      metrics->data_M = malloc(metrics->num_elts_local*sizeof(GMFloat3));
       GMAssert(metrics->data_M != NULL);
       metrics->data_type_num_values = 8;
     } break;

@@ -96,8 +96,8 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
     const GMTally1 si_1 = (GMTally1)(vector_sums[i]);
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
       const GMTally1 sj_1 = (GMTally1)(vector_sums[j]);
-      const GMFloat si1_sj1 = GMTally1_encode(si_1, sj_1);
-      GMMetrics_float_M_set_2(metrics, i, j, si1_sj1, env);
+      const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
+      GMMetrics_float2_M_set_2(metrics, i, j, si1_sj1, env);
     } /*---for j---*/
   }   /*---for i---*/
 
@@ -121,12 +121,9 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
     ? "num_proc_field>1 for CPU case not supported" : 0);
 
   if (Env_all2all(env)) {
-//    gm_compute_metrics_czekanowski_2way_all2all(metrics, vectors, env);
     GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
     return;
   }
-
-  GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*---Compute sums---*/
 
@@ -136,8 +133,6 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
   gm_compute_bits2_vector_sums(vectors, vector_sums, vector_sums_tmp, env);
 
   /*---Compute R (up to scaling)---*/
-
-//---NOTE: The following is presently a GUESS as to what the algorithm is.
 
   int i = 0;
   int j = 0;
@@ -242,6 +237,7 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
     } /*---for j---*/
   }   /*---for i---*/
 
+#if 0
   /*---Compute multipliers---*/
  
   const GMFloat one = 1;
@@ -268,10 +264,11 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
                                (3 * m - s_i) * (one/3) * recip_m *
                                (3 * m - s_j) * (one/3) * recip_m *
                                (3 * m - s_k) * (one/3) * recip_m;
-        GMMetrics_float_M_set_3(metrics, i, j, k, result, env);
+        GMMetrics_float3_M_set_3(metrics, i, j, k, result, env);
       } /*---for k---*/
     } /*---for j---*/
   }   /*---for i---*/
+#endif
 
   /*---Deallocations---*/
 
