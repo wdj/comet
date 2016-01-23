@@ -24,6 +24,7 @@ SET(LIB_SOURCES
   src/compute_metrics.cc
   src/compute_metrics_utils.cc
   src/compute_metrics_2way.cc
+  src/compute_metrics_3way.cc
   src/compute_metrics_ccc.cc
   src/compute_metrics_czekanowski_2way.cc
   src/compute_metrics_czekanowski_3way.cc
@@ -39,6 +40,7 @@ SET(LIB_INCLUDES
   src/compute_metrics.h
   src/compute_metrics_utils.h
   src/compute_metrics_2way.h
+  src/compute_metrics_3way.h
   src/compute_metrics_ccc.h
   src/compute_metrics_czekanowski_2way.h
   src/compute_metrics_czekanowski_3way.h

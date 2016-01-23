@@ -90,7 +90,9 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   GMAssert(!Env_all2all(env));
 
+  /*---------------*/
   /*---Denominator---*/
+  /*---------------*/
 
   GMVectorSums vector_sums = GMVectorSums_null();
   GMVectorSums_create(&vector_sums, vectors, env);
@@ -104,19 +106,19 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   gm_magma_initialize(env);
 
-  const int numvec = metrics->num_vector_local;
-  const int numfield = vectors->num_field_local;
+  const int numvecl = metrics->num_vector_local;
+  const int numpfieldl = vectors->num_field_local;
 
-  /*---Allocate magma CPU memory for vectors and for result */
+  /*---Allocate magma CPU memory for vectors and for result---*/
 
   GMMirroredPointer vectors_buf =
-      gm_malloc_magma(numvec * (size_t)numfield, env);
+      gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
 
   GMMirroredPointer metrics_buf =
-      gm_malloc_magma(numvec * (size_t)numvec, env);
+      gm_malloc_magma(numvecl * (size_t)numvecl, env);
 
   GMMirroredPointer metrics_buf_tmp =
-      gm_malloc_magma(numvec * (size_t)numvec, env);
+      gm_malloc_magma(numvecl * (size_t)numvecl, env);
 
   GMMirroredPointer* metrics_buf_local = Env_num_proc_field(env) == 1 ?
     &metrics_buf : &metrics_buf_tmp;
@@ -130,6 +132,8 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   gm_set_vectors_start(vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
+
+  /*---Compute numerators---*/
 
   gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
                                    &vectors_buf, metrics_buf_local,
@@ -146,7 +150,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
     int mpi_code = 0;
     mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
     mpi_code = MPI_Allreduce(metrics_buf_local->h, metrics_buf.h,
-                 numvec*(size_t)numvec, GM_MPI_FLOAT, MPI_SUM,
+                 numvecl*(size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
                  Env_mpi_comm_field(env));
     GMAssert(mpi_code == MPI_SUCCESS);
   }
@@ -157,7 +161,9 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
                           Env_proc_num_vector(env), GM_BOOL_TRUE, env);
 
-  /*---Free memory---*/
+  /*---------------*/
+  /*---Free memory and finalize---*/
+  /*---------------*/
 
   GMVectorSums_destroy(&vector_sums, env);
 

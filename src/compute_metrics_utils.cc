@@ -1361,15 +1361,115 @@ void gm_compute_czekanowski_numerators_3way_start(
 }
 
 /*===========================================================================*/
+/*---Start calculation of numerators, 3-way CCC---*/
+
+void gm_compute_ccc_numerators_3way_start(
+    GMVectors* vectors_i,
+    GMVectors* vectors_j,
+    GMVectors* vectors_k,
+    GMMetrics* metrics,
+    GMMirroredPointer* vectors_i_buf,
+    GMMirroredPointer* vectors_j_buf,
+    GMMirroredPointer* vectors_k_buf,
+    int j_proc,
+    int k_proc,
+    GMEnv* env) {
+  GMAssert(vectors_i != NULL);
+  GMAssert(vectors_j != NULL);
+  GMAssert(vectors_k != NULL);
+  GMAssert(metrics != NULL);
+  GMAssert(vectors_i_buf != NULL);
+  GMAssert(vectors_j_buf != NULL);
+  GMAssert(vectors_k_buf != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
+  GMAssert(!(Env_proc_num_vector(env) == j_proc &&
+             Env_proc_num_vector(env) != k_proc));
+  GMAssert(!(Env_proc_num_vector(env) == k_proc &&
+             Env_proc_num_vector(env) != j_proc));
+
+
+
+
+
+
+//TODO: add code
+
+
+
+}
+
+/*===========================================================================*/
+/*---Start calculation of numerators, 3-way generic---*/
+
+void gm_compute_numerators_3way_start(
+    GMVectors* vectors_i,
+    GMVectors* vectors_j,
+    GMVectors* vectors_k,
+    GMMetrics* metrics,
+    GMMirroredPointer* vectors_i_buf,
+    GMMirroredPointer* vectors_j_buf,
+    GMMirroredPointer* vectors_k_buf,
+    int j_proc,
+    int k_proc,
+    GMEnv* env) {
+  GMAssert(vectors_i != NULL);
+  GMAssert(vectors_j != NULL);
+  GMAssert(vectors_k != NULL);
+  GMAssert(metrics != NULL);
+  GMAssert(vectors_i_buf != NULL);
+  GMAssert(vectors_j_buf != NULL);
+  GMAssert(vectors_k_buf != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
+  GMAssert(!(Env_proc_num_vector(env) == j_proc &&
+             Env_proc_num_vector(env) != k_proc));
+  GMAssert(!(Env_proc_num_vector(env) == k_proc &&
+             Env_proc_num_vector(env) != j_proc));
+
+  switch (Env_metric_type(env)) {
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_SORENSON: {
+      /*----------------------------------------*/
+
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CZEKANOWSKI: {
+      /*----------------------------------------*/
+      gm_compute_czekanowski_numerators_3way_start(
+        vectors_i, vectors_j, vectors_k, metrics,
+        vectors_i_buf, vectors_j_buf, vectors_k_buf, j_proc, k_proc, env);
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CCC: {
+      /*----------------------------------------*/
+      gm_compute_ccc_numerators_3way_start(
+        vectors_i, vectors_j, vectors_k, metrics,
+        vectors_i_buf, vectors_j_buf, vectors_k_buf, j_proc, k_proc, env);
+    } break;
+    /*----------------------------------------*/
+    default:
+      /*----------------------------------------*/
+      /*---Should never get here---*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  } /*---case---*/
+}
+
+/*===========================================================================*/
 /*---Combine nums and denoms on CPU to get final result, 3-way Czek---*/
 
-void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
-                                         GMFloat* __restrict__ vector_sums_i,
-                                         GMFloat* __restrict__ vector_sums_j,
-                                         GMFloat* __restrict__ vector_sums_k,
-                                         int j_proc,
-                                         int k_proc,
-                                         GMEnv* env) {
+void gm_compute_czekanowski_3way_combine(
+    GMMetrics* metrics,
+    GMFloat* __restrict__ vector_sums_i,
+    GMFloat* __restrict__ vector_sums_j,
+    GMFloat* __restrict__ vector_sums_k,
+    int j_proc,
+    int k_proc,
+    GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_i != NULL);
   GMAssert(vector_sums_j != NULL);
@@ -1502,6 +1602,87 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
   /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
+}
+
+/*===========================================================================*/
+/*---Combine nums and denoms on CPU to get final result, 3-way CCC---*/
+
+void gm_compute_ccc_3way_combine(
+    GMMetrics* metrics,
+    GMFloat* __restrict__ vector_sums_i,
+    GMFloat* __restrict__ vector_sums_j,
+    GMFloat* __restrict__ vector_sums_k,
+    int j_proc,
+    int k_proc,
+    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vector_sums_i != NULL);
+  GMAssert(vector_sums_j != NULL);
+  GMAssert(vector_sums_k != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
+  GMAssert(Env_proc_num_vector(env) != j_proc || j_proc == k_proc);
+  GMAssert(Env_proc_num_vector(env) != k_proc || j_proc == k_proc);
+
+
+//TODO: add code
+
+
+
+}
+
+/*===========================================================================*/
+/*---Combine nums and denoms on CPU to get final result, 3-way generic---*/
+
+void gm_compute_3way_combine(
+    GMMetrics* metrics,
+    GMVectorSums* vector_sums_i,
+    GMVectorSums* vector_sums_j,
+    GMVectorSums* vector_sums_k,
+    int j_proc,
+    int k_proc,
+    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(vector_sums_i != NULL);
+  GMAssert(vector_sums_j != NULL);
+  GMAssert(vector_sums_k != NULL);
+  GMAssert(env != NULL);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
+  GMAssert(Env_proc_num_vector(env) != j_proc || j_proc == k_proc);
+  GMAssert(Env_proc_num_vector(env) != k_proc || j_proc == k_proc);
+
+  switch (Env_metric_type(env)) {
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_SORENSON: {
+      /*----------------------------------------*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CZEKANOWSKI: {
+      /*----------------------------------------*/
+      gm_compute_czekanowski_3way_combine(metrics,
+         (GMFloat*)vector_sums_i->data,
+         (GMFloat*)vector_sums_j->data,
+         (GMFloat*)vector_sums_k->data,
+         j_proc, k_proc, env);
+    } break;
+    /*----------------------------------------*/
+    case GM_METRIC_TYPE_CCC: {
+      /*----------------------------------------*/
+      gm_compute_ccc_3way_combine(metrics,
+         (GMFloat*)vector_sums_i->data,
+         (GMFloat*)vector_sums_j->data,
+         (GMFloat*)vector_sums_k->data,
+         j_proc, k_proc, env);
+    } break;
+    /*----------------------------------------*/
+    default:
+      /*----------------------------------------*/
+      /*---Should never get here---*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  } /*---case---*/
 }
 
 /*===========================================================================*/

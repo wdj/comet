@@ -29,10 +29,6 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
                                              GMVectors* vectors,
                                              GMEnv* env);
 
-void gm_compute_metrics_czekanowski_3way_all2all(GMMetrics* metrics,
-                                                 GMVectors* vectors,
-                                                 GMEnv* env);
-
 /*===========================================================================*/
 
 #ifdef __cplusplus
