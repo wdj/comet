@@ -209,11 +209,11 @@ static void GMTally1_decode(GMTally1* __restrict__ val0,
   GMAssert(val0 != NULL);
   GMAssert(val1 != NULL);
   const GMUInt64 tally2 = (GMUInt64)v;
+  GMAssert(v == (GMFloat)tally2);
   const GMTally1 v0 = tally2 & ((((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)-1);
   const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
   *val0 = v0;
   *val1 = v1;
-  GMAssert(v == (GMFloat)tally2);
   GMAssert(v == (GMFloat)(v0 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * v1));
   GMAssert(v0 >= 0);
   GMAssert(v1 >= 0);

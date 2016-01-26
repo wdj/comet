@@ -344,10 +344,10 @@ static GMFloat3 GMMetrics_float3_M_get_from_index(GMMetrics* metrics,
                                                   GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_TWO);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
   GMAssert(index >= 0);
   GMAssert((size_t)index < metrics->num_elts_local);
-  GMAssert(Env_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(Env_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
 
   return ((GMFloat3*)(metrics->data_M))[index];
 }
@@ -423,19 +423,19 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field - sj_1) : sj_1;
 
   /*---Do the following to make floating point arithmetic order-independent---*/
-  const GMTally1 sij_min =  si < sj ? si : sj;
-  const GMTally1 sij_max =  si < sj ? sj : si;
+  const GMTally1 smin =  si < sj ? si : sj;
+  const GMTally1 smax =  si < sj ? sj : si;
 
  //---TODO: optimize
   const GMFloat one = 1;
-  const GMFloat m = metrics->m;
+  const GMFloat m = metrics->num_field;
   const GMFloat recip_m = metrics->recip_m;
   const GMFloat front_multiplier = 9 * one / 2;
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
   const GMFloat result = (front_multiplier / 4) * recip_m * rij *
-                         (3 * m - sij_min) * (one/3) * recip_m *
-                         (3 * m - sij_max) * (one/3) * recip_m;
+                         (3 * m - smin) * (one/3) * recip_m *
+                         (3 * m - smax) * (one/3) * recip_m;
 
   return result;
 }
@@ -457,11 +457,8 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
   GMAssert(i1 >= 0 && i1 < 2);
   GMAssert(i2 >= 0 && i2 < 2);
 
-#if 0
   const GMTally4x2 tally4x2 = GMMetrics_tally4x2_get_from_index(metrics,
                                                                 index, env);
-
-//---NOTE: must check that the order here is correct.
   const GMTally1 rijk = GMTally4x2_get(tally4x2, i0, i1, i2);
 
   const GMFloat3 si1_sj1_sk1 = GMMetrics_float3_M_get_from_index(metrics,
@@ -479,17 +476,52 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
 
   /*---Do the following to make floating point arithmetic order-independent---*/
 
+  GMTally1 smin = 0;
+  GMTally1 smid = 0;
+  GMTally1 smax = 0;
 
+  if (si <= sj && si <= sk) {
+    smin = si;
+    if (sj < sk) {
+      smid = sj;
+      smax = sk;
+    } else /*---sk <= sj---*/ {
+      smid = sk;
+      smax = sj;
+    }
+  } else if (sj <= si && sj <= sk) {
+    smin = sj;
+    if (si < sk) {
+      smid = si;
+      smax = sk;
+    } else /*---sk <= si---*/ {
+      smid = sk;
+      smax = si;
+    }
+  } else /*---sk <= si && sk <= sj ...---*/ {
+    smin = sk;
+    if (si < sj) {
+      smid = si;
+      smax = sj;
+    } else /*---sj <= si---*/ {
+      smid = sj;
+      smax = si;
+    }
+  }
 
+ //---TODO: optimize
+  const GMFloat one = 1;
+  const GMFloat m = metrics->num_field;
+  const GMFloat recip_m = metrics->recip_m;
+  const GMFloat front_multiplier_TBD = 2 * one / 2;
 
+  /*---Arrange so as to guarantee each factor nonnegative---*/
+  const GMFloat result = (front_multiplier_TBD / 8) * recip_m * rijk *
+                         (3 * m - smin) * (one/3) * recip_m *
+                         (3 * m - smid) * (one/3) * recip_m *
+                         (3 * m - smax) * (one/3) * recip_m;
 
-//---NOTE: fix this
-  const GMFloat2 result = r * GMMetrics_float2_M_get_from_index(metrics,
-                                                               index, env);
   return result;
-#else
-  return 0;
-#endif
 }
 
 /*===========================================================================*/
@@ -743,6 +775,35 @@ static void GMMetrics_float_set_all2all_3(GMMetrics* metrics,
   size_t index = GMMetrics_index_from_coord_all2all_3(metrics, i, j, k, j_proc,
                                                       k_proc, env);
   ((GMFloat*)(metrics->data))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
+                                             int i,
+                                             int j,
+                                             int k,
+                                             int j_proc,
+                                             int k_proc,
+                                             GMTally4x2 value,
+                                             GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
+  GMAssert(Env_all2all(env));
+  GMAssert(i >= 0);
+  GMAssert(j >= 0);
+  GMAssert(k >= 0);
+  GMAssert(j_proc >= 0);
+  GMAssert(j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc >= 0);
+  GMAssert(k_proc < Env_num_proc_vector(env));
+  GMAssert(Env_data_type_metrics(env) == GM_DATA_TYPE_FLOAT);
+  /*---WARNING: these conditions are not exhaustive---*/
+
+  size_t index = GMMetrics_index_from_coord_all2all_3(metrics, i, j, k, j_proc,
+                                                      k_proc, env);
+  ((GMTally4x2*)(metrics->data))[index] = value;
 }
 
 /*===========================================================================*/

@@ -58,7 +58,6 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_vector_local = num_vector_local;
   metrics->num_elts_0 = 0;
   metrics->num_elts_01 = 0;
-  metrics->m = num_field;
   metrics->recip_m = ((GMFloat)1) / num_field;
 
   /*---Compute global values---*/
@@ -563,7 +562,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
                     result.data[1] +
                     result.data[2] * ((double)(one64<<(2*w)));
   result_d = 1 * result_d; /*---Avoid unused variable warning---*/
-  GMAssertAlways(fabs(sum_d-result_d) < sum_d * 1.e-10);
+  GMAssertAlways(fabs(sum_d-result_d) <= sum_d * 1.e-10);
 
   return result;
 }

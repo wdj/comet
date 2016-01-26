@@ -17,9 +17,9 @@
 #include "compute_metrics_2way.cc"
 #include "compute_metrics_3way.cc"
 #include "compute_metrics_sorenson.h"
-#include "compute_metrics_czekanowski_2way.h"
-#include "compute_metrics_czekanowski_3way.h"
-//#include "compute_metrics_ccc.h"
+//#include "compute_metrics_czekanowski_2way.h"
+//#include "compute_metrics_czekanowski_3way.h"
+#include "compute_metrics_ccc.h"
 #include "compute_metrics.h"
 
 #ifdef __cplusplus
@@ -193,7 +193,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
           gm_compute_metrics_3way_all2all(metrics, vectors, env);
         } else {
           gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-          //gm_compute_metrics_ccc_3way_cpu(metrics, vectors, env);
+          //gm_compute_metrics_ccc_3way_cpu(metrics, vectors, env); a // WORKS
         }
       } break;
 

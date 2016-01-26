@@ -225,8 +225,6 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
             ( (  (value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 2) ) );
           /* clang-format on */
 
-//---NOTE: must check that order is correct.
-
           sum.data[0] += GMTally1_encode(r000, r001);
           sum.data[1] += GMTally1_encode(r010, r011);
           sum.data[2] += GMTally1_encode(r100, r101);
@@ -237,38 +235,19 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
     } /*---for j---*/
   }   /*---for i---*/
 
-#if 0
   /*---Compute multipliers---*/
  
-  const GMFloat one = 1;
-
-  const GMFloat m = vectors->num_field;
-  const GMFloat recip_m = one / m;
-
-//---NOTE: fix this
   for (i = 0; i < metrics->num_vector_local; ++i) {
-    //const GMFloat f_i = ((one / 2 ) * recip_m) * vector_sums[i];
-    const GMFloat s_i = vector_sums[i];
+    const GMTally1 si_1 = (GMTally1)(vector_sums[i]);
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
-      //const GMFloat f_j = ((one / 2 ) * recip_m) * vector_sums[j];
-      const GMFloat s_j = vector_sums[j];
-       for (k = j + 1; j < metrics->num_vector_local; ++j) {
-         //const GMFloat f_k = ((one / 2 ) * recip_m) * vector_sums[k];
-         const GMFloat s_k = vector_sums[k];
-        //const GMFloat result = ((one / 2 ) * recip_m) *
-        //                       (one - (2*one/3) * f_i) *
-        //                       (one - (2*one/3) * f_j) *
-        //                       (one - (2*one/3) * f_k);
-        /*---Arrange so as to guarantee each factor nonnegative---*/
-        const GMFloat result = ((one / 2 ) * recip_m) *
-                               (3 * m - s_i) * (one/3) * recip_m *
-                               (3 * m - s_j) * (one/3) * recip_m *
-                               (3 * m - s_k) * (one/3) * recip_m;
-        GMMetrics_float3_M_set_3(metrics, i, j, k, result, env);
+      const GMTally1 sj_1 = (GMTally1)(vector_sums[j]);
+      for (k = j + 1; k < metrics->num_vector_local; ++k) {
+        const GMTally1 sk_1 = (GMTally1)(vector_sums[k]);
+        const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
+        GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
       } /*---for k---*/
     } /*---for j---*/
-  }   /*---for i---*/
-#endif
+  } /*---for i---*/
 
   /*---Deallocations---*/
 

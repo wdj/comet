@@ -299,7 +299,7 @@ void SystemTest_czekanowski_() {
 
 /*===========================================================================*/
 
-void SystemTest_ccc_simple_() {
+void SystemTest_ccc2_simple_() {
 
   const int num_field = 5;
   const int num_vector_local = 2;
@@ -319,22 +319,26 @@ void SystemTest_ccc_simple_() {
                    num_field, num_vector_local, env);
 
   if (Env_is_proc_active(env)) {
-    const int G0 = 0;
-    const int T0 = 1;
-    int i = 0;
-    GMVectors_bits2_set(vectors, i++, 0, 2*G0 + 1*T0 , env);
-    GMVectors_bits2_set(vectors, i++, 0, 2*T0 + 1*T0 , env);
-    GMVectors_bits2_set(vectors, i++, 0, 2*T0 + 1*T0 , env);
-    GMVectors_bits2_set(vectors, i++, 0, 2*T0 + 1*T0 , env);
-    GMVectors_bits2_set(vectors, i++, 0, 2*T0 + 1*T0 , env);
-    const int G1 = 0;
-    const int A1 = 1;
-    i = 0;
-    GMVectors_bits2_set(vectors, i++, 1, 2*G1 + 1*G1 , env);
-    GMVectors_bits2_set(vectors, i++, 1, 2*A1 + 1*G1 , env);
-    GMVectors_bits2_set(vectors, i++, 1, 2*G1 + 1*G1 , env);
-    GMVectors_bits2_set(vectors, i++, 1, 2*G1 + 1*G1 , env);
-    GMVectors_bits2_set(vectors, i++, 1, 2*G1 + 1*A1 , env);
+    {
+      const int G = 0;
+      const int T = 1;
+      int i = 0;
+      GMVectors_bits2_set(vectors, i++, 0, 2*G + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*T + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*T + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*T + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*T + 1*T , env);
+    }
+    {
+      const int G = 0;
+      const int A = 1;
+      int i = 0;
+      GMVectors_bits2_set(vectors, i++, 1, 2*G + 1*G , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*G , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*G + 1*G , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*G + 1*G , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*G + 1*A , env);
+    }
   }
 
   GMMetrics metrics_value = GMMetrics_null();
@@ -370,6 +374,136 @@ void SystemTest_ccc_simple_() {
     EXPECT_EQ(GM_BOOL_TRUE, fabs(result01-ref01)<eps);
     EXPECT_EQ(GM_BOOL_TRUE, fabs(result10-ref10)<eps);
     EXPECT_EQ(GM_BOOL_TRUE, fabs(result11-ref11)<eps);
+  }
+
+  GMMetrics_destroy(metrics, env);
+  GMVectors_destroy(vectors, env);
+
+  GMEnv_destroy(env);
+}
+
+/*===========================================================================*/
+
+void SystemTest_ccc3_simple_() {
+
+  const int num_field = 10;
+  const int num_vector_local = 3;
+
+  GMEnv env_value = GMEnv_null();
+  GMEnv* env = &env_value;
+  GMEnv_create(env);
+  env->metric_type_ = GM_METRIC_TYPE_CCC;
+  env->num_way_ = 3;
+  env->all2all_ = GM_BOOL_FALSE;
+  Env_set_compute_method(env, GM_COMPUTE_METHOD_REF);
+  Env_set_num_proc(env, 1, 1);
+
+  GMVectors vectors_value = GMVectors_null();
+  GMVectors* vectors = &vectors_value;
+  GMVectors_create(vectors, Env_data_type_vectors(env),
+                   num_field, num_vector_local, env);
+
+  if (Env_is_proc_active(env)) {
+    {
+      const int A = 0;
+      const int T = 1;
+      int i = 0;
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*T + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 0, 2*A + 1*A , env);
+    }
+    {
+      const int A = 0;
+      const int T = 1;
+      int i = 0;
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 1, 2*A + 1*A , env);
+    }
+    {
+      const int A = 0;
+      const int T = 1;
+      int i = 0;
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*T + 1*T , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*A , env);
+      GMVectors_bits2_set(vectors, i++, 2, 2*A + 1*A , env);
+    }
+  }
+
+  GMMetrics metrics_value = GMMetrics_null();
+  GMMetrics* metrics = &metrics_value;
+  GMMetrics_create(metrics, Env_data_type_metrics(env),
+                   num_field, num_vector_local, env);
+
+  gm_compute_metrics(metrics, vectors, env);
+
+  if (Env_is_proc_active(env)) {
+    const double result000 = GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 0, 0,
+                                                            env);
+    const double result001 = GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 0, 1,
+                                                            env);
+    const double result010 = GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 1, 0,
+                                                            env);
+    const double result011 = GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 1, 1,
+                                                            env);
+    const double result100 = GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 0, 0,
+                                                            env);
+    const double result101 = GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 0, 1,
+                                                            env);
+    const double result110 = GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 1, 0,
+                                                            env);
+    const double result111 = GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 1, 1,
+                                                            env);
+
+    printf("A A A  %.8f\n", result000);
+    printf("A A T  %.5f\n", result001);
+    printf("A T A  %.8f\n", result010);
+    printf("A T T  %.8f\n", result011);
+    printf("T A A  %.8f\n", result100);
+    printf("T A T  %.8f\n", result101);
+    printf("T T A  %.8f\n", result110);
+    printf("T T T  %.8f\n", result111);
+
+    const double ref000 = .055;
+    const double ref001 = .016;
+    const double ref010 = .016;
+    const double ref011 = .030;
+    const double ref100 = .039;
+    const double ref101 = .008;
+    const double ref110 = .008;
+    const double ref111 = .015;
+
+    const double eps = 1.e-3;
+
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result000-ref000)<eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result001-ref001)<eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result010-ref010)<eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result011-ref011)<eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result100-ref100)<eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result101-ref101)<eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result110-ref110)<eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result111-ref111)<eps);
   }
 
   GMMetrics_destroy(metrics, env);
@@ -476,8 +610,12 @@ TEST(SystemTest,czekanowski) {
   SystemTest_czekanowski_();
 }
 
-TEST(SystemTest,ccc_simple) {
-  SystemTest_ccc_simple_();
+TEST(SystemTest,ccc2_simple) {
+  SystemTest_ccc2_simple_();
+}
+
+TEST(SystemTest,ccc3_simple) {
+  SystemTest_ccc3_simple_();
 }
 
 TEST(SystemTest,ccc) {
