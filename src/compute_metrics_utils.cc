@@ -1465,7 +1465,7 @@ void gm_compute_ccc_numerators_3way_start(
 
     int k = 0;
     const int k_min = (!Env_all2all(env)) ? 0 : k_lb;
-    const int k_max = (!Env_all2all(env)) ? 0 : k_ub;
+    const int k_max = (!Env_all2all(env)) ? numvecl : k_ub;
     for (k = k_min; k < k_max; ++k) {
       const int j_min = (!Env_all2all(env)) ? 0 : j_lb;
       const int j_max = (!Env_all2all(env)) ? k : is_part3 ? j_ub : k;
@@ -1597,7 +1597,7 @@ void gm_compute_ccc_numerators_3way_start(
                                allbits >> (128 - 2*num_seminibbles);
     int k = 0;
     const int k_min = (!Env_all2all(env)) ? 0 : k_lb;
-    const int k_max = (!Env_all2all(env)) ? 0 : k_ub;
+    const int k_max = (!Env_all2all(env)) ? numvecl : k_ub;
     for (k = k_min; k < k_max; ++k) {
       const int j_min = (!Env_all2all(env)) ? 0 : j_lb;
       const int j_max = (!Env_all2all(env)) ? k : is_part3 ? j_ub : k;

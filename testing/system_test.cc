@@ -395,7 +395,7 @@ void SystemTest_ccc3_simple_() {
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 3;
   env->all2all_ = GM_BOOL_FALSE;
-  Env_set_compute_method(env, GM_COMPUTE_METHOD_REF);
+  Env_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
   Env_set_num_proc(env, 1, 1);
 
   GMVectors vectors_value = GMVectors_null();
