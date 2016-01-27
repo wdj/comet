@@ -1044,7 +1044,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
   /*----------------------------------------*/
 
-      GMAssert(GM_BOOL_FALSE,
+      GMAssert(GM_BOOL_FALSE
         ? "logic error - code branch should never be executed" : 0);
 
   } /*---if GPU---*/
@@ -1478,7 +1478,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
-      GMAssert(GM_BOOL_FALSE,
+      GMAssert(GM_BOOL_FALSE
         ? "logic error - code branch should never be executed" : 0);
 
     /*----------------------------------------*/
@@ -1536,6 +1536,7 @@ void gm_compute_numerators_3way_gpu_start(
   const int section_num =
       gm_metrics_3way_section_num(metrics, i_proc, j_proc, k_proc, env);
 
+#if 0
   /*---Define bounding box containing region to be computed - all2all case---*/
 
   const int i_lb = is_part3 && section_axis == 0 ? (section_num*numvecl)/6 : 0;
@@ -1555,6 +1556,7 @@ void gm_compute_numerators_3way_gpu_start(
   const int k_ub = is_part3 && section_axis == 2
                        ? ((section_num + 1) * numvecl) / 6
                        : numvecl;
+#endif
 
   /*----------------------------------------*/
   /*---First get the required 2-way ij, jk, ik metrics---*/
@@ -1794,15 +1796,32 @@ void gm_compute_numerators_3way_gpu_start(
         /*---Operate on columns x_i and x_j elementwise---*/
         int f = 0;
         for (f = 0; f < numpfieldl; ++f) {
-          const GMTally4x2 vi =
-              ((GMTally4x2*)(vectors_I_buf->h))[f + numpfieldl * I];
-          const GMTally4x2 vj =
-              ((GMTally4x2*)(vectors_I_buf->h))[f + numpfieldl * J];
-          const int index = f + numpfieldl * I;
-          ((GMTally4x2*)(matV_buf.h))[index].data[0] = vi.data[0] ^ vj.data[0];
-          ((GMTally4x2*)(matV_buf.h))[index].data[1] = vi.data[1] ^ vj.data[1];
-          ((GMTally4x2*)(matV_buf.h))[index].data[2] = vi.data[2] ^ vj.data[2];
-          ((GMTally4x2*)(matV_buf.h))[index].data[3] = vi.data[3] ^ vj.data[3];
+          const int indi = f + numpfieldl * I;
+          const int indj = f + numpfieldl * J;
+          const GMUInt64 vi0
+            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indi].data[0]);
+          const GMUInt64 vj0
+            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indj].data[0]);
+          const GMUInt64 result0 = vi0 ^ vj0;
+          ((GMTally4x2*)(matV_buf.h))[indi].data[0] = *(GMFloat*)&result0;
+          const GMUInt64 vi1
+            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indi].data[1]);
+          const GMUInt64 vj1
+            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indj].data[1]);
+          const GMUInt64 result1 = vi1 ^ vj1;
+          ((GMTally4x2*)(matV_buf.h))[indi].data[1] = *(GMFloat*)&result1;
+          const GMUInt64 vi2
+            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indi].data[2]);
+          const GMUInt64 vj2
+            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indj].data[2]);
+          const GMUInt64 result2 = vi2 ^ vj2;
+          ((GMTally4x2*)(matV_buf.h))[indi].data[2] = *(GMFloat*)&result2;
+          const GMUInt64 vi3
+            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indi].data[3]);
+          const GMUInt64 vj3
+            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indj].data[3]);
+          const GMUInt64 result3 = vi3 ^ vj3;
+          ((GMTally4x2*)(matV_buf.h))[indi].data[3] = *(GMFloat*)&result3;
         }  //---for f---//
       }    //---for i---//
     /*----------*/
@@ -1854,6 +1873,7 @@ void gm_compute_numerators_3way_gpu_start(
       if (!Env_all2all(env)) {
       /*----------*/
   
+        int I = 0;
         for (I = I_min; I < I_max; ++I) {
           const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
           int K = 0;
@@ -1874,6 +1894,7 @@ void gm_compute_numerators_3way_gpu_start(
       } else /*---if (Env_all2all(env))---*/ {
       /*----------*/
 
+        int I = 0;
         for (I = I_min; I < I_max; ++I) {
           const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
           int K = 0;
@@ -1916,8 +1937,11 @@ void gm_compute_numerators_3way_gpu_start(
       if (!Env_all2all(env)) {
       /*----------*/
   
+        int I = 0;
         for (I = I_min; I < I_max; ++I) {
-          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
+
+
+
           int K = 0;
           for (K = K_min; K < K_max; ++K) {
 
@@ -1935,8 +1959,12 @@ void gm_compute_numerators_3way_gpu_start(
       } else /*---if (Env_all2all(env))---*/ {
       /*----------*/
 
+        int I = 0;
         for (I = I_min; I < I_max; ++I) {
-          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
+
+
+
+
           int K = 0;
           for (K = K_min; K < K_max; ++K) {
 
@@ -2024,7 +2052,7 @@ void gm_compute_numerators_3way_start(
         vectors_i, vectors_j, vectors_k, metrics,
         vectors_i_buf, vectors_j_buf, vectors_k_buf, j_proc, k_proc, env);
   /*----------------------------------------*/
-  } else /*---(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU)---*/
+  } else /*---(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU)---*/ {
   /*----------------------------------------*/
     switch (Env_metric_type(env)) {
       /*----------------------------------------*/
