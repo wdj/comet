@@ -1456,7 +1456,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
                              gm_popcount64(( vi1_1 &  vj1_1 &  vk1_0) |
                                          ( ( vi1_1 &  vj1_1 &  vk1_1) << 1 ));
 
-
             /*---Accumulate---*/
 
             sum.data[0] += GMTally1_encode(r000, r001);
@@ -1519,7 +1518,7 @@ void gm_compute_numerators_3way_gpu_start(
   /*---Initializations---*/
 
   const int numvecl = metrics->num_vector_local;
-  const int numpfieldl = vectors_i->num_field_local;
+  const int numpfieldl = vectors_i->num_packedval_field_local;
 
   const int i_proc = Env_proc_num_vector(env);
 
@@ -1822,14 +1821,13 @@ void gm_compute_numerators_3way_gpu_start(
           const GMUInt64 vJ0
             = *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[0]);
           const GMUInt64 result0 = vI0 ^ vJ0;
-          ((GMBits2x64*)(matV_buf.h))[indI].data[0] = *(GMFloat*)&result0;
-
+          ((GMBits2x64*)(matV_buf.h))[indI].data[0] = *(GMBits1_2x64*)&result0;
           const GMUInt64 vI1
             = *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[1]);
           const GMUInt64 vJ1
             = *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[1]);
           const GMUInt64 result1 = vI1 ^ vJ1;
-          ((GMBits2x64*)(matV_buf.h))[indI].data[1] = *(GMFloat*)&result1;
+          ((GMBits2x64*)(matV_buf.h))[indI].data[1] = *(GMBits1_2x64*)&result1;
         }  //---for f---//
       }    //---for i---//
     /*----------*/
@@ -1850,9 +1848,10 @@ void gm_compute_numerators_3way_gpu_start(
 
     /*---Perform pseudo matrix-matrix product matB = matV^T PROD X---*/
 
-    gm_magma_gemm_start(I_max, numvecl, numpfieldl, matV_buf.d, numpfieldl,
-                        vectors_K_buf->d, numpfieldl, matB_buf_local->d, I_max,
-                        env);
+    gm_magma_gemm_start(I_max, numvecl, numpfieldl,
+                        matV_buf.d, numpfieldl,
+                        vectors_K_buf->d, numpfieldl,
+                        matB_buf_local->d, I_max, env);
     gm_compute_wait(env);
 
     /*---Copy result matrix matB from GPU---*/
@@ -1944,13 +1943,16 @@ void gm_compute_numerators_3way_gpu_start(
       /*----------*/
       if (!Env_all2all(env)) {
       /*----------*/
+
+        const GMTally1 correction00 = 
+          4 * (((vectors_i->num_field+64-1)/64)*64 - vectors_i->num_field);
   
         int I = 0;
         for (I = I_min; I < I_max; ++I) {
 
-          //const GMTally2x2 mIJ = ((GMTally4x2*)(matM_IJ_buf->h))[I + numvecl*J];
+          //const GMTally2x2 mIJ = ((GMTally2x2*)(matM_IJ_buf->h))[I + numvecl*J];
           //GMTally1 mIJ00, mIJ01;
-          //GMTally1(&mIJ00, &mIJ01, mIJ.data[0]);
+          //GMTally1_decode(&mIJ00, &mIJ01, mIJ.data[0]);
           //GMTally1 mIJ10, mIJ11;
           //GMTally1(&mIJ10, &mIJ11, mIJ.data[1]);
 
@@ -1960,36 +1962,39 @@ void gm_compute_numerators_3way_gpu_start(
             /*---This is the notall2all case -- has no axis permutation---*/
 
             const GMTally2x2 mJK
-                             = ((GMTally4x2*)(matM_JK_buf->h))[J + numvecl*K];
+                             = ((GMTally2x2*)(matM_JK_buf->h))[J + numvecl*K];
             GMTally1 mJK00, mJK01;
-            GMTally1(&mJK00, &mJK01, mJK.data[0]);
+            GMTally1_decode(&mJK00, &mJK01, mJK.data[0]);
+            mJK00 -= correction00;
             GMTally1 mJK10, mJK11;
-            GMTally1(&mJK10, &mJK11, mJK.data[1]);
+            GMTally1_decode(&mJK10, &mJK11, mJK.data[1]);
 
             const GMTally2x2 mKIK
-                             = ((GMTally4x2*)(matM_KIK_buf->h))[K + numvecl*I];
+                             = ((GMTally2x2*)(matM_KIK_buf->h))[K + numvecl*I];
             GMTally1 mKIK00, mKIK01;
-            GMTally1(&mKIK00, &mKIK01, mKIK.data[0]);
+            GMTally1_decode(&mKIK00, &mKIK01, mKIK.data[0]);
+            mKIK00 -= correction00;
             GMTally1 mKIK10, mKIK11;
-            GMTally1(&mKIK10, &mKIK11, mKIK.data[1]);
+            GMTally1_decode(&mKIK10, &mKIK11, mKIK.data[1]);
 
-            const GMTally2x2 mB = ((GMTally4x2*)(matB_buf.h))[I + I_max*K];
+            const GMTally2x2 mB = ((GMTally2x2*)(matB_buf.h))[I + I_max*K];
             GMTally1 mB00, mB01;
-            GMTally1(&mB00, &mB01, mB.data[0]);
+            GMTally1_decode(&mB00, &mB01, mB.data[0]);
+            mB00 -= correction00;
             GMTally1 mB10, mB11;
-            GMTally1(&mB10, &mB11, mB.data[1]);
+            GMTally1_decode(&mB10, &mB11, mB.data[1]);
 
             //---TODO: assertions to confirm arithmetic is what it should be
 
-            const GMTally1 v111 = (mB01 + mKIK11 - mJK01) >> 1;
-            const GMTally1 v110 = (mB00 + mKIK10 - mJK00) >> 1;
-            const GMTally1 v101 = (mB11 + mKIK11 - mJK11) >> 1;
-            const GMTally1 v100 = (mB10 + mKIK10 - mJK10) >> 1;
+            const GMTally1 v111 = mB01 + mKIK11 - mJK01;
+            const GMTally1 v110 = mB00 + mKIK10 - mJK00;
+            const GMTally1 v101 = mB11 + mKIK11 - mJK11;
+            const GMTally1 v100 = mB10 + mKIK10 - mJK10;
 
-            const GMTally1 v000 = mJK00 - v100;
-            const GMTally1 v001 = mJK01 - v101;
-            const GMTally1 v010 = mJK10 - v110;
-            const GMTally1 v011 = mJK11 - v111;
+            const GMTally1 v000 = 2*mJK00 - v100;
+            const GMTally1 v001 = 2*mJK01 - v101;
+            const GMTally1 v010 = 2*mJK10 - v110;
+            const GMTally1 v011 = 2*mJK11 - v111;
 
             /*---NOTE: pay attention to order here---*/
 
