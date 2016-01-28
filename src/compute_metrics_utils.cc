@@ -1711,8 +1711,12 @@ void gm_compute_numerators_3way_gpu_start(
   const _Bool sax0 = section_axis==0;
   const _Bool sax1 = section_axis==1;
   const _Bool sax2 = section_axis==2;
-  
-  /* clang-format off */
+ 
+  const _Bool is_ijk = !is_part3 ? GM_BOOL_TRUE  : sax1;
+  const _Bool is_kij = !is_part3 ? GM_BOOL_FALSE : sax0;
+  const _Bool is_jki = !is_part3 ? GM_BOOL_FALSE : sax2;
+
+#if 0
   GMMirroredPointer* const vectors_I_buf = !is_part3 ? vectors_i_buf :
                                                 sax0 ? vectors_k_buf :
                                                 sax1 ? vectors_i_buf :
@@ -1727,10 +1731,25 @@ void gm_compute_numerators_3way_gpu_start(
                                                 sax0 ? vectors_j_buf :
                                                 sax1 ? vectors_k_buf :
                                                 sax2 ? vectors_i_buf : 0;
+#endif
+ 
+  /* clang-format off */
+  GMMirroredPointer* const vectors_I_buf = is_ijk ? vectors_i_buf :
+                                           is_kij ? vectors_k_buf :
+                                           is_jki ? vectors_j_buf : 0;
+ 
+  GMMirroredPointer* const vectors_J_buf = is_ijk ? vectors_j_buf :
+                                           is_kij ? vectors_i_buf :
+                                           is_jki ? vectors_k_buf : 0;
+ 
+  GMMirroredPointer* const vectors_K_buf = is_ijk ? vectors_k_buf :
+                                           is_kij ? vectors_j_buf :
+                                           is_jki ? vectors_i_buf : 0;
   
   /*---NOTE: must pay attention that these permuted matrices
        are indexed the right way by the permuted indices---*/
-  
+ 
+//FIX 
   GMMirroredPointer* const matM_IJ_buf  = !is_part3 ? matM_ij_buf  :
                                                sax0 ? matM_kik_buf :
                                                sax1 ? matM_ij_buf  :
@@ -1796,32 +1815,21 @@ void gm_compute_numerators_3way_gpu_start(
         /*---Operate on columns x_i and x_j elementwise---*/
         int f = 0;
         for (f = 0; f < numpfieldl; ++f) {
-          const int indi = f + numpfieldl * I;
-          const int indj = f + numpfieldl * J;
-          const GMUInt64 vi0
-            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indi].data[0]);
-          const GMUInt64 vj0
-            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indj].data[0]);
-          const GMUInt64 result0 = vi0 ^ vj0;
-          ((GMTally4x2*)(matV_buf.h))[indi].data[0] = *(GMFloat*)&result0;
-          const GMUInt64 vi1
-            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indi].data[1]);
-          const GMUInt64 vj1
-            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indj].data[1]);
-          const GMUInt64 result1 = vi1 ^ vj1;
-          ((GMTally4x2*)(matV_buf.h))[indi].data[1] = *(GMFloat*)&result1;
-          const GMUInt64 vi2
-            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indi].data[2]);
-          const GMUInt64 vj2
-            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indj].data[2]);
-          const GMUInt64 result2 = vi2 ^ vj2;
-          ((GMTally4x2*)(matV_buf.h))[indi].data[2] = *(GMFloat*)&result2;
-          const GMUInt64 vi3
-            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indi].data[3]);
-          const GMUInt64 vj3
-            = *(GMUInt64*)&(((GMTally4x2*)(vectors_I_buf->h))[indj].data[3]);
-          const GMUInt64 result3 = vi3 ^ vj3;
-          ((GMTally4x2*)(matV_buf.h))[indi].data[3] = *(GMFloat*)&result3;
+          const int indI = f + numpfieldl * I;
+          const int indJ = f + numpfieldl * J;
+          const GMUInt64 vI0
+            = *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[0]);
+          const GMUInt64 vJ0
+            = *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[0]);
+          const GMUInt64 result0 = vI0 ^ vJ0;
+          ((GMBits2x64*)(matV_buf.h))[indI].data[0] = *(GMFloat*)&result0;
+
+          const GMUInt64 vI1
+            = *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[1]);
+          const GMUInt64 vJ1
+            = *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[1]);
+          const GMUInt64 result1 = vI1 ^ vJ1;
+          ((GMBits2x64*)(matV_buf.h))[indI].data[1] = *(GMFloat*)&result1;
         }  //---for f---//
       }    //---for i---//
     /*----------*/
@@ -1940,18 +1948,60 @@ void gm_compute_numerators_3way_gpu_start(
         int I = 0;
         for (I = I_min; I < I_max; ++I) {
 
-
+          //const GMTally2x2 mIJ = ((GMTally4x2*)(matM_IJ_buf->h))[I + numvecl*J];
+          //GMTally1 mIJ00, mIJ01;
+          //GMTally1(&mIJ00, &mIJ01, mIJ.data[0]);
+          //GMTally1 mIJ10, mIJ11;
+          //GMTally1(&mIJ10, &mIJ11, mIJ.data[1]);
 
           int K = 0;
           for (K = K_min; K < K_max; ++K) {
 
-#if 0
+            /*---This is the notall2all case -- has no axis permutation---*/
+
+            const GMTally2x2 mJK
+                             = ((GMTally4x2*)(matM_JK_buf->h))[J + numvecl*K];
+            GMTally1 mJK00, mJK01;
+            GMTally1(&mJK00, &mJK01, mJK.data[0]);
+            GMTally1 mJK10, mJK11;
+            GMTally1(&mJK10, &mJK11, mJK.data[1]);
+
+            const GMTally2x2 mKIK
+                             = ((GMTally4x2*)(matM_KIK_buf->h))[K + numvecl*I];
+            GMTally1 mKIK00, mKIK01;
+            GMTally1(&mKIK00, &mKIK01, mKIK.data[0]);
+            GMTally1 mKIK10, mKIK11;
+            GMTally1(&mKIK10, &mKIK11, mKIK.data[1]);
+
+            const GMTally2x2 mB = ((GMTally4x2*)(matB_buf.h))[I + I_max*K];
+            GMTally1 mB00, mB01;
+            GMTally1(&mB00, &mB01, mB.data[0]);
+            GMTally1 mB10, mB11;
+            GMTally1(&mB10, &mB11, mB.data[1]);
+
+            //---TODO: assertions to confirm arithmetic is what it should be
+
+            const GMTally1 v111 = (mB01 + mKIK11 - mJK01) >> 1;
+            const GMTally1 v110 = (mB00 + mKIK10 - mJK00) >> 1;
+            const GMTally1 v101 = (mB11 + mKIK11 - mJK11) >> 1;
+            const GMTally1 v100 = (mB10 + mKIK10 - mJK10) >> 1;
+
+            const GMTally1 v000 = mJK00 - v100;
+            const GMTally1 v001 = mJK01 - v101;
+            const GMTally1 v010 = mJK10 - v110;
+            const GMTally1 v011 = mJK11 - v111;
+
+            /*---NOTE: pay attention to order here---*/
+
+            GMTally4x2 numerator;
+            numerator.data[0] = GMTally1_encode(v000, v001);
+            numerator.data[1] = GMTally1_encode(v010, v011);
+            numerator.data[2] = GMTally1_encode(v100, v101);
+            numerator.data[3] = GMTally1_encode(v110, v111);
             const int i = I;
             const int j = J;
             const int k = K;
-#endif
-
-
+            GMMetrics_tally4x2_set_3(metrics, i, j, k, numerator, env);
           } /*---for K---*/
         }   /*---for I---*/
 
@@ -1969,7 +2019,16 @@ void gm_compute_numerators_3way_gpu_start(
           for (K = K_min; K < K_max; ++K) {
 
 
-#if 0
+
+            /*---For the permuted case,
+                 1) pay attention to KIK access
+                 2) swap 01 and 10 if needed.
+            ---*/
+
+
+#ifdef skip
+
+
             /* clang-format off */
             const int i = !is_part3 ?   I :
                                sax0 ?   J :
