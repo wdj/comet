@@ -1222,6 +1222,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
               ((  (value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 2) ));
             /* clang-format on */
 
+printf("%i %i %i %i %i %i %i %i\n", (int)r111, (int)r110, (int)r101, (int)r100, (int)r011, (int)r010, (int)r001, (int)r000);
             sum.data[0] += GMTally1_encode(r000, r001);
             sum.data[1] += GMTally1_encode(r010, r011);
             sum.data[2] += GMTally1_encode(r100, r101);
@@ -1986,23 +1987,25 @@ void gm_compute_numerators_3way_gpu_start(
 
             //---TODO: assertions to confirm arithmetic is what it should be
 
-            const GMTally1 v111 = mB01 + mKIK11 - mJK01;
-            const GMTally1 v110 = mB00 + mKIK10 - mJK00;
-            const GMTally1 v101 = mB11 + mKIK11 - mJK11;
-            const GMTally1 v100 = mB10 + mKIK10 - mJK10;
+            const GMTally1 r111 = mB01 + mKIK11 - mJK01;
+            const GMTally1 r110 = mB00 + mKIK10 - mJK00;
+            const GMTally1 r101 = mB11 + mKIK11 - mJK11;
+            const GMTally1 r100 = mB10 + mKIK10 - mJK10;
 
-            const GMTally1 v000 = 2*mJK00 - v100;
-            const GMTally1 v001 = 2*mJK01 - v101;
-            const GMTally1 v010 = 2*mJK10 - v110;
-            const GMTally1 v011 = 2*mJK11 - v111;
+            const GMTally1 r011 = 2*mJK11 - r111;
+            const GMTally1 r010 = 2*mJK10 - r110;
+            const GMTally1 r001 = 2*mJK01 - r101;
+            const GMTally1 r000 = 2*mJK00 - r100;
+
+printf("%i %i %i %i %i %i %i %i\n", (int)r111, (int)r110, (int)r101, (int)r100, (int)r011, (int)r010, (int)r001, (int)r000);
 
             /*---NOTE: pay attention to order here---*/
 
             GMTally4x2 numerator;
-            numerator.data[0] = GMTally1_encode(v000, v001);
-            numerator.data[1] = GMTally1_encode(v010, v011);
-            numerator.data[2] = GMTally1_encode(v100, v101);
-            numerator.data[3] = GMTally1_encode(v110, v111);
+            numerator.data[0] = GMTally1_encode(r000, r001);
+            numerator.data[1] = GMTally1_encode(r010, r011);
+            numerator.data[2] = GMTally1_encode(r100, r101);
+            numerator.data[3] = GMTally1_encode(r110, r111);
             const int i = I;
             const int j = J;
             const int k = K;

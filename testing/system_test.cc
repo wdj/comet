@@ -362,6 +362,7 @@ void SystemTest_ccc2_simple_() {
     printf("G A  %.5f\n", result01);
     printf("T G  %.5f\n", result10);
     printf("T A  %.5f\n", result11);
+    printf("\n");
 
     const double ref00 = .196;
     const double ref01 = .000;
@@ -384,7 +385,7 @@ void SystemTest_ccc2_simple_() {
 
 /*===========================================================================*/
 
-void SystemTest_ccc3_simple_() {
+void SystemTest_ccc3_simple_case(int compute_method) {
 
   const int num_field = 10;
   const int num_vector_local = 3;
@@ -395,7 +396,7 @@ void SystemTest_ccc3_simple_() {
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 3;
   env->all2all_ = GM_BOOL_FALSE;
-  Env_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
+  Env_set_compute_method(env, compute_method);
   Env_set_num_proc(env, 1, 1);
 
   GMVectors vectors_value = GMVectors_null();
@@ -484,6 +485,7 @@ void SystemTest_ccc3_simple_() {
     printf("T A T  %.8f\n", result101);
     printf("T T A  %.8f\n", result110);
     printf("T T T  %.8f\n", result111);
+    printf("\n");
 
     const double ref000 = .055;
     const double ref001 = .016;
@@ -510,6 +512,14 @@ void SystemTest_ccc3_simple_() {
   GMVectors_destroy(vectors, env);
 
   GMEnv_destroy(env);
+}
+
+/*===========================================================================*/
+
+void SystemTest_ccc3_simple_() {
+  SystemTest_ccc3_simple_case(GM_COMPUTE_METHOD_REF);
+  SystemTest_ccc3_simple_case(GM_COMPUTE_METHOD_CPU);
+  SystemTest_ccc3_simple_case(GM_COMPUTE_METHOD_GPU);
 }
 
 /*===========================================================================*/
@@ -614,13 +624,13 @@ TEST(SystemTest,ccc2_simple) {
   SystemTest_ccc2_simple_();
 }
 
-TEST(SystemTest,ccc3_simple) {
-  SystemTest_ccc3_simple_();
-}
-
 TEST(SystemTest,ccc) {
   SystemTest_ccc_();
 }
+
+//TEST(SystemTest,ccc3_simple) {
+//  SystemTest_ccc3_simple_();
+//}
 
 /*===========================================================================*/
 
