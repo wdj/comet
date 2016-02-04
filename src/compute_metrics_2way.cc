@@ -61,8 +61,8 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   GMMirroredPointer metrics_buf_tmp =
       gm_malloc_magma(numvecl * (size_t)numvecl, env);
 
-  GMMirroredPointer* metrics_buf_local = Env_num_proc_field(env) == 1 ?
-    &metrics_buf : &metrics_buf_tmp;
+  GMMirroredPointer* metrics_buf_local =
+      Env_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
 
   /*---Copy in vectors---*/
 
@@ -76,8 +76,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
                                    &vectors_buf, metrics_buf_local,
-                                   Env_proc_num_vector(env),
-                                   GM_BOOL_TRUE, env);
+                                   Env_proc_num_vector(env), GM_BOOL_TRUE, env);
   gm_compute_wait(env);
 
   /*---Copy result from GPU---*/
@@ -249,8 +248,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---To remove redundancies from symmetry, skip some blocks---*/
 
-    const _Bool skipping_active = (num_proc % 2 == 0) &&
-                                  (2 * i_proc >= num_proc);
+    const _Bool skipping_active =
+        (num_proc % 2 == 0) && (2 * i_proc >= num_proc);
 
     const _Bool skipped_last_block_lower_half =
         skipping_active && is_last_compute_step;
@@ -299,7 +298,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         gm_get_metrics_wait(metrics, metrics_buf_prev, env);
 
         GMMirroredPointer* metrics_buf_prev_global =
-          Env_num_proc_field(env) == 1 ? metrics_buf_prev : &metrics_buf_tmp;
+            Env_num_proc_field(env) == 1 ? metrics_buf_prev : &metrics_buf_tmp;
 
         if (Env_num_proc_field(env) > 1) {
           gm_allreduce_metrics(metrics, metrics_buf_prev_global,

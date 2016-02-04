@@ -49,8 +49,10 @@ void GMMetrics_create(GMMetrics* metrics,
     return;
   }
 
-  GMInsist(env, num_field % Env_num_proc_field(env) == 0
-    ? "num_proc_field must exactly divide the total number of fields" : 0);
+  GMInsist(env,
+           num_field % Env_num_proc_field(env) == 0
+               ? "num_proc_field must exactly divide the total number of fields"
+               : 0);
 
   metrics->data_type_id = data_type_id;
   metrics->num_field = num_field;
@@ -104,10 +106,9 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->num_elts_local += nchoosek;
       metrics->num_elts_0 = metrics->num_elts_local;
       /*---Compute size part 2: (wrapped rectangle) i_proc!=j_proc part---*/
-      const int num_offdiag_block =
-          num_proc % 2 == 0 && 2 * i_proc >= num_proc
-              ? (num_proc / 2) - 1
-              : (num_proc / 2);
+      const int num_offdiag_block = num_proc % 2 == 0 && 2 * i_proc >= num_proc
+                                        ? (num_proc / 2) - 1
+                                        : (num_proc / 2);
       metrics->num_elts_local +=
           num_offdiag_block * num_vector_local * num_vector_local;
       /*---Allocate index---*/
@@ -128,8 +129,7 @@ void GMMetrics_create(GMMetrics* metrics,
       }
       /*---Set index part 2: (wrapped rectangle) i_proc!=j_proc part---*/
       const size_t beg = (i_proc + 1) * num_vector_local;
-      const size_t end =
-          (i_proc + num_offdiag_block + 1) * num_vector_local;
+      const size_t end = (i_proc + num_offdiag_block + 1) * num_vector_local;
       size_t j_global_unwrapped = 0;
       for (j_global_unwrapped = beg; j_global_unwrapped < end;
            ++j_global_unwrapped) {
@@ -157,7 +157,8 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->num_elts_local += nchoosek;
       metrics->num_elts_0 = metrics->num_elts_local;
       /*---Compute size pt 2: (triang prisms) i_proc!=j_proc==k_proc part---*/
-      const int nchoosekm1 = gm_nchoosek(num_vector_local, Env_num_way(env) - 1);
+      const int nchoosekm1 =
+          gm_nchoosek(num_vector_local, Env_num_way(env) - 1);
       const int num_procm1 = num_proc - 1;
       metrics->num_elts_local += num_procm1 * nchoosekm1 * num_vector_local;
       metrics->num_elts_01 = metrics->num_elts_local;
@@ -232,18 +233,18 @@ void GMMetrics_create(GMMetrics* metrics,
           const int inc = num_vector_local / 6;
           const int k_min = section_axis == 2 ? (section_num)*inc : 0;
           const int k_max =
-              section_axis == 2 ? (section_num + 1)*inc : num_vector_local;
+              section_axis == 2 ? (section_num + 1) * inc : num_vector_local;
           int k = 0;
           for (k = k_min; k < k_max; ++k) {
             const size_t k_global = k + num_vector_local * k_proc;
             const int j_min = section_axis == 1 ? (section_num)*inc : 0;
             const int j_max =
-                section_axis == 1 ? (section_num + 1)*inc : num_vector_local;
+                section_axis == 1 ? (section_num + 1) * inc : num_vector_local;
             int j = 0;
             for (j = j_min; j < j_max; ++j) {
               const size_t j_global = j + num_vector_local * j_proc;
               const int i_min = section_axis == 0 ? (section_num)*inc : 0;
-              const int i_max = section_axis == 0 ? (section_num + 1)*inc
+              const int i_max = section_axis == 0 ? (section_num + 1) * inc
                                                   : num_vector_local;
               int i = 0;
               for (i = i_min; i < i_max; ++i) {
@@ -326,24 +327,24 @@ void GMMetrics_create(GMMetrics* metrics,
     } break;
     /*----------*/
     case GM_DATA_TYPE_FLOAT:
-//---TODO: remove thee casts on the mallocs, here and elsewhere.
-      metrics->data = malloc(metrics->num_elts_local*sizeof(GMFloat));
+      //---TODO: remove thee casts on the mallocs, here and elsewhere.
+      metrics->data = malloc(metrics->num_elts_local * sizeof(GMFloat));
       GMAssert(metrics->data != NULL);
       metrics->data_type_num_values = 1;
       break;
     /*----------*/
     case GM_DATA_TYPE_TALLY2X2: {
-      metrics->data = malloc(metrics->num_elts_local*sizeof(GMTally2x2));
+      metrics->data = malloc(metrics->num_elts_local * sizeof(GMTally2x2));
       GMAssert(metrics->data != NULL);
-      metrics->data_M = malloc(metrics->num_elts_local*sizeof(GMFloat2));
+      metrics->data_M = malloc(metrics->num_elts_local * sizeof(GMFloat2));
       GMAssert(metrics->data_M != NULL);
       metrics->data_type_num_values = 4;
     } break;
     /*----------*/
     case GM_DATA_TYPE_TALLY4X2: {
-      metrics->data = malloc(metrics->num_elts_local*sizeof(GMTally4x2));
+      metrics->data = malloc(metrics->num_elts_local * sizeof(GMTally4x2));
       GMAssert(metrics->data != NULL);
-      metrics->data_M = malloc(metrics->num_elts_local*sizeof(GMFloat3));
+      metrics->data_M = malloc(metrics->num_elts_local * sizeof(GMFloat3));
       GMAssert(metrics->data_M != NULL);
       metrics->data_type_num_values = 8;
     } break;
@@ -392,7 +393,7 @@ static void gm_makegreater(size_t* i, size_t* j, int* ind_i, int* ind_j) {
 /*---------------------------------------------------------------------------*/
 
 static size_t gm_lshift(size_t a, int j) {
-  if (j >= 64  || j <= -64) {
+  if (j >= 64 || j <= -64) {
     return 0;
   }
   return j > 0 ? a << j : a >> (-j);
@@ -430,24 +431,23 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   double sum_d = 0;
 
   const int w = 30;
-  GMAssertAlways(64-2*w >= 4);
+  GMAssertAlways(64 - 2 * w >= 4);
   const UI64 one64 = 1;
 
-  const UI64 lomask = ( one64 << w ) - 1;
-  const UI64 lohimask = ( one64 << (2*w) ) - 1;
+  const UI64 lomask = (one64 << w) - 1;
+  const UI64 lohimask = (one64 << (2 * w)) - 1;
 
   UI64 coords[num_way_max];
   int ind_coords[num_way_max];
   UI64 index = 0;
   for (index = 0; index < metrics->num_elts_local; ++index) {
     /*---Obtain global coords of metrics elt---*/
-    for (i = 0; i<num_way_max; ++i) {
+    for (i = 0; i < num_way_max; ++i) {
       coords[i] = 0;
       ind_coords[i] = i;
     }
     for (i = 0; i < Env_num_way(env); ++i) {
-      coords[i] =
-          GMMetrics_coord_global_from_index(metrics, index, i, env);
+      coords[i] = GMMetrics_coord_global_from_index(metrics, index, i, env);
     }
     /*---Reflect coords by symmetry to get uniform result -
          sort into descending order---*/
@@ -457,83 +457,83 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
     /*---Loop over data values at this index---*/
     int i_value = 0;
-    for (i_value=0; i_value<metrics->data_type_num_values; ++i_value) {
-        /*---Construct global id for metrics data vbalue---*/
-        UI64 uid = coords[0];
-        for (i = 1; i < Env_num_way(env); ++i) {
-          uid = uid * metrics->num_vector + coords[i];
-        }
-        uid = uid * metrics->data_type_num_values + i_value;
-        /*---Randomize---*/
-        const UI64 rand1 = gm_randomize(uid + 956158765);
-        const UI64 rand2 = gm_randomize(uid + 842467637);
-        UI64 rand_value = rand1 + gm_randomize_max() * rand2;
-        rand_value &= lohimask;
-        /*---Now pick up value of this metrics elt---*/
-        GMFloat value = 0;
-        switch (metrics->data_type_id) {
-          /*--------------------*/
-          case GM_DATA_TYPE_BITS1: {
-            GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-          } break;
-          /*--------------------*/
-          case GM_DATA_TYPE_FLOAT: {
-            value = GMMetrics_czekanowski_get_from_index(metrics, index, env);
-          } break;
-          /*--------------------*/
-          case GM_DATA_TYPE_TALLY2X2: {
-            const int i0_unpermuted =  i_value / 2;
-            const int i1_unpermuted =  i_value % 2;
-            const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
-            const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
-            value = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
-          } break;
-          /*--------------------*/
-          case GM_DATA_TYPE_TALLY4X2: {
-            //TODO: permute the indices as needed
-            const int i0 =  i_value / 4;
-            const int i1 = (i_value / 2 ) % 2;
-            const int i2 =  i_value % 2;
-            value = GMMetrics_ccc_get_from_index_3(metrics, index,
-                                                   i0, i1, i2, env);
-          } break;
-          /*--------------------*/
-          default:
-            GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
-        } /*---switch---*/
-        /*---Convert to integer.  Store only 2*w bits max---*/
-        const int log2_value_max = 4;
-        GMAssertAlways(value >= 0 && value < (1<<log2_value_max));
-        UI64 ivalue = value * (one64 << (2*w-log2_value_max));
-        /*---Multiply the two values---*/
-        const UI64 a = rand_value;
-        const UI64 alo = a & lomask;
-        const UI64 ahi = a >> w;
-        const UI64 b = ivalue;
-        const UI64 blo = b & lomask;
-        const UI64 bhi = b >> w;
-        const UI64 cx = alo * bhi + ahi * blo;
-        UI64 clo = alo * blo + ( (cx & lomask) << w);
-        UI64 chi = ahi * bhi + (cx >> w);
-        const double value_d = ivalue * (double)rand_value /
-                               ((double)(one64<<(2*w)));
-        sum_d += value_d;
-        /*---(move the carry bits)---*/
-        chi += clo >> (2*w);
-        clo &= lohimask;
-        /*---Split the product into one-char chunks, accumulate to sums---*/
-        for (i = 0; i < 8; ++i) {
-          sums_l[0+i] += (clo << (64-8-8*i)) >> (64-8);
-          sums_l[8+i] += (chi << (64-8-8*i)) >> (64-8);
-        }
+    for (i_value = 0; i_value < metrics->data_type_num_values; ++i_value) {
+      /*---Construct global id for metrics data vbalue---*/
+      UI64 uid = coords[0];
+      for (i = 1; i < Env_num_way(env); ++i) {
+        uid = uid * metrics->num_vector + coords[i];
+      }
+      uid = uid * metrics->data_type_num_values + i_value;
+      /*---Randomize---*/
+      const UI64 rand1 = gm_randomize(uid + 956158765);
+      const UI64 rand2 = gm_randomize(uid + 842467637);
+      UI64 rand_value = rand1 + gm_randomize_max() * rand2;
+      rand_value &= lohimask;
+      /*---Now pick up value of this metrics elt---*/
+      GMFloat value = 0;
+      switch (metrics->data_type_id) {
+        /*--------------------*/
+        case GM_DATA_TYPE_BITS1: {
+          GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_FLOAT: {
+          value = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_TALLY2X2: {
+          const int i0_unpermuted = i_value / 2;
+          const int i1_unpermuted = i_value % 2;
+          const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
+          const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
+          value = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_TALLY4X2: {
+          // TODO: permute the indices as needed
+          const int i0 = i_value / 4;
+          const int i1 = (i_value / 2) % 2;
+          const int i2 = i_value % 2;
+          value =
+              GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env);
+        } break;
+        /*--------------------*/
+        default:
+          GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      } /*---switch---*/
+      /*---Convert to integer.  Store only 2*w bits max---*/
+      const int log2_value_max = 4;
+      GMAssertAlways(value >= 0 && value < (1 << log2_value_max));
+      UI64 ivalue = value * (one64 << (2 * w - log2_value_max));
+      /*---Multiply the two values---*/
+      const UI64 a = rand_value;
+      const UI64 alo = a & lomask;
+      const UI64 ahi = a >> w;
+      const UI64 b = ivalue;
+      const UI64 blo = b & lomask;
+      const UI64 bhi = b >> w;
+      const UI64 cx = alo * bhi + ahi * blo;
+      UI64 clo = alo * blo + ((cx & lomask) << w);
+      UI64 chi = ahi * bhi + (cx >> w);
+      const double value_d =
+          ivalue * (double)rand_value / ((double)(one64 << (2 * w)));
+      sum_d += value_d;
+      /*---(move the carry bits)---*/
+      chi += clo >> (2 * w);
+      clo &= lohimask;
+      /*---Split the product into one-char chunks, accumulate to sums---*/
+      for (i = 0; i < 8; ++i) {
+        sums_l[0 + i] += (clo << (64 - 8 - 8 * i)) >> (64 - 8);
+        sums_l[8 + i] += (chi << (64 - 8 - 8 * i)) >> (64 - 8);
+      }
     } /*---for i_value---*/
-  } /*---for index---*/
+  }   /*---for index---*/
   /*---Global sum---*/
   UI64 sums_g[16];
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
-  mpi_code = MPI_Allreduce(sums_l, sums_g, 16, MPI_UNSIGNED_LONG_LONG,
-                           MPI_SUM, Env_mpi_comm_vector(env));
+  mpi_code = MPI_Allreduce(sums_l, sums_g, 16, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+                           Env_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   /*---Combine results---*/
@@ -541,14 +541,15 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     int j = 0;
     for (j = 0; j < 8; ++j) {
-      result.data[i] += gm_lshift(sums_g[0+j], 8*j-2*w*i) & lohimask;
-      result.data[i] += gm_lshift(sums_g[8+j], 8*j-2*w*(i-1)) & lohimask;
+      result.data[i] += gm_lshift(sums_g[0 + j], 8 * j - 2 * w * i) & lohimask;
+      result.data[i] +=
+          gm_lshift(sums_g[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
     }
   }
   /*---(move the carry bits---*/
-  result.data[1] += result.data[0] >> (2*w);
+  result.data[1] += result.data[0] >> (2 * w);
   result.data[0] &= lohimask;
-  result.data[2] += result.data[1] >> (2*w);
+  result.data[2] += result.data[1] >> (2 * w);
   result.data[1] &= lohimask;
 
   /*---Check against floating point result---*/
@@ -558,11 +559,11 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
                            Env_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 
-  double result_d = result.data[0] / ((double)(one64<<(2*w))) +
+  double result_d = result.data[0] / ((double)(one64 << (2 * w))) +
                     result.data[1] +
-                    result.data[2] * ((double)(one64<<(2*w)));
+                    result.data[2] * ((double)(one64 << (2 * w)));
   result_d = 1 * result_d; /*---Avoid unused variable warning---*/
-  GMAssertAlways(fabs(sum_d-result_d) <= sum_d * 1.e-10);
+  GMAssertAlways(fabs(sum_d - result_d) <= sum_d * 1.e-10);
 
   return result;
 }

@@ -75,8 +75,8 @@ static void GMVectors_float_set(GMVectors* vectors,
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
 
-  ((GMFloat*)(vectors->data))[field_local + vectors->num_field_local *
-                              vector_local] = value;
+  ((GMFloat*)(vectors->data))[field_local +
+                              vectors->num_field_local * vector_local] = value;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -140,12 +140,13 @@ static GMBits2 GMVectors_bits2_get(GMVectors* vectors,
   int field_index1 = (field_local / size1) % size2;
   size_t field_index2 = field_local / (size1 * size2);
 
-  GMBits1_2x64* const __restrict__ address = &( 
-    ((GMBits2x64*)(vectors->data))[
-      field_index2 + vectors->num_packedval_field_local *
-      vector_local].data[field_index1] );
+  GMBits1_2x64* const __restrict__ address =
+      &(((GMBits2x64*)(vectors->data))[field_index2 +
+                                       vectors->num_packedval_field_local *
+                                           vector_local]
+            .data[field_index1]);
 
-  return (GMBits2)(( (*address) >> (size0*field_index0) ) & ((GMBits1_2x64)3));
+  return (GMBits2)(((*address) >> (size0 * field_index0)) & ((GMBits1_2x64)3));
 }
 
 /*---------------------------------------------------------------------------*/
@@ -178,16 +179,17 @@ static void GMVectors_bits2_set(GMVectors* vectors,
   int field_index1 = (field_local / size1) % size2;
   size_t field_index2 = field_local / (size1 * size2);
 
-  GMBits1_2x64* const __restrict__ address = &( 
-    ((GMBits2x64*)(vectors->data))[
-      field_index2 + vectors->num_packedval_field_local *
-      vector_local].data[field_index1] );
+  GMBits1_2x64* const __restrict__ address =
+      &(((GMBits2x64*)(vectors->data))[field_index2 +
+                                       vectors->num_packedval_field_local *
+                                           vector_local]
+            .data[field_index1]);
 
-  *address &= ~ ( ((GMBits1_2x64)3)     << (size0*field_index0) );
-  *address |=     ((GMBits1_2x64)value) << (size0*field_index0);
+  *address &= ~(((GMBits1_2x64)3) << (size0 * field_index0));
+  *address |= ((GMBits1_2x64)value) << (size0 * field_index0);
 
-  GMAssert(value == GMVectors_bits2_get(vectors, field_local, vector_local,
-                                        env));
+  GMAssert(value ==
+           GMVectors_bits2_get(vectors, field_local, vector_local, env));
 }
 
 /*---------------------------------------------------------------------------*/
@@ -205,8 +207,8 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
 
-  const int index = packedval_field_local + vectors->num_packedval_field_local *
-                    vector_local;
+  const int index =
+      packedval_field_local + vectors->num_packedval_field_local * vector_local;
 
   ((GMBits2x64*)(vectors->data))[index].data[0] = value.data[0];
   ((GMBits2x64*)(vectors->data))[index].data[1] = value.data[1];
@@ -226,8 +228,8 @@ static GMBits2x64 GMVectors_bits2x64_get(GMVectors* vectors,
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
 
-  const int index = packedval_field_local + vectors->num_packedval_field_local *
-                    vector_local;
+  const int index =
+      packedval_field_local + vectors->num_packedval_field_local * vector_local;
 
   const GMBits2x64 value = ((GMBits2x64*)(vectors->data))[index];
 
@@ -249,15 +251,13 @@ static void GMVectors_bits1x64_set(GMVectors* vectors,
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
 
-  const int index = packedval_field_local + vectors->num_packedval_field_local *
-                    vector_local;
+  const int index =
+      packedval_field_local + vectors->num_packedval_field_local * vector_local;
 
   ((GMBits1x64*)(vectors->data))[index] = value;
 }
 
 /*---------------------------------------------------------------------------*/
-
-
 
 static int GMVectors_bit_dataval_num(GMVectors* vectors,
                                      int field_local,

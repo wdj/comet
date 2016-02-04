@@ -118,7 +118,8 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
   GMAssert(env != NULL);
 
   GMInsist(env, Env_num_proc_field(env) == 1
-    ? "num_proc_field>1 for CPU case not supported" : 0);
+                    ? "num_proc_field>1 for CPU case not supported"
+                    : 0);
 
   if (Env_all2all(env)) {
     GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
@@ -144,12 +145,12 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
         int field_local = 0;
         for (field_local = 0; field_local < vectors->num_field_local;
              ++field_local) {
-          const GMBits2 value_i = GMVectors_bits2_get(vectors,
-                                                      field_local, i, env);
-          const GMBits2 value_j = GMVectors_bits2_get(vectors,
-                                                      field_local, j, env);
-          const GMBits2 value_k = GMVectors_bits2_get(vectors,
-                                                      field_local, k, env);
+          const GMBits2 value_i =
+              GMVectors_bits2_get(vectors, field_local, i, env);
+          const GMBits2 value_j =
+              GMVectors_bits2_get(vectors, field_local, j, env);
+          const GMBits2 value_k =
+              GMVectors_bits2_get(vectors, field_local, k, env);
           /* clang-format off */
           const int r000 =
             ( ( !(value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 1) ) ) +
@@ -232,11 +233,11 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
         } /*---for field---*/
         GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
       } /*---for k---*/
-    } /*---for j---*/
-  }   /*---for i---*/
+    }   /*---for j---*/
+  }     /*---for i---*/
 
   /*---Compute multipliers---*/
- 
+
   for (i = 0; i < metrics->num_vector_local; ++i) {
     const GMTally1 si_1 = (GMTally1)(vector_sums[i]);
     for (j = i + 1; j < metrics->num_vector_local; ++j) {
@@ -246,8 +247,8 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
         const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
         GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
       } /*---for k---*/
-    } /*---for j---*/
-  } /*---for i---*/
+    }   /*---for j---*/
+  }     /*---for i---*/
 
   /*---Deallocations---*/
 

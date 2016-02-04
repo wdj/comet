@@ -119,7 +119,7 @@ void gm_magma_finalize(GMEnv* env) {
       magma_tally4_int_t magma_code = 0;
       magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
-      //TODO: reset kernel stream (not really needed)
+      // TODO: reset kernel stream (not really needed)
       magma_code = magma_tally4_finalize();
       GMAssert(magma_code == MAGMA_tally4_SUCCESS);
 
@@ -261,7 +261,6 @@ void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
                                     int mat_dim1,
                                     int mat_dim2,
                                     GMEnv* env) {
-
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
@@ -276,7 +275,7 @@ void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
+/*----------------------------------------*/
 
 #ifdef FP_PRECISION_DOUBLE
       magma_minproductblas_dlaset
@@ -296,9 +295,8 @@ void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
 
       Float_t zero = {0, 0};
 
-      magma_tally4blas_zlaset
-          (Magma_tally4Full, mat_dim1, mat_dim2, zero, zero,
-           (Float_t*)matrix_buf->d, mat_dim1);
+      magma_tally4blas_zlaset(Magma_tally4Full, mat_dim1, mat_dim2, zero, zero,
+                              (Float_t*)matrix_buf->d, mat_dim1);
 
     } break;
     /*----------------------------------------*/
@@ -354,8 +352,8 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
 #ifdef FP_PRECISION_SINGLE
       magma_minproductblas_sgemm
 #endif
-        (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
-         (GMFloat*)dA, ldda, (GMFloat*)dB, lddb, beta, (GMFloat*)dC, lddc);
+          (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
+           (GMFloat*)dA, ldda, (GMFloat*)dB, lddb, beta, (GMFloat*)dC, lddc);
 
     } break;
     /*----------------------------------------*/
@@ -367,11 +365,9 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
       const Float_t alpha = {1, 0};
       const Float_t beta = {0, 0};
 
-      magma_tally4blas_zgemm
-        (Magma_tally4Trans, Magma_tally4NoTrans, m, n, k, alpha,
-         (Float_t*)dA, ldda,
-         (Float_t*)dB, lddb, beta,
-         (Float_t*)dC, lddc);
+      magma_tally4blas_zgemm(Magma_tally4Trans, Magma_tally4NoTrans, m, n, k,
+                             alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
+                             beta, (Float_t*)dC, lddc);
 
     } break;
     /*----------------------------------------*/
@@ -420,19 +416,17 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
+/*----------------------------------------*/
 
 #ifdef FP_PRECISION_DOUBLE
       magma_minproduct_dsetmatrix_async(
-        mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h,
-        mat_dim1, (GMFloat*)matrix_buf->d, mat_dim1,
-        Env_stream_togpu(env));
+          mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h, mat_dim1,
+          (GMFloat*)matrix_buf->d, mat_dim1, Env_stream_togpu(env));
 #endif
 #ifdef FP_PRECISION_SINGLE
       magma_minproduct_ssetmatrix_async(
-        mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h,
-        mat_dim1, (GMFloat*)matrix_buf->d, mat_dim1,
-        Env_stream_togpu(env));
+          mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h, mat_dim1,
+          (GMFloat*)matrix_buf->d, mat_dim1, Env_stream_togpu(env));
 #endif
 
     } break;
@@ -442,10 +436,9 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
 
       typedef magma_tally4DoubleComplex Float_t;
 
-      magma_tally4_zsetmatrix_async
-        (mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
-         mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
-         Env_stream_togpu(env));
+      magma_tally4_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
+                                    mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
+                                    Env_stream_togpu(env));
 
     } break;
     /*----------------------------------------*/
@@ -495,19 +488,17 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
+/*----------------------------------------*/
 
 #ifdef FP_PRECISION_DOUBLE
       magma_minproduct_dgetmatrix_async(
-        mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d,
-        mat_dim1, (GMFloat*)matrix_buf->h, mat_dim1,
-        Env_stream_fromgpu(env));
+          mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d, mat_dim1,
+          (GMFloat*)matrix_buf->h, mat_dim1, Env_stream_fromgpu(env));
 #endif
 #ifdef FP_PRECISION_SINGLE
       magma_minproduct_sgetmatrix_async(
-        mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d,
-        mat_dim1, (GMFloat*)matrix_buf->h, mat_dim1,
-        Env_stream_fromgpu(env));
+          mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d, mat_dim1,
+          (GMFloat*)matrix_buf->h, mat_dim1, Env_stream_fromgpu(env));
 #endif
 
     } break;
@@ -517,10 +508,9 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
 
       typedef magma_tally4DoubleComplex Float_t;
 
-      magma_tally4_zgetmatrix_async
-        (mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
-         mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
-         Env_stream_fromgpu(env));
+      magma_tally4_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
+                                    mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
+                                    Env_stream_fromgpu(env));
 
     } break;
     /*----------------------------------------*/

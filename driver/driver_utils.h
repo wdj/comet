@@ -30,20 +30,19 @@ extern "C" {
 /*===========================================================================*/
 /*---Utility to parse a string to construct arguments---*/
 
-static void create_args(char* argstring, int* argc, const char **argv) {
-
+static void create_args(char* argstring, int* argc, const char** argv) {
   size_t len = strlen(argstring);
 
   argv[0] = &argstring[0];
   *argc = 1;
   _Bool is_delim_prev = GM_BOOL_TRUE;
   int i = 0;
-  for (i=0; i<(int)len; ++i) {
+  for (i = 0; i < (int)len; ++i) {
     const _Bool is_delim = argstring[i] == ' ' || argstring[i] == '\t';
     if (is_delim) {
       argstring[i] = 0;
     }
-    if (is_delim_prev && ! is_delim) {
+    if (is_delim_prev && !is_delim) {
       argv[*argc] = &(argstring[i]);
       (*argc)++;
     }
@@ -71,13 +70,15 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
            ++vector_local) {
-        size_t vector = vector_local + vectors->num_vector_local *
-                                              (size_t)Env_proc_num_vector(env);
+        size_t vector =
+            vector_local +
+            vectors->num_vector_local * (size_t)Env_proc_num_vector(env);
         int field_local;
         for (field_local = 0; field_local < vectors->num_field_local;
              ++field_local) {
-          size_t field = field_local + vectors->num_field_local *
-                                              (size_t)Env_proc_num_field(env);
+          size_t field =
+              field_local +
+              vectors->num_field_local * (size_t)Env_proc_num_field(env);
           /*---compute element unique id---*/
           const size_t uid = field + vectors->num_field * vector;
           size_t index = uid;
@@ -101,13 +102,13 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
            ++vector_local) {
-        size_t vector = vector_local + vectors->num_vector_local *
-                                              (size_t)Env_proc_num_vector(env);
-        int field_local = 0;
-        for (field_local = 0; field_local < vectors->num_field_local;
-             ++field_local) {
-          size_t field = field_local + vectors->num_field_local *
-                                              (size_t)Env_proc_num_field(env);
+        size_t vector =
+            vector_local +
+            vectors->num_vector_local * (size_t)Env_proc_num_vector(env);
+        int fl = 0;
+        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+          size_t field = fl +
+              vectors->num_field_local * (size_t)Env_proc_num_field(env);
           /*---Compute element unique id---*/
           const size_t uid = field + vectors->num_field * vector;
           /*---Generate large random number---*/
@@ -121,16 +122,15 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           size_t rand_value = rand1 + gm_randomize_max() * rand2;
           /*---Reduce so that after summing num_field times the integer
                still fully fits in double precision fraction part---*/
-          rand_value >>= (64-52) + gm_log2(vectors->num_field);
+          rand_value >>= (64 - 52) + gm_log2(vectors->num_field);
           /*---Store---*/
           GMFloat value = rand_value;
-          GMVectors_float_set(vectors, field_local, vector_local, value, env);
+          GMVectors_float_set(vectors, fl, vector_local, value, env);
           /*---Print---*/
           if (verbosity > 2) {
             printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
                    Env_proc_num_vector(env), vector_local,
-                   Env_proc_num_field(env), field_local, 
-                   value);
+                   Env_proc_num_field(env), fl, value);
           }
         } /*---field---*/
       }   /*---vector_local---*/
@@ -140,13 +140,13 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
       int vector_local;
       for (vector_local = 0; vector_local < vectors->num_vector_local;
            ++vector_local) {
-        size_t vector = vector_local + vectors->num_vector_local *
-                                              (size_t)Env_proc_num_vector(env);
-        int field_local;
-        for (field_local = 0; field_local < vectors->num_field_local;
-             ++field_local) {
-          size_t field = field_local + vectors->num_field_local *
-                                              (size_t)Env_proc_num_field(env);
+        size_t vector =
+            vector_local +
+            vectors->num_vector_local * (size_t)Env_proc_num_vector(env);
+        int fl;
+        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+          size_t field = fl +
+              vectors->num_field_local * (size_t)Env_proc_num_field(env);
           /*---Compute element unique id---*/
           const size_t uid = field + vectors->num_field * vector;
           size_t index = uid;
@@ -156,15 +156,14 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           /*---Calculate random number between 0 and 3---*/
           const float float_rand_value = index / (float)gm_randomize_max();
           /*---Create 2-bit value - make extra sure less than 4---*/
-          GMBits2 value = (int)( (4.-1e-5) * float_rand_value);
+          GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
           /*---Store---*/
-          GMVectors_bits2_set(vectors, field_local, vector_local, value, env);
+          GMVectors_bits2_set(vectors, fl, vector_local, value, env);
           /*---Print---*/
           if (verbosity > 2) {
             printf("vec_proc %i vec %i field_proc %i field %i value %.1i%.1i\n",
                    Env_proc_num_vector(env), vector_local,
-                   Env_proc_num_field(env), field_local, 
-                   value/2, value%2);
+                   Env_proc_num_field(env), fl, value / 2, value % 2);
           }
         } /*---field---*/
       }   /*---vector_local---*/
@@ -237,11 +236,11 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
         /*---Value---*/
         printf("): values:");
         int i;
-        for (i=0; i<2; ++i) {
+        for (i = 0; i < 2; ++i) {
           int j;
-          for (j=0; j<2; ++j) {
-            printf(" %.17e", GMMetrics_ccc_get_from_index_2(metrics, index,
-                                                            i, j, env));
+          for (j = 0; j < 2; ++j) {
+            printf(" %.17e",
+                   GMMetrics_ccc_get_from_index_2(metrics, index, i, j, env));
           }
         }
         printf("    [from proc %i]\n", Env_proc_num(env));
@@ -265,13 +264,13 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
         /*---Value---*/
         printf("): values:");
         int i;
-        for (i=0; i<2; ++i) {
+        for (i = 0; i < 2; ++i) {
           int j;
-          for (j=0; j<2; ++j) {
+          for (j = 0; j < 2; ++j) {
             int k;
-            for (k=0; k<2; ++k) {
-              printf(" %.17e", GMMetrics_ccc_get_from_index_3(metrics, index,
-                                                              i, j, k, env));
+            for (k = 0; k < 2; ++k) {
+              printf(" %.17e", GMMetrics_ccc_get_from_index_3(metrics, index, i,
+                                                              j, k, env));
             }
           }
         }
@@ -349,7 +348,6 @@ static void finish_parsing(int argc,
 /*---Perform a single metrics computation run---*/
 
 static GMChecksum perform_run(int argc, const char** argv) {
-
   GMChecksum checksum;
 
   /*---Initialize environment---*/
@@ -367,16 +365,16 @@ static GMChecksum perform_run(int argc, const char** argv) {
   /*---Initialize vectors---*/
 
   GMVectors vectors = GMVectors_null();
-  GMVectors_create(&vectors, Env_data_type_vectors(&env),
-                   num_field, num_vector_local, &env);
+  GMVectors_create(&vectors, Env_data_type_vectors(&env), num_field,
+                   num_vector_local, &env);
 
   input_vectors(&vectors, verbosity, &env);
 
   /*---Set up metrics container for results---*/
 
   GMMetrics metrics = GMMetrics_null();
-  GMMetrics_create(&metrics, Env_data_type_metrics(&env),
-                   num_field, num_vector_local, &env);
+  GMMetrics_create(&metrics, Env_data_type_metrics(&env), num_field,
+                   num_vector_local, &env);
 
   /*---Calculate metrics---*/
 
@@ -395,8 +393,9 @@ static GMChecksum perform_run(int argc, const char** argv) {
   if (Env_is_proc_active(&env) && Env_proc_num(&env) == 0 && verbosity > 0) {
     printf("metrics checksum ");
     int i = 0;
-    for (i = 0; i < GM_CHECKSUM_SIZE; ++i ) {
-      printf("%s%li", i==0 ? "" : "-", checksum.data[GM_CHECKSUM_SIZE-1-i]);
+    for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+      printf("%s%li", i == 0 ? "" : "-",
+             checksum.data[GM_CHECKSUM_SIZE - 1 - i]);
     }
     printf(" time %.6f", env.time);
     printf(" ops %e", env.ops);

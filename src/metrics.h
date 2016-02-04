@@ -195,7 +195,6 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
 
   GMAssert(index >= 0 && index < metrics->num_elts_local);
   return index;
-
 }
 
 /*---------------------------------------------------------------------------*/
@@ -293,16 +292,18 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   GMAssert(index >= 0 && index < metrics->num_elts_local);
 
   GMAssert(metrics->coords_global_from_index[index] %
-           (nvl*(size_t)Env_num_proc_vector(env)) ==
+               (nvl * (size_t)Env_num_proc_vector(env)) ==
            i + i_proc * (size_t)nvl);
 
   GMAssert((metrics->coords_global_from_index[index] /
-           (nvl*(size_t)Env_num_proc_vector(env))) %
-           (nvl*Env_num_proc_vector(env)) == j + j_proc * (size_t)nvl);
+            (nvl * (size_t)Env_num_proc_vector(env))) %
+               (nvl * Env_num_proc_vector(env)) ==
+           j + j_proc * (size_t)nvl);
 
   GMAssert((metrics->coords_global_from_index[index] /
-           (nvl*(size_t)Env_num_proc_vector(env))) /
-           (nvl*Env_num_proc_vector(env)) == k + k_proc * (size_t)nvl);
+            (nvl * (size_t)Env_num_proc_vector(env))) /
+               (nvl * Env_num_proc_vector(env)) ==
+           k + k_proc * (size_t)nvl);
 
   return index;
 }
@@ -407,12 +408,12 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   GMAssert(i0 >= 0 && i0 < 2);
   GMAssert(i1 >= 0 && i1 < 2);
 
-  const GMTally2x2 tally2x2 = GMMetrics_tally2x2_get_from_index(metrics,
-                                                                index, env);
+  const GMTally2x2 tally2x2 =
+      GMMetrics_tally2x2_get_from_index(metrics, index, env);
   const GMTally1 rij = GMTally2x2_get(tally2x2, i0, i1);
 
-  const GMFloat2 si1_sj1 = GMMetrics_float2_M_get_from_index(metrics,
-                                                             index, env);
+  const GMFloat2 si1_sj1 =
+      GMMetrics_float2_M_get_from_index(metrics, index, env);
 
   GMTally1 si_1;
   GMTally1 sj_1;
@@ -423,19 +424,21 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field - sj_1) : sj_1;
 
   /*---Do the following to make floating point arithmetic order-independent---*/
-  const GMTally1 smin =  si < sj ? si : sj;
-  const GMTally1 smax =  si < sj ? sj : si;
+  const GMTally1 smin = si < sj ? si : sj;
+  const GMTally1 smax = si < sj ? sj : si;
 
- //---TODO: optimize
+  //---TODO: optimize
   const GMFloat one = 1;
   const GMFloat m = metrics->num_field;
   const GMFloat recip_m = metrics->recip_m;
   const GMFloat front_multiplier = 9 * one / 2;
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
+  /* clang-format off */
   const GMFloat result = (front_multiplier / 4) * recip_m * rij *
                          (3 * m - smin) * (one/3) * recip_m *
                          (3 * m - smax) * (one/3) * recip_m;
+  /* clang-format on */
 
   return result;
 }
@@ -457,12 +460,12 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
   GMAssert(i1 >= 0 && i1 < 2);
   GMAssert(i2 >= 0 && i2 < 2);
 
-  const GMTally4x2 tally4x2 = GMMetrics_tally4x2_get_from_index(metrics,
-                                                                index, env);
+  const GMTally4x2 tally4x2 =
+      GMMetrics_tally4x2_get_from_index(metrics, index, env);
   const GMTally1 rijk = GMTally4x2_get(tally4x2, i0, i1, i2);
 
-  const GMFloat3 si1_sj1_sk1 = GMMetrics_float3_M_get_from_index(metrics,
-                                                                 index, env);
+  const GMFloat3 si1_sj1_sk1 =
+      GMMetrics_float3_M_get_from_index(metrics, index, env);
 
   GMTally1 si_1;
   GMTally1 sj_1;
@@ -509,17 +512,19 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
     }
   }
 
- //---TODO: optimize
+  //---TODO: optimize
   const GMFloat one = 1;
   const GMFloat m = metrics->num_field;
   const GMFloat recip_m = metrics->recip_m;
   const GMFloat front_multiplier_TBD = 2 * one / 2;
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
+  /* clang-format off */
   const GMFloat result = (front_multiplier_TBD / 8) * recip_m * rijk *
                          (3 * m - smin) * (one/3) * recip_m *
                          (3 * m - smid) * (one/3) * recip_m *
                          (3 * m - smax) * (one/3) * recip_m;
+  /* clang-format on */
 
   return result;
 }

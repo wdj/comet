@@ -45,11 +45,9 @@ extern "C" {
 /*===========================================================================*/
 /*---Assertions---*/
 
-void gm_assert(const char* condition_string,
-               const char* file,
-               int line) {
-  fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n",
-          "Assertion error", condition_string, file, line);
+void gm_assert(const char* condition_string, const char* file, int line) {
+  fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Assertion error",
+          condition_string, file, line);
   gm_test_wrapper();
   exit(EXIT_FAILURE);
 }
@@ -61,8 +59,8 @@ void gm_insist(const void* env,
                const char* file,
                int line) {
   if (Env_proc_num((const GMEnv*)env) == 0) {
-    fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n",
-            "Interface error", condition_string, file, line);
+    fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Interface error",
+            condition_string, file, line);
   }
   gm_test_wrapper();
   exit(EXIT_FAILURE);
@@ -148,7 +146,7 @@ void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
       GMInsist(env, i < argc ? "Missing value for num_way." : 0);
       env->num_way_ = atoi(argv[i]);
       GMInsist(env, env->num_way_ == GM_NUM_WAY_TWO ||
-                    env->num_way_ == GM_NUM_WAY_THREE
+                            env->num_way_ == GM_NUM_WAY_THREE
                         ? "Invalid setting for num_way."
                         : 0);
 
@@ -202,10 +200,10 @@ void GMEnv_initialize_streams(GMEnv* env) {
     if (env->compute_method_ == GM_COMPUTE_METHOD_GPU) {
       cudaStreamCreate(&env->stream_compute_);
       GMAssert(GMEnv_cuda_last_call_succeeded(env));
-  
+
       cudaStreamCreate(&env->stream_togpu_);
       GMAssert(GMEnv_cuda_last_call_succeeded(env));
-  
+
       cudaStreamCreate(&env->stream_fromgpu_);
       GMAssert(GMEnv_cuda_last_call_succeeded(env));
     }
@@ -296,8 +294,8 @@ int Env_data_type_metrics(const GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
-      return env->num_way_ == GM_NUM_WAY_TWO ?
-                              GM_DATA_TYPE_TALLY2X2 : GM_DATA_TYPE_TALLY4X2;
+      return env->num_way_ == GM_NUM_WAY_TWO ? GM_DATA_TYPE_TALLY2X2
+                                             : GM_DATA_TYPE_TALLY4X2;
   }
   GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
   return 0;
@@ -334,40 +332,42 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_field) {
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &env->proc_num_);
   GMAssert(mpi_code == MPI_SUCCESS);
   env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_;
-  env->proc_num_field_  = env->proc_num_ / env->num_proc_vector_;
+  env->proc_num_field_ = env->proc_num_ / env->num_proc_vector_;
 
   /*---Make new communicators---*/
 
   env->is_proc_active_ = env->proc_num_ < env->num_proc_;
   mpi_code = MPI_Comm_split(MPI_COMM_WORLD, env->is_proc_active_,
-                                         env->proc_num_, &env->mpi_comm_);
+                            env->proc_num_, &env->mpi_comm_);
   GMAssert(mpi_code == MPI_SUCCESS);
-  mpi_code = MPI_Comm_split(MPI_COMM_WORLD,
-    env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
-    env->proc_num_, &env->mpi_comm_vector_);
+  mpi_code =
+      MPI_Comm_split(MPI_COMM_WORLD, env->is_proc_active_ ? env->proc_num_field_
+                                                          : env->num_proc_,
+                     env->proc_num_, &env->mpi_comm_vector_);
   GMAssert(mpi_code == MPI_SUCCESS);
-  mpi_code = MPI_Comm_split(MPI_COMM_WORLD,
-    env->is_proc_active_ ? env->proc_num_vector_ : env->num_proc_,
-    env->proc_num_, &env->mpi_comm_field_);
+  mpi_code = MPI_Comm_split(
+      MPI_COMM_WORLD,
+      env->is_proc_active_ ? env->proc_num_vector_ : env->num_proc_,
+      env->proc_num_, &env->mpi_comm_field_);
   GMAssert(mpi_code == MPI_SUCCESS);
 }
 
 /*---------------------------------------------------------------------------*/
-  
+
 cudaStream_t Env_stream_compute(GMEnv* env) {
   GMAssert(env != NULL);
-  //GMAssert(env->are_cuda_streams_initialized_);
+  // GMAssert(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
 
   return env->stream_compute_;
-} 
+}
 
 /*---------------------------------------------------------------------------*/
-  
+
 cudaStream_t Env_stream_togpu(GMEnv* env) {
   GMAssert(env != NULL);
-  //GMAssert(env->are_cuda_streams_initialized_);
+  // GMAssert(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
 
@@ -375,10 +375,10 @@ cudaStream_t Env_stream_togpu(GMEnv* env) {
 }
 
 /*---------------------------------------------------------------------------*/
-  
+
 cudaStream_t Env_stream_fromgpu(GMEnv* env) {
   GMAssert(env != NULL);
-  //GMAssert(env->are_cuda_streams_initialized_);
+  // GMAssert(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
 

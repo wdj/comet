@@ -18,7 +18,7 @@
 
 #include <stddef.h>
 #include <assert.h>
-#include "stdio.h" //FIX
+#include "stdio.h"  //FIX
 
 #include "mpi.h"
 #include "cuda.h"
@@ -57,9 +57,7 @@
 extern "C" {
 #endif
 
-void gm_assert(const char* condition_string,
-               const char* file,
-               int line);
+void gm_assert(const char* condition_string, const char* file, int line);
 
 void gm_insist(const void* env,
                const char* condition_string,
@@ -99,7 +97,7 @@ typedef unsigned long long int GMUInt64;
 
 /*---Return null value; also use static asserts to check sizes---*/
 static GMBits1x64 GMBits1x64_null() {
-  GMStaticAssert(sizeof(GMBits1)*8 >= 1);
+  GMStaticAssert(sizeof(GMBits1) * 8 >= 1);
   GMStaticAssert(sizeof(GMBits1x64) == 8);
   GMStaticAssert(sizeof(GMUInt64) == 8);
   GMStaticAssert(sizeof(GMUInt64) == sizeof(GMBits1x64)); /*---for Magma---*/
@@ -109,7 +107,7 @@ static GMBits1x64 GMBits1x64_null() {
   return value;
 }
 
-//TODO: remove the following.
+// TODO: remove the following.
 
 typedef double GMBits;
 
@@ -165,9 +163,9 @@ typedef struct { double data[2]; } GMFloat3;
 
 /*---Return null value; also use static asserts to check sizes---*/
 static GMBits2x64 GMBits2x64_null() {
-  GMStaticAssert(sizeof(GMBits2)*8 >= GM_BITS2_MAX_VALUE_BITS);
+  GMStaticAssert(sizeof(GMBits2) * 8 >= GM_BITS2_MAX_VALUE_BITS);
   GMStaticAssert(sizeof(GMBits1_2x64) == 8);
-  GMStaticAssert(sizeof(GMBits2x64) == 2*sizeof(GMBits1_2x64));
+  GMStaticAssert(sizeof(GMBits2x64) == 2 * sizeof(GMBits1_2x64));
   GMStaticAssert(sizeof(GMBits2x64) == 16);
   GMStaticAssert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); /*---for Magma---*/
 
@@ -179,7 +177,7 @@ static GMBits2x64 GMBits2x64_null() {
 
 /*---Return null value; also use static asserts to check sizes---*/
 static GMTally2x2 GMTally2x2_null() {
-  GMStaticAssert(sizeof(GMTally1)*8 >= GM_TALLY1_MAX_VALUE_BITS);
+  GMStaticAssert(sizeof(GMTally1) * 8 >= GM_TALLY1_MAX_VALUE_BITS);
   GMStaticAssert(sizeof(GMTally2x2) == 16);
   GMStaticAssert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); /*---for Magma---*/
 
@@ -210,22 +208,27 @@ static void GMTally1_decode(GMTally1* __restrict__ val0,
   GMAssert(val1 != NULL);
   const GMUInt64 tally2 = (GMUInt64)v;
   GMAssert(v == (GMFloat)tally2);
-  const GMTally1 v0 = tally2 & ((((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)-1);
+  const GMTally1 v0 =
+      tally2 & ((((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) - 1);
   const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
   *val0 = v0;
   *val1 = v1;
-  GMAssert(v == (GMFloat)(v0 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * v1));
+  GMAssert(v ==
+           (GMFloat)(v0 + (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) * v1));
   GMAssert(v0 >= 0);
   GMAssert(v1 >= 0);
-  GMAssert(v0 < (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS));
-  GMAssert(v1 < (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(v0 < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(v1 < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
 }
 
+/*-----*/
+
 static GMFloat GMTally1_encode(GMTally1 val0, GMTally1 val1) {
-  const GMUInt64 tally2 = val0 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)*val1;
+  const GMUInt64 tally2 =
+      val0 + (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) * val1;
   const GMFloat result = (GMFloat)tally2;
-  GMAssert(val0 ==
-          (((GMUInt64)result) & ((((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)-1)));
+  GMAssert(val0 == (((GMUInt64)result) &
+                    ((((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) - 1)));
   GMAssert(val1 == ((GMUInt64)result) >> GM_TALLY1_MAX_VALUE_BITS);
   return result;
 }
@@ -238,6 +241,8 @@ static void GMFloat2_decode(GMTally1* __restrict__ val0,
   GMTally1_decode(val0, val1, v);
 }
 
+/*-----*/
+
 static void GMFloat3_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMTally1* __restrict__ val2,
@@ -247,9 +252,13 @@ static void GMFloat3_decode(GMTally1* __restrict__ val0,
   GMTally1_decode(val2, &dummy, v.data[1]);
 }
 
+/*-----*/
+
 static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
   return GMTally1_encode(val0, val1);
 }
+
+/*-----*/
 
 static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
   GMFloat3 result; /*---here we should set = null to be super cautious---*/
@@ -267,11 +276,11 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
 
   const GMUInt64 tally2 = tally2x2.data[i0];
 
-  const GMTally1 result = i1 == 0 ?
-                          tally2 % (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) :
-                          tally2 / (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS);
+  const GMTally1 result =
+      i1 == 0 ? tally2 % (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
+              : tally2 / (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS);
   GMAssert(result >= 0);
-  GMAssert(result < (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(result < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
 
@@ -284,11 +293,11 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
 
   const GMUInt64 tally2 = tally4x2.data[i1 + 2 * i0];
 
-  const GMTally1 result = i2 == 0 ?
-                          tally2 % (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) :
-                          tally2 / (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS);
+  const GMTally1 result =
+      i2 == 0 ? tally2 % (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
+              : tally2 / (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS);
   GMAssert(result >= 0);
-  GMAssert(result < (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(result < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
 
@@ -300,7 +309,7 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
 enum {
   GM_DATA_TYPE_FLOAT = 1,
   GM_DATA_TYPE_BITS1 = 2,
-  GM_DATA_TYPE_UINT64 = 3, //---(design of this entry is not complete)
+  GM_DATA_TYPE_UINT64 = 3,  //---(design of this entry is not complete)
   GM_DATA_TYPE_BITS2 = 4,
   GM_DATA_TYPE_TALLY2X2 = 5,
   GM_DATA_TYPE_TALLY4X2 = 6
@@ -319,14 +328,12 @@ GMMirroredPointer GMMirroredPointer_null(void);
 
 enum { GM_CHECKSUM_SIZE = 3 };
 
-typedef struct {
-  size_t data[GM_CHECKSUM_SIZE];
-} GMChecksum;
+typedef struct { size_t data[GM_CHECKSUM_SIZE]; } GMChecksum;
 
 static GMChecksum GMChecksum_null() {
   GMChecksum result;
   int i = 0;
-  for (i=0; i<GM_CHECKSUM_SIZE; ++i) {
+  for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result.data[i] = 0;
   }
   return result;
@@ -345,15 +352,15 @@ static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
 /*---Special arithmetic operations---*/
 
 static int gm_popcount64(GMUInt64 x) {
-/*---Adapted from https://en.wikipedia.org/wiki/Hamming_weight---*/
-  const GMUInt64 m1  = 0x5555555555555555;
-  const GMUInt64 m2  = 0x3333333333333333;
-  const GMUInt64 m4  = 0x0f0f0f0f0f0f0f0f;
+  /*---Adapted from https://en.wikipedia.org/wiki/Hamming_weight---*/
+  const GMUInt64 m1 = 0x5555555555555555;
+  const GMUInt64 m2 = 0x3333333333333333;
+  const GMUInt64 m4 = 0x0f0f0f0f0f0f0f0f;
   const GMUInt64 h01 = 0x0101010101010101;
   x -= (x >> 1) & m1;
   x = (x & m2) + ((x >> 2) & m2);
   x = (x + (x >> 4)) & m4;
-  return (x * h01)>>56;
+  return (x * h01) >> 56;
 }
 
 /*===========================================================================*/
@@ -401,11 +408,7 @@ enum {
   GM_NUM_COMPUTE_METHOD = 3
 };
 
-enum {
-  GM_NUM_WAY_TWO = 2,
-  GM_NUM_WAY_THREE = 3,
-  GM_NUM_NUM_WAY = 2
-};
+enum { GM_NUM_WAY_TWO = 2, GM_NUM_WAY_THREE = 3, GM_NUM_NUM_WAY = 2 };
 
 /*===========================================================================*/
 /*---Null object---*/
@@ -611,7 +614,7 @@ static int gm_log2(size_t n) {
 
   int result = 0;
 
-  for (result = 0, n--; result <= 8*(int)sizeof(size_t); ++result) {
+  for (result = 0, n--; result <= 8 * (int)sizeof(size_t); ++result) {
     if (n == 0) {
       break;
     }

@@ -57,8 +57,8 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   GMMirroredPointer metrics_buf_tmp =
       gm_malloc_magma(numvecl * (size_t)numvecl, env);
 
-  GMMirroredPointer* metrics_buf_local = Env_num_proc_field(env) == 1 ?
-    &metrics_buf : &metrics_buf_tmp;
+  GMMirroredPointer* metrics_buf_local =
+      Env_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
 
   /*---Copy in vectors---*/
 
@@ -91,8 +91,9 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   /*---Combine---*/
   /*---------------*/
 
-  gm_compute_3way_combine(metrics, &vector_sums, &vector_sums,
-    &vector_sums, Env_proc_num_vector(env), Env_proc_num_vector(env), env);
+  gm_compute_3way_combine(metrics, &vector_sums, &vector_sums, &vector_sums,
+                          Env_proc_num_vector(env), Env_proc_num_vector(env),
+                          env);
 
   /*---------------*/
   /*---Free memory---*/
@@ -161,15 +162,15 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   /*---Compute numerators---*/
 
-  gm_compute_numerators_3way_start(
-      vectors_i, vectors_i, vectors_i, metrics, &vectors_i_buf, &vectors_i_buf,
-      &vectors_i_buf, i_proc, i_proc, env);
+  gm_compute_numerators_3way_start(vectors_i, vectors_i, vectors_i, metrics,
+                                   &vectors_i_buf, &vectors_i_buf,
+                                   &vectors_i_buf, i_proc, i_proc, env);
   gm_compute_wait(env);
 
   /*---Combine results---*/
 
-  gm_compute_3way_combine(metrics, &vector_sums_i,
-                          &vector_sums_i, &vector_sums_i, i_proc, i_proc, env);
+  gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_i,
+                          &vector_sums_i, i_proc, i_proc, env);
 
   /*------------------------*/
   /*---Part 2 Computation: triangular prisms---*/
@@ -210,15 +211,15 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
     /*---Compute numerators---*/
 
-    gm_compute_numerators_3way_start(
-        vectors_i, vectors_j, vectors_j, metrics, &vectors_i_buf,
-        &vectors_j_buf, &vectors_j_buf, j_proc, j_proc, env);
+    gm_compute_numerators_3way_start(vectors_i, vectors_j, vectors_j, metrics,
+                                     &vectors_i_buf, &vectors_j_buf,
+                                     &vectors_j_buf, j_proc, j_proc, env);
     gm_compute_wait(env);
 
     /*---Combine results---*/
 
-    gm_compute_3way_combine(metrics, &vector_sums_i,
-        &vector_sums_j, &vector_sums_j, j_proc, j_proc, env);
+    gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_j,
+                            &vector_sums_j, j_proc, j_proc, env);
 
   } /*---proc_diff_j---*/
 
@@ -286,15 +287,15 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
       /*---Compute numerators---*/
 
-      gm_compute_numerators_3way_start(
-          vectors_i, vectors_j, vectors_k, metrics, &vectors_i_buf,
-          &vectors_j_buf, &vectors_k_buf, j_proc, k_proc, env);
+      gm_compute_numerators_3way_start(vectors_i, vectors_j, vectors_k, metrics,
+                                       &vectors_i_buf, &vectors_j_buf,
+                                       &vectors_k_buf, j_proc, k_proc, env);
       gm_compute_wait(env);
 
       /*---Combine results---*/
 
-      gm_compute_3way_combine(metrics, &vector_sums_i,
-          &vector_sums_j, &vector_sums_k, j_proc, k_proc, env);
+      gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_j,
+                              &vector_sums_k, j_proc, k_proc, env);
 
     } /*---proc_diff_k---*/
   }   /*---proc_diff_j---*/

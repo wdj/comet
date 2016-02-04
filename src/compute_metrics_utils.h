@@ -72,27 +72,25 @@ void gm_compute_czekanowski_numerators_2way_start(
     _Bool do_compute_triang_only,
     GMEnv* env);
 
-void gm_compute_ccc_numerators_2way_start(
-    GMVectors* vectors_left,
-    GMVectors* vectors_right,
-    GMMetrics* numerators,
-    GMMirroredPointer* vectors_left_buf,
-    GMMirroredPointer* vectors_right_buf,
-    GMMirroredPointer* numerators_buf,
-    int j_proc,
-    _Bool do_compute_triang_only,
-    GMEnv* env);
+void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
+                                          GMVectors* vectors_right,
+                                          GMMetrics* numerators,
+                                          GMMirroredPointer* vectors_left_buf,
+                                          GMMirroredPointer* vectors_right_buf,
+                                          GMMirroredPointer* numerators_buf,
+                                          int j_proc,
+                                          _Bool do_compute_triang_only,
+                                          GMEnv* env);
 
-void gm_compute_numerators_2way_start(
-    GMVectors* vectors_left,
-    GMVectors* vectors_right,
-    GMMetrics* numerators,
-    GMMirroredPointer* vectors_left_buf,
-    GMMirroredPointer* vectors_right_buf,
-    GMMirroredPointer* numerators_buf,
-    int j_proc,
-    _Bool compute_triang_only,
-    GMEnv* env);
+void gm_compute_numerators_2way_start(GMVectors* vectors_left,
+                                      GMVectors* vectors_right,
+                                      GMMetrics* numerators,
+                                      GMMirroredPointer* vectors_left_buf,
+                                      GMMirroredPointer* vectors_right_buf,
+                                      GMMirroredPointer* numerators_buf,
+                                      int j_proc,
+                                      _Bool compute_triang_only,
+                                      GMEnv* env);
 
 /*----------*/
 
@@ -105,23 +103,21 @@ void gm_compute_czekanowski_2way_combine(
     _Bool compute_triang_only,
     GMEnv* env);
 
-void gm_compute_ccc_2way_combine(
-    GMMetrics* metrics,
-    GMMirroredPointer* metrics_buf,
-    GMFloat* __restrict__ vector_sums_left,
-    GMFloat* __restrict__ vector_sums_right,
-    int j_proc,
-    _Bool compute_triang_only,
-    GMEnv* env);
+void gm_compute_ccc_2way_combine(GMMetrics* metrics,
+                                 GMMirroredPointer* metrics_buf,
+                                 GMFloat* __restrict__ vector_sums_left,
+                                 GMFloat* __restrict__ vector_sums_right,
+                                 int j_proc,
+                                 _Bool compute_triang_only,
+                                 GMEnv* env);
 
-void gm_compute_2way_combine(
-    GMMetrics* metrics,
-    GMMirroredPointer* metrics_buf,
-    GMVectorSums* vector_sums_left,
-    GMVectorSums* vector_sums_right,
-    int j_proc,
-    _Bool do_compute_triang_only,
-    GMEnv* env);
+void gm_compute_2way_combine(GMMetrics* metrics,
+                             GMMirroredPointer* metrics_buf,
+                             GMVectorSums* vector_sums_left,
+                             GMVectorSums* vector_sums_right,
+                             int j_proc,
+                             _Bool do_compute_triang_only,
+                             GMEnv* env);
 
 /*----------*/
 
@@ -149,58 +145,53 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     int k_proc,
     GMEnv* env);
 
-void gm_compute_numerators_3way_gpu_start(
-    GMVectors* vectors_i,
-    GMVectors* vectors_j,
-    GMVectors* vectors_k,
-    GMMetrics* numerators,
-    GMMirroredPointer* vectors_i_buf,
-    GMMirroredPointer* vectors_j_buf,
-    GMMirroredPointer* vectors_k_buf,
-    int j_proc,
-    int k_proc,
-    GMEnv* env);
+void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
+                                          GMVectors* vectors_j,
+                                          GMVectors* vectors_k,
+                                          GMMetrics* numerators,
+                                          GMMirroredPointer* vectors_i_buf,
+                                          GMMirroredPointer* vectors_j_buf,
+                                          GMMirroredPointer* vectors_k_buf,
+                                          int j_proc,
+                                          int k_proc,
+                                          GMEnv* env);
 
-void gm_compute_numerators_3way_start(
-    GMVectors* vectors_i,
-    GMVectors* vectors_j,
-    GMVectors* vectors_k,
-    GMMetrics* numerators,
-    GMMirroredPointer* vectors_i_buf,
-    GMMirroredPointer* vectors_j_buf,
-    GMMirroredPointer* vectors_k_buf,
-    int j_proc,
-    int k_proc,
-    GMEnv* env);
+void gm_compute_numerators_3way_start(GMVectors* vectors_i,
+                                      GMVectors* vectors_j,
+                                      GMVectors* vectors_k,
+                                      GMMetrics* numerators,
+                                      GMMirroredPointer* vectors_i_buf,
+                                      GMMirroredPointer* vectors_j_buf,
+                                      GMMirroredPointer* vectors_k_buf,
+                                      int j_proc,
+                                      int k_proc,
+                                      GMEnv* env);
 
 /*----------*/
 
-void gm_compute_czekanowski_3way_combine(
-    GMMetrics* metrics,
-    GMFloat* __restrict__ vector_sums_i,
-    GMFloat* __restrict__ vector_sums_j,
-    GMFloat* __restrict__ vector_sums_k,
-    int j_proc,
-    int k_proc,
-    GMEnv* env);
+void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
+                                         GMFloat* __restrict__ vector_sums_i,
+                                         GMFloat* __restrict__ vector_sums_j,
+                                         GMFloat* __restrict__ vector_sums_k,
+                                         int j_proc,
+                                         int k_proc,
+                                         GMEnv* env);
 
-void gm_compute_ccc_3way_combine(
-    GMMetrics* metrics,
-    GMFloat* __restrict__ vector_sums_i,
-    GMFloat* __restrict__ vector_sums_j,
-    GMFloat* __restrict__ vector_sums_k,
-    int j_proc,
-    int k_proc,
-    GMEnv* env);
+void gm_compute_ccc_3way_combine(GMMetrics* metrics,
+                                 GMFloat* __restrict__ vector_sums_i,
+                                 GMFloat* __restrict__ vector_sums_j,
+                                 GMFloat* __restrict__ vector_sums_k,
+                                 int j_proc,
+                                 int k_proc,
+                                 GMEnv* env);
 
-void gm_compute_3way_combine(
-    GMMetrics* metrics,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
-    int j_proc,
-    int k_proc,
-    GMEnv* env);
+void gm_compute_3way_combine(GMMetrics* metrics,
+                             GMVectorSums* vector_sums_i,
+                             GMVectorSums* vector_sums_j,
+                             GMVectorSums* vector_sums_k,
+                             int j_proc,
+                             int k_proc,
+                             GMEnv* env);
 
 /*===========================================================================*/
 

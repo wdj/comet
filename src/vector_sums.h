@@ -23,7 +23,8 @@ extern "C" {
 
 typedef struct {
   void* __restrict__ data;
-  void* __restrict__ data_tmp; } GMVectorSums;
+  void* __restrict__ data_tmp;
+} GMVectorSums;
 
 /*===========================================================================*/
 /*---Null object---*/

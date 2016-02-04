@@ -48,8 +48,10 @@ void GMVectors_create(GMVectors* vectors,
     return;
   }
 
-  GMInsist(env, num_field % Env_num_proc_field(env) == 0
-    ? "num_proc_field must exactly divide the total number of fields" : 0);
+  GMInsist(env,
+           num_field % Env_num_proc_field(env) == 0
+               ? "num_proc_field must exactly divide the total number of fields"
+               : 0);
 
   vectors->data_type_id = data_type_id;
   vectors->num_field = num_field;
@@ -93,9 +95,11 @@ void GMVectors_create(GMVectors* vectors,
       vectors->num_bits_per_val = GM_BITS2_MAX_VALUE_BITS;
       vectors->num_bits_per_packedval = bits_per_byte * sizeof(GMBits2x64);
       /*---By design can only store this number of fields for this metric---*/
-      GMInsist(env, ((GMUInt64)(4*num_field)) <
-                    (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS)
-        ? "Number of fields requested is too large for this metric" : 0);
+      GMInsist(env,
+               ((GMUInt64)(4 * num_field)) <
+                       (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
+                   ? "Number of fields requested is too large for this metric"
+                   : 0);
     } break;
     /*--------------------*/
     default:
@@ -105,16 +109,15 @@ void GMVectors_create(GMVectors* vectors,
   /*---Calculate number of (packed) values to set aside storage for---*/
 
   vectors->num_packedval_field_local =
-    gm_ceil_i8(vectors->num_field_local *
-               (size_t)(vectors->num_bits_per_val),
-               vectors->num_bits_per_packedval);
+      gm_ceil_i8(vectors->num_field_local * (size_t)(vectors->num_bits_per_val),
+                 vectors->num_bits_per_packedval);
   vectors->num_packedval_local =
       vectors->num_packedval_field_local * (size_t)num_vector_local;
 
   /*---Allocation for vector storage---*/
 
   vectors->data = malloc(vectors->num_packedval_local *
-                         (vectors->num_bits_per_packedval / bits_per_byte ));
+                         (vectors->num_bits_per_packedval / bits_per_byte));
   GMAssert(vectors->data != NULL);
 
   /*---Ensure final pad bits of each vector are set to zero so that
@@ -126,10 +129,11 @@ void GMVectors_create(GMVectors* vectors,
       //---(design is not complete)
       int vector_local;
       if (vectors->num_field_local > 0) {
-        const int packedval_field_local
-                                     = vectors->num_packedval_field_local - 1;
+        const int packedval_field_local =
+            vectors->num_packedval_field_local - 1;
         GMBits1x64 zero = GMBits1x64_null();
-        for (vector_local=0; vector_local<num_vector_local; ++vector_local) {
+        for (vector_local = 0; vector_local < num_vector_local;
+             ++vector_local) {
           GMVectors_bits1x64_set(vectors, packedval_field_local, vector_local,
                                  zero, env);
         }
@@ -143,10 +147,11 @@ void GMVectors_create(GMVectors* vectors,
     case GM_DATA_TYPE_BITS2: {
       int vector_local;
       if (vectors->num_field_local > 0) {
-        const int packedval_field_local
-                                     = vectors->num_packedval_field_local - 1;
+        const int packedval_field_local =
+            vectors->num_packedval_field_local - 1;
         GMBits2x64 zero = GMBits2x64_null();
-        for (vector_local=0; vector_local<num_vector_local; ++vector_local) {
+        for (vector_local = 0; vector_local < num_vector_local;
+             ++vector_local) {
           GMVectors_bits2x64_set(vectors, packedval_field_local, vector_local,
                                  zero, env);
         }
