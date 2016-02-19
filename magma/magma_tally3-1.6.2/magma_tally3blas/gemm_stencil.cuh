@@ -138,6 +138,130 @@
 #define THR_M ( BLK_M / DIM_X )
 #define THR_N ( BLK_N / DIM_Y )
 
+//---BEGIN ADDED GENOMICS_METRICS
+//-----------------------------------------------------------------------------
+
+//http://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__INTRINSIC__INT.html
+//__DEVICE_FUNCTIONS_DECL__ int __popc ( unsigned int  x )
+//Count the number of bits that are set to 1 in a 32 bit integer.
+//__DEVICE_FUNCTIONS_DECL__ int __popcll ( unsigned long long int x )
+//Count the number of bits that are set to 1 in a 64 bit integer.
+
+#if (version == trans_tn) && (precision == z)
+
+#define gm_popcount64(x) __popcll(x)
+
+extern "C" static __device__
+FloatingPoint_t tally3_compute(
+    FloatingPoint_t A,
+    FloatingPoint_t B,
+    FloatingPoint_t C)
+{
+    typedef unsigned long long int GMUInt64;
+    typedef GMUInt64 GMBits1_2x64;
+    typedef struct { GMBits1_2x64 data[2]; } GMBits2x64;
+    enum { GM_TALLY1_MAX_VALUE_BITS = 25 };
+    typedef struct { double data[2]; } GMTally2x2;
+
+    GMTally2x2 sum = *(GMTally2x2*)&C;
+
+    /*---Extract input values to process---*/
+
+    const GMBits2x64 vi = *(GMBits2x64*)&A;
+    const GMBits2x64 vj = *(GMBits2x64*)&B;
+
+          const GMUInt64 vi0 = vi.data[0];
+          const GMUInt64 vi1 = vi.data[1];
+          const GMUInt64 vj0 = vj.data[0];
+          const GMUInt64 vj1 = vj.data[1];
+
+          /*---Get mask to ignore vi seminibbles with value of 1,0---*/
+          /*---NOTE: check that this handles pad properly---*/
+
+          const GMUInt64 oddbits = 0x5555555555555555;
+
+          const GMUInt64 vi0_10mask = (vi0 | ~(vi0 >> 1)) & oddbits;
+          const GMUInt64 vi1_10mask = (vi1 | ~(vi1 >> 1)) & oddbits;
+
+          /*---Get even, odd bits for each semi-nibble, then mask---*/
+
+          //--------------------
+          // Nomenclature:
+          //
+          // ( ) v(i)(0)_(0)
+          // (n) v(j)(1)_(1)
+          //  ^    ^ ^   ^
+          //  |    | |   |--- lower or upper bit of each seminibble
+          //  |    | |--- lower or upper word
+          //  |    |--- left or right vector
+          //  |---test for value or for its negative/complement
+          //--------------------
+
+          const GMUInt64 vi0_0 =  vi0       & vi0_10mask;
+          const GMUInt64 vi0_1 = (vi0 >> 1) & vi0_10mask;
+          const GMUInt64 vi1_0 =  vi1       & vi1_10mask;
+          const GMUInt64 vi1_1 = (vi1 >> 1) & vi1_10mask;
+          const GMUInt64 vj0_0 =  vj0       & oddbits;
+          const GMUInt64 vj0_1 = (vj0 >> 1) & oddbits;
+          const GMUInt64 vj1_0 =  vj1       & oddbits;
+          const GMUInt64 vj1_1 = (vj1 >> 1) & oddbits;
+
+          /*---Get complements of the same bits, then mask---*/
+
+          const GMUInt64 nvi0_0 = ~ vi0       & vi0_10mask;
+          const GMUInt64 nvi0_1 = ~(vi0 >> 1) & vi0_10mask;
+          const GMUInt64 nvi1_0 = ~ vi1       & vi1_10mask;
+          const GMUInt64 nvi1_1 = ~(vi1 >> 1) & vi1_10mask;
+          const GMUInt64 nvj0_0 = ~ vj0       & oddbits;
+          const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits;
+          const GMUInt64 nvj1_0 = ~ vj1       & oddbits;
+          const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits;
+
+          const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
+                                      ( (nvi0_0 & nvj0_1) << 1 )) +
+                          gm_popcount64((nvi0_1 & nvj0_0) |
+                                      ( (nvi0_1 & nvj0_1) << 1 )) +
+                          gm_popcount64((nvi1_0 & nvj1_0) |
+                                      ( (nvi1_0 & nvj1_1) << 1 )) +
+                          gm_popcount64((nvi1_1 & nvj1_0) |
+                                      ( (nvi1_1 & nvj1_1) << 1 ));
+          const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
+                                      ( (nvi0_0 &  vj0_1) << 1 )) +
+                          gm_popcount64((nvi0_1 &  vj0_0) |
+                                      ( (nvi0_1 &  vj0_1) << 1 )) +
+                          gm_popcount64((nvi1_0 &  vj1_0) |
+                                      ( (nvi1_0 &  vj1_1) << 1 )) +
+                          gm_popcount64((nvi1_1 &  vj1_0) |
+                                      ( (nvi1_1 &  vj1_1) << 1 ));
+          const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
+                                      ( ( vi0_0 & nvj0_1) << 1 )) +
+                          gm_popcount64(( vi0_1 & nvj0_0) |
+                                      ( ( vi0_1 & nvj0_1) << 1 )) +
+                          gm_popcount64(( vi1_0 & nvj1_0) |
+                                      ( ( vi1_0 & nvj1_1) << 1 )) +
+                          gm_popcount64(( vi1_1 & nvj1_0) |
+                                      ( ( vi1_1 & nvj1_1) << 1 ));
+          const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
+                                      ( ( vi0_0 &  vj0_1) << 1 )) +
+                          gm_popcount64(( vi0_1 &  vj0_0) |
+                                      ( ( vi0_1 &  vj0_1) << 1 )) +
+                          gm_popcount64(( vi1_0 &  vj1_0) |
+                                      ( ( vi1_0 &  vj1_1) << 1 )) +
+                          gm_popcount64(( vi1_1 &  vj1_0) |
+                                      ( ( vi1_1 &  vj1_1) << 1 ));
+
+          /*---Accumulate---*/
+
+          sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+          sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+
+//printf("%i %i %i %i %e %e\n", r00, r01, r10, r11, sum.data[0], sum.data[1]);
+    return *(FloatingPoint_t*)&sum;
+}
+#endif
+
+//-----------------------------------------------------------------------------
+//---END ADDED GENOMICS_METRICS
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 extern "C" static __device__
 void devfunc_name(precision) (
@@ -344,7 +468,13 @@ void devfunc_name(precision) (
                       #ifdef CONJ_B
                         fma(rA[m], conj(rB[n]), rC[n][m]);
                       #else
-                        fma(rA[m], rB[n], rC[n][m]);
+                        //---BEGIN MODIFIED GENOMICS_METRICS
+                        #if (version == trans_tn) && (precision == z)
+                          rC[n][m] = tally3_compute(rA[m], rB[n], rC[n][m]);
+                        #else
+                          fma(rA[m], rB[n], rC[n][m]);
+                        #endif
+                        //---END MODIFIED GENOMICS_METRICS
                       #endif
                     #endif
                 }
@@ -419,7 +549,13 @@ void devfunc_name(precision) (
                   #ifdef CONJ_B
                     fma(rA[m], conj(rB[n]), rC[n][m]);
                   #else
-                    fma(rA[m], rB[n], rC[n][m]);
+                    //---BEGIN MODIFIED GENOMICS_METRICS
+                    #if (version == trans_tn) && (precision == z)
+                      rC[n][m] = tally3_compute(rA[m], rB[n], rC[n][m]);
+                    #else
+                      fma(rA[m], rB[n], rC[n][m]);
+                    #endif
+                    //---END MODIFIED GENOMICS_METRICS
                   #endif
                 #endif
             }
