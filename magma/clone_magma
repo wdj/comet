@@ -97,6 +97,10 @@ cublas_trans_const
 cublas_uplo_const
 cublas_diag_const
 cublas_side_const
+
+zlaset_lower_kernel
+zlaset_upper_kernel
+zlaset_full_kernel
 "
 
 for name in $NAMES ; do

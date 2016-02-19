@@ -1238,8 +1238,9 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
               ((  (value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 2) ));
             /* clang-format on */
 
-            printf("%i %i %i %i %i %i %i %i\n", (int)r111, (int)r110, (int)r101,
-                   (int)r100, (int)r011, (int)r010, (int)r001, (int)r000);
+//              printf("%i %i %i %i %i %i %i %i\n",
+//                (int)r000, (int)r001, (int)r010, (int)r011,
+//                (int)r100, (int)r101, (int)r110, (int)r111);
             sum.data[0] += GMTally1_encode(r000, r001);
             sum.data[1] += GMTally1_encode(r010, r011);
             sum.data[2] += GMTally1_encode(r100, r101);
@@ -1479,6 +1480,9 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
 
             /*---Accumulate---*/
 
+//              printf("%i %i %i %i %i %i %i %i\n",
+//              (int)r000, (int)r001, (int)r010, (int)r011,
+//              (int)r100, (int)r101, (int)r110, (int)r111);
             sum.data[0] += GMTally1_encode(r000, r001);
             sum.data[1] += GMTally1_encode(r010, r011);
             sum.data[2] += GMTally1_encode(r100, r101);
@@ -1809,271 +1813,359 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
       continue;
     }
 
-    /*---Populate leading columns of matV---*/
+    /*--------------------*/
+    /*---Loop over 2-way steps---*/
+    /*--------------------*/
 
-    /*----------*/
-    if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
-      /*----------*/
-      int I = 0;
-      for (I = I_min; I < I_max; ++I) {
-        /*---Operate on columns x_i and x_j elementwise---*/
-        int f = 0;
-        for (f = 0; f < numpfieldl; ++f) {
-          const GMFloat a = ((GMFloat*)(vectors_I_buf->h))[f + numpfieldl * I];
-          const GMFloat b = ((GMFloat*)(vectors_J_buf->h))[f + numpfieldl * J];
-          ((GMFloat*)(matV_buf.h))[f + numpfieldl * I] = a < b ? a : b;
-        }  //---for f---//
-      }    //---for i---//
-      /*----------*/
-    } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC) {
-      /*----------*/
-      int I = 0;
-      for (I = I_min; I < I_max; ++I) {
-        /*---Operate on columns x_i and x_j elementwise---*/
-        int f = 0;
-        for (f = 0; f < numpfieldl; ++f) {
-          const int indI = f + numpfieldl * I;
-          const int indJ = f + numpfieldl * J;
-          const GMUInt64 vI0 =
-              *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[0]);
-          const GMUInt64 vJ0 =
-              *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[0]);
-          const GMUInt64 result0 = vI0 ^ vJ0;
-          ((GMBits2x64*)(matV_buf.h))[indI].data[0] = *(GMBits1_2x64*)&result0;
-          const GMUInt64 vI1 =
-              *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[1]);
-          const GMUInt64 vJ1 =
-              *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[1]);
-          const GMUInt64 result1 = vI1 ^ vJ1;
-          ((GMBits2x64*)(matV_buf.h))[indI].data[1] = *(GMBits1_2x64*)&result1;
-        }  //---for f---//
-      }    //---for i---//
-      /*----------*/
-    } /*---Env_metric_type(env)---*/
-    /*----------*/
+    const int num_step_2way = Env_metric_type(env) == GM_METRIC_TYPE_CCC ?
+                                                      3 : 1;
+    int step_2way = 0;
+    for (step_2way=0; step_2way<num_step_2way; ++step_2way) {
 
-    /*---Send matrix matV to GPU---*/
-
-    gm_set_matrix_start(&matV_buf, numpfieldl, I_max, env);
-    gm_set_matrix_wait(env);
-
-    /*---Initialize result matrix to zero (apparently magma requires)---*/
-
-    GMMirroredPointer* matB_buf_local =
-        Env_num_proc_field(env) == 1 ? &matB_buf : &mat_buf_tmp;
-
-    gm_magma_set_matrix_zero_start(matB_buf_local, numvecl, I_max, env);
-
-    /*---Perform pseudo matrix-matrix product matB = matV^T PROD X---*/
-
-    gm_magma_gemm_start(I_max, numvecl, numpfieldl, matV_buf.d, numpfieldl,
-                        vectors_K_buf->d, numpfieldl, matB_buf_local->d, I_max,
-                        env);
-    gm_compute_wait(env);
-
-    /*---Copy result matrix matB from GPU---*/
-
-    gm_get_matrix_start(matB_buf_local, I_max, numvecl, env);
-    gm_get_matrix_wait(env);
-
-    // TODO - outline into gm_allreduce_metrics
-    if (Env_num_proc_field(env) > 1) {
-      int mpi_code = 0;
-      mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
-      mpi_code = MPI_Allreduce(matB_buf_local->h, matB_buf.h,
-                               numvecl * (size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
-                               Env_mpi_comm_field(env));
-      GMAssert(mpi_code == MPI_SUCCESS);
-    }
-    // TODO - outline into gm_allreduce_metrics
-
-    /*---Compute numerators using 2-way pieces and ijk piece---*/
-
-    /*----------*/
-    if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
-      /*----------*/
+      /*---Populate leading columns of matV---*/
 
       /*----------*/
-      if (!Env_all2all(env)) {
+      if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
         /*----------*/
-
         int I = 0;
         for (I = I_min; I < I_max; ++I) {
-          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl * J];
-          int K = 0;
-          for (K = K_min; K < K_max; ++K) {
-            const GMFloat min_JK =
-                ((GMFloat*)(matM_JK_buf->h))[J + numvecl * K];
-            const GMFloat min_KIK =
-                ((GMFloat*)(matM_KIK_buf->h))[K + numvecl * I];
-            // sum of mins vectors i, j, and k is matB(k,i)
-            const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max * K];
-            const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
-            const int i = I;
-            const int j = J;
-            const int k = K;
-            GMMetrics_float_set_3(metrics, i, j, k, numerator, env);
-          } /*---for K---*/
-        }   /*---for I---*/
-
+          /*---Operate on columns x_i and x_j elementwise---*/
+          int f = 0;
+          for (f = 0; f < numpfieldl; ++f) {
+            const GMFloat a = ((GMFloat*)(vectors_I_buf->h))[f + numpfieldl * I];
+            const GMFloat b = ((GMFloat*)(vectors_J_buf->h))[f + numpfieldl * J];
+            ((GMFloat*)(matV_buf.h))[f + numpfieldl * I] = a < b ? a : b;
+          }  //---for f---//
+        }    //---for i---//
         /*----------*/
-      } else /*---if (Env_all2all(env))---*/ {
+      } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC) {
         /*----------*/
-
         int I = 0;
         for (I = I_min; I < I_max; ++I) {
-          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl * J];
-          int K = 0;
-          for (K = K_min; K < K_max; ++K) {
-            const GMFloat min_JK =
-                ((GMFloat*)(matM_JK_buf->h))[J + numvecl * K];
-            const GMFloat min_KIK =
-                is_part3 ? ((GMFloat*)(matM_KIK_buf->h))[K + numvecl * I]
-                         : ((GMFloat*)(matM_KIK_buf->h))[I + numvecl * K];
-            // sum of mins vectors i, j, and k is matB(k,i)
-            const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max * K];
-            const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
-            /* clang-format off */
-            const int i = !is_part3 ?   I :
-                               sax0 ?   J :
-                               sax1 ?   I :
-                            /* sax2 ?*/ K;
-            const int j = !is_part3 ?   J :
-                               sax0 ?   K :
-                               sax1 ?   J :
-                            /* sax2 ?*/ I;
-            const int k = !is_part3 ?   K :
-                               sax0 ?   I :
-                               sax1 ?   K :
-                            /* sax2 ?*/ J;
-            /* clang-format on */
-            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
-                                          numerator, env);
-          } /*---for K---*/
-        }   /*---for I---*/
+          const GMUInt64 nobits = 0;
+          const GMUInt64 allbits = 0xffffffffffffffff;
+          const GMUInt64 oddbits = 0x5555555555555555;
+          const int num_seminibbles = 1 + (vectors_i->num_field_local-1) % 64;
+          const GMUInt64 lastmask0 = num_seminibbles >= 32 ?
+                                     allbits :
+                                     allbits >> (64 - 2*num_seminibbles);
+          const GMUInt64 lastmask1 = num_seminibbles <= 32 ?
+                                     nobits :
+                                     num_seminibbles == 64 ?
+                                     allbits :
+                                     allbits >> (128 - 2*num_seminibbles);
+          /*---Operate on columns x_i and x_j elementwise---*/
+          int f = 0;
+          const int f_last = numpfieldl - 1;
+          for (f = 0; f <= f_last; ++f) {
+            const int indI = f + numpfieldl * I;
+            const int indJ = f + numpfieldl * J;
 
+            /*-----*/
+
+            const GMUInt64 vI0 =
+                *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[0]);
+            const GMUInt64 vJ0 =
+                *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[0]);
+
+            const GMUInt64 activebits0 = f < f_last ? allbits : lastmask0;
+            const GMUInt64 vI0x = step_2way==0 ? vI0 | ~activebits0 : vI0;
+
+            const GMUInt64  vI0_0 =   vI0x       & oddbits;
+            const GMUInt64  vI0_1 =  (vI0x >> 1) & oddbits;
+            const GMUInt64  vJ0_0 =   vJ0        & oddbits;
+            const GMUInt64  vJ0_1 =  (vJ0  >> 1) & oddbits;
+            const GMUInt64 nvI0_0 = ~ vI0x       & oddbits;
+            const GMUInt64 nvI0_1 = ~(vI0x >> 1) & oddbits;
+            /*
+            const GMUInt64 nvJ0_0 = ~ vJ0        & oddbits;
+            const GMUInt64 nvJ0_1 = ~(vJ0  >> 1) & oddbits;
+            */
+
+            const GMUInt64  vI0_match =
+              step_2way==0 ?  nvI0_0 & nvI0_1  & oddbits : 
+              step_2way==1 ? ( vI0_0 ^  vI0_1) & oddbits : 
+                               vI0_0 &  vI0_1  & oddbits;
+            const GMUInt64 nvI0_match =
+              step_2way==0 ? ( vI0_0 |  vI0_1) & oddbits : 
+              step_2way==1 ? ( vI0_0 ^ nvI0_1) & oddbits : 
+                             (nvI0_0 | nvI0_1) & oddbits;
+
+            const GMUInt64 r0_0 =  vI0_match & (vJ0_0 |  vJ0_1);
+            const GMUInt64 r0_1 = nvI0_match | (vJ0_0 &  vJ0_1);
+            const GMUInt64 r0 = r0_0 | (r0_1 << 1);
+            ((GMBits2x64*)(matV_buf.h))[indI].data[0] = *(GMBits1_2x64*)&r0;
+
+            /*-----*/
+
+            const GMUInt64 vI1 =
+                *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[1]);
+            const GMUInt64 vJ1 =
+                *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[1]);
+
+            const GMUInt64 activebits1 = f < f_last ? allbits : lastmask1;
+            const GMUInt64 vI1x = step_2way==0 ? vI1 | ~activebits1 : vI1;
+
+            const GMUInt64  vI1_0 =   vI1x       & oddbits;
+            const GMUInt64  vI1_1 =  (vI1x >> 1) & oddbits;
+            const GMUInt64  vJ1_0 =   vJ1        & oddbits;
+            const GMUInt64  vJ1_1 =  (vJ1  >> 1) & oddbits;
+            const GMUInt64 nvI1_0 = ~ vI1x       & oddbits;
+            const GMUInt64 nvI1_1 = ~(vI1x >> 1) & oddbits;
+            /*
+            const GMUInt64 nvJ1_0 = ~ vJ1        & oddbits;
+            const GMUInt64 nvJ1_1 = ~(vJ1  >> 1) & oddbits;
+            */
+
+            const GMUInt64  vI1_match =
+              step_2way==0 ?  nvI1_0 & nvI1_1  & oddbits : 
+              step_2way==1 ? ( vI1_0 ^  vI1_1) & oddbits : 
+                               vI1_0 &  vI1_1  & oddbits;
+            const GMUInt64 nvI1_match =
+              step_2way==0 ? ( vI1_0 |  vI1_1) & oddbits : 
+              step_2way==1 ? ( vI1_0 ^ nvI1_1) & oddbits : 
+                             (nvI1_0 | nvI1_1) & oddbits;
+
+            const GMUInt64 r1_0 =  vI1_match & (vJ1_0 |  vJ1_1);
+            const GMUInt64 r1_1 = nvI1_match | (vJ1_0 &  vJ1_1);
+            const GMUInt64 r1 = r1_0 | (r1_1 << 1);
+            ((GMBits2x64*)(matV_buf.h))[indI].data[1] = *(GMBits1_2x64*)&r1;
+          }  //---for f---//
+        }    //---for i---//
         /*----------*/
-      } /*---if (Env_all2all(env))---*/
+      } /*---Env_metric_type(env)---*/
       /*----------*/
 
-      /*----------*/
-    } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC) {
-      /*----------*/
+      /*---Send matrix matV to GPU---*/
+
+      gm_set_matrix_start(&matV_buf, numpfieldl, I_max, env);
+      gm_set_matrix_wait(env);
+
+      /*---Initialize result matrix to zero (apparently magma requires)---*/
+
+      GMMirroredPointer* matB_buf_local =
+          Env_num_proc_field(env) == 1 ? &matB_buf : &mat_buf_tmp;
+
+      gm_magma_set_matrix_zero_start(matB_buf_local, numvecl, I_max, env);
+
+      /*---Perform pseudo matrix-matrix product matB = matV^T PROD X---*/
+
+      gm_magma_gemm_start(I_max, numvecl, numpfieldl, matV_buf.d, numpfieldl,
+                          vectors_K_buf->d, numpfieldl, matB_buf_local->d, I_max,
+                          env);
+      gm_compute_wait(env);
+
+      /*---Copy result matrix matB from GPU---*/
+
+      gm_get_matrix_start(matB_buf_local, I_max, numvecl, env);
+      gm_get_matrix_wait(env);
+
+      // TODO - outline into gm_allreduce_metrics
+      if (Env_num_proc_field(env) > 1) {
+        int mpi_code = 0;
+        mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+        mpi_code = MPI_Allreduce(matB_buf_local->h, matB_buf.h,
+                                 numvecl * (size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
+                                 Env_mpi_comm_field(env));
+        GMAssert(mpi_code == MPI_SUCCESS);
+      }
+      // TODO - outline into gm_allreduce_metrics
+
+      /*---Compute numerators using 2-way pieces and ijk piece---*/
 
       /*----------*/
-      if (!Env_all2all(env)) {
+      if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
         /*----------*/
 
-        const GMTally1 correction00 =
-            4 * (((vectors_i->num_field + 64 - 1) / 64) * 64 -
-                 vectors_i->num_field);
-
-        int I = 0;
-        for (I = I_min; I < I_max; ++I) {
-          // const GMTally2x2 mIJ = ((GMTally2x2*)(matM_IJ_buf->h))[I +
-          // numvecl*J];
-          // GMTally1 mIJ00, mIJ01;
-          // GMTally1_decode(&mIJ00, &mIJ01, mIJ.data[0]);
-          // GMTally1 mIJ10, mIJ11;
-          // GMTally1(&mIJ10, &mIJ11, mIJ.data[1]);
-
-          int K = 0;
-          for (K = K_min; K < K_max; ++K) {
-            /*---This is the notall2all case -- has no axis permutation---*/
-
-            const GMTally2x2 mJK =
-                ((GMTally2x2*)(matM_JK_buf->h))[J + numvecl * K];
-            GMTally1 mJK00, mJK01;
-            GMTally1_decode(&mJK00, &mJK01, mJK.data[0]);
-            mJK00 -= correction00;
-            GMTally1 mJK10, mJK11;
-            GMTally1_decode(&mJK10, &mJK11, mJK.data[1]);
-
-            const GMTally2x2 mKIK =
-                ((GMTally2x2*)(matM_KIK_buf->h))[K + numvecl * I];
-            GMTally1 mKIK00, mKIK01;
-            GMTally1_decode(&mKIK00, &mKIK01, mKIK.data[0]);
-            mKIK00 -= correction00;
-            GMTally1 mKIK10, mKIK11;
-            GMTally1_decode(&mKIK10, &mKIK11, mKIK.data[1]);
-
-            const GMTally2x2 mB = ((GMTally2x2*)(matB_buf.h))[I + I_max * K];
-            GMTally1 mB00, mB01;
-            GMTally1_decode(&mB00, &mB01, mB.data[0]);
-            mB00 -= correction00;
-            GMTally1 mB10, mB11;
-            GMTally1_decode(&mB10, &mB11, mB.data[1]);
-
-            //---TODO: assertions to confirm arithmetic is what it should be
-
-            const GMTally1 r111 = mB01 + mKIK11 - mJK01;
-            const GMTally1 r110 = mB00 + mKIK10 - mJK00;
-            const GMTally1 r101 = mB11 + mKIK11 - mJK11;
-            const GMTally1 r100 = mB10 + mKIK10 - mJK10;
-
-            const GMTally1 r011 = 2 * mJK11 - r111;
-            const GMTally1 r010 = 2 * mJK10 - r110;
-            const GMTally1 r001 = 2 * mJK01 - r101;
-            const GMTally1 r000 = 2 * mJK00 - r100;
-
-            printf("%i %i %i %i %i %i %i %i\n", (int)r111, (int)r110, (int)r101,
-                   (int)r100, (int)r011, (int)r010, (int)r001, (int)r000);
-
-            /*---NOTE: pay attention to order here---*/
-
-            GMTally4x2 numerator;
-            numerator.data[0] = GMTally1_encode(r000, r001);
-            numerator.data[1] = GMTally1_encode(r010, r011);
-            numerator.data[2] = GMTally1_encode(r100, r101);
-            numerator.data[3] = GMTally1_encode(r110, r111);
-            const int i = I;
-            const int j = J;
-            const int k = K;
-            GMMetrics_tally4x2_set_3(metrics, i, j, k, numerator, env);
-          } /*---for K---*/
-        }   /*---for I---*/
-
         /*----------*/
-      } else /*---if (Env_all2all(env))---*/ {
+        if (!Env_all2all(env)) {
+          /*----------*/
+
+          int I = 0;
+          for (I = I_min; I < I_max; ++I) {
+            const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl * J];
+            int K = 0;
+            for (K = K_min; K < K_max; ++K) {
+              const GMFloat min_JK =
+                  ((GMFloat*)(matM_JK_buf->h))[J + numvecl * K];
+              const GMFloat min_KIK =
+                  ((GMFloat*)(matM_KIK_buf->h))[K + numvecl * I];
+              // sum of mins vectors i, j, and k is matB(k,i)
+              const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max * K];
+              const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
+              const int i = I;
+              const int j = J;
+              const int k = K;
+              GMMetrics_float_set_3(metrics, i, j, k, numerator, env);
+            } /*---for K---*/
+          }   /*---for I---*/
+
+          /*----------*/
+        } else /*---if (Env_all2all(env))---*/ {
+          /*----------*/
+
+          int I = 0;
+          for (I = I_min; I < I_max; ++I) {
+            const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
+            int K = 0;
+            for (K = K_min; K < K_max; ++K) {
+              const GMFloat min_JK =
+                  ((GMFloat*)(matM_JK_buf->h))[J + numvecl * K];
+              const GMFloat min_KIK =
+                  is_part3 ? ((GMFloat*)(matM_KIK_buf->h))[K + numvecl * I]
+                           : ((GMFloat*)(matM_KIK_buf->h))[I + numvecl * K];
+              // sum of mins vectors i, j, and k is matB(k,i)
+              const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max * K];
+              const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
+              /* clang-format off */
+              const int i = !is_part3 ?   I :
+                                 sax0 ?   J :
+                                 sax1 ?   I :
+                              /* sax2 ?*/ K;
+              const int j = !is_part3 ?   J :
+                                 sax0 ?   K :
+                                 sax1 ?   J :
+                              /* sax2 ?*/ I;
+              const int k = !is_part3 ?   K :
+                                 sax0 ?   I :
+                                 sax1 ?   K :
+                              /* sax2 ?*/ J;
+              /* clang-format on */
+              GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+                                            numerator, env);
+            } /*---for K---*/
+          }   /*---for I---*/
+
+          /*----------*/
+        } /*---if (Env_all2all(env))---*/
         /*----------*/
 
-        int I = 0;
-        for (I = I_min; I < I_max; ++I) {
-          int K = 0;
-          for (K = K_min; K < K_max; ++K) {
-/*---For the permuted case,
-     1) pay attention to KIK access
-     2) swap 01 and 10 if needed.
----*/
+        /*----------*/
+      } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC) {
+        /*----------*/
+
+        /*----------*/
+        if (!Env_all2all(env)) {
+          /*----------*/
+
+          int I = 0;
+          for (I = I_min; I < I_max; ++I) {
+
+            int K = 0;
+            for (K = K_min; K < K_max; ++K) {
+              /*---This is the notall2all case -- has no axis permutation---*/
+
+              const int i = I;
+              const int j = J;
+              const int k = K;
+
+              GMTally4x2 numerator = step_2way==0 ? GMTally4x2_null() :
+                              GMMetrics_tally4x2_get_3(metrics, i, j, k, env);
+
+              GMTally1 r000, r001;
+              GMTally1_decode(&r000, &r001, numerator.data[0]);
+              GMTally1 r010, r011;
+              GMTally1_decode(&r010, &r011, numerator.data[1]);
+              GMTally1 r100, r101;
+              GMTally1_decode(&r100, &r101, numerator.data[2]);
+              GMTally1 r110, r111;
+              GMTally1_decode(&r110, &r111, numerator.data[3]);
+
+              const GMTally2x2 mB = ((GMTally2x2*)(matB_buf.h))[I + I_max * K];
+              GMTally1 mB00, mB01;
+              GMTally1_decode(&mB00, &mB01, mB.data[0]);
+              GMTally1 mB10, mB11;
+              GMTally1_decode(&mB10, &mB11, mB.data[1]);
+
+              if (step_2way==0) {
+                r000 += 2 * mB00;
+                r001 += 2 * mB01;
+                r010 += 2 * mB10;
+                r011 += 2 * mB11;
+              } else if (step_2way==1) {
+                r000 += mB00;
+                r001 += mB01;
+                r010 += mB10;
+                r011 += mB11;
+                r100 += mB00;
+                r101 += mB01;
+                r110 += mB10;
+                r111 += mB11;
+              } else /*---step_2way==2---*/ {
+                r100 += 2 * mB00;
+                r101 += 2 * mB01;
+                r110 += 2 * mB10;
+                r111 += 2 * mB11;
+              }
+
+//              printf("%i %i %i %i\n",
+//                     (int)mB00, (int)mB01, (int)mB10, (int)mB11);
+
+//              printf("%i %i %i %i %i %i %i %i\n",
+//                (int)r000, (int)r001, (int)r010, (int)r011,
+//                (int)r100, (int)r101, (int)r110, (int)r111);
+
+              /*---NOTE: pay attention to order here---*/
+
+              numerator.data[0] = GMTally1_encode(r000, r001);
+              numerator.data[1] = GMTally1_encode(r010, r011);
+              numerator.data[2] = GMTally1_encode(r100, r101);
+              numerator.data[3] = GMTally1_encode(r110, r111);
+              GMMetrics_tally4x2_set_3(metrics, i, j, k, numerator, env);
+            } /*---for K---*/
+          }   /*---for I---*/
+
+          /*----------*/
+        } else /*---if (Env_all2all(env))---*/ {
+          /*----------*/
+
+          int I = 0;
+          for (I = I_min; I < I_max; ++I) {
+            int K = 0;
+            for (K = K_min; K < K_max; ++K) {
+  /*---For the permuted case,
+       1) pay attention to KIK access
+       2) swap 01 and 10 if needed.
+  ---*/
 
 #ifdef skip
 
-            /* clang-format off */
-            const int i = !is_part3 ?   I :
-                               sax0 ?   J :
-                               sax1 ?   I :
-                            /* sax2 ?*/ K;
-            const int j = !is_part3 ?   J :
-                               sax0 ?   K :
-                               sax1 ?   J :
-                            /* sax2 ?*/ I;
-            const int k = !is_part3 ?   K :
-                               sax0 ?   I :
-                               sax1 ?   K :
-                            /* sax2 ?*/ J;
-/* clang-format on */
+              /* clang-format off */
+              const int i = !is_part3 ?   I :
+                                 sax0 ?   J :
+                                 sax1 ?   I :
+                              /* sax2 ?*/ K;
+              const int j = !is_part3 ?   J :
+                                 sax0 ?   K :
+                                 sax1 ?   J :
+                              /* sax2 ?*/ I;
+              const int k = !is_part3 ?   K :
+                                 sax0 ?   I :
+                                 sax1 ?   K :
+                              /* sax2 ?*/ J;
+              /* clang-format on */
 #endif
 
-          } /*---for K---*/
-        }   /*---for I---*/
+//TODO: add code here
+//TODO: for CCC 3-way GPU can remove the 3 "pure" 2-way computations earlier
+
+
+
+
+
+
+            } /*---for K---*/
+          }   /*---for I---*/
+
+          /*----------*/
+        } /*---if (Env_all2all(env))---*/
+        /*----------*/
 
         /*----------*/
-      } /*---if (Env_all2all(env))---*/
+      } /*---Env_metric_type(env)---*/
       /*----------*/
 
-      /*----------*/
-    } /*---Env_metric_type(env)---*/
-    /*----------*/
+    } /*---for step_2way---*/
 
   } /*---for J---*/
 

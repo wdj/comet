@@ -429,47 +429,50 @@ void SystemTest_ccc3_simple_case(int compute_method) {
     {
       const int A = 0;
       const int T = 1;
-      int i = 0;
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * A + 1 * A, env);
+      int f = 0;
+      const int i = 0;
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
     }
     {
       const int A = 0;
       const int T = 1;
-      int i = 0;
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * A, env);
+      int f = 0;
+      const int i = 1;
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
     }
     {
       const int A = 0;
       const int T = 1;
-      int i = 0;
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * A, env);
-      GMVectors_bits2_set(vectors, i++, 2, 2 * A + 1 * A, env);
+      int f = 0;
+      const int i = 2;
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * A, env);
     }
   }
 
@@ -640,6 +643,7 @@ void SystemTest_ccc_() {
 
 /*===========================================================================*/
 
+#if 1
 TEST(SystemTest, czekanowski) {
   SystemTest_czekanowski_();
 }
@@ -651,10 +655,11 @@ TEST(SystemTest, ccc2_simple) {
 TEST(SystemTest, ccc) {
   SystemTest_ccc_();
 }
+#endif
 
-// TEST(SystemTest,ccc3_simple) {
-//  SystemTest_ccc3_simple_();
-//}
+ TEST(SystemTest,ccc3_simple) {
+  SystemTest_ccc3_simple_();
+}
 
 /*===========================================================================*/
 

@@ -912,6 +912,59 @@ static GMFloat GMMetrics_float_get_all2all_3(GMMetrics* metrics,
   return GMMetrics_float_get_from_index(metrics, index, env);
 }
 
+/*---------------------------------------------------------------------------*/
+
+static GMTally4x2 GMMetrics_tally4x2_get_3(GMMetrics* metrics,
+                                           int i,
+                                           int j,
+                                           int k,
+                                           GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
+  GMAssert(i >= 0);
+  GMAssert(i < metrics->num_vector_local);
+  GMAssert(j >= 0);
+  GMAssert(j < metrics->num_vector_local);
+  GMAssert(k >= 0);
+  GMAssert(k < metrics->num_vector_local);
+  GMAssert(i < j);
+  GMAssert(j < k);
+  GMAssert(env);
+  GMAssert(Env_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
+
+  size_t index = GMMetrics_index_from_coord_3(metrics, i, j, k, env);
+  return GMMetrics_tally4x2_get_from_index(metrics, index, env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+static GMTally4x2 GMMetrics_tally4x2_get_all2all_3(GMMetrics* metrics,
+                                                   int i,
+                                                   int j,
+                                                   int k,
+                                                   int j_proc,
+                                                   int k_proc,
+                                                   GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
+  GMAssert(Env_all2all(env));
+  GMAssert(i >= 0);
+  GMAssert(j >= 0);
+  GMAssert(k >= 0);
+  GMAssert(j_proc >= 0);
+  GMAssert(j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc >= 0);
+  GMAssert(k_proc < Env_num_proc_vector(env));
+  GMAssert(Env_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
+  /*---WARNING: these conditions are not exhaustive---*/
+
+  size_t index = GMMetrics_index_from_coord_all2all_3(metrics, i, j, k, j_proc,
+                                                      k_proc, env);
+  return GMMetrics_tally4x2_get_from_index(metrics, index, env);
+}
+
 /*===========================================================================*/
 /*---Accessors: indexing: global coord from (contig) index: 2-way---*/
 
