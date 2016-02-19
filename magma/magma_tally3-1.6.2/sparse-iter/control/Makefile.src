@@ -1,0 +1,90 @@
+# Automatically generated from Makefile ZHDR and ZSRC
+CHDR = \
+	
+
+DHDR = \
+	
+
+SHDR = \
+	
+
+CSRC = \
+	magma_tally3_cdomainoverlap.cpp \
+	magma_tally3_cutil_sparse.cpp \
+	magma_tally3_cfree.cpp \
+	magma_tally3_cmatrixchar.cpp \
+	magma_tally3_cmconverter.cpp \
+	magma_tally3_cmgenerator.cpp \
+	magma_tally3_cmio.cpp \
+	magma_tally3_csolverinfo.cpp \
+	magma_tally3_ccsrsplit.cpp \
+	magma_tally3_citeriluutils.cpp \
+	magma_tally3_cmcsrpass.cpp \
+	magma_tally3_cmcsrpass_gpu.cpp \
+	magma_tally3_cmcsrcompressor.cpp \
+	magma_tally3_cmscale.cpp \
+	magma_tally3_cmdiff.cpp \
+	magma_tally3_cmlumerge.cpp \
+	magma_tally3_cmtranspose.cpp \
+	magma_tally3_cmtransfer.cpp \
+	magma_tally3_cmilustruct.cpp \
+	magma_tally3_csort.cpp \
+	magma_tally3_cvinit.cpp \
+	magma_tally3_cvio.cpp \
+	magma_tally3_cvtranspose.cpp \
+	magma_tally3_cvpass.cpp \
+	magma_tally3_cvpass_gpu.cpp
+
+DSRC = \
+	magma_tally3_ddomainoverlap.cpp \
+	magma_tally3_dutil_sparse.cpp \
+	magma_tally3_dfree.cpp \
+	magma_tally3_dmatrixchar.cpp \
+	magma_tally3_dmconverter.cpp \
+	magma_tally3_dmgenerator.cpp \
+	magma_tally3_dmio.cpp \
+	magma_tally3_dsolverinfo.cpp \
+	magma_tally3_dcsrsplit.cpp \
+	magma_tally3_diteriluutils.cpp \
+	magma_tally3_dmcsrpass.cpp \
+	magma_tally3_dmcsrpass_gpu.cpp \
+	magma_tally3_dmcsrcompressor.cpp \
+	magma_tally3_dmscale.cpp \
+	magma_tally3_dmdiff.cpp \
+	magma_tally3_dmlumerge.cpp \
+	magma_tally3_dmtranspose.cpp \
+	magma_tally3_dmtransfer.cpp \
+	magma_tally3_dmilustruct.cpp \
+	magma_tally3_dsort.cpp \
+	magma_tally3_dvinit.cpp \
+	magma_tally3_dvio.cpp \
+	magma_tally3_dvtranspose.cpp \
+	magma_tally3_dvpass.cpp \
+	magma_tally3_dvpass_gpu.cpp
+
+SSRC = \
+	magma_tally3_sdomainoverlap.cpp \
+	magma_tally3_sutil_sparse.cpp \
+	magma_tally3_sfree.cpp \
+	magma_tally3_smatrixchar.cpp \
+	magma_tally3_smconverter.cpp \
+	magma_tally3_smgenerator.cpp \
+	magma_tally3_smio.cpp \
+	magma_tally3_ssolverinfo.cpp \
+	magma_tally3_scsrsplit.cpp \
+	magma_tally3_siteriluutils.cpp \
+	magma_tally3_smcsrpass.cpp \
+	magma_tally3_smcsrpass_gpu.cpp \
+	magma_tally3_smcsrcompressor.cpp \
+	magma_tally3_smscale.cpp \
+	magma_tally3_smdiff.cpp \
+	magma_tally3_smlumerge.cpp \
+	magma_tally3_smtranspose.cpp \
+	magma_tally3_smtransfer.cpp \
+	magma_tally3_smilustruct.cpp \
+	magma_tally3_ssort.cpp \
+	magma_tally3_svinit.cpp \
+	magma_tally3_svio.cpp \
+	magma_tally3_svtranspose.cpp \
+	magma_tally3_svpass.cpp \
+	magma_tally3_svpass_gpu.cpp

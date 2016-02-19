@@ -1,0 +1,13 @@
+prefix=@INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: magma_tally3
+Description: Matrix Algebra on GPU and Multicore Architectures
+Version: 1.6.1
+Cflags: -I${includedir} @CFLAGS@
+Libs: -L${libdir} -lmagma_tally3 @LIBS@
+Libs.private:
+Requires: @MAGMA_tally3_REQUIRED@
+Requires.private:
