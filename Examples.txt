@@ -13,10 +13,12 @@ mkdir gm_work
 cd gm_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-git checkout -q tags/v0.3   #---use currently active release tag.
-cd genomics_gpu/magma/magma_minproduct-1.6.2
-../make.sh
-cd ../../..
+git checkout -q tags/v0.4   #---use currently active release tag.
+for magma_version in minproduct tally3 tally4; do
+  cd genomics_gpu/magma/magma_${magma_version}-1.6.2
+  ../make.sh
+  cd ../../..
+done
 mkdir build_debug
 cd build_debug
 ../genomics_gpu/scripts/cmake.sh
@@ -48,14 +50,14 @@ Options:
         czekanowski=Czekanowski (default), ccc=CCC)
 
     --num_way <value>
-        dimension of metric to compute (2=2-way, 3=3-way)
+        dimension of metric to compute (2=2-way (default), 3=3-way)
 
     --all2all
         whether to perform global all-to-all rather than computing
         on each processor separately (yes=yes, no=no (default))
 
     --compute_method
-        manner of computing the result (CPU=cpu, GPU=gpu,
+        manner of computing the result (CPU=cpu, GPU=gpu (default),
         REF=reference method)
 
     --num_proc_vector
@@ -64,14 +66,14 @@ Options:
 
     --num_proc_field
         number of processors allocated along the dimension of the
-        number of fields (default is 1) (not available for all methods)
+        number of fields (default is 1) (not available for REF, CPU cases)
 
     ---verbosity <value>
         verbosity level of output (0=none, 1=some (default) 2=more)
 
 -------------------------------------------------------------------------------
 
-# The folloowing test runs assume:
+# The following test runs assume:
 
 qsub -Astf006 -I -lnodes=8 -lwalltime=2:0:0
 
@@ -282,4 +284,21 @@ Application 9731460 resources: utime ~16s, stime ~8s, Rss ~530896, inblocks ~160
 
 metrics checksum 0-601335747387234782-436687494557262848 time 0.513437 ops 6.183746e+11 rate 1.204383e+12
 Application 9731461 resources: utime ~16s, stime ~15s, Rss ~309528, inblocks ~35578, outblocks ~22896
+
+#--------------------
+# 3-way CCC metric, all2all.
+#--------------------
+
+for compute_method in CPU GPU ; do
+  aprun -n3 -N1 ./install_release/bin/genomics_metric \
+      --num_field 1000 --num_vector_local 60 --num_way 3 \
+      --compute_method $compute_method --verbosity 1 --metric_type ccc
+  echo
+done
+
+metrics checksum 0-484359406103121-765088343711521132 time 0.291193 ops 1.026600e+08 rate 3.525497e+08
+Application 9985317 resources: utime ~0s, stime ~3s, Rss ~15024, inblocks ~12480, outblocks ~12156
+
+metrics checksum 0-484359406103121-765088343711521132 time 0.051574 ops 1.026600e+08 rate 1.990538e+09
+Application 9985318 resources: utime ~0s, stime ~3s, Rss ~167064, inblocks ~12534, outblocks ~12156
 
