@@ -490,10 +490,36 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         } break;
         /*--------------------*/
         case GM_DATA_TYPE_TALLY4X2: {
-          // TODO: permute the indices as needed
-          const int i0 = i_value / 4;
-          const int i1 = (i_value / 2) % 2;
-          const int i2 = i_value % 2;
+          const int i0_unpermuted = i_value / 4;
+          const int i1_unpermuted = (i_value / 2) % 2;
+          const int i2_unpermuted = i_value % 2;
+          // FIX: make sure this permutation direction correct.
+
+
+
+#if 0
+          const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
+                         ind_coords[0] == 1 ? i1_unpermuted :
+                                              i2_unpermuted;
+          const int i1 = ind_coords[1] == 0 ? i0_unpermuted :
+                         ind_coords[1] == 1 ? i1_unpermuted :
+                                              i2_unpermuted;
+          const int i2 = ind_coords[2] == 0 ? i0_unpermuted :
+                         ind_coords[2] == 1 ? i1_unpermuted :
+                                              i2_unpermuted;
+#endif
+
+          const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
+                         ind_coords[1] == 0 ? i1_unpermuted :
+                                              i2_unpermuted;
+          const int i1 = ind_coords[0] == 1 ? i0_unpermuted :
+                         ind_coords[1] == 1 ? i1_unpermuted :
+                                              i2_unpermuted;
+          const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
+                         ind_coords[1] == 2 ? i1_unpermuted :
+                                              i2_unpermuted;
+
+
           value =
               GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env);
         } break;

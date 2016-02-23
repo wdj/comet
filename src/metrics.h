@@ -511,6 +511,8 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
       smax = si;
     }
   }
+  GMAssert(smin <= smid);
+  GMAssert(smid <= smax);
 
   //---TODO: optimize
   const GMFloat one = 1;
@@ -784,6 +786,34 @@ static void GMMetrics_float_set_all2all_3(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+static void GMMetrics_float3_M_set_all2all_3(GMMetrics* metrics,
+                                             int i,
+                                             int j,
+                                             int k,
+                                             int j_proc,
+                                             int k_proc,
+                                             GMFloat3 value,
+                                             GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(Env_num_way(env) == GM_NUM_WAY_THREE);
+  GMAssert(Env_all2all(env));
+  GMAssert(i >= 0);
+  GMAssert(j >= 0);
+  GMAssert(k >= 0);
+  GMAssert(j_proc >= 0);
+  GMAssert(j_proc < Env_num_proc_vector(env));
+  GMAssert(k_proc >= 0);
+  GMAssert(k_proc < Env_num_proc_vector(env));
+  /*---WARNING: these conditions are not exhaustive---*/
+
+  size_t index = GMMetrics_index_from_coord_all2all_3(metrics, i, j, k, j_proc,
+                                                      k_proc, env);
+  ((GMFloat3*)(metrics->data_M))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
                                              int i,
                                              int j,
@@ -803,7 +833,7 @@ static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
   GMAssert(j_proc < Env_num_proc_vector(env));
   GMAssert(k_proc >= 0);
   GMAssert(k_proc < Env_num_proc_vector(env));
-  GMAssert(Env_data_type_metrics(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(Env_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
   /*---WARNING: these conditions are not exhaustive---*/
 
   size_t index = GMMetrics_index_from_coord_all2all_3(metrics, i, j, k, j_proc,
