@@ -92,6 +92,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute number of elements etc.---*/
 
+//CHANGE
   /*--------------------*/
   if (Env_all2all(env)) {
     /*--------------------*/
@@ -375,8 +376,9 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
 }
 
 /*===========================================================================*/
-/*---Metrics checksum---*/
+/*---Functions for metrics checksum---*/
 
+/*---------------------------------------------------------------------------*/
 /*---Helper function - perform one bubble sort step---*/
 
 static void gm_makegreater(size_t* i, size_t* j, int* ind_i, int* ind_j) {
@@ -391,6 +393,7 @@ static void gm_makegreater(size_t* i, size_t* j, int* ind_i, int* ind_j) {
 }
 
 /*---------------------------------------------------------------------------*/
+/*---Helper function - left shift that works for any shift amount---*/
 
 static size_t gm_lshift(size_t a, int j) {
   if (j >= 64 || j <= -64) {
@@ -400,6 +403,7 @@ static size_t gm_lshift(size_t a, int j) {
 }
 
 /*---------------------------------------------------------------------------*/
+/*---Metrics checksum---*/
 
 GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   GMAssert(metrics != NULL);

@@ -382,9 +382,15 @@ typedef struct {
   int num_proc_world_;
   int num_proc_;
   int num_proc_vector_;
+  int num_proc_vector_i_;
+  int num_proc_vector_j_;
+  int num_proc_vector_k_;
   int num_proc_field_;
   int proc_num_;
   int proc_num_vector_;
+  int proc_num_vector_i_;
+  int proc_num_vector_j_;
+  int proc_num_vector_k_;
   int proc_num_field_;
   _Bool is_proc_active_;
   /*---CUDA---*/

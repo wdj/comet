@@ -329,10 +329,18 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_field) {
   env->num_proc_field_ = num_proc_field;
   env->num_proc_ = num_proc_vector * num_proc_field;
 
+  env->num_proc_vector_i_ = env->num_proc_vector_;
+  env->num_proc_vector_j_ = 1;
+  env->num_proc_vector_k_ = 1;
+
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &env->proc_num_);
   GMAssert(mpi_code == MPI_SUCCESS);
   env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_;
   env->proc_num_field_ = env->proc_num_ / env->num_proc_vector_;
+
+  env->proc_num_vector_i_ =  env->proc_num_vector_;
+  env->proc_num_vector_j_ =  0;
+  env->proc_num_vector_k_ =  0;
 
   /*---Make new communicators---*/
 

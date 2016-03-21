@@ -138,6 +138,7 @@ static int gm_metrics_3way_section_num(GMMetrics* metrics,
 /*===========================================================================*/
 /*---Accessors: indexing: (contig) index from coord---*/
 
+//CHANGE
 static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
                                            int i,
                                            int j,
@@ -162,6 +163,7 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+//CHANGE
 static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
                                                    int i,
                                                    int j,
@@ -199,6 +201,7 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+//CHANGE
 static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
                                            int i,
                                            int j,
@@ -231,6 +234,7 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+//CHANGE
 static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                                                    int i,
                                                    int j,
