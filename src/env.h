@@ -382,16 +382,19 @@ typedef struct {
   int num_proc_world_;
   int num_proc_;
   int num_proc_vector_;
+  int num_proc_repl_;
+  int num_proc_field_;
   int num_proc_vector_i_;
   int num_proc_vector_j_;
   int num_proc_vector_k_;
-  int num_proc_field_;
+  int num_proc_vector_all_;
   int proc_num_;
   int proc_num_vector_;
+  int proc_num_field_;
   int proc_num_vector_i_;
   int proc_num_vector_j_;
   int proc_num_vector_k_;
-  int proc_num_field_;
+  int proc_num_vector_all_;
   _Bool is_proc_active_;
   /*---CUDA---*/
   cudaStream_t stream_compute_;
@@ -504,6 +507,30 @@ static int Env_num_proc_vector(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
+#if 0
+static int Env_num_proc_vector_i(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_proc_vector_i_;
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_num_proc_vector_j(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_proc_vector_j_;
+}
+
+/*---------------------------------------------------------------------------*/
+#if 0
+static int Env_num_proc_vector_k(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_proc_vector_k_;
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
+
 static int Env_num_proc_field(const GMEnv* env) {
   GMAssert(env != NULL);
   return env->num_proc_field_;
@@ -521,6 +548,27 @@ static int Env_proc_num(const GMEnv* env) {
 static int Env_proc_num_vector(const GMEnv* env) {
   GMAssert(env != NULL);
   return env->proc_num_vector_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_proc_num_vector_i(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->proc_num_vector_i_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_proc_num_vector_j(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->proc_num_vector_j_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int Env_proc_num_vector_k(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->proc_num_vector_k_;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -543,7 +591,8 @@ void Env_set_compute_method(GMEnv* env, int compute_method);
 int Env_data_type_vectors(const GMEnv* env);
 int Env_data_type_metrics(const GMEnv* env);
 
-void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_field);
+void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_repl,
+                      int num_proc_field);
 
 cudaStream_t Env_stream_compute(GMEnv* env);
 cudaStream_t Env_stream_togpu(GMEnv* env);
@@ -633,7 +682,7 @@ static int gm_log2(size_t n) {
 /*---------------------------------------------------------------------------*/
 
 static size_t gm_nchoosek(int n, int k) {
-  GMAssert(n >= 1);
+  GMAssert(n >= 0);
   GMAssert(k >= 0 && k <= n);
   int i;
   size_t num = 1;

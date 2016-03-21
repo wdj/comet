@@ -90,6 +90,9 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const int i_proc = Env_proc_num_vector(env);
 
+  const int proc_j = Env_proc_num_vector_j(env);
+  const int nproc_j = Env_num_proc_vector_j(env);
+
   /*---Compute number of elements etc.---*/
 
 //CHANGE
@@ -104,12 +107,22 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->num_elts_local = 0;
       /*---Compute size part 1: (triangle) i_proc==j_proc part---*/
       const int nchoosek = gm_nchoosek(num_vector_local, Env_num_way(env));
-      metrics->num_elts_local += nchoosek;
+      metrics->num_elts_local += proc_j == 0 ? nchoosek : 0;
       metrics->num_elts_0 = metrics->num_elts_local;
       /*---Compute size part 2: (wrapped rectangle) i_proc!=j_proc part---*/
-      const int num_offdiag_block = num_proc % 2 == 0 && 2 * i_proc >= num_proc
-                                        ? (num_proc / 2) - 1
-                                        : (num_proc / 2);
+      /*---Total stored nonzero blocks this block row---*/
+      const int num_block_total = num_proc % 2 == 0 && 2 * i_proc >= num_proc
+                                        ? (num_proc / 2)
+                                        : (num_proc / 2) + 1;
+      /*---Number stored for this proc_j---*/
+      /*---Here we round-robin assign block diagonals to proc_j vals---*/
+      const int num_block = num_block_total / nproc_j +
+          (proc_j < num_block_total % nproc_j ? 1 : 0);
+      /*---Count offdiag blocks only---*/
+      const int num_offdiag_block = proc_j == 0 ? num_block - 1 : num_block;
+//      const int num_offdiag_block = num_proc % 2 == 0 && 2 * i_proc >= num_proc
+//                                        ? (num_proc / 2) - 1
+//                                        : (num_proc / 2);
       metrics->num_elts_local +=
           num_offdiag_block * num_vector_local * num_vector_local;
       /*---Allocate index---*/
@@ -118,14 +131,16 @@ void GMMetrics_create(GMMetrics* metrics,
       GMAssert(metrics->coords_global_from_index != NULL);
       /*---Set index part 1: (triangle) i_proc==j_proc part---*/
       size_t index = 0;
-      int j = 0;
-      for (j = 0; j < num_vector_local; ++j) {
-        const size_t j_global = j + num_vector_local * i_proc;
-        int i = 0;
-        for (i = 0; i < j; ++i) {
-          const size_t i_global = i + num_vector_local * i_proc;
-          metrics->coords_global_from_index[index++] =
-              i_global + metrics->num_vector * j_global;
+      if (proc_j == 0) {
+        int j = 0;
+        for (j = 0; j < num_vector_local; ++j) {
+          const size_t j_global = j + num_vector_local * i_proc;
+          int i = 0;
+          for (i = 0; i < j; ++i) {
+            const size_t i_global = i + num_vector_local * i_proc;
+            metrics->coords_global_from_index[index++] =
+                i_global + metrics->num_vector * j_global;
+          }
         }
       }
       /*---Set index part 2: (wrapped rectangle) i_proc!=j_proc part---*/
@@ -134,6 +149,9 @@ void GMMetrics_create(GMMetrics* metrics,
       size_t j_global_unwrapped = 0;
       for (j_global_unwrapped = beg; j_global_unwrapped < end;
            ++j_global_unwrapped) {
+        if (((int)(j_global_unwrapped/num_vector_local)) % nproc_j != proc_j) {
+          continue;
+        }
         const size_t j_global = j_global_unwrapped % metrics->num_vector;
         int i = 0;
         for (i = 0; i < num_vector_local; ++i) {
@@ -265,10 +283,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*--------------------*/
   } else { /*---if not all2all---*/
            /*--------------------*/
-    const int nchoosek = num_vector_local >= Env_num_way(env)
-                             ? gm_nchoosek(num_vector_local, Env_num_way(env))
-                             : 0;
-    metrics->num_elts_local = nchoosek;
+    metrics->num_elts_local = gm_nchoosek(num_vector_local, Env_num_way(env));
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssert(metrics->coords_global_from_index != NULL);

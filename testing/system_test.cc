@@ -333,7 +333,7 @@ void SystemTest_ccc2_simple_() {
   env->num_way_ = 2;
   env->all2all_ = GM_BOOL_FALSE;
   Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
-  Env_set_num_proc(env, 1, 1);
+  Env_set_num_proc(env, 1, 1, 1);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
@@ -418,7 +418,7 @@ void SystemTest_ccc3_simple_case(int compute_method) {
   env->num_way_ = 3;
   env->all2all_ = GM_BOOL_TRUE;
   Env_set_compute_method(env, compute_method);
-  Env_set_num_proc(env, 1, 1);
+  Env_set_num_proc(env, 1, 1, 1);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
