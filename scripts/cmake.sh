@@ -15,7 +15,8 @@
 #
 #==============================================================================
 
-#---Modules.
+#------------------------------------------------------------------------------
+#---Load modules.
 
 if [ "$PE_ENV" = "PGI" ] ; then
   module swap PrgEnv-pgi PrgEnv-gnu
@@ -25,25 +26,33 @@ module load acml
 module load cmake
 #module load cmake3/3.2.3
 
+#------------------------------------------------------------------------------
 #---Cleanup.
 
 rm -rf CMakeCache.txt
 rm -rf CMakeFiles
 
+#------------------------------------------------------------------------------
 #---Main project dir for cloned repo.
 
 if [ "$PROJECT_DIR" = "" ] ; then
   PROJECT_DIR=${PWD}/../genomics_gpu
 fi
 
-#---Build type.
+#------------------------------------------------------------------------------
+#---Set build type.
 
 if [ "$BUILD_TYPE" = "" ] ; then
   BUILD_TYPE=Debug
   #BUILD_TYPE=Release
 fi
+if [ "$BUILD_TYPE" != "Debug" -a "$BUILD_TYPE" != "Release" ] ; then
+  echo "Invalid setting for BUILD_TYPE. $BUILD_TYPE" 1>&2
+  exit 1
+fi
 
-#---Installation dir.
+#------------------------------------------------------------------------------
+#---Set installation dir.
 
 if [ "$INSTALL_DIR" = "" ] ; then
   if [ "$BUILD_TYPE" = "Debug" ] ; then
@@ -53,21 +62,33 @@ if [ "$INSTALL_DIR" = "" ] ; then
   fi
 fi
 
-#---Floating point precision for calculations.
+#------------------------------------------------------------------------------
+#---Set floating point precision for certain calculations.
 
 if [ "$FP_PRECISION" = "" ] ; then
-  #FP_PRECISION=FP_PRECISION_SINGLE
-  FP_PRECISION=FP_PRECISION_DOUBLE
+  #FP_PRECISION=SINGLE
+  FP_PRECISION=DOUBLE
+fi
+if [ "$FP_PRECISION" != "SINGLE" -a \
+     "$FP_PRECISION" != "DOUBLE" ] ; then
+  echo "Invalid setting for FP_PRECISION. $FP_PRECISION" 1>&2
+  exit 1
 fi
 
-#---Whether to build testing code.
+#------------------------------------------------------------------------------
+#---Set whether to build unit test code.
 
 if [ "$TESTING" = "" ] ; then
   TESTING=OFF
   #TESTING=ON
 fi
+if [ "$TESTING" != "ON" -a "$TESTING" != "OFF" ] ; then
+  echo "Invalid setting for TESTING. $TESTING" 1>&2
+  exit 1
+fi
 
 #==============================================================================
+#---Get unit test harness if needed.
 
 GTEST_DIR=""
 
@@ -83,6 +104,24 @@ if [ "$TESTING" = ON ] ; then
 fi
 
 #==============================================================================
+#---Perform cmake.
+
+C_CXX_FLAGS="             -DFP_PRECISION_$FP_PRECISION -DADD_"
+C_CXX_FLAGS="$C_CXX_FLAGS -I$PROJECT_DIR/magma/magma_minproduct-1.6.2/include"
+C_CXX_FLAGS="$C_CXX_FLAGS -I$PROJECT_DIR/magma/magma_tally4-1.6.2/include"
+C_CXX_FLAGS="$C_CXX_FLAGS -I$PROJECT_DIR/magma/magma_tally3-1.6.2/include"
+C_CXX_FLAGS="$C_CXX_FLAGS $CRAY_CUDATOOLKIT_INCLUDE_OPTS"
+
+C_FLAGS_RELEASE="-DNDEBUG -O3 -ffast-math -fargument-noalias-anything"
+C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -finline-functions"
+C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-limit=1000 -fomit-frame-pointer"
+
+LFLAGS="-L$PROJECT_DIR/magma/magma_minproduct-1.6.2/lib -lmagma_minproduct"
+LFLAGS="$LFLAGS -L$PROJECT_DIR/magma/magma_tally4-1.6.2/lib -lmagma_tally4"
+LFLAGS="$LFLAGS -L$PROJECT_DIR/magma/magma_tally3-1.6.2/lib -lmagma_tally3"
+LFLAGS="$LFLAGS $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas"
+
+#------------------------------------------------------------------------------
 
 time cmake \
  \
@@ -97,17 +136,17 @@ time cmake \
   -DMPI_CXX_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include \
   -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
  \
-  -DC_AND_CXX_FLAGS:STRING="-D$FP_PRECISION -DADD_ -I$PROJECT_DIR/magma/magma_minproduct-1.6.2/include -I$PROJECT_DIR/magma/magma_tally4-1.6.2/include -I$PROJECT_DIR/magma/magma_tally3-1.6.2/include $CRAY_CUDATOOLKIT_INCLUDE_OPTS" \
+  -DC_AND_CXX_FLAGS:STRING="$C_CXX_FLAGS" \
  \
   -DCMAKE_C_FLAGS:STRING="-std=c99 -Wall -Wno-unused-function -pedantic -Werror" \
   -DCMAKE_C_FLAGS_DEBUG:STRING="-g -DGM_ASSERT" \
-  -DCMAKE_C_FLAGS_RELEASE:STRING="-DNDEBUG -O3 -ffast-math -fargument-noalias-anything -fstrict-aliasing -finline-functions -finline-limit=1000 -fomit-frame-pointer" \
+  -DCMAKE_C_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \
   -DCMAKE_CXX_FLAGS:STRING="-Wall -Wno-unused-function -Werror" \
   -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -DGM_ASSERT" \
-  -DCMAKE_CXX_FLAGS_RELEASE:STRING="-DNDEBUG -O3 -ffast-math -fargument-noalias-anything -fstrict-aliasing -finline-functions -finline-limit=1000 -fomit-frame-pointer" \
+  -DCMAKE_CXX_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \
-  -DCMAKE_EXE_LINKER_FLAGS:STRING="-L$PROJECT_DIR/magma/magma_minproduct-1.6.2/lib -lmagma_minproduct -L$PROJECT_DIR/magma/magma_tally4-1.6.2/lib -lmagma_tally4 -L$PROJECT_DIR/magma/magma_tally3-1.6.2/lib -lmagma_tally3 $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas" \
+  -DCMAKE_EXE_LINKER_FLAGS:STRING="$LFLAGS" \
  \
   -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v" \
   -DCUDA_HOST_COMPILER:STRING=/usr/bin/gcc \

@@ -9,8 +9,6 @@
 /*---------------------------------------------------------------------------*/
 
 /*=============================================================================
-
-
 =============================================================================*/
 
 #ifndef _env_h_
@@ -64,16 +62,8 @@ void gm_insist(const void* env,
                const char* file,
                int line);
 
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
-
 /*===========================================================================*/
-/*---Types---*/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+/*---Types: general---*/
 
 /*---Boolean type---*/
 
@@ -83,10 +73,18 @@ typedef bool _Bool;
 
 enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
-/*----------------------------------------*/
+/*---Floating point of explicit precision---*/
+
+typedef double GMFp64;
+
+static void gm_check_fp64() {
+  GMStaticAssert(sizeof(GMFp64) == 64/8);
+}
+
+/*===========================================================================*/
 /*---Types for Sorenson metric---*/
-//---(design is not complete)
-/*----------------------------------------*/
+
+//---TODO: complete the design for orenson metric.
 
 /*---For Vectors: single 1-bit value: use unsigned int---*/
 typedef unsigned int GMBits1;
@@ -113,23 +111,28 @@ typedef double GMBits;
 
 typedef unsigned long long int GMULInt;
 
-/*----------------------------------------*/
-/*---Types for Czekanowski metric: floating point type---*/
-/*----------------------------------------*/
+/*===========================================================================*/
+/*---Types for Czekanowski metric---*/
+
+//---TODO: revise nomenclature to be different from "GMFloat2" ...
 
 #ifdef FP_PRECISION_SINGLE
-typedef float GMFloat;
-enum { GM_MPI_FLOAT = MPI_FLOAT };
-#endif
-
+  typedef float GMFloat;
+  enum { GM_MPI_FLOAT = MPI_FLOAT };
 #ifdef FP_PRECISION_DOUBLE
-typedef double GMFloat;
-enum { GM_MPI_FLOAT = MPI_DOUBLE };
+#error Cannot set both FP_PRECISION_SINGLE and FP_PRECISION_DOUBLE.
+#endif
+#else
+#ifdef FP_PRECISION_DOUBLE
+  typedef double GMFloat;
+  enum { GM_MPI_FLOAT = MPI_DOUBLE };
+#else
+#error Must set FP_PRECISION_SINGLE or FP_PRECISION_DOUBLE.
+#endif
 #endif
 
-/*----------------------------------------*/
+/*===========================================================================*/
 /*---Types for CCC metric---*/
-/*----------------------------------------*/
 
 /*---For Vectors: single 2-bit value (semi-nibble):
      use unsigned int as a container for a single item---*/
@@ -147,19 +150,18 @@ typedef unsigned int GMTally1;
 
 /*---For Metrics: 2 (4) doubles to store 4 (8) packed tally results:
      use 25 bits of each 52-bit mantissa to store a result---*/
-typedef struct { double data[2]; } GMTally2x2;
-typedef struct { double data[4]; } GMTally4x2;
+typedef struct { GMFp64 data[2]; } GMTally2x2;
+typedef struct { GMFp64 data[4]; } GMTally4x2;
 
 /*---For Metrics: largest allowed size of a data value---*/
 enum { GM_TALLY1_MAX_VALUE_BITS = 25 };
 
 /*---For Metrics: for packing of multipliers---*/
-typedef GMFloat GMFloat2;
-typedef struct { double data[2]; } GMFloat3;
+typedef GMFp64 GMFloat2;
+typedef struct { GMFp64 data[2]; } GMFloat3;
 
-/*----------------------------------------*/
+/*===========================================================================*/
 /*---Types for CCC metric: functions---*/
-/*----------------------------------------*/
 
 /*---Return null value; also use static asserts to check sizes---*/
 static GMBits2x64 GMBits2x64_null() {
@@ -301,9 +303,7 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
   return result;
 }
 
-/*----------------------------------------*/
-/*----------------------------------------*/
-
+/*===========================================================================*/
 /*---Type ids---*/
 
 enum {
@@ -315,6 +315,7 @@ enum {
   GM_DATA_TYPE_TALLY4X2 = 6
 };
 
+/*===========================================================================*/
 /*---Dual CPU/GPU pointer---*/
 
 typedef struct {
@@ -324,11 +325,16 @@ typedef struct {
 
 GMMirroredPointer GMMirroredPointer_null(void);
 
+/*===========================================================================*/
+/*---Checksums---*/
+
 /*---Struct with checksum info---*/
 
 enum { GM_CHECKSUM_SIZE = 3 };
 
 typedef struct { size_t data[GM_CHECKSUM_SIZE]; } GMChecksum;
+
+/*---------------------------------------------------------------------------*/
 
 static GMChecksum GMChecksum_null() {
   GMChecksum result;
@@ -339,6 +345,8 @@ static GMChecksum GMChecksum_null() {
   return result;
 }
 
+/*---------------------------------------------------------------------------*/
+
 static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
   _Bool result = GM_BOOL_TRUE;
   int i = 0;
@@ -346,21 +354,6 @@ static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
     result = result && c1.data[i] == c2.data[i];
   }
   return result;
-}
-
-/*===========================================================================*/
-/*---Special arithmetic operations---*/
-
-static int gm_popcount64(GMUInt64 x) {
-  /*---Adapted from https://en.wikipedia.org/wiki/Hamming_weight---*/
-  const GMUInt64 m1 = 0x5555555555555555;
-  const GMUInt64 m2 = 0x3333333333333333;
-  const GMUInt64 m4 = 0x0f0f0f0f0f0f0f0f;
-  const GMUInt64 h01 = 0x0101010101010101;
-  x -= (x >> 1) & m1;
-  x = (x & m2) + ((x >> 2) & m2);
-  x = (x + (x >> 4)) & m4;
-  return (x * h01) >> 56;
 }
 
 /*===========================================================================*/
@@ -442,7 +435,9 @@ void GMEnv_initialize_streams(GMEnv* env);
 void GMEnv_terminate_streams(GMEnv* env);
 
 /*===========================================================================*/
-/*---Accessors---*/
+/*---Accessors: general---*/
+
+//---TODO: fix Env_* functions to follow namespace guidelines.
 
 static int Env_metric_type(const GMEnv* env) {
   GMAssert(env != NULL);
@@ -492,6 +487,27 @@ static int Env_mpi_comm_field(const GMEnv* env) {
 }
 
 /*---------------------------------------------------------------------------*/
+
+static int Env_is_proc_active(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->is_proc_active_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void Env_set_compute_method(GMEnv* env, int compute_method);
+int Env_data_type_vectors(const GMEnv* env);
+int Env_data_type_metrics(const GMEnv* env);
+
+void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_repl,
+                      int num_proc_field);
+
+cudaStream_t Env_stream_compute(GMEnv* env);
+cudaStream_t Env_stream_togpu(GMEnv* env);
+cudaStream_t Env_stream_fromgpu(GMEnv* env);
+
+/*===========================================================================*/
+/*---Accessors: num proc, proc_num---*/
 
 static int Env_num_proc(const GMEnv* env) {
   GMAssert(env != NULL);
@@ -578,26 +594,6 @@ static int Env_proc_num_field(const GMEnv* env) {
   return env->proc_num_field_;
 }
 
-/*---------------------------------------------------------------------------*/
-
-static int Env_is_proc_active(const GMEnv* env) {
-  GMAssert(env != NULL);
-  return env->is_proc_active_;
-}
-
-/*---------------------------------------------------------------------------*/
-
-void Env_set_compute_method(GMEnv* env, int compute_method);
-int Env_data_type_vectors(const GMEnv* env);
-int Env_data_type_metrics(const GMEnv* env);
-
-void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_repl,
-                      int num_proc_field);
-
-cudaStream_t Env_stream_compute(GMEnv* env);
-cudaStream_t Env_stream_togpu(GMEnv* env);
-cudaStream_t Env_stream_fromgpu(GMEnv* env);
-
 /*===========================================================================*/
 /*---Timer functions---*/
 
@@ -605,7 +601,7 @@ double GMEnv_get_time(GMEnv* env);
 double GMEnv_get_synced_time(GMEnv* env);
 
 /*===========================================================================*/
-/*---Misc utility functions---*/
+/*---Math utility functions---*/
 
 static int gm_min_i(const int i, const int j) {
   return i < j ? i : j;
@@ -692,6 +688,20 @@ static size_t gm_nchoosek(int n, int k) {
     denom *= (i + 1);
   }
   return num / denom;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int gm_popcount64(GMUInt64 x) {
+  /*---Adapted from https://en.wikipedia.org/wiki/Hamming_weight---*/
+  const GMUInt64 m1 = 0x5555555555555555;
+  const GMUInt64 m2 = 0x3333333333333333;
+  const GMUInt64 m4 = 0x0f0f0f0f0f0f0f0f;
+  const GMUInt64 h01 = 0x0101010101010101;
+  x -= (x >> 1) & m1;
+  x = (x & m2) + ((x >> 2) & m2);
+  x = (x + (x >> 4)) & m4;
+  return (x * h01) >> 56;
 }
 
 /*===========================================================================*/

@@ -21,7 +21,12 @@ for magma_version in minproduct tally3 tally4; do
 done
 mkdir build_debug
 cd build_debug
-../genomics_gpu/scripts/cmake.sh
+env BUILD_TYPE=Debug ../genomics_gpu/scripts/cmake.sh
+../genomics_gpu/scripts/make.sh
+cd ..
+mkdir build_test
+cd build_test
+env BUILD_TYPE=Debug TESTING=ON ../genomics_gpu/scripts/cmake.sh
 ../genomics_gpu/scripts/make.sh
 cd ..
 mkdir build_release
