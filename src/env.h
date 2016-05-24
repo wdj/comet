@@ -410,7 +410,7 @@ enum {
   GM_NUM_COMPUTE_METHOD = 3
 };
 
-enum { GM_NUM_WAY_TWO = 2, GM_NUM_WAY_THREE = 3, GM_NUM_NUM_WAY = 2 };
+enum { GM_NUM_WAY_2 = 2, GM_NUM_WAY_3 = 3, GM_NUM_NUM_WAY = 2 };
 
 /*===========================================================================*/
 /*---Null object---*/
@@ -523,12 +523,10 @@ static int Env_num_proc_vector(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-#if 0
 static int Env_num_proc_vector_i(const GMEnv* env) {
   GMAssert(env != NULL);
   return env->num_proc_vector_i_;
 }
-#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -538,12 +536,11 @@ static int Env_num_proc_vector_j(const GMEnv* env) {
 }
 
 /*---------------------------------------------------------------------------*/
-#if 0
+
 static int Env_num_proc_vector_k(const GMEnv* env) {
   GMAssert(env != NULL);
   return env->num_proc_vector_k_;
 }
-#endif
 
 /*---------------------------------------------------------------------------*/
 

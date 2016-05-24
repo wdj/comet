@@ -62,7 +62,7 @@ void gm_magma_initialize(GMEnv* env) {
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_TWO) {
+             Env_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
@@ -78,7 +78,7 @@ void gm_magma_initialize(GMEnv* env) {
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_THREE) {
+             Env_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
       magma_tally3_int_t magma_code = 0;
@@ -132,7 +132,7 @@ void gm_magma_finalize(GMEnv* env) {
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_TWO) {
+             Env_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
@@ -144,7 +144,7 @@ void gm_magma_finalize(GMEnv* env) {
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_THREE) {
+             Env_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = 0;
@@ -210,7 +210,7 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_TWO) {
+             Env_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
@@ -226,7 +226,7 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_THREE) {
+             Env_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
@@ -284,7 +284,7 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_TWO) {
+             Env_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
@@ -297,7 +297,7 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_THREE) {
+             Env_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = 0;
@@ -351,7 +351,7 @@ void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_TWO) {
+             Env_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
@@ -363,7 +363,7 @@ void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_THREE) {
+             Env_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
@@ -433,7 +433,7 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_TWO) {
+             Env_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
@@ -447,7 +447,7 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_THREE) {
+             Env_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
@@ -522,7 +522,7 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_TWO) {
+             Env_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
@@ -533,7 +533,7 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_THREE) {
+             Env_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
@@ -606,7 +606,7 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_TWO) {
+             Env_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
@@ -617,7 +617,7 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_THREE) {
+             Env_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;

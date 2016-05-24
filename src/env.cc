@@ -108,7 +108,7 @@ void GMEnv_create(GMEnv* env) {
 
   /*---Set default values---*/
   env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
-  env->num_way_ = GM_NUM_WAY_TWO;
+  env->num_way_ = GM_NUM_WAY_2;
   env->all2all_ = GM_BOOL_FALSE;
   env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
   Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
@@ -148,8 +148,8 @@ void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_way." : 0);
       env->num_way_ = atoi(argv[i]);
-      GMInsist(env, env->num_way_ == GM_NUM_WAY_TWO ||
-                            env->num_way_ == GM_NUM_WAY_THREE
+      GMInsist(env, env->num_way_ == GM_NUM_WAY_2 ||
+                            env->num_way_ == GM_NUM_WAY_3
                         ? "Invalid setting for num_way."
                         : 0);
       Env_set_num_proc(env, env->num_proc_vector_, env->num_proc_repl_,
@@ -308,8 +308,8 @@ int Env_data_type_metrics(const GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
-      return env->num_way_ == GM_NUM_WAY_TWO ? GM_DATA_TYPE_TALLY2X2
-                                             : GM_DATA_TYPE_TALLY4X2;
+      return env->num_way_ == GM_NUM_WAY_2 ? GM_DATA_TYPE_TALLY2X2
+                                           : GM_DATA_TYPE_TALLY4X2;
   }
   GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
   return 0;
@@ -352,9 +352,8 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_repl,
   GMAssertAlways(env->num_proc_ <= env->num_proc_world_);
 
   env->num_proc_vector_i_ = env->num_proc_vector_;
-  env->num_proc_vector_j_ = env->num_way_ >= GM_NUM_WAY_TWO ? num_proc_repl : 1;
-  env->num_proc_vector_k_ = env->num_way_ >= GM_NUM_WAY_THREE ? num_proc_repl
-                                                              : 1;
+  env->num_proc_vector_j_ = env->num_way_ >= GM_NUM_WAY_2 ? num_proc_repl : 1;
+  env->num_proc_vector_k_ = env->num_way_ >= GM_NUM_WAY_3 ? num_proc_repl : 1;
   env->num_proc_vector_all_ = env->num_proc_vector_i_ *
                               env->num_proc_vector_j_ * env->num_proc_vector_k_;
 
@@ -363,14 +362,15 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_repl,
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &env->proc_num_);
   GMAssert(mpi_code == MPI_SUCCESS);
 
-  i = env->proc_num_;
-  env->proc_num_vector_i_ = env->proc_num_vector_ = i % env->num_proc_vector_i_;
-  i /= env->num_proc_vector_i_;
-  env->proc_num_vector_j_ = i % env->num_proc_vector_j_;
-  i /= env->num_proc_vector_j_;
-  env->proc_num_vector_k_ = i % env->num_proc_vector_k_;
-  i /= env->num_proc_vector_k_;
-  env->proc_num_field_ = i % env->num_proc_field_;
+  int itmp = env->proc_num_;
+  env->proc_num_vector_i_ = itmp % env->num_proc_vector_i_;
+  env->proc_num_vector_ = env->proc_num_vector_i_;
+  itmp /= env->num_proc_vector_i_;
+  env->proc_num_vector_j_ = itmp % env->num_proc_vector_j_;
+  itmp /= env->num_proc_vector_j_;
+  env->proc_num_vector_k_ = itmp % env->num_proc_vector_k_;
+  itmp /= env->num_proc_vector_k_;
+  env->proc_num_field_ = itmp % env->num_proc_field_;
   env->proc_num_vector_all_ = env->proc_num_ % env->num_proc_vector_all_;
 
   /*---Make new communicators---*/
