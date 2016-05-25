@@ -372,22 +372,23 @@ typedef struct {
   int mpi_comm_;
   int mpi_comm_vector_;
   int mpi_comm_field_;
+  /*---*/
   int num_proc_world_;
   int num_proc_;
-  int num_proc_vector_;
-  int num_proc_repl_;
   int num_proc_field_;
+  int num_proc_repl_;
   int num_proc_vector_i_;
   int num_proc_vector_j_;
   int num_proc_vector_k_;
-  int num_proc_vector_all_;
+  int num_proc_vector_;
+  /*---*/
   int proc_num_;
-  int proc_num_vector_;
   int proc_num_field_;
   int proc_num_vector_i_;
   int proc_num_vector_j_;
   int proc_num_vector_k_;
-  int proc_num_vector_all_;
+  int proc_num_vector_;
+  /*---*/
   _Bool is_proc_active_;
   /*---CUDA---*/
   cudaStream_t stream_compute_;
@@ -507,18 +508,11 @@ cudaStream_t Env_stream_togpu(GMEnv* env);
 cudaStream_t Env_stream_fromgpu(GMEnv* env);
 
 /*===========================================================================*/
-/*---Accessors: num proc, proc_num---*/
+/*---Accessors: num proc---*/
 
-static int Env_num_proc(const GMEnv* env) {
+static int Env_num_block_vector(const GMEnv* env) {
   GMAssert(env != NULL);
-  return env->num_proc_;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static int Env_num_proc_vector(const GMEnv* env) {
-  GMAssert(env != NULL);
-  return env->num_proc_vector_;
+  return env->num_proc_vector_i_;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -544,23 +538,24 @@ static int Env_num_proc_vector_k(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
+static int Env_num_proc_vector(const GMEnv* env) {
+  GMAssert(env != NULL);
+  return env->num_proc_vector_;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static int Env_num_proc_field(const GMEnv* env) {
   GMAssert(env != NULL);
   return env->num_proc_field_;
 }
 
-/*---------------------------------------------------------------------------*/
+/*===========================================================================*/
+/*---Accessors: proc_num---*/
 
 static int Env_proc_num(const GMEnv* env) {
   GMAssert(env != NULL);
   return env->proc_num_;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static int Env_proc_num_vector(const GMEnv* env) {
-  GMAssert(env != NULL);
-  return env->proc_num_vector_;
 }
 
 /*---------------------------------------------------------------------------*/

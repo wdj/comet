@@ -76,7 +76,8 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
                                    &vectors_buf, metrics_buf_local,
-                                   Env_proc_num_vector(env), GM_BOOL_TRUE, env);
+                                   Env_proc_num_vector_i(env),
+                                   GM_BOOL_TRUE, env);
   gm_compute_wait(env);
 
   /*---Copy result from GPU---*/
@@ -96,7 +97,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   /* .22 / 1.56 */
   gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
-                          Env_proc_num_vector(env), GM_BOOL_TRUE, env);
+                          Env_proc_num_vector_i(env), GM_BOOL_TRUE, env);
 
   /*---------------*/
   /*---Free memory---*/
@@ -124,13 +125,13 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   /*---Initializations---*/
 
-  const int num_proc = Env_num_proc_vector(env);
+  const int num_proc = Env_num_block_vector(env);
 
   const int numvecl = vectors->num_vector_local;
   const int numpfieldl = vectors->num_packedval_field_local;
 
   int i = 0;
-  int i_proc = Env_proc_num_vector(env);
+  int i_proc = Env_proc_num_vector_i(env);
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
   GMVectorSums vector_sums_offproc = GMVectorSums_null();

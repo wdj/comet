@@ -238,21 +238,23 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   env->time += time_end - time_begin;
 
+  /*---Compute a (global) operation count - total work done on all procs---*/
+
   /* clang-format off */
   env->ops += (Env_num_way(env) == GM_NUM_WAY_2 && ! Env_all2all(env))
-            ?    Env_num_proc_vector(env) * 1. *
+            ?    Env_num_proc_vector_i(env) * 1. *
                  vectors->num_vector_local * 1. *
                  (vectors->num_vector_local - 1) * (1./2.) *
+                 vectors->num_field
+            : (Env_num_way(env) == GM_NUM_WAY_3 && ! Env_all2all(env))
+            ?    Env_num_proc_vector_i(env) * 1. *
+                 vectors->num_vector_local * 1. *
+                 (vectors->num_vector_local - 1) * 1. *
+                 (vectors->num_vector_local - 2) * (1./6.) *
                  vectors->num_field
             : (Env_num_way(env) == GM_NUM_WAY_2 && Env_all2all(env))
             ?    vectors->num_vector * 1. *
                  (vectors->num_vector - 1) * (1./2.) *
-                 vectors->num_field
-            : (Env_num_way(env) == GM_NUM_WAY_3 && ! Env_all2all(env))
-            ?    Env_num_proc_vector(env) * 1. *
-                 vectors->num_vector_local * 1. *
-                 (vectors->num_vector_local - 1) * 1. *
-                 (vectors->num_vector_local - 2) * (1./6.) *
                  vectors->num_field
             :    vectors->num_vector * 1. *
                  (vectors->num_vector - 1) * 1. *

@@ -58,12 +58,13 @@ void GMVectors_create(GMVectors* vectors,
   vectors->num_field_local = num_field / Env_num_proc_field(env);
   vectors->num_vector_local = num_vector_local;
 
-  /*---Compute global element count values---*/
+  /*---Compute global values---*/
 
-  size_t num_vector_bound = 0;
-  num_vector_bound =
-      num_vector_bound * 1; /*---Avoid unused variable warning---*/
-  num_vector_bound = Env_num_proc_vector(env) * (size_t)num_vector_local;
+  const int num_block = Env_num_block_vector(env);
+
+  size_t num_vector_bound = vectors->num_vector_local * (size_t)num_block;
+  vectors->num_vector *= Env_num_proc_vector_j(env);
+  vectors->num_vector *= Env_num_proc_vector_k(env);
   GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
                ? "Vector count too large to store in 32-bit int."
                : 0);
@@ -73,6 +74,9 @@ void GMVectors_create(GMVectors* vectors,
   mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
                            1, MPI_INT, MPI_SUM, Env_mpi_comm_vector(env));
   GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssert((size_t)(vectors->num_vector) == num_vector_bound);
+  vectors->num_vector /= Env_num_proc_vector_j(env);
+  vectors->num_vector /= Env_num_proc_vector_k(env);
 
   /*---Set element sizes---*/
 

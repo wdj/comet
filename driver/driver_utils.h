@@ -72,7 +72,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
            ++vector_local) {
         size_t vector =
             vector_local +
-            vectors->num_vector_local * (size_t)Env_proc_num_vector(env);
+            vectors->num_vector_local * (size_t)Env_proc_num_vector_i(env);
         int field_local;
         for (field_local = 0; field_local < vectors->num_field_local;
              ++field_local) {
@@ -104,7 +104,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
            ++vector_local) {
         size_t vector =
             vector_local +
-            vectors->num_vector_local * (size_t)Env_proc_num_vector(env);
+            vectors->num_vector_local * (size_t)Env_proc_num_vector_i(env);
         int fl = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -129,7 +129,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           /*---Print---*/
           if (verbosity > 2) {
             printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-                   Env_proc_num_vector(env), vector_local,
+                   Env_proc_num_vector_i(env), vector_local,
                    Env_proc_num_field(env), fl, value);
           }
         } /*---field---*/
@@ -142,7 +142,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
            ++vector_local) {
         size_t vector =
             vector_local +
-            vectors->num_vector_local * (size_t)Env_proc_num_vector(env);
+            vectors->num_vector_local * (size_t)Env_proc_num_vector_i(env);
         int fl;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -162,7 +162,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           /*---Print---*/
           if (verbosity > 2) {
             printf("vec_proc %i vec %i field_proc %i field %i value %.1i%.1i\n",
-                   Env_proc_num_vector(env), vector_local,
+                   Env_proc_num_vector_i(env), vector_local,
                    Env_proc_num_field(env), fl, value / 2, value % 2);
           }
         } /*---field---*/
@@ -328,6 +328,8 @@ static void finish_parsing(int argc,
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
+      ++i; /*---processed elsewhere by GMEnv---*/
+    } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else {
       if (Env_proc_num(env) == 0) {

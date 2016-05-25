@@ -138,7 +138,7 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
 
   gm_compute_czekanowski_numerators_3way_start(
       vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
-      &vectors_buf, Env_proc_num_vector(env), Env_proc_num_vector(env), env);
+      &vectors_buf, Env_proc_num_vector_i(env), Env_proc_num_vector_i(env), env);
   gm_compute_wait(env);
 
   /*---NOTE: instances of metrics_buf have already been allreduced
@@ -148,8 +148,8 @@ void gm_compute_metrics_czekanowski_3way_gpu(GMMetrics* metrics,
 
   gm_compute_czekanowski_3way_combine(metrics,
       (GMFloat*)(&vector_sums)->data, (GMFloat*)(&vector_sums)->data,
-      (GMFloat*)(&vector_sums)->data, Env_proc_num_vector(env),
-      Env_proc_num_vector(env), env);
+      (GMFloat*)(&vector_sums)->data, Env_proc_num_vector_i(env),
+      Env_proc_num_vector_i(env), env);
 
   /*---------------*/
   /*---Free memory and finalize---*/

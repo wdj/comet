@@ -138,7 +138,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
                                    &vectors_buf, metrics_buf_local,
-                                   Env_proc_num_vector(env),
+                                   Env_proc_num_vector_i(env),
                                    GM_BOOL_TRUE, env);
   gm_compute_wait(env);
 
@@ -160,7 +160,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
 
   /* .22 / 1.56 */
   gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
-                          Env_proc_num_vector(env), GM_BOOL_TRUE, env);
+                          Env_proc_num_vector_i(env), GM_BOOL_TRUE, env);
 
   /*---------------*/
   /*---Free memory and finalize---*/

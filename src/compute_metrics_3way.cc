@@ -73,7 +73,8 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   gm_compute_numerators_3way_start(
       vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
-      &vectors_buf, Env_proc_num_vector(env), Env_proc_num_vector(env), env);
+      &vectors_buf, Env_proc_num_vector_i(env), Env_proc_num_vector_i(env),
+      env);
   gm_compute_wait(env);
 
   /*---Copy result from GPU---*/
@@ -92,8 +93,8 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   /*---------------*/
 
   gm_compute_3way_combine(metrics, &vector_sums, &vector_sums, &vector_sums,
-                          Env_proc_num_vector(env), Env_proc_num_vector(env),
-                          env);
+                          Env_proc_num_vector_i(env),
+                          Env_proc_num_vector_i(env), env);
 
   /*---------------*/
   /*---Free memory---*/
@@ -119,7 +120,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   GMAssert(Env_all2all(env));
 
-  const int num_proc = Env_num_proc_vector(env);
+  const int num_proc = Env_num_block_vector(env);
 
   /*---Initialize MAGMA library---*/
 
@@ -130,7 +131,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   const int numvecl = metrics->num_vector_local;
   const int numpfieldl = vectors->num_packedval_field_local;
 
-  const int i_proc = Env_proc_num_vector(env);
+  const int i_proc = Env_proc_num_vector_i(env);
 
   /*------------------------*/
   /*---Part 1 Computation: tetrahedron---*/

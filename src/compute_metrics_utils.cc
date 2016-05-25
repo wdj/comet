@@ -286,7 +286,7 @@ void gm_compute_czekanowski_numerators_2way_start(
   GMAssert(vectors_right != NULL);
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   int i = 0;
@@ -379,7 +379,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
   GMAssert(vectors_right != NULL);
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   /*----------------------------------------*/
@@ -612,7 +612,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
   GMAssert(vectors_right != NULL);
   GMAssert(numerators != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   switch (Env_metric_type(env)) {
@@ -662,7 +662,7 @@ void gm_compute_czekanowski_2way_combine(
   GMAssert(vector_sums_left != NULL);
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   /*---For CPU case, copy numerator out of metrics struct which is temporarily
@@ -763,7 +763,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
   GMAssert(vector_sums_left != NULL);
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   const int numvecl = metrics->num_vector_local;
@@ -872,7 +872,7 @@ void gm_compute_2way_combine(GMMetrics* metrics,
   GMAssert(vector_sums_left != NULL);
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   switch (Env_metric_type(env)) {
@@ -927,12 +927,12 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   GMAssert(vectors_j_buf != NULL);
   GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
-  GMAssert(!(Env_proc_num_vector(env) == j_proc &&
-             Env_proc_num_vector(env) != k_proc));
-  GMAssert(!(Env_proc_num_vector(env) == k_proc &&
-             Env_proc_num_vector(env) != j_proc));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
+  GMAssert(!(Env_proc_num_vector_i(env) == j_proc &&
+             Env_proc_num_vector_i(env) != k_proc));
+  GMAssert(!(Env_proc_num_vector_i(env) == k_proc &&
+             Env_proc_num_vector_i(env) != j_proc));
   GMAssert(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
@@ -941,7 +941,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   const int numvecl = metrics->num_vector_local;
   const int numfieldl = vectors_i->num_field_local;
 
-  const int i_proc = Env_proc_num_vector(env);
+  const int i_proc = Env_proc_num_vector_i(env);
 
   int i = 0;
   int j = 0;
@@ -1079,12 +1079,12 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   GMAssert(vectors_j_buf != NULL);
   GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
-  GMAssert(!(Env_proc_num_vector(env) == j_proc &&
-             Env_proc_num_vector(env) != k_proc));
-  GMAssert(!(Env_proc_num_vector(env) == k_proc &&
-             Env_proc_num_vector(env) != j_proc));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
+  GMAssert(!(Env_proc_num_vector_i(env) == j_proc &&
+             Env_proc_num_vector_i(env) != k_proc));
+  GMAssert(!(Env_proc_num_vector_i(env) == k_proc &&
+             Env_proc_num_vector_i(env) != j_proc));
   GMAssert(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
@@ -1093,7 +1093,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   const int numvecl = metrics->num_vector_local;
   const int numfieldl = vectors_i->num_field_local;
 
-  const int i_proc = Env_proc_num_vector(env);
+  const int i_proc = Env_proc_num_vector_i(env);
 
   /*---Initializations - all2all case---*/
 
@@ -1530,12 +1530,12 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
   GMAssert(vectors_j_buf != NULL);
   GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
-  GMAssert(!(Env_proc_num_vector(env) == j_proc &&
-             Env_proc_num_vector(env) != k_proc));
-  GMAssert(!(Env_proc_num_vector(env) == k_proc &&
-             Env_proc_num_vector(env) != j_proc));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
+  GMAssert(!(Env_proc_num_vector_i(env) == j_proc &&
+             Env_proc_num_vector_i(env) != k_proc));
+  GMAssert(!(Env_proc_num_vector_i(env) == k_proc &&
+             Env_proc_num_vector_i(env) != j_proc));
   GMAssert(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
@@ -1544,7 +1544,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
   const int numvecl = metrics->num_vector_local;
   const int numpfieldl = vectors_i->num_packedval_field_local;
 
-  const int i_proc = Env_proc_num_vector(env);
+  const int i_proc = Env_proc_num_vector_i(env);
 
   const _Bool need_2way = Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
 
@@ -2290,12 +2290,12 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
   GMAssert(vectors_j_buf != NULL);
   GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
-  GMAssert(!(Env_proc_num_vector(env) == j_proc &&
-             Env_proc_num_vector(env) != k_proc));
-  GMAssert(!(Env_proc_num_vector(env) == k_proc &&
-             Env_proc_num_vector(env) != j_proc));
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
+  GMAssert(!(Env_proc_num_vector_i(env) == j_proc &&
+             Env_proc_num_vector_i(env) != k_proc));
+  GMAssert(!(Env_proc_num_vector_i(env) == k_proc &&
+             Env_proc_num_vector_i(env) != j_proc));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*----------------------------------------*/
@@ -2354,13 +2354,13 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
   GMAssert(vector_sums_j != NULL);
   GMAssert(vector_sums_k != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
-  GMAssert(Env_proc_num_vector(env) != j_proc || j_proc == k_proc);
-  GMAssert(Env_proc_num_vector(env) != k_proc || j_proc == k_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
+  GMAssert(Env_proc_num_vector_i(env) != j_proc || j_proc == k_proc);
+  GMAssert(Env_proc_num_vector_i(env) != k_proc || j_proc == k_proc);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
-  const int i_proc = Env_proc_num_vector(env);
+  const int i_proc = Env_proc_num_vector_i(env);
 
   const int numvecl = metrics->num_vector_local;
 
@@ -2500,17 +2500,17 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
   GMAssert(vector_sums_j != NULL);
   GMAssert(vector_sums_k != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
-  GMAssert(Env_proc_num_vector(env) != j_proc || j_proc == k_proc);
-  GMAssert(Env_proc_num_vector(env) != k_proc || j_proc == k_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
+  GMAssert(Env_proc_num_vector_i(env) != j_proc || j_proc == k_proc);
+  GMAssert(Env_proc_num_vector_i(env) != k_proc || j_proc == k_proc);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*---Initializations---*/
 
   const int numvecl = metrics->num_vector_local;
 
-  const int i_proc = Env_proc_num_vector(env);
+  const int i_proc = Env_proc_num_vector_i(env);
 
   int i = 0;
   int j = 0;
@@ -2619,10 +2619,10 @@ void gm_compute_3way_combine(GMMetrics* metrics,
   GMAssert(vector_sums_j != NULL);
   GMAssert(vector_sums_k != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_proc_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_proc_vector(env));
-  GMAssert(Env_proc_num_vector(env) != j_proc || j_proc == k_proc);
-  GMAssert(Env_proc_num_vector(env) != k_proc || j_proc == k_proc);
+  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
+  GMAssert(Env_proc_num_vector_i(env) != j_proc || j_proc == k_proc);
+  GMAssert(Env_proc_num_vector_i(env) != k_proc || j_proc == k_proc);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
   switch (Env_metric_type(env)) {

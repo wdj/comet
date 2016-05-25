@@ -69,12 +69,11 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute global values---*/
 
-  const int num_block = Env_num_proc_vector_i(env);
+  const int num_block = Env_num_block_vector(env);
 
-  size_t num_vector_bound = 0;
-  num_vector_bound =
-      num_vector_bound * 1; /*---Avoid unused variable warning---*/
-  num_vector_bound = num_block * (size_t)metrics->num_vector;
+  size_t num_vector_bound = metrics->num_vector_local * (size_t)num_block;
+  metrics->num_vector *= Env_num_proc_vector_j(env);
+  metrics->num_vector *= Env_num_proc_vector_k(env);
   GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
                ? "Vector count too large to store in 32-bit int."
                : 0);
@@ -84,6 +83,9 @@ void GMMetrics_create(GMMetrics* metrics,
   mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
                            1, MPI_INT, MPI_SUM, Env_mpi_comm_vector(env));
   GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssert((size_t)(metrics->num_vector) == num_vector_bound);
+  metrics->num_vector /= Env_num_proc_vector_j(env);
+  metrics->num_vector /= Env_num_proc_vector_k(env);
 
   /*---Assume the following to simplify calculations---*/
 
@@ -93,7 +95,7 @@ void GMMetrics_create(GMMetrics* metrics,
           ? "Currently require number of vecs on a proc to be at least num-way"
           : 0);
 
-  const int i_block = Env_proc_num_vector(env);
+  const int i_block = Env_proc_num_vector_i(env);
 
   const int nchoosek = gm_nchoosek(num_vector_local, Env_num_way(env));
 
