@@ -63,8 +63,8 @@ void GMVectors_create(GMVectors* vectors,
   const int num_block = Env_num_block_vector(env);
 
   size_t num_vector_bound = vectors->num_vector_local * (size_t)num_block;
-  vectors->num_vector *= Env_num_proc_vector_j(env);
-  vectors->num_vector *= Env_num_proc_vector_k(env);
+  num_vector_bound *= Env_num_proc_vector_j(env);
+  num_vector_bound *= Env_num_proc_vector_k(env);
   GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
                ? "Vector count too large to store in 32-bit int."
                : 0);

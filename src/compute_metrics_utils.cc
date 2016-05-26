@@ -279,14 +279,14 @@ void gm_compute_czekanowski_numerators_2way_start(
     GMMirroredPointer* vectors_left_buf,
     GMMirroredPointer* vectors_right_buf,
     GMMirroredPointer* metrics_buf,
-    int j_proc,
+    int j_block,
     _Bool do_compute_triang_only,
     GMEnv* env) {
   GMAssert(vectors_left != NULL);
   GMAssert(vectors_right != NULL);
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   int i = 0;
@@ -312,7 +312,7 @@ void gm_compute_czekanowski_numerators_2way_start(
           const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc, metric, env);
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_block, metric, env);
       } /*---for i---*/
     }   /*---for j---*/
 
@@ -372,14 +372,14 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
                                           GMMirroredPointer* vectors_left_buf,
                                           GMMirroredPointer* vectors_right_buf,
                                           GMMirroredPointer* metrics_buf,
-                                          int j_proc,
+                                          int j_block,
                                           _Bool do_compute_triang_only,
                                           GMEnv* env) {
   GMAssert(vectors_left != NULL);
   GMAssert(vectors_right != NULL);
   GMAssert(metrics != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   /*----------------------------------------*/
@@ -440,7 +440,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
           sum.data[1] += GMTally1_encode(r10, r11);
         } /*---for f---*/
         if (Env_all2all(env)) {
-          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
+          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
         }
@@ -564,7 +564,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
           sum.data[1] += GMTally1_encode(r10, r11);
         } /*---for f---*/
         if (Env_all2all(env)) {
-          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, sum, env);
+          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
         }
@@ -605,14 +605,14 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       GMMirroredPointer* vectors_left_buf,
                                       GMMirroredPointer* vectors_right_buf,
                                       GMMirroredPointer* numerators_buf,
-                                      int j_proc,
+                                      int j_block,
                                       _Bool do_compute_triang_only,
                                       GMEnv* env) {
   GMAssert(vectors_left != NULL);
   GMAssert(vectors_right != NULL);
   GMAssert(numerators != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   switch (Env_metric_type(env)) {
@@ -628,7 +628,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
       /*----------------------------------------*/
       gm_compute_czekanowski_numerators_2way_start(
           vectors_left, vectors_right, numerators, vectors_left_buf,
-          vectors_right_buf, numerators_buf, j_proc, do_compute_triang_only,
+          vectors_right_buf, numerators_buf, j_block, do_compute_triang_only,
           env);
     } break;
     /*----------------------------------------*/
@@ -637,7 +637,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
       gm_compute_ccc_numerators_2way_start(vectors_left, vectors_right,
                                            numerators, vectors_left_buf,
                                            vectors_right_buf, numerators_buf,
-                                           j_proc, do_compute_triang_only, env);
+                                           j_block, do_compute_triang_only, env);
     } break;
     /*----------------------------------------*/
     default:
@@ -655,14 +655,14 @@ void gm_compute_czekanowski_2way_combine(
     GMMirroredPointer* metrics_buf,
     GMFloat* __restrict__ vector_sums_left,
     GMFloat* __restrict__ vector_sums_right,
-    int j_proc,
+    int j_block,
     _Bool do_compute_triang_only,
     GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_left != NULL);
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   /*---For CPU case, copy numerator out of metrics struct which is temporarily
@@ -683,13 +683,13 @@ void gm_compute_czekanowski_2way_combine(
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator =
-            GMMetrics_float_get_all2all_2(metrics, i, j, j_proc, env);
+            GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
         /*---Don't use two pointers pointing to the same thing---*/
         const GMFloat denominator =
             are_vector_sums_aliased
                 ? vector_sums_left[i] + vector_sums_left[j]
                 : vector_sums_left[i] + vector_sums_right[j];
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                       2 * numerator / denominator, env);
       } /*---for i---*/
     }   /*---for j---*/
@@ -724,7 +724,7 @@ void gm_compute_czekanowski_2way_combine(
             are_vector_sums_aliased
                 ? vector_sums_left[i] + vector_sums_left[j]
                 : vector_sums_left[i] + vector_sums_right[j];
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_proc,
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                       2 * numerator / denominator, env);
       } /*---for i---*/
     }   /*---for j---*/
@@ -756,14 +756,14 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
                                  GMMirroredPointer* metrics_buf,
                                  GMFloat* __restrict__ vector_sums_left,
                                  GMFloat* __restrict__ vector_sums_right,
-                                 int j_proc,
+                                 int j_block,
                                  _Bool do_compute_triang_only,
                                  GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_left != NULL);
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   const int numvecl = metrics->num_vector_local;
@@ -782,7 +782,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
         for (i = 0; i < i_max; ++i) {
           const GMTally2x2 value = ((
               GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
-          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_proc, value, env);
+          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERT
           const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
           const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
@@ -838,7 +838,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
       for (i = 0; i < i_max; ++i) {
         const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
-        GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_proc, si1_sj1, env);
+        GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
       } /*---for i---*/
     }   /*---for j---*/
     /*--------------------*/
@@ -865,14 +865,14 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                              GMMirroredPointer* metrics_buf,
                              GMVectorSums* vector_sums_left,
                              GMVectorSums* vector_sums_right,
-                             int j_proc,
+                             int j_block,
                              _Bool do_compute_triang_only,
                              GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_left != NULL);
   GMAssert(vector_sums_right != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
 
   switch (Env_metric_type(env)) {
@@ -887,14 +887,14 @@ void gm_compute_2way_combine(GMMetrics* metrics,
       gm_compute_czekanowski_2way_combine(metrics, metrics_buf,
                                           (GMFloat*)vector_sums_left->data,
                                           (GMFloat*)vector_sums_right->data,
-                                          j_proc, do_compute_triang_only, env);
+                                          j_block, do_compute_triang_only, env);
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
       gm_compute_ccc_2way_combine(metrics, metrics_buf,
                                   (GMFloat*)vector_sums_left->data,
-                                  (GMFloat*)vector_sums_right->data, j_proc,
+                                  (GMFloat*)vector_sums_right->data, j_block,
                                   do_compute_triang_only, env);
     } break;
     /*----------------------------------------*/
@@ -916,8 +916,8 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_i_buf,
     GMMirroredPointer* vectors_j_buf,
     GMMirroredPointer* vectors_k_buf,
-    int j_proc,
-    int k_proc,
+    int j_block,
+    int k_block,
     GMEnv* env) {
   GMAssert(vectors_i != NULL);
   GMAssert(vectors_j != NULL);
@@ -927,12 +927,12 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   GMAssert(vectors_j_buf != NULL);
   GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
-  GMAssert(!(Env_proc_num_vector_i(env) == j_proc &&
-             Env_proc_num_vector_i(env) != k_proc));
-  GMAssert(!(Env_proc_num_vector_i(env) == k_proc &&
-             Env_proc_num_vector_i(env) != j_proc));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssert(!(Env_proc_num_vector_i(env) == j_block &&
+             Env_proc_num_vector_i(env) != k_block));
+  GMAssert(!(Env_proc_num_vector_i(env) == k_block &&
+             Env_proc_num_vector_i(env) != j_block));
   GMAssert(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
@@ -941,7 +941,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   const int numvecl = metrics->num_vector_local;
   const int numfieldl = vectors_i->num_field_local;
 
-  const int i_proc = Env_proc_num_vector_i(env);
+  const int i_block = Env_proc_num_vector_i(env);
 
   int i = 0;
   int j = 0;
@@ -949,16 +949,16 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
   /*---Initializations - all2all case---*/
 
-  const _Bool is_part1 = i_proc == j_proc && j_proc == k_proc;
+  const _Bool is_part1 = i_block == j_block && j_block == k_block;
   const _Bool is_part3 =
-      i_proc != j_proc && j_proc != k_proc && i_proc != k_proc;
+      i_block != j_block && j_block != k_block && i_block != k_block;
 
   /*---Get specification of region to be computed for Part 3 - all2all case---*/
 
   const int section_axis =
-      gm_metrics_3way_section_axis(metrics, i_proc, j_proc, k_proc, env);
+      gm_metrics_3way_section_axis(metrics, i_block, j_block, k_block, env);
   const int section_num =
-      gm_metrics_3way_section_num(metrics, i_proc, j_proc, k_proc, env);
+      gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
 
   /*---Define bounding box containing region to be computed - all2all case---*/
 
@@ -1040,7 +1040,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
             const GMFloat min_ijk = min_ij < val3 ? min_ij : val3;
             numerator += min_ij + min_ik + min_jk - min_ijk;
           } /*---for f---*/
-          GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+          GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                         numerator, env);
         }
       }
@@ -1068,8 +1068,8 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_i_buf,
     GMMirroredPointer* vectors_j_buf,
     GMMirroredPointer* vectors_k_buf,
-    int j_proc,
-    int k_proc,
+    int j_block,
+    int k_block,
     GMEnv* env) {
   GMAssert(vectors_i != NULL);
   GMAssert(vectors_j != NULL);
@@ -1079,12 +1079,12 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   GMAssert(vectors_j_buf != NULL);
   GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
-  GMAssert(!(Env_proc_num_vector_i(env) == j_proc &&
-             Env_proc_num_vector_i(env) != k_proc));
-  GMAssert(!(Env_proc_num_vector_i(env) == k_proc &&
-             Env_proc_num_vector_i(env) != j_proc));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssert(!(Env_proc_num_vector_i(env) == j_block &&
+             Env_proc_num_vector_i(env) != k_block));
+  GMAssert(!(Env_proc_num_vector_i(env) == k_block &&
+             Env_proc_num_vector_i(env) != j_block));
   GMAssert(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
@@ -1093,20 +1093,20 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   const int numvecl = metrics->num_vector_local;
   const int numfieldl = vectors_i->num_field_local;
 
-  const int i_proc = Env_proc_num_vector_i(env);
+  const int i_block = Env_proc_num_vector_i(env);
 
   /*---Initializations - all2all case---*/
 
-  const _Bool is_part1 = i_proc == j_proc && j_proc == k_proc;
+  const _Bool is_part1 = i_block == j_block && j_block == k_block;
   const _Bool is_part3 =
-      i_proc != j_proc && j_proc != k_proc && i_proc != k_proc;
+      i_block != j_block && j_block != k_block && i_block != k_block;
 
   /*---Get specification of region to be computed for Part 3 - all2all case---*/
 
   const int section_axis =
-      gm_metrics_3way_section_axis(metrics, i_proc, j_proc, k_proc, env);
+      gm_metrics_3way_section_axis(metrics, i_block, j_block, k_block, env);
   const int section_num =
-      gm_metrics_3way_section_num(metrics, i_proc, j_proc, k_proc, env);
+      gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
 
   /*---Define bounding box containing region to be computed - all2all case---*/
 
@@ -1243,7 +1243,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             sum.data[3] += GMTally1_encode(r110, r111);
           } /*---for f---*/
           if (Env_all2all(env)) {
-            GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+            GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                              sum, env);
           } else {
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
@@ -1485,7 +1485,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             sum.data[3] += GMTally1_encode(r110, r111);
           } /*---for f---*/
           if (Env_all2all(env)) {
-            GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+            GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                              sum, env);
           } else {
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
@@ -1519,8 +1519,8 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
                                           GMMirroredPointer* vectors_i_buf,
                                           GMMirroredPointer* vectors_j_buf,
                                           GMMirroredPointer* vectors_k_buf,
-                                          int j_proc,
-                                          int k_proc,
+                                          int j_block,
+                                          int k_block,
                                           GMEnv* env) {
   GMAssert(vectors_i != NULL);
   GMAssert(vectors_j != NULL);
@@ -1530,12 +1530,12 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
   GMAssert(vectors_j_buf != NULL);
   GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
-  GMAssert(!(Env_proc_num_vector_i(env) == j_proc &&
-             Env_proc_num_vector_i(env) != k_proc));
-  GMAssert(!(Env_proc_num_vector_i(env) == k_proc &&
-             Env_proc_num_vector_i(env) != j_proc));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssert(!(Env_proc_num_vector_i(env) == j_block &&
+             Env_proc_num_vector_i(env) != k_block));
+  GMAssert(!(Env_proc_num_vector_i(env) == k_block &&
+             Env_proc_num_vector_i(env) != j_block));
   GMAssert(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
@@ -1544,29 +1544,29 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
   const int numvecl = metrics->num_vector_local;
   const int numpfieldl = vectors_i->num_packedval_field_local;
 
-  const int i_proc = Env_proc_num_vector_i(env);
+  const int i_block = Env_proc_num_vector_i(env);
 
   const _Bool need_2way = Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
 
   /*---Initializations - all2all case---*/
 
-  const _Bool is_part1 = i_proc == j_proc && j_proc == k_proc;
+  const _Bool is_part1 = i_block == j_block && j_block == k_block;
   const _Bool is_part3 =
-      i_proc != j_proc && j_proc != k_proc && i_proc != k_proc;
+      i_block != j_block && j_block != k_block && i_block != k_block;
 
   /*---Get specification of region to be computed for Part 3 - all2all case---*/
 
   const int section_axis =
-      gm_metrics_3way_section_axis(metrics, i_proc, j_proc, k_proc, env);
+      gm_metrics_3way_section_axis(metrics, i_block, j_block, k_block, env);
   const int section_num =
-      gm_metrics_3way_section_num(metrics, i_proc, j_proc, k_proc, env);
+      gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
 
   /*----------------------------------------*/
   /*---First get the required 2-way ij, jk, ik metrics---*/
   /*----------------------------------------*/
 
   /*--------------------*/
-  /*---Compute i_proc - j_proc PROD---*/
+  /*---Compute i_block - j_block PROD---*/
   /*--------------------*/
 
   /*---Allocate magma CPU/GPU memory for M = X^T PROD X---*/
@@ -1612,7 +1612,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
   }
 
   /*--------------------*/
-  /*---Compute j_proc - k_proc PROD---*/
+  /*---Compute j_block - k_block PROD---*/
   /*--------------------*/
 
   /*---Need to compute only if not identical to already computed values---*/
@@ -1650,7 +1650,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
   }
 
   /*--------------------*/
-  /*---Compute k_proc - i_proc PROD---*/
+  /*---Compute k_block - i_block PROD---*/
   /*--------------------*/
 
   /*---Need to compute only if not identical to already computed values---*/
@@ -2012,7 +2012,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
                                  sax1 ?   K :
                               /* sax2 ?*/ J;
               /* clang-format on */
-              GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+              GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                             numerator, env);
             } /*---for K---*/
           }   /*---for I---*/
@@ -2126,7 +2126,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
               GMTally4x2 numer = step_2way==0 ? GMTally4x2_null() :
                 GMMetrics_tally4x2_get_all2all_3(metrics, i, j, k,
-                                                 j_proc, k_proc, env);
+                                                 j_block, k_block, env);
               GMTally1 r000_permuted, r001_permuted;
               GMTally1_decode(&r000_permuted, &r001_permuted, numer.data[0]);
               GMTally1 r010_permuted, r011_permuted;
@@ -2233,7 +2233,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
               numer.data[1] = GMTally1_encode(r010_permuted, r011_permuted);
               numer.data[2] = GMTally1_encode(r100_permuted, r101_permuted);
               numer.data[3] = GMTally1_encode(r110_permuted, r111_permuted);
-              GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+              GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                                numer, env);
 
             } /*---for K---*/
@@ -2279,8 +2279,8 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
                                       GMMirroredPointer* vectors_i_buf,
                                       GMMirroredPointer* vectors_j_buf,
                                       GMMirroredPointer* vectors_k_buf,
-                                      int j_proc,
-                                      int k_proc,
+                                      int j_block,
+                                      int k_block,
                                       GMEnv* env) {
   GMAssert(vectors_i != NULL);
   GMAssert(vectors_j != NULL);
@@ -2290,12 +2290,12 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
   GMAssert(vectors_j_buf != NULL);
   GMAssert(vectors_k_buf != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
-  GMAssert(!(Env_proc_num_vector_i(env) == j_proc &&
-             Env_proc_num_vector_i(env) != k_proc));
-  GMAssert(!(Env_proc_num_vector_i(env) == k_proc &&
-             Env_proc_num_vector_i(env) != j_proc));
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssert(!(Env_proc_num_vector_i(env) == j_block &&
+             Env_proc_num_vector_i(env) != k_block));
+  GMAssert(!(Env_proc_num_vector_i(env) == k_block &&
+             Env_proc_num_vector_i(env) != j_block));
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*----------------------------------------*/
@@ -2304,7 +2304,7 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
 
     gm_compute_numerators_3way_gpu_start(vectors_i, vectors_j, vectors_k,
                                          metrics, vectors_i_buf, vectors_j_buf,
-                                         vectors_k_buf, j_proc, k_proc, env);
+                                         vectors_k_buf, j_block, k_block, env);
     /*----------------------------------------*/
   } else /*---(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU)---*/ {
     /*----------------------------------------*/
@@ -2319,14 +2319,14 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
         /*----------------------------------------*/
         gm_compute_czekanowski_numerators_3way_nongpu_start(
             vectors_i, vectors_j, vectors_k, metrics, vectors_i_buf,
-            vectors_j_buf, vectors_k_buf, j_proc, k_proc, env);
+            vectors_j_buf, vectors_k_buf, j_block, k_block, env);
       } break;
       /*----------------------------------------*/
       case GM_METRIC_TYPE_CCC: {
         /*----------------------------------------*/
         gm_compute_ccc_numerators_3way_nongpu_start(
             vectors_i, vectors_j, vectors_k, metrics, vectors_i_buf,
-            vectors_j_buf, vectors_k_buf, j_proc, k_proc, env);
+            vectors_j_buf, vectors_k_buf, j_block, k_block, env);
       } break;
       /*----------------------------------------*/
       default:
@@ -2346,21 +2346,21 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
                                          GMFloat* __restrict__ vector_sums_i,
                                          GMFloat* __restrict__ vector_sums_j,
                                          GMFloat* __restrict__ vector_sums_k,
-                                         int j_proc,
-                                         int k_proc,
+                                         int j_block,
+                                         int k_block,
                                          GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_i != NULL);
   GMAssert(vector_sums_j != NULL);
   GMAssert(vector_sums_k != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
-  GMAssert(Env_proc_num_vector_i(env) != j_proc || j_proc == k_proc);
-  GMAssert(Env_proc_num_vector_i(env) != k_proc || j_proc == k_proc);
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssert(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
+  GMAssert(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
-  const int i_proc = Env_proc_num_vector_i(env);
+  const int i_block = Env_proc_num_vector_i(env);
 
   const int numvecl = metrics->num_vector_local;
 
@@ -2370,7 +2370,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
 
 //TODO: combine the following 3 cases using same logic as gm_compute_czekanowski_numerators_3way_nongpu_start
     /*----------------------------------------*/
-    if (i_proc == j_proc && j_proc == k_proc) {
+    if (i_block == j_block && j_block == k_block) {
       /*----------------------------------------*/
 
       int k = 0;
@@ -2380,10 +2380,10 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
           int i = 0;
           for (i = 0; i < j; ++i) {
             const GMFloat numerator = GMMetrics_float_get_all2all_3(
-                metrics, i, j, k, j_proc, k_proc, env);
+                metrics, i, j, k, j_block, k_block, env);
             const GMFloat denominator =
                 vector_sums_i[i] + vector_sums_i[j] + vector_sums_i[k];
-            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                           3 * numerator / (2 * denominator),
                                           env);
           } /*---for i---*/
@@ -2391,7 +2391,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
       }     /*---for k---*/
 
       /*----------------------------------------*/
-    } else if (j_proc == k_proc) {
+    } else if (j_block == k_block) {
       /*----------------------------------------*/
 
       int k = 0;
@@ -2401,10 +2401,10 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
           int i = 0;
           for (i = 0; i < numvecl; ++i) {
             const GMFloat numerator = GMMetrics_float_get_all2all_3(
-                metrics, i, j, k, j_proc, k_proc, env);
+                metrics, i, j, k, j_block, k_block, env);
             const GMFloat denominator =
                 vector_sums_i[i] + vector_sums_j[j] + vector_sums_j[k];
-            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                           3 * numerator / (2 * denominator),
                                           env);
           } /*---for i---*/
@@ -2412,15 +2412,15 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
       }     /*---for k---*/
 
       /*----------------------------------------*/
-    } else /*---i_proc != j_proc && i_proc != k_proc && j_proc != k_proc---*/ {
+    } else /*---i_block != j_block && i_block != k_block && j_block != k_block---*/ {
       /*----------------------------------------*/
 
       /*---Get specification of region to be computed for Part 3---*/
 
       const int section_axis =
-          gm_metrics_3way_section_axis(metrics, i_proc, j_proc, k_proc, env);
+          gm_metrics_3way_section_axis(metrics, i_block, j_block, k_block, env);
       const int section_num =
-          gm_metrics_3way_section_num(metrics, i_proc, j_proc, k_proc, env);
+          gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
 
       /*---Define bounding box containing region to be computed---*/
 
@@ -2446,12 +2446,12 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
           int i = 0;
           for (i = i_lb; i < i_ub; ++i) {
             const GMFloat numerator = GMMetrics_float_get_all2all_3(
-                metrics, i, j, k, j_proc, k_proc, env);
+                metrics, i, j, k, j_block, k_block, env);
             const GMFloat denominator =
                 vector_sums_i[i] + vector_sums_j[j] + vector_sums_k[k];
             const GMFloat value =
                 ((GMFloat)3) * numerator / (((GMFloat)2) * denominator);
-            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                           value, env);
           } /*---for i---*/
         }   /*---for j---*/
@@ -2492,25 +2492,25 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
                                  GMFloat* __restrict__ vector_sums_i,
                                  GMFloat* __restrict__ vector_sums_j,
                                  GMFloat* __restrict__ vector_sums_k,
-                                 int j_proc,
-                                 int k_proc,
+                                 int j_block,
+                                 int k_block,
                                  GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_i != NULL);
   GMAssert(vector_sums_j != NULL);
   GMAssert(vector_sums_k != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
-  GMAssert(Env_proc_num_vector_i(env) != j_proc || j_proc == k_proc);
-  GMAssert(Env_proc_num_vector_i(env) != k_proc || j_proc == k_proc);
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssert(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
+  GMAssert(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*---Initializations---*/
 
   const int numvecl = metrics->num_vector_local;
 
-  const int i_proc = Env_proc_num_vector_i(env);
+  const int i_block = Env_proc_num_vector_i(env);
 
   int i = 0;
   int j = 0;
@@ -2518,16 +2518,16 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
 
   /*---Initializations - all2all case---*/
 
-  const _Bool is_part1 = i_proc == j_proc && j_proc == k_proc;
+  const _Bool is_part1 = i_block == j_block && j_block == k_block;
   const _Bool is_part3 =
-      i_proc != j_proc && j_proc != k_proc && i_proc != k_proc;
+      i_block != j_block && j_block != k_block && i_block != k_block;
 
   /*---Get specification of region to be computed for Part 3 - all2all case---*/
 
   const int section_axis =
-      gm_metrics_3way_section_axis(metrics, i_proc, j_proc, k_proc, env);
+      gm_metrics_3way_section_axis(metrics, i_block, j_block, k_block, env);
   const int section_num =
-      gm_metrics_3way_section_num(metrics, i_proc, j_proc, k_proc, env);
+      gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
 
   /*---Define bounding box containing region to be computed - all2all case---*/
 
@@ -2571,7 +2571,7 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
           const GMTally1 si_1 = (GMTally1)(vector_sums_i[i]);
           GMAssert((GMFloat)si_1 == vector_sums_i[i]);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
-          GMMetrics_float3_M_set_all2all_3(metrics, i, j, k, j_proc, k_proc,
+          GMMetrics_float3_M_set_all2all_3(metrics, i, j, k, j_block, k_block,
               si1_sj1_sk1, env);
         } /*---for k---*/
       }   /*---for j---*/
@@ -2611,18 +2611,18 @@ void gm_compute_3way_combine(GMMetrics* metrics,
                              GMVectorSums* vector_sums_i,
                              GMVectorSums* vector_sums_j,
                              GMVectorSums* vector_sums_k,
-                             int j_proc,
-                             int k_proc,
+                             int j_block,
+                             int k_block,
                              GMEnv* env) {
   GMAssert(metrics != NULL);
   GMAssert(vector_sums_i != NULL);
   GMAssert(vector_sums_j != NULL);
   GMAssert(vector_sums_k != NULL);
   GMAssert(env != NULL);
-  GMAssert(j_proc >= 0 && j_proc < Env_num_block_vector(env));
-  GMAssert(k_proc >= 0 && k_proc < Env_num_block_vector(env));
-  GMAssert(Env_proc_num_vector_i(env) != j_proc || j_proc == k_proc);
-  GMAssert(Env_proc_num_vector_i(env) != k_proc || j_proc == k_proc);
+  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssert(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
+  GMAssert(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
   GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
 
   switch (Env_metric_type(env)) {
@@ -2636,14 +2636,14 @@ void gm_compute_3way_combine(GMMetrics* metrics,
       /*----------------------------------------*/
       gm_compute_czekanowski_3way_combine(
           metrics, (GMFloat*)vector_sums_i->data, (GMFloat*)vector_sums_j->data,
-          (GMFloat*)vector_sums_k->data, j_proc, k_proc, env);
+          (GMFloat*)vector_sums_k->data, j_block, k_block, env);
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
       gm_compute_ccc_3way_combine(
           metrics, (GMFloat*)vector_sums_i->data, (GMFloat*)vector_sums_j->data,
-          (GMFloat*)vector_sums_k->data, j_proc, k_proc, env);
+          (GMFloat*)vector_sums_k->data, j_block, k_block, env);
     } break;
     /*----------------------------------------*/
     default:

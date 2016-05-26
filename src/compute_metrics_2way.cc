@@ -125,13 +125,13 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   /*---Initializations---*/
 
-  const int num_proc = Env_num_block_vector(env);
+  const int num_block = Env_num_block_vector(env);
 
   const int numvecl = vectors->num_vector_local;
   const int numpfieldl = vectors->num_packedval_field_local;
 
   int i = 0;
-  int i_proc = Env_proc_num_vector_i(env);
+  int i_block = Env_proc_num_vector_i(env);
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
   GMVectorSums vector_sums_offproc = GMVectorSums_null();
@@ -167,20 +167,47 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   /*---Result matrix is diagonal block and half the blocks to the right
        (including wraparound to left side of matrix when appropriate).
-       For even number of procs, block rows of lower half of matrix
+       For even number of vector blocks, block rows of lower half of matrix
        have one less block to make correct count---*/
 
-  const int num_step = 1 + (num_proc / 2);
+  const int num_proc_j = Env_num_proc_vector_j(env);
+  const int proc_num_j = Env_proc_num_vector_j(env);
 
   /*----------------------------------------*/
   /*---Begin loop over steps of circular shift of vectors objects---*/
   /*----------------------------------------*/
 
-  /*---Add extra step at end to drain pipeline---*/
+  /*---Summary of the opertions in this loop:
+
+    send VECTORS next step start
+    recv VECTORS next step start
+    set VECTORS this step wait
+    compute numerators start
+    get METRICS prev step wait
+    combine prev step wait (GPU case)
+    recv VECTORS next step wait
+    set VECTORS next step start
+    compute numerators wait
+    get METRICS this step start
+    compute denominators
+    combine this step (CPU case)
+    send VECTORS next step wait
+
+  ---*/
+
+  /*---Add extra step at begin/end to fill/drain pipeline---*/
+
   const int extra_step = 1;
 
+  const int rectangle_width = 1 + (num_block / 2);
+//CHANGE
+  const int num_step = gm_ceil_i(rectangle_width, num_proc_j);
+
   int step_num = 0;
-  for (step_num = 0; step_num < num_step + extra_step; ++step_num) {
+
+  /*========================================*/
+  for (step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num) {
+  /*========================================*/
     /*---Determine what kind of step this is---*/
 
     const _Bool is_compute_step = step_num >= 0 && step_num < num_step;
@@ -191,6 +218,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     const _Bool is_first_compute_step = step_num == 0;
     const _Bool is_first_compute_step_prev = step_num - 1 == 0;
+    //const _Bool is_first_compute_step_next = step_num + 1 == 0;
 
     const _Bool is_last_compute_step = step_num == num_step - 1;
     const _Bool is_last_compute_step_prev = step_num - 1 == num_step - 1;
@@ -202,17 +230,52 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     const int index_01_prev = (step_num - 1 + 2) % 2;
     const int index_01_next = (step_num + 1 + 2) % 2;
 
+    /*---Main diagonal block only computes strict upper triangular part---*/
+
+    const _Bool do_compute_triang_only = is_first_compute_step &&
+        proc_num_j == 0;
+
+    const _Bool do_compute_triang_only_prev = is_first_compute_step_prev &&
+        proc_num_j == 0;
+
+    //const _Bool do_compute_triang_only_next = is_first_compute_step_next &&
+    //    proc_num_j == 0;
+
+    /*---Possibly skip the block computation on the final compute step---*/
+
+//CHANGE
+    const _Bool skipping_active =
+        (num_block % 2 == 0) && (2 * i_block >= num_block);
+
+    const _Bool skipped_final_block =
+        skipping_active && is_last_compute_step;
+
+    const _Bool skipped_final_block_prev =
+        skipping_active && is_last_compute_step_prev;
+
+    const _Bool skipped_final_block_next =
+        skipping_active && is_last_compute_step_next;
+
+    const _Bool do_compute_block =
+        is_compute_step && !skipped_final_block;
+
+    const _Bool do_compute_block_prev =
+        is_compute_step_prev && !skipped_final_block_prev;
+
+    const _Bool do_compute_block_next =
+        is_compute_step_next && !skipped_final_block_next;
+
     /*---Point to left/right-side vecs, also right-side vecs for next step.
          Here we are computing V^T W, for V, W containing column vectors---*/
 
     GMVectors* vectors_left = vectors;
     GMVectors* vectors_right =
-        is_first_compute_step ? vectors : &vectors_01[index_01];
+        do_compute_triang_only ? vectors : &vectors_01[index_01];
     GMVectors* vectors_right_next = &vectors_01[index_01_next];
 
     GMMirroredPointer* vectors_left_buf = &vectors_buf;
     GMMirroredPointer* vectors_right_buf =
-        is_first_compute_step ? &vectors_buf : &vectors_buf_01[index_01];
+        do_compute_triang_only ? &vectors_buf : &vectors_buf_01[index_01];
     GMMirroredPointer* vectors_right_buf_next = &vectors_buf_01[index_01_next];
 
     /*---Point to metrics buffers---*/
@@ -222,16 +285,19 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---Prepare for sends/recvs: procs for communication---*/
 
-    const int proc_up = (i_proc + 1) % num_proc;
-    const int proc_dn = (i_proc - 1 + num_proc) % num_proc;
+//CHANGE
+    const int proc_recv = (proc_num_j + num_proc_j*(i_block + 1)) %
+        (num_block*num_proc_j);
+    const int proc_send = (proc_num_j + num_proc_j*(i_block - 1 + num_block)) %
+        (num_block*num_proc_j);
 
     MPI_Request mpi_requests[2];
 
     /*---Initiate sends/recvs for vecs needed on next step---*/
 
     if (is_compute_step_next) {
-      mpi_requests[0] = gm_send_vectors_start(vectors_right, proc_dn, env);
-      mpi_requests[1] = gm_recv_vectors_start(vectors_right_next, proc_up, env);
+      mpi_requests[0] = gm_send_vectors_start(vectors_right, proc_send, env);
+      mpi_requests[1] = gm_recv_vectors_start(vectors_right_next, proc_recv, env);
     }
 
     /*---First step: send (left) vecs to GPU---*/
@@ -242,38 +308,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       gm_set_vectors_wait(env);
     }
 
-    /*---The proc that owns the "right-side" vecs for the pseudo-product---*/
+    /*---The block num for the "right-side" vecs for the pseudo-product---*/
 
-    const int j_proc = (i_proc + step_num) % num_proc;
-    const int j_proc_prev = (i_proc + step_num - 1) % num_proc;
-
-    /*---To remove redundancies from symmetry, skip some blocks---*/
-
-    const _Bool skipping_active =
-        (num_proc % 2 == 0) && (2 * i_proc >= num_proc);
-
-    const _Bool skipped_last_block_lower_half =
-        skipping_active && is_last_compute_step;
-
-    const _Bool skipped_last_block_lower_half_prev =
-        skipping_active && is_last_compute_step_prev;
-
-    const _Bool skipped_last_block_lower_half_next =
-        skipping_active && is_last_compute_step_next;
-
-    const _Bool do_compute_block =
-        is_compute_step && !skipped_last_block_lower_half;
-
-    const _Bool do_compute_block_prev =
-        is_compute_step_prev && !skipped_last_block_lower_half_prev;
-
-    const _Bool do_compute_block_next =
-        is_compute_step_next && !skipped_last_block_lower_half_next;
-
-    /*---Main diagonal block only computes strict upper triangular part---*/
-
-    const _Bool do_compute_triang_only = is_first_compute_step;
-    const _Bool do_compute_triang_only_prev = is_first_compute_step_prev;
+//CHANGE
+    const int j_block = (i_block + step_num + 2*num_block) % num_block;
+    const int j_block_prev = (i_block + step_num - 1 + 2*num_block) % num_block;
 
     /*---Send right vectors to GPU end---*/
 
@@ -288,7 +327,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     if (is_compute_step && do_compute_block) {
       gm_compute_numerators_2way_start(
           vectors_left, vectors_right, metrics, vectors_left_buf,
-          vectors_right_buf, metrics_buf, j_proc, do_compute_triang_only, env);
+          vectors_right_buf, metrics_buf, j_block, do_compute_triang_only, env);
     }
 
     /*---GPU case: wait for prev step get metrics to complete, then combine.
@@ -312,7 +351,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                                               : &vector_sums_offproc;
         gm_compute_2way_combine(metrics, metrics_buf_prev_global,
                                 vector_sums_left, vector_sums_right,
-                                j_proc_prev, do_compute_triang_only_prev, env);
+                                j_block_prev, do_compute_triang_only_prev, env);
       }
     }
 
@@ -366,7 +405,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         GMVectorSums* vector_sums_right =
             is_first_compute_step ? &vector_sums_onproc : &vector_sums_offproc;
         gm_compute_2way_combine(metrics, metrics_buf, vector_sums_left,
-                                vector_sums_right, j_proc,
+                                vector_sums_right, j_block,
                                 do_compute_triang_only, env);
       }
     }
@@ -377,7 +416,15 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       gm_send_vectors_wait(&(mpi_requests[0]), env);
     }
 
+  /*========================================*/
   } /*---step_num---*/
+  /*========================================*/
+
+
+
+
+
+
 
   /*----------------------------------------*/
   /*---End loop over steps of circular shift of vectors objects---*/
