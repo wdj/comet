@@ -370,12 +370,16 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_repl,
   GMAssert(mpi_code == MPI_SUCCESS);
 
   int itmp = env->proc_num_;
-  env->proc_num_vector_i_ = itmp % env->num_proc_vector_i_;
-  itmp /= env->num_proc_vector_i_;
-  env->proc_num_vector_j_ = itmp % env->num_proc_vector_j_;
-  itmp /= env->num_proc_vector_j_;
+
   env->proc_num_vector_k_ = itmp % env->num_proc_vector_k_;
   itmp /= env->num_proc_vector_k_;
+
+  env->proc_num_vector_j_ = itmp % env->num_proc_vector_j_;
+  itmp /= env->num_proc_vector_j_;
+
+  env->proc_num_vector_i_ = itmp % env->num_proc_vector_i_;
+  itmp /= env->num_proc_vector_i_;
+
   env->proc_num_field_ = itmp % env->num_proc_field_;
   env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_;
 

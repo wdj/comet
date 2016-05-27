@@ -632,6 +632,14 @@ static size_t gm_ceil_i8(const size_t i, const size_t j) {
 
 /*---------------------------------------------------------------------------*/
 
+static int gm_mod_i(const int i, const int j) {
+  GMAssert(j > 0);
+
+  return i - j * gm_floor_i(i, j);
+}
+
+/*---------------------------------------------------------------------------*/
+
 static size_t gm_randomize_max() {
   const size_t im = 714025;
 
