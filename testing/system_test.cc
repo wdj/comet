@@ -120,7 +120,15 @@ _Bool compare_3runs(const char* options1,
 
 /*===========================================================================*/
 
+void test_2runs(const char* options1,
+                const char* options2) {
+  EXPECT_EQ(GM_BOOL_TRUE, compare_2runs(options1, options2));
+}
+
+/*===========================================================================*/
+
 void SystemTest_czekanowski_() {
+
   //----------
   //---2-way, all2all no
   //----------
@@ -318,6 +326,33 @@ void SystemTest_czekanowski_() {
                           "--num_proc_vector 3 --num_proc_field 2 --num_field "
                           "2 --num_vector_local 6 "
                           " --compute_method GPU --num_way 3 --all2all yes"));
+
+  //----------
+  //---num_repl
+  //----------
+
+  char options1[1024];
+  char options2[1024];
+
+  char options_template_1[] =
+      "--num_field 4 --num_vector_local %i --compute_method GPU --all2all yes "
+      "--num_proc_vector %i --num_proc_repl %i --num_proc_field 2";
+
+  int num_vector_local = 0;
+  int num_proc_vector = 0;
+  int num_proc_repl = 0;
+
+  for (num_vector_local=3; num_vector_local<=5; ++num_vector_local) {
+    for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+      for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+        sprintf(options1, options_template_1, num_vector_local,
+                num_proc_vector, 1);
+        sprintf(options2, options_template_1, num_vector_local,
+                num_proc_vector, num_proc_repl);
+        test_2runs(options1, options2);
+      }
+    }
+  }
 }
 
 /*===========================================================================*/
@@ -716,12 +751,12 @@ TEST(SystemTest, ccc2_simple) {
   SystemTest_ccc2_simple_();
 }
 
-TEST(SystemTest, ccc) {
-  SystemTest_ccc_();
+TEST(SystemTest,ccc3_simple) {
+  SystemTest_ccc3_simple_();
 }
 
- TEST(SystemTest,ccc3_simple) {
-  SystemTest_ccc3_simple_();
+TEST(SystemTest, ccc) {
+  SystemTest_ccc_();
 }
 
 /*===========================================================================*/

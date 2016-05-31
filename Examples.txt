@@ -94,6 +94,12 @@ cd $MEMBERWORK/stf006/gm_work
 # The following code also assumes bash shell.
 
 #--------------------
+# Run the tester.
+#--------------------
+cd build_test
+make test ARGS=-V
+
+#--------------------
 # Small simple cases , 2-way Czekanowski metric, no all2all.
 #--------------------
 

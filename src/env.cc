@@ -186,8 +186,8 @@ void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
       /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_proc_vector." : 0);
-      const int num_proc_vector = atoi(argv[i]);
-      Env_set_num_proc(env, num_proc_vector, env->num_proc_repl_,
+      const int num_proc_vector_i = atoi(argv[i]);
+      Env_set_num_proc(env, num_proc_vector_i, env->num_proc_repl_,
                        env->num_proc_field_);
       /*----------*/
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
@@ -325,10 +325,10 @@ int Env_data_type_metrics(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_repl,
+void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
                       int num_proc_field) {
   GMAssert(env != NULL);
-  GMAssertAlways(num_proc_vector > 0);
+  GMAssertAlways(num_proc_vector_i > 0);
   GMAssertAlways(num_proc_repl > 0);
   GMAssertAlways(num_proc_field >= 0);
 
@@ -348,21 +348,17 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector, int num_proc_repl,
 
   /*---Set proc counts---*/
 
-  env->num_proc_vector_i_ = num_proc_vector;
+  env->num_proc_vector_i_ = num_proc_vector_i;
   env->num_proc_repl_ = num_proc_repl;
   env->num_proc_field_ = num_proc_field;
-
-  env->num_proc_ = num_proc_vector * num_proc_field;
-  int i = 0;
-  for (i=0; i<env->num_way_-1; ++i) {
-    env->num_proc_ *= num_proc_repl;
-  }
-  GMAssertAlways(env->num_proc_ <= env->num_proc_world_);
 
   env->num_proc_vector_j_ = env->num_way_ >= GM_NUM_WAY_2 ? num_proc_repl : 1;
   env->num_proc_vector_k_ = env->num_way_ >= GM_NUM_WAY_3 ? num_proc_repl : 1;
   env->num_proc_vector_ = env->num_proc_vector_i_ * env->num_proc_vector_j_ *
                           env->num_proc_vector_k_;
+
+  env->num_proc_ = env->num_proc_vector_ * num_proc_field;
+  GMAssertAlways(env->num_proc_ <= env->num_proc_world_);
 
   /*---Set proc nums---*/
 

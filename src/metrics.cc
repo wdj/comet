@@ -153,12 +153,12 @@ void GMMetrics_create(GMMetrics* metrics,
     }
     /*---Set index part 2: (wrapped rectangle) i_block!=j_block part---*/
     const size_t beg = (i_block + 1) * num_vector_local;
-    const size_t end = (i_block + num_offdiag_block + 1) * num_vector_local;
+    const size_t end = (i_block + num_block_this_total) * num_vector_local;
     size_t j_global_unwrapped = 0;
     for (j_global_unwrapped = beg; j_global_unwrapped < end;
          ++j_global_unwrapped) {
       const int j_block_unwrapped = (int)(j_global_unwrapped/num_vector_local);
-      if (j_block_unwrapped % num_proc_j != proc_j) {
+      if ((j_block_unwrapped-i_block) % num_proc_j != proc_j) {
         continue;
       }
       const size_t j_global = j_global_unwrapped % metrics->num_vector;
@@ -169,6 +169,7 @@ void GMMetrics_create(GMMetrics* metrics,
             i_global + metrics->num_vector * j_global;
       }
     }
+//printf("%i %i %i %i %i %i\n", i_block, proc_j, (int)index, (int)metrics->num_elts_local, (int)beg, (int)end);
     GMAssert(index == metrics->num_elts_local);
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_3 && Env_all2all(env)) {
