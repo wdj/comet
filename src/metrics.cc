@@ -22,6 +22,13 @@ extern "C" {
 #endif
 
 /*===========================================================================*/
+/*---Helper: elts in ith bin it k elts packed round-robin into n bins---*/
+
+int rr_pack_(int i, int n, int k) {
+  return k/n + (i < k % n ? 1 : 0);
+}
+
+/*===========================================================================*/
 /*---Null object---*/
 
 GMMetrics GMMetrics_null() {
@@ -118,17 +125,17 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->num_elts_local += proc_j == 0 ? nchoosek : 0;
     metrics->index_offset_0_ = metrics->num_elts_local;
     /*---Calculate index size part 2: (wrapped rect) i_block!=j_block part---*/
-    /*---Total stored nonzero blocks this block row---*/
-    const int num_block_this_total = num_block % 2 == 0 &&
-                                     2 * i_block >= num_block
-                                      ? (num_block / 2)
-                                      : (num_block / 2) + 1;
+    /*---Total computed blocks this block row---*/
+    const int num_block_this_slab_2 = num_block % 2 == 0 &&
+                                      2 * i_block >= num_block
+                                        ? (num_block / 2)
+                                        : (num_block / 2) + 1;
     /*---Number stored for this proc_j---*/
-    const int num_block_this = num_block_this_total / num_proc_j +
-        (proc_j < num_block_this_total % num_proc_j ? 1 : 0);
+    const int num_block_this_proc_2 = num_block_this_slab_2 / num_proc_j +
+        (proc_j < num_block_this_slab_2 % num_proc_j ? 1 : 0);
     /*---Now count offdiag blocks only---*/
-    const int num_offdiag_block = proc_j == 0 ? num_block_this - 1
-                                              : num_block_this;
+    const int num_offdiag_block = proc_j == 0 ? num_block_this_proc_2 - 1
+                                              : num_block_this_proc_2;
     /*---Now put it all together---*/
     metrics->num_elts_local +=
         num_offdiag_block * num_vector_local * num_vector_local;
@@ -153,7 +160,7 @@ void GMMetrics_create(GMMetrics* metrics,
     }
     /*---Set index part 2: (wrapped rectangle) i_block!=j_block part---*/
     const size_t beg = (i_block + 1) * num_vector_local;
-    const size_t end = (i_block + num_block_this_total) * num_vector_local;
+    const size_t end = (i_block + num_block_this_slab_2) * num_vector_local;
     size_t j_global_unwrapped = 0;
     for (j_global_unwrapped = beg; j_global_unwrapped < end;
          ++j_global_unwrapped) {
@@ -169,71 +176,85 @@ void GMMetrics_create(GMMetrics* metrics,
             i_global + metrics->num_vector * j_global;
       }
     }
-//printf("%i %i %i %i %i %i\n", i_block, proc_j, (int)index, (int)metrics->num_elts_local, (int)beg, (int)end);
     GMAssert(index == metrics->num_elts_local);
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_3 && Env_all2all(env)) {
   /*==================================================*/
-//CHANGE
     /*---Make the following assumption to greatly simplify calculations---*/
     GMInsist(env, num_block <= 2 || metrics->num_vector_local % 6 == 0
                       ? "3way all2all case requires num vectors per proc "
                         "divisible by 6."
                       : 0);
+    const int nchoosekm1 = gm_nchoosek(num_vector_local, Env_num_way(env) - 1);
+    /*===PART A: CALCULATE INDEX SIZE===*/
+    const int proc_j = Env_proc_num_vector_j(env);
+    const int num_proc_j = Env_num_proc_vector_j(env);
     metrics->num_elts_local = 0;
+    int num_block_this_slab = 0;
     /*---Compute size pt 1: (tetrahedron) i_block==j_block==k_block part---*/
-    metrics->num_elts_local += nchoosek;
+
+    const int num_block_this_slab_1 = 1;
+    num_block_this_slab += num_block_this_slab_1;
+
+    const int num_block_this_proc_1 = rr_pack_(proc_j, num_proc_j,
+                                               num_block_this_slab);
+
+    const int num_elts_per_block_1 = nchoosek;
+
+    metrics->num_elts_local += num_block_this_proc_1 * num_elts_per_block_1;
+
     metrics->index_offset_0_ = metrics->num_elts_local;
     /*---Compute size pt 2: (triang prisms) i_block!=j_block==k_block part---*/
-    const int nchoosekm1 =
-        gm_nchoosek(num_vector_local, Env_num_way(env) - 1);
-    const int num_blockm1 = num_block - 1;
-    metrics->num_elts_local += num_blockm1 * nchoosekm1 * num_vector_local;
+
+    const int num_block_this_slab_2 = num_block - 1;
+    num_block_this_slab += num_block_this_slab_2;
+
+    const int num_block_this_proc_12 = rr_pack_(proc_j, num_proc_j,
+                                                num_block_this_slab);
+
+    const int num_block_this_proc_2 = num_block_this_proc_12 -
+                                      num_block_this_proc_1;
+
+    const int num_elts_per_block_2 = nchoosekm1 * num_vector_local;
+
+    metrics->num_elts_local += num_block_this_proc_2 * num_elts_per_block_2;
+
     metrics->index_offset_01_ = metrics->num_elts_local;
     /*---Compute size pt 3: (block sections) i_block!=j_block!=k_block part---*/
-    const int num_blockm2 = num_block - 2;
-    metrics->num_elts_local += num_blockm1 * num_blockm2 * num_vector_local *
+
+    const int num_block_this_slab_3 = (num_block - 1) * (num_block - 2);
+    num_block_this_slab += num_block_this_slab_3;
+
+    const int num_block_this_proc_123 = rr_pack_(proc_j, num_proc_j,
+                                                 num_block_this_slab);
+
+    const int num_block_this_proc_3 = num_block_this_proc_123 -
+                                      num_block_this_proc_12;
+
+    const int num_elts_per_block_3 = num_vector_local *
                                num_vector_local * (num_vector_local / 6);
-    /*---Allocate index---*/
+
+    metrics->num_elts_local += num_block_this_proc_3 * num_elts_per_block_3;
+
+    /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssert(metrics->coords_global_from_index != NULL);
+    /*===PART C: SET INDEX===*/
+    int block_this_slab = 0;
     /*---Set index part 1: (tetrahedron) i_block==j_block==k_block part---*/
     size_t index = 0;
     int k = 0;
-    for (k = 0; k < num_vector_local; ++k) {
-      const int k_block = i_block;
-      const size_t k_global = k + num_vector_local * k_block;
-      int j = 0;
-      for (j = 0; j < k; ++j) {
-        const int j_block = i_block;
-        const size_t j_global = j + num_vector_local * j_block;
-        int i = 0;
-        for (i = 0; i < j; ++i) {
-          const size_t i_global = i + num_vector_local * i_block;
-          GMAssert(index < metrics->num_elts_local);
-          metrics->coords_global_from_index[index++] =
-              i_global +
-              metrics->num_vector *
-                  (j_global + metrics->num_vector * (k_global));
-        }
-      }
-    }
-    /*---Set index part 2: (triang prisms) i_block!=j_block==k_block part---*/
-    int k_block = 0;
-    for (k_block = 0; k_block < num_block; ++k_block) {
-      if (k_block == i_block) {
-        continue;
-      }
-      const int j_block = k_block;
-      int k = 0;
+    if (proc_j == block_this_slab % num_proc_j) {
       for (k = 0; k < num_vector_local; ++k) {
+        const int k_block = i_block;
         const size_t k_global = k + num_vector_local * k_block;
         int j = 0;
         for (j = 0; j < k; ++j) {
+          const int j_block = i_block;
           const size_t j_global = j + num_vector_local * j_block;
           int i = 0;
-          for (i = 0; i < num_vector_local; ++i) {
+          for (i = 0; i < j; ++i) {
             const size_t i_global = i + num_vector_local * i_block;
             GMAssert(index < metrics->num_elts_local);
             metrics->coords_global_from_index[index++] =
@@ -243,6 +264,35 @@ void GMMetrics_create(GMMetrics* metrics,
           }
         }
       }
+    }
+    block_this_slab += 1;
+    /*---Set index part 2: (triang prisms) i_block!=j_block==k_block part---*/
+    int k_block = 0;
+    for (k_block = 0; k_block < num_block; ++k_block) {
+      if (k_block == i_block) {
+        continue;
+      }
+      if (proc_j == block_this_slab % num_proc_j) {
+        const int j_block = k_block;
+        int k = 0;
+        for (k = 0; k < num_vector_local; ++k) {
+          const size_t k_global = k + num_vector_local * k_block;
+          int j = 0;
+          for (j = 0; j < k; ++j) {
+            const size_t j_global = j + num_vector_local * j_block;
+            int i = 0;
+            for (i = 0; i < num_vector_local; ++i) {
+              const size_t i_global = i + num_vector_local * i_block;
+              GMAssert(index < metrics->num_elts_local);
+              metrics->coords_global_from_index[index++] =
+                  i_global +
+                  metrics->num_vector *
+                      (j_global + metrics->num_vector * (k_global));
+            }
+          }
+        }
+      }
+      block_this_slab += 1;
     } /*---k_block---*/
     /*---Set index part 3: (block sections) i_block!=j_block!=k_block part---*/
     for (k_block = 0; k_block < num_block; ++k_block) {
@@ -254,37 +304,40 @@ void GMMetrics_create(GMMetrics* metrics,
         if (j_block == i_block || j_block == k_block) {
           continue;
         }
-        const int section_axis = gm_metrics_3way_section_axis(
+        if (proc_j == block_this_slab % num_proc_j) {
+          const int section_axis = gm_metrics_3way_section_axis(
             metrics, i_block, j_block, k_block, env);
-        const int section_num =
-            gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
-        const int inc = num_vector_local / 6;
-        const int k_min = section_axis == 2 ? (section_num)*inc : 0;
-        const int k_max =
-            section_axis == 2 ? (section_num + 1) * inc : num_vector_local;
-        int k = 0;
-        for (k = k_min; k < k_max; ++k) {
-          const size_t k_global = k + num_vector_local * k_block;
-          const int j_min = section_axis == 1 ? (section_num)*inc : 0;
-          const int j_max =
-              section_axis == 1 ? (section_num + 1) * inc : num_vector_local;
-          int j = 0;
-          for (j = j_min; j < j_max; ++j) {
-            const size_t j_global = j + num_vector_local * j_block;
-            const int i_min = section_axis == 0 ? (section_num)*inc : 0;
-            const int i_max = section_axis == 0 ? (section_num + 1) * inc
-                                                : num_vector_local;
-            int i = 0;
-            for (i = i_min; i < i_max; ++i) {
-              const size_t i_global = i + num_vector_local * i_block;
-              GMAssert(index < metrics->num_elts_local);
-              metrics->coords_global_from_index[index++] =
-                  i_global +
-                  metrics->num_vector *
-                      (j_global + metrics->num_vector * (k_global));
+          const int section_num =
+           gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
+          const int inc = num_vector_local / 6;
+          const int k_min = section_axis == 2 ? (section_num)*inc : 0;
+          const int k_max =
+              section_axis == 2 ? (section_num + 1) * inc : num_vector_local;
+          int k = 0;
+          for (k = k_min; k < k_max; ++k) {
+            const size_t k_global = k + num_vector_local * k_block;
+            const int j_min = section_axis == 1 ? (section_num)*inc : 0;
+            const int j_max =
+                section_axis == 1 ? (section_num + 1) * inc : num_vector_local;
+            int j = 0;
+            for (j = j_min; j < j_max; ++j) {
+              const size_t j_global = j + num_vector_local * j_block;
+              const int i_min = section_axis == 0 ? (section_num)*inc : 0;
+              const int i_max = section_axis == 0 ? (section_num + 1) * inc
+                                                  : num_vector_local;
+              int i = 0;
+              for (i = i_min; i < i_max; ++i) {
+                const size_t i_global = i + num_vector_local * i_block;
+                GMAssert(index < metrics->num_elts_local);
+                metrics->coords_global_from_index[index++] =
+                    i_global +
+                    metrics->num_vector *
+                        (j_global + metrics->num_vector * (k_global));
+              }
             }
           }
         }
+        block_this_slab += 1;
       } /*---j_block---*/
     }   /*---k_block---*/
     GMAssert(index == metrics->num_elts_local);
