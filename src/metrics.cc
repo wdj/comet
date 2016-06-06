@@ -24,7 +24,7 @@ extern "C" {
 /*===========================================================================*/
 /*---Helper: elts in ith bin it k elts packed round-robin into n bins---*/
 
-int rr_pack_(int i, int n, int k) {
+static int rr_pack_(int i, int n, int k) {
   return k/n + (i < k % n ? 1 : 0);
 }
 
