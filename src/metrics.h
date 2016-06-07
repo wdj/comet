@@ -259,7 +259,6 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-//CHANGE
 static size_t GMMetrics_helper1_part1(GMMetrics* metrics,
                                       int i,
                                       int j,
@@ -268,6 +267,7 @@ static size_t GMMetrics_helper1_part1(GMMetrics* metrics,
                                       int j_block,
                                       int k_block,
                                       GMEnv* env) {
+  GMAssert(Env_proc_num_vector_j(env) == 0);
   return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
 }
 

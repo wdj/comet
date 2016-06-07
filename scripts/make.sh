@@ -15,6 +15,9 @@ time make VERBOSE=1
 
 if [ $? = 0 ] ; then
   time make install
+  exit $?
+else
+  exit $?
 fi
 
 #==============================================================================

@@ -22,10 +22,10 @@ extern "C" {
 #endif
 
 /*===========================================================================*/
-/*---Helper: elts in ith bin it k elts packed round-robin into n bins---*/
+/*---Helper: round-robin-pack m values into n bins, give ith bin size---*/
 
-static int rr_pack_(int i, int n, int k) {
-  return k/n + (i < k % n ? 1 : 0);
+static int rr_pack_(int i, int n, int m) {
+  return m/n + (i < m % n ? 1 : 0);
 }
 
 /*===========================================================================*/
@@ -106,6 +106,10 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const int nchoosek = gm_nchoosek(num_vector_local, Env_num_way(env));
 
+  int i = 0;
+  int j = 0;
+  int k = 0;
+
   /*---Compute number of elements etc.---*/
 
   /*==================================================*/
@@ -131,8 +135,8 @@ void GMMetrics_create(GMMetrics* metrics,
                                         ? (num_block / 2)
                                         : (num_block / 2) + 1;
     /*---Number stored for this proc_j---*/
-    const int num_block_this_proc_2 = num_block_this_slab_2 / num_proc_j +
-        (proc_j < num_block_this_slab_2 % num_proc_j ? 1 : 0);
+    const int num_block_this_proc_2 = rr_pack_(proc_j, num_proc_j,
+                                               num_block_this_slab_2);
     /*---Now count offdiag blocks only---*/
     const int num_offdiag_block = proc_j == 0 ? num_block_this_proc_2 - 1
                                               : num_block_this_proc_2;
@@ -147,10 +151,8 @@ void GMMetrics_create(GMMetrics* metrics,
     /*---Set index part 1: (triangle) i_block==j_block part---*/
     size_t index = 0;
     if (proc_j == 0) {
-      int j = 0;
       for (j = 0; j < num_vector_local; ++j) {
         const size_t j_global = j + num_vector_local * i_block;
-        int i = 0;
         for (i = 0; i < j; ++i) {
           const size_t i_global = i + num_vector_local * i_block;
           metrics->coords_global_from_index[index++] =
@@ -169,7 +171,6 @@ void GMMetrics_create(GMMetrics* metrics,
         continue;
       }
       const size_t j_global = j_global_unwrapped % metrics->num_vector;
-      int i = 0;
       for (i = 0; i < num_vector_local; ++i) {
         const size_t i_global = i + num_vector_local * i_block;
         metrics->coords_global_from_index[index++] =
@@ -235,7 +236,7 @@ void GMMetrics_create(GMMetrics* metrics,
                                num_vector_local * (num_vector_local / 6);
 
     metrics->num_elts_local += num_block_this_proc_3 * num_elts_per_block_3;
-
+    GMAssert(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
@@ -244,16 +245,13 @@ void GMMetrics_create(GMMetrics* metrics,
     int block_this_slab = 0;
     /*---Set index part 1: (tetrahedron) i_block==j_block==k_block part---*/
     size_t index = 0;
-    int k = 0;
-    if (proc_j == block_this_slab % num_proc_j) {
+    if (block_this_slab % num_proc_j == proc_j) {
       for (k = 0; k < num_vector_local; ++k) {
         const int k_block = i_block;
         const size_t k_global = k + num_vector_local * k_block;
-        int j = 0;
         for (j = 0; j < k; ++j) {
           const int j_block = i_block;
           const size_t j_global = j + num_vector_local * j_block;
-          int i = 0;
           for (i = 0; i < j; ++i) {
             const size_t i_global = i + num_vector_local * i_block;
             GMAssert(index < metrics->num_elts_local);
@@ -267,20 +265,17 @@ void GMMetrics_create(GMMetrics* metrics,
     }
     block_this_slab += 1;
     /*---Set index part 2: (triang prisms) i_block!=j_block==k_block part---*/
-    int k_block = 0;
-    for (k_block = 0; k_block < num_block; ++k_block) {
-      if (k_block == i_block) {
+    int j_block = 0;
+    for (j_block = 0; j_block < num_block; ++j_block) {
+      if (j_block == i_block) {
         continue;
       }
-      if (proc_j == block_this_slab % num_proc_j) {
-        const int j_block = k_block;
-        int k = 0;
+      if (block_this_slab % num_proc_j == proc_j) {
+        const int k_block = j_block;
         for (k = 0; k < num_vector_local; ++k) {
           const size_t k_global = k + num_vector_local * k_block;
-          int j = 0;
           for (j = 0; j < k; ++j) {
             const size_t j_global = j + num_vector_local * j_block;
-            int i = 0;
             for (i = 0; i < num_vector_local; ++i) {
               const size_t i_global = i + num_vector_local * i_block;
               GMAssert(index < metrics->num_elts_local);
@@ -295,6 +290,7 @@ void GMMetrics_create(GMMetrics* metrics,
       block_this_slab += 1;
     } /*---k_block---*/
     /*---Set index part 3: (block sections) i_block!=j_block!=k_block part---*/
+    int k_block = 0;
     for (k_block = 0; k_block < num_block; ++k_block) {
       if (k_block == i_block) {
         continue;
@@ -304,7 +300,7 @@ void GMMetrics_create(GMMetrics* metrics,
         if (j_block == i_block || j_block == k_block) {
           continue;
         }
-        if (proc_j == block_this_slab % num_proc_j) {
+        if (block_this_slab % num_proc_j == proc_j) {
           const int section_axis = gm_metrics_3way_section_axis(
             metrics, i_block, j_block, k_block, env);
           const int section_num =
@@ -313,19 +309,16 @@ void GMMetrics_create(GMMetrics* metrics,
           const int k_min = section_axis == 2 ? (section_num)*inc : 0;
           const int k_max =
               section_axis == 2 ? (section_num + 1) * inc : num_vector_local;
-          int k = 0;
           for (k = k_min; k < k_max; ++k) {
             const size_t k_global = k + num_vector_local * k_block;
             const int j_min = section_axis == 1 ? (section_num)*inc : 0;
             const int j_max =
                 section_axis == 1 ? (section_num + 1) * inc : num_vector_local;
-            int j = 0;
             for (j = j_min; j < j_max; ++j) {
               const size_t j_global = j + num_vector_local * j_block;
               const int i_min = section_axis == 0 ? (section_num)*inc : 0;
               const int i_max = section_axis == 0 ? (section_num + 1) * inc
                                                   : num_vector_local;
-              int i = 0;
               for (i = i_min; i < i_max; ++i) {
                 const size_t i_global = i + num_vector_local * i_block;
                 GMAssert(index < metrics->num_elts_local);
@@ -350,10 +343,8 @@ void GMMetrics_create(GMMetrics* metrics,
     GMAssert(metrics->coords_global_from_index != NULL);
     /*---Need store only strict upper triangular part of matrix---*/
     size_t index = 0;
-    int j = 0;
     for (j = 0; j < num_vector_local; ++j) {
       const size_t j_global = j + num_vector_local * i_block;
-      int i = 0;
       for (i = 0; i < j; ++i) {
         const size_t i_global = i + num_vector_local * i_block;
         metrics->coords_global_from_index[index++] =
@@ -370,13 +361,10 @@ void GMMetrics_create(GMMetrics* metrics,
     GMAssert(metrics->coords_global_from_index != NULL);
     /*---Need store only strict interior of tetrahedron---*/
     size_t index = 0;
-    int k = 0;
     for (k = 0; k < num_vector_local; ++k) {
       const size_t k_global = k + num_vector_local * i_block;
-      int j = 0;
       for (j = 0; j < k; ++j) {
         const size_t j_global = j + num_vector_local * i_block;
-        int i = 0;
         for (i = 0; i < j; ++i) {
           const size_t i_global = i + num_vector_local * i_block;
           GMAssert(index < metrics->num_elts_local);
