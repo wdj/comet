@@ -1777,6 +1777,11 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
   /*---J loop---*/
   /*--------------------*/
 
+  //const _Bool NEW_WAY = 0;
+  //const _Bool is_part2 = ! (is_part1 || is_part3);;
+
+
+
   for (J = J_min; J < J_max; ++J) {
     const int I_min = 0;
     const int I_max = is_part1 ? J : numvecl;
@@ -1811,8 +1816,8 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
           /*---Operate on columns x_i and x_j elementwise---*/
           int f = 0;
           for (f = 0; f < numpfieldl; ++f) {
-            const GMFloat a = ((GMFloat*)(vectors_I_buf->h))[f + numpfieldl * I];
-            const GMFloat b = ((GMFloat*)(vectors_J_buf->h))[f + numpfieldl * J];
+            const GMFloat a = ((GMFloat*)(vectors_I_buf->h))[f + numpfieldl*I];
+            const GMFloat b = ((GMFloat*)(vectors_J_buf->h))[f + numpfieldl*J];
             ((GMFloat*)(matV_buf.h))[f + numpfieldl * I] = a < b ? a : b;
           }  //---for f---//
         }    //---for i---//
@@ -1915,6 +1920,10 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
       } /*---Env_metric_type(env)---*/
       /*----------*/
 
+      /*--------------------*/
+      /*---Do pseudo-matmat---*/
+      /*--------------------*/
+
       /*---Send matrix matV to GPU---*/
 
       gm_set_matrix_start(&matV_buf, numpfieldl, I_max, env);
@@ -1924,14 +1933,13 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
       GMMirroredPointer* matB_buf_local =
           Env_num_proc_field(env) == 1 ? &matB_buf : &mat_buf_tmp;
-
       gm_magma_set_matrix_zero_start(matB_buf_local, numvecl, I_max, env);
 
       /*---Perform pseudo matrix-matrix product matB = matV^T PROD X---*/
 
       gm_magma_gemm_start(I_max, numvecl, numpfieldl, matV_buf.d, numpfieldl,
-                          vectors_K_buf->d, numpfieldl, matB_buf_local->d, I_max,
-                          env);
+                          vectors_K_buf->d, numpfieldl,
+                          matB_buf_local->d, I_max, env);
       gm_compute_wait(env);
 
       /*---Copy result matrix matB from GPU---*/
@@ -1944,305 +1952,281 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
         int mpi_code = 0;
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
         mpi_code = MPI_Allreduce(matB_buf_local->h, matB_buf.h,
-                                 numvecl * (size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
+                                 numvecl * (size_t)numvecl,
+                                 GM_MPI_FLOAT, MPI_SUM,
                                  Env_mpi_comm_field(env));
         GMAssert(mpi_code == MPI_SUCCESS);
       }
       // TODO - outline into gm_allreduce_metrics
 
       /*--------------------*/
-      /*---Compute numerators using 2-way pieces and ijk piece---*/
+      /*---Compute numerators using ijk piece and (if needed) 2-way pieces---*/
       /*--------------------*/
 
       /*----------*/
-      if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+      if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI &&
+          !Env_all2all(env)) {
         /*----------*/
-
+        int I = 0;
+        for (I = I_min; I < I_max; ++I) {
+          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl * J];
+          int K = 0;
+          for (K = K_min; K < K_max; ++K) {
+            const GMFloat min_JK =
+                ((GMFloat*)(matM_JK_buf->h))[J + numvecl * K];
+            const GMFloat min_KIK =
+                ((GMFloat*)(matM_KIK_buf->h))[K + numvecl * I];
+            // sum of mins vectors i, j, and k is matB(k,i)
+            const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max * K];
+            const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
+            const int i = I;
+            const int j = J;
+            const int k = K;
+            GMMetrics_float_set_3(metrics, i, j, k, numerator, env);
+          } /*---for K---*/
+        }   /*---for I---*/
         /*----------*/
-        if (!Env_all2all(env)) {
-          /*----------*/
-
-          int I = 0;
-          for (I = I_min; I < I_max; ++I) {
-            const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl * J];
-            int K = 0;
-            for (K = K_min; K < K_max; ++K) {
-              const GMFloat min_JK =
-                  ((GMFloat*)(matM_JK_buf->h))[J + numvecl * K];
-              const GMFloat min_KIK =
-                  ((GMFloat*)(matM_KIK_buf->h))[K + numvecl * I];
-              // sum of mins vectors i, j, and k is matB(k,i)
-              const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max * K];
-              const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
-              const int i = I;
-              const int j = J;
-              const int k = K;
-              GMMetrics_float_set_3(metrics, i, j, k, numerator, env);
-            } /*---for K---*/
-          }   /*---for I---*/
-
-          /*----------*/
-        } else /*---if (Env_all2all(env))---*/ {
-          /*----------*/
-
-          int I = 0;
-          for (I = I_min; I < I_max; ++I) {
-            const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
-            int K = 0;
-            for (K = K_min; K < K_max; ++K) {
-              const GMFloat min_JK =
-                  ((GMFloat*)(matM_JK_buf->h))[J + numvecl * K];
-              const GMFloat min_KIK =
-                  is_part3 ? ((GMFloat*)(matM_KIK_buf->h))[K + numvecl * I]
-                           : ((GMFloat*)(matM_KIK_buf->h))[I + numvecl * K];
-              // sum of mins vectors i, j, and k is matB(k,i)
-              const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max * K];
-              const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
-              /* clang-format off */
-              const int i = !is_part3 ?   I :
-                                 sax0 ?   J :
-                                 sax1 ?   I :
-                              /* sax2 ?*/ K;
-              const int j = !is_part3 ?   J :
-                                 sax0 ?   K :
-                                 sax1 ?   J :
-                              /* sax2 ?*/ I;
-              const int k = !is_part3 ?   K :
-                                 sax0 ?   I :
-                                 sax1 ?   K :
-                              /* sax2 ?*/ J;
-              /* clang-format on */
-              GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                            numerator, env);
-            } /*---for K---*/
-          }   /*---for I---*/
-
-          /*----------*/
-        } /*---if (Env_all2all(env))---*/
+      } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI &&
+          Env_all2all(env)) {
         /*----------*/
-
+        int I = 0;
+        for (I = I_min; I < I_max; ++I) {
+          const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl*J];
+          int K = 0;
+          for (K = K_min; K < K_max; ++K) {
+            const GMFloat min_JK =
+                ((GMFloat*)(matM_JK_buf->h))[J + numvecl * K];
+            const GMFloat min_KIK =
+                is_part3 ? ((GMFloat*)(matM_KIK_buf->h))[K + numvecl * I]
+                         : ((GMFloat*)(matM_KIK_buf->h))[I + numvecl * K];
+            // sum of mins vectors i, j, and k is matB(k,i)
+            const GMFloat min_IJK = ((GMFloat*)(matB_buf.h))[I + I_max * K];
+            const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
+            /* clang-format off */
+            const int i = !is_part3 ?   I :
+                               sax0 ?   J :
+                               sax1 ?   I :
+                            /* sax2 ?*/ K;
+            const int j = !is_part3 ?   J :
+                               sax0 ?   K :
+                               sax1 ?   J :
+                            /* sax2 ?*/ I;
+            const int k = !is_part3 ?   K :
+                               sax0 ?   I :
+                               sax1 ?   K :
+                            /* sax2 ?*/ J;
+            /* clang-format on */
+            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
+                                          numerator, env);
+          } /*---for K---*/
+        }   /*---for I---*/
         /*----------*/
-      } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC) {
+      } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
+                 !Env_all2all(env)) {
         /*----------*/
+        int I = 0;
+        for (I = I_min; I < I_max; ++I) {
 
+          int K = 0;
+          for (K = K_min; K < K_max; ++K) {
+            /*---This is the notall2all case -- has no axis permutation---*/
+
+            const int i = I;
+            const int j = J;
+            const int k = K;
+
+            GMTally4x2 numerator = step_2way==0 ? GMTally4x2_null() :
+                            GMMetrics_tally4x2_get_3(metrics, i, j, k, env);
+
+            GMTally1 r000, r001;
+            GMTally1_decode(&r000, &r001, numerator.data[0]);
+            GMTally1 r010, r011;
+            GMTally1_decode(&r010, &r011, numerator.data[1]);
+            GMTally1 r100, r101;
+            GMTally1_decode(&r100, &r101, numerator.data[2]);
+            GMTally1 r110, r111;
+            GMTally1_decode(&r110, &r111, numerator.data[3]);
+
+            const GMTally2x2 mB = ((GMTally2x2*)(matB_buf.h))[I + I_max * K];
+            GMTally1 mB00, mB01;
+            GMTally1_decode(&mB00, &mB01, mB.data[0]);
+            GMTally1 mB10, mB11;
+            GMTally1_decode(&mB10, &mB11, mB.data[1]);
+
+            if (step_2way==0) {
+              r000 += 2 * mB00;
+              r001 += 2 * mB01;
+              r010 += 2 * mB10;
+              r011 += 2 * mB11;
+            } else if (step_2way==1) {
+              r000 += mB00;
+              r001 += mB01;
+              r010 += mB10;
+              r011 += mB11;
+              r100 += mB00;
+              r101 += mB01;
+              r110 += mB10;
+              r111 += mB11;
+            } else /*---step_2way==2---*/ {
+              r100 += 2 * mB00;
+              r101 += 2 * mB01;
+              r110 += 2 * mB10;
+              r111 += 2 * mB11;
+            }
+            /*---NOTE: pay attention to order here---*/
+            numerator.data[0] = GMTally1_encode(r000, r001);
+            numerator.data[1] = GMTally1_encode(r010, r011);
+            numerator.data[2] = GMTally1_encode(r100, r101);
+            numerator.data[3] = GMTally1_encode(r110, r111);
+            GMMetrics_tally4x2_set_3(metrics, i, j, k, numerator, env);
+          } /*---for K---*/
+        }   /*---for I---*/
         /*----------*/
-        if (!Env_all2all(env)) {
-          /*----------*/
-
-          int I = 0;
-          for (I = I_min; I < I_max; ++I) {
-
-            int K = 0;
-            for (K = K_min; K < K_max; ++K) {
-              /*---This is the notall2all case -- has no axis permutation---*/
-
-              const int i = I;
-              const int j = J;
-              const int k = K;
-
-              GMTally4x2 numerator = step_2way==0 ? GMTally4x2_null() :
-                              GMMetrics_tally4x2_get_3(metrics, i, j, k, env);
-
-              GMTally1 r000, r001;
-              GMTally1_decode(&r000, &r001, numerator.data[0]);
-              GMTally1 r010, r011;
-              GMTally1_decode(&r010, &r011, numerator.data[1]);
-              GMTally1 r100, r101;
-              GMTally1_decode(&r100, &r101, numerator.data[2]);
-              GMTally1 r110, r111;
-              GMTally1_decode(&r110, &r111, numerator.data[3]);
-
-              const GMTally2x2 mB = ((GMTally2x2*)(matB_buf.h))[I + I_max * K];
-              GMTally1 mB00, mB01;
-              GMTally1_decode(&mB00, &mB01, mB.data[0]);
-              GMTally1 mB10, mB11;
-              GMTally1_decode(&mB10, &mB11, mB.data[1]);
-
-              if (step_2way==0) {
-                r000 += 2 * mB00;
-                r001 += 2 * mB01;
-                r010 += 2 * mB10;
-                r011 += 2 * mB11;
-              } else if (step_2way==1) {
-                r000 += mB00;
-                r001 += mB01;
-                r010 += mB10;
-                r011 += mB11;
-                r100 += mB00;
-                r101 += mB01;
-                r110 += mB10;
-                r111 += mB11;
-              } else /*---step_2way==2---*/ {
-                r100 += 2 * mB00;
-                r101 += 2 * mB01;
-                r110 += 2 * mB10;
-                r111 += 2 * mB11;
-              }
-
-//              printf("%i %i %i %i\n",
-//                     (int)mB00, (int)mB01, (int)mB10, (int)mB11);
-
-//              printf("%i %i %i %i %i %i %i %i\n",
-//                (int)r000, (int)r001, (int)r010, (int)r011,
-//                (int)r100, (int)r101, (int)r110, (int)r111);
-
-              /*---NOTE: pay attention to order here---*/
-
-              numerator.data[0] = GMTally1_encode(r000, r001);
-              numerator.data[1] = GMTally1_encode(r010, r011);
-              numerator.data[2] = GMTally1_encode(r100, r101);
-              numerator.data[3] = GMTally1_encode(r110, r111);
-              GMMetrics_tally4x2_set_3(metrics, i, j, k, numerator, env);
-            } /*---for K---*/
-          }   /*---for I---*/
-
-          /*----------*/
-        } else /*---if (Env_all2all(env))---*/ {
-          /*----------*/
-
-          int I = 0;
-          for (I = I_min; I < I_max; ++I) {
-            int K = 0;
-            for (K = K_min; K < K_max; ++K) {
-  /*---For the permuted case,
-       1) pay attention to KIK access
-       2) swap 01 and 10 if needed.
-  ---*/
-
-              /* clang-format off */
-              const int i = !is_part3 ?   I :
-                                 sax0 ?   J :
-                                 sax1 ?   I :
-                              /* sax2 ?*/ K;
-              const int j = !is_part3 ?   J :
-                                 sax0 ?   K :
-                                 sax1 ?   J :
-                              /* sax2 ?*/ I;
-              const int k = !is_part3 ?   K :
-                                 sax0 ?   I :
-                                 sax1 ?   K :
-                              /* sax2 ?*/ J;
-              /* clang-format on */
-
-              GMTally4x2 numer = step_2way==0 ? GMTally4x2_null() :
-                GMMetrics_tally4x2_get_all2all_3(metrics, i, j, k,
-                                                 j_block, k_block, env);
-              GMTally1 r000_permuted, r001_permuted;
-              GMTally1_decode(&r000_permuted, &r001_permuted, numer.data[0]);
-              GMTally1 r010_permuted, r011_permuted;
-              GMTally1_decode(&r010_permuted, &r011_permuted, numer.data[1]);
-              GMTally1 r100_permuted, r101_permuted;
-              GMTally1_decode(&r100_permuted, &r101_permuted, numer.data[2]);
-              GMTally1 r110_permuted, r111_permuted;
-              GMTally1_decode(&r110_permuted, &r111_permuted, numer.data[3]);
-
-              const GMTally2x2 mB = ((GMTally2x2*)(matB_buf.h))[I + I_max * K];
-              GMTally1 mB00, mB01;
-              GMTally1_decode(&mB00, &mB01, mB.data[0]);
-              GMTally1 mB10, mB11;
-              GMTally1_decode(&mB10, &mB11, mB.data[1]);
-
-              /* clang-format off */
-              int r000 = r000_permuted;
-
-              int r100 = !is_part3 ?   r100_permuted :
-                              sax0 ?   r001_permuted :
-                              sax1 ?   r100_permuted :
-                           /* sax2 ?*/ r010_permuted;
-              int r010 = !is_part3 ?   r010_permuted :
-                              sax0 ?   r100_permuted :
-                              sax1 ?   r010_permuted :
-                           /* sax2 ?*/ r001_permuted;
-              int r001 = !is_part3 ?   r001_permuted :
-                              sax0 ?   r010_permuted :
-                              sax1 ?   r001_permuted :
-                           /* sax2 ?*/ r100_permuted;
-
-              int r011 = !is_part3 ?   r011_permuted :
-                              sax0 ?   r110_permuted :
-                              sax1 ?   r011_permuted :
-                           /* sax2 ?*/ r101_permuted;
-              int r101 = !is_part3 ?   r101_permuted :
-                              sax0 ?   r011_permuted :
-                              sax1 ?   r101_permuted :
-                           /* sax2 ?*/ r110_permuted;
-              int r110 = !is_part3 ?   r110_permuted :
-                              sax0 ?   r101_permuted :
-                              sax1 ?   r110_permuted :
-                           /* sax2 ?*/ r011_permuted;
-
-              int r111 = r111_permuted;
-              /* clang-format on */
-
-              if (step_2way==0) {
-                r000 += 2 * mB00;
-                r001 += 2 * mB01;
-                r010 += 2 * mB10;
-                r011 += 2 * mB11;
-              } else if (step_2way==1) {
-                r000 += mB00;
-                r001 += mB01;
-                r010 += mB10;
-                r011 += mB11;
-                r100 += mB00;
-                r101 += mB01;
-                r110 += mB10;
-                r111 += mB11;
-              } else /*---step_2way==2---*/ {
-                r100 += 2 * mB00;
-                r101 += 2 * mB01;
-                r110 += 2 * mB10;
-                r111 += 2 * mB11;
-              }
-
-              /* clang-format off */
-              r000_permuted = r000;
-
-              r100_permuted = !is_part3 ?   r100 :
-                                   sax0 ?   r010 :
-                                   sax1 ?   r100 :
-                                /* sax2 ?*/ r001;
-              r010_permuted = !is_part3 ?   r010 :
-                                   sax0 ?   r001 :
-                                   sax1 ?   r010 :
-                                /* sax2 ?*/ r100;
-              r001_permuted = !is_part3 ?   r001 :
-                                   sax0 ?   r100 :
-                                   sax1 ?   r001 :
-                                /* sax2 ?*/ r010;
-
-              r011_permuted = !is_part3 ?   r011 :
-                                   sax0 ?   r101 :
-                                   sax1 ?   r011 :
-                                /* sax2 ?*/ r110;
-              r101_permuted = !is_part3 ?   r101 :
-                                   sax0 ?   r110 :
-                                   sax1 ?   r101 :
-                                /* sax2 ?*/ r011;
-              r110_permuted = !is_part3 ?   r110 :
-                                   sax0 ?   r011 :
-                                   sax1 ?   r110 :
-                                /* sax2 ?*/ r101;
-
-              r111_permuted = r111;
-              /* clang-format on */
-
-              /*---NOTE: pay attention to order here---*/
-
-              numer.data[0] = GMTally1_encode(r000_permuted, r001_permuted);
-              numer.data[1] = GMTally1_encode(r010_permuted, r011_permuted);
-              numer.data[2] = GMTally1_encode(r100_permuted, r101_permuted);
-              numer.data[3] = GMTally1_encode(r110_permuted, r111_permuted);
-              GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                               numer, env);
-
-            } /*---for K---*/
-          }   /*---for I---*/
-
-          /*----------*/
-        } /*---if (Env_all2all(env))---*/
+      } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
+                 Env_all2all(env)) {
         /*----------*/
+        int I = 0;
+        for (I = I_min; I < I_max; ++I) {
+          int K = 0;
+          for (K = K_min; K < K_max; ++K) {
+/*---For the permuted case,
+     1) pay attention to KIK access
+     2) swap 01 and 10 if needed.
+---*/
 
+            /* clang-format off */
+            const int i = !is_part3 ?   I :
+                               sax0 ?   J :
+                               sax1 ?   I :
+                            /* sax2 ?*/ K;
+            const int j = !is_part3 ?   J :
+                               sax0 ?   K :
+                               sax1 ?   J :
+                            /* sax2 ?*/ I;
+            const int k = !is_part3 ?   K :
+                               sax0 ?   I :
+                               sax1 ?   K :
+                            /* sax2 ?*/ J;
+            /* clang-format on */
+
+            GMTally4x2 numer = step_2way==0 ? GMTally4x2_null() :
+              GMMetrics_tally4x2_get_all2all_3(metrics, i, j, k,
+                                               j_block, k_block, env);
+            GMTally1 r000_permuted, r001_permuted;
+            GMTally1_decode(&r000_permuted, &r001_permuted, numer.data[0]);
+            GMTally1 r010_permuted, r011_permuted;
+            GMTally1_decode(&r010_permuted, &r011_permuted, numer.data[1]);
+            GMTally1 r100_permuted, r101_permuted;
+            GMTally1_decode(&r100_permuted, &r101_permuted, numer.data[2]);
+            GMTally1 r110_permuted, r111_permuted;
+            GMTally1_decode(&r110_permuted, &r111_permuted, numer.data[3]);
+
+            const GMTally2x2 mB = ((GMTally2x2*)(matB_buf.h))[I + I_max * K];
+            GMTally1 mB00, mB01;
+            GMTally1_decode(&mB00, &mB01, mB.data[0]);
+            GMTally1 mB10, mB11;
+            GMTally1_decode(&mB10, &mB11, mB.data[1]);
+
+            /* clang-format off */
+            int r000 = r000_permuted;
+
+            int r100 = !is_part3 ?   r100_permuted :
+                            sax0 ?   r001_permuted :
+                            sax1 ?   r100_permuted :
+                         /* sax2 ?*/ r010_permuted;
+            int r010 = !is_part3 ?   r010_permuted :
+                            sax0 ?   r100_permuted :
+                            sax1 ?   r010_permuted :
+                         /* sax2 ?*/ r001_permuted;
+            int r001 = !is_part3 ?   r001_permuted :
+                            sax0 ?   r010_permuted :
+                            sax1 ?   r001_permuted :
+                         /* sax2 ?*/ r100_permuted;
+
+            int r011 = !is_part3 ?   r011_permuted :
+                            sax0 ?   r110_permuted :
+                            sax1 ?   r011_permuted :
+                         /* sax2 ?*/ r101_permuted;
+            int r101 = !is_part3 ?   r101_permuted :
+                            sax0 ?   r011_permuted :
+                            sax1 ?   r101_permuted :
+                         /* sax2 ?*/ r110_permuted;
+            int r110 = !is_part3 ?   r110_permuted :
+                            sax0 ?   r101_permuted :
+                            sax1 ?   r110_permuted :
+                         /* sax2 ?*/ r011_permuted;
+
+            int r111 = r111_permuted;
+            /* clang-format on */
+
+            if (step_2way==0) {
+              r000 += 2 * mB00;
+              r001 += 2 * mB01;
+              r010 += 2 * mB10;
+              r011 += 2 * mB11;
+            } else if (step_2way==1) {
+              r000 += mB00;
+              r001 += mB01;
+              r010 += mB10;
+              r011 += mB11;
+              r100 += mB00;
+              r101 += mB01;
+              r110 += mB10;
+              r111 += mB11;
+            } else /*---step_2way==2---*/ {
+              r100 += 2 * mB00;
+              r101 += 2 * mB01;
+              r110 += 2 * mB10;
+              r111 += 2 * mB11;
+            }
+
+            /* clang-format off */
+            r000_permuted = r000;
+
+            r100_permuted = !is_part3 ?   r100 :
+                                 sax0 ?   r010 :
+                                 sax1 ?   r100 :
+                              /* sax2 ?*/ r001;
+            r010_permuted = !is_part3 ?   r010 :
+                                 sax0 ?   r001 :
+                                 sax1 ?   r010 :
+                              /* sax2 ?*/ r100;
+            r001_permuted = !is_part3 ?   r001 :
+                                 sax0 ?   r100 :
+                                 sax1 ?   r001 :
+                              /* sax2 ?*/ r010;
+
+            r011_permuted = !is_part3 ?   r011 :
+                                 sax0 ?   r101 :
+                                 sax1 ?   r011 :
+                              /* sax2 ?*/ r110;
+            r101_permuted = !is_part3 ?   r101 :
+                                 sax0 ?   r110 :
+                                 sax1 ?   r101 :
+                              /* sax2 ?*/ r011;
+            r110_permuted = !is_part3 ?   r110 :
+                                 sax0 ?   r011 :
+                                 sax1 ?   r110 :
+                              /* sax2 ?*/ r101;
+
+            r111_permuted = r111;
+            /* clang-format on */
+
+            /*---NOTE: pay attention to order here---*/
+
+            numer.data[0] = GMTally1_encode(r000_permuted, r001_permuted);
+            numer.data[1] = GMTally1_encode(r010_permuted, r011_permuted);
+            numer.data[2] = GMTally1_encode(r100_permuted, r101_permuted);
+            numer.data[3] = GMTally1_encode(r110_permuted, r111_permuted);
+            GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
+                                             numer, env);
+
+          } /*---for K---*/
+        }   /*---for I---*/
+        /*----------*/
+      } else {
+        /*----------*/
+        GMAssert(GM_BOOL_FALSE);
         /*----------*/
       } /*---Env_metric_type(env)---*/
       /*----------*/

@@ -172,7 +172,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectorSums vector_sums_k = GMVectorSums_null();
   GMVectorSums_create(&vector_sums_k, vectors, env);
 
-
+  //int step = 0;
 
 
 
@@ -296,6 +296,14 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       const int proc_recv_k = gm_mod_i(i_proc + k_i_proc_delta, num_proc);
       const int k_proc = proc_recv_k;
 
+      if (k_proc == j_proc) {
+        /*---NOTE: this condition occurs on all procs at exactly the same
+             j/k iteration in lockstep, so there is no chance the immediately
+             following communication will deadlock/mispair---*/
+        continue;
+      }
+      GMAssert((k_proc == j_proc) == (k_i_proc_delta == j_i_proc_delta));
+
       /*---Communicate vectors---*/
 
       MPI_Request mpi_requests_k[2];
@@ -306,17 +314,11 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       gm_send_vectors_wait(&(mpi_requests_k[0]), env);
       gm_recv_vectors_wait(&(mpi_requests_k[1]), env);
 
-      //---TODO: skip the above communication if not needed.
-
-      if (k_proc == j_proc) {
-        continue;
-      }
-
       /*---Copy in vectors---*/
 
       gm_vectors_to_buf(vectors_k, &vectors_k_buf, env);
 
-    /*---Send vectors to GPU---*/
+      /*---Send vectors to GPU---*/
 
       gm_set_vectors_start(vectors_k, &vectors_k_buf, env);
       gm_set_vectors_wait(env);

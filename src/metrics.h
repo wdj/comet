@@ -227,7 +227,6 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
 /*===========================================================================*/
 /*---Accessors: indexing: (contig) index from coord, 3-way---*/
 
-//CHANGE
 static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
                                            int i,
                                            int j,
@@ -261,6 +260,73 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
 /*---------------------------------------------------------------------------*/
 
 //CHANGE
+static size_t GMMetrics_helper1_part1(GMMetrics* metrics,
+                                      int i,
+                                      int j,
+                                      int k,
+                                      int i_block,
+                                      int j_block,
+                                      int k_block,
+                                      GMEnv* env) {
+  return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+//CHANGE
+static size_t GMMetrics_helper1_part2(GMMetrics* metrics,
+                                      int i,
+                                      int j,
+                                      int k,
+                                      int i_block,
+                                      int j_block,
+                                      int k_block,
+                                      GMEnv* env) {
+  const int nvl = metrics->num_vector_local;
+
+  /* clang-format off */
+  return metrics->index_offset_0_ +
+         i + nvl * (
+         ((k * (size_t)(k - 1)) >> 1) + j + 
+             ((nvl * (size_t)(nvl - 1)) >> 1) * (
+         j_block - ( j_block > i_block ) ));
+  /* clang-format on */
+}
+
+/*---------------------------------------------------------------------------*/
+
+//CHANGE
+static size_t GMMetrics_helper1_part3(GMMetrics* metrics,
+                                      int i,
+                                      int j,
+                                      int k,
+                                      int i_block,
+                                      int j_block,
+                                      int k_block,
+                                      GMEnv* env) {
+  const int nvl = metrics->num_vector_local;
+
+  const int section_axis =
+      gm_metrics_3way_section_axis(metrics, i_block, j_block, k_block, env);
+  const int section_num =
+      gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
+
+  /* clang-format off */
+  return metrics->index_offset_01_ +
+         i - ( section_axis == 0 ? section_num * nvl / 6 : 0 ) +
+             ( section_axis == 0 ? nvl / 6 : nvl ) * (
+         j - ( section_axis == 1 ? section_num * nvl / 6 : 0 ) +
+             ( section_axis == 1 ? nvl / 6 : nvl ) * (
+         k - ( section_axis == 2 ? section_num * nvl / 6 : 0 ) +
+             ( section_axis == 2 ? nvl / 6 : nvl ) * (
+         j_block - ( j_block > i_block ) - ( j_block > k_block ) +
+                                       (Env_num_block_vector(env)-2) * (
+         k_block - ( k_block > i_block ) ))));
+  /* clang-format on */
+}
+
+/*---------------------------------------------------------------------------*/
+
 static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                                                    int i,
                                                    int j,
@@ -287,53 +353,27 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
 
   const int i_block = Env_proc_num_vector_i(env);
 
-  const int nvl = metrics->num_vector_local;
-
-  const int section_axis =
-      gm_metrics_3way_section_axis(metrics, i_block, j_block, k_block, env);
-  const int section_num =
-      gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
-
-  /* clang-format off */
-  size_t index = j_block == i_block && k_block == i_block && j_block == k_block
-
-               ? GMMetrics_index_from_coord_3(metrics, i, j, k, env)
-
-               : j_block == k_block
-
-               ? metrics->index_offset_0_ +
-                 i + nvl * (
-                 ((k * (size_t)(k - 1)) >> 1) + j + 
-                     ((nvl * (size_t)(nvl - 1)) >> 1) * (
-                 j_block - ( j_block > i_block ) ))
-
-               : metrics->index_offset_01_ +
-                 i - ( section_axis == 0 ? section_num * nvl / 6 : 0 ) +
-                     ( section_axis == 0 ? nvl / 6 : nvl ) * (
-                 j - ( section_axis == 1 ? section_num * nvl / 6 : 0 ) +
-                     ( section_axis == 1 ? nvl / 6 : nvl ) * (
-                 k - ( section_axis == 2 ? section_num * nvl / 6 : 0 ) +
-                     ( section_axis == 2 ? nvl / 6 : nvl ) * (
-                 j_block - ( j_block > i_block ) - ( j_block > k_block ) +
-                                               (Env_num_block_vector(env)-2) * (
-                 k_block - ( k_block > i_block ) ))));
-  /* clang-format on */
+  size_t index = j_block == i_block && k_block == i_block ?
+    GMMetrics_helper1_part1(metrics, i, j, k, i_block, j_block, k_block, env) :
+                 j_block == k_block ?
+    GMMetrics_helper1_part2(metrics, i, j, k, i_block, j_block, k_block, env) :
+    GMMetrics_helper1_part3(metrics, i, j, k, i_block, j_block, k_block, env);
 
   GMAssert(index >= 0 && index < metrics->num_elts_local);
 
   GMAssert(metrics->coords_global_from_index[index] %
-               (nvl * (size_t)Env_num_block_vector(env)) ==
-           i + i_block * (size_t)nvl);
+             (metrics->num_vector_local * (size_t)Env_num_block_vector(env)) ==
+           i + i_block * (size_t)metrics->num_vector_local);
 
   GMAssert((metrics->coords_global_from_index[index] /
-            (nvl * (size_t)Env_num_block_vector(env))) %
-               (nvl * Env_num_block_vector(env)) ==
-           j + j_block * (size_t)nvl);
+            (metrics->num_vector_local * (size_t)Env_num_block_vector(env))) %
+               (metrics->num_vector_local * Env_num_block_vector(env)) ==
+           j + j_block * (size_t)metrics->num_vector_local);
 
   GMAssert((metrics->coords_global_from_index[index] /
-            (nvl * (size_t)Env_num_block_vector(env))) /
-               (nvl * Env_num_block_vector(env)) ==
-           k + k_block * (size_t)nvl);
+            (metrics->num_vector_local * (size_t)Env_num_block_vector(env))) /
+               (metrics->num_vector_local * Env_num_block_vector(env)) ==
+           k + k_block * (size_t)metrics->num_vector_local);
 
   return index;
 }
