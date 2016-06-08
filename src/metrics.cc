@@ -190,6 +190,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART A: CALCULATE INDEX SIZE===*/
     const int proc_j = Env_proc_num_vector_j(env);
     const int num_proc_j = Env_num_proc_vector_j(env);
+    const int nvl6 = num_vector_local / 6;
     metrics->num_elts_local = 0;
     int num_block_this_slab = 0;
     /*---Compute size pt 1: (tetrahedron) i_block==j_block==k_block part---*/
@@ -233,7 +234,7 @@ void GMMetrics_create(GMMetrics* metrics,
                                       num_block_this_proc_12;
 
     const int num_elts_per_block_3 = num_vector_local *
-                               num_vector_local * (num_vector_local / 6);
+                               num_vector_local * nvl6;
 
     metrics->num_elts_local += num_block_this_proc_3 * num_elts_per_block_3;
     GMAssert(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
@@ -242,10 +243,13 @@ void GMMetrics_create(GMMetrics* metrics,
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssert(metrics->coords_global_from_index != NULL);
     /*===PART C: SET INDEX===*/
-    int block_this_slab = 0;
+    int block_num = 0;
+    int block_num_this_r = 0;
+
+
     /*---Set index part 1: (tetrahedron) i_block==j_block==k_block part---*/
     size_t index = 0;
-    if (block_this_slab % num_proc_j == proc_j) {
+    if (block_num % num_proc_j == proc_j) {
       for (k = 0; k < num_vector_local; ++k) {
         const int k_block = i_block;
         const size_t k_global = k + num_vector_local * k_block;
@@ -262,15 +266,22 @@ void GMMetrics_create(GMMetrics* metrics,
           }
         }
       }
-    }
-    block_this_slab += 1;
+      block_num_this_r += 1;
+    } /*---if block_num---*/
+    block_num += 1;
+    metrics->block_num_offset_0_ = block_num_this_r;
+
+
     /*---Set index part 2: (triang prisms) i_block!=j_block==k_block part---*/
-    int j_block = 0;
-    for (j_block = 0; j_block < num_block; ++j_block) {
-      if (j_block == i_block) {
-        continue;
-      }
-      if (block_this_slab % num_proc_j == proc_j) {
+    int j_i_block_delta = 0;
+    for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta) {
+      const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+    //int j_block = 0;
+    //for (j_block = 0; j_block < num_block; ++j_block) {
+    //  if (j_block == i_block) {
+    //    continue;
+    //  }
+      if (block_num % num_proc_j == proc_j) {
         const int k_block = j_block;
         for (k = 0; k < num_vector_local; ++k) {
           const size_t k_global = k + num_vector_local * k_block;
@@ -286,10 +297,25 @@ void GMMetrics_create(GMMetrics* metrics,
             }
           }
         }
-      }
-      block_this_slab += 1;
+        block_num_this_r += 1;
+      } /*---if block_num---*/
+      block_num += 1;
     } /*---k_block---*/
+    metrics->block_num_offset_01_ = block_num_this_r;
+
+
     /*---Set index part 3: (block sections) i_block!=j_block!=k_block part---*/
+#if 0
+    int k_i_block_delta = 0;
+    for (k_i_block_delta = 1; k_i_block_delta < num_block; ++k_i_block_delta) {
+      const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
+      int j_i_block_delta = 0;
+      for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta){
+        const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+        if (j_block == k_block) {
+          continue;
+        }
+#else
     int k_block = 0;
     for (k_block = 0; k_block < num_block; ++k_block) {
       if (k_block == i_block) {
@@ -300,24 +326,25 @@ void GMMetrics_create(GMMetrics* metrics,
         if (j_block == i_block || j_block == k_block) {
           continue;
         }
-        if (block_this_slab % num_proc_j == proc_j) {
+#endif
+
+        if (block_num % num_proc_j == proc_j) {
           const int section_axis = gm_metrics_3way_section_axis(
             metrics, i_block, j_block, k_block, env);
           const int section_num =
            gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
-          const int inc = num_vector_local / 6;
-          const int k_min = section_axis == 2 ? (section_num)*inc : 0;
+          const int k_min = section_axis == 2 ? (section_num)*nvl6 : 0;
           const int k_max =
-              section_axis == 2 ? (section_num + 1) * inc : num_vector_local;
+              section_axis == 2 ? (section_num + 1) * nvl6 : num_vector_local;
           for (k = k_min; k < k_max; ++k) {
             const size_t k_global = k + num_vector_local * k_block;
-            const int j_min = section_axis == 1 ? (section_num)*inc : 0;
+            const int j_min = section_axis == 1 ? (section_num)*nvl6 : 0;
             const int j_max =
-                section_axis == 1 ? (section_num + 1) * inc : num_vector_local;
+                section_axis == 1 ? (section_num + 1) * nvl6 : num_vector_local;
             for (j = j_min; j < j_max; ++j) {
               const size_t j_global = j + num_vector_local * j_block;
-              const int i_min = section_axis == 0 ? (section_num)*inc : 0;
-              const int i_max = section_axis == 0 ? (section_num + 1) * inc
+              const int i_min = section_axis == 0 ? (section_num)*nvl6 : 0;
+              const int i_max = section_axis == 0 ? (section_num + 1) * nvl6
                                                   : num_vector_local;
               for (i = i_min; i < i_max; ++i) {
                 const size_t i_global = i + num_vector_local * i_block;
@@ -329,11 +356,15 @@ void GMMetrics_create(GMMetrics* metrics,
               }
             }
           }
-        }
-        block_this_slab += 1;
+          block_num_this_r += 1;
+        } /*---if block_num---*/
+        block_num += 1;
       } /*---j_block---*/
     }   /*---k_block---*/
+
+
     GMAssert(index == metrics->num_elts_local);
+    GMAssert(block_num == (num_block-1) * (num_block-1) + 1);
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_2 && !Env_all2all(env)) {
   /*==================================================*/

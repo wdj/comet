@@ -38,6 +38,8 @@ typedef struct {
   /*---Helper values---*/
   size_t index_offset_0_;
   size_t index_offset_01_;
+  int block_num_offset_0_;
+  int block_num_offset_01_;
   GMFloat m;
   GMFloat recip_m;
   /*---map of (contig) index to linearized Cartesian coords---*/
@@ -282,14 +284,20 @@ static size_t GMMetrics_helper1_part2(GMMetrics* metrics,
                                       int j_block,
                                       int k_block,
                                       GMEnv* env) {
+  const int num_block = Env_num_block_vector(env);
+
   const int nvl = metrics->num_vector_local;
+
+  const int block_num = (j_block - i_block + num_block) % num_block;
 
   /* clang-format off */
   return metrics->index_offset_0_ +
          i + nvl * (
          ((k * (size_t)(k - 1)) >> 1) + j + 
              ((nvl * (size_t)(nvl - 1)) >> 1) * (
-         j_block - ( j_block > i_block ) ));
+         //j_block - ( j_block > i_block )
+         block_num / Env_num_proc_vector_j(env) - metrics->block_num_offset_0_
+         ));
   /* clang-format on */
 }
 
@@ -311,17 +319,26 @@ static size_t GMMetrics_helper1_part3(GMMetrics* metrics,
   const int section_num =
       gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
 
+  const int num_block = Env_num_block_vector(env);
+
+  const int nvl6 = nvl / 6;
+
   /* clang-format off */
   return metrics->index_offset_01_ +
-         i - ( section_axis == 0 ? section_num * nvl / 6 : 0 ) +
-             ( section_axis == 0 ? nvl / 6 : nvl ) * (
-         j - ( section_axis == 1 ? section_num * nvl / 6 : 0 ) +
-             ( section_axis == 1 ? nvl / 6 : nvl ) * (
-         k - ( section_axis == 2 ? section_num * nvl / 6 : 0 ) +
-             ( section_axis == 2 ? nvl / 6 : nvl ) * (
+         i - ( section_axis == 0 ? section_num * nvl6 : 0 ) +
+             ( section_axis == 0 ? nvl6 : nvl ) * (
+         j - ( section_axis == 1 ? section_num * nvl6 : 0 ) +
+             ( section_axis == 1 ? nvl6 : nvl ) * (
+         k - ( section_axis == 2 ? section_num * nvl6 : 0 ) +
+             ( section_axis == 2 ? nvl6 : nvl ) * (
+
+
          j_block - ( j_block > i_block ) - ( j_block > k_block ) +
-                                       (Env_num_block_vector(env)-2) * (
-         k_block - ( k_block > i_block ) ))));
+                                       (num_block-2) * (
+         k_block - ( k_block > i_block ) )
+
+
+         )));
   /* clang-format on */
 }
 
