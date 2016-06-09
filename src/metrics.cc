@@ -305,7 +305,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
 
     /*---Set index part 3: (block sections) i_block!=j_block!=k_block part---*/
-#if 0
     int k_i_block_delta = 0;
     for (k_i_block_delta = 1; k_i_block_delta < num_block; ++k_i_block_delta) {
       const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
@@ -315,18 +314,16 @@ void GMMetrics_create(GMMetrics* metrics,
         if (j_block == k_block) {
           continue;
         }
-#else
-    int k_block = 0;
-    for (k_block = 0; k_block < num_block; ++k_block) {
-      if (k_block == i_block) {
-        continue;
-      }
-      int j_block = 0;
-      for (j_block = 0; j_block < num_block; ++j_block) {
-        if (j_block == i_block || j_block == k_block) {
-          continue;
-        }
-#endif
+    //int k_block = 0;
+    //for (k_block = 0; k_block < num_block; ++k_block) {
+    //  if (k_block == i_block) {
+    //    continue;
+    //  }
+    //  int j_block = 0;
+    //  for (j_block = 0; j_block < num_block; ++j_block) {
+    //    if (j_block == i_block || j_block == k_block) {
+    //      continue;
+    //    }
 
         if (block_num % num_proc_j == proc_j) {
           const int section_axis = gm_metrics_3way_section_axis(
@@ -361,7 +358,6 @@ void GMMetrics_create(GMMetrics* metrics,
         block_num += 1;
       } /*---j_block---*/
     }   /*---k_block---*/
-
 
     GMAssert(index == metrics->num_elts_local);
     GMAssert(block_num == (num_block-1) * (num_block-1) + 1);

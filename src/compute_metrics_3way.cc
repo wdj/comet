@@ -313,6 +313,14 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
       if (block_num % num_proc_j == proc_j) {
 
+#ifdef GM_ASSERTIONS_ON
+        const int block_num_calculated =
+          (num_block) +
+          ((num_block-2) * (k_i_block_delta - 1)) +
+          (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
+#endif
+        GMAssert(block_num_calculated == block_num);
+
         /*---Communicate vectors---*/
 
         MPI_Request mpi_requests_j[2];
