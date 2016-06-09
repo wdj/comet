@@ -129,7 +129,6 @@ void test_2runs(const char* options1,
 
 void SystemTest_czekanowski_() {
 
-#if 0
   //----------
   //---2-way, all2all no
   //----------
@@ -332,39 +331,48 @@ void SystemTest_czekanowski_() {
   //---num_repl
   //----------
 
-#endif
-
   char options1[1024];
   char options2[1024];
 
   char options_template_1[] =
-      "--num_field 4 --num_vector_local %i --compute_method GPU --all2all yes "
-      "--num_proc_vector %i --num_proc_repl %i --num_proc_field 2 --num_way %i";
+      "--metric_type czekanowski "
+      "--num_field 4 --num_vector_local %i --compute_method %s --all2all yes "
+      "--num_proc_vector %i --num_proc_repl %i "
+      "--num_proc_field %i --num_way %i";
 
   int num_vector_local = 0;
   int num_proc_vector = 0;
   int num_proc_repl = 0;
+  int gpu = 0;
 
-  for (num_vector_local=3; num_vector_local<=5; ++num_vector_local) {
-    for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-      for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
-        sprintf(options1, options_template_1, num_vector_local,
-                num_proc_vector, 1, 2);
-        sprintf(options2, options_template_1, num_vector_local,
-                num_proc_vector, num_proc_repl, 2);
-        test_2runs(options1, options2);
+  for (gpu=0; gpu<=1; ++gpu) {
+    for (num_vector_local=3; num_vector_local<=5; ++num_vector_local) {
+      for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+        for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+          sprintf(options1, options_template_1, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, 1,
+                  gpu ? 2 : 1, 2);
+          sprintf(options2, options_template_1, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
+                  gpu ? 2 : 1, 2);
+          test_2runs(options1, options2);
+        }
       }
     }
   }
 
-  for (num_vector_local=6; num_vector_local<=18; num_vector_local+=6) {
-    for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-      for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
-        sprintf(options1, options_template_1, num_vector_local,
-                num_proc_vector, 1, 3);
-        sprintf(options2, options_template_1, num_vector_local,
-                num_proc_vector, num_proc_repl, 3);
-        test_2runs(options1, options2);
+  for (gpu=0; gpu<=1; ++gpu) {
+    for (num_vector_local=6; num_vector_local<=18; num_vector_local+=6) {
+      for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+        for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+          sprintf(options1, options_template_1, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, 1,
+                  gpu ? 2 : 1, 3);
+          sprintf(options2, options_template_1, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
+                  gpu ? 2 : 1, 3);
+          test_2runs(options1, options2);
+        }
       }
     }
   }
@@ -753,6 +761,53 @@ void SystemTest_ccc_() {
     sprintf(options2, options_template_5, 1, 1, i, 60, 48, "GPU", "yes");
     sprintf(options3, options_template_5, 1, 2, i, 60, 24, "GPU", "yes");
     EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  }
+
+  //----------
+  //---num_repl
+  //----------
+
+  char options_template_10[] =
+      "--metric_type ccc "
+      "--num_field 4 --num_vector_local %i --compute_method %s --all2all yes "
+      "--num_proc_vector %i --num_proc_repl %i "
+      "--num_proc_field %i --num_way %i";
+
+  int num_vector_local = 0;
+  int num_proc_vector = 0;
+  int num_proc_repl = 0;
+  int gpu = 0;
+
+  for (gpu=0; gpu<=1; ++gpu) {
+    for (num_vector_local=3; num_vector_local<=5; ++num_vector_local) {
+      for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+        for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+          sprintf(options1, options_template_10, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, 1,
+                  gpu ? 2 : 1, 2);
+          sprintf(options2, options_template_10, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
+                  gpu ? 2 : 1, 2);
+          test_2runs(options1, options2);
+        }
+      }
+    }
+  }
+
+  for (gpu=0; gpu<=1; ++gpu) {
+    for (num_vector_local=6; num_vector_local<=18; num_vector_local+=6) {
+      for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+        for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+          sprintf(options1, options_template_10, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, 1,
+                  gpu ? 2 : 1, 3);
+          sprintf(options2, options_template_10, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
+                  gpu ? 2 : 1, 3);
+          test_2runs(options1, options2);
+        }
+      }
+    }
   }
 }
 
