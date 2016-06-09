@@ -378,15 +378,12 @@ typedef struct {
   int num_proc_field_;
   int num_proc_repl_;
   int num_proc_vector_i_;
-  int num_proc_vector_j_;
-  int num_proc_vector_k_;
   int num_proc_vector_;
   /*---*/
   int proc_num_;
   int proc_num_field_;
+  int proc_num_repl_;
   int proc_num_vector_i_;
-  int proc_num_vector_j_;
-  int proc_num_vector_k_;
   int proc_num_vector_;
   /*---*/
   _Bool is_proc_active_;
@@ -524,16 +521,9 @@ static int Env_num_proc_vector_i(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-static int Env_num_proc_vector_j(const GMEnv* env) {
+static int Env_num_proc_repl(const GMEnv* env) {
   GMAssert(env != NULL);
-  return env->num_proc_vector_j_;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static int Env_num_proc_vector_k(const GMEnv* env) {
-  GMAssert(env != NULL);
-  return env->num_proc_vector_k_;
+  return env->num_proc_repl_;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -567,16 +557,9 @@ static int Env_proc_num_vector_i(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-static int Env_proc_num_vector_j(const GMEnv* env) {
+static int Env_proc_num_repl(const GMEnv* env) {
   GMAssert(env != NULL);
-  return env->proc_num_vector_j_;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static int Env_proc_num_vector_k(const GMEnv* env) {
-  GMAssert(env != NULL);
-  return env->proc_num_vector_k_;
+  return env->proc_num_repl_;
 }
 
 /*---------------------------------------------------------------------------*/

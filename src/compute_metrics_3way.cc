@@ -132,8 +132,11 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   const int data_type = Env_data_type_vectors(env);
 
-  const int proc_j = Env_proc_num_vector_j(env);
-  const int num_proc_j = Env_num_proc_vector_j(env);
+  const int proc_num_r = Env_proc_num_repl(env);
+  const int num_proc_r = Env_num_proc_repl(env);
+
+  //const int proc_num_ir = proc_num_r + num_proc_r * i_block;
+  //const int num_proc_ir = num_block * num_proc_r;
 
   /*------------------------*/
   /*---Allocations: Part 1---*/
@@ -181,7 +184,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Part 1 Computation: tetrahedron---*/
   /*------------------------*/
 
-  if (block_num % num_proc_j == proc_j) {
+  if (block_num % num_proc_r == proc_num_r) {
 
     /*---Copy in vectors---*/
 
@@ -218,11 +221,15 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   int j_i_block_delta = 0;
   for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta) {
-    const int proc_send_j = gm_mod_i(i_block - j_i_block_delta, num_block);
-    const int proc_recv_j = gm_mod_i(i_block + j_i_block_delta, num_block);
-    const int j_block = proc_recv_j;
 
-    if (block_num % num_proc_j == proc_j) {
+    const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+
+    const int proc_send_j = gm_mod_i(i_block - j_i_block_delta*num_proc_r,
+                                     num_block*num_proc_r);
+    const int proc_recv_j = gm_mod_i(i_block + j_i_block_delta*num_proc_r,
+                                     num_block*num_proc_r);
+
+    if (block_num % num_proc_r == proc_num_r) {
 
       /*---Communicate vectors---*/
 
@@ -264,6 +271,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
     block_num++;
   } /*---j_i_block_delta---*/
 
+
+
   /*------------------------*/
   /*---Part 3 Computation: block sections---*/
   /*------------------------*/
@@ -271,10 +280,13 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   int k_i_block_delta = 0;
 
   for (k_i_block_delta = 1; k_i_block_delta < num_block; ++k_i_block_delta) {
-    const int proc_send_k = gm_mod_i(i_block - k_i_block_delta, num_block);
-    const int proc_recv_k = gm_mod_i(i_block + k_i_block_delta, num_block);
-    const int k_block = proc_recv_k;
 
+    const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
+
+    const int proc_send_k = gm_mod_i(i_block - k_i_block_delta*num_proc_r,
+                                     num_block*num_proc_r);
+    const int proc_recv_k = gm_mod_i(i_block + k_i_block_delta*num_proc_r,
+                                     num_block*num_proc_r);
     /*---Communicate vectors---*/
 
     MPI_Request mpi_requests_k[2];
@@ -299,10 +311,13 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
     GMVectorSums_compute(&vector_sums_k, vectors_k, env);
 
     for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta) {
-      const int proc_send_j = gm_mod_i(i_block - j_i_block_delta, num_block);
-      const int proc_recv_j = gm_mod_i(i_block + j_i_block_delta, num_block);
-      const int j_block = proc_recv_j;
 
+      const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+
+      const int proc_send_j = gm_mod_i(i_block - j_i_block_delta*num_proc_r,
+                                       num_block*num_proc_r);
+      const int proc_recv_j = gm_mod_i(i_block + j_i_block_delta*num_proc_r,
+                                       num_block*num_proc_r);
       if (j_block == k_block) {
         /*---NOTE: this condition occurs on all procs at exactly the same
              j/k iteration in lockstep, so there is no chance the immediately
@@ -311,7 +326,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       }
       GMAssert((j_block == k_block) == (j_i_block_delta == k_i_block_delta));
 
-      if (block_num % num_proc_j == proc_j) {
+      if (block_num % num_proc_r == proc_num_r) {
 
 #ifdef GM_ASSERTIONS_ON
         const int block_num_calculated =

@@ -170,11 +170,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
        For even number of vector blocks, block rows of lower half of matrix
        have one less block to make correct count---*/
 
-  const int num_proc_j = Env_num_proc_vector_j(env);
-  const int proc_num_j = Env_proc_num_vector_j(env);
+  const int num_proc_r = Env_num_proc_repl(env);
+  const int proc_num_r = Env_proc_num_repl(env);
 
-  const int proc_num_ij = proc_num_j + num_proc_j * i_block;
-  const int num_proc_ij = num_block * num_proc_j;
+  const int proc_num_ir = proc_num_r + num_proc_r * i_block;
+  const int num_proc_ir = num_block * num_proc_r;
 
   MPI_Request mpi_requests[2];
 
@@ -211,7 +211,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     (num_block % 2 == 0) && (2 * i_block >= num_block) ?
     max_rectangle_width - 1 : max_rectangle_width;
 
-  const int num_step = gm_ceil_i(max_rectangle_width, num_proc_j);
+  const int num_step = gm_ceil_i(max_rectangle_width, num_proc_r);
 
   int step_num = 0;
 
@@ -239,34 +239,34 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Main diagonal block only computes strict upper triangular part---*/
 
     const _Bool do_compute_triang_only = is_first_compute_step &&
-        proc_num_j == 0;
+        proc_num_r == 0;
 
     const _Bool do_compute_triang_only_prev = is_first_compute_step_prev &&
-        proc_num_j == 0;
+        proc_num_r == 0;
 
     //const _Bool do_compute_triang_only_next = is_first_compute_step_next &&
-    //    proc_num_j == 0;
+    //    proc_num_r == 0;
 
     /*---Possibly skip the block computation on the final compute step---*/
 
 //XXXCHANGE
-    const int proc_num_offset = num_proc_j * ( proc_num_j + num_proc_j *
+    const int proc_num_offset = num_proc_r * ( proc_num_r + num_proc_r *
                                              ( step_num ) );
 
-    const int proc_num_offset_prev = num_proc_j * ( proc_num_j + num_proc_j *
+    const int proc_num_offset_prev = num_proc_r * ( proc_num_r + num_proc_r *
                                              ( step_num - 1 ) );
 
-    const int proc_num_offset_next = num_proc_j * ( proc_num_j + num_proc_j *
+    const int proc_num_offset_next = num_proc_r * ( proc_num_r + num_proc_r *
                                              ( step_num + 1 ) );
 
     const _Bool do_compute_block = is_compute_step &&
-      proc_num_offset/num_proc_j < rectangle_width;
+      proc_num_offset/num_proc_r < rectangle_width;
 
     const _Bool do_compute_block_prev = is_compute_step_prev &&
-      proc_num_offset_prev/num_proc_j < rectangle_width;
+      proc_num_offset_prev/num_proc_r < rectangle_width;
 
     const _Bool do_compute_block_next = is_compute_step_next &&
-      proc_num_offset_next/num_proc_j < rectangle_width;
+      proc_num_offset_next/num_proc_r < rectangle_width;
 
     /*---Point to left/right-side vecs, also right-side vecs for next step.
          Here we are computing V^T W, for V, W containing column vectors---*/
@@ -289,12 +289,12 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Prepare for sends/recvs: procs for communication---*/
 
 //XXXCHANGE
-    const int proc_recv = gm_mod_i(proc_num_ij + proc_num_offset_next,
-                                   num_proc_ij);
-    const int proc_send = gm_mod_i(proc_num_ij - proc_num_offset_next,
-                                   num_proc_ij);
+    const int proc_recv = gm_mod_i(proc_num_ir + proc_num_offset_next,
+                                   num_proc_ir);
+    const int proc_send = gm_mod_i(proc_num_ir - proc_num_offset_next,
+                                   num_proc_ir);
 
-    const _Bool comm_with_self = proc_num_offset_next % num_proc_ij == 0;
+    const _Bool comm_with_self = proc_num_offset_next % num_proc_ir == 0;
 
     /*---Initiate sends/recvs for vecs needed on next step---*/
 
@@ -315,11 +315,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
 //XXXCHANGE
 
-    const int j_block = gm_mod_i(proc_num_ij + proc_num_offset,
-                                 num_proc_ij)/num_proc_j;
+    const int j_block = gm_mod_i(proc_num_ir + proc_num_offset,
+                                 num_proc_ir)/num_proc_r;
 
-    const int j_block_prev = gm_mod_i(proc_num_ij + proc_num_offset_prev,
-                                 num_proc_ij)/num_proc_j;
+    const int j_block_prev = gm_mod_i(proc_num_ir + proc_num_offset_prev,
+                                 num_proc_ir)/num_proc_r;
 
     /*---Send right vectors to GPU end---*/
 
@@ -354,7 +354,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
 //XXXCHANGE
-        GMVectorSums* vector_sums_right = proc_num_offset_prev % num_proc_ij == 0
+        GMVectorSums* vector_sums_right = proc_num_offset_prev % num_proc_ir == 0
                                               ? &vector_sums_onproc
                                               : &vector_sums_offproc;
         gm_compute_2way_combine(metrics, metrics_buf_prev_global,
@@ -402,7 +402,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       if (is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }
-      if (proc_num_offset % num_proc_ij != 0) {
+      if (proc_num_offset % num_proc_ir != 0) {
         GMVectorSums_compute(&vector_sums_offproc, vectors_right, env);
       }
     }
@@ -414,7 +414,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
 //XXXCHANGE
         GMVectorSums* vector_sums_right =
-            proc_num_offset % num_proc_ij == 0
+            proc_num_offset % num_proc_ir == 0
             ? &vector_sums_onproc : &vector_sums_offproc;
         gm_compute_2way_combine(metrics, metrics_buf, vector_sums_left,
                                 vector_sums_right, j_block,

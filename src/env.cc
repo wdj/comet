@@ -352,11 +352,7 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
   env->num_proc_repl_ = num_proc_repl;
   env->num_proc_field_ = num_proc_field;
 
-  env->num_proc_vector_j_ = env->num_way_ >= GM_NUM_WAY_2 ? num_proc_repl : 1;
-  //env->num_proc_vector_k_ = env->num_way_ >= GM_NUM_WAY_3 ? num_proc_repl : 1;
-  env->num_proc_vector_k_ = 1;
-  env->num_proc_vector_ = env->num_proc_vector_i_ * env->num_proc_vector_j_ *
-                          env->num_proc_vector_k_;
+  env->num_proc_vector_ = env->num_proc_vector_i_ * env->num_proc_repl_;
 
   env->num_proc_ = env->num_proc_vector_ * num_proc_field;
   GMAssertAlways(env->num_proc_ <= env->num_proc_world_);
@@ -368,11 +364,8 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
 
   int itmp = env->proc_num_;
 
-  env->proc_num_vector_k_ = itmp % env->num_proc_vector_k_;
-  itmp /= env->num_proc_vector_k_;
-
-  env->proc_num_vector_j_ = itmp % env->num_proc_vector_j_;
-  itmp /= env->num_proc_vector_j_;
+  env->proc_num_repl_ = itmp % env->num_proc_repl_;
+  itmp /= env->num_proc_repl_;
 
   env->proc_num_vector_i_ = itmp % env->num_proc_vector_i_;
   itmp /= env->num_proc_vector_i_;

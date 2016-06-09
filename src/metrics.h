@@ -154,7 +154,7 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(i < j);
-  GMAssert(Env_proc_num_vector_j(env) == 0);
+  GMAssert(Env_proc_num_repl(env) == 0);
 
   size_t index = ((j * (size_t)(j - 1)) >> 1) + i;
   GMAssert(i + metrics->num_vector_local * (size_t)Env_proc_num_vector_i(env) ==
@@ -184,7 +184,7 @@ static size_t GMMetrics_helper1_offdiag_block_(GMMetrics* metrics,
                                                GMEnv* env) {
   const int num_block = Env_num_block_vector(env);
 
-  const int num_proc_j = Env_num_proc_vector_j(env);
+  const int num_proc_r = Env_num_proc_repl(env);
 
   const int i_block = Env_proc_num_vector_i(env);
 
@@ -192,7 +192,7 @@ static size_t GMMetrics_helper1_offdiag_block_(GMMetrics* metrics,
   return metrics->index_offset_0_ +
       i + metrics->num_vector_local * (
       j + metrics->num_vector_local * (
-      ((j_block - i_block - 1 + 2*num_block) % num_block) / num_proc_j ));
+      ((j_block - i_block - 1 + 2*num_block) % num_block) / num_proc_r ));
   /* clang-format on */
 }
 
@@ -214,7 +214,7 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
   GMAssert(j_block >= 0);
   GMAssert(j_block < Env_num_block_vector(env));
   GMAssert(i < j || j_block != Env_proc_num_vector_i(env));
-//  GMAssert(Env_proc_num_vector_j(env) == 0 ||
+//  GMAssert(Env_proc_num_repl(env) == 0 ||
 //           j_block != Env_proc_num_vector(env));
   /*---WARNING: these conditions on j_block are not exhaustive---*/
 
@@ -271,19 +271,18 @@ static size_t GMMetrics_helper1_part1(GMMetrics* metrics,
                                       int j_block,
                                       int k_block,
                                       GMEnv* env) {
-  GMAssert(Env_proc_num_vector_j(env) == 0);
+  GMAssert(Env_proc_num_repl(env) == 0);
   return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
 }
 
 /*---------------------------------------------------------------------------*/
 
-static int gm_mod_(int i, int n) {
+static int gm_mod1_(int i, int n) {
   return (i + n) % n;
 }
 
 /*---------------------------------------------------------------------------*/
 
-//CHANGE
 static size_t GMMetrics_helper1_part2(GMMetrics* metrics,
                                       int i,
                                       int j,
@@ -294,11 +293,11 @@ static size_t GMMetrics_helper1_part2(GMMetrics* metrics,
                                       GMEnv* env) {
   const int num_block = Env_num_block_vector(env);
 
-  const int num_proc_j = Env_num_proc_vector_j(env);
+  const int num_proc_r = Env_num_proc_repl(env);
 
   const int nvl = metrics->num_vector_local;
 
-  const int block_num = gm_mod_(j_block - i_block, num_block);
+  const int block_num = gm_mod1_(j_block - i_block, num_block);
 
   /* clang-format off */
   return metrics->index_offset_0_ +
@@ -306,14 +305,13 @@ static size_t GMMetrics_helper1_part2(GMMetrics* metrics,
          ((k * (size_t)(k - 1)) >> 1) + j + 
              ((nvl * (size_t)(nvl - 1)) >> 1) * (
          //j_block - ( j_block > i_block )
-         block_num / num_proc_j - metrics->block_num_offset_0_
+         block_num / num_proc_r - metrics->block_num_offset_0_
          ));
   /* clang-format on */
 }
 
 /*---------------------------------------------------------------------------*/
 
-//CHANGE
 static size_t GMMetrics_helper1_part3(GMMetrics* metrics,
                                       int i,
                                       int j,
@@ -333,11 +331,11 @@ static size_t GMMetrics_helper1_part3(GMMetrics* metrics,
 
   const int nvl6 = nvl / 6;
 
-  const int num_proc_j = Env_num_proc_vector_j(env);
+  const int num_proc_r = Env_num_proc_repl(env);
 
 
-  const int j_i_block_delta = gm_mod_(j_block - i_block, num_block);
-  const int k_i_block_delta = gm_mod_(k_block - i_block, num_block);
+  const int j_i_block_delta = gm_mod1_(j_block - i_block, num_block);
+  const int k_i_block_delta = gm_mod1_(k_block - i_block, num_block);
 
   const int block_num =
     (num_block) +
@@ -352,7 +350,7 @@ static size_t GMMetrics_helper1_part3(GMMetrics* metrics,
             ( section_axis == 1 ? nvl6 : nvl ) * (
         k - ( section_axis == 2 ? section_num * nvl6 : 0 ) +
             ( section_axis == 2 ? nvl6 : nvl ) * (
-         block_num / num_proc_j - metrics->block_num_offset_01_
+         block_num / num_proc_r - metrics->block_num_offset_01_
         //j_block - ( j_block > i_block ) - ( j_block > k_block ) +
         //                              (num_block-2) * (
         //k_block - ( k_block > i_block ) )
