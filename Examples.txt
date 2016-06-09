@@ -75,10 +75,9 @@ Options:
         each vector across processors (default is 1)
 
     --num_proc_repl
-        processor replication factor.  For each block along the vector
-        and field axes, this number (2-way case) or its square
-        (3-way case) of processors is applied to computations for
-        the block (default is 1)
+         processor replication factor.  For each block along the vector
+         and field axes, this number of processors is applied to
+         computations for the block (default is 1)
 
     ---verbosity <value>
         verbosity level of output (0=none, 1=some (default) 2=more)

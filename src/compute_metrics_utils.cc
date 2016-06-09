@@ -1780,8 +1780,6 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
   //const _Bool NEW_WAY = 0;
   //const _Bool is_part2 = ! (is_part1 || is_part3);;
 
-
-
   for (J = J_min; J < J_max; ++J) {
     const int I_min = 0;
     const int I_max = is_part1 ? J : numvecl;

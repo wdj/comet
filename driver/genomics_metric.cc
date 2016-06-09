@@ -71,10 +71,9 @@ void usage() {
   "        each vector across processors (default is 1)\n"
   "\n"
   "    --num_proc_repl\n"
-  "        processor replication factor.  For each block along the vector \n"
-  "        and field axes, this number (2-way case) or its square \n"
-  "        (3-way case) of processors is applied to computations for\n"
-  "        the block (default is 1)\n"
+  "        processor replication factor.  For each block along the vector\n"
+  "        and field axes, this number of processors is applied to\n"
+  "        computations for the block (default is 1)\n"
   "\n"
   );
   /* clang-format on */

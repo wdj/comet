@@ -129,6 +129,7 @@ void test_2runs(const char* options1,
 
 void SystemTest_czekanowski_() {
 
+#if 0
   //----------
   //---2-way, all2all no
   //----------
@@ -331,12 +332,14 @@ void SystemTest_czekanowski_() {
   //---num_repl
   //----------
 
+#endif
+
   char options1[1024];
   char options2[1024];
 
   char options_template_1[] =
       "--num_field 4 --num_vector_local %i --compute_method GPU --all2all yes "
-      "--num_proc_vector %i --num_proc_repl %i --num_proc_field 2";
+      "--num_proc_vector %i --num_proc_repl %i --num_proc_field 2 --num_way %i";
 
   int num_vector_local = 0;
   int num_proc_vector = 0;
@@ -346,9 +349,21 @@ void SystemTest_czekanowski_() {
     for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
       for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
         sprintf(options1, options_template_1, num_vector_local,
-                num_proc_vector, 1);
+                num_proc_vector, 1, 2);
         sprintf(options2, options_template_1, num_vector_local,
-                num_proc_vector, num_proc_repl);
+                num_proc_vector, num_proc_repl, 2);
+        test_2runs(options1, options2);
+      }
+    }
+  }
+
+  for (num_vector_local=6; num_vector_local<=18; num_vector_local+=6) {
+    for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+      for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+        sprintf(options1, options_template_1, num_vector_local,
+                num_proc_vector, 1, 3);
+        sprintf(options2, options_template_1, num_vector_local,
+                num_proc_vector, num_proc_repl, 3);
         test_2runs(options1, options2);
       }
     }

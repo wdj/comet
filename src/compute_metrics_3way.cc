@@ -135,8 +135,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   const int proc_num_r = Env_proc_num_repl(env);
   const int num_proc_r = Env_num_proc_repl(env);
 
-  //const int proc_num_ir = proc_num_r + num_proc_r * i_block;
-  //const int num_proc_ir = num_block * num_proc_r;
+  const int proc_num_ir = proc_num_r + num_proc_r * i_block;
+  const int num_proc_ir = num_block * num_proc_r;
 
   /*------------------------*/
   /*---Allocations: Part 1---*/
@@ -184,16 +184,20 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Part 1 Computation: tetrahedron---*/
   /*------------------------*/
 
+  /*---Denominator---*/
+
+  GMVectorSums_compute(&vector_sums_i, vectors_i, env);
+
+  /*---Copy in vectors---*/
+
+  gm_vectors_to_buf(vectors_i, &vectors_i_buf, env);
+
+  /*---Send vectors to GPU---*/
+
+  gm_set_vectors_start(vectors_i, &vectors_i_buf, env);
+  gm_set_vectors_wait(env);
+
   if (block_num % num_proc_r == proc_num_r) {
-
-    /*---Copy in vectors---*/
-
-    gm_vectors_to_buf(vectors_i, &vectors_i_buf, env);
-
-    /*---Send vectors to GPU---*/
-
-    gm_set_vectors_start(vectors_i, &vectors_i_buf, env);
-    gm_set_vectors_wait(env);
 
     /*---Compute numerators---*/
 
@@ -201,10 +205,6 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                      &vectors_i_buf, &vectors_i_buf,
                                      &vectors_i_buf, i_block, i_block, env);
     gm_compute_wait(env);
-
-    /*---Denominator---*/
-
-    GMVectorSums_compute(&vector_sums_i, vectors_i, env);
 
     /*---Combine results---*/
 
@@ -224,10 +224,10 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
     const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
 
-    const int proc_send_j = gm_mod_i(i_block - j_i_block_delta*num_proc_r,
-                                     num_block*num_proc_r);
-    const int proc_recv_j = gm_mod_i(i_block + j_i_block_delta*num_proc_r,
-                                     num_block*num_proc_r);
+    const int proc_send_j = gm_mod_i(proc_num_ir - j_i_block_delta*num_proc_r,
+                                     num_proc_ir);
+    const int proc_recv_j = gm_mod_i(proc_num_ir + j_i_block_delta*num_proc_r,
+                                     num_proc_ir);
 
     if (block_num % num_proc_r == proc_num_r) {
 
@@ -271,22 +271,19 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
     block_num++;
   } /*---j_i_block_delta---*/
 
-
-
   /*------------------------*/
   /*---Part 3 Computation: block sections---*/
   /*------------------------*/
 
   int k_i_block_delta = 0;
-
   for (k_i_block_delta = 1; k_i_block_delta < num_block; ++k_i_block_delta) {
 
     const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
 
-    const int proc_send_k = gm_mod_i(i_block - k_i_block_delta*num_proc_r,
-                                     num_block*num_proc_r);
-    const int proc_recv_k = gm_mod_i(i_block + k_i_block_delta*num_proc_r,
-                                     num_block*num_proc_r);
+    const int proc_send_k = gm_mod_i(proc_num_ir - k_i_block_delta*num_proc_r,
+                                     num_proc_ir);
+    const int proc_recv_k = gm_mod_i(proc_num_ir + k_i_block_delta*num_proc_r,
+                                     num_proc_ir);
     /*---Communicate vectors---*/
 
     MPI_Request mpi_requests_k[2];
@@ -314,10 +311,10 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
       const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
 
-      const int proc_send_j = gm_mod_i(i_block - j_i_block_delta*num_proc_r,
-                                       num_block*num_proc_r);
-      const int proc_recv_j = gm_mod_i(i_block + j_i_block_delta*num_proc_r,
-                                       num_block*num_proc_r);
+      const int proc_send_j = gm_mod_i(proc_num_ir - j_i_block_delta*num_proc_r,
+                                       num_proc_ir);
+      const int proc_recv_j = gm_mod_i(proc_num_ir + j_i_block_delta*num_proc_r,
+                                       num_proc_ir);
       if (j_block == k_block) {
         /*---NOTE: this condition occurs on all procs at exactly the same
              j/k iteration in lockstep, so there is no chance the immediately
