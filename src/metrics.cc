@@ -624,7 +624,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       } /*---switch---*/
       /*---Convert to integer.  Store only 2*w bits max---*/
       const int log2_value_max = 4;
-      GMAssertAlways(value >= 0 && value < (1 << log2_value_max));
+      GMAssert(value >= 0 && value < (1 << log2_value_max));
       UI64 ivalue = value * (one64 << (2 * w - log2_value_max));
       /*---Multiply the two values---*/
       const UI64 a = rand_value;
