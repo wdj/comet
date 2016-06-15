@@ -8,4 +8,6 @@
 */testing/libtest.a
 */testing/lin/liblapacktest.a
 */testing/testing_*
-\!*/testing/testing_*.*
+!*/testing/testing_*.cpp
+!*/testing/testing_*.f90
+!*/testing/testing_*.F90
