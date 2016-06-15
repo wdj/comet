@@ -1945,12 +1945,15 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
       gm_get_matrix_start(matB_buf_local, I_max, numvecl, env);
       gm_get_matrix_wait(env);
 
+
       // TODO - outline into gm_allreduce_metrics
       if (Env_num_proc_field(env) > 1) {
+        //TODO: fix this properly.
+        int multiplier = Env_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
         int mpi_code = 0;
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
         mpi_code = MPI_Allreduce(matB_buf_local->h, matB_buf.h,
-                                 numvecl * (size_t)numvecl,
+                                 numvecl * (size_t)numvecl * multiplier,
                                  GM_MPI_FLOAT, MPI_SUM,
                                  Env_mpi_comm_field(env));
         GMAssert(mpi_code == MPI_SUCCESS);
