@@ -53,12 +53,12 @@ void gm_magma_initialize(GMEnv* env) {
     magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_minproduct_init();
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
     magma_code = magma_minproductblasSetKernelStream(Env_stream_compute(env));
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -69,12 +69,12 @@ void gm_magma_initialize(GMEnv* env) {
     magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally4_init();
-    GMAssert(magma_code == MAGMA_tally4_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
     magma_code = magma_tally4blasSetKernelStream(Env_stream_compute(env));
-    GMAssert(magma_code == MAGMA_tally4_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -85,12 +85,12 @@ void gm_magma_initialize(GMEnv* env) {
       magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
       magma_code = magma_tally3_init();
-      GMAssert(magma_code == MAGMA_tally3_SUCCESS);
+      GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
       /*---need this -- see
        * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
        * page 14 ---*/
       magma_code = magma_tally3blasSetKernelStream(Env_stream_compute(env));
-      GMAssert(magma_code == MAGMA_tally3_SUCCESS);
+      GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
 
   /*----------------------------------------*/
   } else {
@@ -128,7 +128,7 @@ void gm_magma_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_code = magma_minproduct_finalize();
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -140,7 +140,7 @@ void gm_magma_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_code = magma_tally4_finalize();
-    GMAssert(magma_code == MAGMA_tally4_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -152,7 +152,7 @@ void gm_magma_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_code = magma_tally3_finalize();
-    GMAssert(magma_code == MAGMA_tally3_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
 
   /*----------------------------------------*/
   } else {
@@ -198,7 +198,7 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
 #ifdef FP_PRECISION_SINGLE
     magma_code = magma_minproduct_smalloc_pinned((GMFloat**)&p.h, n);
 #endif
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
 
 #ifdef FP_PRECISION_DOUBLE
     magma_code = magma_minproduct_dmalloc((GMFloat**)&p.d, n);
@@ -206,7 +206,7 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
 #ifdef FP_PRECISION_SINGLE
     magma_code = magma_minproduct_smalloc((GMFloat**)&p.d, n);
 #endif
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -219,10 +219,10 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
     magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p.h, n);
-    GMAssert(magma_code == MAGMA_tally4_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
 
     magma_code = magma_tally4_zmalloc((Float_t**)&p.d, n);
-    GMAssert(magma_code == MAGMA_tally4_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -235,10 +235,10 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
     magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p.h, n);
-    GMAssert(magma_code == MAGMA_tally3_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
 
     magma_code = magma_tally3_zmalloc((Float_t**)&p.d, n);
-    GMAssert(magma_code == MAGMA_tally3_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
 
   /*----------------------------------------*/
   } else {
@@ -278,9 +278,9 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
     magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
     magma_minproduct_free_pinned(p->h);
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
     magma_minproduct_free(p->d);
-    GMAssert(magma_code == MAGMA_minproduct_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -291,9 +291,9 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
     magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
     magma_tally4_free_pinned(p->h);
-    GMAssert(magma_code == MAGMA_tally4_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
     magma_tally4_free(p->d);
-    GMAssert(magma_code == MAGMA_tally4_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
 
   /*----------------------------------------*/
   } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -304,9 +304,9 @@ void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
     magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
     magma_tally3_free_pinned(p->h);
-    GMAssert(magma_code == MAGMA_tally3_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
     magma_tally3_free(p->d);
-    GMAssert(magma_code == MAGMA_tally3_SUCCESS);
+    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
 
   /*----------------------------------------*/
   } else {
@@ -479,7 +479,7 @@ void gm_compute_wait(GMEnv* env) {
 
   if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaStreamSynchronize(Env_stream_compute(env));
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
   }
 }
 
@@ -564,7 +564,7 @@ void gm_set_matrix_wait(GMEnv* env) {
   }
 
   cudaStreamSynchronize(Env_stream_togpu(env));
-  GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 }
 
 /*===========================================================================*/
@@ -648,7 +648,7 @@ void gm_get_matrix_wait(GMEnv* env) {
   }
 
   cudaStreamSynchronize(Env_stream_fromgpu(env));
-  GMAssert(GMEnv_cuda_last_call_succeeded(env));
+  GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 }
 
 /*===========================================================================*/

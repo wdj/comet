@@ -476,9 +476,12 @@ _Bool GMEnv_cuda_last_call_succeeded(GMEnv* env) {
 
 GMFloat* GMFloat_malloc(size_t n) {
   GMFloat* result = (GMFloat*)malloc(n * sizeof(GMFloat));
-  GMAssert(result);
+  GMAssertAlways(result);
+  //TODO: in debug case, fill with NANs
   return result;
 }
+
+//TODO: GMInt_malloc ...
 
 /*===========================================================================*/
 

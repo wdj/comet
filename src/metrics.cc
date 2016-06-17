@@ -141,7 +141,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
-    GMAssert(metrics->coords_global_from_index != NULL);
+    GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*===PART C: SET INDEX===*/
     /*---Set index part 1: (triangle) i_block==j_block part---*/
     size_t index = 0;
@@ -236,7 +236,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
-    GMAssert(metrics->coords_global_from_index != NULL);
+    GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*===PART C: SET INDEX===*/
     int block_num = 0;
     int block_num_this_r = 0;
@@ -362,7 +362,7 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
-    GMAssert(metrics->coords_global_from_index != NULL);
+    GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict upper triangular part of matrix---*/
     size_t index = 0;
     for (j = 0; j < num_vector_local; ++j) {
@@ -380,7 +380,7 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
-    GMAssert(metrics->coords_global_from_index != NULL);
+    GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict interior of tetrahedron---*/
     size_t index = 0;
     for (k = 0; k < num_vector_local; ++k) {
@@ -414,30 +414,30 @@ void GMMetrics_create(GMMetrics* metrics,
       const size_t num_floats_needed =
           gm_ceil_i8(metrics->num_elts_local, 8 * sizeof(GMFloat));
       metrics->data = malloc(num_floats_needed * sizeof(GMFloat));
-      GMAssert(metrics->data != NULL);
+      GMAssertAlways(metrics->data != NULL);
       metrics->data_type_num_values = 1;
     } break;
     /*----------*/
     case GM_DATA_TYPE_FLOAT:
       //---TODO: remove thee casts on the mallocs, here and elsewhere.
       metrics->data = malloc(metrics->num_elts_local * sizeof(GMFloat));
-      GMAssert(metrics->data != NULL);
+      GMAssertAlways(metrics->data != NULL);
       metrics->data_type_num_values = 1;
       break;
     /*----------*/
     case GM_DATA_TYPE_TALLY2X2: {
       metrics->data = malloc(metrics->num_elts_local * sizeof(GMTally2x2));
-      GMAssert(metrics->data != NULL);
+      GMAssertAlways(metrics->data != NULL);
       metrics->data_M = malloc(metrics->num_elts_local * sizeof(GMFloat2));
-      GMAssert(metrics->data_M != NULL);
+      GMAssertAlways(metrics->data_M != NULL);
       metrics->data_type_num_values = 4;
     } break;
     /*----------*/
     case GM_DATA_TYPE_TALLY4X2: {
       metrics->data = malloc(metrics->num_elts_local * sizeof(GMTally4x2));
-      GMAssert(metrics->data != NULL);
+      GMAssertAlways(metrics->data != NULL);
       metrics->data_M = malloc(metrics->num_elts_local * sizeof(GMFloat3));
-      GMAssert(metrics->data_M != NULL);
+      GMAssertAlways(metrics->data_M != NULL);
       metrics->data_type_num_values = 8;
     } break;
     /*----------*/
@@ -624,7 +624,8 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       } /*---switch---*/
       /*---Convert to integer.  Store only 2*w bits max---*/
       const int log2_value_max = 4;
-      GMAssert(value >= 0 && value < (1 << log2_value_max));
+      GMAssert(value >= 0);
+      GMAssert(value < (1 << log2_value_max));
       UI64 ivalue = value * (one64 << (2 * w - log2_value_max));
       /*---Multiply the two values---*/
       const UI64 a = rand_value;
