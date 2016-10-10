@@ -2227,7 +2227,9 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
   for (step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num) {
 
-    const int step_2way = (step_num + 2*num_step_2way) % num_step_2way;
+    //==========
+
+    //const int step_2way = (step_num + 2*num_step_2way) % num_step_2way;
     const int J = J_min + (step_num + 2*num_step_2way) / num_step_2way - 2;
     const int I_min = 0;
     const int I_max = is_part1 ? J : numvecl;
@@ -2235,9 +2237,13 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
     const int K_max = numvecl;
     const _Bool empty = I_min >= I_max || K_min >= K_max;
     const _Bool is_compute_step = step_num >= 0 && step_num < num_step;
+    const _Bool do_compute = is_compute_step && !empty;
     const int index_01 = (step_num + 2) % 2;
+    GMMirroredPointer* matB_buf_local =
+      Env_num_proc_field(env) == 1 ? matB_buf[index_01] : mat_buf_tmp[index_01];
 
-#if ALWAYS_FALSE
+    //==========
+
     const int step_num_prev = step_num - 1;
     const int step_2way_prev =
       (step_num_prev + 2*num_step_2way) % num_step_2way;
@@ -2251,7 +2257,12 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
                              K_min_prev >= K_max_prev;
     const _Bool is_compute_step_prev = step_num_prev >= 0 &&
                                        step_num_prev < num_step;
+    const _Bool do_compute_prev = is_compute_step_prev && !empty_prev;
     const int index_01_prev = (step_num_prev + 2) % 2;
+    GMMirroredPointer* matB_buf_local_prev = Env_num_proc_field(env) == 1 ?
+      matB_buf[index_01_prev] : mat_buf_tmp[index_01_prev];
+
+    //==========
 
     const int step_num_next = step_num + 1;
     const int step_2way_next = step_num_next % num_step_2way;
@@ -2264,116 +2275,105 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
                              K_min_next >= K_max_next;
     const _Bool is_compute_step_next = step_num_next >= 0 &&
                                        step_num_next < num_step;
+    const _Bool do_compute_next = is_compute_step_next && !empty_next;
     const int index_01_next = (step_num_next + 2) % 2;
-#endif
 
+    //==========
 
+    if (do_compute_next) {
+      /*---Populate leading columns of matV---*/
+      gm_compute_numerators_3way_gpu_form_matV(
+          vectors_I_buf, vectors_J_buf,
+          matV_buf[index_01_next],
+          numfieldl, numpfieldl,
+          J_next, step_2way_next, I_min_next, I_max_next,
+          env);
+    } /*---if do_compute---*/
 
+    //==========
 
+    if (do_compute) {
+      /*---Send matrix matV to GPU - WAIT---*/
+      gm_set_matrix_wait(env);
+    } /*---if do_compute---*/
 
+    //==========
 
+    if (do_compute_prev) {
+      /*---Perform pseudo mat X matt matB = matV^T PROD X - WAIT---*/
+      gm_compute_wait(env);
+    } /*---if do_compute---*/
 
+    //==========
 
-    if (is_compute_step && !empty) {
+    if (do_compute_next) {
+      /*---Send matrix matV to GPU - START---*/
+      gm_set_matrix_start(matV_buf[index_01_next], numpfieldl, I_max_next, env);
+    } /*---if do_compute---*/
 
+    //==========
 
+    if (do_compute_prev) {
+      /*---Copy result matrix matB from GPU - START---*/
+      gm_get_matrix_start(matB_buf_local_prev, I_max_prev, numvecl, env);
+    } /*---if do_compute---*/
 
+    //==========
 
-    /*--------------------*/
-    /*---Populate leading columns of matV---*/
-    /*--------------------*/
+    if (do_compute) {
+      /*---Initialize result matrix to zero (apparently magma requires)---*/
+      gm_magma_set_matrix_zero_start(matB_buf_local, numvecl, I_max, env);
+      /*---Perform pseudo mat X mat matB = matV^T PROD X - START---*/
+      gm_magma_gemm_start(I_max, numvecl, numpfieldl, matV_buf[index_01]->d,
+                          numpfieldl, vectors_K_buf->d, numpfieldl,
+                          matB_buf_local->d, I_max, env);
+    } /*---if do_compute---*/
 
-    gm_compute_numerators_3way_gpu_form_matV(
-        vectors_I_buf,
-        vectors_J_buf,
-        matV_buf[index_01],
-        numfieldl,
-        numpfieldl,
-        J,
-        step_2way,
-        I_min,
-        I_max,
-        env);
+    //==========
 
+    if (do_compute_prev) {
+      /*---Copy result matrix matB from GPU - WAIT---*/
+      gm_get_matrix_wait(env);
+    } /*---if do_compute---*/
 
+    //==========
 
+    if (do_compute_prev) {
+      // TODO - outline into gm_allreduce_metrics
+      if (Env_num_proc_field(env) > 1) {
+        //TODO: fix this properly.
+        int multiplier = Env_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
+        int mpi_code = 0;
+        mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+        mpi_code = MPI_Allreduce(matB_buf_local_prev->h,
+                                 matB_buf[index_01_prev]->h,
+                                 numvecl * (size_t)numvecl * multiplier,
+                                 GM_MPI_FLOAT, MPI_SUM,
+                                 Env_mpi_comm_field(env));
+        GMAssert(mpi_code == MPI_SUCCESS);
+      }
+      // TODO - outline into gm_allreduce_metrics
+    } /*---if do_compute---*/
 
-    /*--------------------*/
-    /*---Do pseudo-matmat---*/
-    /*--------------------*/
+    //==========
 
-    /*---Send matrix matV to GPU---*/
+    if (do_compute_prev) {
+      /*---Compute numerators using ijk piece and (if needed) 2-way pieces---*/
+      gm_compute_numerators_3way_gpu_form_metrics(
+          matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
+          matB_buf[index_01_prev],
+          metrics, numvecl,
+          J_prev,
+          step_2way_prev,
+          I_min_prev,
+          I_max_prev,
+          K_min_prev,
+          K_max_prev,
+          j_block, k_block, sax0, sax1, is_part3,
+          env);
+    } /*---if do_compute---*/
 
-    gm_set_matrix_start(matV_buf[index_01], numpfieldl, I_max, env);
-    gm_set_matrix_wait(env);
-
-    /*---Initialize result matrix to zero (apparently magma requires)---*/
-
-    GMMirroredPointer* matB_buf_local =
-      Env_num_proc_field(env) == 1 ? matB_buf[index_01] : mat_buf_tmp[index_01];
-    gm_magma_set_matrix_zero_start(matB_buf_local, numvecl, I_max, env);
-
-    /*---Perform pseudo matrix-matrix product matB = matV^T PROD X---*/
-
-    gm_magma_gemm_start(I_max, numvecl, numpfieldl, matV_buf[index_01]->d, numpfieldl,
-                        vectors_K_buf->d, numpfieldl,
-                        matB_buf_local->d, I_max, env);
-    gm_compute_wait(env);
-
-    /*---Copy result matrix matB from GPU---*/
-
-    gm_get_matrix_start(matB_buf_local, I_max, numvecl, env);
-    gm_get_matrix_wait(env);
-
-
-
-
-    // TODO - outline into gm_allreduce_metrics
-    if (Env_num_proc_field(env) > 1) {
-      //TODO: fix this properly.
-      int multiplier = Env_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
-      int mpi_code = 0;
-      mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
-      mpi_code = MPI_Allreduce(matB_buf_local->h, matB_buf[index_01]->h,
-                               numvecl * (size_t)numvecl * multiplier,
-                               GM_MPI_FLOAT, MPI_SUM,
-                               Env_mpi_comm_field(env));
-      GMAssert(mpi_code == MPI_SUCCESS);
-    }
-    // TODO - outline into gm_allreduce_metrics
-
-
-
-
-    /*--------------------*/
-    /*---Compute numerators using ijk piece and (if needed) 2-way pieces---*/
-    /*--------------------*/
-
-    gm_compute_numerators_3way_gpu_form_metrics(
-        matM_IJ_buf,
-        matM_JK_buf,
-        matM_KIK_buf,
-        matB_buf[index_01],
-        metrics,
-        numvecl,
-        J,
-        step_2way,
-        I_min,
-        I_max,
-        K_min,
-        K_max,
-        j_block,
-        k_block,
-        sax0,
-        sax1,
-        is_part3,
-        env);
-
-
-
-
-  }
-
+    //==========
 
   } /*---for step_num---*/
 
