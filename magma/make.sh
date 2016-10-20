@@ -10,10 +10,17 @@
 #
 #==============================================================================
 
-module swap PrgEnv-pgi PrgEnv-gnu
-module load cudatoolkit
-module load acml
+function do_make
+{
+  module swap PrgEnv-pgi PrgEnv-gnu
+  module load cudatoolkit
+  module load acml
 
-time make -j8 2>&1 | tee out_make.txt
+  time make -j8
+}
+
+#==============================================================================
+
+do_make "$@" 2>&1 | tee out_make.txt
 
 #==============================================================================

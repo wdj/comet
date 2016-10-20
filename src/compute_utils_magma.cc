@@ -33,7 +33,7 @@ extern "C" {
 /*---Magma setup, teardown---*/
 
 void gm_magma_initialize(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -107,7 +107,7 @@ void gm_magma_initialize(GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 void gm_magma_finalize(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -170,8 +170,8 @@ void gm_magma_finalize(GMEnv* env) {
 /*---Allocate/free host and device memory---*/
 
 GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
-  GMAssert(n + 1 >= 1);
-  GMAssert(env != NULL);
+  GMAssertAlways(n + 1 >= 1);
+  GMAssertAlways(env != NULL);
 
   GMMirroredPointer p = GMMirroredPointer_null();
 
@@ -257,8 +257,8 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 void gm_free_magma(GMMirroredPointer* p, GMEnv* env) {
-  GMAssert(p != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(p != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -387,27 +387,43 @@ void gm_magma_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
 
 /*---------------------------------------------------------------------------*/
 
-void gm_magma_gemm_start(magma_minproduct_int_t m,
-                         magma_minproduct_int_t n,
-                         magma_minproduct_int_t k,
-                         void* dA,
-                         magma_minproduct_int_t ldda,
-                         void* dB,
-                         magma_minproduct_int_t lddb,
-                         void* dC,
-                         magma_minproduct_int_t lddc,
-                         GMEnv* env) {
-  GMAssert(m >= 0);
-  GMAssert(n >= 0);
-  GMAssert(k >= 0);
-  GMAssert(dA != NULL);
-  GMAssert(dB != NULL);
-  GMAssert(dC != NULL);
-  GMAssert(ldda >= 0);
-  GMAssert(lddb >= 0);
-  GMAssert(env != NULL);
+void gm_magma_gemm_block_start(magma_minproduct_int_t m,
+                               magma_minproduct_int_t n,
+                               magma_minproduct_int_t k,
+                               void* dA,
+                               magma_minproduct_int_t ldda,
+                               void* dB,
+                               magma_minproduct_int_t lddb,
+                               void* dC,
+                               magma_minproduct_int_t lddc,
+                               GMEnv* env) {
+  GMAssertAlways(m >= 0);
+  GMAssertAlways(n >= 0);
+  GMAssertAlways(k >= 0);
+  GMAssertAlways(dA != NULL);
+  GMAssertAlways(dB != NULL);
+  GMAssertAlways(dC != NULL);
+  GMAssertAlways(ldda >= 0);
+  GMAssertAlways(lddb >= 0);
+  GMAssertAlways(env != NULL);
 
-  GMAssert(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+
+  {
+    int TransA = 1;
+    int TransB = 0;
+
+    magma_minproduct_int_t Am = ( ! TransA ? m : k);
+    magma_minproduct_int_t An = (!TransA ? k : m);
+    magma_minproduct_int_t Bm = ( ! TransB ? k : n);
+    magma_minproduct_int_t Bn = (!TransB ? n : k);
+    size_t sizeA = (size_t) ldda * (An - 1) + Am;
+    size_t sizeB = (size_t) lddb * (Bn - 1) + Bm;
+
+    size_t CUBLAS_MAX_1DBUF_SIZE = ((1 << 27) - 512);
+    GMAssertAlways( !(sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
+                      sizeB >= CUBLAS_MAX_1DBUF_SIZE ));
+  }
 
   /*----------------------------------------*/
   if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
@@ -472,10 +488,89 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
 }
 
 /*---------------------------------------------------------------------------*/
+
+void gm_magma_gemm_start(magma_minproduct_int_t m,
+                         magma_minproduct_int_t n,
+                         magma_minproduct_int_t k,
+                         void* dA,
+                         magma_minproduct_int_t ldda,
+                         void* dB,
+                         magma_minproduct_int_t lddb,
+                         void* dC,
+                         magma_minproduct_int_t lddc,
+                         GMEnv* env) {
+  GMAssertAlways(m >= 0);
+  GMAssertAlways(n >= 0);
+  GMAssertAlways(k >= 0);
+  GMAssertAlways(dA != NULL);
+  GMAssertAlways(dB != NULL);
+  GMAssertAlways(dC != NULL);
+  GMAssertAlways(ldda >= 0);
+  GMAssertAlways(lddb >= 0);
+  GMAssertAlways(env != NULL);
+
+  GMAssertAlways(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+
+  const size_t elt_size =
+    Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ? sizeof(GMFloat) :
+    (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
+     Env_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
+    (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
+     Env_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
+  GMAssertAlways(elt_size != 0);
+
+  const size_t align_factor = 128 / elt_size;
+
+  const size_t max_elts = (1 << 27) - 512;
+
+  GMAssertAlways(m==n);
+  GMAssertAlways(ldda==k);
+  GMAssertAlways(lddb==k);
+  GMAssertAlways(lddc==n);
+
+  if (n==0 || k==0) {
+    return;
+  }
+
+  const size_t rows = k;
+  const size_t cols = n;
+
+  size_t max_cols_per_block = max_elts / rows;
+  max_cols_per_block = (max_cols_per_block / align_factor) * align_factor;
+  GMAssertAlways(max_cols_per_block != 0);
+
+  const size_t cols_per_block =
+    cols < max_cols_per_block ? cols : max_cols_per_block;
+
+  size_t col_A_base = 0;
+  for (col_A_base=0; col_A_base<cols; col_A_base+=cols_per_block) {
+    const size_t cols_A_remaining = cols - col_A_base;
+    const size_t cols_A_this =
+      cols_A_remaining < cols_per_block ? cols_A_remaining : cols_per_block;
+
+    void* dA_this = (char*)dA + ldda*col_A_base*elt_size;
+
+    size_t col_B_base = 0;
+    for (col_B_base=0; col_B_base<cols; col_B_base+=cols_per_block) {
+      const size_t cols_B_remaining = cols - col_B_base;
+      const size_t cols_B_this =
+        cols_B_remaining < cols_per_block ? cols_B_remaining : cols_per_block;
+
+      void* dB_this = (char*)dB + lddb*col_B_base*elt_size;
+
+      void* dC_this = (char*)dC + (lddc*col_B_base + col_A_base)*elt_size;
+
+      gm_magma_gemm_block_start(cols_A_this, cols_B_this, k,
+        dA_this, ldda, dB_this, lddb, dC_this, lddc, env);
+    }
+  }
+}
+
+/*---------------------------------------------------------------------------*/
 /*---Wait for any computation on the GPU top complete---*/
 
 void gm_compute_wait(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaStreamSynchronize(Env_stream_compute(env));
@@ -490,8 +585,8 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
                          int mat_dim1,
                          int mat_dim2,
                          GMEnv* env) {
-  GMAssert(matrix_buf != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(matrix_buf != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -557,7 +652,7 @@ void gm_set_matrix_start(GMMirroredPointer* matrix_buf,
 /*---------------------------------------------------------------------------*/
 
 void gm_set_matrix_wait(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -574,8 +669,8 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
                          int mat_dim1,
                          int mat_dim2,
                          GMEnv* env) {
-  GMAssert(matrix_buf != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(matrix_buf != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -641,7 +736,7 @@ void gm_get_matrix_start(GMMirroredPointer* matrix_buf,
 /*---------------------------------------------------------------------------*/
 
 void gm_get_matrix_wait(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;

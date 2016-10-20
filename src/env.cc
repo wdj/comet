@@ -89,7 +89,7 @@ GMEnv GMEnv_null() {
 /*---Initialize environment---*/
 
 void GMEnv_create(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   GMStaticAssert(sizeof(GMBits) == 8);
   GMStaticAssert(sizeof(GMULInt) == 8);
@@ -102,7 +102,7 @@ void GMEnv_create(GMEnv* env) {
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Comm_size(MPI_COMM_WORLD, &env->num_proc_world_);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   Env_set_num_proc(env, env->num_proc_world_, 1, 1);
 
@@ -121,7 +121,7 @@ void GMEnv_create(GMEnv* env) {
 /*---Initialize environment---*/
 
 void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   /*---First initialize with standard constructor---*/
   GMEnv_create(env);
@@ -214,20 +214,20 @@ void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
 /*---Manage cuda streams---*/
 
 void GMEnv_initialize_streams(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   /*---NOTE: this is used for lazy initialization---*/
 
   if (!env->are_cuda_streams_initialized_) {
     if (env->compute_method_ == GM_COMPUTE_METHOD_GPU) {
       cudaStreamCreate(&env->stream_compute_);
-      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+      GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
       cudaStreamCreate(&env->stream_togpu_);
-      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+      GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
       cudaStreamCreate(&env->stream_fromgpu_);
-      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+      GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
     }
   }
   env->are_cuda_streams_initialized_ = GM_BOOL_TRUE;
@@ -236,18 +236,18 @@ void GMEnv_initialize_streams(GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 void GMEnv_terminate_streams(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   if (env->are_cuda_streams_initialized_) {
     if (env->compute_method_ == GM_COMPUTE_METHOD_GPU) {
       cudaStreamDestroy(env->stream_compute_);
-      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+      GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
       cudaStreamDestroy(env->stream_togpu_);
-      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+      GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
       cudaStreamDestroy(env->stream_fromgpu_);
-      GMAssert(GMEnv_cuda_last_call_succeeded(env));
+      GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
     }
   }
   env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
@@ -257,7 +257,7 @@ void GMEnv_terminate_streams(GMEnv* env) {
 /*---Finalize environment---*/
 
 void GMEnv_destroy(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
@@ -265,11 +265,11 @@ void GMEnv_destroy(GMEnv* env) {
   /*---Destroy any nontrivial communicators---*/
   if (env->mpi_comm_ != MPI_COMM_WORLD) {
     mpi_code = MPI_Comm_free(&(env->mpi_comm_));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
     mpi_code = MPI_Comm_free(&(env->mpi_comm_vector_));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
     mpi_code = MPI_Comm_free(&(env->mpi_comm_field_));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 
   GMEnv_terminate_streams(env);
@@ -281,9 +281,9 @@ void GMEnv_destroy(GMEnv* env) {
 /*---Accessors---*/
 
 void Env_set_compute_method(GMEnv* env, int compute_method) {
-  GMAssert(env != NULL);
-  GMAssert(compute_method >= 0);
-  GMAssert(compute_method < GM_NUM_COMPUTE_METHOD);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(compute_method >= 0);
+  GMAssertAlways(compute_method < GM_NUM_COMPUTE_METHOD);
 
   env->compute_method_ = compute_method;
 }
@@ -291,7 +291,7 @@ void Env_set_compute_method(GMEnv* env, int compute_method) {
 /*---------------------------------------------------------------------------*/
 
 int Env_data_type_vectors(const GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
     case GM_METRIC_TYPE_SORENSON:
@@ -301,14 +301,14 @@ int Env_data_type_vectors(const GMEnv* env) {
     case GM_METRIC_TYPE_CCC:
       return GM_DATA_TYPE_BITS2;
   }
-  GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
+  GMAssertAlways(GM_BOOL_FALSE ? "Invalid metric type." : 0);
   return 0;
 }
 
 /*---------------------------------------------------------------------------*/
 
 int Env_data_type_metrics(const GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
     case GM_METRIC_TYPE_SORENSON:
@@ -319,7 +319,7 @@ int Env_data_type_metrics(const GMEnv* env) {
       return env->num_way_ == GM_NUM_WAY_2 ? GM_DATA_TYPE_TALLY2X2
                                            : GM_DATA_TYPE_TALLY4X2;
   }
-  GMAssert(GM_BOOL_FALSE ? "Invalid metric type." : 0);
+  GMAssertAlways(GM_BOOL_FALSE ? "Invalid metric type." : 0);
   return 0;
 }
 
@@ -327,7 +327,7 @@ int Env_data_type_metrics(const GMEnv* env) {
 
 void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
                       int num_proc_field) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
   GMAssertAlways(num_proc_vector_i > 0);
   GMAssertAlways(num_proc_repl > 0);
   GMAssertAlways(num_proc_field >= 0);
@@ -339,11 +339,11 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
 
   if (env->mpi_comm_ != MPI_COMM_WORLD) {
     mpi_code = MPI_Comm_free(&(env->mpi_comm_));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
     mpi_code = MPI_Comm_free(&(env->mpi_comm_vector_));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
     mpi_code = MPI_Comm_free(&(env->mpi_comm_field_));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 
   /*---Set proc counts---*/
@@ -360,7 +360,7 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
   /*---Set proc nums---*/
 
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &env->proc_num_);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   int itmp = env->proc_num_;
 
@@ -378,22 +378,22 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
   env->is_proc_active_ = env->proc_num_ < env->num_proc_;
   mpi_code = MPI_Comm_split(MPI_COMM_WORLD, env->is_proc_active_,
                             env->proc_num_, &env->mpi_comm_);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
   mpi_code = MPI_Comm_split(MPI_COMM_WORLD,
       env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
       env->proc_num_, &env->mpi_comm_vector_);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
   mpi_code = MPI_Comm_split(MPI_COMM_WORLD,
       env->is_proc_active_ ? env->proc_num_vector_ : env->num_proc_,
       env->proc_num_, &env->mpi_comm_field_);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
 /*---------------------------------------------------------------------------*/
 
 cudaStream_t Env_stream_compute(GMEnv* env) {
-  GMAssert(env != NULL);
-  // GMAssert(env->are_cuda_streams_initialized_);
+  GMAssertAlways(env != NULL);
+  // GMAssertAlways(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
 
@@ -403,8 +403,8 @@ cudaStream_t Env_stream_compute(GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 cudaStream_t Env_stream_togpu(GMEnv* env) {
-  GMAssert(env != NULL);
-  // GMAssert(env->are_cuda_streams_initialized_);
+  GMAssertAlways(env != NULL);
+  // GMAssertAlways(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
 
@@ -414,8 +414,8 @@ cudaStream_t Env_stream_togpu(GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 cudaStream_t Env_stream_fromgpu(GMEnv* env) {
-  GMAssert(env != NULL);
-  // GMAssert(env->are_cuda_streams_initialized_);
+  GMAssertAlways(env != NULL);
+  // GMAssertAlways(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
 
@@ -426,7 +426,7 @@ cudaStream_t Env_stream_fromgpu(GMEnv* env) {
 /*---Timer functions---*/
 
 double GMEnv_get_time(GMEnv* env) {
-  GMAssert(env);
+  GMAssertAlways(env);
   struct timeval tv;
   gettimeofday(&tv, NULL);
   double result = ((double)tv.tv_sec + (double)tv.tv_usec * 1.e-6);
@@ -436,7 +436,7 @@ double GMEnv_get_time(GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 double GMEnv_get_synced_time(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   /*
   cudaThreadSynchronize();
@@ -444,14 +444,14 @@ double GMEnv_get_synced_time(GMEnv* env) {
 
   if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaDeviceSynchronize();
-    GMAssert(GMEnv_cuda_last_call_succeeded(env));
+    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
   }
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Barrier(Env_mpi_comm(env));
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
   return GMEnv_get_time(env);
 }
 

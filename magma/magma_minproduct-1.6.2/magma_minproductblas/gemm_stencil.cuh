@@ -346,7 +346,7 @@ void devfunc_name(precision) (
                       #else
                         //---BEGIN MODIFIED GENOMICS_METRICS
                         //fma(rA[m], rB[n], rC[n][m]);
-                        fmin(rA[m], rB[n], rC[n][m]);
+                        myfmin(rA[m], rB[n], rC[n][m]);
                         //---END MODIFIED GENOMICS_METRICS
                       #endif
                     #endif
@@ -424,7 +424,7 @@ void devfunc_name(precision) (
                   #else
                     //---BEGIN MODIFIED GENOMICS_METRICS
                     //fma(rA[m], rB[n], rC[n][m]);
-                    fmin(rA[m], rB[n], rC[n][m]);
+                    myfmin(rA[m], rB[n], rC[n][m]);
                     //---END MODIFIED GENOMICS_METRICS
                   #endif
                 #endif

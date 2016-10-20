@@ -45,10 +45,10 @@ void GMMetrics_create(GMMetrics* metrics,
                       int num_field,
                       int num_vector_local,
                       GMEnv* env) {
-  GMAssert(metrics);
-  GMAssert(num_field >= 0);
-  GMAssert(num_vector_local >= 0);
-  GMAssert(env);
+  GMAssertAlways(metrics);
+  GMAssertAlways(num_field >= 0);
+  GMAssertAlways(num_vector_local >= 0);
+  GMAssertAlways(env);
 
   *metrics = GMMetrics_null();
 
@@ -77,7 +77,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   size_t num_vector_bound = metrics->num_vector_local * (size_t)num_block;
   num_vector_bound *= Env_num_proc_repl(env);
-  GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
+  GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
                ? "Vector count too large to store in 32-bit int."
                : 0);
 
@@ -85,8 +85,8 @@ void GMMetrics_create(GMMetrics* metrics,
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
                            1, MPI_INT, MPI_SUM, Env_mpi_comm_vector(env));
-  GMAssert(mpi_code == MPI_SUCCESS);
-  GMAssert((size_t)(metrics->num_vector) == num_vector_bound);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMAssertAlways((size_t)(metrics->num_vector) == num_vector_bound);
   metrics->num_vector /= Env_num_proc_repl(env);
 
   /*---Assume the following to simplify calculations---*/
@@ -172,7 +172,7 @@ void GMMetrics_create(GMMetrics* metrics,
             i_global + metrics->num_vector * j_global;
       }
     }
-    GMAssert(index == metrics->num_elts_local);
+    GMAssertAlways(index == metrics->num_elts_local);
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_3 && Env_all2all(env)) {
   /*==================================================*/
@@ -232,7 +232,7 @@ void GMMetrics_create(GMMetrics* metrics,
                                num_vector_local * nvl6;
 
     metrics->num_elts_local += num_block_this_proc_3 * num_elts_per_block_3;
-    GMAssert(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
+    GMAssertAlways(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
@@ -354,8 +354,8 @@ void GMMetrics_create(GMMetrics* metrics,
       } /*---j_block---*/
     }   /*---k_block---*/
 
-    GMAssert(index == metrics->num_elts_local);
-    GMAssert(block_num == (num_block-1) * (num_block-1) + 1);
+    GMAssertAlways(index == metrics->num_elts_local);
+    GMAssertAlways(block_num == (num_block-1) * (num_block-1) + 1);
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_2 && !Env_all2all(env)) {
   /*==================================================*/
@@ -373,7 +373,7 @@ void GMMetrics_create(GMMetrics* metrics,
             i_global + metrics->num_vector * j_global;
       }
     }
-    GMAssert(index == metrics->num_elts_local);
+    GMAssertAlways(index == metrics->num_elts_local);
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_3 && !Env_all2all(env)) {
   /*==================================================*/
@@ -397,7 +397,7 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
     }
-    GMAssert(index == metrics->num_elts_local);
+    GMAssertAlways(index == metrics->num_elts_local);
   /*==================================================*/
   } else {
   /*==================================================*/
@@ -442,7 +442,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } break;
     /*----------*/
     default:
-      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -450,9 +450,9 @@ void GMMetrics_create(GMMetrics* metrics,
 /*---Metrics pseudo-destructor---*/
 
 void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
-  GMAssert(metrics);
-  GMAssert(env);
-  GMAssert(metrics->data != NULL || !Env_is_proc_active(env));
+  GMAssertAlways(metrics);
+  GMAssertAlways(env);
+  GMAssertAlways(metrics->data != NULL || !Env_is_proc_active(env));
 
   if (!Env_is_proc_active(env)) {
     return;
@@ -497,9 +497,9 @@ static size_t gm_lshift(size_t a, int j) {
 /*---Metrics checksum---*/
 
 GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
-  GMAssert(metrics->data != NULL || !Env_is_proc_active(env));
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(metrics->data != NULL || !Env_is_proc_active(env));
 
   /*---Initializations---*/
 
@@ -511,7 +511,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   enum { num_way_max = GM_NUM_NUM_WAY + 1 };
 
-  GMAssert(Env_num_way(env) <= num_way_max ? "This num_way not supported." : 0);
+  GMAssertAlways(Env_num_way(env) <= num_way_max ? "This num_way not supported." : 0);
 
   /*---Initializations---*/
 

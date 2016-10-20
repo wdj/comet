@@ -24,9 +24,9 @@ extern "C" {
 void gm_compute_metrics_sorenson_2way_cpu(GMMetrics* metrics,
                                           GMVectors* vectors,
                                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
@@ -38,9 +38,9 @@ void gm_compute_metrics_sorenson_2way_cpu(GMMetrics* metrics,
 void gm_compute_metrics_sorenson_2way_gpu(GMMetrics* metrics,
                                           GMVectors* vectors,
                                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
@@ -52,9 +52,9 @@ void gm_compute_metrics_sorenson_2way_gpu(GMMetrics* metrics,
 void gm_compute_metrics_sorenson_2way_ref(GMMetrics* metrics,
                                           GMVectors* vectors,
                                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
@@ -66,9 +66,9 @@ void gm_compute_metrics_sorenson_2way_ref(GMMetrics* metrics,
 void gm_compute_metrics_sorenson_3way_cpu(GMMetrics* metrics,
                                           GMVectors* vectors,
                                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
@@ -80,9 +80,9 @@ void gm_compute_metrics_sorenson_3way_cpu(GMMetrics* metrics,
 void gm_compute_metrics_sorenson_3way_gpu(GMMetrics* metrics,
                                           GMVectors* vectors,
                                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
@@ -94,9 +94,9 @@ void gm_compute_metrics_sorenson_3way_gpu(GMMetrics* metrics,
 void gm_compute_metrics_sorenson_3way_ref(GMMetrics* metrics,
                                           GMVectors* vectors,
                                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 

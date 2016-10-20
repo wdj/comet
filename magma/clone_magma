@@ -20,13 +20,32 @@ if [ "$MATCH" != "" ] ; then
 fi
 
 MAGMA="magma-1.6.2"
-#rm -rf $MAGMA
+#MAGMA="magma-2.1.0"
+
+SOURCE_FILE=${MAGMA}.tar.gz
+if [ ! -e $SOURCE_FILE ] ; then
+  echo "Error: unable to locate source file. $SOURCE_FILE" 1>&2
+  exit 1
+fi
+
+SOURCE_DIR=$MAGMA
+#rm -rf $SOURCE_DIR
+if [ -e $SOURCE_DIR ] ; then
+  echo "Error: source directory already exists; please delete. $SOURCE_DIR" 1>&2
+  exit 1
+fi
+
+TARGET_DIR=$(echo $SOURCE_DIR | sed "s/magma/&_$TAG/")
+if [ -e $TARGET_DIR ] ; then
+  echo "Error: trget directory already exists. $SOURCE_DIR" 1>&2
+  exit 1
+fi
 
 echo "Unpacking ..."
 
-gunzip <${MAGMA}.tar.gz | tar xf -
+gunzip <$SOURCE_FILE | tar xf -
 
-MATCHES=`grep -ri $TAG magma-1.6.2 | wc -l`
+MATCHES=`grep -ri $TAG $SOURCE_DIR | wc -l`
 
 if [ $MATCHES != 0 ] ; then
   echo "Error: tag string already occurs in Magma source." 1>&2
@@ -37,7 +56,7 @@ echo "Changing strings in each file ..."
 
 #for file in `find $MAGMA -name '*' -type f -print` ; do
 echo "  magma"
-for file in `grep -ril 'magma' $MAGMA` ; do
+for file in `grep -ril 'magma' $SOURCE_DIR` ; do
   sed -i "s/[mM][aA][gG][mM][aA]/&_$TAG/g" $file
 done
 
@@ -105,7 +124,7 @@ zlaset_full_kernel
 
 for name in $NAMES ; do
   echo "  $name"
-  for file in `grep -ril "$name" $MAGMA` ; do
+  for file in `grep -ril "$name" $SOURCE_DIR` ; do
     sed -i "s/$name/&_$TAG/g" $file
   done
 done
@@ -127,13 +146,13 @@ spanel_to_q
 
 for name in $NAMES ; do
   echo "  $name"
-  for item in `find $MAGMA -name "${name}*" -print | sort | tac` ; do
+  for item in `find $SOURCE_DIR -name "${name}*" -print | sort | tac` ; do
     mv $item `echo $item | sed -e "s/\(.*\)\(${name}\)\(.*\)/\1\2_$TAG\3/g"`
   done
 done
 
 echo "  magma"
-for item in `find $MAGMA -iname '*magma*' -print | sort | tac` ; do
+for item in `find $SOURCE_DIR -iname '*magma*' -print | sort | tac` ; do
   mv $item `echo $item | sed -e "s/\(.*\)\([mM][aA][gG][mM][aA]\)\(.*\)/\1\2_$TAG\3/g"`
 done
 

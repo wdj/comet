@@ -37,10 +37,10 @@ void GMVectors_create(GMVectors* vectors,
                       int num_field,
                       int num_vector_local,
                       GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(num_field >= 0);
-  GMAssert(num_vector_local >= 0);
-  GMAssert(env);
+  GMAssertAlways(vectors);
+  GMAssertAlways(num_field >= 0);
+  GMAssertAlways(num_vector_local >= 0);
+  GMAssertAlways(env);
 
   *vectors = GMVectors_null();
 
@@ -64,7 +64,7 @@ void GMVectors_create(GMVectors* vectors,
 
   size_t num_vector_bound = vectors->num_vector_local * (size_t)num_block;
   num_vector_bound *= Env_num_proc_repl(env);
-  GMAssert(num_vector_bound == (size_t)(int)num_vector_bound
+  GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
                ? "Vector count too large to store in 32-bit int."
                : 0);
 
@@ -72,8 +72,8 @@ void GMVectors_create(GMVectors* vectors,
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
                            1, MPI_INT, MPI_SUM, Env_mpi_comm_vector(env));
-  GMAssert(mpi_code == MPI_SUCCESS);
-  GMAssert((size_t)(vectors->num_vector) == num_vector_bound);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMAssertAlways((size_t)(vectors->num_vector) == num_vector_bound);
   vectors->num_vector /= Env_num_proc_repl(env);
 
   /*---Set element sizes---*/
@@ -105,7 +105,7 @@ void GMVectors_create(GMVectors* vectors,
     } break;
     /*--------------------*/
     default:
-      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 
   /*---Calculate number of (packed) values to set aside storage for---*/
@@ -120,7 +120,7 @@ void GMVectors_create(GMVectors* vectors,
 
   vectors->data = malloc(vectors->num_packedval_local *
                          (vectors->num_bits_per_packedval / bits_per_byte));
-  GMAssert(vectors->data != NULL);
+  GMAssertAlways(vectors->data != NULL);
 
   /*---Ensure final pad bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
@@ -161,7 +161,7 @@ void GMVectors_create(GMVectors* vectors,
     } break;
     /*--------------------*/
     default:
-      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -169,9 +169,9 @@ void GMVectors_create(GMVectors* vectors,
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
-  GMAssert(vectors->data != NULL || !Env_is_proc_active(env));
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(vectors->data != NULL || !Env_is_proc_active(env));
 
   if (!Env_is_proc_active(env)) {
     return;

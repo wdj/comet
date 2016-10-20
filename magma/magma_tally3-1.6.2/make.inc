@@ -13,5 +13,5 @@ NVOPTS    = -O3 -DADD_ --compiler-options -fno-strict-aliasing -DUNIX
 LDOPTS    = -fPIC -Xlinker -zmuldefs
 LIB       = -lacml -lpthread -lcublas -lm -lcblas -lcudart
 CUDADIR   = $(CRAY_CUDATOOLKIT_DIR)
-LIBDIR    = -L/opt/acml/5.3.1/gfortran64/lib/ -L/sw/xk6/cblas/20110120/cle4.0_gnu4.7.2_acml5.2.0/lib -L$(CUDADIR)/lib64
+LIBDIR    = -L/opt/acml/5.3.1/gfortran64/lib/ -L/sw/xk6/cblas/20110120/cle4.0_gnu4.7.2_acml5.2.0/lib -L$(CUDADIR)/lib64 -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib/
 INC       = -I$(CUDADIR)/include

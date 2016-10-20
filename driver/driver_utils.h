@@ -54,8 +54,8 @@ static void create_args(char* argstring, int* argc, const char** argv) {
 /*---Set the entries of the vectors---*/
 
 static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   if (!Env_is_proc_active(env)) {
     return;
@@ -170,7 +170,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
     } break;
     /*--------------------*/
     default:
-      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -178,8 +178,8 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
 /*---Output the result metrics values---*/
 
 static void output_metrics(GMMetrics* metrics, GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(env != NULL);
 
   if (!Env_is_proc_active(env)) {
     return;
@@ -279,7 +279,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
     } break;
     /*--------------------*/
     default:
-      GMAssert(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 

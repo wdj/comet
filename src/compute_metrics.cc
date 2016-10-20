@@ -29,9 +29,9 @@ extern "C" {
 /*===========================================================================*/
 
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   if (!Env_is_proc_active(env)) {
     return;

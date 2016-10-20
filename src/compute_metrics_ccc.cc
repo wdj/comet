@@ -27,9 +27,9 @@ extern "C" {
 void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, Env_num_proc_field(env) == 1
     ? "num_proc_field>1 for CPU case not supported" : 0);
@@ -113,9 +113,9 @@ void gm_compute_metrics_ccc_2way_cpu(GMMetrics* metrics,
 void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, Env_num_proc_field(env) == 1
                     ? "num_proc_field>1 for CPU case not supported"
@@ -262,9 +262,9 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
 void gm_compute_metrics_ccc_2way_gpu(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 
@@ -277,9 +277,9 @@ void gm_compute_metrics_ccc_2way_gpu(GMMetrics* metrics,
 void gm_compute_metrics_ccc_3way_gpu(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
 

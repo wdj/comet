@@ -28,14 +28,14 @@ extern "C" {
 void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
                                              GMVectors* vectors,
                                              GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   GMInsist(env, Env_num_proc_field(env) == 1
     ? "num_proc_field>1 for CPU case not supported" : 0);
 
-  GMAssert(!Env_all2all(env));
+  GMAssertAlways(!Env_all2all(env));
 
   /*---Compute sums for denominators---*/
 
@@ -85,11 +85,11 @@ void gm_compute_metrics_czekanowski_2way_cpu(GMMetrics* metrics,
 void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
                                              GMVectors* vectors,
                                              GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
-  GMAssert(!Env_all2all(env));
+  GMAssertAlways(!Env_all2all(env));
 
   /*---------------*/
   /*---Denominator---*/
@@ -153,7 +153,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
     mpi_code = MPI_Allreduce(metrics_buf_local->h, metrics_buf.h,
                  numvecl*(size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
                  Env_mpi_comm_field(env));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 
   /*---Combine---*/

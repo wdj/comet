@@ -25,11 +25,11 @@ extern "C" {
 void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
-  GMAssert(!Env_all2all(env));
+  GMAssertAlways(!Env_all2all(env));
 
   /*---Denominator---*/
 
@@ -114,10 +114,10 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
-  GMAssert(Env_all2all(env));
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(Env_all2all(env));
 
   /*---Initializations---*/
 
@@ -321,7 +321,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
              following communication will deadlock/mispair---*/
         continue;
       }
-      GMAssert((j_block == k_block) == (j_i_block_delta == k_i_block_delta));
+      GMAssertAlways((j_block == k_block) == (j_i_block_delta == k_i_block_delta));
 
       if (block_num % num_proc_r == proc_num_r) {
 
@@ -330,8 +330,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
           (num_block) +
           ((num_block-2) * (k_i_block_delta - 1)) +
           (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
-#endif
         GMAssert(block_num_calculated == block_num);
+#endif
 
         /*---Communicate vectors---*/
 

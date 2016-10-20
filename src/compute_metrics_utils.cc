@@ -25,9 +25,9 @@ extern "C" {
 MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   GMEnv* env) {
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
-  GMAssert(proc_num >= 0 && proc_num < Env_num_proc_vector(env));
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(proc_num >= 0 && proc_num < Env_num_proc_vector(env));
 
   const int mpi_tag = 0;
   MPI_Request mpi_request;
@@ -47,7 +47,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   mpi_code =
       MPI_Isend((void*)vectors->data, vectors->num_packedval_local, mpi_type,
                 proc_num, mpi_tag, Env_mpi_comm_vector(env), &mpi_request);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
 }
@@ -57,9 +57,9 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
 MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   GMEnv* env) {
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
-  GMAssert(proc_num >= 0 && proc_num < Env_num_proc_vector(env));
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(proc_num >= 0 && proc_num < Env_num_proc_vector(env));
 
   const int mpi_tag = 0;
   MPI_Request mpi_request;
@@ -79,7 +79,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   mpi_code =
       MPI_Irecv((void*)vectors->data, vectors->num_packedval_local, mpi_type,
                 proc_num, mpi_tag, Env_mpi_comm_vector(env), &mpi_request);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
 }
@@ -87,29 +87,29 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
 /*---------------------------------------------------------------------------*/
 
 void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMAssert(mpi_request != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(mpi_request != NULL);
+  GMAssertAlways(env != NULL);
 
   MPI_Status mpi_status;
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
 /*---------------------------------------------------------------------------*/
 
 void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMAssert(mpi_request != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(mpi_request != NULL);
+  GMAssertAlways(env != NULL);
 
   MPI_Status mpi_status;
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
 /*===========================================================================*/
@@ -119,10 +119,10 @@ void gm_allreduce_metrics(GMMetrics* metrics,
                           GMMirroredPointer* metrics_buf_target,
                           GMMirroredPointer* metrics_buf_source,
                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(metrics_buf_target != NULL);
-  GMAssert(metrics_buf_source != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(metrics_buf_target != NULL);
+  GMAssertAlways(metrics_buf_source != NULL);
+  GMAssertAlways(env != NULL);
 
   const int numvecl = metrics->num_vector_local;
 
@@ -141,7 +141,7 @@ void gm_allreduce_metrics(GMMetrics* metrics,
   mpi_code = MPI_Allreduce(metrics_buf_source->h, metrics_buf_target->h,
                            numvecl * (size_t)numvecl, mpi_type, MPI_SUM,
                            Env_mpi_comm_field(env));
-  GMAssert(mpi_code == MPI_SUCCESS);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
 /*===========================================================================*/
@@ -150,9 +150,9 @@ void gm_allreduce_metrics(GMMetrics* metrics,
 void gm_set_vectors_start(GMVectors* vectors,
                           GMMirroredPointer* vectors_buf,
                           GMEnv* env) {
-  GMAssert(vectors != NULL);
-  GMAssert(vectors_buf != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(vectors_buf != NULL);
+  GMAssertAlways(env != NULL);
 
   gm_set_matrix_start(vectors_buf, vectors->num_packedval_field_local,
                       vectors->num_vector_local, env);
@@ -161,7 +161,7 @@ void gm_set_vectors_start(GMVectors* vectors,
 /*---------------------------------------------------------------------------*/
 
 void gm_set_vectors_wait(GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   gm_set_matrix_wait(env);
 }
@@ -172,9 +172,9 @@ void gm_set_vectors_wait(GMEnv* env) {
 void gm_get_metrics_start(GMMetrics* metrics,
                           GMMirroredPointer* metrics_buf,
                           GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(metrics_buf != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(metrics_buf != NULL);
+  GMAssertAlways(env != NULL);
 
   gm_get_matrix_start(metrics_buf, metrics->num_vector_local,
                       metrics->num_vector_local, env);
@@ -185,7 +185,7 @@ void gm_get_metrics_start(GMMetrics* metrics,
 void gm_get_metrics_wait(GMMetrics* metrics,
                          GMMirroredPointer* metrics_buf,
                          GMEnv* env) {
-  GMAssert(env != NULL);
+  GMAssertAlways(env != NULL);
 
   gm_get_matrix_wait(env);
 
@@ -219,9 +219,9 @@ void gm_get_metrics_wait(GMMetrics* metrics,
 void gm_vectors_to_buf(GMVectors* vectors,
                        GMMirroredPointer* vectors_buf,
                        GMEnv* env) {
-  GMAssert(vectors != NULL);
-  GMAssert(vectors_buf != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(vectors_buf != NULL);
+  GMAssertAlways(env != NULL);
 
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -243,8 +243,9 @@ void gm_vectors_to_buf(GMVectors* vectors,
       /*----------------------------------------*/
       /*---Copy vectors into GPU buffers if needed---*/
       for (i = 0; i < vectors->num_vector_local; ++i) {
+        const size_t nfl = vectors->num_field_local;
         for (f = 0; f < vectors->num_field_local; ++f) {
-          ((GMFloat*)vectors_buf->h)[f + vectors->num_field_local * i] =
+          ((GMFloat*)vectors_buf->h)[f + nfl * i] =
               GMVectors_float_get(vectors, f, i, env);
         }
       }
@@ -254,8 +255,8 @@ void gm_vectors_to_buf(GMVectors* vectors,
       /*----------------------------------------*/
       /*---Copy vectors into GPU buffers if needed---*/
       for (i = 0; i < vectors->num_vector_local; ++i) {
-        const int npfl = vectors->num_packedval_field_local;
-        for (f = 0; f < npfl; ++f) {
+        const size_t npfl = vectors->num_packedval_field_local;
+        for (f = 0; f < vectors->num_packedval_field_local; ++f) {
           ((GMBits2x64*)vectors_buf->h)[f + npfl * i] =
               GMVectors_bits2x64_get(vectors, f, i, env);
         }
@@ -282,12 +283,12 @@ void gm_compute_czekanowski_numerators_2way_start(
     int j_block,
     _Bool do_compute_triang_only,
     GMEnv* env) {
-  GMAssert(vectors_left != NULL);
-  GMAssert(vectors_right != NULL);
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
+  GMAssertAlways(vectors_left != NULL);
+  GMAssertAlways(vectors_right != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_2);
 
   int i = 0;
   int j = 0;
@@ -375,12 +376,12 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
                                           int j_block,
                                           _Bool do_compute_triang_only,
                                           GMEnv* env) {
-  GMAssert(vectors_left != NULL);
-  GMAssert(vectors_right != NULL);
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
+  GMAssertAlways(vectors_left != NULL);
+  GMAssertAlways(vectors_right != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_2);
 
   /*----------------------------------------*/
   if (Env_compute_method(env) == GM_COMPUTE_METHOD_REF) {
@@ -608,12 +609,12 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       int j_block,
                                       _Bool do_compute_triang_only,
                                       GMEnv* env) {
-  GMAssert(vectors_left != NULL);
-  GMAssert(vectors_right != NULL);
-  GMAssert(numerators != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
+  GMAssertAlways(vectors_left != NULL);
+  GMAssertAlways(vectors_right != NULL);
+  GMAssertAlways(numerators != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_2);
 
   switch (Env_metric_type(env)) {
     /*----------------------------------------*/
@@ -658,12 +659,12 @@ void gm_compute_czekanowski_2way_combine(
     int j_block,
     _Bool do_compute_triang_only,
     GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vector_sums_left != NULL);
-  GMAssert(vector_sums_right != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vector_sums_left != NULL);
+  GMAssertAlways(vector_sums_right != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_2);
 
   /*---For CPU case, copy numerator out of metrics struct which is temporarily
        holding numerators.
@@ -716,9 +717,10 @@ void gm_compute_czekanowski_2way_combine(
 
     for (j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      const size_t nvl = metrics->num_vector_local;
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator =
-            ((GMFloat*)metrics_buf->h)[i + metrics->num_vector_local * j];
+            ((GMFloat*)metrics_buf->h)[i + nvl * j];
         /*---Don't use two pointers pointing to the same thing---*/
         const GMFloat denominator =
             are_vector_sums_aliased
@@ -735,9 +737,10 @@ void gm_compute_czekanowski_2way_combine(
 
     for (j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = j;
+      const size_t nvl = metrics->num_vector_local;
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator =
-            ((GMFloat*)metrics_buf->h)[i + metrics->num_vector_local * j];
+            ((GMFloat*)metrics_buf->h)[i + nvl * j];
         /*---Don't use two different pointers pointing to the same thing---*/
         const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
@@ -759,12 +762,12 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
                                  int j_block,
                                  _Bool do_compute_triang_only,
                                  GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vector_sums_left != NULL);
-  GMAssert(vector_sums_right != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vector_sums_left != NULL);
+  GMAssertAlways(vector_sums_right != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_2);
 
   const int numvecl = metrics->num_vector_local;
 
@@ -868,12 +871,12 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                              int j_block,
                              _Bool do_compute_triang_only,
                              GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vector_sums_left != NULL);
-  GMAssert(vector_sums_right != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_2);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vector_sums_left != NULL);
+  GMAssertAlways(vector_sums_right != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_2);
 
   switch (Env_metric_type(env)) {
     /*----------------------------------------*/
@@ -919,22 +922,22 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     int j_block,
     int k_block,
     GMEnv* env) {
-  GMAssert(vectors_i != NULL);
-  GMAssert(vectors_j != NULL);
-  GMAssert(vectors_k != NULL);
-  GMAssert(metrics != NULL);
-  GMAssert(vectors_i_buf != NULL);
-  GMAssert(vectors_j_buf != NULL);
-  GMAssert(vectors_k_buf != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssert(!(Env_proc_num_vector_i(env) == j_block &&
-             Env_proc_num_vector_i(env) != k_block));
-  GMAssert(!(Env_proc_num_vector_i(env) == k_block &&
-             Env_proc_num_vector_i(env) != j_block));
-  GMAssert(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(vectors_i != NULL);
+  GMAssertAlways(vectors_j != NULL);
+  GMAssertAlways(vectors_k != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors_i_buf != NULL);
+  GMAssertAlways(vectors_j_buf != NULL);
+  GMAssertAlways(vectors_k_buf != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssertAlways(!(Env_proc_num_vector_i(env) == j_block &&
+                   Env_proc_num_vector_i(env) != k_block));
+  GMAssertAlways(!(Env_proc_num_vector_i(env) == k_block &&
+                   Env_proc_num_vector_i(env) != j_block));
+  GMAssertAlways(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*---Initializations---*/
 
@@ -1050,7 +1053,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
-    GMAssert(GM_BOOL_FALSE
+    GMAssertAlways(GM_BOOL_FALSE
                  ? "logic error - code branch should never be executed"
                  : 0);
 
@@ -1071,22 +1074,22 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     int j_block,
     int k_block,
     GMEnv* env) {
-  GMAssert(vectors_i != NULL);
-  GMAssert(vectors_j != NULL);
-  GMAssert(vectors_k != NULL);
-  GMAssert(metrics != NULL);
-  GMAssert(vectors_i_buf != NULL);
-  GMAssert(vectors_j_buf != NULL);
-  GMAssert(vectors_k_buf != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssert(!(Env_proc_num_vector_i(env) == j_block &&
-             Env_proc_num_vector_i(env) != k_block));
-  GMAssert(!(Env_proc_num_vector_i(env) == k_block &&
-             Env_proc_num_vector_i(env) != j_block));
-  GMAssert(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(vectors_i != NULL);
+  GMAssertAlways(vectors_j != NULL);
+  GMAssertAlways(vectors_k != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors_i_buf != NULL);
+  GMAssertAlways(vectors_j_buf != NULL);
+  GMAssertAlways(vectors_k_buf != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssertAlways(!(Env_proc_num_vector_i(env) == j_block &&
+                   Env_proc_num_vector_i(env) != k_block));
+  GMAssertAlways(!(Env_proc_num_vector_i(env) == k_block &&
+                   Env_proc_num_vector_i(env) != j_block));
+  GMAssertAlways(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*---Initializations---*/
 
@@ -1500,7 +1503,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
-    GMAssert(GM_BOOL_FALSE
+    GMAssertAlways(GM_BOOL_FALSE
                  ? "logic error - code branch should never be executed"
                  : 0);
 
@@ -1929,7 +1932,7 @@ void gm_compute_numerators_3way_gpu_form_metrics(
     /*----------*/
   } else {
     /*----------*/
-    GMAssert(GM_BOOL_FALSE);
+    GMAssertAlways(GM_BOOL_FALSE);
     /*----------*/
   } /*---Env_metric_type(env)---*/
   /*----------*/
@@ -1948,22 +1951,22 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
                                           int j_block,
                                           int k_block,
                                           GMEnv* env) {
-  GMAssert(vectors_i != NULL);
-  GMAssert(vectors_j != NULL);
-  GMAssert(vectors_k != NULL);
-  GMAssert(metrics != NULL);
-  GMAssert(vectors_i_buf != NULL);
-  GMAssert(vectors_j_buf != NULL);
-  GMAssert(vectors_k_buf != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssert(!(Env_proc_num_vector_i(env) == j_block &&
-             Env_proc_num_vector_i(env) != k_block));
-  GMAssert(!(Env_proc_num_vector_i(env) == k_block &&
-             Env_proc_num_vector_i(env) != j_block));
-  GMAssert(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(vectors_i != NULL);
+  GMAssertAlways(vectors_j != NULL);
+  GMAssertAlways(vectors_k != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors_i_buf != NULL);
+  GMAssertAlways(vectors_j_buf != NULL);
+  GMAssertAlways(vectors_k_buf != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssertAlways(!(Env_proc_num_vector_i(env) == j_block &&
+                   Env_proc_num_vector_i(env) != k_block));
+  GMAssertAlways(!(Env_proc_num_vector_i(env) == k_block &&
+                   Env_proc_num_vector_i(env) != j_block));
+  GMAssertAlways(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*---Initializations---*/
 
@@ -2037,7 +2040,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
       mpi_code = MPI_Allreduce(matM_ij_buf_local->h, matM_ij_buf->h,
                                numvecl * (size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
                                Env_mpi_comm_field(env));
-      GMAssert(mpi_code == MPI_SUCCESS);
+      GMAssertAlways(mpi_code == MPI_SUCCESS);
     }
     // TODO - outline into gm_allreduce_metrics
   }
@@ -2075,7 +2078,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
       mpi_code = MPI_Allreduce(matM_jk_buf_local->h, matM_jk_buf->h,
                                numvecl * (size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
                                Env_mpi_comm_field(env));
-      GMAssert(mpi_code == MPI_SUCCESS);
+      GMAssertAlways(mpi_code == MPI_SUCCESS);
     }
     // TODO - outline into gm_allreduce_metrics
   }
@@ -2117,7 +2120,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
       mpi_code = MPI_Allreduce(matM_kik_buf_local->h, matM_kik_buf->h,
                                numvecl * (size_t)numvecl, GM_MPI_FLOAT, MPI_SUM,
                                Env_mpi_comm_field(env));
-      GMAssert(mpi_code == MPI_SUCCESS);
+      GMAssertAlways(mpi_code == MPI_SUCCESS);
     }
     // TODO - outline into gm_allreduce_metrics
   } /*---is_part3---*/
@@ -2350,7 +2353,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
                                  numvecl * (size_t)numvecl * multiplier,
                                  GM_MPI_FLOAT, MPI_SUM,
                                  Env_mpi_comm_field(env));
-        GMAssert(mpi_code == MPI_SUCCESS);
+        GMAssertAlways(mpi_code == MPI_SUCCESS);
       }
       // TODO - outline into gm_allreduce_metrics
     } /*---if do_compute---*/
@@ -2411,21 +2414,21 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
                                       int j_block,
                                       int k_block,
                                       GMEnv* env) {
-  GMAssert(vectors_i != NULL);
-  GMAssert(vectors_j != NULL);
-  GMAssert(vectors_k != NULL);
-  GMAssert(metrics != NULL);
-  GMAssert(vectors_i_buf != NULL);
-  GMAssert(vectors_j_buf != NULL);
-  GMAssert(vectors_k_buf != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssert(!(Env_proc_num_vector_i(env) == j_block &&
-             Env_proc_num_vector_i(env) != k_block));
-  GMAssert(!(Env_proc_num_vector_i(env) == k_block &&
-             Env_proc_num_vector_i(env) != j_block));
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(vectors_i != NULL);
+  GMAssertAlways(vectors_j != NULL);
+  GMAssertAlways(vectors_k != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors_i_buf != NULL);
+  GMAssertAlways(vectors_j_buf != NULL);
+  GMAssertAlways(vectors_k_buf != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssertAlways(!(Env_proc_num_vector_i(env) == j_block &&
+                   Env_proc_num_vector_i(env) != k_block));
+  GMAssertAlways(!(Env_proc_num_vector_i(env) == k_block &&
+                   Env_proc_num_vector_i(env) != j_block));
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*----------------------------------------*/
   if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
@@ -2478,16 +2481,16 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
                                          int j_block,
                                          int k_block,
                                          GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vector_sums_i != NULL);
-  GMAssert(vector_sums_j != NULL);
-  GMAssert(vector_sums_k != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssert(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
-  GMAssert(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vector_sums_i != NULL);
+  GMAssertAlways(vector_sums_j != NULL);
+  GMAssertAlways(vector_sums_k != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
+  GMAssertAlways(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
 
   const int i_block = Env_proc_num_vector_i(env);
 
@@ -2624,16 +2627,16 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
                                  int j_block,
                                  int k_block,
                                  GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vector_sums_i != NULL);
-  GMAssert(vector_sums_j != NULL);
-  GMAssert(vector_sums_k != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssert(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
-  GMAssert(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vector_sums_i != NULL);
+  GMAssertAlways(vector_sums_j != NULL);
+  GMAssertAlways(vector_sums_k != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
+  GMAssertAlways(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
 
   /*---Initializations---*/
 
@@ -2743,16 +2746,16 @@ void gm_compute_3way_combine(GMMetrics* metrics,
                              int j_block,
                              int k_block,
                              GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vector_sums_i != NULL);
-  GMAssert(vector_sums_j != NULL);
-  GMAssert(vector_sums_k != NULL);
-  GMAssert(env != NULL);
-  GMAssert(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssert(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssert(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
-  GMAssert(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
-  GMAssert(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vector_sums_i != NULL);
+  GMAssertAlways(vector_sums_j != NULL);
+  GMAssertAlways(vector_sums_k != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
+  GMAssertAlways(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
+  GMAssertAlways(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
+  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
 
   switch (Env_metric_type(env)) {
     /*----------------------------------------*/

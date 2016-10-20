@@ -97,7 +97,7 @@
     #define mul(A, B)        cuCmul(A, B)
     #define fma(A, B, C) C = cuCfma(A, B, C)
     //---BEGIN ADDED GENOMICS_METRICS
-    #define fmin(A, B, C) C = cuCfma(A, B, C)
+    #define myfmin(A, B, C) C = cuCfma(A, B, C)
     //---END ADDED GENOMICS_METRICS
     #define make_FloatingPoint(x, y) make_cuDoubleComplex(x, y);
   #else
@@ -106,7 +106,7 @@
     #define mul(A, B)        cuCmulf(A, B)
     #define fma(A, B, C) C = cuCfmaf(A, B, C)
     //---BEGIN ADDED GENOMICS_METRICS
-    #define fmin(A, B, C) C = cuCfmaf(A, B, C)
+    #define myfmin(A, B, C) C = cuCfmaf(A, B, C)
     //---END ADDED GENOMICS_METRICS
     #define make_FloatingPoint(x, y) make_cuFloatComplex(x, y);
   #endif
@@ -115,11 +115,14 @@
     #define add(A, B)         (A+B)
     #define mul(A, B)         (A*B)
     #define fma(A, B, C) C += (A*B)
+//#define myfmin(A, B, C) fma(A, B, C)
     //---BEGIN ADDED GENOMICS_METRICS
     #ifdef DOUBLE
-      #define fmin(A, B, C) C += ( (A) < (B) ? (A) : (B) )
+      #define myfmin(A, B, C) C += fmin((A), (B))
+      //#define myfmin(A, B, C) C += ( (A) < (B) ? (A) : (B) )
     #else
-      #define fmin(A, B, C) C += fminf((A), (B))
+      #define myfmin(A, B, C) C += fminf((A), (B))
+      //#define myfmin(A, B, C) C += ( (A) < (B) ? (A) : (B) )
     #endif
     //---END ADDED GENOMICS_METRICS
     #define make_FloatingPoint(x, y) (x)

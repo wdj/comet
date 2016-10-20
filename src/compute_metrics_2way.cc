@@ -25,11 +25,11 @@ extern "C" {
 void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
-  GMAssert(!Env_all2all(env));
+  GMAssertAlways(!Env_all2all(env));
 
   /*---------------*/
   /*---Denominator---*/
@@ -58,11 +58,13 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   GMMirroredPointer metrics_buf =
       gm_malloc_magma(numvecl * (size_t)numvecl, env);
 
-  GMMirroredPointer metrics_buf_tmp =
-      gm_malloc_magma(numvecl * (size_t)numvecl, env);
+  GMMirroredPointer metrics_buf_tmp;
+  if (Env_num_proc_field(env) > 1) {
+    metrics_buf_tmp = gm_malloc_magma(numvecl * (size_t)numvecl, env);
+  }
 
   GMMirroredPointer* metrics_buf_local =
-      Env_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
+      Env_num_proc_field(env) > 1 ? &metrics_buf_tmp : &metrics_buf;
 
   /*---Copy in vectors---*/
 
@@ -107,7 +109,9 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   gm_free_magma(&vectors_buf, env);
   gm_free_magma(&metrics_buf, env);
-  gm_free_magma(&metrics_buf_tmp, env);
+  if (Env_num_proc_field(env) > 1) {
+    gm_free_magma(&metrics_buf_tmp, env);
+  }
 
   gm_magma_finalize(env);
 }
@@ -117,11 +121,11 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
-  GMAssert(Env_all2all(env));
+  GMAssertAlways(Env_all2all(env));
 
   /*---Initializations---*/
 

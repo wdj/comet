@@ -34,9 +34,9 @@ GMVectorSums GMVectorSums_null(void) {
 void GMVectorSums_create(GMVectorSums* vector_sums,
                          GMVectors* vectors,
                          GMEnv* env) {
-  GMAssert(vector_sums);
-  GMAssert(vectors);
-  GMAssert(env);
+  GMAssertAlways(vector_sums);
+  GMAssertAlways(vectors);
+  GMAssertAlways(env);
 
   switch (Env_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
@@ -65,8 +65,8 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
 /*---Pseudo-destructor---*/
 
 void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
-  GMAssert(vector_sums);
-  GMAssert(env);
+  GMAssertAlways(vector_sums);
+  GMAssertAlways(env);
 
   switch (Env_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
@@ -74,7 +74,7 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
 
     } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      GMAssert(vector_sums->data != NULL);
+      GMAssertAlways(vector_sums->data != NULL);
       free(vector_sums->data);
       vector_sums->data = NULL;
       if (vector_sums->data_tmp != NULL) {
@@ -83,7 +83,7 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
       }
     } break;
     case GM_METRIC_TYPE_CCC: {
-      GMAssert(vector_sums->data != NULL);
+      GMAssertAlways(vector_sums->data != NULL);
       free(vector_sums->data);
       vector_sums->data = NULL;
       if (vector_sums->data_tmp != NULL) {
@@ -104,10 +104,10 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
                                   GMFloat* __restrict__ vector_sums,
                                   GMFloat* __restrict__ vector_sums_tmp,
                                   GMEnv* env) {
-  GMAssert(vector_sums != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(vector_sums_tmp != NULL || Env_num_proc_field(env) == 1);
-  GMAssert(env != NULL);
+  GMAssertAlways(vector_sums != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(vector_sums_tmp != NULL || Env_num_proc_field(env) == 1);
+  GMAssertAlways(env != NULL);
 
   const int num_proc = Env_num_proc_field(env);
   GMFloat* __restrict__ vector_sums_local =
@@ -133,7 +133,7 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
     mpi_code =
         MPI_Allreduce(vector_sums_local, vector_sums, vectors->num_vector_local,
                       GM_MPI_FLOAT, MPI_SUM, Env_mpi_comm_field(env));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 }
 
@@ -143,10 +143,10 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
                                   GMFloat* __restrict__ vector_sums,
                                   GMFloat* __restrict__ vector_sums_tmp,
                                   GMEnv* env) {
-  GMAssert(vector_sums != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(vector_sums_tmp != NULL || Env_num_proc_field(env) == 1);
-  GMAssert(env != NULL);
+  GMAssertAlways(vector_sums != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(vector_sums_tmp != NULL || Env_num_proc_field(env) == 1);
+  GMAssertAlways(env != NULL);
 
   const int num_proc = Env_num_proc_field(env);
   GMFloat* __restrict__ vector_sums_local =
@@ -195,7 +195,7 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
     mpi_code =
         MPI_Allreduce(vector_sums_local, vector_sums, vectors->num_vector_local,
                       GM_MPI_FLOAT, MPI_SUM, Env_mpi_comm_field(env));
-    GMAssert(mpi_code == MPI_SUCCESS);
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 }
 
@@ -204,9 +204,9 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
 void GMVectorSums_compute(GMVectorSums* vector_sums,
                           GMVectors* vectors,
                           GMEnv* env) {
-  GMAssert(vector_sums != NULL);
-  GMAssert(vectors != NULL);
-  GMAssert(env != NULL);
+  GMAssertAlways(vector_sums != NULL);
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(env != NULL);
 
   switch (Env_metric_type(env)) {
     /*----------------------------------------*/
