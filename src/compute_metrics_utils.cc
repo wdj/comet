@@ -354,10 +354,10 @@ void gm_compute_czekanowski_numerators_2way_start(
     /* .63 / 1.56 */
     gm_magma_gemm_start(vectors_left->num_vector_local,
                         vectors_left->num_vector_local,
-                        vectors_left->num_field_local, vectors_left_buf->d,
-                        vectors_left->num_field_local, vectors_right_buf->d,
-                        vectors_left->num_field_local, metrics_buf->d,
-                        vectors_left->num_vector_local, env);
+                        vectors_left->num_field_local,
+                        vectors_left_buf->d, vectors_left->num_field_local,
+                        vectors_right_buf->d, vectors_left->num_field_local,
+                        metrics_buf->d, vectors_left->num_vector_local, env);
 
     /*----------------------------------------*/
   } /*---if---*/
@@ -587,10 +587,10 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
 
     gm_magma_gemm_start(
         vectors_left->num_vector_local, vectors_left->num_vector_local,
-        vectors_left->num_packedval_field_local, vectors_left_buf->d,
-        vectors_left->num_packedval_field_local, vectors_right_buf->d,
-        vectors_left->num_packedval_field_local, metrics_buf->d,
-        vectors_left->num_vector_local, env);
+        vectors_left->num_packedval_field_local,
+        vectors_left_buf->d, vectors_left->num_packedval_field_local,
+        vectors_right_buf->d, vectors_left->num_packedval_field_local,
+        metrics_buf->d, vectors_left->num_vector_local, env);
 
     /*----------------------------------------*/
   } /*---if---*/
@@ -786,7 +786,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
           const GMTally2x2 value = ((
               GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
-#ifdef GM_ASSERT
+#ifdef GM_ASSERTIONS_ON
           const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
           const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
           const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
@@ -810,7 +810,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
           const GMTally2x2 value = ((
               GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
-#ifdef GM_ASSERT
+#ifdef GM_ASSERTIONS_ON
           const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
           const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
           const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
@@ -2023,8 +2023,9 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
     /*---Perform pseudo matrix-matrix min product for M = X^T PROD X---*/
 
-    gm_magma_gemm_start(numvecl, numvecl, numpfieldl, vectors_i_buf->d,
-                        numpfieldl, vectors_j_buf->d, numpfieldl,
+    gm_magma_gemm_start(numvecl, numvecl, numpfieldl,
+                        vectors_i_buf->d, numpfieldl,
+                        vectors_j_buf->d, numpfieldl,
                         matM_ij_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
@@ -2063,8 +2064,9 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
     gm_magma_set_matrix_zero_start(matM_jk_buf_local, numvecl, numvecl, env);
 
-    gm_magma_gemm_start(numvecl, numvecl, numpfieldl, vectors_j_buf->d,
-                        numpfieldl, vectors_k_buf->d, numpfieldl,
+    gm_magma_gemm_start(numvecl, numvecl, numpfieldl,
+                        vectors_j_buf->d, numpfieldl,
+                        vectors_k_buf->d, numpfieldl,
                         matM_jk_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
@@ -2105,8 +2107,9 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
     gm_magma_set_matrix_zero_start(matM_kik_buf_local, numvecl, numvecl, env);
 
-    gm_magma_gemm_start(numvecl, numvecl, numpfieldl, vectors_k_buf->d,
-                        numpfieldl, vectors_i_buf->d, numpfieldl,
+    gm_magma_gemm_start(numvecl, numvecl, numpfieldl,
+                        vectors_k_buf->d, numpfieldl,
+                        vectors_i_buf->d, numpfieldl,
                         matM_kik_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
@@ -2327,8 +2330,9 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
       /*---Initialize result matrix to zero (apparently magma requires)---*/
       gm_magma_set_matrix_zero_start(matB_buf_local, numvecl, I_max, env);
       /*---Perform pseudo mat X mat matB = matV^T PROD X - START---*/
-      gm_magma_gemm_start(I_max, numvecl, numpfieldl, matV_buf[index_01]->d,
-                          numpfieldl, vectors_K_buf->d, numpfieldl,
+      gm_magma_gemm_start(I_max, numvecl, numpfieldl,
+                          matV_buf[index_01]->d, numpfieldl,
+                          vectors_K_buf->d, numpfieldl,
                           matB_buf_local->d, I_max, env);
     } /*---if do_compute---*/
 

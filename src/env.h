@@ -584,6 +584,12 @@ static int gm_min_i(const int i, const int j) {
 
 /*---------------------------------------------------------------------------*/
 
+static size_t gm_min_i8(const size_t i, const size_t j) {
+  return i < j ? i : j;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static int gm_max_i(const int i, const int j) {
   return i > j ? i : j;
 }

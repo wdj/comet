@@ -511,22 +511,6 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
 
   GMAssertAlways(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
-  const size_t elt_size =
-    Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ? sizeof(GMFloat) :
-    (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-     Env_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
-    (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-     Env_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
-  GMAssertAlways(elt_size != 0);
-
-  const size_t align_factor = 128 / elt_size;
-
-  const size_t max_elts = (1 << 27) - 512;
-
-  GMAssertAlways(ldda==k);
-  GMAssertAlways(lddb==k);
-  GMAssertAlways(lddc==m);
-
   if (m==0 || n==0 || k==0) {
     return;
   }
@@ -535,28 +519,45 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
   const size_t cols_A = m;
   const size_t cols_B = n;
 
+  const size_t elt_size =
+    Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ? sizeof(GMFloat) :
+    (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
+     Env_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
+    (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
+     Env_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
+  GMAssertAlways(elt_size != 0);
+
+//#ifdef GM_ASSERTIONS_ON
+#if 0
+  const size_t max_elts = rows;
+  size_t max_cols_per_block = max_elts / rows;
+#else
+  const size_t align_factor = 128 / elt_size;
+  const size_t max_elts = (1 << 27) - 512;
   size_t max_cols_per_block = max_elts / rows;
   max_cols_per_block = (max_cols_per_block / align_factor) * align_factor;
+#endif
+
+  //GMAssertAlways(ldda==k);
+  //GMAssertAlways(lddb==k);
+  //GMAssertAlways(lddc==m);
+
   GMAssertAlways(max_cols_per_block != 0);
 
-  const size_t cols_per_block_A =
-    cols_A < max_cols_per_block ? cols_A : max_cols_per_block;
-  const size_t cols_per_block_B =
-    cols_B < max_cols_per_block ? cols_B : max_cols_per_block;
+  const size_t cols_per_block_A = gm_min_i8(cols_A, max_cols_per_block);
+  const size_t cols_per_block_B = gm_min_i8(cols_B, max_cols_per_block);
 
   size_t col_A_base = 0;
   for (col_A_base=0; col_A_base<cols_A; col_A_base+=cols_per_block_A) {
     const size_t cols_A_remaining = cols_A - col_A_base;
-    const size_t cols_A_this = cols_A_remaining < cols_per_block_A ?
-                               cols_A_remaining : cols_per_block_A;
+    const size_t cols_A_this = gm_min_i8(cols_A_remaining, cols_per_block_A);
 
     void* dA_this = (char*)dA + ldda*col_A_base*elt_size;
 
     size_t col_B_base = 0;
     for (col_B_base=0; col_B_base<cols_B; col_B_base+=cols_per_block_B) {
       const size_t cols_B_remaining = cols_B - col_B_base;
-      const size_t cols_B_this = cols_B_remaining < cols_per_block_B ?
-                                 cols_B_remaining : cols_per_block_B;
+      const size_t cols_B_this = gm_min_i8(cols_B_remaining, cols_per_block_B);
 
       void* dB_this = (char*)dB + lddb*col_B_base*elt_size;
 
