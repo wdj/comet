@@ -523,38 +523,40 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
 
   const size_t max_elts = (1 << 27) - 512;
 
-  GMAssertAlways(m==n);
   GMAssertAlways(ldda==k);
   GMAssertAlways(lddb==k);
-  GMAssertAlways(lddc==n);
+  GMAssertAlways(lddc==m);
 
-  if (n==0 || k==0) {
+  if (m==0 || n==0 || k==0) {
     return;
   }
 
   const size_t rows = k;
-  const size_t cols = n;
+  const size_t cols_A = m;
+  const size_t cols_B = n;
 
   size_t max_cols_per_block = max_elts / rows;
   max_cols_per_block = (max_cols_per_block / align_factor) * align_factor;
   GMAssertAlways(max_cols_per_block != 0);
 
-  const size_t cols_per_block =
-    cols < max_cols_per_block ? cols : max_cols_per_block;
+  const size_t cols_per_block_A =
+    cols_A < max_cols_per_block ? cols_A : max_cols_per_block;
+  const size_t cols_per_block_B =
+    cols_B < max_cols_per_block ? cols_B : max_cols_per_block;
 
   size_t col_A_base = 0;
-  for (col_A_base=0; col_A_base<cols; col_A_base+=cols_per_block) {
-    const size_t cols_A_remaining = cols - col_A_base;
-    const size_t cols_A_this =
-      cols_A_remaining < cols_per_block ? cols_A_remaining : cols_per_block;
+  for (col_A_base=0; col_A_base<cols_A; col_A_base+=cols_per_block_A) {
+    const size_t cols_A_remaining = cols_A - col_A_base;
+    const size_t cols_A_this = cols_A_remaining < cols_per_block_A ?
+                               cols_A_remaining : cols_per_block_A;
 
     void* dA_this = (char*)dA + ldda*col_A_base*elt_size;
 
     size_t col_B_base = 0;
-    for (col_B_base=0; col_B_base<cols; col_B_base+=cols_per_block) {
-      const size_t cols_B_remaining = cols - col_B_base;
-      const size_t cols_B_this =
-        cols_B_remaining < cols_per_block ? cols_B_remaining : cols_per_block;
+    for (col_B_base=0; col_B_base<cols_B; col_B_base+=cols_per_block_B) {
+      const size_t cols_B_remaining = cols_B - col_B_base;
+      const size_t cols_B_this = cols_B_remaining < cols_per_block_B ?
+                                 cols_B_remaining : cols_per_block_B;
 
       void* dB_this = (char*)dB + lddb*col_B_base*elt_size;
 
