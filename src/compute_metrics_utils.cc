@@ -2229,9 +2229,11 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 //  const int fill_step = 0 - extra_step;
 //  const int drain_step = num_step + extra_step;
 
+  MPI_Request mpi_requests[2];
+
   int step_num = 0;
 
-  for (step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num) {
+  for (step_num = 0-extra_step; step_num < num_step+extra_step*2; ++step_num) {
 
     //==========
 
@@ -2251,8 +2253,8 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
     //==========
 
     const int step_num_prev = step_num - 1;
-    const int step_2way_prev =
-      (step_num_prev + 2*num_step_2way) % num_step_2way;
+    //const int step_2way_prev =
+    //  (step_num_prev + 2*num_step_2way) % num_step_2way;
     const int J_prev = J_min +
       (step_num_prev + 2*num_step_2way) / num_step_2way - 2;
     const int I_min_prev = 0;
@@ -2267,6 +2269,26 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
     const int index_01_prev = (step_num_prev + 2) % 2;
     GMMirroredPointer* matB_buf_local_prev = Env_num_proc_field(env) == 1 ?
       matB_buf[index_01_prev] : mat_buf_tmp[index_01_prev];
+
+    //==========
+
+    const int step_num_prevprev = step_num - 2;
+    const int step_2way_prevprev =
+      (step_num_prevprev + 3*num_step_2way) % num_step_2way;
+    const int J_prevprev = J_min +
+      (step_num_prevprev + 3*num_step_2way) / num_step_2way - 3;
+    const int I_min_prevprev = 0;
+    const int I_max_prevprev = is_part1 ? J_prevprev : numvecl;
+    const int K_min_prevprev = is_part3 ? 0 : J_prevprev + 1;
+    const int K_max_prevprev = numvecl;
+    const _Bool empty_prevprev = I_min_prevprev >= I_max_prevprev ||
+                                 K_min_prevprev >= K_max_prevprev;
+    const _Bool is_compute_step_prevprev = step_num_prevprev >= 0 &&
+                                           step_num_prevprev < num_step;
+    const _Bool do_compute_prevprev = is_compute_step_prevprev && !empty_prevprev;
+    const int index_01_prevprev = (step_num_prevprev + 4) % 2;
+    //GMMirroredPointer* matB_buf_local_prevprev = Env_num_proc_field(env) == 1 ?
+    //  matB_buf[index_01_prevprev] : mat_buf_tmp[index_01_prevprev];
 
     //==========
 
@@ -2345,6 +2367,18 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
     //==========
 
+    if (do_compute_prevprev) {
+      if (Env_num_proc_field(env) > 1) {
+        MPI_Status mpi_status;
+        int mpi_code = 0;
+        mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+        mpi_code = MPI_Wait(&(mpi_requests[index_01_prevprev]), &mpi_status);
+        GMAssertAlways(mpi_code == MPI_SUCCESS);
+      }
+    }
+
+    //==========
+
     if (do_compute_prev) {
       // TODO - outline into gm_allreduce_metrics
       if (Env_num_proc_field(env) > 1) {
@@ -2352,11 +2386,12 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
         int multiplier = Env_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
         int mpi_code = 0;
         mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
-        mpi_code = MPI_Allreduce(matB_buf_local_prev->h,
-                                 matB_buf[index_01_prev]->h,
-                                 numvecl * (size_t)numvecl * multiplier,
-                                 GM_MPI_FLOAT, MPI_SUM,
-                                 Env_mpi_comm_field(env));
+        mpi_code = MPI_Iallreduce(matB_buf_local_prev->h,
+                                  matB_buf[index_01_prev]->h,
+                                  numvecl * (size_t)numvecl * multiplier,
+                                  GM_MPI_FLOAT, MPI_SUM,
+                                  Env_mpi_comm_field(env),
+                                  &(mpi_requests[index_01_prev]));
         GMAssertAlways(mpi_code == MPI_SUCCESS);
       }
       // TODO - outline into gm_allreduce_metrics
@@ -2364,18 +2399,20 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
     //==========
 
-    if (do_compute_prev) {
+    //---NOTE: matB_buf[index_01_prevprev]->d is being updated now but matB_buf[index_01_prevprev]->h is ok.
+
+    if (do_compute_prevprev) {
       /*---Compute numerators using ijk piece and (if needed) 2-way pieces---*/
       gm_compute_numerators_3way_gpu_form_metrics(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
-          matB_buf[index_01_prev],
+          matB_buf[index_01_prevprev],
           metrics, numvecl,
-          J_prev,
-          step_2way_prev,
-          I_min_prev,
-          I_max_prev,
-          K_min_prev,
-          K_max_prev,
+          J_prevprev,
+          step_2way_prevprev,
+          I_min_prevprev,
+          I_max_prevprev,
+          K_min_prevprev,
+          K_max_prevprev,
           j_block, k_block, sax0, sax1, is_part3,
           env);
     } /*---if do_compute---*/
