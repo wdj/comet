@@ -123,17 +123,20 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   gm_magma_initialize(env);
 
-  const int num_block = Env_num_block_vector(env);
-
   const int numvecl = metrics->num_vector_local;
   const int numpfieldl = vectors->num_packedval_field_local;
 
-  const int i_block = Env_proc_num_vector_i(env);
-
   const int data_type = Env_data_type_vectors(env);
+
+  const int num_block = Env_num_block_vector(env);
+
+  const int i_block = Env_proc_num_vector_i(env);
 
   const int proc_num_r = Env_proc_num_repl(env);
   const int num_proc_r = Env_num_proc_repl(env);
+
+  /*---Create flattened index within space of procs assigned to
+       vectors (non-field procs) - i.e., vector_i (=block) X repl ---*/
 
   const int proc_num_ir = proc_num_r + num_proc_r * i_block;
   const int num_proc_ir = num_block * num_proc_r;
@@ -178,7 +181,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectorSums vector_sums_k = GMVectorSums_null();
   GMVectorSums_create(&vector_sums_k, vectors, env);
 
-  int block_num = 0;
+  int block_counter = 0;
 
   /*------------------------*/
   /*---Part 1 Computation: tetrahedron---*/
@@ -197,10 +200,17 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   gm_set_vectors_start(vectors_i, &vectors_i_buf, env);
   gm_set_vectors_wait(env);
 
-  if (block_num % num_proc_r == proc_num_r) {
+  //NEW int section_num = 0;
+  //NEW for (section_num=0; section_num<6; ++section_num) {
+  //NEW for (section_num=0; section_num<1; ++section_num) {
+
+// start loop 0 to 6
+
+  if (block_counter % num_proc_r == proc_num_r) {
 
     /*---Compute numerators---*/
 
+// pass in section number
     gm_compute_numerators_3way_start(vectors_i, vectors_i, vectors_i, metrics,
                                      &vectors_i_buf, &vectors_i_buf,
                                      &vectors_i_buf, i_block, i_block, env);
@@ -208,12 +218,17 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
     /*---Combine results---*/
 
+// pass in section number
     gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_i,
                             &vector_sums_i, i_block, i_block, env);
 
-  } /*---if (block_num ...)---*/
+  } /*---if (block_counter ...)---*/
 
-  block_num++;
+  block_counter++;
+
+  //NEW } /*---section_num---*/
+
+
 
   /*------------------------*/
   /*---Part 2 Computation: triangular prisms---*/
@@ -229,7 +244,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
     const int proc_recv_j = gm_mod_i(proc_num_ir + j_i_block_delta*num_proc_r,
                                      num_proc_ir);
 
-    if (block_num % num_proc_r == proc_num_r) {
+    if (block_counter % num_proc_r == proc_num_r) {
 
       /*---Communicate vectors---*/
 
@@ -266,9 +281,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_j,
                               &vector_sums_j, j_block, j_block, env);
 
-    } /*---if (block_num ...)---*/
+    } /*---if (block_counter ...)---*/
 
-    block_num++;
+    block_counter++;
   } /*---j_i_block_delta---*/
 
   /*------------------------*/
@@ -323,14 +338,14 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       }
       GMAssertAlways((j_block == k_block) == (j_i_block_delta == k_i_block_delta));
 
-      if (block_num % num_proc_r == proc_num_r) {
+      if (block_counter % num_proc_r == proc_num_r) {
 
 #ifdef GM_ASSERTIONS_ON
-        const int block_num_calculated =
+        const int block_counter_calculated =
           (num_block) +
           ((num_block-2) * (k_i_block_delta - 1)) +
           (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
-        GMAssert(block_num_calculated == block_num);
+        GMAssert(block_counter_calculated == block_counter);
 #endif
 
         /*---Communicate vectors---*/
@@ -369,9 +384,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
         gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_j,
                                 &vector_sums_k, j_block, k_block, env);
 
-      } /*---if (block_num ...)---*/
+      } /*---if (block_counter ...)---*/
 
-      block_num++;
+      block_counter++;
     } /*---k_i_block_delta---*/
   }   /*---j_i_block_delta---*/
 

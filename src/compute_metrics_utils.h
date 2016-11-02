@@ -131,6 +131,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
+    //int section_num_requested,
     GMEnv* env);
 
 void gm_compute_ccc_numerators_3way_nongpu_start(
@@ -143,55 +144,61 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
+    //int section_num_requested,
     GMEnv* env);
 
 void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
-                                          GMVectors* vectors_j,
-                                          GMVectors* vectors_k,
-                                          GMMetrics* numerators,
-                                          GMMirroredPointer* vectors_i_buf,
-                                          GMMirroredPointer* vectors_j_buf,
-                                          GMMirroredPointer* vectors_k_buf,
-                                          int j_proc,
-                                          int k_proc,
-                                          GMEnv* env);
+    GMVectors* vectors_j,
+    GMVectors* vectors_k,
+    GMMetrics* numerators,
+    GMMirroredPointer* vectors_i_buf,
+    GMMirroredPointer* vectors_j_buf,
+    GMMirroredPointer* vectors_k_buf,
+    int j_proc,
+    int k_proc,
+    //int section_num_requested,
+    GMEnv* env);
 
 void gm_compute_numerators_3way_start(GMVectors* vectors_i,
-                                      GMVectors* vectors_j,
-                                      GMVectors* vectors_k,
-                                      GMMetrics* numerators,
-                                      GMMirroredPointer* vectors_i_buf,
-                                      GMMirroredPointer* vectors_j_buf,
-                                      GMMirroredPointer* vectors_k_buf,
-                                      int j_proc,
-                                      int k_proc,
-                                      GMEnv* env);
+    GMVectors* vectors_j,
+    GMVectors* vectors_k,
+    GMMetrics* numerators,
+    GMMirroredPointer* vectors_i_buf,
+    GMMirroredPointer* vectors_j_buf,
+    GMMirroredPointer* vectors_k_buf,
+    int j_proc,
+    int k_proc,
+    //int section_num_requested,
+    GMEnv* env);
 
 /*----------*/
 
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
-                                         GMFloat* __restrict__ vector_sums_i,
-                                         GMFloat* __restrict__ vector_sums_j,
-                                         GMFloat* __restrict__ vector_sums_k,
-                                         int j_proc,
-                                         int k_proc,
-                                         GMEnv* env);
+    GMFloat* __restrict__ vector_sums_i,
+    GMFloat* __restrict__ vector_sums_j,
+    GMFloat* __restrict__ vector_sums_k,
+    int j_proc,
+    int k_proc,
+    //int section_num_requested,
+    GMEnv* env);
 
 void gm_compute_ccc_3way_combine(GMMetrics* metrics,
-                                 GMFloat* __restrict__ vector_sums_i,
-                                 GMFloat* __restrict__ vector_sums_j,
-                                 GMFloat* __restrict__ vector_sums_k,
-                                 int j_proc,
-                                 int k_proc,
-                                 GMEnv* env);
+    GMFloat* __restrict__ vector_sums_i,
+    GMFloat* __restrict__ vector_sums_j,
+    GMFloat* __restrict__ vector_sums_k,
+    int j_proc,
+    int k_proc,
+    //int section_num_requested,
+    GMEnv* env);
 
 void gm_compute_3way_combine(GMMetrics* metrics,
-                             GMVectorSums* vector_sums_i,
-                             GMVectorSums* vector_sums_j,
-                             GMVectorSums* vector_sums_k,
-                             int j_proc,
-                             int k_proc,
-                             GMEnv* env);
+    GMVectorSums* vector_sums_i,
+    GMVectorSums* vector_sums_j,
+    GMVectorSums* vector_sums_k,
+    int j_proc,
+    int k_proc,
+    //int section_num_requested,
+    GMEnv* env);
 
 /*===========================================================================*/
 

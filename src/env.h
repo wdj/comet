@@ -378,7 +378,7 @@ typedef struct {
   int num_proc_field_;
   int num_proc_repl_;
   int num_proc_vector_i_;
-  int num_proc_vector_;
+  int num_proc_vector_total_;
   /*---*/
   int proc_num_;
   int proc_num_field_;
@@ -528,9 +528,9 @@ static int Env_num_proc_repl(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-static int Env_num_proc_vector(const GMEnv* env) {
+static int Env_num_proc_vector_total(const GMEnv* env) {
   GMAssert(env != NULL);
-  return env->num_proc_vector_;
+  return env->num_proc_vector_total_;
 }
 
 /*---------------------------------------------------------------------------*/

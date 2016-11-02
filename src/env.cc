@@ -352,9 +352,9 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
   env->num_proc_repl_ = num_proc_repl;
   env->num_proc_field_ = num_proc_field;
 
-  env->num_proc_vector_ = env->num_proc_vector_i_ * env->num_proc_repl_;
+  env->num_proc_vector_total_ = env->num_proc_vector_i_ * env->num_proc_repl_;
 
-  env->num_proc_ = env->num_proc_vector_ * num_proc_field;
+  env->num_proc_ = env->num_proc_vector_total_ * num_proc_field;
   GMAssertAlways(env->num_proc_ <= env->num_proc_world_);
 
   /*---Set proc nums---*/
@@ -371,7 +371,7 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
   itmp /= env->num_proc_vector_i_;
 
   env->proc_num_field_ = itmp % env->num_proc_field_;
-  env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_;
+  env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_total_;
 
   /*---Make new communicators---*/
 

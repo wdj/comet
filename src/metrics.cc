@@ -67,6 +67,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_field = num_field;
   metrics->num_field_local = num_field / Env_num_proc_field(env);
   metrics->num_vector_local = num_vector_local;
+  metrics->nvl6 = num_vector_local / 6;
   metrics->index_offset_0_ = 0;
   metrics->index_offset_01_ = 0;
   metrics->recip_m = ((GMFloat)1) / num_field;
@@ -176,6 +177,12 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_3 && Env_all2all(env)) {
   /*==================================================*/
+
+
+
+
+
+
     /*---Make the following assumption to greatly simplify calculations---*/
     GMInsist(env, num_block <= 2 || metrics->num_vector_local % 6 == 0
                       ? "3way all2all case requires num vectors per proc "
@@ -185,7 +192,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART A: CALCULATE INDEX SIZE===*/
     const int proc_num_r = Env_proc_num_repl(env);
     const int num_proc_r = Env_num_proc_repl(env);
-    const int nvl6 = num_vector_local / 6;
+    const int nvl6 = metrics->nvl6;
     metrics->num_elts_local = 0;
     int num_block_this_slab = 0;
     /*---Compute size pt 1: (tetrahedron) i_block==j_block==k_block part---*/
@@ -233,10 +240,16 @@ void GMMetrics_create(GMMetrics* metrics,
 
     metrics->num_elts_local += num_block_this_proc_3 * num_elts_per_block_3;
     GMAssertAlways(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
+
+
+
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssertAlways(metrics->coords_global_from_index != NULL);
+
+
+
     /*===PART C: SET INDEX===*/
     int block_num = 0;
     int block_num_this_r = 0;
@@ -321,10 +334,8 @@ void GMMetrics_create(GMMetrics* metrics,
     //    }
 
         if (block_num % num_proc_r == proc_num_r) {
-          const int section_axis = gm_metrics_3way_section_axis(
-            metrics, i_block, j_block, k_block, env);
-          const int section_num =
-           gm_metrics_3way_section_num(metrics, i_block, j_block, k_block, env);
+          const int section_axis = gm_section_axis(i_block, j_block, k_block);
+          const int section_num = gm_section_num(i_block, j_block, k_block);
           const int k_min = section_axis == 2 ? (section_num)*nvl6 : 0;
           const int k_max =
               section_axis == 2 ? (section_num + 1) * nvl6 : num_vector_local;
@@ -356,6 +367,11 @@ void GMMetrics_create(GMMetrics* metrics,
 
     GMAssertAlways(index == metrics->num_elts_local);
     GMAssertAlways(block_num == (num_block-1) * (num_block-1) + 1);
+
+
+
+
+
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_2 && !Env_all2all(env)) {
   /*==================================================*/
