@@ -700,6 +700,11 @@ _Bool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 
 GMFloat* GMFloat_malloc(size_t n);
 
+static int GMEnv_num_section_steps(GMEnv* env) {
+  //FIX return Env_all2all(env) || Env_num_proc_repl(env) == 1 ? 1 : 6;
+  return 1;
+}
+
 /*===========================================================================*/
 
 #ifdef __cplusplus

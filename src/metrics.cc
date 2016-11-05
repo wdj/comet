@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 /*===========================================================================*/
-/*---Helper: round-robin-pack m values into n bins, give ith bin size---*/
+/*---Helper: round-robin-pack m values into n bins, return ith bin size---*/
 
 static int rr_pack_(int i, int n, int m) {
   return m/n + (i < m % n ? 1 : 0);
@@ -195,53 +195,88 @@ void GMMetrics_create(GMMetrics* metrics,
     const int nvl6 = metrics->nvl6;
     metrics->num_elts_local = 0;
     int num_block_this_slab = 0;
+    int num_block_this_proc = 0;
+    const int num_section_steps = GMEnv_num_section_steps(env);
+#if 0
+convert this to loop form instead of formulaic use of rr_pack
+
+GMSectionInfo should provide num_section_steps, loop over this
+  - if not all2all or num_proc_repl==1 then 1, else 6 (only used if 3-way)
+  - for this part and metrics.h, may be ok to always assume 6
+
+if proc_repl == section_step, then assign section to this proc
+
+compute section size formulaically
+
+#endif
+
     /*---Compute size pt 1: (tetrahedron) i_block==j_block==k_block part---*/
+
+    metrics->section_offset_1_[0] = 0;
 
     const int num_block_this_slab_1 = 1;
     num_block_this_slab += num_block_this_slab_1;
+    if (GMEnv_num_section_steps(env) == 1) {
+      const int num_block_this_proc_1 = rr_pack_(proc_num_r, num_proc_r,
+                                                 num_block_this_slab);
+      num_block_this_proc = num_block_this_proc_1;
+      const int num_elts_per_block_1 = nchoosek;
+      metrics->num_elts_local += num_block_this_proc_1 * num_elts_per_block_1;
+      metrics->index_offset_0_ = metrics->num_elts_local;
+    } else {
+      int section_step = 0;
+      for (section_step=0; section_step<num_section_steps; ++section_step) {
 
-    const int num_block_this_proc_1 = rr_pack_(proc_num_r, num_proc_r,
-                                               num_block_this_slab);
 
-    const int num_elts_per_block_1 = nchoosek;
 
-    metrics->num_elts_local += num_block_this_proc_1 * num_elts_per_block_1;
+      }
+    }
 
-    metrics->index_offset_0_ = metrics->num_elts_local;
     /*---Compute size pt 2: (triang prisms) i_block!=j_block==k_block part---*/
 
     const int num_block_this_slab_2 = num_block - 1;
     num_block_this_slab += num_block_this_slab_2;
+    if (GMEnv_num_section_steps(env) == 1) {
+      const int num_block_this_proc_12 = rr_pack_(proc_num_r, num_proc_r,
+                                                  num_block_this_slab);
+      const int num_block_this_proc_2 = num_block_this_proc_12 -
+                                        num_block_this_proc;
+      num_block_this_proc = num_block_this_proc_12;
+      const int num_elts_per_block_2 = nchoosekm1 * num_vector_local;
+      metrics->num_elts_local += num_block_this_proc_2 * num_elts_per_block_2;
+      metrics->index_offset_01_ = metrics->num_elts_local;
+    } else {
+      int section_step = 0;
+      for (section_step=0; section_step<num_section_steps; ++section_step) {
 
-    const int num_block_this_proc_12 = rr_pack_(proc_num_r, num_proc_r,
-                                                num_block_this_slab);
 
-    const int num_block_this_proc_2 = num_block_this_proc_12 -
-                                      num_block_this_proc_1;
 
-    const int num_elts_per_block_2 = nchoosekm1 * num_vector_local;
+      }
+    }
 
-    metrics->num_elts_local += num_block_this_proc_2 * num_elts_per_block_2;
-
-    metrics->index_offset_01_ = metrics->num_elts_local;
     /*---Compute size pt 3: (block sections) i_block!=j_block!=k_block part---*/
 
     const int num_block_this_slab_3 = (num_block - 1) * (num_block - 2);
     num_block_this_slab += num_block_this_slab_3;
+    if (GMEnv_num_section_steps(env) == 1) {
+      const int num_block_this_proc_123 = rr_pack_(proc_num_r, num_proc_r,
+                                                   num_block_this_slab);
+      const int num_block_this_proc_3 = num_block_this_proc_123 -
+                                        num_block_this_proc;
+      num_block_this_proc = num_block_this_proc_123;
+      const int num_elts_per_block_3 = num_vector_local *
+                                 num_vector_local * nvl6;
+      metrics->num_elts_local += num_block_this_proc_3 * num_elts_per_block_3;
+    } else {
+      int section_step = 0;
+      for (section_step=0; section_step<num_section_steps; ++section_step) {
 
-    const int num_block_this_proc_123 = rr_pack_(proc_num_r, num_proc_r,
-                                                 num_block_this_slab);
 
-    const int num_block_this_proc_3 = num_block_this_proc_123 -
-                                      num_block_this_proc_12;
 
-    const int num_elts_per_block_3 = num_vector_local *
-                               num_vector_local * nvl6;
+      }
+    }
 
-    metrics->num_elts_local += num_block_this_proc_3 * num_elts_per_block_3;
     GMAssertAlways(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
-
-
 
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
@@ -253,11 +288,15 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART C: SET INDEX===*/
     int block_num = 0;
     int block_num_this_r = 0;
+    size_t index = 0;
+
 
 
     /*---Set index part 1: (tetrahedron) i_block==j_block==k_block part---*/
-    size_t index = 0;
     if (block_num % num_proc_r == proc_num_r) {
+#if 0
+here and below, change to j - k - i axis order
+#endif
       for (k = 0; k < num_vector_local; ++k) {
         const int k_block = i_block;
         const size_t k_global = k + num_vector_local * k_block;

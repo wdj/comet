@@ -955,6 +955,8 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   GMSectionInfo_create(si, i_block, j_block, k_block,
                        metrics->num_vector_local, env);
 
+  //---ISSUE: are there aliasing issues with vectors_i/j/k
+
   /*----------------------------------------*/
   if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && !Env_all2all(env)) {
     /*----------------------------------------*/
@@ -965,8 +967,8 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
     /*---No off-proc all2all: compute tetrahedron of values---*/
 
-    for (k = 0; k < numvecl; ++k) {
-      for (j = 0; j < k; ++j) {
+    for (j = 0; j < numvecl; ++j) {
+      for (k = j+1; k < numvecl; ++k) {
         for (i = 0; i < j; ++i) {
           GMFloat sum = 0;
           int f = 0;
@@ -995,10 +997,10 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
     /*---Compute tetrahedron, triang prism or block section---*/
 
-    for (k = si->k_lb; k < si->k_ub; ++k) {
-      const int j_max = si->is_part3 ? si->j_ub : k;
-      for (j = si->j_lb; j < j_max; ++j) {
-        const int i_max = si->is_part1 ? j : si->i_ub;
+    for (j = si->j_lb; j < si->j_ub; ++j) {
+      const int k_min = GMSectionInfo_k_min(si, j, env);
+      for (k = k_min; k < si->k_ub; ++k) {
+        const int i_max = GMSectionInfo_i_max(si, j, env);
         for (i = si->i_lb; i < i_max; ++i) {
           GMFloat numerator = 0;
           int f = 0;
@@ -1064,7 +1066,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
 
   /*---Initializations---*/
 
-  const int numvecl = metrics->num_vector_local;
+  //const int numvecl = metrics->num_vector_local;
   const int numfieldl = vectors_i->num_field_local;
 
   const int i_block = Env_proc_num_vector_i(env);
@@ -1074,6 +1076,10 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   GMSectionInfo_create(si, i_block, j_block, k_block,
                        metrics->num_vector_local, env);
 
+  int i = 0;
+  int j = 0;
+  int k = 0;
+
   /*----------------------------------------*/
   if (Env_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
@@ -1082,19 +1088,14 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
-    /*---No off-proc all2all: compute tetrahedron of values---*/
-
-    int k = 0;
-    const int k_min = (!Env_all2all(env)) ? 0 : si->k_lb;
-    const int k_max = (!Env_all2all(env)) ? numvecl : si->k_ub;
-    for (k = k_min; k < k_max; ++k) {
-      const int j_min = (!Env_all2all(env)) ? 0 : si->j_lb;
-      const int j_max = (!Env_all2all(env)) ? k : si->is_part3 ? si->j_ub : k;
-      int j = 0;
-      for (j = j_min; j < j_max; ++j) {
-        const int i_min = (!Env_all2all(env)) ? 0 : si->i_lb;
-        const int i_max = (!Env_all2all(env)) ? j : si->is_part1 ? j : si->i_ub;
-        int i = 0;
+    const int j_min = si->j_lb;
+    const int j_max = si->j_ub;
+    for (j = j_min; j < j_max; ++j) {
+      const int k_min = GMSectionInfo_k_min(si, j, env);
+      const int k_max = si->k_ub;
+      for (k = k_min; k < k_max; ++k) {
+        const int i_min = si->i_lb;
+        const int i_max = GMSectionInfo_i_max(si, j, env);
         for (i = i_min; i < i_max; ++i) {
           GMTally4x2 sum = GMTally4x2_null();
           int f = 0;
@@ -1196,7 +1197,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     }     /*---for k---*/
 
     /*----------------------------------------*/
-  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  } else if (Env_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
     GMInsist(env, Env_num_proc_field(env) == 1
@@ -1222,17 +1223,14 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
                                num_seminibbles == 64 ?
                                allbits :
                                allbits >> (128 - 2*num_seminibbles);
-    int k = 0;
-    const int k_min = (!Env_all2all(env)) ? 0 : si->k_lb;
-    const int k_max = (!Env_all2all(env)) ? numvecl : si->k_ub;
-    for (k = k_min; k < k_max; ++k) {
-      const int j_min = (!Env_all2all(env)) ? 0 : si->j_lb;
-      const int j_max = (!Env_all2all(env)) ? k : si->is_part3 ? si->j_ub : k;
-      int j = 0;
-      for (j = j_min; j < j_max; ++j) {
-        const int i_min = (!Env_all2all(env)) ? 0 : si->i_lb;
-        const int i_max = (!Env_all2all(env)) ? j : si->is_part1 ? j : si->i_ub;
-        int i = 0;
+    const int j_min = si->j_lb;
+    const int j_max = si->j_ub;
+    for (j = j_min; j < j_max; ++j) {
+      const int k_min = GMSectionInfo_k_min(si, j, env);
+      const int k_max = si->k_ub;
+      for (k = k_min; k < k_max; ++k) {
+        const int i_min = si->i_lb;
+        const int i_max = GMSectionInfo_i_max(si, j, env);
         for (i = i_min; i < i_max; ++i) {
           GMTally4x2 sum = GMTally4x2_null();
           int f = 0;
@@ -2148,6 +2146,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
   /*---Process all combinations with nested loops in j, i, k---*/
 
+//TODOTODO: modify part1/2 cases
   const int J_min = si->is_part3 ? (si->section_num + 0) * numvecl / 6 : 0;
   const int J_max = si->is_part3 ? (si->section_num + 1) * numvecl / 6 : numvecl;
 
@@ -2481,87 +2480,43 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
   GMSectionInfo_create(si, i_block, j_block, k_block,
                        metrics->num_vector_local, env);
 
+  int i = 0;
+  int j = 0;
+  int k = 0;
+
   /*----------------------------------------*/
   if (Env_all2all(env)) {
     /*----------------------------------------*/
 
-//TODO: combine the following 3 cases using same logic as gm_compute_czekanowski_numerators_3way_nongpu_start
-    /*----------------------------------------*/
-    if (si->is_part1) {
-      /*----------------------------------------*/
-
-      int k = 0;
-      for (k = 0; k < numvecl; ++k) {
-        int j = 0;
-        for (j = 0; j < k; ++j) {
-          int i = 0;
-          for (i = 0; i < j; ++i) {
-            const GMFloat numerator = GMMetrics_float_get_all2all_3(
-                metrics, i, j, k, j_block, k_block, env);
-            const GMFloat denominator =
-                vector_sums_i[i] + vector_sums_i[j] + vector_sums_i[k];
-            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                          3 * numerator / (2 * denominator),
-                                          env);
-          } /*---for i---*/
-        }   /*---for j---*/
-      }     /*---for k---*/
-
-    /*----------------------------------------*/
-    } else if (si->is_part3) {
-      /*----------------------------------------*/
-
-      int k = 0;
-      for (k = si->k_lb; k < si->k_ub; ++k) {
-        int j = 0;
-        for (j = si->j_lb; j < si->j_ub; ++j) {
-          int i = 0;
-          for (i = si->i_lb; i < si->i_ub; ++i) {
-            const GMFloat numerator = GMMetrics_float_get_all2all_3(
-                metrics, i, j, k, j_block, k_block, env);
-            const GMFloat denominator =
-                vector_sums_i[i] + vector_sums_j[j] + vector_sums_k[k];
-            const GMFloat value =
-                ((GMFloat)3) * numerator / (((GMFloat)2) * denominator);
-            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                          value, env);
-          } /*---for i---*/
-        }   /*---for j---*/
-      }     /*---for k---*/
-
-    /*----------------------------------------*/
-    } else /* if (j_block == k_block) */ {
-    /*----------------------------------------*/
-
-      int k = 0;
-      for (k = 0; k < numvecl; ++k) {
-        int j = 0;
-        for (j = 0; j < k; ++j) {
-          int i = 0;
-          for (i = 0; i < numvecl; ++i) {
-            const GMFloat numerator = GMMetrics_float_get_all2all_3(
-                metrics, i, j, k, j_block, k_block, env);
-            const GMFloat denominator =
-                vector_sums_i[i] + vector_sums_j[j] + vector_sums_j[k];
-            GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                          3 * numerator / (2 * denominator),
-                                          env);
-          } /*---for i---*/
-        }   /*---for j---*/
-      }     /*---for k---*/
-
-    }       /*---if---*/
+    for (j = si->j_lb; j < si->j_ub; ++j) {
+      const GMFloat vector_sum_j = si->is_part1 ? vector_sums_i[j] :
+        /*---deal with aliasing---*/              vector_sums_j[j];
+      const int k_min = GMSectionInfo_k_min(si, j, env);;
+      for (k = k_min; k < si->k_ub; ++k) {
+        const GMFloat vector_sum_k = si->is_part1 ? vector_sums_i[k] :
+                                     si->is_part2 ? vector_sums_j[k] :
+          /*---deal with aliasing---*/              vector_sums_k[k];
+        const int i_max = GMSectionInfo_i_max(si, j, env);
+        for (i = si->i_lb; i < i_max; ++i) {
+          const GMFloat numerator = GMMetrics_float_get_all2all_3(
+              metrics, i, j, k, j_block, k_block, env);
+          const GMFloat denominator =
+              vector_sums_i[i] + vector_sum_j + vector_sum_k;
+          const GMFloat value =
+              ((GMFloat)3) * numerator / (((GMFloat)2) * denominator);
+          GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
+                                        value, env);
+        } /*---for i---*/
+      }   /*---for k---*/
+    }     /*---for j---*/
 
     /*----------------------------------------*/
   } else /*---! Env_all2all(env)---*/ {
     /*----------------------------------------*/
 
-    int i = 0;
-    for (i = 0; i < numvecl; ++i) {
-      int j = 0;
-      for (j = i + 1; j < numvecl; ++j) {
-        int k = 0;
-        for (k = j + 1; k < numvecl; ++k) {
+    for (j = 0; j < numvecl; ++j) {
+      for (k = j+1; k < numvecl; ++k) {
+        for (i = 0; i < j; ++i) {
           const GMFloat numerator =
               GMMetrics_float_get_3(metrics, i, j, k, env);
           /*---Don't use two different pointers pointing to the same thing---*/
@@ -2569,9 +2524,9 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
               vector_sums_i[i] + vector_sums_i[j] + vector_sums_i[k];
           GMMetrics_float_set_3(metrics, i, j, k,
                                 3 * numerator / (2 * denominator), env);
-        } /*---for k---*/
-      }   /*---for j---*/
-    }     /*---for i---*/
+        } /*---for i---*/
+      }   /*---for k---*/
+    }     /*---for j---*/
 
     /*----------------------------------------*/
   } /*---if---*/
@@ -2624,14 +2579,17 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
     /*---Compute tetrahedron, triang prism or block section---*/
     /*---Store multipliers---*/
 
-    for (k = si->k_lb; k < si->k_ub; ++k) {
-      const GMTally1 sk_1 = (GMTally1)(vector_sums_k[k]);
-      GMAssert((GMFloat)sk_1 == vector_sums_k[k]);
-      const int j_max = si->is_part3 ? si->j_ub : k;
-      for (j = si->j_lb; j < j_max; ++j) {
-        const GMTally1 sj_1 = (GMTally1)(vector_sums_j[j]);
-        GMAssert((GMFloat)sj_1 == vector_sums_j[j]);
-        const int i_max = si->is_part1 ? j : si->i_ub;
+    for (j = si->j_lb; j < si->j_ub; ++j) {
+      const GMTally1 sj_1 = si->is_part1 ? (GMTally1)(vector_sums_i[j]) :
+        /*---deal with aliasing---*/       (GMTally1)(vector_sums_j[j]);
+      GMAssert((GMFloat)sj_1 == vector_sums_j[j]);
+      const int k_min = GMSectionInfo_k_min(si, j, env);
+      for (k = k_min; k < si->k_ub; ++k) {
+        const GMTally1 sk_1 = si->is_part1 ? (GMTally1)(vector_sums_i[k]) :
+                              si->is_part2 ? (GMTally1)(vector_sums_j[k]) :
+          /*---deal with aliasing---*/       (GMTally1)(vector_sums_k[k]);
+        GMAssert((GMFloat)sk_1 == vector_sums_k[k]);
+        const int i_max = GMSectionInfo_i_max(si, j, env);;
         for (i = si->i_lb; i < i_max; ++i) {
           const GMTally1 si_1 = (GMTally1)(vector_sums_i[i]);
           GMAssert((GMFloat)si_1 == vector_sums_i[i]);
@@ -2649,12 +2607,12 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
     /*---No off-proc all2all: compute tetrahedron of values---*/
     /*---Store multipliers---*/
 
-    for (k = 0; k < numvecl; ++k) {
-      const GMTally1 sk_1 = (GMTally1)(vector_sums_i[k]);
-      GMAssert((GMFloat)sk_1 == vector_sums_i[k]);
-      for (j = 0; j < k; ++j) {
-        const GMTally1 sj_1 = (GMTally1)(vector_sums_i[j]);
-        GMAssert((GMFloat)sj_1 == vector_sums_i[j]);
+    for (j = 0; j < numvecl; ++j) {
+      const GMTally1 sj_1 = (GMTally1)(vector_sums_i[j]);
+      GMAssert((GMFloat)sj_1 == vector_sums_i[j]);
+      for (k = j+1; k < numvecl; ++k) {
+        const GMTally1 sk_1 = (GMTally1)(vector_sums_i[k]);
+        GMAssert((GMFloat)sk_1 == vector_sums_i[k]);
         for (i = 0; i < j; ++i) {
           const GMTally1 si_1 = (GMTally1)(vector_sums_i[i]);
           GMAssert((GMFloat)si_1 == vector_sums_i[i]);
