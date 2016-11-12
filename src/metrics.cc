@@ -297,12 +297,23 @@ compute section size formulaically
 #if 0
 here and below, change to j - k - i axis order
 #endif
+
+#ifdef OLD
       for (k = 0; k < num_vector_local; ++k) {
         const int k_block = i_block;
         const size_t k_global = k + num_vector_local * k_block;
         for (j = 0; j < k; ++j) {
           const int j_block = i_block;
           const size_t j_global = j + num_vector_local * j_block;
+          for (i = 0; i < j; ++i) {
+            const size_t i_global = i + num_vector_local * i_block;
+#endif
+      for (j = 0; j < num_vector_local; ++j) {
+        const int j_block = i_block;
+        const size_t j_global = j + num_vector_local * j_block;
+        for (k = j+1; k < num_vector_local; ++k) {
+          const int k_block = i_block;
+          const size_t k_global = k + num_vector_local * k_block;
           for (i = 0; i < j; ++i) {
             const size_t i_global = i + num_vector_local * i_block;
             GMAssert(index < metrics->num_elts_local);
@@ -323,17 +334,20 @@ here and below, change to j - k - i axis order
     int j_i_block_delta = 0;
     for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta) {
       const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
-    //int j_block = 0;
-    //for (j_block = 0; j_block < num_block; ++j_block) {
-    //  if (j_block == i_block) {
-    //    continue;
-    //  }
       if (block_num % num_proc_r == proc_num_r) {
+#ifdef OLD
         const int k_block = j_block;
         for (k = 0; k < num_vector_local; ++k) {
           const size_t k_global = k + num_vector_local * k_block;
           for (j = 0; j < k; ++j) {
             const size_t j_global = j + num_vector_local * j_block;
+            for (i = 0; i < num_vector_local; ++i) {
+#endif
+        for (j = 0; j < num_vector_local; ++j) {
+          const size_t j_global = j + num_vector_local * j_block;
+          const int k_block = j_block;
+          for (k = j+1; k < num_vector_local; ++k) {
+            const size_t k_global = k + num_vector_local * k_block;
             for (i = 0; i < num_vector_local; ++i) {
               const size_t i_global = i + num_vector_local * i_block;
               GMAssert(index < metrics->num_elts_local);
@@ -361,20 +375,10 @@ here and below, change to j - k - i axis order
         if (j_block == k_block) {
           continue;
         }
-    //int k_block = 0;
-    //for (k_block = 0; k_block < num_block; ++k_block) {
-    //  if (k_block == i_block) {
-    //    continue;
-    //  }
-    //  int j_block = 0;
-    //  for (j_block = 0; j_block < num_block; ++j_block) {
-    //    if (j_block == i_block || j_block == k_block) {
-    //      continue;
-    //    }
-
         if (block_num % num_proc_r == proc_num_r) {
           const int section_axis = gm_section_axis(i_block, j_block, k_block);
           const int section_num = gm_section_num(i_block, j_block, k_block);
+#ifdef OLD
           const int k_min = section_axis == 2 ? (section_num)*nvl6 : 0;
           const int k_max =
               section_axis == 2 ? (section_num + 1) * nvl6 : num_vector_local;
@@ -385,6 +389,22 @@ here and below, change to j - k - i axis order
                 section_axis == 1 ? (section_num + 1) * nvl6 : num_vector_local;
             for (j = j_min; j < j_max; ++j) {
               const size_t j_global = j + num_vector_local * j_block;
+              const int i_min = section_axis == 0 ? (section_num)*nvl6 : 0;
+              const int i_max = section_axis == 0 ? (section_num + 1) * nvl6
+                                                  : num_vector_local;
+              for (i = i_min; i < i_max; ++i) {
+                const size_t i_global = i + num_vector_local * i_block;
+#endif
+          const int j_min = section_axis == 1 ? (section_num)*nvl6 : 0;
+          const int j_max =
+              section_axis == 1 ? (section_num + 1) * nvl6 : num_vector_local;
+          for (j = j_min; j < j_max; ++j) {
+            const size_t j_global = j + num_vector_local * j_block;
+            const int k_min = section_axis == 2 ? (section_num)*nvl6 : 0;
+            const int k_max =
+                section_axis == 2 ? (section_num + 1) * nvl6 : num_vector_local;
+            for (k = k_min; k < k_max; ++k) {
+              const size_t k_global = k + num_vector_local * k_block;
               const int i_min = section_axis == 0 ? (section_num)*nvl6 : 0;
               const int i_max = section_axis == 0 ? (section_num + 1) * nvl6
                                                   : num_vector_local;
@@ -438,11 +458,20 @@ here and below, change to j - k - i axis order
     GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict interior of tetrahedron---*/
     size_t index = 0;
+    for (j = 0; j < num_vector_local; ++j) {
+      const int j_block = i_block;
+      const size_t j_global = j + num_vector_local * j_block;
+      for (k = j+1; k < num_vector_local; ++k) {
+        const int k_block = i_block;
+        const size_t k_global = k + num_vector_local * k_block;
+        for (i = 0; i < j; ++i) {
+#if 0
     for (k = 0; k < num_vector_local; ++k) {
       const size_t k_global = k + num_vector_local * i_block;
       for (j = 0; j < k; ++j) {
         const size_t j_global = j + num_vector_local * i_block;
         for (i = 0; i < j; ++i) {
+#endif
           const size_t i_global = i + num_vector_local * i_block;
           GMAssert(index < metrics->num_elts_local);
           metrics->coords_global_from_index[index++] =
