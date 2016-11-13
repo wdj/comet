@@ -39,7 +39,7 @@ static _Bool gm_is_part3(int i_block, int j_block, int k_block) {
 
 /*---------------------------------------------------------------------------*/
 
-static int gm_section_axis(int i_block, int j_block, int k_block) {
+static int gm_section_axis_part3(int i_block, int j_block, int k_block) {
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
   /* clang-format off */
   return i_block < j_block && i_block < k_block ? 0 : /*---i axis---*/
@@ -50,7 +50,7 @@ static int gm_section_axis(int i_block, int j_block, int k_block) {
 
 /*---------------------------------------------------------------------------*/
 
-static int gm_section_num(int i_block, int j_block, int k_block) {
+static int gm_section_num_part3(int i_block, int j_block, int k_block) {
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
   /* clang-format off */
   return i_block < k_block && k_block < j_block ?    0 :
@@ -80,8 +80,6 @@ typedef struct {
   int num_vector_local;
 } GMSectionInfo;
 
-enum {GM_SECTION_ALL = 6};
-
 /*---------------------------------------------------------------------------*/
 
 static void GMSectionInfo_create(
@@ -89,8 +87,8 @@ static void GMSectionInfo_create(
   int i_block,
   int j_block,
   int k_block,
+  int section_step,
   int num_vector_local,
-  //int section_selector,
   GMEnv* env) {
   GMAssertAlways(si != NULL);
   GMAssertAlways(env != NULL);
@@ -98,7 +96,8 @@ static void GMSectionInfo_create(
   GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
   GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
   GMAssertAlways(num_vector_local >= 0);
-  //GMAssertAlways((section_selector>=0 && section_selector<6) || section_selector==GM_SECTION_ALL);
+  const int num_section_steps = GMEnv_num_section_steps(env);
+  GMAssertAlways(section_step>=0 && section_step<num_section_steps);
 
   si->num_vector_local = num_vector_local;
   const int nvl6 = si->num_vector_local / 6;
@@ -109,38 +108,30 @@ static void GMSectionInfo_create(
 
   si->section_axis =
     ! si->is_part3 ? 1 /*---j axis---*/ :
-    gm_section_axis(i_block, j_block, k_block);
+    gm_section_axis_part3(i_block, j_block, k_block);
 
-  si->section_num = gm_section_num(i_block, j_block, k_block);
+  si->section_num = !si->is_part3 ? section_step :
+                    gm_section_num_part3(i_block, j_block, k_block);
 
   /*---Define bounding box containing region to be computed---*/
 
-  si->i_lb = !Env_all2all(env) ? 0 :
-             si->is_part3 && si->section_axis == 0 ?
+  si->i_lb = si->section_axis == 0 && (si->is_part3 || num_section_steps == 6) ?
              si->section_num * nvl6 : 0;
 
-  si->j_lb = !Env_all2all(env) ? 0 :
-             si->is_part3 && si->section_axis == 1 ?
+  si->j_lb = si->section_axis == 1 && (si->is_part3 || num_section_steps == 6) ?
              si->section_num * nvl6 : 0;
 
-  si->k_lb = !Env_all2all(env) ? 0 :
-             si->is_part3 && si->section_axis == 2 ?
+  si->k_lb = si->section_axis == 2 && (si->is_part3 || num_section_steps == 6) ?
              si->section_num * nvl6 : 0;
 
-  si->i_ub = !Env_all2all(env) ? num_vector_local :
-             si->is_part3 && si->section_axis == 0 ?
+  si->i_ub = si->section_axis == 0 && (si->is_part3 || num_section_steps == 6) ?
              (si->section_num + 1) * nvl6 : num_vector_local;
 
-  si->j_ub = !Env_all2all(env) ? num_vector_local :
-             si->is_part3 && si->section_axis == 1 ?
+  si->j_ub = si->section_axis == 1 && (si->is_part3 || num_section_steps == 6) ?
              (si->section_num + 1) * nvl6 : num_vector_local;
 
-  si->k_ub = !Env_all2all(env) ? num_vector_local :
-             si->is_part3 && si->section_axis == 2 ?
+  si->k_ub = si->section_axis == 2 && (si->is_part3 || num_section_steps == 6) ?
              (si->section_num + 1) * nvl6 : num_vector_local;
-
-
-
 }
 
 #if 0
@@ -149,7 +140,6 @@ static void GMSectionInfo_create(
 - K_min = is_part3 ? 0 : J + 1; // XXX can work same way if permuted or not
 - put in functions for permuted (I, K) and nonpermuted (i, k)
 - store I_ub, etc.
-- permute loops everywhere: j, k, i - check for others
 - should we always permute axes (I think not - perhaps only if parallel all2all)
 - should we always slice into 6 sections (?)
 - do lb/ub values apply for part1/2 - is there a permutation issue - ? OK
@@ -207,9 +197,12 @@ typedef struct {
   /*---Helper values---*/
   size_t index_offset_0_;
   size_t index_offset_01_;
-  int block_num_offset_0_;
-  int block_num_offset_01_;
-  int section_offset_1_[6];
+  //int block_num_offset_0_;
+  //int block_num_offset_01_;
+  size_t index_offset_section_pt1_[6];
+  size_t index_offset_section_pt2_[6];
+  _Bool section_num_valid_pt1_[6];
+  _Bool section_num_valid_pt2_[6];
   GMFloat m;
   GMFloat recip_m;
   /*---map of (contig) index to linearized Cartesian coords---*/
@@ -400,19 +393,26 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                                           int j_block,
                                           int k_block,
                                           GMEnv* env) {
-  GMAssert(Env_proc_num_repl(env) == 0);
 
 
 #ifdef NEW
-  const int num_section_steps = GMEnv_num_section_steps(env);
-  const int nvl = metrics->num_vector_local;
-  const int section_num = (j * num_section_steps) / nvl;
   const int j_section = j - (section_num * nvl) / num_section_steps
-  return gm_j_size(j) - gm_j_size(j_section) + section_offset_1_[section_num]
-         + j*(size_t)k + i;
+  return gm_j_size(j, nvl) - gm_j_size(j_section, nvl) + metrics->index_offset_section_0_[section_num]
+         + j*(size_t)(k-j-1) + i;
 #endif
 
-  return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
+  const int nvl = metrics->num_vector_local;
+  const int num_section_steps = GMEnv_num_section_steps(env);
+  const int section_num = (j * num_section_steps) / nvl;
+  GMAssert(metrics->section_num_valid_pt1_[section_num]);
+  const size_t index = gm_j_size(j, metrics->num_vector_local)
+                       + j*(size_t)(k-j-1) + i
+                       + metrics->index_offset_section_pt1_[section_num];
+  GMAssert(index >= 0);
+  GMAssert(index < metrics->num_elts_local);
+
+  return index;
+  //return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -437,6 +437,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
 
   const int nvl = metrics->num_vector_local;
 
+#ifdef OLD
   const int block_num = gm_mod1_(j_block - i_block, num_block);
 
 #ifdef OLD
@@ -446,12 +447,28 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
     block_num / num_proc_r - metrics->block_num_offset_0_
     ));
 #endif
+
+  const int block_num_this_proc = block_num / num_proc_r
+    - metrics->block_num_offset_0_;
  
-  /* clang-format off */
   size_t index = metrics->index_offset_0_ +
     i + nvl * (
     (k-j-1) + gm_triang_(nvl) - gm_triang_(nvl-j) + gm_triang_(nvl) * (
-    block_num / num_proc_r - metrics->block_num_offset_0_
+    block_num_this_proc
+    ));
+#endif
+
+  const int block_num_pt2 = gm_mod1_(j_block - i_block, num_block) - 1;
+
+  const int num_section_steps = GMEnv_num_section_steps(env);
+  const int section_num = (j * num_section_steps) / nvl;
+  GMAssert(metrics->section_num_valid_pt2_[section_num]);
+
+  /* clang-format off */
+  size_t index = metrics->index_offset_section_pt2_[section_num] + 
+    i + nvl * (
+    (k-j-1) + gm_triang_(nvl) - gm_triang_(nvl-j) + gm_triang_(nvl) * (
+    block_num_pt2 / num_proc_r
     ));
  /* clang-format on */
 
@@ -473,8 +490,8 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
                                           GMEnv* env) {
   const int nvl = metrics->num_vector_local;
 
-  const int section_axis = gm_section_axis(i_block, j_block, k_block);
-  const int section_num = gm_section_num(i_block, j_block, k_block);
+  const int section_axis = gm_section_axis_part3(i_block, j_block, k_block);
+  const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
   const int num_block = Env_num_block_vector(env);
 
@@ -485,6 +502,7 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   const int j_i_block_delta = gm_mod1_(j_block - i_block, num_block);
   const int k_i_block_delta = gm_mod1_(k_block - i_block, num_block);
 
+#ifdef OLD
   const int block_num =
     (num_block) +
     ((num_block-2) * (k_i_block_delta - 1)) +
@@ -513,6 +531,24 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
         block_num / num_proc_r - metrics->block_num_offset_01_
         )));
   /* clang-format on */
+#endif
+
+  const int block_num_pt3 =
+    ((num_block-2) * (k_i_block_delta - 1)) +
+    (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
+
+  /* clang-format off */
+  size_t index = metrics->index_offset_01_ +
+        i - ( section_axis == 0 ? section_num * nvl6 : 0 ) +
+            ( section_axis == 0 ? nvl6 : nvl ) * (
+        k - ( section_axis == 2 ? section_num * nvl6 : 0 ) +
+            ( section_axis == 2 ? nvl6 : nvl ) * (
+        j - ( section_axis == 1 ? section_num * nvl6 : 0 ) +
+            ( section_axis == 1 ? nvl6 : nvl ) * (
+        block_num_pt3 / num_proc_r
+        )));
+  /* clang-format on */
+
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
 

@@ -952,7 +952,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block,
+  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
                        metrics->num_vector_local, env);
 
   //---ISSUE: are there aliasing issues with vectors_i/j/k
@@ -1073,7 +1073,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block,
+  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
                        metrics->num_vector_local, env);
 
   int i = 0;
@@ -1920,7 +1920,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block,
+  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
                        metrics->num_vector_local, env);
 
   /*----------------------------------------*/
@@ -2477,7 +2477,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block,
+  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
                        metrics->num_vector_local, env);
 
   int i = 0;
@@ -2569,7 +2569,7 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block,
+  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
                        metrics->num_vector_local, env);
 
   /*----------------------------------------*/

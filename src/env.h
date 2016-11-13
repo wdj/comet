@@ -698,10 +698,15 @@ static int gm_popcount64(GMUInt64 x) {
 
 _Bool GMEnv_cuda_last_call_succeeded(GMEnv* env);
 
+/*---------------------------------------------------------------------------*/
+
 GMFloat* GMFloat_malloc(size_t n);
 
+/*---------------------------------------------------------------------------*/
+/*---NOTE: the following does not specialize based on part1/2/3---*/
+
 static int GMEnv_num_section_steps(GMEnv* env) {
-  //FIX return Env_all2all(env) || Env_num_proc_repl(env) == 1 ? 1 : 6;
+  //FIX return (!Env_all2all(env)) || Env_num_proc_repl(env) == 1 ? 1 : 6;
   return 1;
 }
 
