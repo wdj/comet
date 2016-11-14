@@ -42,8 +42,10 @@ _Bool compare_2runs(const char* options1, const char* options2) {
 
   /*---Do runs---*/
 
-  GMChecksum checksum1 = perform_run(argc1, argv1);
-  GMChecksum checksum2 = perform_run(argc2, argv2);
+  //printf("%s\n", options1);
+  GMChecksum checksum1 = perform_run(argc1, argv1, options1);
+  //printf("%s\n", options2);
+  GMChecksum checksum2 = perform_run(argc2, argv2, options2);
 
   /*---Need test result only on proc 0---*/
 
@@ -93,9 +95,9 @@ _Bool compare_3runs(const char* options1,
 
   /*---Do runs---*/
 
-  GMChecksum checksum1 = perform_run(argc1, argv1);
-  GMChecksum checksum2 = perform_run(argc2, argv2);
-  GMChecksum checksum3 = perform_run(argc3, argv3);
+  GMChecksum checksum1 = perform_run(argc1, argv1, options1);
+  GMChecksum checksum2 = perform_run(argc2, argv2, options2);
+  GMChecksum checksum3 = perform_run(argc3, argv3, options3);
 
   /*---Need test result only on proc 0---*/
 
@@ -386,7 +388,7 @@ void SystemTest_ccc2_simple_() {
 
   GMEnv env_value = GMEnv_null();
   GMEnv* env = &env_value;
-  GMEnv_create(env);
+  GMEnv_create(env, NULL);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
   env->all2all_ = GM_BOOL_FALSE;
@@ -471,7 +473,7 @@ void SystemTest_ccc3_simple_case(int compute_method) {
 
   GMEnv env_value = GMEnv_null();
   GMEnv* env = &env_value;
-  GMEnv_create(env);
+  GMEnv_create(env, NULL);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 3;
   env->all2all_ = GM_BOOL_TRUE;

@@ -109,7 +109,8 @@ static void GMSectionInfo_create(
                        si->is_part2 ? 2 : 3;
 
   const int num_section_steps = GMEnv_num_section_steps(env, part_num);
-  GMAssertAlways(section_step>=0 && section_step<num_section_steps);
+  GMAssertAlways(section_step>=0);
+  GMAssertAlways(section_step<num_section_steps);
 
   si->section_axis =
     ! si->is_part3 ? 1 /*---j axis---*/ :
@@ -430,12 +431,21 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
 
   const size_t elts_offset = metrics->index_offset_section_pt1_[section_num];
 
+  const int r = nvl / num_section_steps;
+  const int j_lo = (j / r) * r;
+
   /* clang-format off */
   const size_t index = elts_offset +
                        i +
                        (k-j-1)*(size_t)j +
-                       gm_trap_size(j, nvl);
+                       gm_trap_size(j, nvl) - gm_trap_size(j_lo, nvl);
   /* clang-format on */
+
+if( ! (index < metrics->num_elts_local)) {
+printf("%li %li %i %i %i %i %i %i %i %i %i \n", index, metrics->num_elts_local,
+i, j, k, i_block, j_block, k_block, nvl, (int)elts_offset, section_num
+);
+}
 
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
@@ -495,11 +505,16 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
   const int num_proc_r = Env_num_proc_repl(env);
   const int blocks_offset = block_num_pt2 / num_proc_r;
 
+  const int r = nvl / num_section_steps;
+  const int j_lo = (j / r) * r;
+  const int j_hi = (j / r + 1) * r;
+
   /* clang-format off */
   size_t index = elts_offset +
                  i + nvl*(
                  (k-j-1) +
-                 gm_triang_size(j, nvl) + gm_triang_(nvl)*(
+                 gm_triang_size(j, nvl) - gm_triang_size(j_lo, nvl)
+                     + (gm_triang_size(j_hi, nvl) - gm_triang_size(j_lo, nvl))*(
                  blocks_offset
                  ));
  /* clang-format on */

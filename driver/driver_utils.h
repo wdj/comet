@@ -349,13 +349,14 @@ static void finish_parsing(int argc,
 /*===========================================================================*/
 /*---Perform a single metrics computation run---*/
 
-static GMChecksum perform_run(int argc, const char** argv) {
+static GMChecksum perform_run(int argc, const char** argv,
+                              char const * const description) {
   GMChecksum checksum;
 
   /*---Initialize environment---*/
 
   GMEnv env = GMEnv_null();
-  GMEnv_create_from_args(&env, argc, argv);
+  GMEnv_create_from_args(&env, argc, argv, description);
 
   /*---Parse remaining unprocessed arguments---*/
 

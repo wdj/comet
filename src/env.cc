@@ -88,7 +88,7 @@ GMEnv GMEnv_null() {
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void GMEnv_create(GMEnv* const env) {
+void GMEnv_create(GMEnv* const env, char const * const description) {
   GMAssertAlways(env != NULL);
 
   GMStaticAssert(sizeof(GMBits) == 8);
@@ -115,16 +115,18 @@ void GMEnv_create(GMEnv* const env) {
 
   env->time = 0;
   env->ops = 0;
+  env->description = (char*)description; //FIX
 }
 
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void GMEnv_create_from_args(GMEnv* const env, int argc, const char** argv) {
+void GMEnv_create_from_args(GMEnv* const env, int argc, const char** argv,
+                            char const * const description) {
   GMAssertAlways(env != NULL);
 
   /*---First initialize with standard constructor---*/
-  GMEnv_create(env);
+  GMEnv_create(env, description);
 
   /*---Modify based on user options---*/
   int i = 0;

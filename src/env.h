@@ -392,6 +392,8 @@ typedef struct {
   cudaStream_t stream_togpu_;
   cudaStream_t stream_fromgpu_;
   _Bool are_cuda_streams_initialized_;
+  /*---OTHER---*/
+  char* description;
 } GMEnv;
 
 enum {
@@ -418,8 +420,9 @@ GMEnv GMEnv_null(void);
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void GMEnv_create(GMEnv* const env);
-void GMEnv_create_from_args(GMEnv* const env, int argc, const char** argv);
+void GMEnv_create(GMEnv* const env, char const * const description);
+void GMEnv_create_from_args(GMEnv* const env, int argc, const char** argv,
+                            char const * const description);
 
 /*===========================================================================*/
 /*---Finalize environment---*/
@@ -708,8 +711,8 @@ GMFloat* GMFloat_malloc(size_t n);
 static int GMEnv_num_section_steps(GMEnv const * const env, int part_num) {
   GMAssert(env != NULL);
   GMAssert(part_num >= 1 && part_num <= 3);
-  //FIX return (!Env_all2all(env)) || Env_num_proc_repl(env) == 1 || part_num == 3 ? 1 : 6;
-  return part_num == 3 ? 1 : 1;
+  return (!Env_all2all(env)) || Env_num_proc_repl(env) == 1 || part_num == 3 ? 1 : 6;
+  //return part_num == 3 ? 1 : 1;
 }
 
 /*===========================================================================*/

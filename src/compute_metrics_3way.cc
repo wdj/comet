@@ -297,7 +297,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Part 3 Computation: block sections---*/
   /*------------------------*/
 
-  for (section_step=0; section_step<GMEnv_num_section_steps(env, 2);
+  for (section_step=0; section_step<GMEnv_num_section_steps(env, 3);
        ++section_step) {
 
     int k_i_block_delta = 0;

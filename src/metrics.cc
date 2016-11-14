@@ -110,7 +110,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const int i_block = Env_proc_num_vector_i(env);
 
-  const int nchoosek = gm_nchoosek(num_vector_local, Env_num_way(env));
+  const size_t nchoosek = gm_nchoosek(num_vector_local, Env_num_way(env));
   const int nvl = num_vector_local;
 
   /*---Compute number of elements etc.---*/
@@ -192,7 +192,7 @@ void GMMetrics_create(GMMetrics* metrics,
                       ? "3way all2all case requires num vectors per proc "
                         "divisible by 6."
                       : 0);
-    const int nchoosekm1 = gm_nchoosek(num_vector_local, Env_num_way(env) - 1);
+    const size_t nchoosekm1 = gm_nchoosek(num_vector_local, Env_num_way(env)-1);
     /*===PART A: CALCULATE INDEX SIZE===*/
     const int proc_num_r = Env_proc_num_repl(env);
     const int num_proc_r = Env_num_proc_repl(env);
