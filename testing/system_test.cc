@@ -348,7 +348,7 @@ void SystemTest_czekanowski_() {
   for (gpu=0; gpu<=1; ++gpu) {
     for (num_vector_local=3; num_vector_local<=5; ++num_vector_local) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+        for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
           sprintf(options1, options_template_1, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, 1,
                   gpu ? 2 : 1, 2);
@@ -364,7 +364,7 @@ void SystemTest_czekanowski_() {
   for (gpu=0; gpu<=1; ++gpu) {
     for (num_vector_local=6; num_vector_local<=18; num_vector_local+=6) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+        for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
           sprintf(options1, options_template_1, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, 1,
                   gpu ? 2 : 1, 3);
@@ -781,7 +781,7 @@ void SystemTest_ccc_() {
   for (gpu=0; gpu<=1; ++gpu) {
     for (num_vector_local=3; num_vector_local<=5; ++num_vector_local) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+        for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
           sprintf(options1, options_template_10, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, 1,
                   gpu ? 2 : 1, 2);
@@ -797,7 +797,7 @@ void SystemTest_ccc_() {
   for (gpu=0; gpu<=1; ++gpu) {
     for (num_vector_local=6; num_vector_local<=18; num_vector_local+=6) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=4; ++num_proc_repl) {
+        for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
           sprintf(options1, options_template_10, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, 1,
                   gpu ? 2 : 1, 3);

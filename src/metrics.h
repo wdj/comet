@@ -338,8 +338,18 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
 /*===========================================================================*/
 /*---Accessors: indexing: (contig) index from coord, 3-way---*/
 
-static size_t gm_j_size(int j, int nvl) {
+/*---------------------------------------------------------------------------*/
+/*---elements in a part of a trapezoid, cut orthog to j axis---*/
+
+static size_t gm_trap_size(int j, int nvl) {
   return ( j *(size_t) (j-1) *(size_t) (3*nvl-2*j-2) ) / 6;
+}
+
+/*---------------------------------------------------------------------------*/
+/*---elements in a part of a triang, cut orthog to j axis---*/
+
+static size_t gm_triang_size(int j, int nvl) {
+  return gm_triang_(nvl) - gm_triang_(nvl-j);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -361,13 +371,18 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
   GMAssert(i < j);
   GMAssert(j < k);
 
-#ifdef OLD
+#if 0
   size_t index = (k * (size_t)(k - 1) * (size_t)(k - 2)) / 6 +
                  (j * (size_t)(j - 1)) / 2 + i;
 #endif
 
-  size_t index = gm_j_size(j, metrics->num_vector_local)
-                 + j*(size_t)(k-j-1) + i;
+  const int nvl = metrics->num_vector_local;
+
+  /* clang-format off */
+  size_t index = i +
+                 (k-j-1)*(size_t)j +
+                 gm_trap_size(j, nvl);
+  /* clang-format on */
 
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
@@ -380,6 +395,7 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
   GMAssert(k + metrics->num_vector_local * (size_t)Env_proc_num_vector_i(env) ==
            metrics->coords_global_from_index[index] /
                (metrics->num_vector * metrics->num_vector));
+
   return index;
 }
 
@@ -394,20 +410,20 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                                           int k_block,
                                           GMEnv* env) {
 
-
-#ifdef NEW
-  const int j_section = j - (section_num * nvl) / num_section_steps
-  return gm_j_size(j, nvl) - gm_j_size(j_section, nvl) + metrics->index_offset_section_0_[section_num]
-         + j*(size_t)(k-j-1) + i;
-#endif
-
   const int nvl = metrics->num_vector_local;
   const int num_section_steps = GMEnv_num_section_steps(env);
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_pt1_[section_num]);
-  const size_t index = gm_j_size(j, metrics->num_vector_local)
-                       + j*(size_t)(k-j-1) + i
-                       + metrics->index_offset_section_pt1_[section_num];
+
+  const size_t elts_offset = metrics->index_offset_section_pt1_[section_num];
+
+  /* clang-format off */
+  const size_t index = elts_offset +
+                       i +
+                       (k-j-1)*(size_t)j +
+                       gm_trap_size(j, nvl);
+  /* clang-format on */
+
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
 
@@ -416,6 +432,7 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
 }
 
 /*---------------------------------------------------------------------------*/
+/*---Faster version of true mod needed for special situation---*/
 
 static int gm_mod1_(int i, int n) {
   return (i + n) % n;
@@ -431,13 +448,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
                                           int j_block,
                                           int k_block,
                                           GMEnv* env) {
-  const int num_block = Env_num_block_vector(env);
-
-  const int num_proc_r = Env_num_proc_repl(env);
-
-  const int nvl = metrics->num_vector_local;
-
-#ifdef OLD
+#if 0
   const int block_num = gm_mod1_(j_block - i_block, num_block);
 
 #ifdef OLD
@@ -458,18 +469,26 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
     ));
 #endif
 
-  const int block_num_pt2 = gm_mod1_(j_block - i_block, num_block) - 1;
+  const int nvl = metrics->num_vector_local;
 
   const int num_section_steps = GMEnv_num_section_steps(env);
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_pt2_[section_num]);
 
+  const size_t elts_offset = metrics->index_offset_section_pt2_[section_num];
+
+  const int num_block = Env_num_block_vector(env);
+  const int block_num_pt2 = gm_mod1_(j_block - i_block, num_block) - 1;
+  const int num_proc_r = Env_num_proc_repl(env);
+  const int blocks_offset = block_num_pt2 / num_proc_r;
+
   /* clang-format off */
-  size_t index = metrics->index_offset_section_pt2_[section_num] + 
-    i + nvl * (
-    (k-j-1) + gm_triang_(nvl) - gm_triang_(nvl-j) + gm_triang_(nvl) * (
-    block_num_pt2 / num_proc_r
-    ));
+  size_t index = elts_offset +
+                 i + nvl*(
+                 (k-j-1) +
+                 gm_triang_size(j, nvl) + gm_triang_(nvl)*(
+                 blocks_offset
+                 ));
  /* clang-format on */
 
   GMAssert(index >= 0);
@@ -488,21 +507,7 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
                                           int j_block,
                                           int k_block,
                                           GMEnv* env) {
-  const int nvl = metrics->num_vector_local;
-
-  const int section_axis = gm_section_axis_part3(i_block, j_block, k_block);
-  const int section_num = gm_section_num_part3(i_block, j_block, k_block);
-
-  const int num_block = Env_num_block_vector(env);
-
-  const int nvl6 = metrics->nvl6;
-
-  const int num_proc_r = Env_num_proc_repl(env);
-
-  const int j_i_block_delta = gm_mod1_(j_block - i_block, num_block);
-  const int k_i_block_delta = gm_mod1_(k_block - i_block, num_block);
-
-#ifdef OLD
+#if 0
   const int block_num =
     (num_block) +
     ((num_block-2) * (k_i_block_delta - 1)) +
@@ -533,19 +538,32 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   /* clang-format on */
 #endif
 
+  const int nvl = metrics->num_vector_local;
+  const int nvl6 = metrics->nvl6;
+
+  const int section_axis = gm_section_axis_part3(i_block, j_block, k_block);
+  const int section_num = gm_section_num_part3(i_block, j_block, k_block);
+
+  const size_t elts_offset = metrics->index_offset_01_;
+
+  const int num_block = Env_num_block_vector(env);
+  const int j_i_block_delta = gm_mod1_(j_block - i_block, num_block);
+  const int k_i_block_delta = gm_mod1_(k_block - i_block, num_block);
   const int block_num_pt3 =
     ((num_block-2) * (k_i_block_delta - 1)) +
     (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
+  const int num_proc_r = Env_num_proc_repl(env);
+  const int blocks_offset = block_num_pt3 / num_proc_r;
 
   /* clang-format off */
-  size_t index = metrics->index_offset_01_ +
+  size_t index = elts_offset +
         i - ( section_axis == 0 ? section_num * nvl6 : 0 ) +
             ( section_axis == 0 ? nvl6 : nvl ) * (
         k - ( section_axis == 2 ? section_num * nvl6 : 0 ) +
             ( section_axis == 2 ? nvl6 : nvl ) * (
         j - ( section_axis == 1 ? section_num * nvl6 : 0 ) +
             ( section_axis == 1 ? nvl6 : nvl ) * (
-        block_num_pt3 / num_proc_r
+        blocks_offset
         )));
   /* clang-format on */
 
