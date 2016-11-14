@@ -131,7 +131,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
-    //int section_num_requested,
+    int section_step,
     GMEnv* env);
 
 void gm_compute_ccc_numerators_3way_nongpu_start(
@@ -144,7 +144,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
-    //int section_num_requested,
+    int section_step,
     GMEnv* env);
 
 void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
@@ -156,7 +156,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
-    //int section_num_requested,
+    int section_step,
     GMEnv* env);
 
 void gm_compute_numerators_3way_start(GMVectors* vectors_i,
@@ -168,7 +168,7 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
-    //int section_num_requested,
+    int section_step,
     GMEnv* env);
 
 /*----------*/
@@ -179,7 +179,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
     GMFloat* __restrict__ vector_sums_k,
     int j_proc,
     int k_proc,
-    //int section_num_requested,
+    int section_step,
     GMEnv* env);
 
 void gm_compute_ccc_3way_combine(GMMetrics* metrics,
@@ -188,7 +188,7 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
     GMFloat* __restrict__ vector_sums_k,
     int j_proc,
     int k_proc,
-    //int section_num_requested,
+    int section_step,
     GMEnv* env);
 
 void gm_compute_3way_combine(GMMetrics* metrics,
@@ -197,7 +197,7 @@ void gm_compute_3way_combine(GMMetrics* metrics,
     GMVectorSums* vector_sums_k,
     int j_proc,
     int k_proc,
-    //int section_num_requested,
+    int section_step,
     GMEnv* env);
 
 /*===========================================================================*/

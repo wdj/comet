@@ -77,6 +77,8 @@ typedef struct {
   int i_ub;
   int j_ub;
   int k_ub;
+  int J_lb;
+  int J_ub;
   int num_vector_local;
 } GMSectionInfo;
 
@@ -96,15 +98,18 @@ static void GMSectionInfo_create(
   GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
   GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
   GMAssertAlways(num_vector_local >= 0);
-  const int num_section_steps = GMEnv_num_section_steps(env);
-  GMAssertAlways(section_step>=0 && section_step<num_section_steps);
 
   si->num_vector_local = num_vector_local;
-  const int nvl6 = si->num_vector_local / 6;
 
   si->is_part1 = gm_is_part1(i_block, j_block, k_block);
   si->is_part3 = gm_is_part3(i_block, j_block, k_block);
   si->is_part2 = (!si->is_part1) && (!si->is_part3);
+
+  const int part_num = si->is_part1 ? 1 :
+                       si->is_part2 ? 2 : 3;
+
+  const int num_section_steps = GMEnv_num_section_steps(env, part_num);
+  GMAssertAlways(section_step>=0 && section_step<num_section_steps);
 
   si->section_axis =
     ! si->is_part3 ? 1 /*---j axis---*/ :
@@ -114,6 +119,8 @@ static void GMSectionInfo_create(
                     gm_section_num_part3(i_block, j_block, k_block);
 
   /*---Define bounding box containing region to be computed---*/
+
+  const int nvl6 = si->num_vector_local / 6;
 
   si->i_lb = si->section_axis == 0 && (si->is_part3 || num_section_steps == 6) ?
              si->section_num * nvl6 : 0;
@@ -131,6 +138,12 @@ static void GMSectionInfo_create(
              (si->section_num + 1) * nvl6 : num_vector_local;
 
   si->k_ub = si->section_axis == 2 && (si->is_part3 || num_section_steps == 6) ?
+             (si->section_num + 1) * nvl6 : num_vector_local;
+
+  si->J_lb = si->is_part3 || num_section_steps == 6 ?
+             si->section_num * nvl6 : 0;
+
+  si->J_ub = si->is_part3 || num_section_steps == 6 ?
              (si->section_num + 1) * nvl6 : num_vector_local;
 }
 
@@ -411,7 +424,7 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                                           GMEnv* env) {
 
   const int nvl = metrics->num_vector_local;
-  const int num_section_steps = GMEnv_num_section_steps(env);
+  const int num_section_steps = GMEnv_num_section_steps(env, 1);
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_pt1_[section_num]);
 
@@ -471,7 +484,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
 
   const int nvl = metrics->num_vector_local;
 
-  const int num_section_steps = GMEnv_num_section_steps(env);
+  const int num_section_steps = GMEnv_num_section_steps(env, 2);
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_pt2_[section_num]);
 

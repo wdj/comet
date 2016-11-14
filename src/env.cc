@@ -54,11 +54,11 @@ void gm_assert(const char* condition_string, const char* file, int line) {
 
 /*---------------------------------------------------------------------------*/
 
-void gm_insist(const void* env,
+void gm_insist(void const * const env,
                const char* condition_string,
                const char* file,
                int line) {
-  if (Env_proc_num((const GMEnv*)env) == 0) {
+  if (Env_proc_num((GMEnv const * const)env) == 0) {
     fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Interface error",
             condition_string, file, line);
   }
@@ -88,7 +88,7 @@ GMEnv GMEnv_null() {
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void GMEnv_create(GMEnv* env) {
+void GMEnv_create(GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   GMStaticAssert(sizeof(GMBits) == 8);
@@ -120,7 +120,7 @@ void GMEnv_create(GMEnv* env) {
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
+void GMEnv_create_from_args(GMEnv* const env, int argc, const char** argv) {
   GMAssertAlways(env != NULL);
 
   /*---First initialize with standard constructor---*/
@@ -213,7 +213,7 @@ void GMEnv_create_from_args(GMEnv* env, int argc, const char** argv) {
 /*===========================================================================*/
 /*---Manage cuda streams---*/
 
-void GMEnv_initialize_streams(GMEnv* env) {
+void GMEnv_initialize_streams(GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   /*---NOTE: this is used for lazy initialization---*/
@@ -235,7 +235,7 @@ void GMEnv_initialize_streams(GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-void GMEnv_terminate_streams(GMEnv* env) {
+void GMEnv_terminate_streams(GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   if (env->are_cuda_streams_initialized_) {
@@ -256,7 +256,7 @@ void GMEnv_terminate_streams(GMEnv* env) {
 /*===========================================================================*/
 /*---Finalize environment---*/
 
-void GMEnv_destroy(GMEnv* env) {
+void GMEnv_destroy(GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   int mpi_code = 0;
@@ -280,7 +280,7 @@ void GMEnv_destroy(GMEnv* env) {
 /*===========================================================================*/
 /*---Accessors---*/
 
-void Env_set_compute_method(GMEnv* env, int compute_method) {
+void Env_set_compute_method(GMEnv* const env, int compute_method) {
   GMAssertAlways(env != NULL);
   GMAssertAlways(compute_method >= 0);
   GMAssertAlways(compute_method < GM_NUM_COMPUTE_METHOD);
@@ -290,7 +290,7 @@ void Env_set_compute_method(GMEnv* env, int compute_method) {
 
 /*---------------------------------------------------------------------------*/
 
-int Env_data_type_vectors(const GMEnv* env) {
+int Env_data_type_vectors(GMEnv const * const env) {
   GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
@@ -307,7 +307,7 @@ int Env_data_type_vectors(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-int Env_data_type_metrics(const GMEnv* env) {
+int Env_data_type_metrics(GMEnv const * const env) {
   GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
@@ -325,8 +325,8 @@ int Env_data_type_metrics(const GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
-                      int num_proc_field) {
+void Env_set_num_proc(GMEnv* const env, int num_proc_vector_i,
+                      int num_proc_repl, int num_proc_field) {
   GMAssertAlways(env != NULL);
   GMAssertAlways(num_proc_vector_i > 0);
   GMAssertAlways(num_proc_repl > 0);
@@ -391,7 +391,7 @@ void Env_set_num_proc(GMEnv* env, int num_proc_vector_i, int num_proc_repl,
 
 /*---------------------------------------------------------------------------*/
 
-cudaStream_t Env_stream_compute(GMEnv* env) {
+cudaStream_t Env_stream_compute(GMEnv* const env) {
   GMAssertAlways(env != NULL);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
@@ -402,7 +402,7 @@ cudaStream_t Env_stream_compute(GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-cudaStream_t Env_stream_togpu(GMEnv* env) {
+cudaStream_t Env_stream_togpu(GMEnv* const env) {
   GMAssertAlways(env != NULL);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
@@ -413,7 +413,7 @@ cudaStream_t Env_stream_togpu(GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-cudaStream_t Env_stream_fromgpu(GMEnv* env) {
+cudaStream_t Env_stream_fromgpu(GMEnv* const env) {
   GMAssertAlways(env != NULL);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
@@ -425,17 +425,19 @@ cudaStream_t Env_stream_fromgpu(GMEnv* env) {
 /*===========================================================================*/
 /*---Timer functions---*/
 
-double GMEnv_get_time(GMEnv* env) {
+double GMEnv_get_time(GMEnv const * const env) {
   GMAssertAlways(env);
+
   struct timeval tv;
   gettimeofday(&tv, NULL);
   double result = ((double)tv.tv_sec + (double)tv.tv_usec * 1.e-6);
+
   return result;
 }
 
 /*---------------------------------------------------------------------------*/
 
-double GMEnv_get_synced_time(GMEnv* env) {
+double GMEnv_get_synced_time(GMEnv const * const env) {
   GMAssertAlways(env != NULL);
 
   /*
@@ -458,7 +460,9 @@ double GMEnv_get_synced_time(GMEnv* env) {
 /*===========================================================================*/
 /*---Misc.---*/
 
-_Bool GMEnv_cuda_last_call_succeeded(GMEnv* env) {
+_Bool GMEnv_cuda_last_call_succeeded(GMEnv const * const env) {
+  GMAssertAlways(env);
+
   _Bool result = GM_BOOL_TRUE;
 
   /*---NOTE: this read of the last error is a destructive read---*/

@@ -921,6 +921,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_block,
     int k_block,
+    int section_step,
     GMEnv* env) {
   GMAssertAlways(vectors_i != NULL);
   GMAssertAlways(vectors_j != NULL);
@@ -952,7 +953,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
+  GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
   //---ISSUE: are there aliasing issues with vectors_i/j/k
@@ -964,6 +965,8 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     GMInsist(env, Env_num_proc_field(env) == 1
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
+
+    GMAssertAlways(GMEnv_num_section_steps(env, 1) == 1);
 
     /*---No off-proc all2all: compute tetrahedron of values---*/
 
@@ -1046,6 +1049,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_block,
     int k_block,
+    int section_step,
     GMEnv* env) {
   GMAssertAlways(vectors_i != NULL);
   GMAssertAlways(vectors_j != NULL);
@@ -1073,7 +1077,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
+  GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
   int i = 0;
@@ -1881,16 +1885,18 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 /*===========================================================================*/
 /*---Start calculation of numerators, 3-way gpu---*/
 
-void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
-                                          GMVectors* vectors_j,
-                                          GMVectors* vectors_k,
-                                          GMMetrics* metrics,
-                                          GMMirroredPointer* vectors_i_buf,
-                                          GMMirroredPointer* vectors_j_buf,
-                                          GMMirroredPointer* vectors_k_buf,
-                                          int j_block,
-                                          int k_block,
-                                          GMEnv* env) {
+void gm_compute_numerators_3way_gpu_start(
+    GMVectors* vectors_i,
+    GMVectors* vectors_j,
+    GMVectors* vectors_k,
+    GMMetrics* metrics,
+    GMMirroredPointer* vectors_i_buf,
+    GMMirroredPointer* vectors_j_buf,
+    GMMirroredPointer* vectors_k_buf,
+    int j_block,
+    int k_block,
+    int section_step,
+    GMEnv* env) {
   GMAssertAlways(vectors_i != NULL);
   GMAssertAlways(vectors_j != NULL);
   GMAssertAlways(vectors_k != NULL);
@@ -1920,7 +1926,7 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
+  GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
   /*----------------------------------------*/
@@ -2146,12 +2152,10 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 
   /*---Process all combinations with nested loops in j, i, k---*/
 
-//TODOTODO: modify part1/2 cases
-  const int J_min = si->is_part3 ? (si->section_num + 0) * numvecl / 6 : 0;
-  const int J_max = si->is_part3 ? (si->section_num + 1) * numvecl / 6 : numvecl;
-
-  //NEW const int J_min = (si->section_num + 0) * numvecl / 6;
-  //NEW const int J_max = (si->section_num + 1) * numvecl / 6;
+//  const int J_min = si->is_part3 ? (si->section_num + 0) * numvecl / 6 : 0;
+//  const int J_max = si->is_part3 ? (si->section_num + 1) * numvecl / 6 : numvecl;
+  const int J_min = si->J_lb;
+  const int J_max = si->J_ub;
 
   const int J_count = J_max - J_min;
 
@@ -2383,16 +2387,18 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
 /*===========================================================================*/
 /*---Start calculation of numerators, 3-way generic---*/
 
-void gm_compute_numerators_3way_start(GMVectors* vectors_i,
-                                      GMVectors* vectors_j,
-                                      GMVectors* vectors_k,
-                                      GMMetrics* metrics,
-                                      GMMirroredPointer* vectors_i_buf,
-                                      GMMirroredPointer* vectors_j_buf,
-                                      GMMirroredPointer* vectors_k_buf,
-                                      int j_block,
-                                      int k_block,
-                                      GMEnv* env) {
+void gm_compute_numerators_3way_start(
+    GMVectors* vectors_i,
+    GMVectors* vectors_j,
+    GMVectors* vectors_k,
+    GMMetrics* metrics,
+    GMMirroredPointer* vectors_i_buf,
+    GMMirroredPointer* vectors_j_buf,
+    GMMirroredPointer* vectors_k_buf,
+    int j_block,
+    int k_block,
+    int section_step,
+    GMEnv* env) {
   GMAssertAlways(vectors_i != NULL);
   GMAssertAlways(vectors_j != NULL);
   GMAssertAlways(vectors_k != NULL);
@@ -2415,7 +2421,8 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
 
     gm_compute_numerators_3way_gpu_start(vectors_i, vectors_j, vectors_k,
                                          metrics, vectors_i_buf, vectors_j_buf,
-                                         vectors_k_buf, j_block, k_block, env);
+                                         vectors_k_buf, j_block, k_block,
+                                         section_step, env);
     /*----------------------------------------*/
   } else /*---(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU)---*/ {
     /*----------------------------------------*/
@@ -2430,14 +2437,14 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
         /*----------------------------------------*/
         gm_compute_czekanowski_numerators_3way_nongpu_start(
             vectors_i, vectors_j, vectors_k, metrics, vectors_i_buf,
-            vectors_j_buf, vectors_k_buf, j_block, k_block, env);
+            vectors_j_buf, vectors_k_buf, j_block, k_block, section_step, env);
       } break;
       /*----------------------------------------*/
       case GM_METRIC_TYPE_CCC: {
         /*----------------------------------------*/
         gm_compute_ccc_numerators_3way_nongpu_start(
             vectors_i, vectors_j, vectors_k, metrics, vectors_i_buf,
-            vectors_j_buf, vectors_k_buf, j_block, k_block, env);
+            vectors_j_buf, vectors_k_buf, j_block, k_block, section_step, env);
       } break;
       /*----------------------------------------*/
       default:
@@ -2453,13 +2460,15 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
 /*===========================================================================*/
 /*---Combine nums and denoms on CPU to get final result, 3-way Czek---*/
 
-void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
-                                         GMFloat* __restrict__ vector_sums_i,
-                                         GMFloat* __restrict__ vector_sums_j,
-                                         GMFloat* __restrict__ vector_sums_k,
-                                         int j_block,
-                                         int k_block,
-                                         GMEnv* env) {
+void gm_compute_czekanowski_3way_combine(
+    GMMetrics* metrics,
+    GMFloat* __restrict__ vector_sums_i,
+    GMFloat* __restrict__ vector_sums_j,
+    GMFloat* __restrict__ vector_sums_k,
+    int j_block,
+    int k_block,
+    int section_step,
+    GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(vector_sums_i != NULL);
   GMAssertAlways(vector_sums_j != NULL);
@@ -2477,7 +2486,7 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
+  GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
   int i = 0;
@@ -2514,6 +2523,8 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
   } else /*---! Env_all2all(env)---*/ {
     /*----------------------------------------*/
 
+    GMAssertAlways(GMEnv_num_section_steps(env, 1) == 1);
+
     for (j = 0; j < numvecl; ++j) {
       for (k = j+1; k < numvecl; ++k) {
         for (i = 0; i < j; ++i) {
@@ -2539,13 +2550,15 @@ void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
 /*===========================================================================*/
 /*---Combine nums and denoms on CPU to get final result, 3-way CCC---*/
 
-void gm_compute_ccc_3way_combine(GMMetrics* metrics,
-                                 GMFloat* __restrict__ vector_sums_i,
-                                 GMFloat* __restrict__ vector_sums_j,
-                                 GMFloat* __restrict__ vector_sums_k,
-                                 int j_block,
-                                 int k_block,
-                                 GMEnv* env) {
+void gm_compute_ccc_3way_combine(
+    GMMetrics* metrics,
+    GMFloat* __restrict__ vector_sums_i,
+    GMFloat* __restrict__ vector_sums_j,
+    GMFloat* __restrict__ vector_sums_k,
+    int j_block,
+    int k_block,
+    int section_step,
+    GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(vector_sums_i != NULL);
   GMAssertAlways(vector_sums_j != NULL);
@@ -2569,7 +2582,7 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
-  GMSectionInfo_create(si, i_block, j_block, k_block, 0,
+  GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
   /*----------------------------------------*/
@@ -2604,6 +2617,8 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
   } else /*---! Env_all2all(env)---*/ {
     /*----------------------------------------*/
 
+    GMAssertAlways(GMEnv_num_section_steps(env, 1) == 1);
+
     /*---No off-proc all2all: compute tetrahedron of values---*/
     /*---Store multipliers---*/
 
@@ -2632,13 +2647,15 @@ void gm_compute_ccc_3way_combine(GMMetrics* metrics,
 /*===========================================================================*/
 /*---Combine nums and denoms on CPU to get final result, 3-way generic---*/
 
-void gm_compute_3way_combine(GMMetrics* metrics,
-                             GMVectorSums* vector_sums_i,
-                             GMVectorSums* vector_sums_j,
-                             GMVectorSums* vector_sums_k,
-                             int j_block,
-                             int k_block,
-                             GMEnv* env) {
+void gm_compute_3way_combine(
+    GMMetrics* metrics,
+    GMVectorSums* vector_sums_i,
+    GMVectorSums* vector_sums_j,
+    GMVectorSums* vector_sums_k,
+    int j_block,
+    int k_block,
+    int section_step,
+    GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(vector_sums_i != NULL);
   GMAssertAlways(vector_sums_j != NULL);
@@ -2661,14 +2678,14 @@ void gm_compute_3way_combine(GMMetrics* metrics,
       /*----------------------------------------*/
       gm_compute_czekanowski_3way_combine(
           metrics, (GMFloat*)vector_sums_i->data, (GMFloat*)vector_sums_j->data,
-          (GMFloat*)vector_sums_k->data, j_block, k_block, env);
+          (GMFloat*)vector_sums_k->data, j_block, k_block, section_step, env);
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
       gm_compute_ccc_3way_combine(
           metrics, (GMFloat*)vector_sums_i->data, (GMFloat*)vector_sums_j->data,
-          (GMFloat*)vector_sums_k->data, j_block, k_block, env);
+          (GMFloat*)vector_sums_k->data, j_block, k_block, section_step, env);
     } break;
     /*----------------------------------------*/
     default:
