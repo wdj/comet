@@ -30,7 +30,7 @@ extern "C" {
 /*===========================================================================*/
 /*---Utility to parse a string to construct arguments---*/
 
-static void create_args(char* argstring, int* argc, const char** argv) {
+static void create_args(char* argstring, int* argc, char** argv) {
   size_t len = strlen(argstring);
 
   argv[0] = &argstring[0];
@@ -287,7 +287,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
 /*---Parse remaining unprocessed arguments---*/
 
 static void finish_parsing(int argc,
-                           const char** argv,
+                           char** argv,
                            GMEnv* env,
                            int* num_field,
                            int* num_vector_local,
@@ -349,7 +349,7 @@ static void finish_parsing(int argc,
 /*===========================================================================*/
 /*---Perform a single metrics computation run---*/
 
-static GMChecksum perform_run(int argc, const char** argv,
+static GMChecksum perform_run(int argc, char** argv,
                               char const * const description) {
   GMChecksum checksum;
 

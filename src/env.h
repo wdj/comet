@@ -393,7 +393,7 @@ typedef struct {
   cudaStream_t stream_fromgpu_;
   _Bool are_cuda_streams_initialized_;
   /*---OTHER---*/
-  char* description;
+  const char* description;
 } GMEnv;
 
 enum {
@@ -421,7 +421,7 @@ GMEnv GMEnv_null(void);
 /*---Initialize environment---*/
 
 void GMEnv_create(GMEnv* const env, char const * const description);
-void GMEnv_create_from_args(GMEnv* const env, int argc, const char** argv,
+void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
                             char const * const description);
 
 /*===========================================================================*/

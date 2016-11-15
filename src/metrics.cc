@@ -193,7 +193,9 @@ void GMMetrics_create(GMMetrics* metrics,
                         "divisible by 6."
                       : 0);
     const size_t nchoosekm1 = gm_nchoosek(num_vector_local, Env_num_way(env)-1);
+
     /*===PART A: CALCULATE INDEX SIZE===*/
+
     const int proc_num_r = Env_proc_num_repl(env);
     const int num_proc_r = Env_num_proc_repl(env);
     const int nvl6 = metrics->nvl6;
@@ -337,11 +339,13 @@ void GMMetrics_create(GMMetrics* metrics,
     GMAssertAlways(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
 
     /*===PART B: ALLOCATE INDEX===*/
+
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssertAlways(metrics->coords_global_from_index != NULL);
 
     /*===PART C: SET INDEX===*/
+
     section_block_num = 0;
     size_t index = 0;
 
@@ -449,6 +453,7 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_2 && !Env_all2all(env)) {
   /*==================================================*/
+
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
@@ -464,9 +469,11 @@ void GMMetrics_create(GMMetrics* metrics,
       }
     }
     GMAssertAlways(index == metrics->num_elts_local);
+
   /*==================================================*/
   } else if (Env_num_way(env) == GM_NUM_WAY_3 && !Env_all2all(env)) {
   /*==================================================*/
+
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
@@ -490,6 +497,7 @@ void GMMetrics_create(GMMetrics* metrics,
       }
     }
     GMAssertAlways(index == metrics->num_elts_local);
+
   /*==================================================*/
   } else {
   /*==================================================*/

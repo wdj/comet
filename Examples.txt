@@ -33,6 +33,11 @@ mkdir build_release
 cd build_release
 env BUILD_TYPE=Release ../genomics_gpu/scripts/cmake.sh
 ../genomics_gpu/scripts/make.sh
+cd ..
+mkdir build_single_release
+cd build_single_release
+env FP_PRECISION=SINGLE BUILD_TYPE=Release ../genomics_gpu/scripts/cmake.sh
+../genomics_gpu/scripts/make.sh
 
 -------------------------------------------------------------------------------
 

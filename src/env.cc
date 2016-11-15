@@ -115,13 +115,13 @@ void GMEnv_create(GMEnv* const env, char const * const description) {
 
   env->time = 0;
   env->ops = 0;
-  env->description = (char*)description; //FIX
+  env->description = description;
 }
 
 /*===========================================================================*/
 /*---Initialize environment---*/
 
-void GMEnv_create_from_args(GMEnv* const env, int argc, const char** argv,
+void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
                             char const * const description) {
   GMAssertAlways(env != NULL);
 

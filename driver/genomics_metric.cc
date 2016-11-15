@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
   /*---If using GPU---*/
 
   GMEnv env = GMEnv_null();
-  GMEnv_create_from_args(&env, argc, (const char**)argv, NULL);
+  GMEnv_create_from_args(&env, argc, (char**)argv, NULL);
 
   if (Env_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
     /*---Perform preliminary run on GPU since sometimes first use is slower---*/
@@ -106,12 +106,12 @@ int main(int argc, char** argv) {
         "--compute_method GPU --verbosity 0";
     size_t len1 = strlen(options1);
     char* argstring1 = (char*)malloc((len1 + 1) * sizeof(char));
-    const char* argv1[len1 + 1];
+    char* argv1[len1 + 1];
     int argc1 = 0;
     strcpy(argstring1, options1);
     create_args(argstring1, &argc1, argv1);
 
-    perform_run(argc1, (const char**)argv1, NULL);
+    perform_run(argc1, (char**)argv1, NULL);
 
     free(argstring1);
   }
@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
 
   /*---Perform actual run---*/
 
-  perform_run(argc, (const char**)argv, NULL);
+  perform_run(argc, (char**)argv, NULL);
 
   MPI_Finalize();
   return 0;
