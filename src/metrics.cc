@@ -212,7 +212,7 @@ void GMMetrics_create(GMMetrics* metrics,
                    GMEnv_num_section_steps(env, 2));
     const int num_section_steps_12 = GMEnv_num_section_steps(env, 1);
     if (num_section_steps_12 == 1) {
-      /*---Record base offset for this section---*/
+      /*---Record precalculated base offset---*/
       const int section_num = 0;
       metrics->index_offset_section_pt1_[section_num] = metrics->num_elts_local;
       /*---Compute amount storage needed---*/
@@ -228,11 +228,11 @@ void GMMetrics_create(GMMetrics* metrics,
       section_block_num += num_block_this_slab_1;
     } else {
       for (section_step=0; section_step<num_section_steps_12; ++section_step) {
-        /*---Record base offset for this section---*/
+        /*---Record precalculated base offset---*/
         const int section_num = section_step;
+        const int j_lo = (section_num * nvl) / num_section_steps_12;
         metrics->index_offset_section_pt1_[section_num]
-          = metrics->num_elts_local;
-        metrics->section_num_valid_pt1_[section_num] = GM_BOOL_TRUE;
+          = metrics->num_elts_local - gm_trap_size(j_lo, nvl);
         if (section_block_num % num_proc_r == proc_num_r) {
           /*---Elements in slice of trapezoid---*/
           const size_t elts_local = gm_trap_size(((section_num+1)*nvl)/6, nvl) -
@@ -252,9 +252,10 @@ void GMMetrics_create(GMMetrics* metrics,
     const int num_block_this_slab_2 = num_block - 1;
     num_block_this_slab += num_block_this_slab_2;
     if (num_section_steps_12 == 1) {
-      /*---Record base offset for this section---*/
+      /*---Record precalculated base offset---*/
       const int section_num = 0;
       metrics->index_offset_section_pt2_[section_num] = metrics->num_elts_local;
+      metrics->section_size_pt2[section_num] = gm_triang_size(nvl, nvl);
       /*---Compute amount storage needed---*/
       const int num_block_this_proc_12 = rr_pack_(proc_num_r, num_proc_r,
                                                   num_block_this_slab);
@@ -270,11 +271,14 @@ void GMMetrics_create(GMMetrics* metrics,
       section_block_num += num_block_this_slab_2;
     } else {
       for (section_step=0; section_step<num_section_steps_12; ++section_step) {
-        /*---Record base offset for this section---*/
+        /*---Record precalculated base offset---*/
         const int section_num = section_step;
+        const int j_lo = (section_num * nvl) / num_section_steps_12;
+        const int j_hi = ((section_num+1) * nvl) / num_section_steps_12;
         metrics->index_offset_section_pt2_[section_num]
-          = metrics->num_elts_local;
-        metrics->section_num_valid_pt2_[section_num] = GM_BOOL_TRUE;
+          = metrics->num_elts_local - nvl*gm_triang_size(j_lo, nvl);
+        metrics->section_size_pt2[section_num] = gm_triang_size(j_hi, nvl) -
+                                                 gm_triang_size(j_lo, nvl);
         /*---Loop over block for part2---*/
         int j_i_block_delta = 0;
         for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {

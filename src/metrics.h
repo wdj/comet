@@ -217,6 +217,7 @@ typedef struct {
   size_t index_offset_section_pt2_[6];
   _Bool section_num_valid_pt1_[6];
   _Bool section_num_valid_pt2_[6];
+  size_t section_size_pt2[6];
   GMFloat m;
   GMFloat recip_m;
   /*---map of (contig) index to linearized Cartesian coords---*/
@@ -385,11 +386,6 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
   GMAssert(i < j);
   GMAssert(j < k);
 
-#if 0
-  size_t index = (k * (size_t)(k - 1) * (size_t)(k - 2)) / 6 +
-                 (j * (size_t)(j - 1)) / 2 + i;
-#endif
-
   const int nvl = metrics->num_vector_local;
 
   /* clang-format off */
@@ -423,29 +419,20 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                                           int j_block,
                                           int k_block,
                                           GMEnv* env) {
-
   const int nvl = metrics->num_vector_local;
+
   const int num_section_steps = GMEnv_num_section_steps(env, 1);
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_pt1_[section_num]);
 
   const size_t elts_offset = metrics->index_offset_section_pt1_[section_num];
 
-  const int r = nvl / num_section_steps;
-  const int j_lo = (j / r) * r;
-
   /* clang-format off */
   const size_t index = elts_offset +
                        i +
                        (k-j-1)*(size_t)j +
-                       gm_trap_size(j, nvl) - gm_trap_size(j_lo, nvl);
+                       gm_trap_size(j, nvl);
   /* clang-format on */
-
-if( ! (index < metrics->num_elts_local)) {
-printf("%li %li %i %i %i %i %i %i %i %i %i \n", index, metrics->num_elts_local,
-i, j, k, i_block, j_block, k_block, nvl, (int)elts_offset, section_num
-);
-}
 
   GMAssert(index >= 0);
   GMAssert(index < metrics->num_elts_local);
@@ -471,27 +458,6 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
                                           int j_block,
                                           int k_block,
                                           GMEnv* env) {
-#if 0
-  const int block_num = gm_mod1_(j_block - i_block, num_block);
-
-#ifdef OLD
-  size_t index = metrics->index_offset_0_ +
-    i + nvl * (
-    gm_triang_(k) + j + gm_triang_(nvl) * (
-    block_num / num_proc_r - metrics->block_num_offset_0_
-    ));
-#endif
-
-  const int block_num_this_proc = block_num / num_proc_r
-    - metrics->block_num_offset_0_;
- 
-  size_t index = metrics->index_offset_0_ +
-    i + nvl * (
-    (k-j-1) + gm_triang_(nvl) - gm_triang_(nvl-j) + gm_triang_(nvl) * (
-    block_num_this_proc
-    ));
-#endif
-
   const int nvl = metrics->num_vector_local;
 
   const int num_section_steps = GMEnv_num_section_steps(env, 2);
@@ -505,16 +471,13 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
   const int num_proc_r = Env_num_proc_repl(env);
   const int blocks_offset = block_num_pt2 / num_proc_r;
 
-  const int r = nvl / num_section_steps;
-  const int j_lo = (j / r) * r;
-  const int j_hi = (j / r + 1) * r;
+  const size_t section_size = metrics->section_size_pt2[section_num];
 
   /* clang-format off */
   size_t index = elts_offset +
                  i + nvl*(
                  (k-j-1) +
-                 gm_triang_size(j, nvl) - gm_triang_size(j_lo, nvl)
-                     + (gm_triang_size(j_hi, nvl) - gm_triang_size(j_lo, nvl))*(
+                 gm_triang_size(j, nvl) + section_size*(
                  blocks_offset
                  ));
  /* clang-format on */
@@ -535,37 +498,6 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
                                           int j_block,
                                           int k_block,
                                           GMEnv* env) {
-#if 0
-  const int block_num =
-    (num_block) +
-    ((num_block-2) * (k_i_block_delta - 1)) +
-    (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
-
-#ifdef OLD
-  size_t index = metrics->index_offset_01_ +
-        i - ( section_axis == 0 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 0 ? nvl6 : nvl ) * (
-        j - ( section_axis == 1 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 1 ? nvl6 : nvl ) * (
-        k - ( section_axis == 2 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 2 ? nvl6 : nvl ) * (
-        block_num / num_proc_r - metrics->block_num_offset_01_
-        )));
-#endif
-
-  /* clang-format off */
-  size_t index = metrics->index_offset_01_ +
-        i - ( section_axis == 0 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 0 ? nvl6 : nvl ) * (
-        k - ( section_axis == 2 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 2 ? nvl6 : nvl ) * (
-        j - ( section_axis == 1 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 1 ? nvl6 : nvl ) * (
-        block_num / num_proc_r - metrics->block_num_offset_01_
-        )));
-  /* clang-format on */
-#endif
-
   const int nvl = metrics->num_vector_local;
   const int nvl6 = metrics->nvl6;
 

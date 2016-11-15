@@ -21,6 +21,8 @@
 
 #include "driver_utils.h"
 
+enum {PROCS_MAX = 64};
+
 /*===========================================================================*/
 
 _Bool compare_2runs(const char* options1, const char* options2) {
@@ -349,14 +351,19 @@ void SystemTest_czekanowski_() {
 
   for (gpu=0; gpu<=1; ++gpu) {
     for (num_vector_local=3; num_vector_local<=5; ++num_vector_local) {
-      for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
+      for (num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
+        for (num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+          const int num_proc_field = gpu ? 2 : 1;
+          if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
+            continue;
+          }
+          const int num_way = 2;
           sprintf(options1, options_template_1, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, 1,
-                  gpu ? 2 : 1, 2);
+                  num_proc_field, num_way);
           sprintf(options2, options_template_1, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
-                  gpu ? 2 : 1, 2);
+                  num_proc_field, num_way);
           test_2runs(options1, options2);
         }
       }
@@ -365,14 +372,19 @@ void SystemTest_czekanowski_() {
 
   for (gpu=0; gpu<=1; ++gpu) {
     for (num_vector_local=6; num_vector_local<=18; num_vector_local+=6) {
-      for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
+      for (num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
+        for (num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+          const int num_proc_field = gpu ? 2 : 1;
+          if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
+            continue;
+          }
+          const int num_way = 3;
           sprintf(options1, options_template_1, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, 1,
-                  gpu ? 2 : 1, 3);
+                  num_proc_field, num_way);
           sprintf(options2, options_template_1, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
-                  gpu ? 2 : 1, 3);
+                  num_proc_field, num_way);
           test_2runs(options1, options2);
         }
       }
@@ -784,12 +796,14 @@ void SystemTest_ccc_() {
     for (num_vector_local=3; num_vector_local<=5; ++num_vector_local) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
+          const int num_proc_field = gpu ? 2 : 1;
+          const int num_way = 2;
           sprintf(options1, options_template_10, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, 1,
-                  gpu ? 2 : 1, 2);
+                  num_proc_field, num_way);
           sprintf(options2, options_template_10, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
-                  gpu ? 2 : 1, 2);
+                  num_proc_field, num_way);
           test_2runs(options1, options2);
         }
       }
@@ -800,12 +814,14 @@ void SystemTest_ccc_() {
     for (num_vector_local=6; num_vector_local<=18; num_vector_local+=6) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
+          const int num_proc_field = gpu ? 2 : 1;
+          const int num_way = 3;
           sprintf(options1, options_template_10, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, 1,
-                  gpu ? 2 : 1, 3);
+                  num_proc_field, num_way);
           sprintf(options2, options_template_10, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
-                  gpu ? 2 : 1, 3);
+                  num_proc_field, num_way);
           test_2runs(options1, options2);
         }
       }
