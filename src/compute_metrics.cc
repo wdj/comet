@@ -33,6 +33,11 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
+#ifdef FP_PRECISION_SINGLE
+  GMInsist(env, Env_metric_type(env) != GM_METRIC_TYPE_CCC ? 
+    "CCC metric currently not functional under single precision build." : 0);
+#endif
+
   if (!Env_is_proc_active(env)) {
     return;
   }

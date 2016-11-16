@@ -75,6 +75,10 @@ void usage() {
   "        and field axes, this number of processors is applied to\n"
   "        computations for the block (default is 1)\n"
   "\n"
+  "    --verbosity <value>\n"
+  "      verbosity level of output (0=none, 1=some (default) 2=more)\n"
+  "\n"
+
   );
   /* clang-format on */
 }
@@ -106,6 +110,7 @@ int main(int argc, char** argv) {
         "--compute_method GPU --verbosity 0";
     size_t len1 = strlen(options1);
     char* argstring1 = (char*)malloc((len1 + 1) * sizeof(char));
+    GMAssertAlways(argstring1 != NULL);
     char* argv1[len1 + 1];
     int argc1 = 0;
     strcpy(argstring1, options1);

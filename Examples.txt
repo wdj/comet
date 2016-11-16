@@ -84,7 +84,7 @@ Options:
          and field axes, this number of processors is applied to
          computations for the block (default is 1)
 
-    ---verbosity <value>
+    --verbosity <value>
         verbosity level of output (0=none, 1=some (default) 2=more)
 
 -------------------------------------------------------------------------------

@@ -122,7 +122,12 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           size_t rand_value = rand1 + gm_randomize_max() * rand2;
           /*---Reduce so that after summing num_field times the integer
                still fully fits in double precision fraction part---*/
-          rand_value >>= (64 - 52) + gm_log2(vectors->num_field);
+          if (sizeof(GMFloat) == 8) {
+            rand_value >>= (64 - 52) + gm_log2(vectors->num_field);
+          } else {
+            rand_value >>= (gm_log2(rand_value) - 22)
+              + gm_log2(vectors->num_field);
+          }
           /*---Store---*/
           GMFloat value = rand_value;
           GMVectors_float_set(vectors, fl, vector_local, value, env);

@@ -30,6 +30,7 @@ _Bool compare_2runs(const char* options1, const char* options2) {
 
   size_t len1 = strlen(options1);
   char* argstring1 = (char*)malloc((len1 + 1) * sizeof(char));
+  GMAssertAlways(argstring1 != NULL);
   char* argv1[len1 + 1];
   int argc1 = 0;
   strcpy(argstring1, options1);
@@ -37,6 +38,7 @@ _Bool compare_2runs(const char* options1, const char* options2) {
 
   size_t len2 = strlen(options2);
   char* argstring2 = (char*)malloc((len2 + 1) * sizeof(char));
+  GMAssertAlways(argstring2 != NULL);
   char* argv2[len2 + 1];
   int argc2 = 0;
   strcpy(argstring2, options2);
@@ -76,6 +78,7 @@ _Bool compare_3runs(const char* options1,
 
   size_t len1 = strlen(options1);
   char* argstring1 = (char*)malloc((len1 + 1) * sizeof(char));
+  GMAssertAlways(argstring1 != NULL);
   char* argv1[len1 + 1];
   int argc1 = 0;
   strcpy(argstring1, options1);
@@ -83,6 +86,7 @@ _Bool compare_3runs(const char* options1,
 
   size_t len2 = strlen(options2);
   char* argstring2 = (char*)malloc((len2 + 1) * sizeof(char));
+  GMAssertAlways(argstring2 != NULL);
   char* argv2[len2 + 1];
   int argc2 = 0;
   strcpy(argstring2, options2);
@@ -90,6 +94,7 @@ _Bool compare_3runs(const char* options1,
 
   size_t len3 = strlen(options3);
   char* argstring3 = (char*)malloc((len3 + 1) * sizeof(char));
+  GMAssertAlways(argstring3 != NULL);
   char* argv3[len3 + 1];
   int argc3 = 0;
   strcpy(argstring3, options3);
