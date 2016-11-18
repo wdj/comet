@@ -131,6 +131,9 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
+    GMVectorSums* vector_sums_i,
+    GMVectorSums* vector_sums_j,
+    GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env);
 
@@ -144,6 +147,9 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
+    GMVectorSums* vector_sums_i,
+    GMVectorSums* vector_sums_j,
+    GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env);
 
@@ -156,6 +162,9 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
+    GMVectorSums* vector_sums_i,
+    GMVectorSums* vector_sums_j,
+    GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env);
 
@@ -168,6 +177,9 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
+    GMVectorSums* vector_sums_i,
+    GMVectorSums* vector_sums_j,
+    GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env);
 

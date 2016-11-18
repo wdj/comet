@@ -77,6 +77,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   gm_compute_numerators_3way_start(
       vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
       &vectors_buf, Env_proc_num_vector_i(env), Env_proc_num_vector_i(env),
+      &vector_sums, &vector_sums, &vector_sums,
       section_step, env);
   gm_compute_wait(env);
 
@@ -215,6 +216,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       gm_compute_numerators_3way_start(vectors_i, vectors_i, vectors_i, metrics,
                                        &vectors_i_buf, &vectors_i_buf,
                                        &vectors_i_buf, i_block, i_block,
+                                       &vector_sums_i, &vector_sums_i,
+                                       &vector_sums_i,
                                        section_step, env);
       gm_compute_wait(env);
 
@@ -249,12 +252,14 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
       if (section_block_num % num_proc_r == proc_num_r) {
 
-        /*---Communicate vectors---*/
+        /*---Communicate vectors start---*/
 
         MPI_Request mpi_requests_j[2];
 
         mpi_requests_j[0] = gm_send_vectors_start(vectors_i, proc_send_j, env);
         mpi_requests_j[1] = gm_recv_vectors_start(vectors_j, proc_recv_j, env);
+
+        /*---Communicate vectors wait---*/
 
         gm_send_vectors_wait(&(mpi_requests_j[0]), env);
         gm_recv_vectors_wait(&(mpi_requests_j[1]), env);
@@ -268,17 +273,20 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
         gm_set_vectors_start(vectors_j, &vectors_j_buf, env);
         gm_set_vectors_wait(env);
 
+        /*---Denominator---*/
+
+        GMVectorSums_compute(&vector_sums_j, vectors_j, env);
+
         /*---Compute numerators---*/
 
         gm_compute_numerators_3way_start(vectors_i, vectors_j, vectors_j,
                                          metrics, &vectors_i_buf,
                                          &vectors_j_buf, &vectors_j_buf,
-                                         j_block, j_block, section_step, env);
+                                         j_block, j_block,
+                                         &vector_sums_i, &vector_sums_j,
+                                         &vector_sums_j,
+                                         section_step, env);
         gm_compute_wait(env);
-
-        /*---Denominator---*/
-
-        GMVectorSums_compute(&vector_sums_j, vectors_j, env);
 
         /*---Combine results---*/
 
@@ -309,12 +317,14 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                        num_proc_ir);
       const int proc_recv_k = gm_mod_i(proc_num_ir + k_i_block_delta*num_proc_r,
                                        num_proc_ir);
-      /*---Communicate vectors---*/
+      /*---Communicate vectors start---*/
 
       MPI_Request mpi_requests_k[2];
 
       mpi_requests_k[0] = gm_send_vectors_start(vectors_i, proc_send_k, env);
       mpi_requests_k[1] = gm_recv_vectors_start(vectors_k, proc_recv_k, env);
+
+        /*---Communicate vectors wait---*/
 
       gm_send_vectors_wait(&(mpi_requests_k[0]), env);
       gm_recv_vectors_wait(&(mpi_requests_k[1]), env);
@@ -360,7 +370,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 //        GMAssert(block_counter_calculated == block_counter);
 #endif
 
-          /*---Communicate vectors---*/
+          /*---Communicate vectors start---*/
 
           MPI_Request mpi_requests_j[2];
 
@@ -368,6 +378,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                                     env);
           mpi_requests_j[1] = gm_recv_vectors_start(vectors_j, proc_recv_j,
                                                     env);
+
+          /*---Communicate vectors wait---*/
 
           gm_send_vectors_wait(&(mpi_requests_j[0]), env);
           gm_recv_vectors_wait(&(mpi_requests_j[1]), env);
@@ -381,17 +393,20 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
           gm_set_vectors_start(vectors_j, &vectors_j_buf, env);
           gm_set_vectors_wait(env);
 
+          /*---Denominator---*/
+
+          GMVectorSums_compute(&vector_sums_j, vectors_j, env);
+
           /*---Compute numerators---*/
 
           gm_compute_numerators_3way_start(vectors_i, vectors_j, vectors_k,
                                            metrics, &vectors_i_buf,
                                            &vectors_j_buf, &vectors_k_buf,
-                                           j_block, k_block, section_step, env);
+                                           j_block, k_block,
+                                           &vector_sums_i, &vector_sums_j,
+                                           &vector_sums_k,
+                                           section_step, env);
           gm_compute_wait(env);
-
-          /*---Denominator---*/
-
-          GMVectorSums_compute(&vector_sums_j, vectors_j, env);
 
           /*---Combine results---*/
 
