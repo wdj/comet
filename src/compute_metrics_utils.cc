@@ -2592,6 +2592,7 @@ void gm_compute_numerators_3way_start(
   /*----------------------------------------*/
 }
 
+#if 0
 /*===========================================================================*/
 /*---Combine nums and denoms on CPU to get final result, 3-way Czek---*/
 
@@ -2833,6 +2834,7 @@ void gm_compute_3way_combine(
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
 }
+#endif
 
 /*===========================================================================*/
 

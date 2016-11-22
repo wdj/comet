@@ -93,14 +93,6 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   }
 
   /*---------------*/
-  /*---Combine---*/
-  /*---------------*/
-
-  gm_compute_3way_combine(metrics, &vector_sums, &vector_sums, &vector_sums,
-                          Env_proc_num_vector_i(env),
-                          Env_proc_num_vector_i(env), section_step, env);
-
-  /*---------------*/
   /*---Free memory---*/
   /*---------------*/
 
@@ -191,18 +183,17 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Part 1 Computation: tetrahedron---*/
   /*------------------------*/
 
+//vvv
   /*---Denominator---*/
-
   GMVectorSums_compute(&vector_sums_i, vectors_i, env);
 
   /*---Copy in vectors---*/
-
   gm_vectors_to_buf(vectors_i, &vectors_i_buf, env);
 
   /*---Send vectors to GPU---*/
-
   gm_set_vectors_start(vectors_i, &vectors_i_buf, env);
   gm_set_vectors_wait(env);
+//^^^
 
   int section_step = 0;
 
@@ -211,8 +202,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
     if (section_block_num % num_proc_r == proc_num_r) {
 
+//vvv
       /*---Compute numerators---*/
-
       gm_compute_numerators_3way_start(vectors_i, vectors_i, vectors_i, metrics,
                                        &vectors_i_buf, &vectors_i_buf,
                                        &vectors_i_buf, i_block, i_block,
@@ -220,22 +211,42 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                        &vector_sums_i,
                                        section_step, env);
       gm_compute_wait(env);
-
-      /*---Combine results---*/
-
-      gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_i,
-                              &vector_sums_i, i_block, i_block, section_step,
-                              env);
+//^^^
 
     } /*---if (section_block_num ...)---*/
 
     ++section_block_num;
-
   } /*---section_step---*/
 
   /*------------------------*/
   /*---Part 2 Computation: triangular prisms---*/
   /*------------------------*/
+
+#if 0
+
+Possible plan for setting up async comm
+
+- each loop kept as-is
+- each loop post communications for its step
+- after post of send/recv, call compute numerators start for
+  any pending prev step, if any.
+- after this, post wait for completion of this step send/recv
+
+- after final of the three loops, final cleanup call to do any pending
+  compute numerators
+
+- will need to set up double buffers and indexing for various things:
+  - mpi requests
+  - vectors_j/k
+  - _Bool is_pending_compute_numerators
+  - ind, ind_prev, j_block_prev, k_block_prev, section_step_prev
+
+- do we need to push some k-loop calculations down into the j-loop
+
+#endif
+
+  MPI_Request mpi_request_send_j;
+  MPI_Request mpi_request_recv_j;
 
   for (section_step=0; section_step<GMEnv_num_section_steps(env, 2);
        ++section_step) {
@@ -253,32 +264,25 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       if (section_block_num % num_proc_r == proc_num_r) {
 
         /*---Communicate vectors start---*/
-
-        MPI_Request mpi_requests_j[2];
-
-        mpi_requests_j[0] = gm_send_vectors_start(vectors_i, proc_send_j, env);
-        mpi_requests_j[1] = gm_recv_vectors_start(vectors_j, proc_recv_j, env);
+        mpi_request_send_j = gm_send_vectors_start(vectors_i, proc_send_j, env);
+        mpi_request_recv_j = gm_recv_vectors_start(vectors_j, proc_recv_j, env);
 
         /*---Communicate vectors wait---*/
+        gm_send_vectors_wait(&mpi_request_send_j, env);
+        gm_recv_vectors_wait(&mpi_request_recv_j, env);
 
-        gm_send_vectors_wait(&(mpi_requests_j[0]), env);
-        gm_recv_vectors_wait(&(mpi_requests_j[1]), env);
-
+//vvv
         /*---Copy in vectors---*/
-
         gm_vectors_to_buf(vectors_j, &vectors_j_buf, env);
 
         /*---Send vectors to GPU---*/
-
         gm_set_vectors_start(vectors_j, &vectors_j_buf, env);
         gm_set_vectors_wait(env);
 
         /*---Denominator---*/
-
         GMVectorSums_compute(&vector_sums_j, vectors_j, env);
 
         /*---Compute numerators---*/
-
         gm_compute_numerators_3way_start(vectors_i, vectors_j, vectors_j,
                                          metrics, &vectors_i_buf,
                                          &vectors_j_buf, &vectors_j_buf,
@@ -287,23 +291,20 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                          &vector_sums_j,
                                          section_step, env);
         gm_compute_wait(env);
-
-        /*---Combine results---*/
-
-        gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_j,
-                                &vector_sums_j, j_block, j_block, section_step,
-                                env);
+//^^^
 
       } /*---if (section_block_num ...)---*/
 
-    section_block_num++;
-
+      ++section_block_num;
     } /*---j_i_block_delta---*/
   } /*---section_step---*/
 
   /*------------------------*/
   /*---Part 3 Computation: block sections---*/
   /*------------------------*/
+
+  MPI_Request mpi_request_send_k;
+  MPI_Request mpi_request_recv_k;
 
   for (section_step=0; section_step<GMEnv_num_section_steps(env, 3);
        ++section_step) {
@@ -317,30 +318,26 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                        num_proc_ir);
       const int proc_recv_k = gm_mod_i(proc_num_ir + k_i_block_delta*num_proc_r,
                                        num_proc_ir);
+
       /*---Communicate vectors start---*/
+      mpi_request_send_k = gm_send_vectors_start(vectors_i, proc_send_k, env);
+      mpi_request_recv_k = gm_recv_vectors_start(vectors_k, proc_recv_k, env);
 
-      MPI_Request mpi_requests_k[2];
+      /*---Communicate vectors wait---*/
+      gm_send_vectors_wait(&mpi_request_send_k, env);
+      gm_recv_vectors_wait(&mpi_request_recv_k, env);
 
-      mpi_requests_k[0] = gm_send_vectors_start(vectors_i, proc_send_k, env);
-      mpi_requests_k[1] = gm_recv_vectors_start(vectors_k, proc_recv_k, env);
-
-        /*---Communicate vectors wait---*/
-
-      gm_send_vectors_wait(&(mpi_requests_k[0]), env);
-      gm_recv_vectors_wait(&(mpi_requests_k[1]), env);
-
+//vvv
       /*---Copy in vectors---*/
-
       gm_vectors_to_buf(vectors_k, &vectors_k_buf, env);
 
       /*---Send vectors to GPU---*/
-
       gm_set_vectors_start(vectors_k, &vectors_k_buf, env);
       gm_set_vectors_wait(env);
 
       /*---Denominator---*/
-
       GMVectorSums_compute(&vector_sums_k, vectors_k, env);
+//^^^
 
       int j_i_block_delta = 0;
       for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta){
@@ -362,43 +359,28 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
         if (section_block_num % num_proc_r == proc_num_r) {
 
-#ifdef GM_ASSERTIONS_ON
-//        const int block_counter_calculated =
-//          (num_block) +
-//          ((num_block-2) * (k_i_block_delta - 1)) +
-//          (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
-//        GMAssert(block_counter_calculated == block_counter);
-#endif
-
           /*---Communicate vectors start---*/
-
-          MPI_Request mpi_requests_j[2];
-
-          mpi_requests_j[0] = gm_send_vectors_start(vectors_i, proc_send_j,
-                                                    env);
-          mpi_requests_j[1] = gm_recv_vectors_start(vectors_j, proc_recv_j,
-                                                    env);
+          mpi_request_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
+                                                     env);
+          mpi_request_recv_j = gm_recv_vectors_start(vectors_j, proc_recv_j,
+                                                     env);
 
           /*---Communicate vectors wait---*/
+          gm_send_vectors_wait(&mpi_request_send_j, env);
+          gm_recv_vectors_wait(&mpi_request_recv_j, env);
 
-          gm_send_vectors_wait(&(mpi_requests_j[0]), env);
-          gm_recv_vectors_wait(&(mpi_requests_j[1]), env);
-
+//vvv
           /*---Copy in vectors---*/
-
           gm_vectors_to_buf(vectors_j, &vectors_j_buf, env);
 
           /*---Send vectors to GPU---*/
-
           gm_set_vectors_start(vectors_j, &vectors_j_buf, env);
           gm_set_vectors_wait(env);
 
           /*---Denominator---*/
-
           GMVectorSums_compute(&vector_sums_j, vectors_j, env);
 
           /*---Compute numerators---*/
-
           gm_compute_numerators_3way_start(vectors_i, vectors_j, vectors_k,
                                            metrics, &vectors_i_buf,
                                            &vectors_j_buf, &vectors_k_buf,
@@ -407,16 +389,11 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                            &vector_sums_k,
                                            section_step, env);
           gm_compute_wait(env);
-
-          /*---Combine results---*/
-
-          gm_compute_3way_combine(metrics, &vector_sums_i, &vector_sums_j,
-                                  &vector_sums_k, j_block, k_block, section_step,
-                                  env);
+//^^^
 
         } /*---if (section_block_num ...)---*/
 
-        section_block_num++;
+        ++section_block_num;
       } /*---k_i_block_delta---*/
     }   /*---j_i_block_delta---*/
   } /*---section_step---*/

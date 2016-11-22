@@ -185,6 +185,7 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
 
 /*----------*/
 
+#if 0
 void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
     GMFloat* __restrict__ vector_sums_i,
     GMFloat* __restrict__ vector_sums_j,
@@ -211,6 +212,7 @@ void gm_compute_3way_combine(GMMetrics* metrics,
     int k_proc,
     int section_step,
     GMEnv* env);
+#endif
 
 /*===========================================================================*/
 
