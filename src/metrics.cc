@@ -87,7 +87,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const int num_block = Env_num_block_vector(env);
 
-  const size_t num_vector_bound = vectors->num_vector_local *
+  const size_t num_vector_bound = metrics->num_vector_local *
                             (size_t)num_block * (size_t)Env_num_proc_repl(env);
   GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
     ? "Vector count too large to store in 32-bit int; please modify code." : 0);
@@ -655,7 +655,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
           GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
       } /*---switch---*/
       value_max_this = index==0 && i_value==0 ? value :
-                       value > value_max ? value : value_max_this;
+                       value > value_max_this ? value : value_max_this;
     }
   }
 

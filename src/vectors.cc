@@ -117,7 +117,7 @@ void GMVectors_create(GMVectors* vectors,
 
   /*---Allocation for vector storage---*/
 
-  GMAssertAlways(vectors->num_bits_per_packedval % bits_per_byte == 0):
+  GMAssertAlways(vectors->num_bits_per_packedval % bits_per_byte == 0);
   vectors->data = malloc(vectors->num_packedval_local *
                          (vectors->num_bits_per_packedval / bits_per_byte));
   GMAssertAlways(vectors->data != NULL);

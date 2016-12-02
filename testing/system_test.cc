@@ -56,11 +56,13 @@ _Bool compare_2runs(const char* options1, const char* options2) {
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
   if (proc_num != 0) {
-    int i = 0;
-    for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
-      checksum1.data[i] = 0;
-      checksum2.data[i] = 0;
-    }
+//    int i = 0;
+//    for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+//      checksum1.data[i] = 0;
+//      checksum2.data[i] = 0;
+//    }
+    checksum1 = GMChecksum_null();
+    checksum2 = GMChecksum_null();
   }
 
   free(argstring1);
@@ -111,12 +113,15 @@ _Bool compare_3runs(const char* options1,
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
   if (proc_num != 0) {
-    int i = 0;
-    for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
-      checksum1.data[i] = 0;
-      checksum2.data[i] = 0;
-      checksum3.data[i] = 0;
-    }
+//    int i = 0;
+//    for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+//      checksum1.data[i] = 0;
+//      checksum2.data[i] = 0;
+//      checksum3.data[i] = 0;
+//    }
+    checksum1 = GMChecksum_null();
+    checksum2 = GMChecksum_null();
+    checksum3 = GMChecksum_null();
   }
 
   free(argstring1);

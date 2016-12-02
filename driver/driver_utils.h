@@ -155,7 +155,7 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           if (verbosity > 2) {
             printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
                    Env_proc_num_vector_i(env), vector_local,
-                   Env_proc_num_field(env), fl, value);
+                   Env_proc_num_field(env), fl, float_value);
           }
         } /*---field---*/
       }   /*---vector_local---*/
@@ -428,8 +428,9 @@ static GMChecksum perform_run(int argc, char** argv,
       printf("%s%li", i == 0 ? "" : "-",
              checksum.data[GM_CHECKSUM_SIZE - 1 - i]);
     }
-    if (checksum.value_max) {
+    if (checksum.is_overflowed) {
       printf("-OVFL");
+      printf("-%e", checksum.value_max);
     }
     printf(" time %.6f", env.time);
     printf(" ops %e", env.ops);
