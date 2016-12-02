@@ -56,12 +56,13 @@ void GMMetrics_create(GMMetrics* metrics,
     return;
   }
 
+  GMInsist(env, Env_all2all(env) || Env_num_proc_repl(env) == 1
+          ? "multidim parallelism only available for all2all case" : 0);
+
   GMInsist(env,
            num_field % Env_num_proc_field(env) == 0
                ? "num_proc_field must exactly divide the total number of fields"
                : 0);
-  GMInsist(env, Env_all2all(env) || Env_num_proc_repl(env) == 1
-          ? "multidim parallelism only available for all2all case" : 0);
 
   int i = 0;
   int j = 0;
@@ -86,11 +87,10 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const int num_block = Env_num_block_vector(env);
 
-  size_t num_vector_bound = metrics->num_vector_local * (size_t)num_block;
-  num_vector_bound *= Env_num_proc_repl(env);
+  const size_t num_vector_bound = vectors->num_vector_local *
+                            (size_t)num_block * (size_t)Env_num_proc_repl(env);
   GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
-               ? "Vector count too large to store in 32-bit int."
-               : 0);
+    ? "Vector count too large to store in 32-bit int; please modify code." : 0);
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
@@ -611,12 +611,71 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   enum { num_way_max = GM_NUM_NUM_WAY + 1 };
 
-  GMAssertAlways(Env_num_way(env) <= num_way_max ? "This num_way not supported." : 0);
-
-  /*---Initializations---*/
+  GMAssertAlways(Env_num_way(env) <= num_way_max ?
+                 "This num_way not supported." : 0);
 
   typedef size_t UI64;
   GMStaticAssert(sizeof(UI64) == 8);
+
+  /*---Calculate the global largest value---*/
+
+  double value_max_this = 0;
+  UI64 index = 0;
+  for (index = 0; index < metrics->num_elts_local; ++index) {
+    /*---Loop over data values at this index---*/
+    int i_value = 0;
+    for (i_value = 0; i_value < metrics->data_type_num_values; ++i_value) {
+      /*---Pick up value of this metrics elt---*/
+      double value = 0;
+      switch (metrics->data_type_id) {
+        /*--------------------*/
+        case GM_DATA_TYPE_BITS1: {
+          GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_FLOAT: {
+          value = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_TALLY2X2: {
+          const int i0 = i_value / 2;
+          const int i1 = i_value % 2;
+          value = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_TALLY4X2: {
+          const int i0 = i_value / 4;
+          const int i1 = (i_value / 2) % 2;
+          const int i2 = i_value % 2;
+          value =
+              GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env);
+        } break;
+        /*--------------------*/
+        default:
+          GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      } /*---switch---*/
+      value_max_this = index==0 && i_value==0 ? value :
+                       value > value_max ? value : value_max_this;
+    }
+  }
+
+  int mpi_code = 0;
+  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+
+  mpi_code = MPI_Allreduce(&value_max_this, &result.value_max, 1,
+                           MPI_DOUBLE, MPI_MAX, Env_mpi_comm_vector(env));
+  GMAssertAlways(result.value_max >= 0);
+
+  /*---The largest we expect any value to be if using "special" inputs---*/
+  const int log2_value_max_allowed = 4;
+  const double value_max_allowed = 1 << log2_value_max_allowed;
+
+  result.is_overflowed = result.value_max > value_max_allowed;
+
+  const double scaling = result.is_overflowed ? result.value_max :
+                                                value_max_allowed;
+
+  /*---Calculate checksum---*/
 
   UI64 sums_l[16];
   int i = 0;
@@ -634,7 +693,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   UI64 coords[num_way_max];
   int ind_coords[num_way_max];
-  UI64 index = 0;
+
   for (index = 0; index < metrics->num_elts_local; ++index) {
     /*---Obtain global coords of metrics elt---*/
     for (i = 0; i < num_way_max; ++i) {
@@ -653,19 +712,8 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
     /*---Loop over data values at this index---*/
     int i_value = 0;
     for (i_value = 0; i_value < metrics->data_type_num_values; ++i_value) {
-      /*---Construct global id for metrics data vbalue---*/
-      UI64 uid = coords[0];
-      for (i = 1; i < Env_num_way(env); ++i) {
-        uid = uid * metrics->num_vector + coords[i];
-      }
-      uid = uid * metrics->data_type_num_values + i_value;
-      /*---Randomize---*/
-      const UI64 rand1 = gm_randomize(uid + 956158765);
-      const UI64 rand2 = gm_randomize(uid + 842467637);
-      UI64 rand_value = rand1 + gm_randomize_max() * rand2;
-      rand_value &= lohimask;
-      /*---Now pick up value of this metrics elt---*/
-      GMFloat value = 0;
+      /*---Pick up value of this metrics elt---*/
+      double value = 0;
       switch (metrics->data_type_id) {
         /*--------------------*/
         case GM_DATA_TYPE_BITS1: {
@@ -688,22 +736,6 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
           const int i0_unpermuted = i_value / 4;
           const int i1_unpermuted = (i_value / 2) % 2;
           const int i2_unpermuted = i_value % 2;
-          // FIX: make sure this permutation direction correct.
-
-
-
-#if 0
-          const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
-                         ind_coords[0] == 1 ? i1_unpermuted :
-                                              i2_unpermuted;
-          const int i1 = ind_coords[1] == 0 ? i0_unpermuted :
-                         ind_coords[1] == 1 ? i1_unpermuted :
-                                              i2_unpermuted;
-          const int i2 = ind_coords[2] == 0 ? i0_unpermuted :
-                         ind_coords[2] == 1 ? i1_unpermuted :
-                                              i2_unpermuted;
-#endif
-
           const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
                          ind_coords[1] == 0 ? i1_unpermuted :
                                               i2_unpermuted;
@@ -713,8 +745,6 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
           const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
                          ind_coords[1] == 2 ? i1_unpermuted :
                                               i2_unpermuted;
-
-
           value =
               GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env);
         } break;
@@ -723,10 +753,18 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
           GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
       } /*---switch---*/
       /*---Convert to integer.  Store only 2*w bits max---*/
-      const int log2_value_max = 4;
-      GMAssert(value >= 0);
-      GMAssert(value < (1 << log2_value_max));
-      UI64 ivalue = value * (one64 << (2 * w - log2_value_max));
+      UI64 ivalue = (value / scaling) * (one64 << (2 * w));
+      /*---Construct global id for metrics data vbalue---*/
+      UI64 uid = coords[0];
+      for (i = 1; i < Env_num_way(env); ++i) {
+        uid = uid * metrics->num_vector + coords[i];
+      }
+      uid = uid * metrics->data_type_num_values + i_value;
+      /*---Randomize---*/
+      const UI64 rand1 = gm_randomize(uid + 956158765);
+      const UI64 rand2 = gm_randomize(uid + 842467637);
+      UI64 rand_value = rand1 + gm_randomize_max() * rand2;
+      rand_value &= lohimask;
       /*---Multiply the two values---*/
       const UI64 a = rand_value;
       const UI64 alo = a & lomask;
@@ -750,10 +788,9 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       }
     } /*---for i_value---*/
   }   /*---for index---*/
+
   /*---Global sum---*/
   UI64 sums_g[16];
-  int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(sums_l, sums_g, 16, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            Env_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);

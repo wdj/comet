@@ -2616,8 +2616,6 @@ void gm_compute_czekanowski_3way_combine(
   GMAssertAlways(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
   GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
 
-  return; //FIX
-
   const int i_block = Env_proc_num_vector_i(env);
 
   const int numvecl = metrics->num_vector_local;
@@ -2707,8 +2705,6 @@ void gm_compute_ccc_3way_combine(
   GMAssertAlways(Env_proc_num_vector_i(env) != j_block || j_block == k_block);
   GMAssertAlways(Env_proc_num_vector_i(env) != k_block || j_block == k_block);
   GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
-
-  return; //FIX
 
   /*---Initializations---*/
 

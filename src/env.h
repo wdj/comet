@@ -77,8 +77,10 @@ enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
 typedef double GMFp64;
 
-static void gm_check_fp64() {
+static void gm_check_type_sizes() {
   GMStaticAssert(sizeof(GMFp64) == 64/8);
+  GMStaticAssert(sizeof(int) == 4);
+  GMStaticAssert(sizeof(size_t) == 8);
 }
 
 /*===========================================================================*/
@@ -332,7 +334,11 @@ GMMirroredPointer GMMirroredPointer_null(void);
 
 enum { GM_CHECKSUM_SIZE = 3 };
 
-typedef struct { size_t data[GM_CHECKSUM_SIZE]; } GMChecksum;
+typedef struct {
+  size_t data[GM_CHECKSUM_SIZE];
+  _Bool is_overflowed;
+  double value_max;
+} GMChecksum;
 
 /*---------------------------------------------------------------------------*/
 
@@ -342,6 +348,8 @@ static GMChecksum GMChecksum_null() {
   for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result.data[i] = 0;
   }
+  result.is_overflowed = GM_BOOL_FALSE;
+  result.value_max = 0;
   return result;
 }
 
@@ -353,6 +361,8 @@ static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
   for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result = result && c1.data[i] == c2.data[i];
   }
+  result = result && c1.is_overflowed == c2.is_overflowed;
+  result = result && c1.value_max == c2.value_max;
   return result;
 }
 

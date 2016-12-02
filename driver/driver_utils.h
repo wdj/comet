@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include <float.h>
 
 #include "mpi.h"
 
@@ -119,18 +120,37 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           rand2 = gm_randomize(rand2);
           rand2 = gm_randomize(rand2);
           rand2 = gm_randomize(rand2);
-          size_t rand_value = rand1 + gm_randomize_max() * rand2;
+          const size_t randomize_max = gm_randomize_max();
+          size_t rand_value = rand1 + randomize_max * rand2;
           /*---Reduce so that after summing num_field times the integer
-               still fully fits in double precision fraction part---*/
+               still exactly representable by floating point type---*/
+          const size_t rand_max = randomize_max * randomize_max;
+          GMAssertAlways(FLT_RADIX == 2);
+          const int mant_dig = sizeof(GMFloat) == 8 ? DBL_MANT_DIG :
+                                                      FLT_MANT_DIG;
+          const int shift_amount = gm_log2(rand_max * vectors->num_field) -
+                                   mant_dig;
+          rand_value >>= shift_amount > 0 ? shift_amount : 0;
+#if 0
           if (sizeof(GMFloat) == 8) {
-            rand_value >>= (64 - 52) + gm_log2(vectors->num_field);
+            const int shift_amount = (64 - 52) + gm_log2(vectors->num_field);
+            rand_value >>= shift_amount;
           } else {
-            rand_value >>= (gm_log2(rand_value) - 22)
+            const int shift_amount = gm_log2(rand_value*rand_value) - 22
               + gm_log2(vectors->num_field);
+
+
+            const int shift_amount = gm_log2(rand_max * vectors->num_field) -
+                                     mant_dig;
+            rand_value >>= shift_amount > 0 ? shift_amount : 0;
           }
+#endif
           /*---Store---*/
-          GMFloat value = rand_value;
-          GMVectors_float_set(vectors, fl, vector_local, value, env);
+          GMFloat float_value = (GMFloat)rand_value;
+          GMAssertAlways((size_t)float_value == rand_value);
+          GMAssertAlways(float_value * vectors->num_field <=
+                         ((size_t)1)<<mant_dig);
+          GMVectors_float_set(vectors, fl, vector_local, float_value, env);
           /*---Print---*/
           if (verbosity > 2) {
             printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
@@ -307,12 +327,14 @@ static void finish_parsing(int argc,
     if (strcmp(argv[i], "--num_field") == 0) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_field." : 0);
+//FIX: safe atoi
       *num_field = atoi(argv[i]);
       GMInsist(env, *num_field >= 0 ? "Invalid setting for num_field." : 0);
 
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_vector_local." : 0);
+//FIX: safe atoi
       *num_vector_local = atoi(argv[i]);
       GMInsist(env, *num_vector_local >= 0
                         ? "Invalid setting for num_vector_local."
@@ -320,6 +342,7 @@ static void finish_parsing(int argc,
     } else if (strcmp(argv[i], "--verbosity") == 0) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for verbosity." : 0);
+//FIX: safe atoi
       *verbosity = atoi(argv[i]);
       GMInsist(env, *verbosity >= 0 ? "Invalid setting for verbosity." : 0);
     } else if (strcmp(argv[i], "--metric_type") == 0) {
@@ -404,6 +427,9 @@ static GMChecksum perform_run(int argc, char** argv,
     for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
       printf("%s%li", i == 0 ? "" : "-",
              checksum.data[GM_CHECKSUM_SIZE - 1 - i]);
+    }
+    if (checksum.value_max) {
+      printf("-OVFL");
     }
     printf(" time %.6f", env.time);
     printf(" ops %e", env.ops);

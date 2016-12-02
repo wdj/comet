@@ -211,8 +211,6 @@ typedef struct {
   /*---Helper values---*/
   size_t index_offset_0_;
   size_t index_offset_01_;
-  //int block_num_offset_0_;
-  //int block_num_offset_01_;
   size_t index_offset_section_pt1_[6];
   size_t index_offset_section_pt2_[6];
   _Bool section_num_valid_pt1_[6];

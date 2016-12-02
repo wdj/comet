@@ -62,11 +62,10 @@ void GMVectors_create(GMVectors* vectors,
 
   const int num_block = Env_num_block_vector(env);
 
-  size_t num_vector_bound = vectors->num_vector_local * (size_t)num_block;
-  num_vector_bound *= Env_num_proc_repl(env);
+  const size_t num_vector_bound = vectors->num_vector_local * 
+                            (size_t)num_block * (size_t)Env_num_proc_repl(env);
   GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
-               ? "Vector count too large to store in 32-bit int."
-               : 0);
+    ? "Vector count too large to store in 32-bit int; please modify code." : 0);
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
@@ -118,6 +117,7 @@ void GMVectors_create(GMVectors* vectors,
 
   /*---Allocation for vector storage---*/
 
+  GMAssertAlways(vectors->num_bits_per_packedval % bits_per_byte == 0):
   vectors->data = malloc(vectors->num_packedval_local *
                          (vectors->num_bits_per_packedval / bits_per_byte));
   GMAssertAlways(vectors->data != NULL);
@@ -147,11 +147,11 @@ void GMVectors_create(GMVectors* vectors,
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
-      int vector_local;
       if (vectors->num_field_local > 0) {
         const int packedval_field_local =
             vectors->num_packedval_field_local - 1;
         GMBits2x64 zero = GMBits2x64_null();
+        int vector_local = 0;
         for (vector_local = 0; vector_local < num_vector_local;
              ++vector_local) {
           GMVectors_bits2x64_set(vectors, packedval_field_local, vector_local,

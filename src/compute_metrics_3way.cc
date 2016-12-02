@@ -210,6 +210,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   MPI_Request mpi_request_send_k;
   MPI_Request mpi_request_recv_k;
 
+  /*---Counter for quantum of work: 1/6 section of a block, or full block---*/
   int section_block_num = 0;
 
   int index_j_comm = 0;
@@ -223,6 +224,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectorSums_compute(&vector_sums_i, vectors_i, env);
 
   /*---Copy in vectors---*/
+//FIX - change arg order
   gm_vectors_to_buf(vectors_i, &vectors_i_buf, env);
 
   /*---Send vectors to GPU---*/
@@ -230,7 +232,6 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   gm_set_vectors_wait(env);
 
   int section_step = 0;
-
   for (section_step=0; section_step<GMEnv_num_section_steps(env, 1);
        ++section_step) {
     if (section_block_num % num_proc_r == proc_num_r) {
@@ -247,6 +248,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
         have_unprocessed_section_block = GM_BOOL_FALSE;
       }
 
+      /*---Remember processing to do next time---*/
       vectors_j_prev = vectors_i;
       vectors_k_prev = vectors_i;
       vectors_j_buf_prev = &vectors_i_buf;
@@ -313,6 +315,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
         /*---Denominator---*/
         GMVectorSums_compute(&vector_sums_j, vectors_j_this, env);
 
+        /*---Remember processing to do next time---*/
         vectors_j_prev = vectors_j_this;
         vectors_k_prev = vectors_j_prev;
         vectors_j_buf_prev = &vectors_j_buf;
@@ -333,7 +336,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Part 3 Computation: block sections---*/
   /*------------------------*/
 
-  int k_block_part3_prev = -1;
+  int k_block_currently_resident = -1;
 
   for (section_step=0; section_step<GMEnv_num_section_steps(env, 3);
        ++section_step) {
@@ -365,8 +368,12 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                        (j_i_block_delta == k_i_block_delta));
         if (section_block_num % num_proc_r == proc_num_r) {
 
-          const _Bool do_k_comm = k_block != k_block_part3_prev;
+          const _Bool do_k_comm = k_block != k_block_currently_resident;
 
+//FIX - more exhaustive tests of repl
+//FIX - consistent use of pointers; ? name things "alias"
+//FIX - make _this vars local scope; maybe others e.g. mpi_request
+//BUT - vectors_k_this may need to persist ...
           if (do_k_comm) {
             /*---Communicate vectors start---*/
             vectors_k_this = vectors_k[index_k_comm];
@@ -401,6 +408,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
             /*---Communicate vectors wait---*/
             gm_send_vectors_wait(&mpi_request_send_k, env);
             gm_recv_vectors_wait(&mpi_request_recv_k, env);
+            k_block_currently_resident = k_block;
 
             /*---Copy in vectors---*/
             gm_vectors_to_buf(vectors_k_this, &vectors_k_buf, env);
@@ -409,14 +417,16 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
             gm_set_vectors_start(vectors_k_this, &vectors_k_buf, env);
             gm_set_vectors_wait(env);
 
+//FIX - maybe overlap denom with send vecs to gpu
             /*---Denominator---*/
             GMVectorSums_compute(&vector_sums_k, vectors_k_this, env);
 
+//FIX - does this go here or later - perhaps doesn't matter
+            /*---Remember processing to do next time---*/
             vectors_k_prev = vectors_k_this;
             vectors_k_buf_prev = &vectors_k_buf;
             vector_sums_k_prev = &vector_sums_k;
             k_block_prev = k_block;
-            k_block_part3_prev = k_block;
           }
 
           /*---Communicate vectors wait---*/
@@ -433,6 +443,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
           /*---Denominator---*/
           GMVectorSums_compute(&vector_sums_j, vectors_j_this, env);
 
+          /*---Remember processing to do next time---*/
           vectors_j_prev = vectors_j_this;
           vectors_j_buf_prev = &vectors_j_buf;
           vector_sums_j_prev = &vector_sums_j;
@@ -462,6 +473,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
     have_unprocessed_section_block = GM_BOOL_FALSE;
   }
 
+//FIX - convert this to documentation
 #if 0
 
 Possible plan for setting up async comm
