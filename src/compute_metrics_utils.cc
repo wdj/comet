@@ -216,8 +216,8 @@ void gm_get_metrics_wait(GMMetrics* metrics,
 /*===========================================================================*/
 /*---CPU-GPU transfer buffer manipulation---*/
 
-void gm_vectors_to_buf(GMVectors* vectors,
-                       GMMirroredPointer* vectors_buf,
+void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
+                       GMVectors* vectors,
                        GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(vectors_buf != NULL);

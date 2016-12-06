@@ -127,7 +127,7 @@ void gm_compute_metrics_czekanowski_2way_gpu(GMMetrics* metrics,
   /*---Copy in vectors---*/
 
   /* .08 / 1.56 */
-  gm_vectors_to_buf(vectors, &vectors_buf, env);
+  gm_vectors_to_buf(&vectors_buf, vectors, env);
 
   /*---Send vectors to GPU---*/
 

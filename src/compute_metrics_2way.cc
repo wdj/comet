@@ -69,7 +69,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   /*---Copy in vectors---*/
 
   /* .08 / 1.56 */
-  gm_vectors_to_buf(vectors, &vectors_buf, env);
+  gm_vectors_to_buf(&vectors_buf, vectors, env);
 
   /*---Send vectors to GPU---*/
 
@@ -310,7 +310,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---First step: send (left) vecs to GPU---*/
 
     if (is_first_compute_step) {
-      gm_vectors_to_buf(vectors_left, vectors_left_buf, env);
+      gm_vectors_to_buf(vectors_left_buf, vectors_left, env);
       gm_set_vectors_start(vectors_left, vectors_left_buf, env);
       gm_set_vectors_wait(env);
     }
@@ -381,7 +381,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Send right vectors for next step to GPU start---*/
 
     if (is_compute_step_next && do_compute_block_next) {
-      gm_vectors_to_buf(vectors_right_next, vectors_right_buf_next, env);
+      gm_vectors_to_buf(vectors_right_buf_next, vectors_right_next, env);
       gm_set_vectors_start(vectors_right_next, vectors_right_buf_next, env);
     }
 

@@ -489,7 +489,7 @@ void SystemTest_ccc2_simple_() {
 
 /*===========================================================================*/
 
-void SystemTest_ccc3_simple_case(int compute_method) {
+void SystemTest_ccc3_simple_compute_method(int compute_method) {
   const int num_field = 10;
   const int num_vector_local = 3;
 
@@ -623,9 +623,9 @@ void SystemTest_ccc3_simple_case(int compute_method) {
 /*===========================================================================*/
 
 void SystemTest_ccc3_simple_() {
-  SystemTest_ccc3_simple_case(GM_COMPUTE_METHOD_REF);
-  SystemTest_ccc3_simple_case(GM_COMPUTE_METHOD_CPU);
-  SystemTest_ccc3_simple_case(GM_COMPUTE_METHOD_GPU);
+  SystemTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_REF);
+  SystemTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_CPU);
+  SystemTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 /*===========================================================================*/

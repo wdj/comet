@@ -55,8 +55,8 @@ void gm_get_metrics_wait(GMMetrics* metrics,
 
 /*----------*/
 
-void gm_vectors_to_buf(GMVectors* vectors,
-                       GMMirroredPointer* vectors_buf,
+void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
+                       GMVectors* vectors,
                        GMEnv* env);
 
 /*----------*/
