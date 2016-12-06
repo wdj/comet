@@ -14,11 +14,11 @@ cd gm_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
 git checkout -q tags/v0.4   #---use currently active release tag.
-for magma_version in minproduct tally3 tally4; do
-  cd genomics_gpu/magma/magma_${magma_version}-1.6.2
-  ../make.sh
-  cd ../../..
-done
+#for magma_version in minproduct tally3 tally4; do
+#  cd genomics_gpu/magma/magma_${magma_version}-1.6.2
+#  ../make.sh
+#  cd ../../..
+#done
 mkdir build_debug
 cd build_debug
 env BUILD_TYPE=Debug ../genomics_gpu/scripts/cmake.sh

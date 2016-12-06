@@ -104,21 +104,33 @@ if [ "$TESTING" = ON ] ; then
 fi
 
 #==============================================================================
+#---Build magma variants.
+
+MAGMA_DIR=$PWD/magma
+cp -rp $PROJECT_DIR/magma $MAGMA_DIR
+
+for magma_version in magma_minproduct magma_tally3 magma_tally4 ; do
+  pushd $MAGMA_DIR/$magma_version
+  ../make.sh
+  popd
+done
+
+#==============================================================================
 #---Perform cmake.
 
 C_CXX_FLAGS="             -DFP_PRECISION_$FP_PRECISION -DADD_"
-C_CXX_FLAGS="$C_CXX_FLAGS -I$PROJECT_DIR/magma/magma_minproduct/include"
-C_CXX_FLAGS="$C_CXX_FLAGS -I$PROJECT_DIR/magma/magma_tally4/include"
-C_CXX_FLAGS="$C_CXX_FLAGS -I$PROJECT_DIR/magma/magma_tally3/include"
+C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_minproduct/include"
+C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally4/include"
+C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally3/include"
 C_CXX_FLAGS="$C_CXX_FLAGS $CRAY_CUDATOOLKIT_INCLUDE_OPTS"
 
 C_FLAGS_RELEASE="-DNDEBUG -O3 -ffast-math -fargument-noalias-anything"
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -finline-functions"
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-limit=1000 -fomit-frame-pointer"
 
-LFLAGS="-L$PROJECT_DIR/magma/magma_minproduct/lib -lmagma_minproduct"
-LFLAGS="$LFLAGS -L$PROJECT_DIR/magma/magma_tally4/lib -lmagma_tally4"
-LFLAGS="$LFLAGS -L$PROJECT_DIR/magma/magma_tally3/lib -lmagma_tally3"
+LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
+LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
+LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally3/lib -lmagma_tally3"
 LFLAGS="$LFLAGS $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas"
 LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
 
