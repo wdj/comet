@@ -153,7 +153,8 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     int section_step,
     GMEnv* env);
 
-void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
+void gm_compute_numerators_3way_gpu_start(
+    GMVectors* vectors_i,
     GMVectors* vectors_j,
     GMVectors* vectors_k,
     GMMetrics* numerators,
@@ -168,7 +169,8 @@ void gm_compute_numerators_3way_gpu_start(GMVectors* vectors_i,
     int section_step,
     GMEnv* env);
 
-void gm_compute_numerators_3way_start(GMVectors* vectors_i,
+void gm_compute_numerators_3way_start(
+    GMVectors* vectors_i,
     GMVectors* vectors_j,
     GMVectors* vectors_k,
     GMMetrics* numerators,
@@ -182,37 +184,6 @@ void gm_compute_numerators_3way_start(GMVectors* vectors_i,
     GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env);
-
-/*----------*/
-
-#if 0
-void gm_compute_czekanowski_3way_combine(GMMetrics* metrics,
-    GMFloat* __restrict__ vector_sums_i,
-    GMFloat* __restrict__ vector_sums_j,
-    GMFloat* __restrict__ vector_sums_k,
-    int j_proc,
-    int k_proc,
-    int section_step,
-    GMEnv* env);
-
-void gm_compute_ccc_3way_combine(GMMetrics* metrics,
-    GMFloat* __restrict__ vector_sums_i,
-    GMFloat* __restrict__ vector_sums_j,
-    GMFloat* __restrict__ vector_sums_k,
-    int j_proc,
-    int k_proc,
-    int section_step,
-    GMEnv* env);
-
-void gm_compute_3way_combine(GMMetrics* metrics,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
-    int j_proc,
-    int k_proc,
-    int section_step,
-    GMEnv* env);
-#endif
 
 /*===========================================================================*/
 

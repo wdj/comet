@@ -593,7 +593,7 @@ void gm_magma_gemm_start(magma_minproduct_int_t m,
 }
 
 /*---------------------------------------------------------------------------*/
-/*---Wait for any computation on the GPU top complete---*/
+/*---Wait for any computation on the GPU to complete---*/
 
 void gm_compute_wait(GMEnv* env) {
   GMAssertAlways(env != NULL);
