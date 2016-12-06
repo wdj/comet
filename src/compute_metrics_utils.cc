@@ -2253,10 +2253,10 @@ void gm_compute_numerators_3way_gpu_start(
     GMMirroredPointer* matB_buf_ptr;
   } LoopVars;
 
-  LoopVars vars;
-  LoopVars vars_prev;
-  LoopVars vars_prevprev;
-  LoopVars vars_next;
+  LoopVars vars = {0};
+  LoopVars vars_prev = {0};
+  LoopVars vars_prevprev = {0};
+  LoopVars vars_next = {0};
   vars.do_compute = GM_BOOL_FALSE;
   vars_prev.do_compute = GM_BOOL_FALSE;
   vars_prevprev.do_compute = GM_BOOL_FALSE;
