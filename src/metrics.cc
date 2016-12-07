@@ -617,6 +617,12 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
   typedef size_t UI64;
   GMStaticAssert(sizeof(UI64) == 8);
 
+  switch (metrics->data_type_id) {
+    case GM_DATA_TYPE_FLOAT: {
+      GMFloat_check((GMFloat*)(metrics->data), metrics->num_elts_local);
+    } break;
+  }
+
   /*---Calculate the global largest value---*/
 
   double value_max_this = 0;

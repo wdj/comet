@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include <math.h>
 
 #ifdef TESTING
 #include "gtest/gtest.h"
@@ -487,8 +488,39 @@ _Bool GMEnv_cuda_last_call_succeeded(GMEnv const * const env) {
 GMFloat* GMFloat_malloc(size_t n) {
   GMFloat* result = (GMFloat*)malloc(n * sizeof(GMFloat));
   GMAssertAlways(result != NULL);
-  //TODO: in debug case, fill with NANs
+  GMFloat_fill_nan(result, n);
   return result;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void GMFloat_fill_nan(GMFloat* const a, size_t n) {
+  GMAssertAlways(a != NULL);
+  GMAssertAlways(n+1 >= 1);
+#ifdef GM_ASSERTIONS_ON
+  GMFloat value = sqrt(-1);
+  size_t i = 0;
+  for (i=0; i<n; ++i) {
+    a[i] = value;
+  }
+#endif
+}
+
+/*---------------------------------------------------------------------------*/
+
+void GMFloat_check(GMFloat* const a, size_t n) {
+  GMAssertAlways(a != NULL);
+  GMAssertAlways(n+1 >= 1);
+#ifdef GM_ASSERTIONS_ON
+  _Bool no_nans_found = GM_BOOL_TRUE;
+  size_t i = 0;
+  for (i=0; i<n; ++i) {
+    if (a[i] != a[i]) {
+      no_nans_found = GM_BOOL_FALSE;
+    }
+  }
+  GMAssertAlways(no_nans_found);
+#endif
 }
 
 //TODO: GMInt_malloc ...

@@ -715,6 +715,9 @@ _Bool GMEnv_cuda_last_call_succeeded(GMEnv const * const env);
 
 GMFloat* GMFloat_malloc(size_t n);
 
+void GMFloat_fill_nan(GMFloat* const a, size_t n);
+void GMFloat_check(GMFloat* const a, size_t n);
+
 /*---------------------------------------------------------------------------*/
 /*---NOTE: the following does not specialize based on part1/2/3---*/
 

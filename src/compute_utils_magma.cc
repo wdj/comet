@@ -211,6 +211,7 @@ GMMirroredPointer gm_malloc_magma(size_t n, GMEnv* env) {
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_smalloc_pinned." : 0);
 #endif
+    GMFloat_fill_nan((GMFloat*)p.h, n);
 
 #ifdef FP_PRECISION_DOUBLE
     magma_code = magma_minproduct_dmalloc((GMFloat**)&p.d, n);
