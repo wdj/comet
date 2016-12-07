@@ -24,12 +24,13 @@ extern "C" {
 
 MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int proc_num,
+                                  int mpi_tag,
                                   GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
   GMAssertAlways(proc_num >= 0 && proc_num < Env_num_proc_vector_total(env));
 
-  const int mpi_tag = 0;
+  //const int mpi_tag = 0;
   MPI_Request mpi_request;
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
@@ -56,12 +57,13 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
 
 MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   int proc_num,
+                                  int mpi_tag,
                                   GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
   GMAssertAlways(proc_num >= 0 && proc_num < Env_num_proc_vector_total(env));
 
-  const int mpi_tag = 0;
+  //const int mpi_tag = 0;
   MPI_Request mpi_request;
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/

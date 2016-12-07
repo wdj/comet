@@ -22,9 +22,11 @@ extern "C" {
 
 /*===========================================================================*/
 
-MPI_Request gm_send_vectors_start(GMVectors* vectors, int proc_num, GMEnv* env);
+MPI_Request gm_send_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
+                                  GMEnv* env);
 
-MPI_Request gm_recv_vectors_start(GMVectors* vectors, int proc_num, GMEnv* env);
+MPI_Request gm_recv_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
+                                  GMEnv* env);
 
 void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env);
 

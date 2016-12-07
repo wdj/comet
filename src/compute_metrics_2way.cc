@@ -303,8 +303,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Initiate sends/recvs for vecs needed on next step---*/
 
     if (is_compute_step_next && !comm_with_self) {
-      mpi_requests[0] = gm_send_vectors_start(vectors_left, proc_send, env);
-      mpi_requests[1] = gm_recv_vectors_start(vectors_right_next, proc_recv, env);
+      const int mpi_tag = step_num + 1;
+      mpi_requests[0] = gm_send_vectors_start(vectors_left, proc_send,
+                                              mpi_tag, env);
+      mpi_requests[1] = gm_recv_vectors_start(vectors_right_next, proc_recv,
+                                              mpi_tag, env);
     }
 
     /*---First step: send (left) vecs to GPU---*/

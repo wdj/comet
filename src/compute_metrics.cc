@@ -17,8 +17,6 @@
 #include "compute_metrics_2way.cc"
 #include "compute_metrics_3way.cc"
 #include "compute_metrics_sorenson.h"
-//#include "compute_metrics_czekanowski_2way.h"
-//#include "compute_metrics_czekanowski_3way.h"
 #include "compute_metrics_ccc.h"
 #include "compute_metrics.h"
 
