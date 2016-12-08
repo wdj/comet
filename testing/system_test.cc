@@ -14,12 +14,12 @@
 
 #include "gtest/gtest.h"
 
-#include "env.h"
-#include "vectors.h"
-#include "metrics.h"
-#include "compute_metrics.h"
+#include "env.hh"
+#include "vectors.hh"
+#include "metrics.hh"
+#include "compute_metrics.hh"
 
-#include "driver_utils.h"
+#include "driver_utils.hh"
 
 enum {PROCS_MAX = 64};
 

@@ -1,19 +1,19 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   compute_metrics.h
+ * \file   compute_metrics_ccc.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Functions for computing metrics, header.
+ * \brief  Functions for computing CCC metrics, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 /*---------------------------------------------------------------------------*/
 
-#ifndef _compute_metrics_h_
-#define _compute_metrics_h_
+#ifndef _gm_compute_metrics_ccc_hh_
+#define _gm_compute_metrics_ccc_hh_
 
-#include "env.h"
-#include "vectors.h"
-#include "metrics.h"
+#include "env.hh"
+#include "vectors.hh"
+#include "metrics.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,7 +21,13 @@ extern "C" {
 
 /*===========================================================================*/
 
-void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
+void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
+                                     GMVectors* vectors,
+                                     GMEnv* env);
+
+void gm_compute_metrics_ccc_3way_gpu(GMMetrics* metrics,
+                                     GMVectors* vectors,
+                                     GMEnv* env);
 
 /*===========================================================================*/
 
@@ -31,6 +37,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
 
 /*===========================================================================*/
 
-#endif /*---_compute_metrics_h---*/
+#endif /*---_gm_compute_metrics_ccc_hh---*/
 
 /*---------------------------------------------------------------------------*/

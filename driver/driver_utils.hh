@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   driver_utils.h
+ * \file   driver_utils.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Main driver code utilitiy functions.
@@ -8,8 +8,8 @@
  */
 /*---------------------------------------------------------------------------*/
 
-#ifndef _driver_utils_h_
-#define _driver_utils_h_
+#ifndef _gm_driver_utils_hh_
+#define _gm_driver_utils_hh_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,10 +19,10 @@
 
 #include "mpi.h"
 
-#include "env.h"
-#include "vectors.h"
-#include "metrics.h"
-#include "compute_metrics.h"
+#include "env.hh"
+#include "vectors.hh"
+#include "metrics.hh"
+#include "compute_metrics.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -458,6 +458,6 @@ static GMChecksum perform_run(int argc, char** argv,
 
 /*===========================================================================*/
 
-#endif /*---_driver_utils_h_---*/
+#endif /*---_gm_driver_utils_hh_---*/
 
 /*---------------------------------------------------------------------------*/

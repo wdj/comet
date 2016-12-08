@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   env.h
+ * \file   env.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Environment settings and general utilities, header.
@@ -11,8 +11,8 @@
 /*=============================================================================
 =============================================================================*/
 
-#ifndef _env_h_
-#define _env_h_
+#ifndef _gm_env_hh_
+#define _gm_env_hh_
 
 #include <stddef.h>
 #include <assert.h>
@@ -736,6 +736,6 @@ static int GMEnv_num_section_steps(GMEnv const * const env, int part_num) {
 
 /*===========================================================================*/
 
-#endif /*---_env_h_---*/
+#endif /*---_gm_env_hh_---*/
 
 /*---------------------------------------------------------------------------*/

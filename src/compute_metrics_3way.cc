@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   compute_metrics_3way.c
+ * \file   compute_metrics_3way.cc
  * \author Wayne Joubert
  * \date   Thu Jan 21 19:07:47 EST 2016
  * \brief  Functions for computing 3-way metrics.
@@ -8,13 +8,14 @@
  */
 /*---------------------------------------------------------------------------*/
 
-#include "env.h"
-#include "vector_sums.h"
-#include "vectors.h"
-#include "metrics.h"
-#include "compute_utils_magma.h"
-#include "compute_metrics_utils.h"
-#include "compute_metrics_3way.h"
+#include "env.hh"
+#include "vector_sums.hh"
+#include "vectors.hh"
+#include "metrics.hh"
+#include "compute_utils_linalg.hh"
+#include "compute_metrics_utils.hh"
+#include "compute_metrics_utils_3way.hh"
+#include "compute_metrics_3way.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,7 +42,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   /*---Numerator---*/
   /*---------------*/
 
-  gm_magma_initialize(env);
+  gm_linalg_initialize(env);
 
   const int numvecl = vectors->num_vector_local;
   const int numpfieldl = vectors->num_packedval_field_local;
@@ -49,13 +50,13 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   /*---Allocate magma CPU memory for vectors and for result */
 
   GMMirroredPointer vectors_buf =
-      gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
 
   GMMirroredPointer metrics_buf =
-      gm_malloc_magma(numvecl * (size_t)numvecl, env);
+      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
 
   GMMirroredPointer metrics_buf_tmp =
-      gm_malloc_magma(numvecl * (size_t)numvecl, env);
+      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
 
   GMMirroredPointer* metrics_buf_local =
       Env_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
@@ -98,11 +99,11 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   GMVectorSums_destroy(&vector_sums, env);
 
-  gm_free_magma(&vectors_buf, env);
-  gm_free_magma(&metrics_buf, env);
-  gm_free_magma(&metrics_buf_tmp, env);
+  gm_linalg_free(&vectors_buf, env);
+  gm_linalg_free(&metrics_buf, env);
+  gm_linalg_free(&metrics_buf_tmp, env);
 
-  gm_magma_finalize(env);
+  gm_linalg_finalize(env);
 }
 
 /*===========================================================================*/
@@ -117,7 +118,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   /*---Initializations---*/
 
-  gm_magma_initialize(env);
+  gm_linalg_initialize(env);
 
   const int numvecl = metrics->num_vector_local;
   const int numpfieldl = vectors->num_packedval_field_local;
@@ -148,7 +149,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors* vectors_i = vectors;
 
   GMMirroredPointer vectors_i_buf_value =
-      gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
   GMMirroredPointer* const vectors_i_buf = &vectors_i_buf_value;
 
   /*------------------------*/
@@ -166,7 +167,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors_create(vectors_j[1], data_type, vectors->num_field, numvecl, env);
 
   GMMirroredPointer vectors_j_buf_value =
-      gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
   GMMirroredPointer* const vectors_j_buf = &vectors_j_buf_value;
 
   /*------------------------*/
@@ -184,7 +185,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors_create(vectors_k[1], data_type, vectors->num_field, numvecl, env);
 
   GMMirroredPointer vectors_k_buf_value =
-      gm_malloc_magma(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
   GMMirroredPointer* const vectors_k_buf = &vectors_k_buf_value;
 
   /*------------------------*/
@@ -497,11 +498,11 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectorSums_destroy(vector_sums_j, env);
   GMVectorSums_destroy(vector_sums_i, env);
 
-  gm_free_magma(vectors_k_buf, env);
-  gm_free_magma(vectors_j_buf, env);
-  gm_free_magma(vectors_i_buf, env);
+  gm_linalg_free(vectors_k_buf, env);
+  gm_linalg_free(vectors_j_buf, env);
+  gm_linalg_free(vectors_i_buf, env);
 
-  gm_magma_finalize(env);
+  gm_linalg_finalize(env);
 }
 
 /*---------------------------------------------------------------------------*/

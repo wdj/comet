@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   compute_metrics_ccc.c
+ * \file   compute_metrics_ccc.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Functions for computing CCC metrics.
@@ -10,12 +10,12 @@
 
 #include <stdlib.h>
 
-#include "env.h"
-#include "vectors.h"
-#include "vector_sums.h"
-#include "metrics.h"
-#include "compute_metrics_2way.h"
-#include "compute_metrics_ccc.h"
+#include "env.hh"
+#include "vectors.hh"
+#include "vector_sums.hh"
+#include "metrics.hh"
+#include "compute_metrics_2way.hh"
+#include "compute_metrics_ccc.hh"
 
 #ifdef __cplusplus
 extern "C" {

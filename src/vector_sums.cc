@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   vector_sums.c
+ * \file   vector_sums.cc
  * \author Wayne Joubert
  * \date   Sat Oct 24 10:48:32 EDT 2015
  * \brief  Per-vector computed quantities.
@@ -10,9 +10,9 @@
 
 #include <stdlib.h>
 
-#include "env.h"
-#include "vector_sums.h"
-#include "vectors.h"
+#include "env.hh"
+#include "vector_sums.hh"
+#include "vectors.hh"
 
 #ifdef __cplusplus
 extern "C" {

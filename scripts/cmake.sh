@@ -107,12 +107,19 @@ fi
 #---Build magma variants.
 
 MAGMA_DIR=$PWD/magma
-cp -rp $PROJECT_DIR/magma $MAGMA_DIR
+if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
+  cp -rp $PROJECT_DIR/magma $MAGMA_DIR
+  touch $MAGMA_DIR/copy_is_complete
+fi
 
 for magma_version in magma_minproduct magma_tally3 magma_tally4 ; do
-  pushd $MAGMA_DIR/$magma_version
-  ../make.sh
-  popd
+  MAGMA_SUBDIR=$MAGMA_DIR/$magma_version
+  if [ ! -e $MAGMA_SUBDIR/build_is_complete ] ; then
+    pushd $MAGMA_SUBDIR
+    ../make.sh
+    popd
+    touch $MAGMA_SUBDIR/build_is_complete
+  fi
 done
 
 #==============================================================================

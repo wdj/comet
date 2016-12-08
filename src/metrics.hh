@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   metrics.h
+ * \file   metrics.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Metrics pseudo-class, header.
@@ -13,12 +13,12 @@
 
 =============================================================================*/
 
-#ifndef _metrics_h_
-#define _metrics_h_
+#ifndef _gm_metrics_hh_
+#define _gm_metrics_hh_
 
 #include <stddef.h>
 
-#include "env.h"
+#include "env.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -1441,6 +1441,6 @@ static int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 
 /*===========================================================================*/
 
-#endif /*---_metrics_h_---*/
+#endif /*---_gm_metrics_hh_---*/
 
 /*---------------------------------------------------------------------------*/

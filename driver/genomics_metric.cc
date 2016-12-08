@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   genomics_metric.c
+ * \file   genomics_metric.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Main driver code for genomics metric calculation.
@@ -15,12 +15,12 @@
 
 #include "mpi.h"
 
-#include "env.h"
-#include "vectors.h"
-#include "metrics.h"
-#include "compute_metrics.h"
+#include "env.hh"
+#include "vectors.hh"
+#include "metrics.hh"
+#include "compute_metrics.hh"
 
-#include "driver_utils.h"
+#include "driver_utils.hh"
 
 #ifdef __cplusplus
 extern "C" {

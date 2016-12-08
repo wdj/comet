@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   env.c
+ * \file   env.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Environment settings and general utilities.
@@ -27,7 +27,7 @@
 #include "mpi.h"
 #include "cuda.h"
 
-#include "env.h"
+#include "env.hh"
 
 /*---------------------------------------------------------------------------*/
 

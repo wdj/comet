@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   vector_sums.h
+ * \file   vector_sums.hh
  * \author Wayne Joubert
  * \date   Sat Oct 24 10:48:32 EDT 2015
  * \brief  Per-vector computed quantities, header.
@@ -8,11 +8,11 @@
  */
 /*---------------------------------------------------------------------------*/
 
-#ifndef _vector_sums_h_
-#define _vector_sums_h_
+#ifndef _gm_vector_sums_hh_
+#define _gm_vector_sums_hh_
 
-#include "env.h"
-#include "vectors.h"
+#include "env.hh"
+#include "vectors.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,6 +68,6 @@ void GMVectorSums_compute(GMVectorSums* vector_sums,
 
 /*===========================================================================*/
 
-#endif /*---_vector_sums_h---*/
+#endif /*---_gm_vector_sums_hh_---*/
 
 /*---------------------------------------------------------------------------*/

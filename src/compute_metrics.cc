@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   compute_metrics.c
+ * \file   compute_metrics.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Functions for computing metrics.
@@ -11,14 +11,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "env.h"
-#include "vectors.h"
-#include "metrics.h"
+#include "env.hh"
+#include "vectors.hh"
+#include "metrics.hh"
 #include "compute_metrics_2way.cc"
 #include "compute_metrics_3way.cc"
-#include "compute_metrics_sorenson.h"
-#include "compute_metrics_ccc.h"
-#include "compute_metrics.h"
+#include "compute_metrics_ccc.hh"
+#include "compute_metrics.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,19 +51,22 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                             GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_sorenson_2way_ref(metrics, vectors, env);
+      //gm_compute_metrics_sorenson_2way_ref(metrics, vectors, env);
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_sorenson_2way_cpu(metrics, vectors, env);
+      //gm_compute_metrics_sorenson_2way_cpu(metrics, vectors, env);
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
                             GM_NUM_COMPUTE_METHOD * (2)):
-      gm_compute_metrics_sorenson_2way_gpu(metrics, vectors, env);
+      //gm_compute_metrics_sorenson_2way_gpu(metrics, vectors, env);
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     /*--------------------*/
@@ -72,19 +74,22 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                             GM_NUM_COMPUTE_METHOD * (3)):
-      gm_compute_metrics_sorenson_3way_ref(metrics, vectors, env);
+      //gm_compute_metrics_sorenson_3way_ref(metrics, vectors, env);
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (3)):
-      gm_compute_metrics_sorenson_3way_cpu(metrics, vectors, env);
+      //gm_compute_metrics_sorenson_3way_cpu(metrics, vectors, env);
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
                             GM_NUM_COMPUTE_METHOD * (3)):
-      gm_compute_metrics_sorenson_3way_gpu(metrics, vectors, env);
+      //gm_compute_metrics_sorenson_3way_gpu(metrics, vectors, env);
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     /*====================*/
@@ -98,7 +103,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
       }
     } break;
 
@@ -109,7 +113,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_czekanowski_2way_cpu(metrics, vectors, env);
       }
     } break;
 
@@ -120,7 +123,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_czekanowski_2way_gpu(metrics, vectors, env);
       }
     } break;
 
@@ -133,7 +135,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
       }
     } break;
 
@@ -144,7 +145,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_czekanowski_3way_cpu(metrics, vectors, env);
       }
     } break;
 
@@ -155,7 +155,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_czekanowski_3way_gpu(metrics, vectors, env);
       }
     } break;
 

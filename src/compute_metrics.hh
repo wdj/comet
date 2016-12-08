@@ -1,28 +1,29 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   compute_metrics_czekanowski_2way.h
+ * \file   compute_metrics.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Functions for computing 2-way Czekanowski metrics, header.
+ * \brief  Functions for computing metrics, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 /*---------------------------------------------------------------------------*/
 
-#ifndef _compute_metrics_czekanowski_2way_h_
-#define _compute_metrics_czekanowski_2way_h_
+#ifndef _gm_compute_metrics_hh_
+#define _gm_compute_metrics_hh_
 
-#include "env.h"
-#include "vectors.h"
-#include "metrics.h"
+#include "env.hh"
+#include "vectors.hh"
+#include "metrics.hh"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*===========================================================================*/
 
+void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
 
-
-
+/*===========================================================================*/
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
@@ -30,6 +31,6 @@ extern "C" {
 
 /*===========================================================================*/
 
-#endif /*---_compute_metrics_czekanowski_2way_h_---*/
+#endif /*---_gm_compute_metrics_hh_---*/
 
 /*---------------------------------------------------------------------------*/

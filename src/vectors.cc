@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   vectors.c
+ * \file   vectors.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Vectors pseudo-class.
@@ -13,8 +13,8 @@
 
 #include "mpi.h"
 
-#include "env.h"
-#include "vectors.h"
+#include "env.hh"
+#include "vectors.hh"
 
 #ifdef __cplusplus
 extern "C" {

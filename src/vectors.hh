@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   vectors.h
+ * \file   vectors.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Vectors pseudo-class, header.
@@ -13,10 +13,10 @@
 
 =============================================================================*/
 
-#ifndef _vectors_h_
-#define _vectors_h_
+#ifndef _gm_vectors_hh_
+#define _gm_vectors_hh_
 
-#include "env.h"
+#include "env.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -332,22 +332,6 @@ static _Bool GMVectors_bit_get(GMVectors* const vectors,
   return result;
 }
 
-#if 0
-/*---------------------------------------------------------------------------*/
-
-static _Bool GMVectors_bit_get_from_index(GMVectors* const vectors,
-                                          size_t index,
-                                          GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(index >= 0);
-  GMAssert(index < vectors->num_vector_local*(size_t)vectors->num_field_local);
-  GMAssert(env);
-
-  return GMVectors_bit_get(vectors, index % vectors->num_field_local,
-                           index / vectors->num_field_local, env);
-}
-#endif
-
 /*===========================================================================*/
 
 #ifdef __cplusplus
@@ -356,6 +340,6 @@ static _Bool GMVectors_bit_get_from_index(GMVectors* const vectors,
 
 /*===========================================================================*/
 
-#endif /*---_vectors_h_---*/
+#endif /*---_gm_vectors_hh_---*/
 
 /*---------------------------------------------------------------------------*/

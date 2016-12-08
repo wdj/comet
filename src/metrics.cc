@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   metrics.c
+ * \file   metrics.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Metrics pseudo-class.
@@ -14,8 +14,8 @@
 
 #include "mpi.h"
 
-#include "env.h"
-#include "metrics.h"
+#include "env.hh"
+#include "metrics.hh"
 
 #ifdef __cplusplus
 extern "C" {

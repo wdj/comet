@@ -20,31 +20,29 @@ SET(LIB_SOURCES
   src/vectors.cc
   src/vector_sums.cc
   src/metrics.cc
-  src/compute_utils_magma.cc
+  src/compute_utils_linalg.cc
   src/compute_metrics.cc
   src/compute_metrics_utils.cc
+  src/compute_metrics_utils_2way.cc
+  src/compute_metrics_utils_3way.cc
   src/compute_metrics_2way.cc
   src/compute_metrics_3way.cc
   src/compute_metrics_ccc.cc
-  src/compute_metrics_czekanowski_2way.cc
-  src/compute_metrics_czekanowski_3way.cc
-  src/compute_metrics_sorenson.cc
   )
 
 SET(LIB_INCLUDES
-  src/env.h
-  src/vectors.h
-  src/vector_sums.h
-  src/metrics.h
-  src/compute_utils_magma.h
-  src/compute_metrics.h
-  src/compute_metrics_utils.h
-  src/compute_metrics_2way.h
-  src/compute_metrics_3way.h
-  src/compute_metrics_ccc.h
-  src/compute_metrics_czekanowski_2way.h
-  src/compute_metrics_czekanowski_3way.h
-  src/compute_metrics_sorenson.h
+  src/env.hh
+  src/vectors.hh
+  src/vector_sums.hh
+  src/metrics.hh
+  src/compute_utils_linalg.hh
+  src/compute_metrics.hh
+  src/compute_metrics_utils.hh
+  src/compute_metrics_utils_2way.hh
+  src/compute_metrics_utils_3way.hh
+  src/compute_metrics_2way.hh
+  src/compute_metrics_3way.hh
+  src/compute_metrics_ccc.hh
   )
 
 #--------------------
@@ -89,7 +87,8 @@ if(TESTING)
     TARGET_LINK_LIBRARIES(${test_target} ${CMAKE_EXE_LINKER_FLAGS})
     TARGET_LINK_LIBRARIES(${test_target} "-L${GTEST_DIR}/lib -lgtest")
 
-    add_test(${test_target} env CRAY_CUDA_PROXY=1 aprun -n64 ${CMAKE_CURRENT_BINARY_DIR}/${test_target})
+    #add_test(${test_target} env CRAY_CUDA_PROXY=1 aprun -n64 ${CMAKE_CURRENT_BINARY_DIR}/${test_target})
+    add_test(${test_target} bash -c "cd ${CMAKE_INSTALL_PREFIX} ; env CRAY_CUDA_PROXY=1 aprun -n64 ${CMAKE_CURRENT_BINARY_DIR}/${test_target}")
   endforeach(test_target)
 endif(TESTING) 
 
