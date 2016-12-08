@@ -33,7 +33,7 @@ static int rr_pack_(int i, int n, int m) {
 
 GMMetrics GMMetrics_null() {
   GMMetrics result;
-  memset((void*)&result, 0, sizeof(GMMetrics));
+  memset((void*)&result, 0, sizeof(result));
   return result;
 }
 
