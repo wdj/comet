@@ -131,11 +131,11 @@ C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally4/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally3/include"
 C_CXX_FLAGS="$C_CXX_FLAGS $CRAY_CUDATOOLKIT_INCLUDE_OPTS"
 
-C_FLAGS_RELEASE="-DNDEBUG -O3 -ffast-math -fargument-noalias-anything"
-C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -finline-functions"
-C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-limit=1000 -fomit-frame-pointer"
+C_FLAGS_RELEASE="                 -DNDEBUG -O3 -ffast-math -fomit-frame-pointer"
+C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-functions -finline-limit=1000"
+C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -fargument-noalias-anything"
 
-LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
+LFLAGS="        -L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally3/lib -lmagma_tally3"
 LFLAGS="$LFLAGS $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas"
@@ -159,21 +159,22 @@ time cmake \
   -DC_AND_CXX_FLAGS:STRING="$C_CXX_FLAGS" \
  \
   -DCMAKE_C_FLAGS:STRING="-std=c99 -Wall -Wno-unused-function -pedantic -Werror" \
-  -DCMAKE_C_FLAGS_DEBUG:STRING="-g -DGM_ASSERT -ftrapv" \
+  -DCMAKE_C_FLAGS_DEBUG:STRING="-g -ftrapv" \
   -DCMAKE_C_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \
   -DCMAKE_CXX_FLAGS:STRING="-Wall -Wno-unused-function -Werror" \
-  -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -DGM_ASSERT -ftrapv" \
+  -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -ftrapv" \
   -DCMAKE_CXX_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \
   -DCMAKE_EXE_LINKER_FLAGS:STRING="$LFLAGS" \
  \
-  -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v" \
-  -DCUDA_HOST_COMPILER:STRING=/usr/bin/gcc \
-  -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON \
   -DTESTING:BOOL=$TESTING \
   -DGTEST_DIR:STRING=$GTEST_DIR \
  \
   $PROJECT_DIR
+
+#  -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v" \
+#  -DCUDA_HOST_COMPILER:STRING=/usr/bin/gcc \
+#  -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON \
 
 #==============================================================================

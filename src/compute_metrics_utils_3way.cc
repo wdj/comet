@@ -142,6 +142,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
           GMFloat numerator = 0;
           int f = 0;
           for (f = 0; f < numfieldl; ++f) {
+//FIX aliasing
             const GMFloat val1 = GMVectors_float_get(vectors_i, f, i, env);
             const GMFloat val2 = GMVectors_float_get(vectors_j, f, j, env);
             const GMFloat val3 = GMVectors_float_get(vectors_k, f, k, env);
@@ -263,6 +264,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
           GMTally4x2 sum = GMTally4x2_null();
           int f = 0;
           for (f = 0; f < numfieldl; ++f) {
+//FIX aliasing
             const GMBits2 value_i = GMVectors_bits2_get(vectors_i, f, i, env);
             const GMBits2 value_j = GMVectors_bits2_get(vectors_j, f, j, env);
             const GMBits2 value_k = GMVectors_bits2_get(vectors_k, f, k, env);
@@ -419,6 +421,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
 
             /*---Extract input values to process---*/
 
+//FIX aliasing
             const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, f, i, env);
             const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, f, j, env);
             const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, f, k, env);
