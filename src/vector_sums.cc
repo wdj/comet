@@ -110,7 +110,7 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
   GMAssertAlways(env != NULL);
 
   const int num_proc = GMEnv_num_proc_field(env);
-  GMFloat* __restrict__ vector_sums_local =
+  GMFloat* vector_sums_local =
       num_proc == 1 ? vector_sums : vector_sums_tmp;
 
   int i = 0;
@@ -149,7 +149,7 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
   GMAssertAlways(env != NULL);
 
   const int num_proc = GMEnv_num_proc_field(env);
-  GMFloat* __restrict__ vector_sums_local =
+  GMFloat* vector_sums_local =
       num_proc == 1 ? vector_sums : vector_sums_tmp;
 
   /*----------*/

@@ -125,17 +125,17 @@ done
 #==============================================================================
 #---Perform cmake.
 
-C_CXX_FLAGS="             -DFP_PRECISION_$FP_PRECISION -DADD_"
+C_CXX_FLAGS="-DFP_PRECISION_$FP_PRECISION -DADD_"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_minproduct/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally4/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally3/include"
 C_CXX_FLAGS="$C_CXX_FLAGS $CRAY_CUDATOOLKIT_INCLUDE_OPTS"
 
-C_FLAGS_RELEASE="                 -DNDEBUG -O3 -ffast-math -fomit-frame-pointer"
+C_FLAGS_RELEASE="-DNDEBUG -O3 -ffast-math -fomit-frame-pointer"
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-functions -finline-limit=1000"
-C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -fargument-noalias-anything"
+#C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -fargument-noalias-anything"
 
-LFLAGS="        -L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
+LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally3/lib -lmagma_tally3"
 LFLAGS="$LFLAGS $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas"

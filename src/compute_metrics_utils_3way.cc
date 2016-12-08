@@ -73,12 +73,9 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  /*---TODO: address aliasing---*/
-  GMFloat* __restrict__ vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
-  GMFloat* __restrict__ vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
-  GMFloat* __restrict__ vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
-
-  //---ISSUE: are there aliasing issues with vectors_i/j/k
+  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
+  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
+  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && !GMEnv_all2all(env)) {
@@ -142,7 +139,6 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
           GMFloat numerator = 0;
           int f = 0;
           for (f = 0; f < numfieldl; ++f) {
-//FIX aliasing
             const GMFloat val1 = GMVectors_float_get(vectors_i, f, i, env);
             const GMFloat val2 = GMVectors_float_get(vectors_j, f, j, env);
             const GMFloat val3 = GMVectors_float_get(vectors_k, f, k, env);
@@ -229,10 +225,9 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   int j = 0;
   int k = 0;
 
-  /*---TODO: address aliasing---*/
-  GMFloat* __restrict__ vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
-  GMFloat* __restrict__ vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
-  GMFloat* __restrict__ vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
+  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
+  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
+  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
@@ -264,7 +259,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
           GMTally4x2 sum = GMTally4x2_null();
           int f = 0;
           for (f = 0; f < numfieldl; ++f) {
-//FIX aliasing
             const GMBits2 value_i = GMVectors_bits2_get(vectors_i, f, i, env);
             const GMBits2 value_j = GMVectors_bits2_get(vectors_j, f, j, env);
             const GMBits2 value_k = GMVectors_bits2_get(vectors_k, f, k, env);
@@ -421,7 +415,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
 
             /*---Extract input values to process---*/
 
-//FIX aliasing
             const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, f, i, env);
             const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, f, j, env);
             const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, f, k, env);
@@ -792,10 +785,9 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 
   const _Bool is_part3 = si->is_part3;
 
-  /*---TODO: address aliasing---*/
-  GMFloat* __restrict__ vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
-  GMFloat* __restrict__ vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
-  GMFloat* __restrict__ vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
+  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
+  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
+  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
 
   const size_t numvecl64 = (size_t)numvecl;
   const size_t I_max64 = (size_t)I_max;

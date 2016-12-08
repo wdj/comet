@@ -506,8 +506,8 @@ void gm_compute_czekanowski_2way_combine(
 
 void gm_compute_ccc_2way_combine(GMMetrics* metrics,
                                  GMMirroredPointer* metrics_buf,
-                                 GMFloat* __restrict__ vector_sums_left,
-                                 GMFloat* __restrict__ vector_sums_right,
+                                 GMFloat* vector_sums_left,
+                                 GMFloat* vector_sums_right,
                                  int j_block,
                                  _Bool do_compute_triang_only,
                                  GMEnv* env) {
