@@ -31,19 +31,19 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   GMAssertAlways(env != NULL);
 
 #ifdef FP_PRECISION_SINGLE
-  GMInsist(env, Env_metric_type(env) != GM_METRIC_TYPE_CCC ? 
+  GMInsist(env, GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC ? 
     "CCC metric currently not functional under single precision build." : 0);
 #endif
 
-  if (!Env_is_proc_active(env)) {
+  if (!GMEnv_is_proc_active(env)) {
     return;
   }
 
   double time_begin = GMEnv_get_synced_time(env);
 
-  switch (Env_metric_type(env) +
-          GM_NUM_METRIC_TYPE * (Env_compute_method(env) +
-                                GM_NUM_COMPUTE_METHOD * (Env_num_way(env)))) {
+  switch (GMEnv_metric_type(env) +
+          GM_NUM_METRIC_TYPE * (GMEnv_compute_method(env) +
+                                GM_NUM_COMPUTE_METHOD * (GMEnv_num_way(env)))) {
     /*====================*/
     /*---Sorenson---*/
     /*====================*/
@@ -99,7 +99,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                             GM_NUM_COMPUTE_METHOD * (2)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
@@ -109,7 +109,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (2)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
@@ -119,7 +119,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
                             GM_NUM_COMPUTE_METHOD * (2)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
@@ -131,7 +131,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                             GM_NUM_COMPUTE_METHOD * (3)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
@@ -141,7 +141,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (3)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
@@ -151,7 +151,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CZEKANOWSKI +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
                             GM_NUM_COMPUTE_METHOD * (3)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
@@ -165,7 +165,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CCC +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                             GM_NUM_COMPUTE_METHOD * (2)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
@@ -176,7 +176,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CCC +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (2)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
@@ -187,7 +187,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CCC +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
                             GM_NUM_COMPUTE_METHOD * (2)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
@@ -200,7 +200,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CCC +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                             GM_NUM_COMPUTE_METHOD * (3)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
@@ -211,7 +211,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CCC +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (3)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
@@ -222,7 +222,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_CCC +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
                             GM_NUM_COMPUTE_METHOD * (3)): {
-      if (Env_all2all(env)) {
+      if (GMEnv_all2all(env)) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
@@ -243,18 +243,18 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   /*---Compute a (global) operation count - total work done on all procs---*/
 
   /* clang-format off */
-  env->ops += (Env_num_way(env) == GM_NUM_WAY_2 && ! Env_all2all(env))
-            ?    Env_num_proc_vector_i(env) * 1. *
+  env->ops += (GMEnv_num_way(env) == GM_NUM_WAY_2 && ! GMEnv_all2all(env))
+            ?    GMEnv_num_proc_vector_i(env) * 1. *
                  vectors->num_vector_local * 1. *
                  (vectors->num_vector_local - 1) * (1./2.) *
                  vectors->num_field
-            : (Env_num_way(env) == GM_NUM_WAY_3 && ! Env_all2all(env))
-            ?    Env_num_proc_vector_i(env) * 1. *
+            : (GMEnv_num_way(env) == GM_NUM_WAY_3 && ! GMEnv_all2all(env))
+            ?    GMEnv_num_proc_vector_i(env) * 1. *
                  vectors->num_vector_local * 1. *
                  (vectors->num_vector_local - 1) * 1. *
                  (vectors->num_vector_local - 2) * (1./6.) *
                  vectors->num_field
-            : (Env_num_way(env) == GM_NUM_WAY_2 && Env_all2all(env))
+            : (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env))
             ?    vectors->num_vector * 1. *
                  (vectors->num_vector - 1) * (1./2.) *
                  vectors->num_field

@@ -58,11 +58,11 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-  if (!Env_is_proc_active(env)) {
+  if (!GMEnv_is_proc_active(env)) {
     return;
   }
 
-  switch (Env_data_type_vectors(env)) {
+  switch (GMEnv_data_type_vectors(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_BITS1: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
@@ -73,13 +73,13 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
            ++vector_local) {
         size_t vector =
             vector_local +
-            vectors->num_vector_local * (size_t)Env_proc_num_vector_i(env);
+            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         int field_local;
         for (field_local = 0; field_local < vectors->num_field_local;
              ++field_local) {
           size_t field =
               field_local +
-              vectors->num_field_local * (size_t)Env_proc_num_field(env);
+              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
           /*---compute element unique id---*/
           const size_t uid = field + vectors->num_field * vector;
           size_t index = uid;
@@ -105,11 +105,11 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
            ++vector_local) {
         size_t vector =
             vector_local +
-            vectors->num_vector_local * (size_t)Env_proc_num_vector_i(env);
+            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         int fl = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)Env_proc_num_field(env);
+              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
           /*---Compute element unique id---*/
           const size_t uid = field + vectors->num_field * vector;
           /*---Generate large random number---*/
@@ -154,8 +154,8 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           /*---Print---*/
           if (verbosity > 2) {
             printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-                   Env_proc_num_vector_i(env), vector_local,
-                   Env_proc_num_field(env), fl, float_value);
+                   GMEnv_proc_num_vector_i(env), vector_local,
+                   GMEnv_proc_num_field(env), fl, float_value);
           }
         } /*---field---*/
       }   /*---vector_local---*/
@@ -167,11 +167,11 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
            ++vector_local) {
         size_t vector =
             vector_local +
-            vectors->num_vector_local * (size_t)Env_proc_num_vector_i(env);
+            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         int fl;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)Env_proc_num_field(env);
+              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
           /*---Compute element unique id---*/
           const size_t uid = field + vectors->num_field * vector;
           size_t index = uid;
@@ -187,8 +187,8 @@ static void input_vectors(GMVectors* vectors, int verbosity, GMEnv* env) {
           /*---Print---*/
           if (verbosity > 2) {
             printf("vec_proc %i vec %i field_proc %i field %i value %.1i%.1i\n",
-                   Env_proc_num_vector_i(env), vector_local,
-                   Env_proc_num_field(env), fl, value / 2, value % 2);
+                   GMEnv_proc_num_vector_i(env), vector_local,
+                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
           }
         } /*---field---*/
       }   /*---vector_local---*/
@@ -206,16 +206,16 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(env != NULL);
 
-  if (!Env_is_proc_active(env)) {
+  if (!GMEnv_is_proc_active(env)) {
     return;
   }
 
   /*---Due to redundancy, only results from some processors are needed---*/
-  if (Env_proc_num_field(env) != 0) {
+  if (GMEnv_proc_num_field(env) != 0) {
     return;
   }
 
-  switch (Env_data_type_metrics(env)) {
+  switch (GMEnv_data_type_metrics(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_BITS1: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
@@ -228,7 +228,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
         /*---Coordinate---*/
         printf("element (");
         int coord_num = 0;
-        for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
+        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
           if (coord_num > 0) {
             printf(",");
           }
@@ -240,7 +240,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
         printf("): value:");
         printf(" %.17e",
                GMMetrics_czekanowski_get_from_index(metrics, index, env));
-        printf("    [from proc %i]\n", Env_proc_num(env));
+        printf("    [from proc %i]\n", GMEnv_proc_num(env));
       } /*---for index---*/
     } break;
     /*--------------------*/
@@ -250,7 +250,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
         /*---Coordinate---*/
         printf("element (");
         int coord_num = 0;
-        for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
+        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
           if (coord_num > 0) {
             printf(",");
           }
@@ -268,7 +268,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
                    GMMetrics_ccc_get_from_index_2(metrics, index, i, j, env));
           }
         }
-        printf("    [from proc %i]\n", Env_proc_num(env));
+        printf("    [from proc %i]\n", GMEnv_proc_num(env));
       } /*---for index---*/
     } break;
     /*--------------------*/
@@ -278,7 +278,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
         /*---Coordinate---*/
         printf("element (");
         int coord_num = 0;
-        for (coord_num = 0; coord_num < Env_num_way(env); ++coord_num) {
+        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
           if (coord_num > 0) {
             printf(",");
           }
@@ -299,7 +299,7 @@ static void output_metrics(GMMetrics* metrics, GMEnv* env) {
             }
           }
         }
-        printf("    [from proc %i]\n", Env_proc_num(env));
+        printf("    [from proc %i]\n", GMEnv_proc_num(env));
       } /*---for index---*/
     } break;
     /*--------------------*/
@@ -360,7 +360,7 @@ static void finish_parsing(int argc,
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else {
-      if (Env_proc_num(env) == 0) {
+      if (GMEnv_proc_num(env) == 0) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
       }
       GMInsist(env, GM_BOOL_FALSE ? "Error: argument not recognized." : 0);
@@ -396,7 +396,7 @@ static GMChecksum perform_run(int argc, char** argv,
   /*---Initialize vectors---*/
 
   GMVectors vectors = GMVectors_null();
-  GMVectors_create(&vectors, Env_data_type_vectors(&env), num_field,
+  GMVectors_create(&vectors, GMEnv_data_type_vectors(&env), num_field,
                    num_vector_local, &env);
 
   input_vectors(&vectors, verbosity, &env);
@@ -404,7 +404,7 @@ static GMChecksum perform_run(int argc, char** argv,
   /*---Set up metrics container for results---*/
 
   GMMetrics metrics = GMMetrics_null();
-  GMMetrics_create(&metrics, Env_data_type_metrics(&env), num_field,
+  GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env), num_field,
                    num_vector_local, &env);
 
   /*---Calculate metrics---*/
@@ -421,7 +421,7 @@ static GMChecksum perform_run(int argc, char** argv,
 
   checksum = GMMetrics_checksum(&metrics, &env);
 
-  if (Env_is_proc_active(&env) && Env_proc_num(&env) == 0 && verbosity > 0) {
+  if (GMEnv_is_proc_active(&env) && GMEnv_proc_num(&env) == 0 && verbosity > 0) {
     printf("metrics checksum ");
     int i = 0;
     for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {

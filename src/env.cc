@@ -59,7 +59,7 @@ void gm_insist(void const * const env,
                const char* condition_string,
                const char* file,
                int line) {
-  if (Env_proc_num((GMEnv const * const)env) == 0) {
+  if (GMEnv_proc_num((GMEnv const * const)env) == 0) {
     fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Interface error",
             condition_string, file, line);
   }
@@ -105,14 +105,14 @@ void GMEnv_create(GMEnv* const env, char const * const description) {
   mpi_code = MPI_Comm_size(MPI_COMM_WORLD, &env->num_proc_world_);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 
-  Env_set_num_proc(env, env->num_proc_world_, 1, 1);
+  GMEnv_set_num_proc(env, env->num_proc_world_, 1, 1);
 
   /*---Set default values---*/
   env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
   env->num_way_ = GM_NUM_WAY_2;
   env->all2all_ = GM_BOOL_FALSE;
   env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
-  Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
+  GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
 
   env->time = 0;
   env->ops = 0;
@@ -156,7 +156,7 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
                             env->num_way_ == GM_NUM_WAY_3
                         ? "Invalid setting for num_way."
                         : 0);
-      Env_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
+      GMEnv_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
                        env->num_proc_field_);
       /*----------*/
     } else if (strcmp(argv[i], "--all2all") == 0) {
@@ -176,11 +176,11 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
       ++i;
       GMInsist(env, i < argc ? "Missing value for compute_method." : 0);
       if (strcmp(argv[i], "CPU") == 0) {
-        Env_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
+        GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
       } else if (strcmp(argv[i], "GPU") == 0) {
-        Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
+        GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
       } else if (strcmp(argv[i], "REF") == 0) {
-        Env_set_compute_method(env, GM_COMPUTE_METHOD_REF);
+        GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_REF);
       } else {
         GMInsist(env,
                  GM_BOOL_FALSE ? "Invalid setting for compute_method." : 0);
@@ -192,7 +192,7 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
       GMInsist(env, i < argc ? "Missing value for num_proc_vector." : 0);
 //FIX: safe atoi
       const int num_proc_vector_i = atoi(argv[i]);
-      Env_set_num_proc(env, num_proc_vector_i, env->num_proc_repl_,
+      GMEnv_set_num_proc(env, num_proc_vector_i, env->num_proc_repl_,
                        env->num_proc_field_);
       /*----------*/
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
@@ -201,7 +201,7 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
       GMInsist(env, i < argc ? "Missing value for num_proc_field." : 0);
 //FIX: safe atoi
       const int num_proc_field = atoi(argv[i]);
-      Env_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
+      GMEnv_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
                        num_proc_field);
       /*----------*/
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
@@ -210,7 +210,7 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
       GMInsist(env, i < argc ? "Missing value for num_proc_repl." : 0);
 //FIX: safe atoi
       const int num_proc_repl = atoi(argv[i]);
-      Env_set_num_proc(env, env->num_proc_vector_i_, num_proc_repl,
+      GMEnv_set_num_proc(env, env->num_proc_vector_i_, num_proc_repl,
                        env->num_proc_field_);
       /*----------*/
     } /*---if/else---*/
@@ -287,7 +287,7 @@ void GMEnv_destroy(GMEnv* const env) {
 /*===========================================================================*/
 /*---Accessors---*/
 
-void Env_set_compute_method(GMEnv* const env, int compute_method) {
+void GMEnv_set_compute_method(GMEnv* const env, int compute_method) {
   GMAssertAlways(env != NULL);
   GMAssertAlways(compute_method >= 0);
   GMAssertAlways(compute_method < GM_NUM_COMPUTE_METHOD);
@@ -297,7 +297,7 @@ void Env_set_compute_method(GMEnv* const env, int compute_method) {
 
 /*---------------------------------------------------------------------------*/
 
-int Env_data_type_vectors(GMEnv const * const env) {
+int GMEnv_data_type_vectors(GMEnv const * const env) {
   GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
@@ -314,7 +314,7 @@ int Env_data_type_vectors(GMEnv const * const env) {
 
 /*---------------------------------------------------------------------------*/
 
-int Env_data_type_metrics(GMEnv const * const env) {
+int GMEnv_data_type_metrics(GMEnv const * const env) {
   GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
@@ -332,7 +332,7 @@ int Env_data_type_metrics(GMEnv const * const env) {
 
 /*---------------------------------------------------------------------------*/
 
-void Env_set_num_proc(GMEnv* const env, int num_proc_vector_i,
+void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
                       int num_proc_repl, int num_proc_field) {
   GMAssertAlways(env != NULL);
   GMAssertAlways(num_proc_vector_i > 0);
@@ -398,7 +398,7 @@ void Env_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
 /*---------------------------------------------------------------------------*/
 
-cudaStream_t Env_stream_compute(GMEnv* const env) {
+cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
   GMAssertAlways(env != NULL);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
@@ -409,7 +409,7 @@ cudaStream_t Env_stream_compute(GMEnv* const env) {
 
 /*---------------------------------------------------------------------------*/
 
-cudaStream_t Env_stream_togpu(GMEnv* const env) {
+cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
   GMAssertAlways(env != NULL);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
@@ -420,7 +420,7 @@ cudaStream_t Env_stream_togpu(GMEnv* const env) {
 
 /*---------------------------------------------------------------------------*/
 
-cudaStream_t Env_stream_fromgpu(GMEnv* const env) {
+cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
   GMAssertAlways(env != NULL);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
@@ -451,7 +451,7 @@ double GMEnv_get_synced_time(GMEnv const * const env) {
   cudaThreadSynchronize();
   */
 
-  if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaDeviceSynchronize();
     GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
   }
@@ -459,7 +459,7 @@ double GMEnv_get_synced_time(GMEnv const * const env) {
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  mpi_code = MPI_Barrier(Env_mpi_comm(env));
+  mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
   return GMEnv_get_time(env);
 }

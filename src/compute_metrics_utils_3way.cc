@@ -45,14 +45,14 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   GMAssertAlways(vectors_j_buf != NULL);
   GMAssertAlways(vectors_k_buf != NULL);
   GMAssertAlways(env != NULL);
-  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssertAlways(!(Env_proc_num_vector_i(env) == j_block &&
-                   Env_proc_num_vector_i(env) != k_block));
-  GMAssertAlways(!(Env_proc_num_vector_i(env) == k_block &&
-                   Env_proc_num_vector_i(env) != j_block));
-  GMAssertAlways(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
-  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == j_block &&
+                   GMEnv_proc_num_vector_i(env) != k_block));
+  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
+                   GMEnv_proc_num_vector_i(env) != j_block));
+  GMAssertAlways(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMAssertAlways(vector_sums_i != NULL);
   GMAssertAlways(vector_sums_j != NULL);
   GMAssertAlways(vector_sums_k != NULL);
@@ -62,7 +62,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   const int numvecl = metrics->num_vector_local;
   const int numfieldl = vectors_i->num_field_local;
 
-  const int i_block = Env_proc_num_vector_i(env);
+  const int i_block = GMEnv_proc_num_vector_i(env);
 
   int i = 0;
   int j = 0;
@@ -81,10 +81,10 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   //---ISSUE: are there aliasing issues with vectors_i/j/k
 
   /*----------------------------------------*/
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU && !Env_all2all(env)) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && !GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsist(env, Env_num_proc_field(env) == 1
+    GMInsist(env, GMEnv_num_proc_field(env) == 1
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -121,10 +121,10 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     }
 
     /*----------------------------------------*/
-  } else if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, Env_num_proc_field(env) == 1
+    GMInsist(env, GMEnv_num_proc_field(env) == 1
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -162,7 +162,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     }
 
     /*----------------------------------------*/
-  } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
     GMAssertAlways(GM_BOOL_FALSE
@@ -200,14 +200,14 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   GMAssertAlways(vectors_j_buf != NULL);
   GMAssertAlways(vectors_k_buf != NULL);
   GMAssertAlways(env != NULL);
-  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssertAlways(!(Env_proc_num_vector_i(env) == j_block &&
-                   Env_proc_num_vector_i(env) != k_block));
-  GMAssertAlways(!(Env_proc_num_vector_i(env) == k_block &&
-                   Env_proc_num_vector_i(env) != j_block));
-  GMAssertAlways(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU);
-  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == j_block &&
+                   GMEnv_proc_num_vector_i(env) != k_block));
+  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
+                   GMEnv_proc_num_vector_i(env) != j_block));
+  GMAssertAlways(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMAssertAlways(vector_sums_i != NULL);
   GMAssertAlways(vector_sums_j != NULL);
   GMAssertAlways(vector_sums_k != NULL);
@@ -217,7 +217,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   //const int numvecl = metrics->num_vector_local;
   const int numfieldl = vectors_i->num_field_local;
 
-  const int i_block = Env_proc_num_vector_i(env);
+  const int i_block = GMEnv_proc_num_vector_i(env);
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
@@ -234,23 +234,23 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   GMFloat* __restrict__ vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
 
   /*----------------------------------------*/
-  if (Env_compute_method(env) == GM_COMPUTE_METHOD_REF) {
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsist(env, Env_num_proc_field(env) == 1
+    GMInsist(env, GMEnv_num_proc_field(env) == 1
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
     const int j_min = si->j_lb;
     const int j_max = si->j_ub;
     for (j = j_min; j < j_max; ++j) {
-      const GMTally1 sj_1 = (si->is_part1 || !Env_all2all(env)) ?
+      const GMTally1 sj_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
                             (GMTally1)(vector_sums_i_[j]) :
                             (GMTally1)(vector_sums_j_[j]);
       const int k_min = GMSectionInfo_k_min(si, j, env);
       const int k_max = si->k_ub;
       for (k = k_min; k < k_max; ++k) {
-        const GMTally1 sk_1 = (si->is_part1 || !Env_all2all(env)) ?
+        const GMTally1 sk_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
                               (GMTally1)(vector_sums_i_[k]) :
                               si->is_part2 ?
                               (GMTally1)(vector_sums_j_[k]) :
@@ -349,7 +349,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             sum.data[2] += GMTally1_encode(r100, r101);
             sum.data[3] += GMTally1_encode(r110, r111);
           } /*---for f---*/
-          if (Env_all2all(env)) {
+          if (GMEnv_all2all(env)) {
             GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                              sum, env);
             GMMetrics_float3_M_set_all2all_3(metrics, i, j, k, j_block, k_block,
@@ -363,10 +363,10 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     }     /*---for k---*/
 
     /*----------------------------------------*/
-  } else if (Env_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
+  } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, Env_num_proc_field(env) == 1
+    GMInsist(env, GMEnv_num_proc_field(env) == 1
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -392,13 +392,13 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     const int j_min = si->j_lb;
     const int j_max = si->j_ub;
     for (j = j_min; j < j_max; ++j) {
-      const GMTally1 sj_1 = (si->is_part1 || !Env_all2all(env)) ?
+      const GMTally1 sj_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
                             (GMTally1)(vector_sums_i_[j]) :
                             (GMTally1)(vector_sums_j_[j]);
       const int k_min = GMSectionInfo_k_min(si, j, env);
       const int k_max = si->k_ub;
       for (k = k_min; k < k_max; ++k) {
-        const GMTally1 sk_1 = (si->is_part1 || !Env_all2all(env)) ?
+        const GMTally1 sk_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
                               (GMTally1)(vector_sums_i_[k]) :
                               si->is_part2 ?
                               (GMTally1)(vector_sums_j_[k]) :
@@ -601,7 +601,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             sum.data[2] += GMTally1_encode(r100, r101);
             sum.data[3] += GMTally1_encode(r110, r111);
           } /*---for f---*/
-          if (Env_all2all(env)) {
+          if (GMEnv_all2all(env)) {
             GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                              sum, env);
             GMMetrics_float3_M_set_all2all_3(metrics, i, j, k, j_block, k_block,
@@ -617,7 +617,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
     GMAssertAlways(GM_BOOL_FALSE
@@ -650,7 +650,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
   /*--------------------*/
 
   /*----------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
     /*----------*/
     int I = 0;
     for (I = I_min; I < I_max; ++I) {
@@ -663,7 +663,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
       }  //---for f---//
     }    //---for i---//
     /*----------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC) {
     /*----------*/
     int I = 0;
     for (I = I_min; I < I_max; ++I) {
@@ -758,7 +758,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
       }  //---for f---//
     }    //---for i---//
     /*----------*/
-  } /*---Env_metric_type(env)---*/
+  } /*---GMEnv_metric_type(env)---*/
   /*----------*/
 }
 
@@ -802,7 +802,7 @@ void gm_compute_numerators_3way_gpu_form_metrics(
   /*--------------------*/
 
   /*----------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI && !Env_all2all(env)) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI && !GMEnv_all2all(env)) {
     /*----------*/
 
     int I = 0;
@@ -825,8 +825,8 @@ void gm_compute_numerators_3way_gpu_form_metrics(
       } /*---for K---*/
     }   /*---for I---*/
     /*----------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI &&
-      Env_all2all(env)) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI &&
+      GMEnv_all2all(env)) {
     /*----------*/
 
     int I = 0;
@@ -864,8 +864,8 @@ void gm_compute_numerators_3way_gpu_form_metrics(
       } /*---for K---*/
     }   /*---for I---*/
     /*----------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             !Env_all2all(env)) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             !GMEnv_all2all(env)) {
     /*----------*/
     int I = 0;
     for (I = I_min; I < I_max; ++I) {
@@ -932,8 +932,8 @@ void gm_compute_numerators_3way_gpu_form_metrics(
       } /*---for K---*/
     }   /*---for I---*/
     /*----------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_all2all(env)) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_all2all(env)) {
     /*----------*/
     int I = 0;
     for (I = I_min; I < I_max; ++I) {
@@ -1090,7 +1090,7 @@ void gm_compute_numerators_3way_gpu_form_metrics(
     /*----------*/
     GMAssertAlways(GM_BOOL_FALSE);
     /*----------*/
-  } /*---Env_metric_type(env)---*/
+  } /*---GMEnv_metric_type(env)---*/
   /*----------*/
 }
 
@@ -1120,14 +1120,14 @@ void gm_compute_numerators_3way_gpu_start(
   GMAssertAlways(vectors_j_buf != NULL);
   GMAssertAlways(vectors_k_buf != NULL);
   GMAssertAlways(env != NULL);
-  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssertAlways(!(Env_proc_num_vector_i(env) == j_block &&
-                   Env_proc_num_vector_i(env) != k_block));
-  GMAssertAlways(!(Env_proc_num_vector_i(env) == k_block &&
-                   Env_proc_num_vector_i(env) != j_block));
-  GMAssertAlways(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
-  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == j_block &&
+                   GMEnv_proc_num_vector_i(env) != k_block));
+  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
+                   GMEnv_proc_num_vector_i(env) != j_block));
+  GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMAssertAlways(vector_sums_i != NULL);
   GMAssertAlways(vector_sums_j != NULL);
   GMAssertAlways(vector_sums_k != NULL);
@@ -1143,9 +1143,9 @@ void gm_compute_numerators_3way_gpu_start(
   const size_t metrics_buf_size = numvecl * (size_t)numvecl;
   const size_t vectors_buf_size = numvecl * (size_t)numpfieldl;
 
-  const int i_block = Env_proc_num_vector_i(env);
+  const int i_block = GMEnv_proc_num_vector_i(env);
 
-  const _Bool need_2way = Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
+  const _Bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
@@ -1172,7 +1172,7 @@ void gm_compute_numerators_3way_gpu_start(
 
   if (need_2way) {
     GMMirroredPointer* matM_ij_buf_local =
-        Env_num_proc_field(env) == 1 ? matM_ij_buf : mat_buf_tmp[0];
+        GMEnv_num_proc_field(env) == 1 ? matM_ij_buf : mat_buf_tmp[0];
 
     gm_linalg_set_matrix_zero_start(matM_ij_buf_local, numvecl, numvecl, env);
 
@@ -1185,11 +1185,11 @@ void gm_compute_numerators_3way_gpu_start(
     gm_linalg_get_matrix_start(matM_ij_buf_local, numvecl, numvecl, env);
     gm_linalg_get_matrix_wait(env);
 
-    if (Env_num_proc_field(env) > 1) {
+    if (GMEnv_num_proc_field(env) > 1) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
       mpi_code = MPI_Allreduce(matM_ij_buf_local->h, matM_ij_buf->h,
                                metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
-                               Env_mpi_comm_field(env));
+                               GMEnv_mpi_comm_field(env));
       GMAssertAlways(mpi_code == MPI_SUCCESS);
     }
   }
@@ -1208,7 +1208,7 @@ void gm_compute_numerators_3way_gpu_start(
 
   if (need_2way && !si->is_part1) {
     GMMirroredPointer* matM_jk_buf_local =
-        Env_num_proc_field(env) == 1 ? matM_jk_buf : mat_buf_tmp[0];
+        GMEnv_num_proc_field(env) == 1 ? matM_jk_buf : mat_buf_tmp[0];
 
     gm_linalg_set_matrix_zero_start(matM_jk_buf_local, numvecl, numvecl, env);
 
@@ -1221,11 +1221,11 @@ void gm_compute_numerators_3way_gpu_start(
     gm_linalg_get_matrix_start(matM_jk_buf_local, numvecl, numvecl, env);
     gm_linalg_get_matrix_wait(env);
 
-    if (Env_num_proc_field(env) > 1) {
+    if (GMEnv_num_proc_field(env) > 1) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
       mpi_code = MPI_Allreduce(matM_jk_buf_local->h, matM_jk_buf->h,
                                metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
-                               Env_mpi_comm_field(env));
+                               GMEnv_mpi_comm_field(env));
       GMAssertAlways(mpi_code == MPI_SUCCESS);
     }
   }
@@ -1248,7 +1248,7 @@ void gm_compute_numerators_3way_gpu_start(
 
   if (need_2way && si->is_part3) {
     GMMirroredPointer* matM_kik_buf_local =
-        Env_num_proc_field(env) == 1 ? matM_kik_buf : mat_buf_tmp[0];
+        GMEnv_num_proc_field(env) == 1 ? matM_kik_buf : mat_buf_tmp[0];
 
     gm_linalg_set_matrix_zero_start(matM_kik_buf_local, numvecl, numvecl, env);
 
@@ -1261,11 +1261,11 @@ void gm_compute_numerators_3way_gpu_start(
     gm_linalg_get_matrix_start(matM_kik_buf_local, numvecl, numvecl, env);
     gm_linalg_get_matrix_wait(env);
 
-    if (Env_num_proc_field(env) > 1) {
+    if (GMEnv_num_proc_field(env) > 1) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
       mpi_code = MPI_Allreduce(matM_kik_buf_local->h, matM_kik_buf->h,
                                metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
-                               Env_mpi_comm_field(env));
+                               GMEnv_mpi_comm_field(env));
       GMAssertAlways(mpi_code == MPI_SUCCESS);
     }
   } /*---is_part3---*/
@@ -1337,7 +1337,7 @@ void gm_compute_numerators_3way_gpu_start(
   const int J_max = si->J_ub;
   const int J_count = J_max - J_min;
 
-  const int num_step_2way = Env_metric_type(env) == GM_METRIC_TYPE_CCC ?  3 : 1;
+  const int num_step_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?  3 : 1;
   const int num_step = J_count * num_step_2way;
   const int extra_step = 1;
   int step_num = 0;
@@ -1392,7 +1392,7 @@ void gm_compute_numerators_3way_gpu_start(
                                 vars_next.step_num < num_step;
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
     vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
-    vars_next.matB_buf_ptr = Env_num_proc_field(env) == 1 ?
+    vars_next.matB_buf_ptr = GMEnv_num_proc_field(env) == 1 ?
       matB_buf[vars_next.index_01] : mat_buf_tmp[vars_next.index_01];
 
 //    vars_next.matV_h_updating = &matV_h_updating[vars_next.index_01];
@@ -1478,7 +1478,7 @@ void gm_compute_numerators_3way_gpu_start(
     //==========
 
     if (vars_prevprev.do_compute) {
-      if (Env_num_proc_field(env) > 1) {
+      if (GMEnv_num_proc_field(env) > 1) {
         MPI_Status mpi_status;
         mpi_code = MPI_Wait(&(mpi_requests[vars_prevprev.index_01]),
                             &mpi_status);
@@ -1490,9 +1490,9 @@ void gm_compute_numerators_3way_gpu_start(
     //==========
 
     if (vars_prev.do_compute) {
-      if (Env_num_proc_field(env) > 1) {
+      if (GMEnv_num_proc_field(env) > 1) {
         //TODO: fix this properly.
-        const int factor = Env_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
+        const int factor = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
         const size_t metrics_buf_size_this = metrics_buf_size * factor;
         GMAssertAlways(metrics_buf_size_this ==
                        (size_t)(int)metrics_buf_size_this);
@@ -1500,7 +1500,7 @@ void gm_compute_numerators_3way_gpu_start(
                                   matB_buf[vars_prev.index_01]->h,
                                   metrics_buf_size_this,
                                   GM_MPI_FLOAT, MPI_SUM,
-                                  Env_mpi_comm_field(env),
+                                  GMEnv_mpi_comm_field(env),
                                   &(mpi_requests[vars_prev.index_01]));
         GMAssertAlways(mpi_code == MPI_SUCCESS);
         //matB_buf[vars.prev.index_01]->h is now being overwritten.
@@ -1586,19 +1586,19 @@ void gm_compute_numerators_3way_start(
   GMAssertAlways(vectors_j_buf != NULL);
   GMAssertAlways(vectors_k_buf != NULL);
   GMAssertAlways(env != NULL);
-  GMAssertAlways(j_block >= 0 && j_block < Env_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < Env_num_block_vector(env));
-  GMAssertAlways(!(Env_proc_num_vector_i(env) == j_block &&
-                   Env_proc_num_vector_i(env) != k_block));
-  GMAssertAlways(!(Env_proc_num_vector_i(env) == k_block &&
-                   Env_proc_num_vector_i(env) != j_block));
-  GMAssertAlways(Env_num_way(env) == GM_NUM_WAY_3);
+  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == j_block &&
+                   GMEnv_proc_num_vector_i(env) != k_block));
+  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
+                   GMEnv_proc_num_vector_i(env) != j_block));
+  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMAssertAlways(vector_sums_i != NULL);
   GMAssertAlways(vector_sums_j != NULL);
   GMAssertAlways(vector_sums_k != NULL);
 
   /*----------------------------------------*/
-  if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
     gm_compute_numerators_3way_gpu_start(vectors_i, vectors_j, vectors_k,
@@ -1608,9 +1608,9 @@ void gm_compute_numerators_3way_start(
                                          vector_sums_k,
                                          section_step, env);
     /*----------------------------------------*/
-  } else /*---(Env_compute_method(env) != GM_COMPUTE_METHOD_GPU)---*/ {
+  } else /*---(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU)---*/ {
     /*----------------------------------------*/
-    switch (Env_metric_type(env)) {
+    switch (GMEnv_metric_type(env)) {
       /*----------------------------------------*/
       case GM_METRIC_TYPE_SORENSON: {
         /*----------------------------------------*/

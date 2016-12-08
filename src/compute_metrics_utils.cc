@@ -28,7 +28,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
-  GMAssertAlways(proc_num >= 0 && proc_num < Env_num_proc_vector_total(env));
+  GMAssertAlways(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
 
   //const int mpi_tag = 0;
   MPI_Request mpi_request;
@@ -36,18 +36,18 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   /* clang-format off */
-  const int mpi_type = Env_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
+  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
                          GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
-                       Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
                          GM_MPI_FLOAT :
-                       Env_metric_type(env) == GM_METRIC_TYPE_CCC ?
+                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
                          MPI_DOUBLE_COMPLEX :
                        0;
   /* clang-format on */
 
   mpi_code =
       MPI_Isend((void*)vectors->data, vectors->num_packedval_local, mpi_type,
-                proc_num, mpi_tag, Env_mpi_comm_vector(env), &mpi_request);
+                proc_num, mpi_tag, GMEnv_mpi_comm_vector(env), &mpi_request);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
@@ -61,7 +61,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
-  GMAssertAlways(proc_num >= 0 && proc_num < Env_num_proc_vector_total(env));
+  GMAssertAlways(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
 
   //const int mpi_tag = 0;
   MPI_Request mpi_request;
@@ -69,18 +69,18 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   /* clang-format off */
-  const int mpi_type = Env_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
+  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
                          GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
-                       Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
                          GM_MPI_FLOAT :
-                       Env_metric_type(env) == GM_METRIC_TYPE_CCC ?
+                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
                          MPI_DOUBLE_COMPLEX :
                        0;
   /* clang-format on */
 
   mpi_code =
       MPI_Irecv((void*)vectors->data, vectors->num_packedval_local, mpi_type,
-                proc_num, mpi_tag, Env_mpi_comm_vector(env), &mpi_request);
+                proc_num, mpi_tag, GMEnv_mpi_comm_vector(env), &mpi_request);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
@@ -129,11 +129,11 @@ void gm_allreduce_metrics(GMMetrics* metrics,
   const int numvecl = metrics->num_vector_local;
 
   /* clang-format off */
-  const int mpi_type = Env_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
+  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
                          GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
-                       Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
                          GM_MPI_FLOAT :
-                       Env_metric_type(env) == GM_METRIC_TYPE_CCC ?
+                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
                          MPI_DOUBLE_COMPLEX :
                        0;
   /* clang-format on */
@@ -142,7 +142,7 @@ void gm_allreduce_metrics(GMMetrics* metrics,
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(metrics_buf_source->h, metrics_buf_target->h,
                            numvecl * (size_t)numvecl, mpi_type, MPI_SUM,
-                           Env_mpi_comm_field(env));
+                           GMEnv_mpi_comm_field(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
@@ -191,8 +191,8 @@ void gm_get_metrics_wait(GMMetrics* metrics,
 
   gm_linalg_get_matrix_wait(env);
 
-  if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-      Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+      GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     /*---Adjust entries because of computation on pad values.
          EXPLANATION: the final word of each vector may have zero-pad bits
          to fill out the word.  The Magma call will tally these into the
@@ -225,14 +225,14 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
   GMAssertAlways(vectors_buf != NULL);
   GMAssertAlways(env != NULL);
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   int i = 0;
   int f = 0;
 
-  switch (Env_metric_type(env)) {
+  switch (GMEnv_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/

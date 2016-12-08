@@ -30,12 +30,12 @@ void gm_compute_metrics_ccc_3way_cpu(GMMetrics* metrics,
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-  GMInsist(env, Env_num_proc_field(env) == 1
+  GMInsist(env, GMEnv_num_proc_field(env) == 1
                     ? "num_proc_field>1 for CPU case not supported"
                     : 0);
 
-  if (Env_all2all(env)) {
-    GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
+  if (GMEnv_all2all(env)) {
+    GMInsist(env, (!GMEnv_all2all(env)) ? "Unimplemented." : 0);
     return;
   }
 
@@ -178,7 +178,7 @@ void gm_compute_metrics_ccc_3way_gpu(GMMetrics* metrics,
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-  GMInsist(env, (!Env_all2all(env)) ? "Unimplemented." : 0);
+  GMInsist(env, (!GMEnv_all2all(env)) ? "Unimplemented." : 0);
 
   GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 }

@@ -38,20 +38,20 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
   GMAssertAlways(vectors);
   GMAssertAlways(env);
 
-  switch (Env_metric_type(env)) {
+  switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
       vector_sums->data = GMFloat_malloc(vectors->num_vector_local);
-      vector_sums->data_tmp = Env_num_proc_field(env) == 1
+      vector_sums->data_tmp = GMEnv_num_proc_field(env) == 1
                                   ? NULL
                                   : GMFloat_malloc(vectors->num_vector_local);
     } break;
     case GM_METRIC_TYPE_CCC: {
       vector_sums->data = GMFloat_malloc(vectors->num_vector_local);
-      vector_sums->data_tmp = Env_num_proc_field(env) == 1
+      vector_sums->data_tmp = GMEnv_num_proc_field(env) == 1
                                   ? NULL
                                   : GMFloat_malloc(vectors->num_vector_local);
     } break;
@@ -68,7 +68,7 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
   GMAssertAlways(vector_sums);
   GMAssertAlways(env);
 
-  switch (Env_metric_type(env)) {
+  switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
@@ -106,10 +106,10 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
                                   GMEnv* env) {
   GMAssertAlways(vector_sums != NULL);
   GMAssertAlways(vectors != NULL);
-  GMAssertAlways(vector_sums_tmp != NULL || Env_num_proc_field(env) == 1);
+  GMAssertAlways(vector_sums_tmp != NULL || GMEnv_num_proc_field(env) == 1);
   GMAssertAlways(env != NULL);
 
-  const int num_proc = Env_num_proc_field(env);
+  const int num_proc = GMEnv_num_proc_field(env);
   GMFloat* __restrict__ vector_sums_local =
       num_proc == 1 ? vector_sums : vector_sums_tmp;
 
@@ -132,7 +132,7 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
     mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
     mpi_code =
         MPI_Allreduce(vector_sums_local, vector_sums, vectors->num_vector_local,
-                      GM_MPI_FLOAT, MPI_SUM, Env_mpi_comm_field(env));
+                      GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
     GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 }
@@ -145,10 +145,10 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
                                   GMEnv* env) {
   GMAssertAlways(vector_sums != NULL);
   GMAssertAlways(vectors != NULL);
-  GMAssertAlways(vector_sums_tmp != NULL || Env_num_proc_field(env) == 1);
+  GMAssertAlways(vector_sums_tmp != NULL || GMEnv_num_proc_field(env) == 1);
   GMAssertAlways(env != NULL);
 
-  const int num_proc = Env_num_proc_field(env);
+  const int num_proc = GMEnv_num_proc_field(env);
   GMFloat* __restrict__ vector_sums_local =
       num_proc == 1 ? vector_sums : vector_sums_tmp;
 
@@ -194,7 +194,7 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
     mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
     mpi_code =
         MPI_Allreduce(vector_sums_local, vector_sums, vectors->num_vector_local,
-                      GM_MPI_FLOAT, MPI_SUM, Env_mpi_comm_field(env));
+                      GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
     GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 }
@@ -208,7 +208,7 @@ void GMVectorSums_compute(GMVectorSums* vector_sums,
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-  switch (Env_metric_type(env)) {
+  switch (GMEnv_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
       /*----------------------------------------*/

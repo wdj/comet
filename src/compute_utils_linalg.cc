@@ -35,18 +35,18 @@ extern "C" {
 void gm_linalg_initialize(GMEnv* env) {
   GMAssertAlways(env != NULL ? "Invalid argument to gm_linalg_initialize." : 0);
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*----------------------------------------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
 
     GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -58,13 +58,13 @@ void gm_linalg_initialize(GMEnv* env) {
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
-    magma_code = magma_minproductblasSetKernelStream(Env_stream_compute(env));
+    magma_code = magma_minproductblasSetKernelStream(GMEnv_stream_compute(env));
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproductblasSetKernelStream." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_2) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
@@ -76,13 +76,13 @@ void gm_linalg_initialize(GMEnv* env) {
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
-    magma_code = magma_tally4blasSetKernelStream(Env_stream_compute(env));
+    magma_code = magma_tally4blasSetKernelStream(GMEnv_stream_compute(env));
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4blasSetKernelStream." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_3) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = 0;
@@ -94,7 +94,7 @@ void gm_linalg_initialize(GMEnv* env) {
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
-    magma_code = magma_tally3blasSetKernelStream(Env_stream_compute(env));
+    magma_code = magma_tally3blasSetKernelStream(GMEnv_stream_compute(env));
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3blasSetKernelStream." : 0);
 
@@ -115,18 +115,18 @@ void gm_linalg_initialize(GMEnv* env) {
 void gm_linalg_finalize(GMEnv* env) {
   GMAssertAlways(env != NULL ? "Invalid argument to gm_linalg_finalize." : 0);
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*----------------------------------------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -138,8 +138,8 @@ void gm_linalg_finalize(GMEnv* env) {
                    "Error in call to magma_minproduct_finalize." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_2) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
@@ -151,8 +151,8 @@ void gm_linalg_finalize(GMEnv* env) {
                    "Error in call to magma_tally4_finalize." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_3) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = 0;
@@ -184,18 +184,18 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
 
   GMMirroredPointer p = GMMirroredPointer_null();
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return p;
   }
 
   /*----------------------------------------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -225,8 +225,8 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
 #endif
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_2) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
@@ -243,8 +243,8 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
                    "Error in call to magma_tally4_zmalloc." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_3) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
@@ -284,18 +284,18 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   GMAssertAlways(p != NULL);
   GMAssertAlways(env != NULL);
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*----------------------------------------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -307,8 +307,8 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_2) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
@@ -320,8 +320,8 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_3) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = 0;
@@ -350,18 +350,18 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
                                      int mat_dim1,
                                      int mat_dim2,
                                      GMEnv* env) {
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*----------------------------------------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
 #ifdef FP_PRECISION_DOUBLE
@@ -374,8 +374,8 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
        (GMFloat*)matrix_buf->d, mat_dim1);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_2) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
@@ -386,8 +386,8 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
                             (Float_t*)matrix_buf->d, mat_dim1);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_3) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
@@ -431,7 +431,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   GMAssertAlways(lddb >= 0);
   GMAssertAlways(env != NULL);
 
-  GMAssertAlways(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
   {
     int TransA = 1;
@@ -450,13 +450,13 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   }
 
   /*----------------------------------------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     const GMFloat alpha = 1;
@@ -472,8 +472,8 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
          (GMFloat*)dA, ldda, (GMFloat*)dB, lddb, beta, (GMFloat*)dC, lddc);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_2) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
@@ -486,8 +486,8 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                            beta, (Float_t*)dC, lddc);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_3) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
@@ -533,7 +533,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   GMAssertAlways(lddb >= 0);
   GMAssertAlways(env != NULL);
 
-  GMAssertAlways(Env_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
   if (m==0 || n==0 || k==0) {
     return;
@@ -544,11 +544,11 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   const size_t cols_B = n;
 
   const size_t elt_size =
-    Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ? sizeof(GMFloat) :
-    (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-     Env_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
-    (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-     Env_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ? sizeof(GMFloat) :
+    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+     GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
+    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+     GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
   GMAssertAlways(elt_size != 0);
 
 //#ifdef GM_ASSERTIONS_ON
@@ -599,8 +599,8 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 void gm_compute_wait(GMEnv* env) {
   GMAssertAlways(env != NULL);
 
-  if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    cudaStreamSynchronize(Env_stream_compute(env));
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+    cudaStreamSynchronize(GMEnv_stream_compute(env));
     GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
   }
 }
@@ -615,54 +615,54 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
   GMAssertAlways(matrix_buf != NULL);
   GMAssertAlways(env != NULL);
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*---Send vectors to GPU---*/
 
   /*----------------------------------------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
 #ifdef FP_PRECISION_DOUBLE
     magma_minproduct_dsetmatrix_async(
         mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h, mat_dim1,
-        (GMFloat*)matrix_buf->d, mat_dim1, Env_stream_togpu(env));
+        (GMFloat*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
 #endif
 #ifdef FP_PRECISION_SINGLE
     magma_minproduct_ssetmatrix_async(
         mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h, mat_dim1,
-        (GMFloat*)matrix_buf->d, mat_dim1, Env_stream_togpu(env));
+        (GMFloat*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
 #endif
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_2) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
 
     magma_tally4_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
-                                  Env_stream_togpu(env));
+                                  GMEnv_stream_togpu(env));
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_3) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
 
     magma_tally3_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
-                                  Env_stream_togpu(env));
+                                  GMEnv_stream_togpu(env));
 
   /*----------------------------------------*/
   } else {
@@ -681,11 +681,11 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
 void gm_linalg_set_matrix_wait(GMEnv* env) {
   GMAssertAlways(env != NULL);
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
-  cudaStreamSynchronize(Env_stream_togpu(env));
+  cudaStreamSynchronize(GMEnv_stream_togpu(env));
   GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 }
 
@@ -699,54 +699,54 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
   GMAssertAlways(matrix_buf != NULL);
   GMAssertAlways(env != NULL);
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*---Get vectors from GPU---*/
 
   /*----------------------------------------*/
-  if (Env_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
 
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
 #ifdef FP_PRECISION_DOUBLE
     magma_minproduct_dgetmatrix_async(
         mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d, mat_dim1,
-        (GMFloat*)matrix_buf->h, mat_dim1, Env_stream_fromgpu(env));
+        (GMFloat*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
 #endif
 #ifdef FP_PRECISION_SINGLE
     magma_minproduct_sgetmatrix_async(
         mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d, mat_dim1,
-        (GMFloat*)matrix_buf->h, mat_dim1, Env_stream_fromgpu(env));
+        (GMFloat*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
 #endif
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_2) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
     typedef magma_tally4DoubleComplex Float_t;
 
     magma_tally4_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
-                                  Env_stream_fromgpu(env));
+                                  GMEnv_stream_fromgpu(env));
 
   /*----------------------------------------*/
-  } else if (Env_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             Env_num_way(env) == GM_NUM_WAY_3) {
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+             GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
     typedef magma_tally3DoubleComplex Float_t;
 
     magma_tally3_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
-                                  Env_stream_fromgpu(env));
+                                  GMEnv_stream_fromgpu(env));
 
   /*----------------------------------------*/
   } else {
@@ -765,11 +765,11 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
 void gm_linalg_get_matrix_wait(GMEnv* env) {
   GMAssertAlways(env != NULL);
 
-  if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
-  cudaStreamSynchronize(Env_stream_fromgpu(env));
+  cudaStreamSynchronize(GMEnv_stream_fromgpu(env));
   GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 }
 

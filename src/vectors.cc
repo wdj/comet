@@ -44,36 +44,36 @@ void GMVectors_create(GMVectors* vectors,
 
   *vectors = GMVectors_null();
 
-  if (!Env_is_proc_active(env)) {
+  if (!GMEnv_is_proc_active(env)) {
     return;
   }
 
   GMInsist(env,
-           num_field % Env_num_proc_field(env) == 0
+           num_field % GMEnv_num_proc_field(env) == 0
                ? "num_proc_field must exactly divide the total number of fields"
                : 0);
 
   vectors->data_type_id = data_type_id;
   vectors->num_field = num_field;
-  vectors->num_field_local = num_field / Env_num_proc_field(env);
+  vectors->num_field_local = num_field / GMEnv_num_proc_field(env);
   vectors->num_vector_local = num_vector_local;
 
   /*---Compute global values---*/
 
-  const int num_block = Env_num_block_vector(env);
+  const int num_block = GMEnv_num_block_vector(env);
 
   const size_t num_vector_bound = vectors->num_vector_local * 
-                            (size_t)num_block * (size_t)Env_num_proc_repl(env);
+                            (size_t)num_block * (size_t)GMEnv_num_proc_repl(env);
   GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
     ? "Vector count too large to store in 32-bit int; please modify code." : 0);
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
-                           1, MPI_INT, MPI_SUM, Env_mpi_comm_vector(env));
+                           1, MPI_INT, MPI_SUM, GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
   GMAssertAlways((size_t)(vectors->num_vector) == num_vector_bound);
-  vectors->num_vector /= Env_num_proc_repl(env);
+  vectors->num_vector /= GMEnv_num_proc_repl(env);
 
   /*---Set element sizes---*/
 
@@ -171,9 +171,9 @@ void GMVectors_create(GMVectors* vectors,
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
-  GMAssertAlways(vectors->data != NULL || !Env_is_proc_active(env));
+  GMAssertAlways(vectors->data != NULL || !GMEnv_is_proc_active(env));
 
-  if (!Env_is_proc_active(env)) {
+  if (!GMEnv_is_proc_active(env)) {
     return;
   }
 

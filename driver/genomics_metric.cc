@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
   GMEnv env = GMEnv_null();
   GMEnv_create_from_args(&env, argc, (char**)argv, NULL);
 
-  if (Env_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
     /*---Perform preliminary run on GPU since sometimes first use is slower---*/
 
     const char* options1 =

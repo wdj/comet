@@ -30,7 +30,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-  GMAssertAlways(!Env_all2all(env));
+  GMAssertAlways(!GMEnv_all2all(env));
 
   /*---Denominator---*/
 
@@ -59,7 +59,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
       gm_linalg_malloc(numvecl * (size_t)numvecl, env);
 
   GMMirroredPointer* metrics_buf_local =
-      Env_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
+      GMEnv_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
 
   /*---Copy in vectors---*/
 
@@ -77,7 +77,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   gm_compute_numerators_3way_start(
       vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
-      &vectors_buf, Env_proc_num_vector_i(env), Env_proc_num_vector_i(env),
+      &vectors_buf, GMEnv_proc_num_vector_i(env), GMEnv_proc_num_vector_i(env),
       &vector_sums, &vector_sums, &vector_sums,
       section_step, env);
   gm_compute_wait(env);
@@ -89,7 +89,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   /*---Do reduction across field procs if needed---*/
 
-  if (Env_num_proc_field(env) > 1) {
+  if (GMEnv_num_proc_field(env) > 1) {
     gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
   }
 
@@ -114,7 +114,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
-  GMAssertAlways(Env_all2all(env));
+  GMAssertAlways(GMEnv_all2all(env));
 
   /*---Initializations---*/
 
@@ -123,14 +123,14 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   const int numvecl = metrics->num_vector_local;
   const int numpfieldl = vectors->num_packedval_field_local;
 
-  const int data_type = Env_data_type_vectors(env);
+  const int data_type = GMEnv_data_type_vectors(env);
 
-  const int num_block = Env_num_block_vector(env);
+  const int num_block = GMEnv_num_block_vector(env);
 
-  const int i_block = Env_proc_num_vector_i(env);
+  const int i_block = GMEnv_proc_num_vector_i(env);
 
-  const int proc_num_r = Env_proc_num_repl(env);
-  const int num_proc_r = Env_num_proc_repl(env);
+  const int proc_num_r = GMEnv_proc_num_repl(env);
+  const int num_proc_r = GMEnv_num_proc_repl(env);
 
   /*---Create flattened index within space of procs assigned to
        vectors (non-field procs) - i.e., vector_i (=block) X repl ---*/

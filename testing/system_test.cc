@@ -414,15 +414,15 @@ void SystemTest_ccc2_simple_() {
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
   env->all2all_ = GM_BOOL_FALSE;
-  Env_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
-  Env_set_num_proc(env, 1, 1, 1);
+  GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
+  GMEnv_set_num_proc(env, 1, 1, 1);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, Env_data_type_vectors(env), num_field,
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), num_field,
                    num_vector_local, env);
 
-  if (Env_is_proc_active(env)) {
+  if (GMEnv_is_proc_active(env)) {
     {
       const int G = 0;
       const int T = 1;
@@ -447,12 +447,12 @@ void SystemTest_ccc2_simple_() {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetrics_create(metrics, Env_data_type_metrics(env), num_field,
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field,
                    num_vector_local, env);
 
   gm_compute_metrics(metrics, vectors, env);
 
-  if (Env_is_proc_active(env)) {
+  if (GMEnv_is_proc_active(env)) {
     const double result00 =
         GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 0, env);
     const double result01 =
@@ -499,15 +499,15 @@ void SystemTest_ccc3_simple_compute_method(int compute_method) {
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 3;
   env->all2all_ = GM_BOOL_TRUE;
-  Env_set_compute_method(env, compute_method);
-  Env_set_num_proc(env, 1, 1, 1);
+  GMEnv_set_compute_method(env, compute_method);
+  GMEnv_set_num_proc(env, 1, 1, 1);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, Env_data_type_vectors(env), num_field,
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), num_field,
                    num_vector_local, env);
 
-  if (Env_is_proc_active(env)) {
+  if (GMEnv_is_proc_active(env)) {
     {
       const int A = 0;
       const int T = 1;
@@ -560,12 +560,12 @@ void SystemTest_ccc3_simple_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetrics_create(metrics, Env_data_type_metrics(env), num_field,
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field,
                    num_vector_local, env);
 
   gm_compute_metrics(metrics, vectors, env);
 
-  if (Env_is_proc_active(env)) {
+  if (GMEnv_is_proc_active(env)) {
     const double result000 =
         GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 0, 0, env);
     const double result001 =

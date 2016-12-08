@@ -30,7 +30,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-  GMAssertAlways(!Env_all2all(env));
+  GMAssertAlways(!GMEnv_all2all(env));
 
   /*---------------*/
   /*---Denominator---*/
@@ -60,12 +60,12 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
       gm_linalg_malloc(numvecl * (size_t)numvecl, env);
 
   GMMirroredPointer metrics_buf_tmp;
-  if (Env_num_proc_field(env) > 1) {
+  if (GMEnv_num_proc_field(env) > 1) {
     metrics_buf_tmp = gm_linalg_malloc(numvecl * (size_t)numvecl, env);
   }
 
   GMMirroredPointer* metrics_buf_local =
-      Env_num_proc_field(env) > 1 ? &metrics_buf_tmp : &metrics_buf;
+      GMEnv_num_proc_field(env) > 1 ? &metrics_buf_tmp : &metrics_buf;
 
   /*---Copy in vectors---*/
 
@@ -79,7 +79,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
                                    &vectors_buf, metrics_buf_local,
-                                   Env_proc_num_vector_i(env),
+                                   GMEnv_proc_num_vector_i(env),
                                    GM_BOOL_TRUE, env);
   gm_compute_wait(env);
 
@@ -90,7 +90,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   /*---Do reduction across field procs if needed---*/
 
-  if (Env_num_proc_field(env) > 1) {
+  if (GMEnv_num_proc_field(env) > 1) {
     gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
   }
 
@@ -100,7 +100,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   /* .22 / 1.56 */
   gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
-                          Env_proc_num_vector_i(env), GM_BOOL_TRUE, env);
+                          GMEnv_proc_num_vector_i(env), GM_BOOL_TRUE, env);
 
   /*---------------*/
   /*---Free memory---*/
@@ -110,7 +110,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   gm_linalg_free(&vectors_buf, env);
   gm_linalg_free(&metrics_buf, env);
-  if (Env_num_proc_field(env) > 1) {
+  if (GMEnv_num_proc_field(env) > 1) {
     gm_linalg_free(&metrics_buf_tmp, env);
   }
 
@@ -126,17 +126,17 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-  GMAssertAlways(Env_all2all(env));
+  GMAssertAlways(GMEnv_all2all(env));
 
   /*---Initializations---*/
 
-  const int num_block = Env_num_block_vector(env);
+  const int num_block = GMEnv_num_block_vector(env);
 
   const int numvecl = vectors->num_vector_local;
   const int numpfieldl = vectors->num_packedval_field_local;
 
   int i = 0;
-  int i_block = Env_proc_num_vector_i(env);
+  int i_block = GMEnv_proc_num_vector_i(env);
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
   GMVectorSums vector_sums_offproc = GMVectorSums_null();
@@ -147,7 +147,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   GMVectors vectors_01[2];
   for (i = 0; i < 2; ++i) {
-    GMVectors_create(&vectors_01[i], Env_data_type_vectors(env),
+    GMVectors_create(&vectors_01[i], GMEnv_data_type_vectors(env),
                      vectors->num_field, numvecl, env);
   }
 
@@ -175,8 +175,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
        For even number of vector blocks, block rows of lower half of matrix
        have one less block to make correct count---*/
 
-  const int num_proc_r = Env_num_proc_repl(env);
-  const int proc_num_r = Env_proc_num_repl(env);
+  const int num_proc_r = GMEnv_num_proc_repl(env);
+  const int proc_num_r = GMEnv_proc_num_repl(env);
 
   const int proc_num_ir = proc_num_r + num_proc_r * i_block;
   const int num_proc_ir = num_block * num_proc_r;
@@ -348,14 +348,14 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---GPU case: wait for prev step get metrics to complete, then combine.
          Note this is hidden under GPU computation---*/
 
-    if (Env_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+    if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
       if (is_compute_step_prev && do_compute_block_prev) {
         gm_get_metrics_wait(metrics, metrics_buf_prev, env);
 
         GMMirroredPointer* metrics_buf_prev_global =
-            Env_num_proc_field(env) == 1 ? metrics_buf_prev : &metrics_buf_tmp;
+            GMEnv_num_proc_field(env) == 1 ? metrics_buf_prev : &metrics_buf_tmp;
 
-        if (Env_num_proc_field(env) > 1) {
+        if (GMEnv_num_proc_field(env) > 1) {
           gm_allreduce_metrics(metrics, metrics_buf_prev_global,
                                metrics_buf_prev, env);
         }
@@ -417,7 +417,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---CPU case: combine numerators, denominators to obtain final result---*/
 
-    if (Env_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+    if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
       if (is_compute_step && do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
 //XXXCHANGE

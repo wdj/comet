@@ -73,7 +73,7 @@ static void GMVectors_float_set(GMVectors* vectors,
   GMAssert(field_local < vectors->num_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
 
   ((GMFloat*)(vectors->data))[field_local +
                         vectors->num_field_local*(size_t)vector_local] = value;
@@ -88,7 +88,7 @@ static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
   GMAssert(index >= 0);
   GMAssert(index < vectors->num_vector_local*(size_t)vectors->num_field_local);
   GMAssert(env);
-  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
 
   return ((GMFloat*)(vectors->data))[index];
 }
@@ -105,7 +105,7 @@ static GMFloat GMVectors_float_get(GMVectors* const vectors,
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(env);
-  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
 
   return GMVectors_float_get_from_index(vectors,
     field_local + vectors->num_field_local*(size_t)vector_local, env);
@@ -124,7 +124,7 @@ static GMBits2 GMVectors_bits2_get(GMVectors* vectors,
   GMAssert(field_local < vectors->num_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
 
   /*---The field address is expressible as a tuple:
        which GMBits2x64 value,
@@ -163,7 +163,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(value >= 0 && value < (1 << GM_BITS2_MAX_VALUE_BITS));
-  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
 
   /*---The field address is expressible as a tuple:
        which GMBits2x64 value,
@@ -205,7 +205,7 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
   GMAssert(packedval_field_local < vectors->num_packedval_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
 
   const size_t index = packedval_field_local +
     vectors->num_packedval_field_local*(size_t)vector_local;
@@ -226,7 +226,7 @@ static GMBits2x64 GMVectors_bits2x64_get(GMVectors* vectors,
   GMAssert(packedval_field_local < vectors->num_packedval_field_local);
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(Env_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
 
   const size_t index = packedval_field_local +
     vectors->num_packedval_field_local*(size_t)vector_local;
