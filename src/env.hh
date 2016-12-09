@@ -121,6 +121,7 @@ typedef unsigned long long int GMULInt;
 #ifdef FP_PRECISION_SINGLE
   typedef float GMFloat;
   enum { GM_MPI_FLOAT = MPI_FLOAT };
+  enum { GM_FP_PRECISION_DOUBLE = GM_BOOL_FALSE };
 #ifdef FP_PRECISION_DOUBLE
 #error Cannot set both FP_PRECISION_SINGLE and FP_PRECISION_DOUBLE.
 #endif
@@ -128,6 +129,7 @@ typedef unsigned long long int GMULInt;
 #ifdef FP_PRECISION_DOUBLE
   typedef double GMFloat;
   enum { GM_MPI_FLOAT = MPI_DOUBLE };
+  enum { GM_FP_PRECISION_DOUBLE = GM_BOOL_TRUE };
 #else
 #error Must set FP_PRECISION_SINGLE or FP_PRECISION_DOUBLE.
 #endif

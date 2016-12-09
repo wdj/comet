@@ -27,7 +27,6 @@ SET(LIB_SOURCES
   src/compute_metrics_utils_3way.cc
   src/compute_metrics_2way.cc
   src/compute_metrics_3way.cc
-  src/compute_metrics_ccc.cc
   )
 
 SET(LIB_INCLUDES
@@ -42,7 +41,6 @@ SET(LIB_INCLUDES
   src/compute_metrics_utils_3way.hh
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh
-  src/compute_metrics_ccc.hh
   )
 
 #--------------------

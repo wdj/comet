@@ -16,7 +16,6 @@
 #include "metrics.hh"
 #include "compute_metrics_2way.cc"
 #include "compute_metrics_3way.cc"
-#include "compute_metrics_ccc.hh"
 #include "compute_metrics.hh"
 
 #ifdef __cplusplus
@@ -30,10 +29,10 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-#ifdef FP_PRECISION_SINGLE
-  GMInsist(env, GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC ? 
+  if (!GM_FP_PRECISION_DOUBLE) {
+    GMInsist(env, GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC ? 
     "CCC metric currently not functional under single precision build." : 0);
-#endif
+  }
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -204,7 +203,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_ccc_3way_cpu(metrics, vectors, env); a // WORKS
       }
     } break;
 
@@ -215,7 +213,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_ccc_3way_cpu(metrics, vectors, env);
       }
     } break;
 

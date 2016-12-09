@@ -201,28 +201,26 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
     magma_minproduct_int_t magma_code = 0;
     magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
 
-#ifdef FP_PRECISION_DOUBLE
-    magma_code = magma_minproduct_dmalloc_pinned((GMFloat**)&p.h, n);
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+    if (GM_FP_PRECISION_DOUBLE) {
+      magma_code = magma_minproduct_dmalloc_pinned((double**)&p.h, n);
+      GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_dmalloc_pinned." : 0);
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_code = magma_minproduct_smalloc_pinned((GMFloat**)&p.h, n);
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+    } else {
+      magma_code = magma_minproduct_smalloc_pinned((float**)&p.h, n);
+      GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_smalloc_pinned." : 0);
-#endif
+    }
     GMFloat_fill_nan((GMFloat*)p.h, n);
 
-#ifdef FP_PRECISION_DOUBLE
-    magma_code = magma_minproduct_dmalloc((GMFloat**)&p.d, n);
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+    if (GM_FP_PRECISION_DOUBLE) {
+      magma_code = magma_minproduct_dmalloc((double**)&p.d, n);
+      GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_dmalloc." : 0);
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_code = magma_minproduct_smalloc((GMFloat**)&p.d, n);
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+    } else {
+      magma_code = magma_minproduct_smalloc((float**)&p.d, n);
+      GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_smalloc." : 0);
-#endif
+    }
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -364,14 +362,15 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
-#ifdef FP_PRECISION_DOUBLE
-    magma_minproductblas_dlaset
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_minproductblas_slaset
-#endif
-      (Magma_minproductFull, mat_dim1, mat_dim2, (GMFloat)0, (GMFloat)0,
-       (GMFloat*)matrix_buf->d, mat_dim1);
+    if (GM_FP_PRECISION_DOUBLE) {
+      magma_minproductblas_dlaset
+        (Magma_minproductFull, mat_dim1, mat_dim2, (double)0, (double)0,
+         (double*)matrix_buf->d, mat_dim1);
+    } else {
+      magma_minproductblas_slaset
+        (Magma_minproductFull, mat_dim1, mat_dim2, (float)0, (float)0,
+         (float*)matrix_buf->d, mat_dim1);
+    }
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -462,14 +461,15 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     const GMFloat alpha = 1;
     const GMFloat beta = 0;
 
-#ifdef FP_PRECISION_DOUBLE
-    magma_minproductblas_dgemm
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_minproductblas_sgemm
-#endif
+    if (GM_FP_PRECISION_DOUBLE) {
+      magma_minproductblas_dgemm
         (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
-         (GMFloat*)dA, ldda, (GMFloat*)dB, lddb, beta, (GMFloat*)dC, lddc);
+         (double*)dA, ldda, (double*)dB, lddb, beta, (double*)dC, lddc);
+    } else {
+      magma_minproductblas_sgemm
+        (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
+         (float*)dA, ldda, (float*)dB, lddb, beta, (float*)dC, lddc);
+    }
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -631,16 +631,15 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
-#ifdef FP_PRECISION_DOUBLE
-    magma_minproduct_dsetmatrix_async(
-        mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h, mat_dim1,
-        (GMFloat*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_minproduct_ssetmatrix_async(
-        mat_dim1, mat_dim2, (GMFloat*)matrix_buf->h, mat_dim1,
-        (GMFloat*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
-#endif
+    if (GM_FP_PRECISION_DOUBLE) {
+      magma_minproduct_dsetmatrix_async(
+        mat_dim1, mat_dim2, (double*)matrix_buf->h, mat_dim1,
+        (double*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
+    } else {
+      magma_minproduct_ssetmatrix_async(
+        mat_dim1, mat_dim2, (float*)matrix_buf->h, mat_dim1,
+        (float*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
+    }
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -715,16 +714,15 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
-#ifdef FP_PRECISION_DOUBLE
-    magma_minproduct_dgetmatrix_async(
-        mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d, mat_dim1,
-        (GMFloat*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
-#endif
-#ifdef FP_PRECISION_SINGLE
-    magma_minproduct_sgetmatrix_async(
-        mat_dim1, mat_dim2, (GMFloat*)matrix_buf->d, mat_dim1,
-        (GMFloat*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
-#endif
+    if (GM_FP_PRECISION_DOUBLE) {
+      magma_minproduct_dgetmatrix_async(
+        mat_dim1, mat_dim2, (double*)matrix_buf->d, mat_dim1,
+        (double*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
+    } else {
+      magma_minproduct_sgetmatrix_async(
+        mat_dim1, mat_dim2, (float*)matrix_buf->d, mat_dim1,
+        (float*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
+    }
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
