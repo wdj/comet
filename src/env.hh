@@ -728,6 +728,14 @@ static int GMEnv_num_section_steps(GMEnv const * const env, int part_num) {
   //return part_num == 3 ? 1 : 1;
 }
 
+/*---------------------------------------------------------------------------*/
+
+static int GMEnv_num_sections(GMEnv const * const env, int part_num) {
+  GMAssert(env != NULL);
+  GMAssert(part_num >= 1 && part_num <= 3);
+  return part_num == 3 ? 6 : GMEnv_num_section_steps(env, part_num);
+}
+
 /*===========================================================================*/
 
 #ifdef __cplusplus

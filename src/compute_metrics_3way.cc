@@ -241,7 +241,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   int section_step = 0;
   for (section_step=0; section_step<GMEnv_num_section_steps(env, 1);
        ++section_step) {
-    if (section_block_num % num_proc_r == proc_num_r) {
+    if (gm_proc_r_active(section_block_num, env)) {
 
       if (have_unprocessed_section_block) {
         /*---Compute numerators---*/
@@ -287,7 +287,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       const int proc_recv_j = gm_mod_i(proc_num_ir + j_i_block_delta*num_proc_r,
                                        num_proc_ir);
 
-      if (section_block_num % num_proc_r == proc_num_r) {
+      if (gm_proc_r_active(section_block_num, env)) {
 
         /*---Communicate vectors start---*/
         GMVectors* const vectors_j_this = vectors_j[index_j_comm];
@@ -376,7 +376,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
         }
         GMAssertAlways((j_block == k_block) ==
                        (j_i_block_delta == k_i_block_delta));
-        if (section_block_num % num_proc_r == proc_num_r) {
+        if (gm_proc_r_active(section_block_num, env)) {
 
           const _Bool do_k_comm = k_block != k_block_currently_resident;
 

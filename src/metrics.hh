@@ -62,6 +62,30 @@ static int gm_section_num_part3(int i_block, int j_block, int k_block) {
   /* clang-format on */
 }
 
+/*---------------------------------------------------------------------------*/
+
+static int gm_J_lo(int section_num, int nvl, int part_num, GMEnv* env) {
+  GMAssert(section_num >= 0 && section_num < 6);
+  GMAssert(nvl >= 0);
+  GMAssert(part_num >= 1 && part_num <= 3);
+  GMAssert(env != NULL);
+  const int num_sections = GMEnv_num_sections(env, part_num);
+  GMAssert(section_num >= 0 && section_num <= num_sections);
+  return (section_num * nvl) / num_sections;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int gm_J_hi(int section_num, int nvl, int part_num, GMEnv* env) {
+  GMAssert(section_num >= 0 && section_num < 6);
+  GMAssert(nvl >= 0);
+  GMAssert(part_num >= 1 && part_num <= 3);
+  GMAssert(env != NULL);
+  const int num_sections = GMEnv_num_sections(env, part_num);
+  GMAssert(section_num >= 0 && section_num <= num_sections);
+  return ((section_num+1) * nvl) / num_sections;
+}
+
 /*===========================================================================*/
 /*---GMSectionInfo---*/
 
@@ -121,31 +145,16 @@ static void GMSectionInfo_create(
 
   /*---Define bounding box containing region to be computed---*/
 
-  const int nvl6 = si->num_vector_local / 6;
+  si->J_lb = gm_J_lo(si->section_num, num_vector_local, part_num, env);
+  si->J_ub = gm_J_hi(si->section_num, num_vector_local, part_num, env);
 
-  si->i_lb = si->section_axis == 0 && (si->is_part3 || num_section_steps == 6) ?
-             si->section_num * nvl6 : 0;
+  si->i_lb = si->section_axis == 0 ? si->J_lb : 0;
+  si->j_lb = si->section_axis == 1 ? si->J_lb : 0;
+  si->k_lb = si->section_axis == 2 ? si->J_lb : 0;
 
-  si->j_lb = si->section_axis == 1 && (si->is_part3 || num_section_steps == 6) ?
-             si->section_num * nvl6 : 0;
-
-  si->k_lb = si->section_axis == 2 && (si->is_part3 || num_section_steps == 6) ?
-             si->section_num * nvl6 : 0;
-
-  si->i_ub = si->section_axis == 0 && (si->is_part3 || num_section_steps == 6) ?
-             (si->section_num + 1) * nvl6 : num_vector_local;
-
-  si->j_ub = si->section_axis == 1 && (si->is_part3 || num_section_steps == 6) ?
-             (si->section_num + 1) * nvl6 : num_vector_local;
-
-  si->k_ub = si->section_axis == 2 && (si->is_part3 || num_section_steps == 6) ?
-             (si->section_num + 1) * nvl6 : num_vector_local;
-
-  si->J_lb = si->is_part3 || num_section_steps == 6 ?
-             si->section_num * nvl6 : 0;
-
-  si->J_ub = si->is_part3 || num_section_steps == 6 ?
-             (si->section_num + 1) * nvl6 : num_vector_local;
+  si->i_ub = si->section_axis == 0 ? si->J_ub : num_vector_local;
+  si->j_ub = si->section_axis == 1 ? si->J_ub : num_vector_local;
+  si->k_ub = si->section_axis == 2 ? si->J_ub : num_vector_local;
 }
 
 #if 0
@@ -206,16 +215,18 @@ typedef struct {
   int num_vector;
   int num_vector_local;
   int nvl6;
+  int J_lo_part3_[6];
+  int J_wi_part3_[6];
   int pad1;
   size_t num_elts_local;
   /*---Helper values---*/
   size_t index_offset_0_;
   size_t index_offset_01_;
-  size_t index_offset_section_pt1_[6];
-  size_t index_offset_section_pt2_[6];
-  _Bool section_num_valid_pt1_[6];
-  _Bool section_num_valid_pt2_[6];
-  size_t section_size_pt2[6];
+  size_t index_offset_section_part1_[6]; //FIX - needs to be signed !!!
+  size_t index_offset_section_part2_[6]; //FIX - needs to be signed !!!
+  _Bool section_num_valid_part1_[6];
+  _Bool section_num_valid_part2_[6];
+  size_t section_size_part2[6];
   GMFloat m;
   GMFloat recip_m;
   /*---map of (contig) index to linearized Cartesian coords---*/
@@ -257,6 +268,16 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env);
 
 static size_t gm_triang_(int i) {
   return (i * (size_t)(i-1)) >> 1;
+}
+
+/*---------------------------------------------------------------------------*/
+/*---Helper: is this section_block_num to be processed by this proc_r---*/
+
+static _Bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
+  GMAssert(env != NULL);
+  GMAssert(section_block_num >= 0);
+  return section_block_num % GMEnv_num_proc_repl(env)
+         == GMEnv_proc_num_repl(env);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -421,9 +442,9 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
 
   const int num_section_steps = GMEnv_num_section_steps(env, 1);
   const int section_num = (j * num_section_steps) / nvl;
-  GMAssert(metrics->section_num_valid_pt1_[section_num]);
+  GMAssert(metrics->section_num_valid_part1_[section_num]);
 
-  const size_t elts_offset = metrics->index_offset_section_pt1_[section_num];
+  const size_t elts_offset = metrics->index_offset_section_part1_[section_num];
 
   /* clang-format off */
   const size_t index = elts_offset +
@@ -460,16 +481,16 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
 
   const int num_section_steps = GMEnv_num_section_steps(env, 2);
   const int section_num = (j * num_section_steps) / nvl;
-  GMAssert(metrics->section_num_valid_pt2_[section_num]);
+  GMAssert(metrics->section_num_valid_part2_[section_num]);
 
-  const size_t elts_offset = metrics->index_offset_section_pt2_[section_num];
+  const size_t elts_offset = metrics->index_offset_section_part2_[section_num];
 
   const int num_block = GMEnv_num_block_vector(env);
-  const int block_num_pt2 = gm_mod1_(j_block - i_block, num_block) - 1;
+  const int block_num_part2 = gm_mod1_(j_block - i_block, num_block) - 1;
   const int num_proc_r = GMEnv_num_proc_repl(env);
-  const int blocks_offset = block_num_pt2 / num_proc_r;
+  const int blocks_offset = block_num_part2 / num_proc_r;
 
-  const size_t section_size = metrics->section_size_pt2[section_num];
+  const size_t section_size = metrics->section_size_part2[section_num];
 
   /* clang-format off */
   size_t index = elts_offset +
@@ -497,30 +518,32 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
                                           int k_block,
                                           GMEnv* env) {
   const int nvl = metrics->num_vector_local;
-  const int nvl6 = metrics->nvl6;
 
   const int section_axis = gm_section_axis_part3(i_block, j_block, k_block);
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
-  const size_t elts_offset = metrics->index_offset_01_;
-
   const int num_block = GMEnv_num_block_vector(env);
   const int j_i_block_delta = gm_mod1_(j_block - i_block, num_block);
   const int k_i_block_delta = gm_mod1_(k_block - i_block, num_block);
-  const int block_num_pt3 =
+  const int block_num_part3 =
     ((num_block-2) * (k_i_block_delta - 1)) +
     (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
   const int num_proc_r = GMEnv_num_proc_repl(env);
-  const int blocks_offset = block_num_pt3 / num_proc_r;
+  const int blocks_offset = block_num_part3 / num_proc_r;
+
+  const int J_lo = metrics->J_lo_part3_[section_num];
+  const int J_wi = metrics->J_wi_part3_[section_num];
+
+  const size_t elts_offset = metrics->index_offset_01_;
 
   /* clang-format off */
   size_t index = elts_offset +
-        i - ( section_axis == 0 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 0 ? nvl6 : nvl ) * (
-        k - ( section_axis == 2 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 2 ? nvl6 : nvl ) * (
-        j - ( section_axis == 1 ? section_num * nvl6 : 0 ) +
-            ( section_axis == 1 ? nvl6 : nvl ) * (
+        i - ( section_axis == 0 ? J_lo : 0 ) +
+            ( section_axis == 0 ? J_wi : nvl ) * (
+        k - ( section_axis == 2 ? J_lo : 0 ) +
+            ( section_axis == 2 ? J_wi : nvl ) * (
+        j - ( section_axis == 1 ? J_lo : 0 ) +
+            ( section_axis == 1 ? J_wi : nvl ) * (
         (size_t)blocks_offset
         )));
   /* clang-format on */
