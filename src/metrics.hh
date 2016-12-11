@@ -260,7 +260,7 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env);
 /*===========================================================================*/
 /*---Metrics checksum---*/
 
-GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env);
+void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env);
 
 /*===========================================================================*/
 /*===========================================================================*/

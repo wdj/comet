@@ -379,7 +379,7 @@ static void finish_parsing(int argc,
 
 static GMChecksum perform_run(int argc, char** argv,
                               char const * const description) {
-  GMChecksum checksum;
+  GMChecksum checksum = GMChecksum_null();
 
   /*---Initialize environment---*/
 
@@ -419,7 +419,7 @@ static GMChecksum perform_run(int argc, char** argv,
 
   /*---Output run information---*/
 
-  checksum = GMMetrics_checksum(&metrics, &env);
+  GMMetrics_checksum(&metrics, &checksum, &env);
 
   if (GMEnv_is_proc_active(&env) && GMEnv_proc_num(&env) == 0 && verbosity > 0) {
     printf("metrics checksum ");

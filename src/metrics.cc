@@ -607,17 +607,15 @@ static size_t gm_lshift(size_t a, int j) {
 /*---------------------------------------------------------------------------*/
 /*---Metrics checksum---*/
 
-GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
+void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(env != NULL);
   GMAssertAlways(metrics->data != NULL || !GMEnv_is_proc_active(env));
 
   /*---Initializations---*/
 
-  GMChecksum result = GMChecksum_null();
-
   if (!GMEnv_is_proc_active(env)) {
-    return result;
+    return;
   }
 
   enum { num_way_max = GM_NUM_NUM_WAY + 1 };
@@ -636,7 +634,7 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   /*---Calculate the global largest value---*/
 
-  double value_max_this = 0;
+  double value_max_this = cs->value_max;
   UI64 index = 0;
   for (index = 0; index < metrics->num_elts_local; ++index) {
     /*---Loop over data values at this index---*/
@@ -671,35 +669,36 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
         default:
           GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
       } /*---switch---*/
-      value_max_this = index==0 && i_value==0 ? value :
-                       value > value_max_this ? value : value_max_this;
+      value_max_this = value > value_max_this ? value : value_max_this;
     }
   }
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  mpi_code = MPI_Allreduce(&value_max_this, &result.value_max, 1,
+  mpi_code = MPI_Allreduce(&value_max_this, &cs->value_max, 1,
                            MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_vector(env));
-  GMAssertAlways(result.value_max >= 0);
 
   /*---The largest we expect any value to be if using "special" inputs---*/
   const int log2_value_max_allowed = 4;
   const double value_max_allowed = 1 << log2_value_max_allowed;
 
-  result.is_overflowed = result.value_max > value_max_allowed;
+  cs->is_overflowed = cs->is_overflowed && cs->value_max > value_max_allowed;
 
-  const double scaling = result.is_overflowed ? result.value_max :
-                                                value_max_allowed;
+  const double scaling = value_max_allowed;
+
+  //const double scaling = cs->is_overflowed ? cs->value_max : value_max_allowed;
 
   /*---Calculate checksum---*/
 
-  UI64 sums_l[16];
+  //GMMultiprecInt sums_l = {0};
+
+  //UI64 sums_l[16];
   int i = 0;
-  for (i = 0; i < 16; ++i) {
-    sums_l[i] = 0;
-  }
-  double sum_d = 0;
+  //for (i = 0; i < 16; ++i) {
+  //  sums_l[i] = 0;
+  //}
+  //double sum_d = 0;
 
   const int w = 30;
   GMAssertAlways(64 - 2 * w >= 4);
@@ -710,6 +709,8 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
 
   UI64 coords[num_way_max];
   int ind_coords[num_way_max];
+  GMMultiprecInt sum_this = {0};
+  double sum_d_this = 0;
 
   for (index = 0; index < metrics->num_elts_local; ++index) {
     /*---Obtain global coords of metrics elt---*/
@@ -794,54 +795,58 @@ GMChecksum GMMetrics_checksum(GMMetrics* metrics, GMEnv* env) {
       UI64 chi = ahi * bhi + (cx >> w);
       const double value_d =
           ivalue * (double)rand_value / ((double)(one64 << (2 * w)));
-      sum_d += value_d;
+      sum_d_this += value_d;
       /*---(move the carry bits)---*/
       chi += clo >> (2 * w);
       clo &= lohimask;
       /*---Split the product into one-char chunks, accumulate to sums---*/
       for (i = 0; i < 8; ++i) {
-        sums_l[0 + i] += (clo << (64 - 8 - 8 * i)) >> (64 - 8);
-        sums_l[8 + i] += (chi << (64 - 8 - 8 * i)) >> (64 - 8);
+        sum_this.data[0 + i] += (clo << (64 - 8 - 8 * i)) >> (64 - 8);
+        sum_this.data[8 + i] += (chi << (64 - 8 - 8 * i)) >> (64 - 8);
       }
     } /*---for i_value---*/
   }   /*---for index---*/
 
   /*---Global sum---*/
-  UI64 sums_g[16];
-  mpi_code = MPI_Allreduce(sums_l, sums_g, 16, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+  //UI64 sum_g[16];
+  GMMultiprecInt sum = {0};
+  mpi_code = MPI_Allreduce(sum_this.data, sum.data, GM_MULTIPREC_INT_SIZE,
+                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
+  for (i=0; i<GM_MULTIPREC_INT_SIZE; ++i) {
+    cs->sum.data[i] += sum.data[i];
+  }
 
   /*---Combine results---*/
 
   for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     int j = 0;
     for (j = 0; j < 8; ++j) {
-      result.data[i] += gm_lshift(sums_g[0 + j], 8 * j - 2 * w * i) & lohimask;
-      result.data[i] +=
-          gm_lshift(sums_g[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
+      cs->data[i] += gm_lshift(cs->sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
+      cs->data[i] +=
+          gm_lshift(cs->sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
     }
   }
   /*---(move the carry bits---*/
-  result.data[1] += result.data[0] >> (2 * w);
-  result.data[0] &= lohimask;
-  result.data[2] += result.data[1] >> (2 * w);
-  result.data[1] &= lohimask;
+  cs->data[1] += cs->data[0] >> (2 * w);
+  cs->data[0] &= lohimask;
+  cs->data[2] += cs->data[1] >> (2 * w);
+  cs->data[1] &= lohimask;
 
   /*---Check against floating point result---*/
 
-  const double tmp = sum_d;
-  mpi_code = MPI_Allreduce(&tmp, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
+  const double tmp = sum_d_this;
+  mpi_code = MPI_Allreduce(&tmp, &sum_d_this, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
+  cs->sum_d += sum_d_this;
 
-  double result_d = result.data[0] / ((double)(one64 << (2 * w))) +
-                    result.data[1] +
-                    result.data[2] * ((double)(one64 << (2 * w)));
+  double result_d = cs->data[0] / ((double)(one64 << (2 * w))) +
+                    cs->data[1] +
+                    cs->data[2] * ((double)(one64 << (2 * w)));
   result_d = 1 * result_d; /*---Avoid unused variable warning---*/
-  GMAssertAlways(fabs(sum_d - result_d) <= sum_d * 1.e-10);
-
-  return result;
+  GMAssertAlways(fabs(cs->sum_d - result_d) <= cs->sum_d * 1.e-10);
 }
 
 /*===========================================================================*/

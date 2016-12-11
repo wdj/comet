@@ -16,6 +16,7 @@
 
 #include <stddef.h>
 #include <assert.h>
+#include <float.h>
 #include "stdio.h"  //FIX
 
 #include "mpi.h"
@@ -332,6 +333,14 @@ GMMirroredPointer GMMirroredPointer_null(void);
 /*===========================================================================*/
 /*---Checksums---*/
 
+/*---Multiprecision integers---*/
+
+enum { GM_MULTIPREC_INT_SIZE = 16 };
+
+typedef struct {
+  size_t data[GM_MULTIPREC_INT_SIZE];
+} GMMultiprecInt;
+
 /*---Struct with checksum info---*/
 
 enum { GM_CHECKSUM_SIZE = 3 };
@@ -340,6 +349,9 @@ typedef struct {
   size_t data[GM_CHECKSUM_SIZE];
   _Bool is_overflowed;
   double value_max;
+  GMMultiprecInt sum;
+  double sum_d;
+  _Bool is_started;
 } GMChecksum;
 
 /*---------------------------------------------------------------------------*/
@@ -351,7 +363,10 @@ static GMChecksum GMChecksum_null() {
     result.data[i] = 0;
   }
   result.is_overflowed = GM_BOOL_FALSE;
-  result.value_max = 0;
+  result.value_max = -DBL_MAX;
+  GMMultiprecInt sum = {0};
+  result.sum = sum;
+  result.sum_d = 0;
   return result;
 }
 
