@@ -192,16 +192,16 @@ void GMMetrics_create(GMMetrics* metrics,
                       ? "3way all2all case requires num vectors per proc "
                         "divisible by 6."
                       : 0);
-    const size_t nchoosekm1 = gm_nchoosek(num_vector_local, GMEnv_num_way(env)-1);
+    //const size_t nchoosekm1 = gm_nchoosek(num_vector_local, GMEnv_num_way(env)-1);
 
     /*===PART A: CALCULATE INDEX SIZE===*/
 
-    const int proc_num_r = GMEnv_proc_num_repl(env);
-    const int num_proc_r = GMEnv_num_proc_repl(env);
-    const int nvl6 = metrics->nvl6;
+    //const int proc_num_r = GMEnv_proc_num_repl(env);
+    //const int num_proc_r = GMEnv_num_proc_repl(env);
+    //const int nvl6 = metrics->nvl6;
     metrics->num_elts_local = 0;
     int num_block_this_slab = 0;
-    int num_block_this_proc = 0;
+    //int num_block_this_proc = 0;
     /*---Fused counter for section_num and block_num, same across all procs---*/
     int section_block_num = 0;
     int section_step = 0;
@@ -213,6 +213,8 @@ void GMMetrics_create(GMMetrics* metrics,
     GMAssertAlways(GMEnv_num_section_steps(env, 1) ==
                    GMEnv_num_section_steps(env, 2));
     const int num_section_steps_12 = GMEnv_num_section_steps(env, 1);
+
+#if 0
     if (num_section_steps_12 == 1) {
       /*---Record precalculated base offset---*/
       const int section_num = 0;
@@ -227,25 +229,25 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
       section_block_num += num_block_this_slab_1;
     } else {
-      for (section_step=0; section_step<num_section_steps_12; ++section_step) {
-        /*---Record precalculated base offset---*/
-        const int section_num = section_step;
-        const int J_lo = gm_J_lo(section_num, nvl, 1, env);
-        const int J_hi = gm_J_hi(section_num, nvl, 1, env);
-        const size_t trap_size_lo = gm_trap_size(J_lo, nvl);
-        const size_t trap_size_hi = gm_trap_size(J_hi, nvl);
-        //---Absorb size_lo into offset for speed in indexing function.
-        //FIX - un/signed
-        metrics->index_offset_section_part1_[section_num]
-          = metrics->num_elts_local - trap_size_lo;
-        if (gm_proc_r_active(section_block_num, env)) {
-          /*---Elements in slice of trapezoid---*/
-          const size_t elts_local = trap_size_hi - trap_size_lo;
-          metrics->num_elts_local += elts_local;
-          metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
-        }
-        ++section_block_num;
+#endif
+    for (section_step=0; section_step<num_section_steps_12; ++section_step) {
+      /*---Record precalculated base offset---*/
+      const int section_num = section_step;
+      const int J_lo = gm_J_lo(section_num, nvl, 1, env);
+      const int J_hi = gm_J_hi(section_num, nvl, 1, env);
+      const size_t trap_size_lo = gm_trap_size(J_lo, nvl);
+      const size_t trap_size_hi = gm_trap_size(J_hi, nvl);
+      //---Absorb size_lo into offset for speed in indexing function.
+      //FIX - un/signed
+      metrics->index_offset_section_part1_[section_num]
+        = metrics->num_elts_local - trap_size_lo;
+      if (gm_proc_r_active(section_block_num, env)) {
+        /*---Elements in slice of trapezoid---*/
+        const size_t elts_local = trap_size_hi - trap_size_lo;
+        metrics->num_elts_local += elts_local;
+        metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
       }
+      ++section_block_num;
     }
     metrics->index_offset_0_ = metrics->num_elts_local;
 
@@ -253,6 +255,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     const int num_block_this_slab_2 = num_block - 1;
     num_block_this_slab += num_block_this_slab_2;
+#if 0
     if (num_section_steps_12 == 1) {
       /*---Record precalculated base offset---*/
       const int section_num = 0;
@@ -272,30 +275,30 @@ void GMMetrics_create(GMMetrics* metrics,
       }
       section_block_num += num_block_this_slab_2;
     } else {
-      for (section_step=0; section_step<num_section_steps_12; ++section_step) {
-        /*---Record precalculated base offset---*/
-        const int section_num = section_step;
-        const int J_lo = gm_J_lo(section_num, nvl, 2, env);
-        const int J_hi = gm_J_hi(section_num, nvl, 2, env);
-        const size_t triang_size_lo = gm_triang_size(J_lo, nvl);
-        const size_t triang_size_hi = gm_triang_size(J_hi, nvl);
-        //---Absorb size_lo into offset for speed in indexing function.
-        //FIX - un/signed
-        metrics->index_offset_section_part2_[section_num]
-          = metrics->num_elts_local - nvl*triang_size_lo;
-        metrics->section_size_part2[section_num] = triang_size_hi -
-                                                   triang_size_lo;
-        /*---Loop over block for part2---*/
-        int j_i_block_delta = 0;
-        for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
-          if (gm_proc_r_active(section_block_num, env)) {
-            /*---Elements in slice of triang prism---*/
-            const size_t elts_local = nvl*(triang_size_hi - triang_size_lo);
-            metrics->num_elts_local += elts_local;
-            metrics->section_num_valid_part2_[section_num] = (elts_local != 0);
-          }
-          ++section_block_num;
+#endif
+    for (section_step=0; section_step<num_section_steps_12; ++section_step) {
+      /*---Record precalculated base offset---*/
+      const int section_num = section_step;
+      const int J_lo = gm_J_lo(section_num, nvl, 2, env);
+      const int J_hi = gm_J_hi(section_num, nvl, 2, env);
+      const size_t triang_size_lo = gm_triang_size(J_lo, nvl);
+      const size_t triang_size_hi = gm_triang_size(J_hi, nvl);
+      //---Absorb size_lo into offset for speed in indexing function.
+      //FIX - un/signed
+      metrics->index_offset_section_part2_[section_num]
+        = metrics->num_elts_local - nvl*triang_size_lo;
+      metrics->section_size_part2[section_num] = triang_size_hi -
+                                                 triang_size_lo;
+      /*---Loop over block for part2---*/
+      int j_i_block_delta = 0;
+      for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
+        if (gm_proc_r_active(section_block_num, env)) {
+          /*---Elements in slice of triang prism---*/
+          const size_t elts_local = nvl*(triang_size_hi - triang_size_lo);
+          metrics->num_elts_local += elts_local;
+          metrics->section_num_valid_part2_[section_num] = (elts_local != 0);
         }
+        ++section_block_num;
       }
     }
     metrics->index_offset_01_ = metrics->num_elts_local;
@@ -304,6 +307,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     const int num_block_this_slab_3 = (num_block - 1) * (num_block - 2);
     num_block_this_slab += num_block_this_slab_3;
+#if 0
     if (num_section_steps_12 == 1) {
       const int num_block_this_proc_123 = rr_pack_(proc_num_r, num_proc_r,
                                                    num_block_this_slab);
@@ -316,27 +320,27 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->num_elts_local += elts_local;
       section_block_num += num_block_this_slab_3;
     } else {
-      /*---Loop over block for part3---*/
-      int k_i_block_delta = 0;
-      for (k_i_block_delta=1; k_i_block_delta<num_block; ++k_i_block_delta) {
-        const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
-        int j_i_block_delta = 0;
-        for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
-          const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
-          if (j_block == k_block) {
-            continue;
-          }
-          const int section_num = gm_section_num_part3(i_block, j_block,
-                                                       k_block);
-          const int J_lo = gm_J_lo(section_num, nvl, 3, env);
-          const int J_hi = gm_J_hi(section_num, nvl, 3, env);
-          if (gm_proc_r_active(section_block_num, env)) {
-            const size_t elts_local = num_vector_local *
-               (size_t)num_vector_local * (size_t)(J_hi - J_lo);
-            metrics->num_elts_local += elts_local;
-          }
-          ++section_block_num;
+#endif
+    /*---Loop over block for part3---*/
+    int k_i_block_delta = 0;
+    for (k_i_block_delta=1; k_i_block_delta<num_block; ++k_i_block_delta) {
+      const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
+      int j_i_block_delta = 0;
+      for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
+        const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+        if (j_block == k_block) {
+          continue;
         }
+        const int section_num = gm_section_num_part3(i_block, j_block,
+                                                     k_block);
+        const int J_lo = gm_J_lo(section_num, nvl, 3, env);
+        const int J_hi = gm_J_hi(section_num, nvl, 3, env);
+        if (gm_proc_r_active(section_block_num, env)) {
+          const size_t elts_local = num_vector_local *
+             (size_t)num_vector_local * (size_t)(J_hi - J_lo);
+          metrics->num_elts_local += elts_local;
+        }
+        ++section_block_num;
       }
     }
 
@@ -416,7 +420,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*---Set index part 3: (block sections) i_block!=j_block!=k_block part---*/
 
-    int k_i_block_delta = 0;
     for (k_i_block_delta = 1; k_i_block_delta < num_block; ++k_i_block_delta) {
       const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
       int j_i_block_delta = 0;
