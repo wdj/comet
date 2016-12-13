@@ -71,7 +71,11 @@ static int gm_J_lo(int section_num, int nvl, int part_num, GMEnv* env) {
   GMAssert(env != NULL);
   const int num_sections = GMEnv_num_sections(env, part_num);
   GMAssert(section_num >= 0 && section_num <= num_sections);
-  return (section_num * nvl) / num_sections;
+
+  const int result = ((env->stage_num + env->num_stage * section_num)*nvl) /
+                     (num_sections * env->num_stage);
+
+  return result;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -83,7 +87,11 @@ static int gm_J_hi(int section_num, int nvl, int part_num, GMEnv* env) {
   GMAssert(env != NULL);
   const int num_sections = GMEnv_num_sections(env, part_num);
   GMAssert(section_num >= 0 && section_num <= num_sections);
-  return ((section_num+1) * nvl) / num_sections;
+
+  const int result = ((env->stage_num + 1 + env->num_stage * section_num)*nvl) /
+                     (num_sections * env->num_stage);
+
+  return result;
 }
 
 /*===========================================================================*/

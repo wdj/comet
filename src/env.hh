@@ -392,6 +392,8 @@ typedef struct {
   int num_way_;
   _Bool all2all_;
   int compute_method_;
+  int num_stage;
+  int stage_num;
   /*---Counters---*/
   double time;
   double ops;

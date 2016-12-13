@@ -316,7 +316,8 @@ static void finish_parsing(int argc,
                            GMEnv* env,
                            int* num_field,
                            int* num_vector_local,
-                           int* verbosity) {
+                           int* verbosity,
+                           int* num_stage) {
   const int uninitialized = -1;
   *num_field = uninitialized;
   *num_vector_local = uninitialized;
@@ -324,27 +325,42 @@ static void finish_parsing(int argc,
 
   int i = 0;
   for (i = 1; i < argc; ++i) {
+    /*----------*/
     if (strcmp(argv[i], "--num_field") == 0) {
+    /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_field." : 0);
-//FIX: safe atoi
+      //FIX: safe atoi
       *num_field = atoi(argv[i]);
       GMInsist(env, *num_field >= 0 ? "Invalid setting for num_field." : 0);
 
+    /*----------*/
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
+    /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_vector_local." : 0);
-//FIX: safe atoi
+      //FIX: safe atoi
       *num_vector_local = atoi(argv[i]);
       GMInsist(env, *num_vector_local >= 0
                         ? "Invalid setting for num_vector_local."
                         : 0);
+    /*----------*/
     } else if (strcmp(argv[i], "--verbosity") == 0) {
+    /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for verbosity." : 0);
-//FIX: safe atoi
+      //FIX: safe atoi
       *verbosity = atoi(argv[i]);
       GMInsist(env, *verbosity >= 0 ? "Invalid setting for verbosity." : 0);
+    /*----------*/
+    } else if (strcmp(argv[i], "--num_stage") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for num_stage." : 0);
+      //FIX: safe atoi
+      *num_stage = atoi(argv[i]);
+      GMInsist(env, *num_stage >= 1 ? "Invalid setting for num_stage." : 0);
+    /*----------*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
@@ -360,10 +376,12 @@ static void finish_parsing(int argc,
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else {
+    /*----------*/
       if (GMEnv_proc_num(env) == 0) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
       }
       GMInsist(env, GM_BOOL_FALSE ? "Error: argument not recognized." : 0);
+    /*----------*/
     } /*---if/else---*/
 
   } /*---for i---*/
@@ -379,7 +397,6 @@ static void finish_parsing(int argc,
 
 static GMChecksum perform_run(int argc, char** argv,
                               char const * const description) {
-  GMChecksum checksum = GMChecksum_null();
 
   /*---Initialize environment---*/
 
@@ -391,7 +408,10 @@ static GMChecksum perform_run(int argc, char** argv,
   int num_field = 0;
   int num_vector_local = 0;
   int verbosity = 0;
-  finish_parsing(argc, argv, &env, &num_field, &num_vector_local, &verbosity);
+  int num_stage = 1;
+  finish_parsing(argc, argv, &env, &num_field, &num_vector_local, &verbosity,
+                 &num_stage);
+  env.num_stage = num_stage;
 
   /*---Initialize vectors---*/
 
@@ -401,25 +421,40 @@ static GMChecksum perform_run(int argc, char** argv,
 
   input_vectors(&vectors, verbosity, &env);
 
-  /*---Set up metrics container for results---*/
+  GMChecksum checksum = GMChecksum_null();
 
-  GMMetrics metrics = GMMetrics_null();
-  GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env), num_field,
-                   num_vector_local, &env);
+  /*---Loop over stages---*/
 
-  /*---Calculate metrics---*/
+  int stage_num = 0;
+  for (stage_num=0; stage_num<env.num_stage; ++stage_num) {
 
-  gm_compute_metrics(&metrics, &vectors, &env);
+    env.stage_num = stage_num;
 
-  /*---Output results---*/
+    /*---Set up metrics container for results---*/
 
-  if (verbosity > 1) {
-    output_metrics(&metrics, &env);
+    GMMetrics metrics = GMMetrics_null();
+    GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env), num_field,
+                     num_vector_local, &env);
+
+    /*---Calculate metrics---*/
+
+    gm_compute_metrics(&metrics, &vectors, &env);
+
+    /*---Output results---*/
+
+    if (verbosity > 1) {
+      output_metrics(&metrics, &env);
+    }
+
+    /*---Compute checksum---*/
+
+    GMMetrics_checksum(&metrics, &checksum, &env);
+
+    GMMetrics_destroy(&metrics, &env);
+
   }
 
   /*---Output run information---*/
-
-  GMMetrics_checksum(&metrics, &checksum, &env);
 
   if (GMEnv_is_proc_active(&env) && GMEnv_proc_num(&env) == 0 && verbosity > 0) {
     printf("metrics checksum ");
@@ -442,7 +477,6 @@ static GMChecksum perform_run(int argc, char** argv,
 
   /*---Finalize---*/
 
-  GMMetrics_destroy(&metrics, &env);
   GMVectors_destroy(&vectors, &env);
 
   GMEnv_destroy(&env);

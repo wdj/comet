@@ -115,9 +115,22 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute number of elements etc.---*/
 
+  GMInsist(env, env->stage_num >= 0
+                ? "Invalid stage number specified."
+                : 0);
+
+  GMInsist(env, env->stage_num < env->num_stage
+                ? "Invalid stage number specified."
+                : 0);
+
   /*==================================================*/
   if (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env)) {
   /*==================================================*/
+
+    GMInsist(env, env->num_stage == 1
+                      ? "Staged computations not currently implemented "
+                        "for 2-way case."
+                      : 0);
 
     /*---Store the following in this block-row:
         1) strict upper triangular part of main diagonal block
@@ -468,6 +481,11 @@ void GMMetrics_create(GMMetrics* metrics,
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_2 && !GMEnv_all2all(env)) {
   /*==================================================*/
 
+    GMInsist(env, env->num_stage == 1
+                      ? "Staged computations not currently implemented "
+                        "for 2-way case."
+                      : 0);
+
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
@@ -488,12 +506,26 @@ void GMMetrics_create(GMMetrics* metrics,
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && !GMEnv_all2all(env)) {
   /*==================================================*/
 
+    GMInsist(env, env->num_stage == 1
+                      ? "Staged computations not allowed "
+                        "for non-all2all case."
+                      : 0);
+
+    //const int section_num = 0;
+    //const int J_lo = gm_J_lo(section_num, nvl, 1, env);
+    //const int J_hi = gm_J_hi(section_num, nvl, 1, env);
+    //const size_t trap_size_lo = gm_trap_size(J_lo, nvl);
+    //const size_t trap_size_hi = gm_trap_size(J_hi, nvl);
+    //metrics->num_elts_local = trap_size_hi - trap_size_lo;
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
     GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict interior of tetrahedron---*/
     size_t index = 0;
+    //const int j_min = J_lo;
+    //const int j_max = J_hi;
+    //for (j = j_min; j < j_max; ++j) {
     for (j = 0; j < num_vector_local; ++j) {
       const int j_block = i_block;
       const size_t j_global = j + num_vector_local * j_block;
@@ -825,8 +857,10 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
 
   for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     int j = 0;
+    cs->data[i] = 0;
     for (j = 0; j < 8; ++j) {
-      cs->data[i] += gm_lshift(cs->sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
+      cs->data[i] +=
+          gm_lshift(cs->sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
       cs->data[i] +=
           gm_lshift(cs->sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
     }

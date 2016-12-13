@@ -89,6 +89,12 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
     /*---No off-proc all2all: compute tetrahedron of values---*/
 
+    //const int section_num = 0;
+    //const int J_lo = gm_J_lo(section_num, numvecl, 1, env);
+    //const int J_hi = gm_J_hi(section_num, numvecl, 1, env);
+    //const int j_min = J_lo;
+    //const int j_max = J_hi;
+    //for (j = j_min; j < j_max; ++j) {
     for (j = 0; j < numvecl; ++j) {
       for (k = j+1; k < numvecl; ++k) {
         for (i = 0; i < j; ++i) {
@@ -127,6 +133,12 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
     /*---Compute tetrahedron, triang prism or block section---*/
 
+    //const int section_num = si->section_num;
+    //const int J_lo = gm_J_lo(section_num, numvecl, 1, env);
+    //const int J_hi = gm_J_hi(section_num, numvecl, 1, env);
+    //const int j_min = J_lo;
+    //const int j_max = J_hi;
+    //for (j = j_min; j < j_max; ++j) {
     for (j = si->j_lb; j < si->j_ub; ++j) {
       const int k_min = GMSectionInfo_k_min(si, j, env);
       for (k = k_min; k < si->k_ub; ++k) {
