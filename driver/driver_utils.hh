@@ -317,7 +317,9 @@ static void finish_parsing(int argc,
                            int* num_field,
                            int* num_vector_local,
                            int* verbosity,
-                           int* num_stage) {
+                           int* num_stage,
+                           int* stage_min,
+                           int* stage_max) {
   const int uninitialized = -1;
   *num_field = uninitialized;
   *num_vector_local = uninitialized;
@@ -360,6 +362,24 @@ static void finish_parsing(int argc,
       //FIX: safe atoi
       *num_stage = atoi(argv[i]);
       GMInsist(env, *num_stage >= 1 ? "Invalid setting for num_stage." : 0);
+      *stage_min = 1;
+      *stage_max = 1;
+    /*----------*/
+    } else if (strcmp(argv[i], "--stage_min") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for stage_min." : 0);
+      //FIX: safe atoi
+      *stage_min = atoi(argv[i]);
+      GMInsist(env, *stage_min >= 1  ? "Invalid setting for stage_min." : 0);
+    /*----------*/
+    } else if (strcmp(argv[i], "--stage_max") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for stage_max`." : 0);
+      //FIX: safe atoi
+      *stage_max = atoi(argv[i]);
+      GMInsist(env, *stage_max <= *num_stage  ? "Invalid setting for stage_min." : 0);
     /*----------*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
@@ -409,8 +429,10 @@ static GMChecksum perform_run(int argc, char** argv,
   int num_vector_local = 0;
   int verbosity = 0;
   int num_stage = 1;
+  int stage_min = 1;
+  int stage_max = 1;
   finish_parsing(argc, argv, &env, &num_field, &num_vector_local, &verbosity,
-                 &num_stage);
+                 &num_stage, &stage_min, &stage_max);
   env.num_stage = num_stage;
 
   /*---Initialize vectors---*/
@@ -426,7 +448,7 @@ static GMChecksum perform_run(int argc, char** argv,
   /*---Loop over stages---*/
 
   int stage_num = 0;
-  for (stage_num=0; stage_num<env.num_stage; ++stage_num) {
+  for (stage_num=stage_min-1; stage_num<=stage_max-1; ++stage_num) {
 
     env.stage_num = stage_num;
 
