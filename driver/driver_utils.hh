@@ -363,7 +363,7 @@ static void finish_parsing(int argc,
       *num_stage = atoi(argv[i]);
       GMInsist(env, *num_stage >= 1 ? "Invalid setting for num_stage." : 0);
       *stage_min = 1;
-      *stage_max = 1;
+      *stage_max = *num_stage;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_min") == 0) {
     /*----------*/
