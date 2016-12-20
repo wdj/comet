@@ -63,6 +63,24 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
 /*===========================================================================*/
 /*---Accessors: Float---*/
 
+static GMFloat* GMVectors_float_ptr(GMVectors* const vectors,
+                                   int field_local,
+                                   int vector_local,
+                                   GMEnv* env) {
+  GMAssert(vectors);
+  GMAssert(field_local >= 0);
+  GMAssert(field_local < vectors->num_field_local);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+  GMAssert(env);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
+
+  return ((GMFloat*)(vectors->data)) + (field_local +
+                        vectors->num_field_local*(size_t)vector_local);
+}
+
+/*---------------------------------------------------------------------------*/
+
 static void GMVectors_float_set(GMVectors* vectors,
                                 int field_local,
                                 int vector_local,
@@ -75,8 +93,10 @@ static void GMVectors_float_set(GMVectors* vectors,
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT);
 
-  ((GMFloat*)(vectors->data))[field_local +
-                        vectors->num_field_local*(size_t)vector_local] = value;
+  *(GMVectors_float_ptr(vectors, field_local, vector_local, env)) = value;
+
+  //((GMFloat*)(vectors->data))[field_local +
+  //                      vectors->num_field_local*(size_t)vector_local] = value;
 }
 
 /*---------------------------------------------------------------------------*/
