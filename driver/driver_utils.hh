@@ -246,7 +246,7 @@ static void input_vectors(GMVectors* vectors,
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           const size_t vector = vl +
               vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
-          if (vector < driver_options.num_vector_active) {
+          if (vector < driver_options->num_vector_active) {
             size_t addr_file = field_base + vectors->num_field * vector;
             int fseek_success = fseek(input_file, addr_file, SEEK_SET);
             fseek_success += 0; /*---Avoid unused var warning---*/
@@ -390,9 +390,10 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
         size_t index = 0;
         for (index = 0; index < metrics->num_elts_local; ++index) {
           int is_active = GM_BOOL_TRUE;
+          int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            const int coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                coord_num, env)
+            const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                                coord_num, env);
             is_active = is_active && coord < metrics->num_vector_active;
           }
           if (is_active) {
@@ -403,10 +404,10 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
               if (coord_num > 0) {
                 printf(",");
               }
-              const int coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                  coord_num, env)
+              const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                                  coord_num, env);
               /*---Present to the user as 1-based---*/
-              printf("%i", 1 + coord);
+              printf("%li", 1 + coord);
             }
             /*---Value---*/
             printf("): value:");
@@ -425,9 +426,10 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
         size_t index = 0;
         for (index = 0; index < metrics->num_elts_local; ++index) {
           int is_active = GM_BOOL_TRUE;
+          int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            const int coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                coord_num, env)
+            const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                                coord_num, env);
             is_active = is_active && coord < metrics->num_vector_active;
           }
           if (is_active) {
@@ -438,10 +440,10 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
               if (coord_num > 0) {
                 printf(",");
               }
-              const int coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                  coord_num, env)
+              const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                                  coord_num, env);
               /*---Present to the user as 1-based---*/
-              printf("%i", 1 + coord);
+              printf("%li", 1 + coord);
             }
             /*---Value---*/
             printf("): values:");
@@ -465,9 +467,10 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
         size_t index = 0;
         for (index = 0; index < metrics->num_elts_local; ++index) {
           int is_active = GM_BOOL_TRUE;
+          int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            const int coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                coord_num, env)
+            const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                                coord_num, env);
             is_active = is_active && coord < metrics->num_vector_active;
           }
           if (is_active) {
@@ -478,10 +481,10 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
               if (coord_num > 0) {
                 printf(",");
               }
-              const int coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                  coord_num, env)
+              const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                                  coord_num, env);
               /*---Present to the user as 1-based---*/
-              printf("%i", 1 + coord);
+              printf("%li", 1 + coord);
             }
             /*---Value---*/
             printf("): values:");

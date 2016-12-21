@@ -471,7 +471,7 @@ void SystemTest_ccc2_simple_() {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field,
-                   num_vector_local, env);
+                   num_vector_local, num_vector_local, env);
 
   gm_compute_metrics(metrics, vectors, env);
 
@@ -584,7 +584,7 @@ void SystemTest_ccc3_simple_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field,
-                   num_vector_local, env);
+                   num_vector_local, num_vector_local, env);
 
   gm_compute_metrics(metrics, vectors, env);
 

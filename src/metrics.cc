@@ -676,6 +676,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   UI64 index = 0;
   for (index = 0; index < metrics->num_elts_local; ++index) {
     _Bool is_active = GM_BOOL_TRUE;
+    int i = 0;
     for (i = 0; i < GMEnv_num_way(env); ++i) {
       const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
                                                            i, env);
