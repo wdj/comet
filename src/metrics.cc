@@ -44,6 +44,7 @@ void GMMetrics_create(GMMetrics* metrics,
                       int data_type_id,
                       int num_field,
                       int num_vector_local,
+                      size_t num_vector_active,
                       GMEnv* env) {
   GMAssertAlways(metrics);
   GMAssertAlways(num_field >= 0);
@@ -72,6 +73,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_field = num_field;
   metrics->num_field_local = num_field / GMEnv_num_proc_field(env);
   metrics->num_vector_local = num_vector_local;
+  metrics->num_vector_active = num_vector_active;
   metrics->nvl6 = num_vector_local / 6;
   metrics->index_offset_0_ = 0;
   metrics->index_offset_01_ = 0;
@@ -99,6 +101,7 @@ void GMMetrics_create(GMMetrics* metrics,
   GMAssertAlways(mpi_code == MPI_SUCCESS);
   GMAssertAlways((size_t)(metrics->num_vector) == num_vector_bound);
   metrics->num_vector /= GMEnv_num_proc_repl(env);
+  GMAssertAlways(metrics->num_vector_active <= (size_t)metrics->num_vector);
 
   /*---Assume the following to simplify calculations---*/
 
@@ -672,6 +675,15 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   double value_max_this = cs->value_max;
   UI64 index = 0;
   for (index = 0; index < metrics->num_elts_local; ++index) {
+    _Bool is_active = GM_BOOL_TRUE;
+    for (i = 0; i < GMEnv_num_way(env); ++i) {
+      const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                           i, env);
+      is_active = is_active && coord < metrics->num_vector_active;
+    }
+    if (!is_active) {
+      continue;
+    }
     /*---Loop over data values at this index---*/
     int i_value = 0;
     for (i_value = 0; i_value < metrics->data_type_num_values; ++i_value) {
@@ -753,8 +765,15 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
       coords[i] = 0;
       ind_coords[i] = i;
     }
+    _Bool is_active = GM_BOOL_TRUE;
     for (i = 0; i < GMEnv_num_way(env); ++i) {
-      coords[i] = GMMetrics_coord_global_from_index(metrics, index, i, env);
+      const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                           i, env);
+      is_active = is_active && coord < metrics->num_vector_active;
+      coords[i] = coord;
+    }
+    if (!is_active) {
+      continue;
     }
     /*---Reflect coords by symmetry to get uniform result -
          sort into descending order---*/
@@ -810,7 +829,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
       /*---Construct global id for metrics data vbalue---*/
       UI64 uid = coords[0];
       for (i = 1; i < GMEnv_num_way(env); ++i) {
-        uid = uid * metrics->num_vector + coords[i];
+        uid = uid * metrics->num_vector_active + coords[i];
       }
       uid = uid * metrics->data_type_num_values + i_value;
       /*---Randomize---*/
@@ -843,7 +862,6 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   }   /*---for index---*/
 
   /*---Global sum---*/
-  //UI64 sum_g[16];
   GMMultiprecInt sum = {0};
   mpi_code = MPI_Allreduce(sum_this.data, sum.data, GM_MULTIPREC_INT_SIZE,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,

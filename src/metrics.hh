@@ -222,6 +222,7 @@ typedef struct {
   int num_field_local;
   int num_vector;
   int num_vector_local;
+  size_t num_vector_active;
   int nvl6;
   int J_lo_part3_[6];
   int J_wi_part3_[6];
@@ -258,6 +259,7 @@ void GMMetrics_create(GMMetrics* metrics,
                       int data_type_id,
                       int num_field,
                       int num_vector_local,
+                      size_t num_vector_active,
                       GMEnv* env);
 
 /*===========================================================================*/
