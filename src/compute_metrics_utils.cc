@@ -199,9 +199,18 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
          subtracting off this unwanted tally result.---*/
     /*---NOTE: this should work for both 2-way and 3-way---*/
 
-//FIXFIX
-    const int num_seminibbles_pad =
-        64 - (1 + (metrics->num_field_local - 1) % 64);
+    const int nfl = metrics->num_field_local;
+    const int num_packedval_field_local = (nfl + 64 - 1) / 64;
+    const int num_field_calculated = num_packedval_field_local * 64;
+    const int num_field_active_local =
+      GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1
+      ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
+    GMAssertAlways(num_field_active_local >= 0);
+    const int num_seminibbles_pad = num_field_calculated -
+                                    num_field_active_local;
+    //const int num_seminibbles_pad =
+    //    64 - (1 + (metrics->num_field_local - 1) % 64);
+
     const GMFloat adjustment = 4 * num_seminibbles_pad;
     int j = 0;
     for (j = 0; j < metrics->num_vector_local; ++j) {

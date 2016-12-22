@@ -33,8 +33,9 @@ typedef struct {
   int num_field;
   int num_vector_local;
   size_t num_vector;
+  size_t num_field_active;
   size_t num_vector_active;
-  _Bool num_field_initialized;
+  _Bool num_field_active_initialized;
   _Bool num_vector_local_initialized;
   _Bool num_vector_active_initialized;
   int verbosity;
@@ -58,11 +59,11 @@ static void finish_parsing(int argc,
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_field." : 0);
       //FIX: safe atoi
-      driver_options->num_field = atoi(argv[i]);
+      driver_options->num_field_active = atoi(argv[i]);
       GMInsist(env, driver_options->num_field >= 0
                     ? "Invalid setting for num_field."
                     : 0);
-      driver_options->num_field_initialized = GM_BOOL_TRUE;
+      driver_options->num_field_active_initialized = GM_BOOL_TRUE;
     /*----------*/
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
     /*----------*/
@@ -159,7 +160,7 @@ static void finish_parsing(int argc,
 
   } /*---for i---*/
 
-  GMInsist(env, driver_options->num_field_initialized
+  GMInsist(env, driver_options->num_field_active_initialized
                 ? "Error: num_field not set." : 0);
   GMInsist(env, driver_options->num_vector_local_initialized ||
                 driver_options->num_vector_active_initialized
@@ -254,25 +255,27 @@ static void input_vectors(GMVectors* vectors,
             GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
             /*---NOTE: the following call is ok since has no side effects---*/
             GMAssertAlways(fl+1 >= vectors->num_field_local ||
-                        GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1
-                        ? "Vector layout is inompatible with operation." : 0);
+                GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1
+                ? "Vector layout is inompatible with operation." : 0);
             size_t num_read = fread(addr_mem, sizeof(GMFloat),
                                     vectors->num_field_local, input_file);
             num_read += 0; /*---Avoid unused var warning---*/
-            GMAssertAlways(sizeof(GMFloat)*vectors->num_field_local == num_read);
+            GMAssertAlways(sizeof(GMFloat)*vectors->num_field_local==num_read);
           } else {
             const int vl_prev = vl - 1;
             GMAssertAlways(vl_prev >= 0);
             int fl = 0;
             for (fl = 0; fl < vectors->num_field_local; ++fl) {
-              GMFloat pad_value = GMVectors_float_get(vectors, fl, vl_prev, env);;
+              GMFloat pad_value = GMVectors_float_get(vectors, fl, vl_prev,
+                                                      env);
               GMVectors_float_set(vectors, fl, vl, pad_value, env);
             }
           }
         } /*---vl---*/
         fclose(input_file);
       } else {
-        GMAssertAlways(driver_options->num_vector==driver_options->num_vector_active);
+        GMAssertAlways(driver_options->num_vector ==
+                       driver_options->num_vector_active);
         int vl = 0;
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           size_t vector = vl +
@@ -392,8 +395,8 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
           int is_active = GM_BOOL_TRUE;
           int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                coord_num, env);
+            const size_t coord = GMMetrics_coord_global_from_index(metrics,
+                index, coord_num, env);
             is_active = is_active && coord < metrics->num_vector_active;
           }
           if (is_active) {
@@ -404,8 +407,8 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
               if (coord_num > 0) {
                 printf(",");
               }
-              const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                  coord_num, env);
+              const size_t coord = GMMetrics_coord_global_from_index(metrics,
+                  index, coord_num, env);
               /*---Present to the user as 1-based---*/
               printf("%li", 1 + coord);
             }
@@ -428,8 +431,8 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
           int is_active = GM_BOOL_TRUE;
           int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                coord_num, env);
+            const size_t coord = GMMetrics_coord_global_from_index(metrics,
+                 index, coord_num, env);
             is_active = is_active && coord < metrics->num_vector_active;
           }
           if (is_active) {
@@ -440,8 +443,8 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
               if (coord_num > 0) {
                 printf(",");
               }
-              const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                  coord_num, env);
+              const size_t coord = GMMetrics_coord_global_from_index(metrics,
+                  index, coord_num, env);
               /*---Present to the user as 1-based---*/
               printf("%li", 1 + coord);
             }
@@ -452,7 +455,7 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
               int j;
               for (j = 0; j < 2; ++j) {
                 printf(" %.17e",
-                       GMMetrics_ccc_get_from_index_2(metrics, index, i, j, env));
+                    GMMetrics_ccc_get_from_index_2(metrics, index, i, j, env));
               }
             }
             printf("    [from proc %i]\n", GMEnv_proc_num(env));
@@ -469,8 +472,8 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
           int is_active = GM_BOOL_TRUE;
           int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                coord_num, env);
+            const size_t coord = GMMetrics_coord_global_from_index(metrics,
+                index, coord_num, env);
             is_active = is_active && coord < metrics->num_vector_active;
           }
           if (is_active) {
@@ -481,8 +484,8 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
               if (coord_num > 0) {
                 printf(",");
               }
-              const size_t coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                                  coord_num, env);
+              const size_t coord = GMMetrics_coord_global_from_index(metrics,
+                  index, coord_num, env);
               /*---Present to the user as 1-based---*/
               printf("%li", 1 + coord);
             }
@@ -494,8 +497,8 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
               for (j = 0; j < 2; ++j) {
                 int k;
                 for (k = 0; k < 2; ++k) {
-                  printf(" %.17e", GMMetrics_ccc_get_from_index_3(metrics, index,
-                                                                  i, j, k, env));
+                  printf(" %.17e", GMMetrics_ccc_get_from_index_3(
+                     metrics, index, i, j, k, env));
                 }
               }
             }
@@ -524,7 +527,7 @@ static GMChecksum perform_run(int argc, char** argv,
   /*---Parse remaining unprocessed arguments---*/
 
   DriverOptions driver_options = {0};
-  driver_options.num_field_initialized = GM_BOOL_FALSE;
+  driver_options.num_field_active_initialized = GM_BOOL_FALSE;
   driver_options.num_vector_local_initialized = GM_BOOL_FALSE;
   driver_options.num_vector_active_initialized = GM_BOOL_FALSE;
   driver_options.verbosity = 1;
@@ -539,17 +542,21 @@ static GMChecksum perform_run(int argc, char** argv,
       (size_t) GMEnv_num_proc_vector_i(&env);
     driver_options.num_vector_active = driver_options.num_vector;
   } else {
-    driver_options.num_vector_local = gm_ceil_i8(driver_options.num_vector_active,
-                                                 GMEnv_num_proc_vector_i(&env));
+    driver_options.num_vector_local = gm_ceil_i8(
+        driver_options.num_vector_active, GMEnv_num_proc_vector_i(&env));
     driver_options.num_vector = driver_options.num_vector_local *
       (size_t) GMEnv_num_proc_vector_i(&env);
   }
+
+  const int num_field_local = gm_ceil_i8(driver_options.num_field_active,
+                                         GMEnv_num_proc_field(&env));
+  const size_t num_field = num_field_local * (size_t)GMEnv_num_proc_field(&env);
 
   /*---Initialize vectors---*/
 
   GMVectors vectors = GMVectors_null();
   GMVectors_create(&vectors, GMEnv_data_type_vectors(&env),
-                   driver_options.num_field,
+                   num_field, driver_options.num_field_active,
                    driver_options.num_vector_local, &env);
 
   input_vectors(&vectors, &driver_options, &env);
@@ -565,7 +572,8 @@ static GMChecksum perform_run(int argc, char** argv,
 
     GMMetrics metrics = GMMetrics_null();
     GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env),
-                     driver_options.num_field, driver_options.num_vector_local,
+                     num_field, driver_options.num_field_active,
+                     driver_options.num_vector_local,
                      driver_options.num_vector_active, &env);
 
     /*---Calculate metrics---*/

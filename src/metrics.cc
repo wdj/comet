@@ -43,11 +43,14 @@ GMMetrics GMMetrics_null() {
 void GMMetrics_create(GMMetrics* metrics,
                       int data_type_id,
                       int num_field,
+                      size_t num_field_active,
                       int num_vector_local,
                       size_t num_vector_active,
                       GMEnv* env) {
   GMAssertAlways(metrics);
   GMAssertAlways(num_field >= 0);
+  GMAssertAlways(num_field_active >= 0);
+  GMAssertAlways(num_field_active <= (size_t)num_field);
   GMAssertAlways(num_vector_local >= 0);
   GMAssertAlways(env);
 
@@ -71,6 +74,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   metrics->data_type_id = data_type_id;
   metrics->num_field = num_field;
+  metrics->num_field_active = num_field_active;
   metrics->num_field_local = num_field / GMEnv_num_proc_field(env);
   metrics->num_vector_local = num_vector_local;
   metrics->num_vector_active = num_vector_active;

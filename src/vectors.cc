@@ -40,33 +40,48 @@ void GMVectors_initialize_pad(GMVectors* vectors,
   /*---Ensure final pad bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
 
+  const int nfl = vectors->num_field_local;
+  const int fl_min = GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1 ?
+    nfl - (vectors->num_field - vectors->num_field_active) : nfl;
+  GMAssertAlways(fl_min >= 0);
+
   switch (vectors->data_type_id) {
     /*--------------------*/
     case GM_DATA_TYPE_BITS1: {
-//FIXFIX
+    /*--------------------*/
       //---(design is not complete)
-      if (vectors->num_field_local > 0) {
-        const int pvfl = vectors->num_packedval_field_local - 1;
-        GMBits1x64 zero = GMBits1x64_null();
-        int vl = 0;
-        for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+      const int pvfl_min = fl_min / vectors->num_val_per_packedval;
+      GMBits1x64 zero = GMBits1x64_null();
+      int vl = 0;
+      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+        int pvfl = 0;
+        for (pvfl=pvfl_min; pvfl<vectors->num_packedval_field_local; ++pvfl) {
           GMVectors_bits1x64_set(vectors, pvfl, vl, zero, env);
         }
       }
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
-//FIXFIX
+    /*--------------------*/
+      GMFloat zero = 0;
+      int vl = 0;
+      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+        int fl = 0;
+        for (fl = fl_min; fl < nfl; ++fl) {
+          GMVectors_float_set(vectors, fl, vl, zero, env);
+        }
+      }
       /*---NO-OP---*/
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
-//FIXFIX
-      if (vectors->num_field_local > 0) {
-        const int pvfl = vectors->num_packedval_field_local - 1;
-        GMBits2x64 zero = GMBits2x64_null();
-        int vl = 0;
-        for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+    /*--------------------*/
+      const int pvfl_min = fl_min / vectors->num_val_per_packedval;
+      GMBits2x64 zero = GMBits2x64_null();
+      int vl = 0;
+      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+        int pvfl = 0;
+        for (pvfl=pvfl_min; pvfl<vectors->num_packedval_field_local; ++pvfl) {
           GMVectors_bits2x64_set(vectors, pvfl, vl, zero, env);
         }
       }
@@ -83,10 +98,13 @@ void GMVectors_initialize_pad(GMVectors* vectors,
 void GMVectors_create(GMVectors* vectors,
                       int data_type_id,
                       int num_field,
+                      size_t num_field_active,
                       int num_vector_local,
                       GMEnv* env) {
   GMAssertAlways(vectors);
   GMAssertAlways(num_field >= 0);
+  GMAssertAlways(num_field_active >= 0);
+  GMAssertAlways(num_field_active <= (size_t)num_field);
   GMAssertAlways(num_vector_local >= 0);
   GMAssertAlways(env);
 
@@ -103,6 +121,7 @@ void GMVectors_create(GMVectors* vectors,
 
   vectors->data_type_id = data_type_id;
   vectors->num_field = num_field;
+  vectors->num_field_active = num_field_active;
   vectors->num_field_local = num_field / GMEnv_num_proc_field(env);
   vectors->num_vector_local = num_vector_local;
 
@@ -154,6 +173,9 @@ void GMVectors_create(GMVectors* vectors,
     default:
       GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
+
+  vectors->num_val_per_packedval = vectors->num_bits_per_packedval /
+                                   vectors->num_bits_per_val;
 
   /*---Calculate number of (packed) values to set aside storage for---*/
 

@@ -29,15 +29,18 @@ typedef struct {
   /*---Logical sizes---*/
   int num_field;
   int num_field_local;
+  size_t num_field_active;
   int num_vector;
   int num_vector_local;
   /*---Stored sizes---*/
   int num_bits_per_val;
   int num_bits_per_packedval;
+  int num_val_per_packedval;
   int num_packedval_field_local;
   size_t num_packedval_local;
   /*---Other---*/
   int data_type_id;
+  int pad1;
   void* __restrict__ data;
 } GMVectors;
 
@@ -52,6 +55,7 @@ GMVectors GMVectors_null(void);
 void GMVectors_create(GMVectors* vectors,
                       int data_type_id,
                       int num_field,
+                      size_t num_field_active,
                       int num_vector_local,
                       GMEnv* env);
 

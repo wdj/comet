@@ -212,22 +212,27 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
 
     /* clang-format off */
 
-    const int num_seminibbles = 1 + (vectors_left->num_field_local-1) % 64;
+    const int nfl = vectors_left->num_field_local;
+    const int num_field_active_local =
+      GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env) - 1
+      ? nfl - (vectors_left->num_field - vectors_left->num_field_active) : nfl;
+    const int num_packedval_field_active_local =
+      (num_field_active_local + 64 - 1) / 64;
+
+    const int num_seminibbles_edge = 1 + (num_field_active_local-1) % 64;
 
     const GMUInt64 nobits = 0;
-    //const GMUInt64 allbits = 0xffffffffffffffff;
     const GMUInt64 allbits = ~nobits;
 
-//FIXFIX
-    const GMUInt64 lastmask0 = num_seminibbles >= 32 ?
+    const GMUInt64 edgemask0 = num_seminibbles_edge >= 32 ?
                                allbits :
-                               allbits >> (64 - 2*num_seminibbles);
+                               allbits >> (64 - 2*num_seminibbles_edge);
 
-    const GMUInt64 lastmask1 = num_seminibbles <= 32 ?
+    const GMUInt64 edgemask1 = num_seminibbles_edge <= 32 ?
                                nobits :
-                               num_seminibbles == 64 ?
+                               num_seminibbles_edge == 64 ?
                                allbits :
-                               allbits >> (128 - 2*num_seminibbles);
+                               allbits >> (128 - 2*num_seminibbles_edge);
 
     int j = 0;
     for (j = 0; j < metrics->num_vector_local; ++j) {
@@ -237,14 +242,15 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
         int pvfl = 0;
-        const int pvfl_last = vectors_left->num_packedval_field_local - 1;
-        for (pvfl = 0; pvfl <= pvfl_last ; ++pvfl) {
+        const int npvfl = vectors_left->num_packedval_field_local;
+        const int pvfl_edge = num_packedval_field_active_local - 1;
+        for (pvfl = 0; pvfl < npvfl; ++pvfl) {
           /*---Get masks for active seminibbles in each word---*/
 
-          const _Bool is_padded_pvfl =  pvfl < pvfl_last;
-
-          const GMUInt64 activebits0 = is_padded_pvfl ? allbits : lastmask0;
-          const GMUInt64 activebits1 = is_padded_pvfl ? allbits : lastmask1;
+          const GMUInt64 activebits0 = pvfl < pvfl_edge ? allbits :
+                                       pvfl == pvfl_edge ? edgemask0 : nobits;
+          const GMUInt64 activebits1 = pvfl < pvfl_edge ? allbits :
+                                       pvfl == pvfl_edge ? edgemask1 : nobits;
 
           /*---Extract input values to process---*/
           const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pvfl, i,
