@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <float.h>
+#include <errno.h>
 
 #include "env.hh"
 #include "vectors.hh"
@@ -30,11 +31,13 @@ extern "C" {
 /*---Struct to hold driver options (options not in GMEnv)---*/
 
 typedef struct {
-  int num_field;
+  int num_field_local;
   int num_vector_local;
+  size_t num_field;
   size_t num_vector;
   size_t num_field_active;
   size_t num_vector_active;
+  _Bool num_field_local_initialized;
   _Bool num_field_active_initialized;
   _Bool num_vector_local_initialized;
   _Bool num_vector_active_initialized;
@@ -49,53 +52,78 @@ typedef struct {
 
 static void finish_parsing(int argc,
                            char** argv,
-                           DriverOptions* driver_options,
+                           DriverOptions* do_,
                            GMEnv* env) {
+  errno = 0;
   int i = 0;
   for (i = 1; i < argc; ++i) {
     /*----------*/
     if (strcmp(argv[i], "--num_field") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for num_field." : 0);
+      GMInsist(env, i < argc && "Missing value for num_field.");
+      long num_field = strtol(argv[i], NULL, 10);
+      do_->num_field_active = num_field;
+      GMInsist(env, errno == 0 && num_field >= 0
+                    && "Invalid setting for num_field.");
+      do_->num_field_active_initialized = GM_BOOL_TRUE;
+      do_->num_field_local_initialized = GM_BOOL_FALSE;
+    /*----------*/
+    } else if (strcmp(argv[i], "--num_field_local") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for num_field_local." : 0);
+
+
+
       //FIX: safe atoi
-      driver_options->num_field_active = atoi(argv[i]);
-      GMInsist(env, driver_options->num_field >= 0
-                    ? "Invalid setting for num_field."
+      do_->num_field_local = atoi(argv[i]);
+      GMInsist(env, do_->num_field_local >= 0
+                    ? "Invalid setting for num_field_local."
                     : 0);
-      driver_options->num_field_active_initialized = GM_BOOL_TRUE;
+      do_->num_field_local_initialized = GM_BOOL_TRUE;
+      do_->num_field_active_initialized = GM_BOOL_FALSE;
     /*----------*/
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_vector_local." : 0);
+
+
+
       //FIX: safe atoi
-      driver_options->num_vector_local = atoi(argv[i]);
-      GMInsist(env, driver_options->num_vector_local >= 0
+      do_->num_vector_local = atoi(argv[i]);
+      GMInsist(env, do_->num_vector_local >= 0
                         ? "Invalid setting for num_vector_local."
                         : 0);
-      driver_options->num_vector_local_initialized = GM_BOOL_TRUE;
-      driver_options->num_vector_active_initialized = GM_BOOL_FALSE;
+      do_->num_vector_local_initialized = GM_BOOL_TRUE;
+      do_->num_vector_active_initialized = GM_BOOL_FALSE;
     /*----------*/
     } else if (strcmp(argv[i], "--num_vector") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_vector." : 0);
+
+
+
       //FIX: safe atoi
-      driver_options->num_vector_active = atoi(argv[i]);
-      GMInsist(env, driver_options->num_vector_active >= 0
+      do_->num_vector_active = atoi(argv[i]);
+      GMInsist(env, do_->num_vector_active >= 0
                         ? "Invalid setting for num_vector."
                         : 0);
-      driver_options->num_vector_active_initialized = GM_BOOL_TRUE;
-      driver_options->num_vector_local_initialized = GM_BOOL_FALSE;
+      do_->num_vector_active_initialized = GM_BOOL_TRUE;
+      do_->num_vector_local_initialized = GM_BOOL_FALSE;
     /*----------*/
     } else if (strcmp(argv[i], "--verbosity") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for verbosity." : 0);
+
+
+
       //FIX: safe atoi
-      driver_options->verbosity = atoi(argv[i]);
-      GMInsist(env, driver_options->verbosity >= 0
+      do_->verbosity = atoi(argv[i]);
+      GMInsist(env, do_->verbosity >= 0
                     ? "Invalid setting for verbosity."
                     : 0);
     /*----------*/
@@ -103,19 +131,25 @@ static void finish_parsing(int argc,
     /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_stage." : 0);
+
+
+
       //FIX: safe atoi
       env->num_stage = atoi(argv[i]);
       GMInsist(env, env->num_stage >= 1 ? "Invalid setting for num_stage." : 0);
-      driver_options->stage_min = 1;
-      driver_options->stage_max = env->num_stage;
+      do_->stage_min = 1;
+      do_->stage_max = env->num_stage;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_min") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for stage_min." : 0);
+
+
+
       //FIX: safe atoi
-      driver_options->stage_min = atoi(argv[i]);
-      GMInsist(env, driver_options->stage_min >= 1
+      do_->stage_min = atoi(argv[i]);
+      GMInsist(env, do_->stage_min >= 1
                     ? "Invalid setting for stage_min."
                     : 0);
     /*----------*/
@@ -123,9 +157,12 @@ static void finish_parsing(int argc,
     /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for stage_max`." : 0);
+
+
+
       //FIX: safe atoi
-      driver_options->stage_max = atoi(argv[i]);
-      GMInsist(env, driver_options->stage_max <= env->num_stage
+      do_->stage_max = atoi(argv[i]);
+      GMInsist(env, do_->stage_max <= env->num_stage
                     ? "Invalid setting for stage_max."
                     : 0);
     /*----------*/
@@ -133,7 +170,7 @@ static void finish_parsing(int argc,
     /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for input_file`." : 0);
-      driver_options->input_file_path = argv[i];
+      do_->input_file_path = argv[i];
     /*----------*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
@@ -160,10 +197,12 @@ static void finish_parsing(int argc,
 
   } /*---for i---*/
 
-  GMInsist(env, driver_options->num_field_active_initialized
-                ? "Error: num_field not set." : 0);
-  GMInsist(env, driver_options->num_vector_local_initialized ||
-                driver_options->num_vector_active_initialized
+  GMInsist(env, do_->num_field_local_initialized ||
+                do_->num_field_active_initialized
+                ? "Error: must set num_field_local or num_field."
+                : 0);
+  GMInsist(env, do_->num_vector_local_initialized ||
+                do_->num_vector_active_initialized
                 ? "Error: must set num_vector_local or num_vector."
                 : 0);
 }
@@ -195,7 +234,7 @@ static void create_args(char* argstring, int* argc, char** argv) {
 /*---Set the entries of the vectors---*/
 
 static void input_vectors(GMVectors* vectors,
-                          DriverOptions* driver_options, GMEnv* env) {
+                          DriverOptions* do_, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
@@ -208,84 +247,53 @@ static void input_vectors(GMVectors* vectors,
     case GM_DATA_TYPE_BITS1: {
     /*--------------------*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented; design not complete." : 0);
-      int vl = 0;
-      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-        size_t vector = vl +
-            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
-        int fl = 0;
-        for (fl = 0; fl < vectors->num_field_local; ++fl) {
-          size_t field = fl +
-              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-          /*---compute element unique id---*/
-          const size_t uid = field + vectors->num_field * vector;
-          size_t index = uid;
-          /*---randomize---*/
-          index = gm_randomize(index);
-          /*---Calculate random number between 0 and 1---*/
-          GMFloat rand_value = index / (GMFloat)gm_randomize_max();
-          /*---Create single bit value---*/
-          _Bool value = rand_value < .5 ? GM_BOOL_FALSE : GM_BOOL_TRUE;
-          /*---Store---*/
-          GMVectors_bit_set(vectors, fl, vl, value, env);
-          /*---Print---*/
-          if (driver_options->verbosity > 2) {
-          }
-        } /*---field---*/
-      }   /*---vector_local---*/
-
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
-      if (driver_options->input_file_path != NULL) {
+      if (do_->input_file_path != NULL) {
         const int fl = 0;
         const size_t field_base = fl +
           vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-        FILE* input_file = fopen(driver_options->input_file_path, "r");
+        FILE* input_file = fopen(do_->input_file_path, "r");
         GMAssertAlways(NULL != input_file ? "Unable to open input file." : 0);
         int vl = 0;
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           const size_t vector = vl +
               vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
-          if (vector < driver_options->num_vector_active) {
-            size_t addr_file = field_base + vectors->num_field * vector;
-            int fseek_success = fseek(input_file, addr_file, SEEK_SET);
-            fseek_success += 0; /*---Avoid unused var warning---*/
-            GMAssertAlways(0 == fseek_success);
-            GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
-            /*---NOTE: the following call is ok since has no side effects---*/
-            GMAssertAlways(fl+1 >= vectors->num_field_local ||
-                GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1
-                ? "Vector layout is inompatible with operation." : 0);
-            size_t num_read = fread(addr_mem, sizeof(GMFloat),
-                                    vectors->num_field_local, input_file);
-            num_read += 0; /*---Avoid unused var warning---*/
-            GMAssertAlways(sizeof(GMFloat)*vectors->num_field_local==num_read);
-          } else {
-            const int vl_prev = vl - 1;
-            GMAssertAlways(vl_prev >= 0);
-            int fl = 0;
-            for (fl = 0; fl < vectors->num_field_local; ++fl) {
-              GMFloat pad_value = GMVectors_float_get(vectors, fl, vl_prev,
-                                                      env);
-              GMVectors_float_set(vectors, fl, vl, pad_value, env);
-            }
-          }
+          const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                       vector : do_->num_vector_active-1;
+          size_t addr_file = field_base + vectors->num_field * vector_capped;
+          int fseek_success = fseek(input_file, addr_file, SEEK_SET);
+          fseek_success += 0; /*---Avoid unused var warning---*/
+          GMAssertAlways(0 == fseek_success);
+          GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
+          /*---NOTE: the following call is ok since has no side effects---*/
+          GMAssertAlways(fl+1 >= vectors->num_field_local ||
+              GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1
+              ? "Vector layout is incompatible with operation." : 0);
+          size_t num_read = fread(addr_mem, sizeof(GMFloat),
+                                  vectors->num_field_local, input_file);
+          num_read += 0; /*---Avoid unused var warning---*/
+          GMAssertAlways(sizeof(GMFloat)*vectors->num_field_local==num_read);
         } /*---vl---*/
         fclose(input_file);
       } else {
-        GMAssertAlways(driver_options->num_vector ==
-                       driver_options->num_vector_active);
         int vl = 0;
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           size_t vector = vl +
               vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+          const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                       vector : do_->num_vector_active-1;
           int fl = 0;
           for (fl = 0; fl < vectors->num_field_local; ++fl) {
             size_t field = fl +
                 vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+            if (field >= vectors->num_field_active) {
+              continue;
+            }
             /*---Compute element unique id---*/
-            const size_t uid = field + vectors->num_field * vector;
+            const size_t uid = field + vectors->num_field_active*vector_capped;
             /*---Generate large random number---*/
             size_t rand1 = uid;
             rand1 = gm_randomize(rand1);
@@ -302,17 +310,17 @@ static void input_vectors(GMVectors* vectors,
             GMAssertAlways(FLT_RADIX == 2);
             const int mant_dig = sizeof(GMFloat) == 8 ? DBL_MANT_DIG :
                                                         FLT_MANT_DIG;
-            const int shift_amount = gm_log2(rand_max * vectors->num_field) -
-                                     mant_dig;
+            const int shift_amount = gm_log2(rand_max*vectors->num_field_active)
+                                     - mant_dig;
             rand_value >>= shift_amount > 0 ? shift_amount : 0;
             /*---Store---*/
             GMFloat float_value = (GMFloat)rand_value;
             GMAssertAlways((size_t)float_value == rand_value);
-            GMAssertAlways(float_value * vectors->num_field <=
+            GMAssertAlways(float_value * vectors->num_field_active <=
                            ((size_t)1)<<mant_dig);
             GMVectors_float_set(vectors, fl, vl, float_value, env);
             /*---Print---*/
-            if (driver_options->verbosity > 2) {
+            if (do_->verbosity > 2) {
               printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
                      GMEnv_proc_num_vector_i(env), vl,
                      GMEnv_proc_num_field(env), fl, float_value);
@@ -324,36 +332,45 @@ static void input_vectors(GMVectors* vectors,
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
-      GMInsist(env, NULL == driver_options->input_file_path
-                    ? "File input for this case not yet implemented." : 0);
-      int vl = 0;
-      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-        size_t vector = vl +
-            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
-        int fl;
-        for (fl = 0; fl < vectors->num_field_local; ++fl) {
-          size_t field = fl +
-              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-          /*---Compute element unique id---*/
-          const size_t uid = field + vectors->num_field * vector;
-          size_t index = uid;
-          /*---Randomize---*/
-          index = gm_randomize(index);
-          index = gm_randomize(index);
-          /*---Calculate random number between 0 and 3---*/
-          const float float_rand_value = index / (float)gm_randomize_max();
-          /*---Create 2-bit value - make extra sure less than 4---*/
-          GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
-          /*---Store---*/
-          GMVectors_bits2_set(vectors, fl, vl, value, env);
-          /*---Print---*/
-          if (driver_options->verbosity > 2) {
-            printf("vec_proc %i vec %i field_proc %i field %i value %.1i%.1i\n",
-                   GMEnv_proc_num_vector_i(env), vl,
-                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
-          }
-        } /*---fl---*/
-      }   /*---vl---*/
+      if (do_->input_file_path != NULL) {
+        GMInsist(env, NULL == do_->input_file_path
+                      ? "File input for this case not yet implemented." : 0);
+      } else {
+        int vl = 0;
+        for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+          size_t vector = vl +
+              vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+          const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                       vector : do_->num_vector_active-1;
+          int fl;
+          for (fl = 0; fl < vectors->num_field_local; ++fl) {
+            size_t field = fl +
+                vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+            if (field >= vectors->num_field_active) {
+              continue;
+            }
+            /*---Compute element unique id---*/
+            const size_t uid = field + vectors->num_field_active*vector_capped;
+            size_t index = uid;
+            /*---Randomize---*/
+            index = gm_randomize(index);
+            index = gm_randomize(index);
+            /*---Calculate random number between 0 and 3---*/
+            const float float_rand_value = index / (float)gm_randomize_max();
+            /*---Create 2-bit value - make extra sure less than 4---*/
+            GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
+            /*---Store---*/
+            GMVectors_bits2_set(vectors, fl, vl, value, env);
+            /*---Print---*/
+            if (do_->verbosity > 2) {
+              printf("vec_proc %i vec %i "
+                     "field_proc %i field %i value %.1i%.1i\n",
+                     GMEnv_proc_num_vector_i(env), vl,
+                     GMEnv_proc_num_field(env), fl, value / 2, value % 2);
+            }
+          } /*---fl---*/
+        }   /*---vl---*/
+      } /*---if---*/
     } break;
     /*--------------------*/
     default:
@@ -362,13 +379,19 @@ static void input_vectors(GMVectors* vectors,
   } /*---switch---*/
 }
 
-/*===========================================================================*/
-/*---Output the result metrics values---*/
 
-static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
-                           GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(env != NULL);
+
+
+
+/*===========================================================================*/
+/*---Output the result metrics values to file---*/
+
+static void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
+                                FILE* file, GMEnv* env) {
+  GMAssertAlways(NULL != metrics);
+  GMAssertAlways(NULL != do_);
+  GMAssertAlways(NULL != file);
+  GMAssertAlways(NULL != env);
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -389,128 +412,135 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* driver_options,
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
-      if (driver_options->verbosity > 1) {
-        size_t index = 0;
-        for (index = 0; index < metrics->num_elts_local; ++index) {
-          int is_active = GM_BOOL_TRUE;
+      size_t index = 0;
+      for (index = 0; index < metrics->num_elts_local; ++index) {
+        int is_active = GM_BOOL_TRUE;
+        int coord_num = 0;
+        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
+          const size_t coord = GMMetrics_coord_global_from_index(metrics,
+              index, coord_num, env);
+          is_active = is_active && coord < metrics->num_vector_active;
+        }
+        if (is_active) {
+          /*---Coordinate---*/
+          fprintf(file, "element (");
           int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
+            if (coord_num > 0) {
+              fprintf(file, ",");
+            }
             const size_t coord = GMMetrics_coord_global_from_index(metrics,
                 index, coord_num, env);
-            is_active = is_active && coord < metrics->num_vector_active;
+            /*---Present to the user as 1-based---*/
+            fprintf(file, "%li", 1 + coord);
           }
-          if (is_active) {
-            /*---Coordinate---*/
-            printf("element (");
-            int coord_num = 0;
-            for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-              if (coord_num > 0) {
-                printf(",");
-              }
-              const size_t coord = GMMetrics_coord_global_from_index(metrics,
-                  index, coord_num, env);
-              /*---Present to the user as 1-based---*/
-              printf("%li", 1 + coord);
-            }
-            /*---Value---*/
-            printf("): value:");
-            printf(" %.17e",
-                   GMMetrics_czekanowski_get_from_index(metrics, index, env));
-            printf("    [from proc %i]\n", GMEnv_proc_num(env));
+          /*---Value---*/
+          fprintf(file, "): value:");
+          fprintf(file, " %.17e",
+                 GMMetrics_czekanowski_get_from_index(metrics, index, env));
+          fprintf(file, "    [from proc %i]\n", GMEnv_proc_num(env));
 
-          }
-        } /*---for index---*/
-      } /*---verbosity---*/
+        }
+      } /*---for index---*/
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
-      if (driver_options->verbosity > 1) {
-        size_t index = 0;
-        for (index = 0; index < metrics->num_elts_local; ++index) {
-          int is_active = GM_BOOL_TRUE;
+      size_t index = 0;
+      for (index = 0; index < metrics->num_elts_local; ++index) {
+        int is_active = GM_BOOL_TRUE;
+        int coord_num = 0;
+        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
+          const size_t coord = GMMetrics_coord_global_from_index(metrics,
+               index, coord_num, env);
+          is_active = is_active && coord < metrics->num_vector_active;
+        }
+        if (is_active) {
+          /*---Coordinate---*/
+          fprintf(file, "element (");
           int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
+            if (coord_num > 0) {
+              fprintf(file, ",");
+            }
             const size_t coord = GMMetrics_coord_global_from_index(metrics,
-                 index, coord_num, env);
-            is_active = is_active && coord < metrics->num_vector_active;
+                index, coord_num, env);
+            /*---Present to the user as 1-based---*/
+            fprintf(file, "%li", 1 + coord);
           }
-          if (is_active) {
-            /*---Coordinate---*/
-            printf("element (");
-            int coord_num = 0;
-            for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-              if (coord_num > 0) {
-                printf(",");
-              }
-              const size_t coord = GMMetrics_coord_global_from_index(metrics,
-                  index, coord_num, env);
-              /*---Present to the user as 1-based---*/
-              printf("%li", 1 + coord);
+          /*---Value---*/
+          fprintf(file, "): values:");
+          int i;
+          for (i = 0; i < 2; ++i) {
+            int j;
+            for (j = 0; j < 2; ++j) {
+              fprintf(file, " %.17e",
+                  GMMetrics_ccc_get_from_index_2(metrics, index, i, j, env));
             }
-            /*---Value---*/
-            printf("): values:");
-            int i;
-            for (i = 0; i < 2; ++i) {
-              int j;
-              for (j = 0; j < 2; ++j) {
-                printf(" %.17e",
-                    GMMetrics_ccc_get_from_index_2(metrics, index, i, j, env));
-              }
-            }
-            printf("    [from proc %i]\n", GMEnv_proc_num(env));
           }
-        } /*---for index---*/
-      }
+          fprintf(file, "    [from proc %i]\n", GMEnv_proc_num(env));
+        }
+      } /*---for index---*/
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
-      if (driver_options->verbosity > 1) {
-        size_t index = 0;
-        for (index = 0; index < metrics->num_elts_local; ++index) {
-          int is_active = GM_BOOL_TRUE;
+      size_t index = 0;
+      for (index = 0; index < metrics->num_elts_local; ++index) {
+        int is_active = GM_BOOL_TRUE;
+        int coord_num = 0;
+        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
+          const size_t coord = GMMetrics_coord_global_from_index(metrics,
+              index, coord_num, env);
+          is_active = is_active && coord < metrics->num_vector_active;
+        }
+        if (is_active) {
+          /*---Coordinate---*/
+          fprintf(file, "element (");
           int coord_num = 0;
           for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
+            if (coord_num > 0) {
+              fprintf(file, ",");
+            }
             const size_t coord = GMMetrics_coord_global_from_index(metrics,
                 index, coord_num, env);
-            is_active = is_active && coord < metrics->num_vector_active;
+            /*---Present to the user as 1-based---*/
+            fprintf(file, "%li", 1 + coord);
           }
-          if (is_active) {
-            /*---Coordinate---*/
-            printf("element (");
-            int coord_num = 0;
-            for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-              if (coord_num > 0) {
-                printf(",");
-              }
-              const size_t coord = GMMetrics_coord_global_from_index(metrics,
-                  index, coord_num, env);
-              /*---Present to the user as 1-based---*/
-              printf("%li", 1 + coord);
-            }
-            /*---Value---*/
-            printf("): values:");
-            int i;
-            for (i = 0; i < 2; ++i) {
-              int j;
-              for (j = 0; j < 2; ++j) {
-                int k;
-                for (k = 0; k < 2; ++k) {
-                  printf(" %.17e", GMMetrics_ccc_get_from_index_3(
-                     metrics, index, i, j, k, env));
-                }
+          /*---Value---*/
+          fprintf(file, "): values:");
+          int i;
+          for (i = 0; i < 2; ++i) {
+            int j;
+            for (j = 0; j < 2; ++j) {
+              int k;
+              for (k = 0; k < 2; ++k) {
+                fprintf(file, " %.17e", GMMetrics_ccc_get_from_index_3(
+                   metrics, index, i, j, k, env));
               }
             }
-            printf("    [from proc %i]\n", GMEnv_proc_num(env));
           }
-        } /*---for index---*/
-      }
+          fprintf(file, "    [from proc %i]\n", GMEnv_proc_num(env));
+        }
+      } /*---for index---*/
     } break;
     /*--------------------*/
     default:
       GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
+}
+
+/*===========================================================================*/
+/*---Output the result metrics values---*/
+
+static void output_metrics(GMMetrics* metrics, DriverOptions* do_,
+                           GMEnv* env) {
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(env != NULL);
+
+  if (do_->verbosity > 1) {
+    output_metrics_file(metrics, do_, stdout, env);
+  }
 }
 
 /*===========================================================================*/
@@ -526,55 +556,61 @@ static GMChecksum perform_run(int argc, char** argv,
 
   /*---Parse remaining unprocessed arguments---*/
 
-  DriverOptions driver_options = {0};
-  driver_options.num_field_active_initialized = GM_BOOL_FALSE;
-  driver_options.num_vector_local_initialized = GM_BOOL_FALSE;
-  driver_options.num_vector_active_initialized = GM_BOOL_FALSE;
-  driver_options.verbosity = 1;
-  driver_options.stage_min = 1;
-  driver_options.stage_max = env.num_stage;
-  driver_options.input_file_path = NULL;
+  DriverOptions do_ = {0};
+  do_.num_field_local_initialized = GM_BOOL_FALSE;
+  do_.num_field_active_initialized = GM_BOOL_FALSE;
+  do_.num_vector_local_initialized = GM_BOOL_FALSE;
+  do_.num_vector_active_initialized = GM_BOOL_FALSE;
+  do_.verbosity = 1;
+  do_.stage_min = 1;
+  do_.stage_max = env.num_stage;
+  do_.input_file_path = NULL;
 
-  finish_parsing(argc, argv, &driver_options, &env);
+  finish_parsing(argc, argv, &do_, &env);
 
-  if (driver_options.num_vector_local_initialized) {
-    driver_options.num_vector = driver_options.num_vector_local *
+  if (do_.num_vector_local_initialized) {
+    do_.num_vector = do_.num_vector_local *
       (size_t) GMEnv_num_proc_vector_i(&env);
-    driver_options.num_vector_active = driver_options.num_vector;
+    do_.num_vector_active = do_.num_vector;
   } else {
-    driver_options.num_vector_local = gm_ceil_i8(
-        driver_options.num_vector_active, GMEnv_num_proc_vector_i(&env));
-    driver_options.num_vector = driver_options.num_vector_local *
+    do_.num_vector_local = gm_ceil_i8(
+        do_.num_vector_active, GMEnv_num_proc_vector_i(&env));
+    do_.num_vector = do_.num_vector_local *
       (size_t) GMEnv_num_proc_vector_i(&env);
   }
 
-  const int num_field_local = gm_ceil_i8(driver_options.num_field_active,
-                                         GMEnv_num_proc_field(&env));
-  const size_t num_field = num_field_local * (size_t)GMEnv_num_proc_field(&env);
+  if (do_.num_field_local_initialized) {
+    do_.num_field = do_.num_field_local * (size_t) GMEnv_num_proc_field(&env);
+    do_.num_field_active = do_.num_field;
+  } else {
+    do_.num_field_local = gm_ceil_i8(
+        do_.num_field_active, GMEnv_num_proc_field(&env));
+    do_.num_field = do_.num_field_local * (size_t) GMEnv_num_proc_field(&env);
+  }
 
   /*---Initialize vectors---*/
 
   GMVectors vectors = GMVectors_null();
   GMVectors_create(&vectors, GMEnv_data_type_vectors(&env),
-                   num_field, driver_options.num_field_active,
-                   driver_options.num_vector_local, &env);
+                   do_.num_field, do_.num_field_active,
+                   do_.num_vector_local, &env);
 
-  input_vectors(&vectors, &driver_options, &env);
+  input_vectors(&vectors, &do_, &env);
 
   GMChecksum checksum = GMChecksum_null();
 
   /*---Loop over stages---*/
 
-  for (env.stage_num=driver_options.stage_min-1;
-       env.stage_num<=driver_options.stage_max-1; ++env.stage_num) {
+  for (env.stage_num=do_.stage_min-1;
+       env.stage_num<=do_.stage_max-1; ++env.stage_num) {
 
     /*---Set up metrics container for results---*/
 
     GMMetrics metrics = GMMetrics_null();
     GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env),
-                     num_field, driver_options.num_field_active,
-                     driver_options.num_vector_local,
-                     driver_options.num_vector_active, &env);
+                     do_.num_field, do_.num_field_active,
+                     do_.num_vector_local,
+                     do_.num_vector_active, &env);
 
     /*---Calculate metrics---*/
 
@@ -582,7 +618,7 @@ static GMChecksum perform_run(int argc, char** argv,
 
     /*---Output results---*/
 
-    output_metrics(&metrics, &driver_options, &env);
+    output_metrics(&metrics, &do_, &env);
 
     /*---Compute checksum---*/
 
@@ -594,7 +630,7 @@ static GMChecksum perform_run(int argc, char** argv,
   /*---Output run information---*/
 
   if (GMEnv_is_proc_active(&env) && GMEnv_proc_num(&env) == 0 &&
-      driver_options.verbosity > 0) {
+      do_.verbosity > 0) {
     printf("metrics checksum ");
     int i = 0;
     for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {

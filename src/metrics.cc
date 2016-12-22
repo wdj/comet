@@ -68,6 +68,15 @@ void GMMetrics_create(GMMetrics* metrics,
                ? "num_proc_field must exactly divide the total number of fields"
                : 0);
 
+  /*---These cases less important, not yet tested---*/
+
+  GMInsist(env, GMEnv_all2all(env) || (size_t)num_field == num_field_active
+                ? "This case currently not supported." : 0);
+
+  GMInsist(env, GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU ||
+                (size_t)num_field == num_field_active
+                ? "This case currently not supported." : 0);
+
   int i = 0;
   int j = 0;
   int k = 0;
@@ -81,7 +90,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->nvl6 = num_vector_local / 6;
   metrics->index_offset_0_ = 0;
   metrics->index_offset_01_ = 0;
-  metrics->recip_m = ((GMFloat)1) / num_field;
+  metrics->recip_m = ((GMFloat)1) / num_field_active;
   for (i=0; i<6; ++i) {
     metrics->index_offset_section_part1_[i] = 0;
     metrics->index_offset_section_part2_[i] = 0;

@@ -48,7 +48,7 @@ void gm_compute_czekanowski_numerators_2way_start(
     /*----------------------------------------*/
 
     GMInsist(env, GMEnv_num_proc_field(env) == 1
-                      ? "num_proc_field>1 for CPU case not supported"
+                      ? "num_proc_field>1 for REF case not supported"
                       : 0);
 
     /*---Perform pseudo matrix-matrix product---*/
@@ -553,7 +553,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
           const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
           GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
                        (GMUInt64)r11 ==
-                   (GMUInt64)(4 * metrics->num_field));
+                   (GMUInt64)(4 * metrics->num_field_active));
           const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
           const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
           GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si_1));
@@ -577,7 +577,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
           const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
           GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
                        (GMUInt64)r11 ==
-                   (GMUInt64)(4 * metrics->num_field));
+                   (GMUInt64)(4 * metrics->num_field_active));
           const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
           const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
           GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si_1));

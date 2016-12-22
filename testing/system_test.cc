@@ -9,6 +9,7 @@
 /*---------------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -207,6 +208,24 @@ void SystemTest_czekanowski_() {
                     "--num_proc_vector 2 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU --all2all yes"));
 
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 5 "
+                    "--compute_method REF --all2all yes",
+                    "--num_proc_vector 2 --num_field 2 --num_vector 5 "
+                    "--compute_method CPU --all2all yes",
+                    "--num_proc_vector 2 --num_field 2 --num_vector 5 "
+                    "--compute_method GPU --all2all yes"));
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
+                    "--num_field 7 --num_vector 5 "
+                    "--compute_method REF --all2all yes",
+                    "--num_proc_vector 1 --num_proc_field 3 "
+                    "--num_field 7 --num_vector 5 "
+                    "--compute_method GPU --all2all yes"));
+
   //----------
   //---2-way, all2all yes, large
   //----------
@@ -289,6 +308,24 @@ void SystemTest_czekanowski_() {
                     "--compute_method CPU --num_way 3",
                     "--num_proc_vector 3 --num_field 1 --num_vector_local 6 "
                     "--compute_method GPU --num_way 3 --all2all yes"));
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 16 "
+                    "--compute_method REF --all2all yes --num_way 3",
+                    "--num_proc_vector 3 --num_field 2 --num_vector 16 "
+                    "--compute_method CPU --all2all yes --num_way 3",
+                    "--num_proc_vector 3 --num_field 2 --num_vector 16 "
+                    "--compute_method GPU --all2all yes --num_way 3"));
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
+                    "--num_field 13 --num_vector 6 "
+                    "--compute_method REF --all2all yes --num_way 3",
+                    "--num_proc_vector 1 --num_proc_field 5 "
+                    "--num_field 13 --num_vector 6 "
+                    "--compute_method GPU --all2all yes --num_way 3"));
 
   //----------
   //---3-way, all2all yes, large
@@ -684,6 +721,9 @@ void SystemTest_ccc_() {
   EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
 
   for (i = 1; i <= 100; ++i) {
+    if ((i+3) % 32 > 6) {
+      continue;
+    }
     sprintf(options1, options_template_1, 0, i, 48, "REF");
     sprintf(options2, options_template_1, 0, i, 48, "CPU");
     sprintf(options3, options_template_1, 0, i, 48, "GPU");
@@ -708,6 +748,24 @@ void SystemTest_ccc_() {
   sprintf(options2, options_template_2, 1, 2, 1, 2, "CPU", "yes");
   sprintf(options3, options_template_2, 1, 2, 1, 2, "GPU", "yes");
   EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 5 "
+                    "--compute_method REF --all2all yes --metric_type ccc",
+                    "--num_proc_vector 2 --num_field 2 --num_vector 5 "
+                    "--compute_method CPU --all2all yes --metric_type ccc",
+                    "--num_proc_vector 2 --num_field 2 --num_vector 5 "
+                    "--compute_method GPU --all2all yes --metric_type ccc"));
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
+                    "--num_field 7 --num_vector 2 "
+                    "--compute_method REF --all2all yes --metric_type ccc",
+                    "--num_proc_vector 1 --num_proc_field 3 "
+                    "--num_field 7 --num_vector 2 "
+                    "--compute_method GPU --all2all yes --metric_type ccc"));
 
   //----------
   //---2-way, all2all yes, large
@@ -743,6 +801,9 @@ void SystemTest_ccc_() {
   EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
 
   for (i = 1; i <= 100; ++i) {
+    if ((i+3) % 32 > 6) {
+      continue;
+    }
     sprintf(options1, options_template_3, 0, i, 24, "REF");
     sprintf(options2, options_template_3, 0, i, 24, "CPU");
     sprintf(options3, options_template_3, 0, i, 24, "GPU");
@@ -787,6 +848,29 @@ void SystemTest_ccc_() {
 //  sprintf(options3, options_template_4, 1, 3, 1, 6, "GPU", "yes");
 //  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
   //EXPECT_EQ(GM_BOOL_TRUE, compare_2runs(options1, options2));
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 16 "
+                    "--compute_method REF --all2all yes --num_way 3 "
+                    "--metric_type ccc",
+                    "--num_proc_vector 3 --num_field 2 --num_vector 16 "
+                    "--compute_method CPU --all2all yes --num_way 3 "
+                    "--metric_type ccc",
+                    "--num_proc_vector 3 --num_field 2 --num_vector 16 "
+                    "--compute_method GPU --all2all yes --num_way 3 "
+                    "--metric_type ccc"));
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
+                    "--num_field 13 --num_vector 6 "
+                    "--compute_method REF --all2all yes --num_way 3 "
+                    "--metric_type ccc",
+                    "--num_proc_vector 1 --num_proc_field 5 "
+                    "--num_field 13 --num_vector 6 "
+                    "--compute_method GPU --all2all yes --num_way 3 "
+                    "--metric_type ccc"));
 
   //----------
   //---num_proc_field
