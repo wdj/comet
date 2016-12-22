@@ -30,6 +30,54 @@ GMVectors GMVectors_null() {
 }
 
 /*===========================================================================*/
+/*---Set unused (pad) vector entries to zero---*/
+
+void GMVectors_initialize_pad(GMVectors* vectors,
+                              GMEnv* env) {
+  GMAssertAlways(vectors);
+  GMAssertAlways(env);
+
+  /*---Ensure final pad bits of each vector are set to zero so that
+       word-wise summations of bits aren't corrupted with bad trailing data---*/
+
+  switch (vectors->data_type_id) {
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS1: {
+//FIXFIX
+      //---(design is not complete)
+      if (vectors->num_field_local > 0) {
+        const int pvfl = vectors->num_packedval_field_local - 1;
+        GMBits1x64 zero = GMBits1x64_null();
+        int vl = 0;
+        for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+          GMVectors_bits1x64_set(vectors, pvfl, vl, zero, env);
+        }
+      }
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_FLOAT: {
+//FIXFIX
+      /*---NO-OP---*/
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS2: {
+//FIXFIX
+      if (vectors->num_field_local > 0) {
+        const int pvfl = vectors->num_packedval_field_local - 1;
+        GMBits2x64 zero = GMBits2x64_null();
+        int vl = 0;
+        for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+          GMVectors_bits2x64_set(vectors, pvfl, vl, zero, env);
+        }
+      }
+    } break;
+    /*--------------------*/
+    default:
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+  } /*---switch---*/
+}
+
+/*===========================================================================*/
 /*---Vectors pseudo-constructor---*/
 
 void GMVectors_create(GMVectors* vectors,
@@ -122,47 +170,9 @@ void GMVectors_create(GMVectors* vectors,
                          (vectors->num_bits_per_packedval / bits_per_byte));
   GMAssertAlways(vectors->data != NULL);
 
-  /*---Ensure final pad bits of each vector are set to zero so that
-       word-wise summations of bits aren't corrupted with bad trailing data---*/
+  /*---Set pad entries to zero---*/
 
-  switch (vectors->data_type_id) {
-    /*--------------------*/
-    case GM_DATA_TYPE_BITS1: {
-      //---(design is not complete)
-      int vector_local;
-      if (vectors->num_field_local > 0) {
-        const int packedval_field_local =
-            vectors->num_packedval_field_local - 1;
-        GMBits1x64 zero = GMBits1x64_null();
-        for (vector_local = 0; vector_local < num_vector_local;
-             ++vector_local) {
-          GMVectors_bits1x64_set(vectors, packedval_field_local, vector_local,
-                                 zero, env);
-        }
-      }
-    } break;
-    /*--------------------*/
-    case GM_DATA_TYPE_FLOAT: {
-      /*---NO-OP---*/
-    } break;
-    /*--------------------*/
-    case GM_DATA_TYPE_BITS2: {
-      if (vectors->num_field_local > 0) {
-        const int packedval_field_local =
-            vectors->num_packedval_field_local - 1;
-        GMBits2x64 zero = GMBits2x64_null();
-        int vector_local = 0;
-        for (vector_local = 0; vector_local < num_vector_local;
-             ++vector_local) {
-          GMVectors_bits2x64_set(vectors, packedval_field_local, vector_local,
-                                 zero, env);
-        }
-      }
-    } break;
-    /*--------------------*/
-    default:
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
-  } /*---switch---*/
+  GMVectors_initialize_pad(vectors, env);
 }
 
 /*===========================================================================*/

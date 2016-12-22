@@ -22,6 +22,7 @@ extern "C" {
 
 /*===========================================================================*/
 
+#if 0
 void gm_compute_czekanowski_numerators_3way_nongpu_start(
     GMVectors* vectors_i,
     GMVectors* vectors_j,
@@ -69,6 +70,7 @@ void gm_compute_numerators_3way_gpu_start(
     GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env);
+#endif
 
 void gm_compute_numerators_3way_start(
     GMVectors* vectors_i,

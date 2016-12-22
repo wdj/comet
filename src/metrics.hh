@@ -735,7 +735,7 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   GMTally1 sj_1;
   GMFloat2_decode(&si_1, &sj_1, si1_sj1);
 
-  /*---Get number of 0 bits from number of 1 bits---*/
+  /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
   const GMTally1 si = i0 == 0 ? (2 * metrics->num_field - si_1) : si_1;
   const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field - sj_1) : sj_1;
 
@@ -788,7 +788,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
   GMTally1 sk_1;
   GMFloat3_decode(&si_1, &sj_1, &sk_1, si1_sj1_sk1);
 
-  /*---Get number of 0 bits from number of 1 bits---*/
+  /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
   const GMTally1 si = i0 == 0 ? (2 * metrics->num_field - si_1) : si_1;
   const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field - sj_1) : sj_1;
   const GMTally1 sk = i2 == 0 ? (2 * metrics->num_field - sk_1) : sk_1;

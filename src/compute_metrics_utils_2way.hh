@@ -22,6 +22,7 @@ extern "C" {
 
 /*===========================================================================*/
 
+#if 0
 void gm_compute_czekanowski_numerators_2way_start(
     GMVectors* vectors_left,
     GMVectors* vectors_right,
@@ -42,6 +43,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
                                           int j_proc,
                                           _Bool do_compute_triang_only,
                                           GMEnv* env);
+#endif
 
 void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       GMVectors* vectors_right,
@@ -55,6 +57,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
 
 /*----------*/
 
+#if 0
 void gm_compute_czekanowski_2way_combine(
     GMMetrics* metrics,
     GMMirroredPointer* metrics_buf,
@@ -71,6 +74,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
                                  int j_proc,
                                  _Bool compute_triang_only,
                                  GMEnv* env);
+#endif
 
 void gm_compute_2way_combine(GMMetrics* metrics,
                              GMMirroredPointer* metrics_buf,

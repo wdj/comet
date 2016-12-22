@@ -113,6 +113,8 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
   GMFloat* vector_sums_local =
       num_proc == 1 ? vector_sums : vector_sums_tmp;
 
+  /*---Sum up all values in each vector---*/
+
   int i = 0;
   for (i = 0; i < vectors->num_vector_local; ++i) {
     GMFloat sum = 0;
@@ -151,6 +153,8 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
   const int num_proc = GMEnv_num_proc_field(env);
   GMFloat* vector_sums_local =
       num_proc == 1 ? vector_sums : vector_sums_tmp;
+
+  /*---Count number of 1-bits in each vector---*/
 
   /*----------*/
   if (env->compute_method_ == GM_COMPUTE_METHOD_REF) {

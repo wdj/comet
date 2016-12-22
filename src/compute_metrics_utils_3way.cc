@@ -60,7 +60,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   /*---Initializations---*/
 
   const int numvecl = metrics->num_vector_local;
-  const int numfieldl = vectors_i->num_field_local;
+  const int nfl = vectors_i->num_field_local;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
@@ -104,7 +104,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
           GMFloat numerator = 0;
           int f = 0;
-          for (f = 0; f < numfieldl; ++f) {
+          for (f = 0; f < nfl; ++f) {
             const GMFloat val1 = GMVectors_float_get(vectors_i, f, i, env);
             const GMFloat val2 = GMVectors_float_get(vectors_i, f, j, env);
             const GMFloat val3 = GMVectors_float_get(vectors_i, f, k, env);
@@ -150,7 +150,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
           GMFloat numerator = 0;
           int f = 0;
-          for (f = 0; f < numfieldl; ++f) {
+          for (f = 0; f < nfl; ++f) {
             const GMFloat val1 = GMVectors_float_get(vectors_i, f, i, env);
             const GMFloat val2 = GMVectors_float_get(vectors_j, f, j, env);
             const GMFloat val3 = GMVectors_float_get(vectors_k, f, k, env);
@@ -224,7 +224,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   /*---Initializations---*/
 
   //const int numvecl = metrics->num_vector_local;
-  const int numfieldl = vectors_i->num_field_local;
+  const int nfl = vectors_i->num_field_local;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
@@ -270,7 +270,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
           GMTally4x2 sum = GMTally4x2_null();
           int f = 0;
-          for (f = 0; f < numfieldl; ++f) {
+          for (f = 0; f < nfl; ++f) {
             const GMBits2 value_i = GMVectors_bits2_get(vectors_i, f, i, env);
             const GMBits2 value_j = GMVectors_bits2_get(vectors_j, f, j, env);
             const GMBits2 value_k = GMVectors_bits2_get(vectors_k, f, k, env);
@@ -378,7 +378,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
-    /*---Precompute masks for final packedval_field -
+    /*---Precompute masks for final (incomplete) packedval_field -
          can be 1 to 64 inclusive---*/
 
     /* clang-format off */
@@ -386,8 +386,10 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     const int num_seminibbles = 1 + (vectors_i->num_field_local-1) % 64;
 
     const GMUInt64 nobits = 0;
-    const GMUInt64 allbits = 0xffffffffffffffff;
+    //const GMUInt64 allbits = 0xffffffffffffffff;
+    const GMUInt64 allbits = ~nobits;
 
+//FIXFIX
     const GMUInt64 lastmask0 = num_seminibbles >= 32 ?
                                allbits :
                                allbits >> (64 - 2*num_seminibbles);
@@ -417,19 +419,28 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
           const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
           GMTally4x2 sum = GMTally4x2_null();
-          int f = 0;
-          const int f_last = vectors_i->num_packedval_field_local - 1;
-          for (f = 0; f <= f_last ; ++f) {
+          int pvfl = 0;
+          const int pvfl_last = vectors_i->num_packedval_field_local - 1;
+          for (pvfl = 0; pvfl <= pvfl_last ; ++pvfl) {
             /*---Get masks for active seminibbles in each word---*/
 
-            const GMUInt64 activebits0 = f < f_last ? allbits : lastmask0;
-            const GMUInt64 activebits1 = f < f_last ? allbits : lastmask1;
+            const _Bool is_padded_pvfl =  pvfl < pvfl_last;
+
+            const GMUInt64 activebits0 = is_padded_pvfl ? allbits : lastmask0;
+            const GMUInt64 activebits1 = is_padded_pvfl ? allbits : lastmask1;
+
+
+            const GMUInt64 activebits0 = pvfl < pvfl_last ? allbits : lastmask0;
+            const GMUInt64 activebits1 = pvfl < pvfl_last ? allbits : lastmask1;
 
             /*---Extract input values to process---*/
 
-            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, f, i, env);
-            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, f, j, env);
-            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, f, k, env);
+            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pvfl, i,
+                                                         env);
+            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, pvfl, j,
+                                                          env);
+            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pvfl, k,
+                                                          env);
 
             const GMUInt64 vi0 = vi.data[0];
             const GMUInt64 vi1 = vi.data[1];
@@ -608,7 +619,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             sum.data[1] += GMTally1_encode(r010, r011);
             sum.data[2] += GMTally1_encode(r100, r101);
             sum.data[3] += GMTally1_encode(r110, r111);
-          } /*---for f---*/
+          } /*---for pvfl---*/
           if (GMEnv_all2all(env)) {
             GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                              sum, env);
@@ -645,8 +656,8 @@ void gm_compute_numerators_3way_gpu_form_matV(
   const GMMirroredPointer* const vectors_I_buf,
   const GMMirroredPointer* const vectors_J_buf,
   GMMirroredPointer* const matV_buf,
-  const int numfieldl,
-  const int numpfieldl,
+  const int nfl,
+  const int npvfl,
   const int J,
   const int step_2way,
   const int I_min,
@@ -664,10 +675,10 @@ void gm_compute_numerators_3way_gpu_form_matV(
     for (I = I_min; I < I_max; ++I) {
       /*---Operate on columns x_i and x_j elementwise---*/
       int f = 0;
-      for (f = 0; f < numpfieldl; ++f) {
-        const GMFloat a = ((GMFloat*)(vectors_I_buf->h))[f + numpfieldl*I];
-        const GMFloat b = ((GMFloat*)(vectors_J_buf->h))[f + numpfieldl*J];
-        ((GMFloat*)(matV_buf->h))[f + numpfieldl * I] = a < b ? a : b;
+      for (f = 0; f < npvfl; ++f) {
+        const GMFloat a = ((GMFloat*)(vectors_I_buf->h))[f + npvfl*I];
+        const GMFloat b = ((GMFloat*)(vectors_J_buf->h))[f + npvfl*J];
+        ((GMFloat*)(matV_buf->h))[f + npvfl * I] = a < b ? a : b;
       }  //---for f---//
     }    //---for i---//
     /*----------*/
@@ -676,9 +687,11 @@ void gm_compute_numerators_3way_gpu_form_matV(
     int I = 0;
     for (I = I_min; I < I_max; ++I) {
       const GMUInt64 nobits = 0;
-      const GMUInt64 allbits = 0xffffffffffffffff;
+      //const GMUInt64 allbits = 0xffffffffffffffff;
+      const GMUInt64 allbits = ~nobits;
       const GMUInt64 oddbits = 0x5555555555555555;
-      const int num_seminibbles = 1 + (numfieldl-1) % 64;
+      const int num_seminibbles = 1 + (nfl-1) % 64;
+//FIXFIX
       const GMUInt64 lastmask0 = num_seminibbles >= 32 ?
                                  allbits :
                                  allbits >> (64 - 2*num_seminibbles);
@@ -688,11 +701,13 @@ void gm_compute_numerators_3way_gpu_form_matV(
                                  allbits :
                                  allbits >> (128 - 2*num_seminibbles);
       /*---Operate on columns x_i and x_j elementwise---*/
-      int f = 0;
-      const int f_last = numpfieldl - 1;
-      for (f = 0; f <= f_last; ++f) {
-        const int indI = f + numpfieldl * I;
-        const int indJ = f + numpfieldl * J;
+      int pvfl = 0;
+      const int pvfl_last = npvfl - 1;
+      for (pvfl = 0; pvfl <= pvfl_last; ++f) {
+        const int indI = pvfl + npvfl * I;
+        const int indJ = pvfl + npvfl * J;
+
+        const _Bool is_padded_pvfl =  pvfl < pvfl_last;
 
         /*-----*/
 
@@ -701,7 +716,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
         const GMUInt64 vJ0 =
             *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[0]);
 
-        const GMUInt64 activebits0 = f < f_last ? allbits : lastmask0;
+        const GMUInt64 activebits0 = is_padded_pvfl ? allbits : lastmask0;
         const GMUInt64 vI0x = step_2way==0 ? vI0 | ~activebits0 : vI0;
 
         const GMUInt64  vI0_0 =   vI0x       & oddbits;
@@ -736,7 +751,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
         const GMUInt64 vJ1 =
             *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[1]);
 
-        const GMUInt64 activebits1 = f < f_last ? allbits : lastmask1;
+        const GMUInt64 activebits1 = is_padded_pvfl ? allbits : lastmask1;
         const GMUInt64 vI1x = step_2way==0 ? vI1 | ~activebits1 : vI1;
 
         const GMUInt64  vI1_0 =   vI1x       & oddbits;
@@ -1145,10 +1160,10 @@ void gm_compute_numerators_3way_gpu_start(
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
   const int numvecl = metrics->num_vector_local;
-  const int numfieldl = vectors_i->num_field_local;
-  const int numpfieldl = vectors_i->num_packedval_field_local;
+  const int nfl = vectors_i->num_field_local;
+  const int npvfl = vectors_i->num_packedval_field_local;
   const size_t metrics_buf_size = numvecl * (size_t)numvecl;
-  const size_t vectors_buf_size = numvecl * (size_t)numpfieldl;
+  const size_t vectors_buf_size = numvecl * (size_t)npvfl;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
@@ -1183,9 +1198,9 @@ void gm_compute_numerators_3way_gpu_start(
 
     gm_linalg_set_matrix_zero_start(matM_ij_buf_local, numvecl, numvecl, env);
 
-    gm_linalg_gemm_start(numvecl, numvecl, numpfieldl,
-                         vectors_i_buf->d, numpfieldl,
-                         vectors_j_buf->d, numpfieldl,
+    gm_linalg_gemm_start(numvecl, numvecl, npvfl,
+                         vectors_i_buf->d, npvfl,
+                         vectors_j_buf->d, npvfl,
                          matM_ij_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
@@ -1219,9 +1234,9 @@ void gm_compute_numerators_3way_gpu_start(
 
     gm_linalg_set_matrix_zero_start(matM_jk_buf_local, numvecl, numvecl, env);
 
-    gm_linalg_gemm_start(numvecl, numvecl, numpfieldl,
-                         vectors_j_buf->d, numpfieldl,
-                         vectors_k_buf->d, numpfieldl,
+    gm_linalg_gemm_start(numvecl, numvecl, npvfl,
+                         vectors_j_buf->d, npvfl,
+                         vectors_k_buf->d, npvfl,
                          matM_jk_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
@@ -1259,9 +1274,9 @@ void gm_compute_numerators_3way_gpu_start(
 
     gm_linalg_set_matrix_zero_start(matM_kik_buf_local, numvecl, numvecl, env);
 
-    gm_linalg_gemm_start(numvecl, numvecl, numpfieldl,
-                         vectors_k_buf->d, numpfieldl,
-                         vectors_i_buf->d, numpfieldl,
+    gm_linalg_gemm_start(numvecl, numvecl, npvfl,
+                         vectors_k_buf->d, npvfl,
+                         vectors_i_buf->d, npvfl,
                          matM_kik_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
@@ -1416,7 +1431,7 @@ void gm_compute_numerators_3way_gpu_start(
 //      *vars_next.matV_h_updating = GM_BOOL_TRUE;
       gm_compute_numerators_3way_gpu_form_matV(
           vectors_I_buf, vectors_J_buf, matV_buf[vars_next.index_01],
-          numfieldl, numpfieldl, vars_next.J, vars_next.step_2way,
+          nfl, npvfl, vars_next.J, vars_next.step_2way,
           vars_next.I_min, vars_next.I_max, env);
       //matV_buf[vars_next.index_01]->h is now overwritten.
 //      *vars_next.matV_h_updating = GM_BOOL_FALSE;
@@ -1444,7 +1459,7 @@ void gm_compute_numerators_3way_gpu_start(
 
     if (vars_next.do_compute) {
       /*---Send matrix matV to GPU - START---*/
-      gm_linalg_set_matrix_start(matV_buf[vars_next.index_01], numpfieldl,
+      gm_linalg_set_matrix_start(matV_buf[vars_next.index_01], npvfl,
                                  vars_next.I_max, env);
       //matV_buf[vars_next.index_01]->d (= matV_buf[vars_prev.index_01]->d)
       //is now being overwritten.
@@ -1466,9 +1481,9 @@ void gm_compute_numerators_3way_gpu_start(
       gm_linalg_set_matrix_zero_start(vars.matB_buf_ptr, numvecl,
                                      vars.I_max, env);
       /*---Perform pseudo mat X mat matB = matV^T PROD X - START---*/
-      gm_linalg_gemm_start(vars.I_max, numvecl, numpfieldl,
-                           matV_buf[vars.index_01]->d, numpfieldl,
-                           vectors_K_buf->d, numpfieldl,
+      gm_linalg_gemm_start(vars.I_max, numvecl, npvfl,
+                           matV_buf[vars.index_01]->d, npvfl,
+                           vectors_K_buf->d, npvfl,
                            vars.matB_buf_ptr->d, vars.I_max, env);
       //matB_buf_ptr[vars.index_01]->d is now being overwritten.
     }

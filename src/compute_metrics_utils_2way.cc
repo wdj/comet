@@ -207,7 +207,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
 
     /*---Perform pseudo matrix-matrix product---*/
 
-    /*---Precompute masks for final packedval_field -
+    /*---Precompute masks for final (incomplete) packedval_field -
          can be 1 to 64 inclusive---*/
 
     /* clang-format off */
@@ -215,8 +215,10 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
     const int num_seminibbles = 1 + (vectors_left->num_field_local-1) % 64;
 
     const GMUInt64 nobits = 0;
-    const GMUInt64 allbits = 0xffffffffffffffff;
+    //const GMUInt64 allbits = 0xffffffffffffffff;
+    const GMUInt64 allbits = ~nobits;
 
+//FIXFIX
     const GMUInt64 lastmask0 = num_seminibbles >= 32 ?
                                allbits :
                                allbits >> (64 - 2*num_seminibbles);
@@ -234,17 +236,20 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        int f = 0;
-        const int f_last = vectors_left->num_packedval_field_local - 1;
-        for (f = 0; f <= f_last ; ++f) {
+        int pvfl = 0;
+        const int pvfl_last = vectors_left->num_packedval_field_local - 1;
+        for (pvfl = 0; pvfl <= pvfl_last ; ++pvfl) {
           /*---Get masks for active seminibbles in each word---*/
 
-          const GMUInt64 activebits0 = f < f_last ? allbits : lastmask0;
-          const GMUInt64 activebits1 = f < f_last ? allbits : lastmask1;
+          const _Bool is_padded_pvfl =  pvfl < pvfl_last;
+
+          const GMUInt64 activebits0 = is_padded_pvfl ? allbits : lastmask0;
+          const GMUInt64 activebits1 = is_padded_pvfl ? allbits : lastmask1;
 
           /*---Extract input values to process---*/
-          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, f, i, env);
-          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, f, j,
+          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pvfl, i,
+                                                       env);
+          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pvfl, j,
                                                        env);
           const GMUInt64 vi0 = vi.data[0];
           const GMUInt64 vi1 = vi.data[1];
@@ -312,7 +317,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
 
           sum.data[0] += GMTally1_encode(r00, r01);
           sum.data[1] += GMTally1_encode(r10, r11);
-        } /*---for f---*/
+        } /*---for pvfl---*/
         if (GMEnv_all2all(env)) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {

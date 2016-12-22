@@ -184,12 +184,10 @@ void gm_get_metrics_start(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-void gm_get_metrics_wait(GMMetrics* metrics,
-                         GMMirroredPointer* metrics_buf,
-                         GMEnv* env) {
+void gm_metrics_gpu_adjust(GMMetrics* metrics,
+                           GMMirroredPointer* metrics_buf,
+                           GMEnv* env) {
   GMAssertAlways(env != NULL);
-
-  gm_linalg_get_matrix_wait(env);
 
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
       GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
@@ -201,6 +199,7 @@ void gm_get_metrics_wait(GMMetrics* metrics,
          subtracting off this unwanted tally result.---*/
     /*---NOTE: this should work for both 2-way and 3-way---*/
 
+//FIXFIX
     const int num_seminibbles_pad =
         64 - (1 + (metrics->num_field_local - 1) % 64);
     const GMFloat adjustment = 4 * num_seminibbles_pad;
@@ -213,6 +212,16 @@ void gm_get_metrics_wait(GMMetrics* metrics,
       } /*---for j---*/
     }   /*---for i---*/
   }     /*---if---*/
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_get_metrics_wait(GMMetrics* metrics,
+                         GMMirroredPointer* metrics_buf,
+                         GMEnv* env) {
+  GMAssertAlways(env != NULL);
+
+  gm_linalg_get_matrix_wait(env);
 }
 
 /*===========================================================================*/
@@ -257,9 +266,9 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
       /*----------------------------------------*/
       /*---Copy vectors into GPU buffers if needed---*/
       for (i = 0; i < vectors->num_vector_local; ++i) {
-        const size_t npfl = vectors->num_packedval_field_local;
+        const size_t npvfl = vectors->num_packedval_field_local;
         for (f = 0; f < vectors->num_packedval_field_local; ++f) {
-          ((GMBits2x64*)vectors_buf->h)[f + npfl * i] =
+          ((GMBits2x64*)vectors_buf->h)[f + npvfl * i] =
               GMVectors_bits2x64_get(vectors, f, i, env);
         }
       }

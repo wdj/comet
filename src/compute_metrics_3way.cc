@@ -86,6 +86,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   gm_get_metrics_start(metrics, metrics_buf_local, env);
   gm_get_metrics_wait(metrics, metrics_buf_local, env);
+  gm_metrics_gpu_adjust(metrics, metrics_buf_local, env);
 
   /*---Do reduction across field procs if needed---*/
 

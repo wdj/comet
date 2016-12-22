@@ -55,6 +55,10 @@ void gm_get_metrics_wait(GMMetrics* metrics,
                          GMMirroredPointer* metrics_buf,
                          GMEnv* env);
 
+void gm_metrics_gpu_adjust(GMMetrics* metrics,
+                           GMMirroredPointer* metrics_buf,
+                           GMEnv* env);
+
 /*----------*/
 
 void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
