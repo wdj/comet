@@ -429,10 +429,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             const GMUInt64 activebits0 = is_padded_pvfl ? allbits : lastmask0;
             const GMUInt64 activebits1 = is_padded_pvfl ? allbits : lastmask1;
 
-
-            const GMUInt64 activebits0 = pvfl < pvfl_last ? allbits : lastmask0;
-            const GMUInt64 activebits1 = pvfl < pvfl_last ? allbits : lastmask1;
-
             /*---Extract input values to process---*/
 
             const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pvfl, i,
@@ -703,7 +699,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
       /*---Operate on columns x_i and x_j elementwise---*/
       int pvfl = 0;
       const int pvfl_last = npvfl - 1;
-      for (pvfl = 0; pvfl <= pvfl_last; ++f) {
+      for (pvfl = 0; pvfl <= pvfl_last; ++pvfl) {
         const int indI = pvfl + npvfl * I;
         const int indJ = pvfl + npvfl * J;
 
