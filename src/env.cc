@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <math.h>
+#include <errno.h>
 
 #ifdef TESTING
 #include "gtest/gtest.h"
@@ -152,12 +153,12 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
       /*----------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_way." : 0);
-      //FIX: safe atoi
-      env->num_way_ = atoi(argv[i]);
-      GMInsist(env, env->num_way_ == GM_NUM_WAY_2 ||
-                            env->num_way_ == GM_NUM_WAY_3
-                        ? "Invalid setting for num_way."
-                        : 0);
+      errno = 0;
+      long num_way = strtol(argv[i], NULL, 10);
+      GMInsist(env, 0 == errno && (env->num_way_ == GM_NUM_WAY_2 ||
+                            env->num_way_ == GM_NUM_WAY_3)
+                        && "Invalid setting for num_way.");
+      env->num_way_ = num_way;
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
                        env->num_proc_field_);
       /*----------*/
@@ -191,27 +192,36 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
       /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for num_proc_vector." : 0);
-      //FIX: safe atoi
-      const int num_proc_vector_i = atoi(argv[i]);
+      errno = 0;
+      GMInsist(env, i < argc && "Missing value for num_proc_vector.");
+      long num_proc_vector_i = strtol(argv[i], NULL, 10);
+      GMInsist(env, 0 == errno
+                    && (long)(int)num_proc_vector_i == num_proc_vector_i
+                    && "Invalid setting for num_proc_vector.");
       GMEnv_set_num_proc(env, num_proc_vector_i, env->num_proc_repl_,
                        env->num_proc_field_);
       /*----------*/
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
       /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for num_proc_field." : 0);
-      //FIX: safe atoi
-      const int num_proc_field = atoi(argv[i]);
+      errno = 0;
+      GMInsist(env, i < argc && "Missing value for num_proc_field.");
+      long num_proc_field = strtol(argv[i], NULL, 10);
+      GMInsist(env, 0 == errno
+                    && (long)(int)num_proc_field == num_proc_field
+                    && "Invalid setting for num_proc_field.");
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
                        num_proc_field);
       /*----------*/
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
       /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for num_proc_repl." : 0);
-      //FIX: safe atoi
-      const int num_proc_repl = atoi(argv[i]);
+      errno = 0;
+      GMInsist(env, i < argc && "Missing value for num_proc_repl.");
+      long num_proc_repl = strtol(argv[i], NULL, 10);
+      GMInsist(env, 0 == errno
+                    && (long)(int)num_proc_repl == num_proc_repl
+                    && "Invalid setting for num_proc_repl.");
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, num_proc_repl,
                        env->num_proc_field_);
       /*----------*/

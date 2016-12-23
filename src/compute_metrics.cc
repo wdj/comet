@@ -29,10 +29,10 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(env != NULL);
 
-  if (!GM_FP_PRECISION_DOUBLE) {
-    GMInsist(env, GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC ? 
-    "CCC metric currently not functional under single precision build." : 0);
-  }
+//  if (!GM_FP_PRECISION_DOUBLE) {
+//    GMInsist(env, GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC ? 
+//    "CCC metric currently not functional under single precision build." : 0);
+//  }
 
   if (!GMEnv_is_proc_active(env)) {
     return;

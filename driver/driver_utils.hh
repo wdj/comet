@@ -63,108 +63,85 @@ static void finish_parsing(int argc,
       ++i;
       GMInsist(env, i < argc && "Missing value for num_field.");
       long num_field = strtol(argv[i], NULL, 10);
-      do_->num_field_active = num_field;
       GMInsist(env, errno == 0 && num_field >= 0
                     && "Invalid setting for num_field.");
+      do_->num_field_active = num_field;
       do_->num_field_active_initialized = GM_BOOL_TRUE;
       do_->num_field_local_initialized = GM_BOOL_FALSE;
     /*----------*/
     } else if (strcmp(argv[i], "--num_field_local") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for num_field_local." : 0);
-
-
-
-      //FIX: safe atoi
-      do_->num_field_local = atoi(argv[i]);
-      GMInsist(env, do_->num_field_local >= 0
-                    ? "Invalid setting for num_field_local."
-                    : 0);
+      GMInsist(env, i < argc && "Missing value for num_field_local.");
+      long num_field_local = strtol(argv[i], NULL, 10);
+      GMInsist(env, 0 == errno && num_field_local >= 0 &&
+                    (long)(int)num_field_local == num_field_local &&
+                    "Invalid setting for num_field_local.");
+      do_->num_field_local = num_field_local;
       do_->num_field_local_initialized = GM_BOOL_TRUE;
       do_->num_field_active_initialized = GM_BOOL_FALSE;
-    /*----------*/
-    } else if (strcmp(argv[i], "--num_vector_local") == 0) {
-    /*----------*/
-      ++i;
-      GMInsist(env, i < argc ? "Missing value for num_vector_local." : 0);
-
-
-
-      //FIX: safe atoi
-      do_->num_vector_local = atoi(argv[i]);
-      GMInsist(env, do_->num_vector_local >= 0
-                        ? "Invalid setting for num_vector_local."
-                        : 0);
-      do_->num_vector_local_initialized = GM_BOOL_TRUE;
-      do_->num_vector_active_initialized = GM_BOOL_FALSE;
     /*----------*/
     } else if (strcmp(argv[i], "--num_vector") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for num_vector." : 0);
-
-
-
-      //FIX: safe atoi
-      do_->num_vector_active = atoi(argv[i]);
-      GMInsist(env, do_->num_vector_active >= 0
-                        ? "Invalid setting for num_vector."
-                        : 0);
+      GMInsist(env, i < argc && "Missing value for num_vector.");
+      long num_vector = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && num_vector >= 0
+                    && "Invalid setting for num_vector.");
+      do_->num_vector_active = num_vector;
       do_->num_vector_active_initialized = GM_BOOL_TRUE;
       do_->num_vector_local_initialized = GM_BOOL_FALSE;
+    /*----------*/
+    } else if (strcmp(argv[i], "--num_vector_local") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc && "Missing value for num_vector_local.");
+      long num_vector_local = strtol(argv[i], NULL, 10);
+      GMInsist(env, 0 == errno && num_vector_local >= 0 &&
+                    (long)(int)num_vector_local == num_vector_local &&
+                    "Invalid setting for num_vector_local.");
+      do_->num_vector_local = num_vector_local;
+      do_->num_vector_local_initialized = GM_BOOL_TRUE;
+      do_->num_vector_active_initialized = GM_BOOL_FALSE;
     /*----------*/
     } else if (strcmp(argv[i], "--verbosity") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for verbosity." : 0);
-
-
-
-      //FIX: safe atoi
+      GMInsist(env, i < argc && "Missing value for verbosity.");
       do_->verbosity = atoi(argv[i]);
-      GMInsist(env, do_->verbosity >= 0
-                    ? "Invalid setting for verbosity."
-                    : 0);
+      GMInsist(env, do_->verbosity >= 0 && "Invalid setting for verbosity.");
     /*----------*/
     } else if (strcmp(argv[i], "--num_stage") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for num_stage." : 0);
-
-
-
-      //FIX: safe atoi
-      env->num_stage = atoi(argv[i]);
-      GMInsist(env, env->num_stage >= 1 ? "Invalid setting for num_stage." : 0);
+      GMInsist(env, i < argc && "Missing value for num_stage.");
+      long num_stage = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && num_stage >= 1
+                    && (long)(int)num_stage == num_stage
+                    && "Invalid setting for num_stage.");
+      env->num_stage = num_stage;
       do_->stage_min = 1;
       do_->stage_max = env->num_stage;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_min") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for stage_min." : 0);
-
-
-
-      //FIX: safe atoi
-      do_->stage_min = atoi(argv[i]);
-      GMInsist(env, do_->stage_min >= 1
-                    ? "Invalid setting for stage_min."
-                    : 0);
+      GMInsist(env, i < argc && "Missing value for stage_min.");
+      long stage_min = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && stage_min >= 1
+                    && (long)(int)stage_min == stage_min
+                    && "Invalid setting for stage_min.");
+      do_->stage_min = stage_min;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_max") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for stage_max`." : 0);
-
-
-
-      //FIX: safe atoi
-      do_->stage_max = atoi(argv[i]);
-      GMInsist(env, do_->stage_max <= env->num_stage
-                    ? "Invalid setting for stage_max."
-                    : 0);
+      GMInsist(env, i < argc && "Missing value for stage_max.");
+      long stage_max = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && stage_max <= env->num_stage
+                    && (long)(int)stage_max == stage_max
+                    && "Invalid setting for stage_max.");
+      do_->stage_max = stage_max;
     /*----------*/
     } else if (strcmp(argv[i], "--input_file") == 0) {
     /*----------*/
@@ -261,6 +238,7 @@ static void input_vectors(GMVectors* vectors,
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           const size_t vector = vl +
               vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+          /*---Fill pad vectors with copies of the last vector---*/
           const size_t vector_capped = vector <= do_->num_vector_active-1 ?
                                        vector : do_->num_vector_active-1;
           size_t addr_file = field_base + vectors->num_field * vector_capped;
@@ -278,11 +256,12 @@ static void input_vectors(GMVectors* vectors,
           GMAssertAlways(sizeof(GMFloat)*vectors->num_field_local==num_read);
         } /*---vl---*/
         fclose(input_file);
-      } else {
+      } else { /*--------------------*/
         int vl = 0;
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           size_t vector = vl +
               vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+          /*---Fill pad vectors with copies of the last vector---*/
           const size_t vector_capped = vector <= do_->num_vector_active-1 ?
                                        vector : do_->num_vector_active-1;
           int fl = 0;
@@ -310,7 +289,9 @@ static void input_vectors(GMVectors* vectors,
             GMAssertAlways(FLT_RADIX == 2);
             const int mant_dig = sizeof(GMFloat) == 8 ? DBL_MANT_DIG :
                                                         FLT_MANT_DIG;
-            const int shift_amount = gm_log2(rand_max*vectors->num_field_active)
+            const int log2_num_summands_3way_numerator = 2;
+            const int shift_amount = gm_log2(log2_num_summands_3way_numerator*
+                                             rand_max*vectors->num_field_active)
                                      - mant_dig;
             rand_value >>= shift_amount > 0 ? shift_amount : 0;
             /*---Store---*/
@@ -335,11 +316,12 @@ static void input_vectors(GMVectors* vectors,
       if (do_->input_file_path != NULL) {
         GMInsist(env, NULL == do_->input_file_path
                       ? "File input for this case not yet implemented." : 0);
-      } else {
+      } else { /*--------------------*/
         int vl = 0;
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           size_t vector = vl +
               vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+          /*---Fill pad vectors with copies of the last vector---*/
           const size_t vector_capped = vector <= do_->num_vector_active-1 ?
                                        vector : do_->num_vector_active-1;
           int fl;
@@ -378,10 +360,6 @@ static void input_vectors(GMVectors* vectors,
       GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 }
-
-
-
-
 
 /*===========================================================================*/
 /*---Output the result metrics values to file---*/
@@ -570,13 +548,13 @@ static GMChecksum perform_run(int argc, char** argv,
 
   if (do_.num_vector_local_initialized) {
     do_.num_vector = do_.num_vector_local *
-      (size_t) GMEnv_num_proc_vector_i(&env);
+      (size_t)GMEnv_num_proc_vector_i(&env);
     do_.num_vector_active = do_.num_vector;
   } else {
     do_.num_vector_local = gm_ceil_i8(
         do_.num_vector_active, GMEnv_num_proc_vector_i(&env));
     do_.num_vector = do_.num_vector_local *
-      (size_t) GMEnv_num_proc_vector_i(&env);
+      (size_t)GMEnv_num_proc_vector_i(&env);
   }
 
   if (do_.num_field_local_initialized) {

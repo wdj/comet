@@ -117,7 +117,8 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
           const GMFloat value =
               ((GMFloat)3) * numerator / (((GMFloat)2) * denominator);
-
+//if(i==2 && j==13 && k==17)
+//printf("%.16e %.16e %.16e\n", numerator, denominator, value);
           GMMetrics_float_set_3(metrics, i, j, k, value, env);
         }
       }
@@ -856,6 +857,8 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         const GMFloat denominator =
             vector_sums_i_[i] + vector_sums_i_[j] + vector_sums_i_[k];
         const GMFloat value = ((GMFloat)1.5) * numerator / denominator;
+//if(i==2 && j==13 && k==17)
+//printf("%.16e %.16e %.16e\n", numerator, denominator, value);
         GMMetrics_float_set_3(metrics, i, j, k, value, env);
       } /*---for K---*/
     }   /*---for I---*/
