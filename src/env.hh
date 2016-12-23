@@ -570,6 +570,13 @@ static int GMEnv_num_proc_field(GMEnv const * const env) {
   return env->num_proc_field_;
 }
 
+/*---------------------------------------------------------------------------*/
+
+static int GMEnv_num_proc(GMEnv const * const env) {
+  GMAssert(env != NULL);
+  return env->num_proc_;
+}
+
 /*===========================================================================*/
 /*---Accessors: proc_num---*/
 

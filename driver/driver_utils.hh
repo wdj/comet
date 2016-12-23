@@ -45,6 +45,7 @@ typedef struct {
   int stage_min;
   int stage_max;
   char* input_file_path;
+  char* output_file_path_stub;
 } DriverOptions;
 
 /*===========================================================================*/
@@ -149,6 +150,12 @@ static void finish_parsing(int argc,
       GMInsist(env, i < argc ? "Missing value for input_file`." : 0);
       do_->input_file_path = argv[i];
     /*----------*/
+    } else if (strcmp(argv[i], "--output_file_stub") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for output_file_stub`." : 0);
+      do_->output_file_path_stub = argv[i];
+    /*----------*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
@@ -241,7 +248,8 @@ static void input_vectors(GMVectors* vectors,
           /*---Fill pad vectors with copies of the last vector---*/
           const size_t vector_capped = vector <= do_->num_vector_active-1 ?
                                        vector : do_->num_vector_active-1;
-          size_t addr_file = field_base + vectors->num_field * vector_capped;
+          const size_t addr_file =
+            (field_base + vectors->num_field * vector_capped) * sizeof(GMFloat);
           int fseek_success = fseek(input_file, addr_file, SEEK_SET);
           fseek_success += 0; /*---Avoid unused var warning---*/
           GMAssertAlways(0 == fseek_success);
@@ -253,7 +261,7 @@ static void input_vectors(GMVectors* vectors,
           size_t num_read = fread(addr_mem, sizeof(GMFloat),
                                   vectors->num_field_local, input_file);
           num_read += 0; /*---Avoid unused var warning---*/
-          GMAssertAlways(sizeof(GMFloat)*vectors->num_field_local==num_read);
+          GMAssertAlways((size_t)vectors->num_field_local == (size_t)num_read);
         } /*---vl---*/
         fclose(input_file);
       } else { /*--------------------*/
@@ -516,6 +524,25 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* do_,
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(env != NULL);
 
+  char* stub = do_->output_file_path_stub;
+
+  if (NULL != stub && GMEnv_is_proc_active(env) &&
+      GMEnv_proc_num_field(env) == 0) {
+
+    size_t len = strlen(stub);
+
+    char* path = (char*)malloc((len+50) * sizeof(char));
+
+    GMAssertAlways(env->num_stage < 1000000);
+    GMAssertAlways(GMEnv_num_proc(env) < 10000000000);
+    sprintf(path, "%s_%06i_%010i", stub, env->stage_num, GMEnv_proc_num(env));
+
+    FILE* file = fopen(path, "w");
+    output_metrics_file(metrics, do_, file, env);
+    fclose(file);
+    free(path);
+  }
+
   if (do_->verbosity > 1) {
     output_metrics_file(metrics, do_, stdout, env);
   }
@@ -543,6 +570,7 @@ static GMChecksum perform_run(int argc, char** argv,
   do_.stage_min = 1;
   do_.stage_max = env.num_stage;
   do_.input_file_path = NULL;
+  do_.output_file_path_stub = NULL;
 
   finish_parsing(argc, argv, &do_, &env);
 
