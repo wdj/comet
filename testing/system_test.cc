@@ -696,6 +696,24 @@ void SystemTest_ccc_() {
   char options3[1024];
   int i = 0;
 
+#if 0
+  EXPECT_EQ(GM_BOOL_TRUE,
+
+compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
+              "--num_field 3 --num_vector 30 "
+              "--compute_method REF --all2all yes --num_way 3 "
+              "--metric_type ccc --verbosity 1",
+
+              "--num_proc_vector 1 --num_proc_field 2 "
+              "--num_field 3 --num_vector 30 "
+              "--compute_method GPU --all2all yes --num_way 3 "
+              "--metric_type ccc --verbosity 1")
+
+
+);
+return;
+#endif
+
   //----------
   //---2-way, all2all no
   //----------

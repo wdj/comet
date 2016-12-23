@@ -795,6 +795,8 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
   const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field_active - sj_1) : sj_1;
   const GMTally1 sk = i2 == 0 ? (2 * metrics->num_field_active - sk_1) : sk_1;
 
+//printf("%i %i %i %i\n", (int)si, (int)sj, (int)sk, (int)rijk);
+
   /*---Do the following to make floating point arithmetic order-independent---*/
 
   GMTally1 smin = 0;

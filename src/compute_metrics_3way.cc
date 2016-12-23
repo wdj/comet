@@ -52,14 +52,14 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   GMMirroredPointer vectors_buf =
       gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
 
-  GMMirroredPointer metrics_buf =
-      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
+//  GMMirroredPointer metrics_buf =
+//      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
 
-  GMMirroredPointer metrics_buf_tmp =
-      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
+//  GMMirroredPointer metrics_buf_tmp =
+//      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
 
-  GMMirroredPointer* metrics_buf_local =
-      GMEnv_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
+//  GMMirroredPointer* metrics_buf_local =
+//      GMEnv_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
 
   /*---Copy in vectors---*/
 
@@ -84,15 +84,15 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   /*---Copy result from GPU---*/
 
-  gm_get_metrics_start(metrics, metrics_buf_local, env);
-  gm_get_metrics_wait(metrics, metrics_buf_local, env);
-  gm_metrics_gpu_adjust(metrics, metrics_buf_local, env);
+//  gm_get_metrics_start(metrics, metrics_buf_local, env);
+//  gm_get_metrics_wait(metrics, metrics_buf_local, env);
+  //gm_metrics_gpu_adjust(metrics, metrics_buf_local, env);
 
   /*---Do reduction across field procs if needed---*/
 
-  if (GMEnv_num_proc_field(env) > 1) {
-    gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
-  }
+//  if (GMEnv_num_proc_field(env) > 1) {
+//    gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
+//  }
 
   /*---------------*/
   /*---Free memory---*/
@@ -101,8 +101,8 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   GMVectorSums_destroy(&vector_sums, env);
 
   gm_linalg_free(&vectors_buf, env);
-  gm_linalg_free(&metrics_buf, env);
-  gm_linalg_free(&metrics_buf_tmp, env);
+//  gm_linalg_free(&metrics_buf, env);
+//  gm_linalg_free(&metrics_buf_tmp, env);
 
   gm_linalg_finalize(env);
 }

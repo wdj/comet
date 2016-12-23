@@ -13,6 +13,7 @@
 #include "vectors.hh"
 #include "metrics.hh"
 #include "compute_utils_linalg.hh"
+#include "compute_metrics_utils.hh"
 #include "compute_metrics_utils_3way.hh"
 
 #ifdef __cplusplus
@@ -1014,7 +1015,9 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         GMTally1_decode(&mB00, &mB01, mB.data[0]);
         GMTally1 mB10, mB11;
         GMTally1_decode(&mB10, &mB11, mB.data[1]);
+//printf("%i %i %i %i\n", (int)mB00, (int)mB01, (int)mB10, (int)mB11);
 
+//printf("%i\n", mB11);
         /* clang-format off */
         int r000 = r000_permuted;
 
@@ -1219,8 +1222,11 @@ void gm_compute_numerators_3way_gpu_start(
                          matM_ij_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
-    gm_linalg_get_matrix_start(matM_ij_buf_local, numvecl, numvecl, env);
-    gm_linalg_get_matrix_wait(env);
+    gm_get_metrics_start(metrics, matM_ij_buf_local, env);
+    gm_get_metrics_wait(metrics, matM_ij_buf_local, env);
+
+    //gm_linalg_get_matrix_start(matM_ij_buf_local, numvecl, numvecl, env);
+    //gm_linalg_get_matrix_wait(env);
 
     if (GMEnv_num_proc_field(env) > 1) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
@@ -1255,8 +1261,11 @@ void gm_compute_numerators_3way_gpu_start(
                          matM_jk_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
-    gm_linalg_get_matrix_start(matM_jk_buf_local, numvecl, numvecl, env);
-    gm_linalg_get_matrix_wait(env);
+    gm_get_metrics_start(metrics, matM_jk_buf_local, env);
+    gm_get_metrics_wait(metrics, matM_jk_buf_local, env);
+
+    //gm_linalg_get_matrix_start(matM_jk_buf_local, numvecl, numvecl, env);
+    //gm_linalg_get_matrix_wait(env);
 
     if (GMEnv_num_proc_field(env) > 1) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
@@ -1295,8 +1304,11 @@ void gm_compute_numerators_3way_gpu_start(
                          matM_kik_buf_local->d, numvecl, env);
     gm_compute_wait(env);
 
-    gm_linalg_get_matrix_start(matM_kik_buf_local, numvecl, numvecl, env);
-    gm_linalg_get_matrix_wait(env);
+    gm_get_metrics_start(metrics, matM_kik_buf_local, env);
+    gm_get_metrics_wait(metrics, matM_kik_buf_local, env);
+
+    //gm_linalg_get_matrix_start(matM_kik_buf_local, numvecl, numvecl, env);
+    //gm_linalg_get_matrix_wait(env);
 
     if (GMEnv_num_proc_field(env) > 1) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
@@ -1486,6 +1498,7 @@ void gm_compute_numerators_3way_gpu_start(
       /*---Copy result matrix matB from GPU - START---*/
       gm_linalg_get_matrix_start(vars_prev.matB_buf_ptr, vars_prev.I_max,
                                  numvecl, env);
+      //gm_get_metrics_start(metrics, vars_prev.matB_buf_ptr, env); //FIX
       //matB_buf_ptr[vars_prev.index_01]->h is now being overwritten.
     }
 
@@ -1508,6 +1521,10 @@ void gm_compute_numerators_3way_gpu_start(
     if (vars_prev.do_compute) {
       /*---Copy result matrix matB from GPU - WAIT---*/
       gm_linalg_get_matrix_wait(env);
+      //gm_get_metrics_wait(metrics, vars_prev.matB_buf_ptr, env); //FIX
+
+//printf(">>>>>>>>>>>>>>>>>>  %.16e\n", ((GMTally2x2*)(vars_prev.matB_buf_ptr->h))[0].data[0]);
+
       //matB_buf_ptr[vars_prev.index_01]->h is now available.
       //matB_buf_ptr[vars_prev.index_01]->d is now no longer needed.
     }
@@ -1529,14 +1546,12 @@ void gm_compute_numerators_3way_gpu_start(
     if (vars_prev.do_compute) {
       if (GMEnv_num_proc_field(env) > 1) {
         //TODO: fix this properly.
-        const int factor = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
-        const size_t metrics_buf_size_this = metrics_buf_size * factor;
-        GMAssertAlways(metrics_buf_size_this ==
-                       (size_t)(int)metrics_buf_size_this);
+        const _Bool is_ccc = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC;
         mpi_code = MPI_Iallreduce(vars_prev.matB_buf_ptr->h,
                                   matB_buf[vars_prev.index_01]->h,
-                                  metrics_buf_size_this,
-                                  GM_MPI_FLOAT, MPI_SUM,
+                                  metrics_buf_size,
+                                  is_ccc ? MPI_DOUBLE_COMPLEX : GM_MPI_FLOAT,
+                                  MPI_SUM,
                                   GMEnv_mpi_comm_field(env),
                                   &(mpi_requests[vars_prev.index_01]));
         GMAssertAlways(mpi_code == MPI_SUCCESS);
