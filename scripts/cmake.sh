@@ -131,9 +131,20 @@ C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally4/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally3/include"
 C_CXX_FLAGS="$C_CXX_FLAGS $CRAY_CUDATOOLKIT_INCLUDE_OPTS"
 
-C_FLAGS_RELEASE="-DNDEBUG -O3 -ffast-math -fomit-frame-pointer"
+#----------
+
+C_FLAGS_RELEASE="-DNDEBUG -O3 -fomit-frame-pointer"
+
+#---The following change slows performance by 1% on a test case but helps
+#---make results exactly reproducible on vryng number of procs.
+#C_FLAGS_RELEASE="$C_FLAGS_RELEASE -ffast-math"
+C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-math-errno -ffinite-math-only -fno-rounding-math -fno-signaling-nans -fcx-limited-range"
+C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-signed-zeros -fno-trapping-math -freciprocal-math"
+
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-functions -finline-limit=1000"
 #C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -fargument-noalias-anything"
+
+#----------
 
 LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
@@ -172,6 +183,8 @@ time cmake \
   -DGTEST_DIR:STRING=$GTEST_DIR \
  \
   $PROJECT_DIR
+
+ln -s $INSTALL_DIR install_dir
 
 #  -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v" \
 #  -DCUDA_HOST_COMPILER:STRING=/usr/bin/gcc \

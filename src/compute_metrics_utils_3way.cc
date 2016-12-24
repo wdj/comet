@@ -100,8 +100,16 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
       for (k = j+1; k < numvecl; ++k) {
         for (i = 0; i < j; ++i) {
 
-          const GMFloat denominator =
-            vector_sums_i_[i] + vector_sums_i_[j] + vector_sums_i_[k];
+          //const GMFloat denominator =
+          //  vector_sums_i_[i] + vector_sums_i_[j] + vector_sums_i_[k];
+
+          /*---Make arithmetic order-independent---*/
+          GMFloat smin;
+          GMFloat smid;
+          GMFloat smax;
+          GMFloat_sort_3(&smin, &smid, &smax,
+             &vector_sums_i_[i], &vector_sums_i_[j], &vector_sums_i_[k]);
+          const GMFloat denominator = smin + smid + smax;
 
           GMFloat numerator = 0;
           int f = 0;
@@ -147,8 +155,16 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
         const int i_max = GMSectionInfo_i_max(si, j, env);
         for (i = si->i_lb; i < i_max; ++i) {
 
-          const GMFloat denominator =
-            vector_sums_i_[i] + vector_sums_j_[j] + vector_sums_k_[k];
+          //const GMFloat denominator =
+          //  vector_sums_i_[i] + vector_sums_j_[j] + vector_sums_k_[k];
+
+          /*---Make arithmetic order-independent---*/
+          GMFloat smin;
+          GMFloat smid;
+          GMFloat smax;
+          GMFloat_sort_3(&smin, &smid, &smax,
+             &vector_sums_i_[i], &vector_sums_j_[j], &vector_sums_k_[k]);
+          const GMFloat denominator = smin + smid + smax;
 
           GMFloat numerator = 0;
           int f = 0;
@@ -855,8 +871,15 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         const int i = I;
         const int j = J;
         const int k = K;
-        const GMFloat denominator =
-            vector_sums_i_[i] + vector_sums_i_[j] + vector_sums_i_[k];
+        //const GMFloat denominator =
+        //    vector_sums_i_[i] + vector_sums_i_[j] + vector_sums_i_[k];
+        /*---Make arithmetic order-independent---*/
+        GMFloat smin;
+        GMFloat smid;
+        GMFloat smax;
+        GMFloat_sort_3(&smin, &smid, &smax,
+           &vector_sums_i_[i], &vector_sums_i_[j], &vector_sums_i_[k]);
+        const GMFloat denominator = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numerator / denominator;
 //if(i==2 && j==13 && k==17)
 //printf("%.16e %.16e %.16e\n", numerator, denominator, value);
@@ -895,8 +918,15 @@ void gm_compute_numerators_3way_gpu_form_metrics(
                         /* sax2 ?*/ J;
         /* clang-format on */
 
-        const GMFloat denominator =
-            vector_sums_i_[i] + vector_sums_j_[j] + vector_sums_k_[k];
+        //const GMFloat denominator =
+        //    vector_sums_i_[i] + vector_sums_j_[j] + vector_sums_k_[k];
+        /*---Make arithmetic order-independent---*/
+        GMFloat smin;
+        GMFloat smid;
+        GMFloat smax;
+        GMFloat_sort_3(&smin, &smid, &smax,
+           &vector_sums_i_[i], &vector_sums_j_[j], &vector_sums_k_[k]);
+        const GMFloat denominator = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numerator / denominator;
         GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                       value, env);

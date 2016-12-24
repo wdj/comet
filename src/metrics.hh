@@ -742,6 +742,7 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field_active - sj_1) : sj_1;
 
   /*---Do the following to make floating point arithmetic order-independent---*/
+  /*---(NOTE: these are unsigned ints but are used in a floating point calc---*/
   const GMTally1 smin = si < sj ? si : sj;
   const GMTally1 smax = si < sj ? sj : si;
 
@@ -798,11 +799,45 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
 //printf("%i %i %i %i\n", (int)si, (int)sj, (int)sk, (int)rijk);
 
   /*---Do the following to make floating point arithmetic order-independent---*/
+  /*---(NOTE: these are unsigned ints but are used in a floating point calc---*/
 
   GMTally1 smin = 0;
   GMTally1 smid = 0;
   GMTally1 smax = 0;
 
+  if (si > sj) {
+    if (si > sk) {
+      smax = si;
+      if (sj > sk) {
+        smid = sj;
+        smin = sk;
+      } else {
+        smid = sk;
+        smin = sj;
+      }
+    } else {
+      smid = si;
+      smax = sk;
+      smin = sj;
+    }
+  } else {
+    if (sj > sk) {
+      smax = sj;
+      if (si > sk) {
+        smid = si;
+        smin = sk;
+      } else {
+        smid = sk;
+        smin = si;
+      }
+    } else {
+      smid = sj;
+      smax = sk;
+      smin = si;
+    }
+  }
+
+#if 0
   if (si <= sj && si <= sk) {
     smin = si;
     if (sj < sk) {
@@ -831,6 +866,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
       smax = si;
     }
   }
+#endif
   GMAssert(smin <= smid);
   GMAssert(smid <= smax);
 

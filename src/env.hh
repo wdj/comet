@@ -730,6 +730,46 @@ static int gm_popcount64(GMUInt64 x) {
   return (x * h01) >> 56;
 }
 
+/*---------------------------------------------------------------------------*/
+
+static void GMFloat_sort_3(GMFloat* min, GMFloat* mid, GMFloat* max,
+                           GMFloat* const a, GMFloat* const b,
+                           GMFloat* const c) {
+  if (*a > *b) {
+    if (*a > *c) {
+      *max = *a;
+      if (*b > *c) {
+        *mid = *b;
+        *min = *c;
+      } else {
+        *mid = *c;
+        *min = *b;
+      }
+    } else {
+      *mid = *a;
+      *max = *c;
+      *min = *b;
+    }
+  } else {
+    if (*b > *c) {
+      *max = *b;
+      if (*a > *c) {
+        *mid = *a;
+        *min = *c;
+      } else {
+        *mid = *c;
+        *min = *a;
+      }
+    } else {
+      *mid = *b;
+      *max = *c;
+      *min = *a;
+    }
+  }
+  GMAssert(*min <= *mid);
+  GMAssert(*mid <= *max);
+}
+
 /*===========================================================================*/
 /*---Misc.---*/
 
