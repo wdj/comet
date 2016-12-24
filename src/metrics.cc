@@ -221,16 +221,11 @@ void GMMetrics_create(GMMetrics* metrics,
                       ? "3way all2all case requires num vectors per proc "
                         "divisible by 6."
                       : 0);
-    //const size_t nchoosekm1 = gm_nchoosek(num_vector_local, GMEnv_num_way(env)-1);
 
     /*===PART A: CALCULATE INDEX SIZE===*/
 
-    //const int proc_num_r = GMEnv_proc_num_repl(env);
-    //const int num_proc_r = GMEnv_num_proc_repl(env);
-    //const int nvl6 = metrics->nvl6;
     metrics->num_elts_local = 0;
     int num_block_this_slab = 0;
-    //int num_block_this_proc = 0;
     /*---Fused counter for section_num and block_num, same across all procs---*/
     int section_block_num = 0;
     int section_step = 0;
@@ -242,23 +237,6 @@ void GMMetrics_create(GMMetrics* metrics,
     GMAssertAlways(GMEnv_num_section_steps(env, 1) ==
                    GMEnv_num_section_steps(env, 2));
     const int num_section_steps_12 = GMEnv_num_section_steps(env, 1);
-
-#if 0
-    if (num_section_steps_12 == 1) {
-      /*---Record precalculated base offset---*/
-      const int section_num = 0;
-      metrics->index_offset_section_part1_[section_num] = metrics->num_elts_local;
-      /*---Compute amount storage needed---*/
-      const int num_block_this_proc_1 = rr_pack_(proc_num_r, num_proc_r,
-                                                 num_block_this_slab);
-      num_block_this_proc = num_block_this_proc_1;
-      const size_t num_elts_per_block_1 = nchoosek;
-      const size_t elts_local = num_block_this_proc_1 * num_elts_per_block_1;
-      metrics->num_elts_local += elts_local;
-      metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
-      section_block_num += num_block_this_slab_1;
-    } else {
-#endif
     for (section_step=0; section_step<num_section_steps_12; ++section_step) {
       /*---Record precalculated base offset---*/
       const int section_num = section_step;
@@ -284,27 +262,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     const int num_block_this_slab_2 = num_block - 1;
     num_block_this_slab += num_block_this_slab_2;
-#if 0
-    if (num_section_steps_12 == 1) {
-      /*---Record precalculated base offset---*/
-      const int section_num = 0;
-      metrics->index_offset_section_part2_[section_num] = metrics->num_elts_local;
-      metrics->section_size_part2[section_num] = gm_triang_size(nvl, nvl);
-      /*---Compute amount storage needed---*/
-      const int num_block_this_proc_12 = rr_pack_(proc_num_r, num_proc_r,
-                                                  num_block_this_slab);
-      const int num_block_this_proc_2 = num_block_this_proc_12 -
-                                        num_block_this_proc;
-      num_block_this_proc = num_block_this_proc_12;
-      const size_t num_elts_per_block_2 = nchoosekm1 * (size_t)num_vector_local;
-      const size_t elts_local = num_block_this_proc_2 * num_elts_per_block_2;
-      metrics->num_elts_local += elts_local;
-      if (elts_local != 0) {
-        metrics->section_num_valid_part2_[section_num] = GM_BOOL_TRUE;
-      }
-      section_block_num += num_block_this_slab_2;
-    } else {
-#endif
     for (section_step=0; section_step<num_section_steps_12; ++section_step) {
       /*---Record precalculated base offset---*/
       const int section_num = section_step;
@@ -336,20 +293,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     const int num_block_this_slab_3 = (num_block - 1) * (num_block - 2);
     num_block_this_slab += num_block_this_slab_3;
-#if 0
-    if (num_section_steps_12 == 1) {
-      const int num_block_this_proc_123 = rr_pack_(proc_num_r, num_proc_r,
-                                                   num_block_this_slab);
-      const int num_block_this_proc_3 = num_block_this_proc_123 -
-                                        num_block_this_proc;
-      num_block_this_proc = num_block_this_proc_123;
-      const size_t num_elts_per_block_3 = num_vector_local *
-                                         (num_vector_local * (size_t)nvl6);
-      const size_t elts_local = num_block_this_proc_3 * num_elts_per_block_3;
-      metrics->num_elts_local += elts_local;
-      section_block_num += num_block_this_slab_3;
-    } else {
-#endif
     /*---Loop over block for part3---*/
     int k_i_block_delta = 0;
     for (k_i_block_delta=1; k_i_block_delta<num_block; ++k_i_block_delta) {

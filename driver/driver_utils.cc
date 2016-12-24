@@ -371,42 +371,56 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
-      size_t index = 0;
-      for (index = 0; index < metrics->num_elts_local; ++index) {
-        int is_active = GM_BOOL_TRUE;
-        int coord_num = 0;
-        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-          const size_t coord = GMMetrics_coord_global_from_index(metrics,
-              index, coord_num, env);
-          is_active = is_active && coord < metrics->num_vector_active;
-        }
-        if (is_active) {
+
+      if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
+        size_t index = 0;
+        for (index = 0; index < metrics->num_elts_local; ++index) {
+          const size_t coord0 =
+            GMMetrics_coord_global_from_index(metrics, index, 0, env);
+          const size_t coord1 =
+            GMMetrics_coord_global_from_index(metrics, index, 1, env);
+          if (coord0 >= metrics->num_vector_active ||
+              coord1 >= metrics->num_vector_active) {
+            continue;
+          }
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
           if (!(threshold >= 0. && value > threshold)) {
             continue;
           }
-          /*---Coordinate---*/
-          fprintf(file, "element (");
-          int coord_num = 0;
-          for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            if (coord_num > 0) {
-              fprintf(file, ",");
-            }
-            const size_t coord = GMMetrics_coord_global_from_index(metrics,
-                index, coord_num, env);
-            /*---Present to the user as 1-based---*/
-            fprintf(file, "%li", 1 + coord);
-          }
-          /*---Value---*/
-          fprintf(file, "): value:");
-          fprintf(file, sizeof(GMFloat) == 8 ? " %.17e" : " %.8e",
-                 GMMetrics_czekanowski_get_from_index(metrics, index, env));
-          //fprintf(file, "    [from proc %i]", GMEnv_proc_num(env));
-          fprintf(file, "\n");
-
+          fprintf(file,
+            sizeof(GMFloat) == 8 ?
+            "element (%li,%li): value: %.17e\n" :
+            "element (%li,%li): value: %.8e\n", coord0, coord1, value);
         }
-      } /*---for index---*/
+      }
+
+      if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
+        size_t index = 0;
+        for (index = 0; index < metrics->num_elts_local; ++index) {
+          const size_t coord0 =
+            GMMetrics_coord_global_from_index(metrics, index, 0, env);
+          const size_t coord1 =
+            GMMetrics_coord_global_from_index(metrics, index, 1, env);
+          const size_t coord2 =
+            GMMetrics_coord_global_from_index(metrics, index, 2, env);
+          if (coord0 >= metrics->num_vector_active ||
+              coord1 >= metrics->num_vector_active ||
+              coord2 >= metrics->num_vector_active) {
+            continue;
+          }
+          const GMFloat value
+            = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+          if (!(threshold >= 0. && value > threshold)) {
+            continue;
+          }
+          fprintf(file, sizeof(GMFloat) == 8 ?
+                        "element (%li,%li,%li): value: %.17e\n" :
+                        "element (%li,%li,%li): value: %.8e\n",
+                        coord0, coord1, coord2, value);
+        }
+      }
+
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {

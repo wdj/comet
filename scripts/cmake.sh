@@ -151,6 +151,7 @@ LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally3/lib -lmagma_tally3"
 LFLAGS="$LFLAGS $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas"
 LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
+LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
 
 #------------------------------------------------------------------------------
 
@@ -169,11 +170,11 @@ time cmake \
  \
   -DC_AND_CXX_FLAGS:STRING="$C_CXX_FLAGS" \
  \
-  -DCMAKE_C_FLAGS:STRING="-std=c99 -Wall -Wno-unused-function -pedantic -Werror -fno-associative-math" \
+  -DCMAKE_C_FLAGS:STRING="-std=c99 -Wall -Wno-unused-function -pedantic -Werror -fno-associative-math -fopenmp" \
   -DCMAKE_C_FLAGS_DEBUG:STRING="-g -ftrapv" \
   -DCMAKE_C_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \
-  -DCMAKE_CXX_FLAGS:STRING="-Wall -Wno-unused-function -Werror -fno-associative-math" \
+  -DCMAKE_CXX_FLAGS:STRING="-Wall -Wno-unused-function -Werror -fno-associative-math -fopenmp" \
   -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -ftrapv" \
   -DCMAKE_CXX_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \
