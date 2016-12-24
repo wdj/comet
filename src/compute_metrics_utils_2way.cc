@@ -446,10 +446,10 @@ void gm_compute_czekanowski_2way_combine(
         const GMFloat numerator =
             GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
         /*---Don't use two pointers pointing to the same thing---*/
-        const GMFloat denominator =
-            are_vector_sums_aliased
-                ? vector_sums_left[i] + vector_sums_left[j]
-                : vector_sums_left[i] + vector_sums_right[j];
+        const GMFloat vi = vector_sums_left[i];
+        const GMFloat vj = are_vector_sums_aliased ? vector_sums_left[j]
+                                                   : vector_sums_right[j];
+        const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                       2 * numerator / denominator, env);
       } /*---for i---*/
@@ -466,7 +466,9 @@ void gm_compute_czekanowski_2way_combine(
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
         /*---Don't use two different pointers pointing to the same thing---*/
-        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
+        const GMFloat vi = vector_sums_left[i];
+        const GMFloat vj = vector_sums_left[j];
+        const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
     }   /*---for j---*/
@@ -482,10 +484,10 @@ void gm_compute_czekanowski_2way_combine(
         const GMFloat numerator =
             ((GMFloat*)metrics_buf->h)[i + nvl * j];
         /*---Don't use two pointers pointing to the same thing---*/
-        const GMFloat denominator =
-            are_vector_sums_aliased
-                ? vector_sums_left[i] + vector_sums_left[j]
-                : vector_sums_left[i] + vector_sums_right[j];
+        const GMFloat vi = vector_sums_left[i];
+        const GMFloat vj = are_vector_sums_aliased ? vector_sums_left[j]
+                                                   : vector_sums_right[j];
+        const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                       2 * numerator / denominator, env);
       } /*---for i---*/
@@ -502,7 +504,9 @@ void gm_compute_czekanowski_2way_combine(
         const GMFloat numerator =
             ((GMFloat*)metrics_buf->h)[i + nvl * j];
         /*---Don't use two different pointers pointing to the same thing---*/
-        const GMFloat denominator = vector_sums_left[i] + vector_sums_left[j];
+        const GMFloat vi = vector_sums_left[i];
+        const GMFloat vj = vector_sums_left[j];
+        const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
     }   /*---for j---*/

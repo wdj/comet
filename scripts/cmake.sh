@@ -158,11 +158,11 @@ time cmake \
  \
   -DC_AND_CXX_FLAGS:STRING="$C_CXX_FLAGS" \
  \
-  -DCMAKE_C_FLAGS:STRING="-std=c99 -Wall -Wno-unused-function -pedantic -Werror" \
+  -DCMAKE_C_FLAGS:STRING="-std=c99 -Wall -Wno-unused-function -pedantic -Werror -fno-associative-math" \
   -DCMAKE_C_FLAGS_DEBUG:STRING="-g -ftrapv" \
   -DCMAKE_C_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \
-  -DCMAKE_CXX_FLAGS:STRING="-Wall -Wno-unused-function -Werror" \
+  -DCMAKE_CXX_FLAGS:STRING="-Wall -Wno-unused-function -Werror -fno-associative-math" \
   -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -ftrapv" \
   -DCMAKE_CXX_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \

@@ -373,7 +373,7 @@ static void input_vectors(GMVectors* vectors,
 /*---Output the result metrics values to file---*/
 
 static void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
-                                FILE* file, GMEnv* env) {
+                                FILE* file, double threshold, GMEnv* env) {
   GMAssertAlways(NULL != metrics);
   GMAssertAlways(NULL != do_);
   GMAssertAlways(NULL != file);
@@ -408,6 +408,11 @@ static void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           is_active = is_active && coord < metrics->num_vector_active;
         }
         if (is_active) {
+          const GMFloat value
+            = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+          if (!(threshold >= 0. && value > threshold)) {
+            continue;
+          }
           /*---Coordinate---*/
           fprintf(file, "element (");
           int coord_num = 0;
@@ -422,9 +427,10 @@ static void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           }
           /*---Value---*/
           fprintf(file, "): value:");
-          fprintf(file, " %.17e",
+          fprintf(file, sizeof(GMFloat) == 8 ? " %.17e" : " %.8e",
                  GMMetrics_czekanowski_get_from_index(metrics, index, env));
-          fprintf(file, "    [from proc %i]\n", GMEnv_proc_num(env));
+          //fprintf(file, "    [from proc %i]", GMEnv_proc_num(env));
+          fprintf(file, "\n");
 
         }
       } /*---for index---*/
@@ -537,14 +543,16 @@ static void output_metrics(GMMetrics* metrics, DriverOptions* do_,
     GMAssertAlways(GMEnv_num_proc(env) < 10000000000);
     sprintf(path, "%s_%06i_%010i", stub, env->stage_num, GMEnv_proc_num(env));
 
+    double threshold = 0.;
+
     FILE* file = fopen(path, "w");
-    output_metrics_file(metrics, do_, file, env);
+    output_metrics_file(metrics, do_, file, threshold, env);
     fclose(file);
     free(path);
   }
 
   if (do_->verbosity > 1) {
-    output_metrics_file(metrics, do_, stdout, env);
+    output_metrics_file(metrics, do_, stdout, -1., env);
   }
 }
 
@@ -601,9 +609,15 @@ static GMChecksum perform_run(int argc, char** argv,
                    do_.num_field, do_.num_field_active,
                    do_.num_vector_local, &env);
 
+  double intime = 0;
+  double time_beg = GMEnv_get_synced_time(&env);
   input_vectors(&vectors, &do_, &env);
+  double time_end = GMEnv_get_synced_time(&env);
+  intime += time_end - time_beg;
 
   GMChecksum checksum = GMChecksum_null();
+
+  double outtime = 0;
 
   /*---Loop over stages---*/
 
@@ -624,7 +638,10 @@ static GMChecksum perform_run(int argc, char** argv,
 
     /*---Output results---*/
 
+    double time_beg = GMEnv_get_synced_time(&env);
     output_metrics(&metrics, &do_, &env);
+    double time_end = GMEnv_get_synced_time(&env);
+    outtime += time_end - time_beg;
 
     /*---Compute checksum---*/
 
@@ -651,6 +668,12 @@ static GMChecksum perform_run(int argc, char** argv,
     printf(" ops %e", env.ops);
     if (env.time > 0) {
       printf(" rate %e", env.ops / env.time);
+    }
+    if (NULL != do_.input_file_path) {
+      printf(" intime %.6f", intime);
+    }
+    if (NULL != do_.output_file_path_stub) {
+      printf(" outtime %.6f", outtime);
     }
     printf("\n");
   }
