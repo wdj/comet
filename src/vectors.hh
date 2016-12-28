@@ -357,6 +357,25 @@ static _Bool GMVectors_bit_get(GMVectors* const vectors,
 }
 
 /*===========================================================================*/
+/*---Misc---*/
+
+static size_t GMVectors_num_local_required(size_t num_vector_active,
+                                           GMEnv* const env) {
+
+  const int num_proc_vector = GMEnv_num_proc_vector_i(env);
+
+  const size_t nvl_1 = gm_ceil_i8(num_vector_active, num_proc_vector);
+
+  const _Bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
+                                    GMEnv_all2all(env) && num_proc_vector > 2;
+
+  const size_t num_vector_local = need_divisible_by_6 ?
+                                  gm_ceil_i8(nvl_1, 6)*6 : nvl_1;
+
+  return num_vector_local;
+}
+
+/*===========================================================================*/
 
 #ifdef __cplusplus
 } /*---extern "C"---*/

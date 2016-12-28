@@ -1216,6 +1216,7 @@ void gm_compute_numerators_3way_gpu_start(
   const int i_block = GMEnv_proc_num_vector_i(env);
 
   const _Bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
+  const _Bool need_reduce = GMEnv_num_proc_field(env) > 1;
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
@@ -1230,10 +1231,14 @@ void gm_compute_numerators_3way_gpu_start(
   /*---Compute i_block - j_block PROD---*/
   /*--------------------*/
 
-  GMMirroredPointer mat_buf_tmp_value0 = gm_linalg_malloc(metrics_buf_size, env);
-  GMMirroredPointer mat_buf_tmp_value1 = gm_linalg_malloc(metrics_buf_size, env);
-  GMMirroredPointer* mat_buf_tmp[2] =
-    {&mat_buf_tmp_value0, &mat_buf_tmp_value1};
+  GMMirroredPointer mat_buf_tmp_value0 = need_reduce
+                    ? gm_linalg_malloc(metrics_buf_size, env)
+                    : GMMirroredPointer_null();
+  GMMirroredPointer mat_buf_tmp_value1 = need_reduce
+                    ? gm_linalg_malloc(metrics_buf_size, env)
+                    : GMMirroredPointer_null();
+  GMMirroredPointer* mat_buf_tmp[2] = {&mat_buf_tmp_value0,
+                                       &mat_buf_tmp_value1};
 
   GMMirroredPointer matM_ij_buf_value = need_2way
     ? gm_linalg_malloc(metrics_buf_size, env)
@@ -1242,7 +1247,7 @@ void gm_compute_numerators_3way_gpu_start(
 
   if (need_2way) {
     GMMirroredPointer* matM_ij_buf_local =
-        GMEnv_num_proc_field(env) == 1 ? matM_ij_buf : mat_buf_tmp[0];
+       need_reduce ? mat_buf_tmp[0] : matM_ij_buf;
 
     gm_linalg_set_matrix_zero_start(matM_ij_buf_local, numvecl, numvecl, env);
 
@@ -1258,7 +1263,7 @@ void gm_compute_numerators_3way_gpu_start(
     //gm_linalg_get_matrix_start(matM_ij_buf_local, numvecl, numvecl, env);
     //gm_linalg_get_matrix_wait(env);
 
-    if (GMEnv_num_proc_field(env) > 1) {
+    if (need_reduce) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
       mpi_code = MPI_Allreduce(matM_ij_buf_local->h, matM_ij_buf->h,
                                metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
@@ -1281,7 +1286,7 @@ void gm_compute_numerators_3way_gpu_start(
 
   if (need_2way && !si->is_part1) {
     GMMirroredPointer* matM_jk_buf_local =
-        GMEnv_num_proc_field(env) == 1 ? matM_jk_buf : mat_buf_tmp[0];
+        need_reduce ? mat_buf_tmp[0] : matM_jk_buf;
 
     gm_linalg_set_matrix_zero_start(matM_jk_buf_local, numvecl, numvecl, env);
 
@@ -1297,7 +1302,7 @@ void gm_compute_numerators_3way_gpu_start(
     //gm_linalg_get_matrix_start(matM_jk_buf_local, numvecl, numvecl, env);
     //gm_linalg_get_matrix_wait(env);
 
-    if (GMEnv_num_proc_field(env) > 1) {
+    if (need_reduce) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
       mpi_code = MPI_Allreduce(matM_jk_buf_local->h, matM_jk_buf->h,
                                metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
@@ -1324,7 +1329,7 @@ void gm_compute_numerators_3way_gpu_start(
 
   if (need_2way && si->is_part3) {
     GMMirroredPointer* matM_kik_buf_local =
-        GMEnv_num_proc_field(env) == 1 ? matM_kik_buf : mat_buf_tmp[0];
+        need_reduce ? mat_buf_tmp[0] : matM_kik_buf;
 
     gm_linalg_set_matrix_zero_start(matM_kik_buf_local, numvecl, numvecl, env);
 
@@ -1340,7 +1345,7 @@ void gm_compute_numerators_3way_gpu_start(
     //gm_linalg_get_matrix_start(matM_kik_buf_local, numvecl, numvecl, env);
     //gm_linalg_get_matrix_wait(env);
 
-    if (GMEnv_num_proc_field(env) > 1) {
+    if (need_reduce) {
       GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
       mpi_code = MPI_Allreduce(matM_kik_buf_local->h, matM_kik_buf->h,
                                metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
@@ -1416,7 +1421,7 @@ void gm_compute_numerators_3way_gpu_start(
   const int J_max = si->J_ub;
   const int J_count = J_max - J_min;
 
-  const int num_step_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?  3 : 1;
+  const int num_step_2way = GMEnv_metric_type(env)==GM_METRIC_TYPE_CCC ? 3 : 1;
   const int num_step = J_count * num_step_2way;
   const int extra_step = 1;
   int step_num = 0;
@@ -1471,8 +1476,8 @@ void gm_compute_numerators_3way_gpu_start(
                                 vars_next.step_num < num_step;
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
     vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
-    vars_next.matB_buf_ptr = GMEnv_num_proc_field(env) == 1 ?
-      matB_buf[vars_next.index_01] : mat_buf_tmp[vars_next.index_01];
+    vars_next.matB_buf_ptr = need_reduce ?  mat_buf_tmp[vars_next.index_01] :
+                                            matB_buf[vars_next.index_01];
 
 //    vars_next.matV_h_updating = &matV_h_updating[vars_next.index_01];
 //    vars_next.matV_d_updating = &matV_d_updating[vars_next.index_01];
@@ -1562,7 +1567,7 @@ void gm_compute_numerators_3way_gpu_start(
     //==========
 
     if (vars_prevprev.do_compute) {
-      if (GMEnv_num_proc_field(env) > 1) {
+      if (need_reduce) {
         MPI_Status mpi_status;
         mpi_code = MPI_Wait(&(mpi_requests[vars_prevprev.index_01]),
                             &mpi_status);
@@ -1574,7 +1579,7 @@ void gm_compute_numerators_3way_gpu_start(
     //==========
 
     if (vars_prev.do_compute) {
-      if (GMEnv_num_proc_field(env) > 1) {
+      if (need_reduce) {
         //TODO: fix this properly.
         const _Bool is_ccc = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC;
         mpi_code = MPI_Iallreduce(vars_prev.matB_buf_ptr->h,
@@ -1635,7 +1640,9 @@ void gm_compute_numerators_3way_gpu_start(
   }
   int i = 0;
   for (i=0; i<2; ++i) {
-    gm_linalg_free(mat_buf_tmp[i], env);
+    if (need_reduce) {
+      gm_linalg_free(mat_buf_tmp[i], env);
+    }
     gm_linalg_free(matV_buf[i], env);
     gm_linalg_free(matB_buf[i], env);
   }
