@@ -732,9 +732,12 @@ static int gm_popcount64(GMUInt64 x) {
 
 /*---------------------------------------------------------------------------*/
 
-static void GMFloat_sort_3(GMFloat* min, GMFloat* mid, GMFloat* max,
-                           GMFloat* const a, GMFloat* const b,
-                           GMFloat* const c) {
+static void GMFloat_sort_3(GMFloat* const __restrict__ min,
+                           GMFloat* const __restrict__ mid,
+                           GMFloat* const __restrict__ max,
+                           const GMFloat* const __restrict__ a,
+                           const GMFloat* const __restrict__ b,
+                           const GMFloat* const __restrict__ c) {
   if (*a > *b) {
     if (*a > *c) {
       *max = *a;

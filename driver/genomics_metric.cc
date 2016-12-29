@@ -83,7 +83,7 @@ void usage() {
   "\n"
   "    --num_stage <value>\n"
   "        the number of stages the computation is divided into\n"
-  "        (default is 1)\n"
+  "        (default is 1) (available for 3-way case only)\n"
   "\n"
   "    --stage_min <value>\n"
   "        the lowest stage number of the sequence of stages to be computed\n"

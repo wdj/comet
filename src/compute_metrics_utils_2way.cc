@@ -431,6 +431,7 @@ void gm_compute_czekanowski_2way_combine(
        For GPU case, directly access the metrics_buf holding the numerators.
   ---*/
 
+  const size_t nvl = metrics->num_vector_local;
   const _Bool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
 
   int i = 0;
@@ -477,21 +478,37 @@ void gm_compute_czekanowski_2way_combine(
   } else if (GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-      const size_t nvl = metrics->num_vector_local;
-      for (i = 0; i < i_max; ++i) {
-        const GMFloat numerator =
-            ((GMFloat*)metrics_buf->h)[i + nvl * j];
-        /*---Don't use two pointers pointing to the same thing---*/
-        const GMFloat vi = vector_sums_left[i];
-        const GMFloat vj = are_vector_sums_aliased ? vector_sums_left[j]
-                                                   : vector_sums_right[j];
-        const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
-                                      2 * numerator / denominator, env);
-      } /*---for i---*/
-    }   /*---for j---*/
+    if (do_compute_triang_only) {
+      for (j = 0; j < metrics->num_vector_local; ++j) {
+        const int i_max = j;
+        for (i = 0; i < i_max; ++i) {
+          const GMFloat numerator =
+              ((GMFloat*)metrics_buf->h)[i + nvl * j];
+          /*---Don't use two pointers pointing to the same thing---*/
+          const GMFloat vi = vector_sums_left[i];
+          const GMFloat vj = are_vector_sums_aliased ? vector_sums_left[j]
+                                                     : vector_sums_right[j];
+          const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
+          GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
+                                        2 * numerator / denominator, env);
+        } /*---for i---*/
+      }   /*---for j---*/
+    } else {
+#pragma omp parallel for collapse(2)
+      for (j = 0; j < metrics->num_vector_local; ++j) {
+        for (i = 0; i < metrics->num_vector_local; ++i) {
+          const GMFloat numerator =
+              ((GMFloat*)metrics_buf->h)[i + nvl * j];
+          /*---Don't use two pointers pointing to the same thing---*/
+          const GMFloat vi = vector_sums_left[i];
+          const GMFloat vj = are_vector_sums_aliased ? vector_sums_left[j]
+                                                     : vector_sums_right[j];
+          const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
+          GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
+                                        2 * numerator / denominator, env);
+        } /*---for i---*/
+      }   /*---for j---*/
+    }
 
     /*----------------------------------------*/
   } else {
@@ -499,14 +516,13 @@ void gm_compute_czekanowski_2way_combine(
 
     for (j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = j;
-      const size_t nvl = metrics->num_vector_local;
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator =
             ((GMFloat*)metrics_buf->h)[i + nvl * j];
         /*---Don't use two different pointers pointing to the same thing---*/
         const GMFloat vi = vector_sums_left[i];
         const GMFloat vj = vector_sums_left[j];
-        const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
+        const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
     }   /*---for j---*/
@@ -533,7 +549,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
-  const int numvecl = metrics->num_vector_local;
+  const int nvl = metrics->num_vector_local;
 
   int i = 0;
   int j = 0;
@@ -544,32 +560,58 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
     /*--------------------*/
     if (GMEnv_all2all(env)) {
       /*--------------------*/
-      for (j = 0; j < numvecl; ++j) {
-        const int i_max = do_compute_triang_only ? j : numvecl;
-        for (i = 0; i < i_max; ++i) {
-          const GMTally2x2 value = ((
+
+      if (do_compute_triang_only) {
+        for (j = 0; j < nvl; ++j) {
+          const int i_max = j;
+          for (i = 0; i < i_max; ++i) {
+            const GMTally2x2 value = ((
               GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
-          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
+            GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
-          const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-          const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-          const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-          const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-          GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
-                       (GMUInt64)r11 ==
-                   (GMUInt64)(4 * metrics->num_field_active));
-          const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
-          const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
-          GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si_1));
-          GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj_1));
+            const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+            const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+            const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+            const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+            GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
+                         (GMUInt64)r11 ==
+                     (GMUInt64)(4 * metrics->num_field_active));
+            const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
+            const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
+            GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si_1));
+            GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj_1));
 #endif
-        } /*---for i---*/
-      }   /*---for j---*/
+          } /*---for i---*/
+        }   /*---for j---*/
+      } else {
+        #pragma omp parallel for collapse(2)
+        for (j = 0; j < nvl; ++j) {
+          for (i = 0; i < nvl; ++i) {
+            const GMTally2x2 value = ((
+              GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
+            GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
+#ifdef GM_ASSERTIONS_ON
+            const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+            const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+            const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+            const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+            GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
+                         (GMUInt64)r11 ==
+                     (GMUInt64)(4 * metrics->num_field_active));
+            const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
+            const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
+            GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si_1));
+            GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj_1));
+#endif
+          } /*---for i---*/
+        }   /*---for j---*/
+     }
+
       /*--------------------*/
     } else /*---(!GMEnv_all2all(env))---*/ {
       /*--------------------*/
-      for (j = 0; j < numvecl; ++j) {
-        const int i_max = do_compute_triang_only ? j : numvecl;
+      for (j = 0; j < nvl; ++j) {
+        const int i_max = do_compute_triang_only ? j : nvl;
         for (i = 0; i < i_max; ++i) {
           const GMTally2x2 value = ((
               GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
@@ -599,21 +641,35 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
   /*--------------------*/
   if (GMEnv_all2all(env)) {
     /*--------------------*/
-    for (j = 0; j < numvecl; ++j) {
-      const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
-      const int i_max = do_compute_triang_only ? j : numvecl;
-      for (i = 0; i < i_max; ++i) {
-        const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
-        const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
-        GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
-      } /*---for i---*/
-    }   /*---for j---*/
+
+    if (do_compute_triang_only) {
+      for (j = 0; j < nvl; ++j) {
+        const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
+        const int i_max = j;
+        for (i = 0; i < i_max; ++i) {
+          const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
+          const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
+          GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+        }   /*---for i---*/
+      }   /*---for j---*/
+    } else {
+      #pragma omp parallel for collapse(2)
+      for (j = 0; j < nvl; ++j) {
+        for (i = 0; i < nvl; ++i) {
+        const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
+          const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
+          const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
+          GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+        }   /*---for i---*/
+      }   /*---for j---*/
+   }
+
     /*--------------------*/
   } else /*---(!GMEnv_all2all(env))---*/ {
     /*--------------------*/
-    for (j = 0; j < numvecl; ++j) {
+    for (j = 0; j < nvl; ++j) {
       const GMTally1 sj_1 = (GMTally1)(vector_sums_right[j]);
-      const int i_max = do_compute_triang_only ? j : numvecl;
+      const int i_max = do_compute_triang_only ? j : nvl;
       for (i = 0; i < i_max; ++i) {
         const GMTally1 si_1 = (GMTally1)(vector_sums_left[i]);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);

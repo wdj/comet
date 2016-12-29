@@ -239,6 +239,7 @@ void input_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         fclose(input_file);
       } else { /*--------------------*/
         int vl = 0;
+#pragma omp parallel for private(vl)
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           size_t vector = vl +
               vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
@@ -299,6 +300,7 @@ void input_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
                       ? "File input for this case not yet implemented." : 0);
       } else { /*--------------------*/
         int vl = 0;
+#pragma omp parallel for private(vl)
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
           size_t vector = vl +
               vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
@@ -385,13 +387,12 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           }
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
-          if (!(threshold >= 0. && value > threshold)) {
-            continue;
+          if (threshold < 0. || value > threshold) {
+            fprintf(file,
+              sizeof(GMFloat) == 8 ?
+              "element (%li,%li): value: %.17e\n" :
+              "element (%li,%li): value: %.8e\n", coord0, coord1, value);
           }
-          fprintf(file,
-            sizeof(GMFloat) == 8 ?
-            "element (%li,%li): value: %.17e\n" :
-            "element (%li,%li): value: %.8e\n", coord0, coord1, value);
         }
       }
 
@@ -411,13 +412,12 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           }
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
-          if (!(threshold >= 0. && value > threshold)) {
-            continue;
+          if (threshold < 0. || value > threshold) {
+            fprintf(file, sizeof(GMFloat) == 8 ?
+                          "element (%li,%li,%li): value: %.17e\n" :
+                          "element (%li,%li,%li): value: %.8e\n",
+                          coord0, coord1, coord2, value);
           }
-          fprintf(file, sizeof(GMFloat) == 8 ?
-                        "element (%li,%li,%li): value: %.17e\n" :
-                        "element (%li,%li,%li): value: %.8e\n",
-                        coord0, coord1, coord2, value);
         }
       }
 
@@ -425,6 +425,7 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
+//TODO: make faster, like above code
       size_t index = 0;
       for (index = 0; index < metrics->num_elts_local; ++index) {
         int is_active = GM_BOOL_TRUE;
@@ -464,6 +465,7 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
+//TODO: make faster, like above code
       size_t index = 0;
       for (index = 0; index < metrics->num_elts_local; ++index) {
         int is_active = GM_BOOL_TRUE;

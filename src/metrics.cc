@@ -175,7 +175,7 @@ void GMMetrics_create(GMMetrics* metrics,
                                                   : num_block_this_proc_2;
     /*---Now put it all together---*/
     metrics->num_elts_local +=
-        num_offdiag_block * num_vector_local * num_vector_local;
+        num_offdiag_block * nvl * nvl;
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
@@ -184,31 +184,37 @@ void GMMetrics_create(GMMetrics* metrics,
     /*---Set index part 1: (triangle) i_block==j_block part---*/
     size_t index = 0;
     if (proc_num_r == 0) {
-      for (j = 0; j < num_vector_local; ++j) {
-        const size_t j_global = j + num_vector_local * i_block;
+      for (j = 0; j < nvl; ++j) {
+        const size_t j_global = j + nvl * i_block;
         for (i = 0; i < j; ++i) {
-          const size_t i_global = i + num_vector_local * i_block;
+          const size_t i_global = i + nvl * i_block;
           metrics->coords_global_from_index[index++] =
               i_global + metrics->num_vector * j_global;
         }
       }
     }
     /*---Set index part 2: (wrapped rectangle) i_block!=j_block part---*/
-    const size_t beg = (i_block + 1) * num_vector_local;
-    const size_t end = (i_block + num_block_this_slab_2) * num_vector_local;
-    size_t j_global_unwrapped = 0;
-    for (j_global_unwrapped = beg; j_global_unwrapped < end;
-         ++j_global_unwrapped) {
-      const int j_block_unwrapped = (int)(j_global_unwrapped/num_vector_local);
+    const int beg = i_block + 1;
+    const int end = i_block + num_block_this_slab_2;
+    int j_block_unwrapped = 0;
+    for (j_block_unwrapped=beg; j_block_unwrapped<end; ++j_block_unwrapped) {
       if (!gm_proc_r_active(j_block_unwrapped-i_block, env)) {
         continue;
       }
-      const size_t j_global = j_global_unwrapped % metrics->num_vector;
-      for (i = 0; i < num_vector_local; ++i) {
-        const size_t i_global = i + num_vector_local * i_block;
-        metrics->coords_global_from_index[index++] =
-            i_global + metrics->num_vector * j_global;
+      int j = 0;
+#pragma omp parallel for collapse(2)
+      for (j = 0; j < nvl; ++j) {
+        for (i = 0; i < nvl; ++i) {
+        const size_t j_global_unwrapped = j + j_block_unwrapped * (size_t)nvl;
+        const size_t j_global = j_global_unwrapped % metrics->num_vector;
+          const size_t i_global = i + nvl * i_block;
+          const size_t index_this = index + i + j * (size_t)nvl;
+          GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+          metrics->coords_global_from_index[index_this] =
+              i_global + metrics->num_vector * j_global;
+        }
       }
+      index += nvl * (size_t)nvl;
     }
     GMAssertAlways(index == metrics->num_elts_local);
 
@@ -308,8 +314,8 @@ void GMMetrics_create(GMMetrics* metrics,
         const int J_lo = gm_J_lo(section_num, nvl, 3, env);
         const int J_hi = gm_J_hi(section_num, nvl, 3, env);
         if (gm_proc_r_active(section_block_num, env)) {
-          const size_t elts_local = num_vector_local *
-             (size_t)num_vector_local * (size_t)(J_hi - J_lo);
+          const size_t elts_local = nvl *
+             (size_t)nvl * (size_t)(J_hi - J_lo);
           metrics->num_elts_local += elts_local;
         }
         ++section_block_num;
@@ -340,19 +346,22 @@ void GMMetrics_create(GMMetrics* metrics,
         const int j_max = J_hi;
         for (j = j_min; j < j_max; ++j) {
           const int j_block = i_block;
-          const size_t j_global = j + num_vector_local * j_block;
-          for (k = j+1; k < num_vector_local; ++k) {
-            const int k_block = i_block;
-            const size_t k_global = k + num_vector_local * k_block;
+          const size_t j_global = j + nvl * j_block;
+#pragma omp parallel for collapse(2)
+          for (k = j+1; k < nvl; ++k) {
             for (i = 0; i < j; ++i) {
-              const size_t i_global = i + num_vector_local * i_block;
-              GMAssert(index < metrics->num_elts_local);
-              metrics->coords_global_from_index[index++] =
+            const int k_block = i_block;
+            const size_t k_global = k + nvl * k_block;
+              const size_t i_global = i + nvl * i_block;
+              const size_t index_this = index + i + j*(size_t)(k-(j+1));
+              GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+              metrics->coords_global_from_index[index_this] =
                   i_global +
                 metrics->num_vector *
                       (j_global + metrics->num_vector * (k_global));
             }
           }
+          index += j * (size_t)(nvl - (j+1));
         }
       } /*---if block_num---*/
       ++section_block_num;
@@ -371,19 +380,22 @@ void GMMetrics_create(GMMetrics* metrics,
           const int j_min = J_lo;
           const int j_max = J_hi;
           for (j = j_min; j < j_max; ++j) {
-            const size_t j_global = j + num_vector_local * j_block;
-            const int k_block = j_block;
-            for (k = j+1; k < num_vector_local; ++k) {
-              const size_t k_global = k + num_vector_local * k_block;
-              for (i = 0; i < num_vector_local; ++i) {
-                const size_t i_global = i + num_vector_local * i_block;
-                GMAssert(index < metrics->num_elts_local);
-                metrics->coords_global_from_index[index++] =
+            const size_t j_global = j + nvl * j_block;
+#pragma omp parallel for collapse(2)
+            for (k = j+1; k < nvl; ++k) {
+              for (i = 0; i < nvl; ++i) {
+              const int k_block = j_block;
+              const size_t k_global = k + nvl * k_block;
+                const size_t i_global = i + nvl * i_block;
+                const size_t index_this = index + i + nvl*(size_t)(k-(j+1));
+                GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+                metrics->coords_global_from_index[index_this] =
                     i_global +
-                    metrics->num_vector *
+                  metrics->num_vector *
                         (j_global + metrics->num_vector * (k_global));
               }
             }
+            index += nvl * (size_t)(nvl - (j+1));
           }
         } /*---if block_num---*/
         ++section_block_num;
@@ -410,24 +422,30 @@ void GMMetrics_create(GMMetrics* metrics,
           metrics->J_lo_part3_[section_num] = J_lo;
           metrics->J_wi_part3_[section_num] = J_hi - J_lo;
           const int j_min = section_axis == 1 ? J_lo : 0;
-          const int j_max = section_axis == 1 ? J_hi : num_vector_local;
+          const int j_max = section_axis == 1 ? J_hi : nvl;
           for (j = j_min; j < j_max; ++j) {
-            const size_t j_global = j + num_vector_local * j_block;
+            const size_t j_global = j + nvl * j_block;
             const int k_min = section_axis == 2 ? J_lo : 0;
-            const int k_max = section_axis == 2 ? J_hi : num_vector_local;
-            for (k = k_min; k < k_max; ++k) {
-              const size_t k_global = k + num_vector_local * k_block;
+            const int k_max = section_axis == 2 ? J_hi : nvl;
+
+
               const int i_min = section_axis == 0 ? J_lo : 0;
-              const int i_max = section_axis == 0 ? J_hi : num_vector_local;
+              const int i_max = section_axis == 0 ? J_hi : nvl;
+#pragma omp parallel for collapse(2)
+            for (k = k_min; k < k_max; ++k) {
               for (i = i_min; i < i_max; ++i) {
-                const size_t i_global = i + num_vector_local * i_block;
-                GMAssert(index < metrics->num_elts_local);
-                metrics->coords_global_from_index[index++] =
+              const size_t k_global = k + nvl * k_block;
+                const size_t i_global = i + nvl * i_block;
+                const size_t index_this = index + i - i_min +
+                                          (i_max-i_min)*(size_t)(k-k_min);
+                GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+                metrics->coords_global_from_index[index_this] =
                     i_global +
                     metrics->num_vector *
                         (j_global + metrics->num_vector * (k_global));
               }
             }
+            index += (i_max-i_min)*(size_t)(k_max-k_min);
           }
         } /*---if block_num---*/
         ++section_block_num;
@@ -451,10 +469,10 @@ void GMMetrics_create(GMMetrics* metrics,
     GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict upper triangular part of matrix---*/
     size_t index = 0;
-    for (j = 0; j < num_vector_local; ++j) {
-      const size_t j_global = j + num_vector_local * i_block;
+    for (j = 0; j < nvl; ++j) {
+      const size_t j_global = j + nvl * i_block;
       for (i = 0; i < j; ++i) {
-        const size_t i_global = i + num_vector_local * i_block;
+        const size_t i_global = i + nvl * i_block;
         metrics->coords_global_from_index[index++] =
             i_global + metrics->num_vector * j_global;
       }
@@ -485,14 +503,14 @@ void GMMetrics_create(GMMetrics* metrics,
     //const int j_min = J_lo;
     //const int j_max = J_hi;
     //for (j = j_min; j < j_max; ++j) {
-    for (j = 0; j < num_vector_local; ++j) {
+    for (j = 0; j < nvl; ++j) {
       const int j_block = i_block;
-      const size_t j_global = j + num_vector_local * j_block;
-      for (k = j+1; k < num_vector_local; ++k) {
+      const size_t j_global = j + nvl * j_block;
+      for (k = j+1; k < nvl; ++k) {
         const int k_block = i_block;
-        const size_t k_global = k + num_vector_local * k_block;
+        const size_t k_global = k + nvl * k_block;
         for (i = 0; i < j; ++i) {
-          const size_t i_global = i + num_vector_local * i_block;
+          const size_t i_global = i + nvl * i_block;
           GMAssert(index < metrics->num_elts_local);
           metrics->coords_global_from_index[index++] =
               i_global +
@@ -613,12 +631,13 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   }
 
   enum { num_way_max = GM_NUM_NUM_WAY + 1 };
-
   GMAssertAlways(GMEnv_num_way(env) <= num_way_max ?
                  "This num_way not supported." : 0);
 
   typedef size_t UI64;
   GMStaticAssert(sizeof(UI64) == 8);
+
+  /*---Check for NaNs if appropriate---*/
 
   switch (metrics->data_type_id) {
     case GM_DATA_TYPE_FLOAT: {
@@ -630,6 +649,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
 
   double value_max_this = cs->value_max;
   UI64 index = 0;
+#pragma omp parallel for reduction(max:value_max_this)
   for (index = 0; index < metrics->num_elts_local; ++index) {
     _Bool is_active = GM_BOOL_TRUE;
     int i = 0;
@@ -637,9 +657,6 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
       const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
                                                            i, env);
       is_active = is_active && coord < metrics->num_vector_active;
-    }
-    if (!is_active) {
-      continue;
     }
     /*---Loop over data values at this index---*/
     int i_value = 0;
@@ -673,9 +690,11 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
         default:
           GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
       } /*---switch---*/
-      value_max_this = value > value_max_this ? value : value_max_this;
+      if (is_active) {
+        value_max_this = value > value_max_this ? value : value_max_this;
+      }
     }
-  }
+  } /*---for index---*/
 
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
@@ -698,7 +717,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   //GMMultiprecInt sums_l = {0};
 
   //UI64 sums_l[16];
-  int i = 0;
+  //int i = 0;
   //for (i = 0; i < 16; ++i) {
   //  sums_l[i] = 0;
   //}
@@ -711,36 +730,41 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   const UI64 lomask = (one64 << w) - 1;
   const UI64 lohimask = (one64 << (2 * w)) - 1;
 
-  UI64 coords[num_way_max];
-  int ind_coords[num_way_max];
   GMMultiprecInt sum_this = {0};
   double sum_d_this = 0;
 
+#pragma omp parallel
+{
+  GMMultiprecInt sum_this_private = {0};
+  double sum_d_this_private = 0;
+  UI64 index = 0;
+  int i_value = 0;
+#pragma omp for collapse(2)
   for (index = 0; index < metrics->num_elts_local; ++index) {
-    /*---Obtain global coords of metrics elt---*/
-    for (i = 0; i < num_way_max; ++i) {
-      coords[i] = 0;
-      ind_coords[i] = i;
-    }
-    _Bool is_active = GM_BOOL_TRUE;
-    for (i = 0; i < GMEnv_num_way(env); ++i) {
-      const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
-                                                           i, env);
-      is_active = is_active && coord < metrics->num_vector_active;
-      coords[i] = coord;
-    }
-    if (!is_active) {
-      continue;
-    }
-    /*---Reflect coords by symmetry to get uniform result -
-         sort into descending order---*/
-    gm_makegreater(&coords[1], &coords[2], &ind_coords[1], &ind_coords[2]);
-    gm_makegreater(&coords[0], &coords[1], &ind_coords[0], &ind_coords[1]);
-    gm_makegreater(&coords[1], &coords[2], &ind_coords[1], &ind_coords[2]);
-
     /*---Loop over data values at this index---*/
-    int i_value = 0;
     for (i_value = 0; i_value < metrics->data_type_num_values; ++i_value) {
+
+      /*---Obtain global coords of metrics elt---*/
+      UI64 coords[num_way_max];
+      int ind_coords[num_way_max];
+      int i = 0;
+      for (i = 0; i < num_way_max; ++i) {
+        coords[i] = 0;
+        ind_coords[i] = i;
+      }
+      _Bool is_active = GM_BOOL_TRUE;
+      for (i = 0; i < GMEnv_num_way(env); ++i) {
+        const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                             i, env);
+        is_active = is_active && coord < metrics->num_vector_active;
+        coords[i] = coord;
+      }
+      /*---Reflect coords by symmetry to get uniform result -
+           sort into descending order---*/
+      gm_makegreater(&coords[1], &coords[2], &ind_coords[1], &ind_coords[2]);
+      gm_makegreater(&coords[0], &coords[1], &ind_coords[0], &ind_coords[1]);
+      gm_makegreater(&coords[1], &coords[2], &ind_coords[1], &ind_coords[2]);
+
       /*---Pick up value of this metrics elt---*/
       double value = 0;
       switch (metrics->data_type_id) {
@@ -804,19 +828,34 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
       const UI64 cx = alo * bhi + ahi * blo;
       UI64 clo = alo * blo + ((cx & lomask) << w);
       UI64 chi = ahi * bhi + (cx >> w);
-      const double value_d =
-          ivalue * (double)rand_value / ((double)(one64 << (2 * w)));
-      sum_d_this += value_d;
       /*---(move the carry bits)---*/
       chi += clo >> (2 * w);
       clo &= lohimask;
-      /*---Split the product into one-char chunks, accumulate to sums---*/
-      for (i = 0; i < 8; ++i) {
-        sum_this.data[0 + i] += (clo << (64 - 8 - 8 * i)) >> (64 - 8);
-        sum_this.data[8 + i] += (chi << (64 - 8 - 8 * i)) >> (64 - 8);
+      const double value_d =
+          ivalue * (double)rand_value / ((double)(one64 << (2 * w)));
+      if (is_active) {
+        sum_d_this_private += value_d; /*---Reduction---*/
+        /*---Split the product into one-char chunks, accumulate to sums---*/
+        for (i = 0; i < 8; ++i) {
+          const UI64 value0 = (clo << (64 - 8 - 8 * i)) >> (64 - 8);
+          const UI64 value1 = (chi << (64 - 8 - 8 * i)) >> (64 - 8);
+          sum_this_private.data[0 + i] += value0; /*---Reduction---*/
+          sum_this_private.data[8 + i] += value1; /*---Reduction---*/
+        }
       }
     } /*---for i_value---*/
   }   /*---for index---*/
+
+#pragma omp critical
+  {
+      sum_d_this += sum_d_this_private; /*---Reduction---*/
+      int i = 0;
+      for (i = 0; i < 8; ++i) {
+        sum_this.data[0 + i] += sum_this_private.data[0 + i];/*---Reduction---*/
+        sum_this.data[8 + i] += sum_this_private.data[8 + i];/*---Reduction---*/
+      }
+  }
+} /*---omp parallel---*/
 
   /*---Global sum---*/
   GMMultiprecInt sum = {0};
@@ -824,6 +863,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
+  int i = 0;
   for (i=0; i<GM_MULTIPREC_INT_SIZE; ++i) {
     cs->sum.data[i] += sum.data[i];
   }

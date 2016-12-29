@@ -695,13 +695,18 @@ void gm_compute_numerators_3way_gpu_form_matV(
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
     /*----------*/
     int I = 0;
+    int f = 0;
+#pragma omp parallel for collapse(2)
     for (I = I_min; I < I_max; ++I) {
       /*---Operate on columns x_i and x_j elementwise---*/
-      int f = 0;
+      //GMFloat* ap = &((GMFloat*)(vectors_I_buf->h))[0 + npvfl*I];
+      //GMFloat* bp = &((GMFloat*)(vectors_J_buf->h))[0 + npvfl*J];
+      //GMFloat* vp = &((GMFloat*)(matV_buf->h))[0 + npvfl * I];
       for (f = 0; f < npvfl; ++f) {
         const GMFloat a = ((GMFloat*)(vectors_I_buf->h))[f + npvfl*I];
         const GMFloat b = ((GMFloat*)(vectors_J_buf->h))[f + npvfl*J];
         ((GMFloat*)(matV_buf->h))[f + npvfl * I] = a < b ? a : b;
+        //*(vp++) = *(ap++) < *(bp++) ? *ap : *bp;
       }  //---for f---//
     }    //---for i---//
     /*----------*/
@@ -843,9 +848,9 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 
   const _Bool is_part3 = si->is_part3;
 
-  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
-  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
-  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
+  const GMFloat* const vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
+  const GMFloat* const vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
+  const GMFloat* const vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
 
   const size_t numvecl64 = (size_t)numvecl;
   const size_t I_max64 = (size_t)I_max;
@@ -855,14 +860,16 @@ void gm_compute_numerators_3way_gpu_form_metrics(
   /*--------------------*/
 
   /*----------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI && !GMEnv_all2all(env)) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI &&
+      !GMEnv_all2all(env)) {
     /*----------*/
 
     int I = 0;
+    int K = 0;
+#pragma omp parallel for collapse(2)
     for (I = I_min; I < I_max; ++I) {
-      const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl * J];
-      int K = 0;
       for (K = K_min; K < K_max; ++K) {
+      const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl * J];
         const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + numvecl64*K];
         const GMFloat min_KIK = ((GMFloat*)(matM_KIK_buf->h))[K + numvecl64*I];
         // sum of mins vectors i, j, and k is matB(k,i)
@@ -874,9 +881,7 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         //const GMFloat denominator =
         //    vector_sums_i_[i] + vector_sums_i_[j] + vector_sums_i_[k];
         /*---Make arithmetic order-independent---*/
-        GMFloat smin;
-        GMFloat smid;
-        GMFloat smax;
+        GMFloat smin, smid, smax;
         GMFloat_sort_3(&smin, &smid, &smax,
            &vector_sums_i_[i], &vector_sums_i_[j], &vector_sums_i_[k]);
         const GMFloat denominator = smin + smid + smax;
@@ -890,12 +895,12 @@ void gm_compute_numerators_3way_gpu_form_metrics(
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI &&
       GMEnv_all2all(env)) {
     /*----------*/
-
     int I = 0;
+    int K = 0;
+#pragma omp parallel for collapse(2)
     for (I = I_min; I < I_max; ++I) {
-      const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl64 * J];
-      int K = 0;
       for (K = K_min; K < K_max; ++K) {
+      const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl64 * J];
         const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + numvecl64 * K];
         const GMFloat min_KIK =
             is_part3 ? ((GMFloat*)(matM_KIK_buf->h))[K + numvecl64 * I]
@@ -921,12 +926,11 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         //const GMFloat denominator =
         //    vector_sums_i_[i] + vector_sums_j_[j] + vector_sums_k_[k];
         /*---Make arithmetic order-independent---*/
-        GMFloat smin;
-        GMFloat smid;
-        GMFloat smax;
+        GMFloat smin, smid, smax;
         GMFloat_sort_3(&smin, &smid, &smax,
            &vector_sums_i_[i], &vector_sums_j_[j], &vector_sums_k_[k]);
         const GMFloat denominator = smin + smid + smax;
+
         const GMFloat value = ((GMFloat)1.5) * numerator / denominator;
         GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
                                       value, env);
@@ -936,10 +940,10 @@ void gm_compute_numerators_3way_gpu_form_metrics(
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              !GMEnv_all2all(env)) {
     /*----------*/
+    int K = 0;
     int I = 0;
+#pragma omp parallel for collapse(2)
     for (I = I_min; I < I_max; ++I) {
-
-      int K = 0;
       for (K = K_min; K < K_max; ++K) {
         /*---This is the notall2all case -- has no axis permutation---*/
 
@@ -1005,8 +1009,9 @@ void gm_compute_numerators_3way_gpu_form_metrics(
              GMEnv_all2all(env)) {
     /*----------*/
     int I = 0;
+    int K = 0;
+#pragma omp parallel for collapse(2)
     for (I = I_min; I < I_max; ++I) {
-      int K = 0;
       for (K = K_min; K < K_max; ++K) {
 /*---For the permuted case,
  1) pay attention to KIK access
@@ -1540,6 +1545,7 @@ void gm_compute_numerators_3way_gpu_start(
     //==========
 
     if (vars.do_compute) {
+//printf("%i %i %i\n", J_min, J_max, vars.I_max);
       /*---Initialize result matrix to zero (apparently magma requires)---*/
       gm_linalg_set_matrix_zero_start(vars.matB_buf_ptr, numvecl,
                                      vars.I_max, env);
