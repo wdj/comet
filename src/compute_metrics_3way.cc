@@ -44,19 +44,19 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   gm_linalg_initialize(env);
 
-  const int numvecl = vectors->num_vector_local;
-  const int numpfieldl = vectors->num_packedval_field_local;
+  const int nvl = vectors->num_vector_local;
+  const int npvfl = vectors->num_packedval_field_local;
 
   /*---Allocate magma CPU memory for vectors and for result */
 
   GMMirroredPointer vectors_buf =
-      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(nvl * (size_t)npvfl, env);
 
 //  GMMirroredPointer metrics_buf =
-//      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
+//      gm_linalg_malloc(nvl * (size_t)nvl, env);
 
 //  GMMirroredPointer metrics_buf_tmp =
-//      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
+//      gm_linalg_malloc(nvl * (size_t)nvl, env);
 
 //  GMMirroredPointer* metrics_buf_local =
 //      GMEnv_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
@@ -121,8 +121,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   gm_linalg_initialize(env);
 
-  const int numvecl = metrics->num_vector_local;
-  const int numpfieldl = vectors->num_packedval_field_local;
+  const int nvl = metrics->num_vector_local;
+  const int npvfl = vectors->num_packedval_field_local;
 
   const int data_type = GMEnv_data_type_vectors(env);
 
@@ -150,7 +150,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors* vectors_i = vectors;
 
   GMMirroredPointer vectors_i_buf_value =
-      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(nvl * (size_t)npvfl, env);
   GMMirroredPointer* const vectors_i_buf = &vectors_i_buf_value;
 
   /*------------------------*/
@@ -165,12 +165,12 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors vectors_j_value_1 = GMVectors_null();
   GMVectors* vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
   GMVectors_create(vectors_j[0], data_type, vectors->num_field,
-                   vectors->num_field_active, numvecl, env);
+                   vectors->num_field_active, nvl, env);
   GMVectors_create(vectors_j[1], data_type, vectors->num_field,
-                   vectors->num_field_active, numvecl, env);
+                   vectors->num_field_active, nvl, env);
 
   GMMirroredPointer vectors_j_buf_value =
-      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(nvl * (size_t)npvfl, env);
   GMMirroredPointer* const vectors_j_buf = &vectors_j_buf_value;
 
   /*------------------------*/
@@ -185,12 +185,12 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors vectors_k_value_1 = GMVectors_null();
   GMVectors* vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
   GMVectors_create(vectors_k[0], data_type, vectors->num_field,
-                   vectors->num_field_active, numvecl, env);
+                   vectors->num_field_active, nvl, env);
   GMVectors_create(vectors_k[1], data_type, vectors->num_field,
-                   vectors->num_field_active, numvecl, env);
+                   vectors->num_field_active, nvl, env);
 
   GMMirroredPointer vectors_k_buf_value =
-      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(nvl * (size_t)npvfl, env);
   GMMirroredPointer* const vectors_k_buf = &vectors_k_buf_value;
 
   /*------------------------*/

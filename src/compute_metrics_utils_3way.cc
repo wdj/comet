@@ -60,7 +60,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
   /*---Initializations---*/
 
-  const int numvecl = metrics->num_vector_local;
+  const int nvl = metrics->num_vector_local;
   const int nfl = vectors_i->num_field_local;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
@@ -91,13 +91,13 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     /*---No off-proc all2all: compute tetrahedron of values---*/
 
     //const int section_num = 0;
-    //const int J_lo = gm_J_lo(section_num, numvecl, 1, env);
-    //const int J_hi = gm_J_hi(section_num, numvecl, 1, env);
+    //const int J_lo = gm_J_lo(section_num, nvl, 1, env);
+    //const int J_hi = gm_J_hi(section_num, nvl, 1, env);
     //const int j_min = J_lo;
     //const int j_max = J_hi;
     //for (j = j_min; j < j_max; ++j) {
-    for (j = 0; j < numvecl; ++j) {
-      for (k = j+1; k < numvecl; ++k) {
+    for (j = 0; j < nvl; ++j) {
+      for (k = j+1; k < nvl; ++k) {
         for (i = 0; i < j; ++i) {
 
           //const GMFloat denominator =
@@ -144,8 +144,8 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     /*---Compute tetrahedron, triang prism or block section---*/
 
     //const int section_num = si->section_num;
-    //const int J_lo = gm_J_lo(section_num, numvecl, 1, env);
-    //const int J_hi = gm_J_hi(section_num, numvecl, 1, env);
+    //const int J_lo = gm_J_lo(section_num, nvl, 1, env);
+    //const int J_hi = gm_J_hi(section_num, nvl, 1, env);
     //const int j_min = J_lo;
     //const int j_max = J_hi;
     //for (j = j_min; j < j_max; ++j) {
@@ -241,7 +241,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
 
   /*---Initializations---*/
 
-  //const int numvecl = metrics->num_vector_local;
+  //const int nvl = metrics->num_vector_local;
   const int nfl = vectors_i->num_field_local;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
@@ -829,7 +829,7 @@ void gm_compute_numerators_3way_gpu_form_metrics(
   const GMMirroredPointer* const matM_KIK_buf,
   const GMMirroredPointer* const matB_buf,
   GMMetrics* metrics,
-  const int numvecl,
+  const int nvl,
   const int J,
   const int step_2way,
   const int I_min,
@@ -852,7 +852,7 @@ void gm_compute_numerators_3way_gpu_form_metrics(
   const GMFloat* const vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
   const GMFloat* const vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
 
-  const size_t numvecl64 = (size_t)numvecl;
+  const size_t nvl64 = (size_t)nvl;
   const size_t I_max64 = (size_t)I_max;
 
   /*--------------------*/
@@ -869,9 +869,9 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 #pragma omp parallel for collapse(2)
     for (I = I_min; I < I_max; ++I) {
       for (K = K_min; K < K_max; ++K) {
-      const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl * J];
-        const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + numvecl64*K];
-        const GMFloat min_KIK = ((GMFloat*)(matM_KIK_buf->h))[K + numvecl64*I];
+      const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + nvl * J];
+        const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + nvl64*K];
+        const GMFloat min_KIK = ((GMFloat*)(matM_KIK_buf->h))[K + nvl64*I];
         // sum of mins vectors i, j, and k is matB(k,i)
         const GMFloat min_IJK = ((GMFloat*)(matB_buf->h))[I + I_max64*K];
         const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
@@ -900,11 +900,11 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 #pragma omp parallel for collapse(2)
     for (I = I_min; I < I_max; ++I) {
       for (K = K_min; K < K_max; ++K) {
-      const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + numvecl64 * J];
-        const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + numvecl64 * K];
+      const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + nvl64 * J];
+        const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + nvl64 * K];
         const GMFloat min_KIK =
-            is_part3 ? ((GMFloat*)(matM_KIK_buf->h))[K + numvecl64 * I]
-                     : ((GMFloat*)(matM_KIK_buf->h))[I + numvecl64 * K];
+            is_part3 ? ((GMFloat*)(matM_KIK_buf->h))[K + nvl64 * I]
+                     : ((GMFloat*)(matM_KIK_buf->h))[I + nvl64 * K];
         // sum of mins vectors i, j, and k is matB(k,i)
         const GMFloat min_IJK = ((GMFloat*)(matB_buf->h))[I + I_max64 * K];
         const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
@@ -1213,10 +1213,10 @@ void gm_compute_numerators_3way_gpu_start(
   int mpi_code = 0;
   mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  const int numvecl = metrics->num_vector_local;
+  const int nvl = metrics->num_vector_local;
   const int npvfl = vectors_i->num_packedval_field_local;
-  const size_t metrics_buf_size = numvecl * (size_t)numvecl;
-  const size_t vectors_buf_size = numvecl * (size_t)npvfl;
+  const size_t metrics_buf_size = nvl * (size_t)nvl;
+  const size_t vectors_buf_size = nvl * (size_t)npvfl;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
@@ -1254,18 +1254,18 @@ void gm_compute_numerators_3way_gpu_start(
     GMMirroredPointer* matM_ij_buf_local =
        need_reduce ? mat_buf_tmp[0] : matM_ij_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_ij_buf_local, numvecl, numvecl, env);
+    gm_linalg_set_matrix_zero_start(matM_ij_buf_local, nvl, nvl, env);
 
-    gm_linalg_gemm_start(numvecl, numvecl, npvfl,
+    gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_i_buf->d, npvfl,
                          vectors_j_buf->d, npvfl,
-                         matM_ij_buf_local->d, numvecl, env);
+                         matM_ij_buf_local->d, nvl, env);
     gm_compute_wait(env);
 
     gm_get_metrics_start(metrics, matM_ij_buf_local, env);
     gm_get_metrics_wait(metrics, matM_ij_buf_local, env);
 
-    //gm_linalg_get_matrix_start(matM_ij_buf_local, numvecl, numvecl, env);
+    //gm_linalg_get_matrix_start(matM_ij_buf_local, nvl, nvl, env);
     //gm_linalg_get_matrix_wait(env);
 
     if (need_reduce) {
@@ -1293,18 +1293,18 @@ void gm_compute_numerators_3way_gpu_start(
     GMMirroredPointer* matM_jk_buf_local =
         need_reduce ? mat_buf_tmp[0] : matM_jk_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_jk_buf_local, numvecl, numvecl, env);
+    gm_linalg_set_matrix_zero_start(matM_jk_buf_local, nvl, nvl, env);
 
-    gm_linalg_gemm_start(numvecl, numvecl, npvfl,
+    gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_j_buf->d, npvfl,
                          vectors_k_buf->d, npvfl,
-                         matM_jk_buf_local->d, numvecl, env);
+                         matM_jk_buf_local->d, nvl, env);
     gm_compute_wait(env);
 
     gm_get_metrics_start(metrics, matM_jk_buf_local, env);
     gm_get_metrics_wait(metrics, matM_jk_buf_local, env);
 
-    //gm_linalg_get_matrix_start(matM_jk_buf_local, numvecl, numvecl, env);
+    //gm_linalg_get_matrix_start(matM_jk_buf_local, nvl, nvl, env);
     //gm_linalg_get_matrix_wait(env);
 
     if (need_reduce) {
@@ -1336,18 +1336,18 @@ void gm_compute_numerators_3way_gpu_start(
     GMMirroredPointer* matM_kik_buf_local =
         need_reduce ? mat_buf_tmp[0] : matM_kik_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_kik_buf_local, numvecl, numvecl, env);
+    gm_linalg_set_matrix_zero_start(matM_kik_buf_local, nvl, nvl, env);
 
-    gm_linalg_gemm_start(numvecl, numvecl, npvfl,
+    gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_k_buf->d, npvfl,
                          vectors_i_buf->d, npvfl,
-                         matM_kik_buf_local->d, numvecl, env);
+                         matM_kik_buf_local->d, nvl, env);
     gm_compute_wait(env);
 
     gm_get_metrics_start(metrics, matM_kik_buf_local, env);
     gm_get_metrics_wait(metrics, matM_kik_buf_local, env);
 
-    //gm_linalg_get_matrix_start(matM_kik_buf_local, numvecl, numvecl, env);
+    //gm_linalg_get_matrix_start(matM_kik_buf_local, nvl, nvl, env);
     //gm_linalg_get_matrix_wait(env);
 
     if (need_reduce) {
@@ -1472,9 +1472,9 @@ void gm_compute_numerators_3way_gpu_start(
     vars_next.step_2way = gm_mod_i(vars_next.step_num, num_step_2way);
     vars_next.J = J_min + gm_floor_i(vars_next.step_num, num_step_2way);
     vars_next.I_min = 0;
-    vars_next.I_max = si->is_part1 ? vars_next.J : numvecl;
+    vars_next.I_max = si->is_part1 ? vars_next.J : nvl;
     vars_next.K_min = si->is_part3 ? 0 : vars_next.J + 1;
-    vars_next.K_max = numvecl;
+    vars_next.K_max = nvl;
     vars_next.empty = vars_next.I_min >= vars_next.I_max ||
                       vars_next.K_min >= vars_next.K_max;
     vars_next.is_compute_step = vars_next.step_num >= 0 &&
@@ -1537,7 +1537,7 @@ void gm_compute_numerators_3way_gpu_start(
     if (vars_prev.do_compute) {
       /*---Copy result matrix matB from GPU - START---*/
       gm_linalg_get_matrix_start(vars_prev.matB_buf_ptr, vars_prev.I_max,
-                                 numvecl, env);
+                                 nvl, env);
       //gm_get_metrics_start(metrics, vars_prev.matB_buf_ptr, env); //FIX
       //matB_buf_ptr[vars_prev.index_01]->h is now being overwritten.
     }
@@ -1547,10 +1547,10 @@ void gm_compute_numerators_3way_gpu_start(
     if (vars.do_compute) {
 //printf("%i %i %i\n", J_min, J_max, vars.I_max);
       /*---Initialize result matrix to zero (apparently magma requires)---*/
-      gm_linalg_set_matrix_zero_start(vars.matB_buf_ptr, numvecl,
+      gm_linalg_set_matrix_zero_start(vars.matB_buf_ptr, nvl,
                                      vars.I_max, env);
       /*---Perform pseudo mat X mat matB = matV^T PROD X - START---*/
-      gm_linalg_gemm_start(vars.I_max, numvecl, npvfl,
+      gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
                            matV_buf[vars.index_01]->d, npvfl,
                            vectors_K_buf->d, npvfl,
                            vars.matB_buf_ptr->d, vars.I_max, env);
@@ -1610,7 +1610,7 @@ void gm_compute_numerators_3way_gpu_start(
       gm_compute_numerators_3way_gpu_form_metrics(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
           matB_buf[vars_prevprev.index_01],
-          metrics, numvecl,
+          metrics, nvl,
           vars_prevprev.J,
           vars_prevprev.step_2way,
           vars_prevprev.I_min,

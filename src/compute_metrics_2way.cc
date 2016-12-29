@@ -48,20 +48,20 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   gm_linalg_initialize(env);
 
-  const int numvecl = vectors->num_vector_local;
-  const int numpfieldl = vectors->num_packedval_field_local;
+  const int nvl = vectors->num_vector_local;
+  const int npvfl = vectors->num_packedval_field_local;
 
   /*---Allocate magma CPU memory for vectors and for result */
 
   GMMirroredPointer vectors_buf =
-      gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
+      gm_linalg_malloc(nvl * (size_t)npvfl, env);
 
   GMMirroredPointer metrics_buf =
-      gm_linalg_malloc(numvecl * (size_t)numvecl, env);
+      gm_linalg_malloc(nvl * (size_t)nvl, env);
 
   GMMirroredPointer metrics_buf_tmp;
   if (GMEnv_num_proc_field(env) > 1) {
-    metrics_buf_tmp = gm_linalg_malloc(numvecl * (size_t)numvecl, env);
+    metrics_buf_tmp = gm_linalg_malloc(nvl * (size_t)nvl, env);
   }
 
   GMMirroredPointer* metrics_buf_local =
@@ -133,8 +133,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   const int num_block = GMEnv_num_block_vector(env);
 
-  const int numvecl = vectors->num_vector_local;
-  const int numpfieldl = vectors->num_packedval_field_local;
+  const int nvl = vectors->num_vector_local;
+  const int npvfl = vectors->num_packedval_field_local;
 
   int i = 0;
   int i_block = GMEnv_proc_num_vector_i(env);
@@ -150,7 +150,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   for (i = 0; i < 2; ++i) {
     GMVectors_create(&vectors_01[i], GMEnv_data_type_vectors(env),
                      vectors->num_field, vectors->num_field_active,
-                     numvecl, env);
+                     nvl, env);
   }
 
   /*---Magma initializations---*/
@@ -166,11 +166,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMMirroredPointer vectors_buf = GMMirroredPointer_null();
   GMMirroredPointer metrics_buf_tmp = GMMirroredPointer_null();
   for (i = 0; i < 2; ++i) {
-    vectors_buf_01[i] = gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
-    metrics_buf_01[i] = gm_linalg_malloc(numvecl * (size_t)numvecl, env);
+    vectors_buf_01[i] = gm_linalg_malloc(nvl * (size_t)npvfl, env);
+    metrics_buf_01[i] = gm_linalg_malloc(nvl * (size_t)nvl, env);
   }
-  vectors_buf = gm_linalg_malloc(numvecl * (size_t)numpfieldl, env);
-  metrics_buf_tmp = gm_linalg_malloc(numvecl * (size_t)numvecl, env);
+  vectors_buf = gm_linalg_malloc(nvl * (size_t)npvfl, env);
+  metrics_buf_tmp = gm_linalg_malloc(nvl * (size_t)nvl, env);
 
   /*---Result matrix is diagonal block and half the blocks to the right
        (including wraparound to left side of matrix when appropriate).

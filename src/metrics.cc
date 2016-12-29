@@ -201,7 +201,6 @@ void GMMetrics_create(GMMetrics* metrics,
       if (!gm_proc_r_active(j_block_unwrapped-i_block, env)) {
         continue;
       }
-      int j = 0;
 #pragma omp parallel for collapse(2)
       for (j = 0; j < nvl; ++j) {
         for (i = 0; i < nvl; ++i) {
@@ -427,8 +426,6 @@ void GMMetrics_create(GMMetrics* metrics,
             const size_t j_global = j + nvl * j_block;
             const int k_min = section_axis == 2 ? J_lo : 0;
             const int k_max = section_axis == 2 ? J_hi : nvl;
-
-
               const int i_min = section_axis == 0 ? J_lo : 0;
               const int i_max = section_axis == 0 ? J_hi : nvl;
 #pragma omp parallel for collapse(2)
