@@ -75,7 +75,11 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   const int section_step = 0;
   GMAssertAlways(GMEnv_num_section_steps(env, 1) == 1);
 
+  GMComputeNumerators3Way gm_compute_numerators_3way = {0};
+  GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
+
   gm_compute_numerators_3way_start(
+      &gm_compute_numerators_3way,
       vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
       &vectors_buf, GMEnv_proc_num_vector_i(env), GMEnv_proc_num_vector_i(env),
       &vector_sums, &vector_sums, &vector_sums,
@@ -97,6 +101,8 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   /*---------------*/
   /*---Free memory---*/
   /*---------------*/
+
+  GMComputeNumerators3Way_destroy(&gm_compute_numerators_3way, env);
 
   GMVectorSums_destroy(&vector_sums, env);
 
@@ -213,6 +219,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   _Bool have_unprocessed_section_block = GM_BOOL_FALSE;
 
+  GMComputeNumerators3Way gm_compute_numerators_3way = {0};
+  GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
+
   // Counter for quantum of work:
   //   for part 1 or part 2: 1/6 section of work needed for block
   //   for part 3: all work needed for block
@@ -251,6 +260,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       if (have_unprocessed_section_block) {
         /*---Compute numerators---*/
         gm_compute_numerators_3way_start(
+          &gm_compute_numerators_3way,
           vectors_i, vectors_j_prev, vectors_k_prev, metrics,
           vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
           j_block_prev, k_block_prev,
@@ -305,6 +315,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
         if (have_unprocessed_section_block) {
           /*---Compute numerators---*/
           gm_compute_numerators_3way_start(
+            &gm_compute_numerators_3way,
             vectors_i, vectors_j_prev, vectors_k_prev, metrics,
             vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
             j_block_prev, k_block_prev,
@@ -410,6 +421,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
           if (have_unprocessed_section_block) {
             /*---Compute numerators---*/
             gm_compute_numerators_3way_start(
+              &gm_compute_numerators_3way,
               vectors_i, vectors_j_prev, vectors_k_prev, metrics,
               vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
               j_block_prev, k_block_prev,
@@ -481,6 +493,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   if (have_unprocessed_section_block) {
     /*---Compute numerators---*/
     gm_compute_numerators_3way_start(
+      &gm_compute_numerators_3way,
       vectors_i, vectors_j_prev, vectors_k_prev, metrics,
       vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
       j_block_prev, k_block_prev,
@@ -493,6 +506,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*------------------------*/
   /*---Free memory and finalize---*/
   /*------------------------*/
+
+  GMComputeNumerators3Way_destroy(&gm_compute_numerators_3way, env);
 
   GMVectors_destroy(vectors_k[0], env);
   GMVectors_destroy(vectors_k[1], env);

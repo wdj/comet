@@ -388,10 +388,20 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
           if (threshold < 0. || value > threshold) {
-            fprintf(file,
-              sizeof(GMFloat) == 8 ?
-              "element (%li,%li): value: %.17e\n" :
-              "element (%li,%li): value: %.8e\n", coord0, coord1, value);
+            if (file == stdin) {
+              fprintf(file,
+                sizeof(GMFloat) == 8 ?
+                "element (%li,%li): value: %.17e\n" :
+                "element (%li,%li): value: %.8e\n", coord0, coord1, value);
+            } else {
+              size_t num_written = fwrite(&coord0, sizeof(size_t), 1, file);
+              num_written *= 1;
+              GMAssert(num_written == sizeof(size_t));
+              num_written = fwrite(&coord1, sizeof(size_t), 1, file);
+              GMAssert(num_written == sizeof(size_t));
+              num_written = fwrite(&value, sizeof(GMFloat), 1, file);
+              GMAssert(num_written == sizeof(GMFloat));
+            }
           }
         }
       }

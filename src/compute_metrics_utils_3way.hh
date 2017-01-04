@@ -72,7 +72,27 @@ void gm_compute_numerators_3way_gpu_start(
     GMEnv* env);
 #endif
 
+typedef struct {
+  GMMirroredPointer mat_buf_tmp[2];
+  GMMirroredPointer matM_ij_buf;
+  GMMirroredPointer matM_jk_buf;
+  GMMirroredPointer matM_kik_buf;
+  GMMirroredPointer matV_buf[2];
+  GMMirroredPointer matB_buf[2];
+} GMComputeNumerators3Way;
+
+void GMComputeNumerators3Way_create(
+    GMComputeNumerators3Way* this_,
+    int nvl,
+    int npvfl,
+    GMEnv* env);
+
+void GMComputeNumerators3Way_destroy(
+    GMComputeNumerators3Way* this_,
+    GMEnv* env);
+
 void gm_compute_numerators_3way_start(
+    GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
     GMVectors* vectors_j,
     GMVectors* vectors_k,

@@ -566,6 +566,8 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   //GMAssertAlways(lddb==k);
   //GMAssertAlways(lddc==m);
 
+  /*---TODO: find way to modify to handle even larger cases---*/
+  /*---TODO: can we improve aspect ratios of submatrices---*/
   GMAssertAlways(max_cols_per_block != 0);
 
   const size_t cols_per_block_A = gm_min_i8(cols_A, max_cols_per_block);
