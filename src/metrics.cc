@@ -422,37 +422,6 @@ void GMMetrics_create(GMMetrics* metrics,
           const int J_hi = gm_J_hi(section_num, nvl, 3, env);
           metrics->J_lo_part3_[section_num] = J_lo;
           metrics->J_wi_part3_[section_num] = J_hi - J_lo;
-
-if(NEW_WAY == 0) {
-
-          const int j_min = section_axis == 1 ? J_lo : 0;
-          const int j_max = section_axis == 1 ? J_hi : nvl;
-          for (j = j_min; j < j_max; ++j) {
-            const size_t j_global = j + nvl * j_block;
-            const int k_min = section_axis == 2 ? J_lo : 0;
-            const int k_max = section_axis == 2 ? J_hi : nvl;
-              const int i_min = section_axis == 0 ? J_lo : 0;
-              const int i_max = section_axis == 0 ? J_hi : nvl;
-#pragma omp parallel for collapse(2)
-            for (k = k_min; k < k_max; ++k) {
-              for (i = i_min; i < i_max; ++i) {
-              const size_t k_global = k + nvl * k_block;
-                const size_t i_global = i + nvl * i_block;
-                const size_t index_this = index + i - i_min +
-                                          (i_max-i_min)*(size_t)(k-k_min);
-                GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
-                metrics->coords_global_from_index[index_this] =
-                    i_global +
-                    metrics->num_vector *
-                        (j_global + metrics->num_vector * (k_global));
-              }
-            }
-            index += (i_max-i_min)*(size_t)(k_max-k_min);
-          }
-
-}
-if(NEW_WAY == 1) {
-
           const _Bool sax0 = section_axis == 0;
           const _Bool sax1 = section_axis == 1;
           int J = 0;
@@ -491,9 +460,6 @@ if(NEW_WAY == 1) {
             }
             index += nvl*(size_t)nvl;
           }
-
-}
-
         } /*---if block_num---*/
         ++section_block_num;
       } /*---j_block---*/

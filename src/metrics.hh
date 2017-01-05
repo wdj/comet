@@ -631,8 +631,6 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   return index;
 }
 
-#define NEW_WAY 1
-
 /*---------------------------------------------------------------------------*/
 
 static size_t GMMetrics_helper3way_part1_permuted_(
@@ -644,25 +642,9 @@ static size_t GMMetrics_helper3way_part1_permuted_(
     int j_block,
     int k_block,
     GMEnv* env) {
-  const int nvl = metrics->num_vector_local;
 
-  const int num_section_steps = GMEnv_num_section_steps(env, 1);
-  const int section_num = (J * num_section_steps) / nvl;
-  GMAssert(metrics->section_num_valid_part1_[section_num]);
-
-  const size_t elts_offset = metrics->index_offset_section_part1_[section_num];
-
-  /* clang-format off */
-  const size_t index = elts_offset +
-                       I +
-                       (K-J-1)*(size_t)J +
-                       gm_trap_size(J, nvl);
-  /* clang-format on */
-
-  GMAssert(index >= 0);
-  GMAssert(index < metrics->num_elts_local);
-
-  return index;
+  return GMMetrics_helper3way_part1_(metrics, I, J, K,
+                                     i_block, j_block, k_block, env);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -676,34 +658,9 @@ static size_t GMMetrics_helper3way_part2_permuted_(
     int j_block,
     int k_block,
     GMEnv* env) {
-  const int nvl = metrics->num_vector_local;
 
-  const int num_section_steps = GMEnv_num_section_steps(env, 2);
-  const int section_num = (J * num_section_steps) / nvl;
-  GMAssert(metrics->section_num_valid_part2_[section_num]);
-
-  const size_t elts_offset = metrics->index_offset_section_part2_[section_num];
-
-  const int num_block = GMEnv_num_block_vector(env);
-  const int block_num_part2 = gm_mod1_(j_block - i_block, num_block) - 1;
-  const int num_proc_r = GMEnv_num_proc_repl(env);
-  const int blocks_offset = block_num_part2 / num_proc_r;
-
-  const size_t section_size = metrics->section_size_part2[section_num];
-
-  /* clang-format off */
-  size_t index = elts_offset +
-                 I + nvl*(
-                 (K-J-1) +
-                 gm_triang_size(J, nvl) + section_size*(
-                 blocks_offset
-                 ));
- /* clang-format on */
-
-  GMAssert(index >= 0);
-  GMAssert(index < metrics->num_elts_local);
-
-  return index;
+  return GMMetrics_helper3way_part2_(metrics, I, J, K,
+                                     i_block, j_block, k_block, env);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -888,13 +845,11 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_cache(
              GMEnv_proc_num_vector_i(env) != j_block));
   /*---WARNING: these conditions are not exhaustive---*/
 
-  if (index_cache->is_initialized) {
-    if (K == index_cache->K && I == index_cache->I + 1) {
-      const size_t index = index_cache->index + 1;
+  if (index_cache->is_initialized && K == index_cache->K) {
+      const size_t index = index_cache->index + (I-index_cache->I);
       index_cache->index = index;
-      index_cache->I++;
+      index_cache->I = I;
       return index;
-    }
   }
 
   const size_t index = GMMetrics_index_from_coord_all2all_3_permuted(
@@ -1545,6 +1500,36 @@ static void GMMetrics_float3_M_set_all2all_3_permuted(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+static void GMMetrics_float3_M_set_all2all_3_permuted_cache(
+    GMMetrics* metrics,
+    int I,
+    int J,
+    int K,
+    int j_block,
+    int k_block,
+    GMFloat3 value,
+    GMIndexCache* index_cache,
+    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMAssert(GMEnv_all2all(env));
+  GMAssert(I >= 0);
+  GMAssert(J >= 0);
+  GMAssert(K >= 0);
+  GMAssert(j_block >= 0);
+  GMAssert(j_block < GMEnv_num_block_vector(env));
+  GMAssert(k_block >= 0);
+  GMAssert(k_block < GMEnv_num_block_vector(env));
+  /*---WARNING: these conditions are not exhaustive---*/
+
+  size_t index = GMMetrics_index_from_coord_all2all_3_permuted_cache(
+    metrics, I, J, K, j_block, k_block, index_cache, env);
+  ((GMFloat3*)(metrics->data_M))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
                                              int i,
                                              int j,
@@ -1598,6 +1583,37 @@ static void GMMetrics_tally4x2_set_all2all_3_permuted(GMMetrics* metrics,
 
   size_t index = GMMetrics_index_from_coord_all2all_3_permuted(metrics, I, J, K, j_block,
                                                       k_block, env);
+  ((GMTally4x2*)(metrics->data))[index] = value;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void GMMetrics_tally4x2_set_all2all_3_permuted_cache(
+    GMMetrics* metrics,
+    int I,
+    int J,
+    int K,
+    int j_block,
+    int k_block,
+    GMTally4x2 value,
+    GMIndexCache* index_cache,
+    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMAssert(GMEnv_all2all(env));
+  GMAssert(I >= 0);
+  GMAssert(J >= 0);
+  GMAssert(K >= 0);
+  GMAssert(j_block >= 0);
+  GMAssert(j_block < GMEnv_num_block_vector(env));
+  GMAssert(k_block >= 0);
+  GMAssert(k_block < GMEnv_num_block_vector(env));
+  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
+  /*---WARNING: these conditions are not exhaustive---*/
+
+  size_t index = GMMetrics_index_from_coord_all2all_3_permuted_cache(
+      metrics, I, J, K, j_block, k_block, index_cache, env);
   ((GMTally4x2*)(metrics->data))[index] = value;
 }
 
@@ -1784,6 +1800,36 @@ static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted(GMMetrics* metrics,
 
   size_t index = GMMetrics_index_from_coord_all2all_3_permuted(metrics, I, J, K, j_block,
                                                       k_block, env);
+  return GMMetrics_tally4x2_get_from_index(metrics, index, env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted_cache(
+    GMMetrics* metrics,
+    int I,
+    int J,
+    int K,
+    int j_block,
+    int k_block,
+    GMIndexCache* index_cache,
+    GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMAssert(GMEnv_all2all(env));
+  GMAssert(I >= 0);
+  GMAssert(J >= 0);
+  GMAssert(K >= 0);
+  GMAssert(j_block >= 0);
+  GMAssert(j_block < GMEnv_num_block_vector(env));
+  GMAssert(k_block >= 0);
+  GMAssert(k_block < GMEnv_num_block_vector(env));
+  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
+  /*---WARNING: these conditions are not exhaustive---*/
+
+  size_t index = GMMetrics_index_from_coord_all2all_3_permuted_cache(
+      metrics, I, J, K, j_block, k_block, index_cache, env);
   return GMMetrics_tally4x2_get_from_index(metrics, index, env);
 }
 

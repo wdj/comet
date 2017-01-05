@@ -145,56 +145,6 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
     /*---Compute tetrahedron, triang prism or block section---*/
 
-if(NEW_WAY==0) {
-
-    //const int section_num = si->section_num;
-    //const int J_lo = gm_J_lo(section_num, nvl, 1, env);
-    //const int J_hi = gm_J_hi(section_num, nvl, 1, env);
-    //const int j_min = J_lo;
-    //const int j_max = J_hi;
-    //for (j = j_min; j < j_max; ++j) {
-    for (j = si->j_lb; j < si->j_ub; ++j) {
-      const int k_min = GMSectionInfo_k_min(si, j, env);
-      for (k = k_min; k < si->k_ub; ++k) {
-        const int i_max = GMSectionInfo_i_max(si, j, env);
-        for (i = si->i_lb; i < i_max; ++i) {
-
-          //const GMFloat denominator =
-          //  vector_sums_i_[i] + vector_sums_j_[j] + vector_sums_k_[k];
-
-          /*---Make arithmetic order-independent---*/
-          GMFloat smin;
-          GMFloat smid;
-          GMFloat smax;
-          GMFloat_sort_3(&smin, &smid, &smax,
-             &vector_sums_i_[i], &vector_sums_j_[j], &vector_sums_k_[k]);
-          const GMFloat denominator = smin + smid + smax;
-
-          GMFloat numerator = 0;
-          int f = 0;
-          for (f = 0; f < nfl; ++f) {
-            const GMFloat val1 = GMVectors_float_get(vectors_i, f, i, env);
-            const GMFloat val2 = GMVectors_float_get(vectors_j, f, j, env);
-            const GMFloat val3 = GMVectors_float_get(vectors_k, f, k, env);
-            const GMFloat min_ij = val1 < val2 ? val1 : val2;
-            const GMFloat min_ik = val1 < val3 ? val1 : val3;
-            const GMFloat min_jk = val2 < val3 ? val2 : val3;
-            const GMFloat min_ijk = min_ij < val3 ? min_ij : val3;
-            numerator += min_ij + min_ik + min_jk - min_ijk;
-          } /*---for f---*/
-
-          const GMFloat value =
-              ((GMFloat)3) * numerator / (((GMFloat)2) * denominator);
-
-          GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                        value, env);
-        }
-      }
-    }
-
-}
-if(NEW_WAY==1) {
-
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
     int J = 0;
@@ -207,6 +157,7 @@ if(NEW_WAY==1) {
       const int K_max = nvl;
 
       int K = 0;
+      GMIndexCache index_cache = {0};
       for (K=K_min; K<K_max; ++K) {
         int I = 0;
         for (I=I_min; I<I_max; ++I) {
@@ -253,13 +204,11 @@ if(NEW_WAY==1) {
           const GMFloat value =
               ((GMFloat)3) * numerator / (((GMFloat)2) * denominator);
 
-          GMMetrics_float_set_all2all_3_permuted(metrics, I, J, K, j_block, k_block,
-                                        value, env);
+          GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
+                                   j_block, k_block, value, &index_cache, env);
         }
       }
     }
-
-}
 
     /*----------------------------------------*/
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
@@ -326,10 +275,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  int i = 0;
-  int j = 0;
-  int k = 0;
-
   GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
   GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
   GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
@@ -342,132 +287,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
-if( NEW_WAY == 0) {
-
-    const int j_min = si->j_lb;
-    const int j_max = si->j_ub;
-    for (j = j_min; j < j_max; ++j) {
-      const GMTally1 sj_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-                            (GMTally1)(vector_sums_i_[j]) :
-                            (GMTally1)(vector_sums_j_[j]);
-      const int k_min = GMSectionInfo_k_min(si, j, env);
-      const int k_max = si->k_ub;
-      for (k = k_min; k < k_max; ++k) {
-        const GMTally1 sk_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-                              (GMTally1)(vector_sums_i_[k]) :
-                              si->is_part2 ?
-                              (GMTally1)(vector_sums_j_[k]) :
-                              (GMTally1)(vector_sums_k_[k]);
-        const int i_min = si->i_lb;
-        const int i_max = GMSectionInfo_i_max(si, j, env);
-        for (i = i_min; i < i_max; ++i) {
-          const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
-          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
-          GMTally4x2 sum = GMTally4x2_null();
-          int f = 0;
-          for (f = 0; f < nfl; ++f) {
-            const GMBits2 value_i = GMVectors_bits2_get(vectors_i, f, i, env);
-            const GMBits2 value_j = GMVectors_bits2_get(vectors_j, f, j, env);
-            const GMBits2 value_k = GMVectors_bits2_get(vectors_k, f, k, env);
-            /* clang-format off */
-            const int r000 =
-              (( !(value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 2) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 2) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 1) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 1) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 2) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 2) ) && ( !(value_k & 2) ));
-            const int r001 =
-              (( !(value_i & 1) ) && ( !(value_j & 1) ) && (  (value_k & 1) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 1) ) && (  (value_k & 2) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 2) ) && (  (value_k & 1) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 2) ) && (  (value_k & 2) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 1) ) && (  (value_k & 1) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 1) ) && (  (value_k & 2) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 2) ) && (  (value_k & 1) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 2) ) && (  (value_k & 2) ));
-            const int r010 =
-              (( !(value_i & 1) ) && (  (value_j & 1) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 1) ) && (  (value_j & 1) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 1) ) && (  (value_j & 2) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 1) ) && (  (value_j & 2) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 2) ) && (  (value_j & 1) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 2) ) && (  (value_j & 1) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 2) ) && (  (value_j & 2) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 2) ) && (  (value_j & 2) ) && ( !(value_k & 2) ));
-            const int r011 =
-              (( !(value_i & 1) ) && (  (value_j & 1) ) && (  (value_k & 1) )) +
-              (( !(value_i & 1) ) && (  (value_j & 1) ) && (  (value_k & 2) )) +
-              (( !(value_i & 1) ) && (  (value_j & 2) ) && (  (value_k & 1) )) +
-              (( !(value_i & 1) ) && (  (value_j & 2) ) && (  (value_k & 2) )) +
-              (( !(value_i & 2) ) && (  (value_j & 1) ) && (  (value_k & 1) )) +
-              (( !(value_i & 2) ) && (  (value_j & 1) ) && (  (value_k & 2) )) +
-              (( !(value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 1) )) +
-              (( !(value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 2) ));
-            const int r100 =
-              ((  (value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 2) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 2) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 1) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 1) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 2) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 2) ) && ( !(value_k & 2) ));
-            const int r101 =
-              ((  (value_i & 1) ) && ( !(value_j & 1) ) && (  (value_k & 1) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 1) ) && (  (value_k & 2) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 2) ) && (  (value_k & 1) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 2) ) && (  (value_k & 2) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 1) ) && (  (value_k & 1) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 1) ) && (  (value_k & 2) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 2) ) && (  (value_k & 1) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 2) ) && (  (value_k & 2) ));
-            const int r110 =
-              ((  (value_i & 1) ) && (  (value_j & 1) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 1) ) && (  (value_j & 1) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 1) ) && (  (value_j & 2) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 1) ) && (  (value_j & 2) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 2) ) && (  (value_j & 1) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 2) ) && (  (value_j & 1) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 2) ) && (  (value_j & 2) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 2) ) && (  (value_j & 2) ) && ( !(value_k & 2) ));
-            const int r111 =
-              ((  (value_i & 1) ) && (  (value_j & 1) ) && (  (value_k & 1) )) +
-              ((  (value_i & 1) ) && (  (value_j & 1) ) && (  (value_k & 2) )) +
-              ((  (value_i & 1) ) && (  (value_j & 2) ) && (  (value_k & 1) )) +
-              ((  (value_i & 1) ) && (  (value_j & 2) ) && (  (value_k & 2) )) +
-              ((  (value_i & 2) ) && (  (value_j & 1) ) && (  (value_k & 1) )) +
-              ((  (value_i & 2) ) && (  (value_j & 1) ) && (  (value_k & 2) )) +
-              ((  (value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 1) )) +
-              ((  (value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 2) ));
-            /* clang-format on */
-
-//              printf("%i %i %i %i %i %i %i %i\n",
-//                (int)r000, (int)r001, (int)r010, (int)r011,
-//                (int)r100, (int)r101, (int)r110, (int)r111);
-            sum.data[0] += GMTally1_encode(r000, r001);
-            sum.data[1] += GMTally1_encode(r010, r011);
-            sum.data[2] += GMTally1_encode(r100, r101);
-            sum.data[3] += GMTally1_encode(r110, r111);
-          } /*---for f---*/
-          if (GMEnv_all2all(env)) {
-            GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                             sum, env);
-            GMMetrics_float3_M_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                si1_sj1_sk1, env);
-          } else {
-            GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
-            GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
-          }
-        } /*---for i---*/
-      }   /*---for j---*/
-    }     /*---for k---*/
-
-}
-if( NEW_WAY == 1) {
-
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
     int J = 0;
@@ -479,6 +298,7 @@ if( NEW_WAY == 1) {
       const int K_max = nvl;
 
       int K = 0;
+      GMIndexCache index_cache = {0};
       for (K=K_min; K<K_max; ++K) {
         int I = 0;
         for (I=I_min; I<I_max; ++I) {
@@ -497,20 +317,6 @@ if( NEW_WAY == 1) {
                              si->sax1 ?   K :
                           /* si->sax2 ?*/ J;
           /* clang-format on */
-
-//    const int j_min = si->j_lb;
-//    const int j_max = si->j_ub;
-//    for (j = j_min; j < j_max; ++j) {
-//      const int k_min = GMSectionInfo_k_min(si, j, env);
-//      const int k_max = si->k_ub;
-//      for (k = k_min; k < k_max; ++k) {
-//        const int i_min = si->i_lb;
-//        const int i_max = GMSectionInfo_i_max(si, j, env);
-//        for (i = i_min; i < i_max; ++i) {
-//int I = i;
-//int J = j;
-//int K = k;
-
 
           const GMTally1 sj_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
                                 (GMTally1)(vector_sums_i_[j]) :
@@ -604,19 +410,16 @@ if( NEW_WAY == 1) {
               ((  (value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 2) ));
             /* clang-format on */
 
-//              printf("%i %i %i %i %i %i %i %i\n",
-//                (int)r000, (int)r001, (int)r010, (int)r011,
-//                (int)r100, (int)r101, (int)r110, (int)r111);
             sum.data[0] += GMTally1_encode(r000, r001);
             sum.data[1] += GMTally1_encode(r010, r011);
             sum.data[2] += GMTally1_encode(r100, r101);
             sum.data[3] += GMTally1_encode(r110, r111);
           } /*---for f---*/
           if (GMEnv_all2all(env)) {
-            GMMetrics_tally4x2_set_all2all_3_permuted(metrics, I, J, K, j_block, k_block,
-                                             sum, env);
-            GMMetrics_float3_M_set_all2all_3_permuted(metrics, I, J, K, j_block, k_block,
-                si1_sj1_sk1, env);
+            GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics,
+                I, J, K, j_block, k_block, sum, &index_cache, env);
+            GMMetrics_float3_M_set_all2all_3_permuted_cache(metrics,
+                I, J, K, j_block, k_block, si1_sj1_sk1, &index_cache, env);
           } else {
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
             GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
@@ -624,8 +427,6 @@ if( NEW_WAY == 1) {
         } /*---for I---*/
       }   /*---for K---*/
     }     /*---for J---*/
-
-}
 
     /*----------------------------------------*/
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
@@ -635,271 +436,6 @@ if( NEW_WAY == 1) {
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
-if(NEW_WAY == 0) {
-
-    /*---Precompute masks for final (incomplete) packedval_field -
-         can be 1 to 64 inclusive---*/
-
-    /* clang-format off */
-
-    const int nfl = vectors_i->num_field_local;
-    const int num_field_active_local =
-      GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env) - 1
-      ? nfl - (vectors_i->num_field - vectors_i->num_field_active) : nfl;
-    const int num_packedval_field_active_local =
-      (num_field_active_local + 64 - 1) / 64;
-
-    const int num_seminibbles_edge = 1 + (num_field_active_local-1) % 64;
-
-    const GMUInt64 nobits = 0;
-    const GMUInt64 allbits = ~nobits;
-
-    const GMUInt64 edgemask0 = num_seminibbles_edge >= 32 ?
-                               allbits :
-                               allbits >> (64 - 2*num_seminibbles_edge);
-
-    const GMUInt64 edgemask1 = num_seminibbles_edge <= 32 ?
-                               nobits :
-                               num_seminibbles_edge == 64 ?
-                               allbits :
-                               allbits >> (128 - 2*num_seminibbles_edge);
-    const int j_min = si->j_lb;
-    const int j_max = si->j_ub;
-    for (j = j_min; j < j_max; ++j) {
-      const GMTally1 sj_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-                            (GMTally1)(vector_sums_i_[j]) :
-                            (GMTally1)(vector_sums_j_[j]);
-      const int k_min = GMSectionInfo_k_min(si, j, env);
-      const int k_max = si->k_ub;
-      for (k = k_min; k < k_max; ++k) {
-        const GMTally1 sk_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-                              (GMTally1)(vector_sums_i_[k]) :
-                              si->is_part2 ?
-                              (GMTally1)(vector_sums_j_[k]) :
-                              (GMTally1)(vector_sums_k_[k]);
-        const int i_min = si->i_lb;
-        const int i_max = GMSectionInfo_i_max(si, j, env);
-        for (i = i_min; i < i_max; ++i) {
-          const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
-          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
-          GMTally4x2 sum = GMTally4x2_null();
-          int pvfl = 0;
-          const int npvfl = vectors_i->num_packedval_field_local;
-          const int pvfl_edge = num_packedval_field_active_local - 1;
-          for (pvfl = 0; pvfl < npvfl; ++pvfl) {
-
-            /*---Get masks for active seminibbles in each word---*/
-
-            const GMUInt64 activebits0 = pvfl < pvfl_edge ? allbits :
-                                         pvfl == pvfl_edge ? edgemask0 : nobits;
-            const GMUInt64 activebits1 = pvfl < pvfl_edge ? allbits :
-                                         pvfl == pvfl_edge ? edgemask1 : nobits;
-
-            /*---Extract input values to process---*/
-
-            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pvfl, i,
-                                                         env);
-            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, pvfl, j,
-                                                          env);
-            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pvfl, k,
-                                                          env);
-
-            const GMUInt64 vi0 = vi.data[0];
-            const GMUInt64 vi1 = vi.data[1];
-            const GMUInt64 vj0 = vj.data[0];
-            const GMUInt64 vj1 = vj.data[1];
-            const GMUInt64 vk0 = vk.data[0];
-            const GMUInt64 vk1 = vk.data[1];
-
-            /*---Get even, odd bits for each semi-nibble, masked to active---*/
-
-            const GMUInt64 oddbits = 0x5555555555555555;
-
-            const GMUInt64 vi0_0 =  vi0       & oddbits & activebits0;
-            const GMUInt64 vi0_1 = (vi0 >> 1) & oddbits & activebits0;
-            const GMUInt64 vi1_0 =  vi1       & oddbits & activebits1;
-            const GMUInt64 vi1_1 = (vi1 >> 1) & oddbits & activebits1;
-            const GMUInt64 vj0_0 =  vj0       & oddbits & activebits0;
-            const GMUInt64 vj0_1 = (vj0 >> 1) & oddbits & activebits0;
-            const GMUInt64 vj1_0 =  vj1       & oddbits & activebits1;
-            const GMUInt64 vj1_1 = (vj1 >> 1) & oddbits & activebits1;
-            const GMUInt64 vk0_0 =  vk0       & oddbits & activebits0;
-            const GMUInt64 vk0_1 = (vk0 >> 1) & oddbits & activebits0;
-            const GMUInt64 vk1_0 =  vk1       & oddbits & activebits1;
-            const GMUInt64 vk1_1 = (vk1 >> 1) & oddbits & activebits1;
-
-            /*---Get complements of the same bits, set other bits zero---*/
-
-            const GMUInt64 nvi0_0 = ~ vi0       & oddbits & activebits0;
-            const GMUInt64 nvi0_1 = ~(vi0 >> 1) & oddbits & activebits0;
-            const GMUInt64 nvi1_0 = ~ vi1       & oddbits & activebits1;
-            const GMUInt64 nvi1_1 = ~(vi1 >> 1) & oddbits & activebits1;
-            const GMUInt64 nvj0_0 = ~ vj0       & oddbits & activebits0;
-            const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits & activebits0;
-            const GMUInt64 nvj1_0 = ~ vj1       & oddbits & activebits1;
-            const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits & activebits1;
-            const GMUInt64 nvk0_0 = ~ vk0       & oddbits & activebits0;
-            const GMUInt64 nvk0_1 = ~(vk0 >> 1) & oddbits & activebits0;
-            const GMUInt64 nvk1_0 = ~ vk1       & oddbits & activebits1;
-            const GMUInt64 nvk1_1 = ~(vk1 >> 1) & oddbits & activebits1;
-
-            const int r000 = gm_popcount64((nvi0_0 & nvj0_0 & nvk0_0) |
-                                         ( (nvi0_0 & nvj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_0 & nvj0_1 & nvk0_0) |
-                                         ( (nvi0_0 & nvj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 & nvj0_0 & nvk0_0) |
-                                         ( (nvi0_1 & nvj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 & nvj0_1 & nvk0_0) |
-                                         ( (nvi0_1 & nvj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi1_0 & nvj1_0 & nvk1_0) |
-                                         ( (nvi1_0 & nvj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_0 & nvj1_1 & nvk1_0) |
-                                         ( (nvi1_0 & nvj1_1 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 & nvj1_0 & nvk1_0) |
-                                         ( (nvi1_1 & nvj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 & nvj1_1 & nvk1_0) |
-                                         ( (nvi1_1 & nvj1_1 & nvk1_1) << 1 ));
-            const int r001 = gm_popcount64((nvi0_0 & nvj0_0 &  vk0_0) |
-                                         ( (nvi0_0 & nvj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_0 & nvj0_1 &  vk0_0) |
-                                         ( (nvi0_0 & nvj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 & nvj0_0 &  vk0_0) |
-                                         ( (nvi0_1 & nvj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 & nvj0_1 &  vk0_0) |
-                                         ( (nvi0_1 & nvj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi1_0 & nvj1_0 &  vk1_0) |
-                                         ( (nvi1_0 & nvj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_0 & nvj1_1 &  vk1_0) |
-                                         ( (nvi1_0 & nvj1_1 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 & nvj1_0 &  vk1_0) |
-                                         ( (nvi1_1 & nvj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 & nvj1_1 &  vk1_0) |
-                                         ( (nvi1_1 & nvj1_1 &  vk1_1) << 1 ));
-            const int r010 = gm_popcount64((nvi0_0 &  vj0_0 & nvk0_0) |
-                                         ( (nvi0_0 &  vj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_0 &  vj0_1 & nvk0_0) |
-                                         ( (nvi0_0 &  vj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 &  vj0_0 & nvk0_0) |
-                                         ( (nvi0_1 &  vj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 &  vj0_1 & nvk0_0) |
-                                         ( (nvi0_1 &  vj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi1_0 &  vj1_0 & nvk1_0) |
-                                         ( (nvi1_0 &  vj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_0 &  vj1_1 & nvk1_0) |
-                                         ( (nvi1_0 &  vj1_1 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 &  vj1_0 & nvk1_0) |
-                                         ( (nvi1_1 &  vj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 &  vj1_1 & nvk1_0) |
-                                         ( (nvi1_1 &  vj1_1 & nvk1_1) << 1 ));
-            const int r011 = gm_popcount64((nvi0_0 &  vj0_0 &  vk0_0) |
-                                         ( (nvi0_0 &  vj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_0 &  vj0_1 &  vk0_0) |
-                                         ( (nvi0_0 &  vj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 &  vj0_0 &  vk0_0) |
-                                         ( (nvi0_1 &  vj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 &  vj0_1 &  vk0_0) |
-                                         ( (nvi0_1 &  vj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi1_0 &  vj1_0 &  vk1_0) |
-                                         ( (nvi1_0 &  vj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_0 &  vj1_1 &  vk1_0) |
-                                         ( (nvi1_0 &  vj1_1 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 &  vj1_0 &  vk1_0) |
-                                         ( (nvi1_1 &  vj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 &  vj1_1 &  vk1_0) |
-                                         ( (nvi1_1 &  vj1_1 &  vk1_1) << 1 ));
-            const int r100 = gm_popcount64(( vi0_0 & nvj0_0 & nvk0_0) |
-                                         ( ( vi0_0 & nvj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_0 & nvj0_1 & nvk0_0) |
-                                         ( ( vi0_0 & nvj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 & nvj0_0 & nvk0_0) |
-                                         ( ( vi0_1 & nvj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 & nvj0_1 & nvk0_0) |
-                                         ( ( vi0_1 & nvj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi1_0 & nvj1_0 & nvk1_0) |
-                                         ( ( vi1_0 & nvj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_0 & nvj1_1 & nvk1_0) |
-                                         ( ( vi1_0 & nvj1_1 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 & nvj1_0 & nvk1_0) |
-                                         ( ( vi1_1 & nvj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 & nvj1_1 & nvk1_0) |
-                                         ( ( vi1_1 & nvj1_1 & nvk1_1) << 1 ));
-            const int r101 = gm_popcount64(( vi0_0 & nvj0_0 &  vk0_0) |
-                                         ( ( vi0_0 & nvj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_0 & nvj0_1 &  vk0_0) |
-                                         ( ( vi0_0 & nvj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 & nvj0_0 &  vk0_0) |
-                                         ( ( vi0_1 & nvj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 & nvj0_1 &  vk0_0) |
-                                         ( ( vi0_1 & nvj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi1_0 & nvj1_0 &  vk1_0) |
-                                         ( ( vi1_0 & nvj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_0 & nvj1_1 &  vk1_0) |
-                                         ( ( vi1_0 & nvj1_1 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 & nvj1_0 &  vk1_0) |
-                                         ( ( vi1_1 & nvj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 & nvj1_1 &  vk1_0) |
-                                         ( ( vi1_1 & nvj1_1 &  vk1_1) << 1 ));
-            const int r110 = gm_popcount64(( vi0_0 &  vj0_0 & nvk0_0) |
-                                         ( ( vi0_0 &  vj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_0 &  vj0_1 & nvk0_0) |
-                                         ( ( vi0_0 &  vj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 &  vj0_0 & nvk0_0) |
-                                         ( ( vi0_1 &  vj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 &  vj0_1 & nvk0_0) |
-                                         ( ( vi0_1 &  vj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi1_0 &  vj1_0 & nvk1_0) |
-                                         ( ( vi1_0 &  vj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_0 &  vj1_1 & nvk1_0) |
-                                         ( ( vi1_0 &  vj1_1 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 &  vj1_0 & nvk1_0) |
-                                         ( ( vi1_1 &  vj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 &  vj1_1 & nvk1_0) |
-                                         ( ( vi1_1 &  vj1_1 & nvk1_1) << 1 ));
-            const int r111 = gm_popcount64(( vi0_0 &  vj0_0 &  vk0_0) |
-                                         ( ( vi0_0 &  vj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_0 &  vj0_1 &  vk0_0) |
-                                         ( ( vi0_0 &  vj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 &  vj0_0 &  vk0_0) |
-                                         ( ( vi0_1 &  vj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 &  vj0_1 &  vk0_0) |
-                                         ( ( vi0_1 &  vj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi1_0 &  vj1_0 &  vk1_0) |
-                                         ( ( vi1_0 &  vj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_0 &  vj1_1 &  vk1_0) |
-                                         ( ( vi1_0 &  vj1_1 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 &  vj1_0 &  vk1_0) |
-                                         ( ( vi1_1 &  vj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 &  vj1_1 &  vk1_0) |
-                                         ( ( vi1_1 &  vj1_1 &  vk1_1) << 1 ));
-
-            /*---Accumulate---*/
-
-//              printf("%i %i %i %i %i %i %i %i\n",
-//              (int)r000, (int)r001, (int)r010, (int)r011,
-//              (int)r100, (int)r101, (int)r110, (int)r111);
-            sum.data[0] += GMTally1_encode(r000, r001);
-            sum.data[1] += GMTally1_encode(r010, r011);
-            sum.data[2] += GMTally1_encode(r100, r101);
-            sum.data[3] += GMTally1_encode(r110, r111);
-          } /*---for pvfl---*/
-          if (GMEnv_all2all(env)) {
-            GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                             sum, env);
-            GMMetrics_float3_M_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                si1_sj1_sk1, env);
-          } else {
-            GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
-            GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
-          }
-        }
-      }
-    }
-
-    /* clang-format on */
-
-}
-if(NEW_WAY == 1) {
-
     /*---Precompute masks for final (incomplete) packedval_field -
          can be 1 to 64 inclusive---*/
 
@@ -938,6 +474,7 @@ if(NEW_WAY == 1) {
       const int K_max = nvl;
 
       int K = 0;
+      GMIndexCache index_cache = {0};
       for (K=K_min; K<K_max; ++K) {
         int I = 0;
         for (I=I_min; I<I_max; ++I) {
@@ -967,25 +504,6 @@ if(NEW_WAY == 1) {
                                 (GMTally1)(vector_sums_k_[k]);
 
           const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
-
-//    const int j_min = si->j_lb;
-//    const int j_max = si->j_ub;
-//    for (j = j_min; j < j_max; ++j) {
-//      const GMTally1 sj_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-//                            (GMTally1)(vector_sums_i_[j]) :
-//                            (GMTally1)(vector_sums_j_[j]);
-//      const int k_min = GMSectionInfo_k_min(si, j, env);
-//      const int k_max = si->k_ub;
-//      for (k = k_min; k < k_max; ++k) {
-//        const GMTally1 sk_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-//                              (GMTally1)(vector_sums_i_[k]) :
-//                              si->is_part2 ?
-//                              (GMTally1)(vector_sums_j_[k]) :
-//                              (GMTally1)(vector_sums_k_[k]);
-//        const int i_min = si->i_lb;
-//        const int i_max = GMSectionInfo_i_max(si, j, env);
-//        for (i = i_min; i < i_max; ++i) {
-//          const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
 
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
           GMTally4x2 sum = GMTally4x2_null();
@@ -1180,19 +698,16 @@ if(NEW_WAY == 1) {
 
             /*---Accumulate---*/
 
-//              printf("%i %i %i %i %i %i %i %i\n",
-//              (int)r000, (int)r001, (int)r010, (int)r011,
-//              (int)r100, (int)r101, (int)r110, (int)r111);
             sum.data[0] += GMTally1_encode(r000, r001);
             sum.data[1] += GMTally1_encode(r010, r011);
             sum.data[2] += GMTally1_encode(r100, r101);
             sum.data[3] += GMTally1_encode(r110, r111);
           } /*---for pvfl---*/
           if (GMEnv_all2all(env)) {
-            GMMetrics_tally4x2_set_all2all_3_permuted(metrics, I, J, K, j_block, k_block,
-                                             sum, env);
-            GMMetrics_float3_M_set_all2all_3_permuted(metrics, I, J, K, j_block, k_block,
-                si1_sj1_sk1, env);
+            GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics,
+                I, J, K, j_block, k_block, sum, &index_cache, env);
+            GMMetrics_float3_M_set_all2all_3_permuted_cache(metrics,
+                I, J, K, j_block, k_block, si1_sj1_sk1, &index_cache, env);
           } else {
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
             GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
@@ -1202,8 +717,6 @@ if(NEW_WAY == 1) {
     }
 
     /* clang-format on */
-
-}
 
     /*----------------------------------------*/
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
@@ -1474,35 +987,6 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         // sum of mins vectors i, j, and k is matB(k,i)
         const GMFloat min_IJK = ((GMFloat*)(matB_buf->h))[I + I_max64 * K];
         const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
-if(NEW_WAY == 0) {
-        /* clang-format off */
-        const int i = !si->is_part3 ?   I :
-                           si->sax0 ?   J :
-                           si->sax1 ?   I :
-                        /* si->sax2 ?*/ K;
-        const int j = !si->is_part3 ?   J :
-                           si->sax0 ?   K :
-                           si->sax1 ?   J :
-                        /* si->sax2 ?*/ I;
-        const int k = !si->is_part3 ?   K :
-                           si->sax0 ?   I :
-                           si->sax1 ?   K :
-                        /* si->sax2 ?*/ J;
-        /* clang-format on */
-
-        //const GMFloat denominator =
-        //    vector_sums_i_[i] + vector_sums_j_[j] + vector_sums_k_[k];
-        /*---Make arithmetic order-independent---*/
-        GMFloat smin, smid, smax;
-        GMFloat_sort_3(&smin, &smid, &smax,
-           &vector_sums_i_[i], &vector_sums_j_[j], &vector_sums_k_[k]);
-        const GMFloat denominator = smin + smid + smax;
-
-        const GMFloat value = ((GMFloat)1.5) * numerator / denominator;
-        GMMetrics_float_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                      value, env);
-}
-if(NEW_WAY == 1) {
         //const GMFloat denominator =
         //    vector_sums_I_[I] + vector_sums_J_[J] + vector_sums_K_[K];
         /*---Make arithmetic order-independent---*/
@@ -1513,9 +997,8 @@ if(NEW_WAY == 1) {
 
         const GMFloat value = ((GMFloat)1.5) * numerator / denominator;
         GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
-                                               j_block, k_block, value, &index_cache, env);
+            j_block, k_block, value, &index_cache, env);
 
-}
       } /*---for K---*/
     }   /*---for I---*/
     /*----------*/
@@ -1592,7 +1075,8 @@ if(NEW_WAY == 1) {
     /*----------*/
     int I = 0;
     int K = 0;
-#pragma omp parallel for collapse(2)
+    GMIndexCache index_cache = {0};
+#pragma omp parallel for collapse(2) firstprivate(index_cache)
     for (K = K_min; K < K_max; ++K) {
       for (I = I_min; I < I_max; ++I) {
 /*---For the permuted case,
@@ -1615,22 +1099,9 @@ if(NEW_WAY == 1) {
                         /* si->sax2 ?*/ J;
         /* clang-format on */
 
-        GMTally4x2 numer =
-
-NEW_WAY == 0 ?
-(
-
-          step_2way==0 ? GMTally4x2_null() :
-          GMMetrics_tally4x2_get_all2all_3(metrics, i, j, k,
-                                           j_block, k_block, env)
-) : (
-
-
-          step_2way==0 ? GMTally4x2_null() :
-          GMMetrics_tally4x2_get_all2all_3_permuted(metrics, I, J, K,
-                                           j_block, k_block, env)
-)
-;
+        GMTally4x2 numer = step_2way==0 ? GMTally4x2_null() :
+          GMMetrics_tally4x2_get_all2all_3_permuted_cache(metrics, I, J, K,
+                                           j_block, k_block, &index_cache, env);
 
         GMTally1 r000_permuted, r001_permuted;
         GMTally1_decode(&r000_permuted, &r001_permuted, numer.data[0]);
@@ -1646,9 +1117,7 @@ NEW_WAY == 0 ?
         GMTally1_decode(&mB00, &mB01, mB.data[0]);
         GMTally1 mB10, mB11;
         GMTally1_decode(&mB10, &mB11, mB.data[1]);
-//printf("%i %i %i %i\n", (int)mB00, (int)mB01, (int)mB10, (int)mB11);
 
-//printf("%i\n", mB11);
         /* clang-format off */
         int r000 = r000_permuted;
 
@@ -1741,15 +1210,8 @@ NEW_WAY == 0 ?
         numer.data[2] = GMTally1_encode(r100_permuted, r101_permuted);
         numer.data[3] = GMTally1_encode(r110_permuted, r111_permuted);
 
-
-if(NEW_WAY == 0) {
-        GMMetrics_tally4x2_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                         numer, env);
-}
-if(NEW_WAY == 1) {
-        GMMetrics_tally4x2_set_all2all_3_permuted(metrics, I, J, K, j_block, k_block,
-                                         numer, env);
-}
+        GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics, I, J, K,
+                                   j_block, k_block, numer, &index_cache, env);
 
         const GMTally1 sj_1 = si->is_part1 ?
                               (GMTally1)(vector_sums_i_[j]) :
@@ -1763,14 +1225,8 @@ if(NEW_WAY == 1) {
         const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
 
 
-if(NEW_WAY == 0) {
-        GMMetrics_float3_M_set_all2all_3(metrics, i, j, k, j_block, k_block,
-                                         si1_sj1_sk1, env);
-}
-if(NEW_WAY == 1) {
-        GMMetrics_float3_M_set_all2all_3_permuted(metrics, I, J, K, j_block, k_block,
-                                         si1_sj1_sk1, env);
-}
+        GMMetrics_float3_M_set_all2all_3_permuted_cache(metrics, I, J, K,
+            j_block, k_block, si1_sj1_sk1, &index_cache, env);
 
 
       } /*---for K---*/
