@@ -162,6 +162,14 @@ void SystemTest_czekanowski_() {
   //---2-way, all2all no
   //----------
 
+
+//  EXPECT_EQ(
+//      GM_BOOL_TRUE,
+//      compare_2runs(
+//                    "--num_proc_vector 3 --num_field 1 --num_vector_local 6 --compute_method GPU --num_way 3 --all2all yes",
+//                    "--num_proc_vector 3 --num_field 1 --num_vector_local 6 --compute_method GPU --num_way 3 --all2all yes"));
+
+
   EXPECT_EQ(
       GM_BOOL_TRUE,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 2 "

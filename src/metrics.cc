@@ -412,14 +412,19 @@ void GMMetrics_create(GMMetrics* metrics,
           continue;
         }
         if (gm_proc_r_active(section_block_num, env)) {
+
           const int section_axis = gm_section_axis_part3(i_block, j_block,
                                                          k_block);
           const int section_num = gm_section_num_part3(i_block, j_block,
                                                        k_block);
+
           const int J_lo = gm_J_lo(section_num, nvl, 3, env);
           const int J_hi = gm_J_hi(section_num, nvl, 3, env);
           metrics->J_lo_part3_[section_num] = J_lo;
           metrics->J_wi_part3_[section_num] = J_hi - J_lo;
+
+if(NEW_WAY == 0) {
+
           const int j_min = section_axis == 1 ? J_lo : 0;
           const int j_max = section_axis == 1 ? J_hi : nvl;
           for (j = j_min; j < j_max; ++j) {
@@ -444,6 +449,51 @@ void GMMetrics_create(GMMetrics* metrics,
             }
             index += (i_max-i_min)*(size_t)(k_max-k_min);
           }
+
+}
+if(NEW_WAY == 1) {
+
+          const _Bool sax0 = section_axis == 0;
+          const _Bool sax1 = section_axis == 1;
+          int J = 0;
+          for (J = J_lo; J < J_hi; ++J) {
+            int K = 0;
+            int I = 0;
+#pragma omp parallel for collapse(2)
+            for (K = 0; K < nvl; ++K) {
+              for (I = 0; I < nvl; ++I) {
+
+                /* clang-format off */
+                const int i = sax0 ?   J :
+                              sax1 ?   I :
+                           /* sax2 ?*/ K;
+                const int j = sax0 ?   K :
+                              sax1 ?   J :
+                           /* sax2 ?*/ I;
+                const int k = sax0 ?   I :
+                              sax1 ?   K :
+                           /* sax2 ?*/ J;
+                /* clang-format on */
+
+                const size_t j_global = j + nvl * j_block;
+                const size_t k_global = k + nvl * k_block;
+                const size_t i_global = i + nvl * i_block;
+                GMAssert(i_global>=0 && metrics->num_vector-i_global>0);
+                GMAssert(j_global>=0 && metrics->num_vector-j_global>0);
+                GMAssert(k_global>=0 && metrics->num_vector-k_global>0);
+                const size_t index_this = index + I + K * (size_t)nvl;
+                GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+                metrics->coords_global_from_index[index_this] =
+                    i_global +
+                    metrics->num_vector *
+                        (j_global + metrics->num_vector * (k_global));
+              }
+            }
+            index += nvl*(size_t)nvl;
+          }
+
+}
+
         } /*---if block_num---*/
         ++section_block_num;
       } /*---j_block---*/
