@@ -239,6 +239,18 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   /*---Compute a (global) operation count - total work done on all procs---*/
 
+  double num_elts_local = metrics->num_elts_local;
+  double num_elts = 0;
+
+  int mpi_code = 0;
+  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+
+  mpi_code = MPI_Allreduce(&num_elts_local, &num_elts, 1,
+                           MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_vector(env));
+
+  env->ops += metrics->num_field * num_elts * metrics->data_type_num_values;
+
+#if 0
   /* clang-format off */
   env->ops += (GMEnv_num_way(env) == GM_NUM_WAY_2 && ! GMEnv_all2all(env))
             ?    GMEnv_num_proc_vector_i(env) * 1. *
@@ -260,6 +272,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
                  (vectors->num_vector - 2) * (1./6.) *
                  vectors->num_field * 1. / env->num_stage;
   /* clang-format on */
+#endif
 }
 
 /*===========================================================================*/
