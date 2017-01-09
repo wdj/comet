@@ -254,6 +254,8 @@ typedef struct {
   int data_type_num_values;
   void* __restrict__ data;
   void* __restrict__ data_M;
+  size_t data_size;
+  size_t data_M_size;
 } GMMetrics;
 
 /*===========================================================================*/

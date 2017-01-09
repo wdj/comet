@@ -75,6 +75,7 @@ GMMirroredPointer GMMirroredPointer_null(void) {
   GMMirroredPointer p;
   p.h = NULL;
   p.d = NULL;
+  p.size = 0;
   return p;
 }
 
@@ -119,6 +120,10 @@ void GMEnv_create(GMEnv* const env, char const * const description) {
 
   env->time = 0;
   env->ops = 0;
+  env->cpu_mem = 0;
+  env->cpu_mem_max = 0;
+  env->gpu_mem = 0;
+  env->gpu_mem_max = 0;
   env->description = description;
 }
 
@@ -497,11 +502,34 @@ _Bool GMEnv_cuda_last_call_succeeded(GMEnv const * const env) {
 
 /*---------------------------------------------------------------------------*/
 
-GMFloat* GMFloat_malloc(size_t n) {
-  GMFloat* result = (GMFloat*)malloc(n * sizeof(GMFloat));
-  GMAssertAlways(result != NULL);
-  GMFloat_fill_nan(result, n);
-  return result;
+void* gm_malloc(size_t n, GMEnv* env) {
+  void* p = malloc(n);
+  GMAssertAlways(p != NULL);
+  env->cpu_mem += n;
+  env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
+  return p;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_free(void* p, size_t n, GMEnv* env) {
+  free(p);
+  env->cpu_mem -= n;
+}
+
+/*---------------------------------------------------------------------------*/
+
+GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
+  GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);
+  GMAssertAlways(p != NULL);
+  GMFloat_fill_nan(p, n);
+  return p;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void GMFloat_free(GMFloat* p, size_t n, GMEnv* env) {
+  gm_free(p, n * sizeof(GMFloat), env);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -534,8 +562,6 @@ void GMFloat_check(GMFloat* const a, size_t n) {
   GMAssertAlways(no_nans_found);
 #endif
 }
-
-//TODO: GMInt_malloc ...
 
 /*===========================================================================*/
 

@@ -178,7 +178,7 @@ void GMMetrics_create(GMMetrics* metrics,
         num_offdiag_block * nvl * nvl;
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
-        (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
+        (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
     GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*===PART C: SET INDEX===*/
     /*---Set index part 1: (triangle) i_block==j_block part---*/
@@ -326,7 +326,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART B: ALLOCATE INDEX===*/
 
     metrics->coords_global_from_index =
-        (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
+        (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
     GMAssertAlways(metrics->coords_global_from_index != NULL);
 
     /*===PART C: SET INDEX===*/
@@ -478,7 +478,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
-        (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
+        (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
     GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict upper triangular part of matrix---*/
     size_t index = 0;
@@ -509,7 +509,7 @@ void GMMetrics_create(GMMetrics* metrics,
     //metrics->num_elts_local = trap_size_hi - trap_size_lo;
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
-        (size_t*)malloc(metrics->num_elts_local * sizeof(size_t));
+        (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
     GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict interior of tetrahedron---*/
     size_t index = 0;
@@ -549,31 +549,30 @@ void GMMetrics_create(GMMetrics* metrics,
       /*---(design not complete)---*/
       const size_t num_floats_needed =
           gm_ceil_i8(metrics->num_elts_local, 8 * sizeof(GMFloat));
-      metrics->data = malloc(num_floats_needed * sizeof(GMFloat));
-      GMAssertAlways(metrics->data != NULL);
+      metrics->data_size = num_floats_needed * sizeof(GMFloat);
+      metrics->data = gm_malloc(metrics->data_size, env);
       metrics->data_type_num_values = 1;
     } break;
     /*----------*/
     case GM_DATA_TYPE_FLOAT:
-      //---TODO: remove thee casts on the mallocs, here and elsewhere.
-      metrics->data = malloc(metrics->num_elts_local * sizeof(GMFloat));
-      GMAssertAlways(metrics->data != NULL);
+      metrics->data_size = metrics->num_elts_local * sizeof(GMFloat);
+      metrics->data = gm_malloc(metrics->data_size, env);
       metrics->data_type_num_values = 1;
       break;
     /*----------*/
     case GM_DATA_TYPE_TALLY2X2: {
-      metrics->data = malloc(metrics->num_elts_local * sizeof(GMTally2x2));
-      GMAssertAlways(metrics->data != NULL);
-      metrics->data_M = malloc(metrics->num_elts_local * sizeof(GMFloat2));
-      GMAssertAlways(metrics->data_M != NULL);
+      metrics->data_size = metrics->num_elts_local * sizeof(GMTally2x2);
+      metrics->data = gm_malloc(metrics->data_size, env);
+      metrics->data_M_size = metrics->num_elts_local * sizeof(GMFloat2);
+      metrics->data_M = gm_malloc(metrics->data_M_size, env);
       metrics->data_type_num_values = 4;
     } break;
     /*----------*/
     case GM_DATA_TYPE_TALLY4X2: {
-      metrics->data = malloc(metrics->num_elts_local * sizeof(GMTally4x2));
-      GMAssertAlways(metrics->data != NULL);
-      metrics->data_M = malloc(metrics->num_elts_local * sizeof(GMFloat3));
-      GMAssertAlways(metrics->data_M != NULL);
+      metrics->data_size = metrics->num_elts_local * sizeof(GMTally4x2);
+      metrics->data = gm_malloc(metrics->data_size, env);
+      metrics->data_M_size = metrics->num_elts_local * sizeof(GMFloat3);
+      metrics->data_M = gm_malloc(metrics->data_M_size, env);
       metrics->data_type_num_values = 8;
     } break;
     /*----------*/
@@ -594,10 +593,11 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
     return;
   }
 
-  free(metrics->data);
-  free(metrics->coords_global_from_index);
+  gm_free(metrics->coords_global_from_index,
+          metrics->num_elts_local * sizeof(size_t), env);
+  gm_free(metrics->data, metrics->data_size, env);
   if (metrics->data_M != NULL) {
-    free(metrics->data_M);
+    gm_free(metrics->data_M, metrics->data_M_size, env);
   }
   *metrics = GMMetrics_null();
 }

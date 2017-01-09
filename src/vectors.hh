@@ -42,6 +42,7 @@ typedef struct {
   int data_type_id;
   int pad1;
   void* __restrict__ data;
+  size_t data_size;
 } GMVectors;
 
 /*===========================================================================*/

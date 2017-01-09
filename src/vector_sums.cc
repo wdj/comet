@@ -25,6 +25,7 @@ GMVectorSums GMVectorSums_null(void) {
   GMVectorSums x;
   x.data = NULL;
   x.data_tmp = NULL;
+  x.size = 0;
   return x;
 }
 
@@ -38,22 +39,24 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
   GMAssertAlways(vectors);
   GMAssertAlways(env);
 
+  vector_sums->size = vectors->num_vector_local;
+
   switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
 
     } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      vector_sums->data = GMFloat_malloc(vectors->num_vector_local);
+      vector_sums->data = GMFloat_malloc(vectors->num_vector_local, env);
       vector_sums->data_tmp = GMEnv_num_proc_field(env) == 1
                                   ? NULL
-                                  : GMFloat_malloc(vectors->num_vector_local);
+                                  : GMFloat_malloc(vectors->num_vector_local, env);
     } break;
     case GM_METRIC_TYPE_CCC: {
-      vector_sums->data = GMFloat_malloc(vectors->num_vector_local);
+      vector_sums->data = GMFloat_malloc(vectors->num_vector_local, env);
       vector_sums->data_tmp = GMEnv_num_proc_field(env) == 1
                                   ? NULL
-                                  : GMFloat_malloc(vectors->num_vector_local);
+                                  : GMFloat_malloc(vectors->num_vector_local, env);
     } break;
     default:
       /*---Should never get here---*/
@@ -75,19 +78,19 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
     } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
       GMAssertAlways(vector_sums->data != NULL);
-      free(vector_sums->data);
+      GMFloat_free((GMFloat*)vector_sums->data, vector_sums->size, env);
       vector_sums->data = NULL;
       if (vector_sums->data_tmp != NULL) {
-        free(vector_sums->data_tmp);
+        GMFloat_free((GMFloat*)vector_sums->data_tmp, vector_sums->size, env);
         vector_sums->data_tmp = NULL;
       }
     } break;
     case GM_METRIC_TYPE_CCC: {
       GMAssertAlways(vector_sums->data != NULL);
-      free(vector_sums->data);
+      GMFloat_free((GMFloat*)vector_sums->data, vector_sums->size, env);
       vector_sums->data = NULL;
       if (vector_sums->data_tmp != NULL) {
-        free(vector_sums->data_tmp);
+        GMFloat_free((GMFloat*)vector_sums->data_tmp, vector_sums->size, env);
         vector_sums->data_tmp = NULL;
       }
     } break;

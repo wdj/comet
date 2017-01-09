@@ -661,6 +661,11 @@ GMChecksum perform_run(int argc, char** argv, char const * const description) {
     GMMetrics_destroy(&metrics, &env);
   }
 
+  GMVectors_destroy(&vectors, &env);
+
+  GMAssertAlways(env.cpu_mem == 0);
+  GMAssertAlways(env.gpu_mem == 0);
+
   /*---Output run information---*/
 
   if (GMEnv_is_proc_active(&env) && GMEnv_proc_num(&env) == 0 &&
@@ -689,12 +694,12 @@ GMChecksum perform_run(int argc, char** argv, char const * const description) {
     if (NULL != do_.output_file_path_stub) {
       printf(" outtime %.6f", outtime);
     }
+    printf(" cpumem %e", (double)env.cpu_mem_max);
+    printf(" gpumem %e", (double)env.gpu_mem_max);
     printf("\n");
   }
 
   /*---Finalize---*/
-
-  GMVectors_destroy(&vectors, &env);
 
   GMEnv_destroy(&env);
 

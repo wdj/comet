@@ -188,9 +188,10 @@ void GMVectors_create(GMVectors* vectors,
   /*---Allocation for vector storage---*/
 
   GMAssertAlways(vectors->num_bits_per_packedval % bits_per_byte == 0);
-  vectors->data = malloc(vectors->num_packedval_local *
-                         (vectors->num_bits_per_packedval / bits_per_byte));
-  GMAssertAlways(vectors->data != NULL);
+
+  vectors->data_size = vectors->num_packedval_local *
+                       (vectors->num_bits_per_packedval / bits_per_byte);
+  vectors->data = gm_malloc(vectors->data_size, env);
 
   /*---Set pad entries to zero---*/
 
@@ -209,7 +210,7 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
     return;
   }
 
-  free(vectors->data);
+  gm_free(vectors->data, vectors->data_size, env);
   *vectors = GMVectors_null();
 }
 

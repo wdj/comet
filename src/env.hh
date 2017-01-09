@@ -326,6 +326,7 @@ enum {
 typedef struct {
   void* __restrict__ h;
   void* __restrict__ d;
+  size_t size;
 } GMMirroredPointer;
 
 GMMirroredPointer GMMirroredPointer_null(void);
@@ -397,6 +398,10 @@ typedef struct {
   /*---Counters---*/
   double time;
   double ops;
+  size_t cpu_mem;
+  size_t cpu_mem_max;
+  size_t gpu_mem;
+  size_t gpu_mem_max;
   /*---MPI---*/
   int mpi_comm_;
   int mpi_comm_vector_;
@@ -633,6 +638,12 @@ static int gm_max_i(const int i, const int j) {
 
 /*---------------------------------------------------------------------------*/
 
+static size_t gm_max_i8(const size_t i, const size_t j) {
+  return i > j ? i : j;
+}
+
+/*---------------------------------------------------------------------------*/
+
 static int gm_floor_i(const int i, const int j) {
   GMAssert(j > 0);
 
@@ -780,7 +791,11 @@ _Bool GMEnv_cuda_last_call_succeeded(GMEnv const * const env);
 
 /*---------------------------------------------------------------------------*/
 
-GMFloat* GMFloat_malloc(size_t n);
+void* gm_malloc(size_t n, GMEnv* env);
+void gm_free(void* p, size_t n, GMEnv* env);
+
+GMFloat* GMFloat_malloc(size_t n, GMEnv* env);
+void GMFloat_free(GMFloat* p, size_t n, GMEnv* env);
 
 void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);

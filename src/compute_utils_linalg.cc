@@ -222,6 +222,12 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
                    "Error in call to magma_minproduct_smalloc." : 0);
     }
 
+    p.size = n*sizeof(GMFloat);
+    env->cpu_mem += p.size;
+    env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
+    env->gpu_mem += p.size;
+    env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
@@ -240,6 +246,12 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_zmalloc." : 0);
 
+    p.size = n*sizeof(Float_t);
+    env->cpu_mem += p.size;
+    env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
+    env->gpu_mem += p.size;
+    env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
@@ -257,6 +269,12 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
     magma_code = magma_tally3_zmalloc((Float_t**)&p.d, n);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_zmalloc." : 0);
+
+    p.size = n*sizeof(Float_t);
+    env->cpu_mem += p.size;
+    env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
+    env->gpu_mem += p.size;
+    env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
   /*----------------------------------------*/
   } else {
@@ -286,6 +304,8 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
     return;
   }
 
+  const size_t size = p->size;
+
   /*----------------------------------------*/
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
   /*----------------------------------------*/
@@ -304,6 +324,9 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
     magma_minproduct_free(p->d);
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
 
+    env->cpu_mem -= size;
+    env->gpu_mem -= size;
+
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
@@ -317,6 +340,9 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
     magma_tally4_free(p->d);
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
 
+    env->cpu_mem -= size;
+    env->gpu_mem -= size;
+
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
@@ -329,6 +355,9 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
     magma_tally3_free(p->d);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
+
+    env->cpu_mem -= size;
+    env->gpu_mem -= size;
 
   /*----------------------------------------*/
   } else {
