@@ -247,12 +247,25 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   mpi_code = MPI_Allreduce(&num_elts_local, &num_elts, 1,
                            MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
-  env->ops += metrics->num_field * num_elts * metrics->data_type_num_values;
+  env->compares += metrics->num_field * num_elts * metrics->data_type_num_values;
+
+  const size_t cpu_mem_max_local = env->cpu_mem_max;
+  mpi_code = MPI_Allreduce(&cpu_mem_max_local, &env->cpu_mem_max, 1,
+                           MPI_UNSIGNED_LONG_LONG, MPI_MAX,
+                           GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+
+  const size_t gpu_mem_max_local = env->gpu_mem_max;
+  mpi_code = MPI_Allreduce(&gpu_mem_max_local, &env->gpu_mem_max, 1,
+                           MPI_UNSIGNED_LONG_LONG, MPI_MAX,
+                           GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
 #if 0
   /* clang-format off */
-  env->ops += (GMEnv_num_way(env) == GM_NUM_WAY_2 && ! GMEnv_all2all(env))
+  env->compares += (GMEnv_num_way(env) == GM_NUM_WAY_2 && ! GMEnv_all2all(env))
             ?    GMEnv_num_proc_vector_i(env) * 1. *
                  vectors->num_vector_local * 1. *
                  (vectors->num_vector_local - 1) * (1./2.) *

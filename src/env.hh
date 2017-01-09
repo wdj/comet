@@ -397,7 +397,7 @@ typedef struct {
   int stage_num;
   /*---Counters---*/
   double time;
-  double ops;
+  double compares;
   size_t cpu_mem;
   size_t cpu_mem_max;
   size_t gpu_mem;

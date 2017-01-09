@@ -681,9 +681,10 @@ GMChecksum perform_run(int argc, char** argv, char const * const description) {
       printf("-%e", checksum.value_max);
     }
     printf(" time %.6f", env.time);
-    printf(" ops %e", env.ops);
+    printf(" cmp %e", env.compares);
     if (env.time > 0) {
-      printf(" rate %e", env.ops / env.time);
+      printf(" rate %e", env.compares / env.time);
+      printf(" rate/proc %e", env.compares / (env.time * GMEnv_num_proc(&env)) );
     }
     printf(" vctime %.6f", vctime);
     printf(" mctime %.6f", mctime);
