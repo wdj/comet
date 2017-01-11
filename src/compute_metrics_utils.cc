@@ -263,7 +263,7 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
       /*----------------------------------------*/
       /*---Copy vectors into GPU buffers if needed---*/
       const size_t nfl = vectors->num_field_local;
-//#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
       for (i = 0; i < vectors->num_vector_local; ++i) {
         for (f = 0; f < vectors->num_field_local; ++f) {
           ((GMFloat*)vectors_buf->h)[f + nfl * i] =
@@ -276,7 +276,7 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
       /*----------------------------------------*/
       /*---Copy vectors into GPU buffers if needed---*/
       const size_t npvfl = vectors->num_packedval_field_local;
-//#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
       for (i = 0; i < vectors->num_vector_local; ++i) {
         for (f = 0; f < vectors->num_packedval_field_local; ++f) {
           ((GMBits2x64*)vectors_buf->h)[f + npvfl * i] =

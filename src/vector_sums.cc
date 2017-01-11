@@ -141,7 +141,8 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
     GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 
-  env->ops_local += vectors->num_vector_local*(double)vectors->num_field_local;
+  env->ops_local += 2 * vectors->num_vector_local *
+                    (double)vectors->num_field_local;
 }
 
 /*---------------------------------------------------------------------------*/
