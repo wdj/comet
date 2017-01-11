@@ -670,6 +670,7 @@ GMChecksum perform_run(int argc, char** argv, char const * const description) {
 
   if (GMEnv_is_proc_active(&env) && GMEnv_proc_num(&env) == 0 &&
       do_.verbosity > 0) {
+    //-----
     printf("metrics checksum ");
     int i = 0;
     for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
@@ -681,11 +682,19 @@ GMChecksum perform_run(int argc, char** argv, char const * const description) {
       printf("-%e", checksum.value_max);
     }
     printf(" time %.6f", env.time);
+    //-----
+    printf(" ops %e", env.ops);
+    if (env.time > 0) {
+      printf(" rate %e", env.ops / env.time);
+      printf(" rate/proc %e", env.ops / (env.time*GMEnv_num_proc(&env)) );
+    }
+    //-----
     printf(" cmp %e", env.compares);
     if (env.time > 0) {
       printf(" rate %e", env.compares / env.time);
-      printf(" rate/proc %e", env.compares / (env.time * GMEnv_num_proc(&env)) );
+      printf(" rate/proc %e", env.compares / (env.time*GMEnv_num_proc(&env)) );
     }
+    //-----
     printf(" vctime %.6f", vctime);
     printf(" mctime %.6f", mctime);
     printf(" cktime %.6f", cktime);
@@ -695,8 +704,10 @@ GMChecksum perform_run(int argc, char** argv, char const * const description) {
     if (NULL != do_.output_file_path_stub) {
       printf(" outtime %.6f", outtime);
     }
+    //-----
     printf(" cpumem %e", (double)env.cpu_mem_max);
     printf(" gpumem %e", (double)env.gpu_mem_max);
+    //-----
     printf("\n");
   }
 

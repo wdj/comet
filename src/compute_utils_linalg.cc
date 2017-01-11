@@ -500,6 +500,8 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
          (float*)dA, ldda, (float*)dB, lddb, beta, (float*)dC, lddc);
     }
 
+    env->ops_local += m * (double)n * (double)k;
+
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_2) {

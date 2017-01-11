@@ -140,6 +140,8 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
                       GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
     GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
+
+  env->ops_local += vectors->num_vector_local*(double)vectors->num_field_local;
 }
 
 /*---------------------------------------------------------------------------*/

@@ -180,8 +180,10 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   const int num_proc_r = GMEnv_num_proc_repl(env);
   const int proc_num_r = GMEnv_proc_num_repl(env);
 
-  const int proc_num_ir = proc_num_r + num_proc_r * i_block;
+  /*---Flatten the proc_vector and proc_repl indices into a single index---*/
+
   const int num_proc_ir = num_block * num_proc_r;
+  const int proc_num_ir = proc_num_r + num_proc_r * i_block;
 
   MPI_Request mpi_requests[2];
 
@@ -211,12 +213,18 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   const int extra_step = 1;
 
-//XXXCHANGE
+  /*---Number of blocks wide is a wrapped rectangle of blocks---*/
+
+
+//TODO: revise loop structure to be like 3-way case.
+
   const int max_rectangle_width = 1 + (num_block / 2);
 
   const int rectangle_width =
     (num_block % 2 == 0) && (2 * i_block >= num_block) ?
     max_rectangle_width - 1 : max_rectangle_width;
+
+  /*---At each step, num_proc_r processors compute a block---*/
 
   const int num_step = gm_ceil_i(max_rectangle_width, num_proc_r);
 
@@ -256,15 +264,14 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---Possibly skip the block computation on the final compute step---*/
 
-//XXXCHANGE
-    const int proc_num_offset = num_proc_r * ( proc_num_r + num_proc_r *
-                                             ( step_num ) );
+    const int j_i_block_delta = num_proc_r * step_num + proc_num_r;
+    const int j_i_block_delta_prev = num_proc_r * (step_num-1) + proc_num_r;
+    const int j_i_block_delta_next = num_proc_r * (step_num+1) + proc_num_r;
 
-    const int proc_num_offset_prev = num_proc_r * ( proc_num_r + num_proc_r *
-                                             ( step_num - 1 ) );
-
-    const int proc_num_offset_next = num_proc_r * ( proc_num_r + num_proc_r *
-                                             ( step_num + 1 ) );
+//TODO: revise
+    const int proc_num_offset = num_proc_r * j_i_block_delta;
+    const int proc_num_offset_prev = num_proc_r * j_i_block_delta_prev;
+    const int proc_num_offset_next = num_proc_r * j_i_block_delta_next;
 
     const _Bool do_compute_block = is_compute_step &&
       proc_num_offset/num_proc_r < rectangle_width;
@@ -295,7 +302,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---Prepare for sends/recvs: procs for communication---*/
 
-//XXXCHANGE
+//TODO: revise
     const int proc_recv = gm_mod_i(proc_num_ir + proc_num_offset_next,
                                    num_proc_ir);
     const int proc_send = gm_mod_i(proc_num_ir - proc_num_offset_next,
@@ -323,8 +330,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---The block num for the "right-side" vecs for the pseudo-product---*/
 
-//XXXCHANGE
-
+//TODO: revise
     const int j_block = gm_mod_i(proc_num_ir + proc_num_offset,
                                  num_proc_ir)/num_proc_r;
 
@@ -364,7 +370,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         }
 
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
-//XXXCHANGE
+//TODO: revise
         GMVectorSums* vector_sums_right = proc_num_offset_prev % num_proc_ir == 0
                                               ? &vector_sums_onproc
                                               : &vector_sums_offproc;
@@ -409,7 +415,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Compute sums for denominators---*/
 
     if (is_compute_step && do_compute_block) {
-//XXXCHANGE
+//TODO: revise
       if (is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }
@@ -423,7 +429,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
       if (is_compute_step && do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
-//XXXCHANGE
+//TODO: revise
         GMVectorSums* vector_sums_right =
             proc_num_offset % num_proc_ir == 0
             ? &vector_sums_onproc : &vector_sums_offproc;

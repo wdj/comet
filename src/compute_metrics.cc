@@ -237,7 +237,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   env->time += time_end - time_begin;
 
-  /*---Compute a (global) operation count - total work done on all procs---*/
+  /*---Compute global values---*/
 
   double num_elts_local = metrics->num_elts_local;
   double num_elts = 0;
@@ -249,7 +249,12 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
                            MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 
-  env->compares += metrics->num_field * num_elts * metrics->data_type_num_values;
+  env->compares += metrics->num_field*num_elts*metrics->data_type_num_values;
+
+  mpi_code = MPI_Allreduce(&env->ops_local, &env->ops, 1,
+                           MPI_DOUBLE, MPI_SUM,
+                           GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   const size_t cpu_mem_max_local = env->cpu_mem_max;
   mpi_code = MPI_Allreduce(&cpu_mem_max_local, &env->cpu_mem_max, 1,

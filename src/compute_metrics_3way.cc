@@ -297,6 +297,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
       const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
 
+      //TODO: can possibly simplify this - mod by num_proc_i instead
+
       const int proc_send_j = gm_mod_i(proc_num_ir - j_i_block_delta*num_proc_r,
                                        num_proc_ir);
       const int proc_recv_j = gm_mod_i(proc_num_ir + j_i_block_delta*num_proc_r,

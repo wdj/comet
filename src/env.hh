@@ -398,6 +398,8 @@ typedef struct {
   /*---Counters---*/
   double time;
   double compares;
+  double ops_local;
+  double ops;
   size_t cpu_mem;
   size_t cpu_mem_max;
   size_t gpu_mem;

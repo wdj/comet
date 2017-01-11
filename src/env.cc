@@ -120,6 +120,8 @@ void GMEnv_create(GMEnv* const env, char const * const description) {
 
   env->time = 0;
   env->compares = 0;
+  env->ops_local = 0;
+  env->ops = 0;
   env->cpu_mem = 0;
   env->cpu_mem_max = 0;
   env->gpu_mem = 0;
