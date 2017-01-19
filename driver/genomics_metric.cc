@@ -13,6 +13,11 @@
 #include <stddef.h>
 #include <string.h>
 
+#include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
 #include "mpi.h"
 
 #include "env.hh"
@@ -25,6 +30,80 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*===========================================================================*/
+/* Stack tracing code */
+
+#if 0
+// http://stackoverflow.com/questions/77005/how-to-generate-a-stacktrace-when-my-gcc-c-app-crashes */
+
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+#endif
+
+// http://stackoverflow.com/questions/4636456/how-to-get-a-stack-trace-for-c-using-gcc-with-line-number-information
+// http://stackoverflow.com/questions/3151779/how-its-better-to-invoke-gdb-from-program-to-print-its-stacktrace
+
+void bt_sighandler(int sig, struct sigcontext ctx) {
+
+  int proc_num = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
+
+  char pid_buf[30];
+  sprintf(pid_buf, "%d", getpid());
+  char name_buf[512];
+  name_buf[readlink("/proc/self/exe", name_buf, 511)] = 0;
+  int child_pid = fork();
+  if (!child_pid) {           
+    dup2(2,1); // redirect output to stderr
+    fprintf(stdout,"MPI rank %i: stack trace for %s pid=%s\n",
+            proc_num, name_buf, pid_buf);
+
+    char cmd[512];
+    sprintf(cmd, "gdb --batch -n -ex thread -ex bt %s %s 2>&1"
+                 " | grep '^#' | sed -e 's/^/MPI rank %i: /'",
+            name_buf, pid_buf, proc_num);
+    system(cmd);
+
+    abort(); /* If gdb failed to start */
+  } else {
+    waitpid(child_pid,NULL,0);
+  }
+
+  exit(0);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void install_handler() {
+
+  //signal(SIGSEGV, handler);
+
+  struct sigaction sa;
+
+  sa.sa_handler = (__sighandler_t)bt_sighandler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+
+  // http://www.comptechdoc.org/os/linux/programming/linux_pgsignals.html
+
+  sigaction(SIGSEGV, &sa, NULL);
+  sigaction(SIGFPE, &sa, NULL);
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGILL, &sa, NULL);
+  sigaction(SIGUSR1, &sa, NULL);
+  sigaction(SIGINT, &sa, NULL);
+}
 
 /*===========================================================================*/
 /*---Inform user of usage of command---*/
@@ -114,6 +193,8 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 0;
   }
+
+  install_handler();
 
   /*---If using GPU---*/
 

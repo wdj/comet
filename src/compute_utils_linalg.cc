@@ -499,6 +499,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
         (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
          (float*)dA, ldda, (float*)dB, lddb, beta, (float*)dC, lddc);
     }
+    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
     env->ops_local += 2 * m * (double)n * (double)k;
 
@@ -515,6 +516,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_tally4blas_zgemm(Magma_tally4Trans, Magma_tally4NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
+    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -529,6 +531,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_tally3blas_zgemm(Magma_tally3Trans, Magma_tally3NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
+    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
   /*----------------------------------------*/
   } else {
@@ -583,15 +586,15 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   GMAssertAlways(elt_size != 0);
 
 //#ifdef GM_ASSERTIONS_ON
-#if 0
-  const size_t max_elts = rows;
-  size_t max_cols_per_block = max_elts / rows;
-#else
+//#if 0
+//  const size_t max_elts = rows;
+//  size_t max_cols_per_block = max_elts / rows;
+//#else
   const size_t align_factor = 128 / elt_size;
   const size_t max_elts = (1 << 27) - 512;
   size_t max_cols_per_block = max_elts / rows;
   max_cols_per_block = (max_cols_per_block / align_factor) * align_factor;
-#endif
+//#endif
 
   //GMAssertAlways(ldda==k);
   //GMAssertAlways(lddb==k);

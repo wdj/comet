@@ -1600,9 +1600,8 @@ void gm_compute_numerators_3way_gpu_start(
 //printf("%i %i %i\n", J_min, J_max, vars.I_max);
       /*---Initialize result matrix to zero (apparently magma requires)---*/
       gm_linalg_set_matrix_zero_start(vars.matB_buf_ptr, nvl,
-                                     vars.I_max, env);
+                                      vars.I_max, env);
       /*---Perform pseudo mat X mat matB = matV^T PROD X - START---*/
-//printf("%i %i %i %i\n", env->proc_num_, vars.I_max, nvl, npvfl);
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
                            matV_buf[vars.index_01]->d, npvfl,
                            vectors_K_buf->d, npvfl,

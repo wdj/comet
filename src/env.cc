@@ -21,6 +21,8 @@
 #include <math.h>
 #include <errno.h>
 
+#include <signal.h>
+
 #ifdef TESTING
 #include "gtest/gtest.h"
 #endif
@@ -51,7 +53,11 @@ void gm_assert(const char* condition_string, const char* file, int line) {
   fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Assertion error",
           condition_string, file, line);
   gm_test_wrapper();
+#ifdef GM_ASSERTIONS_ON
+  raise(SIGUSR1);
+#else
   exit(EXIT_FAILURE);
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
