@@ -213,8 +213,9 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
 
     const GMFloat adjustment = 4 * num_seminibbles_pad;
     int j = 0;
+    int i = 0;
+#pragma omp parallel for collapse(2)
     for (j = 0; j < metrics->num_vector_local; ++j) {
-      int i = 0;
       for (i = 0; i < metrics->num_vector_local; ++i) {
         ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j]
             .data[0] -= adjustment;

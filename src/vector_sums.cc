@@ -121,10 +121,10 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
   int i = 0;
   for (i = 0; i < vectors->num_vector_local; ++i) {
     GMFloat sum = 0;
-    int field_local = 0;
-    for (field_local = 0; field_local < vectors->num_field_local;
-         ++field_local) {
-      const GMFloat value = GMVectors_float_get(vectors, field_local, i, env);
+    int fl = 0;
+#pragma omp parallel for reduction(+:sum)
+    for (fl = 0; fl < vectors->num_field_local; ++fl) {
+      const GMFloat value = GMVectors_float_get(vectors, fl, i, env);
       sum += value;
     }
     vector_sums_local[i] = sum;
@@ -168,10 +168,11 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
     int i = 0;
     for (i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;
-      int f = 0;
-      for (f = 0; f < vectors->num_field_local; ++f) {
+      int fl = 0;
+#pragma omp parallel for reduction(+:sum)
+      for (fl = 0; fl < vectors->num_field_local; ++fl) {
         /*---Slow way: sum each semi-nibble individually---*/
-        const GMBits2 value = GMVectors_bits2_get(vectors, f, i, env);
+        const GMBits2 value = GMVectors_bits2_get(vectors, fl, i, env);
         sum += ((value & 1) != 0) + ((value & 2) != 0);
       }
       GMAssert(sum >= 0 && sum <= 2 * vectors->num_field);

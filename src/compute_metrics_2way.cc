@@ -268,7 +268,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     const int j_i_block_delta_prev = num_proc_r * (step_num-1) + proc_num_r;
     const int j_i_block_delta_next = num_proc_r * (step_num+1) + proc_num_r;
 
-//TODO: revise
     const int proc_num_offset = num_proc_r * j_i_block_delta;
     const int proc_num_offset_prev = num_proc_r * j_i_block_delta_prev;
     const int proc_num_offset_next = num_proc_r * j_i_block_delta_next;
@@ -302,7 +301,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---Prepare for sends/recvs: procs for communication---*/
 
-//TODO: revise
     const int proc_recv = gm_mod_i(proc_num_ir + proc_num_offset_next,
                                    num_proc_ir);
     const int proc_send = gm_mod_i(proc_num_ir - proc_num_offset_next,
@@ -314,9 +312,10 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     if (is_compute_step_next && !comm_with_self) {
       const int mpi_tag = step_num + 1;
-      mpi_requests[0] = gm_send_vectors_start(vectors_left, proc_send,
-                                              mpi_tag, env);
+      /*---NOTE: this order helps performance---*/
       mpi_requests[1] = gm_recv_vectors_start(vectors_right_next, proc_recv,
+                                              mpi_tag, env);
+      mpi_requests[0] = gm_send_vectors_start(vectors_left, proc_send,
                                               mpi_tag, env);
     }
 
@@ -330,7 +329,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---The block num for the "right-side" vecs for the pseudo-product---*/
 
-//TODO: revise
     const int j_block = gm_mod_i(proc_num_ir + proc_num_offset,
                                  num_proc_ir)/num_proc_r;
 
@@ -370,7 +368,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         }
 
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
-//TODO: revise
         GMVectorSums* vector_sums_right = proc_num_offset_prev % num_proc_ir == 0
                                               ? &vector_sums_onproc
                                               : &vector_sums_offproc;
@@ -381,14 +378,32 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     }
 
     /*---ISSUE: it may be possible to increase performance by swapping the
-         two code blocks below and the one code block above.  It depends
+         some code blocks below and the one code block above.  It depends
          on the relative speeds.  If these would be put in two different
          CPU threads, then it wouldn't matter---*/
+
+    /*---Wait for sends to complete---*/
+    /*---NOTE: putting this here instead of end of loop seems faster---*/
+
+    if (is_compute_step_next && !comm_with_self) {
+      gm_send_vectors_wait(&(mpi_requests[0]), env);
+    }
 
     /*---Wait for recvs to complete---*/
 
     if (is_compute_step_next && !comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), env);
+    }
+
+    /*---Compute sums for denominators---*/
+
+    if (is_compute_step && do_compute_block) {
+      if (is_first_compute_step) {
+        GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
+      }
+      if (proc_num_offset % num_proc_ir != 0) {
+        GMVectorSums_compute(&vector_sums_offproc, vectors_right, env);
+      }
     }
 
     /*---Send right vectors for next step to GPU start---*/
@@ -412,24 +427,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       gm_get_metrics_start(metrics, metrics_buf, env);
     }
 
-    /*---Compute sums for denominators---*/
-
-    if (is_compute_step && do_compute_block) {
-//TODO: revise
-      if (is_first_compute_step) {
-        GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
-      }
-      if (proc_num_offset % num_proc_ir != 0) {
-        GMVectorSums_compute(&vector_sums_offproc, vectors_right, env);
-      }
-    }
-
     /*---CPU case: combine numerators, denominators to obtain final result---*/
 
     if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
       if (is_compute_step && do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
-//TODO: revise
         GMVectorSums* vector_sums_right =
             proc_num_offset % num_proc_ir == 0
             ? &vector_sums_onproc : &vector_sums_offproc;
@@ -437,12 +439,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                                 vector_sums_right, j_block,
                                 do_compute_triang_only, env);
       }
-    }
-
-    /*---Wait for sends to complete---*/
-
-    if (is_compute_step_next && !comm_with_self) {
-      gm_send_vectors_wait(&(mpi_requests[0]), env);
     }
 
   /*========================================*/
