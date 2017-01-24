@@ -93,8 +93,12 @@ fi
 GTEST_DIR=""
 
 if [ "$TESTING" = ON ] ; then
-  wget -O googletest-release-1.7.0.tar.gz \
-    https://github.com/google/googletest/archive/release-1.7.0.tar.gz
+  if [ -e ../tools/googletest-release-1.7.0.tar.gz ] ; then
+    ln -s ../tools/googletest-release-1.7.0.tar.gz
+  else
+    wget -O googletest-release-1.7.0.tar.gz \
+      https://github.com/google/googletest/archive/release-1.7.0.tar.gz
+  fi
   gunzip <googletest-release-1.7.0.tar.gz | tar xf -
   GTEST_DIR=$(pwd)/googletest-release-1.7.0
   mkdir $GTEST_DIR/lib
@@ -131,6 +135,10 @@ C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally4/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally3/include"
 C_CXX_FLAGS="$C_CXX_FLAGS $CRAY_CUDATOOLKIT_INCLUDE_OPTS"
 C_CXX_FLAGS="$C_CXX_FLAGS -g -rdynamic" # for stack trace
+C_CXX_FLAGS="$C_CXX_FLAGS -Wall -Wno-unused-function -Werror"
+C_CXX_FLAGS="$C_CXX_FLAGS -fno-associative-math"
+C_CXX_FLAGS="$C_CXX_FLAGS -fopenmp"
+C_CXX_FLAGS="$C_CXX_FLAGS -Wno-error=unknown-pragmas"
 
 #----------
 
@@ -171,11 +179,11 @@ time cmake \
  \
   -DC_AND_CXX_FLAGS:STRING="$C_CXX_FLAGS" \
  \
-  -DCMAKE_C_FLAGS:STRING="-std=c99 -Wall -Wno-unused-function -pedantic -Werror -fno-associative-math -fopenmp" \
+  -DCMAKE_C_FLAGS:STRING="-std=c99 -pedantic" \
   -DCMAKE_C_FLAGS_DEBUG:STRING="-g -ftrapv" \
   -DCMAKE_C_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \
-  -DCMAKE_CXX_FLAGS:STRING="-Wall -Wno-unused-function -Werror -fno-associative-math -fopenmp" \
+  -DCMAKE_CXX_FLAGS:STRING="" \
   -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -ftrapv" \
   -DCMAKE_CXX_FLAGS_RELEASE:STRING="$C_FLAGS_RELEASE" \
  \

@@ -204,6 +204,7 @@ int main(int argc, char** argv) {
   if (GMEnv_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
     /*---Perform preliminary run on GPU since sometimes first use is slower---*/
 
+//FIX this to run on all nodes.
     const char* options1 =
         "--num_field 1 --num_vector_local 2 "
         "--compute_method GPU --verbosity 0";
