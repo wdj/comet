@@ -144,29 +144,27 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMVectorSums_create(&vector_sums_onproc, vectors, env);
   GMVectorSums_create(&vector_sums_offproc, vectors, env);
 
+  /*---Magma initializations---*/
+
+  gm_linalg_initialize(env);
+
   /*---Create double buffer of vectors objects for send/recv---*/
 
   GMVectors vectors_01[2];
   for (i = 0; i < 2; ++i) {
-    GMVectors_create(&vectors_01[i], GMEnv_data_type_vectors(env),
+    GMVectors_create_with_buf(&vectors_01[i], GMEnv_data_type_vectors(env),
                      vectors->num_field, vectors->num_field_active,
                      nvl, env);
   }
-
-  /*---Magma initializations---*/
-
-  gm_linalg_initialize(env);
 
   /*---Allocate GPU buffers---*/
   /*---To overlap transfers with compute, set up double buffers for the
        vectors sent to the GPU and the metrics received from the GPU.---*/
 
   GMMirroredPointer metrics_buf_01[2];
-  GMMirroredPointer vectors_buf_01[2];
   GMMirroredPointer vectors_buf = GMMirroredPointer_null();
   GMMirroredPointer metrics_buf_tmp = GMMirroredPointer_null();
   for (i = 0; i < 2; ++i) {
-    vectors_buf_01[i] = gm_linalg_malloc(nvl * (size_t)npvfl, env);
     metrics_buf_01[i] = gm_linalg_malloc(nvl * (size_t)nvl, env);
   }
   vectors_buf = gm_linalg_malloc(nvl * (size_t)npvfl, env);
@@ -291,8 +289,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     GMMirroredPointer* vectors_left_buf = &vectors_buf;
     GMMirroredPointer* vectors_right_buf =
-        do_compute_triang_only ? &vectors_buf : &vectors_buf_01[index_01];
-    GMMirroredPointer* vectors_right_buf_next = &vectors_buf_01[index_01_next];
+        do_compute_triang_only ? &vectors_buf : &vectors_01[index_01].buf;
+    GMMirroredPointer* vectors_right_buf_next = &vectors_01[index_01_next].buf;
 
     /*---Point to metrics buffers---*/
 
@@ -409,7 +407,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Send right vectors for next step to GPU start---*/
 
     if (is_compute_step_next && do_compute_block_next) {
-      gm_vectors_to_buf(vectors_right_buf_next, vectors_right_next, env);
+      //gm_vectors_to_buf(vectors_right_buf_next, vectors_right_next, env);
       gm_set_vectors_start(vectors_right_next, vectors_right_buf_next, env);
     }
 
@@ -460,7 +458,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   for (i = 0; i < 2; ++i) {
     gm_linalg_free(&metrics_buf_01[i], env);
-    gm_linalg_free(&vectors_buf_01[i], env);
   }
   gm_linalg_free(&vectors_buf, env);
   gm_linalg_free(&metrics_buf_tmp, env);

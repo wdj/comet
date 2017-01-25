@@ -43,6 +43,8 @@ typedef struct {
   int pad1;
   void* __restrict__ data;
   size_t data_size;
+  _Bool has_buf;
+  GMMirroredPointer buf;
 } GMVectors;
 
 /*===========================================================================*/
@@ -59,6 +61,15 @@ void GMVectors_create(GMVectors* vectors,
                       size_t num_field_active,
                       int num_vector_local,
                       GMEnv* env);
+
+/*---------------------------------------------------------------------------*/
+
+void GMVectors_create_with_buf(GMVectors* vectors,
+                               int data_type_id,
+                               int num_field,
+                               size_t num_field_active,
+                               int num_vector_local,
+                               GMEnv* env);
 
 /*===========================================================================*/
 /*---Vectors pseudo-destructor---*/

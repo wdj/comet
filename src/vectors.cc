@@ -15,6 +15,7 @@
 
 #include "env.hh"
 #include "vectors.hh"
+#include "compute_utils_linalg.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,24 +96,18 @@ void GMVectors_initialize_pad(GMVectors* vectors,
 /*===========================================================================*/
 /*---Vectors pseudo-constructor---*/
 
-void GMVectors_create(GMVectors* vectors,
-                      int data_type_id,
-                      int num_field,
-                      size_t num_field_active,
-                      int num_vector_local,
-                      GMEnv* env) {
+void GMVectors_create_imp_(GMVectors* vectors,
+                           int data_type_id,
+                           int num_field,
+                           size_t num_field_active,
+                           int num_vector_local,
+                           GMEnv* env) {
   GMAssertAlways(vectors);
   GMAssertAlways(num_field >= 0);
   GMAssertAlways(num_field_active >= 0);
   GMAssertAlways(num_field_active <= (size_t)num_field);
   GMAssertAlways(num_vector_local >= 0);
   GMAssertAlways(env);
-
-  *vectors = GMVectors_null();
-
-  if (!GMEnv_is_proc_active(env)) {
-    return;
-  }
 
   GMInsist(env,
            num_field % GMEnv_num_proc_field(env) == 0
@@ -191,11 +186,72 @@ void GMVectors_create(GMVectors* vectors,
 
   vectors->data_size = vectors->num_packedval_local *
                        (vectors->num_bits_per_packedval / bits_per_byte);
-  vectors->data = gm_malloc(vectors->data_size, env);
+
+  if (vectors->has_buf) {
+    vectors->buf = gm_linalg_malloc(num_vector_local *
+                       (size_t)vectors->num_packedval_field_local, env);
+    vectors->data = vectors->buf.h;
+  } else {
+    vectors->data = gm_malloc(vectors->data_size, env);
+  }
 
   /*---Set pad entries to zero---*/
 
   GMVectors_initialize_pad(vectors, env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void GMVectors_create(GMVectors* vectors,
+                      int data_type_id,
+                      int num_field,
+                      size_t num_field_active,
+                      int num_vector_local,
+                      GMEnv* env) {
+  GMAssertAlways(vectors);
+  GMAssertAlways(num_field >= 0);
+  GMAssertAlways(num_field_active >= 0);
+  GMAssertAlways(num_field_active <= (size_t)num_field);
+  GMAssertAlways(num_vector_local >= 0);
+  GMAssertAlways(env);
+
+  *vectors = GMVectors_null();
+
+  if (!GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  vectors->has_buf = GM_BOOL_FALSE;
+
+  GMVectors_create_imp_(vectors, data_type_id, num_field, num_field_active,
+    num_vector_local, env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void GMVectors_create_with_buf(GMVectors* vectors,
+                               int data_type_id,
+                               int num_field,
+                               size_t num_field_active,
+                               int num_vector_local,
+                               GMEnv* env) {
+  GMAssertAlways(vectors);
+  GMAssertAlways(num_field >= 0);
+  GMAssertAlways(num_field_active >= 0);
+  GMAssertAlways(num_field_active <= (size_t)num_field);
+  GMAssertAlways(num_vector_local >= 0);
+  GMAssertAlways(env);
+
+  *vectors = GMVectors_null();
+
+  if (!GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  vectors->has_buf = GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU;
+
+  GMVectors_create_imp_(vectors, data_type_id, num_field, num_field_active,
+    num_vector_local, env);
 }
 
 /*===========================================================================*/
@@ -210,7 +266,12 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
     return;
   }
 
-  gm_free(vectors->data, vectors->data_size, env);
+  if (vectors->has_buf) {
+    gm_linalg_free(&vectors->buf, env);
+  } else {
+    gm_free(vectors->data, vectors->data_size, env);
+  }
+
   *vectors = GMVectors_null();
 }
 
