@@ -170,72 +170,159 @@ FloatingPoint_t tally4_compute(
     const GMBits2x64 vi = *(GMBits2x64*)&A;
     const GMBits2x64 vj = *(GMBits2x64*)&B;
 
-          const GMUInt64 vi0 = vi.data[0];
-          const GMUInt64 vi1 = vi.data[1];
-          const GMUInt64 vj0 = vj.data[0];
-          const GMUInt64 vj1 = vj.data[1];
+    //--------------------
+    // Nomenclature:
+    //
+    // ( ) v(i)(0)_(0)
+    // (n) v(j)(1)_(1)
+    //  ^    ^ ^   ^
+    //  |    | |   |--- lower or upper bit of each seminibble
+    //  |    | |--- lower or upper word
+    //  |    |--- left or right vector
+    //  |---test for value or for its negative/complement
+    //--------------------
 
-          /*---Get even, odd bits for each semi-nibble, masked to active---*/
+#if 1
+    const GMUInt64 vi0 = vi.data[0];
+    const GMUInt64 vi1 = vi.data[1];
+    const GMUInt64 vj0 = vj.data[0];
+    const GMUInt64 vj1 = vj.data[1];
 
-          const GMUInt64 oddbits = 0x5555555555555555;
+    /*---Get even, odd bits for each semi-nibble, masked to active---*/
 
-          const GMUInt64 vi0_0 =  vi0       & oddbits;
-          const GMUInt64 vi0_1 = (vi0 >> 1) & oddbits;
-          const GMUInt64 vi1_0 =  vi1       & oddbits;
-          const GMUInt64 vi1_1 = (vi1 >> 1) & oddbits;
-          const GMUInt64 vj0_0 =  vj0       & oddbits;
-          const GMUInt64 vj0_1 = (vj0 >> 1) & oddbits;
-          const GMUInt64 vj1_0 =  vj1       & oddbits;
-          const GMUInt64 vj1_1 = (vj1 >> 1) & oddbits;
+    const GMUInt64 oddbits = 0x5555555555555555;
 
-          /*---Get complements of the same bits, set other bits zero---*/
+    const GMUInt64 vi0_0 =  vi0       & oddbits;
+    const GMUInt64 vi0_1 = (vi0 >> 1) & oddbits;
+    const GMUInt64 vi1_0 =  vi1       & oddbits;
+    const GMUInt64 vi1_1 = (vi1 >> 1) & oddbits;
+    const GMUInt64 vj0_0 =  vj0       & oddbits;
+    const GMUInt64 vj0_1 = (vj0 >> 1) & oddbits;
+    const GMUInt64 vj1_0 =  vj1       & oddbits;
+    const GMUInt64 vj1_1 = (vj1 >> 1) & oddbits;
 
-          const GMUInt64 nvi0_0 = ~ vi0       & oddbits;
-          const GMUInt64 nvi0_1 = ~(vi0 >> 1) & oddbits;
-          const GMUInt64 nvi1_0 = ~ vi1       & oddbits;
-          const GMUInt64 nvi1_1 = ~(vi1 >> 1) & oddbits;
-          const GMUInt64 nvj0_0 = ~ vj0       & oddbits;
-          const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits;
-          const GMUInt64 nvj1_0 = ~ vj1       & oddbits;
-          const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits;
+    /*---Get complements of the same bits, set other bits zero---*/
 
-          const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
-                                      ( (nvi0_0 & nvj0_1) << 1 )) +
-                          gm_popcount64((nvi0_1 & nvj0_0) |
-                                      ( (nvi0_1 & nvj0_1) << 1 )) +
-                          gm_popcount64((nvi1_0 & nvj1_0) |
-                                      ( (nvi1_0 & nvj1_1) << 1 )) +
-                          gm_popcount64((nvi1_1 & nvj1_0) |
-                                      ( (nvi1_1 & nvj1_1) << 1 ));
-          const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
-                                      ( (nvi0_0 &  vj0_1) << 1 )) +
-                          gm_popcount64((nvi0_1 &  vj0_0) |
-                                      ( (nvi0_1 &  vj0_1) << 1 )) +
-                          gm_popcount64((nvi1_0 &  vj1_0) |
-                                      ( (nvi1_0 &  vj1_1) << 1 )) +
-                          gm_popcount64((nvi1_1 &  vj1_0) |
-                                      ( (nvi1_1 &  vj1_1) << 1 ));
-          const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
-                                      ( ( vi0_0 & nvj0_1) << 1 )) +
-                          gm_popcount64(( vi0_1 & nvj0_0) |
-                                      ( ( vi0_1 & nvj0_1) << 1 )) +
-                          gm_popcount64(( vi1_0 & nvj1_0) |
-                                      ( ( vi1_0 & nvj1_1) << 1 )) +
-                          gm_popcount64(( vi1_1 & nvj1_0) |
-                                      ( ( vi1_1 & nvj1_1) << 1 ));
-          const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
-                                      ( ( vi0_0 &  vj0_1) << 1 )) +
-                          gm_popcount64(( vi0_1 &  vj0_0) |
-                                      ( ( vi0_1 &  vj0_1) << 1 )) +
-                          gm_popcount64(( vi1_0 &  vj1_0) |
-                                      ( ( vi1_0 &  vj1_1) << 1 )) +
-                          gm_popcount64(( vi1_1 &  vj1_0) |
-                                      ( ( vi1_1 &  vj1_1) << 1 ));
+    const GMUInt64 nvi0_0 = ~ vi0       & oddbits;
+    const GMUInt64 nvi0_1 = ~(vi0 >> 1) & oddbits;
+    const GMUInt64 nvi1_0 = ~ vi1       & oddbits;
+    const GMUInt64 nvi1_1 = ~(vi1 >> 1) & oddbits;
+    const GMUInt64 nvj0_0 = ~ vj0       & oddbits;
+    const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits;
+    const GMUInt64 nvj1_0 = ~ vj1       & oddbits;
+    const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits;
 
-          /*---Accumulate---*/
+    const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
+                                ( (nvi0_0 & nvj0_1) << 1 )) +
+                    gm_popcount64((nvi0_1 & nvj0_0) |
+                                ( (nvi0_1 & nvj0_1) << 1 )) +
+                    gm_popcount64((nvi1_0 & nvj1_0) |
+                                ( (nvi1_0 & nvj1_1) << 1 )) +
+                    gm_popcount64((nvi1_1 & nvj1_0) |
+                                ( (nvi1_1 & nvj1_1) << 1 ));
+    const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
+                                ( (nvi0_0 &  vj0_1) << 1 )) +
+                    gm_popcount64((nvi0_1 &  vj0_0) |
+                                ( (nvi0_1 &  vj0_1) << 1 )) +
+                    gm_popcount64((nvi1_0 &  vj1_0) |
+                                ( (nvi1_0 &  vj1_1) << 1 )) +
+                    gm_popcount64((nvi1_1 &  vj1_0) |
+                                ( (nvi1_1 &  vj1_1) << 1 ));
+    const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
+                                ( ( vi0_0 & nvj0_1) << 1 )) +
+                    gm_popcount64(( vi0_1 & nvj0_0) |
+                                ( ( vi0_1 & nvj0_1) << 1 )) +
+                    gm_popcount64(( vi1_0 & nvj1_0) |
+                                ( ( vi1_0 & nvj1_1) << 1 )) +
+                    gm_popcount64(( vi1_1 & nvj1_0) |
+                                ( ( vi1_1 & nvj1_1) << 1 ));
+    const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
+                                ( ( vi0_0 &  vj0_1) << 1 )) +
+                    gm_popcount64(( vi0_1 &  vj0_0) |
+                                ( ( vi0_1 &  vj0_1) << 1 )) +
+                    gm_popcount64(( vi1_0 &  vj1_0) |
+                                ( ( vi1_0 &  vj1_1) << 1 )) +
+                    gm_popcount64(( vi1_1 &  vj1_0) |
+                                ( ( vi1_1 &  vj1_1) << 1 ));
 
-          sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-          sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+    /*---Accumulate---*/
+
+    sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+    sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+#else
+    const GMUInt64 oddbits = 0x5555555555555555;
+
+{
+    const GMUInt64 vi0 = vi.data[0];
+    const GMUInt64 vi0_0 =  vi0       & oddbits;
+    const GMUInt64 vi0_1 = (vi0 >> 1) & oddbits;
+    const GMUInt64 nvi0_0 = ~ vi0       & oddbits;
+    const GMUInt64 nvi0_1 = ~(vi0 >> 1) & oddbits;
+
+    const GMUInt64 vj0 = vj.data[0];
+    const GMUInt64 vj0_0 =  vj0       & oddbits;
+    const GMUInt64 vj0_1 = (vj0 >> 1) & oddbits;
+    const GMUInt64 nvj0_0 = ~ vj0       & oddbits;
+    const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits;
+
+    const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
+                                ( (nvi0_0 & nvj0_1) << 1 )) +
+                    gm_popcount64((nvi0_1 & nvj0_0) |
+                                ( (nvi0_1 & nvj0_1) << 1 ));
+    const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
+                                ( (nvi0_0 &  vj0_1) << 1 )) +
+                    gm_popcount64((nvi0_1 &  vj0_0) |
+                                ( (nvi0_1 &  vj0_1) << 1 ));
+    const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
+                                ( ( vi0_0 & nvj0_1) << 1 )) +
+                    gm_popcount64(( vi0_1 & nvj0_0) |
+                                ( ( vi0_1 & nvj0_1) << 1 ));
+    const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
+                                ( ( vi0_0 &  vj0_1) << 1 )) +
+                    gm_popcount64(( vi0_1 &  vj0_0) |
+                                ( ( vi0_1 &  vj0_1) << 1 ));
+
+    /*---Accumulate---*/
+
+    sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+    sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+}
+{
+    const GMUInt64 vi1 = vi.data[1];
+    const GMUInt64 vi1_0 =  vi1       & oddbits;
+    const GMUInt64 vi1_1 = (vi1 >> 1) & oddbits;
+    const GMUInt64 nvi1_0 = ~ vi1       & oddbits;
+    const GMUInt64 nvi1_1 = ~(vi1 >> 1) & oddbits;
+
+    const GMUInt64 vj1 = vj.data[1];
+    const GMUInt64 vj1_0 =  vj1       & oddbits;
+    const GMUInt64 vj1_1 = (vj1 >> 1) & oddbits;
+    const GMUInt64 nvj1_0 = ~ vj1       & oddbits;
+    const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits;
+
+    const int r00 = gm_popcount64((nvi1_0 & nvj1_0) |
+                                ( (nvi1_0 & nvj1_1) << 1 )) +
+                    gm_popcount64((nvi1_1 & nvj1_0) |
+                                ( (nvi1_1 & nvj1_1) << 1 ));
+    const int r01 = gm_popcount64((nvi1_0 &  vj1_0) |
+                                ( (nvi1_0 &  vj1_1) << 1 )) +
+                    gm_popcount64((nvi1_1 &  vj1_0) |
+                                ( (nvi1_1 &  vj1_1) << 1 ));
+    const int r10 = gm_popcount64(( vi1_0 & nvj1_0) |
+                                ( ( vi1_0 & nvj1_1) << 1 )) +
+                    gm_popcount64(( vi1_1 & nvj1_0) |
+                                ( ( vi1_1 & nvj1_1) << 1 ));
+    const int r11 = gm_popcount64(( vi1_0 &  vj1_0) |
+                                ( ( vi1_0 &  vj1_1) << 1 )) +
+                    gm_popcount64(( vi1_1 &  vj1_0) |
+                                ( ( vi1_1 &  vj1_1) << 1 ));
+
+    /*---Accumulate---*/
+
+    sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
+    sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
+}
+#endif
 
 //printf("%i %i %i %i %e %e\n", r00, r01, r10, r11, sum.data[0], sum.data[1]);
     return *(FloatingPoint_t*)&sum;
