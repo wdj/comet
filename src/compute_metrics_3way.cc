@@ -309,10 +309,10 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
         /*---Communicate vectors start---*/
         GMVectors* const vectors_j_this = vectors_j[index_j_comm];
         index_j_comm = 1 - index_j_comm;
-        MPI_Request req_send_j = gm_send_vectors_start(vectors_i,
-                                       proc_send_j, 0+3*section_block_num, env);
         MPI_Request req_recv_j = gm_recv_vectors_start(vectors_j_this,
                                        proc_recv_j, 0+3*section_block_num, env);
+        MPI_Request req_send_j = gm_send_vectors_start(vectors_i,
+                                       proc_send_j, 0+3*section_block_num, env);
 
         if (have_unprocessed_section_block) {
           /*---Compute numerators---*/
@@ -406,19 +406,19 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
             vectors_k_this = vectors_k[index_k_comm];
             index_k_comm = 1 - index_k_comm;
             // NOTE: in some cases may not need double buffer, one may be enough
-            req_send_k = gm_send_vectors_start(vectors_i,
-                                       proc_send_k, 1+3*section_block_num, env);
             req_recv_k = gm_recv_vectors_start(vectors_k_this,
                                        proc_recv_k, 1+3*section_block_num, env);
+            req_send_k = gm_send_vectors_start(vectors_i,
+                                       proc_send_k, 1+3*section_block_num, env);
           }
 
           /*---Communicate vectors start---*/
           GMVectors* const vectors_j_this = vectors_j[index_j_comm];
           index_j_comm = 1 - index_j_comm;
-          MPI_Request req_send_j = gm_send_vectors_start(vectors_i,
-                                         proc_send_j, 2+3*section_block_num, env);
           MPI_Request req_recv_j = gm_recv_vectors_start(vectors_j_this,
-                                         proc_recv_j, 2+3*section_block_num, env);
+                                      proc_recv_j, 2+3*section_block_num, env);
+          MPI_Request req_send_j = gm_send_vectors_start(vectors_i,
+                                      proc_send_j, 2+3*section_block_num, env);
 
           if (have_unprocessed_section_block) {
             /*---Compute numerators---*/
