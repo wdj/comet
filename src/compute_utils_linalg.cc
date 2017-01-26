@@ -448,6 +448,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                                 magma_minproduct_int_t lddb,
                                 void* dC,
                                 magma_minproduct_int_t lddc,
+                                _Bool is_beta_one,
                                 GMEnv* env) {
   GMAssertAlways(m >= 0);
   GMAssertAlways(n >= 0);
@@ -488,7 +489,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   /*----------------------------------------*/
 
     const GMFloat alpha = 1;
-    const GMFloat beta = 0;
+    const GMFloat beta = is_beta_one ? 1 : 0;
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproductblas_dgemm
@@ -510,8 +511,10 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
 
     typedef magma_tally4DoubleComplex Float_t;
 
+    const Float_t zero = {0, 0};
+    const Float_t one = {1, 0};
     const Float_t alpha = {1, 0};
-    const Float_t beta = {0, 0};
+    const Float_t beta = is_beta_one ? one : zero;
 
     magma_tally4blas_zgemm(Magma_tally4Trans, Magma_tally4NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
@@ -525,8 +528,10 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
 
     typedef magma_tally3DoubleComplex Float_t;
 
+    const Float_t zero = {0, 0};
+    const Float_t one = {1, 0};
     const Float_t alpha = {1, 0};
-    const Float_t beta = {0, 0};
+    const Float_t beta = is_beta_one ? one : zero;
 
     magma_tally3blas_zgemm(Magma_tally3Trans, Magma_tally3NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
@@ -579,52 +584,61 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 
   const size_t elt_size =
     GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ? sizeof(GMFloat) :
-    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-     GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
-    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-     GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
+   (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+    GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
+   (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+    GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
   GMAssertAlways(elt_size != 0);
 
-//#ifdef GM_ASSERTIONS_ON
-//#if 0
-//  const size_t max_elts = rows;
-//  size_t max_cols_per_block = max_elts / rows;
-//#else
   const size_t align_factor = 128 / elt_size;
   const size_t max_elts = (1 << 27) - 512;
-  size_t max_cols_per_block = max_elts / rows;
-  max_cols_per_block = (max_cols_per_block / align_factor) * align_factor;
-//#endif
 
-  //GMAssertAlways(ldda==k);
-  //GMAssertAlways(lddb==k);
-  //GMAssertAlways(lddc==m);
-
-  /*---TODO: find way to modify to handle even larger cases---*/
   /*---TODO: can we improve aspect ratios of submatrices---*/
+//  const size_t max_rows_per_block_raw = (1 << 14);;
+//  const size_t max_cols_per_block_raw = max_elts / max_rows_per_block_raw;
+
+  const size_t max_rows_per_block_raw = rows + align_factor;
+  const size_t max_cols_per_block_raw = max_elts / rows;
+
+  const size_t max_rows_per_block = (max_rows_per_block_raw / align_factor)
+                                                            * align_factor;
+  const size_t max_cols_per_block = (max_cols_per_block_raw / align_factor)
+                                                            * align_factor;
+
+  GMAssertAlways(max_rows_per_block != 0);
   GMAssertAlways(max_cols_per_block != 0);
 
   const size_t cols_per_block_A = gm_min_i8(cols_A, max_cols_per_block);
   const size_t cols_per_block_B = gm_min_i8(cols_B, max_cols_per_block);
 
-  size_t col_A_base = 0;
-  for (col_A_base=0; col_A_base<cols_A; col_A_base+=cols_per_block_A) {
-    const size_t cols_A_remaining = cols_A - col_A_base;
-    const size_t cols_A_this = gm_min_i8(cols_A_remaining, cols_per_block_A);
+  const size_t rows_per_block = gm_min_i8(rows, max_rows_per_block);
 
-    void* dA_this = (char*)dA + ldda*col_A_base*elt_size;
+  size_t row_base = 0;
+  for (row_base=0; row_base<rows; row_base+=rows_per_block) {
+    const size_t rows_remaining = rows - row_base;
+    const size_t rows_this = gm_min_i8(rows_remaining, rows_per_block);
 
-    size_t col_B_base = 0;
-    for (col_B_base=0; col_B_base<cols_B; col_B_base+=cols_per_block_B) {
-      const size_t cols_B_remaining = cols_B - col_B_base;
-      const size_t cols_B_this = gm_min_i8(cols_B_remaining, cols_per_block_B);
+    size_t col_A_base = 0;
+    for (col_A_base=0; col_A_base<cols_A; col_A_base+=cols_per_block_A) {
+      const size_t cols_A_remaining = cols_A - col_A_base;
+      const size_t cols_A_this = gm_min_i8(cols_A_remaining, cols_per_block_A);
 
-      void* dB_this = (char*)dB + lddb*col_B_base*elt_size;
+      void* dA_this = (char*)dA + (row_base + ldda*col_A_base)*elt_size;
 
-      void* dC_this = (char*)dC + (lddc*col_B_base + col_A_base)*elt_size;
+      size_t col_B_base = 0;
+      for (col_B_base=0; col_B_base<cols_B; col_B_base+=cols_per_block_B) {
 
-      gm_linalg_gemm_block_start(cols_A_this, cols_B_this, k,
-        dA_this, ldda, dB_this, lddb, dC_this, lddc, env);
+        const size_t cols_B_remaining = cols_B - col_B_base;
+        const size_t cols_B_this = gm_min_i8(cols_B_remaining,
+                                             cols_per_block_B);
+
+        void* dB_this = (char*)dB + (row_base + ldda*col_B_base)*elt_size;
+
+        void* dC_this = (char*)dC + (col_A_base + lddc*col_B_base)*elt_size;
+
+        gm_linalg_gemm_block_start(cols_A_this, cols_B_this, rows_this,
+          dA_this, ldda, dB_this, lddb, dC_this, lddc, row_base > 0,  env);
+      }
     }
   }
 }
