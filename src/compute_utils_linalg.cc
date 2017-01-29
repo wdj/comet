@@ -594,7 +594,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   const size_t max_elts = (1 << 27) - 512;
 
   /*---TODO: can we improve aspect ratios of submatrices---*/
-//  const size_t max_rows_per_block_raw = (1 << 14);;
+//  const size_t max_rows_per_block_raw = (1 << 14);
 //  const size_t max_cols_per_block_raw = max_elts / max_rows_per_block_raw;
 
   const size_t max_rows_per_block_raw = rows + align_factor;

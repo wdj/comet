@@ -216,8 +216,10 @@ void input_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         GMAssertAlways(NULL != input_file ? "Unable to open input file." : 0);
         int vl = 0;
         for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-          const size_t vector = vl +
-              vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+          const size_t proc_num = GMEnv_proc_num_vector_i(env);
+          const size_t vector = vl + vectors->num_vector_local * proc_num;
+          //---shuffle.
+          //const size_t vector = proc_num + GMEnv_num_proc_vector_i(env) * vl;
           /*---Fill pad vectors with copies of the last vector---*/
           const size_t vector_capped = vector <= do_->num_vector_active-1 ?
                                        vector : do_->num_vector_active-1;
@@ -374,6 +376,13 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
 
+      typedef unsigned char out_t;
+      const GMFloat out_max = 255;
+
+      const int buf_size = 4096;
+      int buf_elts = 0;
+      out_t buf[buf_size];
+
       if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
         size_t index = 0;
         for (index = 0; index < metrics->num_elts_local; ++index) {
@@ -387,13 +396,16 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           }
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
-          if (threshold < 0. || value > threshold) {
-            if (file == stdin) {
+          if (file == stdin) {
+            if (threshold < 0. || value > threshold) {
               fprintf(file,
                 sizeof(GMFloat) == 8 ?
                 "element (%li,%li): value: %.17e\n" :
                 "element (%li,%li): value: %.8e\n", coord0, coord1, value);
-            } else {
+            }
+          } else {
+#if 0
+            if (threshold < 0. || value > threshold) {
               size_t num_written = fwrite(&coord0, sizeof(size_t), 1, file);
               num_written *= 1;
               GMAssert(num_written == sizeof(size_t));
@@ -402,8 +414,27 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
               num_written = fwrite(&value, sizeof(GMFloat), 1, file);
               GMAssert(num_written == sizeof(GMFloat));
             }
+#endif
+            //if (threshold < 0. || value > threshold) {
+            {
+              out_t out_v = (out_t)(value * out_max);
+              buf[buf_elts++] = out_v;
+              if (buf_elts == buf_size) {
+                size_t num_written = fwrite(&buf, sizeof(out_t),
+                                            buf_elts, file);
+                num_written *= 1;
+                GMAssert(num_written == buf_elts*sizeof(out_t));
+                buf_elts = 0;
+              }
+            }
           }
         }
+      }
+      if (file != stdin) {
+        size_t num_written = fwrite(&buf, sizeof(out_t), buf_elts, file);
+        num_written *= 1;
+        GMAssert(num_written == buf_elts*sizeof(out_t));
+        buf_elts = 0;
       }
 
       if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
@@ -423,10 +454,17 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
           if (threshold < 0. || value > threshold) {
-            fprintf(file, sizeof(GMFloat) == 8 ?
-                          "element (%li,%li,%li): value: %.17e\n" :
-                          "element (%li,%li,%li): value: %.8e\n",
-                          coord0, coord1, coord2, value);
+            if (file == stdin) {
+              fprintf(file, sizeof(GMFloat) == 8 ?
+                            "element (%li,%li,%li): value: %.17e\n" :
+                            "element (%li,%li,%li): value: %.8e\n",
+                            coord0, coord1, coord2, value);
+            } else {
+              out_t out_v = (out_t)(value * out_max);
+              size_t num_written = fwrite(&out_v, sizeof(out_t), 1, file);
+              num_written *= 1;
+              GMAssert(num_written == sizeof(out_v));
+            }
           }
         }
       }

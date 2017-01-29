@@ -183,7 +183,6 @@ FloatingPoint_t tally3_compute(
     //--------------------
 
 #if 1
-
     const GMUInt64 vi0 = vi.data[0];
     const GMUInt64 vi1 = vi.data[1];
     const GMUInt64 vj0 = vj.data[0];
@@ -258,6 +257,8 @@ FloatingPoint_t tally3_compute(
     sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
 
 #else
+    /*---This code reduces register pressure but runs somewhat slower---*/
+
     const GMUInt64 oddbits = 0x5555555555555555;
 
 {

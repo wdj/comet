@@ -250,6 +250,8 @@ FloatingPoint_t tally4_compute(
     sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
     sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
 #else
+    /*---This code reduces register pressure but runs somewhat slower---*/
+
     const GMUInt64 oddbits = 0x5555555555555555;
 
 {

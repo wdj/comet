@@ -380,6 +380,66 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
          on the relative speeds.  If these would be put in two different
          CPU threads, then it wouldn't matter---*/
 
+#if 0
+    /*---Wait for recvs to complete---*/
+
+    if (is_compute_step_next && !comm_with_self) {
+      gm_recv_vectors_wait(&(mpi_requests[1]), env);
+    }
+
+    /*---Send right vectors for next step to GPU start---*/
+
+    if (is_compute_step_next && do_compute_block_next) {
+      //gm_vectors_to_buf(vectors_right_buf_next, vectors_right_next, env);
+      gm_set_vectors_start(vectors_right_next, vectors_right_buf_next, env);
+    }
+
+    /*--------------------*/
+    /*---Wait for numerators computation to complete---*/
+    /*--------------------*/
+
+    if (is_compute_step && do_compute_block) {
+      gm_compute_wait(env);
+    }
+
+    /*---Commence copy of completed numerators back from GPU---*/
+
+    if (is_compute_step && do_compute_block) {
+      gm_get_metrics_start(metrics, metrics_buf, env);
+    }
+
+    /*---Compute sums for denominators---*/
+
+    if (is_compute_step && do_compute_block) {
+      if (is_first_compute_step) {
+        GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
+      }
+      if (proc_num_offset % num_proc_ir != 0) {
+        GMVectorSums_compute(&vector_sums_offproc, vectors_right, env);
+      }
+    }
+
+    /*---CPU case: combine numerators, denominators to obtain final result---*/
+
+    if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+      if (is_compute_step && do_compute_block) {
+        GMVectorSums* vector_sums_left = &vector_sums_onproc;
+        GMVectorSums* vector_sums_right =
+            proc_num_offset % num_proc_ir == 0
+            ? &vector_sums_onproc : &vector_sums_offproc;
+        gm_compute_2way_combine(metrics, metrics_buf, vector_sums_left,
+                                vector_sums_right, j_block,
+                                do_compute_triang_only, env);
+      }
+    }
+
+    /*---Wait for sends to complete---*/
+
+    if (is_compute_step_next && !comm_with_self) {
+      gm_send_vectors_wait(&(mpi_requests[0]), env);
+    }
+#endif
+
     /*---Wait for sends to complete---*/
     /*---NOTE: putting this here instead of end of loop seems faster---*/
 
