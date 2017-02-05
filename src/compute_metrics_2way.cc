@@ -69,7 +69,6 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   /*---Copy in vectors---*/
 
-  /* .08 / 1.56 */
   gm_vectors_to_buf(&vectors_buf, vectors, env);
 
   /*---Send vectors to GPU---*/
@@ -92,14 +91,13 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   /*---Do reduction across field procs if needed---*/
 
   if (GMEnv_num_proc_field(env) > 1) {
-    gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
+    gm_reduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
   }
 
   /*---------------*/
   /*---Combine---*/
   /*---------------*/
 
-  /* .22 / 1.56 */
   gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
                           GMEnv_proc_num_vector_i(env), GM_BOOL_TRUE, env);
 
@@ -310,6 +308,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     if (is_compute_step_next && !comm_with_self) {
       const int mpi_tag = step_num + 1;
+
       /*---NOTE: this order helps performance---*/
       mpi_requests[1] = gm_recv_vectors_start(vectors_right_next, proc_recv,
                                               mpi_tag, env);
@@ -361,8 +360,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
             GMEnv_num_proc_field(env) == 1 ? metrics_buf_prev : &metrics_buf_tmp;
 
         if (GMEnv_num_proc_field(env) > 1) {
-          gm_allreduce_metrics(metrics, metrics_buf_prev_global,
-                               metrics_buf_prev, env);
+          gm_reduce_metrics(metrics, metrics_buf_prev_global,
+                            metrics_buf_prev, env);
         }
 
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
@@ -380,7 +379,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
          on the relative speeds.  If these would be put in two different
          CPU threads, then it wouldn't matter---*/
 
-#if 0
+#if 1
     /*---Wait for recvs to complete---*/
 
     if (is_compute_step_next && !comm_with_self) {
@@ -440,6 +439,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     }
 #endif
 
+#if 0
     /*---Wait for sends to complete---*/
     /*---NOTE: putting this here instead of end of loop seems faster---*/
 
@@ -498,6 +498,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                                 do_compute_triang_only, env);
       }
     }
+#endif
 
   /*========================================*/
   } /*---step_num---*/

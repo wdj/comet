@@ -30,22 +30,11 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   GMAssertAlways(env != NULL);
   GMAssertAlways(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
 
-  //const int mpi_tag = 0;
   MPI_Request mpi_request;
-  int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  /* clang-format off */
-  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
-                         GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
-                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
-                         GM_MPI_FLOAT :
-                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
-                         MPI_DOUBLE_COMPLEX :
-                       0;
-  /* clang-format on */
+  const int mpi_type = gm_mpi_type(env);
 
-  mpi_code =
+  const int mpi_code =
       MPI_Isend((void*)vectors->data, vectors->num_packedval_local, mpi_type,
                 proc_num, mpi_tag, GMEnv_mpi_comm_vector(env), &mpi_request);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
@@ -63,22 +52,11 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   GMAssertAlways(env != NULL);
   GMAssertAlways(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
 
-  //const int mpi_tag = 0;
   MPI_Request mpi_request;
-  int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  /* clang-format off */
-  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
-                         GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
-                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
-                         GM_MPI_FLOAT :
-                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
-                         MPI_DOUBLE_COMPLEX :
-                       0;
-  /* clang-format on */
+  const int mpi_type = gm_mpi_type(env);
 
-  mpi_code =
+  const int mpi_code =
       MPI_Irecv((void*)vectors->data, vectors->num_packedval_local, mpi_type,
                 proc_num, mpi_tag, GMEnv_mpi_comm_vector(env), &mpi_request);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
@@ -93,10 +71,8 @@ void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssertAlways(env != NULL);
 
   MPI_Status mpi_status;
-  int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  mpi_code = MPI_Wait(mpi_request, &mpi_status);
+  const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
@@ -107,42 +83,69 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssertAlways(env != NULL);
 
   MPI_Status mpi_status;
-  int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
 
-  mpi_code = MPI_Wait(mpi_request, &mpi_status);
+  const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
 /*===========================================================================*/
-/*---MPI allreduce operations---*/
+/*---MPI reduce operations---*/
 
-void gm_allreduce_metrics(GMMetrics* metrics,
-                          GMMirroredPointer* metrics_buf_target,
-                          GMMirroredPointer* metrics_buf_source,
-                          GMEnv* env) {
+void gm_reduce_metrics(GMMetrics* metrics,
+                       GMMirroredPointer* metrics_buf_target,
+                       GMMirroredPointer* metrics_buf_source,
+                       GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(metrics_buf_target != NULL);
   GMAssertAlways(metrics_buf_source != NULL);
   GMAssertAlways(env != NULL);
 
-  const int numvecl = metrics->num_vector_local;
+  const int nvl = metrics->num_vector_local;
 
-  /* clang-format off */
-  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
-                         GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
-                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
-                         GM_MPI_FLOAT :
-                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
-                         MPI_DOUBLE_COMPLEX :
-                       0;
-  /* clang-format on */
+  const int mpi_type = gm_mpi_type(env);
 
-  int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
-  mpi_code = MPI_Allreduce(metrics_buf_source->h, metrics_buf_target->h,
-                           numvecl * (size_t)numvecl, mpi_type, MPI_SUM,
-                           GMEnv_mpi_comm_field(env));
+  const int mpi_code = MPI_Allreduce(metrics_buf_source->h,
+                                     metrics_buf_target->h,
+                                     nvl * (size_t)nvl, mpi_type, MPI_SUM,
+                                     GMEnv_mpi_comm_field(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+}
+
+/*---------------------------------------------------------------------------*/
+
+MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
+                                    GMMirroredPointer* metrics_buf_target,
+                                    GMMirroredPointer* metrics_buf_source,
+                                    GMEnv* env) {
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(metrics_buf_target != NULL);
+  GMAssertAlways(metrics_buf_source != NULL);
+  GMAssertAlways(env != NULL);
+
+  const int nvl = metrics->num_vector_local;
+
+  const int mpi_type = gm_mpi_type(env);
+
+  MPI_Request mpi_request;
+  const int mpi_code = MPI_Iallreduce(metrics_buf_source->h,
+                                      metrics_buf_target->h,
+                                      nvl * (size_t)nvl, mpi_type, MPI_SUM,
+                                      GMEnv_mpi_comm_field(env),
+                                      &mpi_request);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+
+  return mpi_request;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
+  GMAssertAlways(mpi_request != NULL);
+  GMAssertAlways(env != NULL);
+
+  MPI_Status mpi_status;
+
+  const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
@@ -184,54 +187,57 @@ void gm_get_metrics_start(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-void gm_metrics_gpu_adjust(GMMetrics* metrics,
-                           GMMirroredPointer* metrics_buf,
-                           GMEnv* env) {
-  GMAssertAlways(env != NULL);
-
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-      GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    /*---Adjust entries because of computation on pad values.
-         EXPLANATION: the final word of each vector may have zero-pad bits
-         to fill out the word.  The Magma call will tally these into the
-         GMTally2x2 data[0] entry, because this is here the zero X zero
-         semi-nibble pairs are tallied.  The code here fixes this by
-         subtracting off this unwanted tally result.---*/
-    /*---NOTE: this should work for both 2-way and 3-way---*/
-
-    const int nfl = metrics->num_field_local;
-    const int num_packedval_field_local = (nfl + 64 - 1) / 64;
-    const int num_field_calculated = num_packedval_field_local * 64;
-    const int num_field_active_local =
-      GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1
-      ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
-    GMAssertAlways(num_field_active_local >= 0);
-    const int num_seminibbles_pad = num_field_calculated -
-                                    num_field_active_local;
-    //const int num_seminibbles_pad =
-    //    64 - (1 + (metrics->num_field_local - 1) % 64);
-
-    const GMFloat adjustment = 4 * num_seminibbles_pad;
-    int j = 0;
-    int i = 0;
-#pragma omp parallel for collapse(2)
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      for (i = 0; i < metrics->num_vector_local; ++i) {
-        ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j]
-            .data[0] -= adjustment;
-      } /*---for j---*/
-    }   /*---for i---*/
-  }     /*---if---*/
-}
-
-/*---------------------------------------------------------------------------*/
-
 void gm_get_metrics_wait(GMMetrics* metrics,
                          GMMirroredPointer* metrics_buf,
                          GMEnv* env) {
   GMAssertAlways(env != NULL);
 
   gm_linalg_get_matrix_wait(env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+void gm_metrics_gpu_adjust(GMMetrics* metrics,
+                           GMMirroredPointer* metrics_buf,
+                           GMEnv* env) {
+  GMAssertAlways(env != NULL);
+
+  if (! (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+      GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
+    return;
+  }
+
+
+  /*---Adjust entries because of computation on pad values.
+       EXPLANATION: the final word of each vector may have zero-pad bits
+       to fill out the word.  The Magma call will tally these into the
+       GMTally2x2 data[0] entry, because this is here the zero X zero
+       semi-nibble pairs are tallied.  The code here fixes this by
+       subtracting off this unwanted tally result.---*/
+  /*---NOTE: this should work for both 2-way and 3-way---*/
+
+  const int nfl = metrics->num_field_local;
+  const int num_packedval_field_local = (nfl + 64 - 1) / 64;
+  const int num_field_calculated = num_packedval_field_local * 64;
+  const int num_field_active_local =
+    GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1
+    ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
+  GMAssertAlways(num_field_active_local >= 0);
+  const int num_seminibbles_pad = num_field_calculated -
+                                  num_field_active_local;
+  //const int num_seminibbles_pad =
+  //    64 - (1 + (metrics->num_field_local - 1) % 64);
+
+  const GMFloat adjustment = 4 * num_seminibbles_pad;
+  int j = 0;
+  int i = 0;
+#pragma omp parallel for collapse(2)
+  for (j = 0; j < metrics->num_vector_local; ++j) {
+    for (i = 0; i < metrics->num_vector_local; ++i) {
+      ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j]
+          .data[0] -= adjustment;
+    } /*---for j---*/
+  }   /*---for i---*/
 }
 
 /*===========================================================================*/
@@ -249,7 +255,7 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
   }
 
   int i = 0;
-  int f = 0;
+  int fl = 0;
 
   switch (GMEnv_metric_type(env)) {
     /*----------------------------------------*/
@@ -266,9 +272,9 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
       const size_t nfl = vectors->num_field_local;
 #pragma omp parallel for collapse(2)
       for (i = 0; i < vectors->num_vector_local; ++i) {
-        for (f = 0; f < vectors->num_field_local; ++f) {
-          ((GMFloat*)vectors_buf->h)[f + nfl * i] =
-              GMVectors_float_get(vectors, f, i, env);
+        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+          ((GMFloat*)vectors_buf->h)[fl + nfl * i] =
+              GMVectors_float_get(vectors, fl, i, env);
         }
       }
     } break;
@@ -279,9 +285,9 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
       const size_t npvfl = vectors->num_packedval_field_local;
 #pragma omp parallel for collapse(2)
       for (i = 0; i < vectors->num_vector_local; ++i) {
-        for (f = 0; f < vectors->num_packedval_field_local; ++f) {
-          ((GMBits2x64*)vectors_buf->h)[f + npvfl * i] =
-              GMVectors_bits2x64_get(vectors, f, i, env);
+        for (fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
+          ((GMBits2x64*)vectors_buf->h)[fl + npvfl * i] =
+              GMVectors_bits2x64_get(vectors, fl, i, env);
         }
       }
     } break;

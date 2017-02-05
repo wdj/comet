@@ -95,7 +95,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   /*---Do reduction across field procs if needed---*/
 
 //  if (GMEnv_num_proc_field(env) > 1) {
-//    gm_allreduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
+//    gm_reduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
 //  }
 
   /*---------------*/

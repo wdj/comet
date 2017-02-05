@@ -1287,8 +1287,6 @@ void gm_compute_numerators_3way_gpu_start(
 
   const int nvl = metrics->num_vector_local;
   const int npvfl = vectors_i->num_packedval_field_local;
-  const size_t metrics_buf_size = nvl * (size_t)nvl;
-  //const size_t vectors_buf_size = nvl * (size_t)npvfl;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
@@ -1333,15 +1331,8 @@ void gm_compute_numerators_3way_gpu_start(
     gm_get_metrics_start(metrics, matM_ij_buf_local, env);
     gm_get_metrics_wait(metrics, matM_ij_buf_local, env);
 
-    //gm_linalg_get_matrix_start(matM_ij_buf_local, nvl, nvl, env);
-    //gm_linalg_get_matrix_wait(env);
-
     if (need_reduce) {
-      GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
-      mpi_code = MPI_Allreduce(matM_ij_buf_local->h, matM_ij_buf->h,
-                               metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
-                               GMEnv_mpi_comm_field(env));
-      GMAssertAlways(mpi_code == MPI_SUCCESS);
+      gm_reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_local, env);
     }
   }
 
@@ -1369,15 +1360,8 @@ void gm_compute_numerators_3way_gpu_start(
     gm_get_metrics_start(metrics, matM_jk_buf_local, env);
     gm_get_metrics_wait(metrics, matM_jk_buf_local, env);
 
-    //gm_linalg_get_matrix_start(matM_jk_buf_local, nvl, nvl, env);
-    //gm_linalg_get_matrix_wait(env);
-
     if (need_reduce) {
-      GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
-      mpi_code = MPI_Allreduce(matM_jk_buf_local->h, matM_jk_buf->h,
-                               metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
-                               GMEnv_mpi_comm_field(env));
-      GMAssertAlways(mpi_code == MPI_SUCCESS);
+      gm_reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_local, env);
     }
   }
 
@@ -1408,15 +1392,8 @@ void gm_compute_numerators_3way_gpu_start(
     gm_get_metrics_start(metrics, matM_kik_buf_local, env);
     gm_get_metrics_wait(metrics, matM_kik_buf_local, env);
 
-    //gm_linalg_get_matrix_start(matM_kik_buf_local, nvl, nvl, env);
-    //gm_linalg_get_matrix_wait(env);
-
     if (need_reduce) {
-      GMAssertAlways(metrics_buf_size == (size_t)(int)metrics_buf_size);
-      mpi_code = MPI_Allreduce(matM_kik_buf_local->h, matM_kik_buf->h,
-                               metrics_buf_size, GM_MPI_FLOAT, MPI_SUM,
-                               GMEnv_mpi_comm_field(env));
-      GMAssertAlways(mpi_code == MPI_SUCCESS);
+      gm_reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_local, env);
     }
   } /*---is_part3---*/
 
@@ -1626,10 +1603,7 @@ void gm_compute_numerators_3way_gpu_start(
 
     if (vars_prevprev.do_compute) {
       if (need_reduce) {
-        MPI_Status mpi_status;
-        mpi_code = MPI_Wait(&(mpi_requests[vars_prevprev.index_01]),
-                            &mpi_status);
-        GMAssertAlways(mpi_code == MPI_SUCCESS);
+        gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]), env); 
         //matB_buf[vars.prevprev.index_01]->h is now available.
       }
     }
@@ -1638,16 +1612,8 @@ void gm_compute_numerators_3way_gpu_start(
 
     if (vars_prev.do_compute) {
       if (need_reduce) {
-        //TODO: fix this properly.
-        const _Bool is_ccc = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC;
-        mpi_code = MPI_Iallreduce(vars_prev.matB_buf_ptr->h,
-                                  matB_buf[vars_prev.index_01]->h,
-                                  metrics_buf_size,
-                                  is_ccc ? MPI_DOUBLE_COMPLEX : GM_MPI_FLOAT,
-                                  MPI_SUM,
-                                  GMEnv_mpi_comm_field(env),
-                                  &(mpi_requests[vars_prev.index_01]));
-        GMAssertAlways(mpi_code == MPI_SUCCESS);
+        mpi_requests[vars_prev.index_01] = gm_reduce_metrics_start(metrics,
+            matB_buf[vars_prev.index_01], vars_prev.matB_buf_ptr, env);
         //matB_buf[vars.prev.index_01]->h is now being overwritten.
       }
     }

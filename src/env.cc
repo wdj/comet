@@ -571,6 +571,24 @@ void GMFloat_check(GMFloat* const a, size_t n) {
 #endif
 }
 
+/*---------------------------------------------------------------------------*/
+
+int gm_mpi_type(GMEnv const * const env) {
+  GMAssertAlways(env != NULL);
+
+  /* clang-format off */
+  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
+                         GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
+                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+                         GM_MPI_FLOAT :
+                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
+                         MPI_DOUBLE_COMPLEX :
+                       0;
+  /* clang-format on */
+
+  return mpi_type;
+}
+
 /*===========================================================================*/
 
 #ifdef __cplusplus

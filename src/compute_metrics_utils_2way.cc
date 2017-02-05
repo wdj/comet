@@ -41,7 +41,7 @@ void gm_compute_czekanowski_numerators_2way_start(
 
   int i = 0;
   int j = 0;
-  int f = 0;
+  int fl = 0;
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
@@ -57,9 +57,9 @@ void gm_compute_czekanowski_numerators_2way_start(
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
       for (i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
-        for (f = 0; f < vectors_left->num_field_local; ++f) {
-          const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
-          const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
+        for (fl = 0; fl < vectors_left->num_field_local; ++fl) {
+          const GMFloat value1 = GMVectors_float_get(vectors_left, fl, i, env);
+          const GMFloat value2 = GMVectors_float_get(vectors_right, fl, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
         GMMetrics_float_set_all2all_2(metrics, i, j, j_block, metric, env);
@@ -80,9 +80,9 @@ void gm_compute_czekanowski_numerators_2way_start(
       const int i_max = j;
       for (i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
-        for (f = 0; f < vectors_left->num_field_local; ++f) {
-          const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
-          const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
+        for (fl = 0; fl < vectors_left->num_field_local; ++fl) {
+          const GMFloat value1 = GMVectors_float_get(vectors_left, fl, i, env);
+          const GMFloat value2 = GMVectors_float_get(vectors_right, fl, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
         GMMetrics_float_set_2(metrics, i, j, metric, env);
@@ -144,10 +144,10 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        int f = 0;
-        for (f = 0; f < vectors_left->num_field_local; ++f) {
-          const GMBits2 value_i = GMVectors_bits2_get(vectors_left, f, i, env);
-          const GMBits2 value_j = GMVectors_bits2_get(vectors_right, f, j, env);
+        int fl = 0;
+        for (fl = 0; fl < vectors_left->num_field_local; ++fl) {
+          const GMBits2 value_i = GMVectors_bits2_get(vectors_left, fl, i, env);
+          const GMBits2 value_j = GMVectors_bits2_get(vectors_right, fl, j, env);
 
           /* clang-format off */
           const int r00 = ( ( !(value_i & 1) ) && ( !(value_j & 1) ) ) +
@@ -188,7 +188,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
 
           sum.data[0] += GMTally1_encode(r00, r01);
           sum.data[1] += GMTally1_encode(r10, r11);
-        } /*---for f---*/
+        } /*---for fl---*/
         if (GMEnv_all2all(env)) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {

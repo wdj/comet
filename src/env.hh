@@ -820,6 +820,10 @@ static int GMEnv_num_sections(GMEnv const * const env, int part_num) {
   return part_num == 3 ? 6 : GMEnv_num_section_steps(env, part_num);
 }
 
+/*---------------------------------------------------------------------------*/
+
+int gm_mpi_type(GMEnv const * const env);
+
 /*===========================================================================*/
 
 #ifdef __cplusplus

@@ -34,10 +34,17 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env);
 
 /*----------*/
 
-void gm_allreduce_metrics(GMMetrics* metrics,
-                          GMMirroredPointer* metrics_buf_target,
-                          GMMirroredPointer* metrics_buf_source,
-                          GMEnv* env);
+void gm_reduce_metrics(GMMetrics* metrics,
+                       GMMirroredPointer* metrics_buf_target,
+                       GMMirroredPointer* metrics_buf_source,
+                       GMEnv* env);
+
+MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
+                                    GMMirroredPointer* metrics_buf_target,
+                                    GMMirroredPointer* metrics_buf_source,
+                                    GMEnv* env);
+
+void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env);
 
 /*----------*/
 
