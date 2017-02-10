@@ -175,7 +175,7 @@ static void GMSectionInfo_create(
 
 #if 0
 
-- I_max = is_part1 ? J : numvecl; // XXX can work same way if permuted or not
+- I_max = is_part1 ? J : nvl; // XXX can work same way if permuted or not
 - K_min = is_part3 ? 0 : J + 1; // XXX can work same way if permuted or not
 - put in functions for permuted (I, K) and nonpermuted (i, k)
 - store I_ub, etc.
@@ -283,6 +283,11 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env);
 /*---Metrics checksum---*/
 
 void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env);
+
+/*===========================================================================*/
+
+void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int num_vector_local,
+                                   GMEnv* env);
 
 /*===========================================================================*/
 /*===========================================================================*/

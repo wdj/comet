@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  install_handler();
+  //install_handler();
 
   /*---If using GPU---*/
 
@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
     char* argv1[len1 + 1];
     int argc1 = 0;
     strcpy(argstring1, options1);
-    create_args(argstring1, &argc1, argv1);
+    gm_create_args(argstring1, &argc1, argv1);
 
     perform_run(argc1, (char**)argv1, NULL);
 

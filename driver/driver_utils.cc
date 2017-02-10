@@ -166,29 +166,6 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
 }
 
 /*===========================================================================*/
-/*---Utility to parse a string to construct arguments---*/
-
-void create_args(char* argstring, int* argc, char** argv) {
-  size_t len = strlen(argstring);
-
-  argv[0] = &argstring[0];
-  *argc = 1;
-  _Bool is_delim_prev = GM_BOOL_TRUE;
-  int i = 0;
-  for (i = 0; i < (int)len; ++i) {
-    const _Bool is_delim = argstring[i] == ' ' || argstring[i] == '\t';
-    if (is_delim) {
-      argstring[i] = 0;
-    }
-    if (is_delim_prev && !is_delim) {
-      argv[*argc] = &(argstring[i]);
-      (*argc)++;
-    }
-    is_delim_prev = is_delim;
-  }
-}
-
-/*===========================================================================*/
 /*---Set the entries of the vectors---*/
 
 void input_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
@@ -382,6 +359,7 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
       const int buf_size = 4096;
       int buf_elts = 0;
       out_t buf[buf_size];
+      size_t num_written_total = 0;
 
       if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
         size_t index = 0;
@@ -422,19 +400,13 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
               if (buf_elts == buf_size) {
                 size_t num_written = fwrite(&buf, sizeof(out_t),
                                             buf_elts, file);
-                num_written *= 1;
+                num_written_total += num_written;
                 GMAssert(num_written == buf_elts*sizeof(out_t));
                 buf_elts = 0;
               }
             }
           }
         }
-      }
-      if (file != stdin) {
-        size_t num_written = fwrite(&buf, sizeof(out_t), buf_elts, file);
-        num_written *= 1;
-        GMAssert(num_written == buf_elts*sizeof(out_t));
-        buf_elts = 0;
       }
 
       if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
@@ -453,6 +425,41 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           }
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+
+          if (file == stdin) {
+            if (threshold < 0. || value > threshold) {
+              fprintf(file,
+                sizeof(GMFloat) == 8 ?
+                "element (%li,%li): value: %.17e\n" :
+                "element (%li,%li): value: %.8e\n", coord0, coord1, value);
+            }
+          } else {
+#if 0
+            if (threshold < 0. || value > threshold) {
+              size_t num_written = fwrite(&coord0, sizeof(size_t), 1, file);
+              num_written *= 1;
+              GMAssert(num_written == sizeof(size_t));
+              num_written = fwrite(&coord1, sizeof(size_t), 1, file);
+              GMAssert(num_written == sizeof(size_t));
+              num_written = fwrite(&value, sizeof(GMFloat), 1, file);
+              GMAssert(num_written == sizeof(GMFloat));
+            }
+#endif
+            //if (threshold < 0. || value > threshold) {
+            {
+              out_t out_v = (out_t)(value * out_max);
+              buf[buf_elts++] = out_v;
+              if (buf_elts == buf_size) {
+                size_t num_written = fwrite(&buf, sizeof(out_t),
+                                            buf_elts, file);
+                num_written_total += num_written;
+                GMAssert(num_written == buf_elts*sizeof(out_t));
+                buf_elts = 0;
+              }
+            }
+          }
+
+#if 0
           if (threshold < 0. || value > threshold) {
             if (file == stdin) {
               fprintf(file, sizeof(GMFloat) == 8 ?
@@ -466,7 +473,18 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
               GMAssert(num_written == sizeof(out_v));
             }
           }
+#endif
+
         }
+      }
+
+      if (file != stdin) {
+        size_t num_written = fwrite(&buf, sizeof(out_t), buf_elts, file);
+        num_written_total += num_written;
+        GMAssert(num_written == buf_elts*sizeof(out_t));
+        buf_elts = 0;
+        printf("Wrote %lu elements of %lu from proc %i.\n",
+               num_written_total, metrics->num_elts_local, GMEnv_proc_num(env));
       }
 
     } break;
@@ -600,6 +618,50 @@ GMChecksum perform_run(int argc, char** argv, char const * const description) {
   /*---Initialize environment---*/
 
   GMEnv env = GMEnv_null();
+
+#if 0
+{
+  env.metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
+  env.num_way_ = 3;
+  env.all2all_ = 1;
+  env.compute_method_ = GM_COMPUTE_METHOD_GPU;
+  env.num_stage = 36;
+  env.stage_num = 35;
+
+  env.num_proc_world_ = 14880;
+  env.num_proc_ = 14880;
+  env.num_proc_field_ = 1;
+  env.num_proc_repl_ = 496;
+  env.num_proc_vector_i_ = 30;
+  env.num_proc_vector_total_ = 30 * 496;
+
+  env.proc_num_field_ = 1;
+
+  env.is_proc_active_ = 1;
+
+  //for (env.proc_num_=0; env.proc_num_<env.num_proc_; ++env.proc_num_) {
+  for (env.proc_num_=6; env.proc_num_<7; ++env.proc_num_) {
+
+    env.proc_num_repl_ = env.proc_num_ % env.num_proc_repl_;
+    env.proc_num_vector_i_ = env.proc_num_ / env.num_proc_repl_;
+    env.proc_num_vector_ = env.proc_num_;
+
+    GMMetrics metrics = GMMetrics_null();
+
+    //int nvl = 6324;
+
+    GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env),
+                     100, 100,
+                     6324,
+                     6324, &env);
+//    GMMetrics_3way_num_elts_local(&metrics, 6324, &env);
+    printf("%lu\n", metrics.num_elts_local);
+  }
+
+exit(1);
+}
+#endif
+
   GMEnv_create_from_args(&env, argc, argv, description);
 
   /*---Parse remaining unprocessed arguments---*/

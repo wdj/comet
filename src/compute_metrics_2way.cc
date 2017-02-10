@@ -410,6 +410,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Compute sums for denominators---*/
 
     if (is_compute_step && do_compute_block) {
+//TODO: possibly move this
       if (is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }

@@ -95,6 +95,29 @@ GMEnv GMEnv_null() {
 }
 
 /*===========================================================================*/
+/*---Utility to parse a string to construct arguments---*/
+
+void gm_create_args(char* argstring, int* argc, char** argv) {
+  size_t len = strlen(argstring);
+
+  argv[0] = &argstring[0];
+  *argc = 1;
+  _Bool is_delim_prev = GM_BOOL_TRUE;
+  int i = 0;
+  for (i = 0; i < (int)len; ++i) {
+    const _Bool is_delim = argstring[i] == ' ' || argstring[i] == '\t';
+    if (is_delim) {
+      argstring[i] = 0;
+    }
+    if (is_delim_prev && !is_delim) {
+      argv[*argc] = &(argstring[i]);
+      (*argc)++;
+    }
+    is_delim_prev = is_delim;
+  }
+}
+
+/*===========================================================================*/
 /*---Initialize environment---*/
 
 void GMEnv_create(GMEnv* const env, char const * const description) {
@@ -240,6 +263,24 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
       /*----------*/
     } /*---if/else---*/
   }   /*---for i---*/
+}
+
+/*===========================================================================*/
+
+void GMEnv_create_from_argstring(GMEnv* const env, char* options,
+                                 char const * const description) {
+
+  size_t len = strlen(options);
+  char* argstring = (char*)malloc((len + 1) * sizeof(char));
+  GMAssertAlways(argstring != NULL);
+  char* argv[len + 1];
+  int argc = 0;
+  strcpy(argstring, options);
+  gm_create_args(argstring, &argc, argv);
+
+  GMEnv_create_from_args(env, argc, argv, description);
+
+  free(argstring);
 }
 
 /*===========================================================================*/

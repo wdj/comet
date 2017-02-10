@@ -44,8 +44,6 @@ typedef struct {
 
 void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env);
 
-void create_args(char* argstring, int* argc, char** argv);
-
 void input_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env);
 
 void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,

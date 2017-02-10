@@ -38,6 +38,110 @@ GMMetrics GMMetrics_null() {
 }
 
 /*===========================================================================*/
+
+void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int num_vector_local,
+                                   GMEnv* env) {
+
+  metrics->num_elts_local = 0;
+  const int nvl = num_vector_local;
+  const int num_block = GMEnv_num_block_vector(env);
+  const int i_block = GMEnv_proc_num_vector_i(env);
+
+  int num_block_this_slab = 0;
+  /*---Fused counter for section_num and block_num, same across all procs---*/
+  int section_block_num = 0;
+  int section_step = 0;
+
+  /*---Compute size part 1: (tetrahedron) i_block==j_block==k_block part---*/
+
+  const int num_block_this_slab_1 = 1;
+  num_block_this_slab += num_block_this_slab_1;
+  GMAssertAlways(GMEnv_num_section_steps(env, 1) ==
+                 GMEnv_num_section_steps(env, 2));
+  const int num_section_steps_12 = GMEnv_num_section_steps(env, 1);
+  for (section_step=0; section_step<num_section_steps_12; ++section_step) {
+    /*---Record precalculated base offset---*/
+    const int section_num = section_step;
+    const int J_lo = gm_J_lo(section_num, nvl, 1, env);
+    const int J_hi = gm_J_hi(section_num, nvl, 1, env);
+    const size_t trap_size_lo = gm_trap_size(J_lo, nvl);
+    const size_t trap_size_hi = gm_trap_size(J_hi, nvl);
+    //---Absorb size_lo into offset for speed in indexing function.
+    //FIX - un/signed
+    metrics->index_offset_section_part1_[section_num]
+      = metrics->num_elts_local - trap_size_lo;
+    if (gm_proc_r_active(section_block_num, env)) {
+      /*---Elements in slice of trapezoid---*/
+      const size_t elts_local = trap_size_hi - trap_size_lo;
+      metrics->num_elts_local += elts_local;
+      metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
+    }
+    ++section_block_num;
+  }
+  metrics->index_offset_0_ = metrics->num_elts_local;
+
+  /*---Compute size part 2: (triang prisms) i_block!=j_block==k_block part---*/
+
+  const int num_block_this_slab_2 = num_block - 1;
+  num_block_this_slab += num_block_this_slab_2;
+  for (section_step=0; section_step<num_section_steps_12; ++section_step) {
+    /*---Record precalculated base offset---*/
+    const int section_num = section_step;
+    const int J_lo = gm_J_lo(section_num, nvl, 2, env);
+    const int J_hi = gm_J_hi(section_num, nvl, 2, env);
+    const size_t triang_size_lo = gm_triang_size(J_lo, nvl);
+    const size_t triang_size_hi = gm_triang_size(J_hi, nvl);
+    //---Absorb size_lo into offset for speed in indexing function.
+    //FIX - un/signed
+    metrics->index_offset_section_part2_[section_num]
+      = metrics->num_elts_local - nvl*triang_size_lo;
+    metrics->section_size_part2[section_num] = triang_size_hi -
+                                               triang_size_lo;
+    /*---Loop over block for part2---*/
+    int j_i_block_delta = 0;
+    for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
+      if (gm_proc_r_active(section_block_num, env)) {
+        /*---Elements in slice of triang prism---*/
+        const size_t elts_local = nvl*(triang_size_hi - triang_size_lo);
+        metrics->num_elts_local += elts_local;
+        metrics->section_num_valid_part2_[section_num] = (elts_local != 0);
+      }
+      ++section_block_num;
+    }
+  }
+  metrics->index_offset_01_ = metrics->num_elts_local;
+
+  /*---Compute size part 3: (block sections) i_block!=j_block!=k_block part---*/
+
+  const int num_block_this_slab_3 = (num_block - 1) * (num_block - 2);
+  num_block_this_slab += num_block_this_slab_3;
+  /*---Loop over block for part3---*/
+  int k_i_block_delta = 0;
+  for (k_i_block_delta=1; k_i_block_delta<num_block; ++k_i_block_delta) {
+    const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
+    int j_i_block_delta = 0;
+    for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
+      const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+      if (j_block == k_block) {
+        continue;
+      }
+      const int section_num = gm_section_num_part3(i_block, j_block,
+                                                   k_block);
+      const int J_lo = gm_J_lo(section_num, nvl, 3, env);
+      const int J_hi = gm_J_hi(section_num, nvl, 3, env);
+      if (gm_proc_r_active(section_block_num, env)) {
+        const size_t elts_local = nvl *
+           (size_t)nvl * (size_t)(J_hi - J_lo);
+        metrics->num_elts_local += elts_local;
+      }
+      ++section_block_num;
+    }
+  }
+
+  GMAssertAlways(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
+}
+
+/*===========================================================================*/
 /*---Metrics pseudo-constructor---*/
 
 void GMMetrics_create(GMMetrics* metrics,
@@ -229,99 +333,14 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*===PART A: CALCULATE INDEX SIZE===*/
 
-    metrics->num_elts_local = 0;
-    int num_block_this_slab = 0;
+    GMMetrics_3way_num_elts_local(metrics, nvl, env);
+
     /*---Fused counter for section_num and block_num, same across all procs---*/
     int section_block_num = 0;
     int section_step = 0;
 
-    /*---Compute size part 1: (tetrahedron) i_block==j_block==k_block part---*/
-
-    const int num_block_this_slab_1 = 1;
-    num_block_this_slab += num_block_this_slab_1;
-    GMAssertAlways(GMEnv_num_section_steps(env, 1) ==
-                   GMEnv_num_section_steps(env, 2));
-    const int num_section_steps_12 = GMEnv_num_section_steps(env, 1);
-    for (section_step=0; section_step<num_section_steps_12; ++section_step) {
-      /*---Record precalculated base offset---*/
-      const int section_num = section_step;
-      const int J_lo = gm_J_lo(section_num, nvl, 1, env);
-      const int J_hi = gm_J_hi(section_num, nvl, 1, env);
-      const size_t trap_size_lo = gm_trap_size(J_lo, nvl);
-      const size_t trap_size_hi = gm_trap_size(J_hi, nvl);
-      //---Absorb size_lo into offset for speed in indexing function.
-      //FIX - un/signed
-      metrics->index_offset_section_part1_[section_num]
-        = metrics->num_elts_local - trap_size_lo;
-      if (gm_proc_r_active(section_block_num, env)) {
-        /*---Elements in slice of trapezoid---*/
-        const size_t elts_local = trap_size_hi - trap_size_lo;
-        metrics->num_elts_local += elts_local;
-        metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
-      }
-      ++section_block_num;
-    }
-    metrics->index_offset_0_ = metrics->num_elts_local;
-
-    /*---Compute size part 2: (triang prisms) i_block!=j_block==k_block part---*/
-
-    const int num_block_this_slab_2 = num_block - 1;
-    num_block_this_slab += num_block_this_slab_2;
-    for (section_step=0; section_step<num_section_steps_12; ++section_step) {
-      /*---Record precalculated base offset---*/
-      const int section_num = section_step;
-      const int J_lo = gm_J_lo(section_num, nvl, 2, env);
-      const int J_hi = gm_J_hi(section_num, nvl, 2, env);
-      const size_t triang_size_lo = gm_triang_size(J_lo, nvl);
-      const size_t triang_size_hi = gm_triang_size(J_hi, nvl);
-      //---Absorb size_lo into offset for speed in indexing function.
-      //FIX - un/signed
-      metrics->index_offset_section_part2_[section_num]
-        = metrics->num_elts_local - nvl*triang_size_lo;
-      metrics->section_size_part2[section_num] = triang_size_hi -
-                                                 triang_size_lo;
-      /*---Loop over block for part2---*/
-      int j_i_block_delta = 0;
-      for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
-        if (gm_proc_r_active(section_block_num, env)) {
-          /*---Elements in slice of triang prism---*/
-          const size_t elts_local = nvl*(triang_size_hi - triang_size_lo);
-          metrics->num_elts_local += elts_local;
-          metrics->section_num_valid_part2_[section_num] = (elts_local != 0);
-        }
-        ++section_block_num;
-      }
-    }
-    metrics->index_offset_01_ = metrics->num_elts_local;
-
-    /*---Compute size part 3: (block sections) i_block!=j_block!=k_block part---*/
-
-    const int num_block_this_slab_3 = (num_block - 1) * (num_block - 2);
-    num_block_this_slab += num_block_this_slab_3;
-    /*---Loop over block for part3---*/
     int k_i_block_delta = 0;
-    for (k_i_block_delta=1; k_i_block_delta<num_block; ++k_i_block_delta) {
-      const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
-      int j_i_block_delta = 0;
-      for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
-        const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
-        if (j_block == k_block) {
-          continue;
-        }
-        const int section_num = gm_section_num_part3(i_block, j_block,
-                                                     k_block);
-        const int J_lo = gm_J_lo(section_num, nvl, 3, env);
-        const int J_hi = gm_J_hi(section_num, nvl, 3, env);
-        if (gm_proc_r_active(section_block_num, env)) {
-          const size_t elts_local = nvl *
-             (size_t)nvl * (size_t)(J_hi - J_lo);
-          metrics->num_elts_local += elts_local;
-        }
-        ++section_block_num;
-      }
-    }
-
-    GMAssertAlways(num_block_this_slab == (num_block-1) * (num_block-1) + 1);
+    const int num_section_steps_12 = GMEnv_num_section_steps(env, 1);
 
     /*===PART B: ALLOCATE INDEX===*/
 

@@ -35,7 +35,7 @@ _Bool compare_2runs(const char* options1, const char* options2) {
   char* argv1[len1 + 1];
   int argc1 = 0;
   strcpy(argstring1, options1);
-  create_args(argstring1, &argc1, argv1);
+  gm_create_args(argstring1, &argc1, argv1);
 
   size_t len2 = strlen(options2);
   char* argstring2 = (char*)malloc((len2 + 1) * sizeof(char));
@@ -43,7 +43,7 @@ _Bool compare_2runs(const char* options1, const char* options2) {
   char* argv2[len2 + 1];
   int argc2 = 0;
   strcpy(argstring2, options2);
-  create_args(argstring2, &argc2, argv2);
+  gm_create_args(argstring2, &argc2, argv2);
 
   /*---Do runs---*/
 
@@ -86,7 +86,7 @@ _Bool compare_3runs(const char* options1,
   char* argv1[len1 + 1];
   int argc1 = 0;
   strcpy(argstring1, options1);
-  create_args(argstring1, &argc1, argv1);
+  gm_create_args(argstring1, &argc1, argv1);
 
   size_t len2 = strlen(options2);
   char* argstring2 = (char*)malloc((len2 + 1) * sizeof(char));
@@ -94,7 +94,7 @@ _Bool compare_3runs(const char* options1,
   char* argv2[len2 + 1];
   int argc2 = 0;
   strcpy(argstring2, options2);
-  create_args(argstring2, &argc2, argv2);
+  gm_create_args(argstring2, &argc2, argv2);
 
   size_t len3 = strlen(options3);
   char* argstring3 = (char*)malloc((len3 + 1) * sizeof(char));
@@ -102,7 +102,7 @@ _Bool compare_3runs(const char* options1,
   char* argv3[len3 + 1];
   int argc3 = 0;
   strcpy(argstring3, options3);
-  create_args(argstring3, &argc3, argv3);
+  gm_create_args(argstring3, &argc3, argv3);
 
   /*---Do runs---*/
 
