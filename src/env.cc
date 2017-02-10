@@ -265,6 +265,7 @@ void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
   }   /*---for i---*/
 }
 
+#if 0
 /*===========================================================================*/
 
 void GMEnv_create_from_argstring(GMEnv* const env, char* options,
@@ -282,6 +283,7 @@ void GMEnv_create_from_argstring(GMEnv* const env, char* options,
 
   free(argstring);
 }
+#endif
 
 /*===========================================================================*/
 /*---Manage cuda streams---*/

@@ -461,8 +461,10 @@ void gm_create_args(char* argstring, int* argc, char** argv);
 void GMEnv_create(GMEnv* const env, char const * const description);
 void GMEnv_create_from_args(GMEnv* const env, int argc, char** argv,
                             char const * const description);
-void GMEnv_create_from_argstring(GMEnv* const env, char* argstring,
-                                 char const * const description);
+
+
+//void GMEnv_create_from_argstring(GMEnv* const env, char* argstring,
+//                                 char const * const description);
 
 /*===========================================================================*/
 /*---Finalize environment---*/

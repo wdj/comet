@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   driver_utils.hh
+ * \file   driver.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
  * \brief  Main driver code utilitiy functions.
@@ -8,8 +8,8 @@
  */
 /*---------------------------------------------------------------------------*/
 
-#ifndef _gm_driver_utils_hh_
-#define _gm_driver_utils_hh_
+#ifndef _gm_driver_hh_
+#define _gm_driver_hh_
 
 #include "env.hh"
 #include "vectors.hh"
@@ -61,6 +61,6 @@ GMChecksum perform_run(int argc, char** argv, char const * const description);
 
 /*===========================================================================*/
 
-#endif /*---_gm_driver_utils_hh_---*/
+#endif /*---_gm_driver_hh_---*/
 
 /*---------------------------------------------------------------------------*/

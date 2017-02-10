@@ -1,9 +1,9 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   system_test.cc
+ * \file   driver_test.cc
  * \author Wayne Joubert
  * \date   Fri Nov  6 18:18:21 EST 2015
- * \brief  Perform high-level system tests.
+ * \brief  Tester for driver.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 /*---------------------------------------------------------------------------*/
@@ -20,9 +20,9 @@
 #include "metrics.hh"
 #include "compute_metrics.hh"
 
-#include "driver_utils.hh"
+#include "driver.hh"
 
-enum {PROCS_MAX = 64};
+enum {PROCS_MAX = TEST_PROCS_MAX};
 
 /*===========================================================================*/
 

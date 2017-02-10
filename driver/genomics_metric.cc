@@ -25,7 +25,7 @@
 #include "metrics.hh"
 #include "compute_metrics.hh"
 
-#include "driver_utils.hh"
+#include "driver.hh"
 
 #ifdef __cplusplus
 extern "C" {

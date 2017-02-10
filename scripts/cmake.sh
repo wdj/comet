@@ -139,6 +139,7 @@ C_CXX_FLAGS="$C_CXX_FLAGS -Wall -Wno-unused-function -Werror"
 C_CXX_FLAGS="$C_CXX_FLAGS -fno-associative-math"
 C_CXX_FLAGS="$C_CXX_FLAGS -fopenmp"
 C_CXX_FLAGS="$C_CXX_FLAGS -Wno-error=unknown-pragmas"
+C_CXX_FLAGS="$C_CXX_FLAGS -DTEST_PROCS_MAX=64"
 
 #----------
 
