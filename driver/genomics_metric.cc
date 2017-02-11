@@ -199,26 +199,23 @@ int main(int argc, char** argv) {
   /*---If using GPU---*/
 
   GMEnv env = GMEnv_null();
-  GMEnv_create_from_args(&env, argc, (char**)argv, NULL);
+  GMEnv_create(&env, MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
   if (GMEnv_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
     /*---Perform preliminary run on GPU since sometimes first use is slower---*/
 
-//FIX this to run on all nodes.
-    const char* options1 =
+    int num_proc = 0;
+    MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
+
+    const char* options_template_1 =
         "--num_field 1 --num_vector_local 2 "
+        "--num_proc_vector %i --all2all no --num_way 2 "
         "--compute_method GPU --verbosity 0";
-    size_t len1 = strlen(options1);
-    char* argstring1 = (char*)malloc((len1 + 1) * sizeof(char));
-    GMAssertAlways(argstring1 != NULL);
-    char* argv1[len1 + 1];
-    int argc1 = 0;
-    strcpy(argstring1, options1);
-    gm_create_args(argstring1, &argc1, argv1);
 
-    perform_run(argc1, (char**)argv1, NULL);
+    char options1[1024];
+    sprintf(options1, options_template_1, num_proc);
 
-    free(argstring1);
+    perform_run(options1);
   }
 
   GMEnv_destroy(&env);

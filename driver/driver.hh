@@ -15,10 +15,6 @@
 #include "vectors.hh"
 #include "metrics.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*===========================================================================*/
 /*---Struct to hold driver options (options not in GMEnv)---*/
 
@@ -51,12 +47,20 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
 
 void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
 
-GMChecksum perform_run(int argc, char** argv, char const * const description);
+GMChecksum perform_run(int argc, char** argv, const char* const description);
+
+GMChecksum perform_run(const char* const options);
 
 /*---------------------------------------------------------------------------*/
 
+#if 0
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __cplusplus
 } /*---extern "C"---*/
+#endif
 #endif
 
 /*===========================================================================*/

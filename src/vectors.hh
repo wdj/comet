@@ -305,7 +305,7 @@ static size_t GMVectors_bit_dataval_num(GMVectors* vectors,
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
 
-  const int field_dataval_num = field_local / (8 * sizeof(GMBits));
+  const int field_dataval_num = field_local / (8 * sizeof(GMBits1x64));
 
   const size_t dataval_num = field_dataval_num +
     vectors->num_packedval_field_local*(size_t)vector_local;
@@ -326,16 +326,15 @@ static void GMVectors_bit_set(GMVectors* vectors,
   GMAssert(vector_local >= 0);
   GMAssert(vector_local < vectors->num_vector_local);
 
-  const int bit_num = field_local % (8 * sizeof(GMBits));
+  const int bit_num = field_local % (8 * sizeof(GMBits1x64));
 
   const size_t dataval_num =
       GMVectors_bit_dataval_num(vectors, field_local, vector_local, env);
 
-  GMAssert(sizeof(GMULInt) == sizeof(GMBits));
-  GMAssert(sizeof(GMBits) == 8);
+  GMAssert(sizeof(GMUInt64) == sizeof(GMBits1x64));
 
-  const GMULInt mask = ((GMULInt)1) << bit_num;
-  GMULInt* const p = &(((GMULInt*)(vectors->data))[dataval_num]);
+  const GMUInt64 mask = ((GMUInt64)1) << bit_num;
+  GMUInt64* const p = &(((GMUInt64*)(vectors->data))[dataval_num]);
   *p = ((*p) & (~mask)) | mask;
 }
 
@@ -352,18 +351,17 @@ static _Bool GMVectors_bit_get(GMVectors* const vectors,
   GMAssert(vector_local < vectors->num_vector_local);
   GMAssert(env);
 
-  const int bit_num = field_local % (8 * sizeof(GMBits));
+  const int bit_num = field_local % (8 * sizeof(GMBits1x64));
 
   const size_t dataval_num =
       GMVectors_bit_dataval_num(vectors, field_local, vector_local, env);
 
-  GMAssert(sizeof(GMULInt) == sizeof(GMBits));
-  GMAssert(sizeof(GMBits) == 8);
+  GMAssert(sizeof(GMUInt64) == sizeof(GMBits1x64));
 
   _Bool result = 0;
 
-  GMULInt* const p = &(((GMULInt*)(vectors->data))[dataval_num]);
-  result = ((*p) >> bit_num) & ((GMULInt)1) ? GM_BOOL_TRUE : GM_BOOL_FALSE;
+  GMUInt64* const p = &(((GMUInt64*)(vectors->data))[dataval_num]);
+  result = ((*p) >> bit_num) & ((GMUInt64)1) ? GM_BOOL_TRUE : GM_BOOL_FALSE;
 
   return result;
 }

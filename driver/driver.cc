@@ -21,10 +21,6 @@
 #include "compute_metrics.hh"
 #include "driver.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*===========================================================================*/
 /*---Parse remaining unprocessed arguments---*/
 
@@ -613,7 +609,24 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 /*===========================================================================*/
 /*---Perform a single metrics computation run---*/
 
-GMChecksum perform_run(int argc, char** argv, char const * const description) {
+GMChecksum perform_run(const char* const options) {
+  GMAssertAlways(NULL != options);
+
+  /*---Convert options string to args---*/
+
+  size_t len = strlen(options);
+  char argstring[len+1];
+  char* argv[len+1];
+  int argc = 0;
+  strcpy(argstring, options);
+  gm_create_args(argstring, &argc, argv);
+
+  return perform_run(argc, argv, options);
+}
+
+/*---------------------------------------------------------------------------*/
+
+GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
   /*---Initialize environment---*/
 
@@ -662,7 +675,7 @@ exit(1);
 }
 #endif
 
-  GMEnv_create_from_args(&env, argc, argv, description);
+  GMEnv_create(&env, MPI_COMM_WORLD, argc, argv, description);
 
   /*---Parse remaining unprocessed arguments---*/
 
@@ -820,8 +833,14 @@ exit(1);
 
 /*---------------------------------------------------------------------------*/
 
+#if 0
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __cplusplus
 } /*---extern "C"---*/
+#endif
 #endif
 
 /*---------------------------------------------------------------------------*/

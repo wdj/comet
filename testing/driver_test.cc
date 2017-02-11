@@ -27,49 +27,26 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 /*===========================================================================*/
 
 _Bool compare_2runs(const char* options1, const char* options2) {
-  /*---Convert options strings to args---*/
-
-  size_t len1 = strlen(options1);
-  char* argstring1 = (char*)malloc((len1 + 1) * sizeof(char));
-  GMAssertAlways(argstring1 != NULL);
-  char* argv1[len1 + 1];
-  int argc1 = 0;
-  strcpy(argstring1, options1);
-  gm_create_args(argstring1, &argc1, argv1);
-
-  size_t len2 = strlen(options2);
-  char* argstring2 = (char*)malloc((len2 + 1) * sizeof(char));
-  GMAssertAlways(argstring2 != NULL);
-  char* argv2[len2 + 1];
-  int argc2 = 0;
-  strcpy(argstring2, options2);
-  gm_create_args(argstring2, &argc2, argv2);
-
-  /*---Do runs---*/
-
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
+
+  /*---Do runs---*/
 
   if (proc_num == 0) {
     printf("%s\n", options1);
   }
-  GMChecksum checksum1 = perform_run(argc1, argv1, options1);
+  GMChecksum checksum1 = perform_run(options1);
+
   if (proc_num == 0) {
     printf("%s\n", options2);
   }
-  GMChecksum checksum2 = perform_run(argc2, argv2, options2);
+  GMChecksum checksum2 = perform_run(options2);
 
   /*---Need test result only on proc 0---*/
 
-  if (proc_num != 0) {
-    checksum1 = GMChecksum_null();
-    checksum2 = GMChecksum_null();
-  }
+  const _Bool is_passed = proc_num != 0 ? true :
+                          gm_are_checksums_equal(checksum1, checksum2);
 
-  free(argstring1);
-  free(argstring2);
-
-  const _Bool is_passed = gm_are_checksums_equal(checksum1, checksum2);
   return is_passed;
 }
 
@@ -78,64 +55,30 @@ _Bool compare_2runs(const char* options1, const char* options2) {
 _Bool compare_3runs(const char* options1,
                     const char* options2,
                     const char* options3) {
-  /*---Convert options strings to args---*/
-
-  size_t len1 = strlen(options1);
-  char* argstring1 = (char*)malloc((len1 + 1) * sizeof(char));
-  GMAssertAlways(argstring1 != NULL);
-  char* argv1[len1 + 1];
-  int argc1 = 0;
-  strcpy(argstring1, options1);
-  gm_create_args(argstring1, &argc1, argv1);
-
-  size_t len2 = strlen(options2);
-  char* argstring2 = (char*)malloc((len2 + 1) * sizeof(char));
-  GMAssertAlways(argstring2 != NULL);
-  char* argv2[len2 + 1];
-  int argc2 = 0;
-  strcpy(argstring2, options2);
-  gm_create_args(argstring2, &argc2, argv2);
-
-  size_t len3 = strlen(options3);
-  char* argstring3 = (char*)malloc((len3 + 1) * sizeof(char));
-  GMAssertAlways(argstring3 != NULL);
-  char* argv3[len3 + 1];
-  int argc3 = 0;
-  strcpy(argstring3, options3);
-  gm_create_args(argstring3, &argc3, argv3);
-
-  /*---Do runs---*/
-
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
+
+  /*---Do runs---*/
 
   if (proc_num == 0) {
     printf("%s\n", options1);
   }
-  GMChecksum checksum1 = perform_run(argc1, argv1, options1);
+  GMChecksum checksum1 = perform_run(options1);
+
   if (proc_num == 0) {
     printf("%s\n", options2);
   }
-  GMChecksum checksum2 = perform_run(argc2, argv2, options2);
+  GMChecksum checksum2 = perform_run(options2);
+
   if (proc_num == 0) {
     printf("%s\n", options3);
   }
-  GMChecksum checksum3 = perform_run(argc3, argv3, options3);
+  GMChecksum checksum3 = perform_run(options3);
 
   /*---Need test result only on proc 0---*/
 
-  if (proc_num != 0) {
-//    }
-    checksum1 = GMChecksum_null();
-    checksum2 = GMChecksum_null();
-    checksum3 = GMChecksum_null();
-  }
-
-  free(argstring1);
-  free(argstring2);
-  free(argstring3);
-
-  const _Bool is_passed = gm_are_checksums_equal(checksum1, checksum2) &&
+  const _Bool is_passed = proc_num != 0 ? true :
+                          gm_are_checksums_equal(checksum1, checksum2) &&
                           gm_are_checksums_equal(checksum1, checksum3);
   return is_passed;
 }
@@ -149,26 +92,11 @@ void test_2runs(const char* options1,
 
 /*===========================================================================*/
 
-void SystemTest_czekanowski_() {
-
-//  EXPECT_EQ(
-//      GM_BOOL_TRUE,
-//      compare_2runs("--num_proc_vector 1 --num_field 2 --num_vector_local 24 "
-//                    "--compute_method GPU --num_way 3 --all2all yes",
-//                    "--num_proc_vector 1 --num_field 2 --num_vector_local 24 "
-//                    "--compute_method GPU --num_way 3 --all2all yes --num_stage 5"));
+void DriverTest_czekanowski_() {
 
   //----------
   //---2-way, all2all no
   //----------
-
-
-//  EXPECT_EQ(
-//      GM_BOOL_TRUE,
-//      compare_2runs(
-//                    "--num_proc_vector 3 --num_field 1 --num_vector_local 6 --compute_method GPU --num_way 3 --all2all yes",
-//                    "--num_proc_vector 3 --num_field 1 --num_vector_local 6 --compute_method GPU --num_way 3 --all2all yes"));
-
 
   EXPECT_EQ(
       GM_BOOL_TRUE,
@@ -472,13 +400,13 @@ void SystemTest_czekanowski_() {
 
 /*===========================================================================*/
 
-void SystemTest_ccc2_simple_() {
+void DriverTest_ccc2_simple_() {
   const int num_field = 5;
   const int num_vector_local = 2;
 
   GMEnv env_value = GMEnv_null();
   GMEnv* env = &env_value;
-  GMEnv_create(env, NULL);
+  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
   env->all2all_ = GM_BOOL_FALSE;
@@ -557,13 +485,13 @@ void SystemTest_ccc2_simple_() {
 
 /*===========================================================================*/
 
-void SystemTest_ccc3_simple_compute_method(int compute_method) {
+void DriverTest_ccc3_simple_compute_method(int compute_method) {
   const int num_field = 10;
   const int num_vector_local = 3;
 
   GMEnv env_value = GMEnv_null();
   GMEnv* env = &env_value;
-  GMEnv_create(env, NULL);
+  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 3;
   env->all2all_ = GM_BOOL_TRUE;
@@ -690,15 +618,15 @@ void SystemTest_ccc3_simple_compute_method(int compute_method) {
 
 /*===========================================================================*/
 
-void SystemTest_ccc3_simple_() {
-  SystemTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_REF);
-  SystemTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_CPU);
-  SystemTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_GPU);
+void DriverTest_ccc3_simple_() {
+  DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_REF);
+  DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_CPU);
+  DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 /*===========================================================================*/
 
-void SystemTest_ccc_() {
+void DriverTest_ccc_() {
   char options1[1024];
   char options2[1024];
   char options3[1024];
@@ -983,33 +911,53 @@ return;
 
 /*===========================================================================*/
 
-TEST(SystemTest, czekanowski) {
-  SystemTest_czekanowski_();
+TEST(DriverTest, czekanowski) {
+  DriverTest_czekanowski_();
 }
 
-TEST(SystemTest, ccc2_simple) {
-  SystemTest_ccc2_simple_();
+TEST(DriverTest, ccc2_simple) {
+  DriverTest_ccc2_simple_();
 }
 
-TEST(SystemTest,ccc3_simple) {
-  SystemTest_ccc3_simple_();
+TEST(DriverTest, ccc3_simple) {
+  DriverTest_ccc3_simple_();
 }
 
-TEST(SystemTest, ccc) {
-  SystemTest_ccc_();
+TEST(DriverTest, ccc) {
+  DriverTest_ccc_();
 }
 
 /*===========================================================================*/
 
 GTEST_API_ int main(int argc, char** argv) {
+
+  ::testing::InitGoogleTest(&argc, argv);
+
   MPI_Init(&argc, &argv);
 
-  testing::InitGoogleTest(&argc, argv);
+  int comm_rank = 0;
+  int mpi_code = 0;
+  mpi_code *= 1; /*---Avoid unused variable warning---*/
+  mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+
+  if (comm_rank != 0) {
+    ::testing::TestEventListeners& listeners =
+      ::testing::UnitTest::GetInstance()->listeners();
+    delete listeners.Release(listeners.default_result_printer());
+  }
 
   int result = RUN_ALL_TESTS();
 
+  int result_g = 11;
+
+  mpi_code *= 1; /*---Avoid unused variable warning---*/
+  mpi_code = MPI_Allreduce(&result, &result_g,
+                           1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+
   MPI_Finalize();
-  return result;
+  return result_g;
 }
 
 /*===========================================================================*/
