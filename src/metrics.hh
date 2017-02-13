@@ -453,7 +453,7 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
                metrics->num_vector);
   GMAssert(k + metrics->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env) ==
            metrics->coords_global_from_index[index] /
-               (metrics->num_vector * metrics->num_vector));
+               (metrics->num_vector * (size_t)metrics->num_vector));
 
   return index;
 }
@@ -1941,7 +1941,7 @@ static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_3);
 
   const size_t k64 = metrics->coords_global_from_index[index] /
-                     (metrics->num_vector * metrics->num_vector);
+                     (metrics->num_vector * (size_t)metrics->num_vector);
   const int k = (int)k64;
   GMAssert((size_t)k == k64);
 
