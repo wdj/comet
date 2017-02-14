@@ -232,6 +232,8 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   env->time += time_end - time_begin;
 
+  GMAssertAlways(metrics->num_elts_local == metrics->num_elts_local_computed);
+
   /*---Compute global values---*/
 
   double num_elts_local = metrics->num_elts_local;

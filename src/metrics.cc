@@ -205,7 +205,6 @@ void GMMetrics_create(GMMetrics* metrics,
     ? "Vector count too large to store in 32-bit int; please modify code." : 0);
 
   int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
                            1, MPI_INT, MPI_SUM, GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
@@ -235,6 +234,8 @@ void GMMetrics_create(GMMetrics* metrics,
   GMInsist(env, env->stage_num < env->num_stage
                 ? "Invalid stage number specified."
                 : 0);
+
+  metrics->num_elts_local_computed = 0;
 
   /*==================================================*/
   if (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env)) {
@@ -551,6 +552,22 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
     GMInsist(env, 0 == 1 ? "Invalid set of options" : 0);
     /*---LATER: generalize this to N-way---*/
+  }
+
+  size_t num_elts = 0;
+  mpi_code = MPI_Allreduce(&metrics->num_elts_local, &num_elts, 1,
+                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+                           GMEnv_mpi_comm_vector(env));
+
+  if (GMEnv_num_way(env) == GM_NUM_WAY_2 && env->num_stage == 1) {
+    GMAssertAlways(num_elts == (metrics->num_vector) * (size_t)
+                               (metrics->num_vector - 1) / 2);
+  }
+
+  if (GMEnv_num_way(env) == GM_NUM_WAY_3 && env->num_stage == 1) {
+    GMAssertAlways(num_elts == (metrics->num_vector) * (size_t)
+                               (metrics->num_vector - 1) * (size_t)
+                               (metrics->num_vector - 2) / 6);
   }
 
   /*---Allocations---*/

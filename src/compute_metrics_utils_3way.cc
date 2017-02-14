@@ -132,6 +132,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 //printf("%.16e %.16e %.16e\n", numerator, denominator, value);
           GMMetrics_float_set_3(metrics, i, j, k, value, env);
         }
+        metrics->num_elts_local_computed += j;
       }
     }
 
@@ -206,9 +207,10 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 
           GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
                                    j_block, k_block, value, &index_cache, env);
-        }
-      }
-    }
+        } //---I
+        metrics->num_elts_local_computed += I_max - I_min;
+      } //---K
+    } //---J
 
     /*----------------------------------------*/
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
@@ -425,6 +427,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
           }
         } /*---for I---*/
+        metrics->num_elts_local_computed += I_max - I_min;
       }   /*---for K---*/
     }     /*---for J---*/
 
@@ -712,9 +715,10 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
             GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
           }
-        }
-      }
-    }
+        } //---I
+        metrics->num_elts_local_computed += I_max - I_min;
+      } //---K
+    } //---J
 
     /* clang-format on */
 
@@ -770,7 +774,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
         ((GMFloat*)(matV_buf->h))[f + npvfl * I] = a < b ? a : b;
         //*(vp++) = *(ap++) < *(bp++) ? *ap : *bp;
       }  //---for f---//
-    }    //---for i---//
+    }    //---for I---//
     /*----------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC) {
     /*----------*/
@@ -877,7 +881,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
         const GMUInt64 r1 = r1_0 | (r1_1 << 1);
         ((GMBits2x64*)(matV_buf->h))[indI].data[1] = *(GMBits1_2x64*)&r1;
       }  //---for f---//
-    }    //---for i---//
+    }    //---for I---//
     /*----------*/
   } /*---GMEnv_metric_type(env)---*/
   /*----------*/
@@ -968,6 +972,8 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         GMMetrics_float_set_3(metrics, i, j, k, value, env);
       } /*---for K---*/
     }   /*---for I---*/
+    metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
+                                        (K_max - K_min);
     /*----------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI &&
       GMEnv_all2all(env)) {
@@ -1001,6 +1007,8 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 
       } /*---for K---*/
     }   /*---for I---*/
+    metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
+                                        (K_max - K_min);
     /*----------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              !GMEnv_all2all(env)) {
@@ -1069,6 +1077,10 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 
       } /*---for K---*/
     }   /*---for I---*/
+    if (step_2way == 2) {
+      metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
+                                          (K_max - K_min);
+    }
     /*----------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_all2all(env)) {
@@ -1231,6 +1243,10 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 
       } /*---for K---*/
     }   /*---for I---*/
+    if (step_2way == 2) {
+      metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
+                                          (K_max - K_min);
+    }
     /*----------*/
   } else {
     /*----------*/

@@ -431,7 +431,7 @@ void gm_compute_czekanowski_2way_combine(
        For GPU case, directly access the metrics_buf holding the numerators.
   ---*/
 
-  const size_t nvl = metrics->num_vector_local;
+  const int nvl = metrics->num_vector_local;
   const _Bool are_vector_sums_aliased = vector_sums_left == vector_sums_right;
 
   int i = 0;
@@ -441,8 +441,8 @@ void gm_compute_czekanowski_2way_combine(
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    for (j = 0; j < metrics->num_vector_local; ++j) {
-      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+    for (j = 0; j < nvl; ++j) {
+      const int i_max = do_compute_triang_only ? j : nvl;
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator =
             GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
@@ -454,6 +454,7 @@ void gm_compute_czekanowski_2way_combine(
         GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                       2 * numerator / denominator, env);
       } /*---for i---*/
+      metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
         /*---TODO: here and elsewhere check for unlikely case denom is/nearly
          * zero---*/
@@ -462,7 +463,7 @@ void gm_compute_czekanowski_2way_combine(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    for (j = 0; j < metrics->num_vector_local; ++j) {
+    for (j = 0; j < nvl; ++j) {
       const int i_max = j;
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
@@ -472,6 +473,7 @@ void gm_compute_czekanowski_2way_combine(
         const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
+      metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
 
     /*----------------------------------------*/
@@ -479,11 +481,11 @@ void gm_compute_czekanowski_2way_combine(
     /*----------------------------------------*/
 
     if (do_compute_triang_only) {
-      for (j = 0; j < metrics->num_vector_local; ++j) {
+      for (j = 0; j < nvl; ++j) {
         const int i_max = j;
         for (i = 0; i < i_max; ++i) {
           const GMFloat numerator =
-              ((GMFloat*)metrics_buf->h)[i + nvl * j];
+              ((GMFloat*)metrics_buf->h)[i + (size_t)nvl * j];
           /*---Don't use two pointers pointing to the same thing---*/
           const GMFloat vi = vector_sums_left[i];
           const GMFloat vj = are_vector_sums_aliased ? vector_sums_left[j]
@@ -492,13 +494,14 @@ void gm_compute_czekanowski_2way_combine(
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                         2 * numerator / denominator, env);
         } /*---for i---*/
+        metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
     } else {
 #pragma omp parallel for collapse(2)
-      for (j = 0; j < metrics->num_vector_local; ++j) {
-        for (i = 0; i < metrics->num_vector_local; ++i) {
+      for (j = 0; j < nvl; ++j) {
+        for (i = 0; i < nvl; ++i) {
           const GMFloat numerator =
-              ((GMFloat*)metrics_buf->h)[i + nvl * j];
+              ((GMFloat*)metrics_buf->h)[i + (size_t)nvl * j];
           /*---Don't use two pointers pointing to the same thing---*/
           const GMFloat vi = vector_sums_left[i];
           const GMFloat vj = are_vector_sums_aliased ? vector_sums_left[j]
@@ -508,13 +511,14 @@ void gm_compute_czekanowski_2way_combine(
                                         2 * numerator / denominator, env);
         } /*---for i---*/
       }   /*---for j---*/
+      metrics->num_elts_local_computed += nvl * (size_t)nvl;
     }
 
     /*----------------------------------------*/
   } else {
     /*----------------------------------------*/
 
-    for (j = 0; j < metrics->num_vector_local; ++j) {
+    for (j = 0; j < nvl; ++j) {
       const int i_max = j;
       for (i = 0; i < i_max; ++i) {
         const GMFloat numerator =
@@ -525,6 +529,7 @@ void gm_compute_czekanowski_2way_combine(
         const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
+      metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
 
     /*----------------------------------------*/
@@ -651,6 +656,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
           const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
           GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
         }   /*---for i---*/
+        metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
     } else {
       #pragma omp parallel for collapse(2)
@@ -662,6 +668,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
           GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
         }   /*---for i---*/
       }   /*---for j---*/
+      metrics->num_elts_local_computed += nvl * (size_t)nvl;
    }
 
     /*--------------------*/
@@ -675,6 +682,7 @@ void gm_compute_ccc_2way_combine(GMMetrics* metrics,
         const GMFloat2 si1_sj1 = GMFloat2_encode(si_1, sj_1);
         GMMetrics_float2_M_set_2(metrics, i, j, si1_sj1, env);
       } /*---for i---*/
+      metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
     /*--------------------*/
   } /*---if---*/

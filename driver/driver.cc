@@ -739,6 +739,8 @@ exit(1);
 
   /*---Loop over stages---*/
 
+  size_t num_elts_local_computed = 0;
+
   for (env.stage_num=do_.stage_min-1;
        env.stage_num<=do_.stage_max-1; ++env.stage_num) {
 
@@ -756,6 +758,8 @@ exit(1);
     /*---Calculate metrics---*/
 
     gm_compute_metrics(&metrics, &vectors, &env);
+
+    num_elts_local_computed += metrics.num_elts_local_computed;
 
     /*---Output results---*/
 
@@ -778,6 +782,26 @@ exit(1);
 
   GMAssertAlways(env.cpu_mem == 0);
   GMAssertAlways(env.gpu_mem == 0);
+
+  if (GMEnv_is_proc_active(&env)) {
+  int mpi_code = 0;
+    size_t num_elts_computed = 0;
+    mpi_code = MPI_Allreduce(&num_elts_local_computed, &num_elts_computed, 1,
+                             MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+                             GMEnv_mpi_comm_vector(&env));
+    GMAssertAlways(mpi_code == MPI_SUCCESS);
+
+    if (GMEnv_num_way(&env) == GM_NUM_WAY_2) {
+      GMAssertAlways(num_elts_computed == (do_.num_vector) * (size_t)
+                                          (do_.num_vector - 1) / 2);
+    }
+
+    if (GMEnv_num_way(&env) == GM_NUM_WAY_3) {
+      GMAssertAlways(num_elts_computed == (do_.num_vector) * (size_t)
+                                          (do_.num_vector - 1) * (size_t)
+                                          (do_.num_vector - 2) / 6);
+    }
+  }
 
   /*---Output run information---*/
 

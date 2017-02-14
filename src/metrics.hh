@@ -260,6 +260,7 @@ typedef struct {
   void* __restrict__ data_M;
   size_t data_size;
   size_t data_M_size;
+  size_t num_elts_local_computed;
 } GMMetrics;
 
 /*===========================================================================*/
