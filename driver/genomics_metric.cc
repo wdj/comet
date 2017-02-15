@@ -174,7 +174,7 @@ void usage() {
   "\n"
   "    --problem_type <value>\n"
   "        the kind of synthetic test cse to run. Allowed choices are\n"
-  "        random (default) or analytic\n"
+  "        analytic (default) or random\n"
   "\n"
   "    --verbosity <value>\n"
   "      verbosity level of output (0=none, 1=some (default) 2=more)\n"

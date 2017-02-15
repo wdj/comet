@@ -177,6 +177,12 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
 /*===========================================================================*/
 /*---Set the entries of the vectors---*/
 
+int mant_dig() {
+  return sizeof(GMFloat) == 8 ? DBL_MANT_DIG : FLT_MANT_DIG;
+}
+
+/*---------------------------------------------------------------------------*/
+
 void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(do_ != NULL);
@@ -226,18 +232,16 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
                still exactly representable by floating point type---*/
           const size_t rand_max = randomize_max * randomize_max;
           GMAssertAlways(FLT_RADIX == 2);
-          const int mant_dig = sizeof(GMFloat) == 8 ? DBL_MANT_DIG :
-                                                      FLT_MANT_DIG;
           const int log2_num_summands_3way_numerator = 2;
           const int shift_amount = gm_log2(log2_num_summands_3way_numerator*
                                            rand_max*vectors->num_field_active)
-                                   - mant_dig;
+                                   - mant_dig();
           rand_value >>= shift_amount > 0 ? shift_amount : 0;
           /*---Store---*/
           GMFloat float_value = (GMFloat)rand_value;
           GMAssertAlways((size_t)float_value == rand_value);
           GMAssertAlways(float_value * vectors->num_field_active <
-                         ((size_t)1)<<mant_dig);
+                         ((size_t)1)<<mant_dig());
           GMVectors_float_set(vectors, fl, vl, float_value, env);
           /*---Print---*/
           if (do_->verbosity > 2) {
@@ -296,6 +300,36 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
+size_t perm_shuffle(size_t key, size_t i, size_t n) {
+  GMAssert((key & (~(size_t)1)) == 0);
+  GMAssert(i>=0 && i<n);
+  GMAssert(n>=0);
+
+  const size_t nhalf = (n+1-key)/2;
+  const size_t result = i < nhalf ? 2*i + key : 2*(i-nhalf) + 1 - key;
+  GMAssert(result>=0 && result<n);
+  return result;
+}
+
+/*---------------------------------------------------------------------------*/
+
+enum {NUM_SHUFFLE = 3};
+
+size_t perm(size_t key, size_t i, size_t n) {
+  GMAssert((key & (~(size_t)((1<<NUM_SHUFFLE)-1))) == 0);
+  GMAssert(i>=0 && i<n);
+  GMAssert(n>=0);
+
+  const size_t result0 = perm_shuffle(key&1, i, n);
+  const size_t result1 = perm_shuffle((key&2)>>1, result0, n);
+  const size_t result2 = perm_shuffle((key&4)>>2, result1, n);
+  const size_t result = result2;
+  GMAssert(result>=0 && result<n);
+  return result;
+}
+
+/*---------------------------------------------------------------------------*/
+
 void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(do_ != NULL);
@@ -315,6 +349,8 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
+      GMAssertAlways(FLT_RADIX == 2);
+      const size_t max_float = ((size_t)1) << mant_dig();
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
@@ -329,19 +365,33 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           if (field >= vectors->num_field_active) {
             continue;
           }
+          const size_t f = field;
+          const size_t v = vector_capped;
+          const size_t nf = vectors->num_field_active;
+          const size_t nv = do_->num_vector_active;
 
+          const size_t ng = 1 << NUM_SHUFFLE;
+          const size_t gs = (nf+ng-1) / ng;
 
+          const size_t pf = perm(0, f, nf);
+          const size_t g = pf / gs;
+          GMAssert(g>=0 && g<ng);
 
-//CHANGE
-          GMFloat float_value = 1 + 0*vector_capped;
+          const size_t pv = perm(g, v, nv);
 
+          const size_t value_limit = (max_float - 1) / nf;
 
+          const size_t value_min = 1;
+          const size_t value_max = (nv+value_min) < value_limit ?
+                                   (nv+value_min) : value_limit;
 
-          GMAssertAlways(FLT_RADIX == 2);
-          const int mant_dig = sizeof(GMFloat) == 8 ? DBL_MANT_DIG :
-                                                      FLT_MANT_DIG;
-          GMAssertAlways(float_value * vectors->num_field_active <
-                         ((size_t)1)<<mant_dig);
+          const size_t value = value_min + ( pv * value_max ) / (nv+value_min);
+
+          GMFloat float_value = value;
+
+          //OLD GMFloat float_value = 1 + 0*vector_capped;
+
+          GMAssertAlways(float_value * vectors->num_field_active < max_float);
           GMVectors_float_set(vectors, fl, vl, float_value, env);
 
           /*---Print---*/
@@ -376,8 +426,6 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 
 //CHANGE
           GMBits2 value = 3 + 0*( vector_capped % 4);
-
-
 
           /*---Store---*/
           GMVectors_bits2_set(vectors, fl, vl, value, env);
@@ -495,10 +543,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     return;
   }
 
-  const GMFloat one = 1;
   const GMFloat num_field_f = metrics->num_field_active;
-  const GMFloat m = metrics->num_field_active;
-  const GMFloat recip_m = ((GMFloat)1) / metrics->num_field_active;
 
   switch (GMEnv_data_type_metrics(env)) {
     /*--------------------*/
@@ -509,6 +554,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
+      const size_t max_float = ((size_t)1) << mant_dig();
       if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t coord0 =
@@ -522,13 +568,45 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
 
+          const size_t nf = metrics->num_field_active;
+          const size_t nv = metrics->num_vector_active;
+          const size_t vi = coord0;
+          const size_t vj = coord1;
 
+          const size_t ng = 1 << NUM_SHUFFLE;
+          const size_t gs = (nf+ng-1) / ng;
 
-//CHANGE
-          const GMFloat value_expected = 2. * num_field_f /
-                                         (num_field_f + num_field_f);
+          const size_t value_limit = (max_float - 1) / nf;
 
+          const size_t value_min = 1;
+          const size_t value_max = (nv+value_min) < value_limit ?
+                                   (nv+value_min) : value_limit;
 
+          GMFloat n = 0;
+          GMFloat d = 0;
+
+          for (size_t g=0; g<ng; ++g) {
+
+            const size_t pf_min = g * gs;
+            const size_t pf_max = gm_min_i8((g+1) * gs, nf);
+            const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
+
+            const size_t pvi = perm(g, vi, nv);
+            const size_t pvj = perm(g, vj, nv);
+
+            const size_t value_i = value_min + ( pvi * value_max ) /
+                                               (nv+value_min);
+            const size_t value_j = value_min + ( pvj * value_max ) /
+                                               (nv+value_min);
+            n += gm_min_i8(value_i, value_j) * gs_this;
+            d += (value_i + value_j) * gs_this;
+
+          } //---g
+
+          const GMFloat value_expected = (((GMFloat)2) * n) / d;
+
+          //OLD const GMFloat value_expected = 2. * num_field_f /
+          //OLD                                (num_field_f + num_field_f);
 
           do_->num_misses += value_expected != value;
         } //---for index
@@ -549,14 +627,56 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
 
+          const size_t nf = metrics->num_field_active;
+          const size_t nv = metrics->num_vector_active;
+          const size_t vi = coord0;
+          const size_t vj = coord1;
+          const size_t vk = coord2;
 
+          const size_t ng = 1 << NUM_SHUFFLE;
+          const size_t gs = (nf+ng-1) / ng;
 
-//CHANGE
-          const GMFloat value_expected = ((GMFloat)1.5) *
-           (num_field_f + num_field_f + num_field_f - num_field_f) /
-           (num_field_f + num_field_f + num_field_f);
+          const size_t value_limit = (max_float - 1) / nf;
 
+          const size_t value_min = 1;
+          const size_t value_max = (nv+value_min) < value_limit ?
+                                   (nv+value_min) : value_limit;
 
+          GMFloat n = 0;
+          GMFloat d = 0;
+
+          for (size_t g=0; g<ng; ++g) {
+
+            const size_t pf_min = g * gs;
+            const size_t pf_max = gm_min_i8((g+1) * gs, nf);
+            const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
+
+            const size_t pvi = perm(g, vi, nv);
+            const size_t pvj = perm(g, vj, nv);
+            const size_t pvk = perm(g, vk, nv);
+
+            const size_t value_i = value_min + ( pvi * value_max ) /
+                                               (nv+value_min);
+            const size_t value_j = value_min + ( pvj * value_max ) /
+                                               (nv+value_min);
+            const size_t value_k = value_min + ( pvk * value_max ) /
+                                               (nv+value_min);
+
+            n += gm_min_i8(value_i, value_j) * gs_this;
+            n += gm_min_i8(value_i, value_k) * gs_this;
+            n += gm_min_i8(value_j, value_k) * gs_this;
+
+            n -= gm_min_i8(value_i, gm_min_i8(value_j, value_k)) * gs_this;
+
+            d += (value_i + value_j + value_k) * gs_this;
+
+          } //---g
+
+          const GMFloat value_expected = (((GMFloat)1.5) * n) / d;
+
+          //OLD const GMFloat value_expected = ((GMFloat)1.5) *
+          //OLD  (num_field_f + num_field_f + num_field_f - num_field_f) /
+          //OLD  (num_field_f + num_field_f + num_field_f);
 
           do_->num_misses += value_expected != value;
         } //---for index
@@ -565,7 +685,6 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
-      const GMFloat front_multiplier = 9 * one / 2;
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t coord0 =
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -590,13 +709,8 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
 
 
-            const GMTally1 smin = si < sj ? si : sj;
-            const GMTally1 smax = si < sj ? sj : si;
-
-            const GMFloat value_expected = (front_multiplier / 4) *
-                         recip_m * rij *
-                         (3 * m - smin) * (one/3) * recip_m *
-                         (3 * m - smax) * (one/3) * recip_m;
+            const GMFloat value_expected =
+              GMMetrics_ccc_value_2(metrics, rij, si, sj, env);
             do_->num_misses += value_expected != value;
           } //---j
         } //---i
@@ -605,7 +719,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
-      const GMFloat front_multiplier_TBD = 2 * one / 2;
+      //const GMFloat front_multiplier_TBD = 2 * one / 2;
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t coord0 =
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -635,47 +749,8 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
 
 
-              GMTally1 smin = 0;
-              GMTally1 smid = 0;
-              GMTally1 smax = 0;
-
-              if (si > sj) {
-                if (si > sk) {
-                  smax = si;
-                  if (sj > sk) {
-                    smid = sj;
-                    smin = sk;
-                  } else {
-                    smid = sk;
-                    smin = sj;
-                  }
-                } else {
-                  smid = si;
-                  smax = sk;
-                  smin = sj;
-                }
-              } else {
-                if (sj > sk) {
-                  smax = sj;
-                  if (si > sk) {
-                    smid = si;
-                    smin = sk;
-                  } else {
-                    smid = sk;
-                    smin = si;
-                  }
-                } else {
-                  smid = sj;
-                  smax = sk;
-                  smin = si;
-                }
-              }
-
-              const GMFloat value_expected = (front_multiplier_TBD / 8) *
-                         recip_m * rijk *
-                         (3 * m - smin) * (one/3) * recip_m *
-                         (3 * m - smid) * (one/3) * recip_m *
-                         (3 * m - smax) * (one/3) * recip_m;
+              const GMFloat value_expected =
+                GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, env);
               do_->num_misses += value_expected != value;
             } //---k
           } //---j
@@ -1019,9 +1094,8 @@ exit(1);
   do_.stage_max = env.num_stage;
   do_.input_file_path = NULL;
   do_.output_file_path_stub = NULL;
-  do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
-//FIX
-//  do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
+  //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
+  do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
 
   do_.num_misses = 0;
 

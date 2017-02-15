@@ -104,7 +104,7 @@ Options:
 
     --problem_type <value>
         the kind of synthetic test cse to run. Allowed choices are
-        random (default) or analytic
+        analytic (default) or random\n"
 
     --verbosity <value>
       verbosity level of output (0=none, 1=some (default) 2=more)
