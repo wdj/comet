@@ -52,11 +52,17 @@ Options:
     --num_field <value>
         (Required) the number of elements in each vector
 
+    --num_field_local <value>
+        (Required) the number of elements in each vector on each processor
+
+    --num_vector <value>
+        (Required) the number of vectors to be process
+
     --num_vector_local <value>
         (Required) the number of vectors to be processed on each processor
 
     --metric_type <value>
-        metric type to compute (sorenson=Sorenson,
+        metric type to compute (sorenson=Sorenson (not implemented),
         czekanowski=Czekanowski (default), ccc=CCC)
 
     --num_way <value>
@@ -72,7 +78,7 @@ Options:
 
     --num_proc_vector
         blocking factor to denote number of blocks used to decompose
-        the total number of vectors across processors
+        the total number of vectors across processors 
         (default is the total number of procs requested)
 
     --num_proc_field
@@ -80,12 +86,28 @@ Options:
         each vector across processors (default is 1)
 
     --num_proc_repl
-         processor replication factor.  For each block along the vector
-         and field axes, this number of processors is applied to
-         computations for the block (default is 1)
+        processor replication factor.  For each block along the vector
+        and field axes, this number of processors is applied to
+        computations for the block (default is 1)
+
+    --num_stage <value>
+        the number of stages the computation is divided into
+        (default is 1) (available for 3-way case only)
+
+    --stage_min <value>
+        the lowest stage number of the sequence of stages to be computed
+        for this run (default is 1)
+
+    --stage_max <value>
+        the highest stage number of the sequence of stages to be computed
+        for this run (default is num_stage)
+
+    --problem_type <value>
+        the kind of synthetic test cse to run. Allowed choices are
+        random (default) or analytic
 
     --verbosity <value>
-        verbosity level of output (0=none, 1=some (default) 2=more)
+      verbosity level of output (0=none, 1=some (default) 2=more)
 
 -------------------------------------------------------------------------------
 

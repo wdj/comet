@@ -132,7 +132,7 @@ void usage() {
   "        (Required) the number of vectors to be processed on each processor\n"
   "\n"
   "    --metric_type <value>\n"
-  "        metric type to compute (sorenson=Sorenson,\n"
+  "        metric type to compute (sorenson=Sorenson (not implemented),\n"
   "        czekanowski=Czekanowski (default), ccc=CCC)\n"
   "\n"
   "    --num_way <value>\n"
@@ -172,10 +172,13 @@ void usage() {
   "        the highest stage number of the sequence of stages to be computed\n"
   "        for this run (default is num_stage)\n"
   "\n"
+  "    --problem_type <value>\n"
+  "        the kind of synthetic test cse to run. Allowed choices are\n"
+  "        random (default) or analytic\n"
+  "\n"
   "    --verbosity <value>\n"
   "      verbosity level of output (0=none, 1=some (default) 2=more)\n"
   "\n"
-
   );
   /* clang-format on */
 }

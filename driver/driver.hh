@@ -34,18 +34,23 @@ typedef struct {
   int stage_max;
   char* input_file_path;
   char* output_file_path_stub;
+  int problem_type;
+  size_t num_misses;
 } DriverOptions;
+
+enum {
+  GM_PROBLEM_TYPE_RANDOM = 1,
+  GM_PROBLEM_TYPE_ANALYTIC = 2
+};
 
 /*===========================================================================*/
 
-void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env);
+//void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env);
 
-void input_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env);
+//void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
+//                         FILE* file, double threshold, GMEnv* env);
 
-void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
-                         FILE* file, double threshold, GMEnv* env);
-
-void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
+//void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
 
 GMChecksum perform_run(int argc, char** argv, const char* const description);
 

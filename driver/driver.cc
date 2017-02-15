@@ -125,7 +125,20 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for output_file_stub`." : 0);
       do_->output_file_path_stub = argv[i];
-    /*----------*/
+      /*--------------------*/
+    } else if (strcmp(argv[i], "--problem_type") == 0) {
+      /*--------------------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for problem_type." : 0);
+      if (strcmp(argv[i], "random") == 0) {
+        GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_RANDOM);
+      } else if (strcmp(argv[i], "analytic") == 0) {
+        GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_ANALYTIC);
+      } else {
+        GMInsist(env,
+                 GM_BOOL_FALSE ? "Invalid setting for problem_type." : 0);
+      }
+     /*----------*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
@@ -164,9 +177,11 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
 /*===========================================================================*/
 /*---Set the entries of the vectors---*/
 
-void input_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
+void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   GMAssertAlways(vectors != NULL);
+  GMAssertAlways(do_ != NULL);
   GMAssertAlways(env != NULL);
+  GMAssertAlways(do_->problem_type == GM_PROBLEM_TYPE_RANDOM);
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -181,140 +196,494 @@ void input_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
-      if (do_->input_file_path != NULL) {
-        const int fl = 0;
-        const size_t field_base = fl +
-          vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-        FILE* input_file = fopen(do_->input_file_path, "r");
-        GMAssertAlways(NULL != input_file ? "Unable to open input file." : 0);
-        int vl = 0;
-        for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-          const size_t proc_num = GMEnv_proc_num_vector_i(env);
-          const size_t vector = vl + vectors->num_vector_local * proc_num;
-          //---shuffle.
-          //const size_t vector = proc_num + GMEnv_num_proc_vector_i(env) * vl;
-          /*---Fill pad vectors with copies of the last vector---*/
-          const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                       vector : do_->num_vector_active-1;
-          const size_t addr_file =
-            (field_base + vectors->num_field * vector_capped) * sizeof(GMFloat);
-          int fseek_success = fseek(input_file, addr_file, SEEK_SET);
-          fseek_success += 0; /*---Avoid unused var warning---*/
-          GMAssertAlways(0 == fseek_success);
-          GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
-          /*---NOTE: the following call is ok since has no side effects---*/
-          GMAssertAlways(fl+1 >= vectors->num_field_local ||
-              GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1
-              ? "Vector layout is incompatible with operation." : 0);
-          size_t num_read = fread(addr_mem, sizeof(GMFloat),
-                                  vectors->num_field_local, input_file);
-          num_read += 0; /*---Avoid unused var warning---*/
-          GMAssertAlways((size_t)vectors->num_field_local == (size_t)num_read);
-        } /*---vl---*/
-        fclose(input_file);
-      } else { /*--------------------*/
-        int vl = 0;
-#pragma omp parallel for private(vl)
-        for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-          size_t vector = vl +
-              vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
-          /*---Fill pad vectors with copies of the last vector---*/
-          const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                       vector : do_->num_vector_active-1;
-          int fl = 0;
-          for (fl = 0; fl < vectors->num_field_local; ++fl) {
-            size_t field = fl +
-                vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-            if (field >= vectors->num_field_active) {
-              continue;
-            }
-            /*---Compute element unique id---*/
-            const size_t uid = field + vectors->num_field_active*vector_capped;
-            /*---Generate large random number---*/
-            size_t rand1 = uid;
-            rand1 = gm_randomize(rand1);
-            rand1 = gm_randomize(rand1);
-            size_t rand2 = uid;
-            rand2 = gm_randomize(rand2);
-            rand2 = gm_randomize(rand2);
-            rand2 = gm_randomize(rand2);
-            const size_t randomize_max = gm_randomize_max();
-            size_t rand_value = rand1 + randomize_max * rand2;
-            /*---Reduce so that after summing num_field times the integer
-                 still exactly representable by floating point type---*/
-            const size_t rand_max = randomize_max * randomize_max;
-            GMAssertAlways(FLT_RADIX == 2);
-            const int mant_dig = sizeof(GMFloat) == 8 ? DBL_MANT_DIG :
-                                                        FLT_MANT_DIG;
-            const int log2_num_summands_3way_numerator = 2;
-            const int shift_amount = gm_log2(log2_num_summands_3way_numerator*
-                                             rand_max*vectors->num_field_active)
-                                     - mant_dig;
-            rand_value >>= shift_amount > 0 ? shift_amount : 0;
-            /*---Store---*/
-            GMFloat float_value = (GMFloat)rand_value;
-            GMAssertAlways((size_t)float_value == rand_value);
-            GMAssertAlways(float_value * vectors->num_field_active <=
-                           ((size_t)1)<<mant_dig);
-            GMVectors_float_set(vectors, fl, vl, float_value, env);
-            /*---Print---*/
-            if (do_->verbosity > 2) {
-              printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-                     GMEnv_proc_num_vector_i(env), vl,
-                     GMEnv_proc_num_field(env), fl, float_value);
-            }
-          } /*---field_local---*/
-        }   /*---vector_local---*/
-      } /*---if---*/
+#pragma omp parallel for
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        size_t vector = vl +
+            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+        /*---Fill pad vectors with copies of the last vector---*/
+        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                     vector : do_->num_vector_active-1;
+        int fl = 0;
+        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+          size_t field = fl +
+              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+          if (field >= vectors->num_field_active) {
+            continue;
+          }
+          /*---Compute element unique id---*/
+          const size_t uid = field + vectors->num_field_active*vector_capped;
+          /*---Generate large random number---*/
+          size_t rand1 = uid;
+          rand1 = gm_randomize(rand1);
+          rand1 = gm_randomize(rand1);
+          size_t rand2 = uid;
+          rand2 = gm_randomize(rand2);
+          rand2 = gm_randomize(rand2);
+          rand2 = gm_randomize(rand2);
+          const size_t randomize_max = gm_randomize_max();
+          size_t rand_value = rand1 + randomize_max * rand2;
+          /*---Reduce so that after summing num_field times the integer
+               still exactly representable by floating point type---*/
+          const size_t rand_max = randomize_max * randomize_max;
+          GMAssertAlways(FLT_RADIX == 2);
+          const int mant_dig = sizeof(GMFloat) == 8 ? DBL_MANT_DIG :
+                                                      FLT_MANT_DIG;
+          const int log2_num_summands_3way_numerator = 2;
+          const int shift_amount = gm_log2(log2_num_summands_3way_numerator*
+                                           rand_max*vectors->num_field_active)
+                                   - mant_dig;
+          rand_value >>= shift_amount > 0 ? shift_amount : 0;
+          /*---Store---*/
+          GMFloat float_value = (GMFloat)rand_value;
+          GMAssertAlways((size_t)float_value == rand_value);
+          GMAssertAlways(float_value * vectors->num_field_active <
+                         ((size_t)1)<<mant_dig);
+          GMVectors_float_set(vectors, fl, vl, float_value, env);
+          /*---Print---*/
+          if (do_->verbosity > 2) {
+            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
+                   GMEnv_proc_num_vector_i(env), vl,
+                   GMEnv_proc_num_field(env), fl, float_value);
+          }
+        } /*---field_local---*/
+      }   /*---vector_local---*/
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
-      if (do_->input_file_path != NULL) {
-        GMInsist(env, NULL == do_->input_file_path
-                      ? "File input for this case not yet implemented." : 0);
-      } else { /*--------------------*/
-        int vl = 0;
-#pragma omp parallel for private(vl)
-        for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-          size_t vector = vl +
-              vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
-          /*---Fill pad vectors with copies of the last vector---*/
-          const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                       vector : do_->num_vector_active-1;
-          int fl;
-          for (fl = 0; fl < vectors->num_field_local; ++fl) {
-            size_t field = fl +
-                vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-            if (field >= vectors->num_field_active) {
-              continue;
-            }
-            /*---Compute element unique id---*/
-            const size_t uid = field + vectors->num_field_active*vector_capped;
-            size_t index = uid;
-            /*---Randomize---*/
-            index = gm_randomize(index);
-            index = gm_randomize(index);
-            /*---Calculate random number between 0 and 3---*/
-            const float float_rand_value = index / (float)gm_randomize_max();
-            /*---Create 2-bit value - make extra sure less than 4---*/
-            GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
-            /*---Store---*/
-            GMVectors_bits2_set(vectors, fl, vl, value, env);
-            /*---Print---*/
-            if (do_->verbosity > 2) {
-              printf("vec_proc %i vec %i "
-                     "field_proc %i field %i value %.1i%.1i\n",
-                     GMEnv_proc_num_vector_i(env), vl,
-                     GMEnv_proc_num_field(env), fl, value / 2, value % 2);
-            }
-          } /*---fl---*/
-        }   /*---vl---*/
-      } /*---if---*/
+#pragma omp parallel for
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        size_t vector = vl +
+            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+        /*---Fill pad vectors with copies of the last vector---*/
+        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                     vector : do_->num_vector_active-1;
+        int fl;
+        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+          size_t field = fl +
+              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+          if (field >= vectors->num_field_active) {
+            continue;
+          }
+          /*---Compute element unique id---*/
+          const size_t uid = field + vectors->num_field_active*vector_capped;
+          size_t index = uid;
+          /*---Randomize---*/
+          index = gm_randomize(index);
+          index = gm_randomize(index);
+          /*---Calculate random number between 0 and 3---*/
+          const float float_rand_value = index / (float)gm_randomize_max();
+          /*---Create 2-bit value - make extra sure less than 4---*/
+          GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
+          /*---Store---*/
+          GMVectors_bits2_set(vectors, fl, vl, value, env);
+          /*---Print---*/
+          if (do_->verbosity > 2) {
+            printf("vec_proc %i vec %i "
+                   "field_proc %i field %i value %.1i%.1i\n",
+                   GMEnv_proc_num_vector_i(env), vl,
+                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
+          }
+        } /*---fl---*/
+      }   /*---vl---*/
     } break;
     /*--------------------*/
     default:
     /*--------------------*/
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+  } /*---switch---*/
+}
+
+/*---------------------------------------------------------------------------*/
+
+void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(do_ != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(do_->problem_type == GM_PROBLEM_TYPE_ANALYTIC);
+
+  if (!GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  switch (GMEnv_data_type_vectors(env)) {
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS1: {
+    /*--------------------*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented; design not complete." : 0);
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_FLOAT: {
+    /*--------------------*/
+#pragma omp parallel for
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        size_t vector = vl +
+            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+        /*---Fill pad vectors with copies of the last vector---*/
+        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                     vector : do_->num_vector_active-1;
+        int fl = 0;
+        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+          size_t field = fl +
+              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+          if (field >= vectors->num_field_active) {
+            continue;
+          }
+
+
+
+//CHANGE
+          GMFloat float_value = 1 + 0*vector_capped;
+
+
+
+          GMAssertAlways(FLT_RADIX == 2);
+          const int mant_dig = sizeof(GMFloat) == 8 ? DBL_MANT_DIG :
+                                                      FLT_MANT_DIG;
+          GMAssertAlways(float_value * vectors->num_field_active <
+                         ((size_t)1)<<mant_dig);
+          GMVectors_float_set(vectors, fl, vl, float_value, env);
+
+          /*---Print---*/
+          if (do_->verbosity > 2) {
+            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
+                   GMEnv_proc_num_vector_i(env), vl,
+                   GMEnv_proc_num_field(env), fl, float_value);
+          }
+        } /*---field_local---*/
+      }   /*---vector_local---*/
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS2: {
+    /*--------------------*/
+#pragma omp parallel for
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        size_t vector = vl +
+            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+        /*---Fill pad vectors with copies of the last vector---*/
+        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                     vector : do_->num_vector_active-1;
+        int fl = 0;
+        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+          size_t field = fl +
+              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+          if (field >= vectors->num_field_active) {
+            continue;
+          }
+          /*---Create 2-bit value - make extra sure less than 4---*/
+
+
+
+//CHANGE
+          GMBits2 value = 3 + 0*( vector_capped % 4);
+
+
+
+          /*---Store---*/
+          GMVectors_bits2_set(vectors, fl, vl, value, env);
+          /*---Print---*/
+          if (do_->verbosity > 2) {
+            printf("vec_proc %i vec %i "
+                   "field_proc %i field %i value %.1i%.1i\n",
+                   GMEnv_proc_num_vector_i(env), vl,
+                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
+          }
+        } /*---field_local---*/
+      }   /*---vector_local---*/
+    } break;
+    /*--------------------*/
+    default:
+    /*--------------------*/
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+  } /*---switch---*/
+}
+
+/*---------------------------------------------------------------------------*/
+
+void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(do_ != NULL);
+  GMAssertAlways(env != NULL);
+  GMAssertAlways(do_->input_file_path != NULL);
+
+  if (!GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  switch (GMEnv_data_type_vectors(env)) {
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS1: {
+    /*--------------------*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented; design not complete." : 0);
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_FLOAT: {
+    /*--------------------*/
+      const int fl = 0;
+      const size_t field_base = fl +
+        vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+      FILE* input_file = fopen(do_->input_file_path, "r");
+      GMAssertAlways(NULL != input_file ? "Unable to open input file." : 0);
+      int vl = 0;
+      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+        const size_t proc_num = GMEnv_proc_num_vector_i(env);
+        const size_t vector = vl + vectors->num_vector_local * proc_num;
+        //---shuffle.
+        //const size_t vector = proc_num + GMEnv_num_proc_vector_i(env) * vl;
+        /*---Fill pad vectors with copies of the last vector---*/
+        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                     vector : do_->num_vector_active-1;
+        const size_t addr_file =
+          (field_base + vectors->num_field * vector_capped) * sizeof(GMFloat);
+        int fseek_success = fseek(input_file, addr_file, SEEK_SET);
+        fseek_success += 0; /*---Avoid unused var warning---*/
+        GMAssertAlways(0 == fseek_success);
+        GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
+        /*---NOTE: the following call is ok since has no side effects---*/
+        GMAssertAlways(fl+1 >= vectors->num_field_local ||
+            GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1
+            ? "Vector layout is incompatible with operation." : 0);
+        size_t num_read = fread(addr_mem, sizeof(GMFloat),
+                                vectors->num_field_local, input_file);
+        num_read += 0; /*---Avoid unused var warning---*/
+        GMAssertAlways((size_t)vectors->num_field_local == (size_t)num_read);
+      } /*---vl---*/
+      fclose(input_file);
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS2: {
+    /*--------------------*/
+      GMInsist(env, GM_BOOL_FALSE ? "Not yet implemented." : 0);
+    } break;
+    /*--------------------*/
+    default:
+    /*--------------------*/
+      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+  } /*---switch---*/
+}
+
+/*---------------------------------------------------------------------------*/
+
+void set_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
+  GMAssertAlways(vectors != NULL);
+  GMAssertAlways(do_ != NULL);
+  GMAssertAlways(env != NULL);
+
+  if (do_->input_file_path != NULL) {
+    set_vectors_from_file(vectors, do_, env);
+  } else if (do_->problem_type == GM_PROBLEM_TYPE_RANDOM) {
+    set_vectors_random(vectors, do_, env);
+  } else {
+    set_vectors_analytic(vectors, do_, env);
+  }
+}
+
+/*===========================================================================*/
+/*---Check correctness of metrics, if possible---*/
+
+void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
+  GMAssertAlways(metrics != NULL);
+  GMAssertAlways(do_ != NULL);
+  GMAssertAlways(env != NULL);
+
+  if (GM_PROBLEM_TYPE_ANALYTIC != do_->problem_type ||
+      NULL != do_->input_file_path) {
+    return;
+  }
+
+  if (!GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  const GMFloat one = 1;
+  const GMFloat num_field_f = metrics->num_field_active;
+  const GMFloat m = metrics->num_field_active;
+  const GMFloat recip_m = ((GMFloat)1) / metrics->num_field_active;
+
+  switch (GMEnv_data_type_metrics(env)) {
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS1: {
+    /*--------------------*/
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_FLOAT: {
+    /*--------------------*/
+      if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
+        for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+          const size_t coord0 =
+            GMMetrics_coord_global_from_index(metrics, index, 0, env);
+          const size_t coord1 =
+            GMMetrics_coord_global_from_index(metrics, index, 1, env);
+          if (coord0 >= metrics->num_vector_active ||
+              coord1 >= metrics->num_vector_active) {
+            continue;
+          }
+          const GMFloat value
+            = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+
+
+
+//CHANGE
+          const GMFloat value_expected = 2. * num_field_f /
+                                         (num_field_f + num_field_f);
+
+
+
+          do_->num_misses += value_expected != value;
+        } //---for index
+      } //---if
+      if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
+        for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+          const size_t coord0 =
+            GMMetrics_coord_global_from_index(metrics, index, 0, env);
+          const size_t coord1 =
+            GMMetrics_coord_global_from_index(metrics, index, 1, env);
+          const size_t coord2 =
+            GMMetrics_coord_global_from_index(metrics, index, 2, env);
+          if (coord0 >= metrics->num_vector_active ||
+              coord1 >= metrics->num_vector_active ||
+              coord2 >= metrics->num_vector_active) {
+            continue;
+          }
+          const GMFloat value
+            = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+
+
+
+//CHANGE
+          const GMFloat value_expected = ((GMFloat)1.5) *
+           (num_field_f + num_field_f + num_field_f - num_field_f) /
+           (num_field_f + num_field_f + num_field_f);
+
+
+
+          do_->num_misses += value_expected != value;
+        } //---for index
+      } //---if
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_TALLY2X2: {
+    /*--------------------*/
+      const GMFloat front_multiplier = 9 * one / 2;
+      for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+        const size_t coord0 =
+          GMMetrics_coord_global_from_index(metrics, index, 0, env);
+        const size_t coord1 =
+          GMMetrics_coord_global_from_index(metrics, index, 1, env);
+        if (coord0 >= metrics->num_vector_active ||
+            coord1 >= metrics->num_vector_active) {
+          continue;
+        }
+        for (int i = 0; i < 2; ++i) {
+          for (int j = 0; j < 2; ++j) {
+            const GMFloat value =
+                GMMetrics_ccc_get_from_index_2(metrics, index, i, j, env);
+
+
+
+//CHANGE
+            const GMFloat rij = i==1 && j==1 ? (4 * num_field_f) : 0;
+
+            const GMFloat si = i==1 ? (2 * num_field_f) : 0;
+            const GMFloat sj = j==1 ? (2 * num_field_f) : 0;
+
+
+
+            const GMTally1 smin = si < sj ? si : sj;
+            const GMTally1 smax = si < sj ? sj : si;
+
+            const GMFloat value_expected = (front_multiplier / 4) *
+                         recip_m * rij *
+                         (3 * m - smin) * (one/3) * recip_m *
+                         (3 * m - smax) * (one/3) * recip_m;
+            do_->num_misses += value_expected != value;
+          } //---j
+        } //---i
+      } //---for index
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_TALLY4X2: {
+    /*--------------------*/
+      const GMFloat front_multiplier_TBD = 2 * one / 2;
+      for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+        const size_t coord0 =
+          GMMetrics_coord_global_from_index(metrics, index, 0, env);
+        const size_t coord1 =
+          GMMetrics_coord_global_from_index(metrics, index, 1, env);
+        const size_t coord2 =
+          GMMetrics_coord_global_from_index(metrics, index, 2, env);
+        if (coord0 >= metrics->num_vector_active ||
+            coord1 >= metrics->num_vector_active ||
+            coord2 >= metrics->num_vector_active) {
+          continue;
+        }
+        for (int i = 0; i < 2; ++i) {
+          for (int j = 0; j < 2; ++j) {
+            for (int k = 0; k < 2; ++k) {
+              const GMFloat value =
+               GMMetrics_ccc_get_from_index_3( metrics, index, i, j, k, env);
+
+
+
+//CHANGE
+              const GMFloat rijk = i==1 && j==1 && k==1 ? (8 * num_field_f) : 0;
+
+              const GMFloat si = i==1 ? (2 * num_field_f) : 0;
+              const GMFloat sj = j==1 ? (2 * num_field_f) : 0;
+              const GMFloat sk = k==1 ? (2 * num_field_f) : 0;
+
+
+
+              GMTally1 smin = 0;
+              GMTally1 smid = 0;
+              GMTally1 smax = 0;
+
+              if (si > sj) {
+                if (si > sk) {
+                  smax = si;
+                  if (sj > sk) {
+                    smid = sj;
+                    smin = sk;
+                  } else {
+                    smid = sk;
+                    smin = sj;
+                  }
+                } else {
+                  smid = si;
+                  smax = sk;
+                  smin = sj;
+                }
+              } else {
+                if (sj > sk) {
+                  smax = sj;
+                  if (si > sk) {
+                    smid = si;
+                    smin = sk;
+                  } else {
+                    smid = sk;
+                    smin = si;
+                  }
+                } else {
+                  smid = sj;
+                  smax = sk;
+                  smin = si;
+                }
+              }
+
+              const GMFloat value_expected = (front_multiplier_TBD / 8) *
+                         recip_m * rijk *
+                         (3 * m - smin) * (one/3) * recip_m *
+                         (3 * m - smid) * (one/3) * recip_m *
+                         (3 * m - smax) * (one/3) * recip_m;
+              do_->num_misses += value_expected != value;
+            } //---k
+          } //---j
+        } //---i
+      } //---for index
+    } break;
+    /*--------------------*/
+    default:
       GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
 }
@@ -378,17 +747,6 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
                 "element (%li,%li): value: %.8e\n", coord0, coord1, value);
             }
           } else {
-#if 0
-            if (threshold < 0. || value > threshold) {
-              size_t num_written = fwrite(&coord0, sizeof(size_t), 1, file);
-              num_written *= 1;
-              GMAssert(num_written == sizeof(size_t));
-              num_written = fwrite(&coord1, sizeof(size_t), 1, file);
-              GMAssert(num_written == sizeof(size_t));
-              num_written = fwrite(&value, sizeof(GMFloat), 1, file);
-              GMAssert(num_written == sizeof(GMFloat));
-            }
-#endif
             //if (threshold < 0. || value > threshold) {
             {
               out_t out_v = (out_t)(value * out_max);
@@ -430,17 +788,6 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
                 "element (%li,%li): value: %.8e\n", coord0, coord1, value);
             }
           } else {
-#if 0
-            if (threshold < 0. || value > threshold) {
-              size_t num_written = fwrite(&coord0, sizeof(size_t), 1, file);
-              num_written *= 1;
-              GMAssert(num_written == sizeof(size_t));
-              num_written = fwrite(&coord1, sizeof(size_t), 1, file);
-              GMAssert(num_written == sizeof(size_t));
-              num_written = fwrite(&value, sizeof(GMFloat), 1, file);
-              GMAssert(num_written == sizeof(GMFloat));
-            }
-#endif
             //if (threshold < 0. || value > threshold) {
             {
               out_t out_v = (out_t)(value * out_max);
@@ -454,23 +801,6 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
               }
             }
           }
-
-#if 0
-          if (threshold < 0. || value > threshold) {
-            if (file == stdin) {
-              fprintf(file, sizeof(GMFloat) == 8 ?
-                            "element (%li,%li,%li): value: %.17e\n" :
-                            "element (%li,%li,%li): value: %.8e\n",
-                            coord0, coord1, coord2, value);
-            } else {
-              out_t out_v = (out_t)(value * out_max);
-              size_t num_written = fwrite(&out_v, sizeof(out_t), 1, file);
-              num_written *= 1;
-              GMAssert(num_written == sizeof(out_v));
-            }
-          }
-#endif
-
         }
       }
 
@@ -689,6 +1019,11 @@ exit(1);
   do_.stage_max = env.num_stage;
   do_.input_file_path = NULL;
   do_.output_file_path_stub = NULL;
+  do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
+//FIX
+//  do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
+
+  do_.num_misses = 0;
 
   finish_parsing(argc, argv, &do_, &env);
 
@@ -727,7 +1062,7 @@ exit(1);
 
   double intime = 0;
   time_beg = GMEnv_get_synced_time(&env);
-  input_vectors(&vectors, &do_, &env);
+  set_vectors(&vectors, &do_, &env);
   time_end = GMEnv_get_synced_time(&env);
   intime += time_end - time_beg;
 
@@ -767,6 +1102,10 @@ exit(1);
     output_metrics(&metrics, &do_, &env);
     time_end = GMEnv_get_synced_time(&env);
     outtime += time_end - time_beg;
+
+    /*---Check correctness---*/
+
+    check_metrics(&metrics, &do_, &env);
 
     /*---Compute checksum---*/
 
@@ -847,6 +1186,8 @@ exit(1);
     //-----
     printf("\n");
   }
+
+  GMAssertAlways(do_.num_misses == 0);
 
   /*---Finalize---*/
 
