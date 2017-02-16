@@ -559,12 +559,14 @@ void GMMetrics_create(GMMetrics* metrics,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_vector(env));
 
-  if (GMEnv_num_way(env) == GM_NUM_WAY_2 && env->num_stage == 1) {
+  if (GMEnv_num_way(env) == GM_NUM_WAY_2 && env->num_stage == 1 &&
+      GMEnv_all2all(env)) {
     GMAssertAlways(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) / 2);
   }
 
-  if (GMEnv_num_way(env) == GM_NUM_WAY_3 && env->num_stage == 1) {
+  if (GMEnv_num_way(env) == GM_NUM_WAY_3 && env->num_stage == 1 &&
+      GMEnv_all2all(env)) {
     GMAssertAlways(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) * (size_t)
                                (metrics->num_vector - 2) / 6);
