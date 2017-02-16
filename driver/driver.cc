@@ -570,6 +570,8 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
   const size_t value_max = (nv+value_min) < value_limit ?
                            (nv+value_min) : value_limit;
 
+  size_t num_misses = 0;
+
   switch (GMEnv_data_type_metrics(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_BITS1: {
@@ -580,6 +582,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
       if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
+#pragma omp parallel for reduction(+:num_misses)
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t vi =
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -618,10 +621,11 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
           //OLD const GMFloat value_expected = 2. * num_field_f /
           //OLD                                (num_field_f + num_field_f);
 
-          do_->num_misses += value_expected != value;
+          num_misses += value_expected != value;
         } //---for index
       } //---if
       if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
+#pragma omp parallel for reduction(+:num_misses)
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t vi =
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -673,13 +677,14 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
           //OLD  (num_field_f + num_field_f + num_field_f - num_field_f) /
           //OLD  (num_field_f + num_field_f + num_field_f);
 
-          do_->num_misses += value_expected != value;
+          num_misses += value_expected != value;
         } //---for index
       } //---if
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
+#pragma omp parallel for reduction(+:num_misses)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -737,7 +742,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
             const GMFloat value_expected =
               GMMetrics_ccc_value_2(metrics, rij, si, sj, env);
-            do_->num_misses += value_expected != value;
+            num_misses += value_expected != value;
           } //---j
         } //---i
       } //---for index
@@ -745,7 +750,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
-      //const GMFloat front_multiplier_TBD = 2 * one / 2;
+#pragma omp parallel for reduction(+:num_misses)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -821,7 +826,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
               const GMFloat value_expected =
                 GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, env);
-              do_->num_misses += value_expected != value;
+              num_misses += value_expected != value;
             } //---k
           } //---j
         } //---i
@@ -831,6 +836,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     default:
       GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
   } /*---switch---*/
+  do_->num_misses += num_misses;
 }
 
 /*===========================================================================*/
@@ -1279,7 +1285,8 @@ exit(1);
                                           (do_.num_vector - 1) / 2);
     }
 
-    if (GMEnv_num_way(&env) == GM_NUM_WAY_3 && GMEnv_all2all(&env)) {
+    if (GMEnv_num_way(&env) == GM_NUM_WAY_3 && GMEnv_all2all(&env) &&
+        do_.stage_min==1 && do_.stage_max==env.num_stage) {
       GMAssertAlways(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) * (size_t)
                                           (do_.num_vector - 2) / 6);
