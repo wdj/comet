@@ -890,7 +890,7 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           }
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
-          if (file == stdin) {
+          if (file == stdout) {
             if (threshold < 0. || value > threshold) {
               fprintf(file,
                 sizeof(GMFloat) == 8 ?
@@ -931,7 +931,7 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
 
-          if (file == stdin) {
+          if (file == stdout) {
             if (threshold < 0. || value > threshold) {
               fprintf(file,
                 sizeof(GMFloat) == 8 ?
@@ -955,7 +955,7 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
         }
       }
 
-      if (file != stdin) {
+      if (file != stdout) {
         size_t num_written = fwrite(&buf, sizeof(out_t), buf_elts, file);
         num_written_total += num_written;
         GMAssert(num_written == buf_elts*sizeof(out_t));
