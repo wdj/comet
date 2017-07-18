@@ -153,6 +153,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
+    } else if (strcmp(argv[i], "--ccc_param") == 0) {
+      ++i; /*---processed elsewhere by GMEnv---*/
     } else {
     /*----------*/
       if (GMEnv_proc_num(env) == 0) {

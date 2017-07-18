@@ -907,6 +907,31 @@ return;
       }
     }
   }
+
+  //----------
+  //---ccc_param
+  //----------
+
+  char options_template_11a[] =
+      "--metric_type ccc --verbosity %i "
+      "--num_proc_vector 1 --num_field 30 --num_vector_local 40 "
+      "--compute_method GPU";
+  char options_template_11b[] =
+      "--metric_type ccc --verbosity %i "
+      "--num_proc_vector 1 --num_field 30 --num_vector_local 40 "
+      "--compute_method GPU --ccc_param %.20e";
+
+  sprintf(options1, options_template_11a, 1);
+  sprintf(options2, options_template_11b, 1, ((double)2) / ((double)3));
+  EXPECT_EQ(GM_BOOL_TRUE, compare_2runs(options1, options2));
+
+  int proc_num = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
+
+  sprintf(options1, options_template_11a, 1);
+  sprintf(options2, options_template_11b, 1, ((double)1) / ((double)2));
+  const int result11 = compare_2runs(options1, options2);
+  EXPECT_EQ(GM_BOOL_TRUE, proc_num==0 ? !result11 : GM_BOOL_TRUE);
 }
 
 /*===========================================================================*/

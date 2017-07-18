@@ -132,6 +132,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
   GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
   env->num_stage = 1;
   env->stage_num = 0;
+  env->ccc_param_ = ((double) 2) / ((double) 3);
 
   env->time = 0;
   env->compares = 0;
@@ -181,10 +182,10 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
       ++i;
       GMInsist(env, i < argc ? "Missing value for num_way." : 0);
       errno = 0;
-      long num_way = strtol(argv[i], NULL, 10);
-      GMInsist(env, 0 == errno && (env->num_way_ == GM_NUM_WAY_2 ||
-                            env->num_way_ == GM_NUM_WAY_3)
-                        && "Invalid setting for num_way.");
+      const long num_way = strtol(argv[i], NULL, 10);
+      GMInsist(env, 0 == errno && (num_way == GM_NUM_WAY_2 ||
+                                   num_way == GM_NUM_WAY_3)
+                               && "Invalid setting for num_way.");
       env->num_way_ = num_way;
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
                        env->num_proc_field_);
@@ -251,6 +252,16 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
                     && "Invalid setting for num_proc_repl.");
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, num_proc_repl,
                          env->num_proc_field_);
+      /*--------------------*/
+    } else if (strcmp(argv[i], "--ccc_param") == 0) {
+      /*--------------------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for ccc_param." : 0);
+      errno = 0;
+      const double ccc_param = strtod(argv[i], NULL);
+      GMInsist(env, 0 == errno && ccc_param >= 0
+                               && "Invalid setting for ccc_param.");
+      env->ccc_param_ = ccc_param;
       /*--------------------*/
     } /*---if/else---*/
   }   /*---for i---*/

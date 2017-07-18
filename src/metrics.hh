@@ -976,17 +976,21 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
   const GMTally1 smin = si < sj ? si : sj;
   const GMTally1 smax = si < sj ? sj : si;
 
-  //---TODO: optimize
   const GMFloat one = 1;
-  const GMFloat m = metrics->num_field_active;
   const GMFloat recip_m = metrics->recip_m;
-  const GMFloat front_multiplier = 9 * one / 2;
+  const GMFloat front_multiplier = 9 * one / 2; // taken from James' writeup.
+  //const GMFloat ccc_param = ((GMFloat) 2) / ((GMFloat) 3);
+  const GMFloat ccc_param = GMEnv_ccc_param(env);
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
+  //const GMFloat m = metrics->num_field_active;
+  //const GMFloat result = (front_multiplier / 4) * recip_m * rij *
+  //                       (3 * m - smin) * (one/3) * recip_m *
+  //                       (3 * m - smax) * (one/3) * recip_m;
   /* clang-format off */
-  const GMFloat result = (front_multiplier / 4) * recip_m * rij *
-                         (3 * m - smin) * (one/3) * recip_m *
-                         (3 * m - smax) * (one/3) * recip_m;
+  const GMFloat result = front_multiplier * (one / 4) * recip_m * rij *
+                         (one - ccc_param * (one / 2) * recip_m * smin) *
+                         (one - ccc_param * (one / 2) * recip_m * smax);
   /* clang-format on */
 
   return result;
@@ -1100,18 +1104,23 @@ static GMFloat GMMetrics_ccc_value_3(GMMetrics* metrics,
   GMAssert(smin <= smid);
   GMAssert(smid <= smax);
 
-  //---TODO: optimize
   const GMFloat one = 1;
-  const GMFloat m = metrics->num_field_active;
   const GMFloat recip_m = metrics->recip_m;
-  const GMFloat front_multiplier_TBD = 2 * one / 2;
+  const GMFloat front_multiplier = one; // TBD
+  //const GMFloat ccc_param = ((GMFloat) 2) / ((GMFloat) 3);
+  const GMFloat ccc_param = GMEnv_ccc_param(env);
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
+  //const GMFloat m = metrics->num_field_active;
+  //const GMFloat result = (front_multiplier / 8) * recip_m * rijk *
+  //                       (3 * m - smin) * (one/3) * recip_m *
+  //                       (3 * m - smid) * (one/3) * recip_m *
+  //                       (3 * m - smax) * (one/3) * recip_m;
   /* clang-format off */
-  const GMFloat result = (front_multiplier_TBD / 8) * recip_m * rijk *
-                         (3 * m - smin) * (one/3) * recip_m *
-                         (3 * m - smid) * (one/3) * recip_m *
-                         (3 * m - smax) * (one/3) * recip_m;
+  const GMFloat result = front_multiplier * (one / 8) * recip_m * rijk *
+                         (one - ccc_param * (one / 2) * recip_m * smin) *
+                         (one - ccc_param * (one / 2) * recip_m * smid) *
+                         (one - ccc_param * (one / 2) * recip_m * smax);
   /* clang-format on */
 
   return result;

@@ -388,6 +388,7 @@ typedef struct {
   int compute_method_;
   int num_stage;
   int stage_num;
+  double ccc_param_;
   /*---Counters---*/
   double time;
   double compares;
@@ -486,6 +487,13 @@ void GMEnv_terminate_streams(GMEnv* const env);
 static int GMEnv_metric_type(const GMEnv* const env) {
   GMAssert(env != NULL);
   return env->metric_type_;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static double GMEnv_ccc_param(const GMEnv* const env) {
+  GMAssert(env != NULL);
+  return env->ccc_param_;
 }
 
 /*---------------------------------------------------------------------------*/
