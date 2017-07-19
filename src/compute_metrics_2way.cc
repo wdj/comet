@@ -211,9 +211,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   /*---Number of blocks wide is a wrapped rectangle of blocks---*/
 
-
-//TODO: revise loop structure to be like 3-way case.
-
   const int max_rectangle_width = 1 + (num_block / 2);
 
   const int rectangle_width =
@@ -226,115 +223,110 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   int step_num = 0;
 
+  typedef struct {
+    GMVectors* vectors_right;
+    GMMirroredPointer* vectors_right_buf;
+    GMMirroredPointer* metrics_buf;
+    _Bool is_compute_step;
+    _Bool is_first_compute_step;
+    _Bool do_compute_triang_only;
+    _Bool do_compute_block;
+    int step_num;
+    int index_01;
+    int j_i_block_delta;
+    int proc_num_offset;
+    int j_block;
+  } LoopVars;
+
+  LoopVars vars = {0};
+  LoopVars vars_prev = {0};
+  LoopVars vars_next = {0};
+
   /*========================================*/
   for (step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num) {
   /*========================================*/
+
+    vars_prev = vars;
+    vars = vars_next;
+    vars_next.step_num = step_num + 1;
+
     /*---Determine what kind of step this is---*/
 
-    const _Bool is_compute_step = step_num >= 0 && step_num < num_step;
-    const _Bool is_compute_step_prev =
-        step_num - 1 >= 0 && step_num - 1 < num_step;
-    const _Bool is_compute_step_next =
-        step_num + 1 >= 0 && step_num + 1 < num_step;
-
-    const _Bool is_first_compute_step = step_num == 0;
-    const _Bool is_first_compute_step_prev = step_num - 1 == 0;
-    //const _Bool is_first_compute_step_next = step_num + 1 == 0;
+    vars_next.is_compute_step = vars_next.step_num >= 0 &&
+                                vars_next.step_num < num_step;
+    vars_next.is_first_compute_step = vars_next.step_num == 0;
 
     /*---Which entry of double buffered data items to use---*/
 
-    const int index_01 = (step_num + 2) % 2;
-    const int index_01_prev = (step_num - 1 + 2) % 2;
-    const int index_01_next = (step_num + 1 + 2) % 2;
+    vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
 
     /*---Main diagonal block only computes strict upper triangular part---*/
 
-    const _Bool do_compute_triang_only = is_first_compute_step &&
-        proc_num_r == 0;
+    vars_next.do_compute_triang_only = vars_next.is_first_compute_step &&
+                                       proc_num_r == 0;
 
-    const _Bool do_compute_triang_only_prev = is_first_compute_step_prev &&
-        proc_num_r == 0;
 
-    //const _Bool do_compute_triang_only_next = is_first_compute_step_next &&
-    //    proc_num_r == 0;
+
+    const int j_i_block_delta_next = num_proc_r * vars_next.step_num
+                                     + proc_num_r;
+    vars_next.proc_num_offset = num_proc_r * j_i_block_delta_next;
 
     /*---Possibly skip the block computation on the final compute step---*/
 
-    const int j_i_block_delta = num_proc_r * step_num + proc_num_r;
-    const int j_i_block_delta_prev = num_proc_r * (step_num-1) + proc_num_r;
-    const int j_i_block_delta_next = num_proc_r * (step_num+1) + proc_num_r;
-
-    const int proc_num_offset = num_proc_r * j_i_block_delta;
-    const int proc_num_offset_prev = num_proc_r * j_i_block_delta_prev;
-    const int proc_num_offset_next = num_proc_r * j_i_block_delta_next;
-
-    const _Bool do_compute_block = is_compute_step &&
-      proc_num_offset/num_proc_r < rectangle_width;
-
-    const _Bool do_compute_block_prev = is_compute_step_prev &&
-      proc_num_offset_prev/num_proc_r < rectangle_width;
-
-    const _Bool do_compute_block_next = is_compute_step_next &&
-      proc_num_offset_next/num_proc_r < rectangle_width;
+    vars_next.do_compute_block = vars_next.is_compute_step &&
+                    vars_next.proc_num_offset/num_proc_r < rectangle_width;
 
     /*---Point to left/right-side vecs, also right-side vecs for next step.
          Here we are computing V^T W, for V, W containing column vectors---*/
 
+    vars_next.vectors_right = vars_next.do_compute_triang_only ?
+      vectors : &vectors_01[vars_next.index_01];
     GMVectors* vectors_left = vectors;
-    GMVectors* vectors_right =
-        do_compute_triang_only ? vectors : &vectors_01[index_01];
-    GMVectors* vectors_right_next = &vectors_01[index_01_next];
-
+    vars_next.vectors_right_buf = vars_next.do_compute_triang_only ?
+      &vectors_buf : &vectors_01[vars_next.index_01].buf;
     GMMirroredPointer* vectors_left_buf = &vectors_buf;
-    GMMirroredPointer* vectors_right_buf =
-        do_compute_triang_only ? &vectors_buf : &vectors_01[index_01].buf;
-    GMMirroredPointer* vectors_right_buf_next = &vectors_01[index_01_next].buf;
 
     /*---Point to metrics buffers---*/
 
-    GMMirroredPointer* metrics_buf = &metrics_buf_01[index_01];
-    GMMirroredPointer* metrics_buf_prev = &metrics_buf_01[index_01_prev];
+    vars_next.metrics_buf = &metrics_buf_01[vars_next.index_01];
+
+    /*---The block num for the "right-side" vecs for the pseudo-product---*/
+
+    vars_next.j_block = gm_mod_i(proc_num_ir + vars_next.proc_num_offset,
+                                 num_proc_ir)/num_proc_r;
 
     /*---Prepare for sends/recvs: procs for communication---*/
 
-    const int proc_recv = gm_mod_i(proc_num_ir + proc_num_offset_next,
+    const int proc_recv = gm_mod_i(proc_num_ir + vars_next.proc_num_offset,
                                    num_proc_ir);
-    const int proc_send = gm_mod_i(proc_num_ir - proc_num_offset_next,
+    const int proc_send = gm_mod_i(proc_num_ir - vars_next.proc_num_offset,
                                    num_proc_ir);
 
-    const _Bool comm_with_self = proc_num_offset_next % num_proc_ir == 0;
+    const _Bool comm_with_self = vars_next.proc_num_offset % num_proc_ir == 0;
 
     /*---Initiate sends/recvs for vecs needed on next step---*/
 
-    if (is_compute_step_next && !comm_with_self) {
+    if (vars_next.is_compute_step && !comm_with_self) {
       const int mpi_tag = step_num + 1;
 
       /*---NOTE: this order helps performance---*/
-      mpi_requests[1] = gm_recv_vectors_start(vectors_right_next, proc_recv,
-                                              mpi_tag, env);
-      mpi_requests[0] = gm_send_vectors_start(vectors_left, proc_send,
-                                              mpi_tag, env);
+      mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
+                                              proc_recv, mpi_tag, env);
+      mpi_requests[0] = gm_send_vectors_start(vectors_left,
+                                              proc_send, mpi_tag, env);
     }
 
     /*---First step: send (left) vecs to GPU---*/
 
-    if (is_first_compute_step) {
+    if (vars.is_first_compute_step) {
       gm_vectors_to_buf(vectors_left_buf, vectors_left, env);
       gm_set_vectors_start(vectors_left, vectors_left_buf, env);
       gm_set_vectors_wait(env);
     }
 
-    /*---The block num for the "right-side" vecs for the pseudo-product---*/
-
-    const int j_block = gm_mod_i(proc_num_ir + proc_num_offset,
-                                 num_proc_ir)/num_proc_r;
-
-    const int j_block_prev = gm_mod_i(proc_num_ir + proc_num_offset_prev,
-                                 num_proc_ir)/num_proc_r;
-
     /*---Send right vectors to GPU end---*/
 
-    if (is_compute_step && do_compute_block) {
+    if (vars.is_compute_step && vars.do_compute_block) {
       gm_set_vectors_wait(env);
     }
 
@@ -342,35 +334,38 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Commence numerators computation---*/
     /*--------------------*/
 
-    if (is_compute_step && do_compute_block) {
+    if (vars.is_compute_step && vars.do_compute_block) {
       gm_compute_numerators_2way_start(
-          vectors_left, vectors_right, metrics, vectors_left_buf,
-          vectors_right_buf, metrics_buf, j_block, do_compute_triang_only, env);
+          vectors_left, vars.vectors_right, metrics,
+          vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
+          vars.j_block, vars.do_compute_triang_only, env);
     }
 
     /*---GPU case: wait for prev step get metrics to complete, then combine.
          Note this is hidden under GPU computation---*/
 
     if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-      if (is_compute_step_prev && do_compute_block_prev) {
-        gm_get_metrics_wait(metrics, metrics_buf_prev, env);
-        gm_metrics_gpu_adjust(metrics, metrics_buf_prev, env);
+      if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
+        gm_get_metrics_wait(metrics, vars_prev.metrics_buf, env);
+        gm_metrics_gpu_adjust(metrics, vars_prev.metrics_buf, env);
 
         GMMirroredPointer* metrics_buf_prev_global =
-            GMEnv_num_proc_field(env) == 1 ? metrics_buf_prev : &metrics_buf_tmp;
+            GMEnv_num_proc_field(env) == 1 ? vars_prev.metrics_buf :
+                                             &metrics_buf_tmp;
 
         if (GMEnv_num_proc_field(env) > 1) {
           gm_reduce_metrics(metrics, metrics_buf_prev_global,
-                            metrics_buf_prev, env);
+                            vars_prev.metrics_buf, env);
         }
 
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
-        GMVectorSums* vector_sums_right = proc_num_offset_prev % num_proc_ir == 0
-                                              ? &vector_sums_onproc
-                                              : &vector_sums_offproc;
+        GMVectorSums* vector_sums_right =
+          vars_prev.proc_num_offset % num_proc_ir == 0
+          ? &vector_sums_onproc : &vector_sums_offproc;
         gm_compute_2way_combine(metrics, metrics_buf_prev_global,
                                 vector_sums_left, vector_sums_right,
-                                j_block_prev, do_compute_triang_only_prev, env);
+                                vars_prev.j_block,
+                                vars_prev.do_compute_triang_only, env);
       }
     }
 
@@ -382,60 +377,61 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 #if 1
     /*---Wait for recvs to complete---*/
 
-    if (is_compute_step_next && !comm_with_self) {
+    if (vars_next.is_compute_step && !comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), env);
     }
 
     /*---Send right vectors for next step to GPU start---*/
 
-    if (is_compute_step_next && do_compute_block_next) {
-      //gm_vectors_to_buf(vectors_right_buf_next, vectors_right_next, env);
-      gm_set_vectors_start(vectors_right_next, vectors_right_buf_next, env);
+    if (vars_next.is_compute_step && vars_next.do_compute_block) {
+      //gm_vectors_to_buf(vars_next.vectors_right_buf, vars_next.vectors_right, env);
+      gm_set_vectors_start(vars_next.vectors_right,
+                           vars_next.vectors_right_buf, env);
     }
 
     /*--------------------*/
     /*---Wait for numerators computation to complete---*/
     /*--------------------*/
 
-    if (is_compute_step && do_compute_block) {
+    if (vars.is_compute_step && vars.do_compute_block) {
       gm_compute_wait(env);
     }
 
     /*---Commence copy of completed numerators back from GPU---*/
 
-    if (is_compute_step && do_compute_block) {
-      gm_get_metrics_start(metrics, metrics_buf, env);
+    if (vars.is_compute_step && vars.do_compute_block) {
+      gm_get_metrics_start(metrics, vars.metrics_buf, env);
     }
 
     /*---Compute sums for denominators---*/
 
-    if (is_compute_step && do_compute_block) {
+    if (vars.is_compute_step && vars.do_compute_block) {
 //TODO: possibly move this
-      if (is_first_compute_step) {
+      if (vars.is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }
-      if (proc_num_offset % num_proc_ir != 0) {
-        GMVectorSums_compute(&vector_sums_offproc, vectors_right, env);
+      if (vars.proc_num_offset % num_proc_ir != 0) {
+        GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
       }
     }
 
     /*---CPU case: combine numerators, denominators to obtain final result---*/
 
     if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-      if (is_compute_step && do_compute_block) {
+      if (vars.is_compute_step && vars.do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =
-            proc_num_offset % num_proc_ir == 0
+            vars.proc_num_offset % num_proc_ir == 0
             ? &vector_sums_onproc : &vector_sums_offproc;
-        gm_compute_2way_combine(metrics, metrics_buf, vector_sums_left,
-                                vector_sums_right, j_block,
-                                do_compute_triang_only, env);
+        gm_compute_2way_combine(metrics, vars.metrics_buf, vector_sums_left,
+                                vector_sums_right, vars.j_block,
+                                vars.do_compute_triang_only, env);
       }
     }
 
     /*---Wait for sends to complete---*/
 
-    if (is_compute_step_next && !comm_with_self) {
+    if (vars_next.is_compute_step && !comm_with_self) {
       gm_send_vectors_wait(&(mpi_requests[0]), env);
     }
 #endif
@@ -444,59 +440,59 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Wait for sends to complete---*/
     /*---NOTE: putting this here instead of end of loop seems faster---*/
 
-    if (is_compute_step_next && !comm_with_self) {
+    if (vars_next.is_compute_step && !comm_with_self) {
       gm_send_vectors_wait(&(mpi_requests[0]), env);
     }
 
     /*---Wait for recvs to complete---*/
 
-    if (is_compute_step_next && !comm_with_self) {
+    if (vars_next.is_compute_step && !comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), env);
     }
 
     /*---Compute sums for denominators---*/
 
-    if (is_compute_step && do_compute_block) {
+    if (vars.is_compute_step && vars.do_compute_block) {
       if (is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }
-      if (proc_num_offset % num_proc_ir != 0) {
-        GMVectorSums_compute(&vector_sums_offproc, vectors_right, env);
+      if (vars.proc_num_offset % num_proc_ir != 0) {
+        GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
       }
     }
 
     /*---Send right vectors for next step to GPU start---*/
 
-    if (is_compute_step_next && do_compute_block_next) {
-      //gm_vectors_to_buf(vectors_right_buf_next, vectors_right_next, env);
-      gm_set_vectors_start(vectors_right_next, vectors_right_buf_next, env);
+    if (vars_next.is_compute_step && vars_next.do_compute_block) {
+      //gm_vectors_to_buf(vars_next.vectors_right_buf, vars_next.vectors_right, env);
+      gm_set_vectors_start(vars_next.vectors_right, vars_next.vectors_right_buf, env);
     }
 
     /*--------------------*/
     /*---Wait for numerators computation to complete---*/
     /*--------------------*/
 
-    if (is_compute_step && do_compute_block) {
+    if (vars.is_compute_step && vars.do_compute_block) {
       gm_compute_wait(env);
     }
 
     /*---Commence copy of completed numerators back from GPU---*/
 
-    if (is_compute_step && do_compute_block) {
-      gm_get_metrics_start(metrics, metrics_buf, env);
+    if (vars.is_compute_step && vars.do_compute_block) {
+      gm_get_metrics_start(metrics, vars.metrics_buf, env);
     }
 
     /*---CPU case: combine numerators, denominators to obtain final result---*/
 
     if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-      if (is_compute_step && do_compute_block) {
+      if (vars.is_compute_step && vars.do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =
-            proc_num_offset % num_proc_ir == 0
+            vars.proc_num_offset % num_proc_ir == 0
             ? &vector_sums_onproc : &vector_sums_offproc;
-        gm_compute_2way_combine(metrics, metrics_buf, vector_sums_left,
-                                vector_sums_right, j_block,
-                                do_compute_triang_only, env);
+        gm_compute_2way_combine(metrics, vars.metrics_buf, vector_sums_left,
+                                vector_sums_right, vars.j_block,
+                                vars.do_compute_triang_only, env);
       }
     }
 #endif
