@@ -93,7 +93,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl, GMEnv* env) {
     metrics->section_size_part2[section_num] = triang_size_hi -
                                                triang_size_lo;
     //---Loop over blocks for part2.
-    for (int j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
+    for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
       if (gm_proc_r_active(section_block_num, env)) {
         //---Elements in slice of triang prism.
         const GMInt64 elts_local = (GMInt64)nvl *
@@ -111,10 +111,10 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl, GMEnv* env) {
 
   //---Loop over block for part3.
   const int i_block = GMEnv_proc_num_vector_i(env);
-  for (int k_i_block_delta=1; k_i_block_delta<num_block; ++k_i_block_delta) {
-    const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
-    for (int j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
-      const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+  for (int k_i_offset=1; k_i_offset<num_block; ++k_i_offset) {
+    const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
+    for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
+      const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
       if (j_block == k_block) {
         continue;
       }
@@ -333,7 +333,7 @@ void GMMetrics_create(GMMetrics* metrics,
     int section_block_num = 0;
     int section_step = 0;
 
-    int k_i_block_delta = 0;
+    int k_i_offset = 0;
     const int num_section_steps_12 = GMEnv_num_section_steps(env, 1);
 
     /*===PART B: ALLOCATE INDEX===*/
@@ -382,9 +382,9 @@ void GMMetrics_create(GMMetrics* metrics,
     /*---Set index part 2: (triang prisms) i_block!=j_block==k_block part---*/
 
     for (section_step=0; section_step<num_section_steps_12; ++section_step) {
-      int j_i_block_delta = 0;
-      for (j_i_block_delta=1; j_i_block_delta<num_block; ++j_i_block_delta) {
-        const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+      int j_i_offset = 0;
+      for (j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
+        const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
         if (gm_proc_r_active(section_block_num, env)) {
           const int section_num = section_step;
           const int J_lo = gm_J_lo(section_num, nvl, 2, env);
@@ -416,11 +416,11 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*---Set index part 3: (block sections) i_block!=j_block!=k_block part---*/
 
-    for (k_i_block_delta = 1; k_i_block_delta < num_block; ++k_i_block_delta) {
-      const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
-      int j_i_block_delta = 0;
-      for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta){
-        const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+    for (k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
+      const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
+      int j_i_offset = 0;
+      for (j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
+        const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
         if (j_block == k_block) {
           continue;
         }

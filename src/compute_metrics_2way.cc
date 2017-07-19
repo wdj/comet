@@ -229,12 +229,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     GMMirroredPointer* metrics_buf;
     _Bool is_compute_step;
     _Bool is_first_compute_step;
-    _Bool do_compute_triang_only;
     _Bool do_compute_block;
+    _Bool is_main_diag;
     int step_num;
     int index_01;
-    int j_i_block_delta;
-    int proc_num_offset;
+    int j_i_offset;
     int j_block;
   } LoopVars;
 
@@ -256,53 +255,48 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                                 vars_next.step_num < num_step;
     vars_next.is_first_compute_step = vars_next.step_num == 0;
 
-    /*---Which entry of double buffered data items to use---*/
+    /*---Which entry of double-buffered data items to use---*/
 
     vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
 
-    /*---Main diagonal block only computes strict upper triangular part---*/
+    /*---Offset of the block diagonal to be computed this step and proc_r---*/
 
-    vars_next.do_compute_triang_only = vars_next.is_first_compute_step &&
-                                       proc_num_r == 0;
+    vars_next.j_i_offset = num_proc_r * vars_next.step_num + proc_num_r;
+    vars_next.is_main_diag = vars_next.j_i_offset == 0;
 
+    /*---Block num for "right-side" vecs - wrap above offset to num_blocks---*/
 
+    vars_next.j_block = gm_mod_i(i_block + vars_next.j_i_offset, num_block);
 
-    const int j_i_block_delta_next = num_proc_r * vars_next.step_num
-                                     + proc_num_r;
-    vars_next.proc_num_offset = num_proc_r * j_i_block_delta_next;
-
-    /*---Possibly skip the block computation on the final compute step---*/
+    /*---Only compute blocks in the rect---*/
 
     vars_next.do_compute_block = vars_next.is_compute_step &&
-                    vars_next.proc_num_offset/num_proc_r < rectangle_width;
+                   vars_next.j_i_offset  < rectangle_width;
 
-    /*---Point to left/right-side vecs, also right-side vecs for next step.
+    /*---Pointers to left/right-side vecs.
          Here we are computing V^T W, for V, W containing column vectors---*/
 
-    vars_next.vectors_right = vars_next.do_compute_triang_only ?
+    vars_next.vectors_right = vars_next.is_main_diag ?
       vectors : &vectors_01[vars_next.index_01];
     GMVectors* vectors_left = vectors;
-    vars_next.vectors_right_buf = vars_next.do_compute_triang_only ?
+
+    vars_next.vectors_right_buf = vars_next.is_main_diag ?
       &vectors_buf : &vectors_01[vars_next.index_01].buf;
     GMMirroredPointer* vectors_left_buf = &vectors_buf;
 
-    /*---Point to metrics buffers---*/
+    /*---Pointer to metrics buffer---*/
 
     vars_next.metrics_buf = &metrics_buf_01[vars_next.index_01];
 
-    /*---The block num for the "right-side" vecs for the pseudo-product---*/
-
-    vars_next.j_block = gm_mod_i(proc_num_ir + vars_next.proc_num_offset,
-                                 num_proc_ir)/num_proc_r;
-
     /*---Prepare for sends/recvs: procs for communication---*/
 
-    const int proc_recv = gm_mod_i(proc_num_ir + vars_next.proc_num_offset,
-                                   num_proc_ir);
-    const int proc_send = gm_mod_i(proc_num_ir - vars_next.proc_num_offset,
-                                   num_proc_ir);
+    const int proc_send = gm_mod_i(proc_num_ir
+        - vars_next.j_i_offset*num_proc_r, num_proc_ir);
 
-    const _Bool comm_with_self = vars_next.proc_num_offset % num_proc_ir == 0;
+    const int proc_recv = gm_mod_i(proc_num_ir
+        + vars_next.j_i_offset*num_proc_r, num_proc_ir);
+
+    const _Bool comm_with_self = vars_next.is_main_diag;
 
     /*---Initiate sends/recvs for vecs needed on next step---*/
 
@@ -338,7 +332,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       gm_compute_numerators_2way_start(
           vectors_left, vars.vectors_right, metrics,
           vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
-          vars.j_block, vars.do_compute_triang_only, env);
+          vars.j_block, vars.is_main_diag, env);
     }
 
     /*---GPU case: wait for prev step get metrics to complete, then combine.
@@ -360,12 +354,12 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =
-          vars_prev.proc_num_offset % num_proc_ir == 0
+          vars_prev.is_main_diag
           ? &vector_sums_onproc : &vector_sums_offproc;
         gm_compute_2way_combine(metrics, metrics_buf_prev_global,
                                 vector_sums_left, vector_sums_right,
                                 vars_prev.j_block,
-                                vars_prev.do_compute_triang_only, env);
+                                vars_prev.is_main_diag, env);
       }
     }
 
@@ -384,7 +378,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     /*---Send right vectors for next step to GPU start---*/
 
     if (vars_next.is_compute_step && vars_next.do_compute_block) {
-      //gm_vectors_to_buf(vars_next.vectors_right_buf, vars_next.vectors_right, env);
       gm_set_vectors_start(vars_next.vectors_right,
                            vars_next.vectors_right_buf, env);
     }
@@ -410,7 +403,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       if (vars.is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }
-      if (vars.proc_num_offset % num_proc_ir != 0) {
+      if (!vars.is_main_diag) {
         GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
       }
     }
@@ -421,11 +414,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       if (vars.is_compute_step && vars.do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =
-            vars.proc_num_offset % num_proc_ir == 0
+            vars.is_main_diag
             ? &vector_sums_onproc : &vector_sums_offproc;
         gm_compute_2way_combine(metrics, vars.metrics_buf, vector_sums_left,
                                 vector_sums_right, vars.j_block,
-                                vars.do_compute_triang_only, env);
+                                vars.is_main_diag, env);
       }
     }
 
@@ -456,7 +449,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       if (is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }
-      if (vars.proc_num_offset % num_proc_ir != 0) {
+      if (!vars.is_main_diag) {
         GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
       }
     }
@@ -488,11 +481,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       if (vars.is_compute_step && vars.do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =
-            vars.proc_num_offset % num_proc_ir == 0
+            vars.is_main_diag
             ? &vector_sums_onproc : &vector_sums_offproc;
         gm_compute_2way_combine(metrics, vars.metrics_buf, vector_sums_left,
                                 vector_sums_right, vars.j_block,
-                                vars.do_compute_triang_only, env);
+                                vars.is_main_diag, env);
       }
     }
 #endif

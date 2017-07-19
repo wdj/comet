@@ -554,11 +554,11 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
   const int num_block = GMEnv_num_block_vector(env);
-  const int j_i_block_delta = gm_mod1_(j_block - i_block, num_block);
-  const int k_i_block_delta = gm_mod1_(k_block - i_block, num_block);
+  const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
+  const int k_i_offset = gm_mod1_(k_block - i_block, num_block);
   const int block_num_part3 =
-    ((num_block-2) * (k_i_block_delta - 1)) +
-    (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
+    ((num_block-2) * (k_i_offset - 1)) +
+    (j_i_offset - 1 - (j_i_offset > k_i_offset));
   const int num_proc_r = GMEnv_num_proc_repl(env);
   const int blocks_offset = block_num_part3 / num_proc_r;
 
@@ -690,11 +690,11 @@ static size_t GMMetrics_helper3way_part3_permuted_(
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
   const int num_block = GMEnv_num_block_vector(env);
-  const int j_i_block_delta = gm_mod1_(j_block - i_block, num_block);
-  const int k_i_block_delta = gm_mod1_(k_block - i_block, num_block);
+  const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
+  const int k_i_offset = gm_mod1_(k_block - i_block, num_block);
   const int block_num_part3 =
-    ((num_block-2) * (k_i_block_delta - 1)) +
-    (j_i_block_delta - 1 - (j_i_block_delta > k_i_block_delta));
+    ((num_block-2) * (k_i_offset - 1)) +
+    (j_i_offset - 1 - (j_i_offset > k_i_offset));
   const int num_proc_r = GMEnv_num_proc_repl(env);
   const int blocks_offset = block_num_part3 / num_proc_r;
 

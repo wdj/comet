@@ -292,16 +292,16 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   for (section_step=0; section_step<GMEnv_num_section_steps(env, 2);
        ++section_step) {
-    int j_i_block_delta = 0;
-    for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta) {
+    int j_i_offset = 0;
+    for (j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
 
-      const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+      const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
 
       //TODO: can possibly simplify this - mod by num_proc_i instead
 
-      const int proc_send_j = gm_mod_i(proc_num_ir - j_i_block_delta*num_proc_r,
+      const int proc_send_j = gm_mod_i(proc_num_ir - j_i_offset*num_proc_r,
                                        num_proc_ir);
-      const int proc_recv_j = gm_mod_i(proc_num_ir + j_i_block_delta*num_proc_r,
+      const int proc_recv_j = gm_mod_i(proc_num_ir + j_i_offset*num_proc_r,
                                        num_proc_ir);
 
       if (gm_proc_r_active(section_block_num, env)) {
@@ -357,7 +357,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
       } /*---if (section_block_num ...)---*/
       ++section_block_num;
-    } /*---j_i_block_delta---*/
+    } /*---j_i_offset---*/
   } /*---section_step---*/
 
   /*------------------------*/
@@ -368,23 +368,23 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   for (section_step=0; section_step<GMEnv_num_section_steps(env, 3);
        ++section_step) {
-    int k_i_block_delta = 0;
-    for (k_i_block_delta = 1; k_i_block_delta < num_block; ++k_i_block_delta) {
-      const int k_block = gm_mod_i(i_block + k_i_block_delta, num_block);
+    int k_i_offset = 0;
+    for (k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
+      const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
 
-      const int proc_send_k = gm_mod_i(proc_num_ir - k_i_block_delta*num_proc_r,
+      const int proc_send_k = gm_mod_i(proc_num_ir - k_i_offset*num_proc_r,
                                        num_proc_ir);
-      const int proc_recv_k = gm_mod_i(proc_num_ir + k_i_block_delta*num_proc_r,
+      const int proc_recv_k = gm_mod_i(proc_num_ir + k_i_offset*num_proc_r,
                                        num_proc_ir);
 
-      int j_i_block_delta = 0;
-      for (j_i_block_delta = 1; j_i_block_delta < num_block; ++j_i_block_delta){
+      int j_i_offset = 0;
+      for (j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
 
-        const int j_block = gm_mod_i(i_block + j_i_block_delta, num_block);
+        const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
 
-        const int proc_send_j = gm_mod_i(proc_num_ir-j_i_block_delta*num_proc_r,
+        const int proc_send_j = gm_mod_i(proc_num_ir-j_i_offset*num_proc_r,
                                          num_proc_ir);
-        const int proc_recv_j = gm_mod_i(proc_num_ir+j_i_block_delta*num_proc_r,
+        const int proc_recv_j = gm_mod_i(proc_num_ir+j_i_offset*num_proc_r,
                                          num_proc_ir);
         if (j_block == k_block) {
           /*---NOTE: this condition occurs on all procs at exactly the same
@@ -393,7 +393,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
           continue;
         }
         GMAssertAlways((j_block == k_block) ==
-                       (j_i_block_delta == k_i_block_delta));
+                       (j_i_offset == k_i_offset));
         if (gm_proc_r_active(section_block_num, env)) {
 
           const _Bool do_k_comm = k_block != k_block_currently_resident;
@@ -484,8 +484,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
         } /*---if (section_block_num ...)---*/
         ++section_block_num;
-      } /*---k_i_block_delta---*/
-    }   /*---j_i_block_delta---*/
+      } /*---k_i_offset---*/
+    }   /*---j_i_offset---*/
   } /*---section_step---*/
 
   /*------------------------*/
