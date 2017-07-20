@@ -502,7 +502,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   GMAssertAlways(env != NULL);
   GMAssertAlways(num_proc_vector_i > 0);
   GMAssertAlways(num_proc_repl > 0);
-  GMAssertAlways(num_proc_field >= 0);
+  GMAssertAlways(num_proc_field > 0);
 
   GMAssertAlways(env->num_proc_base_ != 0);
   //GMAssertAlways(env->proc_num_base_ is initialized);

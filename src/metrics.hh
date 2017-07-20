@@ -30,7 +30,8 @@ extern "C" {
 static int gm_max_computed_blocks_per_row(GMEnv* env) {
   GMAssert(env != NULL);
   /*---Max number of blocks of any block row computed on all phases---*/
-  return 1 + GMEnv_num_block_vector(env) / 2;
+  const int num_block = GMEnv_num_block_vector(env);
+  return 1 + num_block / 2;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -62,23 +63,21 @@ static int gm_diag_computed_this_row_max(GMEnv* env) {
 
   const int diag_max = gm_diag_computed_max(env);
 
-  return is_last_phase && is_row_short_by_1 ? diag_max - 1 : diag_max;
+  const int n = is_last_phase && is_row_short_by_1 ? diag_max - 1 : diag_max;
+  GMAssert(n >= 0);
+  GMAssert(n <= num_block);
+  return n;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int gm_computed_blocks_this_row(GMEnv* env) {
   GMAssert(env != NULL);
-  return gm_diag_computed_this_row_max(env) - gm_diag_computed_min(env);
+  const int n = gm_diag_computed_this_row_max(env) - gm_diag_computed_min(env);
+  GMAssert(n >= 0);
+  GMAssert(n <= GMEnv_num_block_vector(env));
+  return n;
 }
-
-/*---------------------------------------------------------------------------*/
-
-
-
-
-
-
 
 /*===========================================================================*/
 /*---Helper functions for 3-way case---*/
@@ -307,6 +306,7 @@ typedef struct {
   size_t section_size_part2[6];
   GMFloat m;
   GMFloat recip_m;
+  int block_min;
   /*---map of (contig) index to linearized Cartesian coords---*/
   size_t* coords_global_from_index;
   /*---Other---*/
@@ -358,7 +358,7 @@ static size_t gm_triang_(int i) {
 }
 
 /*---------------------------------------------------------------------------*/
-/*---Helper: is this section_block_num to be processed by this proc_r---*/
+/*---Helper: is this (section_)block_num to be processed by this proc_r---*/
 
 static _Bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
   GMAssert(env != NULL);
@@ -385,9 +385,11 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
   GMAssert(GMEnv_proc_num_repl(env) == 0);
 
   size_t index = gm_triang_(j) + i;
-  GMAssert(i + metrics->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env) ==
+  GMAssert(i + metrics->num_vector_local *
+               (size_t)GMEnv_proc_num_vector_i(env) ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
-  GMAssert(j + metrics->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env) ==
+  GMAssert(j + metrics->num_vector_local *
+               (size_t)GMEnv_proc_num_vector_i(env) ==
            metrics->coords_global_from_index[index] / metrics->num_vector);
   return index;
 }
@@ -399,7 +401,8 @@ static size_t GMMetrics_helper2way_maindiag_block_(GMMetrics* metrics,
                                                    int j,
                                                    int j_block,
                                                    GMEnv* env) {
-  //return GMMetrics_index_from_coord_2(metrics, i, j, env)
+  GMAssert(j_block == GMEnv_proc_num_vector_i(env));
+
   return gm_triang_(j) + i;
 }
 
@@ -410,17 +413,19 @@ static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
                                                   int j,
                                                   int j_block,
                                                   GMEnv* env) {
+  GMAssert(j_block != GMEnv_proc_num_vector_i(env));
+
   const int num_block = GMEnv_num_block_vector(env);
 
   const int num_proc_r = GMEnv_num_proc_repl(env);
 
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int block_min = metrics->block_min;
 
   /* clang-format off */
   return metrics->index_offset_0_ +
       i + metrics->num_vector_local * (
       j + metrics->num_vector_local * (
-      ((j_block - i_block - 1 + 2*num_block) % num_block) / num_proc_r ));
+      ((j_block - block_min + num_block) % num_block) / num_proc_r ));
   /* clang-format on */
 }
 

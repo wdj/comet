@@ -91,28 +91,28 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
                     && (long)(int)num_stage == num_stage
                     && "Invalid setting for num_stage.");
       env->num_stage = num_stage;
-      do_->stage_min = 1;
-      do_->stage_max = env->num_stage;
+      do_->stage_min_1based = 1;
+      do_->stage_max_1based = env->num_stage;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_min") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for stage_min.");
-      long stage_min = strtol(argv[i], NULL, 10);
-      GMInsist(env, errno == 0 && stage_min >= 1
-                    && (long)(int)stage_min == stage_min
+      long stage_min_1based = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && stage_min_1based >= 1
+                    && (long)(int)stage_min_1based == stage_min_1based
                     && "Invalid setting for stage_min.");
-      do_->stage_min = stage_min;
+      do_->stage_min_1based = stage_min_1based;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_max") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for stage_max.");
-      long stage_max = strtol(argv[i], NULL, 10);
-      GMInsist(env, errno == 0 && stage_max <= env->num_stage
-                    && (long)(int)stage_max == stage_max
+      long stage_max_1based = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && stage_max_1based <= env->num_stage
+                    && (long)(int)stage_max_1based == stage_max_1based
                     && "Invalid setting for stage_max.");
-      do_->stage_max = stage_max;
+      do_->stage_max_1based = stage_max_1based;
     /*----------*/
     } else if (strcmp(argv[i], "--num_phase") == 0) {
     /*----------*/
@@ -123,28 +123,28 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
                     && (long)(int)num_phase == num_phase
                     && "Invalid setting for num_phase.");
       env->num_phase = num_phase;
-      do_->phase_min = 1;
-      do_->phase_max = env->num_phase;
+      do_->phase_min_1based = 1;
+      do_->phase_max_1based = env->num_phase;
     /*----------*/
     } else if (strcmp(argv[i], "--phase_min") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for phase_min.");
-      long phase_min = strtol(argv[i], NULL, 10);
-      GMInsist(env, errno == 0 && phase_min >= 1
-                    && (long)(int)phase_min == phase_min
+      long phase_min_1based = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && phase_min_1based >= 1
+                    && (long)(int)phase_min_1based == phase_min_1based
                     && "Invalid setting for phase_min.");
-      do_->phase_min = phase_min;
+      do_->phase_min_1based = phase_min_1based;
     /*----------*/
     } else if (strcmp(argv[i], "--phase_max") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for phase_max.");
-      long phase_max = strtol(argv[i], NULL, 10);
-      GMInsist(env, errno == 0 && phase_max <= env->num_phase
-                    && (long)(int)phase_max == phase_max
+      long phase_max_1based = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && phase_max_1based <= env->num_phase
+                    && (long)(int)phase_max_1based == phase_max_1based
                     && "Invalid setting for phase_max.");
-      do_->phase_max = phase_max;
+      do_->phase_max_1based = phase_max_1based;
     /*----------*/
     } else if (strcmp(argv[i], "--input_file") == 0) {
     /*----------*/
@@ -1202,10 +1202,10 @@ exit(1);
   do_.num_vector_local_initialized = GM_BOOL_FALSE;
   do_.num_vector_active_initialized = GM_BOOL_FALSE;
   do_.verbosity = 1;
-  do_.stage_min = 1;
-  do_.stage_max = env.num_stage;
-  do_.phase_min = 1;
-  do_.phase_max = env.num_phase;
+  do_.stage_min_1based = 1;
+  do_.stage_max_1based = env.num_stage;
+  do_.phase_min_1based = 1;
+  do_.phase_max_1based = env.num_phase;
   do_.input_file_path = NULL;
   do_.output_file_path_stub = NULL;
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
@@ -1264,11 +1264,11 @@ exit(1);
 
   size_t num_elts_local_computed = 0;
 
-  for (env.stage_num=do_.stage_min-1;
-       env.stage_num<=do_.stage_max-1; ++env.stage_num) {
+  for (env.stage_num=do_.stage_min_1based-1;
+       env.stage_num<=do_.stage_max_1based-1; ++env.stage_num) {
 
-    for (env.phase_num=do_.phase_min-1;
-         env.phase_num<=do_.phase_max-1; ++env.phase_num) {
+    for (env.phase_num=do_.phase_min_1based-1;
+         env.phase_num<=do_.phase_max_1based-1; ++env.phase_num) {
 
       /*---Set up metrics container for results---*/
 
@@ -1327,13 +1327,13 @@ exit(1);
     GMAssertAlways(mpi_code == MPI_SUCCESS);
 
     if (GMEnv_num_way(&env) == GM_NUM_WAY_2 && GMEnv_all2all(&env) &&
-        do_.phase_min==1 && do_.phase_max==env.num_phase) {
+        do_.phase_min_1based==1 && do_.phase_max_1based==env.num_phase) {
       GMAssertAlways(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) / 2);
     }
 
     if (GMEnv_num_way(&env) == GM_NUM_WAY_3 && GMEnv_all2all(&env) &&
-        do_.stage_min==1 && do_.stage_max==env.num_stage) {
+        do_.stage_min_1based==1 && do_.stage_max_1based==env.num_stage) {
       GMAssertAlways(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) * (size_t)
                                           (do_.num_vector - 2) / 6);

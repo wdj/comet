@@ -188,6 +188,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->index_offset_0_ = 0;
   metrics->index_offset_01_ = 0;
   metrics->recip_m = ((GMFloat)1) / num_field_active;
+  metrics->block_min = 0;
   for (i=0; i<6; ++i) {
     metrics->index_offset_section_part1_[i] = 0;
     metrics->index_offset_section_part2_[i] = 0;
@@ -260,9 +261,11 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->num_elts_local = 0;
 
     /*---PART A.1: (triangle) i_block==j_block part---*/
-    const _Bool have_main_diag = proc_num_r == 0 && env->phase_num == 0;
+    const _Bool have_main_diag = proc_num_r == 0 &&
+                                 gm_diag_computed_min(env) == 0;
     metrics->num_elts_local += have_main_diag ? nchoosek : 0;
-    metrics->index_offset_0_ = metrics->num_elts_local;
+    metrics->index_offset_0_ = have_main_diag ? nchoosek - nvlsq : 0;
+    metrics->block_min = (i_block + gm_diag_computed_min(env)) % num_block;
 
     /*---PART A.2: (wrapped rect) i_block!=j_block part---*/
     const int num_computed_blocks_this_row = gm_computed_blocks_this_row(env);
@@ -286,6 +289,8 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t j_global = j + nvl * i_block;
         for (i = 0; i < j; ++i) {
           const size_t i_global = i + nvl * i_block;
+          GMAssert(GMMetrics_helper2way_maindiag_block_(metrics, i, j, i_block,
+                                                        env) == index);
           metrics->coords_global_from_index[index++] =
               i_global + metrics->num_vector * j_global;
         }
