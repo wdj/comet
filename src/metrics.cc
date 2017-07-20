@@ -200,7 +200,7 @@ void GMMetrics_create(GMMetrics* metrics,
   const int num_block = GMEnv_num_block_vector(env);
 
   const size_t num_vector_bound = metrics->num_vector_local *
-                            (size_t)num_block * (size_t)GMEnv_num_proc_repl(env);
+                          (size_t)num_block * (size_t)GMEnv_num_proc_repl(env);
   GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
     ? "Vector count too large to store in 32-bit int; please modify code." : 0);
 
@@ -224,15 +224,16 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const size_t nchoosek = gm_nchoosek(num_vector_local, GMEnv_num_way(env));
   const int nvl = num_vector_local;
+  const size_t nvlsq = nvl * (size_t)nvl;
 
   /*---Compute number of elements etc.---*/
 
-  GMInsist(env, env->stage_num >= 0
+  GMInsist(env, env->stage_num >= 0 && env->stage_num < env->num_stage
                 ? "Invalid stage number specified."
                 : 0);
 
-  GMInsist(env, env->stage_num < env->num_stage
-                ? "Invalid stage number specified."
+  GMInsist(env, env->phase_num >= 0 && env->phase_num < env->num_phase
+                ? "Invalid phase number specified."
                 : 0);
 
   metrics->num_elts_local_computed = 0;
@@ -242,8 +243,7 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
 
     GMInsist(env, env->num_stage == 1
-                      ? "Staged computations not currently implemented "
-                        "for 2-way case."
+                      ? "Staged computations not allowed for 2-way case."
                       : 0);
 
     /*---Store the following in this block-row:
@@ -251,37 +251,37 @@ void GMMetrics_create(GMMetrics* metrics,
         2) half of the off-diagonal blocks, as a "wrapped rectangle"
       For num_proc_repl > 1, map these blocks, starting at the
       main diagonal block, to procs in round-robin fashion.
+      For num_phase > 1, do all this only for a piece of the block row.
     ---*/
+
     /*===PART A: CALCULATE INDEX SIZE===*/
     const int proc_num_r = GMEnv_proc_num_repl(env);
     const int num_proc_r = GMEnv_num_proc_repl(env);
     metrics->num_elts_local = 0;
-    /*---Calculate index size part 1: (triangle) i_block==j_block part---*/
-    metrics->num_elts_local += proc_num_r == 0 ? nchoosek : 0;
+
+    /*---PART A.1: (triangle) i_block==j_block part---*/
+    const _Bool have_main_diag = proc_num_r == 0 && env->phase_num == 0;
+    metrics->num_elts_local += have_main_diag ? nchoosek : 0;
     metrics->index_offset_0_ = metrics->num_elts_local;
-    /*---Calculate index size part 2: (wrapped rect) i_block!=j_block part---*/
-    /*---Total computed blocks this block row---*/
-    const int num_block_this_slab_2 = num_block % 2 == 0 &&
-                                      2 * i_block >= num_block
-                                        ? (num_block / 2)
-                                        : (num_block / 2) + 1;
-    /*---Number stored for this proc_num_r---*/
-    const int num_block_this_proc_2 = rr_pack_(proc_num_r, num_proc_r,
-                                               num_block_this_slab_2);
-    /*---Now count offdiag blocks only---*/
-    const int num_offdiag_block = proc_num_r == 0 ? num_block_this_proc_2 - 1
-                                                  : num_block_this_proc_2;
-    /*---Now put it all together---*/
-    metrics->num_elts_local +=
-        num_offdiag_block * nvl * nvl;
+
+    /*---PART A.2: (wrapped rect) i_block!=j_block part---*/
+    const int num_computed_blocks_this_row = gm_computed_blocks_this_row(env);
+    const int num_computed_blocks_this_proc = rr_pack_(proc_num_r, num_proc_r,
+                                               num_computed_blocks_this_row);
+    const int num_computed_offdiag_blocks_this_proc =
+      num_computed_blocks_this_proc - (have_main_diag ? 1 : 0);
+    metrics->num_elts_local += num_computed_offdiag_blocks_this_proc * nvlsq;
+
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
     GMAssertAlways(metrics->coords_global_from_index != NULL);
+
     /*===PART C: SET INDEX===*/
-    /*---Set index part 1: (triangle) i_block==j_block part---*/
+
+    /*---PART C.1: (triangle) i_block==j_block part---*/
     size_t index = 0;
-    if (proc_num_r == 0) {
+    if (have_main_diag) {
       for (j = 0; j < nvl; ++j) {
         const size_t j_global = j + nvl * i_block;
         for (i = 0; i < j; ++i) {
@@ -291,14 +291,17 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
     }
-    /*---Set index part 2: (wrapped rectangle) i_block!=j_block part---*/
-    const int beg = i_block + 1;
-    const int end = i_block + num_block_this_slab_2;
-    int j_block_unwrapped = 0;
-    for (j_block_unwrapped=beg; j_block_unwrapped<end; ++j_block_unwrapped) {
-      if (!gm_proc_r_active(j_block_unwrapped-i_block, env)) {
+
+    /*---PART C.2: (wrapped rectangle) i_block!=j_block part---*/
+
+    const int beg = gm_diag_computed_min(env);
+    const int end = beg + num_computed_blocks_this_row;
+    int diag = 0;
+    for (diag=beg; diag<end; ++diag) {
+      if (diag == 0 || !gm_proc_r_active(diag-beg, env)) {
         continue;
       }
+      const int j_block_unwrapped = i_block + diag;
 #pragma omp parallel for collapse(2)
       for (j = 0; j < nvl; ++j) {
         for (i = 0; i < nvl; ++i) {
@@ -311,13 +314,20 @@ void GMMetrics_create(GMMetrics* metrics,
               i_global + metrics->num_vector * j_global;
         }
       }
-      index += nvl * (size_t)nvl;
-    }
+      index += nvlsq;
+    } /*---for diag---*/
+
+    /*---Final check---*/
     GMAssertAlways(index == metrics->num_elts_local);
 
   /*==================================================*/
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && GMEnv_all2all(env)) {
   /*==================================================*/
+
+    GMInsist(env, env->num_phase == 1
+                      ? "Phaseed computations not currently implemented "
+                        "for 3-way case."
+                      : 0);
 
     /*---Make the following assumption to greatly simplify calculations---*/
     GMInsist(env, num_block <= 2 || metrics->num_vector_local % 6 == 0
@@ -485,8 +495,11 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
 
     GMInsist(env, env->num_stage == 1
-                      ? "Staged computations not currently implemented "
-                        "for 2-way case."
+                      ? "Staged computations not allowed for non-all2all case."
+                      : 0);
+
+    GMInsist(env, env->num_phase == 1
+                      ? "Phased computations not allowed for non-all2all case."
                       : 0);
 
     metrics->num_elts_local = nchoosek;
@@ -510,25 +523,19 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
 
     GMInsist(env, env->num_stage == 1
-                      ? "Staged computations not allowed "
-                        "for non-all2all case."
+                      ? "Staged computations not allowed for non-all2all case."
                       : 0);
 
-    //const int section_num = 0;
-    //const int J_lo = gm_J_lo(section_num, nvl, 1, env);
-    //const int J_hi = gm_J_hi(section_num, nvl, 1, env);
-    //const size_t trap_size_lo = gm_trap_size(J_lo, nvl);
-    //const size_t trap_size_hi = gm_trap_size(J_hi, nvl);
-    //metrics->num_elts_local = trap_size_hi - trap_size_lo;
+    GMInsist(env, env->num_phase == 1
+                      ? "Phased computations not allowed for non-all2all case."
+                      : 0);
+
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
     GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict interior of tetrahedron---*/
     size_t index = 0;
-    //const int j_min = J_lo;
-    //const int j_max = J_hi;
-    //for (j = j_min; j < j_max; ++j) {
     for (j = 0; j < nvl; ++j) {
       const int j_block = i_block;
       const size_t j_global = j + nvl * j_block;

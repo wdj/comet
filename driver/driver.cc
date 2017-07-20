@@ -114,6 +114,38 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
                     && "Invalid setting for stage_max.");
       do_->stage_max = stage_max;
     /*----------*/
+    } else if (strcmp(argv[i], "--num_phase") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc && "Missing value for num_phase.");
+      long num_phase = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && num_phase >= 1
+                    && (long)(int)num_phase == num_phase
+                    && "Invalid setting for num_phase.");
+      env->num_phase = num_phase;
+      do_->phase_min = 1;
+      do_->phase_max = env->num_phase;
+    /*----------*/
+    } else if (strcmp(argv[i], "--phase_min") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc && "Missing value for phase_min.");
+      long phase_min = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && phase_min >= 1
+                    && (long)(int)phase_min == phase_min
+                    && "Invalid setting for phase_min.");
+      do_->phase_min = phase_min;
+    /*----------*/
+    } else if (strcmp(argv[i], "--phase_max") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc && "Missing value for phase_max.");
+      long phase_max = strtol(argv[i], NULL, 10);
+      GMInsist(env, errno == 0 && phase_max <= env->num_phase
+                    && (long)(int)phase_max == phase_max
+                    && "Invalid setting for phase_max.");
+      do_->phase_max = phase_max;
+    /*----------*/
     } else if (strcmp(argv[i], "--input_file") == 0) {
     /*----------*/
       ++i;
@@ -1073,8 +1105,10 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     char* path = (char*)malloc((len+50) * sizeof(char));
 
     GMAssertAlways(env->num_stage < 1000000);
+    GMAssertAlways(env->num_phase < 1000000);
     GMAssertAlways(GMEnv_num_proc(env) < 10000000000);
-    sprintf(path, "%s_%06i_%010i", stub, env->stage_num, GMEnv_proc_num(env));
+    sprintf(path, "%s_%06i_%06i_%010i", stub, env->phase_num,
+            env->stage_num, GMEnv_proc_num(env));
 
     double threshold = 0.;
 
@@ -1170,6 +1204,8 @@ exit(1);
   do_.verbosity = 1;
   do_.stage_min = 1;
   do_.stage_max = env.num_stage;
+  do_.phase_min = 1;
+  do_.phase_max = env.num_phase;
   do_.input_file_path = NULL;
   do_.output_file_path_stub = NULL;
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
@@ -1224,52 +1260,60 @@ exit(1);
   double mctime = 0;
   double cktime = 0;
 
-  /*---Loop over stages---*/
+  /*---Loops over phases, stages---*/
 
   size_t num_elts_local_computed = 0;
 
   for (env.stage_num=do_.stage_min-1;
        env.stage_num<=do_.stage_max-1; ++env.stage_num) {
 
-    /*---Set up metrics container for results---*/
+    for (env.phase_num=do_.phase_min-1;
+         env.phase_num<=do_.phase_max-1; ++env.phase_num) {
 
-    time_beg = GMEnv_get_synced_time(&env);
-    GMMetrics metrics = GMMetrics_null();
-    GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env),
-                     do_.num_field, do_.num_field_active,
-                     do_.num_vector_local,
-                     do_.num_vector_active, &env);
-    time_end = GMEnv_get_synced_time(&env);
-    mctime += time_end - time_beg;
+      /*---Set up metrics container for results---*/
 
-    /*---Calculate metrics---*/
+      time_beg = GMEnv_get_synced_time(&env);
+      GMMetrics metrics = GMMetrics_null();
+      GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env),
+                       do_.num_field, do_.num_field_active,
+                       do_.num_vector_local,
+                       do_.num_vector_active, &env);
+      time_end = GMEnv_get_synced_time(&env);
+      mctime += time_end - time_beg;
 
-    gm_compute_metrics(&metrics, &vectors, &env);
+      /*---Calculate metrics---*/
 
-    num_elts_local_computed += metrics.num_elts_local_computed;
+      gm_compute_metrics(&metrics, &vectors, &env);
 
-    /*---Output results---*/
+      num_elts_local_computed += metrics.num_elts_local_computed;
 
-    time_beg = GMEnv_get_synced_time(&env);
-    output_metrics(&metrics, &do_, &env);
-    time_end = GMEnv_get_synced_time(&env);
-    outtime += time_end - time_beg;
+      /*---Output results---*/
 
-    /*---Check correctness---*/
+      time_beg = GMEnv_get_synced_time(&env);
+      output_metrics(&metrics, &do_, &env);
+      time_end = GMEnv_get_synced_time(&env);
+      outtime += time_end - time_beg;
 
-    check_metrics(&metrics, &do_, &env);
+      /*---Check correctness---*/
 
-    /*---Compute checksum---*/
+      check_metrics(&metrics, &do_, &env);
 
-    time_beg = GMEnv_get_synced_time(&env);
-    GMMetrics_checksum(&metrics, &checksum, &env);
-    time_end = GMEnv_get_synced_time(&env);
-    cktime += time_end - time_beg;
+      /*---Compute checksum---*/
 
-    GMMetrics_destroy(&metrics, &env);
-  }
+      time_beg = GMEnv_get_synced_time(&env);
+      GMMetrics_checksum(&metrics, &checksum, &env);
+      time_end = GMEnv_get_synced_time(&env);
+      cktime += time_end - time_beg;
+
+      GMMetrics_destroy(&metrics, &env);
+
+    }
+
+  } /*---End loops over phases, stages---*/
 
   GMVectors_destroy(&vectors, &env);
+
+  /*---Perform some checks---*/
 
   GMAssertAlways(env.cpu_mem == 0);
   GMAssertAlways(env.gpu_mem == 0);
@@ -1282,7 +1326,8 @@ exit(1);
                              GMEnv_mpi_comm_vector(&env));
     GMAssertAlways(mpi_code == MPI_SUCCESS);
 
-    if (GMEnv_num_way(&env) == GM_NUM_WAY_2 && GMEnv_all2all(&env)) {
+    if (GMEnv_num_way(&env) == GM_NUM_WAY_2 && GMEnv_all2all(&env) &&
+        do_.phase_min==1 && do_.phase_max==env.num_phase) {
       GMAssertAlways(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) / 2);
     }

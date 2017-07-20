@@ -135,7 +135,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   const int npvfl = vectors->num_packedval_field_local;
 
   int i = 0;
-  int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = GMEnv_proc_num_vector_i(env);
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
   GMVectorSums vector_sums_offproc = GMVectorSums_null();
@@ -184,7 +184,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   MPI_Request mpi_requests[2];
 
   /*----------------------------------------*/
-  /*---Begin loop over steps of circular shift of vectors objects---*/
+  /*---Begin loop over computing blocks of the result---*/
   /*----------------------------------------*/
 
   /*---Summary of the opertions in this loop:
@@ -209,17 +209,23 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   const int extra_step = 1;
 
-  /*---Number of blocks wide is a wrapped rectangle of blocks---*/
+  /*---Lowest/highest (block) diag to be computed for this phase,
+       measured from (block) main diag---*/
 
-  const int max_rectangle_width = 1 + (num_block / 2);
+  const int j_i_offset_min = gm_diag_computed_min(env);
+  const int j_i_offset_max = gm_diag_computed_max(env);
+  const int j_i_offset_this_row_max = gm_diag_computed_this_row_max(env);
 
-  const int rectangle_width =
-    (num_block % 2 == 0) && (2 * i_block >= num_block) ?
-    max_rectangle_width - 1 : max_rectangle_width;
+  const int num_diag_computed = j_i_offset_max - j_i_offset_min;
 
-  /*---At each step, num_proc_r processors compute a block---*/
+  /*---Num steps to take to compute blocks---*/
+  /*---(note: at each step, num_proc_r processors each compute a block)---*/
 
-  const int num_step = gm_ceil_i(max_rectangle_width, num_proc_r);
+  const int num_step = gm_ceil_i(num_diag_computed, num_proc_r);
+
+  /*---Number of blocks to compute in this block row---*/
+
+  //const int rectangle_width = gm_computed_blocks_this_row(env);
 
   int step_num = 0;
 
@@ -261,17 +267,20 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     /*---Offset of the block diagonal to be computed this step and proc_r---*/
 
-    vars_next.j_i_offset = num_proc_r * vars_next.step_num + proc_num_r;
+    vars_next.j_i_offset = j_i_offset_min + vars_next.step_num * num_proc_r
+                           + proc_num_r;
+
     vars_next.is_main_diag = vars_next.j_i_offset == 0;
 
     /*---Block num for "right-side" vecs - wrap above offset to num_blocks---*/
 
     vars_next.j_block = gm_mod_i(i_block + vars_next.j_i_offset, num_block);
 
-    /*---Only compute blocks in the rect---*/
+    /*---Only compute blocks in rectangle/phase, maybe different per row---*/
 
     vars_next.do_compute_block = vars_next.is_compute_step &&
-                   vars_next.j_i_offset  < rectangle_width;
+                   vars_next.j_i_offset < j_i_offset_this_row_max;
+// && vars_next.j_i_offset < rectangle_width;
 
     /*---Pointers to left/right-side vecs.
          Here we are computing V^T W, for V, W containing column vectors---*/

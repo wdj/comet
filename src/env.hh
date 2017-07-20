@@ -388,6 +388,8 @@ typedef struct {
   int compute_method_;
   int num_stage;
   int stage_num;
+  int num_phase;
+  int phase_num;
   double ccc_param_;
   /*---Counters---*/
   double time;

@@ -264,30 +264,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
                            MPI_UNSIGNED_LONG_LONG, MPI_MAX,
                            GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
-
-#if 0
-  /* clang-format off */
-  env->compares += (GMEnv_num_way(env) == GM_NUM_WAY_2 && ! GMEnv_all2all(env))
-            ?    GMEnv_num_proc_vector_i(env) * 1. *
-                 vectors->num_vector_local * 1. *
-                 (vectors->num_vector_local - 1) * (1./2.) *
-                 vectors->num_field * 1. / env->num_stage
-            : (GMEnv_num_way(env) == GM_NUM_WAY_3 && ! GMEnv_all2all(env))
-            ?    GMEnv_num_proc_vector_i(env) * 1. *
-                 vectors->num_vector_local * 1. *
-                 (vectors->num_vector_local - 1) * 1. *
-                 (vectors->num_vector_local - 2) * (1./6.) *
-                 vectors->num_field * 1. / env->num_stage
-            : (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env))
-            ?    vectors->num_vector * 1. *
-                 (vectors->num_vector - 1) * (1./2.) *
-                 vectors->num_field * 1. / env->num_stage
-            :    vectors->num_vector * 1. *
-                 (vectors->num_vector - 1) * 1. *
-                 (vectors->num_vector - 2) * (1./6.) *
-                 vectors->num_field * 1. / env->num_stage;
-  /* clang-format on */
-#endif
 }
 
 /*===========================================================================*/

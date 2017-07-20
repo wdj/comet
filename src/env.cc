@@ -132,6 +132,8 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
   GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
   env->num_stage = 1;
   env->stage_num = 0;
+  env->num_phase = 1;
+  env->phase_num = 0;
   env->ccc_param_ = ((double) 2) / ((double) 3);
 
   env->time = 0;

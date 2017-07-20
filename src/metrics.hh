@@ -25,7 +25,63 @@ extern "C" {
 #endif
 
 /*===========================================================================*/
-/*---Lightweight functions---*/
+/*---Helper functions for 2-way case---*/
+
+static int gm_max_computed_blocks_per_row(GMEnv* env) {
+  GMAssert(env != NULL);
+  /*---Max number of blocks of any block row computed on all phases---*/
+  return 1 + GMEnv_num_block_vector(env) / 2;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int gm_diag_computed_min(GMEnv* env) {
+  GMAssert(env != NULL);
+  const int max_rectangle_width = gm_max_computed_blocks_per_row(env);
+  return (max_rectangle_width*env->phase_num) / env->num_phase;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int gm_diag_computed_max(GMEnv* env) {
+  GMAssert(env != NULL);
+  const int max_rectangle_width = gm_max_computed_blocks_per_row(env);
+  return (max_rectangle_width*(env->phase_num+1)) / env->num_phase;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int gm_diag_computed_this_row_max(GMEnv* env) {
+  GMAssert(env != NULL);
+
+  const int num_block = GMEnv_num_block_vector(env);
+  const int i_block = GMEnv_proc_num_vector_i(env);
+
+  const _Bool is_row_short_by_1 = num_block % 2 == 0 && 2*i_block >= num_block;
+  const _Bool is_last_phase = env->phase_num == env->num_phase - 1;
+
+  const int diag_max = gm_diag_computed_max(env);
+
+  return is_last_phase && is_row_short_by_1 ? diag_max - 1 : diag_max;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int gm_computed_blocks_this_row(GMEnv* env) {
+  GMAssert(env != NULL);
+  return gm_diag_computed_this_row_max(env) - gm_diag_computed_min(env);
+}
+
+/*---------------------------------------------------------------------------*/
+
+
+
+
+
+
+
+/*===========================================================================*/
+/*---Helper functions for 3-way case---*/
 
 static _Bool gm_is_part1(int i_block, int j_block, int k_block) {
   return i_block == j_block && j_block == k_block;

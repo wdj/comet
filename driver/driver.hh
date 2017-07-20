@@ -32,6 +32,8 @@ typedef struct {
   int verbosity;
   int stage_min;
   int stage_max;
+  int phase_min;
+  int phase_max;
   char* input_file_path;
   char* output_file_path_stub;
   int problem_type;
