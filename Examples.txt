@@ -106,6 +106,18 @@ Options:
         the highest stage number of the sequence of stages to be computed
         for this run (default is num_stage)
 
+    --num_phase <value>
+        the number of phases the computation is divided into
+        (default is 1) (available for 2-way case only)
+
+    --phase_min <value>
+        the lowest phase number of the sequence of phases to be computed
+        for this run (default is 1)
+
+    --phase_max <value>
+        the highest phase number of the sequence of phases to be computed
+        for this run (default is num_phase)
+
     --problem_type <value>
         the kind of synthetic test cse to run. Allowed choices are
         analytic (default) or random\n"

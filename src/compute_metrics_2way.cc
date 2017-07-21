@@ -223,10 +223,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   const int num_step = gm_ceil_i(num_diag_computed, num_proc_r);
 
-  /*---Number of blocks to compute in this block row---*/
-
-  //const int rectangle_width = gm_computed_blocks_this_row(env);
-
   int step_num = 0;
 
   typedef struct {
@@ -280,7 +276,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     vars_next.do_compute_block = vars_next.is_compute_step &&
                    vars_next.j_i_offset < j_i_offset_this_row_max;
-// && vars_next.j_i_offset < rectangle_width;
 
     /*---Pointers to left/right-side vecs.
          Here we are computing V^T W, for V, W containing column vectors---*/

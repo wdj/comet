@@ -396,6 +396,31 @@ void DriverTest_czekanowski_() {
       }
     }
   }
+
+  //----------
+  //---num_phase, 2-way
+  //----------
+
+  int num_phase = 0;
+
+  for (num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
+    for (num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
+      for (num_phase=2; num_phase<=8; ++num_phase) {
+        if (!(num_phase <= 1 + num_proc_vector/2)) {
+          continue;
+        }
+        char options_template[] =
+          "--metric_type czekanowski "
+          "--num_field 7 --num_vector 12 --compute_method GPU --all2all yes "
+          "--num_proc_vector %i --num_proc_repl %i --num_phase %i "
+          "--num_way 2";
+        sprintf(options1, options_template, num_proc_vector, num_proc_repl,
+                num_phase);
+        sprintf(options2, options_template, 1, 1, 1);
+        test_2runs(options1, options2);
+      }
+    }
+  }
 }
 
 /*===========================================================================*/
@@ -631,24 +656,6 @@ void DriverTest_ccc_() {
   char options2[1024];
   char options3[1024];
   int i = 0;
-
-#if 0
-  EXPECT_EQ(GM_BOOL_TRUE,
-
-compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
-              "--num_field 3 --num_vector 30 "
-              "--compute_method REF --all2all yes --num_way 3 "
-              "--metric_type ccc --verbosity 1",
-
-              "--num_proc_vector 1 --num_proc_field 2 "
-              "--num_field 3 --num_vector 30 "
-              "--compute_method GPU --all2all yes --num_way 3 "
-              "--metric_type ccc --verbosity 1")
-
-
-);
-return;
-#endif
 
   //----------
   //---2-way, all2all no
@@ -932,6 +939,31 @@ return;
   sprintf(options2, options_template_11b, 1, ((double)1) / ((double)2));
   const int result11 = compare_2runs(options1, options2);
   EXPECT_EQ(GM_BOOL_TRUE, proc_num==0 ? !result11 : GM_BOOL_TRUE);
+
+  //----------
+  //---num_phase, 2-way
+  //----------
+
+  int num_phase = 0;
+
+  for (num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
+    for (num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
+      for (num_phase=2; num_phase<=8; ++num_phase) {
+        if (!(num_phase <= 1 + num_proc_vector/2)) {
+          continue;
+        }
+        char options_template[] =
+          "--metric_type ccc "
+          "--num_field 7 --num_vector 12 --compute_method GPU --all2all yes "
+          "--num_proc_vector %i --num_proc_repl %i --num_phase %i "
+          "--num_way 2";
+        sprintf(options1, options_template, num_proc_vector, num_proc_repl,
+                num_phase);
+        sprintf(options2, options_template, 1, 1, 1);
+        test_2runs(options1, options2);
+      }
+    }
+  }
 }
 
 /*===========================================================================*/

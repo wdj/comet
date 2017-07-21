@@ -247,6 +247,10 @@ void GMMetrics_create(GMMetrics* metrics,
                       ? "Staged computations not allowed for 2-way case."
                       : 0);
 
+    GMInsist(env, env->num_phase <= 1 + num_block / 2
+                      ? "num_phase must be at most 1 + nproc_vector/2."
+                      : 0);
+
     /*---Store the following in this block-row:
         1) strict upper triangular part of main diagonal block
         2) half of the off-diagonal blocks, as a "wrapped rectangle"
@@ -267,6 +271,7 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->index_offset_0_ = have_main_diag ? nchoosek - nvlsq : 0;
     metrics->block_min = (i_block + gm_diag_computed_min(env)) % num_block;
 
+
     /*---PART A.2: (wrapped rect) i_block!=j_block part---*/
     const int num_computed_blocks_this_row = gm_computed_blocks_this_row(env);
     const int num_computed_blocks_this_proc = rr_pack_(proc_num_r, num_proc_r,
@@ -279,6 +284,7 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->coords_global_from_index =
         (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
     GMAssertAlways(metrics->coords_global_from_index != NULL);
+//if (env->proc_num_base_ == 0) printf("Hey1\n");
 
     /*===PART C: SET INDEX===*/
 
@@ -572,7 +578,7 @@ void GMMetrics_create(GMMetrics* metrics,
                            GMEnv_mpi_comm_vector(env));
 
   if (GMEnv_num_way(env) == GM_NUM_WAY_2 && env->num_stage == 1 &&
-      GMEnv_all2all(env)) {
+      env->num_phase == 1 && GMEnv_all2all(env)) {
     GMAssertAlways(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) / 2);
   }
