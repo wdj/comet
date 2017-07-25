@@ -39,6 +39,7 @@ typedef struct {
   int problem_type;
   size_t num_misses;
   double threshold;
+  _Bool checksum;
 } DriverOptions;
 
 enum {

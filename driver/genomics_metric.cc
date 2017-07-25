@@ -204,8 +204,11 @@ void usage() {
   "      this threshold.  If set negative, no thresholding is done\n"
   "      (default -1)\n"
   "\n"
+  "  --checksum <value>\n"
+  "      compute a checksum of the metrics results (yes=yes (default), no=no)\n"
+  "\n"
   "    --verbosity <value>\n"
-  "      verbosity level of output (0=none, 1=some (default) 2=more)\n"
+  "       verbosity level of output (0=none, 1=some (default) 2,3=more)\n"
   "\n"
   );
   /* clang-format on */

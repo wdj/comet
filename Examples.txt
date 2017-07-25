@@ -134,8 +134,11 @@ Options:
         this threshold.  If set negative, no thresholding is done
         (default -1)
 
+    --checksum <value>
+        compute a checksum of the metrics results (yes=yes (default), no=no)
+
     --verbosity <value>
-      verbosity level of output (0=none, 1=some (default) 2=more)
+       verbosity level of output (0=none, 1=some (default) 2,3=more)
 
 -------------------------------------------------------------------------------
 

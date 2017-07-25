@@ -83,6 +83,18 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsist(env, 0 == errno && verbosity >= 0 &&
                     "Invalid setting for verbosity.");
       do_->verbosity = verbosity;
+      /*--------------------*/
+    } else if (strcmp(argv[i], "--checksum") == 0) {
+      /*--------------------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for checksum." : 0);
+      if (strcmp(argv[i], "yes") == 0) {
+        do_->checksum = GM_BOOL_TRUE;
+      } else if (strcmp(argv[i], "no") == 0) {
+        do_->checksum = GM_BOOL_FALSE;
+      } else {
+        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for checksum." : 0);
+      }
     /*----------*/
     } else if (strcmp(argv[i], "--num_stage") == 0) {
     /*----------*/
@@ -1311,7 +1323,7 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
   /*---Output to stdout if requested---*/
 
   if (do_->verbosity > 1) {
-    double threshold = -1.;
+    double threshold = do_->verbosity > 2 ? -1. : do_->threshold;
     output_metrics_impl(metrics, do_, stdout, threshold, env);
   }
 }
@@ -1361,6 +1373,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
   do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
   do_.threshold = -1.;
+  do_.checksum = true;
   do_.num_misses = 0;
 
   finish_parsing(argc, argv, &do_, &env);
@@ -1405,6 +1418,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   intime += time_end - time_beg;
 
   GMChecksum checksum = GMChecksum_null();
+  checksum.computing_checksum = do_.checksum;
 
   double outtime = 0;
   double mctime = 0;
@@ -1450,10 +1464,12 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
       /*---Compute checksum---*/
 
-      time_beg = GMEnv_get_synced_time(&env);
-      GMMetrics_checksum(&metrics, &checksum, &env);
-      time_end = GMEnv_get_synced_time(&env);
-      cktime += time_end - time_beg;
+      if (do_.checksum) {
+        time_beg = GMEnv_get_synced_time(&env);
+        GMMetrics_checksum(&metrics, &checksum, &env);
+        time_end = GMEnv_get_synced_time(&env);
+        cktime += time_end - time_beg;
+      }
 
       GMMetrics_destroy(&metrics, &env);
 
@@ -1495,17 +1511,21 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   if (GMEnv_is_proc_active(&env) && GMEnv_proc_num(&env) == 0 &&
       do_.verbosity > 0) {
     //-----
-    printf("metrics checksum ");
-    int i = 0;
-    for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
-      printf("%s%li", i == 0 ? "" : "-",
-             checksum.data[GM_CHECKSUM_SIZE - 1 - i]);
+    if (do_.checksum) {
+      printf("metrics checksum ");
+      int i = 0;
+      for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+        printf("%s%li", i == 0 ? "" : "-",
+               checksum.data[GM_CHECKSUM_SIZE - 1 - i]);
+      }
+      if (checksum.is_overflowed) {
+        printf("-OVFL");
+        printf("-%e", checksum.value_max);
+      }
+      printf(" ");
     }
-    if (checksum.is_overflowed) {
-      printf("-OVFL");
-      printf("-%e", checksum.value_max);
-    }
-    printf(" time %.6f", env.time);
+    //-----
+    printf("time %.6f", env.time);
     //-----
     printf(" ops %e", env.ops);
     if (env.time > 0) {
@@ -1521,7 +1541,9 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     //-----
     printf(" vctime %.6f", vctime);
     printf(" mctime %.6f", mctime);
-    printf(" cktime %.6f", cktime);
+    if (do_.checksum) {
+      printf(" cktime %.6f", cktime);
+    }
     if (NULL != do_.input_file_path) {
       printf(" intime %.6f", intime);
     }

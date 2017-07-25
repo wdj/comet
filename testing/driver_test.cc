@@ -455,6 +455,27 @@ void DriverTest_czekanowski_() {
                     "--compute_method GPU --all2all yes "
                     "--verbosity 2 "
                     "--output_file_stub test_czek_3way"));
+
+  //----------
+  //---Misc options
+  //----------
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_field 30 --num_vector 3 "
+                    "--verbosity 2 --all2all yes "
+                    "--compute_method GPU",
+                    "--num_proc_vector 1 --num_field 30 --num_vector 3 "
+                    "--verbosity 2 --all2all yes "
+                    "--compute_method GPU --threshold .65"));
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_field 3 --num_vector 3 "
+                    "--compute_method GPU",
+                    "--num_proc_vector 1 --num_field 3 --num_vector 3 "
+                    "--compute_method GPU --checksum no"));
+
 }
 
 /*===========================================================================*/

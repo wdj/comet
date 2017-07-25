@@ -352,6 +352,7 @@ typedef struct {
   GMMultiprecInt sum;
   double sum_d;
   _Bool is_started;
+  _Bool computing_checksum;
 } GMChecksum;
 
 /*---------------------------------------------------------------------------*/
@@ -367,12 +368,16 @@ static GMChecksum GMChecksum_null() {
   GMMultiprecInt sum = {0};
   result.sum = sum;
   result.sum_d = 0;
+  result.computing_checksum = GM_BOOL_TRUE;
   return result;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
+  if ((!c1.computing_checksum) || (!c2.computing_checksum)) {
+    return GM_BOOL_TRUE;
+  }
   _Bool result = GM_BOOL_TRUE;
   int i = 0;
   for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
