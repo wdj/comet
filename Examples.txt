@@ -82,7 +82,7 @@ Options:
 
     --num_proc_vector <value>
         blocking factor to denote number of blocks used to decompose
-        the total number of vectors across processors 
+        the total number of vectors across processors
         (default is the total number of procs requested)
 
     --num_proc_field <value>
@@ -122,8 +122,15 @@ Options:
         the kind of synthetic test case to run. Allowed choices are
         analytic (default) or random
 
+    --output_file_stub <value>
+        string denoting the filename or pathname stub of filenames
+        used to store result metrics.  Metric values are stored in files
+        whose names are formed by appending a unique identifier
+        (e.g., processor number) to the end of this string.  If this
+        option is absent, no output files are written.
+
     --threshold <value>
-        output each result value only if its magnitude is greater than 
+        output each result value only if its magnitude is greater than
         this threshold.  If set negative, no thresholding is done
         (default -1)
 
