@@ -33,7 +33,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for num_field.");
-      long num_field = strtol(argv[i], NULL, 10);
+      const long num_field = strtol(argv[i], NULL, 10);
       GMInsist(env, errno == 0 && num_field >= 0
                     && "Invalid setting for num_field.");
       do_->num_field_active = num_field;
@@ -44,7 +44,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for num_field_local.");
-      long num_field_local = strtol(argv[i], NULL, 10);
+      const long num_field_local = strtol(argv[i], NULL, 10);
       GMInsist(env, 0 == errno && num_field_local >= 0 &&
                     (long)(int)num_field_local == num_field_local &&
                     "Invalid setting for num_field_local.");
@@ -56,7 +56,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for num_vector.");
-      long num_vector = strtol(argv[i], NULL, 10);
+      const long num_vector = strtol(argv[i], NULL, 10);
       GMInsist(env, errno == 0 && num_vector >= 0
                     && "Invalid setting for num_vector.");
       do_->num_vector_active = num_vector;
@@ -67,7 +67,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for num_vector_local.");
-      long num_vector_local = strtol(argv[i], NULL, 10);
+      const long num_vector_local = strtol(argv[i], NULL, 10);
       GMInsist(env, 0 == errno && num_vector_local >= 0 &&
                     (long)(int)num_vector_local == num_vector_local &&
                     "Invalid setting for num_vector_local.");
@@ -79,14 +79,16 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for verbosity.");
-      do_->verbosity = atoi(argv[i]);
-      GMInsist(env, do_->verbosity >= 0 && "Invalid setting for verbosity.");
+      const long verbosity = strtol(argv[i], NULL, 10);
+      GMInsist(env, 0 == errno && verbosity >= 0 &&
+                    "Invalid setting for verbosity.");
+      do_->verbosity = verbosity;
     /*----------*/
     } else if (strcmp(argv[i], "--num_stage") == 0) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for num_stage.");
-      long num_stage = strtol(argv[i], NULL, 10);
+      const long num_stage = strtol(argv[i], NULL, 10);
       GMInsist(env, errno == 0 && num_stage >= 1
                     && (long)(int)num_stage == num_stage
                     && "Invalid setting for num_stage.");
@@ -98,7 +100,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for stage_min.");
-      long stage_min_1based = strtol(argv[i], NULL, 10);
+      const long stage_min_1based = strtol(argv[i], NULL, 10);
       GMInsist(env, errno == 0 && stage_min_1based >= 1
                     && (long)(int)stage_min_1based == stage_min_1based
                     && "Invalid setting for stage_min.");
@@ -108,7 +110,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for stage_max.");
-      long stage_max_1based = strtol(argv[i], NULL, 10);
+      const long stage_max_1based = strtol(argv[i], NULL, 10);
       GMInsist(env, errno == 0 && stage_max_1based <= env->num_stage
                     && (long)(int)stage_max_1based == stage_max_1based
                     && "Invalid setting for stage_max.");
@@ -118,7 +120,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for num_phase.");
-      long num_phase = strtol(argv[i], NULL, 10);
+      const long num_phase = strtol(argv[i], NULL, 10);
       GMInsist(env, errno == 0 && num_phase >= 1
                     && (long)(int)num_phase == num_phase
                     && "Invalid setting for num_phase.");
@@ -130,7 +132,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for phase_min.");
-      long phase_min_1based = strtol(argv[i], NULL, 10);
+      const long phase_min_1based = strtol(argv[i], NULL, 10);
       GMInsist(env, errno == 0 && phase_min_1based >= 1
                     && (long)(int)phase_min_1based == phase_min_1based
                     && "Invalid setting for phase_min.");
@@ -140,7 +142,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsist(env, i < argc && "Missing value for phase_max.");
-      long phase_max_1based = strtol(argv[i], NULL, 10);
+      const long phase_max_1based = strtol(argv[i], NULL, 10);
       GMInsist(env, errno == 0 && phase_max_1based <= env->num_phase
                     && (long)(int)phase_max_1based == phase_max_1based
                     && "Invalid setting for phase_max.");
@@ -149,13 +151,13 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     } else if (strcmp(argv[i], "--input_file") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for input_file`." : 0);
+      GMInsist(env, i < argc ? "Missing value for input_file." : 0);
       do_->input_file_path = argv[i];
     /*----------*/
     } else if (strcmp(argv[i], "--output_file_stub") == 0) {
     /*----------*/
       ++i;
-      GMInsist(env, i < argc ? "Missing value for output_file_stub`." : 0);
+      GMInsist(env, i < argc ? "Missing value for output_file_stub." : 0);
       do_->output_file_path_stub = argv[i];
       /*--------------------*/
     } else if (strcmp(argv[i], "--problem_type") == 0) {
@@ -170,6 +172,15 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
         GMInsist(env,
                  GM_BOOL_FALSE ? "Invalid setting for problem_type." : 0);
       }
+    /*----------*/
+    } else if (strcmp(argv[i], "--threshold") == 0) {
+    /*----------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for threshold." : 0);
+      errno = 0;
+      const double threshold = strtod(argv[i], NULL);
+      GMInsist(env, 0 == errno && "Invalid setting for ccc_param.");
+      do_->threshold = threshold;
      /*----------*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
@@ -876,7 +887,168 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 /*===========================================================================*/
 /*---Output the result metrics values to file---*/
 
-void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
+class Writer {
+
+  FILE* file_;
+  const int data_type_;
+  int num_way_;
+  GMEnv* env_;
+
+  size_t num_written_total_;
+
+  //typedef unsigned char out_t;
+  //const GMFloat out_max = 255;
+  //const int buf_size = 4096;
+  //int buf_elts = 0;
+  //out_t buf[buf_size];
+
+public:
+
+  //---------------------------------------------------------------------------
+
+  Writer(FILE* file, GMMetrics* metrics, GMEnv* env) :
+    file_(file),
+    data_type_(GMEnv_data_type_metrics(env)),
+    num_way_(GMEnv_num_way(env)) {
+
+    if (file_ != stdout) {
+      GMInsist(env, metrics->num_vector_active ==
+                    (GMUInt32)metrics->num_vector_active &&
+                    "Too many vectors for output format.");
+    }
+
+  }
+
+  //---------------------------------------------------------------------------
+
+  ~Writer() {
+
+      //if (file != stdout) {
+        //size_t num_written = fwrite(&buf, sizeof(out_t), buf_elts, file);
+        //num_written_total += num_written;
+        //GMAssert(num_written == buf_elts*sizeof(out_t));
+        //buf_elts = 0;
+        //printf("Wrote %lu elements of %lu from proc %i.\n",
+        //       num_written_total, metrics->num_elts_local, GMEnv_proc_num(env));
+      //}
+
+  }
+
+  //---------------------------------------------------------------------------
+  // CZEK 2-way
+
+  void write(size_t coord0, size_t coord1, GMFloat value) {
+
+    bool success = true;
+
+    const GMUInt32 outc0 = coord0;
+    size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
+    success = success && num_written == 1*sizeof(outc0);
+
+    const GMUInt32 outc1 = coord1;
+    num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
+    success = success && num_written == 1*sizeof(outc1);
+
+    const GMFp32 outv = value;
+    num_written = fwrite(&outv, sizeof(outv), 1, file_);
+    success = success && num_written == 1*sizeof(outv);
+
+    num_written_total_ += success ? 1 : 0;
+
+    //out_t out_v = (out_t)(value * out_max);
+    //buf[buf_elts++] = out_v;
+    //if (buf_elts == buf_size) {
+    //  size_t num_written = fwrite(&buf, sizeof(out_t),
+    //                              buf_elts, file);
+    //  num_written_total += num_written;
+    //  GMAssert(num_written == buf_elts*sizeof(out_t));
+    //  buf_elts = 0;
+    //}
+  }
+
+  //---------------------------------------------------------------------------
+  // CZEK 3-way
+
+  void write(size_t coord0, size_t coord1, size_t coord2, GMFloat value) {
+
+    bool success = true;
+
+    const GMUInt32 outc0 = coord0;
+    size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
+    success = success && num_written == 1*sizeof(outc0);
+
+    const GMUInt32 outc1 = coord1;
+    num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
+    success = success && num_written == 1*sizeof(outc1);
+
+    const GMUInt32 outc2 = coord2;
+    num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
+    success = success && num_written == 1*sizeof(outc2);
+
+    const GMFp32 outv = value;
+    num_written = fwrite(&outv, sizeof(outv), 1, file_);
+    success = success && num_written == 1*sizeof(outv);
+
+    num_written_total_ += success ? 1 : 0;
+  }
+
+  //---------------------------------------------------------------------------
+  // CCC 2-way
+
+  void write(size_t coord0, size_t coord1, int i0, int i1, GMFloat value) {
+
+    bool success = true;
+
+    const GMUInt32 outc0 = i0 + 2 * coord0;
+    size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
+    success = success && num_written == 1*sizeof(outc0);
+
+    const GMUInt32 outc1 = i1 + 2 * coord1;
+    num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
+    success = success && num_written == 1*sizeof(outc1);
+
+    const GMFp32 outv = value;
+    num_written = fwrite(&outv, sizeof(outv), 1, file_);
+    success = success && num_written == 1*sizeof(outv);
+
+    num_written_total_ += success ? 1 : 0;
+
+  }
+
+  //---------------------------------------------------------------------------
+  // CCC 3-way
+
+  void write(size_t coord0, size_t coord1, size_t coord2,
+             int i0, int i1, int i2, GMFloat value) {
+
+    bool success = true;
+
+    const GMUInt32 outc0 = i0 + 2 * coord0;
+    size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
+    success = success && num_written == 1*sizeof(outc0);
+
+    const GMUInt32 outc1 = i1 + 2 * coord1;
+    num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
+    success = success && num_written == 1*sizeof(outc1);
+
+    const GMUInt32 outc2 = i2 + 2 * coord2;
+    num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
+    success = success && num_written == 1*sizeof(outc2);
+
+    const GMFp32 outv = value;
+    num_written = fwrite(&outv, sizeof(outv), 1, file_);
+    success = success && num_written == 1*sizeof(outv);
+
+    num_written_total_ += success ? 1 : 0;
+
+  }
+
+  //---------------------------------------------------------------------------
+};
+
+/*---------------------------------------------------------------------------*/
+
+void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
                          FILE* file, double threshold, GMEnv* env) {
   GMAssertAlways(NULL != metrics);
   GMAssertAlways(NULL != do_);
@@ -892,26 +1064,16 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
     return;
   }
 
-  switch (GMEnv_data_type_metrics(env)) {
-    /*--------------------*/
-    case GM_DATA_TYPE_BITS1: {
-    /*--------------------*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  Writer writer(file, metrics, env);
 
-    } break;
+  switch (GMEnv_data_type_metrics(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
 
-      typedef unsigned char out_t;
-      const GMFloat out_max = 255;
-
-      const int buf_size = 4096;
-      int buf_elts = 0;
-      out_t buf[buf_size];
-      size_t num_written_total = 0;
-
+      /*----------*/
       if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
+      /*----------*/
         size_t index = 0;
         for (index = 0; index < metrics->num_elts_local; ++index) {
           const size_t coord0 =
@@ -924,31 +1086,28 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           }
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+          if (!(threshold < 0. || value > threshold)) {
+            continue;
+          }
+          /*---Output the value---*/
           if (file == stdout) {
-            if (threshold < 0. || value > threshold) {
-              fprintf(file,
-                sizeof(GMFloat) == 8 ?
-                "element (%li,%li): value: %.17e\n" :
-                "element (%li,%li): value: %.8e\n", coord0, coord1, value);
-            }
+
+            fprintf(file,
+              sizeof(GMFloat) == 8 ?
+              "element (%li,%li): value: %.17e\n" :
+              "element (%li,%li): value: %.8e\n", coord0, coord1, value);
+
           } else {
-            //if (threshold < 0. || value > threshold) {
-            {
-              out_t out_v = (out_t)(value * out_max);
-              buf[buf_elts++] = out_v;
-              if (buf_elts == buf_size) {
-                size_t num_written = fwrite(&buf, sizeof(out_t),
-                                            buf_elts, file);
-                num_written_total += num_written;
-                GMAssert(num_written == buf_elts*sizeof(out_t));
-                buf_elts = 0;
-              }
-            }
+
+            writer.write(coord0, coord1, value);
+
           }
         }
       }
 
+      /*----------*/
       if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
+      /*----------*/
         size_t index = 0;
         for (index = 0; index < metrics->num_elts_local; ++index) {
           const size_t coord0 =
@@ -964,123 +1123,148 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
           }
           const GMFloat value
             = GMMetrics_czekanowski_get_from_index(metrics, index, env);
-
+          if (!(threshold < 0. || value > threshold)) {
+            continue;
+          }
+          /*---Output the value---*/
           if (file == stdout) {
-            if (threshold < 0. || value > threshold) {
-              fprintf(file,
-                sizeof(GMFloat) == 8 ?
-                "element (%li,%li): value: %.17e\n" :
-                "element (%li,%li): value: %.8e\n", coord0, coord1, value);
-            }
+
+            fprintf(file,
+              sizeof(GMFloat) == 8 ?
+              "element (%li,%li,%li): value: %.17e\n" :
+              "element (%li,%li,%li): value: %.8e\n",
+              coord0, coord1, coord2, value);
+
           } else {
-            //if (threshold < 0. || value > threshold) {
-            {
-              out_t out_v = (out_t)(value * out_max);
-              buf[buf_elts++] = out_v;
-              if (buf_elts == buf_size) {
-                size_t num_written = fwrite(&buf, sizeof(out_t),
-                                            buf_elts, file);
-                num_written_total += num_written;
-                GMAssert(num_written == buf_elts*sizeof(out_t));
-                buf_elts = 0;
-              }
-            }
+
+            writer.write(coord0, coord1, coord2, value);
+
           }
         }
-      }
-
-      if (file != stdout) {
-        size_t num_written = fwrite(&buf, sizeof(out_t), buf_elts, file);
-        num_written_total += num_written;
-        GMAssert(num_written == buf_elts*sizeof(out_t));
-        buf_elts = 0;
-        printf("Wrote %lu elements of %lu from proc %i.\n",
-               num_written_total, metrics->num_elts_local, GMEnv_proc_num(env));
       }
 
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
-//TODO: make faster, like above code
+
+      GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
+
       size_t index = 0;
       for (index = 0; index < metrics->num_elts_local; ++index) {
-        int is_active = GM_BOOL_TRUE;
-        int coord_num = 0;
-        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-          const size_t coord = GMMetrics_coord_global_from_index(metrics,
-               index, coord_num, env);
-          is_active = is_active && coord < metrics->num_vector_active;
+        const size_t coord0 =
+          GMMetrics_coord_global_from_index(metrics, index, 0, env);
+        const size_t coord1 =
+          GMMetrics_coord_global_from_index(metrics, index, 1, env);
+        if (coord0 >= metrics->num_vector_active ||
+            coord1 >= metrics->num_vector_active) {
+          continue;
         }
-        if (is_active) {
-          /*---Coordinate---*/
-          fprintf(file, "element (");
-          int coord_num = 0;
-          for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            if (coord_num > 0) {
-              fprintf(file, ",");
+        int num_out_this_line = 0;
+        int i0;
+        for (i0 = 0; i0 < 2; ++i0) {
+          int i1;
+          for (i1 = 0; i1 < 2; ++i1) {
+            const GMFloat value
+              = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+            if (!(threshold < 0. || value > threshold)) {
+              continue;
             }
-            const size_t coord = GMMetrics_coord_global_from_index(metrics,
-                index, coord_num, env);
-            /*---Present to the user as 1-based---*/
-            fprintf(file, "%li", 1 + coord);
-          }
-          /*---Value---*/
-          fprintf(file, "): values:");
-          int i;
-          for (i = 0; i < 2; ++i) {
-            int j;
-            for (j = 0; j < 2; ++j) {
-              fprintf(file, " %.17e",
-                  GMMetrics_ccc_get_from_index_2(metrics, index, i, j, env));
+
+            /*---Output the value---*/
+            if (file == stdout) {
+
+              if (num_out_this_line == 0) {
+                fprintf(file,
+                  "element (%li,%li): values:", coord0, coord1);
+              }
+
+              fprintf(file,
+                sizeof(GMFloat) == 8 ?
+                " %i %i %.17e" :
+                " %i %i %.8e", i0, i1, value);
+
+            } else {
+
+              writer.write(coord0, coord1, i0, i1, value);
+
             }
+
+            num_out_this_line++;
+
+          } /*---i1---*/
+        } /*---i0---*/
+        if (file == stdout) {
+          if (num_out_this_line > 0) {
+            fprintf(file, "\n");
           }
-          fprintf(file, "    [from proc %i]\n", GMEnv_proc_num(env));
         }
-      } /*---for index---*/
+      } /*---index---*/
+
     } break;
+
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
-//TODO: make faster, like above code
+
       size_t index = 0;
       for (index = 0; index < metrics->num_elts_local; ++index) {
-        int is_active = GM_BOOL_TRUE;
-        int coord_num = 0;
-        for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-          const size_t coord = GMMetrics_coord_global_from_index(metrics,
-              index, coord_num, env);
-          is_active = is_active && coord < metrics->num_vector_active;
+        const size_t coord0 =
+          GMMetrics_coord_global_from_index(metrics, index, 0, env);
+        const size_t coord1 =
+          GMMetrics_coord_global_from_index(metrics, index, 1, env);
+        const size_t coord2 =
+          GMMetrics_coord_global_from_index(metrics, index, 2, env);
+        if (coord0 >= metrics->num_vector_active ||
+            coord1 >= metrics->num_vector_active ||
+            coord2 >= metrics->num_vector_active) {
+          continue;
         }
-        if (is_active) {
-          /*---Coordinate---*/
-          fprintf(file, "element (");
-          int coord_num = 0;
-          for (coord_num = 0; coord_num < GMEnv_num_way(env); ++coord_num) {
-            if (coord_num > 0) {
-              fprintf(file, ",");
-            }
-            const size_t coord = GMMetrics_coord_global_from_index(metrics,
-                index, coord_num, env);
-            /*---Present to the user as 1-based---*/
-            fprintf(file, "%li", 1 + coord);
-          }
-          /*---Value---*/
-          fprintf(file, "): values:");
-          int i;
-          for (i = 0; i < 2; ++i) {
-            int j;
-            for (j = 0; j < 2; ++j) {
-              int k;
-              for (k = 0; k < 2; ++k) {
-                fprintf(file, " %.17e", GMMetrics_ccc_get_from_index_3(
-                   metrics, index, i, j, k, env));
+        int num_out_this_line = 0;
+        int i0;
+        for (i0 = 0; i0 < 2; ++i0) {
+          int i1;
+          for (i1 = 0; i1 < 2; ++i1) {
+            int i2;
+            for (i2 = 0; i2 < 2; ++i2) {
+              const GMFloat value
+                = GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2,
+                                                env);
+              if (!(threshold < 0. || value > threshold)) {
+                continue;
               }
-            }
+
+              /*---Output the value---*/
+              if (file == stdout) {
+
+                if (num_out_this_line == 0) {
+                  fprintf(file,
+                    "element (%li,%li,%li): values:", coord0, coord1, coord2);
+                }
+
+                fprintf(file,
+                  sizeof(GMFloat) == 8 ?
+                  " %i %i %i %.17e" :
+                  " %i %i %i %.8e", i0, i1, i2, value);
+
+              } else {
+
+                writer.write(coord0, coord1, coord2, i0, i1, i2, value);
+
+              }
+
+              num_out_this_line++;
+
+            } /*---i2---*/
+          } /*---i1---*/
+        } /*---i0---*/
+        if (file == stdout) {
+          if (num_out_this_line > 0) {
+            fprintf(file, "\n");
           }
-          fprintf(file, "    [from proc %i]\n", GMEnv_proc_num(env));
         }
-      } /*---for index---*/
+      } /*---index---*/
+
     } break;
     /*--------------------*/
     default:
@@ -1093,15 +1277,19 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
 
 void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
   GMAssertAlways(metrics != NULL);
+  GMAssertAlways(do_ != NULL);
   GMAssertAlways(env != NULL);
 
   char* stub = do_->output_file_path_stub;
 
+  /*---Output to file if requested---*/
+
   if (NULL != stub && GMEnv_is_proc_active(env) &&
       GMEnv_proc_num_field(env) == 0) {
 
-    size_t len = strlen(stub);
+    /*---Form filename---*/
 
+    size_t len = strlen(stub);
     char* path = (char*)malloc((len+50) * sizeof(char));
 
     GMAssertAlways(env->num_stage < 1000000);
@@ -1110,16 +1298,21 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     sprintf(path, "%s_%06i_%06i_%010i", stub, env->phase_num,
             env->stage_num, GMEnv_proc_num(env));
 
-    double threshold = 0.;
+    /*---Do output---*/
+
+    double threshold = do_->threshold;
 
     FILE* file = fopen(path, "w");
-    output_metrics_file(metrics, do_, file, threshold, env);
+    output_metrics_impl(metrics, do_, file, threshold, env);
     fclose(file);
     free(path);
   }
 
+  /*---Output to stdout if requested---*/
+
   if (do_->verbosity > 1) {
-    output_metrics_file(metrics, do_, stdout, -1., env);
+    double threshold = -1.;
+    output_metrics_impl(metrics, do_, stdout, threshold, env);
   }
 }
 
@@ -1149,49 +1342,6 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
   GMEnv env = GMEnv_null();
 
-#if 0
-{
-  env.metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
-  env.num_way_ = 3;
-  env.all2all_ = 1;
-  env.compute_method_ = GM_COMPUTE_METHOD_GPU;
-  env.num_stage = 36;
-  env.stage_num = 35;
-
-  env.num_proc_world_ = 14880;
-  env.num_proc_ = 14880;
-  env.num_proc_field_ = 1;
-  env.num_proc_repl_ = 496;
-  env.num_proc_vector_i_ = 30;
-  env.num_proc_vector_total_ = 30 * 496;
-
-  env.proc_num_field_ = 1;
-
-  env.is_proc_active_ = 1;
-
-  //for (env.proc_num_=0; env.proc_num_<env.num_proc_; ++env.proc_num_) {
-  for (env.proc_num_=6; env.proc_num_<7; ++env.proc_num_) {
-
-    env.proc_num_repl_ = env.proc_num_ % env.num_proc_repl_;
-    env.proc_num_vector_i_ = env.proc_num_ / env.num_proc_repl_;
-    env.proc_num_vector_ = env.proc_num_;
-
-    GMMetrics metrics = GMMetrics_null();
-
-    //int nvl = 6324;
-
-    GMMetrics_create(&metrics, GMEnv_data_type_metrics(&env),
-                     100, 100,
-                     6324,
-                     6324, &env);
-//    GMMetrics_3way_num_elts_local(&metrics, 6324, &env);
-    printf("%lu\n", metrics.num_elts_local);
-  }
-
-exit(1);
-}
-#endif
-
   GMEnv_create(&env, MPI_COMM_WORLD, argc, argv, description);
 
   /*---Parse remaining unprocessed arguments---*/
@@ -1210,7 +1360,7 @@ exit(1);
   do_.output_file_path_stub = NULL;
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
   do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
-
+  do_.threshold = -1.;
   do_.num_misses = 0;
 
   finish_parsing(argc, argv, &do_, &env);

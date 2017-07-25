@@ -421,6 +421,40 @@ void DriverTest_czekanowski_() {
       }
     }
   }
+
+  //----------
+  //---file output, 2-way
+  //----------
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
+                    "--num_field 7 --num_vector 10 "
+                    "--num_way 2 --metric_type czekanowski "
+                    "--compute_method REF --all2all yes",
+                    "--num_proc_vector 1 --num_proc_vector 3 "
+                    "--num_field 7 --num_vector 10 "
+                    "--num_way 2 --metric_type czekanowski "
+                    "--compute_method GPU --all2all yes "
+                    "--verbosity 2 "
+                    "--output_file_stub test_czek_2way"));
+
+  //----------
+  //---file output, 3-way
+  //----------
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
+                    "--num_field 7 --num_vector 18 "
+                    "--num_way 3 --metric_type czekanowski "
+                    "--compute_method REF --all2all yes",
+                    "--num_proc_vector 1 --num_proc_vector 3 "
+                    "--num_field 7 --num_vector 18 "
+                    "--num_way 3 --metric_type czekanowski "
+                    "--compute_method GPU --all2all yes "
+                    "--verbosity 2 "
+                    "--output_file_stub test_czek_3way"));
 }
 
 /*===========================================================================*/
@@ -964,6 +998,40 @@ void DriverTest_ccc_() {
       }
     }
   }
+
+  //----------
+  //---file output, 2-way
+  //----------
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
+                    "--num_field 7 --num_vector 10 "
+                    "--num_way 2 --metric_type ccc "
+                    "--compute_method REF --all2all yes",
+                    "--num_proc_vector 1 --num_proc_vector 3 "
+                    "--num_field 7 --num_vector 10 "
+                    "--num_way 2 --metric_type ccc "
+                    "--compute_method GPU --all2all yes "
+                    "--verbosity 2 "
+                    "--output_file_stub test_ccc_2way"));
+
+  //----------
+  //---file output, 3-way
+  //----------
+
+  EXPECT_EQ(
+      GM_BOOL_TRUE,
+      compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
+                    "--num_field 7 --num_vector 18 "
+                    "--num_way 3 --metric_type ccc "
+                    "--compute_method REF --all2all yes",
+                    "--num_proc_vector 1 --num_proc_vector 3 "
+                    "--num_field 7 --num_vector 18 "
+                    "--num_way 3 --metric_type ccc "
+                    "--compute_method GPU --all2all yes "
+                    "--verbosity 2 "
+                    "--output_file_stub test_ccc_3way"));
 }
 
 /*===========================================================================*/

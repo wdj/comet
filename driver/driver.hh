@@ -38,6 +38,7 @@ typedef struct {
   char* output_file_path_stub;
   int problem_type;
   size_t num_misses;
+  double threshold;
 } DriverOptions;
 
 enum {

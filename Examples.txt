@@ -72,24 +72,24 @@ Options:
     --num_way <value>
         dimension of metric to compute (2=2-way (default), 3=3-way)
 
-    --all2all
+    --all2all <value>
         whether to perform global all-to-all rather than computing
         on each processor separately (yes=yes, no=no (default))
 
-    --compute_method
+    --compute_method <value>
         manner of computing the result (CPU=cpu, GPU=gpu (default),
         REF=reference method)
 
-    --num_proc_vector
+    --num_proc_vector <value>
         blocking factor to denote number of blocks used to decompose
         the total number of vectors across processors 
         (default is the total number of procs requested)
 
-    --num_proc_field
+    --num_proc_field <value>
         blocking factor to denote number of blocks used to decompose
         each vector across processors (default is 1)
 
-    --num_proc_repl
+    --num_proc_repl <value>
         processor replication factor.  For each block along the vector
         and field axes, this number of processors is applied to
         computations for the block (default is 1)
@@ -119,8 +119,13 @@ Options:
         for this run (default is num_phase)
 
     --problem_type <value>
-        the kind of synthetic test cse to run. Allowed choices are
-        analytic (default) or random\n"
+        the kind of synthetic test case to run. Allowed choices are
+        analytic (default) or random
+
+    --threshold <value>
+        output each result value only if its magnitude is greater than 
+        this threshold.  If set negative, no thresholding is done
+        (default -1)
 
     --verbosity <value>
       verbosity level of output (0=none, 1=some (default) 2=more)

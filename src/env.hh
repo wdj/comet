@@ -70,17 +70,23 @@ typedef bool _Bool;
 
 enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
+
+typedef unsigned int GMUInt32;
+
 typedef signed long long int GMInt64;
 typedef unsigned long long int GMUInt64;
 
 /*---Floating point of explicit (double) precision---*/
 
+typedef float GMFp32;
 typedef double GMFp64;
 
 static void gm_check_type_sizes() {
+  GMStaticAssert(sizeof(GMFp32) == 32/8);
   GMStaticAssert(sizeof(GMFp64) == 64/8);
   GMStaticAssert(sizeof(int) == 4);
   GMStaticAssert(sizeof(size_t) == 8);
+  GMStaticAssert(sizeof(GMUInt32) == 4);
   GMStaticAssert(sizeof(GMInt64) == 8);
   GMStaticAssert(sizeof(GMUInt64) == 8);
 }
