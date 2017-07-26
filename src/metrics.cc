@@ -39,7 +39,8 @@ GMMetrics GMMetrics_null() {
 
 /*===========================================================================*/
 
-void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl, GMEnv* env) {
+void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
+                                   GMEnv* env) {
   GMAssertAlways(metrics);
   GMAssertAlways(env);
   GMAssertAlways(nvl >= 0);

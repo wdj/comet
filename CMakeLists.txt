@@ -34,6 +34,8 @@ SET(LIB_INCLUDES
   src/vectors.hh
   src/vector_sums.hh
   src/metrics.hh
+  src/metrics_2way.hh
+  src/metrics_3way.hh
   src/compute_utils_linalg.hh
   src/compute_metrics.hh
   src/compute_metrics_utils.hh
