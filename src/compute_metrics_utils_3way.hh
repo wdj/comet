@@ -22,56 +22,6 @@ extern "C" {
 
 /*===========================================================================*/
 
-#if 0
-void gm_compute_czekanowski_numerators_3way_nongpu_start(
-    GMVectors* vectors_i,
-    GMVectors* vectors_j,
-    GMVectors* vectors_k,
-    GMMetrics* numerators,
-    GMMirroredPointer* vectors_i_buf,
-    GMMirroredPointer* vectors_j_buf,
-    GMMirroredPointer* vectors_k_buf,
-    int j_proc,
-    int k_proc,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
-    int section_step,
-    GMEnv* env);
-
-void gm_compute_ccc_numerators_3way_nongpu_start(
-    GMVectors* vectors_i,
-    GMVectors* vectors_j,
-    GMVectors* vectors_k,
-    GMMetrics* numerators,
-    GMMirroredPointer* vectors_i_buf,
-    GMMirroredPointer* vectors_j_buf,
-    GMMirroredPointer* vectors_k_buf,
-    int j_proc,
-    int k_proc,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
-    int section_step,
-    GMEnv* env);
-
-void gm_compute_numerators_3way_gpu_start(
-    GMVectors* vectors_i,
-    GMVectors* vectors_j,
-    GMVectors* vectors_k,
-    GMMetrics* numerators,
-    GMMirroredPointer* vectors_i_buf,
-    GMMirroredPointer* vectors_j_buf,
-    GMMirroredPointer* vectors_k_buf,
-    int j_proc,
-    int k_proc,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
-    int section_step,
-    GMEnv* env);
-#endif
-
 typedef struct {
   GMMirroredPointer mat_buf_tmp[2];
   GMMirroredPointer matM_ij_buf;

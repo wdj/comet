@@ -47,16 +47,6 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env);
 /*===========================================================================*/
 /*---Compute---*/
 
-//void gm_compute_float_vector_sums(GMVectors* vectors,
-//                                  GMFloat* __restrict__ vector_sums,
-//                                  GMFloat* __restrict__ vector_sums_tmp,
-//                                  GMEnv* env);
-
-//void gm_compute_bits2_vector_sums(GMVectors* vectors,
-//                                  GMFloat* __restrict__ vector_sums,
-//                                  GMFloat* __restrict__ vector_sums_tmp,
-//                                  GMEnv* env);
-
 void GMVectorSums_compute(GMVectorSums* vector_sums,
                           GMVectors* vectors,
                           GMEnv* env);

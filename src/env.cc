@@ -134,6 +134,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
   env->stage_num = 0;
   env->num_phase = 1;
   env->phase_num = 0;
+  env->sparse = GM_BOOL_FALSE;
   env->ccc_param_ = ((double) 2) / ((double) 3);
 
   env->time = 0;

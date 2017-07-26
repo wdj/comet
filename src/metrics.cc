@@ -652,6 +652,52 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
 }
 
 /*===========================================================================*/
+/*---Accessors: indexing: global coord from (contig) index: generic---*/
+
+int GMMetrics_coord_global_from_index(GMMetrics* metrics,
+                                      size_t index,
+                                      int coord_num,
+                                      GMEnv* env) {
+  GMAssert(metrics != NULL);
+  GMAssert(env != NULL);
+  GMAssert(index+1 >= 1);
+  GMAssert(index < metrics->num_elts_local);
+  GMAssert(coord_num >= 0);
+  GMAssert(coord_num < GMEnv_num_way(env));
+
+  size_t result64 = 0;
+
+  GMAssert(GMEnv_num_way(env) <= GM_NUM_NUM_WAY + 1
+               ? "this num_way currently not supported"
+               : 0);
+
+  switch (GMEnv_num_way(env) + 4 * coord_num) {
+    case 2 + 4 * 0: /* 2-way, coord 0 */
+      result64 = GMMetrics_coord0_global_from_index_2(metrics, index, env);
+      break;
+    case 2 + 4 * 1: /* 2-way, coord 1 */
+      result64 = GMMetrics_coord1_global_from_index_2(metrics, index, env);
+      break;
+    case 3 + 4 * 0: /* 3-way, coord 0 */
+      result64 = GMMetrics_coord0_global_from_index_3(metrics, index, env);
+      break;
+    case 3 + 4 * 1: /* 3-way, coord 1 */
+      result64 = GMMetrics_coord1_global_from_index_3(metrics, index, env);
+      break;
+    case 3 + 4 * 2: /* 3-way, coord 2 */
+      result64 = GMMetrics_coord2_global_from_index_3(metrics, index, env);
+      break;
+    default:
+      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+  } /*---case---*/
+
+  const int result = (int)result64;
+  GMAssert((size_t)result == result64);
+
+  return result;
+}
+
+/*===========================================================================*/
 /*---Functions for metrics checksum---*/
 
 /*---------------------------------------------------------------------------*/

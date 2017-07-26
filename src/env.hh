@@ -402,6 +402,7 @@ typedef struct {
   int num_phase;
   int phase_num;
   double ccc_param_;
+  _Bool sparse;
   /*---Counters---*/
   double time;
   double compares;

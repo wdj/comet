@@ -1039,17 +1039,17 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
 
   const GMFloat one = 1;
   const GMFloat recip_m = metrics->recip_m;
-  const GMFloat front_multiplier = 9 * one / 2; // taken from James' writeup.
+  const GMFloat ccc_multiplier = 9 * one / 2; // taken from James' writeup.
   //const GMFloat ccc_param = ((GMFloat) 2) / ((GMFloat) 3);
   const GMFloat ccc_param = GMEnv_ccc_param(env);
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
   //const GMFloat m = metrics->num_field_active;
-  //const GMFloat result = (front_multiplier / 4) * recip_m * rij *
+  //const GMFloat result = (ccc_multiplier / 4) * recip_m * rij *
   //                       (3 * m - smin) * (one/3) * recip_m *
   //                       (3 * m - smax) * (one/3) * recip_m;
   /* clang-format off */
-  const GMFloat result = front_multiplier * (one / 4) * recip_m * rij *
+  const GMFloat result = ccc_multiplier   * (one / 4) * recip_m * rij *
                          (one - ccc_param * (one / 2) * recip_m * smin) *
                          (one - ccc_param * (one / 2) * recip_m * smax);
   /* clang-format on */
@@ -1097,11 +1097,11 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   const GMFloat one = 1;
   const GMFloat m = metrics->num_field_active;
   const GMFloat recip_m = metrics->recip_m;
-  const GMFloat front_multiplier = 9 * one / 2;
+  const GMFloat ccc_multiplier = 9 * one / 2;
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
   /* clang-format off */
-  const GMFloat result = (front_multiplier / 4) * recip_m * rij *
+  const GMFloat result = (ccc_multiplier / 4) * recip_m * rij *
                          (3 * m - smin) * (one/3) * recip_m *
                          (3 * m - smax) * (one/3) * recip_m;
   /* clang-format on */
@@ -1167,18 +1167,18 @@ static GMFloat GMMetrics_ccc_value_3(GMMetrics* metrics,
 
   const GMFloat one = 1;
   const GMFloat recip_m = metrics->recip_m;
-  const GMFloat front_multiplier = one; // TBD
+  const GMFloat ccc_multiplier = one; // TBD
   //const GMFloat ccc_param = ((GMFloat) 2) / ((GMFloat) 3);
   const GMFloat ccc_param = GMEnv_ccc_param(env);
 
   /*---Arrange so as to guarantee each factor nonnegative---*/
   //const GMFloat m = metrics->num_field_active;
-  //const GMFloat result = (front_multiplier / 8) * recip_m * rijk *
+  //const GMFloat result = (ccc_multiplier / 8) * recip_m * rijk *
   //                       (3 * m - smin) * (one/3) * recip_m *
   //                       (3 * m - smid) * (one/3) * recip_m *
   //                       (3 * m - smax) * (one/3) * recip_m;
   /* clang-format off */
-  const GMFloat result = front_multiplier * (one / 8) * recip_m * rijk *
+  const GMFloat result = ccc_multiplier   * (one / 8) * recip_m * rijk *
                          (one - ccc_param * (one / 2) * recip_m * smin) *
                          (one - ccc_param * (one / 2) * recip_m * smid) *
                          (one - ccc_param * (one / 2) * recip_m * smax);
@@ -2039,48 +2039,10 @@ static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
 /*===========================================================================*/
 /*---Accessors: indexing: global coord from (contig) index: generic---*/
 
-static int GMMetrics_coord_global_from_index(GMMetrics* metrics,
-                                             size_t index,
-                                             int coord_num,
-                                             GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
-  GMAssert(index+1 >= 1);
-  GMAssert(index < metrics->num_elts_local);
-  GMAssert(coord_num >= 0);
-  GMAssert(coord_num < GMEnv_num_way(env));
-
-  size_t result64 = 0;
-
-  GMAssert(GMEnv_num_way(env) <= GM_NUM_NUM_WAY + 1
-               ? "this num_way currently not supported"
-               : 0);
-
-  switch (GMEnv_num_way(env) + 4 * coord_num) {
-    case 2 + 4 * 0: /* 2-way, coord 0 */
-      result64 = GMMetrics_coord0_global_from_index_2(metrics, index, env);
-      break;
-    case 2 + 4 * 1: /* 2-way, coord 1 */
-      result64 = GMMetrics_coord1_global_from_index_2(metrics, index, env);
-      break;
-    case 3 + 4 * 0: /* 3-way, coord 0 */
-      result64 = GMMetrics_coord0_global_from_index_3(metrics, index, env);
-      break;
-    case 3 + 4 * 1: /* 3-way, coord 1 */
-      result64 = GMMetrics_coord1_global_from_index_3(metrics, index, env);
-      break;
-    case 3 + 4 * 2: /* 3-way, coord 2 */
-      result64 = GMMetrics_coord2_global_from_index_3(metrics, index, env);
-      break;
-    default:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } /*---case---*/
-
-  const int result = (int)result64;
-  GMAssert((size_t)result == result64);
-
-  return result;
-}
+int GMMetrics_coord_global_from_index(GMMetrics* metrics,
+                                      size_t index,
+                                      int coord_num,
+                                      GMEnv* env);
 
 /*===========================================================================*/
 
