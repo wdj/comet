@@ -83,6 +83,7 @@ void GMVectors_initialize_pad(GMVectors* vectors,
       for (vl = 0; vl < vectors->num_vector_local; ++vl) {
         int pvfl = 0;
         for (pvfl=pvfl_min; pvfl<vectors->num_packedval_field_local; ++pvfl) {
+          /*---Doesn't hurt to set whole words to zero here---*/
           GMVectors_bits2x64_set(vectors, pvfl, vl, zero, env);
         }
       }

@@ -197,16 +197,50 @@ void gm_get_metrics_wait(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
+int gm_num_seminibbles_pad(GMMetrics* metrics,
+                           GMEnv* env) {
+  GMAssertAlways(metrics && env);
+
+  const int num_bits_per_val = 2;
+  const int num_bits_per_packedval = 128;
+  const int num_val_per_packedval = 64;
+
+  const int nfl = metrics->num_field_local;
+
+  const int num_packedval_field_local
+     = gm_ceil_i8(nfl * (size_t)num_bits_per_val, num_bits_per_packedval);
+
+  const int num_field_calculated = num_packedval_field_local *
+                                   num_val_per_packedval;
+
+  //const int num_packedval_field_local = (nfl + 64 - 1) / 64;
+  //const int num_field_calculated = num_packedval_field_local * 64;
+
+  const _Bool final_proc = GMEnv_proc_num_field(env) ==
+                           GMEnv_num_proc_field(env)-1;
+
+  const int num_field_active_local = final_proc
+    ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
+
+  GMAssertAlways(num_field_active_local >= 0);
+
+  const int num_seminibbles_pad = num_field_calculated -
+                                  num_field_active_local;
+
+  return num_seminibbles_pad;
+}
+
+/*---------------------------------------------------------------------------*/
+
 void gm_metrics_gpu_adjust(GMMetrics* metrics,
                            GMMirroredPointer* metrics_buf,
                            GMEnv* env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(metrics && metrics_buf && env);
 
   if (! (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
       GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
     return;
   }
-
 
   /*---Adjust entries because of computation on pad values.
        EXPLANATION: the final word of each vector may have zero-pad bits
@@ -216,17 +250,19 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
        subtracting off this unwanted tally result.---*/
   /*---NOTE: this should work for both 2-way and 3-way---*/
 
-  const int nfl = metrics->num_field_local;
-  const int num_packedval_field_local = (nfl + 64 - 1) / 64;
-  const int num_field_calculated = num_packedval_field_local * 64;
-  const int num_field_active_local =
-    GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1
-    ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
-  GMAssertAlways(num_field_active_local >= 0);
-  const int num_seminibbles_pad = num_field_calculated -
-                                  num_field_active_local;
+//  const int nfl = metrics->num_field_local;
+//  const int num_packedval_field_local = (nfl + 64 - 1) / 64;
+//  const int num_field_calculated = num_packedval_field_local * 64;
+//  const int num_field_active_local =
+//    GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1
+//    ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
+//  GMAssertAlways(num_field_active_local >= 0);
+//  const int num_seminibbles_pad = num_field_calculated -
+//                                  num_field_active_local;
   //const int num_seminibbles_pad =
   //    64 - (1 + (metrics->num_field_local - 1) % 64);
+
+  const int num_seminibbles_pad = gm_num_seminibbles_pad(metrics, env);
 
   const GMFloat adjustment = 4 * num_seminibbles_pad;
   int j = 0;

@@ -615,6 +615,10 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->data = gm_malloc(metrics->data_size, env);
       metrics->data_M_size = metrics->num_elts_local * sizeof(GMFloat2);
       metrics->data_M = gm_malloc(metrics->data_M_size, env);
+      if (env->sparse) {
+        metrics->data_C_size = metrics->num_elts_local * sizeof(GMFloat2);
+        metrics->data_C = gm_malloc(metrics->data_C_size, env);
+      }
       metrics->data_type_num_values = 4;
     } break;
     /*----------*/
@@ -623,6 +627,10 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->data = gm_malloc(metrics->data_size, env);
       metrics->data_M_size = metrics->num_elts_local * sizeof(GMFloat3);
       metrics->data_M = gm_malloc(metrics->data_M_size, env);
+      if (env->sparse) {
+        metrics->data_C_size = metrics->num_elts_local * sizeof(GMFloat3);
+        metrics->data_C = gm_malloc(metrics->data_C_size, env);
+      }
       metrics->data_type_num_values = 8;
     } break;
     /*----------*/
@@ -646,8 +654,11 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
   gm_free(metrics->coords_global_from_index,
           metrics->num_elts_local * sizeof(size_t), env);
   gm_free(metrics->data, metrics->data_size, env);
-  if (metrics->data_M != NULL) {
+  if (metrics->data_M) {
     gm_free(metrics->data_M, metrics->data_M_size, env);
+  }
+  if (metrics->data_C) {
+    gm_free(metrics->data_C, metrics->data_C_size, env);
   }
   *metrics = GMMetrics_null();
 }

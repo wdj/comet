@@ -22,8 +22,10 @@ extern "C" {
 /*---Struct declaration---*/
 
 typedef struct {
-  void* __restrict__ data;
-  void* __restrict__ data_tmp;
+  void* __restrict__ sums;
+  void* __restrict__ counts;
+  void* __restrict__ sums_tmp;
+  void* __restrict__ counts_tmp;
   size_t size;
 } GMVectorSums;
 

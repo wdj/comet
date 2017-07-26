@@ -76,9 +76,9 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
-  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
-  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
+  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->sums);
+  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->sums);
+  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->sums);
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && !GMEnv_all2all(env)) {
@@ -277,9 +277,9 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
-  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
-  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
+  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->sums);
+  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->sums);
+  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->sums);
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
@@ -912,9 +912,9 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 
   const _Bool is_part3 = si->is_part3;
 
-  const GMFloat* const vector_sums_i_ = (GMFloat*)(vector_sums_i->data);
-  const GMFloat* const vector_sums_j_ = (GMFloat*)(vector_sums_j->data);
-  const GMFloat* const vector_sums_k_ = (GMFloat*)(vector_sums_k->data);
+  const GMFloat* const vector_sums_i_ = (GMFloat*)(vector_sums_i->sums);
+  const GMFloat* const vector_sums_j_ = (GMFloat*)(vector_sums_j->sums);
+  const GMFloat* const vector_sums_k_ = (GMFloat*)(vector_sums_k->sums);
 
 
   /* clang-format off */

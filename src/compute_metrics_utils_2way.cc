@@ -716,16 +716,16 @@ void gm_compute_2way_combine(GMMetrics* metrics,
     case GM_METRIC_TYPE_CZEKANOWSKI: {
       /*----------------------------------------*/
       gm_compute_czekanowski_2way_combine(metrics, metrics_buf,
-                                          (GMFloat*)vector_sums_left->data,
-                                          (GMFloat*)vector_sums_right->data,
+                                          (GMFloat*)vector_sums_left->sums,
+                                          (GMFloat*)vector_sums_right->sums,
                                           j_block, do_compute_triang_only, env);
     } break;
     /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
       /*----------------------------------------*/
       gm_compute_ccc_2way_combine(metrics, metrics_buf,
-                                  (GMFloat*)vector_sums_left->data,
-                                  (GMFloat*)vector_sums_right->data, j_block,
+                                  (GMFloat*)vector_sums_left->sums,
+                                  (GMFloat*)vector_sums_right->sums, j_block,
                                   do_compute_triang_only, env);
     } break;
     /*----------------------------------------*/
