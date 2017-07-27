@@ -25,44 +25,43 @@ GMVectorSums GMVectorSums_null(void) {
   GMVectorSums x;
   x.sums = NULL;
   x.counts = NULL;
-  x.sums_tmp = NULL;
-  x.counts_tmp = NULL;
-  x.size = 0;
+  x.sums_tmp_ = NULL;
+  x.counts_tmp_ = NULL;
+  x.size_ = 0;
+  x.num_field_ = 0;
   return x;
 }
 
 /*===========================================================================*/
 /*---Pseudo-constructor---*/
 
-void GMVectorSums_create(GMVectorSums* vector_sums,
+void GMVectorSums_create(GMVectorSums* this_,
                          GMVectors* vectors,
                          GMEnv* env) {
-  GMAssertAlways(vector_sums);
-  GMAssertAlways(vectors);
-  GMAssertAlways(env);
+  GMAssertAlways(this_ && vectors && env);
 
-  vector_sums->size = vectors->num_vector_local;
+  this_->size_ = vectors->num_vector_local;
+  this_->num_field_ = vectors->num_field;
   const int num_proc = GMEnv_num_proc_field(env);
 
   switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
     } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      vector_sums->sums = GMFloat_malloc(vectors->num_vector_local, env);
-      vector_sums->sums_tmp = num_proc == 1
+      this_->sums = GMFloat_malloc(vectors->num_vector_local, env);
+      this_->sums_tmp_ = num_proc == 1
                               ? NULL
                               : GMFloat_malloc(vectors->num_vector_local, env);
     } break;
     case GM_METRIC_TYPE_CCC: {
-      vector_sums->sums = GMFloat_malloc(vectors->num_vector_local, env);
-      vector_sums->sums_tmp = num_proc == 1
+      this_->sums = GMFloat_malloc(vectors->num_vector_local, env);
+      this_->sums_tmp_ = num_proc == 1
                               ? NULL
                               : GMFloat_malloc(vectors->num_vector_local, env);
       if (env->sparse) {
-        vector_sums->counts = GMFloat_malloc(vectors->num_vector_local, env);
-        vector_sums->counts_tmp = num_proc == 1
+        this_->counts = GMFloat_malloc(vectors->num_vector_local, env);
+        this_->counts_tmp_ = num_proc == 1
                               ? NULL
                               : GMFloat_malloc(vectors->num_vector_local, env);
       }
@@ -76,35 +75,33 @@ void GMVectorSums_create(GMVectorSums* vector_sums,
 /*===========================================================================*/
 /*---Pseudo-destructor---*/
 
-void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
-  GMAssertAlways(vector_sums);
-  GMAssertAlways(env);
+void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
+  GMAssertAlways(this_ && env);
 
   switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_SORENSON: {
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
     } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      GMAssertAlways(vector_sums->sums != NULL);
-      GMFloat_free((GMFloat*)vector_sums->sums, vector_sums->size, env);
-      vector_sums->sums = NULL;
-      if (vector_sums->sums_tmp != NULL) {
-        GMFloat_free((GMFloat*)vector_sums->sums_tmp, vector_sums->size, env);
-        vector_sums->sums_tmp = NULL;
+      GMAssertAlways(this_->sums);
+      GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
+      this_->sums = NULL;
+      if (this_->sums_tmp_) {
+        GMFloat_free((GMFloat*)this_->sums_tmp_, this_->size_, env);
+        this_->sums_tmp_ = NULL;
       }
     } break;
     case GM_METRIC_TYPE_CCC: {
-      GMAssertAlways(vector_sums->sums != NULL);
-      GMFloat_free((GMFloat*)vector_sums->sums, vector_sums->size, env);
-      vector_sums->sums = NULL;
-      if (vector_sums->sums_tmp != NULL) {
-        GMFloat_free((GMFloat*)vector_sums->sums_tmp, vector_sums->size, env);
-        vector_sums->sums_tmp = NULL;
+      GMAssertAlways(this_->sums);
+      GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
+      this_->sums = NULL;
+      if (this_->sums_tmp_) {
+        GMFloat_free((GMFloat*)this_->sums_tmp_, this_->size_, env);
+        this_->sums_tmp_ = NULL;
       }
-      if (vector_sums->counts_tmp != NULL) {
-        GMFloat_free((GMFloat*)vector_sums->counts_tmp, vector_sums->size, env);
-        vector_sums->counts_tmp = NULL;
+      if (this_->counts_tmp_) {
+        GMFloat_free((GMFloat*)this_->counts_tmp_, this_->size_, env);
+        this_->counts_tmp_ = NULL;
       }
     } break;
     default:
@@ -116,12 +113,13 @@ void GMVectorSums_destroy(GMVectorSums* vector_sums, GMEnv* env) {
 /*===========================================================================*/
 /*---Compute the sum of elements of each vector on CPU, for denom---*/
 
-void gm_compute_float_vector_sums(GMVectors* vectors,
-                                  GMFloat* __restrict__ sums,
-                                  GMFloat* __restrict__ sums_tmp,
-                                  GMEnv* env) {
-  GMAssertAlways(vectors && sums && env);
-  GMAssertAlways(sums_tmp != NULL || GMEnv_num_proc_field(env) == 1);
+void GMVectorSums_compute_float_(GMVectorSums* this_,
+                                 GMVectors* vectors,
+                                 GMEnv* env) {
+  GMAssertAlways(this_ && vectors && env);
+
+  GMFloat* const __restrict__ sums = this_->sums;
+  GMFloat* const __restrict__ sums_tmp = this_->sums_tmp_;
 
   const int num_proc = GMEnv_num_proc_field(env);
   GMFloat* const sums_local = num_proc == 1 ? sums : sums_tmp;
@@ -158,16 +156,15 @@ void gm_compute_float_vector_sums(GMVectors* vectors,
 
 /*---------------------------------------------------------------------------*/
 
-void gm_compute_bits2_vector_sums(GMVectors* vectors,
-                                  GMFloat* __restrict__ sums,
-                                  GMFloat* __restrict__ sums_tmp,
-                                  GMFloat* __restrict__ counts,
-                                  GMFloat* __restrict__ counts_tmp,
-                                  GMEnv* env) {
-  GMAssertAlways(vectors && sums && env);
-  GMAssertAlways(sums_tmp != NULL || GMEnv_num_proc_field(env) == 1);
-  GMAssertAlways(counts_tmp != NULL || GMEnv_num_proc_field(env) == 1 ||
-                 !env->sparse);
+void GMVectorSums_compute_bits2_(GMVectorSums* this_,
+                                 GMVectors* vectors,
+                                 GMEnv* env) {
+  GMAssertAlways(this_ && vectors && env);
+
+  GMFloat* const __restrict__ sums = this_->sums;
+  GMFloat* const __restrict__ sums_tmp = this_->sums_tmp_;
+  GMFloat* const __restrict__ counts = this_->counts;
+  GMFloat* const __restrict__ counts_tmp = this_->counts_tmp_;
 
   const int num_proc = GMEnv_num_proc_field(env);
   GMFloat* const sums_local = num_proc == 1 ? sums : sums_tmp;
@@ -276,42 +273,46 @@ void gm_compute_bits2_vector_sums(GMVectors* vectors,
 
 /*---------------------------------------------------------------------------*/
 
-void GMVectorSums_compute(GMVectorSums* vector_sums,
-                          GMVectors* vectors,
-                          GMEnv* env) {
-  GMAssertAlways(vector_sums != NULL);
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(env != NULL);
+void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
+  GMAssertAlways(this_ && vectors && env);
 
   switch (GMEnv_metric_type(env)) {
-    /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
-      /*----------------------------------------*/
-
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
     } break;
-    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
-      gm_compute_float_vector_sums(vectors, (GMFloat*)vector_sums->sums,
-                                   (GMFloat*)vector_sums->sums_tmp, env);
+      GMVectorSums_compute_float_(this_, vectors, env);
     } break;
-    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
-      /*----------------------------------------*/
-      gm_compute_bits2_vector_sums(vectors, (GMFloat*)vector_sums->sums,
-                                   (GMFloat*)vector_sums->sums_tmp,
-                                   (GMFloat*)vector_sums->counts,
-                                   (GMFloat*)vector_sums->counts_tmp, env);
+      GMVectorSums_compute_bits2_(this_, vectors, env);
     } break;
-    /*----------------------------------------*/
     default:
-      /*----------------------------------------*/
       /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
 }
+
+/*---------------------------------------------------------------------------*/
+
+GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env) {
+  GMAssert(this_ && env);
+  GMAssert(i >= 0 && (size_t)i < this_->size_);
+
+  return this_->sums[i];
+}
+
+/*---------------------------------------------------------------------------*/
+
+GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env) {
+  GMAssert(this_ && env);
+  GMAssert(i >= 0 && (size_t)i < this_->size_);
+  GMAssert(env->sparse);
+
+  //return this_->counts ? this_->counts[i] : this_->num_field_;
+  return this_->counts[i];
+}
+
+/*---------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
