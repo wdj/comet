@@ -565,6 +565,141 @@ void DriverTest_ccc2_simple_() {
 
 /*===========================================================================*/
 
+void DriverTest_ccc2_simple_sparse_() {
+  const int num_field = 5;
+  const int num_vector_local = 2;
+
+  GMEnv env_value = GMEnv_null();
+  GMEnv* env = &env_value;
+  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
+  env->metric_type_ = GM_METRIC_TYPE_CCC;
+  env->num_way_ = 2;
+  env->all2all_ = GM_BOOL_FALSE;
+  GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_REF);
+  GMEnv_set_num_proc(env, 1, 1, 1);
+  env->sparse = true;
+
+  GMVectors vectors_value = GMVectors_null();
+  GMVectors* vectors = &vectors_value;
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), num_field,
+                   num_field, num_vector_local, env);
+
+  if (GMEnv_is_proc_active(env)) {
+    const int UN = 2 * 1 + 1 * 0;
+    {
+      const int G = 0;
+      const int T = 1;
+    //const int GG =  2 * G + 1 * G;
+      const int GT =  2 * G + 1 * T;
+    //const int TG =  2 * G + 1 * T;
+      const int TT =  2 * T + 1 * T;
+      int i = 0;
+      GMVectors_bits2_set(vectors, i++, 0, GT, env);
+      GMVectors_bits2_set(vectors, i++, 0, TT, env);
+      GMVectors_bits2_set(vectors, i++, 0, TT, env);
+      GMVectors_bits2_set(vectors, i++, 0, UN, env);
+      GMVectors_bits2_set(vectors, i++, 0, UN, env);
+    }
+    {
+      const int G = 0;
+      const int A = 1;
+      const int GG =  2 * G + 1 * G;
+      const int GA =  2 * G + 1 * A;
+      const int AG =  2 * G + 1 * A;
+    //const int AA =  2 * Q + 1 * A;
+      int i = 0;
+      GMVectors_bits2_set(vectors, i++, 1, GG, env);
+      GMVectors_bits2_set(vectors, i++, 1, AG, env);
+      GMVectors_bits2_set(vectors, i++, 1, GG, env);
+      GMVectors_bits2_set(vectors, i++, 1, UN, env);
+      GMVectors_bits2_set(vectors, i++, 1, GA, env);
+    }
+  }
+
+  GMMetrics metrics_value = GMMetrics_null();
+  GMMetrics* metrics = &metrics_value;
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field, num_field,
+                   num_vector_local, num_vector_local, env);
+
+  gm_compute_metrics(metrics, vectors, env);
+
+  if (GMEnv_is_proc_active(env)) {
+    const double result00 =
+        GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 0, env);
+    const double result01 =
+        GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 1, env);
+    const double result10 =
+        GMMetrics_ccc_get_from_index_2(metrics, 0, 1, 0, env);
+    const double result11 =
+        GMMetrics_ccc_get_from_index_2(metrics, 0, 1, 1, env);
+
+    printf("G G  %.5f\n", result00);
+    printf("G A  %.5f\n", result01);
+    printf("T G  %.5f\n", result10);
+    printf("T A  %.5f\n", result11);
+    printf("\n");
+
+    const double s0_0 = 3;
+    const double s0_1 = 3;
+
+    const double s1_0 = 6;
+    const double s1_1 = 2;
+
+    const double f0_0 = s0_0 / ( s0_0 + s0_1 );;
+    const double f0_1 = s0_1 / ( s0_0 + s0_1 );;
+
+    const double f1_0 = s1_0 / ( s1_0 + s1_1 );;
+    const double f1_1 = s1_1 / ( s1_0 + s1_1 );;
+
+    const double r0_00 = 2;
+    const double r0_01 = 0;
+    const double r0_10 = 2;
+    const double r0_11 = 0;
+
+    const double r1_00 = 1;
+    const double r1_01 = 1;
+    const double r1_10 = 1;
+    const double r1_11 = 1;
+
+    const double r2_00 = 2;
+    const double r2_01 = 0;
+    const double r2_10 = 2;
+    const double r2_11 = 0;
+
+    const double r_00 = r0_00 + r1_00 + r2_00;
+    const double r_01 = r0_01 + r1_01 + r2_01;
+    const double r_10 = r0_10 + r1_10 + r2_10;
+    const double r_11 = r0_11 + r1_11 + r2_11;
+
+    const double f_00 = r_00 / (r_00 + r_01 + r_10 + r_11 );
+    const double f_01 = r_01 / (r_00 + r_01 + r_10 + r_11 );
+    const double f_10 = r_10 / (r_00 + r_01 + r_10 + r_11 );
+    const double f_11 = r_11 / (r_00 + r_01 + r_10 + r_11 );
+
+    const double fm = 9 / (double) 2;
+    const double cp = 2 / (double) 3;
+
+    const double ref00 = fm * f_00 * ( 1 - cp * f0_0 ) * ( 1 - cp * f1_0 );
+    const double ref01 = fm * f_01 * ( 1 - cp * f0_0 ) * ( 1 - cp * f1_1 );
+    const double ref10 = fm * f_10 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_0 );
+    const double ref11 = fm * f_11 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_1 );
+
+    const double eps = 1.e-5;
+
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result00 - ref00) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result01 - ref01) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result10 - ref10) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result11 - ref11) < eps);
+  }
+
+  GMMetrics_destroy(metrics, env);
+  GMVectors_destroy(vectors, env);
+
+  GMEnv_destroy(env);
+}
+
+/*===========================================================================*/
+
 void DriverTest_ccc3_simple_compute_method(int compute_method) {
   const int num_field = 10;
   const int num_vector_local = 3;
@@ -1064,6 +1199,12 @@ TEST(DriverTest, czekanowski) {
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }
+
+#if 0
+TEST(DriverTest, ccc2_simple_sparse) {
+  DriverTest_ccc2_simple_sparse_();
+}
+#endif
 
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();

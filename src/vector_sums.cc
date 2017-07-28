@@ -194,7 +194,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
         GMAssert(count >= 0 && count <= vectors->num_field);
         sums_local[i] = sum;
         counts_local[i] = count;
-      } else { /*---sparse---*/
+      } else { /*---! sparse---*/
         //#pragma omp parallel for reduction(+:sum)
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           /*---Slow way: sum each semi-nibble individually---*/
@@ -203,7 +203,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
         }
         GMAssert(sum >= 0 && sum <= 2 * vectors->num_field);
         sums_local[i] = sum;
-      } /*---sparse---*/
+      } /*---if sparse---*/
     } /*---for i---*/
     /*----------*/
   } else {
@@ -240,7 +240,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
         GMAssert(count >= 0 && count <= vectors->num_field);
         sums_local[i] = sum;
         counts_local[i] = count;
-      } else { /*---sparse---*/
+      } else { /*---! sparse---*/
         for (f = 0; f < vectors->num_packedval_field_local; ++f) {
           /*---Fast way: sum all 64 bits of each word immediately---*/
           const GMBits2x64 value = GMVectors_bits2x64_get(vectors, f, i, env);
@@ -249,7 +249,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
         }
         GMAssert(sum >= 0 && sum <= 2 * vectors->num_field);
         sums_local[i] = sum;
-      } /*---sparse---*/
+      } /*---if sparse---*/
     } /*---for i---*/
     /*----------*/
   } /*---if---*/
@@ -267,7 +267,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
       mpi_code = MPI_Allreduce(counts_local, counts, vectors->num_vector_local,
                         GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
       GMAssertAlways(mpi_code == MPI_SUCCESS);
-    }
+    } /*---if sparse---*/
   }
 }
 

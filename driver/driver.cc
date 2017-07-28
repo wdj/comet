@@ -797,8 +797,16 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
             //OLD const GMFloat si = i==1 ? (2 * num_field_f) : 0;
             //OLD const GMFloat sj = j==1 ? (2 * num_field_f) : 0;
 
+            const GMFloat one = 1;
+
+            const GMFloat recip_ci = metrics->recip_m;
+            const GMFloat recip_cj = metrics->recip_m;
+
+            const GMFloat recip_sumcij = (one / 4) * metrics->recip_m;
+
             const GMFloat value_expected =
-              GMMetrics_ccc_value_2(metrics, rij, si, sj, env);
+              GMMetrics_ccc_value_2(metrics, rij, si, sj,
+                                    recip_ci, recip_cj, recip_sumcij, env);
             num_misses += value_expected != value;
           } //---j
         } //---i

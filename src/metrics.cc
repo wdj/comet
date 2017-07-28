@@ -613,8 +613,8 @@ void GMMetrics_create(GMMetrics* metrics,
     case GM_DATA_TYPE_TALLY2X2: {
       metrics->data_size = metrics->num_elts_local * sizeof(GMTally2x2);
       metrics->data = gm_malloc(metrics->data_size, env);
-      metrics->data_M_size = metrics->num_elts_local * sizeof(GMFloat2);
-      metrics->data_M = gm_malloc(metrics->data_M_size, env);
+      metrics->data_S_size = metrics->num_elts_local * sizeof(GMFloat2);
+      metrics->data_S = gm_malloc(metrics->data_S_size, env);
       if (env->sparse) {
         metrics->data_C_size = metrics->num_elts_local * sizeof(GMFloat2);
         metrics->data_C = gm_malloc(metrics->data_C_size, env);
@@ -625,8 +625,8 @@ void GMMetrics_create(GMMetrics* metrics,
     case GM_DATA_TYPE_TALLY4X2: {
       metrics->data_size = metrics->num_elts_local * sizeof(GMTally4x2);
       metrics->data = gm_malloc(metrics->data_size, env);
-      metrics->data_M_size = metrics->num_elts_local * sizeof(GMFloat3);
-      metrics->data_M = gm_malloc(metrics->data_M_size, env);
+      metrics->data_S_size = metrics->num_elts_local * sizeof(GMFloat3);
+      metrics->data_S = gm_malloc(metrics->data_S_size, env);
       if (env->sparse) {
         metrics->data_C_size = metrics->num_elts_local * sizeof(GMFloat3);
         metrics->data_C = gm_malloc(metrics->data_C_size, env);
@@ -654,8 +654,8 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
   gm_free(metrics->coords_global_from_index,
           metrics->num_elts_local * sizeof(size_t), env);
   gm_free(metrics->data, metrics->data_size, env);
-  if (metrics->data_M) {
-    gm_free(metrics->data_M, metrics->data_M_size, env);
+  if (metrics->data_S) {
+    gm_free(metrics->data_S, metrics->data_S_size, env);
   }
   if (metrics->data_C) {
     gm_free(metrics->data_C, metrics->data_C_size, env);

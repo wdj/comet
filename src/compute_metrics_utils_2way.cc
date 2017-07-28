@@ -404,18 +404,24 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
 void gm_compute_czekanowski_2way_combine_(
     GMMetrics* metrics,
     GMMirroredPointer* metrics_buf,
-    GMVectorSums* vector_sums_left,
-    GMVectorSums* vector_sums_right,
+    const GMVectorSums* vector_sums_left,
+    const GMVectorSums* vector_sums_right,
     int j_block, _Bool do_compute_triang_only, GMEnv* env) {
   GMAssertAlways(metrics && metrics_buf && env);
   GMAssertAlways(vector_sums_left && vector_sums_right);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
+  // NOTE: here and elsewhere, vector_sums_left and vector_sums_right
+  // may sometimes be aliases.  Since they are read-only, there should
+  // be no danger of the compiler generating incorrect code.
+  // (cf. https://en.wikipedia.org/wiki/Pointer_aliasing)
+  // However by accounting for this one might be able to in principle
+  // remove a load instruction to improve performance.
+
   const int nvl = metrics->num_vector_local;
-  GMVectorSums* vs_l = vector_sums_left;
-  GMVectorSums* vs_r = vector_sums_right;
-  const _Bool are_vs_aliased = vs_l == vs_r;
+  const GMVectorSums* vs_l = vector_sums_left;
+  const GMVectorSums* vs_r = vector_sums_right;
 
   /*---For CPU case, copy numerator out of metrics struct which is temporarily
        holding numerators.
@@ -433,8 +439,7 @@ void gm_compute_czekanowski_2way_combine_(
         const GMFloat numerator =
             GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
         /*---Don't use two pointers pointing to the same thing---*/
-        const GMFloat vi = are_vs_aliased ? GMVectorSums_sum(vs_r, i, env) :
-                                            GMVectorSums_sum(vs_l, i, env);
+        const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                       2 * numerator / denominator, env);
@@ -454,8 +459,7 @@ void gm_compute_czekanowski_2way_combine_(
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
         /*---Don't use two different pointers pointing to the same thing---*/
-        const GMFloat vi = are_vs_aliased ? GMVectorSums_sum(vs_r, i, env) :
-                                            GMVectorSums_sum(vs_l, i, env);
+        const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
@@ -474,8 +478,7 @@ void gm_compute_czekanowski_2way_combine_(
           const GMFloat numerator =
               ((GMFloat*)metrics_buf->h)[i + (size_t)nvl * j];
           /*---Don't use two pointers pointing to the same thing---*/
-          const GMFloat vi = are_vs_aliased ? GMVectorSums_sum(vs_r, i, env) :
-                                              GMVectorSums_sum(vs_l, i, env);
+          const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                         2 * numerator / denominator, env);
@@ -490,8 +493,7 @@ void gm_compute_czekanowski_2way_combine_(
           const GMFloat numerator =
               ((GMFloat*)metrics_buf->h)[i + (size_t)nvl * j];
           /*---Don't use two pointers pointing to the same thing---*/
-          const GMFloat vi = are_vs_aliased ? GMVectorSums_sum(vs_r, i, env) :
-                                              GMVectorSums_sum(vs_l, i, env);
+          const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                         2 * numerator / denominator, env);
@@ -510,8 +512,7 @@ void gm_compute_czekanowski_2way_combine_(
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numerator = ((GMFloat*)metrics_buf->h)[i + nvl * j];
         /*---Don't use two different pointers pointing to the same thing---*/
-        const GMFloat vi = are_vs_aliased ? GMVectorSums_sum(vs_r, i, env) :
-                                            GMVectorSums_sum(vs_l, i, env);
+        const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
       } /*---for i---*/
@@ -528,8 +529,8 @@ void gm_compute_czekanowski_2way_combine_(
 
 void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
                                   GMMirroredPointer* metrics_buf,
-                                  GMVectorSums* vector_sums_left,
-                                  GMVectorSums* vector_sums_right,
+                                  const GMVectorSums* vector_sums_left,
+                                  const GMVectorSums* vector_sums_right,
                                   int j_block, _Bool do_compute_triang_only,
                                   GMEnv* env) {
   GMAssertAlways(metrics && metrics_buf && env);
@@ -538,8 +539,8 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   const int nvl = metrics->num_vector_local;
-  GMVectorSums* vs_l = vector_sums_left;
-  GMVectorSums* vs_r = vector_sums_right;
+  const GMVectorSums* vs_l = vector_sums_left;
+  const GMVectorSums* vs_r = vector_sums_right;
 
   /*---Copy from metrics_buffer for GPU case---*/
 
@@ -636,13 +637,13 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
         for (int i = 0; i < i_max; ++i) {
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-          GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+          GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse) {
             const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_r, j, env);
             const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci1_cj1 = GMFloat2_encode(ci1, cj1);
             GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci1_cj1, env);
-          }
+          } /*---if sparse---*/
         }   /*---for i---*/
         metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
@@ -653,13 +654,13 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-          GMMetrics_float2_M_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+          GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse) {
             const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_r, j, env);
             const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci1_cj1 = GMFloat2_encode(ci1, cj1);
             GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci1_cj1, env);
-          }
+          } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
@@ -674,13 +675,13 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
       for (int i = 0; i < i_max; ++i) {
         const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-        GMMetrics_float2_M_set_2(metrics, i, j, si1_sj1, env);
+        GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
         if (env->sparse) {
           const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_r, j, env);
           const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_l, i, env);
           const GMFloat2 ci1_cj1 = GMFloat2_encode(ci1, cj1);
           GMMetrics_float2_C_set_2(metrics, i, j, ci1_cj1, env);
-        }
+        } /*---if sparse---*/
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
@@ -694,8 +695,8 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
 
 void gm_compute_2way_combine(GMMetrics* metrics,
                              GMMirroredPointer* metrics_buf,
-                             GMVectorSums* vector_sums_left,
-                             GMVectorSums* vector_sums_right,
+                             const GMVectorSums* vector_sums_left,
+                             const GMVectorSums* vector_sums_right,
                              int j_block,
                              _Bool do_compute_triang_only,
                              GMEnv* env) {

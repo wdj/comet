@@ -23,7 +23,7 @@ extern "C" {
 /*===========================================================================*/
 /*---Start calculation of numerators, 3-way Czekanowski non-gpu---*/
 
-void gm_compute_czekanowski_numerators_3way_nongpu_start(
+void gm_compute_czekanowski_numerators_3way_nongpu_start_(
     GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
     GMVectors* vectors_j,
@@ -34,9 +34,9 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_block,
     int k_block,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
+    const GMVectorSums* vector_sums_i,
+    const GMVectorSums* vector_sums_j,
+    const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
   GMAssertAlways(this_ != NULL);
@@ -56,9 +56,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
                    GMEnv_proc_num_vector_i(env) != j_block));
   GMAssertAlways(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssertAlways(vector_sums_i != NULL);
-  GMAssertAlways(vector_sums_j != NULL);
-  GMAssertAlways(vector_sums_k != NULL);
+  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 
@@ -76,9 +74,9 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->sums);
-  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->sums);
-  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->sums);
+  const GMVectorSums* const vs_i = vector_sums_i;
+  const GMVectorSums* const vs_j = vector_sums_j;
+  const GMVectorSums* const vs_k = vector_sums_k;
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && !GMEnv_all2all(env)) {
@@ -101,18 +99,13 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
     for (j = 0; j < nvl; ++j) {
       for (k = j+1; k < nvl; ++k) {
         for (i = 0; i < j; ++i) {
-
-          //const GMFloat denominator =
-          //  vector_sums_i_[i] + vector_sums_i_[j] + vector_sums_i_[k];
-
           /*---Make arithmetic order-independent---*/
-          GMFloat smin;
-          GMFloat smid;
-          GMFloat smax;
-          GMFloat_sort_3(&smin, &smid, &smax,
-             &vector_sums_i_[i], &vector_sums_i_[j], &vector_sums_i_[k]);
+          GMFloat smin, smid, smax;
+          const GMFloat si = GMVectorSums_sum(vs_i, i, env);
+          const GMFloat sj = GMVectorSums_sum(vs_i, j, env);
+          const GMFloat sk = GMVectorSums_sum(vs_i, k, env);
+          GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
           const GMFloat denominator = smin + smid + smax;
-
           GMFloat numerator = 0;
           int f = 0;
           for (f = 0; f < nfl; ++f) {
@@ -178,17 +171,13 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
                           /* si->sax2 ?*/ J;
           /* clang-format on */
 
-          //const GMFloat denominator =
-          //  vector_sums_i_[i] + vector_sums_j_[j] + vector_sums_k_[k];
-
           /*---Make arithmetic order-independent---*/
-          GMFloat smin;
-          GMFloat smid;
-          GMFloat smax;
-          GMFloat_sort_3(&smin, &smid, &smax,
-             &vector_sums_i_[i], &vector_sums_j_[j], &vector_sums_k_[k]);
+          GMFloat smin, smid, smax;
+          const GMFloat si = GMVectorSums_sum(vs_i, i, env);
+          const GMFloat sj = GMVectorSums_sum(vs_j, j, env);
+          const GMFloat sk = GMVectorSums_sum(vs_k, k, env);
+          GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
           const GMFloat denominator = smin + smid + smax;
-
           GMFloat numerator = 0;
           int f = 0;
           for (f = 0; f < nfl; ++f) {
@@ -228,7 +217,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start(
 /*===========================================================================*/
 /*---Start calculation of numerators, 3-way CCC non-gpu---*/
 
-void gm_compute_ccc_numerators_3way_nongpu_start(
+void gm_compute_ccc_numerators_3way_nongpu_start_(
     GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
     GMVectors* vectors_j,
@@ -239,9 +228,9 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_block,
     int k_block,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
+    const GMVectorSums* vector_sums_i,
+    const GMVectorSums* vector_sums_j,
+    const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
   GMAssertAlways(this_ != NULL);
@@ -261,9 +250,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
                    GMEnv_proc_num_vector_i(env) != j_block));
   GMAssertAlways(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssertAlways(vector_sums_i != NULL);
-  GMAssertAlways(vector_sums_j != NULL);
-  GMAssertAlways(vector_sums_k != NULL);
+  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 
@@ -277,9 +264,9 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  GMFloat* vector_sums_i_ = (GMFloat*)(vector_sums_i->sums);
-  GMFloat* vector_sums_j_ = (GMFloat*)(vector_sums_j->sums);
-  GMFloat* vector_sums_k_ = (GMFloat*)(vector_sums_k->sums);
+  const GMVectorSums* const vs_i = vector_sums_i;
+  const GMVectorSums* const vs_j = vector_sums_j;
+  const GMVectorSums* const vs_k = vector_sums_k;
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
@@ -320,17 +307,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
                           /* si->sax2 ?*/ J;
           /* clang-format on */
 
-          const GMTally1 sj_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-                                (GMTally1)(vector_sums_i_[j]) :
-                                (GMTally1)(vector_sums_j_[j]);
-          const GMTally1 sk_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-                                (GMTally1)(vector_sums_i_[k]) :
-                                si->is_part2 ?
-                                (GMTally1)(vector_sums_j_[k]) :
-                                (GMTally1)(vector_sums_k_[k]);
-
-          const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
-          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
           GMTally4x2 sum = GMTally4x2_null();
           int f = 0;
           for (f = 0; f < nfl; ++f) {
@@ -417,14 +393,33 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             sum.data[2] += GMTally1_encode(r100, r101);
             sum.data[3] += GMTally1_encode(r110, r111);
           } /*---for f---*/
+          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
+          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
+          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
+          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
           if (GMEnv_all2all(env)) {
             GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, sum, &index_cache, env);
-            GMMetrics_float3_M_set_all2all_3_permuted_cache(metrics,
+            GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, si1_sj1_sk1, &index_cache, env);
+            if (env->sparse) {
+              const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+              const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
+              const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
+              const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+              GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics,
+                I, J, K, j_block, k_block, ci1_cj1_ck1, &index_cache, env);
+            } /*---if sparse---*/
           } else {
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
-            GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
+            GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
+            if (env->sparse) {
+              const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+              const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
+              const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
+              const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+              GMMetrics_float3_C_set_3(metrics, i, j, k, ci1_cj1_ck1, env);
+            } /*---if sparse---*/
           }
         } /*---for I---*/
         metrics->num_elts_local_computed += I_max - I_min;
@@ -497,18 +492,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
                           /* si->sax2 ?*/ J;
           /* clang-format on */
 
-          const GMTally1 sj_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-                                (GMTally1)(vector_sums_i_[j]) :
-                                (GMTally1)(vector_sums_j_[j]);
-          const GMTally1 sk_1 = (si->is_part1 || !GMEnv_all2all(env)) ?
-                                (GMTally1)(vector_sums_i_[k]) :
-                                si->is_part2 ?
-                                (GMTally1)(vector_sums_j_[k]) :
-                                (GMTally1)(vector_sums_k_[k]);
-
-          const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
-
-          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
           GMTally4x2 sum = GMTally4x2_null();
           int pvfl = 0;
           const int npvfl = vectors_i->num_packedval_field_local;
@@ -706,14 +689,33 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
             sum.data[2] += GMTally1_encode(r100, r101);
             sum.data[3] += GMTally1_encode(r110, r111);
           } /*---for pvfl---*/
+          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
+          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
+          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
+          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
           if (GMEnv_all2all(env)) {
             GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, sum, &index_cache, env);
-            GMMetrics_float3_M_set_all2all_3_permuted_cache(metrics,
+            GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, si1_sj1_sk1, &index_cache, env);
+            if (env->sparse) {
+              const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+              const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
+              const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
+              const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+              GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics,
+                I, J, K, j_block, k_block, ci1_cj1_ck1, &index_cache, env);
+            } /*---if sparse---*/
           } else {
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
-            GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
+            GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
+            if (env->sparse) {
+              const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+              const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
+              const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
+              const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+              GMMetrics_float3_C_set_3(metrics, i, j, k, ci1_cj1_ck1, env);
+            } /*---if sparse---*/
           }
         } //---I
         metrics->num_elts_local_computed += I_max - I_min;
@@ -739,7 +741,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start(
 
 /*===========================================================================*/
 
-void gm_compute_numerators_3way_gpu_form_matV(
+void gm_compute_numerators_3way_gpu_form_matV_(
   const GMVectors* const vectors_i,
   const GMMirroredPointer* const vectors_I_buf,
   const GMMirroredPointer* const vectors_J_buf,
@@ -889,7 +891,7 @@ void gm_compute_numerators_3way_gpu_form_matV(
 
 /*===========================================================================*/
 
-void gm_compute_numerators_3way_gpu_form_metrics(
+void gm_compute_numerators_3way_gpu_form_metrics_(
   const GMMirroredPointer* const matM_IJ_buf,
   const GMMirroredPointer* const matM_JK_buf,
   const GMMirroredPointer* const matM_KIK_buf,
@@ -905,34 +907,35 @@ void gm_compute_numerators_3way_gpu_form_metrics(
   const int j_block,
   const int k_block,
   const GMSectionInfo* const si,
-  GMVectorSums* vector_sums_i,
-  GMVectorSums* vector_sums_j,
-  GMVectorSums* vector_sums_k,
+  const GMVectorSums* vector_sums_i,
+  const GMVectorSums* vector_sums_j,
+  const GMVectorSums* vector_sums_k,
   GMEnv* const env) {
+
+  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
 
   const _Bool is_part3 = si->is_part3;
 
-  const GMFloat* const vector_sums_i_ = (GMFloat*)(vector_sums_i->sums);
-  const GMFloat* const vector_sums_j_ = (GMFloat*)(vector_sums_j->sums);
-  const GMFloat* const vector_sums_k_ = (GMFloat*)(vector_sums_k->sums);
-
+  const GMVectorSums* const vs_i = vector_sums_i;
+  const GMVectorSums* const vs_j = vector_sums_j;
+  const GMVectorSums* const vs_k = vector_sums_k;
 
   /* clang-format off */
-  const GMFloat* const vector_sums_I_ =
-      !si->is_part3 ?   vector_sums_i_ :
-           si->sax0 ?   vector_sums_k_ :
-           si->sax1 ?   vector_sums_i_ :
-        /* si->sax2 ?*/ vector_sums_j_;
-  const GMFloat* const vector_sums_J_ =
-      !si->is_part3 ?   vector_sums_j_ :
-           si->sax0 ?   vector_sums_i_ :
-           si->sax1 ?   vector_sums_j_ :
-        /* si->sax2 ?*/ vector_sums_k_;
-  const GMFloat* const vector_sums_K_ =
-      !si->is_part3 ?   vector_sums_k_ :
-           si->sax0 ?   vector_sums_j_ :
-           si->sax1 ?   vector_sums_k_ :
-        /* si->sax2 ?*/ vector_sums_i_;
+  const GMVectorSums* const vs_I =
+          !si->is_part3 ?   vs_i :
+               si->sax0 ?   vs_k :
+               si->sax1 ?   vs_i :
+            /* si->sax2 ?*/ vs_j;
+  const GMVectorSums* const vs_J =
+          !si->is_part3 ?   vs_j :
+               si->sax0 ?   vs_i :
+               si->sax1 ?   vs_j :
+            /* si->sax2 ?*/ vs_k;
+  const GMVectorSums* const vs_K =
+          !si->is_part3 ?   vs_k :
+               si->sax0 ?   vs_j :
+               si->sax1 ?   vs_k :
+            /* si->sax2 ?*/ vs_i;
   /* clang-format on */
 
   const size_t nvl64 = (size_t)nvl;
@@ -961,12 +964,12 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         const int i = I;
         const int j = J;
         const int k = K;
-        //const GMFloat denominator =
-        //    vector_sums_i_[i] + vector_sums_i_[j] + vector_sums_i_[k];
         /*---Make arithmetic order-independent---*/
         GMFloat smin, smid, smax;
-        GMFloat_sort_3(&smin, &smid, &smax,
-           &vector_sums_i_[i], &vector_sums_i_[j], &vector_sums_i_[k]);
+        const GMFloat si = GMVectorSums_sum(vs_i, i, env);
+        const GMFloat sj = GMVectorSums_sum(vs_i, j, env);
+        const GMFloat sk = GMVectorSums_sum(vs_i, k, env);
+        GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
         const GMFloat denominator = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numerator / denominator;
         GMMetrics_float_set_3(metrics, i, j, k, value, env);
@@ -993,14 +996,13 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         // sum of mins vectors i, j, and k is matB(k,i)
         const GMFloat min_IJK = ((GMFloat*)(matB_buf->h))[I + I_max64 * K];
         const GMFloat numerator = min_IJ + min_JK + min_KIK - min_IJK;
-        //const GMFloat denominator =
-        //    vector_sums_I_[I] + vector_sums_J_[J] + vector_sums_K_[K];
         /*---Make arithmetic order-independent---*/
         GMFloat smin, smid, smax;
-        GMFloat_sort_3(&smin, &smid, &smax,
-           &vector_sums_I_[I], &vector_sums_J_[J], &vector_sums_K_[K]);
+        const GMFloat sI = GMVectorSums_sum(vs_I, I, env);
+        const GMFloat sJ = GMVectorSums_sum(vs_J, J, env);
+        const GMFloat sK = GMVectorSums_sum(vs_K, K, env);
+        GMFloat_sort_3(&smin, &smid, &smax, &sI, &sJ, &sK);
         const GMFloat denominator = smin + smid + smax;
-
         const GMFloat value = ((GMFloat)1.5) * numerator / denominator;
         GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
             j_block, k_block, value, &index_cache, env);
@@ -1068,13 +1070,18 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         numerator.data[2] = GMTally1_encode(r100, r101);
         numerator.data[3] = GMTally1_encode(r110, r111);
         GMMetrics_tally4x2_set_3(metrics, i, j, k, numerator, env);
-
-        const GMTally1 sj_1 = (GMTally1)(vector_sums_i_[j]);
-        const GMTally1 sk_1 = (GMTally1)(vector_sums_i_[k]);
-        const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
-        const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
-        GMMetrics_float3_M_set_3(metrics, i, j, k, si1_sj1_sk1, env);
-
+        const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
+        const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_i, j, env);
+        const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_i, k, env);
+        const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
+        GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
+        if (env->sparse) {
+          const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+          const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_i, j, env);
+          const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_i, k, env);
+          const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+          GMMetrics_float3_C_set_3(metrics, i, j, k, ci1_cj1_ck1, env);
+        } /*---if sparse---*/
       } /*---for K---*/
     }   /*---for I---*/
     if (step_2way == 2) {
@@ -1221,26 +1228,22 @@ void gm_compute_numerators_3way_gpu_form_metrics(
         numer.data[1] = GMTally1_encode(r010_permuted, r011_permuted);
         numer.data[2] = GMTally1_encode(r100_permuted, r101_permuted);
         numer.data[3] = GMTally1_encode(r110_permuted, r111_permuted);
-
         GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics, I, J, K,
                                    j_block, k_block, numer, &index_cache, env);
-
-        const GMTally1 sj_1 = si->is_part1 ?
-                              (GMTally1)(vector_sums_i_[j]) :
-                              (GMTally1)(vector_sums_j_[j]); 
-        const GMTally1 sk_1 = si->is_part1 ?
-                              (GMTally1)(vector_sums_i_[k]) :
-                              si->is_part2 ?
-                              (GMTally1)(vector_sums_j_[k]) :
-                              (GMTally1)(vector_sums_k_[k]); 
-        const GMTally1 si_1 = (GMTally1)(vector_sums_i_[i]);
-        const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si_1, sj_1, sk_1);
-
-
-        GMMetrics_float3_M_set_all2all_3_permuted_cache(metrics, I, J, K,
+        const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
+        const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env); 
+        const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env); 
+        const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
+        GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
             j_block, k_block, si1_sj1_sk1, &index_cache, env);
-
-
+        if (env->sparse) {
+          const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+          const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env); 
+          const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env); 
+          const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+          GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
+              j_block, k_block, ci1_cj1_ck1, &index_cache, env);
+        } /*---if sparse---*/
       } /*---for K---*/
     }   /*---for I---*/
     if (step_2way == 2) {
@@ -1259,7 +1262,7 @@ void gm_compute_numerators_3way_gpu_form_metrics(
 /*===========================================================================*/
 /*---Start calculation of numerators, 3-way gpu---*/
 
-void gm_compute_numerators_3way_gpu_start(
+void gm_compute_numerators_3way_gpu_start_(
     GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
     GMVectors* vectors_j,
@@ -1270,9 +1273,9 @@ void gm_compute_numerators_3way_gpu_start(
     GMMirroredPointer* vectors_k_buf,
     int j_block,
     int k_block,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
+    const GMVectorSums* vector_sums_i,
+    const GMVectorSums* vector_sums_j,
+    const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
   GMAssertAlways(this_ != NULL);
@@ -1292,9 +1295,7 @@ void gm_compute_numerators_3way_gpu_start(
                    GMEnv_proc_num_vector_i(env) != j_block));
   GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssertAlways(vector_sums_i != NULL);
-  GMAssertAlways(vector_sums_j != NULL);
-  GMAssertAlways(vector_sums_k != NULL);
+  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 
@@ -1541,7 +1542,7 @@ void gm_compute_numerators_3way_gpu_start(
       /*---Populate leading columns of matV---*/
 //      GMAssertAlways(!*vars_next.matV_h_updating);
 //      *vars_next.matV_h_updating = GM_BOOL_TRUE;
-      gm_compute_numerators_3way_gpu_form_matV(vectors_i,
+      gm_compute_numerators_3way_gpu_form_matV_(vectors_i,
           vectors_I_buf, vectors_J_buf, matV_buf[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
           vars_next.I_min, vars_next.I_max, env);
@@ -1641,7 +1642,7 @@ void gm_compute_numerators_3way_gpu_start(
 
     if (vars_prevprev.do_compute) {
       /*---Compute numerators using ijk piece and (if needed) 2-way pieces---*/
-      gm_compute_numerators_3way_gpu_form_metrics(
+      gm_compute_numerators_3way_gpu_form_metrics_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
           matB_buf[vars_prevprev.index_01],
           metrics, nvl,
@@ -1676,8 +1677,7 @@ void GMComputeNumerators3Way_create(
     int nvl,
     int npvfl,
     GMEnv* env) {
-  GMAssertAlways(this_ != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(this_ && env);
 
   const _Bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
   const _Bool need_reduce = GMEnv_num_proc_field(env) > 1;
@@ -1709,8 +1709,7 @@ void GMComputeNumerators3Way_create(
 void GMComputeNumerators3Way_destroy(
     GMComputeNumerators3Way* this_,
     GMEnv* env) {
-  GMAssertAlways(this_ != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(this_ && env);
 
   const _Bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
   const _Bool need_reduce = GMEnv_num_proc_field(env) > 1;
@@ -1737,7 +1736,7 @@ void GMComputeNumerators3Way_destroy(
 /*===========================================================================*/
 /*---Start calculation of numerators, 3-way generic---*/
 
-void gm_compute_numerators_3way_start(
+void GMComputeNumerators3Way_start(
     GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
     GMVectors* vectors_j,
@@ -1748,9 +1747,9 @@ void gm_compute_numerators_3way_start(
     GMMirroredPointer* vectors_k_buf,
     int j_block,
     int k_block,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
+    const GMVectorSums* vector_sums_i,
+    const GMVectorSums* vector_sums_j,
+    const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
   GMAssertAlways(this_ != NULL);
@@ -1769,21 +1768,19 @@ void gm_compute_numerators_3way_start(
   GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
                    GMEnv_proc_num_vector_i(env) != j_block));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssertAlways(vector_sums_i != NULL);
-  GMAssertAlways(vector_sums_j != NULL);
-  GMAssertAlways(vector_sums_k != NULL);
+  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    gm_compute_numerators_3way_gpu_start(this_,
-                                         vectors_i, vectors_j, vectors_k,
-                                         metrics, vectors_i_buf, vectors_j_buf,
-                                         vectors_k_buf, j_block, k_block,
-                                         vector_sums_i, vector_sums_j,
-                                         vector_sums_k,
-                                         section_step, env);
+    gm_compute_numerators_3way_gpu_start_(this_,
+                                          vectors_i, vectors_j, vectors_k,
+                                          metrics, vectors_i_buf, vectors_j_buf,
+                                          vectors_k_buf, j_block, k_block,
+                                          vector_sums_i, vector_sums_j,
+                                          vector_sums_k,
+                                          section_step, env);
     /*----------------------------------------*/
   } else /*---(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU)---*/ {
     /*----------------------------------------*/
@@ -1796,7 +1793,7 @@ void gm_compute_numerators_3way_start(
       /*----------------------------------------*/
       case GM_METRIC_TYPE_CZEKANOWSKI: {
         /*----------------------------------------*/
-        gm_compute_czekanowski_numerators_3way_nongpu_start(this_,
+        gm_compute_czekanowski_numerators_3way_nongpu_start_(this_,
             vectors_i, vectors_j, vectors_k, metrics, vectors_i_buf,
             vectors_j_buf, vectors_k_buf, j_block, k_block,
             vector_sums_i, vector_sums_j, vector_sums_k,
@@ -1805,7 +1802,7 @@ void gm_compute_numerators_3way_start(
       /*----------------------------------------*/
       case GM_METRIC_TYPE_CCC: {
         /*----------------------------------------*/
-        gm_compute_ccc_numerators_3way_nongpu_start(this_,
+        gm_compute_ccc_numerators_3way_nongpu_start_(this_,
             vectors_i, vectors_j, vectors_k, metrics, vectors_i_buf,
             vectors_j_buf, vectors_k_buf, j_block, k_block,
             vector_sums_i, vector_sums_j, vector_sums_k,

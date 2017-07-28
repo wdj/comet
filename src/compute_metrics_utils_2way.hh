@@ -34,8 +34,8 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
 
 void gm_compute_2way_combine(GMMetrics* metrics,
                              GMMirroredPointer* metrics_buf,
-                             GMVectorSums* vector_sums_left,
-                             GMVectorSums* vector_sums_right,
+                             const GMVectorSums* vector_sums_left,
+                             const GMVectorSums* vector_sums_right,
                              int j_proc,
                              _Bool do_compute_triang_only,
                              GMEnv* env);

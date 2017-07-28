@@ -41,7 +41,7 @@ void GMComputeNumerators3Way_destroy(
     GMComputeNumerators3Way* this_,
     GMEnv* env);
 
-void gm_compute_numerators_3way_start(
+void GMComputeNumerators3Way_start(
     GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
     GMVectors* vectors_j,
@@ -52,9 +52,9 @@ void gm_compute_numerators_3way_start(
     GMMirroredPointer* vectors_k_buf,
     int j_proc,
     int k_proc,
-    GMVectorSums* vector_sums_i,
-    GMVectorSums* vector_sums_j,
-    GMVectorSums* vector_sums_k,
+    const GMVectorSums* vector_sums_i,
+    const GMVectorSums* vector_sums_j,
+    const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env);
 
