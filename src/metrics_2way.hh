@@ -321,7 +321,10 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   const GMFloat recip_ci = env->sparse ? one / ci : recip_m;
   const GMFloat recip_cj = env->sparse ? one / cj : recip_m;
 
-  const GMFloat recip_sumcij = (one / 4) * recip_m;
+  const GMFloat recip_sumcij = env->sparse ?
+    one / (GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
+           GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1)) :
+    (one / 4) * recip_m;
 
   return GMMetrics_ccc_value_2(metrics, rij, si, sj,
                                recip_ci, recip_cj, recip_sumcij, env);

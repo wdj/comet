@@ -639,31 +639,34 @@ void DriverTest_ccc2_simple_sparse_() {
     printf("T A  %.5f\n", result11);
     printf("\n");
 
-    const double s0_0 = 3;
-    const double s0_1 = 3;
+    const double s0_0 = 1;
+    const double s0_1 = 5;
 
     const double s1_0 = 6;
     const double s1_1 = 2;
 
-    const double f0_0 = s0_0 / ( s0_0 + s0_1 );;
-    const double f0_1 = s0_1 / ( s0_0 + s0_1 );;
+    const double c0 = s0_0 + s0_1;
+    const double c1 = s1_0 + s1_1;
 
-    const double f1_0 = s1_0 / ( s1_0 + s1_1 );;
-    const double f1_1 = s1_1 / ( s1_0 + s1_1 );;
+    const double f0_0 = s0_0 / c0;
+    const double f0_1 = s0_1 / c0;
+
+    const double f1_0 = s1_0 / c1;
+    const double f1_1 = s1_1 / c1;
 
     const double r0_00 = 2;
     const double r0_01 = 0;
     const double r0_10 = 2;
     const double r0_11 = 0;
 
-    const double r1_00 = 1;
-    const double r1_01 = 1;
-    const double r1_10 = 1;
-    const double r1_11 = 1;
+    const double r1_00 = 0;
+    const double r1_01 = 0;
+    const double r1_10 = 2;
+    const double r1_11 = 2;
 
-    const double r2_00 = 2;
+    const double r2_00 = 0;
     const double r2_01 = 0;
-    const double r2_10 = 2;
+    const double r2_10 = 4;
     const double r2_11 = 0;
 
     const double r_00 = r0_00 + r1_00 + r2_00;
@@ -671,10 +674,12 @@ void DriverTest_ccc2_simple_sparse_() {
     const double r_10 = r0_10 + r1_10 + r2_10;
     const double r_11 = r0_11 + r1_11 + r2_11;
 
-    const double f_00 = r_00 / (r_00 + r_01 + r_10 + r_11 );
-    const double f_01 = r_01 / (r_00 + r_01 + r_10 + r_11 );
-    const double f_10 = r_10 / (r_00 + r_01 + r_10 + r_11 );
-    const double f_11 = r_11 / (r_00 + r_01 + r_10 + r_11 );
+    const double c = r_00 + r_01 + r_10 + r_11;
+
+    const double f_00 = r_00 / c;
+    const double f_01 = r_01 / c;
+    const double f_10 = r_10 / c;
+    const double f_11 = r_11 / c;
 
     const double fm = 9 / (double) 2;
     const double cp = 2 / (double) 3;
@@ -1200,11 +1205,9 @@ TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }
 
-#if 0
 TEST(DriverTest, ccc2_simple_sparse) {
   DriverTest_ccc2_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();

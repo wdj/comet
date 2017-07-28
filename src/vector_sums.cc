@@ -185,7 +185,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           /*---Slow way: sum each semi-nibble individually---*/
           const GMBits2 value = GMVectors_bits2_get(vectors, fl, i, env);
-          if (!( ((value & 1) == 0) && ((value & 2) != 0) )){
+          if (value != GM_2BIT_UNKNOWN){
             sum += ((value & 1) != 0) + ((value & 2) != 0);
             count++;
           }

@@ -148,46 +148,52 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
         for (fl = 0; fl < vectors_left->num_field_local; ++fl) {
           const GMBits2 value_i = GMVectors_bits2_get(vectors_left, fl, i, env);
           const GMBits2 value_j = GMVectors_bits2_get(vectors_right, fl, j, env);
+          const _Bool unknown_i = env->sparse ? value_i == GM_2BIT_UNKNOWN
+                                              : GM_BOOL_FALSE;
+          const _Bool unknown_j = env->sparse ? value_j == GM_2BIT_UNKNOWN
+                                              : GM_BOOL_FALSE;
 
-          /* clang-format off */
-          const int r00 = ( ( !(value_i & 1) ) && ( !(value_j & 1) ) ) +
-                          ( ( !(value_i & 1) ) && ( !(value_j & 2) ) ) +
-                          ( ( !(value_i & 2) ) && ( !(value_j & 1) ) ) +
-                          ( ( !(value_i & 2) ) && ( !(value_j & 2) ) );
-          const int r01 = ( ( !(value_i & 1) ) && (  (value_j & 1) ) ) +
-                          ( ( !(value_i & 1) ) && (  (value_j & 2) ) ) +
-                          ( ( !(value_i & 2) ) && (  (value_j & 1) ) ) +
-                          ( ( !(value_i & 2) ) && (  (value_j & 2) ) );
-          const int r10 = ( (  (value_i & 1) ) && ( !(value_j & 1) ) ) +
-                          ( (  (value_i & 1) ) && ( !(value_j & 2) ) ) +
-                          ( (  (value_i & 2) ) && ( !(value_j & 1) ) ) +
-                          ( (  (value_i & 2) ) && ( !(value_j & 2) ) );
-          const int r11 = ( (  (value_i & 1) ) && (  (value_j & 1) ) ) +
-                          ( (  (value_i & 1) ) && (  (value_j & 2) ) ) +
-                          ( (  (value_i & 2) ) && (  (value_j & 1) ) ) +
-                          ( (  (value_i & 2) ) && (  (value_j & 2) ) );
-          /* clang-format on */
+          if ((!unknown_i) && (!unknown_j)) {
 
-          /*---NOTE: "since the sum of all 4 of these relative
-               co-occurences is 1, we really only need to compute 3 of them.
-               Then the last one is just 1 minus the rest." */
+            /* clang-format off */
+            const int r00 = ( ( !(value_i & 1) ) && ( !(value_j & 1) ) ) +
+                            ( ( !(value_i & 1) ) && ( !(value_j & 2) ) ) +
+                            ( ( !(value_i & 2) ) && ( !(value_j & 1) ) ) +
+                            ( ( !(value_i & 2) ) && ( !(value_j & 2) ) );
+            const int r01 = ( ( !(value_i & 1) ) && (  (value_j & 1) ) ) +
+                            ( ( !(value_i & 1) ) && (  (value_j & 2) ) ) +
+                            ( ( !(value_i & 2) ) && (  (value_j & 1) ) ) +
+                            ( ( !(value_i & 2) ) && (  (value_j & 2) ) );
+            const int r10 = ( (  (value_i & 1) ) && ( !(value_j & 1) ) ) +
+                            ( (  (value_i & 1) ) && ( !(value_j & 2) ) ) +
+                            ( (  (value_i & 2) ) && ( !(value_j & 1) ) ) +
+                            ( (  (value_i & 2) ) && ( !(value_j & 2) ) );
+            const int r11 = ( (  (value_i & 1) ) && (  (value_j & 1) ) ) +
+                            ( (  (value_i & 1) ) && (  (value_j & 2) ) ) +
+                            ( (  (value_i & 2) ) && (  (value_j & 1) ) ) +
+                            ( (  (value_i & 2) ) && (  (value_j & 2) ) );
+            /* clang-format on */
+
+            /*---NOTE: "since the sum of all 4 of these relative
+                 co-occurences is 4, we really only need to compute 3 of them.
+                 Then the last one is just 4 minus the rest." */
 
 #if DOUG_WAY
 //TODO: work on this as a possibly faster way.
-          const int vi1 = (value_i & 3) != 0;
-          const int vi0 = ((~value_i) & 3) != 0;
-          const int vj1 = (value_j & 3) != 0;
-          const int vj0 = ((~value_j) & 3) != 0;
+            const int vi1 = (value_i & 3) != 0;
+            const int vi0 = ((~value_i) & 3) != 0;
+            const int vj1 = (value_j & 3) != 0;
+            const int vj0 = ((~value_j) & 3) != 0;
 
-          const int a11 = vi1 & vj1;
+            const int a11 = vi1 & vj1;
 
-          const int r11 = a11 +
+            const int r11 = a11 +
 #endif
-
           /*---Accumulate---*/
 
-          sum.data[0] += GMTally1_encode(r00, r01);
-          sum.data[1] += GMTally1_encode(r10, r11);
+            sum.data[0] += GMTally1_encode(r00, r01);
+            sum.data[1] += GMTally1_encode(r10, r11);
+          } /*---if !unknown---*/
         } /*---for fl---*/
         if (GMEnv_all2all(env)) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);

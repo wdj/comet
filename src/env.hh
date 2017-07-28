@@ -164,6 +164,10 @@ enum { GM_TALLY1_MAX_VALUE_BITS = 25 };
 typedef GMFp64 GMFloat2;
 typedef struct { GMFp64 data[2]; } GMFloat3;
 
+/*---Marker value for a missing or unknown 2-bit entry for sparse case---*/
+
+enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
+
 /*===========================================================================*/
 /*---Types for CCC metric: functions---*/
 
