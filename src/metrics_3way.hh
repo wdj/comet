@@ -744,69 +744,69 @@ static GMFloat GMMetrics_ccc_value_3(GMMetrics* metrics,
                                     const GMTally1 si,
                                     const GMTally1 sj,
                                     const GMTally1 sk,
+                                    const GMFloat recip_ci,
+                                    const GMFloat recip_cj,
+                                    const GMFloat recip_ck,
+                                    const GMFloat recip_sumcijk,
                                     GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
+  GMAssert(metrics && env);
+
+  const GMFloat one = 1;
+
+  const GMFloat fi = (one / 2) * recip_ci * si;
+  const GMFloat fj = (one / 2) * recip_cj * sj;
+  const GMFloat fk = (one / 2) * recip_ck * sk;
+
+  const GMFloat fijk = recip_sumcijk * rijk;
 
   /*---Do the following to make floating point arithmetic order-independent---*/
-  /*---(NOTE: these are unsigned ints but are used in a floating point calc---*/
 
-  GMTally1 smin = 0;
-  GMTally1 smid = 0;
-  GMTally1 smax = 0;
+  GMFloat fmin = 0;
+  GMFloat fmid = 0;
+  GMFloat fmax = 0;
 
-  if (si > sj) {
-    if (si > sk) {
-      smax = si;
-      if (sj > sk) {
-        smid = sj;
-        smin = sk;
+  if (fi > fj) {
+    if (fi > fk) {
+      fmax = fi;
+      if (fj > fk) {
+        fmid = fj;
+        fmin = fk;
       } else {
-        smid = sk;
-        smin = sj;
+        fmid = fk;
+        fmin = fj;
       }
     } else {
-      smid = si;
-      smax = sk;
-      smin = sj;
+      fmid = fi;
+      fmax = fk;
+      fmin = fj;
     }
   } else {
-    if (sj > sk) {
-      smax = sj;
-      if (si > sk) {
-        smid = si;
-        smin = sk;
+    if (fj > fk) {
+      fmax = fj;
+      if (fi > fk) {
+        fmid = fi;
+        fmin = fk;
       } else {
-        smid = sk;
-        smin = si;
+        fmid = fk;
+        fmin = fi;
       }
     } else {
-      smid = sj;
-      smax = sk;
-      smin = si;
+      fmid = fj;
+      fmax = fk;
+      fmin = fi;
     }
   }
 
-  GMAssert(smin <= smid);
-  GMAssert(smid <= smax);
+  GMAssert(fmin <= fmid);
+  GMAssert(fmid <= fmax);
 
-  const GMFloat one = 1;
-  const GMFloat recip_m = metrics->recip_m;
   const GMFloat ccc_multiplier = one; // TBD
-  //const GMFloat ccc_param = ((GMFloat) 2) / ((GMFloat) 3);
   const GMFloat ccc_param = GMEnv_ccc_param(env);
 
-  /*---Arrange so as to guarantee each factor nonnegative---*/
-  //const GMFloat m = metrics->num_field_active;
-  //const GMFloat result = (ccc_multiplier / 8) * recip_m * rijk *
-  //                       (3 * m - smin) * (one/3) * recip_m *
-  //                       (3 * m - smid) * (one/3) * recip_m *
-  //                       (3 * m - smax) * (one/3) * recip_m;
   /* clang-format off */
-  const GMFloat result = ccc_multiplier   * (one / 8) * recip_m * rijk *
-                         (one - ccc_param * (one / 2) * recip_m * smin) *
-                         (one - ccc_param * (one / 2) * recip_m * smid) *
-                         (one - ccc_param * (one / 2) * recip_m * smax);
+  const GMFloat result = ccc_multiplier * fijk * (one - ccc_param * fmin) *
+                                                 (one - ccc_param * fmid) *
+                                                 (one - ccc_param * fmax);
   /* clang-format on */
 
   return result;
@@ -820,33 +820,54 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
                                               int i1,
                                               int i2,
                                               GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
+  GMAssert(metrics && env);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssert(index+1 >= 1);
-  GMAssert(index < metrics->num_elts_local);
+  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
   GMAssert(i0 >= 0 && i0 < 2);
   GMAssert(i1 >= 0 && i1 < 2);
   GMAssert(i2 >= 0 && i2 < 2);
 
-  const GMTally4x2 tally4x2 =
-      GMMetrics_tally4x2_get_from_index(metrics, index, env);
-  const GMTally1 rijk = GMTally4x2_get(tally4x2, i0, i1, i2);
+  const GMFloat one = 1;
+  const GMFloat recip_m = metrics->recip_m;
+
+  const GMTally4x2 t42 = GMMetrics_tally4x2_get_from_index(metrics, index, env);
+  const GMTally1 rijk = GMTally4x2_get(t42, i0, i1, i2);
 
   const GMFloat3 si1_sj1_sk1 =
       GMMetrics_float3_S_get_from_index(metrics, index, env);
 
-  GMTally1 si_1;
-  GMTally1 sj_1;
-  GMTally1 sk_1;
-  GMFloat3_decode(&si_1, &sj_1, &sk_1, si1_sj1_sk1);
+  GMTally1 si1, sj1, sk1;
+  GMFloat3_decode(&si1, &sj1, &sk1, si1_sj1_sk1);
+
+  GMTally1 ci, cj, ck;
+  if (env->sparse) {
+    const GMFloat3 ci_cj_ck =
+      GMMetrics_float3_C_get_from_index(metrics, index, env);
+    GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
+  } else {
+    ci = metrics->num_field_active;
+    cj = metrics->num_field_active;
+    ck = metrics->num_field_active;
+  }
 
   /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
-  const GMTally1 si = i0 == 0 ? (2 * metrics->num_field_active - si_1) : si_1;
-  const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field_active - sj_1) : sj_1;
-  const GMTally1 sk = i2 == 0 ? (2 * metrics->num_field_active - sk_1) : sk_1;
+  const GMTally1 si = i0 == 0 ? (2 * ci - si1) : si1;
+  const GMTally1 sj = i1 == 0 ? (2 * cj - sj1) : sj1;
+  const GMTally1 sk = i2 == 0 ? (2 * ck - sk1) : sk1;
 
-  return GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, env);
+  const GMFloat recip_ci = env->sparse ? one / ci : recip_m;
+  const GMFloat recip_cj = env->sparse ? one / cj : recip_m;
+  const GMFloat recip_ck = env->sparse ? one / ck : recip_m;
+
+  const GMFloat recip_sumcijk = env->sparse ?
+    one / (GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
+           GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
+           GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
+           GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1)) :
+    (one / 8) * recip_m;
+
+  return GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, recip_ci,
+                               recip_cj, recip_ck, recip_sumcijk, env);
 }
 
 /*===========================================================================*/
