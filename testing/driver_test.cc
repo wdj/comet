@@ -575,7 +575,7 @@ void DriverTest_ccc2_simple_sparse_() {
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
   env->all2all_ = GM_BOOL_FALSE;
-  GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_REF);
+  GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
   GMEnv_set_num_proc(env, 1, 1, 1);
   env->sparse = true;
 

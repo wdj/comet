@@ -266,6 +266,18 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
                                && "Invalid setting for ccc_param.");
       env->ccc_param_ = ccc_param;
       /*--------------------*/
+    } else if (strcmp(argv[i], "--sparse") == 0) {
+      /*--------------------*/
+      ++i;
+      GMInsist(env, i < argc ? "Missing value for sparse." : 0);
+      if (strcmp(argv[i], "yes") == 0) {
+        env->sparse = GM_BOOL_TRUE;
+      } else if (strcmp(argv[i], "no") == 0) {
+        env->sparse = GM_BOOL_FALSE;
+      } else {
+        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for sparse." : 0);
+      }
+      /*--------------------*/
     } /*---if/else---*/
   }   /*---for i---*/
 }

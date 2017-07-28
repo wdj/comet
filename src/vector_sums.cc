@@ -183,7 +183,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
       if (env->sparse) {
         GMFloat count = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
-          /*---Slow way: sum each semi-nibble individually---*/
+          /*---Slow way: sum each seminibble individually---*/
           const GMBits2 value = GMVectors_bits2_get(vectors, fl, i, env);
           if (value != GM_2BIT_UNKNOWN){
             sum += ((value & 1) != 0) + ((value & 2) != 0);
@@ -197,7 +197,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
       } else { /*---! sparse---*/
         //#pragma omp parallel for reduction(+:sum)
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
-          /*---Slow way: sum each semi-nibble individually---*/
+          /*---Slow way: sum each seminibble individually---*/
           const GMBits2 value = GMVectors_bits2_get(vectors, fl, i, env);
           sum += ((value & 1) != 0) + ((value & 2) != 0);
         }
@@ -220,24 +220,26 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
           const GMBits2x64 value = GMVectors_bits2x64_get(vectors, f, i, env);
           const GMUInt64 data0 = value.data[0];
           const GMUInt64 data1 = value.data[1];
-          const GMUInt64 oddmask0 = (data0 | ~(data0 >> 1)) & oddbits;
-          const GMUInt64 oddmask1 = (data1 | ~(data1 >> 1)) & oddbits;
-          const GMUInt64 mask0 = oddmask0 | (oddmask0 << 1);
-          const GMUInt64 mask1 = oddmask1 | (oddmask1 << 1);
-          sum += (GMFloat)gm_popcount64(data0 & mask0);
-          sum += (GMFloat)gm_popcount64(data1 & mask1);
-          count += (GMFloat)gm_popcount64(oddmask0 | (oddmask1 << 1));
+          const GMUInt64 v10_oddmask0 = (data0 | ~(data0 >> 1)) & oddbits;
+          const GMUInt64 v10_oddmask1 = (data1 | ~(data1 >> 1)) & oddbits;
+          const GMUInt64 v10_mask0 = v10_oddmask0 | (v10_oddmask0 << 1);
+          const GMUInt64 v10_mask1 = v10_oddmask1 | (v10_oddmask1 << 1);
+          sum += (GMFloat)gm_popcount64(data0 & v10_mask0);
+          sum += (GMFloat)gm_popcount64(data1 & v10_mask1);
+          count += (GMFloat)gm_popcount64(v10_oddmask0 | (v10_oddmask1 << 1));
         }
         /*--Adjust for end pad---*/
         const int nfl = vectors->num_field_local;
         const _Bool final_proc = GMEnv_proc_num_field(env) ==
-                                 GMEnv_num_proc_field(env)-1;
-        const int num_field_inactive_local = final_proc ?
+                                 GMEnv_num_proc_field(env) - 1;
+        const int num_field_active_local = final_proc ?
           nfl - (vectors->num_field - vectors->num_field_active) : nfl;
-        count -= 2 * num_field_inactive_local;
+        const int nfal_up64 = ( ( num_field_active_local + 64 - 1 ) / 64) * 64;
+        const int num_seminibbles_pad = nfal_up64 - num_field_active_local;
+        count -= num_seminibbles_pad;
         /*---Finish---*/
-        GMAssert(sum >= 0 && sum <= 2 * vectors->num_field);
-        GMAssert(count >= 0 && count <= vectors->num_field);
+        GMAssert(sum >= 0 && sum <= 2 * vectors->num_field_local);
+        GMAssert(count >= 0 && count <= vectors->num_field_local);
         sums_local[i] = sum;
         counts_local[i] = count;
       } else { /*---! sparse---*/
@@ -247,7 +249,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
           sum += (GMFloat)gm_popcount64(value.data[0]);
           sum += (GMFloat)gm_popcount64(value.data[1]);
         }
-        GMAssert(sum >= 0 && sum <= 2 * vectors->num_field);
+        GMAssert(sum >= 0 && sum <= 2 * vectors->num_field_local);
         sums_local[i] = sum;
       } /*---if sparse---*/
     } /*---for i---*/

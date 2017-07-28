@@ -138,11 +138,11 @@ static GMBits1x64 GMBits1x64_null() {
 /*===========================================================================*/
 /*---Types for CCC metric---*/
 
-/*---For Vectors: single 2-bit value (semi-nibble):
+/*---For Vectors: single 2-bit value (seminibble):
      use unsigned int as a container for a single item---*/
 typedef unsigned int GMBits2;
 
-/*---For Vectors: packed: 2 long integers, used to store 64 semi-nibbles---*/
+/*---For Vectors: packed: 2 long integers, used to store 64 seminibbles---*/
 typedef unsigned long long int GMBits1_2x64;
 typedef struct { GMBits1_2x64 data[2]; } GMBits2x64;
 

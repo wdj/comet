@@ -173,12 +173,12 @@ FloatingPoint_t tally3_compute(
     //--------------------
     // Nomenclature:
     //
-    // ( ) v(i)(0)_(0)
-    // (n) v(j)(1)_(1)
-    //  ^    ^ ^   ^
-    //  |    | |   |--- lower or upper bit of each seminibble
-    //  |    | |--- lower or upper word
-    //  |    |--- left or right vector
+    // ( )v(i)(0)_(0)
+    // (n)v(j)(1)_(1)
+    //  ^   ^  ^   ^
+    //  |   |  |   |--- lower or upper bit of each seminibble
+    //  |   |  |--- lower or upper word
+    //  |   |--- left or right vector
     //  |---test for value or for its negative/complement
     //--------------------
 

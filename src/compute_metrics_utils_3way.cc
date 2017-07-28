@@ -313,85 +313,95 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
             const GMBits2 value_i = GMVectors_bits2_get(vectors_i, f, i, env);
             const GMBits2 value_j = GMVectors_bits2_get(vectors_j, f, j, env);
             const GMBits2 value_k = GMVectors_bits2_get(vectors_k, f, k, env);
-            /* clang-format off */
-            const int r000 =
-              (( !(value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 2) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 2) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 1) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 1) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 2) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 2) ) && ( !(value_k & 2) ));
-            const int r001 =
-              (( !(value_i & 1) ) && ( !(value_j & 1) ) && (  (value_k & 1) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 1) ) && (  (value_k & 2) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 2) ) && (  (value_k & 1) )) +
-              (( !(value_i & 1) ) && ( !(value_j & 2) ) && (  (value_k & 2) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 1) ) && (  (value_k & 1) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 1) ) && (  (value_k & 2) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 2) ) && (  (value_k & 1) )) +
-              (( !(value_i & 2) ) && ( !(value_j & 2) ) && (  (value_k & 2) ));
-            const int r010 =
-              (( !(value_i & 1) ) && (  (value_j & 1) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 1) ) && (  (value_j & 1) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 1) ) && (  (value_j & 2) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 1) ) && (  (value_j & 2) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 2) ) && (  (value_j & 1) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 2) ) && (  (value_j & 1) ) && ( !(value_k & 2) )) +
-              (( !(value_i & 2) ) && (  (value_j & 2) ) && ( !(value_k & 1) )) +
-              (( !(value_i & 2) ) && (  (value_j & 2) ) && ( !(value_k & 2) ));
-            const int r011 =
-              (( !(value_i & 1) ) && (  (value_j & 1) ) && (  (value_k & 1) )) +
-              (( !(value_i & 1) ) && (  (value_j & 1) ) && (  (value_k & 2) )) +
-              (( !(value_i & 1) ) && (  (value_j & 2) ) && (  (value_k & 1) )) +
-              (( !(value_i & 1) ) && (  (value_j & 2) ) && (  (value_k & 2) )) +
-              (( !(value_i & 2) ) && (  (value_j & 1) ) && (  (value_k & 1) )) +
-              (( !(value_i & 2) ) && (  (value_j & 1) ) && (  (value_k & 2) )) +
-              (( !(value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 1) )) +
-              (( !(value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 2) ));
-            const int r100 =
-              ((  (value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 1) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 2) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 2) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 1) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 1) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 2) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 2) ) && ( !(value_k & 2) ));
-            const int r101 =
-              ((  (value_i & 1) ) && ( !(value_j & 1) ) && (  (value_k & 1) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 1) ) && (  (value_k & 2) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 2) ) && (  (value_k & 1) )) +
-              ((  (value_i & 1) ) && ( !(value_j & 2) ) && (  (value_k & 2) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 1) ) && (  (value_k & 1) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 1) ) && (  (value_k & 2) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 2) ) && (  (value_k & 1) )) +
-              ((  (value_i & 2) ) && ( !(value_j & 2) ) && (  (value_k & 2) ));
-            const int r110 =
-              ((  (value_i & 1) ) && (  (value_j & 1) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 1) ) && (  (value_j & 1) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 1) ) && (  (value_j & 2) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 1) ) && (  (value_j & 2) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 2) ) && (  (value_j & 1) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 2) ) && (  (value_j & 1) ) && ( !(value_k & 2) )) +
-              ((  (value_i & 2) ) && (  (value_j & 2) ) && ( !(value_k & 1) )) +
-              ((  (value_i & 2) ) && (  (value_j & 2) ) && ( !(value_k & 2) ));
-            const int r111 =
-              ((  (value_i & 1) ) && (  (value_j & 1) ) && (  (value_k & 1) )) +
-              ((  (value_i & 1) ) && (  (value_j & 1) ) && (  (value_k & 2) )) +
-              ((  (value_i & 1) ) && (  (value_j & 2) ) && (  (value_k & 1) )) +
-              ((  (value_i & 1) ) && (  (value_j & 2) ) && (  (value_k & 2) )) +
-              ((  (value_i & 2) ) && (  (value_j & 1) ) && (  (value_k & 1) )) +
-              ((  (value_i & 2) ) && (  (value_j & 1) ) && (  (value_k & 2) )) +
-              ((  (value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 1) )) +
-              ((  (value_i & 2) ) && (  (value_j & 2) ) && (  (value_k & 2) ));
-            /* clang-format on */
 
-            sum.data[0] += GMTally1_encode(r000, r001);
-            sum.data[1] += GMTally1_encode(r010, r011);
-            sum.data[2] += GMTally1_encode(r100, r101);
-            sum.data[3] += GMTally1_encode(r110, r111);
+            const _Bool unknown_i = env->sparse ? value_i == GM_2BIT_UNKNOWN
+                                                : GM_BOOL_FALSE;
+            const _Bool unknown_j = env->sparse ? value_j == GM_2BIT_UNKNOWN
+                                                : GM_BOOL_FALSE;
+            const _Bool unknown_k = env->sparse ? value_k == GM_2BIT_UNKNOWN
+                                                : GM_BOOL_FALSE;
+
+            if ((!unknown_i) && (!unknown_j) && (!unknown_k)) {
+
+              /* clang-format off */
+              const int r000 =
+                ((!(value_i & 1)) && (!(value_j & 1)) && (!(value_k & 1))) +
+                ((!(value_i & 1)) && (!(value_j & 1)) && (!(value_k & 2))) +
+                ((!(value_i & 1)) && (!(value_j & 2)) && (!(value_k & 1))) +
+                ((!(value_i & 1)) && (!(value_j & 2)) && (!(value_k & 2))) +
+                ((!(value_i & 2)) && (!(value_j & 1)) && (!(value_k & 1))) +
+                ((!(value_i & 2)) && (!(value_j & 1)) && (!(value_k & 2))) +
+                ((!(value_i & 2)) && (!(value_j & 2)) && (!(value_k & 1))) +
+                ((!(value_i & 2)) && (!(value_j & 2)) && (!(value_k & 2)));
+              const int r001 =
+                ((!(value_i & 1)) && (!(value_j & 1)) && ( (value_k & 1))) +
+                ((!(value_i & 1)) && (!(value_j & 1)) && ( (value_k & 2))) +
+                ((!(value_i & 1)) && (!(value_j & 2)) && ( (value_k & 1))) +
+                ((!(value_i & 1)) && (!(value_j & 2)) && ( (value_k & 2))) +
+                ((!(value_i & 2)) && (!(value_j & 1)) && ( (value_k & 1))) +
+                ((!(value_i & 2)) && (!(value_j & 1)) && ( (value_k & 2))) +
+                ((!(value_i & 2)) && (!(value_j & 2)) && ( (value_k & 1))) +
+                ((!(value_i & 2)) && (!(value_j & 2)) && ( (value_k & 2)));
+              const int r010 =
+                ((!(value_i & 1)) && ( (value_j & 1)) && (!(value_k & 1))) +
+                ((!(value_i & 1)) && ( (value_j & 1)) && (!(value_k & 2))) +
+                ((!(value_i & 1)) && ( (value_j & 2)) && (!(value_k & 1))) +
+                ((!(value_i & 1)) && ( (value_j & 2)) && (!(value_k & 2))) +
+                ((!(value_i & 2)) && ( (value_j & 1)) && (!(value_k & 1))) +
+                ((!(value_i & 2)) && ( (value_j & 1)) && (!(value_k & 2))) +
+                ((!(value_i & 2)) && ( (value_j & 2)) && (!(value_k & 1))) +
+                ((!(value_i & 2)) && ( (value_j & 2)) && (!(value_k & 2)));
+              const int r011 =
+                ((!(value_i & 1)) && ( (value_j & 1)) && ( (value_k & 1))) +
+                ((!(value_i & 1)) && ( (value_j & 1)) && ( (value_k & 2))) +
+                ((!(value_i & 1)) && ( (value_j & 2)) && ( (value_k & 1))) +
+                ((!(value_i & 1)) && ( (value_j & 2)) && ( (value_k & 2))) +
+                ((!(value_i & 2)) && ( (value_j & 1)) && ( (value_k & 1))) +
+                ((!(value_i & 2)) && ( (value_j & 1)) && ( (value_k & 2))) +
+                ((!(value_i & 2)) && ( (value_j & 2)) && ( (value_k & 1))) +
+                ((!(value_i & 2)) && ( (value_j & 2)) && ( (value_k & 2)));
+              const int r100 =
+                (( (value_i & 1)) && (!(value_j & 1)) && (!(value_k & 1))) +
+                (( (value_i & 1)) && (!(value_j & 1)) && (!(value_k & 2))) +
+                (( (value_i & 1)) && (!(value_j & 2)) && (!(value_k & 1))) +
+                (( (value_i & 1)) && (!(value_j & 2)) && (!(value_k & 2))) +
+                (( (value_i & 2)) && (!(value_j & 1)) && (!(value_k & 1))) +
+                (( (value_i & 2)) && (!(value_j & 1)) && (!(value_k & 2))) +
+                (( (value_i & 2)) && (!(value_j & 2)) && (!(value_k & 1))) +
+                (( (value_i & 2)) && (!(value_j & 2)) && (!(value_k & 2)));
+              const int r101 =
+                (( (value_i & 1)) && (!(value_j & 1)) && ( (value_k & 1))) +
+                (( (value_i & 1)) && (!(value_j & 1)) && ( (value_k & 2))) +
+                (( (value_i & 1)) && (!(value_j & 2)) && ( (value_k & 1))) +
+                (( (value_i & 1)) && (!(value_j & 2)) && ( (value_k & 2))) +
+                (( (value_i & 2)) && (!(value_j & 1)) && ( (value_k & 1))) +
+                (( (value_i & 2)) && (!(value_j & 1)) && ( (value_k & 2))) +
+                (( (value_i & 2)) && (!(value_j & 2)) && ( (value_k & 1))) +
+                (( (value_i & 2)) && (!(value_j & 2)) && ( (value_k & 2)));
+              const int r110 =
+                (( (value_i & 1)) && ( (value_j & 1)) && (!(value_k & 1))) +
+                (( (value_i & 1)) && ( (value_j & 1)) && (!(value_k & 2))) +
+                (( (value_i & 1)) && ( (value_j & 2)) && (!(value_k & 1))) +
+                (( (value_i & 1)) && ( (value_j & 2)) && (!(value_k & 2))) +
+                (( (value_i & 2)) && ( (value_j & 1)) && (!(value_k & 1))) +
+                (( (value_i & 2)) && ( (value_j & 1)) && (!(value_k & 2))) +
+                (( (value_i & 2)) && ( (value_j & 2)) && (!(value_k & 1))) +
+                (( (value_i & 2)) && ( (value_j & 2)) && (!(value_k & 2)));
+              const int r111 =
+                (( (value_i & 1)) && ( (value_j & 1)) && ( (value_k & 1))) +
+                (( (value_i & 1)) && ( (value_j & 1)) && ( (value_k & 2))) +
+                (( (value_i & 1)) && ( (value_j & 2)) && ( (value_k & 1))) +
+                (( (value_i & 1)) && ( (value_j & 2)) && ( (value_k & 2))) +
+                (( (value_i & 2)) && ( (value_j & 1)) && ( (value_k & 1))) +
+                (( (value_i & 2)) && ( (value_j & 1)) && ( (value_k & 2))) +
+                (( (value_i & 2)) && ( (value_j & 2)) && ( (value_k & 1))) +
+                (( (value_i & 2)) && ( (value_j & 2)) && ( (value_k & 2)));
+              /* clang-format on */
+              sum.data[0] += GMTally1_encode(r000, r001);
+              sum.data[1] += GMTally1_encode(r010, r011);
+              sum.data[2] += GMTally1_encode(r100, r101);
+              sum.data[3] += GMTally1_encode(r110, r111);
+            } /*---if !unknown---*/
           } /*---for f---*/
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
@@ -521,7 +531,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
             const GMUInt64 vk0 = vk.data[0];
             const GMUInt64 vk1 = vk.data[1];
 
-            /*---Get even, odd bits for each semi-nibble, masked to active---*/
+            /*---Get even, odd bits for each seminibble, masked to active---*/
 
             const GMUInt64 oddbits = 0x5555555555555555;
 

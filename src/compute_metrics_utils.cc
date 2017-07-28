@@ -246,7 +246,7 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
        EXPLANATION: the final word of each vector may have zero-pad bits
        to fill out the word.  The Magma call will tally these into the
        GMTally2x2 data[0] entry, because this is here the zero X zero
-       semi-nibble pairs are tallied.  The code here fixes this by
+       seminibble pairs are tallied.  The code here fixes this by
        subtracting off this unwanted tally result.---*/
   /*---NOTE: this should work for both 2-way and 3-way---*/
 
