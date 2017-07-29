@@ -502,22 +502,24 @@ void DriverTest_ccc2_simple_() {
     {
       const int G = 0;
       const int T = 1;
-      int i = 0;
-      GMVectors_bits2_set(vectors, i++, 0, 2 * G + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * T + 1 * T, env);
-      GMVectors_bits2_set(vectors, i++, 0, 2 * T + 1 * T, env);
+      int f = 0;
+      const int i = 0;
+      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * T + 1 * T, env);
     }
     {
       const int G = 0;
       const int A = 1;
-      int i = 0;
-      GMVectors_bits2_set(vectors, i++, 1, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * A + 1 * G, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * G + 1 * G, env);
-      GMVectors_bits2_set(vectors, i++, 1, 2 * G + 1 * A, env);
+      int f = 0;
+      const int i = 1;
+      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * A + 1 * G, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * G, env);
+      GMVectors_bits2_set(vectors, f++, i, 2 * G + 1 * A, env);
     }
   }
 
@@ -593,12 +595,13 @@ void DriverTest_ccc2_simple_sparse_() {
       const int GT =  2 * G + 1 * T;
     //const int TG =  2 * G + 1 * T;
       const int TT =  2 * T + 1 * T;
-      int i = 0;
-      GMVectors_bits2_set(vectors, i++, 0, GT, env);
-      GMVectors_bits2_set(vectors, i++, 0, TT, env);
-      GMVectors_bits2_set(vectors, i++, 0, TT, env);
-      GMVectors_bits2_set(vectors, i++, 0, UN, env);
-      GMVectors_bits2_set(vectors, i++, 0, UN, env);
+      int f = 0;
+      const int i = 0;
+      GMVectors_bits2_set(vectors, f++, i, GT, env);
+      GMVectors_bits2_set(vectors, f++, i, TT, env);
+      GMVectors_bits2_set(vectors, f++, i, TT, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
     }
     {
       const int G = 0;
@@ -607,12 +610,13 @@ void DriverTest_ccc2_simple_sparse_() {
       const int GA =  2 * G + 1 * A;
       const int AG =  2 * G + 1 * A;
     //const int AA =  2 * Q + 1 * A;
-      int i = 0;
-      GMVectors_bits2_set(vectors, i++, 1, GG, env);
-      GMVectors_bits2_set(vectors, i++, 1, AG, env);
-      GMVectors_bits2_set(vectors, i++, 1, GG, env);
-      GMVectors_bits2_set(vectors, i++, 1, UN, env);
-      GMVectors_bits2_set(vectors, i++, 1, GA, env);
+      int f = 0;
+      const int i = 1;
+      GMVectors_bits2_set(vectors, f++, i, GG, env);
+      GMVectors_bits2_set(vectors, f++, i, AG, env);
+      GMVectors_bits2_set(vectors, f++, i, GG, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, GA, env);
     }
   }
 
@@ -842,6 +846,258 @@ void DriverTest_ccc3_simple_() {
   DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_REF);
   DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_CPU);
   DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_GPU);
+}
+
+/*===========================================================================*/
+
+void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
+  const int num_field = 10;
+  const int num_vector_local = 3;
+
+  GMEnv env_value = GMEnv_null();
+  GMEnv* env = &env_value;
+  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
+  env->metric_type_ = GM_METRIC_TYPE_CCC;
+  env->num_way_ = 3;
+  env->all2all_ = GM_BOOL_TRUE;
+  GMEnv_set_compute_method(env, compute_method);
+  GMEnv_set_num_proc(env, 1, 1, 1);
+  env->sparse = true;
+
+  GMVectors vectors_value = GMVectors_null();
+  GMVectors* vectors = &vectors_value;
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), num_field,
+                   num_field, num_vector_local, env);
+
+  if (GMEnv_is_proc_active(env)) {
+    const int UN = 2 * 1 + 1 * 0;
+    {
+      const int A = 0;
+      const int T = 1;
+      const int AA =  2 * A + 1 * A;
+      const int AT =  2 * A + 1 * T;
+    //const int TA =  2 * A + 1 * T;
+      const int TT =  2 * T + 1 * T;
+      int f = 0;
+      const int i = 0;
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, TT, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+    }
+    {
+      const int A = 0;
+      const int T = 1;
+      const int AA =  2 * A + 1 * A;
+      const int AT =  2 * A + 1 * T;
+    //const int TA =  2 * A + 1 * T;
+    //const int TT =  2 * T + 1 * T;
+      int f = 0;
+      const int i = 1;
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+    }
+    {
+      const int A = 0;
+      const int T = 1;
+      const int AA =  2 * A + 1 * A;
+      const int AT =  2 * A + 1 * T;
+    //const int TA =  2 * A + 1 * T;
+    //const int TT =  2 * T + 1 * T;
+      int f = 0;
+      const int i = 2;
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, AT, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, AA, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+    }
+  }
+
+  GMMetrics metrics_value = GMMetrics_null();
+  GMMetrics* metrics = &metrics_value;
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field, num_field,
+                   num_vector_local, num_vector_local, env);
+
+  gm_compute_metrics(metrics, vectors, env);
+
+  if (GMEnv_is_proc_active(env)) {
+    const double result000 =
+        GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 0, 0, env);
+    const double result001 =
+        GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 0, 1, env);
+    const double result010 =
+        GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 1, 0, env);
+    const double result011 =
+        GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 1, 1, env);
+    const double result100 =
+        GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 0, 0, env);
+    const double result101 =
+        GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 0, 1, env);
+    const double result110 =
+        GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 1, 0, env);
+    const double result111 =
+        GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 1, 1, env);
+
+    printf("A A A  %.8f\n", result000);
+    printf("A A T  %.5f\n", result001);
+    printf("A T A  %.8f\n", result010);
+    printf("A T T  %.8f\n", result011);
+    printf("T A A  %.8f\n", result100);
+    printf("T A T  %.8f\n", result101);
+    printf("T T A  %.8f\n", result110);
+    printf("T T T  %.8f\n", result111);
+    printf("\n");
+
+    const double s0_0 = 9;
+    const double s0_1 = 5;
+    const double c0 = s0_0 + s0_1;
+
+    const double s1_0 = 12;
+    const double s1_1 = 4;
+    const double c1 = s1_0 + s1_1;
+
+    const double s2_0 = 14;
+    const double s2_1 = 2;
+    const double c2 = s2_0 + s2_1;
+
+    const double f0_0 = s0_0 / c0;
+    const double f0_1 = s0_1 / c0;
+    const double f1_0 = s1_0 / c1;
+    const double f1_1 = s1_1 / c1;
+    const double f2_0 = s2_0 / c2;
+    const double f2_1 = s2_1 / c2;
+
+    const double r0_000 = 4;
+    const double r0_001 = 0;
+    const double r0_010 = 4;
+    const double r0_011 = 0;
+    const double r0_100 = 0;
+    const double r0_101 = 0;
+    const double r0_110 = 0;
+    const double r0_111 = 0;
+
+    const double r1_000 = 4;
+    const double r1_001 = 0;
+    const double r1_010 = 0;
+    const double r1_011 = 0;
+    const double r1_100 = 4;
+    const double r1_101 = 0;
+    const double r1_110 = 0;
+    const double r1_111 = 0;
+
+    const double r2_000 = 0;
+    const double r2_001 = 0;
+    const double r2_010 = 0;
+    const double r2_011 = 0;
+    const double r2_100 = 8;
+    const double r2_101 = 0;
+    const double r2_110 = 0;
+    const double r2_111 = 0;
+
+    const double r4_000 = 1;
+    const double r4_001 = 1;
+    const double r4_010 = 1;
+    const double r4_011 = 1;
+    const double r4_100 = 1;
+    const double r4_101 = 1;
+    const double r4_110 = 1;
+    const double r4_111 = 1;
+
+    const double r5_000 = 4;
+    const double r5_001 = 0;
+    const double r5_010 = 0;
+    const double r5_011 = 0;
+    const double r5_100 = 4;
+    const double r5_101 = 0;
+    const double r5_110 = 0;
+    const double r5_111 = 0;
+
+    const double r_000 = r0_000 + r1_000 + r2_000 + r4_000 + r5_000;
+    const double r_001 = r0_001 + r1_001 + r2_001 + r4_001 + r5_001;
+    const double r_010 = r0_010 + r1_010 + r2_010 + r4_010 + r5_010;
+    const double r_011 = r0_011 + r1_011 + r2_011 + r4_011 + r5_011;
+    const double r_100 = r0_100 + r1_100 + r2_100 + r4_100 + r5_100;
+    const double r_101 = r0_101 + r1_101 + r2_101 + r4_101 + r5_101;
+    const double r_110 = r0_110 + r1_110 + r2_110 + r4_110 + r5_110;
+    const double r_111 = r0_111 + r1_111 + r2_111 + r4_111 + r5_111;
+
+    const double c = r_000 + r_001 + r_010 + r_011 +
+                     r_100 + r_101 + r_110 + r_111;
+
+    const double f_000 = r_000 / c;
+    const double f_001 = r_001 / c;
+    const double f_010 = r_010 / c;
+    const double f_011 = r_011 / c;
+    const double f_100 = r_100 / c;
+    const double f_101 = r_101 / c;
+    const double f_110 = r_110 / c;
+    const double f_111 = r_111 / c;
+
+    const double fm = 1;
+    const double cp = 2 / (double) 3;
+
+    const double ref000 = fm * f_000 * (1-cp*f0_0) * (1-cp*f1_0) * (1-cp*f2_0);
+    const double ref001 = fm * f_001 * (1-cp*f0_0) * (1-cp*f1_0) * (1-cp*f2_1);
+    const double ref010 = fm * f_010 * (1-cp*f0_0) * (1-cp*f1_1) * (1-cp*f2_0);
+    const double ref011 = fm * f_011 * (1-cp*f0_0) * (1-cp*f1_1) * (1-cp*f2_1);
+    const double ref100 = fm * f_100 * (1-cp*f0_1) * (1-cp*f1_0) * (1-cp*f2_0);
+    const double ref101 = fm * f_101 * (1-cp*f0_1) * (1-cp*f1_0) * (1-cp*f2_1);
+    const double ref110 = fm * f_110 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_0);
+    const double ref111 = fm * f_111 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_1);
+
+    //const double ref000 = .055;
+    //const double ref001 = .016;
+    //const double ref010 = .016;
+    //const double ref011 = .030;
+    //const double ref100 = .039;
+    //const double ref101 = .008;
+    //const double ref110 = .008;
+    //const double ref111 = .015;
+
+    const double eps = 1.e-3;
+
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result000 - ref000) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result001 - ref001) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result010 - ref010) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result011 - ref011) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result100 - ref100) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result101 - ref101) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result110 - ref110) < eps);
+    EXPECT_EQ(GM_BOOL_TRUE, fabs(result111 - ref111) < eps);
+  }
+
+  GMMetrics_destroy(metrics, env);
+  GMVectors_destroy(vectors, env);
+
+  GMEnv_destroy(env);
+}
+
+/*===========================================================================*/
+
+void DriverTest_ccc3_simple_sparse_() {
+  DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
+  //DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+  //DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 /*===========================================================================*/
@@ -1197,6 +1453,7 @@ void DriverTest_ccc_() {
 
 /*===========================================================================*/
 
+#if 1
 TEST(DriverTest, czekanowski) {
   DriverTest_czekanowski_();
 }
@@ -1212,10 +1469,17 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();
 }
+#endif
 
+TEST(DriverTest, ccc3_simple_sparse) {
+  DriverTest_ccc3_simple_sparse_();
+}
+
+#if 1
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();
 }
+#endif
 
 /*===========================================================================*/
 
