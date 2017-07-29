@@ -480,7 +480,7 @@ void DriverTest_czekanowski_() {
 
 /*===========================================================================*/
 
-void DriverTest_ccc2_simple_() {
+void DriverTest_ccc2_simple_compute_method(int compute_method) {
   const int num_field = 5;
   const int num_vector_local = 2;
 
@@ -490,7 +490,7 @@ void DriverTest_ccc2_simple_() {
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
   env->all2all_ = GM_BOOL_FALSE;
-  GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
+  GMEnv_set_compute_method(env, compute_method);
   GMEnv_set_num_proc(env, 1, 1, 1);
 
   GMVectors vectors_value = GMVectors_null();
@@ -567,7 +567,15 @@ void DriverTest_ccc2_simple_() {
 
 /*===========================================================================*/
 
-void DriverTest_ccc2_simple_sparse_() {
+void DriverTest_ccc2_simple_() {
+  DriverTest_ccc2_simple_compute_method(GM_COMPUTE_METHOD_REF);
+  DriverTest_ccc2_simple_compute_method(GM_COMPUTE_METHOD_CPU);
+  //DriverTest_ccc2_simple_compute_method(GM_COMPUTE_METHOD_GPU);
+}
+
+/*===========================================================================*/
+
+void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   const int num_field = 5;
   const int num_vector_local = 2;
 
@@ -577,7 +585,7 @@ void DriverTest_ccc2_simple_sparse_() {
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
   env->all2all_ = GM_BOOL_FALSE;
-  GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
+  GMEnv_set_compute_method(env, compute_method);
   GMEnv_set_num_proc(env, 1, 1, 1);
   env->sparse = true;
 
@@ -705,6 +713,14 @@ void DriverTest_ccc2_simple_sparse_() {
   GMVectors_destroy(vectors, env);
 
   GMEnv_destroy(env);
+}
+
+/*===========================================================================*/
+
+void DriverTest_ccc2_simple_sparse_() {
+  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
+  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+  //DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 /*===========================================================================*/
@@ -1096,7 +1112,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
 void DriverTest_ccc3_simple_sparse_() {
   DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-  //DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+  DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
   //DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 

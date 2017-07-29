@@ -507,7 +507,6 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
           const int npvfl = vectors_i->num_packedval_field_local;
           const int pvfl_edge = num_packedval_field_active_local - 1;
           for (pvfl = 0; pvfl < npvfl; ++pvfl) {
-
             /*---Get masks for active seminibbles in each word---*/
 
             const GMUInt64 activebits0 = pvfl < pvfl_edge ? allbits :
@@ -531,37 +530,60 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
             const GMUInt64 vk0 = vk.data[0];
             const GMUInt64 vk1 = vk.data[1];
 
-            /*---Get even, odd bits for each seminibble, masked to active---*/
+            /*---Compute masks---*/
 
             const GMUInt64 oddbits = 0x5555555555555555;
 
-            const GMUInt64 vi0_0 =  vi0       & oddbits & activebits0;
-            const GMUInt64 vi0_1 = (vi0 >> 1) & oddbits & activebits0;
-            const GMUInt64 vi1_0 =  vi1       & oddbits & activebits1;
-            const GMUInt64 vi1_1 = (vi1 >> 1) & oddbits & activebits1;
-            const GMUInt64 vj0_0 =  vj0       & oddbits & activebits0;
-            const GMUInt64 vj0_1 = (vj0 >> 1) & oddbits & activebits0;
-            const GMUInt64 vj1_0 =  vj1       & oddbits & activebits1;
-            const GMUInt64 vj1_1 = (vj1 >> 1) & oddbits & activebits1;
-            const GMUInt64 vk0_0 =  vk0       & oddbits & activebits0;
-            const GMUInt64 vk0_1 = (vk0 >> 1) & oddbits & activebits0;
-            const GMUInt64 vk1_0 =  vk1       & oddbits & activebits1;
-            const GMUInt64 vk1_1 = (vk1 >> 1) & oddbits & activebits1;
+            const GMUInt64 vi0mask = activebits0 &
+                       (env->sparse ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
 
-            /*---Get complements of the same bits, set other bits zero---*/
+            const GMUInt64 vi1mask = activebits1 &
+                       (env->sparse ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 nvi0_0 = ~ vi0       & oddbits & activebits0;
-            const GMUInt64 nvi0_1 = ~(vi0 >> 1) & oddbits & activebits0;
-            const GMUInt64 nvi1_0 = ~ vi1       & oddbits & activebits1;
-            const GMUInt64 nvi1_1 = ~(vi1 >> 1) & oddbits & activebits1;
-            const GMUInt64 nvj0_0 = ~ vj0       & oddbits & activebits0;
-            const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits & activebits0;
-            const GMUInt64 nvj1_0 = ~ vj1       & oddbits & activebits1;
-            const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits & activebits1;
-            const GMUInt64 nvk0_0 = ~ vk0       & oddbits & activebits0;
-            const GMUInt64 nvk0_1 = ~(vk0 >> 1) & oddbits & activebits0;
-            const GMUInt64 nvk1_0 = ~ vk1       & oddbits & activebits1;
-            const GMUInt64 nvk1_1 = ~(vk1 >> 1) & oddbits & activebits1;
+            const GMUInt64 vj0mask = activebits0 &
+                       (env->sparse ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
+
+            const GMUInt64 vj1mask = activebits1 &
+                       (env->sparse ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
+
+            const GMUInt64 vk0mask = activebits0 &
+                       (env->sparse ? (vk0 | ~(vk0 >> 1)) & oddbits : oddbits);
+
+            const GMUInt64 vk1mask = activebits1 &
+                       (env->sparse ? (vk1 | ~(vk1 >> 1)) & oddbits : oddbits);
+
+            const GMUInt64 v0mask = vi0mask & vj0mask & vk0mask;
+            const GMUInt64 v1mask = vi1mask & vj1mask & vk1mask;
+
+            /*---Get even/odd bits for each seminibble, masked to active---*/
+
+            const GMUInt64 vi0_0 =  vi0       & v0mask;
+            const GMUInt64 vi0_1 = (vi0 >> 1) & v0mask;
+            const GMUInt64 vi1_0 =  vi1       & v1mask;
+            const GMUInt64 vi1_1 = (vi1 >> 1) & v1mask;
+            const GMUInt64 vj0_0 =  vj0       & v0mask;
+            const GMUInt64 vj0_1 = (vj0 >> 1) & v0mask;
+            const GMUInt64 vj1_0 =  vj1       & v1mask;
+            const GMUInt64 vj1_1 = (vj1 >> 1) & v1mask;
+            const GMUInt64 vk0_0 =  vk0       & v0mask;
+            const GMUInt64 vk0_1 = (vk0 >> 1) & v0mask;
+            const GMUInt64 vk1_0 =  vk1       & v1mask;
+            const GMUInt64 vk1_1 = (vk1 >> 1) & v1mask;
+
+            /*---Get complements of even/odd bits for each seminibble; mask---*/
+
+            const GMUInt64 nvi0_0 = ~ vi0       & v0mask;
+            const GMUInt64 nvi0_1 = ~(vi0 >> 1) & v0mask;
+            const GMUInt64 nvi1_0 = ~ vi1       & v1mask;
+            const GMUInt64 nvi1_1 = ~(vi1 >> 1) & v1mask;
+            const GMUInt64 nvj0_0 = ~ vj0       & v0mask;
+            const GMUInt64 nvj0_1 = ~(vj0 >> 1) & v0mask;
+            const GMUInt64 nvj1_0 = ~ vj1       & v1mask;
+            const GMUInt64 nvj1_1 = ~(vj1 >> 1) & v1mask;
+            const GMUInt64 nvk0_0 = ~ vk0       & v0mask;
+            const GMUInt64 nvk0_1 = ~(vk0 >> 1) & v0mask;
+            const GMUInt64 nvk1_0 = ~ vk1       & v1mask;
+            const GMUInt64 nvk1_1 = ~(vk1 >> 1) & v1mask;
 
             const int r000 = gm_popcount64((nvi0_0 & nvj0_0 & nvk0_0) |
                                          ( (nvi0_0 & nvj0_0 & nvk0_1) << 1 )) +
