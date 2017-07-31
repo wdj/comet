@@ -19,6 +19,9 @@
 #include "magma_tally3.h"
 #include "magma_tally3_lapack.h"
 
+#include "magma_tally2.h"
+#include "magma_tally2_lapack.h"
+
 #include "env.hh"
 #include "vector_sums.hh"
 #include "vectors.hh"
@@ -61,6 +64,23 @@ void gm_linalg_initialize(GMEnv* env) {
     magma_code = magma_minproductblasSetKernelStream(GMEnv_stream_compute(env));
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproductblasSetKernelStream." : 0);
+
+  /*----------------------------------------*/
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
+  /*----------------------------------------*/
+
+    magma_tally2_int_t magma_code = 0;
+    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+
+    magma_code = magma_tally2_init();
+    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+                   "Error in call to magma_tally2_init." : 0);
+    /*---need this -- see
+     * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
+     * page 14 ---*/
+    magma_code = magma_tally2blasSetKernelStream(GMEnv_stream_compute(env));
+    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+                   "Error in call to magma_tally2blasSetKernelStream." : 0);
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -136,6 +156,18 @@ void gm_linalg_finalize(GMEnv* env) {
     magma_code = magma_minproduct_finalize();
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_finalize." : 0);
+
+  /*----------------------------------------*/
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
+  /*----------------------------------------*/
+
+    magma_tally2_int_t magma_code = 0;
+    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+
+    // TODO: reset kernel stream (not really needed)
+    magma_code = magma_tally2_finalize();
+    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+                   "Error in call to magma_tally2_finalize." : 0);
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -223,6 +255,29 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
     }
 
     p.size = n*sizeof(GMFloat);
+    env->cpu_mem += p.size;
+    env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
+    env->gpu_mem += p.size;
+    env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+
+  /*----------------------------------------*/
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
+  /*----------------------------------------*/
+
+    typedef magma_tally2DoubleComplex Float_t;
+
+    magma_tally2_int_t magma_code = 0;
+    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+
+    magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p.h, n);
+    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+                   "Error in call to magma_tally2_zmalloc_pinned." : 0);
+
+    magma_code = magma_tally2_zmalloc((Float_t**)&p.d, n);
+    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+                   "Error in call to magma_tally2_zmalloc." : 0);
+
+    p.size = n*sizeof(Float_t);
     env->cpu_mem += p.size;
     env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
     env->gpu_mem += p.size;
@@ -328,6 +383,21 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
     env->gpu_mem -= size;
 
   /*----------------------------------------*/
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
+  /*----------------------------------------*/
+
+    magma_tally2_int_t magma_code = 0;
+    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+
+    magma_tally2_free_pinned(p->h);
+    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS);
+    magma_tally2_free(p->d);
+    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS);
+
+    env->cpu_mem -= size;
+    env->gpu_mem -= size;
+
+  /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
@@ -400,6 +470,17 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
         (Magma_minproductFull, mat_dim1, mat_dim2, (float)0, (float)0,
          (float*)matrix_buf->d, mat_dim1);
     }
+
+  /*----------------------------------------*/
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
+  /*----------------------------------------*/
+
+    typedef magma_tally2DoubleComplex Float_t;
+
+    Float_t zero = {0, 0};
+
+    magma_tally2blas_zlaset(Magma_tally2Full, mat_dim1, mat_dim2, zero, zero,
+                            (Float_t*)matrix_buf->d, mat_dim1);
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -505,6 +586,22 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     env->ops_local += 2 * m * (double)n * (double)k;
 
   /*----------------------------------------*/
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
+  /*----------------------------------------*/
+
+    typedef magma_tally2DoubleComplex Float_t;
+
+    const Float_t zero = {0, 0};
+    const Float_t one = {1, 0};
+    const Float_t alpha = {1, 0};
+    const Float_t beta = is_beta_one ? one : zero;
+
+    magma_tally2blas_zgemm(Magma_tally2Trans, Magma_tally2NoTrans, m, n, k,
+                           alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
+                           beta, (Float_t*)dC, lddc);
+    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
+
+  /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
@@ -584,6 +681,8 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 
   const size_t elt_size =
     GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ? sizeof(GMFloat) :
+   (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) ?
+                                         sizeof(magma_tally4DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
     GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -692,6 +791,16 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
     }
 
   /*----------------------------------------*/
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
+  /*----------------------------------------*/
+
+    typedef magma_tally2DoubleComplex Float_t;
+
+    magma_tally2_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
+                                  mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
+                                  GMEnv_stream_togpu(env));
+
+  /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
@@ -773,6 +882,16 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
         mat_dim1, mat_dim2, (float*)matrix_buf->d, mat_dim1,
         (float*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
     }
+
+  /*----------------------------------------*/
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
+  /*----------------------------------------*/
+
+    typedef magma_tally2DoubleComplex Float_t;
+
+    magma_tally2_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
+                                  mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
+                                  GMEnv_stream_fromgpu(env));
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&

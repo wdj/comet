@@ -581,17 +581,19 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
               GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
-            const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-            const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-            const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-            const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-            GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
-                         (GMUInt64)r11 ==
-                     (GMUInt64)(4 * metrics->num_field_active));
-            const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
-            const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-            GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
-            GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+            if (!env->sparse) {
+              const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+              const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+              const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+              const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
+                           (GMUInt64)r11 ==
+                       (GMUInt64)(4 * metrics->num_field_active));
+              const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
+              const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
+              GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
+              GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+            }
 #endif
           } /*---for i---*/
         }   /*---for j---*/
@@ -603,17 +605,19 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
               GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
-            const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-            const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-            const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-            const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-            GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
-                         (GMUInt64)r11 ==
-                     (GMUInt64)(4 * metrics->num_field_active));
-            const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
-            const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-            GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
-            GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+            if (!env->sparse) {
+              const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+              const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+              const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+              const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
+                           (GMUInt64)r11 ==
+                       (GMUInt64)(4 * metrics->num_field_active));
+              const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
+              const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
+              GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
+              GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+            }
 #endif
           } /*---for i---*/
         }   /*---for j---*/
@@ -629,17 +633,19 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
               GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
 #ifdef GM_ASSERTIONS_ON
-          const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-          const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-          const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-          const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-          GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
-                       (GMUInt64)r11 ==
-                   (GMUInt64)(4 * metrics->num_field_active));
+          if (!env->sparse) {
+            const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+            const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+            const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+            const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+            GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
+                         (GMUInt64)r11 ==
+                     (GMUInt64)(4 * metrics->num_field_active));
             const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
             const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-          GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
-          GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+            GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
+            GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+          }
 #endif
         } /*---for i---*/
       }   /*---for j---*/

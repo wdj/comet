@@ -116,7 +116,8 @@ if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
   touch $MAGMA_DIR/copy_is_complete
 fi
 
-for magma_version in magma_minproduct magma_tally3 magma_tally4 ; do
+for magma_version in magma_minproduct magma_tally4 magma_tally3 \
+                     magma_tally2 ; do
   MAGMA_SUBDIR=$MAGMA_DIR/$magma_version
   if [ ! -e $MAGMA_SUBDIR/build_is_complete ] ; then
     pushd $MAGMA_SUBDIR
@@ -133,6 +134,7 @@ C_CXX_FLAGS="-DFP_PRECISION_$FP_PRECISION -DADD_"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_minproduct/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally4/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally3/include"
+C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally2/include"
 C_CXX_FLAGS="$C_CXX_FLAGS $CRAY_CUDATOOLKIT_INCLUDE_OPTS"
 C_CXX_FLAGS="$C_CXX_FLAGS -g -rdynamic" # for stack trace
 C_CXX_FLAGS="$C_CXX_FLAGS -Wall -Wno-unused-function -Werror"
@@ -160,6 +162,7 @@ C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-functions -finline-limit=1000"
 LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally3/lib -lmagma_tally3"
+LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally2/lib -lmagma_tally2"
 LFLAGS="$LFLAGS $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas"
 LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
 LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
