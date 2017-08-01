@@ -863,10 +863,10 @@ void gm_compute_numerators_3way_gpu_form_matV_(
           /*---Create word whose odd bits sample the lo or hi bit of interest
                of the seminibble.  Also create the complement thereof---*/
 
-          const GMUInt64  vI_0 =   vIx;      //  & oddbits;
-          const GMUInt64  vI_1 =  (vIx >> 1);//  & oddbits;
-          const GMUInt64 nvI_0 = ~ vIx;      //  & oddbits;
-          const GMUInt64 nvI_1 = ~(vIx >> 1);//  & oddbits;
+          const GMUInt64  vI_0 =   vIx        & oddbits;
+          const GMUInt64  vI_1 =  (vIx >> 1)  & oddbits;
+          const GMUInt64 nvI_0 = ~ vIx        & oddbits;
+          const GMUInt64 nvI_1 = ~(vIx >> 1)  & oddbits;
 
           const GMUInt64  vJ_0 =   vJ            & oddbits;
           const GMUInt64  vJ_1 =  (vJ  >> 1)     & oddbits;
@@ -878,14 +878,14 @@ void gm_compute_numerators_3way_gpu_form_matV_(
           const GMUInt64  vI_match =
             step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
             step_2way==1 && sparse ?
-                           (nvI_0 &  vI_1) & oddbits : // 01
+                           ( vI_0 & nvI_1) & oddbits : // 01
             step_2way==1 ? ( vI_0 ^  vI_1) & oddbits : // 01, 10
           /*step_2way==2*/   vI_0 &  vI_1  & oddbits;  // 11
 
           const GMUInt64 nvI_match =
             step_2way==0 ? ( vI_0 |  vI_1) & oddbits :
             step_2way==1 && sparse ?
-                           ( vI_0 | nvI_1) & oddbits :
+                           (nvI_0 |  vI_1) & oddbits :
             step_2way==1 ? ( vI_0 ^ nvI_1) & oddbits :
           /*step_2way==2*/ (nvI_0 | nvI_1) & oddbits;
 
