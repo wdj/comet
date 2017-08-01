@@ -1112,8 +1112,8 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
 void DriverTest_ccc3_simple_sparse_() {
   DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
-  //DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+  //DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+  DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 /*===========================================================================*/
@@ -1469,7 +1469,7 @@ void DriverTest_ccc_() {
 
 /*===========================================================================*/
 
-#if 1
+#if 0
 TEST(DriverTest, czekanowski) {
   DriverTest_czekanowski_();
 }
@@ -1477,21 +1477,23 @@ TEST(DriverTest, czekanowski) {
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }
-#endif
 
 TEST(DriverTest, ccc2_simple_sparse) {
   DriverTest_ccc2_simple_sparse_();
 }
 
-#if 1
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();
 }
+#endif
 
+#if 1
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
+#endif
 
+#if 0
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();
 }

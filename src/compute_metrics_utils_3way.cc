@@ -847,73 +847,63 @@ void gm_compute_numerators_3way_gpu_form_matV_(
         const GMUInt64 activebits1 = pvfl < pvfl_edge ? allbits :
                                      pvfl == pvfl_edge ? edgemask1 : nobits;
 
-        /*-----*/
+        const GMUInt64 activebits[2] = {activebits0, activebits1};
 
-        const GMUInt64 vI0 =
-            *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[0]);
-        const GMUInt64 vJ0 =
-            *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[0]);
+        const _Bool sparse = env->sparse;
 
-        const GMUInt64 vI0x = step_2way==0 ? vI0 | ~activebits0 : vI0;
+        for (int word = 0; word<2; ++word) {
 
-        const GMUInt64  vI0_0 =   vI0x       & oddbits;
-        const GMUInt64  vI0_1 =  (vI0x >> 1) & oddbits;
-        const GMUInt64  vJ0_0 =   vJ0        & oddbits;
-        const GMUInt64  vJ0_1 =  (vJ0  >> 1) & oddbits;
-        const GMUInt64 nvI0_0 = ~ vI0x       & oddbits;
-        const GMUInt64 nvI0_1 = ~(vI0x >> 1) & oddbits;
-        /*
-        const GMUInt64 nvJ0_0 = ~ vJ0        & oddbits;
-        const GMUInt64 nvJ0_1 = ~(vJ0  >> 1) & oddbits;
-        */
+          const GMUInt64 vI =
+            *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[word]);
+          const GMUInt64 vJ =
+            *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[word]);
 
-        const GMUInt64  vI0_match =
-          step_2way==0 ?  nvI0_0 & nvI0_1  & oddbits : 
-          step_2way==1 ? ( vI0_0 ^  vI0_1) & oddbits : 
-                           vI0_0 &  vI0_1  & oddbits;
-        const GMUInt64 nvI0_match =
-          step_2way==0 ? ( vI0_0 |  vI0_1) & oddbits : 
-          step_2way==1 ? ( vI0_0 ^ nvI0_1) & oddbits : 
-                         (nvI0_0 | nvI0_1) & oddbits;
+          const GMUInt64 vIx = step_2way==0 ? vI | ~activebits[word] : vI;
 
-        const GMUInt64 r0_0 =  vI0_match & (vJ0_0 |  vJ0_1);
-        const GMUInt64 r0_1 = nvI0_match | (vJ0_0 &  vJ0_1);
-        const GMUInt64 r0 = r0_0 | (r0_1 << 1);
-        ((GMBits2x64*)(matV_buf->h))[indI].data[0] = *(GMBits1_2x64*)&r0;
+          /*---Create word whose odd bits sample the lo or hi bit of interest
+               of the seminibble.  Also create the complement thereof---*/
 
-        /*-----*/
+          const GMUInt64  vI_0 =   vIx;      //  & oddbits;
+          const GMUInt64  vI_1 =  (vIx >> 1);//  & oddbits;
+          const GMUInt64 nvI_0 = ~ vIx;      //  & oddbits;
+          const GMUInt64 nvI_1 = ~(vIx >> 1);//  & oddbits;
 
-        const GMUInt64 vI1 =
-            *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[1]);
-        const GMUInt64 vJ1 =
-            *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[1]);
+          const GMUInt64  vJ_0 =   vJ            & oddbits;
+          const GMUInt64  vJ_1 =  (vJ  >> 1)     & oddbits;
 
-        const GMUInt64 vI1x = step_2way==0 ? vI1 | ~activebits1 : vI1;
+          /*---Create a mask whose odd bits denote whether each respective
+               seminibble of vector I matches the case we are handling
+               in this 2-way step (and the complement thereof)---*/
 
-        const GMUInt64  vI1_0 =   vI1x       & oddbits;
-        const GMUInt64  vI1_1 =  (vI1x >> 1) & oddbits;
-        const GMUInt64  vJ1_0 =   vJ1        & oddbits;
-        const GMUInt64  vJ1_1 =  (vJ1  >> 1) & oddbits;
-        const GMUInt64 nvI1_0 = ~ vI1x       & oddbits;
-        const GMUInt64 nvI1_1 = ~(vI1x >> 1) & oddbits;
-        /*
-        const GMUInt64 nvJ1_0 = ~ vJ1        & oddbits;
-        const GMUInt64 nvJ1_1 = ~(vJ1  >> 1) & oddbits;
-        */
+          const GMUInt64  vI_match =
+            step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
+            step_2way==1 && sparse ?
+                           (nvI_0 &  vI_1) & oddbits : // 01
+            step_2way==1 ? ( vI_0 ^  vI_1) & oddbits : // 01, 10
+          /*step_2way==2*/   vI_0 &  vI_1  & oddbits;  // 11
 
-        const GMUInt64  vI1_match =
-          step_2way==0 ?  nvI1_0 & nvI1_1  & oddbits : 
-          step_2way==1 ? ( vI1_0 ^  vI1_1) & oddbits : 
-                               vI1_0 &  vI1_1  & oddbits;
-            const GMUInt64 nvI1_match =
-          step_2way==0 ? ( vI1_0 |  vI1_1) & oddbits : 
-          step_2way==1 ? ( vI1_0 ^ nvI1_1) & oddbits : 
-                             (nvI1_0 | nvI1_1) & oddbits;
+          const GMUInt64 nvI_match =
+            step_2way==0 ? ( vI_0 |  vI_1) & oddbits :
+            step_2way==1 && sparse ?
+                           ( vI_0 | nvI_1) & oddbits :
+            step_2way==1 ? ( vI_0 ^ nvI_1) & oddbits :
+          /*step_2way==2*/ (nvI_0 | nvI_1) & oddbits;
 
-        const GMUInt64 r1_0 =  vI1_match & (vJ1_0 |  vJ1_1);
-        const GMUInt64 r1_1 = nvI1_match | (vJ1_0 &  vJ1_1);
-        const GMUInt64 r1 = r1_0 | (r1_1 << 1);
-        ((GMBits2x64*)(matV_buf->h))[indI].data[1] = *(GMBits1_2x64*)&r1;
+          /*---Construct the lo and hi bit of the result seminibble, based
+               on truth table:
+            - lo bit is 1 (00 or 01) if vJ is 01, 10 or 11 and vI is the
+              case being handled for this 2-way step.
+            - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
+              being handled for this 2-way step.
+          */
+
+          const GMUInt64 r_0 =  vI_match & (sparse ? vJ_0 : vJ_0 | vJ_1);
+          const GMUInt64 r_1 = nvI_match | (sparse ? vJ_1 : vJ_0 & vJ_1);
+
+          const GMUInt64 r = r_0 | (r_1 << 1);
+          ((GMBits2x64*)(matV_buf->h))[indI].data[word] = *(GMBits1_2x64*)&r;
+
+        } /*---word---*/
       }  //---for f---//
     }    //---for I---//
     /*----------*/
@@ -1101,19 +1091,21 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
         numerator.data[1] = GMTally1_encode(r010, r011);
         numerator.data[2] = GMTally1_encode(r100, r101);
         numerator.data[3] = GMTally1_encode(r110, r111);
-        GMMetrics_tally4x2_set_3(metrics, i, j, k, numerator, env);
-        const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
-        const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_i, j, env);
-        const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_i, k, env);
-        const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-        GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
-        if (env->sparse) {
-          const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
-          const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_i, j, env);
-          const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_i, k, env);
-          const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
-          GMMetrics_float3_C_set_3(metrics, i, j, k, ci1_cj1_ck1, env);
-        } /*---if sparse---*/
+//        if (step_2way==0) {
+          GMMetrics_tally4x2_set_3(metrics, i, j, k, numerator, env);
+          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
+          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_i, j, env);
+          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_i, k, env);
+          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
+          GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
+          if (env->sparse) {
+            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_i, i, env);
+            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_i, j, env);
+            const GMTally1 ck = (GMTally1)GMVectorSums_count(vs_i, k, env);
+            const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
+            GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, env);
+          } /*---if sparse---*/
+//        }
       } /*---for K---*/
     }   /*---for I---*/
     if (step_2way == 2) {
@@ -1262,20 +1254,22 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
         numer.data[3] = GMTally1_encode(r110_permuted, r111_permuted);
         GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics, I, J, K,
                                    j_block, k_block, numer, &index_cache, env);
-        const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
-        const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env); 
-        const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env); 
-        const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-        GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
-            j_block, k_block, si1_sj1_sk1, &index_cache, env);
-        if (env->sparse) {
-          const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
-          const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env); 
-          const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env); 
-          const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
-          GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
-              j_block, k_block, ci1_cj1_ck1, &index_cache, env);
-        } /*---if sparse---*/
+//        if (step_2way==0) {
+          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
+          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env); 
+          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env); 
+          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
+          GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
+              j_block, k_block, si1_sj1_sk1, &index_cache, env);
+          if (env->sparse) {
+            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_i, i, env);
+            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_j, j, env); 
+            const GMTally1 ck = (GMTally1)GMVectorSums_count(vs_k, k, env); 
+            const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
+            GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
+                j_block, k_block, ci_cj_ck, &index_cache, env);
+          } /*---if sparse---*/
+//        }
       } /*---for K---*/
     }   /*---for I---*/
     if (step_2way == 2) {
