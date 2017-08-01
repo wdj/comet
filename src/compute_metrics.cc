@@ -22,6 +22,9 @@
 extern "C" {
 #endif
 
+//TODOTODO: helper function for case statement
+// collapse some cases
+
 /*===========================================================================*/
 
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
@@ -45,21 +48,18 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                             GM_NUM_COMPUTE_METHOD * (2)):
-      //gm_compute_metrics_sorenson_2way_ref(metrics, vectors, env);
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (2)):
-      //gm_compute_metrics_sorenson_2way_cpu(metrics, vectors, env);
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
                             GM_NUM_COMPUTE_METHOD * (2)):
-      //gm_compute_metrics_sorenson_2way_gpu(metrics, vectors, env);
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
@@ -68,21 +68,18 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
                             GM_NUM_COMPUTE_METHOD * (3)):
-      //gm_compute_metrics_sorenson_3way_ref(metrics, vectors, env);
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
                             GM_NUM_COMPUTE_METHOD * (3)):
-      //gm_compute_metrics_sorenson_3way_cpu(metrics, vectors, env);
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
     case GM_METRIC_TYPE_SORENSON +
         GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
                             GM_NUM_COMPUTE_METHOD * (3)):
-      //gm_compute_metrics_sorenson_3way_gpu(metrics, vectors, env);
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
       break;
 
@@ -163,7 +160,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
       }
     } break;
 
@@ -174,7 +170,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_ccc_2way_cpu(metrics, vectors, env);
       }
     } break;
 
@@ -185,7 +180,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_2way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_ccc_2way_gpu(metrics, vectors, env);
       }
     } break;
 
@@ -218,7 +212,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
         gm_compute_metrics_3way_all2all(metrics, vectors, env);
       } else {
         gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-        // gm_compute_metrics_ccc_3way_gpu(metrics, vectors, env);
       }
     } break;
 
@@ -226,21 +219,24 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
     default:
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-  } /*---switch---*/
+  } // switch
+
+  // Stop timer.
 
   double time_end = GMEnv_get_synced_time(env);
-
   env->time += time_end - time_begin;
+
+  // Check computed element count.
 
   GMAssertAlways(metrics->num_elts_local == metrics->num_elts_local_computed);
 
-  /*---Compute global values---*/
+  // Compute global counts of compares and operations.
 
   double num_elts_local = metrics->num_elts_local;
   double num_elts = 0;
 
   int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+  mpi_code *= 1; // Avoid unused variable warning.
 
   mpi_code = MPI_Allreduce(&num_elts_local, &num_elts, 1,
                            MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_vector(env));
@@ -248,10 +244,11 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   env->compares += metrics->num_field*num_elts*metrics->data_type_num_values;
 
-  mpi_code = MPI_Allreduce(&env->ops_local, &env->ops, 1,
-                           MPI_DOUBLE, MPI_SUM,
+  mpi_code = MPI_Allreduce(&env->ops_local, &env->ops, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
+
+  // Compute global CPU, GPU memory high water marks.
 
   const size_t cpu_mem_max_local = env->cpu_mem_max;
   mpi_code = MPI_Allreduce(&cpu_mem_max_local, &env->cpu_mem_max, 1,

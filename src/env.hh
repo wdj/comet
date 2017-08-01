@@ -70,7 +70,6 @@ typedef bool _Bool;
 
 enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
 
-
 typedef unsigned int GMUInt32;
 
 typedef signed long long int GMInt64;
@@ -363,8 +362,7 @@ typedef struct {
 
 static GMChecksum GMChecksum_null() {
   GMChecksum result;
-  int i = 0;
-  for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+  for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result.data[i] = 0;
   }
   result.is_overflowed = GM_BOOL_FALSE;
@@ -383,8 +381,7 @@ static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
     return GM_BOOL_TRUE;
   }
   _Bool result = GM_BOOL_TRUE;
-  int i = 0;
-  for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+  for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result = result && c1.data[i] == c2.data[i];
   }
   result = result && c1.is_overflowed == c2.is_overflowed;
@@ -737,9 +734,7 @@ static int gm_log2(size_t n) {
     return 0;
   }
 
-  int result = 0;
-
-  for (result = 0, n--; result <= 8 * (int)sizeof(size_t); ++result) {
+  for (int result = 0, n--; result <= 8 * (int)sizeof(size_t); ++result) {
     if (n == 0) {
       break;
     }
@@ -754,14 +749,13 @@ static int gm_log2(size_t n) {
 static size_t gm_nchoosek(int n, int k) {
   GMAssert(n >= 0);
   GMAssert(k >= 0 && k <= n);
-  int i;
-  size_t num = 1;
+  size_t numer = 1;
   size_t denom = 1;
-  for (i = 0; i < k; ++i) {
-    num *= (n - i);
+  for (int i = 0; i < k; ++i) {
+    numer *= (n - i);
     denom *= (i + 1);
   }
-  return num / denom;
+  return numer / denom;
 }
 
 /*---------------------------------------------------------------------------*/

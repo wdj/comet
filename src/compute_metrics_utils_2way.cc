@@ -22,7 +22,7 @@ extern "C" {
 /*===========================================================================*/
 /*---Start calculation of numerators, 2-way Czekanowski---*/
 
-void gm_compute_czekanowski_numerators_2way_start(
+void gm_compute_czekanowski_numerators_2way_start_(
     GMVectors* vectors_left,
     GMVectors* vectors_right,
     GMMetrics* metrics,
@@ -32,16 +32,9 @@ void gm_compute_czekanowski_numerators_2way_start(
     int j_block,
     _Bool do_compute_triang_only,
     GMEnv* env) {
-  GMAssertAlways(vectors_left != NULL);
-  GMAssertAlways(vectors_right != NULL);
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(vectors_left && vectors_right && metrics && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
-
-  int i = 0;
-  int j = 0;
-  int fl = 0;
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
@@ -51,13 +44,13 @@ void gm_compute_czekanowski_numerators_2way_start(
                       ? "num_proc_field>1 for REF case not supported"
                       : 0);
 
-    /*---Perform pseudo matrix-matrix product---*/
+    /*---Perform pseudo GEMM---*/
 
-    for (j = 0; j < metrics->num_vector_local; ++j) {
+    for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-      for (i = 0; i < i_max; ++i) {
+      for (int i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
-        for (fl = 0; fl < vectors_left->num_field_local; ++fl) {
+        for (int fl = 0; fl < vectors_left->num_field_local; ++fl) {
           const GMFloat value1 = GMVectors_float_get(vectors_left, fl, i, env);
           const GMFloat value2 = GMVectors_float_get(vectors_right, fl, j, env);
           metric += value1 < value2 ? value1 : value2;
@@ -74,13 +67,13 @@ void gm_compute_czekanowski_numerators_2way_start(
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
-    /*---Perform pseudo matrix-matrix product---*/
+    /*---Perform pseudo GEMM---*/
 
-    for (j = 0; j < metrics->num_vector_local; ++j) {
+    for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = j;
-      for (i = 0; i < i_max; ++i) {
+      for (int i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
-        for (fl = 0; fl < vectors_left->num_field_local; ++fl) {
+        for (int fl = 0; fl < vectors_left->num_field_local; ++fl) {
           const GMFloat value1 = GMVectors_float_get(vectors_left, fl, i, env);
           const GMFloat value2 = GMVectors_float_get(vectors_right, fl, j, env);
           metric += value1 < value2 ? value1 : value2;
@@ -98,15 +91,14 @@ void gm_compute_czekanowski_numerators_2way_start(
     gm_linalg_set_matrix_zero_start(metrics_buf, metrics->num_vector_local,
                                     metrics->num_vector_local, env);
 
-    /*---Perform pseudo matrix-matrix product---*/
+    /*---Perform pseudo GEMM---*/
 
-    /* .63 / 1.56 */
     gm_linalg_gemm_start(vectors_left->num_vector_local,
-                        vectors_left->num_vector_local,
-                        vectors_left->num_field_local,
-                        vectors_left_buf->d, vectors_left->num_field_local,
-                        vectors_right_buf->d, vectors_left->num_field_local,
-                        metrics_buf->d, vectors_left->num_vector_local, env);
+                         vectors_left->num_vector_local,
+                         vectors_left->num_field_local,
+                         vectors_left_buf->d, vectors_left->num_field_local,
+                         vectors_right_buf->d, vectors_left->num_field_local,
+                         metrics_buf->d, vectors_left->num_vector_local, env);
 
     /*----------------------------------------*/
   } /*---if---*/
@@ -116,19 +108,16 @@ void gm_compute_czekanowski_numerators_2way_start(
 /*===========================================================================*/
 /*---Start calculation of numerators, 2-way CCC---*/
 
-void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
-                                          GMVectors* vectors_right,
-                                          GMMetrics* metrics,
-                                          GMMirroredPointer* vectors_left_buf,
-                                          GMMirroredPointer* vectors_right_buf,
-                                          GMMirroredPointer* metrics_buf,
-                                          int j_block,
-                                          _Bool do_compute_triang_only,
-                                          GMEnv* env) {
-  GMAssertAlways(vectors_left != NULL);
-  GMAssertAlways(vectors_right != NULL);
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(env != NULL);
+void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
+                                           GMVectors* vectors_right,
+                                           GMMetrics* metrics,
+                                           GMMirroredPointer* vectors_left_buf,
+                                           GMMirroredPointer* vectors_right_buf,
+                                           GMMirroredPointer* metrics_buf,
+                                           int j_block,
+                                           _Bool do_compute_triang_only,
+                                           GMEnv* env) {
+  GMAssertAlways(vectors_left && vectors_right && metrics && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
@@ -136,42 +125,43 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    /*---Perform pseudo matrix-matrix product---*/
+    GMInsist(env, GMEnv_num_proc_field(env) == 1
+                      ? "num_proc_field>1 for REF case not supported"
+                      : 0);
 
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
+    /*---Perform pseudo GEMM---*/
+
+    for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
-      int i = 0;
-      for (i = 0; i < i_max; ++i) {
+      for (int i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        int fl = 0;
-        for (fl = 0; fl < vectors_left->num_field_local; ++fl) {
-          const GMBits2 value_i = GMVectors_bits2_get(vectors_left, fl, i, env);
-          const GMBits2 value_j = GMVectors_bits2_get(vectors_right, fl, j, env);
-          const _Bool unknown_i = env->sparse ? value_i == GM_2BIT_UNKNOWN
+        for (int fl = 0; fl < vectors_left->num_field_local; ++fl) {
+          const GMBits2 vi = GMVectors_bits2_get(vectors_left, fl, i, env);
+          const GMBits2 vj = GMVectors_bits2_get(vectors_right, fl, j, env);
+          const _Bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
                                               : GM_BOOL_FALSE;
-          const _Bool unknown_j = env->sparse ? value_j == GM_2BIT_UNKNOWN
+          const _Bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
                                               : GM_BOOL_FALSE;
 
           if ((!unknown_i) && (!unknown_j)) {
 
             /* clang-format off */
-            const int r00 = ( ( !(value_i & 1) ) && ( !(value_j & 1) ) ) +
-                            ( ( !(value_i & 1) ) && ( !(value_j & 2) ) ) +
-                            ( ( !(value_i & 2) ) && ( !(value_j & 1) ) ) +
-                            ( ( !(value_i & 2) ) && ( !(value_j & 2) ) );
-            const int r01 = ( ( !(value_i & 1) ) && (  (value_j & 1) ) ) +
-                            ( ( !(value_i & 1) ) && (  (value_j & 2) ) ) +
-                            ( ( !(value_i & 2) ) && (  (value_j & 1) ) ) +
-                            ( ( !(value_i & 2) ) && (  (value_j & 2) ) );
-            const int r10 = ( (  (value_i & 1) ) && ( !(value_j & 1) ) ) +
-                            ( (  (value_i & 1) ) && ( !(value_j & 2) ) ) +
-                            ( (  (value_i & 2) ) && ( !(value_j & 1) ) ) +
-                            ( (  (value_i & 2) ) && ( !(value_j & 2) ) );
-            const int r11 = ( (  (value_i & 1) ) && (  (value_j & 1) ) ) +
-                            ( (  (value_i & 1) ) && (  (value_j & 2) ) ) +
-                            ( (  (value_i & 2) ) && (  (value_j & 1) ) ) +
-                            ( (  (value_i & 2) ) && (  (value_j & 2) ) );
+            const int r00 = ( ( !(vi & 1) ) && ( !(vj & 1) ) ) +
+                            ( ( !(vi & 1) ) && ( !(vj & 2) ) ) +
+                            ( ( !(vi & 2) ) && ( !(vj & 1) ) ) +
+                            ( ( !(vi & 2) ) && ( !(vj & 2) ) );
+            const int r01 = ( ( !(vi & 1) ) && (  (vj & 1) ) ) +
+                            ( ( !(vi & 1) ) && (  (vj & 2) ) ) +
+                            ( ( !(vi & 2) ) && (  (vj & 1) ) ) +
+                            ( ( !(vi & 2) ) && (  (vj & 2) ) );
+            const int r10 = ( (  (vi & 1) ) && ( !(vj & 1) ) ) +
+                            ( (  (vi & 1) ) && ( !(vj & 2) ) ) +
+                            ( (  (vi & 2) ) && ( !(vj & 1) ) ) +
+                            ( (  (vi & 2) ) && ( !(vj & 2) ) );
+            const int r11 = ( (  (vi & 1) ) && (  (vj & 1) ) ) +
+                            ( (  (vi & 1) ) && (  (vj & 2) ) ) +
+                            ( (  (vi & 2) ) && (  (vj & 1) ) ) +
+                            ( (  (vi & 2) ) && (  (vj & 2) ) );
             /* clang-format on */
 
             /*---NOTE: "since the sum of all 4 of these relative
@@ -180,10 +170,10 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
 
 #if DOUG_WAY
 //TODO: work on this as a possibly faster way.
-            const int vi1 = (value_i & 3) != 0;
-            const int vi0 = ((~value_i) & 3) != 0;
-            const int vj1 = (value_j & 3) != 0;
-            const int vj0 = ((~value_j) & 3) != 0;
+            const int vi1 = (vi & 3) != 0;
+            const int vi0 = ((~vi) & 3) != 0;
+            const int vj1 = (vj & 3) != 0;
+            const int vj0 = ((~vj) & 3) != 0;
 
             const int a11 = vi1 & vj1;
 
@@ -211,7 +201,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
-    /*---Perform pseudo matrix-matrix product---*/
+    /*---Perform pseudo GEMM---*/
 
     /*---Precompute masks for final (incomplete) packedval_field -
          can be 1 to 64 inclusive---*/
@@ -240,17 +230,15 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
                                allbits :
                                allbits >> (128 - 2*num_seminibbles_edge);
 
-    int j = 0;
-    for (j = 0; j < metrics->num_vector_local; ++j) {
+    for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max =
           do_compute_triang_only ? j : metrics->num_vector_local;
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        int pvfl = 0;
         const int npvfl = vectors_left->num_packedval_field_local;
         const int pvfl_edge = num_packedval_field_active_local - 1;
-        for (pvfl = 0; pvfl < npvfl; ++pvfl) {
+        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
           /*---Get masks for active seminibbles in each word---*/
 
           const GMUInt64 activebits0 = pvfl < pvfl_edge ? allbits :
@@ -367,7 +355,7 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
     gm_linalg_set_matrix_zero_start(metrics_buf, metrics->num_vector_local,
                                     metrics->num_vector_local, env);
 
-    /*---Perform pseudo matrix-matrix product---*/
+    /*---Perform pseudo GEMM---*/
 
     gm_linalg_gemm_start(
         vectors_left->num_vector_local, vectors_left->num_vector_local,
@@ -384,40 +372,36 @@ void gm_compute_ccc_numerators_2way_start(GMVectors* vectors_left,
 /*===========================================================================*/
 /*---Start calculation of numerators, 2-way generic---*/
 
+// NOTE: unlike the 3-way case, this function does not retrieve the
+// metrics_buf from the GPU.
+
 void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       GMVectors* vectors_right,
-                                      GMMetrics* numerators,
+                                      GMMetrics* metrics,
                                       GMMirroredPointer* vectors_left_buf,
                                       GMMirroredPointer* vectors_right_buf,
-                                      GMMirroredPointer* numerators_buf,
+                                      GMMirroredPointer* metrics_buf,
                                       int j_block,
                                       _Bool do_compute_triang_only,
                                       GMEnv* env) {
-  GMAssertAlways(vectors_left != NULL);
-  GMAssertAlways(vectors_right != NULL);
-  GMAssertAlways(numerators != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(vectors_left && vectors_right && metrics && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_SORENSON: {
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-    } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      gm_compute_czekanowski_numerators_2way_start(
-          vectors_left, vectors_right, numerators, vectors_left_buf,
-          vectors_right_buf, numerators_buf, j_block, do_compute_triang_only,
+      gm_compute_czekanowski_numerators_2way_start_(
+          vectors_left, vectors_right, metrics, vectors_left_buf,
+          vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
           env);
     } break;
     case GM_METRIC_TYPE_CCC: {
-      gm_compute_ccc_numerators_2way_start(
-          vectors_left, vectors_right, numerators, vectors_left_buf,
-          vectors_right_buf, numerators_buf, j_block, do_compute_triang_only,
+      gm_compute_ccc_numerators_2way_start_(
+          vectors_left, vectors_right, metrics, vectors_left_buf,
+          vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
           env);
     } break;
     default:
-      /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
 }
@@ -431,8 +415,8 @@ void gm_compute_czekanowski_2way_combine_(
     const GMVectorSums* vector_sums_left,
     const GMVectorSums* vector_sums_right,
     int j_block, _Bool do_compute_triang_only, GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf && env);
-  GMAssertAlways(vector_sums_left && vector_sums_right);
+  GMAssertAlways(metrics && metrics_buf);
+  GMAssertAlways(vector_sums_left && vector_sums_right && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
@@ -462,7 +446,6 @@ void gm_compute_czekanowski_2way_combine_(
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numerator =
             GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
-        /*---Don't use two pointers pointing to the same thing---*/
         const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
@@ -482,7 +465,6 @@ void gm_compute_czekanowski_2way_combine_(
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
-        /*---Don't use two different pointers pointing to the same thing---*/
         const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
@@ -501,7 +483,6 @@ void gm_compute_czekanowski_2way_combine_(
         for (int i = 0; i < i_max; ++i) {
           const GMFloat numerator =
               ((GMFloat*)metrics_buf->h)[i + (size_t)nvl * j];
-          /*---Don't use two pointers pointing to the same thing---*/
           const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
@@ -516,7 +497,6 @@ void gm_compute_czekanowski_2way_combine_(
           const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
           const GMFloat numerator =
               ((GMFloat*)metrics_buf->h)[i + (size_t)nvl * j];
-          /*---Don't use two pointers pointing to the same thing---*/
           const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
@@ -535,7 +515,6 @@ void gm_compute_czekanowski_2way_combine_(
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numerator = ((GMFloat*)metrics_buf->h)[i + nvl * j];
-        /*---Don't use two different pointers pointing to the same thing---*/
         const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
@@ -557,8 +536,8 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
                                   const GMVectorSums* vector_sums_right,
                                   int j_block, _Bool do_compute_triang_only,
                                   GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf && env);
-  GMAssertAlways(vector_sums_left && vector_sums_right);
+  GMAssertAlways(metrics && metrics_buf);
+  GMAssertAlways(vector_sums_left && vector_sums_right && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
@@ -669,10 +648,10 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse) {
-            const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_r, j, env);
-            const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_l, i, env);
-            const GMFloat2 ci1_cj1 = GMFloat2_encode(ci1, cj1);
-            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci1_cj1, env);
+            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
+            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
+            const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
+            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
         }   /*---for i---*/
         metrics->num_elts_local_computed += i_max;
@@ -686,10 +665,10 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse) {
-            const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_r, j, env);
-            const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_l, i, env);
-            const GMFloat2 ci1_cj1 = GMFloat2_encode(ci1, cj1);
-            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci1_cj1, env);
+            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
+            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
+            const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
+            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
@@ -707,10 +686,10 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
         const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
         GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
         if (env->sparse) {
-          const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_r, j, env);
-          const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_l, i, env);
-          const GMFloat2 ci1_cj1 = GMFloat2_encode(ci1, cj1);
-          GMMetrics_float2_C_set_2(metrics, i, j, ci1_cj1, env);
+          const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
+          const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
+          const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
+          GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
         } /*---if sparse---*/
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
@@ -730,15 +709,12 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                              int j_block,
                              _Bool do_compute_triang_only,
                              GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf && env);
-  GMAssertAlways(vector_sums_left && vector_sums_right);
+  GMAssertAlways(metrics && metrics_buf);
+  GMAssertAlways(vector_sums_left && vector_sums_right && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_SORENSON: {
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-    } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
       gm_compute_czekanowski_2way_combine_(metrics, metrics_buf,
                                            vector_sums_left, vector_sums_right,
@@ -751,7 +727,6 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                                    j_block, do_compute_triang_only, env);
     } break;
     default:
-      /*---Should never get here---*/
       GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
   } /*---case---*/
 }

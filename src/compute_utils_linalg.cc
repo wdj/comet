@@ -53,7 +53,7 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_minproduct_init();
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
@@ -70,7 +70,7 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally2_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally2_init();
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
@@ -88,7 +88,7 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally4_init();
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
@@ -106,7 +106,7 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally3_init();
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
@@ -150,7 +150,7 @@ void gm_linalg_finalize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     // TODO: reset kernel stream (not really needed)
     magma_code = magma_minproduct_finalize();
@@ -162,7 +162,7 @@ void gm_linalg_finalize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally2_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     // TODO: reset kernel stream (not really needed)
     magma_code = magma_tally2_finalize();
@@ -175,7 +175,7 @@ void gm_linalg_finalize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     // TODO: reset kernel stream (not really needed)
     magma_code = magma_tally4_finalize();
@@ -188,7 +188,7 @@ void gm_linalg_finalize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     // TODO: reset kernel stream (not really needed)
     magma_code = magma_tally3_finalize();
@@ -231,7 +231,7 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&p.h, n);
@@ -267,7 +267,7 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
     typedef magma_tally2DoubleComplex Float_t;
 
     magma_tally2_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p.h, n);
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
@@ -291,7 +291,7 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
     typedef magma_tally4DoubleComplex Float_t;
 
     magma_tally4_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p.h, n);
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
@@ -315,7 +315,7 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
     typedef magma_tally3DoubleComplex Float_t;
 
     magma_tally3_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p.h, n);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
@@ -372,7 +372,7 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_minproduct_free_pinned(p->h);
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
@@ -387,7 +387,7 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally2_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_tally2_free_pinned(p->h);
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS);
@@ -403,7 +403,7 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_tally4_free_pinned(p->h);
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
@@ -419,7 +419,7 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = 0;
-    magma_code = magma_code * 1; /*---Avoid unused variable warning---*/
+    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_tally3_free_pinned(p->h);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
@@ -712,20 +712,18 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 
   const size_t rows_per_block = gm_min_i8(rows, max_rows_per_block);
 
-  size_t row_base = 0;
-  for (row_base=0; row_base<rows; row_base+=rows_per_block) {
+  for (size_t row_base=0; row_base<rows; row_base+=rows_per_block) {
     const size_t rows_remaining = rows - row_base;
     const size_t rows_this = gm_min_i8(rows_remaining, rows_per_block);
 
-    size_t col_A_base = 0;
-    for (col_A_base=0; col_A_base<cols_A; col_A_base+=cols_per_block_A) {
+    for (size_t col_A_base=0; col_A_base<cols_A; col_A_base+=cols_per_block_A) {
       const size_t cols_A_remaining = cols_A - col_A_base;
       const size_t cols_A_this = gm_min_i8(cols_A_remaining, cols_per_block_A);
 
       void* dA_this = (char*)dA + (row_base + ldda*col_A_base)*elt_size;
 
-      size_t col_B_base = 0;
-      for (col_B_base=0; col_B_base<cols_B; col_B_base+=cols_per_block_B) {
+      for (size_t col_B_base=0; col_B_base<cols_B;
+           col_B_base+=cols_per_block_B) {
 
         const size_t cols_B_remaining = cols_B - col_B_base;
         const size_t cols_B_this = gm_min_i8(cols_B_remaining,

@@ -265,11 +265,9 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
   const int num_seminibbles_pad = gm_num_seminibbles_pad(metrics, env);
 
   const GMFloat adjustment = 4 * num_seminibbles_pad;
-  int j = 0;
-  int i = 0;
 #pragma omp parallel for collapse(2)
-  for (j = 0; j < metrics->num_vector_local; ++j) {
-    for (i = 0; i < metrics->num_vector_local; ++i) {
+  for (int j = 0; j < metrics->num_vector_local; ++j) {
+    for (int i = 0; i < metrics->num_vector_local; ++i) {
       ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j]
           .data[0] -= adjustment;
     } /*---for j---*/
@@ -290,9 +288,6 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
     return;
   }
 
-  int i = 0;
-  int fl = 0;
-
   switch (GMEnv_metric_type(env)) {
     /*----------------------------------------*/
     case GM_METRIC_TYPE_SORENSON: {
@@ -307,8 +302,8 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
       /*---Copy vectors into GPU buffers if needed---*/
       const size_t nfl = vectors->num_field_local;
 #pragma omp parallel for collapse(2)
-      for (i = 0; i < vectors->num_vector_local; ++i) {
-        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+      for (int i = 0; i < vectors->num_vector_local; ++i) {
+        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           ((GMFloat*)vectors_buf->h)[fl + nfl * i] =
               GMVectors_float_get(vectors, fl, i, env);
         }
@@ -320,8 +315,8 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
       /*---Copy vectors into GPU buffers if needed---*/
       const size_t npvfl = vectors->num_packedval_field_local;
 #pragma omp parallel for collapse(2)
-      for (i = 0; i < vectors->num_vector_local; ++i) {
-        for (fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
+      for (int i = 0; i < vectors->num_vector_local; ++i) {
+        for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
           ((GMBits2x64*)vectors_buf->h)[fl + npvfl * i] =
               GMVectors_bits2x64_get(vectors, fl, i, env);
         }

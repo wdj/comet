@@ -53,10 +53,9 @@ void GMVectors_initialize_pad(GMVectors* vectors,
       //---(design is not complete)
       const int pvfl_min = fl_min / vectors->num_val_per_packedval;
       GMBits1x64 zero = GMBits1x64_null();
-      int vl = 0;
-      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-        int pvfl = 0;
-        for (pvfl=pvfl_min; pvfl<vectors->num_packedval_field_local; ++pvfl) {
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        for (int pvfl=pvfl_min; pvfl<vectors->num_packedval_field_local;
+             ++pvfl) {
           GMVectors_bits1x64_set(vectors, pvfl, vl, zero, env);
         }
       }
@@ -65,10 +64,8 @@ void GMVectors_initialize_pad(GMVectors* vectors,
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
       GMFloat zero = 0;
-      int vl = 0;
-      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-        int fl = 0;
-        for (fl = fl_min; fl < nfl; ++fl) {
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        for (int fl = fl_min; fl < nfl; ++fl) {
           GMVectors_float_set(vectors, fl, vl, zero, env);
         }
       }
@@ -79,10 +76,9 @@ void GMVectors_initialize_pad(GMVectors* vectors,
     /*--------------------*/
       const int pvfl_min = fl_min / vectors->num_val_per_packedval;
       GMBits2x64 zero = GMBits2x64_null();
-      int vl = 0;
-      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
-        int pvfl = 0;
-        for (pvfl=pvfl_min; pvfl<vectors->num_packedval_field_local; ++pvfl) {
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        for (int pvfl=pvfl_min; pvfl<vectors->num_packedval_field_local;
+             ++pvfl) {
           /*---Doesn't hurt to set whole words to zero here---*/
           GMVectors_bits2x64_set(vectors, pvfl, vl, zero, env);
         }
@@ -131,7 +127,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
     ? "Vector count too large to store in 32-bit int; please modify code." : 0);
 
   int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+  mpi_code *= 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
                            1, MPI_INT, MPI_SUM, GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);

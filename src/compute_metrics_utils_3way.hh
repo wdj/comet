@@ -27,7 +27,7 @@ typedef struct {
   GMMirroredPointer matM_ij_buf;
   GMMirroredPointer matM_jk_buf;
   GMMirroredPointer matM_kik_buf;
-  GMMirroredPointer matV_buf[2];
+  GMMirroredPointer matX_buf[2];
   GMMirroredPointer matB_buf[2];
 } GMComputeNumerators3Way;
 

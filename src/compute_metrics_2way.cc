@@ -26,11 +26,10 @@ extern "C" {
 void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(env != NULL);
-
+  GMAssertAlways(metrics && vectors && env);
   GMAssertAlways(!GMEnv_all2all(env));
+
+  const bool is_one_field_proc = GMEnv_num_proc_field(env) == 1;
 
   /*---------------*/
   /*---Denominator---*/
@@ -39,7 +38,6 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   GMVectorSums vector_sums = GMVectorSums_null();
   GMVectorSums_create(&vector_sums, vectors, env);
 
-  /* .02 / 1.56 */
   GMVectorSums_compute(&vector_sums, vectors, env);
 
   /*---------------*/
@@ -60,12 +58,12 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
       gm_linalg_malloc(nvl * (size_t)nvl, env);
 
   GMMirroredPointer metrics_buf_tmp;
-  if (GMEnv_num_proc_field(env) > 1) {
+  if (! is_one_field_proc) {
     metrics_buf_tmp = gm_linalg_malloc(nvl * (size_t)nvl, env);
   }
 
   GMMirroredPointer* metrics_buf_local =
-      GMEnv_num_proc_field(env) > 1 ? &metrics_buf_tmp : &metrics_buf;
+      is_one_field_proc ? &metrics_buf : &metrics_buf_tmp;
 
   /*---Copy in vectors---*/
 
@@ -90,7 +88,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   /*---Do reduction across field procs if needed---*/
 
-  if (GMEnv_num_proc_field(env) > 1) {
+  if (! is_one_field_proc) {
     gm_reduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
   }
 
@@ -109,7 +107,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   gm_linalg_free(&vectors_buf, env);
   gm_linalg_free(&metrics_buf, env);
-  if (GMEnv_num_proc_field(env) > 1) {
+  if (! is_one_field_proc) {
     gm_linalg_free(&metrics_buf_tmp, env);
   }
 
@@ -121,20 +119,18 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(env != NULL);
-
+  GMAssertAlways(metrics && vectors && env);
   GMAssertAlways(GMEnv_all2all(env));
 
   /*---Initializations---*/
+
+  const bool is_one_field_proc = GMEnv_num_proc_field(env) == 1;
 
   const int num_block = GMEnv_num_block_vector(env);
 
   const int nvl = vectors->num_vector_local;
   const int npvfl = vectors->num_packedval_field_local;
 
-  int i = 0;
   const int i_block = GMEnv_proc_num_vector_i(env);
 
   GMVectorSums vector_sums_onproc = GMVectorSums_null();
@@ -149,7 +145,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   /*---Create double buffer of vectors objects for send/recv---*/
 
   GMVectors vectors_01[2];
-  for (i = 0; i < 2; ++i) {
+  for (int i = 0; i < 2; ++i) {
     GMVectors_create_with_buf(&vectors_01[i], GMEnv_data_type_vectors(env),
                      vectors->num_field, vectors->num_field_active,
                      nvl, env);
@@ -162,7 +158,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMMirroredPointer metrics_buf_01[2];
   GMMirroredPointer vectors_buf = GMMirroredPointer_null();
   GMMirroredPointer metrics_buf_tmp = GMMirroredPointer_null();
-  for (i = 0; i < 2; ++i) {
+  for (int i = 0; i < 2; ++i) {
     metrics_buf_01[i] = gm_linalg_malloc(nvl * (size_t)nvl, env);
   }
   vectors_buf = gm_linalg_malloc(nvl * (size_t)npvfl, env);
@@ -223,8 +219,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   const int num_step = gm_ceil_i(num_diag_computed, num_proc_r);
 
-  int step_num = 0;
-
   typedef struct {
     GMVectors* vectors_right;
     GMMirroredPointer* vectors_right_buf;
@@ -244,7 +238,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   LoopVars vars_next = {0};
 
   /*========================================*/
-  for (step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num) {
+  for (int step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num){
   /*========================================*/
 
     vars_prev = vars;
@@ -348,10 +342,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         gm_metrics_gpu_adjust(metrics, vars_prev.metrics_buf, env);
 
         GMMirroredPointer* metrics_buf_prev_global =
-            GMEnv_num_proc_field(env) == 1 ? vars_prev.metrics_buf :
-                                             &metrics_buf_tmp;
+            is_one_field_proc ? vars_prev.metrics_buf : &metrics_buf_tmp;
 
-        if (GMEnv_num_proc_field(env) > 1) {
+        if (! is_one_field_proc) {
           gm_reduce_metrics(metrics, metrics_buf_prev_global,
                             vars_prev.metrics_buf, env);
         }
@@ -505,13 +498,13 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMVectorSums_destroy(&vector_sums_onproc, env);
   GMVectorSums_destroy(&vector_sums_offproc, env);
 
-  for (i = 0; i < 2; ++i) {
+  for (int i = 0; i < 2; ++i) {
     GMVectors_destroy(&vectors_01[i], env);
   }
 
   /*---Magma terminations---*/
 
-  for (i = 0; i < 2; ++i) {
+  for (int i = 0; i < 2; ++i) {
     gm_linalg_free(&metrics_buf_01[i], env);
   }
   gm_linalg_free(&vectors_buf, env);

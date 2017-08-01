@@ -26,10 +26,7 @@ extern "C" {
 void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(env != NULL);
-
+  GMAssertAlways(metrics && vectors && env);
   GMAssertAlways(!GMEnv_all2all(env));
 
   /*---Denominator---*/
@@ -51,15 +48,6 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   GMMirroredPointer vectors_buf =
       gm_linalg_malloc(nvl * (size_t)npvfl, env);
-
-//  GMMirroredPointer metrics_buf =
-//      gm_linalg_malloc(nvl * (size_t)nvl, env);
-
-//  GMMirroredPointer metrics_buf_tmp =
-//      gm_linalg_malloc(nvl * (size_t)nvl, env);
-
-//  GMMirroredPointer* metrics_buf_local =
-//      GMEnv_num_proc_field(env) == 1 ? &metrics_buf : &metrics_buf_tmp;
 
   /*---Copy in vectors---*/
 
@@ -86,18 +74,6 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
       section_step, env);
   gm_compute_wait(env);
 
-  /*---Copy result from GPU---*/
-
-//  gm_get_metrics_start(metrics, metrics_buf_local, env);
-//  gm_get_metrics_wait(metrics, metrics_buf_local, env);
-  //gm_metrics_gpu_adjust(metrics, metrics_buf_local, env);
-
-  /*---Do reduction across field procs if needed---*/
-
-//  if (GMEnv_num_proc_field(env) > 1) {
-//    gm_reduce_metrics(metrics, &metrics_buf, metrics_buf_local, env);
-//  }
-
   /*---------------*/
   /*---Free memory---*/
   /*---------------*/
@@ -107,8 +83,6 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   GMVectorSums_destroy(&vector_sums, env);
 
   gm_linalg_free(&vectors_buf, env);
-//  gm_linalg_free(&metrics_buf, env);
-//  gm_linalg_free(&metrics_buf_tmp, env);
 
   gm_linalg_finalize(env);
 }
@@ -118,9 +92,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(metrics && vectors && env);
   GMAssertAlways(GMEnv_all2all(env));
 
   /*---Initializations---*/
@@ -252,8 +224,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   gm_set_vectors_start(vectors_i, vectors_i_buf, env);
   gm_set_vectors_wait(env);
 
-  int section_step = 0;
-  for (section_step=0; section_step<GMEnv_num_section_steps(env, 1);
+  for (int section_step=0; section_step<GMEnv_num_section_steps(env, 1);
        ++section_step) {
     if (gm_proc_r_active(section_block_num, env)) {
 
@@ -290,10 +261,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Part 2 Computation: triangular prisms---*/
   /*------------------------*/
 
-  for (section_step=0; section_step<GMEnv_num_section_steps(env, 2);
+  for (int section_step=0; section_step<GMEnv_num_section_steps(env, 2);
        ++section_step) {
-    int j_i_offset = 0;
-    for (j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
+    for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
 
       const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
 
@@ -366,10 +336,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   int k_block_currently_resident = -1;
 
-  for (section_step=0; section_step<GMEnv_num_section_steps(env, 3);
+  for (int section_step=0; section_step<GMEnv_num_section_steps(env, 3);
        ++section_step) {
-    int k_i_offset = 0;
-    for (k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
+    for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
       const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
 
       const int proc_send_k = gm_mod_i(proc_num_ir - k_i_offset*num_proc_r,
@@ -377,8 +346,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       const int proc_recv_k = gm_mod_i(proc_num_ir + k_i_offset*num_proc_r,
                                        num_proc_ir);
 
-      int j_i_offset = 0;
-      for (j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
+      for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
 
         const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
 

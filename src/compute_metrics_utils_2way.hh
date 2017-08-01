@@ -24,10 +24,10 @@ extern "C" {
 
 void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       GMVectors* vectors_right,
-                                      GMMetrics* numerators,
+                                      GMMetrics* metrics,
                                       GMMirroredPointer* vectors_left_buf,
                                       GMMirroredPointer* vectors_right_buf,
-                                      GMMirroredPointer* numerators_buf,
+                                      GMMirroredPointer* metrics_buf,
                                       int j_proc,
                                       _Bool compute_triang_only,
                                       GMEnv* env);

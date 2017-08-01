@@ -618,7 +618,7 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
   }
 
   int mpi_code = 0;
-  mpi_code = mpi_code * 1; /*---Avoid unused variable warning---*/
+  mpi_code *= 1; /*---Avoid unused variable warning---*/
 
   mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
