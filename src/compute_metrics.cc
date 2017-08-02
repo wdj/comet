@@ -42,48 +42,6 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
           GM_NUM_METRIC_TYPE * (GMEnv_compute_method(env) +
                                 GM_NUM_COMPUTE_METHOD * (GMEnv_num_way(env)))) {
     /*====================*/
-    /*---Sorenson---*/
-    /*====================*/
-
-    case GM_METRIC_TYPE_SORENSON +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (2)):
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-      break;
-
-    case GM_METRIC_TYPE_SORENSON +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
-                            GM_NUM_COMPUTE_METHOD * (2)):
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-      break;
-
-    case GM_METRIC_TYPE_SORENSON +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
-                            GM_NUM_COMPUTE_METHOD * (2)):
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-      break;
-
-    /*--------------------*/
-
-    case GM_METRIC_TYPE_SORENSON +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (3)):
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-      break;
-
-    case GM_METRIC_TYPE_SORENSON +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
-                            GM_NUM_COMPUTE_METHOD * (3)):
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-      break;
-
-    case GM_METRIC_TYPE_SORENSON +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
-                            GM_NUM_COMPUTE_METHOD * (3)):
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-      break;
-
-    /*====================*/
     /*---Czekanowski---*/
     /*====================*/
 
@@ -218,7 +176,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     /*====================*/
 
     default:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
   } // switch
 
   // Stop timer.

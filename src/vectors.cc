@@ -48,19 +48,6 @@ void GMVectors_initialize_pad(GMVectors* vectors,
 
   switch (vectors->data_type_id) {
     /*--------------------*/
-    case GM_DATA_TYPE_BITS1: {
-    /*--------------------*/
-      //---(design is not complete)
-      const int pvfl_min = fl_min / vectors->num_val_per_packedval;
-      GMBits1x64 zero = GMBits1x64_null();
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
-        for (int pvfl=pvfl_min; pvfl<vectors->num_packedval_field_local;
-             ++pvfl) {
-          GMVectors_bits1x64_set(vectors, pvfl, vl, zero, env);
-        }
-      }
-    } break;
-    /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
       GMFloat zero = 0;
@@ -86,7 +73,7 @@ void GMVectors_initialize_pad(GMVectors* vectors,
     } break;
     /*--------------------*/
     default:
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -140,12 +127,6 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   switch (vectors->data_type_id) {
     /*--------------------*/
-    case GM_DATA_TYPE_BITS1: {
-      //---(design is not complete)
-      vectors->num_bits_per_val = 1;
-      vectors->num_bits_per_packedval = bits_per_byte * sizeof(GMBits1x64);
-    } break;
-    /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
       vectors->num_bits_per_val = bits_per_byte * sizeof(GMFloat);
       vectors->num_bits_per_packedval = bits_per_byte * sizeof(GMFloat);
@@ -163,7 +144,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
     } break;
     /*--------------------*/
     default:
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(false ? "Invalid data type." : 0);
   } /*---switch---*/
 
   vectors->num_val_per_packedval = vectors->num_bits_per_packedval /
@@ -218,7 +199,7 @@ void GMVectors_create(GMVectors* vectors,
     return;
   }
 
-  vectors->has_buf = GM_BOOL_FALSE;
+  vectors->has_buf = false;
 
   GMVectors_create_imp_(vectors, data_type_id, num_field, num_field_active,
     num_vector_local, env);

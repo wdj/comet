@@ -62,8 +62,8 @@ Options:
         (Required) the number of vectors to be processed on each processor
 
     --metric_type <value>
-        metric type to compute (sorenson=Sorenson (not implemented),
-        czekanowski=Czekanowski (default), ccc=CCC)
+        metric type to compute (czekanowski=Czekanowski (default),
+        ccc=CCC)
 
     ---ccc_param <value>
         fixed coefficient value used to calculate the CCC metric

@@ -29,7 +29,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       GMMirroredPointer* vectors_right_buf,
                                       GMMirroredPointer* metrics_buf,
                                       int j_proc,
-                                      _Bool compute_triang_only,
+                                      bool compute_triang_only,
                                       GMEnv* env);
 
 void gm_compute_2way_combine(GMMetrics* metrics,
@@ -37,7 +37,7 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                              const GMVectorSums* vector_sums_left,
                              const GMVectorSums* vector_sums_right,
                              int j_proc,
-                             _Bool do_compute_triang_only,
+                             bool do_compute_triang_only,
                              GMEnv* env);
 
 /*===========================================================================*/

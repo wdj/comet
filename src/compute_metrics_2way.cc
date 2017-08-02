@@ -77,7 +77,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
                                    &vectors_buf, metrics_buf_local,
                                    GMEnv_proc_num_vector_i(env),
-                                   GM_BOOL_TRUE, env);
+                                   true, env);
   gm_compute_wait(env);
 
   /*---Copy result from GPU---*/
@@ -97,7 +97,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   /*---------------*/
 
   gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
-                          GMEnv_proc_num_vector_i(env), GM_BOOL_TRUE, env);
+                          GMEnv_proc_num_vector_i(env), true, env);
 
   /*---------------*/
   /*---Free memory---*/
@@ -223,10 +223,10 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     GMVectors* vectors_right;
     GMMirroredPointer* vectors_right_buf;
     GMMirroredPointer* metrics_buf;
-    _Bool is_compute_step;
-    _Bool is_first_compute_step;
-    _Bool do_compute_block;
-    _Bool is_main_diag;
+    bool is_compute_step;
+    bool is_first_compute_step;
+    bool do_compute_block;
+    bool is_main_diag;
     int step_num;
     int index_01;
     int j_i_offset;
@@ -294,7 +294,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     const int proc_recv = gm_mod_i(proc_num_ir
         + vars_next.j_i_offset*num_proc_r, num_proc_ir);
 
-    const _Bool comm_with_self = vars_next.is_main_diag;
+    const bool comm_with_self = vars_next.is_main_diag;
 
     /*---Initiate sends/recvs for vecs needed on next step---*/
 

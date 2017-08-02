@@ -216,8 +216,8 @@ int gm_num_seminibbles_pad(GMMetrics* metrics,
   //const int num_packedval_field_local = (nfl + 64 - 1) / 64;
   //const int num_field_calculated = num_packedval_field_local * 64;
 
-  const _Bool final_proc = GMEnv_proc_num_field(env) ==
-                           GMEnv_num_proc_field(env)-1;
+  const bool final_proc = GMEnv_proc_num_field(env) ==
+                          GMEnv_num_proc_field(env)-1;
 
   const int num_field_active_local = final_proc
     ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
@@ -289,16 +289,7 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
   }
 
   switch (GMEnv_metric_type(env)) {
-    /*----------------------------------------*/
-    case GM_METRIC_TYPE_SORENSON: {
-      /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-    } break;
-    /*----------------------------------------*/
     case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*----------------------------------------*/
       /*---Copy vectors into GPU buffers if needed---*/
       const size_t nfl = vectors->num_field_local;
 #pragma omp parallel for collapse(2)
@@ -309,9 +300,7 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
         }
       }
     } break;
-    /*----------------------------------------*/
     case GM_METRIC_TYPE_CCC: {
-      /*----------------------------------------*/
       /*---Copy vectors into GPU buffers if needed---*/
       const size_t npvfl = vectors->num_packedval_field_local;
 #pragma omp parallel for collapse(2)
@@ -322,11 +311,8 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
         }
       }
     } break;
-    /*----------------------------------------*/
     default:
-      /*----------------------------------------*/
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 

@@ -37,8 +37,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsist(env, errno == 0 && num_field >= 0
                     && "Invalid setting for num_field.");
       do_->num_field_active = num_field;
-      do_->num_field_active_initialized = GM_BOOL_TRUE;
-      do_->num_field_local_initialized = GM_BOOL_FALSE;
+      do_->num_field_active_initialized = true;
+      do_->num_field_local_initialized = false;
     /*----------*/
     } else if (strcmp(argv[i], "--num_field_local") == 0) {
     /*----------*/
@@ -49,8 +49,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
                     (long)(int)num_field_local == num_field_local &&
                     "Invalid setting for num_field_local.");
       do_->num_field_local = num_field_local;
-      do_->num_field_local_initialized = GM_BOOL_TRUE;
-      do_->num_field_active_initialized = GM_BOOL_FALSE;
+      do_->num_field_local_initialized = true;
+      do_->num_field_active_initialized = false;
     /*----------*/
     } else if (strcmp(argv[i], "--num_vector") == 0) {
     /*----------*/
@@ -60,8 +60,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsist(env, errno == 0 && num_vector >= 0
                     && "Invalid setting for num_vector.");
       do_->num_vector_active = num_vector;
-      do_->num_vector_active_initialized = GM_BOOL_TRUE;
-      do_->num_vector_local_initialized = GM_BOOL_FALSE;
+      do_->num_vector_active_initialized = true;
+      do_->num_vector_local_initialized = false;
     /*----------*/
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
     /*----------*/
@@ -72,8 +72,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
                     (long)(int)num_vector_local == num_vector_local &&
                     "Invalid setting for num_vector_local.");
       do_->num_vector_local = num_vector_local;
-      do_->num_vector_local_initialized = GM_BOOL_TRUE;
-      do_->num_vector_active_initialized = GM_BOOL_FALSE;
+      do_->num_vector_local_initialized = true;
+      do_->num_vector_active_initialized = false;
     /*----------*/
     } else if (strcmp(argv[i], "--verbosity") == 0) {
     /*----------*/
@@ -89,11 +89,11 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i;
       GMInsist(env, i < argc ? "Missing value for checksum." : 0);
       if (strcmp(argv[i], "yes") == 0) {
-        do_->checksum = GM_BOOL_TRUE;
+        do_->checksum = true;
       } else if (strcmp(argv[i], "no") == 0) {
-        do_->checksum = GM_BOOL_FALSE;
+        do_->checksum = false;
       } else {
-        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for checksum." : 0);
+        GMInsist(env, false ? "Invalid setting for checksum." : 0);
       }
     /*----------*/
     } else if (strcmp(argv[i], "--num_stage") == 0) {
@@ -181,8 +181,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       } else if (strcmp(argv[i], "analytic") == 0) {
         GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_ANALYTIC);
       } else {
-        GMInsist(env,
-                 GM_BOOL_FALSE ? "Invalid setting for problem_type." : 0);
+        GMInsist(env, false ? "Invalid setting for problem_type." : 0);
       }
     /*----------*/
     } else if (strcmp(argv[i], "--threshold") == 0) {
@@ -217,7 +216,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       if (GMEnv_proc_num(env) == 0) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
       }
-      GMInsist(env, GM_BOOL_FALSE ? "Error: argument not recognized." : 0);
+      GMInsist(env, false ? "Error: argument not recognized." : 0);
     /*----------*/
     } /*---if/else---*/
 
@@ -254,11 +253,6 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   }
 
   switch (GMEnv_data_type_vectors(env)) {
-    /*--------------------*/
-    case GM_DATA_TYPE_BITS1: {
-    /*--------------------*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented; design not complete." : 0);
-    } break;
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -353,7 +347,7 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -414,11 +408,6 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
                            (nv+value_min) : value_limit;
 
   switch (GMEnv_data_type_vectors(env)) {
-    /*--------------------*/
-    case GM_DATA_TYPE_BITS1: {
-    /*--------------------*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented; design not complete." : 0);
-    } break;
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -513,7 +502,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -530,11 +519,6 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   }
 
   switch (GMEnv_data_type_vectors(env)) {
-    /*--------------------*/
-    case GM_DATA_TYPE_BITS1: {
-    /*--------------------*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented; design not complete." : 0);
-    } break;
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -572,12 +556,12 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
-      GMInsist(env, GM_BOOL_FALSE ? "Not yet implemented." : 0);
+      GMInsist(env, false ? "Not yet implemented." : 0);
     } break;
     /*--------------------*/
     default:
     /*--------------------*/
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -632,11 +616,6 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
   size_t num_misses = 0;
 
   switch (GMEnv_data_type_metrics(env)) {
-    /*--------------------*/
-    case GM_DATA_TYPE_BITS1: {
-    /*--------------------*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-    } break;
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -910,7 +889,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     } break;
     /*--------------------*/
     default:
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(false ? "Invalid data type." : 0);
   } /*---switch---*/
   do_->num_misses += num_misses;
 }
@@ -1299,7 +1278,7 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
     } break;
     /*--------------------*/
     default:
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -1378,10 +1357,10 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   /*---Parse remaining unprocessed arguments---*/
 
   DriverOptions do_ = {0};
-  do_.num_field_local_initialized = GM_BOOL_FALSE;
-  do_.num_field_active_initialized = GM_BOOL_FALSE;
-  do_.num_vector_local_initialized = GM_BOOL_FALSE;
-  do_.num_vector_active_initialized = GM_BOOL_FALSE;
+  do_.num_field_local_initialized = false;
+  do_.num_field_active_initialized = false;
+  do_.num_vector_local_initialized = false;
+  do_.num_vector_active_initialized = false;
   do_.verbosity = 1;
   do_.stage_min_1based = 1;
   do_.stage_max_1based = env.num_stage;

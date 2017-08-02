@@ -25,10 +25,10 @@ typedef struct {
   size_t num_vector;
   size_t num_field_active;
   size_t num_vector_active;
-  _Bool num_field_local_initialized;
-  _Bool num_field_active_initialized;
-  _Bool num_vector_local_initialized;
-  _Bool num_vector_active_initialized;
+  bool num_field_local_initialized;
+  bool num_field_active_initialized;
+  bool num_vector_local_initialized;
+  bool num_vector_active_initialized;
   int verbosity;
   int stage_min_1based;
   int stage_max_1based;
@@ -39,7 +39,7 @@ typedef struct {
   int problem_type;
   size_t num_misses;
   double threshold;
-  _Bool checksum;
+  bool checksum;
 } DriverOptions;
 
 enum {

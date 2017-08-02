@@ -49,8 +49,8 @@ static int gm_diag_computed_this_row_max(GMEnv* env) {
   const int num_block = GMEnv_num_block_vector(env);
   const int i_block = GMEnv_proc_num_vector_i(env);
 
-  const _Bool is_row_short_by_1 = num_block % 2 == 0 && 2*i_block >= num_block;
-  const _Bool is_last_phase = env->phase_num == env->num_phase - 1;
+  const bool is_row_short_by_1 = num_block % 2 == 0 && 2*i_block >= num_block;
+  const bool is_last_phase = env->phase_num == env->num_phase - 1;
 
   const int diag_max = gm_diag_computed_max(env);
 
@@ -80,7 +80,7 @@ static size_t gm_triang_(int i) {
 /*---------------------------------------------------------------------------*/
 /*---Helper: is this (section_)block_num to be processed by this proc_r---*/
 
-static _Bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
+static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
   GMAssert(env);
   GMAssert(section_block_num >= 0);
   return section_block_num % GMEnv_num_proc_repl(env)

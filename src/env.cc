@@ -98,10 +98,10 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
 
   argv[0] = &argstring[0];
   *argc = 1;
-  _Bool is_delim_prev = GM_BOOL_TRUE;
+  bool is_delim_prev = true;
   int i = 0;
   for (i = 0; i < (int)len; ++i) {
-    const _Bool is_delim = argstring[i] == ' ' || argstring[i] == '\t';
+    const bool is_delim = argstring[i] == ' ' || argstring[i] == '\t';
     if (is_delim) {
       argstring[i] = 0;
     }
@@ -118,7 +118,7 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
 
 void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
                         char** argv, const char* const description,
-                        _Bool make_comms, int num_proc, int proc_num) {
+                        bool make_comms, int num_proc, int proc_num) {
   GMAssertAlways(env != NULL);
 
   *env = GMEnv_null();
@@ -126,15 +126,15 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
   /*---Set default values---*/
   env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
   env->num_way_ = GM_NUM_WAY_2;
-  env->all2all_ = GM_BOOL_FALSE;
-  env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
-  env->are_mpi_comms_initialized_ = GM_BOOL_FALSE;
+  env->all2all_ = false;
+  env->are_cuda_streams_initialized_ = false;
+  env->are_mpi_comms_initialized_ = false;
   GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
   env->num_stage = 1;
   env->stage_num = 0;
   env->num_phase = 1;
   env->phase_num = 0;
-  env->sparse = GM_BOOL_FALSE;
+  env->sparse = false;
   env->ccc_param_ = ((double) 2) / ((double) 3);
 
   env->time = 0;
@@ -170,14 +170,12 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
       /*--------------------*/
       ++i;
       GMInsist(env, i < argc ? "Missing value for metric_type." : 0);
-      if (strcmp(argv[i], "sorenson") == 0) {
-        env->metric_type_ = GM_METRIC_TYPE_SORENSON;
-      } else if (strcmp(argv[i], "czekanowski") == 0) {
+      if (strcmp(argv[i], "czekanowski") == 0) {
         env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
       } else if (strcmp(argv[i], "ccc") == 0) {
         env->metric_type_ = GM_METRIC_TYPE_CCC;
       } else {
-        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for metric_type." : 0);
+        GMInsist(env, false ? "Invalid setting for metric_type." : 0);
       }
       /*--------------------*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
@@ -198,11 +196,11 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
       ++i;
       GMInsist(env, i < argc ? "Missing value for all2all." : 0);
       if (strcmp(argv[i], "yes") == 0) {
-        env->all2all_ = GM_BOOL_TRUE;
+        env->all2all_ = true;
       } else if (strcmp(argv[i], "no") == 0) {
-        env->all2all_ = GM_BOOL_FALSE;
+        env->all2all_ = false;
       } else {
-        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for all2all." : 0);
+        GMInsist(env, false ? "Invalid setting for all2all." : 0);
       }
       /*--------------------*/
     } else if (strcmp(argv[i], "--compute_method") == 0) {
@@ -216,8 +214,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
       } else if (strcmp(argv[i], "REF") == 0) {
         GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_REF);
       } else {
-        GMInsist(env,
-                 GM_BOOL_FALSE ? "Invalid setting for compute_method." : 0);
+        GMInsist(env, false ? "Invalid setting for compute_method." : 0);
       }
       /*--------------------*/
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
@@ -271,11 +268,11 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
       ++i;
       GMInsist(env, i < argc ? "Missing value for sparse." : 0);
       if (strcmp(argv[i], "yes") == 0) {
-        env->sparse = GM_BOOL_TRUE;
+        env->sparse = true;
       } else if (strcmp(argv[i], "no") == 0) {
-        env->sparse = GM_BOOL_FALSE;
+        env->sparse = false;
       } else {
-        GMInsist(env, GM_BOOL_FALSE ? "Invalid setting for sparse." : 0);
+        GMInsist(env, false ? "Invalid setting for sparse." : 0);
       }
       /*--------------------*/
     } /*---if/else---*/
@@ -365,7 +362,7 @@ void GMEnv_initialize_streams(GMEnv* const env) {
   cudaStreamCreate(&env->stream_fromgpu_);
   GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
-  env->are_cuda_streams_initialized_ = GM_BOOL_TRUE;
+  env->are_cuda_streams_initialized_ = true;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -386,7 +383,7 @@ void GMEnv_terminate_streams(GMEnv* const env) {
   cudaStreamDestroy(env->stream_fromgpu_);
   GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 
-  env->are_cuda_streams_initialized_ = GM_BOOL_FALSE;
+  env->are_cuda_streams_initialized_ = false;
 }
 
 /*===========================================================================*/
@@ -479,14 +476,12 @@ int GMEnv_data_type_vectors(const GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
-    case GM_METRIC_TYPE_SORENSON:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
     case GM_METRIC_TYPE_CZEKANOWSKI:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
       return GM_DATA_TYPE_BITS2;
   }
-  GMAssertAlways(GM_BOOL_FALSE ? "Invalid metric type." : 0);
+  GMAssertAlways(false ? "Invalid metric type." : 0);
   return 0;
 }
 
@@ -496,15 +491,13 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
-    case GM_METRIC_TYPE_SORENSON:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
     case GM_METRIC_TYPE_CZEKANOWSKI:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
       return env->num_way_ == GM_NUM_WAY_2 ? GM_DATA_TYPE_TALLY2X2
                                            : GM_DATA_TYPE_TALLY4X2;
   }
-  GMAssertAlways(GM_BOOL_FALSE ? "Invalid metric type." : 0);
+  GMAssertAlways(false ? "Invalid metric type." : 0);
   return 0;
 }
 
@@ -628,16 +621,16 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
 /*===========================================================================*/
 /*---Misc.---*/
 
-_Bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
+bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
   GMAssertAlways(env);
 
-  _Bool result = GM_BOOL_TRUE;
+  bool result = true;
 
   /*---NOTE: this read of the last error is a destructive read---*/
   cudaError_t error = cudaGetLastError();
 
   if (error != cudaSuccess) {
-    result = GM_BOOL_FALSE;
+    result = false;
     printf("CUDA error detected: %s\n", cudaGetErrorString(error));
   }
 
@@ -696,11 +689,11 @@ void GMFloat_check(GMFloat* const a, size_t n) {
   GMAssertAlways(a != NULL);
   GMAssertAlways(n+1 >= 1);
 #ifdef GM_ASSERTIONS_ON
-  _Bool no_nans_found = GM_BOOL_TRUE;
+  bool no_nans_found = true;
   size_t i = 0;
   for (i=0; i<n; ++i) {
     if (a[i] != a[i]) {
-      no_nans_found = GM_BOOL_FALSE;
+      no_nans_found = false;
     }
   }
   GMAssertAlways(no_nans_found);
@@ -713,9 +706,7 @@ int gm_mpi_type(const GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   /* clang-format off */
-  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON ?
-                         GM_MPI_FLOAT : /*---NOTE: not fully designed---*/
-                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
                          GM_MPI_FLOAT :
                        GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
                          MPI_DOUBLE_COMPLEX :

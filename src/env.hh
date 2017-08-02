@@ -64,12 +64,6 @@ void gm_insist(void const * const env,
 
 /*---Boolean type---*/
 
-#ifdef __cplusplus
-typedef bool _Bool;
-#endif
-
-enum { GM_BOOL_TRUE = (1 == 1), GM_BOOL_FALSE = (1 == 0) };
-
 typedef unsigned int GMUInt32;
 
 typedef signed long long int GMInt64;
@@ -91,28 +85,6 @@ static void gm_check_type_sizes() {
 }
 
 /*===========================================================================*/
-/*---Types for Sorenson metric---*/
-
-//---TODO: complete the design for Sorenson metric.
-
-/*---For Vectors: single 1-bit value: use unsigned int---*/
-typedef unsigned int GMBits1;
-
-typedef unsigned long long int GMBits1x64;
-
-/*---Return null value; also use static asserts to check sizes---*/
-static GMBits1x64 GMBits1x64_null() {
-  GMStaticAssert(sizeof(GMBits1) * 8 >= 1);
-  GMStaticAssert(sizeof(GMBits1x64) == 8);
-  GMStaticAssert(sizeof(GMUInt64) == 8);
-  GMStaticAssert(sizeof(GMUInt64) == sizeof(GMBits1x64)); /*---for Magma---*/
-
-  GMBits1x64 value;
-  value = 0;
-  return value;
-}
-
-/*===========================================================================*/
 /*---Types for Czekanowski metric---*/
 
 //---TODO: revise nomenclature to be different from "GMFloat2" ...
@@ -120,7 +92,7 @@ static GMBits1x64 GMBits1x64_null() {
 #ifdef FP_PRECISION_SINGLE
   typedef float GMFloat;
   enum { GM_MPI_FLOAT = MPI_FLOAT };
-  enum { GM_FP_PRECISION_DOUBLE = GM_BOOL_FALSE };
+  enum { GM_FP_PRECISION_DOUBLE = false };
 #ifdef FP_PRECISION_DOUBLE
 #error Cannot set both FP_PRECISION_SINGLE and FP_PRECISION_DOUBLE.
 #endif
@@ -128,7 +100,7 @@ static GMBits1x64 GMBits1x64_null() {
 #ifdef FP_PRECISION_DOUBLE
   typedef double GMFloat;
   enum { GM_MPI_FLOAT = MPI_DOUBLE };
-  enum { GM_FP_PRECISION_DOUBLE = GM_BOOL_TRUE };
+  enum { GM_FP_PRECISION_DOUBLE = true };
 #else
 #error Must set FP_PRECISION_SINGLE or FP_PRECISION_DOUBLE.
 #endif
@@ -315,7 +287,7 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
 
 enum {
   GM_DATA_TYPE_FLOAT = 1,
-  GM_DATA_TYPE_BITS1 = 2,
+  GM_DATA_TYPE_BITS1 = 2, // Not implemented
   GM_DATA_TYPE_UINT64 = 3,  //---(design of this entry is not complete)
   GM_DATA_TYPE_BITS2 = 4,
   GM_DATA_TYPE_TALLY2X2 = 5,
@@ -350,12 +322,12 @@ enum { GM_CHECKSUM_SIZE = 3 };
 
 typedef struct {
   size_t data[GM_CHECKSUM_SIZE];
-  _Bool is_overflowed;
+  bool is_overflowed;
   double value_max;
   GMMultiprecInt sum;
   double sum_d;
-  _Bool is_started;
-  _Bool computing_checksum;
+  bool is_started;
+  bool computing_checksum;
 } GMChecksum;
 
 /*---------------------------------------------------------------------------*/
@@ -365,22 +337,22 @@ static GMChecksum GMChecksum_null() {
   for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result.data[i] = 0;
   }
-  result.is_overflowed = GM_BOOL_FALSE;
+  result.is_overflowed = false;
   result.value_max = -DBL_MAX;
   GMMultiprecInt sum = {0};
   result.sum = sum;
   result.sum_d = 0;
-  result.computing_checksum = GM_BOOL_TRUE;
+  result.computing_checksum = true;
   return result;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static _Bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
+static bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
   if ((!c1.computing_checksum) || (!c2.computing_checksum)) {
-    return GM_BOOL_TRUE;
+    return true;
   }
-  _Bool result = GM_BOOL_TRUE;
+  bool result = true;
   for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
     result = result && c1.data[i] == c2.data[i];
   }
@@ -396,14 +368,14 @@ typedef struct {
   /*---Settings---*/
   int metric_type_;
   int num_way_;
-  _Bool all2all_;
+  bool all2all_;
   int compute_method_;
   int num_stage;
   int stage_num;
   int num_phase;
   int phase_num;
   double ccc_param_;
-  _Bool sparse;
+  bool sparse;
   /*---Counters---*/
   double time;
   double compares;
@@ -414,7 +386,7 @@ typedef struct {
   size_t gpu_mem;
   size_t gpu_mem_max;
   /*---MPI---*/
-  _Bool make_comms_;
+  bool make_comms_;
   int mpi_comm_base_;
   int mpi_comm_;
   int mpi_comm_vector_;
@@ -426,7 +398,7 @@ typedef struct {
   int num_proc_repl_;
   int num_proc_vector_i_;
   int num_proc_vector_total_;
-  _Bool are_mpi_comms_initialized_;
+  bool are_mpi_comms_initialized_;
   /*---*/
   int proc_num_base_;
   int proc_num_;
@@ -435,18 +407,18 @@ typedef struct {
   int proc_num_vector_i_;
   int proc_num_vector_;
   /*---*/
-  _Bool is_proc_active_;
+  bool is_proc_active_;
   /*---CUDA---*/
   cudaStream_t stream_compute_;
   cudaStream_t stream_togpu_;
   cudaStream_t stream_fromgpu_;
-  _Bool are_cuda_streams_initialized_;
+  bool are_cuda_streams_initialized_;
   /*---OTHER---*/
   const char* description;
 } GMEnv;
 
 enum {
-  GM_METRIC_TYPE_SORENSON = 0,
+  GM_METRIC_TYPE_SORENSON = 0, // Not implemented
   GM_METRIC_TYPE_CZEKANOWSKI = 1,
   GM_METRIC_TYPE_CCC = 2,
   GM_NUM_METRIC_TYPE = 3
@@ -520,7 +492,7 @@ static int GMEnv_num_way(const GMEnv* const env) {
 
 /*---------------------------------------------------------------------------*/
 
-static _Bool GMEnv_all2all(const GMEnv* const env) {
+static bool GMEnv_all2all(const GMEnv* const env) {
   GMAssert(env != NULL);
   return env->all2all_;
 }
@@ -819,7 +791,7 @@ static void GMFloat_sort_3(GMFloat* const __restrict__ min,
 /*===========================================================================*/
 /*---Misc.---*/
 
-_Bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
+bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
 
 /*---------------------------------------------------------------------------*/
 

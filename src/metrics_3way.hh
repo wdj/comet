@@ -18,13 +18,13 @@ extern "C" {
 /*===========================================================================*/
 /*---Helper functions for 3-way case---*/
 
-static _Bool gm_is_part1(int i_block, int j_block, int k_block) {
+static bool gm_is_part1(int i_block, int j_block, int k_block) {
   return i_block == j_block && j_block == k_block;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static _Bool gm_is_part3(int i_block, int j_block, int k_block) {
+static bool gm_is_part3(int i_block, int j_block, int k_block) {
   return i_block != j_block && j_block != k_block && i_block != k_block;
 }
 
@@ -93,12 +93,12 @@ static int gm_J_hi(int section_num, int nvl, int part_num, GMEnv* env) {
 /*---GMSectionInfo---*/
 
 typedef struct {
-  _Bool is_part1;
-  _Bool is_part2;
-  _Bool is_part3;
-  _Bool sax0;
-  _Bool sax1;
-  _Bool sax2;
+  bool is_part1;
+  bool is_part2;
+  bool is_part3;
+  bool sax0;
+  bool sax1;
+  bool sax2;
   int part_num;
   int section_axis;
   int section_num;
@@ -598,10 +598,10 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  const _Bool is_part3 = si->is_part3;
-  const _Bool sax0 = si->section_axis == 0;
-  const _Bool sax1 = si->section_axis == 1;
-  //const _Bool sax2 = si->section_axis == 2;
+  const bool is_part3 = si->is_part3;
+  const bool sax0 = si->section_axis == 0;
+  const bool sax1 = si->section_axis == 1;
+  //const bool sax2 = si->section_axis == 2;
 
   /* clang-format off */
   const int i = !is_part3 ?   I :
@@ -638,7 +638,7 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
 /*---------------------------------------------------------------------------*/
 
 typedef struct {
-  _Bool is_initialized;
+  bool is_initialized;
   int I;
   int K;
   size_t index;
@@ -685,7 +685,7 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_cache(
   index_cache->I = I;
   index_cache->K = K;
   index_cache->index = index;
-  index_cache->is_initialized = GM_BOOL_TRUE;
+  index_cache->is_initialized = true;
 
   return index;
 }

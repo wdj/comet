@@ -186,7 +186,7 @@ void gm_compute_czekanowski_numerators_3way_nongpu_start_(
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
-    GMAssertAlways(GM_BOOL_FALSE
+    GMAssertAlways(false
                  ? "logic error - code branch should never be executed"
                  : 0);
 
@@ -285,12 +285,12 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
             const GMBits2 vj = GMVectors_bits2_get(vectors_j, f, j, env);
             const GMBits2 vk = GMVectors_bits2_get(vectors_k, f, k, env);
 
-            const _Bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
-                                                : GM_BOOL_FALSE;
-            const _Bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
-                                                : GM_BOOL_FALSE;
-            const _Bool unknown_k = env->sparse ? vk == GM_2BIT_UNKNOWN
-                                                : GM_BOOL_FALSE;
+            const bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
+                                               : false;
+            const bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
+                                               : false;
+            const bool unknown_k = env->sparse ? vk == GM_2BIT_UNKNOWN
+                                               : false;
 
             if ((!unknown_i) && (!unknown_j) && (!unknown_k)) {
 
@@ -725,7 +725,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
     /*----------------------------------------*/
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
-    GMAssertAlways(GM_BOOL_FALSE ? "logic error; should never be executed" : 0);
+    GMAssertAlways(false ? "logic error; should never be executed" : 0);
     /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
@@ -803,7 +803,7 @@ void gm_compute_numerators_3way_gpu_form_matX_(
 
         const GMUInt64 activebits[2] = {activebits0, activebits1};
 
-        const _Bool sparse = env->sparse;
+        const bool sparse = env->sparse;
 
         for (int word = 0; word<2; ++word) {
 
@@ -890,7 +890,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
 
   GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
 
-  const _Bool is_part3 = si->is_part3;
+  const bool is_part3 = si->is_part3;
 
   const GMVectorSums* const vs_i = vector_sums_i;
   const GMVectorSums* const vs_j = vector_sums_j;
@@ -1224,7 +1224,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
     /*----------*/
   } else {
     /*----------*/
-    GMAssertAlways(GM_BOOL_FALSE);
+    GMAssertAlways(false);
     /*----------*/
   } /*---GMEnv_metric_type(env)---*/
   /*----------*/
@@ -1272,17 +1272,17 @@ void gm_compute_numerators_3way_gpu_start_(
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
-  const _Bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
-  const _Bool need_reduce = GMEnv_num_proc_field(env) > 1;
+  const bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
+  const bool need_reduce = GMEnv_num_proc_field(env) > 1;
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  const _Bool need_mat_ij = need_2way;
-  const _Bool need_mat_jk = need_2way && !si->is_part1;
-  const _Bool need_mat_kik = need_2way && si->is_part3;
+  const bool need_mat_ij = need_2way;
+  const bool need_mat_jk = need_2way && !si->is_part1;
+  const bool need_mat_kik = need_2way && si->is_part3;
 
   /*----------------------------------------*/
   /*---First get the required 2-way ij, jk, ik metrics---*/
@@ -1395,9 +1395,9 @@ void gm_compute_numerators_3way_gpu_start_(
   /*---Set up pointers to permute the access of axes for Part 3---*/
   /*---We use capitals I, J, K here to denote the PERMUTED axes---*/
 
-  const _Bool is_ijk = !si->is_part3 ? GM_BOOL_TRUE : si->sax1;
-  const _Bool is_kij = !si->is_part3 ? GM_BOOL_FALSE : si->sax0;
-  const _Bool is_jki = !si->is_part3 ? GM_BOOL_FALSE : si->sax2;
+  const bool is_ijk = !si->is_part3 ? true : si->sax1;
+  const bool is_kij = !si->is_part3 ? false : si->sax0;
+  const bool is_jki = !si->is_part3 ? false : si->sax2;
 
   /* clang-format off */
   GMMirroredPointer* const vectors_I_buf = is_ijk ? vectors_i_buf :
@@ -1442,11 +1442,11 @@ void gm_compute_numerators_3way_gpu_start_(
   const int extra_step = 1;
 
   MPI_Request mpi_requests[2];
-//  _Bool matX_h_updating[2] = {GM_BOOL_FALSE, GM_BOOL_FALSE};
-//  _Bool matX_d_updating[2] = {GM_BOOL_FALSE, GM_BOOL_FALSE};
-//  _Bool matB_h_updating[2] = {GM_BOOL_FALSE, GM_BOOL_FALSE};
-//  _Bool matB_d_updating[2] = {GM_BOOL_FALSE, GM_BOOL_FALSE};
-//  _Bool matB_ptr_h_updating[2] = {GM_BOOL_FALSE, GM_BOOL_FALSE};
+//  bool matX_h_updating[2] = {false, false};
+//  bool matX_d_updating[2] = {false, false};
+//  bool matB_h_updating[2] = {false, false};
+//  bool matB_d_updating[2] = {false, false};
+//  bool matB_ptr_h_updating[2] = {false, false};
 
   typedef struct {
     int step_num;
@@ -1456,9 +1456,9 @@ void gm_compute_numerators_3way_gpu_start_(
     int I_max;
     int K_min;
     int K_max;
-    _Bool empty;
-    _Bool is_compute_step;
-    _Bool do_compute;
+    bool empty;
+    bool is_compute_step;
+    bool do_compute;
     int index_01;
     GMMirroredPointer* matB_buf_ptr;
   } LoopVars;
@@ -1467,10 +1467,10 @@ void gm_compute_numerators_3way_gpu_start_(
   LoopVars vars_prev = {0};
   LoopVars vars_prevprev = {0};
   LoopVars vars_next = {0};
-  vars.do_compute = GM_BOOL_FALSE;
-  vars_prev.do_compute = GM_BOOL_FALSE;
-  vars_prevprev.do_compute = GM_BOOL_FALSE;
-  vars_next.do_compute = GM_BOOL_FALSE;
+  vars.do_compute = false;
+  vars_prev.do_compute = false;
+  vars_prevprev.do_compute = false;
+  vars_next.do_compute = false;
 
   for (int step_num = 0-extra_step; step_num < num_step+extra_step*2;
        ++step_num) {
@@ -1506,13 +1506,13 @@ void gm_compute_numerators_3way_gpu_start_(
     if (vars_next.do_compute) {
       /*---Populate leading columns of matX---*/
 //      GMAssertAlways(!*vars_next.matX_h_updating);
-//      *vars_next.matX_h_updating = GM_BOOL_TRUE;
+//      *vars_next.matX_h_updating = true;
       gm_compute_numerators_3way_gpu_form_matX_(vectors_i,
           vectors_I_buf, vectors_J_buf, matX_buf[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
           vars_next.I_min, vars_next.I_max, env);
       //matX_buf[vars_next.index_01]->h is now overwritten.
-//      *vars_next.matX_h_updating = GM_BOOL_FALSE;
+//      *vars_next.matX_h_updating = false;
     }
 
     //==========
@@ -1640,8 +1640,8 @@ void GMComputeNumerators3Way_create(
     GMEnv* env) {
   GMAssertAlways(this_ && env);
 
-  const _Bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
-  const _Bool need_reduce = GMEnv_num_proc_field(env) > 1;
+  const bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
+  const bool need_reduce = GMEnv_num_proc_field(env) > 1;
 
   const size_t metrics_buf_size = nvl * (size_t)nvl;
   const size_t vectors_buf_size = nvl * (size_t)npvfl;
@@ -1670,8 +1670,8 @@ void GMComputeNumerators3Way_destroy(GMComputeNumerators3Way* this_,
                                      GMEnv* env) {
   GMAssertAlways(this_ && env);
 
-  const _Bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
-  const _Bool need_reduce = GMEnv_num_proc_field(env) > 1;
+  const bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI;
+  const bool need_reduce = GMEnv_num_proc_field(env) > 1;
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
 
@@ -1751,7 +1751,7 @@ void GMComputeNumerators3Way_start(
             section_step, env);
       } break;
       default:
-        GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+        GMInsist(env, false ? "Unimplemented." : 0);
     } /*---case---*/
     /*----------------------------------------*/
   } /*---if---*/

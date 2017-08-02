@@ -43,7 +43,7 @@ typedef struct {
   int pad1;
   void* __restrict__ data;
   size_t data_size;
-  _Bool has_buf;
+  bool has_buf;
   GMMirroredPointer buf;
 } GMVectors;
 
@@ -273,100 +273,6 @@ static GMBits2x64 GMVectors_bits2x64_get(GMVectors* vectors,
 }
 
 /*===========================================================================*/
-/*---Accessors: Bits1---*/
-//---(design is not complete)
-
-static void GMVectors_bits1x64_set(GMVectors* vectors,
-                                   int packedval_field_local,
-                                   int vector_local,
-                                   GMBits1x64 value,
-                                   GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(packedval_field_local >= 0);
-  GMAssert(packedval_field_local < vectors->num_packedval_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-
-  const size_t index = packedval_field_local +
-    vectors->num_packedval_field_local*(size_t)vector_local;
-
-  ((GMBits1x64*)(vectors->data))[index] = value;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static size_t GMVectors_bit_dataval_num(GMVectors* vectors,
-                                        int field_local,
-                                        int vector_local,
-                                        GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-
-  const int field_dataval_num = field_local / (8 * sizeof(GMBits1x64));
-
-  const size_t dataval_num = field_dataval_num +
-    vectors->num_packedval_field_local*(size_t)vector_local;
-
-  return dataval_num;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static void GMVectors_bit_set(GMVectors* vectors,
-                              int field_local,
-                              int vector_local,
-                              _Bool value,
-                              GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-
-  const int bit_num = field_local % (8 * sizeof(GMBits1x64));
-
-  const size_t dataval_num =
-      GMVectors_bit_dataval_num(vectors, field_local, vector_local, env);
-
-  GMAssert(sizeof(GMUInt64) == sizeof(GMBits1x64));
-
-  const GMUInt64 mask = ((GMUInt64)1) << bit_num;
-  GMUInt64* const p = &(((GMUInt64*)(vectors->data))[dataval_num]);
-  *p = ((*p) & (~mask)) | mask;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static _Bool GMVectors_bit_get(GMVectors* const vectors,
-                               int field_local,
-                               int vector_local,
-                               GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(env);
-
-  const int bit_num = field_local % (8 * sizeof(GMBits1x64));
-
-  const size_t dataval_num =
-      GMVectors_bit_dataval_num(vectors, field_local, vector_local, env);
-
-  GMAssert(sizeof(GMUInt64) == sizeof(GMBits1x64));
-
-  _Bool result = 0;
-
-  GMUInt64* const p = &(((GMUInt64*)(vectors->data))[dataval_num]);
-  result = ((*p) >> bit_num) & ((GMUInt64)1) ? GM_BOOL_TRUE : GM_BOOL_FALSE;
-
-  return result;
-}
-
-/*===========================================================================*/
 /*---Misc---*/
 
 static size_t GMVectors_num_local_required(size_t num_vector_active,
@@ -376,8 +282,8 @@ static size_t GMVectors_num_local_required(size_t num_vector_active,
 
   const size_t nvl_1 = gm_ceil_i8(num_vector_active, num_proc_vector);
 
-  const _Bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
-                                    GMEnv_all2all(env) && num_proc_vector > 2;
+  const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
+                                   GMEnv_all2all(env) && num_proc_vector > 2;
 
   const size_t num_vector_local = need_divisible_by_6 ?
                                   gm_ceil_i8(nvl_1, 6)*6 : nvl_1;

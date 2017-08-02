@@ -40,8 +40,8 @@ typedef struct {
   GMInt64 index_offset_01_;
   GMInt64 index_offset_section_part1_[6];
   GMInt64 index_offset_section_part2_[6];
-  _Bool section_num_valid_part1_[6];
-  _Bool section_num_valid_part2_[6];
+  bool section_num_valid_part1_[6];
+  bool section_num_valid_part2_[6];
   size_t section_size_part2[6];
   GMFloat m;
   GMFloat recip_m;

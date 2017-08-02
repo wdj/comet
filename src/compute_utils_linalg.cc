@@ -43,13 +43,7 @@ void gm_linalg_initialize(GMEnv* env) {
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
-  /*----------------------------------------*/
-
-    GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -122,8 +116,7 @@ void gm_linalg_initialize(GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -140,13 +133,7 @@ void gm_linalg_finalize(GMEnv* env) {
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
-  /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -199,8 +186,7 @@ void gm_linalg_finalize(GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -221,13 +207,7 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
-  /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -335,8 +315,7 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -362,13 +341,7 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   const size_t size = p->size;
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
-  /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -433,8 +406,7 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -452,13 +424,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
-  /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     if (GM_FP_PRECISION_DOUBLE) {
@@ -510,8 +476,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
   } else {
   /*----------------------------------------*/
 
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -529,7 +494,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                                 magma_minproduct_int_t lddb,
                                 void* dC,
                                 magma_minproduct_int_t lddc,
-                                _Bool is_beta_one,
+                                bool is_beta_one,
                                 GMEnv* env) {
   GMAssertAlways(m >= 0);
   GMAssertAlways(n >= 0);
@@ -560,13 +525,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
-  /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     const GMFloat alpha = 1;
@@ -639,8 +598,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   } else {
   /*----------------------------------------*/
 
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -769,13 +727,7 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
   /*---Send vectors to GPU---*/
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
-  /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     if (GM_FP_PRECISION_DOUBLE) {
@@ -824,8 +776,7 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
   } else {
   /*----------------------------------------*/
 
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -862,13 +813,7 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
   /*---Get vectors from GPU---*/
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_SORENSON) {
-  /*----------------------------------------*/
-
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
   /*----------------------------------------*/
 
     if (GM_FP_PRECISION_DOUBLE) {
@@ -917,8 +862,7 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
   } else {
   /*----------------------------------------*/
 
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/

@@ -189,8 +189,8 @@ void GMMetrics_create(GMMetrics* metrics,
   for (int i=0; i<6; ++i) {
     metrics->index_offset_section_part1_[i] = 0;
     metrics->index_offset_section_part2_[i] = 0;
-    metrics->section_num_valid_part1_[i] = GM_BOOL_FALSE;
-    metrics->section_num_valid_part2_[i] = GM_BOOL_FALSE;
+    metrics->section_num_valid_part1_[i] = false;
+    metrics->section_num_valid_part2_[i] = false;
   }
 
   /*---Compute global values---*/
@@ -262,8 +262,8 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->num_elts_local = 0;
 
     /*---PART A.1: (triangle) i_block==j_block part---*/
-    const _Bool have_main_diag = proc_num_r == 0 &&
-                                 gm_diag_computed_min(env) == 0;
+    const bool have_main_diag = proc_num_r == 0 &&
+                                gm_diag_computed_min(env) == 0;
     metrics->num_elts_local += have_main_diag ? nchoosek : 0;
     metrics->index_offset_0_ = have_main_diag ? nchoosek - nvlsq : 0;
     metrics->block_min = (i_block + gm_diag_computed_min(env)) % num_block;
@@ -448,8 +448,8 @@ void GMMetrics_create(GMMetrics* metrics,
           const int J_hi = gm_J_hi(section_num, nvl, 3, env);
           metrics->J_lo_part3_[section_num] = J_lo;
           metrics->J_wi_part3_[section_num] = J_hi - J_lo;
-          const _Bool sax0 = section_axis == 0;
-          const _Bool sax1 = section_axis == 1;
+          const bool sax0 = section_axis == 0;
+          const bool sax1 = section_axis == 1;
           for (int J = J_lo; J < J_hi; ++J) {
 #pragma omp parallel for collapse(2)
             for (int K = 0; K < nvl; ++K) {
@@ -623,7 +623,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } break;
     /*----------*/
     default:
-      GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+      GMAssertAlways(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -688,7 +688,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
       result64 = GMMetrics_coord2_global_from_index_3(metrics, index, env);
       break;
     default:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 
   const int result = (int)result64;
@@ -758,7 +758,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   double value_max_this = cs->value_max;
 #pragma omp parallel for reduction(max:value_max_this)
   for (UI64 index = 0; index < metrics->num_elts_local; ++index) {
-    _Bool is_active = GM_BOOL_TRUE;
+    bool is_active = true;
     for (int i = 0; i < GMEnv_num_way(env); ++i) {
       const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
                                                            i, env);
@@ -771,7 +771,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
       switch (metrics->data_type_id) {
         /*--------------------*/
         case GM_DATA_TYPE_BITS1: {
-          GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+          GMInsist(env, false ? "Unimplemented." : 0);
         } break;
         /*--------------------*/
         case GM_DATA_TYPE_FLOAT: {
@@ -793,7 +793,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
         } break;
         /*--------------------*/
         default:
-          GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+          GMAssertAlways(false ? "Invalid data type." : 0);
       } /*---switch---*/
       if (is_active) {
         value_max_this = value > value_max_this ? value : value_max_this;
@@ -853,7 +853,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
         coords[i] = 0;
         ind_coords[i] = i;
       }
-      _Bool is_active = GM_BOOL_TRUE;
+      bool is_active = true;
       for (int i = 0; i < GMEnv_num_way(env); ++i) {
         const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
                                                              i, env);
@@ -871,7 +871,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
       switch (metrics->data_type_id) {
         /*--------------------*/
         case GM_DATA_TYPE_BITS1: {
-          GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+          GMInsist(env, false ? "Unimplemented." : 0);
         } break;
         /*--------------------*/
         case GM_DATA_TYPE_FLOAT: {
@@ -904,7 +904,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
         } break;
         /*--------------------*/
         default:
-          GMAssertAlways(GM_BOOL_FALSE ? "Invalid data type." : 0);
+          GMAssertAlways(false ? "Invalid data type." : 0);
       } /*---switch---*/
       /*---Convert to integer.  Store only 2*w bits max---*/
       UI64 ivalue = (value / scaling) * (one64 << (2 * w));

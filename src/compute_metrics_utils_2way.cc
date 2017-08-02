@@ -30,7 +30,7 @@ void gm_compute_czekanowski_numerators_2way_start_(
     GMMirroredPointer* vectors_right_buf,
     GMMirroredPointer* metrics_buf,
     int j_block,
-    _Bool do_compute_triang_only,
+    bool do_compute_triang_only,
     GMEnv* env) {
   GMAssertAlways(vectors_left && vectors_right && metrics && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
@@ -115,7 +115,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
                                            GMMirroredPointer* vectors_right_buf,
                                            GMMirroredPointer* metrics_buf,
                                            int j_block,
-                                           _Bool do_compute_triang_only,
+                                           bool do_compute_triang_only,
                                            GMEnv* env) {
   GMAssertAlways(vectors_left && vectors_right && metrics && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
@@ -138,10 +138,10 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
         for (int fl = 0; fl < vectors_left->num_field_local; ++fl) {
           const GMBits2 vi = GMVectors_bits2_get(vectors_left, fl, i, env);
           const GMBits2 vj = GMVectors_bits2_get(vectors_right, fl, j, env);
-          const _Bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
-                                              : GM_BOOL_FALSE;
-          const _Bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
-                                              : GM_BOOL_FALSE;
+          const bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
+                                             : false;
+          const bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
+                                             : false;
 
           if ((!unknown_i) && (!unknown_j)) {
 
@@ -382,7 +382,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       GMMirroredPointer* vectors_right_buf,
                                       GMMirroredPointer* metrics_buf,
                                       int j_block,
-                                      _Bool do_compute_triang_only,
+                                      bool do_compute_triang_only,
                                       GMEnv* env) {
   GMAssertAlways(vectors_left && vectors_right && metrics && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
@@ -402,7 +402,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
           env);
     } break;
     default:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 
@@ -414,7 +414,7 @@ void gm_compute_czekanowski_2way_combine_(
     GMMirroredPointer* metrics_buf,
     const GMVectorSums* vector_sums_left,
     const GMVectorSums* vector_sums_right,
-    int j_block, _Bool do_compute_triang_only, GMEnv* env) {
+    int j_block, bool do_compute_triang_only, GMEnv* env) {
   GMAssertAlways(metrics && metrics_buf);
   GMAssertAlways(vector_sums_left && vector_sums_right && env);
   GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
@@ -534,7 +534,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
                                   GMMirroredPointer* metrics_buf,
                                   const GMVectorSums* vector_sums_left,
                                   const GMVectorSums* vector_sums_right,
-                                  int j_block, _Bool do_compute_triang_only,
+                                  int j_block, bool do_compute_triang_only,
                                   GMEnv* env) {
   GMAssertAlways(metrics && metrics_buf);
   GMAssertAlways(vector_sums_left && vector_sums_right && env);
@@ -707,7 +707,7 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                              const GMVectorSums* vector_sums_left,
                              const GMVectorSums* vector_sums_right,
                              int j_block,
-                             _Bool do_compute_triang_only,
+                             bool do_compute_triang_only,
                              GMEnv* env) {
   GMAssertAlways(metrics && metrics_buf);
   GMAssertAlways(vector_sums_left && vector_sums_right && env);
@@ -727,7 +727,7 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                                    j_block, do_compute_triang_only, env);
     } break;
     default:
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 

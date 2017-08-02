@@ -26,7 +26,7 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 
 /*===========================================================================*/
 
-_Bool compare_2runs(const char* options1, const char* options2) {
+bool compare_2runs(const char* options1, const char* options2) {
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
 
@@ -44,17 +44,17 @@ _Bool compare_2runs(const char* options1, const char* options2) {
 
   /*---Need test result only on proc 0---*/
 
-  const _Bool is_passed = proc_num != 0 ? true :
-                          gm_are_checksums_equal(checksum1, checksum2);
+  const bool is_passed = proc_num != 0 ? true :
+                         gm_are_checksums_equal(checksum1, checksum2);
 
   return is_passed;
 }
 
 /*===========================================================================*/
 
-_Bool compare_3runs(const char* options1,
-                    const char* options2,
-                    const char* options3) {
+bool compare_3runs(const char* options1,
+                   const char* options2,
+                   const char* options3) {
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
 
@@ -77,9 +77,9 @@ _Bool compare_3runs(const char* options1,
 
   /*---Need test result only on proc 0---*/
 
-  const _Bool is_passed = proc_num != 0 ? true :
-                          gm_are_checksums_equal(checksum1, checksum2) &&
-                          gm_are_checksums_equal(checksum1, checksum3);
+  const bool is_passed = proc_num != 0 ? true :
+                         gm_are_checksums_equal(checksum1, checksum2) &&
+                         gm_are_checksums_equal(checksum1, checksum3);
   return is_passed;
 }
 
@@ -87,7 +87,7 @@ _Bool compare_3runs(const char* options1,
 
 void test_2runs(const char* options1,
                 const char* options2) {
-  EXPECT_EQ(GM_BOOL_TRUE, compare_2runs(options1, options2));
+  EXPECT_EQ(true, compare_2runs(options1, options2));
 }
 
 /*===========================================================================*/
@@ -99,14 +99,14 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method CPU",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU",
                     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -117,35 +117,35 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method CPU ",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method CPU --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method CPU ",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
                     "--compute_method CPU ",
                     "--num_proc_vector 2 --num_field 1 --num_vector_local 2 "
                     "--compute_method CPU --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
                     "--compute_method CPU ",
                     "--num_proc_vector 2 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 5 "
                     "--compute_method REF --all2all yes",
                     "--num_proc_vector 2 --num_field 2 --num_vector 5 "
@@ -154,7 +154,7 @@ void DriverTest_czekanowski_() {
                     "--compute_method GPU --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
                     "--num_field 7 --num_vector 5 "
                     "--compute_method REF --all2all yes",
@@ -167,14 +167,14 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU",
                     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU",
                     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -182,14 +182,14 @@ void DriverTest_czekanowski_() {
                     " --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU",
                     "--num_proc_vector 2 --num_field 100 --num_vector_local 24 "
                     "--compute_method CPU --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU",
                     "--num_proc_vector 2 --num_field 100 --num_vector_local 24 "
@@ -200,14 +200,14 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
                     "--compute_method CPU "
                     "--num_way 3",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
                     "--compute_method GPU --num_way 3"));
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU --num_way 3",
                     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -218,35 +218,35 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
                     "--compute_method CPU --num_way 3",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
                     "--compute_method CPU --num_way 3 --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
                     "--compute_method CPU --num_way 3",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 3 "
                     "--compute_method GPU --num_way 3 --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 18 "
                     "--compute_method CPU --num_way 3",
                     "--num_proc_vector 3 --num_field 1 --num_vector_local 6 "
                     "--compute_method CPU --num_way 3 --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 18 "
                     "--compute_method CPU --num_way 3",
                     "--num_proc_vector 3 --num_field 1 --num_vector_local 6 "
                     "--compute_method GPU --num_way 3 --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 16 "
                     "--compute_method REF --all2all yes --num_way 3",
                     "--num_proc_vector 3 --num_field 2 --num_vector 16 "
@@ -255,7 +255,7 @@ void DriverTest_czekanowski_() {
                     "--compute_method GPU --all2all yes --num_way 3"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
                     "--num_field 13 --num_vector 6 "
                     "--compute_method REF --all2all yes --num_way 3",
@@ -268,28 +268,28 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU --num_way 3",
                     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU --num_way 3 --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method GPU --num_way 3",
                     "--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method GPU --num_way 3 --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method CPU --num_way 3 --all2all yes",
                     "--num_proc_vector 4 --num_field 100 --num_vector_local 12 "
                     "--compute_method CPU --num_way 3 --all2all yes"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
                     "--compute_method GPU --num_way 3 --all2all yes",
                     "--num_proc_vector 4 --num_field 100 --num_vector_local 12 "
@@ -299,28 +299,28 @@ void DriverTest_czekanowski_() {
   //---num_proc_field
   //----------
 
-  EXPECT_EQ(GM_BOOL_TRUE, compare_2runs("--num_proc_vector 1 --num_proc_field "
-                                        "1 --num_field 2 --num_vector_local 2 "
-                                        "--compute_method CPU",
-                                        "--num_proc_vector 1 --num_proc_field "
-                                        "2 --num_field 2 --num_vector_local 2 "
-                                        "--compute_method GPU"));
+  EXPECT_EQ(true, compare_2runs("--num_proc_vector 1 --num_proc_field "
+                                "1 --num_field 2 --num_vector_local 2 "
+                                "--compute_method CPU",
+                                "--num_proc_vector 1 --num_proc_field "
+                                "2 --num_field 2 --num_vector_local 2 "
+                                "--compute_method GPU"));
 
-  EXPECT_EQ(GM_BOOL_TRUE, compare_2runs("--num_proc_vector 1 --num_proc_field "
-                                        "1 --num_field 2 --num_vector_local 4 "
-                                        "--compute_method CPU",
-                                        "--num_proc_vector 2 --num_proc_field "
-                                        "2 --num_field 2 --num_vector_local 2 "
-                                        "--compute_method GPU --all2all yes"));
+  EXPECT_EQ(true, compare_2runs("--num_proc_vector 1 --num_proc_field "
+                                "1 --num_field 2 --num_vector_local 4 "
+                                "--compute_method CPU",
+                                "--num_proc_vector 2 --num_proc_field "
+                                "2 --num_field 2 --num_vector_local 2 "
+                                "--compute_method GPU --all2all yes"));
 
-  EXPECT_EQ(GM_BOOL_TRUE, compare_2runs("--num_proc_vector 1 --num_proc_field "
-                                        "1 --num_field 2 --num_vector_local 3 "
-                                        "--compute_method CPU --num_way 3",
-                                        "--num_proc_vector 1 --num_proc_field "
-                                        "2 --num_field 2 --num_vector_local 3 "
-                                        "--compute_method GPU --num_way 3"));
+  EXPECT_EQ(true, compare_2runs("--num_proc_vector 1 --num_proc_field "
+                                "1 --num_field 2 --num_vector_local 3 "
+                                "--compute_method CPU --num_way 3",
+                                "--num_proc_vector 1 --num_proc_field "
+                                "2 --num_field 2 --num_vector_local 3 "
+                                "--compute_method GPU --num_way 3"));
 
-  EXPECT_EQ(GM_BOOL_TRUE,
+  EXPECT_EQ(true,
             compare_2runs("--num_proc_vector 1 --num_proc_field 1 --num_field "
                           "2 --num_vector_local 18"
                           " --compute_method CPU --num_way 3",
@@ -427,7 +427,7 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
                     "--num_field 7 --num_vector 10 "
                     "--num_way 2 --metric_type czekanowski "
@@ -444,7 +444,7 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
                     "--num_field 7 --num_vector 18 "
                     "--num_way 3 --metric_type czekanowski "
@@ -461,7 +461,7 @@ void DriverTest_czekanowski_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 30 --num_vector 3 "
                     "--verbosity 2 --all2all yes "
                     "--compute_method GPU",
@@ -470,7 +470,7 @@ void DriverTest_czekanowski_() {
                     "--compute_method GPU --threshold .65"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_field 3 --num_vector 3 "
                     "--compute_method GPU",
                     "--num_proc_vector 1 --num_field 3 --num_vector 3 "
@@ -489,7 +489,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
-  env->all2all_ = GM_BOOL_FALSE;
+  env->all2all_ = false;
   GMEnv_set_compute_method(env, compute_method);
   GMEnv_set_num_proc(env, 1, 1, 1);
 
@@ -553,10 +553,10 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
     const double eps = 1.e-5;
 
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result00 - ref00) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result01 - ref01) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result10 - ref10) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result11 - ref11) < eps);
+    EXPECT_EQ(true, fabs(result00 - ref00) < eps);
+    EXPECT_EQ(true, fabs(result01 - ref01) < eps);
+    EXPECT_EQ(true, fabs(result10 - ref10) < eps);
+    EXPECT_EQ(true, fabs(result11 - ref11) < eps);
   }
 
   GMMetrics_destroy(metrics, env);
@@ -584,7 +584,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 2;
-  env->all2all_ = GM_BOOL_FALSE;
+  env->all2all_ = false;
   GMEnv_set_compute_method(env, compute_method);
   GMEnv_set_num_proc(env, 1, 1, 1);
   env->sparse = true;
@@ -703,10 +703,10 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
     const double eps = 1.e-5;
 
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result00 - ref00) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result01 - ref01) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result10 - ref10) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result11 - ref11) < eps);
+    EXPECT_EQ(true, fabs(result00 - ref00) < eps);
+    EXPECT_EQ(true, fabs(result01 - ref01) < eps);
+    EXPECT_EQ(true, fabs(result10 - ref10) < eps);
+    EXPECT_EQ(true, fabs(result11 - ref11) < eps);
   }
 
   GMMetrics_destroy(metrics, env);
@@ -734,7 +734,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 3;
-  env->all2all_ = GM_BOOL_TRUE;
+  env->all2all_ = true;
   GMEnv_set_compute_method(env, compute_method);
   GMEnv_set_num_proc(env, 1, 1, 1);
 
@@ -840,14 +840,14 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
     const double eps = 1.e-3;
 
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result000 - ref000) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result001 - ref001) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result010 - ref010) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result011 - ref011) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result100 - ref100) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result101 - ref101) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result110 - ref110) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result111 - ref111) < eps);
+    EXPECT_EQ(true, fabs(result000 - ref000) < eps);
+    EXPECT_EQ(true, fabs(result001 - ref001) < eps);
+    EXPECT_EQ(true, fabs(result010 - ref010) < eps);
+    EXPECT_EQ(true, fabs(result011 - ref011) < eps);
+    EXPECT_EQ(true, fabs(result100 - ref100) < eps);
+    EXPECT_EQ(true, fabs(result101 - ref101) < eps);
+    EXPECT_EQ(true, fabs(result110 - ref110) < eps);
+    EXPECT_EQ(true, fabs(result111 - ref111) < eps);
   }
 
   GMMetrics_destroy(metrics, env);
@@ -875,7 +875,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
   env->metric_type_ = GM_METRIC_TYPE_CCC;
   env->num_way_ = 3;
-  env->all2all_ = GM_BOOL_TRUE;
+  env->all2all_ = true;
   GMEnv_set_compute_method(env, compute_method);
   GMEnv_set_num_proc(env, 1, 1, 1);
   env->sparse = true;
@@ -1092,14 +1092,14 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
     const double eps = 1.e-3;
 
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result000 - ref000) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result001 - ref001) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result010 - ref010) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result011 - ref011) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result100 - ref100) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result101 - ref101) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result110 - ref110) < eps);
-    EXPECT_EQ(GM_BOOL_TRUE, fabs(result111 - ref111) < eps);
+    EXPECT_EQ(true, fabs(result000 - ref000) < eps);
+    EXPECT_EQ(true, fabs(result001 - ref001) < eps);
+    EXPECT_EQ(true, fabs(result010 - ref010) < eps);
+    EXPECT_EQ(true, fabs(result011 - ref011) < eps);
+    EXPECT_EQ(true, fabs(result100 - ref100) < eps);
+    EXPECT_EQ(true, fabs(result101 - ref101) < eps);
+    EXPECT_EQ(true, fabs(result110 - ref110) < eps);
+    EXPECT_EQ(true, fabs(result111 - ref111) < eps);
   }
 
   GMMetrics_destroy(metrics, env);
@@ -1136,17 +1136,17 @@ void DriverTest_ccc_() {
   sprintf(options1, options_template_1, 2, 1, 2, "REF");
   sprintf(options2, options_template_1, 2, 1, 2, "CPU");
   sprintf(options3, options_template_1, 2, 1, 2, "GPU");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   sprintf(options1, options_template_1, 2, 100, 2, "REF");
   sprintf(options2, options_template_1, 2, 100, 2, "CPU");
   sprintf(options3, options_template_1, 2, 100, 2, "GPU");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   sprintf(options1, options_template_1, 1, 100, 48, "REF");
   sprintf(options2, options_template_1, 1, 100, 48, "CPU");
   sprintf(options3, options_template_1, 1, 100, 48, "GPU");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   for (i = 1; i <= 100; ++i) {
     if ((i+3) % 32 > 6) {
@@ -1155,7 +1155,7 @@ void DriverTest_ccc_() {
     sprintf(options1, options_template_1, 0, i, 48, "REF");
     sprintf(options2, options_template_1, 0, i, 48, "CPU");
     sprintf(options3, options_template_1, 0, i, 48, "GPU");
-    EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+    EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
   //----------
@@ -1170,15 +1170,15 @@ void DriverTest_ccc_() {
   sprintf(options1, options_template_2, 2, 1, 1, 2, "REF", "no");
   sprintf(options2, options_template_2, 2, 1, 1, 2, "CPU", "yes");
   sprintf(options3, options_template_2, 2, 1, 1, 2, "GPU", "yes");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   sprintf(options1, options_template_2, 1, 1, 1, 4, "REF", "no");
   sprintf(options2, options_template_2, 1, 2, 1, 2, "CPU", "yes");
   sprintf(options3, options_template_2, 1, 2, 1, 2, "GPU", "yes");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 5 "
                     "--compute_method REF --all2all yes --metric_type ccc",
                     "--num_proc_vector 2 --num_field 2 --num_vector 5 "
@@ -1187,7 +1187,7 @@ void DriverTest_ccc_() {
                     "--compute_method GPU --all2all yes --metric_type ccc"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
                     "--num_field 7 --num_vector 2 "
                     "--compute_method REF --all2all yes --metric_type ccc",
@@ -1202,12 +1202,12 @@ void DriverTest_ccc_() {
   sprintf(options1, options_template_2, 1, 1, 100, 48, "REF", "no");
   sprintf(options2, options_template_2, 1, 1, 100, 48, "CPU", "yes");
   sprintf(options3, options_template_2, 1, 1, 100, 48, "GPU", "yes");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   sprintf(options1, options_template_2, 1, 1, 100, 48, "REF", "no");
   sprintf(options2, options_template_2, 1, 2, 100, 24, "CPU", "yes");
   sprintf(options3, options_template_2, 1, 2, 100, 24, "GPU", "yes");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   //----------
   //---3-way, all2all no
@@ -1221,12 +1221,12 @@ void DriverTest_ccc_() {
   sprintf(options1, options_template_3, 2, 1, 3, "REF");
   sprintf(options2, options_template_3, 2, 1, 3, "CPU");
   sprintf(options3, options_template_3, 2, 1, 3, "GPU");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   sprintf(options1, options_template_3, 1, 100, 48, "REF");
   sprintf(options2, options_template_3, 1, 100, 48, "CPU");
   sprintf(options3, options_template_3, 1, 100, 48, "GPU");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   for (i = 1; i <= 100; ++i) {
     if ((i+3) % 32 > 6) {
@@ -1235,7 +1235,7 @@ void DriverTest_ccc_() {
     sprintf(options1, options_template_3, 0, i, 24, "REF");
     sprintf(options2, options_template_3, 0, i, 24, "CPU");
     sprintf(options3, options_template_3, 0, i, 24, "GPU");
-    EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+    EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
   //----------
@@ -1250,12 +1250,12 @@ void DriverTest_ccc_() {
   sprintf(options1, options_template_4, 2, 1, 1, 3, "REF", "no");
   sprintf(options2, options_template_4, 2, 1, 1, 3, "CPU", "yes");
   sprintf(options3, options_template_4, 2, 1, 1, 3, "GPU", "yes");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   sprintf(options1, options_template_4, 1, 1, 1, 6, "REF", "no");
   sprintf(options2, options_template_4, 1, 2, 1, 3, "CPU", "yes");
   sprintf(options3, options_template_4, 1, 2, 1, 3, "GPU", "yes");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   //----------
   //---2-way, all2all yes, large
@@ -1264,21 +1264,21 @@ void DriverTest_ccc_() {
   sprintf(options1, options_template_4, 1, 1, 100, 48, "REF", "no");
   sprintf(options2, options_template_4, 1, 1, 100, 48, "CPU", "yes");
   sprintf(options3, options_template_4, 1, 1, 100, 48, "GPU", "yes");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   sprintf(options1, options_template_4, 1, 1, 100, 48, "REF", "no");
   sprintf(options2, options_template_4, 1, 4, 100, 12, "CPU", "yes");
   sprintf(options3, options_template_4, 1, 4, 100, 12, "GPU", "yes");
-  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
 //  sprintf(options1, options_template_4, 1, 3, 1, 6, "REF", "yes");
 //  sprintf(options2, options_template_4, 1, 1, 1, 18, "GPU", "yes");
 //  sprintf(options3, options_template_4, 1, 3, 1, 6, "GPU", "yes");
-//  EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
-  //EXPECT_EQ(GM_BOOL_TRUE, compare_2runs(options1, options2));
+//  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
+  //EXPECT_EQ(true, compare_2runs(options1, options2));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 16 "
                     "--compute_method REF --all2all yes --num_way 3 "
                     "--metric_type ccc",
@@ -1290,7 +1290,7 @@ void DriverTest_ccc_() {
                     "--metric_type ccc"));
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
                     "--num_field 13 --num_vector 6 "
                     "--compute_method REF --all2all yes --num_way 3 "
@@ -1315,11 +1315,11 @@ void DriverTest_ccc_() {
     sprintf(options2, options_template_5, 1, 1, 2 * i - 1, 60, 48, "GPU",
             "yes");
     sprintf(options3, options_template_5, 1, 1, 2 * i, 60, 48, "GPU", "yes");
-    EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+    EXPECT_EQ(true, compare_3runs(options1, options2, options3));
     sprintf(options1, options_template_5, 1, 1, 1, 60, 48, "REF", "no");
     sprintf(options2, options_template_5, 1, 1, i, 60, 48, "GPU", "yes");
     sprintf(options3, options_template_5, 1, 2, i, 60, 24, "GPU", "yes");
-    EXPECT_EQ(GM_BOOL_TRUE, compare_3runs(options1, options2, options3));
+    EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
   //----------
@@ -1397,7 +1397,7 @@ void DriverTest_ccc_() {
 
   sprintf(options1, options_template_11a, 1);
   sprintf(options2, options_template_11b, 1, ((double)2) / ((double)3));
-  EXPECT_EQ(GM_BOOL_TRUE, compare_2runs(options1, options2));
+  EXPECT_EQ(true, compare_2runs(options1, options2));
 
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
@@ -1405,7 +1405,7 @@ void DriverTest_ccc_() {
   sprintf(options1, options_template_11a, 1);
   sprintf(options2, options_template_11b, 1, ((double)1) / ((double)2));
   const int result11 = compare_2runs(options1, options2);
-  EXPECT_EQ(GM_BOOL_TRUE, proc_num==0 ? !result11 : GM_BOOL_TRUE);
+  EXPECT_EQ(true, proc_num==0 ? !result11 : true);
 
   //----------
   //---num_phase, 2-way
@@ -1437,7 +1437,7 @@ void DriverTest_ccc_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
                     "--num_field 7 --num_vector 10 "
                     "--num_way 2 --metric_type ccc "
@@ -1454,7 +1454,7 @@ void DriverTest_ccc_() {
   //----------
 
   EXPECT_EQ(
-      GM_BOOL_TRUE,
+      true,
       compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
                     "--num_field 7 --num_vector 18 "
                     "--num_way 3 --metric_type ccc "

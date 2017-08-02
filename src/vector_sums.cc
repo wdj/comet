@@ -45,9 +45,6 @@ void GMVectorSums_create(GMVectorSums* this_,
   const int num_proc = GMEnv_num_proc_field(env);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_SORENSON: {
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-    } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
       this_->sums = GMFloat_malloc(vectors->num_vector_local, env);
       this_->sums_tmp_ = num_proc == 1
@@ -67,8 +64,7 @@ void GMVectorSums_create(GMVectorSums* this_,
       }
     } break;
     default:
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 
@@ -79,9 +75,6 @@ void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
   GMAssertAlways(this_ && env);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_SORENSON: {
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-    } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
       GMAssertAlways(this_->sums);
       GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
@@ -105,8 +98,7 @@ void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
       }
     } break;
     default:
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 
@@ -224,8 +216,8 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
         }
         /*--Adjust for end pad---*/
         const int nfl = vectors->num_field_local;
-        const _Bool final_proc = GMEnv_proc_num_field(env) ==
-                                 GMEnv_num_proc_field(env) - 1;
+        const bool final_proc = GMEnv_proc_num_field(env) ==
+                                GMEnv_num_proc_field(env) - 1;
         const int num_field_active_local = final_proc ?
           nfl - (vectors->num_field - vectors->num_field_active) : nfl;
         const int nfal_up64 = ( ( num_field_active_local + 64 - 1 ) / 64) * 64;
@@ -273,9 +265,6 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
   GMAssertAlways(this_ && vectors && env);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_SORENSON: {
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
-    } break;
     case GM_METRIC_TYPE_CZEKANOWSKI: {
       GMVectorSums_compute_float_(this_, vectors, env);
     } break;
@@ -283,8 +272,7 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
       GMVectorSums_compute_bits2_(this_, vectors, env);
     } break;
     default:
-      /*---Should never get here---*/
-      GMInsist(env, GM_BOOL_FALSE ? "Unimplemented." : 0);
+      GMInsist(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 

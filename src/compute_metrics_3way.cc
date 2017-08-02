@@ -189,7 +189,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   int section_step_prev = -1;
 
-  _Bool have_unprocessed_section_block = GM_BOOL_FALSE;
+  bool have_unprocessed_section_block = false;
 
   GMComputeNumerators3Way gm_compute_numerators_3way = {0};
   GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
@@ -238,7 +238,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
           vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
           section_step_prev, env);
         gm_compute_wait(env);
-        have_unprocessed_section_block = GM_BOOL_FALSE;
+        have_unprocessed_section_block = false;
       }
 
       /*---Remember processing to do next time---*/
@@ -251,7 +251,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       j_block_prev = i_block;
       k_block_prev = i_block;
       section_step_prev = section_step;
-      have_unprocessed_section_block = GM_BOOL_TRUE;
+      have_unprocessed_section_block = true;
 
     } /*---if (section_block_num ...)---*/
     ++section_block_num;
@@ -294,7 +294,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
             vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
             section_step_prev, env);
           gm_compute_wait(env);
-          have_unprocessed_section_block = GM_BOOL_FALSE;
+          have_unprocessed_section_block = false;
         }
 
         /*---Communicate vectors wait---*/
@@ -323,7 +323,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
         j_block_prev = j_block;
         k_block_prev = j_block;
         section_step_prev = section_step;
-        have_unprocessed_section_block = GM_BOOL_TRUE;
+        have_unprocessed_section_block = true;
 
       } /*---if (section_block_num ...)---*/
       ++section_block_num;
@@ -364,7 +364,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                        (j_i_offset == k_i_offset));
         if (gm_proc_r_active(section_block_num, env)) {
 
-          const _Bool do_k_comm = k_block != k_block_currently_resident;
+          const bool do_k_comm = k_block != k_block_currently_resident;
 
           GMVectors* vectors_k_this = 0;
           MPI_Request req_send_k;
@@ -398,7 +398,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
               vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
               section_step_prev, env);
             gm_compute_wait(env);
-            have_unprocessed_section_block = GM_BOOL_FALSE;
+            have_unprocessed_section_block = false;
           }
 
           if (do_k_comm) {
@@ -448,7 +448,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
           vector_sums_j_prev = vector_sums_j;
           j_block_prev = j_block;
           section_step_prev = section_step;
-          have_unprocessed_section_block = GM_BOOL_TRUE;
+          have_unprocessed_section_block = true;
 
         } /*---if (section_block_num ...)---*/
         ++section_block_num;
@@ -470,7 +470,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
       section_step_prev, env);
     gm_compute_wait(env);
-    have_unprocessed_section_block = GM_BOOL_FALSE;
+    have_unprocessed_section_block = false;
   }
 
   /*------------------------*/
