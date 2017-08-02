@@ -349,7 +349,6 @@ void GMMetrics_create(GMMetrics* metrics,
     /*---Fused counter for section_num and block_num, same across all procs---*/
     int section_block_num = 0;
 
-    int k_i_offset = 0;
     const int num_section_steps_12 = GMEnv_num_section_steps(env, 1);
 
     /*===PART B: ALLOCATE INDEX===*/
@@ -433,7 +432,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
       const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
-      int j_i_offset = 0;
       for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
         const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
         if (j_block == k_block) {
@@ -452,10 +450,7 @@ void GMMetrics_create(GMMetrics* metrics,
           metrics->J_wi_part3_[section_num] = J_hi - J_lo;
           const _Bool sax0 = section_axis == 0;
           const _Bool sax1 = section_axis == 1;
-          int J = 0;
           for (int J = J_lo; J < J_hi; ++J) {
-            int K = 0;
-            int I = 0;
 #pragma omp parallel for collapse(2)
             for (int K = 0; K < nvl; ++K) {
               for (int I = 0; I < nvl; ++I) {

@@ -733,8 +733,9 @@ static int gm_log2(size_t n) {
   if (n == 0) {
     return 0;
   }
-
-  for (int result = 0, n--; result <= 8 * (int)sizeof(size_t); ++result) {
+ 
+  int result = 0; 
+  for (result = 0, n--; result <= 8 * (int)sizeof(size_t); ++result) {
     if (n == 0) {
       break;
     }
