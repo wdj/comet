@@ -45,7 +45,7 @@ void GMVectorSums_create(GMVectorSums* this_,
   const int num_proc = GMEnv_num_proc_field(env);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
+    case GM_METRIC_TYPE_CZEK: {
       this_->sums = GMFloat_malloc(vectors->num_vector_local, env);
       this_->sums_tmp_ = num_proc == 1
                               ? NULL
@@ -75,7 +75,7 @@ void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
   GMAssertAlways(this_ && env);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
+    case GM_METRIC_TYPE_CZEK: {
       GMAssertAlways(this_->sums);
       GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
       this_->sums = NULL;
@@ -265,7 +265,7 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
   GMAssertAlways(this_ && vectors && env);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
+    case GM_METRIC_TYPE_CZEK: {
       GMVectorSums_compute_float_(this_, vectors, env);
     } break;
     case GM_METRIC_TYPE_CCC: {

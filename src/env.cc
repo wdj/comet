@@ -78,6 +78,8 @@ GMMirroredPointer GMMirroredPointer_null(void) {
   p.h = NULL;
   p.d = NULL;
   p.size = 0;
+  p.dim0 = 0;
+  p.dim1 = 0;
   return p;
 }
 
@@ -124,7 +126,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
   *env = GMEnv_null();
 
   /*---Set default values---*/
-  env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
+  env->metric_type_ = GM_METRIC_TYPE_CZEK;
   env->num_way_ = GM_NUM_WAY_2;
   env->all2all_ = false;
   env->are_cuda_streams_initialized_ = false;
@@ -171,7 +173,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
       ++i;
       GMInsist(env, i < argc ? "Missing value for metric_type." : 0);
       if (strcmp(argv[i], "czekanowski") == 0) {
-        env->metric_type_ = GM_METRIC_TYPE_CZEKANOWSKI;
+        env->metric_type_ = GM_METRIC_TYPE_CZEK;
       } else if (strcmp(argv[i], "ccc") == 0) {
         env->metric_type_ = GM_METRIC_TYPE_CCC;
       } else {
@@ -476,7 +478,7 @@ int GMEnv_data_type_vectors(const GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
-    case GM_METRIC_TYPE_CZEKANOWSKI:
+    case GM_METRIC_TYPE_CZEK:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
       return GM_DATA_TYPE_BITS2;
@@ -491,7 +493,7 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   switch (env->metric_type_) {
-    case GM_METRIC_TYPE_CZEKANOWSKI:
+    case GM_METRIC_TYPE_CZEK:
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
       return env->num_way_ == GM_NUM_WAY_2 ? GM_DATA_TYPE_TALLY2X2
@@ -706,7 +708,7 @@ int gm_mpi_type(const GMEnv* const env) {
   GMAssertAlways(env != NULL);
 
   /* clang-format off */
-  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ?
+  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ?
                          GM_MPI_FLOAT :
                        GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
                          MPI_DOUBLE_COMPLEX :

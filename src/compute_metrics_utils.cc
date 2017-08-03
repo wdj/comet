@@ -288,26 +288,24 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
     return;
   }
 
+  /*---Copy vectors into GPU buffers if needed---*/
+
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-      /*---Copy vectors into GPU buffers if needed---*/
-      const size_t nfl = vectors->num_field_local;
+    case GM_METRIC_TYPE_CZEK: {
 #pragma omp parallel for collapse(2)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
-          ((GMFloat*)vectors_buf->h)[fl + nfl * i] =
-              GMVectors_float_get(vectors, fl, i, env);
+          GMMirroredPointer_elt<GMFloat>(vectors_buf, fl, i) =
+            GMVectors_float_get(vectors, fl, i, env);
         }
       }
     } break;
     case GM_METRIC_TYPE_CCC: {
-      /*---Copy vectors into GPU buffers if needed---*/
-      const size_t npvfl = vectors->num_packedval_field_local;
 #pragma omp parallel for collapse(2)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
         for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
-          ((GMBits2x64*)vectors_buf->h)[fl + npvfl * i] =
-              GMVectors_bits2x64_get(vectors, fl, i, env);
+          GMMirroredPointer_elt<GMBits2x64>(vectors_buf, fl, i) =
+            GMVectors_bits2x64_get(vectors, fl, i, env);
         }
       }
     } break;

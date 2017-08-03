@@ -23,7 +23,7 @@ extern "C" {
 /*===========================================================================*/
 
 typedef struct {
-  GMMirroredPointer mat_buf_tmp[2];
+  GMMirroredPointer tmp_buf[2];
   GMMirroredPointer matM_ij_buf;
   GMMirroredPointer matM_jk_buf;
   GMMirroredPointer matM_kik_buf;

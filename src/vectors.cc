@@ -166,8 +166,8 @@ void GMVectors_create_imp_(GMVectors* vectors,
                        (vectors->num_bits_per_packedval / bits_per_byte);
 
   if (vectors->has_buf) {
-    vectors->buf = gm_linalg_malloc(num_vector_local *
-                       (size_t)vectors->num_packedval_field_local, env);
+    vectors->buf = gm_linalg_malloc(vectors->num_packedval_field_local,
+                                    num_vector_local, env);
     vectors->data = vectors->buf.h;
   } else {
     vectors->data = gm_malloc(vectors->data_size, env);

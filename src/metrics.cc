@@ -775,7 +775,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
         } break;
         /*--------------------*/
         case GM_DATA_TYPE_FLOAT: {
-          value = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+          value = GMMetrics_czek_get_from_index(metrics, index, env);
         } break;
         /*--------------------*/
         case GM_DATA_TYPE_TALLY2X2: {
@@ -875,7 +875,7 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
         } break;
         /*--------------------*/
         case GM_DATA_TYPE_FLOAT: {
-          value = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+          value = GMMetrics_czek_get_from_index(metrics, index, env);
         } break;
         /*--------------------*/
         case GM_DATA_TYPE_TALLY2X2: {

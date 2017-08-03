@@ -22,9 +22,6 @@
 extern "C" {
 #endif
 
-//TODOTODO: helper function for case statement
-// collapse some cases
-
 /*===========================================================================*/
 
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
@@ -36,148 +33,23 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     return;
   }
 
+  // Start timer.
+
   double time_begin = GMEnv_get_synced_time(env);
 
-  switch (GMEnv_metric_type(env) +
-          GM_NUM_METRIC_TYPE * (GMEnv_compute_method(env) +
-                                GM_NUM_COMPUTE_METHOD * (GMEnv_num_way(env)))) {
-    /*====================*/
-    /*---Czekanowski---*/
-    /*====================*/
+  // Perform metrics computation.
 
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (2)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_2way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
-                            GM_NUM_COMPUTE_METHOD * (2)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_2way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
-                            GM_NUM_COMPUTE_METHOD * (2)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_2way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    /*--------------------*/
-
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (3)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_3way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
-                            GM_NUM_COMPUTE_METHOD * (3)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_3way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    case GM_METRIC_TYPE_CZEKANOWSKI +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
-                            GM_NUM_COMPUTE_METHOD * (3)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_3way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    /*====================*/
-    /*---CCC---*/
-    /*====================*/
-
-    case GM_METRIC_TYPE_CCC +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (2)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_2way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    case GM_METRIC_TYPE_CCC +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
-                            GM_NUM_COMPUTE_METHOD * (2)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_2way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    case GM_METRIC_TYPE_CCC +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
-                            GM_NUM_COMPUTE_METHOD * (2)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_2way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_2way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    /*--------------------*/
-
-    case GM_METRIC_TYPE_CCC +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_REF +
-                            GM_NUM_COMPUTE_METHOD * (3)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_3way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    case GM_METRIC_TYPE_CCC +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_CPU +
-                            GM_NUM_COMPUTE_METHOD * (3)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_3way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    case GM_METRIC_TYPE_CCC +
-        GM_NUM_METRIC_TYPE*(GM_COMPUTE_METHOD_GPU +
-                            GM_NUM_COMPUTE_METHOD * (3)): {
-      if (GMEnv_all2all(env)) {
-        gm_compute_metrics_3way_all2all(metrics, vectors, env);
-      } else {
-        gm_compute_metrics_3way_notall2all(metrics, vectors, env);
-      }
-    } break;
-
-    /*====================*/
-
-    default:
-      GMInsist(env, false ? "Unimplemented." : 0);
-  } // switch
+  if (GMEnv_num_way(env) == 2 && !GMEnv_all2all(env)) {
+    gm_compute_metrics_2way_notall2all(metrics, vectors, env);
+  } else if (GMEnv_num_way(env) == 2 && GMEnv_all2all(env)) {
+    gm_compute_metrics_2way_all2all(metrics, vectors, env);
+  } else if (GMEnv_num_way(env) == 3 && !GMEnv_all2all(env)) {
+    gm_compute_metrics_3way_notall2all(metrics, vectors, env);
+  } else if (GMEnv_num_way(env) == 3 && GMEnv_all2all(env)) {
+    gm_compute_metrics_3way_all2all(metrics, vectors, env);
+  } else {
+    GMInsist(env, false ? "Unimplemented." : 0);
+  }
 
   // Stop timer.
 

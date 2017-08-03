@@ -31,7 +31,7 @@ void gm_linalg_finalize(GMEnv* env);
 
 /*----------*/
 
-GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env);
+GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env);
 
 void gm_linalg_free(GMMirroredPointer* p, GMEnv* env);
 

@@ -43,7 +43,7 @@ void gm_linalg_initialize(GMEnv* env) {
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -133,7 +133,7 @@ void gm_linalg_finalize(GMEnv* env) {
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -196,9 +196,9 @@ void gm_linalg_finalize(GMEnv* env) {
 /*===========================================================================*/
 /*---Allocate/free host and device memory---*/
 
-GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
-  GMAssertAlways(n + 1 >= 1 ? "Invalid argument to gm_linalg_malloc." : 0);
-  GMAssertAlways(env != NULL ? "Invalid argument to gm_linalg_malloc." : 0);
+GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
+  GMAssertAlways(env);
+  GMAssertAlways(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
   GMMirroredPointer p = GMMirroredPointer_null();
 
@@ -206,8 +206,16 @@ GMMirroredPointer gm_linalg_malloc(size_t n, GMEnv* env) {
     return p;
   }
 
+  p.dim0 = dim0;
+  p.dim1 = dim1;
+
+  //GMAssertAlways((size_t)p.dim0 == dim0 ? "Integer value too large." : 0);
+  //GMAssertAlways((size_t)p.dim1 == dim1 ? "Integer value too large." : 0);
+
+  const size_t n = dim0 * dim1;
+
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -341,7 +349,7 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   const size_t size = p->size;
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
@@ -424,7 +432,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
     if (GM_FP_PRECISION_DOUBLE) {
@@ -525,7 +533,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   }
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
     const GMFloat alpha = 1;
@@ -638,14 +646,14 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   const size_t cols_B = n;
 
   const size_t elt_size =
-    GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI ? sizeof(GMFloat) :
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ? sizeof(GMFloat) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) ?
-                                         sizeof(magma_tally4DoubleComplex) :
+                                         sizeof(magma_tally2DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
     GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
     GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
-  GMAssertAlways(elt_size != 0);
+  GMAssertAlways(elt_size > 0);
 
   const size_t align_factor = 128 / elt_size;
   const size_t max_elts = (1 << 27) - 512;
@@ -727,7 +735,7 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
   /*---Send vectors to GPU---*/
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
     if (GM_FP_PRECISION_DOUBLE) {
@@ -813,7 +821,7 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
   /*---Get vectors from GPU---*/
 
   /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEKANOWSKI) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
     if (GM_FP_PRECISION_DOUBLE) {

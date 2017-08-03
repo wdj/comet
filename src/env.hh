@@ -301,9 +301,49 @@ typedef struct {
   void* __restrict__ h;
   void* __restrict__ d;
   size_t size;
+  size_t dim0;
+  size_t dim1;
 } GMMirroredPointer;
 
 GMMirroredPointer GMMirroredPointer_null(void);
+
+/*---------------------------------------------------------------------------*/
+
+template<typename T>
+static T& GMMirroredPointer_elt(GMMirroredPointer* p, int i0, int i1) {
+  GMAssert(p);
+  GMAssert(i0 >= 0 && (size_t)i0 < p->dim0);
+  GMAssert(i1 >= 0 && (size_t)i1 < p->dim1);
+
+  return ((T*)(p->h))[i0 + p->dim0 * i1];
+}
+
+/*---------------------------------------------------------------------------*/
+
+template<typename T>
+static T GMMirroredPointer_elt_const(const GMMirroredPointer* p, int i0, int i1) {
+  GMAssert(p);
+  GMAssert(i0 >= 0 && (size_t)i0 < p->dim0);
+  GMAssert(i1 >= 0 && (size_t)i1 < p->dim1);
+
+  return ((T*)(p->h))[i0 + p->dim0 * i1];
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void GMMirroredPointer_create(GMMirroredPointer* p,
+                                     GMMirroredPointer* p_old,
+                                     size_t dim0) {
+
+  GMAssert(p && p_old);
+  GMAssert(dim0 <= p_old->dim0);
+
+  p->h = p_old->h;
+  p->d = p_old->d;
+  p->size = p_old->size;
+  p->dim0 = dim0;
+  p->dim1 = p_old->dim1;
+}
 
 /*===========================================================================*/
 /*---Checksums---*/
@@ -419,7 +459,7 @@ typedef struct {
 
 enum {
   GM_METRIC_TYPE_SORENSON = 0, // Not implemented
-  GM_METRIC_TYPE_CZEKANOWSKI = 1,
+  GM_METRIC_TYPE_CZEK = 1,
   GM_METRIC_TYPE_CCC = 2,
   GM_NUM_METRIC_TYPE = 3
 };

@@ -237,9 +237,9 @@ static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
 /*---Accessors: value from (contig) index: derived---*/
 
 
-static GMFloat GMMetrics_czekanowski_get_from_index(GMMetrics* metrics,
-                                                    size_t index,
-                                                    GMEnv* env) {
+static GMFloat GMMetrics_czek_get_from_index(GMMetrics* metrics,
+                                             size_t index,
+                                             GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
 

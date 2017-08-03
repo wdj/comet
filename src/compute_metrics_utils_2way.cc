@@ -22,7 +22,7 @@ extern "C" {
 /*===========================================================================*/
 /*---Start calculation of numerators, 2-way Czekanowski---*/
 
-void gm_compute_czekanowski_numerators_2way_start_(
+void gm_compute_czek_numerators_2way_start_(
     GMVectors* vectors_left,
     GMVectors* vectors_right,
     GMMetrics* metrics,
@@ -389,8 +389,8 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-      gm_compute_czekanowski_numerators_2way_start_(
+    case GM_METRIC_TYPE_CZEK: {
+      gm_compute_czek_numerators_2way_start_(
           vectors_left, vectors_right, metrics, vectors_left_buf,
           vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
           env);
@@ -409,7 +409,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
 /*===========================================================================*/
 /*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
 
-void gm_compute_czekanowski_2way_combine_(
+void gm_compute_czek_2way_combine_(
     GMMetrics* metrics,
     GMMirroredPointer* metrics_buf,
     const GMVectorSums* vector_sums_left,
@@ -444,12 +444,12 @@ void gm_compute_czekanowski_2way_combine_(
       const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
       const int i_max = do_compute_triang_only ? j : nvl;
       for (int i = 0; i < i_max; ++i) {
-        const GMFloat numerator =
+        const GMFloat numer =
             GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
         const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-        const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
+        const GMFloat denom = vi < vj ?  vi + vj : vj + vi;
         GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
-                                      2 * numerator / denominator, env);
+                                      2 * numer / denom, env);
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
@@ -464,10 +464,10 @@ void gm_compute_czekanowski_2way_combine_(
       const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
-        const GMFloat numerator = GMMetrics_float_get_2(metrics, i, j, env);
+        const GMFloat numer = GMMetrics_float_get_2(metrics, i, j, env);
         const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-        const GMFloat denominator = vi < vj ?  vi + vj : vj + vi;
-        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+        const GMFloat denom = vi < vj ?  vi + vj : vj + vi;
+        GMMetrics_float_set_2(metrics, i, j, 2 * numer / denom, env);
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
@@ -481,12 +481,12 @@ void gm_compute_czekanowski_2way_combine_(
         const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
-          const GMFloat numerator =
-              ((GMFloat*)metrics_buf->h)[i + (size_t)nvl * j];
+          const GMFloat numer =
+            GMMirroredPointer_elt<GMFloat>(metrics_buf, i, j);
           const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-          const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
+          const GMFloat denom = vi < vj ? vi + vj : vj + vi;
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
-                                        2 * numerator / denominator, env);
+                                        2 * numer / denom, env);
         } /*---for i---*/
         metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
@@ -495,12 +495,12 @@ void gm_compute_czekanowski_2way_combine_(
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
           const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
-          const GMFloat numerator =
-              ((GMFloat*)metrics_buf->h)[i + (size_t)nvl * j];
+          const GMFloat numer =
+            GMMirroredPointer_elt<GMFloat>(metrics_buf, i, j);
           const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-          const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
+          const GMFloat denom = vi < vj ? vi + vj : vj + vi;
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
-                                        2 * numerator / denominator, env);
+                                        2 * numer / denom, env);
         } /*---for i---*/
       }   /*---for j---*/
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
@@ -514,10 +514,11 @@ void gm_compute_czekanowski_2way_combine_(
       const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
-        const GMFloat numerator = ((GMFloat*)metrics_buf->h)[i + nvl * j];
+        const GMFloat numer =
+          GMMirroredPointer_elt<GMFloat>(metrics_buf, i, j);
         const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-        const GMFloat denominator = vi < vj ? vi + vj : vj + vi;
-        GMMetrics_float_set_2(metrics, i, j, 2 * numerator / denominator, env);
+        const GMFloat denom = vi < vj ? vi + vj : vj + vi;
+        GMMetrics_float_set_2(metrics, i, j, 2 * numer / denom, env);
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
@@ -556,8 +557,8 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
         for (int j = 0; j < nvl; ++j) {
           const int i_max = j;
           for (int i = 0; i < i_max; ++i) {
-            const GMTally2x2 value = ((
-              GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
+            const GMTally2x2 value =
+              GMMirroredPointer_elt<GMTally2x2>(metrics_buf, i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
             if (!env->sparse) {
@@ -580,8 +581,8 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
         #pragma omp parallel for collapse(2)
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
-            const GMTally2x2 value = ((
-              GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
+            const GMTally2x2 value =
+              GMMirroredPointer_elt<GMTally2x2>(metrics_buf, i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
             if (!env->sparse) {
@@ -608,8 +609,8 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
-          const GMTally2x2 value = ((
-              GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j];
+          const GMTally2x2 value =
+              GMMirroredPointer_elt<GMTally2x2>(metrics_buf, i, j);
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
 #ifdef GM_ASSERTIONS_ON
           if (!env->sparse) {
@@ -715,11 +716,10 @@ void gm_compute_2way_combine(GMMetrics* metrics,
   GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEKANOWSKI: {
-      gm_compute_czekanowski_2way_combine_(metrics, metrics_buf,
-                                           vector_sums_left, vector_sums_right,
-                                           j_block, do_compute_triang_only,
-                                           env);
+    case GM_METRIC_TYPE_CZEK: {
+      gm_compute_czek_2way_combine_(metrics, metrics_buf,
+                                    vector_sums_left, vector_sums_right,
+                                    j_block, do_compute_triang_only, env);
     } break;
     case GM_METRIC_TYPE_CCC: {
       gm_compute_ccc_2way_combine_(metrics, metrics_buf,

@@ -631,7 +631,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
             continue;
           }
           const GMFloat value
-            = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+            = GMMetrics_czek_get_from_index(metrics, index, env);
 
           GMFloat n = 0;
           GMFloat d = 0;
@@ -677,7 +677,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
             continue;
           }
           const GMFloat value
-            = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+            = GMMetrics_czek_get_from_index(metrics, index, env);
 
           GMFloat n = 0;
           GMFloat d = 0;
@@ -1095,7 +1095,7 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
             continue;
           }
           const GMFloat value
-            = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+            = GMMetrics_czek_get_from_index(metrics, index, env);
           if (!(threshold < 0. || value > threshold)) {
             continue;
           }
@@ -1132,7 +1132,7 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
             continue;
           }
           const GMFloat value
-            = GMMetrics_czekanowski_get_from_index(metrics, index, env);
+            = GMMetrics_czek_get_from_index(metrics, index, env);
           if (!(threshold < 0. || value > threshold)) {
             continue;
           }

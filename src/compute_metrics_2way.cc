@@ -51,15 +51,13 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   /*---Allocate magma CPU memory for vectors and for result */
 
-  GMMirroredPointer vectors_buf =
-      gm_linalg_malloc(nvl * (size_t)npvfl, env);
+  GMMirroredPointer vectors_buf = gm_linalg_malloc(npvfl, nvl, env);
 
-  GMMirroredPointer metrics_buf =
-      gm_linalg_malloc(nvl * (size_t)nvl, env);
+  GMMirroredPointer metrics_buf = gm_linalg_malloc(nvl, nvl, env);
 
   GMMirroredPointer metrics_buf_tmp;
   if (! is_one_field_proc) {
-    metrics_buf_tmp = gm_linalg_malloc(nvl * (size_t)nvl, env);
+    metrics_buf_tmp = gm_linalg_malloc(nvl, nvl, env);
   }
 
   GMMirroredPointer* metrics_buf_local =
@@ -159,10 +157,10 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMMirroredPointer vectors_buf = GMMirroredPointer_null();
   GMMirroredPointer metrics_buf_tmp = GMMirroredPointer_null();
   for (int i = 0; i < 2; ++i) {
-    metrics_buf_01[i] = gm_linalg_malloc(nvl * (size_t)nvl, env);
+    metrics_buf_01[i] = gm_linalg_malloc(nvl, nvl, env);
   }
-  vectors_buf = gm_linalg_malloc(nvl * (size_t)npvfl, env);
-  metrics_buf_tmp = gm_linalg_malloc(nvl * (size_t)nvl, env);
+  vectors_buf = gm_linalg_malloc(npvfl, nvl, env);
+  metrics_buf_tmp = gm_linalg_malloc(nvl, nvl, env);
 
   /*---Result matrix is diagonal block and half the blocks to the right
        (including wraparound to left side of matrix when appropriate).

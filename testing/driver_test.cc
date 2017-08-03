@@ -92,7 +92,7 @@ void test_2runs(const char* options1,
 
 /*===========================================================================*/
 
-void DriverTest_czekanowski_() {
+void DriverTest_czek_() {
 
   //----------
   //---2-way, all2all no
@@ -1470,8 +1470,8 @@ void DriverTest_ccc_() {
 /*===========================================================================*/
 
 #if 1
-TEST(DriverTest, czekanowski) {
-  DriverTest_czekanowski_();
+TEST(DriverTest, czek) {
+  DriverTest_czek_();
 }
 
 TEST(DriverTest, ccc2_simple) {
