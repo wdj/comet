@@ -75,7 +75,7 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
       !GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsist(env, GMEnv_num_proc_field(env) == 1
+    GMInsist(env, !env->do_reduce
                       ? "num_proc_field>1 for REF/CPU cases not supported"
                       : 0);
 
@@ -121,7 +121,7 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, GMEnv_num_proc_field(env) == 1
+    GMInsist(env, !env->do_reduce
                       ? "num_proc_field>1 for REF/CPU cases not supported"
                       : 0);
 
@@ -249,7 +249,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsist(env, GMEnv_num_proc_field(env) == 1
+    GMInsist(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -413,7 +413,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, GMEnv_num_proc_field(env) == 1
+    GMInsist(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -765,9 +765,6 @@ void gm_compute_numerators_3way_gpu_form_matX_(
         const GMFloat a = GMMirroredPointer_elt_const<GMFloat>(vectors_I_buf, f, I);
         const GMFloat b = GMMirroredPointer_elt_const<GMFloat>(vectors_J_buf, f, J);
         GMMirroredPointer_elt<GMFloat>(matX_buf, f, I) = a < b ? a : b;
-//        const GMFloat a = ((GMFloat*)(vectors_I_buf->h))[f + npvfl*I];
-//        const GMFloat b = ((GMFloat*)(vectors_J_buf->h))[f + npvfl*J];
-//        ((GMFloat*)(matX_buf->h))[f + npvfl * I] = a < b ? a : b;
       }  //---for f---//
     }    //---for I---//
     /*----------*/
@@ -798,8 +795,6 @@ void gm_compute_numerators_3way_gpu_form_matX_(
       /*---Operate on columns v_i and v_j elementwise---*/
       const int pvfl_edge = num_packedval_field_active_local - 1;
       for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
-//        const int indI = pvfl + npvfl * I;
-//        const int indJ = pvfl + npvfl * J;
 
         const GMUInt64 activebits0 = pvfl < pvfl_edge ? allbits :
                                      pvfl == pvfl_edge ? edgemask0 : nobits;
@@ -811,15 +806,8 @@ void gm_compute_numerators_3way_gpu_form_matX_(
         const bool sparse = env->sparse;
 
         for (int word = 0; word<2; ++word) {
-
-//          const GMUInt64 vI =
-//            *(GMUInt64*)&(((GMBits2x64*)(vectors_I_buf->h))[indI].data[word]);
-//          const GMUInt64 vJ =
-//            *(GMUInt64*)&(((GMBits2x64*)(vectors_J_buf->h))[indJ].data[word]);
-
           const GMUInt64 vI = GMMirroredPointer_elt_const<GMBits2x64>(vectors_I_buf, pvfl, I).data[word];
           const GMUInt64 vJ = GMMirroredPointer_elt_const<GMBits2x64>(vectors_J_buf, pvfl, J).data[word];
-
 
           const GMUInt64 vIx = step_2way==0 ? vI | ~activebits[word] : vI;
 
@@ -866,9 +854,6 @@ void gm_compute_numerators_3way_gpu_form_matX_(
           const GMUInt64 r = r_0 | (r_1 << 1);
 
           GMMirroredPointer_elt<GMBits2x64>(matX_buf, pvfl, I).data[word] = r;
-
-          //((GMBits2x64*)(matX_buf->h))[indI].data[word] = *(GMBits1_2x64*)&r;
-
         } /*---word---*/
       }  //---for f---//
     }    //---for I---//
@@ -941,20 +926,11 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
 #pragma omp parallel for collapse(2)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
-//        const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + nvl * J];
-//        const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + nvl64*K];
-//        const GMFloat min_KIK = ((GMFloat*)(matM_KIK_buf->h))[K + nvl64*I];
         const GMFloat min_IJ = GMMirroredPointer_elt_const<GMFloat>(matM_IJ_buf, I, J);;
         const GMFloat min_JK = GMMirroredPointer_elt_const<GMFloat>(matM_JK_buf, J, K);;
         const GMFloat min_KIK = GMMirroredPointer_elt_const<GMFloat>(matM_KIK_buf, K, I);;
-
-
         // sum of mins vectors i, j, and k is matB(k,i)
-        //const GMFloat min_IJK = ((GMFloat*)(matB_buf->h))[I + I_max64*K];
-
         const GMFloat min_IJK = GMMirroredPointer_elt_const<GMFloat>(matB_buf, I, K);;
-
-
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         const int i = I;
         const int j = J;
@@ -986,17 +962,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
         const GMFloat min_KIK = is_part3 ?
           GMMirroredPointer_elt_const<GMFloat>(matM_KIK_buf, K, I) :
           GMMirroredPointer_elt_const<GMFloat>(matM_KIK_buf, I, K);
-
-
-//        const GMFloat min_IJ = ((GMFloat*)(matM_IJ_buf->h))[I + nvl64 * J];
-//        const GMFloat min_JK = ((GMFloat*)(matM_JK_buf->h))[J + nvl64 * K];
-//        const GMFloat min_KIK =
-//            is_part3 ? ((GMFloat*)(matM_KIK_buf->h))[K + nvl64 * I]
-//                     : ((GMFloat*)(matM_KIK_buf->h))[I + nvl64 * K];
-
-
         // sum of mins vectors i, j, and k is matB(k,i)
-        //const GMFloat min_IJK = ((GMFloat*)(matB_buf->h))[I + I_max64 * K];
         const GMFloat min_IJK = GMMirroredPointer_elt_const<GMFloat>(matB_buf, I, K);;
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         /*---Make arithmetic order-independent---*/
@@ -1038,7 +1004,6 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
         GMTally1 r110, r111;
         GMTally1_decode(&r110, &r111, numer.data[3]);
 
-        //const GMTally2x2 mB = ((GMTally2x2*)(matB_buf->h))[I + I_max * K];
         const GMTally2x2 mB = GMMirroredPointer_elt_const<GMTally2x2>(matB_buf, I, K);;
         GMTally1 mB00, mB01;
         GMTally1_decode(&mB00, &mB01, mB.data[0]);
@@ -1132,7 +1097,6 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
         GMTally1 r110_permuted, r111_permuted;
         GMTally1_decode(&r110_permuted, &r111_permuted, numer.data[3]);
 
-        //const GMTally2x2 mB = ((GMTally2x2*)(matB_buf->h))[I + I_max * K];
         const GMTally2x2 mB = GMMirroredPointer_elt_const<GMTally2x2>(matB_buf, I, K);;
         GMTally1 mB00, mB01;
         GMTally1_decode(&mB00, &mB01, mB.data[0]);
@@ -1264,6 +1228,18 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
 }
 
 /*===========================================================================*/
+
+static void lock(bool& lock_val) {
+  GMAssertAlways(! lock_val);
+  lock_val = true;
+};
+
+static void unlock(bool& lock_val) {
+  GMAssertAlways(lock_val);
+  lock_val = false;
+};
+
+/*===========================================================================*/
 /*---Start calculation of numerators, 3-way gpu---*/
 
 void gm_compute_numerators_3way_gpu_start_(
@@ -1297,25 +1273,19 @@ void gm_compute_numerators_3way_gpu_start_(
 
   /*---Initializations---*/
 
-  int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
-
   const int nvl = metrics->num_vector_local;
   const int npvfl = vectors_i->num_packedval_field_local;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
-
-  const bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK;
-  const bool need_reduce = GMEnv_num_proc_field(env) > 1;
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  const bool need_mat_ij = need_2way;
-  const bool need_mat_jk = need_2way && !si->is_part1;
-  const bool need_mat_kik = need_2way && si->is_part3;
+  const bool need_mat_ij = env->need_2way;
+  const bool need_mat_jk = env->need_2way && !si->is_part1;
+  const bool need_mat_kik = env->need_2way && si->is_part3;
 
   /*----------------------------------------*/
   /*---First get the required 2-way ij, jk, ik metrics---*/
@@ -1332,22 +1302,22 @@ void gm_compute_numerators_3way_gpu_start_(
                                                       NULL;
 
   if (need_mat_ij) {
-    GMMirroredPointer* matM_ij_buf_local =
-       need_reduce ? tmp_buf[0] : matM_ij_buf;
+    GMMirroredPointer* matM_ij_buf_ptr =
+       env->do_reduce ? tmp_buf[0] : matM_ij_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_ij_buf_local, nvl, nvl, env);
+    gm_linalg_set_matrix_zero_start(matM_ij_buf_ptr, nvl, nvl, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_i_buf->d, npvfl,
                          vectors_j_buf->d, npvfl,
-                         matM_ij_buf_local->d, nvl, env);
+                         matM_ij_buf_ptr->d, nvl, env);
     gm_compute_wait(env);
 
-    gm_get_metrics_start(metrics, matM_ij_buf_local, env);
-    gm_get_metrics_wait(metrics, matM_ij_buf_local, env);
+    gm_get_metrics_start(metrics, matM_ij_buf_ptr, env);
+    gm_get_metrics_wait(metrics, matM_ij_buf_ptr, env);
 
-    if (need_reduce) {
-      gm_reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_local, env);
+    if (env->do_reduce) {
+      gm_reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env);
     }
   }
 
@@ -1361,22 +1331,22 @@ void gm_compute_numerators_3way_gpu_start_(
       !si->is_part1 ? &this_->matM_jk_buf : matM_ij_buf;
 
   if (need_mat_jk) {
-    GMMirroredPointer* matM_jk_buf_local =
-        need_reduce ? tmp_buf[0] : matM_jk_buf;
+    GMMirroredPointer* matM_jk_buf_ptr =
+        env->do_reduce ? tmp_buf[0] : matM_jk_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_jk_buf_local, nvl, nvl, env);
+    gm_linalg_set_matrix_zero_start(matM_jk_buf_ptr, nvl, nvl, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_j_buf->d, npvfl,
                          vectors_k_buf->d, npvfl,
-                         matM_jk_buf_local->d, nvl, env);
+                         matM_jk_buf_ptr->d, nvl, env);
     gm_compute_wait(env);
 
-    gm_get_metrics_start(metrics, matM_jk_buf_local, env);
-    gm_get_metrics_wait(metrics, matM_jk_buf_local, env);
+    gm_get_metrics_start(metrics, matM_jk_buf_ptr, env);
+    gm_get_metrics_wait(metrics, matM_jk_buf_ptr, env);
 
-    if (need_reduce) {
-      gm_reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_local, env);
+    if (env->do_reduce) {
+      gm_reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env);
     }
   }
 
@@ -1393,22 +1363,22 @@ void gm_compute_numerators_3way_gpu_start_(
     ? &this_->matM_kik_buf : matM_ij_buf;
 
   if (need_mat_kik) {
-    GMMirroredPointer* matM_kik_buf_local =
-        need_reduce ? tmp_buf[0] : matM_kik_buf;
+    GMMirroredPointer* matM_kik_buf_ptr =
+        env->do_reduce ? tmp_buf[0] : matM_kik_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_kik_buf_local, nvl, nvl, env);
+    gm_linalg_set_matrix_zero_start(matM_kik_buf_ptr, nvl, nvl, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_k_buf->d, npvfl,
                          vectors_i_buf->d, npvfl,
-                         matM_kik_buf_local->d, nvl, env);
+                         matM_kik_buf_ptr->d, nvl, env);
     gm_compute_wait(env);
 
-    gm_get_metrics_start(metrics, matM_kik_buf_local, env);
-    gm_get_metrics_wait(metrics, matM_kik_buf_local, env);
+    gm_get_metrics_start(metrics, matM_kik_buf_ptr, env);
+    gm_get_metrics_wait(metrics, matM_kik_buf_ptr, env);
 
-    if (need_reduce) {
-      gm_reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_local, env);
+    if (env->do_reduce) {
+      gm_reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env);
     }
   } /*---is_part3---*/
 
@@ -1474,12 +1444,7 @@ void gm_compute_numerators_3way_gpu_start_(
   const int num_step = J_count * num_step_2way;
   const int extra_step = 1;
 
-  MPI_Request mpi_requests[2];
-//  bool matX_h_updating[2] = {false, false};
-//  bool matX_d_updating[2] = {false, false};
-//  bool matB_h_updating[2] = {false, false};
-//  bool matB_d_updating[2] = {false, false};
-//  bool matB_ptr_h_updating[2] = {false, false};
+  MPI_Request mpi_requests[2] = {0, 0};
 
   typedef struct {
     int step_num;
@@ -1507,16 +1472,13 @@ void gm_compute_numerators_3way_gpu_start_(
   vars_next.do_compute = false;
 
   // Use locks to verify no race condition on a buffer.
-#ifdef XXX
-  bool is_locked_tmp_buf_h[2] = {false, false};
-  bool is_locked_tmp_buf_d[2] = {false, false};
-#endif
-  bool is_locked_matX_buf_h[2] = {false, false};
-  bool is_locked_matX_buf_d[2] = {false, false};
-#ifdef XXX
-  bool is_locked_matB_buf_h[2] = {false, false};
-  bool is_locked_matB_buf_d[2] = {false, false};
-#endif
+  // Lock buffer when in use for read or write, unlock when done.
+  bool lock_tmp_buf_h[2] = {false, false};
+  bool lock_tmp_buf_d[2] = {false, false};
+  bool lock_matX_buf_h[2] = {false, false};
+  bool lock_matX_buf_d[2] = {false, false};
+  bool lock_matB_buf_h[2] = {false, false};
+  bool lock_matB_buf_d[2] = {false, false};
 
   for (int step_num = 0-extra_step; step_num < num_step+extra_step*2;
        ++step_num) {
@@ -1539,8 +1501,8 @@ void gm_compute_numerators_3way_gpu_start_(
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
     vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
     if (vars_next.I_max <= nvl) {
-      // Create buffer aliases with different shape.
-      if (need_reduce) {
+      // Create buffer aliases with required shape.
+      if (env->do_reduce) {
         GMMirroredPointer_create(&vars_next.tmp_buf,
                                  tmp_buf[vars_next.index_01],
                                  vars_next.I_max);
@@ -1550,34 +1512,35 @@ void gm_compute_numerators_3way_gpu_start_(
                                vars_next.I_max);
     }
 
-    GMMirroredPointer* matB_buf_ptr_prev = need_reduce ?
+    GMMirroredPointer* matB_buf_ptr_prev = env->do_reduce ?
                                            &vars_prev.tmp_buf :
                                            &vars_prev.matB_buf;
-    GMMirroredPointer* matB_buf_ptr = need_reduce ? &vars.tmp_buf :
-                                                    &vars.matB_buf;
+    GMMirroredPointer* matB_buf_ptr = env->do_reduce ? &vars.tmp_buf :
+                                                       &vars.matB_buf;
 
-#ifdef XXX
-    bool* is_locked_mat_buf_ptr_h_prev = need_reduce ? &is_locked_tmp_buf_h[vars_prev.index_01]
-                                                     : &is_locked_matB_buf_h[vars_prev.index_01];
-    bool* is_locked_mat_buf_ptr_d_prev = need_reduce ? &tmp_buf_d[vars_prev.index_01]
-                                                     : &is_locked_matB_buf_d[vars_prev.index_01];
-    bool* is_locked_mat_buf_ptr_h = need_reduce ? &is_locked_tmp_buf_h[vars.index_01]
-                                                : &is_locked_matB_buf_h[vars.index_01];
-    bool* is_locked_mat_buf_ptr_d = need_reduce ? &is_locked_tmp_buf_d[vars.index_01]
-                                                : &is_locked_matB_buf_d[vars.index_01];
-#endif
+    bool& lock_matB_buf_ptr_h_prevprev = env->do_reduce ?
+                                   lock_tmp_buf_h[vars_prevprev.index_01] :
+                                   lock_matB_buf_h[vars_prevprev.index_01];
+    bool& lock_matB_buf_ptr_h_prev = env->do_reduce ?
+                                   lock_tmp_buf_h[vars_prev.index_01] :
+                                   lock_matB_buf_h[vars_prev.index_01];
+    bool& lock_matB_buf_ptr_d_prev = env->do_reduce ?
+                                   lock_tmp_buf_d[vars_prev.index_01] :
+                                   lock_matB_buf_d[vars_prev.index_01];
+    bool& lock_matB_buf_ptr_d = env->do_reduce ?
+                                   lock_tmp_buf_d[vars.index_01] :
+                                   lock_matB_buf_d[vars.index_01];
 
     //==========
 
     if (vars_next.do_compute) {
       /*---Populate leading columns of matX---*/
-      GMAssertAlways(!is_locked_matX_buf_h[vars_next.index_01]);
-      is_locked_matX_buf_h[vars_next.index_01] = true;
+      lock(lock_matX_buf_h[vars_next.index_01]);
       gm_compute_numerators_3way_gpu_form_matX_(vectors_i,
           vectors_I_buf, vectors_J_buf, matX_buf[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
           vars_next.I_min, vars_next.I_max, env);
-      is_locked_matX_buf_h[vars_next.index_01] = false;
+      unlock(lock_matX_buf_h[vars_next.index_01]);
     }
 
     //==========
@@ -1585,7 +1548,8 @@ void gm_compute_numerators_3way_gpu_start_(
     if (vars.do_compute) {
       /*---Send matrix matX to GPU - WAIT---*/
       gm_linalg_set_matrix_wait(env);
-      is_locked_matX_buf_d[vars.index_01] = false;
+      unlock(lock_matX_buf_h[vars.index_01]);
+      unlock(lock_matX_buf_d[vars.index_01]);
     }
 
     //==========
@@ -1593,15 +1557,16 @@ void gm_compute_numerators_3way_gpu_start_(
     if (vars_prev.do_compute) {
       /*---Perform pseudo GEMM matB = matX^T PROD V - WAIT---*/
       gm_compute_wait(env);
-      //matB_buf_ptr[vars_prev.index_01]->d is now available.
+      unlock(lock_matB_buf_ptr_d_prev);
+      unlock(lock_matX_buf_d[vars_prev.index_01]);
     }
 
     //==========
 
     if (vars_next.do_compute) {
       /*---Send matrix matX to GPU - START---*/
-      GMAssertAlways(!is_locked_matX_buf_d[vars.index_01]);
-      is_locked_matX_buf_d[vars_next.index_01] = true;
+      lock(lock_matX_buf_h[vars_next.index_01]);
+      lock(lock_matX_buf_d[vars_next.index_01]);
       gm_linalg_set_matrix_start(matX_buf[vars_next.index_01], npvfl,
                                  vars_next.I_max, env);
     }
@@ -1610,28 +1575,25 @@ void gm_compute_numerators_3way_gpu_start_(
 
     if (vars_prev.do_compute) {
       /*---Copy result matrix matB from GPU - START---*/
-//XXX 4
+      lock(lock_matB_buf_ptr_d_prev);
+      lock(lock_matB_buf_ptr_h_prev);
       gm_linalg_get_matrix_start(matB_buf_ptr_prev, vars_prev.I_max,
                                  nvl, env);
-      //gm_get_metrics_start(metrics, vars_prev.matB_buf_ptr, env); //FIX
-      //matB_buf_ptr[vars_prev.index_01]->h is now being overwritten.
     }
 
     //==========
 
     if (vars.do_compute) {
       /*---Initialize result matrix to zero (apparently magma requires)---*/
-//XXX 1
+      lock(lock_matB_buf_ptr_d);
+      lock(lock_matX_buf_d[vars.index_01]);
       gm_linalg_set_matrix_zero_start(matB_buf_ptr,
                                       vars.I_max, nvl, env);
       /*---Perform pseudo GEMM matB = matX^T PROD V - START---*/
-//XXX 2
-      GMAssertAlways(!is_locked_matX_buf_d[vars.index_01]);
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
                            matX_buf[vars.index_01]->d, npvfl,
                            vectors_K_buf->d, npvfl,
                            matB_buf_ptr->d, vars.I_max, env);
-      //matB_buf_ptr[vars.index_01]->d is now being overwritten.
     }
 
     //==========
@@ -1639,39 +1601,39 @@ void gm_compute_numerators_3way_gpu_start_(
     if (vars_prev.do_compute) {
       /*---Copy result matrix matB from GPU - WAIT---*/
       gm_linalg_get_matrix_wait(env);
-      //gm_get_metrics_wait(metrics, vars_prev.matB_buf_ptr, env); //FIX
-      //matB_buf_ptr[vars_prev.index_01]->h is now available.
-      //matB_buf_ptr[vars_prev.index_01]->d is now no longer needed.
+      unlock(lock_matB_buf_ptr_d_prev);
+      unlock(lock_matB_buf_ptr_h_prev);
     }
 
     //==========
 
     if (vars_prevprev.do_compute) {
-      if (need_reduce) {
+      if (env->do_reduce) {
         gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]), env); 
-        //matB_buf[vars.prevprev.index_01]->h is now available.
+        unlock(lock_matB_buf_ptr_h_prevprev);
+        unlock(lock_matB_buf_h[vars_prevprev.index_01]);
       }
     }
 
     //==========
 
     if (vars_prev.do_compute) {
-//XXX 3
-      if (need_reduce) {
+      if (env->do_reduce) {
+        lock(lock_matB_buf_ptr_h_prev);
+        lock(lock_matB_buf_h[vars_prev.index_01]);
         mpi_requests[vars_prev.index_01] = gm_reduce_metrics_start(metrics,
             &vars_prev.matB_buf, matB_buf_ptr_prev, env);
-        //matB_buf[vars.prev.index_01]->h is now being overwritten.
       }
     }
 
     //==========
 
-    //---NOTE: matB_buf[vars_prevprev.index_01]->d is being updated now
+    //---NOTE: matB_buf[vars_prevprev.index_01]->d is locked now
     //---but matB_buf[vars_prevprev.index_01]->h is ok.
 
     if (vars_prevprev.do_compute) {
-//XXX
       /*---Compute numerators using ijk piece and (if needed) 2-way pieces---*/
+      lock(lock_matB_buf_ptr_h_prevprev);
       gm_compute_numerators_3way_gpu_form_metrics_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
           &vars_prevprev.matB_buf,
@@ -1685,8 +1647,7 @@ void gm_compute_numerators_3way_gpu_start_(
           j_block, k_block, si,
           vector_sums_i, vector_sums_j, vector_sums_k,
           env);
-      //matB_buf[vars.prevprev.index_01]->h (=matB_buf[vars.index_01]->h)
-      //now no longer needed.
+      unlock(lock_matB_buf_ptr_h_prevprev);
     }
 
     //==========
@@ -1709,24 +1670,21 @@ void GMComputeNumerators3Way_create(
     GMEnv* env) {
   GMAssertAlways(this_ && env);
 
-  const bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK;
-  const bool need_reduce = GMEnv_num_proc_field(env) > 1;
-
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     for (int i=0; i<2; ++i) {
-      this_->tmp_buf[i] = need_reduce
+      this_->tmp_buf[i] = env->do_reduce
                         ? gm_linalg_malloc(nvl, nvl, env)
                         : GMMirroredPointer_null();
       this_->matX_buf[i] = gm_linalg_malloc(npvfl, nvl, env);
       this_->matB_buf[i] = gm_linalg_malloc(nvl, nvl, env);
     }
 
-    this_->matM_ij_buf = need_2way ? gm_linalg_malloc(nvl, nvl, env)
-                                   : GMMirroredPointer_null();
-    this_->matM_jk_buf = need_2way ? gm_linalg_malloc(nvl, nvl, env)
-                                   : GMMirroredPointer_null();
-    this_->matM_kik_buf = need_2way ? gm_linalg_malloc(nvl, nvl, env)
-                                    : GMMirroredPointer_null();
+    this_->matM_ij_buf = env->need_2way ? gm_linalg_malloc(nvl, nvl, env)
+                                        : GMMirroredPointer_null();
+    this_->matM_jk_buf = env->need_2way ? gm_linalg_malloc(nvl, nvl, env)
+                                        : GMMirroredPointer_null();
+    this_->matM_kik_buf = env->need_2way ? gm_linalg_malloc(nvl, nvl, env)
+                                         : GMMirroredPointer_null();
   }
 }
 
@@ -1736,20 +1694,17 @@ void GMComputeNumerators3Way_destroy(GMComputeNumerators3Way* this_,
                                      GMEnv* env) {
   GMAssertAlways(this_ && env);
 
-  const bool need_2way = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK;
-  const bool need_reduce = GMEnv_num_proc_field(env) > 1;
-
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
 
     for (int i=0; i<2; ++i) {
-      if (need_reduce) {
+      if (env->do_reduce) {
         gm_linalg_free(&this_->tmp_buf[i], env);
       }
       gm_linalg_free(&this_->matX_buf[i], env);
       gm_linalg_free(&this_->matB_buf[i], env);
     }
 
-    if (need_2way) {
+    if (env->need_2way) {
       gm_linalg_free(&this_->matM_ij_buf, env);
       gm_linalg_free(&this_->matM_jk_buf, env);
       gm_linalg_free(&this_->matM_kik_buf, env);

@@ -153,9 +153,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
   env->make_comms_ = make_comms;
 
   if (env->make_comms_) {
-    int mpi_code = 0;
-    mpi_code *= 1; /*---Avoid unused variable warning---*/
-    mpi_code = MPI_Comm_size(env->mpi_comm_base_, &env->num_proc_base_);
+    int mpi_code = MPI_Comm_size(env->mpi_comm_base_, &env->num_proc_base_);
     GMAssertAlways(mpi_code == MPI_SUCCESS);
     mpi_code = MPI_Comm_rank(env->mpi_comm_base_, &env->proc_num_base_);
     GMAssertAlways(mpi_code == MPI_SUCCESS);
@@ -279,6 +277,10 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
       /*--------------------*/
     } /*---if/else---*/
   }   /*---for i---*/
+
+  /*---Helper variables---*/
+  env->do_reduce = env->num_proc_field_ > 1;
+  env->need_2way = env->metric_type_ == GM_METRIC_TYPE_CZEK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -402,10 +404,7 @@ void GMEnv_initialize_comms(GMEnv* const env) {
     return;
   }
 
-  int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
-
-  mpi_code = MPI_Comm_split(env->mpi_comm_base_, env->is_proc_active_,
+  int mpi_code = MPI_Comm_split(env->mpi_comm_base_, env->is_proc_active_,
                             env->proc_num_, &env->mpi_comm_);
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 
@@ -431,12 +430,9 @@ void GMEnv_terminate_comms(GMEnv* const env) {
     return;
   }
 
-  int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
-
   /*---Destroy any nontrivial communicators---*/
 
-  mpi_code = MPI_Comm_free(&(env->mpi_comm_));
+  int mpi_code = MPI_Comm_free(&(env->mpi_comm_));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   mpi_code = MPI_Comm_free(&(env->mpi_comm_vector_));
@@ -612,10 +608,7 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
     GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
   }
 
-  int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
-
-  mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
+  const int mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
   return GMEnv_get_time(env);
 }

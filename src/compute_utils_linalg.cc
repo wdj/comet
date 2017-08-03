@@ -46,10 +46,7 @@ void gm_linalg_initialize(GMEnv* env) {
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
-    magma_minproduct_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
-    magma_code = magma_minproduct_init();
+    magma_minproduct_int_t magma_code = magma_minproduct_init();
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_init." : 0);
     /*---need this -- see
@@ -63,10 +60,7 @@ void gm_linalg_initialize(GMEnv* env) {
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    magma_tally2_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
-    magma_code = magma_tally2_init();
+    magma_tally2_int_t magma_code = magma_tally2_init();
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2_init." : 0);
     /*---need this -- see
@@ -81,10 +75,7 @@ void gm_linalg_initialize(GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    magma_tally4_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
-    magma_code = magma_tally4_init();
+    magma_tally4_int_t magma_code = magma_tally4_init();
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_init." : 0);
     /*---need this -- see
@@ -99,10 +90,7 @@ void gm_linalg_initialize(GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    magma_tally3_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
-    magma_code = magma_tally3_init();
+    magma_tally3_int_t magma_code = magma_tally3_init();
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_init." : 0);
     /*---need this -- see
@@ -136,11 +124,9 @@ void gm_linalg_finalize(GMEnv* env) {
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
-    magma_minproduct_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     // TODO: reset kernel stream (not really needed)
-    magma_code = magma_minproduct_finalize();
+    magma_minproduct_int_t magma_code = magma_minproduct_finalize();
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_finalize." : 0);
 
@@ -148,11 +134,8 @@ void gm_linalg_finalize(GMEnv* env) {
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    magma_tally2_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
     // TODO: reset kernel stream (not really needed)
-    magma_code = magma_tally2_finalize();
+    magma_tally2_int_t magma_code = magma_tally2_finalize();
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2_finalize." : 0);
 
@@ -161,11 +144,8 @@ void gm_linalg_finalize(GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    magma_tally4_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
     // TODO: reset kernel stream (not really needed)
-    magma_code = magma_tally4_finalize();
+    magma_tally4_int_t magma_code = magma_tally4_finalize();
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_finalize." : 0);
 
@@ -174,11 +154,8 @@ void gm_linalg_finalize(GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    magma_tally3_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
     // TODO: reset kernel stream (not really needed)
-    magma_code = magma_tally3_finalize();
+    magma_tally3_int_t magma_code = magma_tally3_finalize();
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_finalize." : 0);
 
@@ -219,7 +196,6 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&p.h, n);
@@ -255,7 +231,6 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
     typedef magma_tally2DoubleComplex Float_t;
 
     magma_tally2_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p.h, n);
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
@@ -279,7 +254,6 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
     typedef magma_tally4DoubleComplex Float_t;
 
     magma_tally4_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p.h, n);
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
@@ -303,7 +277,6 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
     typedef magma_tally3DoubleComplex Float_t;
 
     magma_tally3_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
 
     magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p.h, n);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
@@ -329,9 +302,9 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
   } /*---if---*/
   /*----------------------------------------*/
 
-  GMAssertAlways(p.h != NULL ?
+  GMAssertAlways(p.h ?
                  "Invalid host pointer created in gm_linalg_malloc." : 0);
-  GMAssertAlways(p.d != NULL ?
+  GMAssertAlways(p.d ?
                  "Invalid device pointer created in gm_linalg_malloc." : 0);
   return p;
 }
@@ -352,12 +325,9 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
   /*----------------------------------------*/
 
-    magma_minproduct_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
-    magma_minproduct_free_pinned(p->h);
+    magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
-    magma_minproduct_free(p->d);
+    magma_code = magma_minproduct_free(p->d);
     GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
 
     env->cpu_mem -= size;
@@ -367,12 +337,9 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    magma_tally2_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
-    magma_tally2_free_pinned(p->h);
+    magma_tally2_int_t magma_code = magma_tally2_free_pinned(p->h);
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS);
-    magma_tally2_free(p->d);
+    magma_code = magma_tally2_free(p->d);
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS);
 
     env->cpu_mem -= size;
@@ -383,12 +350,9 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    magma_tally4_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
-    magma_tally4_free_pinned(p->h);
+    magma_tally4_int_t magma_code = magma_tally4_free_pinned(p->h);
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
-    magma_tally4_free(p->d);
+    magma_code = magma_tally4_free(p->d);
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
 
     env->cpu_mem -= size;
@@ -399,12 +363,9 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    magma_tally3_int_t magma_code = 0;
-    magma_code *= 1; /*---Avoid unused variable warning---*/
-
-    magma_tally3_free_pinned(p->h);
+    magma_tally3_int_t magma_code = magma_tally3_free_pinned(p->h);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
-    magma_tally3_free(p->d);
+    magma_code = magma_tally3_free(p->d);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
 
     env->cpu_mem -= size;
@@ -430,6 +391,8 @@ void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
+
+  // ISSUE: these MAGMA routines don't return an error code.
 
   /*----------------------------------------*/
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
@@ -504,16 +467,9 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                                 magma_minproduct_int_t lddc,
                                 bool is_beta_one,
                                 GMEnv* env) {
-  GMAssertAlways(m >= 0);
-  GMAssertAlways(n >= 0);
-  GMAssertAlways(k >= 0);
-  GMAssertAlways(dA != NULL);
-  GMAssertAlways(dB != NULL);
-  GMAssertAlways(dC != NULL);
-  GMAssertAlways(ldda >= 0);
-  GMAssertAlways(lddb >= 0);
-  GMAssertAlways(env != NULL);
-
+  GMAssertAlways(dA && dB && dC && env);
+  GMAssertAlways(m >= 0 && n >= 0 && k >= 0);
+  GMAssertAlways(ldda >= 0 && lddb >= 0);
   GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
   {
@@ -531,6 +487,8 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     GMAssertAlways( !(sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
                       sizeB >= CUBLAS_MAX_1DBUF_SIZE ));
   }
+
+  // ISSUE: these MAGMA routines don't return an error code.
 
   /*----------------------------------------*/
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
@@ -625,16 +583,9 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
                           void* dC,
                           magma_minproduct_int_t lddc,
                           GMEnv* env) {
-  GMAssertAlways(m >= 0);
-  GMAssertAlways(n >= 0);
-  GMAssertAlways(k >= 0);
-  GMAssertAlways(dA != NULL);
-  GMAssertAlways(dB != NULL);
-  GMAssertAlways(dC != NULL);
-  GMAssertAlways(ldda >= 0);
-  GMAssertAlways(lddb >= 0);
-  GMAssertAlways(env != NULL);
-
+  GMAssertAlways(dA && dB && dC && env);
+  GMAssertAlways(m >= 0 && n >= 0 && k >= 0);
+  GMAssertAlways(ldda >= 0 && lddb >= 0);
   GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
   if (m==0 || n==0 || k==0) {
@@ -710,7 +661,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 /*---Wait for any computation on the GPU to complete---*/
 
 void gm_compute_wait(GMEnv* env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaStreamSynchronize(GMEnv_stream_compute(env));
@@ -725,14 +676,15 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
                                 int mat_dim1,
                                 int mat_dim2,
                                 GMEnv* env) {
-  GMAssertAlways(matrix_buf != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(matrix_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*---Send vectors to GPU---*/
+
+  // ISSUE: these MAGMA routines don't return an error code.
 
   /*----------------------------------------*/
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
@@ -794,7 +746,7 @@ void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
 /*---------------------------------------------------------------------------*/
 
 void gm_linalg_set_matrix_wait(GMEnv* env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -811,14 +763,15 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
                                 int mat_dim1,
                                 int mat_dim2,
                                 GMEnv* env) {
-  GMAssertAlways(matrix_buf != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(matrix_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   /*---Get vectors from GPU---*/
+
+  // ISSUE: these MAGMA routines don't return an error code.
 
   /*----------------------------------------*/
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
@@ -880,7 +833,7 @@ void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
 /*---------------------------------------------------------------------------*/
 
 void gm_linalg_get_matrix_wait(GMEnv* env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;

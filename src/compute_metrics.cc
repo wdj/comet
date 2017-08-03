@@ -65,10 +65,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   double num_elts_local = metrics->num_elts_local;
   double num_elts = 0;
 
-  int mpi_code = 0;
-  mpi_code *= 1; // Avoid unused variable warning.
-
-  mpi_code = MPI_Allreduce(&num_elts_local, &num_elts, 1,
+  int mpi_code = MPI_Allreduce(&num_elts_local, &num_elts, 1,
                            MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_vector(env));
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 

@@ -133,10 +133,8 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
 
   if (num_proc > 1) {
     int mpi_code = 0;
-    mpi_code *= 1; /*---Avoid unused variable warning---*/
-    mpi_code =
-        MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
-                      GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
+    mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
+                             GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
     GMAssertAlways(mpi_code == MPI_SUCCESS);
   }
 
@@ -247,7 +245,6 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
 
   if (num_proc > 1) {
     int mpi_code = 0;
-    mpi_code *= 1; /*---Avoid unused variable warning---*/
     mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
                       GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
     GMAssertAlways(mpi_code == MPI_SUCCESS);

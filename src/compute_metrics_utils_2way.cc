@@ -40,7 +40,7 @@ void gm_compute_czek_numerators_2way_start_(
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsist(env, GMEnv_num_proc_field(env) == 1
+    GMInsist(env, !env->do_reduce
                       ? "num_proc_field>1 for REF case not supported"
                       : 0);
 
@@ -63,7 +63,7 @@ void gm_compute_czek_numerators_2way_start_(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, GMEnv_num_proc_field(env) == 1
+    GMInsist(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -125,7 +125,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsist(env, GMEnv_num_proc_field(env) == 1
+    GMInsist(env, !env->do_reduce
                       ? "num_proc_field>1 for REF case not supported"
                       : 0);
 
@@ -197,7 +197,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, GMEnv_num_proc_field(env) == 1
+    GMInsist(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 

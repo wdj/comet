@@ -217,7 +217,7 @@ int gm_num_seminibbles_pad(GMMetrics* metrics,
   //const int num_field_calculated = num_packedval_field_local * 64;
 
   const bool final_proc = GMEnv_proc_num_field(env) ==
-                          GMEnv_num_proc_field(env)-1;
+                          GMEnv_num_proc_field(env) - 1;
 
   const int num_field_active_local = final_proc
     ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
@@ -268,8 +268,11 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
 #pragma omp parallel for collapse(2)
   for (int j = 0; j < metrics->num_vector_local; ++j) {
     for (int i = 0; i < metrics->num_vector_local; ++i) {
-      ((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j]
+      GMMirroredPointer_elt<GMTally2x2>(metrics_buf, i, j)
+      //((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j]
           .data[0] -= adjustment;
+
+
     } /*---for j---*/
   }   /*---for i---*/
 }

@@ -565,6 +565,7 @@ void GMMetrics_create(GMMetrics* metrics,
   mpi_code = MPI_Allreduce(&metrics->num_elts_local, &num_elts, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   if (GMEnv_num_way(env) == GM_NUM_WAY_2 && env->num_stage == 1 &&
       env->num_phase == 1 && GMEnv_all2all(env)) {
@@ -802,10 +803,9 @@ void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
   } /*---for index---*/
 
   int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
-
   mpi_code = MPI_Allreduce(&value_max_this, &cs->value_max, 1,
                            MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
 
   /*---The largest we expect any value to be if using "special" inputs---*/
   const int log2_value_max_allowed = 4;

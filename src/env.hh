@@ -453,6 +453,9 @@ typedef struct {
   cudaStream_t stream_togpu_;
   cudaStream_t stream_fromgpu_;
   bool are_cuda_streams_initialized_;
+  /*---HELPERS---*/
+  bool do_reduce;
+  bool need_2way; // does the 3-way calc require 2-way metrics
   /*---OTHER---*/
   const char* description;
 } GMEnv;
