@@ -9,6 +9,7 @@
 /*---------------------------------------------------------------------------*/
 
 #include "env.hh"
+#include "mirrored_buf.hh"
 #include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
@@ -26,9 +27,9 @@ void gm_compute_czek_numerators_2way_start_(
     GMVectors* vectors_left,
     GMVectors* vectors_right,
     GMMetrics* metrics,
-    GMMirroredPointer* vectors_left_buf,
-    GMMirroredPointer* vectors_right_buf,
-    GMMirroredPointer* metrics_buf,
+    GMMirroredBuf* vectors_left_buf,
+    GMMirroredBuf* vectors_right_buf,
+    GMMirroredBuf* metrics_buf,
     int j_block,
     bool do_compute_triang_only,
     GMEnv* env) {
@@ -88,8 +89,7 @@ void gm_compute_czek_numerators_2way_start_(
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
 
-    gm_linalg_set_matrix_zero_start(metrics_buf, metrics->num_vector_local,
-                                    metrics->num_vector_local, env);
+    gm_linalg_set_matrix_zero_start(metrics_buf, env);
 
     /*---Perform pseudo GEMM---*/
 
@@ -111,9 +111,9 @@ void gm_compute_czek_numerators_2way_start_(
 void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
                                            GMVectors* vectors_right,
                                            GMMetrics* metrics,
-                                           GMMirroredPointer* vectors_left_buf,
-                                           GMMirroredPointer* vectors_right_buf,
-                                           GMMirroredPointer* metrics_buf,
+                                           GMMirroredBuf* vectors_left_buf,
+                                           GMMirroredBuf* vectors_right_buf,
+                                           GMMirroredBuf* metrics_buf,
                                            int j_block,
                                            bool do_compute_triang_only,
                                            GMEnv* env) {
@@ -352,8 +352,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
 
-    gm_linalg_set_matrix_zero_start(metrics_buf, metrics->num_vector_local,
-                                    metrics->num_vector_local, env);
+    gm_linalg_set_matrix_zero_start(metrics_buf, env);
 
     /*---Perform pseudo GEMM---*/
 
@@ -378,9 +377,9 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
 void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       GMVectors* vectors_right,
                                       GMMetrics* metrics,
-                                      GMMirroredPointer* vectors_left_buf,
-                                      GMMirroredPointer* vectors_right_buf,
-                                      GMMirroredPointer* metrics_buf,
+                                      GMMirroredBuf* vectors_left_buf,
+                                      GMMirroredBuf* vectors_right_buf,
+                                      GMMirroredBuf* metrics_buf,
                                       int j_block,
                                       bool do_compute_triang_only,
                                       GMEnv* env) {
@@ -411,7 +410,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
 
 void gm_compute_czek_2way_combine_(
     GMMetrics* metrics,
-    GMMirroredPointer* metrics_buf,
+    GMMirroredBuf* metrics_buf,
     const GMVectorSums* vector_sums_left,
     const GMVectorSums* vector_sums_right,
     int j_block, bool do_compute_triang_only, GMEnv* env) {
@@ -482,7 +481,7 @@ void gm_compute_czek_2way_combine_(
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const GMFloat numer =
-            GMMirroredPointer_elt<GMFloat>(metrics_buf, i, j);
+            GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
           const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denom = vi < vj ? vi + vj : vj + vi;
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
@@ -496,7 +495,7 @@ void gm_compute_czek_2way_combine_(
         for (int i = 0; i < nvl; ++i) {
           const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
           const GMFloat numer =
-            GMMirroredPointer_elt<GMFloat>(metrics_buf, i, j);
+            GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
           const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denom = vi < vj ? vi + vj : vj + vi;
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
@@ -515,7 +514,7 @@ void gm_compute_czek_2way_combine_(
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer =
-          GMMirroredPointer_elt<GMFloat>(metrics_buf, i, j);
+          GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
         const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denom = vi < vj ? vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numer / denom, env);
@@ -532,7 +531,7 @@ void gm_compute_czek_2way_combine_(
 /*---Combine nums and denoms on CPU to get final result, 2-way CCC---*/
 
 void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
-                                  GMMirroredPointer* metrics_buf,
+                                  GMMirroredBuf* metrics_buf,
                                   const GMVectorSums* vector_sums_left,
                                   const GMVectorSums* vector_sums_right,
                                   int j_block, bool do_compute_triang_only,
@@ -558,7 +557,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
           const int i_max = j;
           for (int i = 0; i < i_max; ++i) {
             const GMTally2x2 value =
-              GMMirroredPointer_elt<GMTally2x2>(metrics_buf, i, j);
+              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
             if (!env->sparse) {
@@ -582,7 +581,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
             const GMTally2x2 value =
-              GMMirroredPointer_elt<GMTally2x2>(metrics_buf, i, j);
+              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
             if (!env->sparse) {
@@ -610,7 +609,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
           const GMTally2x2 value =
-              GMMirroredPointer_elt<GMTally2x2>(metrics_buf, i, j);
+              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
 #ifdef GM_ASSERTIONS_ON
           if (!env->sparse) {
@@ -704,7 +703,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
 /*---Combine nums and denoms on CPU to get final result, 2-way generic---*/
 
 void gm_compute_2way_combine(GMMetrics* metrics,
-                             GMMirroredPointer* metrics_buf,
+                             GMMirroredBuf* metrics_buf,
                              const GMVectorSums* vector_sums_left,
                              const GMVectorSums* vector_sums_right,
                              int j_block,

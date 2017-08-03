@@ -17,6 +17,7 @@
 #define _gm_vectors_hh_
 
 #include "env.hh"
+#include "mirrored_buf.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,7 +45,7 @@ typedef struct {
   void* __restrict__ data;
   size_t data_size;
   bool has_buf;
-  GMMirroredPointer buf;
+  GMMirroredBuf buf;
 } GMVectors;
 
 /*===========================================================================*/

@@ -9,6 +9,7 @@
 /*---------------------------------------------------------------------------*/
 
 #include "env.hh"
+#include "mirrored_buf.hh"
 #include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
@@ -49,17 +50,19 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   /*---Allocate magma CPU memory for vectors and for result */
 
-  GMMirroredPointer vectors_buf = gm_linalg_malloc(npvfl, nvl, env);
+  GMMirroredBuf vectors_buf = GMMirroredBuf_null();
+  GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
 
-  GMMirroredPointer metrics_buf = gm_linalg_malloc(nvl, nvl, env);
+  GMMirroredBuf metrics_buf = GMMirroredBuf_null();
+  GMMirroredBuf_create(&metrics_buf, nvl, nvl, env);
 
-  GMMirroredPointer metrics_buf_tmp;
+  GMMirroredBuf metrics_tmp_buf = GMMirroredBuf_null();
   if (env->do_reduce) {
-    metrics_buf_tmp = gm_linalg_malloc(nvl, nvl, env);
+    GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, env);
   }
 
-  GMMirroredPointer* metrics_buf_ptr =
-      env->do_reduce ?  &metrics_buf_tmp : &metrics_buf;
+  GMMirroredBuf* metrics_buf_ptr =
+      env->do_reduce ?  &metrics_tmp_buf : &metrics_buf;
 
   /*---Copy in vectors---*/
 
@@ -101,10 +104,11 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   GMVectorSums_destroy(&vector_sums, env);
 
-  gm_linalg_free(&vectors_buf, env);
-  gm_linalg_free(&metrics_buf, env);
+  GMMirroredBuf_destroy(&vectors_buf, env);
+  GMMirroredBuf_destroy(&metrics_buf, env);
+
   if (env->do_reduce) {
-    gm_linalg_free(&metrics_buf_tmp, env);
+    GMMirroredBuf_destroy(&metrics_tmp_buf, env);
   }
 
   gm_linalg_finalize(env);
@@ -149,14 +153,14 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   /*---To overlap transfers with compute, set up double buffers for the
        vectors sent to the GPU and the metrics received from the GPU.---*/
 
-  GMMirroredPointer metrics_buf_01[2];
-  GMMirroredPointer vectors_buf = GMMirroredPointer_null();
-  GMMirroredPointer metrics_buf_tmp = GMMirroredPointer_null();
+  GMMirroredBuf metrics_buf_01[2];
+  GMMirroredBuf vectors_buf = GMMirroredBuf_null();
+  GMMirroredBuf metrics_tmp_buf = GMMirroredBuf_null();
   for (int i = 0; i < 2; ++i) {
-    metrics_buf_01[i] = gm_linalg_malloc(nvl, nvl, env);
+    GMMirroredBuf_create(&metrics_buf_01[i], nvl, nvl, env);
   }
-  vectors_buf = gm_linalg_malloc(npvfl, nvl, env);
-  metrics_buf_tmp = gm_linalg_malloc(nvl, nvl, env);
+  GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
+  GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, env);
 
   /*---Result matrix is diagonal block and half the blocks to the right
        (including wraparound to left side of matrix when appropriate).
@@ -215,8 +219,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   typedef struct {
     GMVectors* vectors_right;
-    GMMirroredPointer* vectors_right_buf;
-    GMMirroredPointer* metrics_buf;
+    GMMirroredBuf* vectors_right_buf;
+    GMMirroredBuf* metrics_buf;
     bool is_compute_step;
     bool is_first_compute_step;
     bool do_compute_block;
@@ -274,7 +278,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     vars_next.vectors_right_buf = vars_next.is_main_diag ?
       &vectors_buf : &vectors_01[vars_next.index_01].buf;
-    GMMirroredPointer* vectors_left_buf = &vectors_buf;
+    GMMirroredBuf* vectors_left_buf = &vectors_buf;
 
     /*---Pointer to metrics buffer---*/
 
@@ -335,8 +339,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         gm_get_metrics_wait(metrics, vars_prev.metrics_buf, env);
         gm_metrics_gpu_adjust(metrics, vars_prev.metrics_buf, env);
 
-        GMMirroredPointer* metrics_buf_prev_ptr =
-            env->do_reduce ?  &metrics_buf_tmp : vars_prev.metrics_buf;
+        GMMirroredBuf* metrics_buf_prev_ptr =
+            env->do_reduce ?  &metrics_tmp_buf : vars_prev.metrics_buf;
 
         if (env->do_reduce) {
           gm_reduce_metrics(metrics, metrics_buf_prev_ptr,
@@ -499,10 +503,10 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   /*---Magma terminations---*/
 
   for (int i = 0; i < 2; ++i) {
-    gm_linalg_free(&metrics_buf_01[i], env);
+    GMMirroredBuf_destroy(&metrics_buf_01[i], env);
   }
-  gm_linalg_free(&vectors_buf, env);
-  gm_linalg_free(&metrics_buf_tmp, env);
+  GMMirroredBuf_destroy(&vectors_buf, env);
+  GMMirroredBuf_destroy(&metrics_tmp_buf, env);
 
   gm_linalg_finalize(env);
 }

@@ -28,6 +28,8 @@
 #include "metrics.hh"
 #include "compute_metrics_utils.hh"
 
+#include "compute_utils_linalg.hh"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,7 +38,7 @@ extern "C" {
 /*---Magma setup, teardown---*/
 
 void gm_linalg_initialize(GMEnv* env) {
-  GMAssertAlways(env != NULL ? "Invalid argument to gm_linalg_initialize." : 0);
+  GMAssertAlways(env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -114,7 +116,7 @@ void gm_linalg_initialize(GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 void gm_linalg_finalize(GMEnv* env) {
-  GMAssertAlways(env != NULL ? "Invalid argument to gm_linalg_finalize." : 0);
+  GMAssertAlways(env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -173,21 +175,18 @@ void gm_linalg_finalize(GMEnv* env) {
 /*===========================================================================*/
 /*---Allocate/free host and device memory---*/
 
-GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
-  GMAssertAlways(env);
+void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
+  GMAssertAlways(p && env);
   GMAssertAlways(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
-  GMMirroredPointer p = GMMirroredPointer_null();
+  *p = GMMirroredBuf_null();
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    return p;
+    return;
   }
 
-  p.dim0 = dim0;
-  p.dim1 = dim1;
-
-  //GMAssertAlways((size_t)p.dim0 == dim0 ? "Integer value too large." : 0);
-  //GMAssertAlways((size_t)p.dim1 == dim1 ? "Integer value too large." : 0);
+  p->dim0 = dim0;
+  p->dim1 = dim1;
 
   const size_t n = dim0 * dim1;
 
@@ -198,30 +197,30 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
     magma_minproduct_int_t magma_code = 0;
 
     if (GM_FP_PRECISION_DOUBLE) {
-      magma_code = magma_minproduct_dmalloc_pinned((double**)&p.h, n);
+      magma_code = magma_minproduct_dmalloc_pinned((double**)&p->h, n);
       GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_dmalloc_pinned." : 0);
     } else {
-      magma_code = magma_minproduct_smalloc_pinned((float**)&p.h, n);
+      magma_code = magma_minproduct_smalloc_pinned((float**)&p->h, n);
       GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_smalloc_pinned." : 0);
     }
-    GMFloat_fill_nan((GMFloat*)p.h, n);
+    GMFloat_fill_nan((GMFloat*)p->h, n);
 
     if (GM_FP_PRECISION_DOUBLE) {
-      magma_code = magma_minproduct_dmalloc((double**)&p.d, n);
+      magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
       GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_dmalloc." : 0);
     } else {
-      magma_code = magma_minproduct_smalloc((float**)&p.d, n);
+      magma_code = magma_minproduct_smalloc((float**)&p->d, n);
       GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_smalloc." : 0);
     }
 
-    p.size = n*sizeof(GMFloat);
-    env->cpu_mem += p.size;
+    p->size = n*sizeof(GMFloat);
+    env->cpu_mem += p->size;
     env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
-    env->gpu_mem += p.size;
+    env->gpu_mem += p->size;
     env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
   /*----------------------------------------*/
@@ -232,18 +231,18 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
 
     magma_tally2_int_t magma_code = 0;
 
-    magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p.h, n);
+    magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p->h, n);
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2_zmalloc_pinned." : 0);
 
-    magma_code = magma_tally2_zmalloc((Float_t**)&p.d, n);
+    magma_code = magma_tally2_zmalloc((Float_t**)&p->d, n);
     GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2_zmalloc." : 0);
 
-    p.size = n*sizeof(Float_t);
-    env->cpu_mem += p.size;
+    p->size = n*sizeof(Float_t);
+    env->cpu_mem += p->size;
     env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
-    env->gpu_mem += p.size;
+    env->gpu_mem += p->size;
     env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
   /*----------------------------------------*/
@@ -255,18 +254,18 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
 
     magma_tally4_int_t magma_code = 0;
 
-    magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p.h, n);
+    magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p->h, n);
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_zmalloc_pinned." : 0);
 
-    magma_code = magma_tally4_zmalloc((Float_t**)&p.d, n);
+    magma_code = magma_tally4_zmalloc((Float_t**)&p->d, n);
     GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_zmalloc." : 0);
 
-    p.size = n*sizeof(Float_t);
-    env->cpu_mem += p.size;
+    p->size = n*sizeof(Float_t);
+    env->cpu_mem += p->size;
     env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
-    env->gpu_mem += p.size;
+    env->gpu_mem += p->size;
     env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
   /*----------------------------------------*/
@@ -278,18 +277,18 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
 
     magma_tally3_int_t magma_code = 0;
 
-    magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p.h, n);
+    magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p->h, n);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_zmalloc_pinned." : 0);
 
-    magma_code = magma_tally3_zmalloc((Float_t**)&p.d, n);
+    magma_code = magma_tally3_zmalloc((Float_t**)&p->d, n);
     GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_zmalloc." : 0);
 
-    p.size = n*sizeof(Float_t);
-    env->cpu_mem += p.size;
+    p->size = n*sizeof(Float_t);
+    env->cpu_mem += p->size;
     env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
-    env->gpu_mem += p.size;
+    env->gpu_mem += p->size;
     env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
   /*----------------------------------------*/
@@ -302,22 +301,23 @@ GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env) {
   } /*---if---*/
   /*----------------------------------------*/
 
-  GMAssertAlways(p.h ?
+  GMAssertAlways(p->h ?
                  "Invalid host pointer created in gm_linalg_malloc." : 0);
-  GMAssertAlways(p.d ?
+  GMAssertAlways(p->d ?
                  "Invalid device pointer created in gm_linalg_malloc." : 0);
-  return p;
+  p->is_alias = false;
 }
 
 /*---------------------------------------------------------------------------*/
 
-void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
-  GMAssertAlways(p != NULL);
-  GMAssertAlways(env != NULL);
+void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
+  GMAssertAlways(p && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
+
+  GMAssert(! p->is_alias);
 
   const size_t size = p->size;
 
@@ -384,13 +384,16 @@ void gm_linalg_free(GMMirroredPointer* p, GMEnv* env) {
 
 /*---------------------------------------------------------------------------*/
 
-void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
-                                     int mat_dim1,
-                                     int mat_dim2,
+void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
                                      GMEnv* env) {
+  GMAssertAlways(matrix_buf && env);
+
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
+
+  const size_t mat_dim1 = matrix_buf->dim0;
+  const size_t mat_dim2 = matrix_buf->dim1;
 
   // ISSUE: these MAGMA routines don't return an error code.
 
@@ -672,15 +675,15 @@ void gm_compute_wait(GMEnv* env) {
 /*===========================================================================*/
 /*---Start/end transfer of generic matrix to GPU---*/
 
-void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
-                                int mat_dim1,
-                                int mat_dim2,
-                                GMEnv* env) {
+void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
   GMAssertAlways(matrix_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
+
+  const size_t mat_dim1 = matrix_buf->dim0;
+  const size_t mat_dim2 = matrix_buf->dim1;
 
   /*---Send vectors to GPU---*/
 
@@ -759,15 +762,16 @@ void gm_linalg_set_matrix_wait(GMEnv* env) {
 /*===========================================================================*/
 /*---Start/end transfer of generic matrix from GPU---*/
 
-void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
-                                int mat_dim1,
-                                int mat_dim2,
+void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                 GMEnv* env) {
   GMAssertAlways(matrix_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
+
+  const size_t mat_dim1 = matrix_buf->dim0;
+  const size_t mat_dim2 = matrix_buf->dim1;
 
   /*---Get vectors from GPU---*/
 

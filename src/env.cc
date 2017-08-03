@@ -71,19 +71,6 @@ void gm_insist(const void* const env,
 }
 
 /*===========================================================================*/
-/*---Types---*/
-
-GMMirroredPointer GMMirroredPointer_null(void) {
-  GMMirroredPointer p;
-  p.h = NULL;
-  p.d = NULL;
-  p.size = 0;
-  p.dim0 = 0;
-  p.dim1 = 0;
-  return p;
-}
-
-/*===========================================================================*/
 /*---Null object---*/
 
 GMEnv GMEnv_null() {

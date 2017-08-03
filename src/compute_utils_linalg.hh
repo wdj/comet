@@ -15,9 +15,7 @@
 #include "magma_minproduct_lapack.h"
 
 #include "env.hh"
-#include "vector_sums.hh"
-#include "vectors.hh"
-#include "metrics.hh"
+#include "mirrored_buf.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,14 +29,14 @@ void gm_linalg_finalize(GMEnv* env);
 
 /*----------*/
 
-GMMirroredPointer gm_linalg_malloc(size_t dim0, size_t dim1, GMEnv* env);
+void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env);
 
-void gm_linalg_free(GMMirroredPointer* p, GMEnv* env);
+void gm_linalg_free(GMMirroredBuf* p, GMEnv* env);
 
-void gm_linalg_set_matrix_zero_start(GMMirroredPointer* matrix_buf,
-                                     int mat_dim1,
-                                     int mat_dim2,
+void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
                                      GMEnv* env);
+
+/*----------*/
 
 void gm_linalg_gemm_start(magma_minproduct_int_t m,
                           magma_minproduct_int_t n,
@@ -55,17 +53,11 @@ void gm_compute_wait(GMEnv* env);
 
 /*----------*/
 
-void gm_linalg_set_matrix_start(GMMirroredPointer* matrix_buf,
-                                int mat_dim1,
-                                int mat_dim2,
-                                GMEnv* env);
+void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env);
 
 void gm_linalg_set_matrix_wait(GMEnv* env);
 
-void gm_linalg_get_matrix_start(GMMirroredPointer* matrix_buf,
-                                int mat_dim1,
-                                int mat_dim2,
-                                GMEnv* env);
+void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env);
 
 void gm_linalg_get_matrix_wait(GMEnv* env);
 

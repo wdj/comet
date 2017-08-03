@@ -17,10 +17,11 @@ SET(INCLUDE_DIRS
 
 SET(LIB_SOURCES
   src/env.cc
+  src/mirrored_buf.cc
+  src/compute_utils_linalg.cc
   src/vectors.cc
   src/vector_sums.cc
   src/metrics.cc
-  src/compute_utils_linalg.cc
   src/compute_metrics.cc
   src/compute_metrics_utils.cc
   src/compute_metrics_utils_2way.cc
@@ -31,12 +32,13 @@ SET(LIB_SOURCES
 
 SET(LIB_INCLUDES
   src/env.hh
+  src/mirrored_buf.hh
+  src/compute_utils_linalg.hh
   src/vectors.hh
   src/vector_sums.hh
   src/metrics.hh
   src/metrics_2way.hh
   src/metrics_3way.hh
-  src/compute_utils_linalg.hh
   src/compute_metrics.hh
   src/compute_metrics_utils.hh
   src/compute_metrics_utils_2way.hh

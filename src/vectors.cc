@@ -14,8 +14,9 @@
 #include "mpi.h"
 
 #include "env.hh"
-#include "vectors.hh"
+#include "mirrored_buf.hh"
 #include "compute_utils_linalg.hh"
+#include "vectors.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -165,9 +166,11 @@ void GMVectors_create_imp_(GMVectors* vectors,
   vectors->data_size = vectors->num_packedval_local *
                        (vectors->num_bits_per_packedval / bits_per_byte);
 
+  vectors->buf = GMMirroredBuf_null();
+
   if (vectors->has_buf) {
-    vectors->buf = gm_linalg_malloc(vectors->num_packedval_field_local,
-                                    num_vector_local, env);
+    GMMirroredBuf_create(&(vectors->buf),vectors->num_packedval_field_local,
+                         num_vector_local, env);
     vectors->data = vectors->buf.h;
   } else {
     vectors->data = gm_malloc(vectors->data_size, env);
@@ -245,7 +248,7 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
   }
 
   if (vectors->has_buf) {
-    gm_linalg_free(&vectors->buf, env);
+    GMMirroredBuf_destroy(&vectors->buf, env);
   } else {
     gm_free(vectors->data, vectors->data_size, env);
   }

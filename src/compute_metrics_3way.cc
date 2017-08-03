@@ -9,6 +9,7 @@
 /*---------------------------------------------------------------------------*/
 
 #include "env.hh"
+#include "mirrored_buf.hh"
 #include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
@@ -46,7 +47,8 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   /*---Allocate magma CPU memory for vectors and for result */
 
-  GMMirroredPointer vectors_buf = gm_linalg_malloc(npvfl, nvl, env);
+  GMMirroredBuf vectors_buf = GMMirroredBuf_null();
+  GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
 
   /*---Copy in vectors---*/
 
@@ -81,7 +83,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
   GMVectorSums_destroy(&vector_sums, env);
 
-  gm_linalg_free(&vectors_buf, env);
+  GMMirroredBuf_destroy(&vectors_buf, env);
 
   gm_linalg_finalize(env);
 }
@@ -126,8 +128,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   GMVectors* vectors_i = vectors;
 
-  GMMirroredPointer vectors_i_buf_value = gm_linalg_malloc(npvfl, nvl, env);
-  GMMirroredPointer* const vectors_i_buf = &vectors_i_buf_value;
+  GMMirroredBuf vectors_i_buf_value = GMMirroredBuf_null();
+  GMMirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
+  GMMirroredBuf_create(vectors_i_buf, npvfl, nvl, env);
 
   /*------------------------*/
   /*---Allocations: Part 2---*/
@@ -145,8 +148,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors_create(vectors_j[1], data_type, vectors->num_field,
                    vectors->num_field_active, nvl, env);
 
-  GMMirroredPointer vectors_j_buf_value = gm_linalg_malloc(npvfl, nvl, env);
-  GMMirroredPointer* const vectors_j_buf = &vectors_j_buf_value;
+  GMMirroredBuf vectors_j_buf_value = GMMirroredBuf_null();
+  GMMirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
+  GMMirroredBuf_create(vectors_j_buf, npvfl, nvl, env);
 
   /*------------------------*/
   /*---Allocations: Part 3---*/
@@ -164,8 +168,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors_create(vectors_k[1], data_type, vectors->num_field,
                    vectors->num_field_active, nvl, env);
 
-  GMMirroredPointer vectors_k_buf_value = gm_linalg_malloc(npvfl, nvl, env);
-  GMMirroredPointer* const vectors_k_buf = &vectors_k_buf_value;
+  GMMirroredBuf vectors_k_buf_value = GMMirroredBuf_null();
+  GMMirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
+  GMMirroredBuf_create(vectors_k_buf, npvfl, nvl, env);
 
   /*------------------------*/
   /*---Prepare to compute---*/
@@ -174,8 +179,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectors* vectors_j_prev = NULL;
   GMVectors* vectors_k_prev = NULL;
 
-  GMMirroredPointer* vectors_j_buf_prev = NULL;
-  GMMirroredPointer* vectors_k_buf_prev = NULL;
+  GMMirroredBuf* vectors_j_buf_prev = NULL;
+  GMMirroredBuf* vectors_k_buf_prev = NULL;
 
   GMVectorSums* vector_sums_j_prev = NULL;
   GMVectorSums* vector_sums_k_prev = NULL;
@@ -484,9 +489,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   GMVectorSums_destroy(vector_sums_j, env);
   GMVectorSums_destroy(vector_sums_i, env);
 
-  gm_linalg_free(vectors_k_buf, env);
-  gm_linalg_free(vectors_j_buf, env);
-  gm_linalg_free(vectors_i_buf, env);
+  GMMirroredBuf_destroy(vectors_k_buf, env);
+  GMMirroredBuf_destroy(vectors_j_buf, env);
+  GMMirroredBuf_destroy(vectors_i_buf, env);
 
   gm_linalg_finalize(env);
 }

@@ -12,6 +12,7 @@
 #define _gm_compute_metrics_utils_3way_hh_
 
 #include "env.hh"
+#include "mirrored_buf.hh"
 #include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
@@ -23,12 +24,12 @@ extern "C" {
 /*===========================================================================*/
 
 typedef struct {
-  GMMirroredPointer tmp_buf[2];
-  GMMirroredPointer matM_ij_buf;
-  GMMirroredPointer matM_jk_buf;
-  GMMirroredPointer matM_kik_buf;
-  GMMirroredPointer matX_buf[2];
-  GMMirroredPointer matB_buf[2];
+  GMMirroredBuf tmp_buf[2];
+  GMMirroredBuf matM_ij_buf;
+  GMMirroredBuf matM_jk_buf;
+  GMMirroredBuf matM_kik_buf;
+  GMMirroredBuf matX_buf[2];
+  GMMirroredBuf matB_buf[2];
 } GMComputeNumerators3Way;
 
 void GMComputeNumerators3Way_create(
@@ -47,9 +48,9 @@ void GMComputeNumerators3Way_start(
     GMVectors* vectors_j,
     GMVectors* vectors_k,
     GMMetrics* numerators,
-    GMMirroredPointer* vectors_i_buf,
-    GMMirroredPointer* vectors_j_buf,
-    GMMirroredPointer* vectors_k_buf,
+    GMMirroredBuf* vectors_i_buf,
+    GMMirroredBuf* vectors_j_buf,
+    GMMirroredBuf* vectors_k_buf,
     int j_proc,
     int k_proc,
     const GMVectorSums* vector_sums_i,

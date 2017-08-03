@@ -9,6 +9,7 @@
 /*---------------------------------------------------------------------------*/
 
 #include "env.hh"
+#include "mirrored_buf.hh"
 #include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
@@ -92,8 +93,8 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 /*---MPI reduce operations---*/
 
 void gm_reduce_metrics(GMMetrics* metrics,
-                       GMMirroredPointer* metrics_buf_target,
-                       GMMirroredPointer* metrics_buf_source,
+                       GMMirroredBuf* metrics_buf_target,
+                       GMMirroredBuf* metrics_buf_source,
                        GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(metrics_buf_target != NULL);
@@ -114,8 +115,8 @@ void gm_reduce_metrics(GMMetrics* metrics,
 /*---------------------------------------------------------------------------*/
 
 MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
-                                    GMMirroredPointer* metrics_buf_target,
-                                    GMMirroredPointer* metrics_buf_source,
+                                    GMMirroredBuf* metrics_buf_target,
+                                    GMMirroredBuf* metrics_buf_source,
                                     GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(metrics_buf_target != NULL);
@@ -153,14 +154,13 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
 /*---Start/end transfer of vectors data to GPU---*/
 
 void gm_set_vectors_start(GMVectors* vectors,
-                          GMMirroredPointer* vectors_buf,
+                          GMMirroredBuf* vectors_buf,
                           GMEnv* env) {
   GMAssertAlways(vectors != NULL);
   GMAssertAlways(vectors_buf != NULL);
   GMAssertAlways(env != NULL);
 
-  gm_linalg_set_matrix_start(vectors_buf, vectors->num_packedval_field_local,
-                             vectors->num_vector_local, env);
+  gm_linalg_set_matrix_start(vectors_buf, env);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -175,20 +175,19 @@ void gm_set_vectors_wait(GMEnv* env) {
 /*---Start/end transfer of metrics data from GPU---*/
 
 void gm_get_metrics_start(GMMetrics* metrics,
-                          GMMirroredPointer* metrics_buf,
+                          GMMirroredBuf* metrics_buf,
                           GMEnv* env) {
   GMAssertAlways(metrics != NULL);
   GMAssertAlways(metrics_buf != NULL);
   GMAssertAlways(env != NULL);
 
-  gm_linalg_get_matrix_start(metrics_buf, metrics->num_vector_local,
-                             metrics->num_vector_local, env);
+  gm_linalg_get_matrix_start(metrics_buf, env);
 }
 
 /*---------------------------------------------------------------------------*/
 
 void gm_get_metrics_wait(GMMetrics* metrics,
-                         GMMirroredPointer* metrics_buf,
+                         GMMirroredBuf* metrics_buf,
                          GMEnv* env) {
   GMAssertAlways(env != NULL);
 
@@ -233,7 +232,7 @@ int gm_num_seminibbles_pad(GMMetrics* metrics,
 /*---------------------------------------------------------------------------*/
 
 void gm_metrics_gpu_adjust(GMMetrics* metrics,
-                           GMMirroredPointer* metrics_buf,
+                           GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
   GMAssertAlways(metrics && metrics_buf && env);
 
@@ -268,7 +267,7 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
 #pragma omp parallel for collapse(2)
   for (int j = 0; j < metrics->num_vector_local; ++j) {
     for (int i = 0; i < metrics->num_vector_local; ++i) {
-      GMMirroredPointer_elt<GMTally2x2>(metrics_buf, i, j)
+      GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j)
       //((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j]
           .data[0] -= adjustment;
 
@@ -280,7 +279,7 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
 /*===========================================================================*/
 /*---CPU-GPU transfer buffer manipulation---*/
 
-void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
+void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
                        GMVectors* vectors,
                        GMEnv* env) {
   GMAssertAlways(vectors != NULL);
@@ -298,7 +297,7 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
 #pragma omp parallel for collapse(2)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
-          GMMirroredPointer_elt<GMFloat>(vectors_buf, fl, i) =
+          GMMirroredBuf_elt<GMFloat>(vectors_buf, fl, i) =
             GMVectors_float_get(vectors, fl, i, env);
         }
       }
@@ -307,7 +306,7 @@ void gm_vectors_to_buf(GMMirroredPointer* vectors_buf,
 #pragma omp parallel for collapse(2)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
         for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
-          GMMirroredPointer_elt<GMBits2x64>(vectors_buf, fl, i) =
+          GMMirroredBuf_elt<GMBits2x64>(vectors_buf, fl, i) =
             GMVectors_bits2x64_get(vectors, fl, i, env);
         }
       }
