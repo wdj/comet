@@ -317,7 +317,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     return;
   }
 
-  GMAssert(! p->is_alias);
+  GMAssertAlways(! p->is_alias);
 
   const size_t size = p->size;
 

@@ -27,8 +27,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   int mpi_tag,
                                   GMEnv* env) {
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(vectors && env);
   GMAssertAlways(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
 
   MPI_Request mpi_request;
@@ -49,8 +48,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   int mpi_tag,
                                   GMEnv* env) {
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(vectors && env);
   GMAssertAlways(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
 
   MPI_Request mpi_request;
@@ -68,8 +66,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
 /*---------------------------------------------------------------------------*/
 
 void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMAssertAlways(mpi_request != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(mpi_request && env);
 
   MPI_Status mpi_status;
 
@@ -80,8 +77,7 @@ void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMAssertAlways(mpi_request != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(mpi_request && env);
 
   MPI_Status mpi_status;
 
@@ -96,10 +92,8 @@ void gm_reduce_metrics(GMMetrics* metrics,
                        GMMirroredBuf* metrics_buf_target,
                        GMMirroredBuf* metrics_buf_source,
                        GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(metrics_buf_target != NULL);
-  GMAssertAlways(metrics_buf_source != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(metrics && env);
+  GMAssertAlways(metrics_buf_target && metrics_buf_source);
 
   const int nvl = metrics->num_vector_local;
 
@@ -118,10 +112,8 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
                                     GMMirroredBuf* metrics_buf_target,
                                     GMMirroredBuf* metrics_buf_source,
                                     GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(metrics_buf_target != NULL);
-  GMAssertAlways(metrics_buf_source != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(metrics && env);
+  GMAssertAlways(metrics_buf_target && metrics_buf_source);
 
   const int nvl = metrics->num_vector_local;
 
@@ -141,8 +133,7 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
 /*---------------------------------------------------------------------------*/
 
 void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMAssertAlways(mpi_request != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(mpi_request && env);
 
   MPI_Status mpi_status;
 
@@ -153,12 +144,9 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
 /*===========================================================================*/
 /*---Start/end transfer of vectors data to GPU---*/
 
-void gm_set_vectors_start(GMVectors* vectors,
-                          GMMirroredBuf* vectors_buf,
+void gm_set_vectors_start(GMVectors* vectors, GMMirroredBuf* vectors_buf,
                           GMEnv* env) {
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(vectors_buf != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(vectors && vectors_buf && env);
 
   gm_linalg_set_matrix_start(vectors_buf, env);
 }
@@ -166,7 +154,7 @@ void gm_set_vectors_start(GMVectors* vectors,
 /*---------------------------------------------------------------------------*/
 
 void gm_set_vectors_wait(GMEnv* env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   gm_linalg_set_matrix_wait(env);
 }
@@ -174,30 +162,25 @@ void gm_set_vectors_wait(GMEnv* env) {
 /*===========================================================================*/
 /*---Start/end transfer of metrics data from GPU---*/
 
-void gm_get_metrics_start(GMMetrics* metrics,
-                          GMMirroredBuf* metrics_buf,
+void gm_get_metrics_start(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                           GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(metrics_buf != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(metrics && metrics_buf && env);
 
   gm_linalg_get_matrix_start(metrics_buf, env);
 }
 
 /*---------------------------------------------------------------------------*/
 
-void gm_get_metrics_wait(GMMetrics* metrics,
-                         GMMirroredBuf* metrics_buf,
+void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                          GMEnv* env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(metrics && metrics_buf && env);
 
   gm_linalg_get_matrix_wait(env);
 }
 
 /*---------------------------------------------------------------------------*/
 
-int gm_num_seminibbles_pad(GMMetrics* metrics,
-                           GMEnv* env) {
+int gm_num_seminibbles_pad(GMMetrics* metrics, GMEnv* env) {
   GMAssertAlways(metrics && env);
 
   const int num_bits_per_val = 2;
@@ -231,8 +214,7 @@ int gm_num_seminibbles_pad(GMMetrics* metrics,
 
 /*---------------------------------------------------------------------------*/
 
-void gm_metrics_gpu_adjust(GMMetrics* metrics,
-                           GMMirroredBuf* metrics_buf,
+void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
   GMAssertAlways(metrics && metrics_buf && env);
 
@@ -282,9 +264,7 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
 void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
                        GMVectors* vectors,
                        GMEnv* env) {
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(vectors_buf != NULL);
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(vectors && vectors_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;

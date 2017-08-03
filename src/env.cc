@@ -108,7 +108,7 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
 void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
                         char** argv, const char* const description,
                         bool make_comms, int num_proc, int proc_num) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   *env = GMEnv_null();
 
@@ -274,7 +274,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
 
 void GMEnv_create(GMEnv* const env, MPI_Comm comm, int argc, char** argv,
                   const char* const description) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   GMEnv_create_impl_(env, comm, argc, argv, description, true, 0, 0);
 }
@@ -283,7 +283,7 @@ void GMEnv_create(GMEnv* const env, MPI_Comm comm, int argc, char** argv,
 
 void GMEnv_create(GMEnv* const env, MPI_Comm comm, const char* const options,
                   const char* const description) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   /*---Convert options string to args---*/
 
@@ -302,7 +302,7 @@ void GMEnv_create(GMEnv* const env, MPI_Comm comm, const char* const options,
 void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,
                            const char* const description,
                            int num_proc, int proc_num) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   GMEnv_create_impl_(env, MPI_COMM_WORLD, argc, argv, description,
                      false, num_proc, proc_num);
@@ -313,7 +313,7 @@ void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,
 void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
                            const char* const description,
                            int num_proc, int proc_num) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   /*---Convert options string to args---*/
 
@@ -332,7 +332,7 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
 /*---Manage cuda streams---*/
 
 void GMEnv_initialize_streams(GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   /*---NOTE: this is used for lazy initialization---*/
 
@@ -359,7 +359,7 @@ void GMEnv_initialize_streams(GMEnv* const env) {
 /*---------------------------------------------------------------------------*/
 
 void GMEnv_terminate_streams(GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   if (!env->are_cuda_streams_initialized_) {
     return;
@@ -381,7 +381,7 @@ void GMEnv_terminate_streams(GMEnv* const env) {
 /*---Manage MPI comms---*/
 
 void GMEnv_initialize_comms(GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   if (env->are_mpi_comms_initialized_) {
     return;
@@ -411,7 +411,7 @@ void GMEnv_initialize_comms(GMEnv* const env) {
 /*---------------------------------------------------------------------------*/
 
 void GMEnv_terminate_comms(GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   if (!env->are_mpi_comms_initialized_) {
     return;
@@ -435,7 +435,7 @@ void GMEnv_terminate_comms(GMEnv* const env) {
 /*---Finalize environment---*/
 
 void GMEnv_destroy(GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   GMEnv_terminate_comms(env);
 
@@ -448,7 +448,7 @@ void GMEnv_destroy(GMEnv* const env) {
 /*---Accessors---*/
 
 void GMEnv_set_compute_method(GMEnv* const env, int compute_method) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
   GMAssertAlways(compute_method >= 0);
   GMAssertAlways(compute_method < GM_NUM_COMPUTE_METHOD);
 
@@ -458,7 +458,7 @@ void GMEnv_set_compute_method(GMEnv* const env, int compute_method) {
 /*---------------------------------------------------------------------------*/
 
 int GMEnv_data_type_vectors(const GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   switch (env->metric_type_) {
     case GM_METRIC_TYPE_CZEK:
@@ -473,7 +473,7 @@ int GMEnv_data_type_vectors(const GMEnv* const env) {
 /*---------------------------------------------------------------------------*/
 
 int GMEnv_data_type_metrics(const GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   switch (env->metric_type_) {
     case GM_METRIC_TYPE_CZEK:
@@ -490,7 +490,7 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
 
 void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
                       int num_proc_repl, int num_proc_field) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
   GMAssertAlways(num_proc_vector_i > 0);
   GMAssertAlways(num_proc_repl > 0);
   GMAssertAlways(num_proc_field > 0);
@@ -538,7 +538,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 /*---------------------------------------------------------------------------*/
 
 cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
@@ -549,7 +549,7 @@ cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
 /*---------------------------------------------------------------------------*/
 
 cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
@@ -560,7 +560,7 @@ cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
 /*---------------------------------------------------------------------------*/
 
 cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
   // GMAssertAlways(env->are_cuda_streams_initialized_);
 
   GMEnv_initialize_streams(env);
@@ -584,7 +584,7 @@ double GMEnv_get_time(const GMEnv* const env) {
 /*---------------------------------------------------------------------------*/
 
 double GMEnv_get_synced_time(const GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   /*
   cudaThreadSynchronize();
@@ -622,8 +622,9 @@ bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
 /*---------------------------------------------------------------------------*/
 
 void* gm_malloc(size_t n, GMEnv* env) {
+  GMAssertAlways(env);
   void* p = malloc(n);
-  GMAssertAlways(p != NULL);
+  GMAssertAlways(p);
   env->cpu_mem += n;
   env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
   return p;
@@ -632,6 +633,7 @@ void* gm_malloc(size_t n, GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 void gm_free(void* p, size_t n, GMEnv* env) {
+  GMAssertAlways(p && env);
   free(p);
   env->cpu_mem -= n;
 }
@@ -639,8 +641,9 @@ void gm_free(void* p, size_t n, GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
+  GMAssertAlways(env);
   GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);
-  GMAssertAlways(p != NULL);
+  GMAssertAlways(p);
   GMFloat_fill_nan(p, n);
   return p;
 }
@@ -648,13 +651,14 @@ GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
 /*---------------------------------------------------------------------------*/
 
 void GMFloat_free(GMFloat* p, size_t n, GMEnv* env) {
+  GMAssertAlways(p && env);
   gm_free(p, n * sizeof(GMFloat), env);
 }
 
 /*---------------------------------------------------------------------------*/
 
 void GMFloat_fill_nan(GMFloat* const a, size_t n) {
-  GMAssertAlways(a != NULL);
+  GMAssertAlways(a);
   GMAssertAlways(n+1 >= 1);
 #ifdef GM_ASSERTIONS_ON
   GMFloat value = sqrt(-1);
@@ -668,7 +672,7 @@ void GMFloat_fill_nan(GMFloat* const a, size_t n) {
 /*---------------------------------------------------------------------------*/
 
 void GMFloat_check(GMFloat* const a, size_t n) {
-  GMAssertAlways(a != NULL);
+  GMAssertAlways(a);
   GMAssertAlways(n+1 >= 1);
 #ifdef GM_ASSERTIONS_ON
   bool no_nans_found = true;
@@ -685,7 +689,7 @@ void GMFloat_check(GMFloat* const a, size_t n) {
 /*---------------------------------------------------------------------------*/
 
 int gm_mpi_type(const GMEnv* const env) {
-  GMAssertAlways(env != NULL);
+  GMAssertAlways(env);
 
   /* clang-format off */
   const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ?

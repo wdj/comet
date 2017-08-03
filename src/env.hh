@@ -185,8 +185,8 @@ static GMTally4x2 GMTally4x2_null() {
 static void GMTally1_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMFp64 v) {
-  GMAssert(val0 != NULL);
-  GMAssert(val1 != NULL);
+  GMAssert(val0);
+  GMAssert(val1);
   const GMUInt64 tally2 = (GMUInt64)v;
   GMAssert(v == (GMFp64)tally2);
   const GMTally1 v0 =
@@ -464,63 +464,63 @@ void GMEnv_terminate_streams(GMEnv* const env);
 /*---Accessors: general---*/
 
 static int GMEnv_metric_type(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->metric_type_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static double GMEnv_ccc_param(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->ccc_param_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_num_way(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->num_way_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static bool GMEnv_all2all(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->all2all_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_compute_method(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->compute_method_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_mpi_comm(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->mpi_comm_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_mpi_comm_vector(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->mpi_comm_vector_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_mpi_comm_field(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->mpi_comm_field_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_is_proc_active(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->is_proc_active_;
 }
 
@@ -541,42 +541,42 @@ cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env);
 /*---Accessors: num proc---*/
 
 static int GMEnv_num_block_vector(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->num_proc_vector_i_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_num_proc_vector_i(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->num_proc_vector_i_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_num_proc_repl(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->num_proc_repl_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_num_proc_vector_total(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->num_proc_vector_total_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_num_proc_field(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->num_proc_field_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_num_proc(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->num_proc_;
 }
 
@@ -584,28 +584,28 @@ static int GMEnv_num_proc(const GMEnv* const env) {
 /*---Accessors: proc_num---*/
 
 static int GMEnv_proc_num(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->proc_num_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_proc_num_vector_i(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->proc_num_vector_i_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_proc_num_repl(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->proc_num_repl_;
 }
 
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_proc_num_field(const GMEnv* const env) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   return env->proc_num_field_;
 }
 
@@ -800,7 +800,7 @@ void GMFloat_check(GMFloat* const a, size_t n);
 /*---NOTE: the following does not specialize based on part1/2/3---*/
 
 static int GMEnv_num_section_steps(const GMEnv* const env, int part_num) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   GMAssert(part_num >= 1 && part_num <= 3);
   return (!GMEnv_all2all(env)) || GMEnv_num_proc_repl(env) == 1 || part_num == 3 ? 1 : 6;
   //return part_num == 3 ? 1 : 1;
@@ -809,7 +809,7 @@ static int GMEnv_num_section_steps(const GMEnv* const env, int part_num) {
 /*---------------------------------------------------------------------------*/
 
 static int GMEnv_num_sections(const GMEnv* const env, int part_num) {
-  GMAssert(env != NULL);
+  GMAssert(env);
   GMAssert(part_num >= 1 && part_num <= 3);
   return part_num == 3 ? 6 : GMEnv_num_section_steps(env, part_num);
 }

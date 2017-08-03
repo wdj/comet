@@ -36,8 +36,7 @@ GMVectors GMVectors_null() {
 
 void GMVectors_initialize_pad(GMVectors* vectors,
                               GMEnv* env) {
-  GMAssertAlways(vectors);
-  GMAssertAlways(env);
+  GMAssertAlways(vectors && env);
 
   /*---Ensure final pad bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
@@ -87,12 +86,11 @@ void GMVectors_create_imp_(GMVectors* vectors,
                            size_t num_field_active,
                            int num_vector_local,
                            GMEnv* env) {
-  GMAssertAlways(vectors);
+  GMAssertAlways(vectors && env);
   GMAssertAlways(num_field >= 0);
   GMAssertAlways(num_field_active >= 0);
   GMAssertAlways(num_field_active <= (size_t)num_field);
   GMAssertAlways(num_vector_local >= 0);
-  GMAssertAlways(env);
 
   GMInsist(env,
            num_field % GMEnv_num_proc_field(env) == 0
@@ -189,12 +187,11 @@ void GMVectors_create(GMVectors* vectors,
                       size_t num_field_active,
                       int num_vector_local,
                       GMEnv* env) {
-  GMAssertAlways(vectors);
+  GMAssertAlways(vectors && env);
   GMAssertAlways(num_field >= 0);
   GMAssertAlways(num_field_active >= 0);
   GMAssertAlways(num_field_active <= (size_t)num_field);
   GMAssertAlways(num_vector_local >= 0);
-  GMAssertAlways(env);
 
   *vectors = GMVectors_null();
 
@@ -216,12 +213,11 @@ void GMVectors_create_with_buf(GMVectors* vectors,
                                size_t num_field_active,
                                int num_vector_local,
                                GMEnv* env) {
-  GMAssertAlways(vectors);
+  GMAssertAlways(vectors && env);
   GMAssertAlways(num_field >= 0);
   GMAssertAlways(num_field_active >= 0);
   GMAssertAlways(num_field_active <= (size_t)num_field);
   GMAssertAlways(num_vector_local >= 0);
-  GMAssertAlways(env);
 
   *vectors = GMVectors_null();
 
@@ -239,9 +235,8 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
-  GMAssertAlways(vectors != NULL);
-  GMAssertAlways(env != NULL);
-  GMAssertAlways(vectors->data != NULL || !GMEnv_is_proc_active(env));
+  GMAssertAlways(vectors && env);
+  GMAssertAlways(vectors->data || !GMEnv_is_proc_active(env));
 
   if (!GMEnv_is_proc_active(env)) {
     return;

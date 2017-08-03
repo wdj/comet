@@ -280,7 +280,6 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
         (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
-    GMAssertAlways(metrics->coords_global_from_index != NULL);
 //if (env->proc_num_base_ == 0) printf("Hey1\n");
 
     /*===PART C: SET INDEX===*/
@@ -355,7 +354,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     metrics->coords_global_from_index =
         (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
-    GMAssertAlways(metrics->coords_global_from_index != NULL);
 
     /*===PART C: SET INDEX===*/
 
@@ -505,7 +503,6 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
-    GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict upper triangular part of matrix---*/
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
@@ -533,7 +530,6 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
-    GMAssertAlways(metrics->coords_global_from_index != NULL);
     /*---Need store only strict interior of tetrahedron---*/
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
@@ -632,9 +628,8 @@ void GMMetrics_create(GMMetrics* metrics,
 /*---Metrics pseudo-destructor---*/
 
 void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
-  GMAssertAlways(metrics);
-  GMAssertAlways(env);
-  GMAssertAlways(metrics->data != NULL || !GMEnv_is_proc_active(env));
+  GMAssertAlways(metrics && env);
+  GMAssertAlways(metrics->data || !GMEnv_is_proc_active(env));
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -659,12 +654,9 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       size_t index,
                                       int coord_num,
                                       GMEnv* env) {
-  GMAssert(metrics != NULL);
-  GMAssert(env != NULL);
-  GMAssert(index+1 >= 1);
-  GMAssert(index < metrics->num_elts_local);
-  GMAssert(coord_num >= 0);
-  GMAssert(coord_num < GMEnv_num_way(env));
+  GMAssert(metrics && env);
+  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
+  GMAssert(coord_num >= 0 && coord_num < GMEnv_num_way(env));
 
   size_t result64 = 0;
 
@@ -729,9 +721,8 @@ static size_t gm_lshift(size_t a, int j) {
 /*---Metrics checksum---*/
 
 void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
-  GMAssertAlways(metrics != NULL);
-  GMAssertAlways(env != NULL);
-  GMAssertAlways(metrics->data != NULL || !GMEnv_is_proc_active(env));
+  GMAssertAlways(metrics && env);
+  GMAssertAlways(metrics->data || !GMEnv_is_proc_active(env));
 
   /*---Initializations---*/
 
