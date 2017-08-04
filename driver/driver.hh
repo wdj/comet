@@ -37,7 +37,7 @@ typedef struct {
   char* input_file_path;
   char* output_file_path_stub;
   int problem_type;
-  size_t num_misses;
+  size_t num_incorrect;
   double threshold;
   bool checksum;
 } DriverOptions;

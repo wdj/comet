@@ -65,9 +65,13 @@ Options:
         metric type to compute (czekanowski=Czekanowski (default),
         ccc=CCC)
 
-    ---ccc_param <value>
+    --ccc_param <value>
         fixed coefficient value used to calculate the CCC metric
         (default floating point value is 2/3).
+
+    --sparse <value>
+        for the CCC metric, interpret vector entries of binary "10"
+        as empty or incomplete data (yes=yes, no=no (default))
 
     --num_way <value>
         dimension of metric to compute (2=2-way (default), 3=3-way)

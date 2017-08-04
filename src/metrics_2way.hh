@@ -309,6 +309,12 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
     const GMFloat2 ci_cj =
       GMMetrics_float2_C_get_from_index(metrics, index, env);
     GMFloat2_decode(&ci, &cj, ci_cj);
+
+    GMTally1 cij = GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
+                   GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1);
+    if (ci == 0 || cj == 0 || cij == 0) {
+      return 0;
+    }
   } else {
     ci = metrics->num_field_active;
     cj = metrics->num_field_active;

@@ -74,32 +74,18 @@ void GMVectorSums_create(GMVectorSums* this_,
 void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
   GMAssertAlways(this_ && env);
 
-  switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEK: {
-      GMAssertAlways(this_->sums);
-      GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
-      this_->sums = NULL;
-      if (this_->sums_tmp_) {
-        GMFloat_free((GMFloat*)this_->sums_tmp_, this_->size_, env);
-        this_->sums_tmp_ = NULL;
-      }
-    } break;
-    case GM_METRIC_TYPE_CCC: {
-      GMAssertAlways(this_->sums);
-      GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
-      this_->sums = NULL;
-      if (this_->sums_tmp_) {
-        GMFloat_free((GMFloat*)this_->sums_tmp_, this_->size_, env);
-        this_->sums_tmp_ = NULL;
-      }
-      if (this_->counts_tmp_) {
-        GMFloat_free((GMFloat*)this_->counts_tmp_, this_->size_, env);
-        this_->counts_tmp_ = NULL;
-      }
-    } break;
-    default:
-      GMInsist(env, false ? "Unimplemented." : 0);
-  } /*---case---*/
+  GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
+  if (this_->sums_tmp_) {
+    GMFloat_free((GMFloat*)this_->sums_tmp_, this_->size_, env);
+  }
+  if (this_->counts) {
+    GMFloat_free((GMFloat*)this_->counts, this_->size_, env);
+  }
+  if (this_->counts_tmp_) {
+    GMFloat_free((GMFloat*)this_->counts_tmp_, this_->size_, env);
+  }
+
+  *this_ = GMVectorSums_null();
 }
 
 /*===========================================================================*/
