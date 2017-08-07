@@ -15,7 +15,7 @@
 
 #include "env.hh"
 #include "mirrored_buf.hh"
-#include "compute_utils_linalg.hh"
+#include "linalg.hh"
 #include "vectors.hh"
 
 #ifdef __cplusplus

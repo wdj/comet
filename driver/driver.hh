@@ -3,7 +3,7 @@
  * \file   driver.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Main driver code utilitiy functions.
+ * \brief  Main driver code utilitiy functions, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 /*---------------------------------------------------------------------------*/
@@ -12,8 +12,7 @@
 #define _gm_driver_hh_
 
 #include "env.hh"
-#include "vectors.hh"
-#include "metrics.hh"
+#include "checksums.hh"
 
 /*===========================================================================*/
 /*---Struct to hold driver options (options not in GMEnv)---*/
@@ -59,18 +58,6 @@ enum {
 GMChecksum perform_run(int argc, char** argv, const char* const description);
 
 GMChecksum perform_run(const char* const options);
-
-/*---------------------------------------------------------------------------*/
-
-#if 0
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
-#endif
 
 /*===========================================================================*/
 

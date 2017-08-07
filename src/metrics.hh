@@ -87,11 +87,6 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
 void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env);
 
 /*===========================================================================*/
-/*---Metrics checksum---*/
-
-void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env);
-
-/*===========================================================================*/
 /*---Accessors: indexing: global coord from (contig) index: generic---*/
 
 int GMMetrics_coord_global_from_index(GMMetrics* metrics,

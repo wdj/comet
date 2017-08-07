@@ -17,28 +17,34 @@ SET(INCLUDE_DIRS
 
 SET(LIB_SOURCES
   src/env.cc
+  src/assertions.cc
   src/mirrored_buf.cc
-  src/compute_utils_linalg.cc
+  src/linalg.cc
   src/vectors.cc
   src/vector_sums.cc
   src/metrics.cc
+  src/checksums.cc
   src/compute_metrics.cc
   src/compute_metrics_utils.cc
   src/compute_metrics_utils_2way.cc
   src/compute_metrics_utils_3way.cc
+  src/compute_metrics_utils_3way_gpu.cc
   src/compute_metrics_2way.cc
   src/compute_metrics_3way.cc
   )
 
 SET(LIB_INCLUDES
   src/env.hh
+  src/assertions.hh
+  src/types.hh
   src/mirrored_buf.hh
-  src/compute_utils_linalg.hh
+  src/linalg.hh
   src/vectors.hh
   src/vector_sums.hh
   src/metrics.hh
   src/metrics_2way.hh
   src/metrics_3way.hh
+  src/checksums.hh
   src/compute_metrics.hh
   src/compute_metrics_utils.hh
   src/compute_metrics_utils_2way.hh
@@ -62,7 +68,7 @@ find_package(CUDA REQUIRED)
 ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES})
 INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
 
-ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc driver/driver.cc)
+ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc driver/driver.cc driver/test_problems.cc)
 TARGET_LINK_LIBRARIES(genomics_metric genomics_metrics)
 TARGET_LINK_LIBRARIES(genomics_metric ${CMAKE_EXE_LINKER_FLAGS})
 if(TESTING) 
@@ -84,7 +90,7 @@ if(TESTING)
   enable_testing()
 
   foreach(test_target driver_test metrics_test)
-    ADD_EXECUTABLE(${test_target} testing/${test_target}.cc driver/driver.cc)
+    ADD_EXECUTABLE(${test_target} testing/${test_target}.cc driver/driver.cc driver/test_problems.cc)
     TARGET_LINK_LIBRARIES(${test_target} genomics_metrics)
     TARGET_LINK_LIBRARIES(${test_target} ${CMAKE_EXE_LINKER_FLAGS})
     TARGET_LINK_LIBRARIES(${test_target} "-L${GTEST_DIR}/lib -lgtest")

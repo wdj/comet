@@ -8,6 +8,8 @@
  */
 /*---------------------------------------------------------------------------*/
 
+#include "env.hh"
+
 #ifndef _gm_metrics_3way_hh_
 #define _gm_metrics_3way_hh_
 
@@ -17,6 +19,28 @@ extern "C" {
 
 /*===========================================================================*/
 /*---Helper functions for 3-way case---*/
+
+/*---------------------------------------------------------------------------*/
+/*---NOTE: the following does not specialize based on part1/2/3---*/
+
+static int gm_num_section_steps(const GMEnv* const env, int part_num) {
+  GMAssert(env);
+  GMAssert(part_num >= 1 && part_num <= 3);
+
+  const bool collapse = !GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1;
+  return collapse || part_num == 3 ? 1 : 6;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int gm_num_sections(const GMEnv* const env, int part_num) {
+  GMAssert(env);
+  GMAssert(part_num >= 1 && part_num <= 3);
+
+  return part_num == 3 ? 6 : gm_num_section_steps(env, part_num);
+}
+
+/*---------------------------------------------------------------------------*/
 
 static bool gm_is_part1(int i_block, int j_block, int k_block) {
   return i_block == j_block && j_block == k_block;
@@ -60,7 +84,7 @@ static int gm_J_lo(int section_num, int nvl, int part_num, GMEnv* env) {
   GMAssert(section_num >= 0 && section_num < 6);
   GMAssert(nvl >= 0);
   GMAssert(part_num >= 1 && part_num <= 3);
-  const int num_sections = GMEnv_num_sections(env, part_num);
+  const int num_sections = gm_num_sections(env, part_num);
   GMAssert(section_num >= 0 && section_num <= num_sections);
   GMAssert(env->num_stage > 0);
   GMAssert(env->stage_num >= 0 && env->stage_num < env->num_stage);
@@ -78,7 +102,7 @@ static int gm_J_hi(int section_num, int nvl, int part_num, GMEnv* env) {
   GMAssert(section_num >= 0 && section_num < 6);
   GMAssert(nvl >= 0);
   GMAssert(part_num >= 1 && part_num <= 3);
-  const int num_sections = GMEnv_num_sections(env, part_num);
+  const int num_sections = gm_num_sections(env, part_num);
   GMAssert(section_num >= 0 && section_num <= num_sections);
   GMAssert(env->num_stage > 0);
   GMAssert(env->stage_num >= 0 && env->stage_num < env->num_stage);
@@ -138,7 +162,7 @@ static void GMSectionInfo_create(
   si->part_num = si->is_part1 ? 1 :
                  si->is_part2 ? 2 : 3;
 
-  const int num_section_steps = GMEnv_num_section_steps(env, si->part_num);
+  const int num_section_steps = gm_num_section_steps(env, si->part_num);
   GMAssertAlways(section_step>=0);
   GMAssertAlways(section_step<num_section_steps);
 
@@ -279,7 +303,7 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                                           GMEnv* env) {
   const int nvl = metrics->num_vector_local;
 
-  const int num_section_steps = GMEnv_num_section_steps(env, 1);
+  const int num_section_steps = gm_num_section_steps(env, 1);
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_part1_[section_num]);
 
@@ -318,7 +342,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
                                           GMEnv* env) {
   const int nvl = metrics->num_vector_local;
 
-  const int num_section_steps = GMEnv_num_section_steps(env, 2);
+  const int num_section_steps = gm_num_section_steps(env, 2);
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_part2_[section_num]);
 
@@ -566,11 +590,11 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
   if (gm_is_part3(i_block, j_block, k_block)) {
     section_step = 0;
   } else if (gm_is_part1(i_block, j_block, k_block)) {
-    const int num_section_steps = GMEnv_num_section_steps(env, 1);
+    const int num_section_steps = gm_num_section_steps(env, 1);
     const int section_num = (J * num_section_steps) / metrics->num_vector_local;
     section_step = section_num;
   } else {
-    const int num_section_steps = GMEnv_num_section_steps(env, 2);
+    const int num_section_steps = gm_num_section_steps(env, 2);
     const int section_num = (J * num_section_steps) / metrics->num_vector_local;
     section_step = section_num;
   }

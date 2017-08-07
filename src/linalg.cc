@@ -1,9 +1,9 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   compute_utils_linalg.cc
+ * \file   linalg.cc
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Magma utilities.
+ * \brief  Magma interface.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 /*---------------------------------------------------------------------------*/
@@ -28,11 +28,7 @@
 #include "metrics.hh"
 #include "compute_metrics_utils.hh"
 
-#include "compute_utils_linalg.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "linalg.hh"
 
 /*===========================================================================*/
 /*---Magma setup, teardown---*/
@@ -848,9 +844,5 @@ void gm_linalg_get_matrix_wait(GMEnv* env) {
 }
 
 /*===========================================================================*/
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 /*---------------------------------------------------------------------------*/

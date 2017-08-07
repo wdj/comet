@@ -13,7 +13,7 @@
 #include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-#include "compute_utils_linalg.hh"
+#include "linalg.hh"
 #include "compute_metrics_utils.hh"
 #include "compute_metrics_utils_2way.hh"
 #include "compute_metrics_2way.hh"

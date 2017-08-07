@@ -18,6 +18,7 @@
 #include "env.hh"
 #include "vectors.hh"
 #include "metrics.hh"
+#include "checksums.hh"
 #include "compute_metrics.hh"
 
 #include "driver.hh"

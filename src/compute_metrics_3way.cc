@@ -13,7 +13,7 @@
 #include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-#include "compute_utils_linalg.hh"
+#include "linalg.hh"
 #include "compute_metrics_utils.hh"
 #include "compute_metrics_utils_3way.hh"
 #include "compute_metrics_3way.hh"
@@ -62,7 +62,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   /*---Compute numerators---*/
 
   const int section_step = 0;
-  GMAssertAlways(GMEnv_num_section_steps(env, 1) == 1);
+  GMAssertAlways(gm_num_section_steps(env, 1) == 1);
 
   GMComputeNumerators3Way gm_compute_numerators_3way = {0};
   GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
@@ -225,7 +225,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   gm_set_vectors_start(vectors_i, vectors_i_buf, env);
   gm_set_vectors_wait(env);
 
-  for (int section_step=0; section_step<GMEnv_num_section_steps(env, 1);
+  for (int section_step=0; section_step<gm_num_section_steps(env, 1);
        ++section_step) {
     if (gm_proc_r_active(section_block_num, env)) {
 
@@ -262,7 +262,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Part 2 Computation: triangular prisms---*/
   /*------------------------*/
 
-  for (int section_step=0; section_step<GMEnv_num_section_steps(env, 2);
+  for (int section_step=0; section_step<gm_num_section_steps(env, 2);
        ++section_step) {
     for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
 
@@ -337,7 +337,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   int k_block_currently_resident = -1;
 
-  for (int section_step=0; section_step<GMEnv_num_section_steps(env, 3);
+  for (int section_step=0; section_step<gm_num_section_steps(env, 3);
        ++section_step) {
     for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
       const int k_block = gm_mod_i(i_block + k_i_offset, num_block);

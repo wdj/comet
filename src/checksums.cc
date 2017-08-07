@@ -1,0 +1,323 @@
+/*---------------------------------------------------------------------------*/
+/*!
+ * \file   checksums.cc
+ * \author Wayne Joubert
+ * \date   Mon Aug  7 14:47:01 EDT 2017
+ * \brief  Checksums for metrics.
+ * \note   Copyright (C) 2017 Oak Ridge National Laboratory, UT-Battelle, LLC.
+ */
+/*---------------------------------------------------------------------------*/
+
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include "mpi.h"
+
+#include "env.hh"
+#include "metrics.hh"
+#include "checksums.hh"
+
+/*===========================================================================*/
+/*---Functions for metrics checksum---*/
+
+/*---------------------------------------------------------------------------*/
+/*---Helper function - perform one bubble sort step---*/
+
+static void gm_makegreater(size_t* i, size_t* j, int* ind_i, int* ind_j) {
+  if (*i < *j) {
+    const size_t tmp = *i;
+    *i = *j;
+    *j = tmp;
+    const int tmp2 = *ind_i;
+    *ind_i = *ind_j;
+    *ind_j = tmp2;
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+/*---Helper function - left shift that works for any shift amount---*/
+
+static size_t gm_lshift(size_t a, int j) {
+  if (j >= 64 || j <= -64) {
+    return 0;
+  }
+  return j > 0 ? a << j : a >> (-j);
+}
+
+/*---------------------------------------------------------------------------*/
+/*---Metrics checksum---*/
+
+void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env) {
+  GMAssertAlways(metrics && env);
+  GMAssertAlways(metrics->data || !GMEnv_is_proc_active(env));
+
+  /*---Initializations---*/
+
+  if (!GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  enum { num_way_max = GM_NUM_NUM_WAY + 1 };
+  GMAssertAlways(GMEnv_num_way(env) <= num_way_max ?
+                 "This num_way not supported." : 0);
+
+  typedef size_t UI64;
+  GMStaticAssert(sizeof(UI64) == 8);
+
+  /*---Check for NaNs if appropriate---*/
+
+  switch (metrics->data_type_id) {
+    case GM_DATA_TYPE_FLOAT: {
+      GMFloat_check((GMFloat*)(metrics->data), metrics->num_elts_local);
+    } break;
+  }
+
+  /*---Calculate the global largest value---*/
+
+  double value_max_this = cs->value_max;
+#pragma omp parallel for reduction(max:value_max_this)
+  for (UI64 index = 0; index < metrics->num_elts_local; ++index) {
+    bool is_active = true;
+    for (int i = 0; i < GMEnv_num_way(env); ++i) {
+      const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                           i, env);
+      is_active = is_active && coord < metrics->num_vector_active;
+    }
+    /*---Loop over data values at this index---*/
+    for (int i_value = 0; i_value < metrics->data_type_num_values; ++i_value) {
+      /*---Pick up value of this metrics elt---*/
+      double value = 0;
+      switch (metrics->data_type_id) {
+        /*--------------------*/
+        case GM_DATA_TYPE_BITS1: {
+          GMInsist(env, false ? "Unimplemented." : 0);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_FLOAT: {
+          value = GMMetrics_czek_get_from_index(metrics, index, env);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_TALLY2X2: {
+          const int i0 = i_value / 2;
+          const int i1 = i_value % 2;
+          value = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_TALLY4X2: {
+          const int i0 = i_value / 4;
+          const int i1 = (i_value / 2) % 2;
+          const int i2 = i_value % 2;
+          value =
+              GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env);
+        } break;
+        /*--------------------*/
+        default:
+          GMAssertAlways(false ? "Invalid data type." : 0);
+      } /*---switch---*/
+      if (is_active) {
+        value_max_this = value > value_max_this ? value : value_max_this;
+      }
+    }
+  } /*---for index---*/
+
+  int mpi_code = 0;
+  mpi_code = MPI_Allreduce(&value_max_this, &cs->value_max, 1,
+                           MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+
+  /*---The largest we expect any value to be if using "special" inputs---*/
+  const int log2_value_max_allowed = 4;
+  const double value_max_allowed = 1 << log2_value_max_allowed;
+
+  cs->is_overflowed = cs->is_overflowed && cs->value_max > value_max_allowed;
+
+  const double scaling = value_max_allowed;
+
+  //const double scaling = cs->is_overflowed ? cs->value_max : value_max_allowed;
+
+  /*---Calculate checksum---*/
+
+  //GMMultiprecInt sums_l = {0};
+
+  //UI64 sums_l[16];
+  //for (int i = 0; i < 16; ++i) {
+  //  sums_l[i] = 0;
+  //}
+  //double sum_d = 0;
+
+  const int w = 30;
+  GMAssertAlways(64 - 2 * w >= 4);
+  const UI64 one64 = 1;
+
+  const UI64 lomask = (one64 << w) - 1;
+  const UI64 lohimask = (one64 << (2 * w)) - 1;
+
+  GMMultiprecInt sum_this = {0};
+  double sum_d_this = 0;
+
+#pragma omp parallel
+{
+  GMMultiprecInt sum_this_private = {0};
+  double sum_d_this_private = 0;
+#pragma omp for collapse(2)
+  for (UI64 index = 0; index < metrics->num_elts_local; ++index) {
+    /*---Loop over data values at this index---*/
+    for (int i_value = 0; i_value < metrics->data_type_num_values; ++i_value) {
+
+      /*---Obtain global coords of metrics elt---*/
+      UI64 coords[num_way_max];
+      int ind_coords[num_way_max];
+      for (int i = 0; i < num_way_max; ++i) {
+        coords[i] = 0;
+        ind_coords[i] = i;
+      }
+      bool is_active = true;
+      for (int i = 0; i < GMEnv_num_way(env); ++i) {
+        const UI64 coord = GMMetrics_coord_global_from_index(metrics, index,
+                                                             i, env);
+        is_active = is_active && coord < metrics->num_vector_active;
+        coords[i] = coord;
+      }
+      /*---Reflect coords by symmetry to get uniform result -
+           sort into descending order---*/
+      gm_makegreater(&coords[1], &coords[2], &ind_coords[1], &ind_coords[2]);
+      gm_makegreater(&coords[0], &coords[1], &ind_coords[0], &ind_coords[1]);
+      gm_makegreater(&coords[1], &coords[2], &ind_coords[1], &ind_coords[2]);
+
+      /*---Pick up value of this metrics elt---*/
+      double value = 0;
+      switch (metrics->data_type_id) {
+        /*--------------------*/
+        case GM_DATA_TYPE_BITS1: {
+          GMInsist(env, false ? "Unimplemented." : 0);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_FLOAT: {
+          value = GMMetrics_czek_get_from_index(metrics, index, env);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_TALLY2X2: {
+          const int i0_unpermuted = i_value / 2;
+          const int i1_unpermuted = i_value % 2;
+          const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
+          const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
+          value = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+        } break;
+        /*--------------------*/
+        case GM_DATA_TYPE_TALLY4X2: {
+          const int i0_unpermuted = i_value / 4;
+          const int i1_unpermuted = (i_value / 2) % 2;
+          const int i2_unpermuted = i_value % 2;
+          const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
+                         ind_coords[1] == 0 ? i1_unpermuted :
+                                              i2_unpermuted;
+          const int i1 = ind_coords[0] == 1 ? i0_unpermuted :
+                         ind_coords[1] == 1 ? i1_unpermuted :
+                                              i2_unpermuted;
+          const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
+                         ind_coords[1] == 2 ? i1_unpermuted :
+                                              i2_unpermuted;
+          value =
+              GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env);
+        } break;
+        /*--------------------*/
+        default:
+          GMAssertAlways(false ? "Invalid data type." : 0);
+      } /*---switch---*/
+      /*---Convert to integer.  Store only 2*w bits max---*/
+      UI64 ivalue = (value / scaling) * (one64 << (2 * w));
+      /*---Construct global id for metrics data vbalue---*/
+      UI64 uid = coords[0];
+      for (int i = 1; i < GMEnv_num_way(env); ++i) {
+        uid = uid * metrics->num_vector_active + coords[i];
+      }
+      uid = uid * metrics->data_type_num_values + i_value;
+      /*---Randomize---*/
+      const UI64 rand1 = gm_randomize(uid + 956158765);
+      const UI64 rand2 = gm_randomize(uid + 842467637);
+      UI64 rand_value = rand1 + gm_randomize_max() * rand2;
+      rand_value &= lohimask;
+      /*---Multiply the two values---*/
+      const UI64 a = rand_value;
+      const UI64 alo = a & lomask;
+      const UI64 ahi = a >> w;
+      const UI64 b = ivalue;
+      const UI64 blo = b & lomask;
+      const UI64 bhi = b >> w;
+      const UI64 cx = alo * bhi + ahi * blo;
+      UI64 clo = alo * blo + ((cx & lomask) << w);
+      UI64 chi = ahi * bhi + (cx >> w);
+      /*---(move the carry bits)---*/
+      chi += clo >> (2 * w);
+      clo &= lohimask;
+      const double value_d =
+          ivalue * (double)rand_value / ((double)(one64 << (2 * w)));
+      if (is_active) {
+        sum_d_this_private += value_d; /*---Reduction---*/
+        /*---Split the product into one-char chunks, accumulate to sums---*/
+        for (int i = 0; i < 8; ++i) {
+          const UI64 value0 = (clo << (64 - 8 - 8 * i)) >> (64 - 8);
+          const UI64 value1 = (chi << (64 - 8 - 8 * i)) >> (64 - 8);
+          sum_this_private.data[0 + i] += value0; /*---Reduction---*/
+          sum_this_private.data[8 + i] += value1; /*---Reduction---*/
+        }
+      }
+    } /*---for i_value---*/
+  }   /*---for index---*/
+
+#pragma omp critical
+  {
+      sum_d_this += sum_d_this_private; /*---Reduction---*/
+      for (int i = 0; i < 8; ++i) {
+        sum_this.data[0 + i] += sum_this_private.data[0 + i];/*---Reduction---*/
+        sum_this.data[8 + i] += sum_this_private.data[8 + i];/*---Reduction---*/
+      }
+  }
+} /*---omp parallel---*/
+
+  /*---Global sum---*/
+  GMMultiprecInt sum = {0};
+  mpi_code = MPI_Allreduce(sum_this.data, sum.data, GM_MULTIPREC_INT_SIZE,
+                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+                           GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  for (int i = 0; i < GM_MULTIPREC_INT_SIZE; ++i) {
+    cs->sum.data[i] += sum.data[i];
+  }
+
+  /*---Combine results---*/
+
+  for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+    cs->data[i] = 0;
+    for (int j = 0; j < 8; ++j) {
+      cs->data[i] +=
+          gm_lshift(cs->sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
+      cs->data[i] +=
+          gm_lshift(cs->sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
+    }
+  }
+  /*---(move the carry bits---*/
+  cs->data[1] += cs->data[0] >> (2 * w);
+  cs->data[0] &= lohimask;
+  cs->data[2] += cs->data[1] >> (2 * w);
+  cs->data[1] &= lohimask;
+
+  /*---Check against floating point result---*/
+
+  const double tmp = sum_d_this;
+  mpi_code = MPI_Allreduce(&tmp, &sum_d_this, 1, MPI_DOUBLE, MPI_SUM,
+                           GMEnv_mpi_comm_vector(env));
+  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  cs->sum_d += sum_d_this;
+
+  double result_d = cs->data[0] / ((double)(one64 << (2 * w))) +
+                    cs->data[1] +
+                    cs->data[2] * ((double)(one64 << (2 * w)));
+  result_d *= 1; /*---Avoid unused variable warning---*/
+  GMAssertAlways(fabs(cs->sum_d - result_d) <= cs->sum_d * 1.e-10);
+}
+
+/*===========================================================================*/
+
+/*---------------------------------------------------------------------------*/

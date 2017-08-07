@@ -1,25 +1,21 @@
 /*---------------------------------------------------------------------------*/
 /*!
- * \file   compute_utils_linalg.hh
+ * \file   linalg.hh
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Magma utilities, header.
+ * \brief  Magma interface, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 /*---------------------------------------------------------------------------*/
 
-#ifndef _gm_compute_utils_magma_hh_
-#define _gm_compute_utils_magma_hh_
+#ifndef _gm_linalg_hh_
+#define _gm_linalg_hh_
 
 #include "magma_minproduct.h"
 #include "magma_minproduct_lapack.h"
 
 #include "env.hh"
 #include "mirrored_buf.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /*===========================================================================*/
 
@@ -63,12 +59,6 @@ void gm_linalg_get_matrix_wait(GMEnv* env);
 
 /*===========================================================================*/
 
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
-
-/*===========================================================================*/
-
-#endif /*---_gm_compute_utils_magma_hh_---*/
+#endif /*---_gm_linalg_hh_---*/
 
 /*---------------------------------------------------------------------------*/
