@@ -46,7 +46,7 @@ bool compare_2runs(const char* options1, const char* options2) {
   /*---Need test result only on proc 0---*/
 
   const bool is_passed = proc_num != 0 ? true :
-                         gm_are_checksums_equal(checksum1, checksum2);
+                         GMChecksum_equal(&checksum1, &checksum2);
 
   return is_passed;
 }
@@ -79,8 +79,8 @@ bool compare_3runs(const char* options1,
   /*---Need test result only on proc 0---*/
 
   const bool is_passed = proc_num != 0 ? true :
-                         gm_are_checksums_equal(checksum1, checksum2) &&
-                         gm_are_checksums_equal(checksum1, checksum3);
+                         GMChecksum_equal(&checksum1, &checksum2) &&
+                         GMChecksum_equal(&checksum1, &checksum3);
   return is_passed;
 }
 
@@ -1555,9 +1555,8 @@ GTEST_API_ int main(int argc, char** argv) {
 
   int comm_rank = 0;
   int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   if (comm_rank != 0) {
     ::testing::TestEventListeners& listeners =
@@ -1569,10 +1568,9 @@ GTEST_API_ int main(int argc, char** argv) {
 
   int result_g = 11;
 
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&result, &result_g,
                            1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   MPI_Finalize();
   return result_g;

@@ -34,7 +34,7 @@
 /*---Magma setup, teardown---*/
 
 void gm_linalg_initialize(GMEnv* env) {
-  GMAssertAlways(env);
+  GMInsist(env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -45,13 +45,13 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = magma_minproduct_init();
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_init." : 0);
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
     magma_code = magma_minproductblasSetKernelStream(GMEnv_stream_compute(env));
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproductblasSetKernelStream." : 0);
 
   /*----------------------------------------*/
@@ -59,13 +59,13 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally2_int_t magma_code = magma_tally2_init();
-    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2_init." : 0);
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
     magma_code = magma_tally2blasSetKernelStream(GMEnv_stream_compute(env));
-    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2blasSetKernelStream." : 0);
 
   /*----------------------------------------*/
@@ -74,13 +74,13 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = magma_tally4_init();
-    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_init." : 0);
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
     magma_code = magma_tally4blasSetKernelStream(GMEnv_stream_compute(env));
-    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4blasSetKernelStream." : 0);
 
   /*----------------------------------------*/
@@ -89,20 +89,20 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = magma_tally3_init();
-    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_init." : 0);
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
     magma_code = magma_tally3blasSetKernelStream(GMEnv_stream_compute(env));
-    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3blasSetKernelStream." : 0);
 
   /*----------------------------------------*/
   } else {
   /*----------------------------------------*/
 
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -112,7 +112,7 @@ void gm_linalg_initialize(GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void gm_linalg_finalize(GMEnv* env) {
-  GMAssertAlways(env);
+  GMInsist(env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -125,7 +125,7 @@ void gm_linalg_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_minproduct_int_t magma_code = magma_minproduct_finalize();
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_finalize." : 0);
 
   /*----------------------------------------*/
@@ -134,7 +134,7 @@ void gm_linalg_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_tally2_int_t magma_code = magma_tally2_finalize();
-    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2_finalize." : 0);
 
   /*----------------------------------------*/
@@ -144,7 +144,7 @@ void gm_linalg_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_tally4_int_t magma_code = magma_tally4_finalize();
-    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_finalize." : 0);
 
   /*----------------------------------------*/
@@ -154,14 +154,14 @@ void gm_linalg_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_tally3_int_t magma_code = magma_tally3_finalize();
-    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_finalize." : 0);
 
   /*----------------------------------------*/
   } else {
   /*----------------------------------------*/
 
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -172,8 +172,8 @@ void gm_linalg_finalize(GMEnv* env) {
 /*---Allocate/free host and device memory---*/
 
 void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
-  GMAssertAlways(p && env);
-  GMAssertAlways(dim0 + 1 >= 1 && dim1 + 1 >= 1);
+  GMInsist(p && env);
+  GMInsist(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
   *p = GMMirroredBuf_null();
 
@@ -194,22 +194,22 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&p->h, n);
-      GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_dmalloc_pinned." : 0);
     } else {
       magma_code = magma_minproduct_smalloc_pinned((float**)&p->h, n);
-      GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_smalloc_pinned." : 0);
     }
     GMFloat_fill_nan((GMFloat*)p->h, n);
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
-      GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_dmalloc." : 0);
     } else {
       magma_code = magma_minproduct_smalloc((float**)&p->d, n);
-      GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS ?
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproduct_smalloc." : 0);
     }
 
@@ -228,11 +228,11 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_tally2_int_t magma_code = 0;
 
     magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p->h, n);
-    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2_zmalloc_pinned." : 0);
 
     magma_code = magma_tally2_zmalloc((Float_t**)&p->d, n);
-    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
                    "Error in call to magma_tally2_zmalloc." : 0);
 
     p->size = n*sizeof(Float_t);
@@ -251,11 +251,11 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_tally4_int_t magma_code = 0;
 
     magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p->h, n);
-    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_zmalloc_pinned." : 0);
 
     magma_code = magma_tally4_zmalloc((Float_t**)&p->d, n);
-    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
                    "Error in call to magma_tally4_zmalloc." : 0);
 
     p->size = n*sizeof(Float_t);
@@ -274,11 +274,11 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_tally3_int_t magma_code = 0;
 
     magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p->h, n);
-    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_zmalloc_pinned." : 0);
 
     magma_code = magma_tally3_zmalloc((Float_t**)&p->d, n);
-    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS ?
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
                    "Error in call to magma_tally3_zmalloc." : 0);
 
     p->size = n*sizeof(Float_t);
@@ -291,15 +291,15 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
 
-  GMAssertAlways(p->h ?
+  GMInsist(p->h ?
                  "Invalid host pointer created in gm_linalg_malloc." : 0);
-  GMAssertAlways(p->d ?
+  GMInsist(p->d ?
                  "Invalid device pointer created in gm_linalg_malloc." : 0);
   p->is_alias = false;
 }
@@ -307,13 +307,13 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
-  GMAssertAlways(p && env);
+  GMInsist(p && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
-  GMAssertAlways(! p->is_alias);
+  GMInsist(! p->is_alias);
 
   const size_t size = p->size;
 
@@ -322,9 +322,9 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS);
     magma_code = magma_minproduct_free(p->d);
-    GMAssertAlways(magma_code == MAGMA_minproduct_SUCCESS);
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS);
 
     env->cpu_mem -= size;
     env->gpu_mem -= size;
@@ -334,9 +334,9 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally2_int_t magma_code = magma_tally2_free_pinned(p->h);
-    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS);
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS);
     magma_code = magma_tally2_free(p->d);
-    GMAssertAlways(magma_code == MAGMA_tally2_SUCCESS);
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS);
 
     env->cpu_mem -= size;
     env->gpu_mem -= size;
@@ -347,9 +347,9 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = magma_tally4_free_pinned(p->h);
-    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS);
     magma_code = magma_tally4_free(p->d);
-    GMAssertAlways(magma_code == MAGMA_tally4_SUCCESS);
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS);
 
     env->cpu_mem -= size;
     env->gpu_mem -= size;
@@ -360,9 +360,9 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = magma_tally3_free_pinned(p->h);
-    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS);
     magma_code = magma_tally3_free(p->d);
-    GMAssertAlways(magma_code == MAGMA_tally3_SUCCESS);
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS);
 
     env->cpu_mem -= size;
     env->gpu_mem -= size;
@@ -371,7 +371,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -382,7 +382,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 
 void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
                                      GMEnv* env) {
-  GMAssertAlways(matrix_buf && env);
+  GMInsist(matrix_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -446,7 +446,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
   } else {
   /*----------------------------------------*/
 
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -466,10 +466,10 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                                 magma_minproduct_int_t lddc,
                                 bool is_beta_one,
                                 GMEnv* env) {
-  GMAssertAlways(dA && dB && dC && env);
-  GMAssertAlways(m >= 0 && n >= 0 && k >= 0);
-  GMAssertAlways(ldda >= 0 && lddb >= 0);
-  GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMInsist(dA && dB && dC && env);
+  GMInsist(m >= 0 && n >= 0 && k >= 0);
+  GMInsist(ldda >= 0 && lddb >= 0);
+  GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
   {
     int TransA = 1;
@@ -483,7 +483,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     size_t sizeB = (size_t) lddb * (Bn - 1) + Bm;
 
     size_t CUBLAS_MAX_1DBUF_SIZE = ((1 << 27) - 512);
-    GMAssertAlways( !(sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
+    GMInsist( !(sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
                       sizeB >= CUBLAS_MAX_1DBUF_SIZE ));
   }
 
@@ -505,7 +505,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
         (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
          (float*)dA, ldda, (float*)dB, lddb, beta, (float*)dC, lddc);
     }
-    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_cuda_last_call_succeeded(env));
 
     env->ops_local += 2 * m * (double)n * (double)k;
 
@@ -523,7 +523,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_tally2blas_zgemm(Magma_tally2Trans, Magma_tally2NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_cuda_last_call_succeeded(env));
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -540,7 +540,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_tally4blas_zgemm(Magma_tally4Trans, Magma_tally4NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_cuda_last_call_succeeded(env));
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -557,13 +557,13 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_tally3blas_zgemm(Magma_tally3Trans, Magma_tally3NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_cuda_last_call_succeeded(env));
 
   /*----------------------------------------*/
   } else {
   /*----------------------------------------*/
 
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -582,10 +582,10 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
                           void* dC,
                           magma_minproduct_int_t lddc,
                           GMEnv* env) {
-  GMAssertAlways(dA && dB && dC && env);
-  GMAssertAlways(m >= 0 && n >= 0 && k >= 0);
-  GMAssertAlways(ldda >= 0 && lddb >= 0);
-  GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMInsist(dA && dB && dC && env);
+  GMInsist(m >= 0 && n >= 0 && k >= 0);
+  GMInsist(ldda >= 0 && lddb >= 0);
+  GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
   if (m==0 || n==0 || k==0) {
     return;
@@ -603,7 +603,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
     GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
-  GMAssertAlways(elt_size > 0);
+  GMInsist(elt_size > 0);
 
   const size_t align_factor = 128 / elt_size;
   const size_t max_elts = (1 << 27) - 512;
@@ -620,8 +620,8 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   const size_t max_cols_per_block = (max_cols_per_block_raw / align_factor)
                                                             * align_factor;
 
-  GMAssertAlways(max_rows_per_block != 0);
-  GMAssertAlways(max_cols_per_block != 0);
+  GMInsist(max_rows_per_block != 0);
+  GMInsist(max_cols_per_block != 0);
 
   const size_t cols_per_block_A = gm_min_i8(cols_A, max_cols_per_block);
   const size_t cols_per_block_B = gm_min_i8(cols_B, max_cols_per_block);
@@ -660,11 +660,11 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 /*---Wait for any computation on the GPU to complete---*/
 
 void gm_compute_wait(GMEnv* env) {
-  GMAssertAlways(env);
+  GMInsist(env);
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaStreamSynchronize(GMEnv_stream_compute(env));
-    GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_cuda_last_call_succeeded(env));
   }
 }
 
@@ -672,7 +672,7 @@ void gm_compute_wait(GMEnv* env) {
 /*---Start/end transfer of generic matrix to GPU---*/
 
 void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
-  GMAssertAlways(matrix_buf && env);
+  GMInsist(matrix_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -735,7 +735,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -745,14 +745,14 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void gm_linalg_set_matrix_wait(GMEnv* env) {
-  GMAssertAlways(env);
+  GMInsist(env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   cudaStreamSynchronize(GMEnv_stream_togpu(env));
-  GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
+  GMInsist(GMEnv_cuda_last_call_succeeded(env));
 }
 
 //=============================================================================
@@ -760,7 +760,7 @@ void gm_linalg_set_matrix_wait(GMEnv* env) {
 
 void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                 GMEnv* env) {
-  GMAssertAlways(matrix_buf && env);
+  GMInsist(matrix_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -823,7 +823,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
   } else {
   /*----------------------------------------*/
 
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -833,14 +833,14 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 //-----------------------------------------------------------------------------
 
 void gm_linalg_get_matrix_wait(GMEnv* env) {
-  GMAssertAlways(env);
+  GMInsist(env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
   }
 
   cudaStreamSynchronize(GMEnv_stream_fromgpu(env));
-  GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
+  GMInsist(GMEnv_cuda_last_call_succeeded(env));
 }
 
 //=============================================================================

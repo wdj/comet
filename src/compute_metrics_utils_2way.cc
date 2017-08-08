@@ -33,15 +33,15 @@ void gm_compute_czek_numerators_2way_start_(
     int j_block,
     bool do_compute_triang_only,
     GMEnv* env) {
-  GMAssertAlways(vectors_left && vectors_right && metrics && env);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(vectors_left && vectors_right && metrics && env);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsist(env, !env->do_reduce
+    GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for REF case not supported"
                       : 0);
 
@@ -64,7 +64,7 @@ void gm_compute_czek_numerators_2way_start_(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, !env->do_reduce
+    GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -117,15 +117,15 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
                                            int j_block,
                                            bool do_compute_triang_only,
                                            GMEnv* env) {
-  GMAssertAlways(vectors_left && vectors_right && metrics && env);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(vectors_left && vectors_right && metrics && env);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsist(env, !env->do_reduce
+    GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for REF case not supported"
                       : 0);
 
@@ -197,7 +197,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, !env->do_reduce
+    GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -383,9 +383,9 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
                                       int j_block,
                                       bool do_compute_triang_only,
                                       GMEnv* env) {
-  GMAssertAlways(vectors_left && vectors_right && metrics && env);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(vectors_left && vectors_right && metrics && env);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_CZEK: {
@@ -401,7 +401,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
           env);
     } break;
     default:
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 
@@ -414,10 +414,10 @@ void gm_compute_czek_2way_combine_(
     const GMVectorSums* vector_sums_left,
     const GMVectorSums* vector_sums_right,
     int j_block, bool do_compute_triang_only, GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf);
-  GMAssertAlways(vector_sums_left && vector_sums_right && env);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(metrics && metrics_buf);
+  GMInsist(vector_sums_left && vector_sums_right && env);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   // NOTE: here and elsewhere, vector_sums_left and vector_sums_right
   // may sometimes be aliases.  Since they are read-only, there should
@@ -536,10 +536,10 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
                                   const GMVectorSums* vector_sums_right,
                                   int j_block, bool do_compute_triang_only,
                                   GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf);
-  GMAssertAlways(vector_sums_left && vector_sums_right && env);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(metrics && metrics_buf);
+  GMInsist(vector_sums_left && vector_sums_right && env);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   const int nvl = metrics->num_vector_local;
   const GMVectorSums* vs_l = vector_sums_left;
@@ -709,10 +709,10 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                              int j_block,
                              bool do_compute_triang_only,
                              GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf);
-  GMAssertAlways(vector_sums_left && vector_sums_right && env);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(metrics && metrics_buf);
+  GMInsist(vector_sums_left && vector_sums_right && env);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_CZEK: {
@@ -726,7 +726,7 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                                    j_block, do_compute_triang_only, env);
     } break;
     default:
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 

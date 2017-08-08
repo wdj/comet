@@ -38,18 +38,18 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
     const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
-  GMAssertAlways(this_ && metrics && env);
-  GMAssertAlways(vectors_i && vectors_j && vectors_k);
-  GMAssertAlways(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == j_block &&
+  GMInsist(this_ && metrics && env);
+  GMInsist(vectors_i && vectors_j && vectors_k);
+  GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMInsist(!(GMEnv_proc_num_vector_i(env) == j_block &&
                    GMEnv_proc_num_vector_i(env) != k_block));
-  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
+  GMInsist(!(GMEnv_proc_num_vector_i(env) == k_block &&
                    GMEnv_proc_num_vector_i(env) != j_block));
-  GMAssertAlways(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
+  GMInsist(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 
@@ -72,11 +72,11 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
       !GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsist(env, !env->do_reduce
+    GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for REF/CPU cases not supported"
                       : 0);
 
-    GMAssertAlways(gm_num_section_steps(env, 1) == 1);
+    GMInsist(gm_num_section_steps(env, 1) == 1);
 
     /*---No off-proc all2all: compute tetrahedron of values---*/
 
@@ -118,7 +118,7 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, !env->do_reduce
+    GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for REF/CPU cases not supported"
                       : 0);
 
@@ -185,7 +185,7 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
-    GMAssertAlways(false
+    GMInsist(false
                  ? "logic error - code branch should never be executed"
                  : 0);
 
@@ -213,18 +213,18 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
     const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
-  GMAssertAlways(this_ && metrics && env);
-  GMAssertAlways(vectors_i && vectors_j && vectors_k);
-  GMAssertAlways(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == j_block &&
+  GMInsist(this_ && metrics && env);
+  GMInsist(vectors_i && vectors_j && vectors_k);
+  GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMInsist(!(GMEnv_proc_num_vector_i(env) == j_block &&
                    GMEnv_proc_num_vector_i(env) != k_block));
-  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
+  GMInsist(!(GMEnv_proc_num_vector_i(env) == k_block &&
                    GMEnv_proc_num_vector_i(env) != j_block));
-  GMAssertAlways(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
+  GMInsist(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 
@@ -246,7 +246,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsist(env, !env->do_reduce
+    GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -410,7 +410,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsist(env, !env->do_reduce
+    GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
@@ -724,7 +724,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
     /*----------------------------------------*/
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
-    GMAssertAlways(false ? "logic error; should never be executed" : 0);
+    GMInsist(false ? "logic error; should never be executed" : 0);
     /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
@@ -736,8 +736,8 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
 
 void GMComputeNumerators3Way_create(GMComputeNumerators3Way* this_,
                                     int nvl, int npvfl, GMEnv* env) {
-  GMAssertAlways(this_ && env);
-  GMAssertAlways(nvl >= 0 && npvfl >= 0);
+  GMInsist(this_ && env);
+  GMInsist(nvl >= 0 && npvfl >= 0);
 
   this_->matM_ij_buf = GMMirroredBuf_null();
   this_->matM_jk_buf = GMMirroredBuf_null();
@@ -769,7 +769,7 @@ void GMComputeNumerators3Way_create(GMComputeNumerators3Way* this_,
 
 void GMComputeNumerators3Way_destroy(GMComputeNumerators3Way* this_,
                                      GMEnv* env) {
-  GMAssertAlways(this_ && env);
+  GMInsist(this_ && env);
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     for (int i=0; i<2; ++i) {
@@ -806,17 +806,17 @@ void GMComputeNumerators3Way_start(
     const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
-  GMAssertAlways(this_ && metrics && env);
-  GMAssertAlways(vectors_i && vectors_j && vectors_k);
-  GMAssertAlways(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == j_block &&
+  GMInsist(this_ && metrics && env);
+  GMInsist(vectors_i && vectors_j && vectors_k);
+  GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMInsist(!(GMEnv_proc_num_vector_i(env) == j_block &&
                    GMEnv_proc_num_vector_i(env) != k_block));
-  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
+  GMInsist(!(GMEnv_proc_num_vector_i(env) == k_block &&
                    GMEnv_proc_num_vector_i(env) != j_block));
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
@@ -847,7 +847,7 @@ void GMComputeNumerators3Way_start(
             section_step, env);
       } break;
       default:
-        GMInsist(env, false ? "Unimplemented." : 0);
+        GMInsistInterface(env, false ? "Unimplemented." : 0);
     } /*---case---*/
     /*----------------------------------------*/
   } /*---if---*/

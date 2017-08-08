@@ -169,7 +169,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
   const GMVectorSums* vector_sums_k,
   GMEnv* const env) {
 
-  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
+  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
   const bool is_part3 = si->is_part3;
 
@@ -505,7 +505,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
     /*----------*/
   } else {
     /*----------*/
-    GMAssertAlways(false);
+    GMInsist(false);
     /*----------*/
   } /*---GMEnv_metric_type(env)---*/
   /*----------*/
@@ -514,12 +514,12 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
 //=============================================================================
 
 static void lock(bool& lock_val) {
-  GMAssertAlways(! lock_val);
+  GMInsist(! lock_val);
   lock_val = true;
 };
 
 static void unlock(bool& lock_val) {
-  GMAssertAlways(lock_val);
+  GMInsist(lock_val);
   lock_val = false;
 };
 
@@ -542,18 +542,18 @@ void gm_compute_numerators_3way_gpu_start_(
     const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
-  GMAssertAlways(this_ && metrics && env);
-  GMAssertAlways(vectors_i && vectors_j && vectors_k);
-  GMAssertAlways(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == j_block &&
+  GMInsist(this_ && metrics && env);
+  GMInsist(vectors_i && vectors_j && vectors_k);
+  GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMInsist(!(GMEnv_proc_num_vector_i(env) == j_block &&
                    GMEnv_proc_num_vector_i(env) != k_block));
-  GMAssertAlways(!(GMEnv_proc_num_vector_i(env) == k_block &&
+  GMInsist(!(GMEnv_proc_num_vector_i(env) == k_block &&
                    GMEnv_proc_num_vector_i(env) != j_block));
-  GMAssertAlways(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
-  GMAssertAlways(vector_sums_i && vector_sums_j && vector_sums_k);
+  GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 

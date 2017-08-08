@@ -38,7 +38,7 @@ GMVectorSums GMVectorSums_null(void) {
 void GMVectorSums_create(GMVectorSums* this_,
                          GMVectors* vectors,
                          GMEnv* env) {
-  GMAssertAlways(this_ && vectors && env);
+  GMInsist(this_ && vectors && env);
 
   this_->size_ = vectors->num_vector_local;
   this_->num_field_ = vectors->num_field;
@@ -64,7 +64,7 @@ void GMVectorSums_create(GMVectorSums* this_,
       }
     } break;
     default:
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 
@@ -72,7 +72,7 @@ void GMVectorSums_create(GMVectorSums* this_,
 /*---Pseudo-destructor---*/
 
 void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
-  GMAssertAlways(this_ && env);
+  GMInsist(this_ && env);
 
   GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
   if (this_->sums_tmp_) {
@@ -94,7 +94,7 @@ void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
 void GMVectorSums_compute_float_(GMVectorSums* this_,
                                  GMVectors* vectors,
                                  GMEnv* env) {
-  GMAssertAlways(this_ && vectors && env);
+  GMInsist(this_ && vectors && env);
 
   GMFloat* const __restrict__ sums = this_->sums;
   GMFloat* const __restrict__ sums_tmp = this_->sums_tmp_;
@@ -121,7 +121,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
     int mpi_code = 0;
     mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
                              GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
-    GMAssertAlways(mpi_code == MPI_SUCCESS);
+    GMInsist(mpi_code == MPI_SUCCESS);
   }
 
   env->ops_local += 2 * vectors->num_vector_local *
@@ -133,7 +133,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
 void GMVectorSums_compute_bits2_(GMVectorSums* this_,
                                  GMVectors* vectors,
                                  GMEnv* env) {
-  GMAssertAlways(this_ && vectors && env);
+  GMInsist(this_ && vectors && env);
 
   GMFloat* const __restrict__ sums = this_->sums;
   GMFloat* const __restrict__ sums_tmp = this_->sums_tmp_;
@@ -233,11 +233,11 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
     int mpi_code = 0;
     mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
                       GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
-    GMAssertAlways(mpi_code == MPI_SUCCESS);
+    GMInsist(mpi_code == MPI_SUCCESS);
     if (env->sparse) {
       mpi_code = MPI_Allreduce(counts_local, counts, vectors->num_vector_local,
                         GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
-      GMAssertAlways(mpi_code == MPI_SUCCESS);
+      GMInsist(mpi_code == MPI_SUCCESS);
     } /*---if sparse---*/
   }
 }
@@ -245,7 +245,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
 //-----------------------------------------------------------------------------
 
 void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
-  GMAssertAlways(this_ && vectors && env);
+  GMInsist(this_ && vectors && env);
 
   switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_CZEK: {
@@ -255,7 +255,7 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
       GMVectorSums_compute_bits2_(this_, vectors, env);
     } break;
     default:
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 

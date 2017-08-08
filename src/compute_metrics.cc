@@ -9,7 +9,6 @@
 //-----------------------------------------------------------------------------
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "env.hh"
 #include "vectors.hh"
@@ -18,14 +17,10 @@
 #include "compute_metrics_3way.cc"
 #include "compute_metrics.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
-  GMAssertAlways(metrics && vectors && env);
+  GMInsist(metrics && vectors && env);
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -38,15 +33,25 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   // Perform metrics computation.
 
   if (GMEnv_num_way(env) == 2 && !GMEnv_all2all(env)) {
+
     gm_compute_metrics_2way_notall2all(metrics, vectors, env);
+
   } else if (GMEnv_num_way(env) == 2 && GMEnv_all2all(env)) {
+
     gm_compute_metrics_2way_all2all(metrics, vectors, env);
+
   } else if (GMEnv_num_way(env) == 3 && !GMEnv_all2all(env)) {
+
     gm_compute_metrics_3way_notall2all(metrics, vectors, env);
+
   } else if (GMEnv_num_way(env) == 3 && GMEnv_all2all(env)) {
+
     gm_compute_metrics_3way_all2all(metrics, vectors, env);
+
   } else {
-    GMInsist(env, false ? "Unimplemented." : 0);
+
+    GMInsistInterface(env, false ? "Unimplemented." : 0);
+
   }
 
   // Stop timer.
@@ -56,7 +61,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   // Check computed element count.
 
-  GMAssertAlways(metrics->num_elts_local == metrics->num_elts_local_computed);
+  GMInsist(metrics->num_elts_local == metrics->num_elts_local_computed);
 
   // Compute global counts of compares and operations.
 
@@ -65,13 +70,13 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   int mpi_code = MPI_Allreduce(&num_elts_local, &num_elts, 1,
                            MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_vector(env));
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   env->compares += metrics->num_field*num_elts*metrics->data_type_num_values;
 
   mpi_code = MPI_Allreduce(&env->ops_local, &env->ops, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_vector(env));
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   // Compute global CPU, GPU memory high water marks.
 
@@ -79,19 +84,13 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   mpi_code = MPI_Allreduce(&cpu_mem_max_local, &env->cpu_mem_max, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_MAX,
                            GMEnv_mpi_comm_vector(env));
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   const size_t gpu_mem_max_local = env->gpu_mem_max;
   mpi_code = MPI_Allreduce(&gpu_mem_max_local, &env->gpu_mem_max, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_MAX,
                            GMEnv_mpi_comm_vector(env));
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 }
-
-//=============================================================================
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------

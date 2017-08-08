@@ -27,8 +27,8 @@ extern "C" {
 void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
-  GMAssertAlways(metrics && vectors && env);
-  GMAssertAlways(!GMEnv_all2all(env));
+  GMInsist(metrics && vectors && env);
+  GMInsist(!GMEnv_all2all(env));
 
   /*---------------*/
   /*---Denominator---*/
@@ -119,8 +119,8 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMAssertAlways(metrics && vectors && env);
-  GMAssertAlways(GMEnv_all2all(env));
+  GMInsist(metrics && vectors && env);
+  GMInsist(GMEnv_all2all(env));
 
   /*---Initializations---*/
 
@@ -363,7 +363,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
          on the relative speeds.  If these would be put in two different
          CPU threads, then it wouldn't matter---*/
 
-#if 1
     /*---Wait for recvs to complete---*/
 
     if (vars_next.is_compute_step && !comm_with_self) {
@@ -422,68 +421,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     if (vars_next.is_compute_step && !comm_with_self) {
       gm_send_vectors_wait(&(mpi_requests[0]), env);
     }
-#endif
-
-#if 0
-    /*---Wait for sends to complete---*/
-    /*---NOTE: putting this here instead of end of loop seems faster---*/
-
-    if (vars_next.is_compute_step && !comm_with_self) {
-      gm_send_vectors_wait(&(mpi_requests[0]), env);
-    }
-
-    /*---Wait for recvs to complete---*/
-
-    if (vars_next.is_compute_step && !comm_with_self) {
-      gm_recv_vectors_wait(&(mpi_requests[1]), env);
-    }
-
-    /*---Compute sums for denominators---*/
-
-    if (vars.is_compute_step && vars.do_compute_block) {
-      if (is_first_compute_step) {
-        GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
-      }
-      if (!vars.is_main_diag) {
-        GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
-      }
-    }
-
-    /*---Send right vectors for next step to GPU start---*/
-
-    if (vars_next.is_compute_step && vars_next.do_compute_block) {
-      //gm_vectors_to_buf(vars_next.vectors_right_buf, vars_next.vectors_right, env);
-      gm_set_vectors_start(vars_next.vectors_right, vars_next.vectors_right_buf, env);
-    }
-
-    /*--------------------*/
-    /*---Wait for numerators computation to complete---*/
-    /*--------------------*/
-
-    if (vars.is_compute_step && vars.do_compute_block) {
-      gm_compute_wait(env);
-    }
-
-    /*---Commence copy of completed numerators back from GPU---*/
-
-    if (vars.is_compute_step && vars.do_compute_block) {
-      gm_get_metrics_start(metrics, vars.metrics_buf, env);
-    }
-
-    /*---CPU case: combine numerators, denominators to obtain final result---*/
-
-    if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-      if (vars.is_compute_step && vars.do_compute_block) {
-        GMVectorSums* vector_sums_left = &vector_sums_onproc;
-        GMVectorSums* vector_sums_right =
-            vars.is_main_diag
-            ? &vector_sums_onproc : &vector_sums_offproc;
-        gm_compute_2way_combine(metrics, vars.metrics_buf, vector_sums_left,
-                                vector_sums_right, vars.j_block,
-                                vars.is_main_diag, env);
-      }
-    }
-#endif
 
   /*========================================*/
   } /*---step_num---*/

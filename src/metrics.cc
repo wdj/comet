@@ -41,11 +41,11 @@ GMMetrics GMMetrics_null() {
 
 void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
                                    GMEnv* env) {
-  GMAssertAlways(metrics);
-  GMAssertAlways(env);
-  GMAssertAlways(nvl >= 0);
-  GMAssertAlways(GMEnv_num_block_vector(env) <= 2 || nvl % 6 == 0);
-  GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(metrics);
+  GMInsist(env);
+  GMInsist(nvl >= 0);
+  GMInsist(GMEnv_num_block_vector(env) <= 2 || nvl % 6 == 0);
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
 
   metrics->num_elts_local = 0;
 
@@ -62,14 +62,14 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     const int J_hi = gm_J_hi(section_num, nvl, 1, env);
     const GMInt64 trap_size_lo = gm_trap_size(J_lo, nvl);
     const GMInt64 trap_size_hi = gm_trap_size(J_hi, nvl);
-    GMAssertAlways(trap_size_hi >= trap_size_lo);
+    GMInsist(trap_size_hi >= trap_size_lo);
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part1_[section_num]
       = (GMInt64)metrics->num_elts_local - trap_size_lo;
     if (gm_proc_r_active(section_block_num, env)) {
       //---Elements in slice of trapezoid.
       const GMInt64 elts_local = trap_size_hi - trap_size_lo;
-      GMAssertAlways(elts_local >= 0);
+      GMInsist(elts_local >= 0);
       metrics->num_elts_local += elts_local;
       metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
     }
@@ -99,7 +99,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
         //---Elements in slice of triang prism.
         const GMInt64 elts_local = (GMInt64)nvl *
                                    (triang_size_hi - triang_size_lo);
-        GMAssertAlways(elts_local >= 0);
+        GMInsist(elts_local >= 0);
         metrics->num_elts_local += elts_local;
         metrics->section_num_valid_part2_[section_num] = (elts_local != 0);
       }
@@ -127,7 +127,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
         //---Elements in slice of block/cube.
         const GMInt64 elts_local = (GMInt64)nvl * (GMInt64)nvl *
                                    (GMInt64)(J_hi - J_lo);
-        GMAssertAlways(elts_local >= 0);
+        GMInsist(elts_local >= 0);
         metrics->num_elts_local += elts_local;
       }
       ++section_block_num;
@@ -145,12 +145,12 @@ void GMMetrics_create(GMMetrics* metrics,
                       int num_vector_local,
                       size_t num_vector_active,
                       GMEnv* env) {
-  GMAssertAlways(metrics);
-  GMAssertAlways(num_field >= 0);
-  GMAssertAlways(num_field_active >= 0);
-  GMAssertAlways(num_field_active <= (size_t)num_field);
-  GMAssertAlways(num_vector_local >= 0);
-  GMAssertAlways(env);
+  GMInsist(metrics);
+  GMInsist(num_field >= 0);
+  GMInsist(num_field_active >= 0);
+  GMInsist(num_field_active <= (size_t)num_field);
+  GMInsist(num_vector_local >= 0);
+  GMInsist(env);
 
   *metrics = GMMetrics_null();
 
@@ -158,20 +158,20 @@ void GMMetrics_create(GMMetrics* metrics,
     return;
   }
 
-  GMInsist(env, GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1
+  GMInsistInterface(env, GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1
           ? "multidim parallelism only available for all2all case" : 0);
 
-  GMInsist(env,
+  GMInsistInterface(env,
            num_field % GMEnv_num_proc_field(env) == 0
                ? "num_proc_field must exactly divide the total number of fields"
                : 0);
 
   /*---These cases less important, not yet tested---*/
 
-  GMInsist(env, GMEnv_all2all(env) || (size_t)num_field == num_field_active
+  GMInsistInterface(env, GMEnv_all2all(env) || (size_t)num_field == num_field_active
                 ? "This case currently not supported." : 0);
 
-  GMInsist(env, GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU ||
+  GMInsistInterface(env, GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU ||
                 (size_t)num_field == num_field_active
                 ? "This case currently not supported." : 0);
 
@@ -199,20 +199,20 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const size_t num_vector_bound = metrics->num_vector_local *
                           (size_t)num_block * (size_t)GMEnv_num_proc_repl(env);
-  GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
+  GMInsist(num_vector_bound == (size_t)(int)num_vector_bound
     ? "Vector count too large to store in 32-bit int; please modify code." : 0);
 
   int mpi_code = 0;
   mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
                            1, MPI_INT, MPI_SUM, GMEnv_mpi_comm_vector(env));
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
-  GMAssertAlways((size_t)(metrics->num_vector) == num_vector_bound);
+  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist((size_t)(metrics->num_vector) == num_vector_bound);
   metrics->num_vector /= GMEnv_num_proc_repl(env);
-  GMAssertAlways(metrics->num_vector_active <= (size_t)metrics->num_vector);
+  GMInsist(metrics->num_vector_active <= (size_t)metrics->num_vector);
 
   /*---Assume the following to simplify calculations---*/
 
-  GMInsist(
+  GMInsistInterface(
       env,
       num_vector_local >= GMEnv_num_way(env)
           ? "Currently require number of vecs on a proc to be at least num-way"
@@ -226,11 +226,11 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute number of elements etc.---*/
 
-  GMInsist(env, env->stage_num >= 0 && env->stage_num < env->num_stage
+  GMInsistInterface(env, env->stage_num >= 0 && env->stage_num < env->num_stage
                 ? "Invalid stage number specified."
                 : 0);
 
-  GMInsist(env, env->phase_num >= 0 && env->phase_num < env->num_phase
+  GMInsistInterface(env, env->phase_num >= 0 && env->phase_num < env->num_phase
                 ? "Invalid phase number specified."
                 : 0);
 
@@ -240,11 +240,11 @@ void GMMetrics_create(GMMetrics* metrics,
   if (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env)) {
   /*==================================================*/
 
-    GMInsist(env, env->num_stage == 1
+    GMInsistInterface(env, env->num_stage == 1
                       ? "Staged computations not allowed for 2-way case."
                       : 0);
 
-    GMInsist(env, env->num_phase <= 1 + num_block / 2
+    GMInsistInterface(env, env->num_phase <= 1 + num_block / 2
                       ? "num_phase must be at most 1 + nproc_vector/2."
                       : 0);
 
@@ -324,19 +324,19 @@ void GMMetrics_create(GMMetrics* metrics,
     } /*---for diag---*/
 
     /*---Final check---*/
-    GMAssertAlways(index == metrics->num_elts_local);
+    GMInsist(index == metrics->num_elts_local);
 
   /*==================================================*/
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && GMEnv_all2all(env)) {
   /*==================================================*/
 
-    GMInsist(env, env->num_phase == 1
+    GMInsistInterface(env, env->num_phase == 1
                       ? "Phaseed computations not currently implemented "
                         "for 3-way case."
                       : 0);
 
     /*---Make the following assumption to greatly simplify calculations---*/
-    GMInsist(env, num_block <= 2 || metrics->num_vector_local % 6 == 0
+    GMInsistInterface(env, num_block <= 2 || metrics->num_vector_local % 6 == 0
                       ? "3way all2all case requires num vectors per proc "
                         "divisible by 6."
                       : 0);
@@ -486,17 +486,17 @@ void GMMetrics_create(GMMetrics* metrics,
       } /*---j_block---*/
     }   /*---k_block---*/
 
-    GMAssertAlways(index == metrics->num_elts_local);
+    GMInsist(index == metrics->num_elts_local);
 
   /*==================================================*/
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_2 && !GMEnv_all2all(env)) {
   /*==================================================*/
 
-    GMInsist(env, env->num_stage == 1
+    GMInsistInterface(env, env->num_stage == 1
                       ? "Staged computations not allowed for non-all2all case."
                       : 0);
 
-    GMInsist(env, env->num_phase == 1
+    GMInsistInterface(env, env->num_phase == 1
                       ? "Phased computations not allowed for non-all2all case."
                       : 0);
 
@@ -513,17 +513,17 @@ void GMMetrics_create(GMMetrics* metrics,
             i_global + metrics->num_vector * j_global;
       }
     }
-    GMAssertAlways(index == metrics->num_elts_local);
+    GMInsist(index == metrics->num_elts_local);
 
   /*==================================================*/
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && !GMEnv_all2all(env)) {
   /*==================================================*/
 
-    GMInsist(env, env->num_stage == 1
+    GMInsistInterface(env, env->num_stage == 1
                       ? "Staged computations not allowed for non-all2all case."
                       : 0);
 
-    GMInsist(env, env->num_phase == 1
+    GMInsistInterface(env, env->num_phase == 1
                       ? "Phased computations not allowed for non-all2all case."
                       : 0);
 
@@ -548,12 +548,12 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
     }
-    GMAssertAlways(index == metrics->num_elts_local);
+    GMInsist(index == metrics->num_elts_local);
 
   /*==================================================*/
   } else {
   /*==================================================*/
-    GMInsist(env, 0 == 1 ? "Invalid set of options" : 0);
+    GMInsistInterface(env, 0 == 1 ? "Invalid set of options" : 0);
     /*---LATER: generalize this to N-way---*/
   }
 
@@ -561,17 +561,17 @@ void GMMetrics_create(GMMetrics* metrics,
   mpi_code = MPI_Allreduce(&metrics->num_elts_local, &num_elts, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_vector(env));
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   if (GMEnv_num_way(env) == GM_NUM_WAY_2 && env->num_stage == 1 &&
       env->num_phase == 1 && GMEnv_all2all(env)) {
-    GMAssertAlways(num_elts == (metrics->num_vector) * (size_t)
+    GMInsist(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) / 2);
   }
 
   if (GMEnv_num_way(env) == GM_NUM_WAY_3 && env->num_stage == 1 &&
       GMEnv_all2all(env)) {
-    GMAssertAlways(num_elts == (metrics->num_vector) * (size_t)
+    GMInsist(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) * (size_t)
                                (metrics->num_vector - 2) / 6);
   }
@@ -579,15 +579,6 @@ void GMMetrics_create(GMMetrics* metrics,
   /*---Allocations---*/
 
   switch (data_type_id) {
-    /*----------*/
-    case GM_DATA_TYPE_BITS1: {
-      /*---(design not complete)---*/
-      const size_t num_floats_needed =
-          gm_ceil_i8(metrics->num_elts_local, 8 * sizeof(GMFloat));
-      metrics->data_size = num_floats_needed * sizeof(GMFloat);
-      metrics->data = gm_malloc(metrics->data_size, env);
-      metrics->data_type_num_values = 1;
-    } break;
     /*----------*/
     case GM_DATA_TYPE_FLOAT:
       metrics->data_size = metrics->num_elts_local * sizeof(GMFloat);
@@ -620,7 +611,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } break;
     /*----------*/
     default:
-      GMAssertAlways(false ? "Invalid data type." : 0);
+      GMInsist(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -628,8 +619,8 @@ void GMMetrics_create(GMMetrics* metrics,
 /*---Metrics pseudo-destructor---*/
 
 void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
-  GMAssertAlways(metrics && env);
-  GMAssertAlways(metrics->data || !GMEnv_is_proc_active(env));
+  GMInsist(metrics && env);
+  GMInsist(metrics->data || !GMEnv_is_proc_active(env));
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -681,7 +672,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
       result64 = GMMetrics_coord2_global_from_index_3(metrics, index, env);
       break;
     default:
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 
   const int result = (int)result64;

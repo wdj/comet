@@ -27,8 +27,8 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   int mpi_tag,
                                   GMEnv* env) {
-  GMAssertAlways(vectors && env);
-  GMAssertAlways(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
+  GMInsist(vectors && env);
+  GMInsist(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
 
   MPI_Request mpi_request;
 
@@ -37,7 +37,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   const int mpi_code =
       MPI_Isend((void*)vectors->data, vectors->num_packedval_local, mpi_type,
                 proc_num, mpi_tag, GMEnv_mpi_comm_vector(env), &mpi_request);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
 }
@@ -48,8 +48,8 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   int mpi_tag,
                                   GMEnv* env) {
-  GMAssertAlways(vectors && env);
-  GMAssertAlways(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
+  GMInsist(vectors && env);
+  GMInsist(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
 
   MPI_Request mpi_request;
 
@@ -58,7 +58,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   const int mpi_code =
       MPI_Irecv((void*)vectors->data, vectors->num_packedval_local, mpi_type,
                 proc_num, mpi_tag, GMEnv_mpi_comm_vector(env), &mpi_request);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
 }
@@ -66,23 +66,23 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
 //-----------------------------------------------------------------------------
 
 void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMAssertAlways(mpi_request && env);
+  GMInsist(mpi_request && env);
 
   MPI_Status mpi_status;
 
   const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 }
 
 //-----------------------------------------------------------------------------
 
 void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMAssertAlways(mpi_request && env);
+  GMInsist(mpi_request && env);
 
   MPI_Status mpi_status;
 
   const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 }
 
 //=============================================================================
@@ -92,8 +92,8 @@ void gm_reduce_metrics(GMMetrics* metrics,
                        GMMirroredBuf* metrics_buf_target,
                        GMMirroredBuf* metrics_buf_source,
                        GMEnv* env) {
-  GMAssertAlways(metrics && env);
-  GMAssertAlways(metrics_buf_target && metrics_buf_source);
+  GMInsist(metrics && env);
+  GMInsist(metrics_buf_target && metrics_buf_source);
 
   const int nvl = metrics->num_vector_local;
 
@@ -103,7 +103,7 @@ void gm_reduce_metrics(GMMetrics* metrics,
                                      metrics_buf_target->h,
                                      nvl * (size_t)nvl, mpi_type, MPI_SUM,
                                      GMEnv_mpi_comm_field(env));
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 }
 
 //-----------------------------------------------------------------------------
@@ -112,8 +112,8 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
                                     GMMirroredBuf* metrics_buf_target,
                                     GMMirroredBuf* metrics_buf_source,
                                     GMEnv* env) {
-  GMAssertAlways(metrics && env);
-  GMAssertAlways(metrics_buf_target && metrics_buf_source);
+  GMInsist(metrics && env);
+  GMInsist(metrics_buf_target && metrics_buf_source);
 
   const int nvl = metrics->num_vector_local;
 
@@ -125,7 +125,7 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
                                       nvl * (size_t)nvl, mpi_type, MPI_SUM,
                                       GMEnv_mpi_comm_field(env),
                                       &mpi_request);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
 }
@@ -133,12 +133,12 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMAssertAlways(mpi_request && env);
+  GMInsist(mpi_request && env);
 
   MPI_Status mpi_status;
 
   const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 }
 
 //=============================================================================
@@ -146,7 +146,7 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
 
 void gm_set_vectors_start(GMVectors* vectors, GMMirroredBuf* vectors_buf,
                           GMEnv* env) {
-  GMAssertAlways(vectors && vectors_buf && env);
+  GMInsist(vectors && vectors_buf && env);
 
   gm_linalg_set_matrix_start(vectors_buf, env);
 }
@@ -154,7 +154,7 @@ void gm_set_vectors_start(GMVectors* vectors, GMMirroredBuf* vectors_buf,
 //-----------------------------------------------------------------------------
 
 void gm_set_vectors_wait(GMEnv* env) {
-  GMAssertAlways(env);
+  GMInsist(env);
 
   gm_linalg_set_matrix_wait(env);
 }
@@ -164,7 +164,7 @@ void gm_set_vectors_wait(GMEnv* env) {
 
 void gm_get_metrics_start(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                           GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf && env);
+  GMInsist(metrics && metrics_buf && env);
 
   gm_linalg_get_matrix_start(metrics_buf, env);
 }
@@ -173,7 +173,7 @@ void gm_get_metrics_start(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
 void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                          GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf && env);
+  GMInsist(metrics && metrics_buf && env);
 
   gm_linalg_get_matrix_wait(env);
 }
@@ -181,7 +181,7 @@ void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 //-----------------------------------------------------------------------------
 
 int gm_num_seminibbles_pad(GMMetrics* metrics, GMEnv* env) {
-  GMAssertAlways(metrics && env);
+  GMInsist(metrics && env);
 
   const int num_bits_per_val = 2;
   const int num_bits_per_packedval = 128;
@@ -204,7 +204,7 @@ int gm_num_seminibbles_pad(GMMetrics* metrics, GMEnv* env) {
   const int num_field_active_local = final_proc
     ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
 
-  GMAssertAlways(num_field_active_local >= 0);
+  GMInsist(num_field_active_local >= 0);
 
   const int num_seminibbles_pad = num_field_calculated -
                                   num_field_active_local;
@@ -216,7 +216,7 @@ int gm_num_seminibbles_pad(GMMetrics* metrics, GMEnv* env) {
 
 void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
-  GMAssertAlways(metrics && metrics_buf && env);
+  GMInsist(metrics && metrics_buf && env);
 
   if (! (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
       GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
@@ -237,7 +237,7 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 //  const int num_field_active_local =
 //    GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1
 //    ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
-//  GMAssertAlways(num_field_active_local >= 0);
+//  GMInsist(num_field_active_local >= 0);
 //  const int num_seminibbles_pad = num_field_calculated -
 //                                  num_field_active_local;
   //const int num_seminibbles_pad =
@@ -264,7 +264,7 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
                        GMVectors* vectors,
                        GMEnv* env) {
-  GMAssertAlways(vectors && vectors_buf && env);
+  GMInsist(vectors && vectors_buf && env);
 
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     return;
@@ -292,7 +292,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
       }
     } break;
     default:
-      GMInsist(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
 

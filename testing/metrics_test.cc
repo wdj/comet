@@ -26,9 +26,8 @@ void MetricsTest_3way_num_elts_local_() {
 
   int comm_rank = 0;
   int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   const int num_proc_mock = 20;
   const int nvl = 12;
@@ -98,9 +97,8 @@ GTEST_API_ int main(int argc, char** argv) {
 
   int comm_rank = 0;
   int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   if (comm_rank != 0) {
     ::testing::TestEventListeners& listeners =
@@ -113,7 +111,7 @@ GTEST_API_ int main(int argc, char** argv) {
 
   mpi_code = MPI_Allreduce(&result, &result_g,
                            1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS);
 
   MPI_Finalize();
   return result_g;

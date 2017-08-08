@@ -147,11 +147,11 @@ static void GMSectionInfo_create(
   int section_step,
   int num_vector_local,
   GMEnv* env) {
-  GMAssertAlways(si && env);
-  GMAssertAlways(i_block >= 0 && i_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMAssertAlways(num_vector_local >= 0);
+  GMInsist(si && env);
+  GMInsist(i_block >= 0 && i_block < GMEnv_num_block_vector(env));
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMInsist(num_vector_local >= 0);
 
   si->num_vector_local = num_vector_local;
 
@@ -163,8 +163,8 @@ static void GMSectionInfo_create(
                  si->is_part2 ? 2 : 3;
 
   const int num_section_steps = gm_num_section_steps(env, si->part_num);
-  GMAssertAlways(section_step>=0);
-  GMAssertAlways(section_step<num_section_steps);
+  GMInsist(section_step>=0);
+  GMInsist(section_step<num_section_steps);
 
   si->section_axis =
     ! si->is_part3 ? 1 /*---j axis---*/ :
@@ -219,7 +219,7 @@ static int GMSectionInfo_k_min(
   GMSectionInfo* si,
   int j,
   GMEnv* env) {
-  GMAssertAlways(si && env);
+  GMInsist(si && env);
   GMAssert(j >= 0 && j < si->num_vector_local);
 
   return si->is_part3 ? si->k_lb : j + 1;
@@ -231,7 +231,7 @@ static int GMSectionInfo_i_max(
   GMSectionInfo* si,
   int j,
   GMEnv* env) {
-  GMAssertAlways(si && env);
+  GMInsist(si && env);
   GMAssert(j >= 0 && j < si->num_vector_local);
 
   return si->is_part1 ? j : si->i_ub;

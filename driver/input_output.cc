@@ -24,8 +24,8 @@
 // Input vectors from files
 
 void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
-  GMAssertAlways(vectors && do_ && env);
-  GMAssertAlways(do_->input_file_path);
+  GMInsist(vectors && do_ && env);
+  GMInsist(do_->input_file_path);
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -39,7 +39,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
       const size_t field_base = fl +
         vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
       FILE* input_file = fopen(do_->input_file_path, "r");
-      GMAssertAlways(NULL != input_file ? "Unable to open input file." : 0);
+      GMInsist(NULL != input_file ? "Unable to open input file." : 0);
       int vl = 0;
       for (vl = 0; vl < vectors->num_vector_local; ++vl) {
         const size_t proc_num = GMEnv_proc_num_vector_i(env);
@@ -53,16 +53,16 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           (field_base + vectors->num_field * vector_capped) * sizeof(GMFloat);
         int fseek_success = fseek(input_file, addr_file, SEEK_SET);
         fseek_success += 0; /*---Avoid unused var warning---*/
-        GMAssertAlways(0 == fseek_success);
+        GMInsist(0 == fseek_success);
         GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
         /*---NOTE: the following call is ok since has no side effects---*/
-        GMAssertAlways(fl+1 >= vectors->num_field_local ||
+        GMInsist(fl+1 >= vectors->num_field_local ||
             GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1
             ? "Vector layout is incompatible with operation." : 0);
         size_t num_read = fread(addr_mem, sizeof(GMFloat),
                                 vectors->num_field_local, input_file);
         num_read += 0; /*---Avoid unused var warning---*/
-        GMAssertAlways((size_t)vectors->num_field_local == (size_t)num_read);
+        GMInsist((size_t)vectors->num_field_local == (size_t)num_read);
       } /*---vl---*/
       fclose(input_file);
     } break;
@@ -72,12 +72,12 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 
       //TODO: implement
 
-     GMInsist(env, false ? "Not yet implemented." : 0);
+     GMInsistInterface(env, false ? "Not yet implemented." : 0);
     } break;
     /*--------------------*/
     default:
     /*--------------------*/
-      GMAssertAlways(false ? "Invalid data type." : 0);
+      GMInsist(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -109,7 +109,7 @@ public:
     num_way_(GMEnv_num_way(env)) {
 
     if (file_ != stdout) {
-      GMInsist(env, metrics->num_vector_active ==
+      GMInsistInterface(env, metrics->num_vector_active ==
                     (GMUInt32)metrics->num_vector_active &&
                     "Too many vectors for output format.");
     }
@@ -247,7 +247,7 @@ public:
 
 void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
                          FILE* file, double threshold, GMEnv* env) {
-  GMAssertAlways(metrics && do_ && file && env);
+  GMInsist(metrics && do_ && file && env);
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -342,7 +342,7 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
 
-      GMAssertAlways(GMEnv_num_way(env) == GM_NUM_WAY_2);
+      GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
       size_t index = 0;
       for (index = 0; index < metrics->num_elts_local; ++index) {
@@ -462,7 +462,7 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
     } break;
     /*--------------------*/
     default:
-      GMAssertAlways(false ? "Invalid data type." : 0);
+      GMInsist(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -470,7 +470,7 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
 // Output results metrics to file
 
 void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
-  GMAssertAlways(metrics && do_ && env);
+  GMInsist(metrics && do_ && env);
 
   char* stub = do_->output_file_path_stub;
 
@@ -484,9 +484,9 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     size_t len = strlen(stub);
     char* path = (char*)malloc((len+50) * sizeof(char));
 
-    GMAssertAlways(env->num_stage < 1000000);
-    GMAssertAlways(env->num_phase < 1000000);
-    GMAssertAlways(GMEnv_num_proc(env) < 10000000000);
+    GMInsist(env->num_stage < 1000000);
+    GMInsist(env->num_phase < 1000000);
+    GMInsist(GMEnv_num_proc(env) < 10000000000);
     sprintf(path, "%s_%06i_%06i_%010i", stub, env->phase_num,
             env->stage_num, GMEnv_proc_num(env));
 

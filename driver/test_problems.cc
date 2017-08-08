@@ -26,8 +26,8 @@
 /*---Set the entries of the vectors---*/
 
 void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
-  GMAssertAlways(vectors && do_ && env);
-  GMAssertAlways(do_->problem_type == GM_PROBLEM_TYPE_RANDOM);
+  GMInsist(vectors && do_ && env);
+  GMInsist(do_->problem_type == GM_PROBLEM_TYPE_RANDOM);
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -73,8 +73,8 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           rand_value >>= shift_amount > 0 ? shift_amount : 0;
           /*---Store---*/
           GMFloat float_value = (GMFloat)rand_value;
-          GMAssertAlways((size_t)float_value == rand_value);
-          GMAssertAlways(float_value * vectors->num_field_active <
+          GMInsist((size_t)float_value == rand_value);
+          GMInsist(float_value * vectors->num_field_active <
                          ((size_t)1)<<GMFloat_mant_dig());
           GMVectors_float_set(vectors, fl, vl, float_value, env);
           /*---Print---*/
@@ -128,7 +128,7 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMAssertAlways(false ? "Invalid data type." : 0);
+      GMInsist(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -183,8 +183,8 @@ static size_t perm(size_t key, size_t i, size_t n) {
 //-----------------------------------------------------------------------------
 
 void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
-  GMAssertAlways(vectors && do_ && env);
-  GMAssertAlways(do_->problem_type == GM_PROBLEM_TYPE_ANALYTIC);
+  GMInsist(vectors && do_ && env);
+  GMInsist(do_->problem_type == GM_PROBLEM_TYPE_ANALYTIC);
 
   if (!GMEnv_is_proc_active(env)) {
     return;
@@ -246,7 +246,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           const GMFloat float_value = value;
 
           /*---Store---*/
-          GMAssertAlways(float_value * vectors->num_field_active < max_float);
+          GMInsist(float_value * vectors->num_field_active < max_float);
           GMVectors_float_set(vectors, fl, vl, float_value, env);
 
           /*---Print---*/
@@ -307,7 +307,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMAssertAlways(false ? "Invalid data type." : 0);
+      GMInsist(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -315,7 +315,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 /*---Check correctness of metrics, if possible---*/
 
 void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
-  GMAssertAlways(metrics && do_ && env);
+  GMInsist(metrics && do_ && env);
 
   if (GM_PROBLEM_TYPE_ANALYTIC != do_->problem_type ||
       NULL != do_->input_file_path) {
@@ -655,7 +655,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     } break;
     /*--------------------*/
     default:
-      GMAssertAlways(false ? "Invalid data type." : 0);
+      GMInsist(false ? "Invalid data type." : 0);
   } /*---switch---*/
   do_->num_incorrect += num_incorrect;
 }

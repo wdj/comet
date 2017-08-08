@@ -36,7 +36,7 @@ GMVectors GMVectors_null() {
 
 void GMVectors_initialize_pad(GMVectors* vectors,
                               GMEnv* env) {
-  GMAssertAlways(vectors && env);
+  GMInsist(vectors && env);
 
   /*---Ensure final pad bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
@@ -44,7 +44,7 @@ void GMVectors_initialize_pad(GMVectors* vectors,
   const int nfl = vectors->num_field_local;
   const int fl_min = GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1 ?
     nfl - (vectors->num_field - vectors->num_field_active) : nfl;
-  GMAssertAlways(fl_min >= 0);
+  GMInsist(fl_min >= 0);
 
   switch (vectors->data_type_id) {
     /*--------------------*/
@@ -73,7 +73,7 @@ void GMVectors_initialize_pad(GMVectors* vectors,
     } break;
     /*--------------------*/
     default:
-      GMAssertAlways(false ? "Invalid data type." : 0);
+      GMInsist(false ? "Invalid data type." : 0);
   } /*---switch---*/
 }
 
@@ -86,13 +86,13 @@ void GMVectors_create_imp_(GMVectors* vectors,
                            size_t num_field_active,
                            int num_vector_local,
                            GMEnv* env) {
-  GMAssertAlways(vectors && env);
-  GMAssertAlways(num_field >= 0);
-  GMAssertAlways(num_field_active >= 0);
-  GMAssertAlways(num_field_active <= (size_t)num_field);
-  GMAssertAlways(num_vector_local >= 0);
+  GMInsist(vectors && env);
+  GMInsist(num_field >= 0);
+  GMInsist(num_field_active >= 0);
+  GMInsist(num_field_active <= (size_t)num_field);
+  GMInsist(num_vector_local >= 0);
 
-  GMInsist(env,
+  GMInsistInterface(env,
            num_field % GMEnv_num_proc_field(env) == 0
                ? "num_proc_field must exactly divide the total number of fields"
                : 0);
@@ -109,15 +109,14 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   const size_t num_vector_bound = vectors->num_vector_local * 
                             (size_t)num_block * (size_t)GMEnv_num_proc_repl(env);
-  GMAssertAlways(num_vector_bound == (size_t)(int)num_vector_bound
+  GMInsist(num_vector_bound == (size_t)(int)num_vector_bound
     ? "Vector count too large to store in 32-bit int; please modify code." : 0);
 
   int mpi_code = 0;
-  mpi_code *= 1; /*---Avoid unused variable warning---*/
   mpi_code = MPI_Allreduce(&(vectors->num_vector_local), &(vectors->num_vector),
                            1, MPI_INT, MPI_SUM, GMEnv_mpi_comm_vector(env));
-  GMAssertAlways(mpi_code == MPI_SUCCESS);
-  GMAssertAlways((size_t)(vectors->num_vector) == num_vector_bound);
+  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist((size_t)(vectors->num_vector) == num_vector_bound);
   vectors->num_vector /= GMEnv_num_proc_repl(env);
 
   /*---Set element sizes---*/
@@ -135,7 +134,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
       vectors->num_bits_per_val = GM_BITS2_MAX_VALUE_BITS;
       vectors->num_bits_per_packedval = bits_per_byte * sizeof(GMBits2x64);
       /*---By design can only store this number of fields for this metric---*/
-      GMInsist(env,
+      GMInsistInterface(env,
                ((GMUInt64)(4 * num_field)) <
                        (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
                    ? "Number of fields requested is too large for this metric"
@@ -143,7 +142,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
     } break;
     /*--------------------*/
     default:
-      GMAssertAlways(false ? "Invalid data type." : 0);
+      GMInsist(false ? "Invalid data type." : 0);
   } /*---switch---*/
 
   vectors->num_val_per_packedval = vectors->num_bits_per_packedval /
@@ -159,7 +158,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   /*---Allocation for vector storage---*/
 
-  GMAssertAlways(vectors->num_bits_per_packedval % bits_per_byte == 0);
+  GMInsist(vectors->num_bits_per_packedval % bits_per_byte == 0);
 
   vectors->data_size = vectors->num_packedval_local *
                        (vectors->num_bits_per_packedval / bits_per_byte);
@@ -187,11 +186,11 @@ void GMVectors_create(GMVectors* vectors,
                       size_t num_field_active,
                       int num_vector_local,
                       GMEnv* env) {
-  GMAssertAlways(vectors && env);
-  GMAssertAlways(num_field >= 0);
-  GMAssertAlways(num_field_active >= 0);
-  GMAssertAlways(num_field_active <= (size_t)num_field);
-  GMAssertAlways(num_vector_local >= 0);
+  GMInsist(vectors && env);
+  GMInsist(num_field >= 0);
+  GMInsist(num_field_active >= 0);
+  GMInsist(num_field_active <= (size_t)num_field);
+  GMInsist(num_vector_local >= 0);
 
   *vectors = GMVectors_null();
 
@@ -213,11 +212,11 @@ void GMVectors_create_with_buf(GMVectors* vectors,
                                size_t num_field_active,
                                int num_vector_local,
                                GMEnv* env) {
-  GMAssertAlways(vectors && env);
-  GMAssertAlways(num_field >= 0);
-  GMAssertAlways(num_field_active >= 0);
-  GMAssertAlways(num_field_active <= (size_t)num_field);
-  GMAssertAlways(num_vector_local >= 0);
+  GMInsist(vectors && env);
+  GMInsist(num_field >= 0);
+  GMInsist(num_field_active >= 0);
+  GMInsist(num_field_active <= (size_t)num_field);
+  GMInsist(num_vector_local >= 0);
 
   *vectors = GMVectors_null();
 
@@ -235,8 +234,8 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
-  GMAssertAlways(vectors && env);
-  GMAssertAlways(vectors->data || !GMEnv_is_proc_active(env));
+  GMInsist(vectors && env);
+  GMInsist(vectors->data || !GMEnv_is_proc_active(env));
 
   if (!GMEnv_is_proc_active(env)) {
     return;

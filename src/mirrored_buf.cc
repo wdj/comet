@@ -28,8 +28,8 @@ GMMirroredBuf GMMirroredBuf_null(void) {
 
 void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1, 
                           GMEnv* env) {
-  GMAssertAlways(p && env);
-  GMAssertAlways(dim0 + 1 >= 1 && dim1 + 1 >= 1);
+  GMInsist(p && env);
+  GMInsist(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
   gm_linalg_malloc(p, dim0, dim1, env);
 }
@@ -39,8 +39,8 @@ void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
 void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
                           GMEnv* env) {
 
-  GMAssertAlways(p && p_old && env);
-  GMAssertAlways(dim0 <= p_old->dim0);
+  GMInsist(p && p_old && env);
+  GMInsist(dim0 <= p_old->dim0);
 
   p->h = p_old->h;
   p->d = p_old->d;
@@ -53,7 +53,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
 //-----------------------------------------------------------------------------
 
 void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env) {
-  GMAssertAlways(p && env);
+  GMInsist(p && env);
 
   if (! p->is_alias) {
     gm_linalg_free(p, env);

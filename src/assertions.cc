@@ -20,14 +20,13 @@
 
 //-----------------------------------------------------------------------------
 
-static void gm_test_wrapper() {
+void gm_test_wrapper() {
 #ifdef TESTING
   ASSERT_TRUE(0);
 #endif
 }
 
-//=============================================================================
-/*---Assertions---*/
+//-----------------------------------------------------------------------------
 
 void gm_assert(const char* condition_string, const char* file, int line) {
   fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Assertion error",
@@ -42,10 +41,10 @@ void gm_assert(const char* condition_string, const char* file, int line) {
 
 //-----------------------------------------------------------------------------
 
-void gm_insist(const void* const env,
-               const char* condition_string,
-               const char* file,
-               int line) {
+void gm_insist_interface(const void* const env,
+                         const char* condition_string,
+                         const char* file,
+                         int line) {
   if (GMEnv_proc_num((const GMEnv* const)env) == 0) {
     fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Interface error",
             condition_string, file, line);

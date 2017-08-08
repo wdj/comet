@@ -17,9 +17,8 @@
 #include <metrics.hh>
 
 //=============================================================================
-/*---Checksums---*/
 
-/*---Multiprecision integers---*/
+// Multiprecision integers
 
 enum { GM_MULTIPREC_INT_SIZE = 16 };
 
@@ -27,7 +26,9 @@ typedef struct {
   size_t data[GM_MULTIPREC_INT_SIZE];
 } GMMultiprecInt;
 
-/*---Struct with checksum info---*/
+//-----------------------------------------------------------------------------
+
+// Checksum struct
 
 enum { GM_CHECKSUM_SIZE = 3 };
 
@@ -42,41 +43,19 @@ typedef struct {
 } GMChecksum;
 
 //-----------------------------------------------------------------------------
+// Set to null
 
-static GMChecksum GMChecksum_null() {
-  GMChecksum result;
-  for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
-    result.data[i] = 0;
-  }
-  result.is_overflowed = false;
-  result.value_max = -DBL_MAX;
-  GMMultiprecInt sum = {0};
-  result.sum = sum;
-  result.sum_d = 0;
-  result.computing_checksum = true;
-  return result;
-}
+GMChecksum GMChecksum_null();
 
 //-----------------------------------------------------------------------------
+// Check whether two checksums equal
 
-static bool gm_are_checksums_equal(GMChecksum c1, GMChecksum c2) {
-  if ((!c1.computing_checksum) || (!c2.computing_checksum)) {
-    return true;
-  }
-  bool result = true;
-  for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
-    result = result && c1.data[i] == c2.data[i];
-  }
-  result = result && c1.is_overflowed == c2.is_overflowed;
-  result = result && c1.value_max == c2.value_max;
-  return result;
-}
+bool GMChecksum_equal(GMChecksum* cs1, GMChecksum* cs2);
 
+//-----------------------------------------------------------------------------
+// Compute checksum of metrics object
 
-//=============================================================================
-/*---Metrics checksum---*/
-
-void GMMetrics_checksum(GMMetrics* metrics, GMChecksum* cs, GMEnv* env);
+void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env);
 
 //=============================================================================
 

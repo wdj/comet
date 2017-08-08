@@ -15,22 +15,12 @@
 #include "vectors.hh"
 #include "metrics.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
 
 //=============================================================================
 
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
-
-//=============================================================================
-
-#endif /*---_gm_compute_metrics_hh_---*/
+#endif // _gm_compute_metrics_hh_
 
 //-----------------------------------------------------------------------------
