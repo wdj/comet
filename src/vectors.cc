@@ -18,10 +18,6 @@
 #include "linalg.hh"
 #include "vectors.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 /*---Null object---*/
 
@@ -250,7 +246,50 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
   *vectors = GMVectors_null();
 }
 
+
 //=============================================================================
+// Copy vectors to mirrored buffer
+
+void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
+                       GMVectors* vectors,
+                       GMEnv* env) {
+  GMInsist(vectors && vectors_buf && env);
+
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+    return;
+  }
+
+  /*---Copy vectors into GPU buffers if needed---*/
+
+  switch (GMEnv_metric_type(env)) {
+    case GM_METRIC_TYPE_CZEK: {
+#pragma omp parallel for collapse(2)
+      for (int i = 0; i < vectors->num_vector_local; ++i) {
+        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
+          GMMirroredBuf_elt<GMFloat>(vectors_buf, fl, i) =
+            GMVectors_float_get(vectors, fl, i, env);
+        }
+      }
+    } break;
+    case GM_METRIC_TYPE_CCC: {
+#pragma omp parallel for collapse(2)
+      for (int i = 0; i < vectors->num_vector_local; ++i) {
+        for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
+          GMMirroredBuf_elt<GMBits2x64>(vectors_buf, fl, i) =
+            GMVectors_bits2x64_get(vectors, fl, i, env);
+        }
+      }
+    } break;
+    default:
+      GMInsistInterface(env, false ? "Unimplemented." : 0);
+  } /*---case---*/
+}
+
+//=============================================================================
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef __cplusplus
 } /*---extern "C"---*/

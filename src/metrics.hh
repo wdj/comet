@@ -14,6 +14,7 @@
 #include <stddef.h>
 
 #include "env.hh"
+#include "mirrored_buf.hh"
 
 #ifdef __cplusplus
 extern "C" {
@@ -93,6 +94,13 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       size_t index,
                                       int coord_num,
                                       GMEnv* env);
+
+//=============================================================================
+// Adjustment required to compensate for padding.
+
+void gm_metrics_gpu_adjust(GMMetrics* metrics,
+                           GMMirroredBuf* metrics_buf,
+                           GMEnv* env);
 
 //=============================================================================
 

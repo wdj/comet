@@ -24,8 +24,8 @@ SET(LIB_SOURCES
   src/vector_sums.cc
   src/metrics.cc
   src/checksums.cc
+  src/comm_xfer_utils.cc
   src/compute_metrics.cc
-  src/compute_metrics_utils.cc
   src/compute_metrics_utils_2way.cc
   src/compute_metrics_utils_3way.cc
   src/compute_metrics_utils_3way_gpu.cc
@@ -45,8 +45,8 @@ SET(LIB_INCLUDES
   src/metrics_2way.hh
   src/metrics_3way.hh
   src/checksums.hh
+  src/comm_xfer_utils.hh
   src/compute_metrics.hh
-  src/compute_metrics_utils.hh
   src/compute_metrics_utils_2way.hh
   src/compute_metrics_utils_3way.hh
   src/compute_metrics_2way.hh

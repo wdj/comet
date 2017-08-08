@@ -26,7 +26,6 @@
 #include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-#include "compute_metrics_utils.hh"
 
 #include "linalg.hh"
 
@@ -297,10 +296,8 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   } /*---if---*/
   /*----------------------------------------*/
 
-  GMInsist(p->h ?
-                 "Invalid host pointer created in gm_linalg_malloc." : 0);
-  GMInsist(p->d ?
-                 "Invalid device pointer created in gm_linalg_malloc." : 0);
+  GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc.");
+  GMInsist(p->d && "Invalid device pointer created in gm_linalg_malloc.");
   p->is_alias = false;
 }
 
@@ -371,7 +368,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -446,7 +443,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
   } else {
   /*----------------------------------------*/
 
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -563,7 +560,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   } else {
   /*----------------------------------------*/
 
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -823,7 +820,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
   } else {
   /*----------------------------------------*/
 
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -842,7 +839,5 @@ void gm_linalg_get_matrix_wait(GMEnv* env) {
   cudaStreamSynchronize(GMEnv_stream_fromgpu(env));
   GMInsist(GMEnv_cuda_last_call_succeeded(env));
 }
-
-//=============================================================================
 
 //-----------------------------------------------------------------------------

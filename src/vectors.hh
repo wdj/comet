@@ -14,10 +14,6 @@
 #include "env.hh"
 #include "mirrored_buf.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 /*---Struct declaration---*/
 
@@ -71,6 +67,13 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
+
+//=============================================================================
+// Copy vectors to mirrored buffer
+
+void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
+                       GMVectors* vectors,
+                       GMEnv* env);
 
 //=============================================================================
 /*---Accessors: Float---*/
@@ -288,6 +291,10 @@ static size_t GMVectors_num_local_required(size_t num_vector_active,
 }
 
 //=============================================================================
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef __cplusplus
 } /*---extern "C"---*/

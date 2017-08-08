@@ -14,13 +14,9 @@
 #include "vectors.hh"
 #include "metrics.hh"
 #include "linalg.hh"
-#include "compute_metrics_utils.hh"
+#include "comm_xfer_utils.hh"
 #include "compute_metrics_utils_2way.hh"
 #include "compute_metrics_2way.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 //=============================================================================
 
@@ -30,25 +26,21 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   GMInsist(metrics && vectors && env);
   GMInsist(!GMEnv_all2all(env));
 
-  /*---------------*/
-  /*---Denominator---*/
-  /*---------------*/
+  // Denominator
 
   GMVectorSums vector_sums = GMVectorSums_null();
   GMVectorSums_create(&vector_sums, vectors, env);
 
   GMVectorSums_compute(&vector_sums, vectors, env);
 
-  /*---------------*/
-  /*---Numerator---*/
-  /*---------------*/
+  // Numerator
 
   gm_linalg_initialize(env);
 
   const int nvl = vectors->num_vector_local;
   const int npvfl = vectors->num_packedval_field_local;
 
-  /*---Allocate magma CPU memory for vectors and for result */
+  // Allocate memory for vectors and for result 
 
   GMMirroredBuf vectors_buf = GMMirroredBuf_null();
   GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
@@ -64,11 +56,11 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
   GMMirroredBuf* metrics_buf_ptr =
       env->do_reduce ?  &metrics_tmp_buf : &metrics_buf;
 
-  /*---Copy in vectors---*/
+  // Copy in vectors
 
   gm_vectors_to_buf(&vectors_buf, vectors, env);
 
-  /*---Send vectors to GPU---*/
+  // Send vectors to GPU
 
   gm_set_vectors_start(vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
@@ -79,28 +71,24 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
                                    true, env);
   gm_compute_wait(env);
 
-  /*---Copy result from GPU---*/
+  // Copy result from GPU
 
   gm_get_metrics_start(metrics, metrics_buf_ptr, env);
   gm_get_metrics_wait(metrics, metrics_buf_ptr, env);
   gm_metrics_gpu_adjust(metrics, metrics_buf_ptr, env);
 
-  /*---Do reduction across field procs if needed---*/
+  // Do reduction across field procs if needed
 
   if (env->do_reduce) {
     gm_reduce_metrics(metrics, &metrics_buf, metrics_buf_ptr, env);
   }
 
-  /*---------------*/
-  /*---Combine---*/
-  /*---------------*/
+  // Combine
 
   gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
                           GMEnv_proc_num_vector_i(env), true, env);
 
-  /*---------------*/
-  /*---Free memory---*/
-  /*---------------*/
+  // Terminations
 
   GMVectorSums_destroy(&vector_sums, env);
 
@@ -122,7 +110,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMInsist(metrics && vectors && env);
   GMInsist(GMEnv_all2all(env));
 
-  /*---Initializations---*/
+  // Initializations
 
   const int num_block = GMEnv_num_block_vector(env);
 
@@ -136,11 +124,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMVectorSums_create(&vector_sums_onproc, vectors, env);
   GMVectorSums_create(&vector_sums_offproc, vectors, env);
 
-  /*---Magma initializations---*/
-
   gm_linalg_initialize(env);
 
-  /*---Create double buffer of vectors objects for send/recv---*/
+  // Create double buffer of vectors objects for send/recv
 
   GMVectors vectors_01[2];
   for (int i = 0; i < 2; ++i) {
@@ -149,9 +135,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                      nvl, env);
   }
 
-  /*---Allocate GPU buffers---*/
-  /*---To overlap transfers with compute, set up double buffers for the
-       vectors sent to the GPU and the metrics received from the GPU.---*/
+  // Allocate GPU buffers
+  // To overlap transfers with compute, set up double buffers for the
+  // vectors sent to the GPU and the metrics received from the GPU.
 
   GMMirroredBuf metrics_buf_01[2];
   GMMirroredBuf vectors_buf = GMMirroredBuf_null();
@@ -162,24 +148,22 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
   GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, env);
 
-  /*---Result matrix is diagonal block and half the blocks to the right
-       (including wraparound to left side of matrix when appropriate).
-       For even number of vector blocks, block rows of lower half of matrix
-       have one less block to make correct count---*/
+  // Result matrix is diagonal block and half the blocks to the right
+  // (including wraparound to left side of matrix when appropriate).
+  // For even number of vector blocks, block rows of lower half of matrix
+  //  have one less block to make correct count.
 
   const int num_proc_r = GMEnv_num_proc_repl(env);
   const int proc_num_r = GMEnv_proc_num_repl(env);
 
-  /*---Flatten the proc_vector and proc_repl indices into a single index---*/
+  // Flatten the proc_vector and proc_repl indices into a single index.
 
   const int num_proc_ir = num_block * num_proc_r;
   const int proc_num_ir = proc_num_r + num_proc_r * i_block;
 
   MPI_Request mpi_requests[2];
 
-  /*----------------------------------------*/
-  /*---Begin loop over computing blocks of the result---*/
-  /*----------------------------------------*/
+  // Prepare for loop over blocks of result.
 
   /*---Summary of the opertions in this loop:
 
@@ -199,12 +183,12 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   ---*/
 
-  /*---Add extra step at begin/end to fill/drain pipeline---*/
+  // Add extra step at begin/end to fill/drain pipeline.
 
   const int extra_step = 1;
 
-  /*---Lowest/highest (block) diag to be computed for this phase,
-       measured from (block) main diag---*/
+  // Lowest/highest (block) diag to be computed for this phase,
+  // measured from (block) main diag.
 
   const int j_i_offset_min = gm_diag_computed_min(env);
   const int j_i_offset_max = gm_diag_computed_max(env);
@@ -212,8 +196,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   const int num_diag_computed = j_i_offset_max - j_i_offset_min;
 
-  /*---Num steps to take to compute blocks---*/
-  /*---(note: at each step, num_proc_r processors each compute a block)---*/
+  // Num steps to take to compute blocks
+  // (note: at each step, num_proc_r processors each compute a block)
 
   const int num_step = gm_ceil_i(num_diag_computed, num_proc_r);
 
@@ -241,36 +225,21 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     vars_prev = vars;
     vars = vars_next;
+
     vars_next.step_num = step_num + 1;
-
-    /*---Determine what kind of step this is---*/
-
     vars_next.is_compute_step = vars_next.step_num >= 0 &&
                                 vars_next.step_num < num_step;
     vars_next.is_first_compute_step = vars_next.step_num == 0;
-
-    /*---Which entry of double-buffered data items to use---*/
-
     vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
-
-    /*---Offset of the block diagonal to be computed this step and proc_r---*/
-
     vars_next.j_i_offset = j_i_offset_min + vars_next.step_num * num_proc_r
                            + proc_num_r;
-
     vars_next.is_main_diag = vars_next.j_i_offset == 0;
-
-    /*---Block num for "right-side" vecs - wrap above offset to num_blocks---*/
-
     vars_next.j_block = gm_mod_i(i_block + vars_next.j_i_offset, num_block);
-
-    /*---Only compute blocks in rectangle/phase, maybe different per row---*/
-
     vars_next.do_compute_block = vars_next.is_compute_step &&
                    vars_next.j_i_offset < j_i_offset_this_row_max;
 
-    /*---Pointers to left/right-side vecs.
-         Here we are computing V^T W, for V, W containing column vectors---*/
+    // Pointers to left/right-side vecs.
+    // Here we are computing V^T W, for V, W containing column vectors.
 
     vars_next.vectors_right = vars_next.is_main_diag ?
       vectors : &vectors_01[vars_next.index_01];
@@ -280,11 +249,11 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       &vectors_buf : &vectors_01[vars_next.index_01].buf;
     GMMirroredBuf* vectors_left_buf = &vectors_buf;
 
-    /*---Pointer to metrics buffer---*/
+    // Pointer to metrics buffer
 
     vars_next.metrics_buf = &metrics_buf_01[vars_next.index_01];
 
-    /*---Prepare for sends/recvs: procs for communication---*/
+    // Prepare for sends/recvs: procs for communication
 
     const int proc_send = gm_mod_i(proc_num_ir
         - vars_next.j_i_offset*num_proc_r, num_proc_ir);
@@ -294,19 +263,19 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     const bool comm_with_self = vars_next.is_main_diag;
 
-    /*---Initiate sends/recvs for vecs needed on next step---*/
+    // Initiate sends/recvs for vecs needed on next step
 
     if (vars_next.is_compute_step && !comm_with_self) {
       const int mpi_tag = step_num + 1;
 
-      /*---NOTE: this order helps performance---*/
+      // NOTE: this order helps performance
       mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
                                               proc_recv, mpi_tag, env);
       mpi_requests[0] = gm_send_vectors_start(vectors_left,
                                               proc_send, mpi_tag, env);
     }
 
-    /*---First step: send (left) vecs to GPU---*/
+    // First step: send (left) vecs to GPU
 
     if (vars.is_first_compute_step) {
       gm_vectors_to_buf(vectors_left_buf, vectors_left, env);
@@ -314,15 +283,13 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       gm_set_vectors_wait(env);
     }
 
-    /*---Send right vectors to GPU end---*/
+    // Send right vectors to GPU end
 
     if (vars.is_compute_step && vars.do_compute_block) {
       gm_set_vectors_wait(env);
     }
 
-    /*--------------------*/
-    /*---Commence numerators computation---*/
-    /*--------------------*/
+    // Commence numerators computation
 
     if (vars.is_compute_step && vars.do_compute_block) {
       gm_compute_numerators_2way_start(
@@ -331,8 +298,8 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
           vars.j_block, vars.is_main_diag, env);
     }
 
-    /*---GPU case: wait for prev step get metrics to complete, then combine.
-         Note this is hidden under GPU computation---*/
+    // GPU case: wait for prev step get metrics to complete, then combine.
+    // Note this is hidden under GPU computation
 
     if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
@@ -358,42 +325,40 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       }
     }
 
-    /*---ISSUE: it may be possible to increase performance by swapping the
-         some code blocks below and the one code block above.  It depends
-         on the relative speeds.  If these would be put in two different
-         CPU threads, then it wouldn't matter---*/
+    // ISSUE: it may be possible to increase performance by swapping the
+    // some code blocks below and the one code block above.  It depends
+    // on the relative speeds.  If these would be put in two different
+    // CPU threads, then it wouldn't matter.
 
-    /*---Wait for recvs to complete---*/
+    // Wait for recvs to complete
 
     if (vars_next.is_compute_step && !comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), env);
     }
 
-    /*---Send right vectors for next step to GPU start---*/
+    // Send right vectors for next step to GPU start
 
     if (vars_next.is_compute_step && vars_next.do_compute_block) {
       gm_set_vectors_start(vars_next.vectors_right,
                            vars_next.vectors_right_buf, env);
     }
 
-    /*--------------------*/
-    /*---Wait for numerators computation to complete---*/
-    /*--------------------*/
+    // Wait for numerators computation to complete
 
     if (vars.is_compute_step && vars.do_compute_block) {
       gm_compute_wait(env);
     }
 
-    /*---Commence copy of completed numerators back from GPU---*/
+    // Commence copy of completed numerators back from GPU
 
     if (vars.is_compute_step && vars.do_compute_block) {
       gm_get_metrics_start(metrics, vars.metrics_buf, env);
     }
 
-    /*---Compute sums for denominators---*/
+    // Compute sums for denominators
 
     if (vars.is_compute_step && vars.do_compute_block) {
-//TODO: possibly move this
+      //TODO: possibly move this
       if (vars.is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }
@@ -402,7 +367,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       }
     }
 
-    /*---CPU case: combine numerators, denominators to obtain final result---*/
+    // CPU case: combine numerators, denominators to obtain final result
 
     if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
       if (vars.is_compute_step && vars.do_compute_block) {
@@ -416,19 +381,17 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       }
     }
 
-    /*---Wait for sends to complete---*/
+    // Wait for sends to complete
 
     if (vars_next.is_compute_step && !comm_with_self) {
       gm_send_vectors_wait(&(mpi_requests[0]), env);
     }
 
-  /*========================================*/
-  } /*---step_num---*/
-  /*========================================*/
+  //========================================
+  } // step_num
+  //========================================
 
-  /*----------------------------------------*/
-  /*---End loop over steps of circular shift of vectors objects---*/
-  /*----------------------------------------*/
+  // Terminations
 
   GMVectorSums_destroy(&vector_sums_onproc, env);
   GMVectorSums_destroy(&vector_sums_offproc, env);
@@ -436,8 +399,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   for (int i = 0; i < 2; ++i) {
     GMVectors_destroy(&vectors_01[i], env);
   }
-
-  /*---Magma terminations---*/
 
   for (int i = 0; i < 2; ++i) {
     GMMirroredBuf_destroy(&metrics_buf_01[i], env);
@@ -447,11 +408,5 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
   gm_linalg_finalize(env);
 }
-
-//-----------------------------------------------------------------------------
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------

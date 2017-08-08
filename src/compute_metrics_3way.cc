@@ -14,7 +14,7 @@
 #include "vectors.hh"
 #include "metrics.hh"
 #include "linalg.hh"
-#include "compute_metrics_utils.hh"
+#include "comm_xfer_utils.hh"
 #include "compute_metrics_utils_3way.hh"
 #include "compute_metrics_3way.hh"
 
