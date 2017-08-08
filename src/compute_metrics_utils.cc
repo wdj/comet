@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   compute_metrics_utils.cc
  * \author Wayne Joubert, James Nance
@@ -6,7 +6,7 @@
  * \brief  Functions for computing metrics, utilities.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include "env.hh"
 #include "mirrored_buf.hh"
@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start/end MPI send/receive of vectors data---*/
 
 MPI_Request gm_send_vectors_start(GMVectors* vectors,
@@ -42,7 +42,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   return mpi_request;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   int proc_num,
@@ -63,7 +63,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   return mpi_request;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssertAlways(mpi_request && env);
@@ -74,7 +74,7 @@ void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssertAlways(mpi_request && env);
@@ -85,7 +85,7 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---MPI reduce operations---*/
 
 void gm_reduce_metrics(GMMetrics* metrics,
@@ -106,7 +106,7 @@ void gm_reduce_metrics(GMMetrics* metrics,
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
                                     GMMirroredBuf* metrics_buf_target,
@@ -130,7 +130,7 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
   return mpi_request;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssertAlways(mpi_request && env);
@@ -141,7 +141,7 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
   GMAssertAlways(mpi_code == MPI_SUCCESS);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start/end transfer of vectors data to GPU---*/
 
 void gm_set_vectors_start(GMVectors* vectors, GMMirroredBuf* vectors_buf,
@@ -151,7 +151,7 @@ void gm_set_vectors_start(GMVectors* vectors, GMMirroredBuf* vectors_buf,
   gm_linalg_set_matrix_start(vectors_buf, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_set_vectors_wait(GMEnv* env) {
   GMAssertAlways(env);
@@ -159,7 +159,7 @@ void gm_set_vectors_wait(GMEnv* env) {
   gm_linalg_set_matrix_wait(env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start/end transfer of metrics data from GPU---*/
 
 void gm_get_metrics_start(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
@@ -169,7 +169,7 @@ void gm_get_metrics_start(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
   gm_linalg_get_matrix_start(metrics_buf, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                          GMEnv* env) {
@@ -178,7 +178,7 @@ void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
   gm_linalg_get_matrix_wait(env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 int gm_num_seminibbles_pad(GMMetrics* metrics, GMEnv* env) {
   GMAssertAlways(metrics && env);
@@ -212,7 +212,7 @@ int gm_num_seminibbles_pad(GMMetrics* metrics, GMEnv* env) {
   return num_seminibbles_pad;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
@@ -258,7 +258,7 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
   }   /*---for i---*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---CPU-GPU transfer buffer manipulation---*/
 
 void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
@@ -296,10 +296,10 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
   } /*---case---*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
 #endif
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   vectors.hh
  * \author Wayne Joubert
@@ -6,12 +6,7 @@
  * \brief  Vectors pseudo-class, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
-
-/*=============================================================================
-
-
-=============================================================================*/
+//-----------------------------------------------------------------------------
 
 #ifndef _gm_vectors_hh_
 #define _gm_vectors_hh_
@@ -23,7 +18,7 @@
 extern "C" {
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 /*---Struct declaration---*/
 
 typedef struct {
@@ -48,12 +43,12 @@ typedef struct {
   GMMirroredBuf buf;
 } GMVectors;
 
-/*===========================================================================*/
+//=============================================================================
 /*---Null object---*/
 
 GMVectors GMVectors_null(void);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Vectors pseudo-constructor---*/
 
 void GMVectors_create(GMVectors* vectors,
@@ -63,7 +58,7 @@ void GMVectors_create(GMVectors* vectors,
                       int num_vector_local,
                       GMEnv* env);
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMVectors_create_with_buf(GMVectors* vectors,
                                int data_type_id,
@@ -72,12 +67,12 @@ void GMVectors_create_with_buf(GMVectors* vectors,
                                int num_vector_local,
                                GMEnv* env);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: Float---*/
 
 static GMFloat* GMVectors_float_ptr(GMVectors* const vectors,
@@ -96,7 +91,7 @@ static GMFloat* GMVectors_float_ptr(GMVectors* const vectors,
                         vectors->num_field_local*(size_t)vector_local);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMVectors_float_set(GMVectors* vectors,
                                 int field_local,
@@ -116,7 +111,7 @@ static void GMVectors_float_set(GMVectors* vectors,
   //                      vectors->num_field_local*(size_t)vector_local] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
                                               size_t index,
@@ -130,7 +125,7 @@ static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
   return ((GMFloat*)(vectors->data))[index];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat GMVectors_float_get(GMVectors* const vectors,
                                    int field_local,
@@ -148,7 +143,7 @@ static GMFloat GMVectors_float_get(GMVectors* const vectors,
     field_local + vectors->num_field_local*(size_t)vector_local, env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: Bits2, Bits2x64---*/
 
 static GMBits2 GMVectors_bits2_get(GMVectors* vectors,
@@ -186,7 +181,7 @@ static GMBits2 GMVectors_bits2_get(GMVectors* vectors,
   return (GMBits2)(((*address) >> (size0 * field_index0)) & ((GMBits1_2x64)3));
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMVectors_bits2_set(GMVectors* vectors,
                                 int field_local,
@@ -229,7 +224,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
            GMVectors_bits2_get(vectors, field_local, vector_local, env));
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMVectors_bits2x64_set(GMVectors* vectors,
                                    int packedval_field_local,
@@ -251,7 +246,7 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
   ((GMBits2x64*)(vectors->data))[index].data[1] = value.data[1];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMBits2x64 GMVectors_bits2x64_get(GMVectors* vectors,
                                          int packedval_field_local,
@@ -273,7 +268,7 @@ static GMBits2x64 GMVectors_bits2x64_get(GMVectors* vectors,
   return value;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Misc---*/
 
 static size_t GMVectors_num_local_required(size_t num_vector_active,
@@ -292,14 +287,14 @@ static size_t GMVectors_num_local_required(size_t num_vector_active,
   return num_vector_local;
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 
 #endif /*---_gm_vectors_hh_---*/
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

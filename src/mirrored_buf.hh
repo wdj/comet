@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   mirrored_buf.hh
  * \author Wayne Joubert
@@ -6,14 +6,14 @@
  * \brief  CPU/GPU mirrored buffer, header.
  * \note   Copyright (C) 2017 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #ifndef _gm_mirrored_buf_hh_
 #define _gm_mirrored_buf_hh_
 
 #include "env.hh"
 
-/*===========================================================================*/
+//=============================================================================
 
 typedef struct {
   void* __restrict__ h;
@@ -24,7 +24,7 @@ typedef struct {
   bool is_alias;
 } GMMirroredBuf;
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 GMMirroredBuf GMMirroredBuf_null(void);
 
@@ -36,7 +36,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
 
 void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env);
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 template<typename T>
 static T& GMMirroredBuf_elt(GMMirroredBuf* p, int i0, int i1) {
@@ -47,7 +47,7 @@ static T& GMMirroredBuf_elt(GMMirroredBuf* p, int i0, int i1) {
   return ((T*)(p->h))[i0 + p->dim0 * i1];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 template<typename T>
 static T GMMirroredBuf_elt_const(const GMMirroredBuf* p, int i0, int i1) {
@@ -58,8 +58,8 @@ static T GMMirroredBuf_elt_const(const GMMirroredBuf* p, int i0, int i1) {
   return ((T*)(p->h))[i0 + p->dim0 * i1];
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 #endif /*---_gm_mirrored_buf_hh_---*/
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

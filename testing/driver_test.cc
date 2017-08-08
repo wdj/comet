@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   driver_test.cc
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Tester for driver.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@
 
 enum {PROCS_MAX = TEST_PROCS_MAX};
 
-/*===========================================================================*/
+//=============================================================================
 
 bool compare_2runs(const char* options1, const char* options2) {
   int proc_num = 0;
@@ -51,7 +51,7 @@ bool compare_2runs(const char* options1, const char* options2) {
   return is_passed;
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 bool compare_3runs(const char* options1,
                    const char* options2,
@@ -84,14 +84,14 @@ bool compare_3runs(const char* options1,
   return is_passed;
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void test_2runs(const char* options1,
                 const char* options2) {
   EXPECT_EQ(true, compare_2runs(options1, options2));
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_czek_() {
 
@@ -479,7 +479,7 @@ void DriverTest_czek_() {
 
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc2_simple_compute_method(int compute_method) {
   const int num_field = 5;
@@ -566,7 +566,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMEnv_destroy(env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc2_simple_() {
   DriverTest_ccc2_simple_compute_method(GM_COMPUTE_METHOD_REF);
@@ -574,7 +574,7 @@ void DriverTest_ccc2_simple_() {
   DriverTest_ccc2_simple_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   const int num_field = 5;
@@ -716,7 +716,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMEnv_destroy(env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc2_simple_sparse_() {
   DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
@@ -724,7 +724,7 @@ void DriverTest_ccc2_simple_sparse_() {
   DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc3_simple_compute_method(int compute_method) {
   const int num_field = 10;
@@ -857,7 +857,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMEnv_destroy(env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc3_simple_() {
   DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_REF);
@@ -865,7 +865,7 @@ void DriverTest_ccc3_simple_() {
   DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   const int num_field = 10;
@@ -1109,7 +1109,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMEnv_destroy(env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc3_simple_sparse_() {
   DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
@@ -1117,7 +1117,7 @@ void DriverTest_ccc3_simple_sparse_() {
   DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void DriverTest_ccc_() {
   char options1[1024];
@@ -1515,7 +1515,7 @@ void DriverTest_ccc_() {
   }
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 #if 1
 TEST(DriverTest, czek) {
@@ -1545,7 +1545,7 @@ TEST(DriverTest, ccc) {
 }
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 
 GTEST_API_ int main(int argc, char** argv) {
 
@@ -1578,6 +1578,6 @@ GTEST_API_ int main(int argc, char** argv) {
   return result_g;
 }
 
-/*===========================================================================*/
+//=============================================================================
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

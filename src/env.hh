@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   env.hh
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Environment settings and general utilities, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #ifndef _gm_env_hh_
 #define _gm_env_hh_
@@ -23,7 +23,7 @@
 #include "assertions.hh"
 #include "types.hh"
 
-/*===========================================================================*/
+//=============================================================================
 /*---Environment struct declarations---*/
 
 typedef struct {
@@ -98,12 +98,12 @@ enum {
 
 enum { GM_NUM_WAY_2 = 2, GM_NUM_WAY_3 = 3, GM_NUM_NUM_WAY = 2 };
 
-/*===========================================================================*/
+//=============================================================================
 /*---Null object---*/
 
 GMEnv GMEnv_null(void);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Initialize environment---*/
 
 void gm_create_args(char* argstring, int* argc, char** argv);
@@ -122,18 +122,18 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
                            const char* const description,
                            int num_proc, int proc_num);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Finalize environment---*/
 
 void GMEnv_destroy(GMEnv* const env);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Manage cuda streams---*/
 
 void GMEnv_initialize_streams(GMEnv* const env);
 void GMEnv_terminate_streams(GMEnv* const env);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: general---*/
 
 static int GMEnv_metric_type(const GMEnv* const env) {
@@ -141,63 +141,63 @@ static int GMEnv_metric_type(const GMEnv* const env) {
   return env->metric_type_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static double GMEnv_ccc_param(const GMEnv* const env) {
   GMAssert(env);
   return env->ccc_param_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_num_way(const GMEnv* const env) {
   GMAssert(env);
   return env->num_way_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static bool GMEnv_all2all(const GMEnv* const env) {
   GMAssert(env);
   return env->all2all_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_compute_method(const GMEnv* const env) {
   GMAssert(env);
   return env->compute_method_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_mpi_comm(const GMEnv* const env) {
   GMAssert(env);
   return env->mpi_comm_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_mpi_comm_vector(const GMEnv* const env) {
   GMAssert(env);
   return env->mpi_comm_vector_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_mpi_comm_field(const GMEnv* const env) {
   GMAssert(env);
   return env->mpi_comm_field_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_is_proc_active(const GMEnv* const env) {
   GMAssert(env);
   return env->is_proc_active_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMEnv_set_compute_method(GMEnv* const env, int compute_method);
 int GMEnv_data_type_vectors(const GMEnv* const env);
@@ -210,7 +210,7 @@ cudaStream_t GMEnv_stream_compute(GMEnv* const env);
 cudaStream_t GMEnv_stream_togpu(GMEnv* const env);
 cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: num proc---*/
 
 static int GMEnv_num_block_vector(const GMEnv* const env) {
@@ -218,42 +218,42 @@ static int GMEnv_num_block_vector(const GMEnv* const env) {
   return env->num_proc_vector_i_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_num_proc_vector_i(const GMEnv* const env) {
   GMAssert(env);
   return env->num_proc_vector_i_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_num_proc_repl(const GMEnv* const env) {
   GMAssert(env);
   return env->num_proc_repl_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_num_proc_vector_total(const GMEnv* const env) {
   GMAssert(env);
   return env->num_proc_vector_total_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_num_proc_field(const GMEnv* const env) {
   GMAssert(env);
   return env->num_proc_field_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_num_proc(const GMEnv* const env) {
   GMAssert(env);
   return env->num_proc_;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: proc_num---*/
 
 static int GMEnv_proc_num(const GMEnv* const env) {
@@ -261,59 +261,59 @@ static int GMEnv_proc_num(const GMEnv* const env) {
   return env->proc_num_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_proc_num_vector_i(const GMEnv* const env) {
   GMAssert(env);
   return env->proc_num_vector_i_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_proc_num_repl(const GMEnv* const env) {
   GMAssert(env);
   return env->proc_num_repl_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMEnv_proc_num_field(const GMEnv* const env) {
   GMAssert(env);
   return env->proc_num_field_;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Timer functions---*/
 
 double GMEnv_get_time(const GMEnv* const env);
 double GMEnv_get_synced_time(const GMEnv* const env);
 
-/*===========================================================================*/
+//=============================================================================
 /*---Math utility functions---*/
 
 static int gm_min_i(const int i, const int j) {
   return i < j ? i : j;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t gm_min_i8(const size_t i, const size_t j) {
   return i < j ? i : j;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_max_i(const int i, const int j) {
   return i > j ? i : j;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t gm_max_i8(const size_t i, const size_t j) {
   return i > j ? i : j;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_floor_i(const int i, const int j) {
   GMAssert(j > 0);
@@ -321,7 +321,7 @@ static int gm_floor_i(const int i, const int j) {
   return i >= 0 ? i / j : (i - j + 1) / j;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_ceil_i(const int i, const int j) {
   GMAssert(j > 0);
@@ -329,7 +329,7 @@ static int gm_ceil_i(const int i, const int j) {
   return -gm_floor_i(-i, j);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t gm_ceil_i8(const size_t i, const size_t j) {
   GMAssert(i + 1 > 1);
@@ -338,7 +338,7 @@ static size_t gm_ceil_i8(const size_t i, const size_t j) {
   return (i + j - 1) / j;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_mod_i(const int i, const int j) {
   GMAssert(j > 0);
@@ -346,7 +346,7 @@ static int gm_mod_i(const int i, const int j) {
   return i - j * gm_floor_i(i, j);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t gm_randomize_max() {
   const size_t im = 714025;
@@ -354,7 +354,7 @@ static size_t gm_randomize_max() {
   return im;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t gm_randomize(size_t i) {
   const size_t im = 714025;
@@ -364,7 +364,7 @@ static size_t gm_randomize(size_t i) {
   return (i * ia + ic) % im;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_log2(size_t n) {
   if (n == 0) {
@@ -382,7 +382,7 @@ static int gm_log2(size_t n) {
   return result;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t gm_nchoosek(int n, int k) {
   GMAssert(n >= 0);
@@ -396,7 +396,7 @@ static size_t gm_nchoosek(int n, int k) {
   return numer / denom;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_popcount64(GMUInt64 x) {
   /*---Adapted from https://en.wikipedia.org/wiki/Hamming_weight---*/
@@ -410,7 +410,7 @@ static int gm_popcount64(GMUInt64 x) {
   return (x * h01) >> 56;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMFloat_sort_3(GMFloat* const __restrict__ min,
                            GMFloat* const __restrict__ mid,
@@ -453,12 +453,12 @@ static void GMFloat_sort_3(GMFloat* const __restrict__ min,
   GMAssert(*mid <= *max);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Misc.---*/
 
 bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void* gm_malloc(size_t n, GMEnv* env);
 void gm_free(void* p, size_t n, GMEnv* env);
@@ -470,12 +470,12 @@ void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);
 int GMFloat_mant_dig();
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 int gm_mpi_type(const GMEnv* const env);
 
-/*===========================================================================*/
+//=============================================================================
 
 #endif /*---_gm_env_hh_---*/
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   test_problems.cc
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Generator for synthetic test problems.
  * \note   Copyright (C) 2017 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include <stdio.h>
 //#include <stdlib.h>
@@ -22,7 +22,7 @@
 #include "driver.hh"
 #include "test_problems.hh"
 
-/*===========================================================================*/
+//=============================================================================
 /*---Set the entries of the vectors---*/
 
 void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
@@ -132,7 +132,7 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   } /*---switch---*/
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t perm_shuffle(size_t key, size_t i, size_t n) {
   GMAssert((key & (~(size_t)1)) == 0);
@@ -150,15 +150,16 @@ static size_t perm_shuffle(size_t key, size_t i, size_t n) {
   return result;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 enum {NUM_SHUFFLE = 3};
 
 // This is not a totally (pseudo)random permutation.  However it does
 // have the advantage that it can be computed formulaically and quickly.
 
-//#pragma GCC push_options
-//#pragma GCC optimize ("unroll-loops")
+#pragma GCC push_options
+#pragma GCC optimize ("unroll-loops")
+
 static size_t perm(size_t key, size_t i, size_t n) {
   GMAssert((key & (~(size_t)((1<<NUM_SHUFFLE)-1))) == 0);
   GMAssert(i>=0 && i<n);
@@ -167,23 +168,19 @@ static size_t perm(size_t key, size_t i, size_t n) {
   // For an integer between 0 and n-1, permute it to another such integer.
   // The permutation choice is specified by NUM_SHUFFLE bits.
 
-  GMAssert(NUM_SHUFFLE == 3);
-  const size_t result0 = perm_shuffle(key&1, i, n);
-  const size_t result1 = perm_shuffle((key&2)>>1, result0, n);
-  const size_t result2 = perm_shuffle((key&4)>>2, result1, n);
-  const size_t result = result2;
-//  size_t result = i;
-//  size_t key_resid = key;
-//  for (int shuffle_num = 0; shuffle_num < NUM_SHUFFLE; ++shuffle_num) {
-//    result = perm_shuffle(key_resid&1, result, n);
-//    key_resid >>= 1;
-//  }
+  size_t result = i;
+  size_t key_resid = key;
+  for (int shuffle_num = 0; shuffle_num < NUM_SHUFFLE; ++shuffle_num) {
+    result = perm_shuffle(key_resid&1, result, n);
+    key_resid >>= 1;
+  }
   GMAssert(result>=0 && result<n);
   return result;
 }
-//#pragma GCC pop_options
 
-/*---------------------------------------------------------------------------*/
+#pragma GCC pop_options
+
+//-----------------------------------------------------------------------------
 
 void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   GMAssertAlways(vectors && do_ && env);
@@ -314,7 +311,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   } /*---switch---*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Check correctness of metrics, if possible---*/
 
 void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
@@ -663,4 +660,4 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
   do_->num_incorrect += num_incorrect;
 }
 
-/*===========================================================================*/
+//=============================================================================

@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   metrics_3way.hh
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Metrics pseudo-class, header, 3-way.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include "env.hh"
 
@@ -17,10 +17,10 @@
 extern "C" {
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 /*---Helper functions for 3-way case---*/
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*---NOTE: the following does not specialize based on part1/2/3---*/
 
 static int gm_num_section_steps(const GMEnv* const env, int part_num) {
@@ -31,7 +31,7 @@ static int gm_num_section_steps(const GMEnv* const env, int part_num) {
   return collapse || part_num == 3 ? 1 : 6;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_num_sections(const GMEnv* const env, int part_num) {
   GMAssert(env);
@@ -40,19 +40,19 @@ static int gm_num_sections(const GMEnv* const env, int part_num) {
   return part_num == 3 ? 6 : gm_num_section_steps(env, part_num);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static bool gm_is_part1(int i_block, int j_block, int k_block) {
   return i_block == j_block && j_block == k_block;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static bool gm_is_part3(int i_block, int j_block, int k_block) {
   return i_block != j_block && j_block != k_block && i_block != k_block;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_section_axis_part3(int i_block, int j_block, int k_block) {
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
@@ -63,7 +63,7 @@ static int gm_section_axis_part3(int i_block, int j_block, int k_block) {
   /* clang-format on */
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_section_num_part3(int i_block, int j_block, int k_block) {
   /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
@@ -77,7 +77,7 @@ static int gm_section_num_part3(int i_block, int j_block, int k_block) {
   /* clang-format on */
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_J_lo(int section_num, int nvl, int part_num, GMEnv* env) {
   GMAssert(env);
@@ -95,7 +95,7 @@ static int gm_J_lo(int section_num, int nvl, int part_num, GMEnv* env) {
   return result;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_J_hi(int section_num, int nvl, int part_num, GMEnv* env) {
   GMAssert(env);
@@ -113,7 +113,7 @@ static int gm_J_hi(int section_num, int nvl, int part_num, GMEnv* env) {
   return result;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---GMSectionInfo---*/
 
 typedef struct {
@@ -137,7 +137,7 @@ typedef struct {
   int num_vector_local;
 } GMSectionInfo;
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMSectionInfo_create(
   GMSectionInfo* si,
@@ -206,14 +206,14 @@ static void GMSectionInfo_create(
 
 #endif
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMSectionInfo_destroy(
   GMSectionInfo* si,
   GMEnv* env) {
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMSectionInfo_k_min(
   GMSectionInfo* si,
@@ -225,7 +225,7 @@ static int GMSectionInfo_k_min(
   return si->is_part3 ? si->k_lb : j + 1;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMSectionInfo_i_max(
   GMSectionInfo* si,
@@ -237,24 +237,24 @@ static int GMSectionInfo_i_max(
   return si->is_part1 ? j : si->i_ub;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: indexing: (contig) index from coord, 3-way---*/
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*---elements in a part of a trapezoid, cut orthog to j axis---*/
 
 static size_t gm_trap_size(int j, int nvl) {
   return ( j *(size_t) (j-1) *(size_t) (3*nvl-2*j-2) ) / 6;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*---elements in a part of a triang, cut orthog to j axis---*/
 
 static size_t gm_triang_size(int j, int nvl) {
   return gm_triang_(nvl) - gm_triang_(nvl-j);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
                                            int i,
@@ -291,7 +291,7 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
   return index;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                                           int i,
@@ -323,14 +323,14 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
   //return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*---Faster version of true mod needed for special situation---*/
 
 static int gm_mod1_(int i, int n) {
   return (i + n) % n;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
                                           int i,
@@ -370,7 +370,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
   return index;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
                                           int i,
@@ -417,7 +417,7 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   return index;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                                                    int i,
@@ -469,7 +469,7 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   return index;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper3way_part1_permuted_(
     GMMetrics* metrics,
@@ -485,7 +485,7 @@ static size_t GMMetrics_helper3way_part1_permuted_(
                                      i_block, j_block, k_block, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper3way_part2_permuted_(
     GMMetrics* metrics,
@@ -501,7 +501,7 @@ static size_t GMMetrics_helper3way_part2_permuted_(
                                      i_block, j_block, k_block, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper3way_part3_permuted_(
     GMMetrics* metrics,
@@ -547,7 +547,7 @@ static size_t GMMetrics_helper3way_part3_permuted_(
   return index;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_index_from_coord_all2all_3_permuted(
     GMMetrics* metrics,
@@ -641,7 +641,7 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
   return index;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 typedef struct {
   bool is_initialized;
@@ -650,7 +650,7 @@ typedef struct {
   size_t index;
 } GMIndexCache;
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_index_from_coord_all2all_3_permuted_cache(
     GMMetrics* metrics,
@@ -690,8 +690,8 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_cache(
 
   return index;
 }
-/*===========================================================================*/
-/*===========================================================================*/
+//=============================================================================
+//=============================================================================
 /*---Accessors: value from (contig) index: basic---*/
 
 static GMFloat3 GMMetrics_float3_S_get_from_index(GMMetrics* metrics,
@@ -706,7 +706,7 @@ static GMFloat3 GMMetrics_float3_S_get_from_index(GMMetrics* metrics,
   return ((GMFloat3*)(metrics->data_S))[index];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat3 GMMetrics_float3_C_get_from_index(GMMetrics* metrics,
                                                   size_t index,
@@ -720,7 +720,7 @@ static GMFloat3 GMMetrics_float3_C_get_from_index(GMMetrics* metrics,
   return ((GMFloat3*)(metrics->data_C))[index];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMTally4x2 GMMetrics_tally4x2_get_from_index(GMMetrics* metrics,
                                                     size_t index,
@@ -731,7 +731,7 @@ static GMTally4x2 GMMetrics_tally4x2_get_from_index(GMMetrics* metrics,
   return ((GMTally4x2*)(metrics->data))[index];
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: value from (contig) index: derived---*/
 
 static GMFloat GMMetrics_ccc_value_3(GMMetrics* metrics,
@@ -807,7 +807,7 @@ static GMFloat GMMetrics_ccc_value_3(GMMetrics* metrics,
   return result;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
                                               size_t index,
@@ -865,7 +865,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
                                recip_cj, recip_ck, recip_sumcijk, env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: value from (local) coord: set: 3-way---*/
 
 static void GMMetrics_float_set_3(GMMetrics* metrics,
@@ -887,7 +887,7 @@ static void GMMetrics_float_set_3(GMMetrics* metrics,
   ((GMFloat*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_S_set_3(GMMetrics* metrics,
                                      int i,
@@ -908,7 +908,7 @@ static void GMMetrics_float3_S_set_3(GMMetrics* metrics,
   ((GMFloat3*)(metrics->data_S))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_C_set_3(GMMetrics* metrics,
                                      int i,
@@ -929,7 +929,7 @@ static void GMMetrics_float3_C_set_3(GMMetrics* metrics,
   ((GMFloat3*)(metrics->data_C))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_tally4x2_set_3(GMMetrics* metrics,
                                      int i,
@@ -950,8 +950,8 @@ static void GMMetrics_tally4x2_set_3(GMMetrics* metrics,
   ((GMTally4x2*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float_set_all2all_3(GMMetrics* metrics,
                                           int i,
@@ -977,7 +977,7 @@ static void GMMetrics_float_set_all2all_3(GMMetrics* metrics,
   ((GMFloat*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_S_set_all2all_3(GMMetrics* metrics,
                                              int i,
@@ -1003,7 +1003,7 @@ static void GMMetrics_float3_S_set_all2all_3(GMMetrics* metrics,
   ((GMFloat3*)(metrics->data_S))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_C_set_all2all_3(GMMetrics* metrics,
                                              int i,
@@ -1029,7 +1029,7 @@ static void GMMetrics_float3_C_set_all2all_3(GMMetrics* metrics,
   ((GMFloat3*)(metrics->data_C))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
                                              int i,
@@ -1055,8 +1055,8 @@ static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
   ((GMTally4x2*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float_set_all2all_3_permuted(
     GMMetrics* metrics,
@@ -1083,7 +1083,7 @@ static void GMMetrics_float_set_all2all_3_permuted(
   ((GMFloat*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_S_set_all2all_3_permuted(GMMetrics* metrics,
                                              int I,
@@ -1109,7 +1109,7 @@ static void GMMetrics_float3_S_set_all2all_3_permuted(GMMetrics* metrics,
   ((GMFloat3*)(metrics->data_S))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_C_set_all2all_3_permuted(GMMetrics* metrics,
                                              int I,
@@ -1135,7 +1135,7 @@ static void GMMetrics_float3_C_set_all2all_3_permuted(GMMetrics* metrics,
   ((GMFloat3*)(metrics->data_C))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_tally4x2_set_all2all_3_permuted(GMMetrics* metrics,
                                              int I,
@@ -1162,8 +1162,8 @@ static void GMMetrics_tally4x2_set_all2all_3_permuted(GMMetrics* metrics,
   ((GMTally4x2*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float_set_all2all_3_permuted_cache(
     GMMetrics* metrics,
@@ -1191,7 +1191,7 @@ static void GMMetrics_float_set_all2all_3_permuted_cache(
   ((GMFloat*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_S_set_all2all_3_permuted_cache(
     GMMetrics* metrics,
@@ -1219,7 +1219,7 @@ static void GMMetrics_float3_S_set_all2all_3_permuted_cache(
   ((GMFloat3*)(metrics->data_S))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_C_set_all2all_3_permuted_cache(
     GMMetrics* metrics,
@@ -1247,7 +1247,7 @@ static void GMMetrics_float3_C_set_all2all_3_permuted_cache(
   ((GMFloat3*)(metrics->data_C))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_tally4x2_set_all2all_3_permuted_cache(
     GMMetrics* metrics,
@@ -1275,7 +1275,7 @@ static void GMMetrics_tally4x2_set_all2all_3_permuted_cache(
   ((GMTally4x2*)(metrics->data))[index] = value;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: value from (local) coord: get: 3-way---*/
 
 static GMFloat GMMetrics_float_get_3(GMMetrics* metrics,
@@ -1296,7 +1296,7 @@ static GMFloat GMMetrics_float_get_3(GMMetrics* metrics,
   return GMMetrics_float_get_from_index(metrics, index, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMTally4x2 GMMetrics_tally4x2_get_3(GMMetrics* metrics,
                                            int i,
@@ -1316,7 +1316,7 @@ static GMTally4x2 GMMetrics_tally4x2_get_3(GMMetrics* metrics,
   return GMMetrics_tally4x2_get_from_index(metrics, index, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMTally4x2 GMMetrics_tally4x2_get_all2all_3(GMMetrics* metrics,
                                                    int i,
@@ -1341,7 +1341,7 @@ static GMTally4x2 GMMetrics_tally4x2_get_all2all_3(GMMetrics* metrics,
   return GMMetrics_tally4x2_get_from_index(metrics, index, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted(GMMetrics* metrics,
                                                    int I,
@@ -1366,7 +1366,7 @@ static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted(GMMetrics* metrics,
   return GMMetrics_tally4x2_get_from_index(metrics, index, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted_cache(
     GMMetrics* metrics,
@@ -1393,7 +1393,7 @@ static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted_cache(
   return GMMetrics_tally4x2_get_from_index(metrics, index, env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: indexing: global coord from (contig) index: 3-way---*/
 
 static int GMMetrics_coord0_global_from_index_3(GMMetrics* metrics,
@@ -1411,7 +1411,7 @@ static int GMMetrics_coord0_global_from_index_3(GMMetrics* metrics,
   return i;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMMetrics_coord1_global_from_index_3(GMMetrics* metrics,
                                                 size_t index,
@@ -1429,7 +1429,7 @@ static int GMMetrics_coord1_global_from_index_3(GMMetrics* metrics,
   return j;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
                                                 size_t index,
@@ -1446,14 +1446,14 @@ static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
   return k;
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 
 #endif /*---_gm_metrics_3way_hh_---*/
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

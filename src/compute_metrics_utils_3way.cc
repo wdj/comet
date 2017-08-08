@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   compute_metrics_utils_3way.cc
  * \author Wayne Joubert, James Nance
@@ -6,7 +6,7 @@
  * \brief  Functions for computing metrics, utilities, 3-way.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include "string.h"
 
@@ -19,7 +19,7 @@
 #include "compute_metrics_utils.hh"
 #include "compute_metrics_utils_3way.hh"
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start calculation of numerators, 3-way Czekanowski non-gpu---*/
 
 void gm_compute_czek_numerators_3way_nongpu_start_(
@@ -194,7 +194,7 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
   GMSectionInfo_destroy(si, env);;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start calculation of numerators, 3-way CCC non-gpu---*/
 
 void gm_compute_ccc_numerators_3way_nongpu_start_(
@@ -732,7 +732,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   GMSectionInfo_destroy(si, env);;
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void GMComputeNumerators3Way_create(GMComputeNumerators3Way* this_,
                                     int nvl, int npvfl, GMEnv* env) {
@@ -765,7 +765,7 @@ void GMComputeNumerators3Way_create(GMComputeNumerators3Way* this_,
   }
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 void GMComputeNumerators3Way_destroy(GMComputeNumerators3Way* this_,
                                      GMEnv* env) {
@@ -787,7 +787,7 @@ void GMComputeNumerators3Way_destroy(GMComputeNumerators3Way* this_,
   }
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start calculation of numerators, 3-way generic---*/
 
 void GMComputeNumerators3Way_start(
@@ -854,6 +854,6 @@ void GMComputeNumerators3Way_start(
   /*----------------------------------------*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

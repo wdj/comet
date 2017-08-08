@@ -1,36 +1,32 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics.hh
+ * \file   input_output.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Functions for computing metrics, header.
+ * \brief  I/O functions used by driver, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_metrics_hh_
-#define _gm_compute_metrics_hh_
+#ifndef _gm_input_output_hh_
+#define _gm_input_output_hh_
 
 #include "env.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "driver.hh"
 
 //=============================================================================
 
-void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
+void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env);
+
+void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
+                         FILE* file, double threshold, GMEnv* env);
+
+void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
 
 //=============================================================================
 
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
-
-//=============================================================================
-
-#endif /*---_gm_compute_metrics_hh_---*/
+#endif /*---_gm_input_output_hh_---*/
 
 //-----------------------------------------------------------------------------

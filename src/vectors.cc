@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   vectors.cc
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Vectors pseudo-class.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 /*---Null object---*/
 
 GMVectors GMVectors_null() {
@@ -31,7 +31,7 @@ GMVectors GMVectors_null() {
   return result;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Set unused (pad) vector entries to zero---*/
 
 void GMVectors_initialize_pad(GMVectors* vectors,
@@ -77,7 +77,7 @@ void GMVectors_initialize_pad(GMVectors* vectors,
   } /*---switch---*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Vectors pseudo-constructor---*/
 
 void GMVectors_create_imp_(GMVectors* vectors,
@@ -179,7 +179,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
   GMVectors_initialize_pad(vectors, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMVectors_create(GMVectors* vectors,
                       int data_type_id,
@@ -205,7 +205,7 @@ void GMVectors_create(GMVectors* vectors,
     num_vector_local, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMVectors_create_with_buf(GMVectors* vectors,
                                int data_type_id,
@@ -231,7 +231,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
     num_vector_local, env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
@@ -251,10 +251,10 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
   *vectors = GMVectors_null();
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
 #endif
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

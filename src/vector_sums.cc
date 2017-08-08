@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   vector_sums.cc
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Per-vector computed quantities.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include <stdlib.h>
 
@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 /*---Null object---*/
 
 GMVectorSums GMVectorSums_null(void) {
@@ -32,7 +32,7 @@ GMVectorSums GMVectorSums_null(void) {
   return x;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Pseudo-constructor---*/
 
 void GMVectorSums_create(GMVectorSums* this_,
@@ -68,7 +68,7 @@ void GMVectorSums_create(GMVectorSums* this_,
   } /*---case---*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Pseudo-destructor---*/
 
 void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
@@ -88,7 +88,7 @@ void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
   *this_ = GMVectorSums_null();
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Compute the sum of elements of each vector on CPU, for denom---*/
 
 void GMVectorSums_compute_float_(GMVectorSums* this_,
@@ -128,7 +128,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
                     (double)vectors->num_field_local;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMVectorSums_compute_bits2_(GMVectorSums* this_,
                                  GMVectors* vectors,
@@ -242,7 +242,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
   }
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
   GMAssertAlways(this_ && vectors && env);
@@ -259,7 +259,7 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
   } /*---case---*/
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env) {
   GMAssert(this_ && env);
@@ -268,7 +268,7 @@ GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env) {
   return this_->sums[i];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env) {
   GMAssert(this_ && env);
@@ -279,10 +279,10 @@ GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env) {
   return this_->counts[i];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
 #endif
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

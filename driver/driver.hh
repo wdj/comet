@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   driver.hh
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Main driver code utilitiy functions, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #ifndef _gm_driver_hh_
 #define _gm_driver_hh_
@@ -14,7 +14,7 @@
 #include "env.hh"
 #include "checksums.hh"
 
-/*===========================================================================*/
+//=============================================================================
 /*---Struct to hold driver options (options not in GMEnv)---*/
 
 typedef struct {
@@ -46,21 +46,16 @@ enum {
   GM_PROBLEM_TYPE_ANALYTIC = 2
 };
 
-/*===========================================================================*/
+//=============================================================================
 
 //void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env);
-
-//void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
-//                         FILE* file, double threshold, GMEnv* env);
-
-//void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
 
 GMChecksum perform_run(int argc, char** argv, const char* const description);
 
 GMChecksum perform_run(const char* const options);
 
-/*===========================================================================*/
+//=============================================================================
 
 #endif /*---_gm_driver_hh_---*/
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

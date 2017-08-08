@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   compute_metrics_utils_2way.cc
  * \author Wayne Joubert, James Nance
@@ -6,7 +6,7 @@
  * \brief  Functions for computing metrics, utilities, for 2-way case.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include "env.hh"
 #include "mirrored_buf.hh"
@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start calculation of numerators, 2-way Czekanowski---*/
 
 void gm_compute_czek_numerators_2way_start_(
@@ -105,7 +105,7 @@ void gm_compute_czek_numerators_2way_start_(
   /*----------------------------------------*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start calculation of numerators, 2-way CCC---*/
 
 void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
@@ -368,7 +368,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
   /*----------------------------------------*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start calculation of numerators, 2-way generic---*/
 
 // NOTE: unlike the 3-way case, this function does not retrieve the
@@ -405,7 +405,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
   } /*---case---*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
 
 void gm_compute_czek_2way_combine_(
@@ -527,7 +527,7 @@ void gm_compute_czek_2way_combine_(
   /*----------------------------------------*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Combine nums and denoms on CPU to get final result, 2-way CCC---*/
 
 void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
@@ -699,7 +699,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
   /*--------------------*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Combine nums and denoms on CPU to get final result, 2-way generic---*/
 
 void gm_compute_2way_combine(GMMetrics* metrics,
@@ -730,10 +730,10 @@ void gm_compute_2way_combine(GMMetrics* metrics,
   } /*---case---*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
 #endif
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

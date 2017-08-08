@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   metrics_2way.hh
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Metrics pseudo-class, header, 2-way.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #ifndef _gm_metrics_2way_hh_
 #define _gm_metrics_2way_hh_
@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 /*---Helper functions for 2-way case---*/
 
 static int gm_max_computed_blocks_per_row(GMEnv* env) {
@@ -25,7 +25,7 @@ static int gm_max_computed_blocks_per_row(GMEnv* env) {
   return 1 + num_block / 2;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_diag_computed_min(GMEnv* env) {
   GMAssert(env);
@@ -33,7 +33,7 @@ static int gm_diag_computed_min(GMEnv* env) {
   return (max_rectangle_width*env->phase_num) / env->num_phase;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_diag_computed_max(GMEnv* env) {
   GMAssert(env);
@@ -41,7 +41,7 @@ static int gm_diag_computed_max(GMEnv* env) {
   return (max_rectangle_width*(env->phase_num+1)) / env->num_phase;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_diag_computed_this_row_max(GMEnv* env) {
   GMAssert(env);
@@ -60,7 +60,7 @@ static int gm_diag_computed_this_row_max(GMEnv* env) {
   return n;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int gm_computed_blocks_this_row(GMEnv* env) {
   GMAssert(env);
@@ -70,14 +70,14 @@ static int gm_computed_blocks_this_row(GMEnv* env) {
   return n;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: indexing: (contig) index from coord, 2-way---*/
 
 static size_t gm_triang_(int i) {
   return (i * (size_t)(i-1)) >> 1;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*---Helper: is this (section_)block_num to be processed by this proc_r---*/
 
 static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
@@ -87,7 +87,7 @@ static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
          == GMEnv_proc_num_repl(env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
                                            int i,
@@ -113,7 +113,7 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
   return index;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper2way_maindiag_block_(GMMetrics* metrics,
                                                    int i,
@@ -125,7 +125,7 @@ static size_t GMMetrics_helper2way_maindiag_block_(GMMetrics* metrics,
   return gm_triang_(j) + i;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
                                                   int i,
@@ -148,7 +148,7 @@ static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
   /* clang-format on */
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
                                                    int i,
@@ -179,8 +179,8 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
   return index;
 }
 
-/*===========================================================================*/
-/*===========================================================================*/
+//=============================================================================
+//=============================================================================
 /*---Accessors: value from (contig) index: basic---*/
 
 static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
@@ -193,7 +193,7 @@ static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
   return ((GMFloat*)(metrics->data))[index];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat2 GMMetrics_float2_S_get_from_index(GMMetrics* metrics,
                                                   size_t index,
@@ -207,7 +207,7 @@ static GMFloat2 GMMetrics_float2_S_get_from_index(GMMetrics* metrics,
   return ((GMFloat2*)(metrics->data_S))[index];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat2 GMMetrics_float2_C_get_from_index(GMMetrics* metrics,
                                                   size_t index,
@@ -221,7 +221,7 @@ static GMFloat2 GMMetrics_float2_C_get_from_index(GMMetrics* metrics,
   return ((GMFloat2*)(metrics->data_C))[index];
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
                                                     size_t index,
@@ -233,7 +233,7 @@ static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
   return ((GMTally2x2*)(metrics->data))[index];
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: value from (contig) index: derived---*/
 
 
@@ -246,7 +246,7 @@ static GMFloat GMMetrics_czek_get_from_index(GMMetrics* metrics,
   return GMMetrics_float_get_from_index(metrics, index, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
                                     const GMTally1 rij,
@@ -280,7 +280,7 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
   return result;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
                                               size_t index,
@@ -336,8 +336,8 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
                                recip_ci, recip_cj, recip_sumcij, env);
 }
 
-/*===========================================================================*/
-/*===========================================================================*/
+//=============================================================================
+//=============================================================================
 /*---Accessors: value from (local) coord: set: 2-way---*/
 
 static void GMMetrics_float_set_2(GMMetrics* metrics,
@@ -359,7 +359,7 @@ static void GMMetrics_float_set_2(GMMetrics* metrics,
   ((GMFloat*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float2_S_set_2(GMMetrics* metrics,
                                      int i,
@@ -381,7 +381,7 @@ static void GMMetrics_float2_S_set_2(GMMetrics* metrics,
   ((GMFloat2*)(metrics->data_S))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float2_C_set_2(GMMetrics* metrics,
                                      int i,
@@ -403,7 +403,7 @@ static void GMMetrics_float2_C_set_2(GMMetrics* metrics,
   ((GMFloat2*)(metrics->data_C))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_tally2x2_set_2(GMMetrics* metrics,
                                      int i,
@@ -424,7 +424,7 @@ static void GMMetrics_tally2x2_set_2(GMMetrics* metrics,
   ((GMTally2x2*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float_set_all2all_2(GMMetrics* metrics,
                                           int i,
@@ -450,7 +450,7 @@ static void GMMetrics_float_set_all2all_2(GMMetrics* metrics,
   ((GMFloat*)(metrics->data))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float2_S_set_all2all_2(GMMetrics* metrics,
                                              int i,
@@ -477,7 +477,7 @@ static void GMMetrics_float2_S_set_all2all_2(GMMetrics* metrics,
   ((GMFloat2*)(metrics->data_S))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_float2_C_set_all2all_2(GMMetrics* metrics,
                                              int i,
@@ -504,7 +504,7 @@ static void GMMetrics_float2_C_set_all2all_2(GMMetrics* metrics,
   ((GMFloat2*)(metrics->data_C))[index] = value;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics,
                                              int i,
@@ -530,7 +530,7 @@ static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics,
   ((GMTally2x2*)(metrics->data))[index] = value;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: value from (local) coord: get: 2-way---*/
 
 static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
@@ -551,7 +551,7 @@ static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
   return GMMetrics_float_get_from_index(metrics, index, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
                                              int i,
@@ -576,7 +576,7 @@ static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
   return GMMetrics_float_get_from_index(metrics, index, env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors: indexing: global coord from (contig) index: 2-way---*/
 
 static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
@@ -595,7 +595,7 @@ static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
   return i;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
                                                 size_t index,
@@ -612,14 +612,14 @@ static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
   return j;
 }
 
-/*===========================================================================*/
+//=============================================================================
 
 #ifdef __cplusplus
 } /*---extern "C"---*/
 #endif
 
-/*===========================================================================*/
+//=============================================================================
 
 #endif /*---_gm_metrics_2way_hh_---*/
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

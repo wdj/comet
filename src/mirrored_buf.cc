@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   mirrored_buf.cc
  * \author Wayne Joubert
@@ -6,12 +6,12 @@
  * \brief  CPU/GPU mirrored buffer.
  * \note   Copyright (C) 2017 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include "mirrored_buf.hh"
 #include "linalg.hh"
 
-/*===========================================================================*/
+//=============================================================================
 
 GMMirroredBuf GMMirroredBuf_null(void) {
   GMMirroredBuf p;
@@ -24,7 +24,7 @@ GMMirroredBuf GMMirroredBuf_null(void) {
   return p;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1, 
                           GMEnv* env) {
@@ -34,7 +34,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
   gm_linalg_malloc(p, dim0, dim1, env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
                           GMEnv* env) {
@@ -50,7 +50,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
   p->is_alias = true;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env) {
   GMAssertAlways(p && env);
@@ -62,6 +62,6 @@ void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env) {
   *p = GMMirroredBuf_null();
 }
 
-/*===========================================================================*/
+//=============================================================================
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

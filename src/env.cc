@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   env.cc
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Environment settings and general utilities.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include <sys/time.h>
 #include <stdio.h>
@@ -23,7 +23,7 @@
 
 #include "env.hh"
 
-/*===========================================================================*/
+//=============================================================================
 /*---Null object---*/
 
 GMEnv GMEnv_null() {
@@ -32,7 +32,7 @@ GMEnv GMEnv_null() {
   return result;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Utility to parse a string to construct arguments---*/
 
 void gm_create_args(char* argstring, int* argc, char** argv) {
@@ -55,7 +55,7 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
   }
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Initialize environment---*/
 
 void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
@@ -223,7 +223,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
   env->need_2way = env->metric_type_ == GM_METRIC_TYPE_CZEK;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMEnv_create(GMEnv* const env, MPI_Comm comm, int argc, char** argv,
                   const char* const description) {
@@ -232,7 +232,7 @@ void GMEnv_create(GMEnv* const env, MPI_Comm comm, int argc, char** argv,
   GMEnv_create_impl_(env, comm, argc, argv, description, true, 0, 0);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMEnv_create(GMEnv* const env, MPI_Comm comm, const char* const options,
                   const char* const description) {
@@ -250,7 +250,7 @@ void GMEnv_create(GMEnv* const env, MPI_Comm comm, const char* const options,
   GMEnv_create_impl_(env, comm, argc, argv, description, true, 0, 0);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,
                            const char* const description,
@@ -261,7 +261,7 @@ void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,
                      false, num_proc, proc_num);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
                            const char* const description,
@@ -281,7 +281,7 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
                      false, num_proc, proc_num);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Manage cuda streams---*/
 
 void GMEnv_initialize_streams(GMEnv* const env) {
@@ -309,7 +309,7 @@ void GMEnv_initialize_streams(GMEnv* const env) {
   env->are_cuda_streams_initialized_ = true;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMEnv_terminate_streams(GMEnv* const env) {
   GMAssertAlways(env);
@@ -330,7 +330,7 @@ void GMEnv_terminate_streams(GMEnv* const env) {
   env->are_cuda_streams_initialized_ = false;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Manage MPI comms---*/
 
 void GMEnv_initialize_comms(GMEnv* const env) {
@@ -361,7 +361,7 @@ void GMEnv_initialize_comms(GMEnv* const env) {
   env->are_mpi_comms_initialized_ = true;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMEnv_terminate_comms(GMEnv* const env) {
   GMAssertAlways(env);
@@ -384,7 +384,7 @@ void GMEnv_terminate_comms(GMEnv* const env) {
   env->are_mpi_comms_initialized_ = false;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Finalize environment---*/
 
 void GMEnv_destroy(GMEnv* const env) {
@@ -397,7 +397,7 @@ void GMEnv_destroy(GMEnv* const env) {
   *env = GMEnv_null();
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Accessors---*/
 
 void GMEnv_set_compute_method(GMEnv* const env, int compute_method) {
@@ -408,7 +408,7 @@ void GMEnv_set_compute_method(GMEnv* const env, int compute_method) {
   env->compute_method_ = compute_method;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 int GMEnv_data_type_vectors(const GMEnv* const env) {
   GMAssertAlways(env);
@@ -423,7 +423,7 @@ int GMEnv_data_type_vectors(const GMEnv* const env) {
   return 0;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 int GMEnv_data_type_metrics(const GMEnv* const env) {
   GMAssertAlways(env);
@@ -439,7 +439,7 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
   return 0;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
                       int num_proc_repl, int num_proc_field) {
@@ -488,7 +488,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   GMEnv_initialize_comms(env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
   GMAssertAlways(env);
@@ -499,7 +499,7 @@ cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
   return env->stream_compute_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
   GMAssertAlways(env);
@@ -510,7 +510,7 @@ cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
   return env->stream_togpu_;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
   GMAssertAlways(env);
@@ -521,7 +521,7 @@ cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
   return env->stream_fromgpu_;
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Timer functions---*/
 
 double GMEnv_get_time(const GMEnv* const env) {
@@ -534,7 +534,7 @@ double GMEnv_get_time(const GMEnv* const env) {
   return result;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 double GMEnv_get_synced_time(const GMEnv* const env) {
   GMAssertAlways(env);
@@ -553,7 +553,7 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
   return GMEnv_get_time(env);
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Misc.---*/
 
 bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
@@ -572,7 +572,7 @@ bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
   return result;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void* gm_malloc(size_t n, GMEnv* env) {
   GMAssertAlways(env);
@@ -583,7 +583,7 @@ void* gm_malloc(size_t n, GMEnv* env) {
   return p;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_free(void* p, size_t n, GMEnv* env) {
   GMAssertAlways(p && env);
@@ -591,7 +591,7 @@ void gm_free(void* p, size_t n, GMEnv* env) {
   env->cpu_mem -= n;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
   GMAssertAlways(env);
@@ -601,14 +601,14 @@ GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
   return p;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMFloat_free(GMFloat* p, size_t n, GMEnv* env) {
   GMAssertAlways(p && env);
   gm_free(p, n * sizeof(GMFloat), env);
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMFloat_fill_nan(GMFloat* const a, size_t n) {
   GMAssertAlways(a);
@@ -622,7 +622,7 @@ void GMFloat_fill_nan(GMFloat* const a, size_t n) {
 #endif
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void GMFloat_check(GMFloat* const a, size_t n) {
   GMAssertAlways(a);
@@ -639,14 +639,14 @@ void GMFloat_check(GMFloat* const a, size_t n) {
 #endif
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 int GMFloat_mant_dig() {
   GMAssertAlways(FLT_RADIX == 2);
   return sizeof(GMFloat) == 8 ? DBL_MANT_DIG : FLT_MANT_DIG;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 int gm_mpi_type(const GMEnv* const env) {
   GMAssertAlways(env);
@@ -662,4 +662,4 @@ int gm_mpi_type(const GMEnv* const env) {
   return mpi_type;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------

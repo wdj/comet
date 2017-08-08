@@ -1,4 +1,4 @@
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*!
  * \file   linalg.cc
  * \author Wayne Joubert
@@ -6,7 +6,7 @@
  * \brief  Magma interface.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 #include "cuda.h"
 
@@ -30,7 +30,7 @@
 
 #include "linalg.hh"
 
-/*===========================================================================*/
+//=============================================================================
 /*---Magma setup, teardown---*/
 
 void gm_linalg_initialize(GMEnv* env) {
@@ -109,7 +109,7 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_linalg_finalize(GMEnv* env) {
   GMAssertAlways(env);
@@ -168,7 +168,7 @@ void gm_linalg_finalize(GMEnv* env) {
   /*----------------------------------------*/
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Allocate/free host and device memory---*/
 
 void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
@@ -304,7 +304,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   p->is_alias = false;
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   GMAssertAlways(p && env);
@@ -378,7 +378,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   /*----------------------------------------*/
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
                                      GMEnv* env) {
@@ -453,7 +453,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
   /*----------------------------------------*/
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                                 magma_minproduct_int_t n,
@@ -570,7 +570,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   /*----------------------------------------*/
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_linalg_gemm_start(magma_minproduct_int_t m,
                           magma_minproduct_int_t n,
@@ -656,7 +656,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   }
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 /*---Wait for any computation on the GPU to complete---*/
 
 void gm_compute_wait(GMEnv* env) {
@@ -668,7 +668,7 @@ void gm_compute_wait(GMEnv* env) {
   }
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start/end transfer of generic matrix to GPU---*/
 
 void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
@@ -742,7 +742,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
   /*----------------------------------------*/
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_linalg_set_matrix_wait(GMEnv* env) {
   GMAssertAlways(env);
@@ -755,7 +755,7 @@ void gm_linalg_set_matrix_wait(GMEnv* env) {
   GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 }
 
-/*===========================================================================*/
+//=============================================================================
 /*---Start/end transfer of generic matrix from GPU---*/
 
 void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
@@ -830,7 +830,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
   /*----------------------------------------*/
 }
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
 
 void gm_linalg_get_matrix_wait(GMEnv* env) {
   GMAssertAlways(env);
@@ -843,6 +843,6 @@ void gm_linalg_get_matrix_wait(GMEnv* env) {
   GMAssertAlways(GMEnv_cuda_last_call_succeeded(env));
 }
 
-/*===========================================================================*/
+//=============================================================================
 
-/*---------------------------------------------------------------------------*/
+//-----------------------------------------------------------------------------
