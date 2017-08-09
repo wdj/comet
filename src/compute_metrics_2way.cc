@@ -131,8 +131,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   GMVectors vectors_01[2];
   for (int i = 0; i < 2; ++i) {
     GMVectors_create_with_buf(&vectors_01[i], GMEnv_data_type_vectors(env),
-                     vectors->num_field, vectors->num_field_active,
-                     nvl, env);
+                              vectors->dm, env);
   }
 
   // Allocate GPU buffers

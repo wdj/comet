@@ -18,6 +18,7 @@ SET(INCLUDE_DIRS
 SET(LIB_SOURCES
   src/env.cc
   src/assertions.cc
+  src/decomp_mgr.cc
   src/mirrored_buf.cc
   src/linalg.cc
   src/vectors.cc
@@ -36,6 +37,7 @@ SET(LIB_SOURCES
 SET(LIB_INCLUDES
   src/env.hh
   src/assertions.hh
+  src/decomp_mgr.hh
   src/types.hh
   src/mirrored_buf.hh
   src/linalg.hh

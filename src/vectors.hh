@@ -12,6 +12,7 @@
 #define _gm_vectors_hh_
 
 #include "env.hh"
+#include "decomp_mgr.hh"
 #include "mirrored_buf.hh"
 
 //=============================================================================
@@ -37,6 +38,7 @@ typedef struct {
   size_t data_size;
   bool has_buf;
   GMMirroredBuf buf;
+  GMDecompMgr* dm;
 } GMVectors;
 
 //=============================================================================
@@ -49,18 +51,14 @@ GMVectors GMVectors_null(void);
 
 void GMVectors_create(GMVectors* vectors,
                       int data_type_id,
-                      int num_field,
-                      size_t num_field_active,
-                      int num_vector_local,
+                      GMDecompMgr* dm,
                       GMEnv* env);
 
 //-----------------------------------------------------------------------------
 
 void GMVectors_create_with_buf(GMVectors* vectors,
                                int data_type_id,
-                               int num_field,
-                               size_t num_field_active,
-                               int num_vector_local,
+                               GMDecompMgr* dm,
                                GMEnv* env);
 
 //=============================================================================

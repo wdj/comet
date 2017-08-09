@@ -494,10 +494,13 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMEnv_set_compute_method(env, compute_method);
   GMEnv_set_num_proc(env, 1, 1, 1);
 
+  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
+  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+                     GMEnv_data_type_vectors(env), env);
+
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), num_field,
-                   num_field, num_vector_local, env);
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
   if (GMEnv_is_proc_active(env)) {
     {
@@ -590,10 +593,13 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMEnv_set_num_proc(env, 1, 1, 1);
   env->sparse = true;
 
+  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
+  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+                     GMEnv_data_type_vectors(env), env);
+
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), num_field,
-                   num_field, num_vector_local, env);
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
   if (GMEnv_is_proc_active(env)) {
     const int UN = 2 * 1 + 1 * 0;
@@ -739,10 +745,13 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMEnv_set_compute_method(env, compute_method);
   GMEnv_set_num_proc(env, 1, 1, 1);
 
+  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
+  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+                     GMEnv_data_type_vectors(env), env);
+
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), num_field,
-                   num_field, num_vector_local, env);
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
   if (GMEnv_is_proc_active(env)) {
     {
@@ -881,10 +890,13 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMEnv_set_num_proc(env, 1, 1, 1);
   env->sparse = true;
 
+  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
+  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+                     GMEnv_data_type_vectors(env), env);
+
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), num_field,
-                   num_field, num_vector_local, env);
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
   if (GMEnv_is_proc_active(env)) {
     const int UN = 2 * 1 + 1 * 0;
