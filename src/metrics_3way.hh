@@ -835,10 +835,19 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
     const GMFloat3 ci_cj_ck =
       GMMetrics_float3_C_get_from_index(metrics, index, env);
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
+    GMTally1 cijk =
+           GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
+           GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
+           GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
+           GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1);
+    if (ci == 0 || cj == 0 || ck == 0 || cijk == 0) {
+      return 0;
+    }
   } else {
     ci = metrics->num_field_active;
     cj = metrics->num_field_active;
     ck = metrics->num_field_active;
+    GMAssert(metrics->num_field_active > 0);
   }
 
   /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/

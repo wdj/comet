@@ -1136,7 +1136,6 @@ void DriverTest_ccc_() {
   char options2[1024];
   char options3[1024];
 
-#if 1
   //----------
   //---2-way, all2all no
   //----------
@@ -1144,7 +1143,7 @@ void DriverTest_ccc_() {
   char options_template_1[] =
       "--metric_type ccc --verbosity %i "
       "--num_proc_vector 1 --num_field %i --num_vector_local %i "
-      "--compute_method %s";
+      "--compute_method %s --sparse no";
 
   sprintf(options1, options_template_1, 2, 1, 2, "REF");
   sprintf(options2, options_template_1, 2, 1, 2, "CPU");
@@ -1229,7 +1228,7 @@ void DriverTest_ccc_() {
   char options_template_3[] =
                     "--metric_type ccc --verbosity %i "
                     "--num_proc_vector 1 --num_field %i --num_vector_local %i "
-                    "--compute_method %s --num_way 3";
+                    "--compute_method %s --num_way 3 --sparse no";
 
   sprintf(options1, options_template_3, 2, 1, 3, "REF");
   sprintf(options2, options_template_3, 2, 1, 3, "CPU");
@@ -1478,8 +1477,6 @@ void DriverTest_ccc_() {
                     "--compute_method GPU --all2all yes "
                     "--verbosity 2 "
                     "--output_file_stub test_ccc_3way"));
-
-#endif
 
   //----------
   //---2-way, all2all yes, large, sparse

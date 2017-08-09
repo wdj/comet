@@ -18,14 +18,14 @@
 /*---Null object---*/
 
 GMVectorSums GMVectorSums_null(void) {
-  GMVectorSums x;
-  x.sums = NULL;
-  x.counts = NULL;
-  x.sums_tmp_ = NULL;
-  x.counts_tmp_ = NULL;
-  x.size_ = 0;
-  x.num_field_ = 0;
-  return x;
+  GMVectorSums v;
+  v.sums = NULL;
+  v.counts = NULL;
+  v.sums_tmp_ = NULL;
+  v.counts_tmp_ = NULL;
+  v.size_ = 0;
+  v.num_field_ = 0;
+  return v;
 }
 
 //=============================================================================
@@ -195,6 +195,12 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
           count += (GMFloat)gm_popcount64(v10_oddmask0 | (v10_oddmask1 << 1));
         }
         /*--Adjust for end pad---*/
+#if 0
+        count -= vectors->dm->num_packedfield_local *
+                 vectors->dm->num_field_per_packedfield -
+                 vectors->dm->num_field_active_local;
+#endif
+#if 1
         const int nfl = vectors->num_field_local;
         const bool final_proc = GMEnv_proc_num_field(env) ==
                                 GMEnv_num_proc_field(env) - 1;
@@ -203,6 +209,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
         const int nfal_up64 = ( ( num_field_active_local + 64 - 1 ) / 64) * 64;
         const int num_seminibbles_pad = nfal_up64 - num_field_active_local;
         count -= num_seminibbles_pad;
+#endif
         /*---Finish---*/
         GMAssert(sum >= 0 && sum <= 2 * vectors->num_field_local);
         GMAssert(count >= 0 && count <= vectors->num_field_local);
