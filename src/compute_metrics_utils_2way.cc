@@ -38,8 +38,7 @@ void gm_compute_czek_numerators_2way_start_(
     /*----------------------------------------*/
 
     GMInsistInterface(env, !env->do_reduce
-                      ? "num_proc_field>1 for REF case not supported"
-                      : 0);
+                      && "num_proc_field>1 for REF case not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -47,9 +46,9 @@ void gm_compute_czek_numerators_2way_start_(
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
       for (int i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
-        for (int fl = 0; fl < vectors_left->num_field_local; ++fl) {
-          const GMFloat value1 = GMVectors_float_get(vectors_left, fl, i, env);
-          const GMFloat value2 = GMVectors_float_get(vectors_right, fl, j, env);
+        for (int f = 0; f < vectors_left->num_field_local; ++f) {
+          const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
+          const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
         GMMetrics_float_set_all2all_2(metrics, i, j, j_block, metric, env);
@@ -61,8 +60,7 @@ void gm_compute_czek_numerators_2way_start_(
     /*----------------------------------------*/
 
     GMInsistInterface(env, !env->do_reduce
-                      ? "num_proc_field>1 for CPU case not supported"
-                      : 0);
+                      && "num_proc_field>1 for CPU case not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -70,9 +68,9 @@ void gm_compute_czek_numerators_2way_start_(
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         GMFloat metric = 0;
-        for (int fl = 0; fl < vectors_left->num_field_local; ++fl) {
-          const GMFloat value1 = GMVectors_float_get(vectors_left, fl, i, env);
-          const GMFloat value2 = GMVectors_float_get(vectors_right, fl, j, env);
+        for (int f = 0; f < vectors_left->num_field_local; ++f) {
+          const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
+          const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
         GMMetrics_float_set_2(metrics, i, j, metric, env);
@@ -160,9 +158,9 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
                             ( (  (vi & 2) ) && (  (vj & 2) ) );
             /* clang-format on */
 
-            /*---NOTE: "since the sum of all 4 of these relative
-                 co-occurences is 4, we really only need to compute 3 of them.
-                 Then the last one is just 4 minus the rest." */
+            // NOTE: Since the sum of all 4 of these relative
+            // cooccurences is 4, we really only need to compute 3 of them.
+            //  Then the last one is just 4 minus the rest (non-sparse case)
 
 #if DOUG_WAY
 //TODO: work on this as a possibly faster way.
@@ -203,6 +201,15 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
          can be 1 to 64 inclusive---*/
 
     /* clang-format off */
+
+
+
+
+
+
+//FIX
+
+
 
     const int nfl = vectors_left->num_field_local;
     const int num_field_active_local =

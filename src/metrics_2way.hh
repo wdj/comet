@@ -314,6 +314,7 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   } else {
     ci = metrics->num_field_active;
     cj = metrics->num_field_active;
+    GMAssert(metrics->num_field_active > 0);
   }
 
   /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/

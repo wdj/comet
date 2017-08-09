@@ -299,9 +299,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
   finish_parsing(argc, argv, &do_, env);
 
-  ///GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr dm_value = GMDecompMgr_null();
-  GMDecompMgr *dm = &dm_value;
+  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm,
     do_.num_field_local_initialized,
     do_.num_vector_local_initialized,
@@ -337,23 +335,27 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     do_.num_field = do_.num_field_local * (size_t) GMEnv_num_proc_field(env);
   }
 
+
+
+
+
   /*---Initialize vectors---*/
 
   double vctime = 0;
   double time_beg = GMEnv_get_synced_time(env);
-  GMVectors vectors = GMVectors_null();
-  GMVectors_create(&vectors, GMEnv_data_type_vectors(env), dm, env);
+  GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
   double time_end = GMEnv_get_synced_time(env);
   vctime += time_end - time_beg;
 
   double intime = 0;
   time_beg = GMEnv_get_synced_time(env);
-  set_vectors(&vectors, &do_, env);
+  set_vectors(vectors, &do_, env);
   time_end = GMEnv_get_synced_time(env);
   intime += time_end - time_beg;
 
-  GMChecksum checksum = GMChecksum_null();
-  checksum.computing_checksum = do_.checksum;
+  GMChecksum checksum_value = GMChecksum_null(), *checksum = &checksum_value;
+  checksum->computing_checksum = do_.checksum;
 
   double outtime = 0;
   double mctime = 0;
@@ -372,47 +374,44 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
       /*---Set up metrics container for results---*/
 
       time_beg = GMEnv_get_synced_time(env);
-      GMMetrics metrics = GMMetrics_null();
-      GMMetrics_create(&metrics, GMEnv_data_type_metrics(env),
-                       do_.num_field, do_.num_field_active,
-                       do_.num_vector_local,
-                       do_.num_vector_active, env);
+      GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
+      GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm, env);
       time_end = GMEnv_get_synced_time(env);
       mctime += time_end - time_beg;
 
       /*---Calculate metrics---*/
 
-      gm_compute_metrics(&metrics, &vectors, env);
+      gm_compute_metrics(metrics, vectors, env);
 
-      num_elts_local_computed += metrics.num_elts_local_computed;
+      num_elts_local_computed += metrics->num_elts_local_computed;
 
       /*---Output results---*/
 
       time_beg = GMEnv_get_synced_time(env);
-      output_metrics(&metrics, &do_, env);
+      output_metrics(metrics, &do_, env);
       time_end = GMEnv_get_synced_time(env);
       outtime += time_end - time_beg;
 
       /*---Check correctness---*/
 
-      check_metrics(&metrics, &do_, env);
+      check_metrics(metrics, &do_, env);
 
       /*---Compute checksum---*/
 
       if (do_.checksum) {
         time_beg = GMEnv_get_synced_time(env);
-        GMChecksum_metrics(&checksum, &metrics, env);
+        GMChecksum_metrics(checksum, metrics, env);
         time_end = GMEnv_get_synced_time(env);
         cktime += time_end - time_beg;
       }
 
-      GMMetrics_destroy(&metrics, env);
+      GMMetrics_destroy(metrics, env);
 
     }
 
   } /*---End loops over phases, stages---*/
 
-  GMVectors_destroy(&vectors, env);
+  GMVectors_destroy(vectors, env);
 
   /*---Perform some checks---*/
 
@@ -451,11 +450,11 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
       int i = 0;
       for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
         printf("%s%li", i == 0 ? "" : "-",
-               checksum.data[GM_CHECKSUM_SIZE - 1 - i]);
+               checksum->data[GM_CHECKSUM_SIZE - 1 - i]);
       }
-      if (checksum.is_overflowed) {
+      if (checksum->is_overflowed) {
         printf("-OVFL");
-        printf("-%e", checksum.value_max);
+        printf("-%e", checksum->value_max);
       }
       printf(" ");
     }
@@ -499,7 +498,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
 
-  return checksum;
+  return *checksum;
 }
 
 //=============================================================================

@@ -93,6 +93,9 @@ void gm_compute_numerators_3way_gpu_form_matX_(
           const GMUInt64 vI = GMMirroredBuf_elt_const<GMBits2x64>(vectors_I_buf, pvfl, I).data[word];
           const GMUInt64 vJ = GMMirroredBuf_elt_const<GMBits2x64>(vectors_J_buf, pvfl, J).data[word];
 
+          // For 00 case fill pad bits with 1's, so that those seminibbles in
+          // the result r below will be set to 10, thus ignored.
+
           const GMUInt64 vIx = step_2way==0 ? vI | ~activebits[word] : vI;
 
           /*---Create word whose odd bits sample the lo or hi bit of interest

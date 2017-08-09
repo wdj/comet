@@ -529,8 +529,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field, num_field,
-                   num_vector_local, num_vector_local, env);
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm, env);
 
   gm_compute_metrics(metrics, vectors, env);
 
@@ -637,8 +636,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field, num_field,
-                   num_vector_local, num_vector_local, env);
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm, env);
 
   gm_compute_metrics(metrics, vectors, env);
 
@@ -806,8 +804,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field, num_field,
-                   num_vector_local, num_vector_local, env);
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm, env);
 
   gm_compute_metrics(metrics, vectors, env);
 
@@ -964,8 +961,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), num_field, num_field,
-                   num_vector_local, num_vector_local, env);
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm, env);
 
   gm_compute_metrics(metrics, vectors, env);
 

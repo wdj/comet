@@ -14,6 +14,7 @@
 #include "stddef.h"
 
 #include "env.hh"
+#include "decomp_mgr.hh"
 #include "mirrored_buf.hh"
 
 //=============================================================================
@@ -55,6 +56,7 @@ typedef struct {
   size_t data_S_size;
   size_t data_C_size;
   size_t num_elts_local_computed;
+  GMDecompMgr* dm;
 } GMMetrics;
 
 //=============================================================================
@@ -65,13 +67,8 @@ GMMetrics GMMetrics_null(void);
 //=============================================================================
 /*---Metrics pseudo-constructor---*/
 
-void GMMetrics_create(GMMetrics* metrics,
-                      int data_type_id,
-                      int num_field,
-                      size_t num_field_active,
-                      int num_vector_local,
-                      size_t num_vector_active,
-                      GMEnv* env);
+void GMMetrics_create(GMMetrics* metrics, int data_type_id,
+                      GMDecompMgr* dm, GMEnv* env);
 
 //-----------------------------------------------------------------------------
 

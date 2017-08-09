@@ -15,6 +15,7 @@
 #include "mpi.h"
 
 #include "env.hh"
+#include "decomp_mgr.hh"
 #include "metrics.hh"
 
 //=============================================================================
@@ -37,8 +38,7 @@ GMMetrics GMMetrics_null() {
 
 void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
                                    GMEnv* env) {
-  GMInsist(metrics);
-  GMInsist(env);
+  GMInsist(metrics && env);
   GMInsist(nvl >= 0);
   GMInsist(GMEnv_num_block_vector(env) <= 2 || nvl % 6 == 0);
   GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
@@ -136,17 +136,9 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
 
 void GMMetrics_create(GMMetrics* metrics,
                       int data_type_id,
-                      int num_field,
-                      size_t num_field_active,
-                      int num_vector_local,
-                      size_t num_vector_active,
+                      GMDecompMgr* dm,
                       GMEnv* env) {
-  GMInsist(metrics);
-  GMInsist(num_field >= 0);
-  GMInsist(num_field_active >= 0);
-  GMInsist(num_field_active <= (size_t)num_field);
-  GMInsist(num_vector_local >= 0);
-  GMInsist(env);
+  GMInsist(metrics && dm && env);
 
   *metrics = GMMetrics_null();
 
@@ -157,30 +149,29 @@ void GMMetrics_create(GMMetrics* metrics,
   GMInsistInterface(env, GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1
           ? "multidim parallelism only available for all2all case" : 0);
 
-  GMInsistInterface(env,
-           num_field % GMEnv_num_proc_field(env) == 0
-               ? "num_proc_field must exactly divide the total number of fields"
-               : 0);
+  /*---The following less important cases are not yet tested---*/
 
-  /*---These cases less important, not yet tested---*/
+  GMInsistInterface(env, (GMEnv_all2all(env) ||
+                    dm->num_field == dm->num_field_active)
+                    && "This case currently not supported.");
 
-  GMInsistInterface(env, GMEnv_all2all(env) || (size_t)num_field == num_field_active
-                ? "This case currently not supported." : 0);
+  GMInsistInterface(env, (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU ||
+                    dm->num_field == dm->num_field_active)
+                    && "This case currently not supported.");
 
-  GMInsistInterface(env, GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU ||
-                (size_t)num_field == num_field_active
-                ? "This case currently not supported." : 0);
-
+  metrics->dm = dm;
   metrics->data_type_id = data_type_id;
-  metrics->num_field = num_field;
-  metrics->num_field_active = num_field_active;
-  metrics->num_field_local = num_field / GMEnv_num_proc_field(env);
-  metrics->num_vector_local = num_vector_local;
-  metrics->num_vector_active = num_vector_active;
-  metrics->nvl6 = num_vector_local / 6;
+
+  metrics->num_field = dm->num_field;
+  metrics->num_field_active = dm->num_field_active;
+  metrics->num_field_local = dm->num_field_local;
+  metrics->num_vector_local = dm->num_vector_local;
+  metrics->num_vector_active = dm->num_vector_active;
+
+  metrics->nvl6 = metrics->num_vector_local / 6;
   metrics->index_offset_0_ = 0;
   metrics->index_offset_01_ = 0;
-  metrics->recip_m = ((GMFloat)1) / num_field_active;
+  metrics->recip_m = ((GMFloat)1) / metrics->num_field_active;
   metrics->block_min = 0;
   for (int i=0; i<6; ++i) {
     metrics->index_offset_section_part1_[i] = 0;
@@ -189,35 +180,21 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->section_num_valid_part2_[i] = false;
   }
 
-  /*---Compute global values---*/
+  metrics->num_vector = dm->num_vector;
 
   const int num_block = GMEnv_num_block_vector(env);
-
-  const size_t num_vector_bound = metrics->num_vector_local *
-                          (size_t)num_block * (size_t)GMEnv_num_proc_repl(env);
-  GMInsist(num_vector_bound == (size_t)(int)num_vector_bound
-    ? "Vector count too large to store in 32-bit int; please modify code." : 0);
-
   int mpi_code = 0;
-  mpi_code = MPI_Allreduce(&(metrics->num_vector_local), &(metrics->num_vector),
-                           1, MPI_INT, MPI_SUM, GMEnv_mpi_comm_vector(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
-  GMInsist((size_t)(metrics->num_vector) == num_vector_bound);
-  metrics->num_vector /= GMEnv_num_proc_repl(env);
-  GMInsist(metrics->num_vector_active <= (size_t)metrics->num_vector);
-
-  /*---Assume the following to simplify calculations---*/
 
   GMInsistInterface(
       env,
-      num_vector_local >= GMEnv_num_way(env)
-          ? "Currently require number of vecs on a proc to be at least num-way"
-          : 0);
+      metrics->num_vector_local >= GMEnv_num_way(env)
+        && "Currently require number of vecs on a proc to be at least num-way");
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
-  const size_t nchoosek = gm_nchoosek(num_vector_local, GMEnv_num_way(env));
-  const int nvl = num_vector_local;
+  const size_t nchoosek = gm_nchoosek(metrics->num_vector_local,
+                                      GMEnv_num_way(env));
+  const int nvl = metrics->num_vector_local;
   const size_t nvlsq = nvl * (size_t)nvl;
 
   /*---Compute number of elements etc.---*/
@@ -677,83 +654,40 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
   return result;
 }
 
-//=============================================================================
-// Adjustment required to compensate for padding
-
-static int gm_num_seminibbles_pad(GMMetrics* metrics, GMEnv* env) {
-  GMInsist(metrics && env);
-
-  const int num_bits_per_val = 2;
-  const int num_bits_per_packedval = 128;
-  const int num_val_per_packedval = 64;
-
-  const int nfl = metrics->num_field_local;
-
-  const int num_packedval_field_local
-     = gm_ceil_i8(nfl * (size_t)num_bits_per_val, num_bits_per_packedval);
-
-  const int num_field_calculated = num_packedval_field_local *
-                                   num_val_per_packedval;
-
-  //const int num_packedval_field_local = (nfl + 64 - 1) / 64;
-  //const int num_field_calculated = num_packedval_field_local * 64;
-
-  const bool final_proc = GMEnv_proc_num_field(env) ==
-                          GMEnv_num_proc_field(env) - 1;
-
-  const int num_field_active_local = final_proc
-    ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
-
-  GMInsist(num_field_active_local >= 0);
-
-  const int num_seminibbles_pad = num_field_calculated -
-                                  num_field_active_local;
-
-  return num_seminibbles_pad;
-}
-
 //-----------------------------------------------------------------------------
 
 void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
   GMInsist(metrics && metrics_buf && env);
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   if (! (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
       GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
     return;
   }
 
-  /*---Adjust entries because of computation on pad values.
-       EXPLANATION: the final word of each vector may have zero-pad bits
-       to fill out the word.  The Magma call will tally these into the
-       GMTally2x2 data[0] entry, because this is here the zero X zero
-       seminibble pairs are tallied.  The code here fixes this by
-       subtracting off this unwanted tally result.---*/
-  /*---NOTE: this should work for both 2-way and 3-way---*/
+  const int num_fields_pad =
+    metrics->dm->num_packedfield_local *
+    metrics->dm->num_field_per_packedfield -
+    metrics->dm->num_field_active_local;
 
-//  const int nfl = metrics->num_field_local;
-//  const int num_packedval_field_local = (nfl + 64 - 1) / 64;
-//  const int num_field_calculated = num_packedval_field_local * 64;
-//  const int num_field_active_local =
-//    GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env)-1
-//    ? nfl - (metrics->num_field - metrics->num_field_active) : nfl;
-//  GMInsist(num_field_active_local >= 0);
-//  const int num_seminibbles_pad = num_field_calculated -
-//                                  num_field_active_local;
-  //const int num_seminibbles_pad =
-  //    64 - (1 + (metrics->num_field_local - 1) % 64);
+  const GMFloat adjustment = GMTally1_encode(4 * num_fields_pad, 0);
 
-  const int num_seminibbles_pad = gm_num_seminibbles_pad(metrics, env);
-
-  const GMFloat adjustment = 4 * num_seminibbles_pad;
 #pragma omp parallel for collapse(2)
   for (int j = 0; j < metrics->num_vector_local; ++j) {
     for (int i = 0; i < metrics->num_vector_local; ++i) {
-      GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j)
-      //((GMTally2x2*)(metrics_buf->h))[i + metrics->num_vector_local * j]
-          .data[0] -= adjustment;
 
+#ifdef GM_ASSERTIONS_ON
+      const GMTally2x2 old = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+#endif
 
+      GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0] -= adjustment;
+
+#ifdef GM_ASSERTIONS_ON
+      const GMTally2x2 new_ = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+      GMAssert(GMTally2x2_get(old, 0, 0) ==
+               GMTally2x2_get(new_, 0, 0) + 4 * num_fields_pad);
+#endif
     } /*---for j---*/
   }   /*---for i---*/
 }
