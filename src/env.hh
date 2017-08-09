@@ -11,9 +11,9 @@
 #ifndef _gm_env_hh_
 #define _gm_env_hh_
 
-#include <stddef.h>
-#include <assert.h>
-#include <float.h>
+#include "stddef.h"
+#include "assert.h"
+#include "float.h"
 #include "stdio.h"  //FIX
 
 #include "mpi.h"

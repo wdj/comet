@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-#include <string.h>
+#include "stdlib.h"
+#include "string.h"
 
 #include "mpi.h"
 
@@ -284,15 +284,5 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
       GMInsistInterface(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
-
-//=============================================================================
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------

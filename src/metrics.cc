@@ -8,18 +8,14 @@
  */
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include "stdlib.h"
+#include "string.h"
+#include "math.h"
 
 #include "mpi.h"
 
 #include "env.hh"
 #include "metrics.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 //=============================================================================
 /*---Helper: round-robin-pack m values into n bins, return ith bin size---*/
@@ -761,11 +757,5 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
     } /*---for j---*/
   }   /*---for i---*/
 }
-
-//=============================================================================
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------

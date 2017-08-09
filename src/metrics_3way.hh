@@ -13,10 +13,6 @@
 #ifndef _gm_metrics_3way_hh_
 #define _gm_metrics_3way_hh_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 /*---Helper functions for 3-way case---*/
 
@@ -1445,12 +1441,6 @@ static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
 
   return k;
 }
-
-//=============================================================================
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //=============================================================================
 

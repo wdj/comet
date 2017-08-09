@@ -14,10 +14,6 @@
 #include "env.hh"
 #include "vectors.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 /*---Struct declaration---*/
 
@@ -56,12 +52,6 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env);
 GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env);
 
 GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
-
-//-----------------------------------------------------------------------------
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------
 

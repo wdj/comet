@@ -15,10 +15,6 @@
 #include "vectors.hh"
 #include "metrics.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 
 void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
@@ -28,12 +24,6 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env);
-
-//=============================================================================
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //=============================================================================
 

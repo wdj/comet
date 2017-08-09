@@ -8,15 +8,11 @@
  */
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
+#include "stdlib.h"
 
 #include "env.hh"
 #include "vector_sums.hh"
 #include "vectors.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 //=============================================================================
 /*---Null object---*/
@@ -278,11 +274,5 @@ GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env) {
   //return this_->counts ? this_->counts[i] : this_->num_field_;
   return this_->counts[i];
 }
-
-//-----------------------------------------------------------------------------
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------

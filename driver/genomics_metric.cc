@@ -8,15 +8,15 @@
  */
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
+#include "stdio.h"
+#include "stdlib.h"
+#include "stddef.h"
+#include "string.h"
 
-#include <execinfo.h>
-#include <signal.h>
-#include <unistd.h>
-#include <sys/wait.h>
+#include "execinfo.h"
+#include "signal.h"
+#include "unistd.h"
+#include "sys/wait.h"
 
 #include "mpi.h"
 
@@ -26,10 +26,6 @@
 #include "compute_metrics.hh"
 
 #include "driver.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 //=============================================================================
 /* Stack tracing code */
@@ -265,11 +261,5 @@ int main(int argc, char** argv) {
   MPI_Finalize();
   return 0;
 }
-
-//-----------------------------------------------------------------------------
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------

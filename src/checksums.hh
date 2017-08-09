@@ -11,13 +11,10 @@
 #ifndef _gm_checksums_hh_
 #define _gm_checksums_hh_
 
-#include <float.h>
-
-#include <env.hh>
-#include <metrics.hh>
+#include "env.hh"
+#include "metrics.hh"
 
 //=============================================================================
-
 // Multiprecision integers
 
 enum { GM_MULTIPREC_INT_SIZE = 16 };
@@ -59,6 +56,6 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env);
 
 //=============================================================================
 
-#endif /*---_gm_checksums_hh_---*/
+#endif // _gm_checksums_hh_
 
 //-----------------------------------------------------------------------------

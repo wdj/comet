@@ -11,10 +11,6 @@
 #ifndef _gm_metrics_2way_hh_
 #define _gm_metrics_2way_hh_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 /*---Helper functions for 2-way case---*/
 
@@ -611,12 +607,6 @@ static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
 
   return j;
 }
-
-//=============================================================================
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //=============================================================================
 

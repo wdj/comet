@@ -17,10 +17,6 @@
 #include "vectors.hh"
 #include "metrics.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 
 void gm_compute_numerators_2way_start(GMVectors* vectors_left,
@@ -40,12 +36,6 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                              int j_proc,
                              bool do_compute_triang_only,
                              GMEnv* env);
-
-//=============================================================================
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //=============================================================================
 

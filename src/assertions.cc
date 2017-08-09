@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
-#include <errno.h>
+#include "stdio.h"
+#include "errno.h"
 
 #ifdef TESTING
 #include "gtest/gtest.h"

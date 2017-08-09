@@ -18,10 +18,6 @@
 #include "compute_metrics_utils_3way.hh"
 #include "compute_metrics_3way.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 
 void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
@@ -494,11 +490,5 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   gm_linalg_finalize(env);
 }
-
-//-----------------------------------------------------------------------------
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------

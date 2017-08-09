@@ -16,10 +16,6 @@
 #include "linalg.hh"
 #include "compute_metrics_utils_2way.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 //=============================================================================
 /*---Start calculation of numerators, 2-way Czekanowski---*/
 
@@ -729,11 +725,5 @@ void gm_compute_2way_combine(GMMetrics* metrics,
       GMInsistInterface(env, false ? "Unimplemented." : 0);
   } /*---case---*/
 }
-
-//=============================================================================
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
 
 //-----------------------------------------------------------------------------

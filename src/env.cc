@@ -8,15 +8,15 @@
  */
 //-----------------------------------------------------------------------------
 
-#include <sys/time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include <math.h>
-#include <errno.h>
+#include "sys/time.h"
+#include "stdio.h"
+#include "stdlib.h"
+#include "stddef.h"
+#include "string.h"
+#include "math.h"
+#include "errno.h"
 
-#include <signal.h>
+#include "signal.h"
 
 #include "mpi.h"
 #include "cuda.h"

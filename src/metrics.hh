@@ -11,14 +11,10 @@
 #ifndef _gm_metrics_hh_
 #define _gm_metrics_hh_
 
-#include <stddef.h>
+#include "stddef.h"
 
 #include "env.hh"
 #include "mirrored_buf.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 //=============================================================================
 /*---Struct declaration---*/
@@ -103,19 +99,11 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics,
                            GMEnv* env);
 
 //=============================================================================
-
-#ifdef __cplusplus
-} /*---extern "C"---*/
-#endif
-
-//=============================================================================
 /*---Companion include files---*/
 
 #include "metrics_2way.hh"
 #include "metrics_3way.hh"
 
-//=============================================================================
-
-#endif /*---_gm_metrics_hh_---*/
+#endif // _gm_metrics_hh_
 
 //-----------------------------------------------------------------------------

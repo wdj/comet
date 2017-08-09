@@ -8,12 +8,12 @@
  */
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
-//#include <stdlib.h>
-//#include <stddef.h>
-#include <string.h>
-//#include <float.h>
-//#include <errno.h>
+#include "stdio.h"
+//#include "stdlib.h"
+//#include "stddef.h"
+#include "string.h"
+//#include "float.h"
+//#include "errno.h"
 
 #include "env.hh"
 #include "vectors.hh"
