@@ -29,7 +29,7 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   GMInsist(vectors && do_ && env);
   GMInsist(do_->problem_type == GM_PROBLEM_TYPE_RANDOM);
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -128,7 +128,7 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false ? "Invalid data type." : 0);
+      GMInsist(false && "Invalid data type.");
   } /*---switch---*/
 }
 
@@ -186,7 +186,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   GMInsist(vectors && do_ && env);
   GMInsist(do_->problem_type == GM_PROBLEM_TYPE_ANALYTIC);
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -307,7 +307,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false ? "Invalid data type." : 0);
+      GMInsist(false && "Invalid data type.");
   } /*---switch---*/
 }
 
@@ -322,7 +322,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     return;
   }
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -496,17 +496,17 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
               const bool unknown_j = env->sparse && bval_j == GM_2BIT_UNKNOWN;
               const bool unknown_ij = unknown_i || unknown_j;
 
-              if (!unknown_i) {
+              if (! unknown_i) {
                 ci += gs_this;
                 si += ((bval_i_0 == i0) + (bval_i_1 == i0)) * gs_this;
               }
 
-              if (!unknown_j) {
+              if (! unknown_j) {
                 cj += gs_this;
                 sj += ((bval_j_0 == i1) + (bval_j_1 == i1)) * gs_this;
               }
 
-              if (!unknown_ij) {
+              if (! unknown_ij) {
                 cij += 4 * gs_this;
                 rij += (((bval_i_0 == i0) && (bval_j_0 == i1)) +
                         ((bval_i_0 == i0) && (bval_j_1 == i1)) +
@@ -600,22 +600,22 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
                 const bool unknown_k = env->sparse && bval_k == GM_2BIT_UNKNOWN;
                 const bool unknown_ijk = unknown_i || unknown_j || unknown_k;
 
-                if (!unknown_i) {
+                if (! unknown_i) {
                   ci += gs_this;
                   si += ((bval_i_0 == i0) + (bval_i_1 == i0)) * gs_this;
                 }
 
-                if (!unknown_j) {
+                if (! unknown_j) {
                   cj += gs_this;
                   sj += ((bval_j_0 == i1) + (bval_j_1 == i1)) * gs_this;
                 }
 
-                if (!unknown_k) {
+                if (! unknown_k) {
                   ck += gs_this;
                   sk += ((bval_k_0 == i2) + (bval_k_1 == i2)) * gs_this;
                 }
 
-                if (!unknown_ijk) {
+                if (! unknown_ijk) {
                   cijk += 8 * gs_this;
                   rijk += (((bval_i_0==i0) && (bval_j_0==i1) && (bval_k_0==i2))+
                            ((bval_i_1==i0) && (bval_j_0==i1) && (bval_k_0==i2))+
@@ -655,7 +655,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     } break;
     /*--------------------*/
     default:
-      GMInsist(false ? "Invalid data type." : 0);
+      GMInsist(false && "Invalid data type.");
   } /*---switch---*/
   do_->num_incorrect += num_incorrect;
 }

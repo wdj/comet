@@ -36,7 +36,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                         GMEnv* env) {
   GMInsist(dm && env);
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     *dm = GMDecompMgr_null();
     return;
   }
@@ -166,7 +166,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     } break;
     /*--------------------*/
     default:
-      GMInsist(false ? "Invalid data type." : 0);
+      GMInsist(false && "Invalid data type.");
   } /*---switch---*/
 
   GMInsist(dm->num_bits_per_packedfield % bits_per_byte == 0);
@@ -198,7 +198,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env) {
   GMInsist(dm && env);
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 

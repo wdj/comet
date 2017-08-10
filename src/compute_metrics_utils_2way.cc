@@ -37,7 +37,7 @@ void gm_compute_czek_numerators_2way_start_(
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, !env->do_reduce
+    GMInsistInterface(env, ! env->do_reduce
                       && "num_proc_field>1 for REF case not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -59,7 +59,7 @@ void gm_compute_czek_numerators_2way_start_(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, !env->do_reduce
+    GMInsistInterface(env, ! env->do_reduce
                       && "num_proc_field>1 for CPU case not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -119,9 +119,8 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, !env->do_reduce
-                      ? "num_proc_field>1 for REF case not supported"
-                      : 0);
+    GMInsistInterface(env, ! env->do_reduce
+                      && "num_proc_field>1 for REF case not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -139,7 +138,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
           const bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
                                              : false;
 
-          if ((!unknown_i) && (!unknown_j)) {
+          if ( ! unknown_i && ! unknown_j ) {
 
             /* clang-format off */
             const int r00 = ( ( !(vi & 1) ) && ( !(vj & 1) ) ) +
@@ -195,9 +194,8 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, !env->do_reduce
-                      ? "num_proc_field>1 for CPU case not supported"
-                      : 0);
+    GMInsistInterface(env, ! env->do_reduce
+                      && "num_proc_field>1 for CPU case not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -383,7 +381,7 @@ void gm_compute_numerators_2way_start(GMVectors* vectors_left,
           env);
     } break;
     default:
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
   } /*---case---*/
 }
 
@@ -542,7 +540,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
               GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
-            if (!env->sparse) {
+            if (! env->sparse) {
               const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
@@ -566,7 +564,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
               GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #ifdef GM_ASSERTIONS_ON
-            if (!env->sparse) {
+            if (! env->sparse) {
               const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
@@ -585,7 +583,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
      }
 
       /*--------------------*/
-    } else /*---(!GMEnv_all2all(env))---*/ {
+    } else /*---(! GMEnv_all2all(env))---*/ {
       /*--------------------*/
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
@@ -594,7 +592,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
               GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
 #ifdef GM_ASSERTIONS_ON
-          if (!env->sparse) {
+          if (! env->sparse) {
             const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
             const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
             const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
@@ -658,7 +656,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
    }
 
     /*--------------------*/
-  } else /*---(!GMEnv_all2all(env))---*/ {
+  } else /*---(! GMEnv_all2all(env))---*/ {
     /*--------------------*/
     for (int j = 0; j < nvl; ++j) {
       const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
@@ -708,7 +706,7 @@ void gm_compute_2way_combine(GMMetrics* metrics,
                                    j_block, do_compute_triang_only, env);
     } break;
     default:
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
   } /*---case---*/
 }
 

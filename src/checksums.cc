@@ -39,7 +39,7 @@ GMChecksum GMChecksum_null() {
 // Check whether two checksums equal
 
 bool GMChecksum_equal(GMChecksum* cs1, GMChecksum* cs2) {
-  if ((!cs1->computing_checksum) || (!cs2->computing_checksum)) {
+  if ( ! cs1->computing_checksum || ! cs2->computing_checksum ) {
     return true;
   }
   bool result = true;
@@ -80,13 +80,13 @@ static size_t lshift(size_t a, int j) {
 
 void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
   GMInsist(cs && metrics && env);
-  GMInsist(metrics->data || !GMEnv_is_proc_active(env));
+  GMInsist(metrics->data || ! GMEnv_is_proc_active(env));
 
   //--------------------
   // Initializations
   //--------------------
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 

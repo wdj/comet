@@ -60,7 +60,7 @@ void bt_sighandler(int sig, struct sigcontext ctx) {
   char name_buf[512];
   name_buf[readlink("/proc/self/exe", name_buf, 511)] = 0;
   int child_pid = fork();
-  if (!child_pid) {           
+  if (! child_pid) {           
     dup2(2,1); // redirect output to stderr
     fprintf(stdout,"MPI rank %i: stack trace for %s pid=%s\n",
             proc_num, name_buf, pid_buf);

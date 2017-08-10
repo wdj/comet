@@ -149,22 +149,21 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
   const GMVectorSums* const vs_j = vector_sums_j;
   const GMVectorSums* const vs_k = vector_sums_k;
 
+  const bool no_perm = ! si->is_part3;
+
   /* clang-format off */
-  const GMVectorSums* const vs_I =
-          !si->is_part3 ?   vs_i :
-               si->sax0 ?   vs_k :
-               si->sax1 ?   vs_i :
-            /* si->sax2 ?*/ vs_j;
-  const GMVectorSums* const vs_J =
-          !si->is_part3 ?   vs_j :
-               si->sax0 ?   vs_i :
-               si->sax1 ?   vs_j :
-            /* si->sax2 ?*/ vs_k;
-  const GMVectorSums* const vs_K =
-          !si->is_part3 ?   vs_k :
-               si->sax0 ?   vs_j :
-               si->sax1 ?   vs_k :
-            /* si->sax2 ?*/ vs_i;
+  const GMVectorSums* const vs_I = no_perm  ?   vs_i :
+                                   si->sax0 ?   vs_k :
+                                   si->sax1 ?   vs_i :
+                                /* si->sax2 ?*/ vs_j;
+  const GMVectorSums* const vs_J = no_perm  ?   vs_j :
+                                   si->sax0 ?   vs_i :
+                                   si->sax1 ?   vs_j :
+                                /* si->sax2 ?*/ vs_k;
+  const GMVectorSums* const vs_K = no_perm  ?   vs_k :
+                                   si->sax0 ?   vs_j :
+                                   si->sax1 ?   vs_k :
+                                /* si->sax2 ?*/ vs_i;
   /* clang-format on */
 
   //const size_t nvl64 = (size_t)nvl;
@@ -175,8 +174,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
   /*--------------------*/
 
   /*----------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK &&
-      !GMEnv_all2all(env)) {
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK && ! GMEnv_all2all(env)) {
     /*----------*/
 
 #pragma omp parallel for collapse(2)
@@ -457,10 +455,10 @@ void gm_compute_numerators_3way_gpu_start_(
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMInsist(!(GMEnv_proc_num_vector_i(env) == j_block &&
-                   GMEnv_proc_num_vector_i(env) != k_block));
-  GMInsist(!(GMEnv_proc_num_vector_i(env) == k_block &&
-                   GMEnv_proc_num_vector_i(env) != j_block));
+  GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
+              GMEnv_proc_num_vector_i(env) != k_block));
+  GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
+              GMEnv_proc_num_vector_i(env) != j_block));
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
@@ -478,7 +476,7 @@ void gm_compute_numerators_3way_gpu_start_(
                        metrics->num_vector_local, env);
 
   const bool need_mat_ij = env->need_2way;
-  const bool need_mat_jk = env->need_2way && !si->is_part1;
+  const bool need_mat_jk = env->need_2way && ! si->is_part1;
   const bool need_mat_kik = env->need_2way && si->is_part3;
 
   /*----------------------------------------*/
@@ -522,7 +520,7 @@ void gm_compute_numerators_3way_gpu_start_(
   /*---Need to compute only if not identical to already computed values---*/
 
   GMMirroredBuf* const matM_jk_buf =
-      !si->is_part1 ? &this_->matM_jk_buf : matM_ij_buf;
+      ! si->is_part1 ? &this_->matM_jk_buf : matM_ij_buf;
 
   if (need_mat_jk) {
     GMMirroredBuf* matM_jk_buf_ptr =
@@ -592,38 +590,40 @@ void gm_compute_numerators_3way_gpu_start_(
   /*---Set up pointers to permute the access of axes for Part 3---*/
   /*---We use capitals I, J, K here to denote the PERMUTED axes---*/
 
-  const bool is_ijk = !si->is_part3 ? true : si->sax1;
-  const bool is_kij = !si->is_part3 ? false : si->sax0;
-  const bool is_jki = !si->is_part3 ? false : si->sax2;
+  const bool no_perm = ! si->is_part3;
+
+  const bool is_ijk = no_perm ? true : si->sax1;
+  const bool is_kij = no_perm ? false : si->sax0;
+  const bool is_jki = no_perm ? false : si->sax2;
 
   /* clang-format off */
   GMMirroredBuf* const vectors_I_buf = is_ijk ? vectors_i_buf :
-                                           is_kij ? vectors_k_buf :
-                                           is_jki ? vectors_j_buf : 0;
+                                       is_kij ? vectors_k_buf :
+                                       is_jki ? vectors_j_buf : 0;
  
   GMMirroredBuf* const vectors_J_buf = is_ijk ? vectors_j_buf :
-                                           is_kij ? vectors_i_buf :
-                                           is_jki ? vectors_k_buf : 0;
+                                       is_kij ? vectors_i_buf :
+                                       is_jki ? vectors_k_buf : 0;
  
   GMMirroredBuf* const vectors_K_buf = is_ijk ? vectors_k_buf :
-                                           is_kij ? vectors_j_buf :
-                                           is_jki ? vectors_i_buf : 0;
+                                       is_kij ? vectors_j_buf :
+                                       is_jki ? vectors_i_buf : 0;
   
   //TODO - use is_ijk etc. 
-  GMMirroredBuf* const matM_IJ_buf  = !si->is_part3 ? matM_ij_buf  :
-                                               si->sax0 ? matM_kik_buf :
-                                               si->sax1 ? matM_ij_buf  :
-                                               si->sax2 ? matM_jk_buf  : 0;
+  GMMirroredBuf* const matM_IJ_buf  = no_perm  ? matM_ij_buf  :
+                                      si->sax0 ? matM_kik_buf :
+                                      si->sax1 ? matM_ij_buf  :
+                                      si->sax2 ? matM_jk_buf  : 0;
   
-  GMMirroredBuf* const matM_JK_buf  = !si->is_part3 ? matM_jk_buf  :
-                                               si->sax0 ? matM_ij_buf  :
-                                               si->sax1 ? matM_jk_buf  :
-                                               si->sax2 ? matM_kik_buf : 0;
+  GMMirroredBuf* const matM_JK_buf  = no_perm  ? matM_jk_buf  :
+                                      si->sax0 ? matM_ij_buf  :
+                                      si->sax1 ? matM_jk_buf  :
+                                      si->sax2 ? matM_kik_buf : 0;
   
-  GMMirroredBuf* const matM_KIK_buf = !si->is_part3 ? matM_kik_buf :
-                                               si->sax0 ? matM_jk_buf  :
-                                               si->sax1 ? matM_kik_buf :
-                                               si->sax2 ? matM_ij_buf  : 0;
+  GMMirroredBuf* const matM_KIK_buf = no_perm  ? matM_kik_buf :
+                                      si->sax0 ? matM_jk_buf  :
+                                      si->sax1 ? matM_kik_buf :
+                                      si->sax2 ? matM_ij_buf  : 0;
   /* clang-format on */
 
   /*--------------------*/

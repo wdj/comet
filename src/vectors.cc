@@ -60,7 +60,7 @@ void GMVectors_initialize_pad_(GMVectors* vectors, GMEnv* env) {
       }
     } break;
     default:
-      GMInsist(false ? "Invalid data type." : 0);
+      GMInsist(false && "Invalid data type.");
   } /*---switch---*/
 }
 
@@ -126,7 +126,7 @@ void GMVectors_create(GMVectors* vectors,
 
   *vectors = GMVectors_null();
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -145,7 +145,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 
   *vectors = GMVectors_null();
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -159,9 +159,9 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
   GMInsist(vectors && env);
-  GMInsist(vectors->data || !GMEnv_is_proc_active(env));
+  GMInsist(vectors->data || ! GMEnv_is_proc_active(env));
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -209,7 +209,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
       }
     } break;
     default:
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
   } /*---case---*/
 }
 

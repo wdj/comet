@@ -22,7 +22,7 @@
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   GMInsist(metrics && vectors && env);
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -32,7 +32,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   // Perform metrics computation.
 
-  if (GMEnv_num_way(env) == 2 && !GMEnv_all2all(env)) {
+  if (GMEnv_num_way(env) == 2 && ! GMEnv_all2all(env)) {
 
     gm_compute_metrics_2way_notall2all(metrics, vectors, env);
 
@@ -40,7 +40,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
     gm_compute_metrics_2way_all2all(metrics, vectors, env);
 
-  } else if (GMEnv_num_way(env) == 3 && !GMEnv_all2all(env)) {
+  } else if (GMEnv_num_way(env) == 3 && ! GMEnv_all2all(env)) {
 
     gm_compute_metrics_3way_notall2all(metrics, vectors, env);
 
@@ -50,7 +50,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
 
   } else {
 
-    GMInsistInterface(env, false ? "Unimplemented." : 0);
+    GMInsistInterface(env, false && "Unimplemented.");
 
   }
 

@@ -91,13 +91,13 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     } else if (strcmp(argv[i], "--checksum") == 0) {
       /*--------------------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for checksum." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for checksum.");
       if (strcmp(argv[i], "yes") == 0) {
         do_->checksum = true;
       } else if (strcmp(argv[i], "no") == 0) {
         do_->checksum = false;
       } else {
-        GMInsistInterface(env, false ? "Invalid setting for checksum." : 0);
+        GMInsistInterface(env, false && "Invalid setting for checksum.");
       }
     /*----------*/
     } else if (strcmp(argv[i], "--num_stage") == 0) {
@@ -167,31 +167,31 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     } else if (strcmp(argv[i], "--input_file") == 0) {
     /*----------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for input_file." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for input_file.");
       do_->input_file_path = argv[i];
     /*----------*/
     } else if (strcmp(argv[i], "--output_file_stub") == 0) {
     /*----------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for output_file_stub." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for output_file_stub.");
       do_->output_file_path_stub = argv[i];
       /*--------------------*/
     } else if (strcmp(argv[i], "--problem_type") == 0) {
       /*--------------------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for problem_type." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for problem_type.");
       if (strcmp(argv[i], "random") == 0) {
         GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_RANDOM);
       } else if (strcmp(argv[i], "analytic") == 0) {
         GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_ANALYTIC);
       } else {
-        GMInsistInterface(env, false ? "Invalid setting for problem_type." : 0);
+        GMInsistInterface(env, false && "Invalid setting for problem_type.");
       }
     /*----------*/
     } else if (strcmp(argv[i], "--threshold") == 0) {
     /*----------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for threshold." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for threshold.");
       errno = 0;
       const double threshold = strtod(argv[i], NULL);
       GMInsistInterface(env, 0 == errno && "Invalid setting for ccc_param.");
@@ -220,20 +220,18 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       if (GMEnv_proc_num(env) == 0) {
         fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
       }
-      GMInsistInterface(env, false ? "Error: argument not recognized." : 0);
+      GMInsistInterface(env, false && "Error: argument not recognized.");
     /*----------*/
     } /*---if/else---*/
 
   } /*---for i---*/
 
-  GMInsistInterface(env, do_->num_field_local_initialized ||
-                do_->num_field_active_initialized
-                ? "Error: must set num_field_local or num_field."
-                : 0);
-  GMInsistInterface(env, do_->num_vector_local_initialized ||
-                do_->num_vector_active_initialized
-                ? "Error: must set num_vector_local or num_vector."
-                : 0);
+  GMInsistInterface(env, (do_->num_field_local_initialized ||
+                do_->num_field_active_initialized)
+                && "Error: must set num_field_local or num_field.");
+  GMInsistInterface(env, (do_->num_vector_local_initialized ||
+                do_->num_vector_active_initialized)
+                && "Error: must set num_vector_local or num_vector.");
 }
 
 //-----------------------------------------------------------------------------

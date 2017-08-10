@@ -27,7 +27,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   GMInsist(vectors && do_ && env);
   GMInsist(do_->input_file_path);
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -39,7 +39,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
       const size_t field_base = fl +
         vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
       FILE* input_file = fopen(do_->input_file_path, "r");
-      GMInsist(NULL != input_file ? "Unable to open input file." : 0);
+      GMInsist(NULL != input_file && "Unable to open input file.");
       int vl = 0;
       for (vl = 0; vl < vectors->num_vector_local; ++vl) {
         const size_t proc_num = GMEnv_proc_num_vector_i(env);
@@ -56,9 +56,9 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         GMInsist(0 == fseek_success);
         GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
         /*---NOTE: the following call is ok since has no side effects---*/
-        GMInsist(fl+1 >= vectors->num_field_local ||
-            GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1
-            ? "Vector layout is incompatible with operation." : 0);
+        GMInsist((fl+1 >= vectors->num_field_local ||
+            GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1)
+            && "Vector layout is incompatible with operation.");
         size_t num_read = fread(addr_mem, sizeof(GMFloat),
                                 vectors->num_field_local, input_file);
         num_read += 0; /*---Avoid unused var warning---*/
@@ -72,12 +72,12 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 
       //TODO: implement
 
-     GMInsistInterface(env, false ? "Not yet implemented." : 0);
+     GMInsistInterface(env, false && "Not yet implemented.");
     } break;
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false ? "Invalid data type." : 0);
+      GMInsist(false && "Invalid data type.");
   } /*---switch---*/
 }
 
@@ -249,7 +249,7 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
                          FILE* file, double threshold, GMEnv* env) {
   GMInsist(metrics && do_ && file && env);
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -462,7 +462,7 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
     } break;
     /*--------------------*/
     default:
-      GMInsist(false ? "Invalid data type." : 0);
+      GMInsist(false && "Invalid data type.");
   } /*---switch---*/
 }
 

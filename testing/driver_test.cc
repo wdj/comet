@@ -1415,7 +1415,7 @@ void DriverTest_ccc_() {
   sprintf(options1, options_template_11a, 1);
   sprintf(options2, options_template_11b, 1, ((double)1) / ((double)2));
   const int result11 = compare_2runs(options1, options2);
-  EXPECT_EQ(true, proc_num==0 ? !result11 : true);
+  EXPECT_EQ(true, proc_num==0 ? ! result11 : true);
 
   //----------
   //---num_phase, 2-way

@@ -44,8 +44,8 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_minproduct_int_t magma_code = magma_minproduct_init();
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
-                   "Error in call to magma_minproduct_init." : 0);
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+                   "Error in call to magma_minproduct_init.");
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
@@ -58,8 +58,8 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally2_int_t magma_code = magma_tally2_init();
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
-                   "Error in call to magma_tally2_init." : 0);
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
+                   "Error in call to magma_tally2_init.");
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
@@ -73,14 +73,14 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally4_int_t magma_code = magma_tally4_init();
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
-                   "Error in call to magma_tally4_init." : 0);
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
+                   "Error in call to magma_tally4_init.");
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
     magma_code = magma_tally4blasSetKernelStream(GMEnv_stream_compute(env));
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
-                   "Error in call to magma_tally4blasSetKernelStream." : 0);
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
+                   "Error in call to magma_tally4blasSetKernelStream.");
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -88,20 +88,20 @@ void gm_linalg_initialize(GMEnv* env) {
   /*----------------------------------------*/
 
     magma_tally3_int_t magma_code = magma_tally3_init();
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
-                   "Error in call to magma_tally3_init." : 0);
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
+                   "Error in call to magma_tally3_init.");
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
     magma_code = magma_tally3blasSetKernelStream(GMEnv_stream_compute(env));
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
-                   "Error in call to magma_tally3blasSetKernelStream." : 0);
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
+                   "Error in call to magma_tally3blasSetKernelStream.");
 
   /*----------------------------------------*/
   } else {
   /*----------------------------------------*/
 
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -124,8 +124,8 @@ void gm_linalg_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_minproduct_int_t magma_code = magma_minproduct_finalize();
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
-                   "Error in call to magma_minproduct_finalize." : 0);
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+                   "Error in call to magma_minproduct_finalize.");
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
@@ -133,8 +133,8 @@ void gm_linalg_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_tally2_int_t magma_code = magma_tally2_finalize();
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
-                   "Error in call to magma_tally2_finalize." : 0);
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
+                   "Error in call to magma_tally2_finalize.");
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -143,8 +143,8 @@ void gm_linalg_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_tally4_int_t magma_code = magma_tally4_finalize();
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
-                   "Error in call to magma_tally4_finalize." : 0);
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
+                   "Error in call to magma_tally4_finalize.");
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -153,14 +153,14 @@ void gm_linalg_finalize(GMEnv* env) {
 
     // TODO: reset kernel stream (not really needed)
     magma_tally3_int_t magma_code = magma_tally3_finalize();
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
-                   "Error in call to magma_tally3_finalize." : 0);
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
+                   "Error in call to magma_tally3_finalize.");
 
   /*----------------------------------------*/
   } else {
   /*----------------------------------------*/
 
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -193,23 +193,23 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&p->h, n);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
-                   "Error in call to magma_minproduct_dmalloc_pinned." : 0);
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+                   "Error in call to magma_minproduct_dmalloc_pinned.");
     } else {
       magma_code = magma_minproduct_smalloc_pinned((float**)&p->h, n);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
-                   "Error in call to magma_minproduct_smalloc_pinned." : 0);
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+                   "Error in call to magma_minproduct_smalloc_pinned.");
     }
     GMFloat_fill_nan((GMFloat*)p->h, n);
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
-                   "Error in call to magma_minproduct_dmalloc." : 0);
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+                   "Error in call to magma_minproduct_dmalloc.");
     } else {
       magma_code = magma_minproduct_smalloc((float**)&p->d, n);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
-                   "Error in call to magma_minproduct_smalloc." : 0);
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+                   "Error in call to magma_minproduct_smalloc.");
     }
 
     p->size = n*sizeof(GMFloat);
@@ -227,12 +227,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_tally2_int_t magma_code = 0;
 
     magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
-                   "Error in call to magma_tally2_zmalloc_pinned." : 0);
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
+                   "Error in call to magma_tally2_zmalloc_pinned.");
 
     magma_code = magma_tally2_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
-                   "Error in call to magma_tally2_zmalloc." : 0);
+    GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
+                   "Error in call to magma_tally2_zmalloc.");
 
     p->size = n*sizeof(Float_t);
     env->cpu_mem += p->size;
@@ -250,12 +250,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_tally4_int_t magma_code = 0;
 
     magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
-                   "Error in call to magma_tally4_zmalloc_pinned." : 0);
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
+                   "Error in call to magma_tally4_zmalloc_pinned.");
 
     magma_code = magma_tally4_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS ?
-                   "Error in call to magma_tally4_zmalloc." : 0);
+    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
+                   "Error in call to magma_tally4_zmalloc.");
 
     p->size = n*sizeof(Float_t);
     env->cpu_mem += p->size;
@@ -273,12 +273,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_tally3_int_t magma_code = 0;
 
     magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
-                   "Error in call to magma_tally3_zmalloc_pinned." : 0);
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
+                   "Error in call to magma_tally3_zmalloc_pinned.");
 
     magma_code = magma_tally3_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS ?
-                   "Error in call to magma_tally3_zmalloc." : 0);
+    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
+                   "Error in call to magma_tally3_zmalloc.");
 
     p->size = n*sizeof(Float_t);
     env->cpu_mem += p->size;
@@ -290,7 +290,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
 
   /*----------------------------------------*/
   } /*---if---*/
@@ -473,15 +473,15 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     int TransB = 0;
 
     magma_minproduct_int_t Am = ( ! TransA ? m : k);
-    magma_minproduct_int_t An = (!TransA ? k : m);
+    magma_minproduct_int_t An = ( ! TransA ? k : m);
     magma_minproduct_int_t Bm = ( ! TransB ? k : n);
-    magma_minproduct_int_t Bn = (!TransB ? n : k);
+    magma_minproduct_int_t Bn = ( ! TransB ? n : k);
     size_t sizeA = (size_t) ldda * (An - 1) + Am;
     size_t sizeB = (size_t) lddb * (Bn - 1) + Bm;
 
     size_t CUBLAS_MAX_1DBUF_SIZE = ((1 << 27) - 512);
-    GMInsist( !(sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
-                      sizeB >= CUBLAS_MAX_1DBUF_SIZE ));
+    GMInsist( ! (sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
+                 sizeB >= CUBLAS_MAX_1DBUF_SIZE ));
   }
 
   // ISSUE: these MAGMA routines don't return an error code.
@@ -732,7 +732,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
   } else {
   /*----------------------------------------*/
 
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
 
   /*----------------------------------------*/
   } /*---if---*/

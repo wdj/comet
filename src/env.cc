@@ -47,7 +47,7 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
     if (is_delim) {
       argstring[i] = 0;
     }
-    if (is_delim_prev && !is_delim) {
+    if (is_delim_prev && ! is_delim) {
       argv[*argc] = &(argstring[i]);
       (*argc)++;
     }
@@ -109,19 +109,19 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
     if (strcmp(argv[i], "--metric_type") == 0) {
       /*--------------------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for metric_type." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for metric_type.");
       if (strcmp(argv[i], "czekanowski") == 0) {
         env->metric_type_ = GM_METRIC_TYPE_CZEK;
       } else if (strcmp(argv[i], "ccc") == 0) {
         env->metric_type_ = GM_METRIC_TYPE_CCC;
       } else {
-        GMInsistInterface(env, false ? "Invalid setting for metric_type." : 0);
+        GMInsistInterface(env, false && "Invalid setting for metric_type.");
       }
       /*--------------------*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
       /*--------------------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for num_way." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for num_way.");
       errno = 0;
       const long num_way = strtol(argv[i], NULL, 10);
       GMInsistInterface(env, 0 == errno && (num_way == GM_NUM_WAY_2 ||
@@ -134,19 +134,19 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
     } else if (strcmp(argv[i], "--all2all") == 0) {
       /*--------------------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for all2all." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for all2all.");
       if (strcmp(argv[i], "yes") == 0) {
         env->all2all_ = true;
       } else if (strcmp(argv[i], "no") == 0) {
         env->all2all_ = false;
       } else {
-        GMInsistInterface(env, false ? "Invalid setting for all2all." : 0);
+        GMInsistInterface(env, false && "Invalid setting for all2all.");
       }
       /*--------------------*/
     } else if (strcmp(argv[i], "--compute_method") == 0) {
       /*--------------------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for compute_method." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for compute_method.");
       if (strcmp(argv[i], "CPU") == 0) {
         GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
       } else if (strcmp(argv[i], "GPU") == 0) {
@@ -154,7 +154,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
       } else if (strcmp(argv[i], "REF") == 0) {
         GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_REF);
       } else {
-        GMInsistInterface(env, false ? "Invalid setting for compute_method." : 0);
+        GMInsistInterface(env, false && "Invalid setting for compute_method.");
       }
       /*--------------------*/
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
@@ -196,7 +196,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
       /*--------------------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for ccc_param." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for ccc_param.");
       errno = 0;
       const double ccc_param = strtod(argv[i], NULL);
       GMInsistInterface(env, 0 == errno && ccc_param >= 0
@@ -206,13 +206,13 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
     } else if (strcmp(argv[i], "--sparse") == 0) {
       /*--------------------*/
       ++i;
-      GMInsistInterface(env, i < argc ? "Missing value for sparse." : 0);
+      GMInsistInterface(env, i < argc && "Missing value for sparse.");
       if (strcmp(argv[i], "yes") == 0) {
         env->sparse = true;
       } else if (strcmp(argv[i], "no") == 0) {
         env->sparse = false;
       } else {
-        GMInsistInterface(env, false ? "Invalid setting for sparse." : 0);
+        GMInsistInterface(env, false && "Invalid setting for sparse.");
       }
       /*--------------------*/
     } /*---if/else---*/
@@ -314,7 +314,7 @@ void GMEnv_initialize_streams(GMEnv* const env) {
 void GMEnv_terminate_streams(GMEnv* const env) {
   GMInsist(env);
 
-  if (!env->are_cuda_streams_initialized_) {
+  if (! env->are_cuda_streams_initialized_) {
     return;
   }
 
@@ -340,7 +340,7 @@ void GMEnv_initialize_comms(GMEnv* const env) {
     return;
   }
 
-  if (!env->make_comms_) {
+  if (! env->make_comms_) {
     return;
   }
 
@@ -366,7 +366,7 @@ void GMEnv_initialize_comms(GMEnv* const env) {
 void GMEnv_terminate_comms(GMEnv* const env) {
   GMInsist(env);
 
-  if (!env->are_mpi_comms_initialized_) {
+  if (! env->are_mpi_comms_initialized_) {
     return;
   }
 
@@ -419,7 +419,7 @@ int GMEnv_data_type_vectors(const GMEnv* const env) {
     case GM_METRIC_TYPE_CCC:
       return GM_DATA_TYPE_BITS2;
   }
-  GMInsist(false ? "Invalid metric type." : 0);
+  GMInsist(false && "Invalid metric type.");
   return 0;
 }
 
@@ -435,7 +435,7 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
       return env->num_way_ == GM_NUM_WAY_2 ? GM_DATA_TYPE_TALLY2X2
                                            : GM_DATA_TYPE_TALLY4X2;
   }
-  GMInsist(false ? "Invalid metric type." : 0);
+  GMInsist(false && "Invalid metric type.");
   return 0;
 }
 

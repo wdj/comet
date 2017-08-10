@@ -91,7 +91,7 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
                                            GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(!GMEnv_all2all(env));
+  GMAssert(! GMEnv_all2all(env));
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);
@@ -344,7 +344,7 @@ static void GMMetrics_float_set_2(GMMetrics* metrics,
                                   GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(!GMEnv_all2all(env));
+  GMAssert(! GMEnv_all2all(env));
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);
@@ -365,7 +365,7 @@ static void GMMetrics_float2_S_set_2(GMMetrics* metrics,
                                      GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(!GMEnv_all2all(env));
+  GMAssert(! GMEnv_all2all(env));
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);
@@ -387,7 +387,7 @@ static void GMMetrics_float2_C_set_2(GMMetrics* metrics,
                                      GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(!GMEnv_all2all(env));
+  GMAssert(! GMEnv_all2all(env));
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);
@@ -409,7 +409,7 @@ static void GMMetrics_tally2x2_set_2(GMMetrics* metrics,
                                      GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(!GMEnv_all2all(env));
+  GMAssert(! GMEnv_all2all(env));
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);
@@ -536,7 +536,7 @@ static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
                                      GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(!GMEnv_all2all(env));
+  GMAssert(! GMEnv_all2all(env));
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);

@@ -43,10 +43,10 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMInsist(!(GMEnv_proc_num_vector_i(env) == j_block &&
-                   GMEnv_proc_num_vector_i(env) != k_block));
-  GMInsist(!(GMEnv_proc_num_vector_i(env) == k_block &&
-                   GMEnv_proc_num_vector_i(env) != j_block));
+  GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
+              GMEnv_proc_num_vector_i(env) != k_block));
+  GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
+              GMEnv_proc_num_vector_i(env) != j_block));
   GMInsist(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
   GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
@@ -58,8 +58,7 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
-  GMSectionInfo si_value;
-  GMSectionInfo* si = &si_value;
+  GMSectionInfo si_value, *si = &si_value;
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
@@ -69,12 +68,11 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
 
   /*----------------------------------------*/
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU &&
-      !GMEnv_all2all(env)) {
+      ! GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, !env->do_reduce
-                      ? "num_proc_field>1 for REF/CPU cases not supported"
-                      : 0);
+    GMInsistInterface(env, ! env->do_reduce
+                      && "num_proc_field>1 for REF/CPU cases not supported");
 
     GMInsist(gm_num_section_steps(env, 1) == 1);
 
@@ -118,9 +116,10 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, !env->do_reduce
-                      ? "num_proc_field>1 for REF/CPU cases not supported"
-                      : 0);
+    GMInsistInterface(env, ! env->do_reduce
+                      && "num_proc_field>1 for REF/CPU cases not supported");
+
+    const bool no_perm = ! si->is_part3;
 
     /*---Compute tetrahedron, triang prism or block section---*/
 
@@ -139,18 +138,18 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
         for (int I=I_min; I<I_max; ++I) {
 
           /* clang-format off */
-          const int i = !si->is_part3 ?   I :
-                             si->sax0 ?   J :
-                             si->sax1 ?   I :
-                          /* si->sax2 ?*/ K;
-          const int j = !si->is_part3 ?   J :
-                             si->sax0 ?   K :
-                             si->sax1 ?   J :
-                          /* si->sax2 ?*/ I;
-          const int k = !si->is_part3 ?   K :
-                             si->sax0 ?   I :
-                             si->sax1 ?   K :
-                          /* si->sax2 ?*/ J;
+          const int i = no_perm  ?   I :
+                        si->sax0 ?   J :
+                        si->sax1 ?   I :
+                     /* si->sax2 ?*/ K;
+          const int j = no_perm  ?   J :
+                        si->sax0 ?   K :
+                        si->sax1 ?   J :
+                     /* si->sax2 ?*/ I;
+          const int k = no_perm  ?   K :
+                        si->sax0 ?   I :
+                        si->sax1 ?   K :
+                     /* si->sax2 ?*/ J;
           /* clang-format on */
 
           /*---Make arithmetic order-independent---*/
@@ -185,9 +184,7 @@ void gm_compute_czek_numerators_3way_nongpu_start_(
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
-    GMInsist(false
-                 ? "logic error - code branch should never be executed"
-                 : 0);
+    GMInsist(false && "logic error - code branch should never be executed");
 
   } /*---if GPU---*/
 
@@ -218,10 +215,10 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMInsist(!(GMEnv_proc_num_vector_i(env) == j_block &&
-                   GMEnv_proc_num_vector_i(env) != k_block));
-  GMInsist(!(GMEnv_proc_num_vector_i(env) == k_block &&
-                   GMEnv_proc_num_vector_i(env) != j_block));
+  GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
+              GMEnv_proc_num_vector_i(env) != k_block));
+  GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
+              GMEnv_proc_num_vector_i(env) != j_block));
   GMInsist(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
   GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
@@ -244,11 +241,11 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, !env->do_reduce
-                      ? "num_proc_field>1 for CPU case not supported"
-                      : 0);
+    GMInsistInterface(env, ! env->do_reduce
+                      && "num_proc_field>1 for CPU case not supported");
 
     const int nfal = vectors_i->dm->num_field_active_local;
+    const bool no_perm = ! si->is_part3;
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
@@ -264,18 +261,18 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
         for (int I=I_min; I<I_max; ++I) {
 
           /* clang-format off */
-          const int i = !si->is_part3 ?   I :
-                             si->sax0 ?   J :
-                             si->sax1 ?   I :
-                          /* si->sax2 ?*/ K;
-          const int j = !si->is_part3 ?   J :
-                             si->sax0 ?   K :
-                             si->sax1 ?   J :
-                          /* si->sax2 ?*/ I;
-          const int k = !si->is_part3 ?   K :
-                             si->sax0 ?   I :
-                             si->sax1 ?   K :
-                          /* si->sax2 ?*/ J;
+          const int i = no_perm  ?   I :
+                        si->sax0 ?   J :
+                        si->sax1 ?   I :
+                     /* si->sax2 ?*/ K;
+          const int j = no_perm  ?   J :
+                        si->sax0 ?   K :
+                        si->sax1 ?   J :
+                     /* si->sax2 ?*/ I;
+          const int k = no_perm  ?   K :
+                        si->sax0 ?   I :
+                        si->sax1 ?   K :
+                     /* si->sax2 ?*/ J;
           /* clang-format on */
 
           GMTally4x2 sum = GMTally4x2_null();
@@ -291,7 +288,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
             const bool unknown_k = env->sparse ? vk == GM_2BIT_UNKNOWN
                                                : false;
 
-            if ((!unknown_i) && (!unknown_j) && (!unknown_k)) {
+            if ( ! unknown_i && ! unknown_j  && ! unknown_k ) {
 
               /* clang-format off */
               const int r000 =
@@ -375,7 +372,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
               sum.data[2] += GMTally1_encode(r100, r101);
               sum.data[3] += GMTally1_encode(r110, r111);
 
-            } /*---if !unknown---*/
+            } /*---if ! unknown---*/
           } /*---for f---*/
 
           // Get denom
@@ -418,9 +415,8 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, !env->do_reduce
-                      ? "num_proc_field>1 for CPU case not supported"
-                      : 0);
+    GMInsistInterface(env, ! env->do_reduce
+                      && "num_proc_field>1 for CPU case not supported");
 
     /* clang-format off */
 
@@ -721,7 +717,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
     /*----------------------------------------*/
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
-    GMInsist(false ? "logic error; should never be executed" : 0);
+    GMInsist(false && "logic error; should never be executed");
     /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
@@ -808,10 +804,10 @@ void GMComputeNumerators3Way_start(
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
   GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
-  GMInsist(!(GMEnv_proc_num_vector_i(env) == j_block &&
-                   GMEnv_proc_num_vector_i(env) != k_block));
-  GMInsist(!(GMEnv_proc_num_vector_i(env) == k_block &&
-                   GMEnv_proc_num_vector_i(env) != j_block));
+  GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
+              GMEnv_proc_num_vector_i(env) != k_block));
+  GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
+              GMEnv_proc_num_vector_i(env) != j_block));
   GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
@@ -844,7 +840,7 @@ void GMComputeNumerators3Way_start(
             section_step, env);
       } break;
       default:
-        GMInsistInterface(env, false ? "Unimplemented." : 0);
+        GMInsistInterface(env, false && "Unimplemented.");
     } /*---case---*/
     /*----------------------------------------*/
   } /*---if---*/

@@ -24,7 +24,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
   GMInsist(metrics && vectors && env);
-  GMInsist(!GMEnv_all2all(env));
+  GMInsist(! GMEnv_all2all(env));
 
   /*---Denominator---*/
 

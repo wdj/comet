@@ -24,7 +24,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
   GMInsist(metrics && vectors && env);
-  GMInsist(!GMEnv_all2all(env));
+  GMInsist(! GMEnv_all2all(env));
 
   // Denominator
 
@@ -264,7 +264,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     // Initiate sends/recvs for vecs needed on next step
 
-    if (vars_next.is_compute_step && !comm_with_self) {
+    if (vars_next.is_compute_step && ! comm_with_self) {
       const int mpi_tag = step_num + 1;
 
       // NOTE: this order helps performance
@@ -331,7 +331,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     // Wait for recvs to complete
 
-    if (vars_next.is_compute_step && !comm_with_self) {
+    if (vars_next.is_compute_step && ! comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), env);
     }
 
@@ -361,7 +361,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       if (vars.is_first_compute_step) {
         GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
       }
-      if (!vars.is_main_diag) {
+      if (! vars.is_main_diag) {
         GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
       }
     }
@@ -382,7 +382,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     // Wait for sends to complete
 
-    if (vars_next.is_compute_step && !comm_with_self) {
+    if (vars_next.is_compute_step && ! comm_with_self) {
       gm_send_vectors_wait(&(mpi_requests[0]), env);
     }
 

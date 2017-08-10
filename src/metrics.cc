@@ -142,12 +142,12 @@ void GMMetrics_create(GMMetrics* metrics,
 
   *metrics = GMMetrics_null();
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
-  GMInsistInterface(env, GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1
-          ? "multidim parallelism only available for all2all case" : 0);
+  GMInsistInterface(env, (GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1)
+          && "multidim parallelism only available for all2all case");
 
   /*---The following less important cases are not yet tested---*/
 
@@ -200,12 +200,10 @@ void GMMetrics_create(GMMetrics* metrics,
   /*---Compute number of elements etc.---*/
 
   GMInsistInterface(env, env->stage_num >= 0 && env->stage_num < env->num_stage
-                ? "Invalid stage number specified."
-                : 0);
+                && "Invalid stage number specified.");
 
   GMInsistInterface(env, env->phase_num >= 0 && env->phase_num < env->num_phase
-                ? "Invalid phase number specified."
-                : 0);
+                && "Invalid phase number specified.");
 
   metrics->num_elts_local_computed = 0;
 
@@ -214,12 +212,10 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
 
     GMInsistInterface(env, env->num_stage == 1
-                      ? "Staged computations not allowed for 2-way case."
-                      : 0);
+                      && "Staged computations not allowed for 2-way case.");
 
     GMInsistInterface(env, env->num_phase <= 1 + num_block / 2
-                      ? "num_phase must be at most 1 + nproc_vector/2."
-                      : 0);
+                      && "num_phase must be at most 1 + nproc_vector/2.");
 
     /*---Store the following in this block-row:
         1) strict upper triangular part of main diagonal block
@@ -277,7 +273,7 @@ void GMMetrics_create(GMMetrics* metrics,
     const int beg = gm_diag_computed_min(env);
     const int end = beg + num_computed_blocks_this_row;
     for (int diag=beg; diag<end; ++diag) {
-      if (diag == 0 || !gm_proc_r_active(diag-beg, env)) {
+      if (diag == 0 || ! gm_proc_r_active(diag-beg, env)) {
         continue;
       }
       const int j_block_unwrapped = i_block + diag;
@@ -304,15 +300,13 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
 
     GMInsistInterface(env, env->num_phase == 1
-                      ? "Phaseed computations not currently implemented "
-                        "for 3-way case."
-                      : 0);
+                      && "Phaseed computations not currently implemented "
+                        "for 3-way case.");
 
     /*---Make the following assumption to greatly simplify calculations---*/
-    GMInsistInterface(env, num_block <= 2 || metrics->num_vector_local % 6 == 0
-                      ? "3way all2all case requires num vectors per proc "
-                        "divisible by 6."
-                      : 0);
+    GMInsistInterface(env, (num_block<=2 || metrics->num_vector_local % 6 == 0)
+                      && "3way all2all case requires num vectors per proc "
+                        "divisible by 6.");
 
     /*===PART A: CALCULATE INDEX SIZE===*/
 
@@ -462,16 +456,14 @@ void GMMetrics_create(GMMetrics* metrics,
     GMInsist(index == metrics->num_elts_local);
 
   /*==================================================*/
-  } else if (GMEnv_num_way(env) == GM_NUM_WAY_2 && !GMEnv_all2all(env)) {
+  } else if (GMEnv_num_way(env) == GM_NUM_WAY_2 && ! GMEnv_all2all(env)) {
   /*==================================================*/
 
     GMInsistInterface(env, env->num_stage == 1
-                      ? "Staged computations not allowed for non-all2all case."
-                      : 0);
+                      && "Staged computations not allowed for non-all2all case.");
 
     GMInsistInterface(env, env->num_phase == 1
-                      ? "Phased computations not allowed for non-all2all case."
-                      : 0);
+                      && "Phased computations not allowed for non-all2all case.");
 
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
@@ -489,16 +481,14 @@ void GMMetrics_create(GMMetrics* metrics,
     GMInsist(index == metrics->num_elts_local);
 
   /*==================================================*/
-  } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && !GMEnv_all2all(env)) {
+  } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && ! GMEnv_all2all(env)) {
   /*==================================================*/
 
     GMInsistInterface(env, env->num_stage == 1
-                      ? "Staged computations not allowed for non-all2all case."
-                      : 0);
+                      && "Staged computations not allowed for non-all2all case.");
 
     GMInsistInterface(env, env->num_phase == 1
-                      ? "Phased computations not allowed for non-all2all case."
-                      : 0);
+                      && "Phased computations not allowed for non-all2all case.");
 
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
@@ -526,7 +516,7 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
   } else {
   /*==================================================*/
-    GMInsistInterface(env, 0 == 1 ? "Invalid set of options" : 0);
+    GMInsistInterface(env, 0 == 1 && "Invalid set of options");
     /*---LATER: generalize this to N-way---*/
   }
 
@@ -584,7 +574,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } break;
     /*----------*/
     default:
-      GMInsist(false ? "Invalid data type." : 0);
+      GMInsist(false && "Invalid data type.");
   } /*---switch---*/
 }
 
@@ -593,9 +583,9 @@ void GMMetrics_create(GMMetrics* metrics,
 
 void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
   GMInsist(metrics && env);
-  GMInsist(metrics->data || !GMEnv_is_proc_active(env));
+  GMInsist(metrics->data || ! GMEnv_is_proc_active(env));
 
-  if (!GMEnv_is_proc_active(env)) {
+  if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
@@ -625,8 +615,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
   size_t result64 = 0;
 
   GMAssert(GMEnv_num_way(env) <= GM_NUM_NUM_WAY + 1
-               ? "this num_way currently not supported"
-               : 0);
+               && "this num_way currently not supported");
 
   switch (GMEnv_num_way(env) + 4 * coord_num) {
     case 2 + 4 * 0: /* 2-way, coord 0 */
@@ -645,7 +634,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
       result64 = GMMetrics_coord2_global_from_index_3(metrics, index, env);
       break;
     default:
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
   } /*---case---*/
 
   const int result = (int)result64;

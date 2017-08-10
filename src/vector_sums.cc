@@ -60,7 +60,7 @@ void GMVectorSums_create(GMVectorSums* this_,
       }
     } break;
     default:
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
   } /*---case---*/
 }
 
@@ -249,7 +249,7 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
       GMVectorSums_compute_bits2_(this_, vectors, env);
     } break;
     default:
-      GMInsistInterface(env, false ? "Unimplemented." : 0);
+      GMInsistInterface(env, false && "Unimplemented.");
   } /*---case---*/
 }
 
