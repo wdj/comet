@@ -91,7 +91,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 //=============================================================================
 // Adjustment required to compensate for padding.
 
-void gm_metrics_gpu_adjust(GMMetrics* metrics,
+void gm_metrics_pad_adjust(GMMetrics* metrics,
                            GMMirroredBuf* metrics_buf,
                            GMEnv* env);
 

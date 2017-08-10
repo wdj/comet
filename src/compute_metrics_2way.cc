@@ -75,7 +75,7 @@ void gm_compute_metrics_2way_notall2all(GMMetrics* metrics,
 
   gm_get_metrics_start(metrics, metrics_buf_ptr, env);
   gm_get_metrics_wait(metrics, metrics_buf_ptr, env);
-  gm_metrics_gpu_adjust(metrics, metrics_buf_ptr, env);
+  gm_metrics_pad_adjust(metrics, metrics_buf_ptr, env);
 
   // Do reduction across field procs if needed
 
@@ -303,7 +303,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
         gm_get_metrics_wait(metrics, vars_prev.metrics_buf, env);
-        gm_metrics_gpu_adjust(metrics, vars_prev.metrics_buf, env);
+        gm_metrics_pad_adjust(metrics, vars_prev.metrics_buf, env);
 
         GMMirroredBuf* metrics_buf_prev_ptr =
             env->do_reduce ?  &metrics_tmp_buf : vars_prev.metrics_buf;

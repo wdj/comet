@@ -31,7 +31,7 @@ typedef struct {
   int num_bits_per_field;
   int num_bits_per_packedfield;
   int num_field_per_packedfield;
-  int pad1;
+  int num_pad_field_local;
   size_t num_packedfield_local;
 } GMDecompMgr;
 

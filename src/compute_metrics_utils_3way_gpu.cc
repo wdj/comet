@@ -204,6 +204,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
     }   /*---for I---*/
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
                                         (K_max - K_min);
+
     /*----------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK &&
       GMEnv_all2all(env)) {
@@ -235,89 +236,15 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
     }   /*---for I---*/
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
                                         (K_max - K_min);
+
     /*----------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             !GMEnv_all2all(env)) {
-//TODO: try to merge this case with the one below it
+  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC) {
     /*----------*/
-#pragma omp parallel for collapse(2)
-    for (int K = K_min; K < K_max; ++K) {
-      for (int I = I_min; I < I_max; ++I) {
-        /*---This is the notall2all case -- has no axis permutation---*/
 
-        const int i = I;
-        const int j = J;
-        const int k = K;
-
-        GMTally4x2 numer = step_2way==0 ? GMTally4x2_null() :
-                        GMMetrics_tally4x2_get_3(metrics, i, j, k, env);
-
-        GMTally1 r000, r001;
-        GMTally1_decode(&r000, &r001, numer.data[0]);
-        GMTally1 r010, r011;
-        GMTally1_decode(&r010, &r011, numer.data[1]);
-        GMTally1 r100, r101;
-        GMTally1_decode(&r100, &r101, numer.data[2]);
-        GMTally1 r110, r111;
-        GMTally1_decode(&r110, &r111, numer.data[3]);
-
-        const GMTally2x2 mB = GMMirroredBuf_elt_const<GMTally2x2>(matB_buf, I, K);;
-        GMTally1 mB00, mB01;
-        GMTally1_decode(&mB00, &mB01, mB.data[0]);
-        GMTally1 mB10, mB11;
-        GMTally1_decode(&mB10, &mB11, mB.data[1]);
-
-        if (step_2way==0) {
-          r000 += 2 * mB00;
-          r001 += 2 * mB01;
-          r010 += 2 * mB10;
-          r011 += 2 * mB11;
-        } else if (step_2way==1) {
-          r000 += mB00;
-          r001 += mB01;
-          r010 += mB10;
-          r011 += mB11;
-          r100 += mB00;
-          r101 += mB01;
-          r110 += mB10;
-          r111 += mB11;
-        } else /*---step_2way==2---*/ {
-          r100 += 2 * mB00;
-          r101 += 2 * mB01;
-          r110 += 2 * mB10;
-          r111 += 2 * mB11;
-        }
-
-        numer.data[0] = GMTally1_encode(r000, r001);
-        numer.data[1] = GMTally1_encode(r010, r011);
-        numer.data[2] = GMTally1_encode(r100, r101);
-        numer.data[3] = GMTally1_encode(r110, r111);
-        GMMetrics_tally4x2_set_3(metrics, i, j, k, numer, env);
-        if (step_2way==2) {
-          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
-          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_i, j, env);
-          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_i, k, env);
-          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-          GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
-          if (env->sparse) {
-            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_i, i, env);
-            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_i, j, env);
-            const GMTally1 ck = (GMTally1)GMVectorSums_count(vs_i, k, env);
-            const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
-            GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, env);
-          } /*---if sparse---*/
-        }
-      } /*---for K---*/
-    }   /*---for I---*/
-    if (step_2way == 2) {
-      metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
-                                          (K_max - K_min);
-    }
-    /*----------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_all2all(env)) {
-    /*----------*/
+    const bool all2all = GMEnv_all2all(env);
+    const bool no_perm = ! (all2all && si->is_part3);
     GMIndexCache index_cache = {0};
+
 #pragma omp parallel for collapse(2) firstprivate(index_cache)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
@@ -327,23 +254,25 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
 ---*/
 
         /* clang-format off */
-        const int i = !si->is_part3 ?   I :
-                           si->sax0 ?   J :
-                           si->sax1 ?   I :
-                        /* si->sax2 ?*/ K;
-        const int j = !si->is_part3 ?   J :
-                           si->sax0 ?   K :
-                           si->sax1 ?   J :
-                        /* si->sax2 ?*/ I;
-        const int k = !si->is_part3 ?   K :
-                           si->sax0 ?   I :
-                           si->sax1 ?   K :
-                        /* si->sax2 ?*/ J;
+        const int i = no_perm  ?   I :
+                      si->sax0 ?   J :
+                      si->sax1 ?   I :
+                   /* si->sax2 ?*/ K;
+        const int j = no_perm  ?   J :
+                      si->sax0 ?   K :
+                      si->sax1 ?   J :
+                   /* si->sax2 ?*/ I;
+        const int k = no_perm  ?   K :
+                      si->sax0 ?   I :
+                      si->sax1 ?   K :
+                   /* si->sax2 ?*/ J;
         /* clang-format on */
 
         GMTally4x2 numer = step_2way==0 ? GMTally4x2_null() :
+          all2all ?
           GMMetrics_tally4x2_get_all2all_3_permuted_cache(metrics, I, J, K,
-                                           j_block, k_block, &index_cache, env);
+                                           j_block, k_block, &index_cache, env) :
+          GMMetrics_tally4x2_get_3(metrics, i, j, k, env);
 
         GMTally1 r000_permuted, r001_permuted;
         GMTally1_decode(&r000_permuted, &r001_permuted, numer.data[0]);
@@ -362,33 +291,30 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
 
         /* clang-format off */
         int r000 = r000_permuted;
-
-        int r100 = !si->is_part3 ?   r100_permuted :
-                        si->sax0 ?   r001_permuted :
-                        si->sax1 ?   r100_permuted :
-                     /* si->sax2 ?*/ r010_permuted;
-        int r010 = !si->is_part3 ?   r010_permuted :
-                        si->sax0 ?   r100_permuted :
-                        si->sax1 ?   r010_permuted :
-                     /* si->sax2 ?*/ r001_permuted;
-        int r001 = !si->is_part3 ?   r001_permuted :
-                        si->sax0 ?   r010_permuted :
-                        si->sax1 ?   r001_permuted :
-                     /* si->sax2 ?*/ r100_permuted;
-
-        int r011 = !si->is_part3 ?   r011_permuted :
-                        si->sax0 ?   r110_permuted :
-                        si->sax1 ?   r011_permuted :
-                     /* si->sax2 ?*/ r101_permuted;
-        int r101 = !si->is_part3 ?   r101_permuted :
-                        si->sax0 ?   r011_permuted :
-                        si->sax1 ?   r101_permuted :
-                     /* si->sax2 ?*/ r110_permuted;
-        int r110 = !si->is_part3 ?   r110_permuted :
-                        si->sax0 ?   r101_permuted :
-                        si->sax1 ?   r110_permuted :
-                     /* si->sax2 ?*/ r011_permuted;
-
+        int r100 = no_perm  ?   r100_permuted :
+                   si->sax0 ?   r001_permuted :
+                   si->sax1 ?   r100_permuted :
+                /* si->sax2 ?*/ r010_permuted;
+        int r010 = no_perm  ?   r010_permuted :
+                   si->sax0 ?   r100_permuted :
+                   si->sax1 ?   r010_permuted :
+                /* si->sax2 ?*/ r001_permuted;
+        int r001 = no_perm  ?   r001_permuted :
+                   si->sax0 ?   r010_permuted :
+                   si->sax1 ?   r001_permuted :
+                /* si->sax2 ?*/ r100_permuted;
+        int r011 = no_perm  ?   r011_permuted :
+                   si->sax0 ?   r110_permuted :
+                   si->sax1 ?   r011_permuted :
+                /* si->sax2 ?*/ r101_permuted;
+        int r101 = no_perm  ?   r101_permuted :
+                   si->sax0 ?   r011_permuted :
+                   si->sax1 ?   r101_permuted :
+                /* si->sax2 ?*/ r110_permuted;
+        int r110 = no_perm  ?   r110_permuted :
+                   si->sax0 ?   r101_permuted :
+                   si->sax1 ?   r110_permuted :
+                /* si->sax2 ?*/ r011_permuted;
         int r111 = r111_permuted;
         /* clang-format on */
 
@@ -415,33 +341,30 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
 
         /* clang-format off */
         r000_permuted = r000;
-
-        r100_permuted = !si->is_part3 ?   r100 :
-                             si->sax0 ?   r010 :
-                             si->sax1 ?   r100 :
-                          /* si->sax2 ?*/ r001;
-        r010_permuted = !si->is_part3 ?   r010 :
-                             si->sax0 ?   r001 :
-                             si->sax1 ?   r010 :
-                          /* si->sax2 ?*/ r100;
-        r001_permuted = !si->is_part3 ?   r001 :
-                             si->sax0 ?   r100 :
-                             si->sax1 ?   r001 :
-                          /* si->sax2 ?*/ r010;
-
-        r011_permuted = !si->is_part3 ?   r011 :
-                             si->sax0 ?   r101 :
-                             si->sax1 ?   r011 :
-                          /* si->sax2 ?*/ r110;
-        r101_permuted = !si->is_part3 ?   r101 :
-                             si->sax0 ?   r110 :
-                             si->sax1 ?   r101 :
-                          /* si->sax2 ?*/ r011;
-        r110_permuted = !si->is_part3 ?   r110 :
-                             si->sax0 ?   r011 :
-                             si->sax1 ?   r110 :
-                          /* si->sax2 ?*/ r101;
-
+        r100_permuted = no_perm  ?   r100 :
+                        si->sax0 ?   r010 :
+                        si->sax1 ?   r100 :
+                     /* si->sax2 ?*/ r001;
+        r010_permuted = no_perm  ?   r010 :
+                        si->sax0 ?   r001 :
+                        si->sax1 ?   r010 :
+                     /* si->sax2 ?*/ r100;
+        r001_permuted = no_perm  ?   r001 :
+                        si->sax0 ?   r100 :
+                        si->sax1 ?   r001 :
+                     /* si->sax2 ?*/ r010;
+        r011_permuted = no_perm  ?   r011 :
+                        si->sax0 ?   r101 :
+                        si->sax1 ?   r011 :
+                     /* si->sax2 ?*/ r110;
+        r101_permuted = no_perm  ?   r101 :
+                        si->sax0 ?   r110 :
+                        si->sax1 ?   r101 :
+                     /* si->sax2 ?*/ r011;
+        r110_permuted = no_perm  ?   r110 :
+                        si->sax0 ?   r011 :
+                        si->sax1 ?   r110 :
+                     /* si->sax2 ?*/ r101;
         r111_permuted = r111;
         /* clang-format on */
 
@@ -449,23 +372,39 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
         numer.data[1] = GMTally1_encode(r010_permuted, r011_permuted);
         numer.data[2] = GMTally1_encode(r100_permuted, r101_permuted);
         numer.data[3] = GMTally1_encode(r110_permuted, r111_permuted);
-        GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics, I, J, K,
-                                   j_block, k_block, numer, &index_cache, env);
+        if (all2all) {
+          GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics, I, J, K,
+                                     j_block, k_block, numer, &index_cache, env);
+        } else {
+          GMMetrics_tally4x2_set_3(metrics, i, j, k, numer, env);
+        }
+
+        // Denom
+
         if (step_2way==2) {
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env); 
           const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env); 
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-          GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
+          if (all2all) {
+            GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
               j_block, k_block, si1_sj1_sk1, &index_cache, env);
+          } else {
+            GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
+          }
           if (env->sparse) {
             const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_i, i, env);
             const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_j, j, env); 
             const GMTally1 ck = (GMTally1)GMVectorSums_count(vs_k, k, env); 
             const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
-            GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
+            if (all2all) {
+              GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
                 j_block, k_block, ci_cj_ck, &index_cache, env);
+            } else {
+              GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, env);
+            }
           } /*---if sparse---*/
+
         }
       } /*---for K---*/
     }   /*---for I---*/
@@ -854,7 +793,7 @@ void gm_compute_numerators_3way_gpu_start_(
       /*---Copy result matrix matB from GPU - WAIT---*/
       gm_linalg_get_matrix_wait(env);
       if (vars_prev.step_2way == 0) {
-        gm_metrics_gpu_adjust(metrics, matB_buf_ptr_prev, env);
+        gm_metrics_pad_adjust(metrics, matB_buf_ptr_prev, env);
       }
       unlock(lock_matB_buf_ptr_d_prev);
       unlock(lock_matB_buf_ptr_h_prev);

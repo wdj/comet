@@ -656,21 +656,18 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
-void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
+void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
   GMInsist(metrics && metrics_buf && env);
 
   if (! (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-      GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
+         GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
     return;
   }
 
-  const int num_fields_pad =
-    metrics->dm->num_packedfield_local *
-    metrics->dm->num_field_per_packedfield -
-    metrics->dm->num_field_active_local;
+  const int pad_adjustment = 4 * metrics->dm->num_pad_field_local;
 
-  const GMFloat adjustment = GMTally1_encode(4 * num_fields_pad, 0);
+  const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
 #pragma omp parallel for collapse(2)
   for (size_t j = 0; j < metrics_buf->dim1; ++j) {
@@ -680,16 +677,17 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
       const GMTally2x2 old = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
 #endif
 
-      GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0] -= adjustment;
+      GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]
+         -= float_pad_adjustment;
 
 #ifdef GM_ASSERTIONS_ON
       const GMTally2x2 new_ = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
       GMAssert(GMTally2x2_get(old, 0, 0) ==
-               GMTally2x2_get(new_, 0, 0) + 4 * num_fields_pad);
+               GMTally2x2_get(new_, 0, 0) + pad_adjustment);
 #endif
 
-    } /*---for j---*/
-  }   /*---for i---*/
+    } // for j
+  }   // for i
 }
 
 //-----------------------------------------------------------------------------

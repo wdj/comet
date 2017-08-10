@@ -175,11 +175,13 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
 
             const int r11 = a11 +
 #endif
-          /*---Accumulate---*/
+
+            // Accumulate
 
             sum.data[0] += GMTally1_encode(r00, r01);
             sum.data[1] += GMTally1_encode(r10, r11);
-          } /*---if !unknown---*/
+
+          } /*---if ! unknown---*/
         } /*---for f---*/
         if (GMEnv_all2all(env)) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
@@ -199,33 +201,10 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
 
     /*---Perform pseudo GEMM---*/
 
-    /*---Precompute masks for final (incomplete) packedval_field -
-         can be 1 to 64 inclusive---*/
-
     /* clang-format off */
 
-    const int nfl = vectors_left->num_field_local;
-//TODO: clean this up
-    const int num_field_active_local =
-      GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env) - 1
-      ? nfl - (vectors_left->num_field - vectors_left->num_field_active) : nfl;
-    const int num_packedval_field_active_local =
-      (num_field_active_local + 64 - 1) / 64;
-
-    const int num_seminibbles_edge = 1 + (num_field_active_local-1) % 64;
-
-    const GMUInt64 nobits = 0;
-    const GMUInt64 allbits = ~nobits;
-
-    const GMUInt64 edgemask0 = num_seminibbles_edge >= 32 ?
-                               allbits :
-                               allbits >> (64 - 2*num_seminibbles_edge);
-
-    const GMUInt64 edgemask1 = num_seminibbles_edge <= 32 ?
-                               nobits :
-                               num_seminibbles_edge == 64 ?
-                               allbits :
-                               allbits >> (128 - 2*num_seminibbles_edge);
+    const int pad_adjustment = 4 * metrics->dm->num_pad_field_local;
+    const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max =
@@ -234,14 +213,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
         const int npvfl = vectors_left->num_packedval_field_local;
-        const int pvfl_edge = num_packedval_field_active_local - 1;
         for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
-          /*---Get masks for active seminibbles in each word---*/
-
-          const GMUInt64 activebits0 = pvfl < pvfl_edge ? allbits :
-                                       pvfl == pvfl_edge ? edgemask0 : nobits;
-          const GMUInt64 activebits1 = pvfl < pvfl_edge ? allbits :
-                                       pvfl == pvfl_edge ? edgemask1 : nobits;
 
           /*---Extract input values to process---*/
 
@@ -258,16 +230,16 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
 
           const GMUInt64 oddbits = 0x5555555555555555;
 
-          const GMUInt64 vi0mask = activebits0 &
+          const GMUInt64 vi0mask =
                        (env->sparse ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
 
-          const GMUInt64 vi1mask = activebits1 &
+          const GMUInt64 vi1mask =
                        (env->sparse ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
 
-          const GMUInt64 vj0mask = activebits0 &
+          const GMUInt64 vj0mask =
                        (env->sparse ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
 
-          const GMUInt64 vj1mask = activebits1 &
+          const GMUInt64 vj1mask =
                        (env->sparse ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
 
           const GMUInt64 v0mask = vi0mask & vj0mask;
@@ -328,11 +300,24 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
                           gm_popcount64(( vi1_1 &  vj1_0) |
                                       ( ( vi1_1 &  vj1_1) << 1 ));
 
-          /*---Accumulate---*/
+          // Accumulate
 
           sum.data[0] += GMTally1_encode(r00, r01);
           sum.data[1] += GMTally1_encode(r10, r11);
+
         } /*---for pvfl---*/
+
+        // Adjust for pad
+
+#ifdef GM_ASSERTIONS_ON
+        GMTally2x2 sum_old = sum;
+#endif
+        sum.data[0] -= float_pad_adjustment;
+#ifdef GM_ASSERTIONS_ON
+        GMAssert(GMTally2x2_get(sum_old, 0, 0) ==
+                 GMTally2x2_get(sum, 0, 0) + pad_adjustment);
+#endif
+
         if (GMEnv_all2all(env)) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {

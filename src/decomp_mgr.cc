@@ -182,6 +182,14 @@ void GMDecompMgr_create(GMDecompMgr* dm,
       gm_ceil_i8(dm->num_field_local * dm->num_bits_per_field,
                  dm->num_bits_per_packedfield);
 
+  //--------------------
+  // Number of non-active fields on proc.
+  //--------------------
+
+  dm->num_pad_field_local =
+    dm->num_packedfield_local *
+    dm->num_field_per_packedfield -
+    dm->num_field_active_local;
 }
 
 //-----------------------------------------------------------------------------

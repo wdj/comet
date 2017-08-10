@@ -367,12 +367,19 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
                 (( (vi & 2)) && ( (vj & 2)) && ( (vk & 1))) +
                 (( (vi & 2)) && ( (vj & 2)) && ( (vk & 2)));
               /* clang-format on */
+
+              // Accumulate
+
               sum.data[0] += GMTally1_encode(r000, r001);
               sum.data[1] += GMTally1_encode(r010, r011);
               sum.data[2] += GMTally1_encode(r100, r101);
               sum.data[3] += GMTally1_encode(r110, r111);
+
             } /*---if !unknown---*/
           } /*---for f---*/
+
+          // Get denom
+
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
           const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
@@ -399,6 +406,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
               const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
               const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
               GMMetrics_float3_C_set_3(metrics, i, j, k, ci1_cj1_ck1, env);
+
             } /*---if sparse---*/
           } /*---if all2all---*/
         } /*---for I---*/
@@ -414,33 +422,12 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
 
-    /*---Precompute masks for final (incomplete) packedval_field -
-         can be 1 to 64 inclusive---*/
-
     /* clang-format off */
 
-    const int nfl = vectors_i->num_field_local;
-//TODO: clean this up
-    const int num_field_active_local =
-      GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env) - 1
-      ? nfl - (vectors_i->num_field - vectors_i->num_field_active) : nfl;
-    const int num_packedval_field_active_local =
-      (num_field_active_local + 64 - 1) / 64;
+    const int pad_adjustment = 8 * metrics->dm->num_pad_field_local;
+    const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
-    const int num_seminibbles_edge = 1 + (num_field_active_local-1) % 64;
-
-    const GMUInt64 nobits = 0;
-    const GMUInt64 allbits = ~nobits;
-
-    const GMUInt64 edgemask0 = num_seminibbles_edge >= 32 ?
-                               allbits :
-                               allbits >> (64 - 2*num_seminibbles_edge);
-
-    const GMUInt64 edgemask1 = num_seminibbles_edge <= 32 ?
-                               nobits :
-                               num_seminibbles_edge == 64 ?
-                               allbits :
-                               allbits >> (128 - 2*num_seminibbles_edge);
+    const bool no_perm = ! si->is_part3;
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
@@ -456,30 +443,23 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
         for (int I=I_min; I<I_max; ++I) {
 
           /* clang-format off */
-          const int i = !si->is_part3 ?   I :
-                             si->sax0 ?   J :
-                             si->sax1 ?   I :
-                          /* si->sax2 ?*/ K;
-          const int j = !si->is_part3 ?   J :
-                             si->sax0 ?   K :
-                             si->sax1 ?   J :
-                          /* si->sax2 ?*/ I;
-          const int k = !si->is_part3 ?   K :
-                             si->sax0 ?   I :
-                             si->sax1 ?   K :
-                          /* si->sax2 ?*/ J;
+          const int i = no_perm  ?   I :
+                        si->sax0 ?   J :
+                        si->sax1 ?   I :
+                     /* si->sax2 ?*/ K;
+          const int j = no_perm  ?   J :
+                        si->sax0 ?   K :
+                        si->sax1 ?   J :
+                     /* si->sax2 ?*/ I;
+          const int k = no_perm  ?   K :
+                        si->sax0 ?   I :
+                        si->sax1 ?   K :
+                     /* si->sax2 ?*/ J;
           /* clang-format on */
 
           GMTally4x2 sum = GMTally4x2_null();
           const int npvfl = vectors_i->num_packedval_field_local;
-          const int pvfl_edge = num_packedval_field_active_local - 1;
           for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
-            /*---Get masks for active seminibbles in each word---*/
-
-            const GMUInt64 activebits0 = pvfl < pvfl_edge ? allbits :
-                                         pvfl == pvfl_edge ? edgemask0 : nobits;
-            const GMUInt64 activebits1 = pvfl < pvfl_edge ? allbits :
-                                         pvfl == pvfl_edge ? edgemask1 : nobits;
 
             /*---Extract input values to process---*/
 
@@ -501,22 +481,22 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
 
             const GMUInt64 oddbits = 0x5555555555555555;
 
-            const GMUInt64 vi0mask = activebits0 &
+            const GMUInt64 vi0mask =
                        (env->sparse ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vi1mask = activebits1 &
+            const GMUInt64 vi1mask =
                        (env->sparse ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vj0mask = activebits0 &
+            const GMUInt64 vj0mask =
                        (env->sparse ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vj1mask = activebits1 &
+            const GMUInt64 vj1mask =
                        (env->sparse ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vk0mask = activebits0 &
+            const GMUInt64 vk0mask =
                        (env->sparse ? (vk0 | ~(vk0 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vk1mask = activebits1 &
+            const GMUInt64 vk1mask =
                        (env->sparse ? (vk1 | ~(vk1 >> 1)) & oddbits : oddbits);
 
             const GMUInt64 v0mask = vi0mask & vj0mask & vk0mask;
@@ -681,13 +661,28 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
                              gm_popcount64(( vi1_1 &  vj1_1 &  vk1_0) |
                                          ( ( vi1_1 &  vj1_1 &  vk1_1) << 1 ));
 
-            /*---Accumulate---*/
+            // Accumulate
 
             sum.data[0] += GMTally1_encode(r000, r001);
             sum.data[1] += GMTally1_encode(r010, r011);
             sum.data[2] += GMTally1_encode(r100, r101);
             sum.data[3] += GMTally1_encode(r110, r111);
-          } /*---for pvfl---*/
+
+          } // for pvfl
+
+          // Adjust for pad
+
+#ifdef GM_ASSERTIONS_ON
+          GMTally4x2 sum_old = sum;
+#endif
+          sum.data[0] -= float_pad_adjustment;
+#ifdef GM_ASSERTIONS_ON
+          GMAssert(GMTally4x2_get(sum_old, 0, 0, 0) ==
+                   GMTally4x2_get(sum, 0, 0, 0) + pad_adjustment);
+#endif
+
+          // Get denom
+
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
           const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
@@ -715,6 +710,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
               const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
               GMMetrics_float3_C_set_3(metrics, i, j, k, ci1_cj1_ck1, env);
             } /*---if sparse---*/
+
           } /*---if all2all---*/
         } //---I
         metrics->num_elts_local_computed += I_max - I_min;
