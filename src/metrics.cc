@@ -659,7 +659,6 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
   GMInsist(metrics && metrics_buf && env);
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
   if (! (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
       GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
@@ -674,8 +673,8 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
   const GMFloat adjustment = GMTally1_encode(4 * num_fields_pad, 0);
 
 #pragma omp parallel for collapse(2)
-  for (int j = 0; j < metrics->num_vector_local; ++j) {
-    for (int i = 0; i < metrics->num_vector_local; ++i) {
+  for (size_t j = 0; j < metrics_buf->dim1; ++j) {
+    for (size_t i = 0; i < metrics_buf->dim0; ++i) {
 
 #ifdef GM_ASSERTIONS_ON
       const GMTally2x2 old = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
@@ -688,6 +687,7 @@ void gm_metrics_gpu_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
       GMAssert(GMTally2x2_get(old, 0, 0) ==
                GMTally2x2_get(new_, 0, 0) + 4 * num_fields_pad);
 #endif
+
     } /*---for j---*/
   }   /*---for i---*/
 }

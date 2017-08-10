@@ -125,13 +125,15 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
 
     /*---Perform pseudo GEMM---*/
 
+    const int nfal = vectors_left->dm->num_field_active_local;
+
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
       for (int i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        for (int fl = 0; fl < vectors_left->num_field_local; ++fl) {
-          const GMBits2 vi = GMVectors_bits2_get(vectors_left, fl, i, env);
-          const GMBits2 vj = GMVectors_bits2_get(vectors_right, fl, j, env);
+        for (int f = 0; f < nfal; ++f) {
+          const GMBits2 vi = GMVectors_bits2_get(vectors_left, f, i, env);
+          const GMBits2 vj = GMVectors_bits2_get(vectors_right, f, j, env);
           const bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
                                              : false;
           const bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
@@ -178,7 +180,7 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
             sum.data[0] += GMTally1_encode(r00, r01);
             sum.data[1] += GMTally1_encode(r10, r11);
           } /*---if !unknown---*/
-        } /*---for fl---*/
+        } /*---for f---*/
         if (GMEnv_all2all(env)) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {
@@ -202,16 +204,8 @@ void gm_compute_ccc_numerators_2way_start_(GMVectors* vectors_left,
 
     /* clang-format off */
 
-
-
-
-
-
-//FIX
-
-
-
     const int nfl = vectors_left->num_field_local;
+//TODO: clean this up
     const int num_field_active_local =
       GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env) - 1
       ? nfl - (vectors_left->num_field - vectors_left->num_field_active) : nfl;

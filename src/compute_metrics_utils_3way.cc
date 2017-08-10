@@ -229,12 +229,10 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
   /*---Initializations---*/
 
   const int nvl = metrics->num_vector_local;
-  const int nfl = vectors_i->num_field_local;
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
-  GMSectionInfo si_value;
-  GMSectionInfo* si = &si_value;
+  GMSectionInfo si_value, *si = &si_value;
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
@@ -249,6 +247,8 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
     GMInsistInterface(env, !env->do_reduce
                       ? "num_proc_field>1 for CPU case not supported"
                       : 0);
+
+    const int nfal = vectors_i->dm->num_field_active_local;
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
@@ -279,7 +279,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
           /* clang-format on */
 
           GMTally4x2 sum = GMTally4x2_null();
-          for (int f = 0; f < nfl; ++f) {
+          for (int f = 0; f < nfal; ++f) {
             const GMBits2 vi = GMVectors_bits2_get(vectors_i, f, i, env);
             const GMBits2 vj = GMVectors_bits2_get(vectors_j, f, j, env);
             const GMBits2 vk = GMVectors_bits2_get(vectors_k, f, k, env);
@@ -420,6 +420,7 @@ void gm_compute_ccc_numerators_3way_nongpu_start_(
     /* clang-format off */
 
     const int nfl = vectors_i->num_field_local;
+//TODO: clean this up
     const int num_field_active_local =
       GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env) - 1
       ? nfl - (vectors_i->num_field - vectors_i->num_field_active) : nfl;

@@ -1132,6 +1132,7 @@ void DriverTest_ccc_() {
   char options2[1024];
   char options3[1024];
 
+#if 1
   //----------
   //---2-way, all2all no
   //----------
@@ -1216,6 +1217,7 @@ void DriverTest_ccc_() {
   sprintf(options2, options_template_2, 1, 2, 100, 24, "CPU", "yes");
   sprintf(options3, options_template_2, 1, 2, 100, 24, "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
+#endif
 
   //----------
   //---3-way, all2all no
@@ -1300,11 +1302,11 @@ void DriverTest_ccc_() {
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
-                    "--num_field 13 --num_vector 6 "
+                    "--num_field 13 --num_vector 3 "
                     "--compute_method REF --all2all yes --num_way 3 "
                     "--metric_type ccc",
                     "--num_proc_vector 1 --num_proc_field 5 "
-                    "--num_field 13 --num_vector 6 "
+                    "--num_field 13 --num_vector 3 "
                     "--compute_method GPU --all2all yes --num_way 3 "
                     "--metric_type ccc"));
 
@@ -1544,10 +1546,10 @@ TEST(DriverTest, ccc3_simple_sparse) {
 }
 #endif
 
-#if 1
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();
 }
+#if 0
 #endif
 
 //=============================================================================

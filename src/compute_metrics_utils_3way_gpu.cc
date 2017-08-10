@@ -36,7 +36,6 @@ void gm_compute_numerators_3way_gpu_form_matX_(
   /*---Populate leading columns of matX---*/
   /*--------------------*/
 
-  const int nfl = vectors_i->num_field_local;
   const int npvfl = vectors_i->num_packedval_field_local;
 
   /*----------*/
@@ -56,62 +55,33 @@ void gm_compute_numerators_3way_gpu_form_matX_(
     /*----------*/
     for (int I = I_min; I < I_max; ++I) {
 
-      const int num_field_active_local =
-        GMEnv_proc_num_field(env) == GMEnv_num_proc_field(env) - 1
-        ? nfl - (vectors_i->num_field - vectors_i->num_field_active) : nfl;
-      const int num_packedval_field_active_local =
-        (num_field_active_local + 64 - 1) / 64;
-
-      const int num_seminibbles_edge = 1 + (num_field_active_local-1) % 64;
-
-      const GMUInt64 nobits = 0;
-      const GMUInt64 allbits = ~nobits;
       const GMUInt64 oddbits = 0x5555555555555555;
 
-      const GMUInt64 edgemask0 = num_seminibbles_edge >= 32 ?
-                                 allbits :
-                                 allbits >> (64 - 2*num_seminibbles_edge);
-      const GMUInt64 edgemask1 = num_seminibbles_edge <= 32 ?
-                                 nobits :
-                                 num_seminibbles_edge == 64 ?
-                                 allbits :
-                                 allbits >> (128 - 2*num_seminibbles_edge);
       /*---Operate on columns v_i and v_j elementwise---*/
-      const int pvfl_edge = num_packedval_field_active_local - 1;
       for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
-
-        const GMUInt64 activebits0 = pvfl < pvfl_edge ? allbits :
-                                     pvfl == pvfl_edge ? edgemask0 : nobits;
-        const GMUInt64 activebits1 = pvfl < pvfl_edge ? allbits :
-                                     pvfl == pvfl_edge ? edgemask1 : nobits;
-
-        const GMUInt64 activebits[2] = {activebits0, activebits1};
 
         const bool sparse = env->sparse;
 
         for (int word = 0; word<2; ++word) {
-          const GMUInt64 vI = GMMirroredBuf_elt_const<GMBits2x64>(vectors_I_buf, pvfl, I).data[word];
-          const GMUInt64 vJ = GMMirroredBuf_elt_const<GMBits2x64>(vectors_J_buf, pvfl, J).data[word];
+          const GMUInt64 vI = GMMirroredBuf_elt_const<GMBits2x64>(
+                                           vectors_I_buf, pvfl, I).data[word];
+          const GMUInt64 vJ = GMMirroredBuf_elt_const<GMBits2x64>(
+                                           vectors_J_buf, pvfl, J).data[word];
 
-          // For 00 case fill pad bits with 1's, so that those seminibbles in
-          // the result r below will be set to 10, thus ignored.
+          // Create word whose odd bits sample the lo or hi bit of interest
+          // of the seminibble.  Also create the complement thereof.
 
-          const GMUInt64 vIx = step_2way==0 ? vI | ~activebits[word] : vI;
+          const GMUInt64  vI_0 =   vI        & oddbits;
+          const GMUInt64  vI_1 =  (vI >> 1)  & oddbits;
+          const GMUInt64 nvI_0 = ~ vI        & oddbits;
+          const GMUInt64 nvI_1 = ~(vI >> 1)  & oddbits;
 
-          /*---Create word whose odd bits sample the lo or hi bit of interest
-               of the seminibble.  Also create the complement thereof---*/
+          const GMUInt64  vJ_0 =   vJ        & oddbits;
+          const GMUInt64  vJ_1 =  (vJ  >> 1) & oddbits;
 
-          const GMUInt64  vI_0 =   vIx        & oddbits;
-          const GMUInt64  vI_1 =  (vIx >> 1)  & oddbits;
-          const GMUInt64 nvI_0 = ~ vIx        & oddbits;
-          const GMUInt64 nvI_1 = ~(vIx >> 1)  & oddbits;
-
-          const GMUInt64  vJ_0 =   vJ            & oddbits;
-          const GMUInt64  vJ_1 =  (vJ  >> 1)     & oddbits;
-
-          /*---Create a mask whose odd bits denote whether each respective
-               seminibble of vector I matches the case we are handling
-               in this 2-way step (and the complement thereof)---*/
+          // Create a mask whose odd bits denote whether each respective
+          // seminibble of vector I matches the case we are handling
+          // in this 2-way step (and the complement thereof).
 
           const GMUInt64  vI_match =
             step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
@@ -127,13 +97,12 @@ void gm_compute_numerators_3way_gpu_form_matX_(
             step_2way==1 ? ( vI_0 ^ nvI_1) & oddbits :
           /*step_2way==2*/ (nvI_0 | nvI_1) & oddbits;
 
-          /*---Construct the lo and hi bit of the result seminibble, based
-               on truth table:
-            - lo bit is 1 (00 or 01) if vJ is 01, 10 or 11 and vI is the
-              case being handled for this 2-way step.
-            - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
-              being handled for this 2-way step.
-          */
+          // Construct the lo and hi bit of the result seminibble, based
+          // on truth table:
+          //  - lo bit is 1 (00 or 01) if vJ is 01, 10 or 11 and vI is the
+          //    case being handled for this 2-way step.
+          //  - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
+          //    being handled for this 2-way step.
 
           const GMUInt64 r_0 =  vI_match & (sparse ? vJ_0 : vJ_0 | vJ_1);
           const GMUInt64 r_1 = nvI_match | (sparse ? vJ_1 : vJ_0 & vJ_1);
@@ -269,6 +238,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
     /*----------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              !GMEnv_all2all(env)) {
+//TODO: try to merge this case with the one below it
     /*----------*/
 #pragma omp parallel for collapse(2)
     for (int K = K_min; K < K_max; ++K) {
@@ -317,13 +287,13 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
           r110 += 2 * mB10;
           r111 += 2 * mB11;
         }
-        /*---NOTE: pay attention to order here---*/
+
         numer.data[0] = GMTally1_encode(r000, r001);
         numer.data[1] = GMTally1_encode(r010, r011);
         numer.data[2] = GMTally1_encode(r100, r101);
         numer.data[3] = GMTally1_encode(r110, r111);
-//        if (step_2way==0) {
-          GMMetrics_tally4x2_set_3(metrics, i, j, k, numer, env);
+        GMMetrics_tally4x2_set_3(metrics, i, j, k, numer, env);
+        if (step_2way==2) {
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_i, j, env);
           const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_i, k, env);
@@ -336,7 +306,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
             const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
             GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, env);
           } /*---if sparse---*/
-//        }
+        }
       } /*---for K---*/
     }   /*---for I---*/
     if (step_2way == 2) {
@@ -475,15 +445,13 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
         r111_permuted = r111;
         /* clang-format on */
 
-        /*---NOTE: pay attention to order here---*/
-
         numer.data[0] = GMTally1_encode(r000_permuted, r001_permuted);
         numer.data[1] = GMTally1_encode(r010_permuted, r011_permuted);
         numer.data[2] = GMTally1_encode(r100_permuted, r101_permuted);
         numer.data[3] = GMTally1_encode(r110_permuted, r111_permuted);
         GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics, I, J, K,
                                    j_block, k_block, numer, &index_cache, env);
-//        if (step_2way==0) {
+        if (step_2way==2) {
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env); 
           const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env); 
@@ -498,7 +466,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
             GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
                 j_block, k_block, ci_cj_ck, &index_cache, env);
           } /*---if sparse---*/
-//        }
+        }
       } /*---for K---*/
     }   /*---for I---*/
     if (step_2way == 2) {
@@ -885,6 +853,9 @@ void gm_compute_numerators_3way_gpu_start_(
     if (vars_prev.do_compute) {
       /*---Copy result matrix matB from GPU - WAIT---*/
       gm_linalg_get_matrix_wait(env);
+      if (vars_prev.step_2way == 0) {
+        gm_metrics_gpu_adjust(metrics, matB_buf_ptr_prev, env);
+      }
       unlock(lock_matB_buf_ptr_d_prev);
       unlock(lock_matB_buf_ptr_h_prev);
     }
@@ -892,7 +863,7 @@ void gm_compute_numerators_3way_gpu_start_(
     //==========
 
     if (vars_prevprev.do_compute && env->do_reduce) {
-      /*---Reduce along field procs - START---*/
+      /*---Reduce along field procs - WAIT---*/
       gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]), env); 
       unlock(lock_matB_buf_ptr_h_prevprev);
       unlock(lock_matB_buf_h[vars_prevprev.index_01]);
@@ -901,7 +872,7 @@ void gm_compute_numerators_3way_gpu_start_(
     //==========
 
     if (vars_prev.do_compute && env->do_reduce) {
-      /*---Reduce along field procs - WAIT---*/
+      /*---Reduce along field procs - START---*/
       lock(lock_matB_buf_ptr_h_prev);
       lock(lock_matB_buf_h[vars_prev.index_01]);
       mpi_requests[vars_prev.index_01] = gm_reduce_metrics_start(metrics,
