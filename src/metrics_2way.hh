@@ -265,7 +265,7 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
   const GMFloat fmin = fi < fj ? fi : fj;
   const GMFloat fmax = fi < fj ? fj : fi;
 
-  const GMFloat ccc_multiplier = 9 * one / 2; // taken from James' writeup.
+  const GMFloat ccc_multiplier = GMEnv_ccc_multiplier(env);
   const GMFloat ccc_param = GMEnv_ccc_param(env);
 
   /* clang-format off */

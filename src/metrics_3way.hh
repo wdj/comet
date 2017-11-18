@@ -792,7 +792,7 @@ static GMFloat GMMetrics_ccc_value_3(GMMetrics* metrics,
   GMAssert(fmin <= fmid);
   GMAssert(fmid <= fmax);
 
-  const GMFloat ccc_multiplier = one; // TBD
+  const GMFloat ccc_multiplier = GMEnv_ccc_multiplier(env);
   const GMFloat ccc_param = GMEnv_ccc_param(env);
 
   /* clang-format off */

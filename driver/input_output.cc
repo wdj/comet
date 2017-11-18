@@ -35,13 +35,16 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
+
       const int fl = 0;
       const size_t field_base = fl +
         vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+
       FILE* input_file = fopen(do_->input_file_path, "r");
       GMInsist(NULL != input_file && "Unable to open input file.");
-      int vl = 0;
-      for (vl = 0; vl < vectors->num_vector_local; ++vl) {
+
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+
         const size_t proc_num = GMEnv_proc_num_vector_i(env);
         const size_t vector = vl + vectors->num_vector_local * proc_num;
         //---shuffle.
@@ -49,8 +52,9 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         /*---Fill pad vectors with copies of the last vector---*/
         const size_t vector_capped = vector <= do_->num_vector_active-1 ?
                                      vector : do_->num_vector_active-1;
-        const size_t addr_file =
-          (field_base + vectors->num_field * vector_capped) * sizeof(GMFloat);
+
+        const size_t elt_num = field_base + vectors->num_field * vector_capped;
+        const size_t addr_file = elt_num * sizeof(GMFloat);
         int fseek_success = fseek(input_file, addr_file, SEEK_SET);
         fseek_success += 0; /*---Avoid unused var warning---*/
         GMInsist(0 == fseek_success);
@@ -59,20 +63,61 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         GMInsist((fl+1 >= vectors->num_field_local ||
             GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1)
             && "Vector layout is incompatible with operation.");
+
         size_t num_read = fread(addr_mem, sizeof(GMFloat),
                                 vectors->num_field_local, input_file);
         num_read += 0; /*---Avoid unused var warning---*/
         GMInsist((size_t)vectors->num_field_local == (size_t)num_read);
+
       } /*---vl---*/
+
       fclose(input_file);
+
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
 
-      //TODO: implement
+      GMInsistInterface(env, GMEnv_num_proc_field(env) == 1 &&
+                        "CCC file read for this case not yet implemented.");
+      const int pvfl = 0;
 
-     GMInsistInterface(env, false && "Not yet implemented.");
+      typedef char input_t;
+
+      FILE* input_file = fopen(do_->input_file_path, "r");
+      GMInsist(NULL != input_file && "Unable to open input file.");
+
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+
+        const size_t proc_num = GMEnv_proc_num_vector_i(env);
+        const size_t vector = vl + vectors->num_vector_local * proc_num;
+        /*---Fill pad vectors with copies of the last vector---*/
+        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                     vector : do_->num_vector_active-1;
+
+        const int bits_per_field = 2;
+        const int bits_per_byte = 8;
+	const size_t bytes_per_vector
+          = gm_ceil_i8(vectors->num_field * bits_per_field, bits_per_byte);
+        const size_t addr_file = bytes_per_vector * vector_capped;
+
+        int fseek_success = fseek(input_file, addr_file, SEEK_SET);
+        fseek_success += 0; /*---Avoid unused var warning---*/
+        GMInsist(0 == fseek_success);
+
+        input_t* const addr_mem
+           = (input_t*)GMVectors_bits2x64_ptr(vectors, pvfl, vl, env);
+
+        size_t num_read = fread(addr_mem, sizeof(input_t),
+                                bytes_per_vector, input_file);
+        num_read += 0; /*---Avoid unused var warning---*/
+        GMInsist(bytes_per_vector == (size_t)num_read);
+
+      } /*---vl---*/
+
+      fclose(input_file);
+
+      //GMInsistInterface(env, false && "Not yet implemented.");
     } break;
     /*--------------------*/
     default:

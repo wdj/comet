@@ -37,6 +37,7 @@ typedef struct {
   int num_phase;
   int phase_num;
   double ccc_param_;
+  double ccc_multiplier_;
   bool sparse;
   /*---Counters---*/
   double time;
@@ -146,6 +147,13 @@ static int GMEnv_metric_type(const GMEnv* const env) {
 static double GMEnv_ccc_param(const GMEnv* const env) {
   GMAssert(env);
   return env->ccc_param_;
+}
+
+//-----------------------------------------------------------------------------
+
+static double GMEnv_ccc_multiplier(const GMEnv* const env) {
+  GMAssert(env);
+  return env->ccc_multiplier_;
 }
 
 //-----------------------------------------------------------------------------
@@ -319,6 +327,15 @@ static int gm_floor_i(const int i, const int j) {
   GMAssert(j > 0);
 
   return i >= 0 ? i / j : (i - j + 1) / j;
+}
+
+//-----------------------------------------------------------------------------
+
+static size_t gm_floor_i8(const size_t i, const size_t j) {
+  GMAssert(i + 1 > 1);
+  GMAssert(j + 1 > 1);
+
+  return i / j;
 }
 
 //-----------------------------------------------------------------------------

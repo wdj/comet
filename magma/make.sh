@@ -12,7 +12,8 @@
 
 function do_make
 {
-  module swap PrgEnv-pgi PrgEnv-gnu
+  module unload PrgEnv-pgi
+  module load PrgEnv-gnu
   module load cudatoolkit
   module load acml
 

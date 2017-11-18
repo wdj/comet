@@ -227,6 +227,26 @@ static void GMVectors_bits2_set(GMVectors* vectors,
 
 //-----------------------------------------------------------------------------
 
+static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
+                                          int packedval_field_local,
+                                          int vector_local,
+                                          GMEnv* env) {
+  /*---This function accesses an entire packed value containing 2-bit values---*/
+  GMAssert(vectors);
+  GMAssert(packedval_field_local >= 0);
+  GMAssert(packedval_field_local < vectors->num_packedval_field_local);
+  GMAssert(vector_local >= 0);
+  GMAssert(vector_local < vectors->num_vector_local);
+  GMAssert(GMEnv_data_type_vectors(env) == GM_DATA_TYPE_BITS2);
+
+  const size_t index = packedval_field_local +
+    vectors->num_packedval_field_local*(size_t)vector_local;
+
+  return ((GMBits2x64*)(vectors->data)) + index;
+}
+
+//-----------------------------------------------------------------------------
+
 static void GMVectors_bits2x64_set(GMVectors* vectors,
                                    int packedval_field_local,
                                    int vector_local,

@@ -112,6 +112,7 @@ fi
 
 MAGMA_DIR=$PWD/magma
 if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
+  echo "Copying magma ..."
   cp -rp $PROJECT_DIR/magma $MAGMA_DIR
   touch $MAGMA_DIR/copy_is_complete
 fi
@@ -123,7 +124,11 @@ for magma_version in magma_minproduct magma_tally4 magma_tally3 \
     pushd $MAGMA_SUBDIR
     ../make.sh
     popd
-    touch $MAGMA_SUBDIR/build_is_complete
+    if [ -e $MAGMA_SUBDIR/lib/lib${magma_version}.a ] ; then
+      touch $MAGMA_SUBDIR/build_is_complete
+    else
+      exit 1
+    fi
   fi
 done
 

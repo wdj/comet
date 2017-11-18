@@ -194,7 +194,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsistInterface(env, i < argc && "Missing value for threshold.");
       errno = 0;
       const double threshold = strtod(argv[i], NULL);
-      GMInsistInterface(env, 0 == errno && "Invalid setting for ccc_param.");
+      GMInsistInterface(env, 0 == errno && "Invalid setting for threshold.");
       do_->threshold = threshold;
      /*----------*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
@@ -210,6 +210,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
+      ++i; /*---processed elsewhere by GMEnv---*/
+    } else if (strcmp(argv[i], "--ccc_multiplier") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/

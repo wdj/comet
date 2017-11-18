@@ -65,6 +65,10 @@ Options:
         metric type to compute (czekanowski=Czekanowski (default),
         ccc=CCC)
 
+    --ccc_multiplier <value>\n"
+        fixed front multiplier value used to calculate the CCC metric
+        (default floating point value is 9/2).
+
     --ccc_param <value>
         fixed coefficient value used to calculate the CCC metric
         (default floating point value is 2/3).
