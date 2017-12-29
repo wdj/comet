@@ -389,56 +389,131 @@ void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
 
       GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
-      size_t index = 0;
-      for (index = 0; index < metrics->num_elts_local; ++index) {
-        const size_t coord0 =
-          GMMetrics_coord_global_from_index(metrics, index, 0, env);
-        const size_t coord1 =
-          GMMetrics_coord_global_from_index(metrics, index, 1, env);
-        if (coord0 >= metrics->num_vector_active ||
-            coord1 >= metrics->num_vector_active) {
-          continue;
-        }
-        int num_out_this_line = 0;
-        int i0;
-        for (i0 = 0; i0 < 2; ++i0) {
-          int i1;
-          for (i1 = 0; i1 < 2; ++i1) {
-            const GMFloat value
-              = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
-            if (!(threshold < 0. || value > threshold)) {
-              continue;
+      if (file != stdout) {
+
+        size_t num_buf_ind = 1000000;
+        size_t num_buf = 4 * num_buf_ind;
+
+        bool do_out_buf[num_buf];
+        int coord0_buf[num_buf];
+        int coord1_buf[num_buf];
+        int i01_buf[num_buf];
+        //size_t loc_buf[num_buf];
+        GMFloat value_buf[num_buf];
+
+        //const size_t nva = metrics->num_vector_active;
+        //const size_t no_out = 4 * nva * nva;
+  
+        for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
+             ind_base += num_buf_ind) {
+          const size_t ind_max = gm_min_i8(metrics->num_elts_local,
+                                           ind_base + num_buf_ind);
+#pragma omp parallel for collapse(3) schedule(dynamic,10000)
+          for (size_t index = ind_base; index < ind_max; ++index) {
+            for (int i0 = 0; i0 < 2; ++i0) {
+              for (int i1 = 0; i1 < 2; ++i1) {
+                const GMFloat value =
+                  GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+                const bool do_thresh = threshold<0. || value>threshold;
+                const size_t coord0 = (!do_thresh) ? 0 :
+                  GMMetrics_coord_global_from_index(metrics, index, 0, env);
+                const size_t coord1 = (!do_thresh) ? 0 :
+                  GMMetrics_coord_global_from_index(metrics, index, 1, env);
+                const bool do_out = do_thresh &&
+                  coord0 < metrics->num_vector_active &&
+                  coord1 < metrics->num_vector_active;
+                const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
+
+                do_out_buf[ind_buf] = do_out;
+                coord0_buf[ind_buf] = coord0;
+                coord1_buf[ind_buf] = coord1;
+                //i0_buf[ind_buf] = i0;
+                //i1_buf[ind_buf] = i1;
+                i01_buf[ind_buf] = i0 + 2*i1;
+
+                //loc_buf[ind_buf] = (!do_out) ? no_out :
+                //                   i0 +2*(i1 + 2*(coord0 + nva*coord1));
+
+                value_buf[ind_buf] = value;
+              } /*---i1---*/
+            } /*---i0---*/
+          } /*---index---*/
+
+          const size_t ind_buf_max = 4 * (ind_max - ind_base);
+          for (size_t ind_buf = 0; ind_buf < ind_buf_max; ++ind_buf) {
+            const bool do_out = do_out_buf[ind_buf];
+            //const bool do_out = i01_buf[ind_buf] != -1;
+            //const bool do_out = loc_buf[ind_buf] != no_out;
+            if (do_out) {
+                const int i0 = i01_buf[ind_buf] % 2;
+                const int i1 = i01_buf[ind_buf] / 2;
+                const size_t coord0 = coord0_buf[ind_buf];
+                const size_t coord1 = coord1_buf[ind_buf];
+                //const int i0 = loc_buf[ind_buf] % 2;
+                //const int i1 = (loc_buf[ind_buf] / 2 ) % nva;
+                //const size_t coord0 = (loc_buf[ind_buf] / 4) % nva;
+                //const size_t coord1 =  loc_buf[ind_buf] / (4 * nva);
+                writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
             }
+          } /*---ind_buf---*/
+        } /*---ind_base---*/
 
-            /*---Output the value---*/
-            if (file == stdout) {
+      } else /*---stdout---*/ {
 
-              if (num_out_this_line == 0) {
-                fprintf(file,
-                  "element (%li,%li): values:", coord0, coord1);
+        size_t index = 0;
+        for (index = 0; index < metrics->num_elts_local; ++index) {
+          const size_t coord0 =
+            GMMetrics_coord_global_from_index(metrics, index, 0, env);
+          if (coord0 >= metrics->num_vector_active) {
+            continue;
+          }
+          const size_t coord1 =
+            GMMetrics_coord_global_from_index(metrics, index, 1, env);
+          if (coord1 >= metrics->num_vector_active) {
+            continue;
+          }
+          int num_out_this_line = 0;
+          int i0;
+          for (i0 = 0; i0 < 2; ++i0) {
+            int i1;
+            for (i1 = 0; i1 < 2; ++i1) {
+              const GMFloat value
+                = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+              if (!(threshold < 0. || value > threshold)) {
+                continue;
               }
 
-              fprintf(file,
-                sizeof(GMFloat) == 8 ?
-                " %i %i %.17e" :
-                " %i %i %.8e", i0, i1, value);
+              /*---Output the value---*/
+              if (file == stdout) {
 
-            } else {
+                if (num_out_this_line == 0) {
+                  fprintf(file,
+                    "element (%li,%li): values:", coord0, coord1);
+                }
 
-              writer.write(coord0, coord1, i0, i1, value);
+                fprintf(file,
+                  sizeof(GMFloat) == 8 ?
+                  " %i %i %.17e" :
+                  " %i %i %.8e", i0, i1, value);
 
+              } else {
+
+                writer.write(coord0, coord1, i0, i1, value);
+
+              }
+
+              num_out_this_line++;
+
+            } /*---i1---*/
+          } /*---i0---*/
+          if (file == stdout) {
+            if (num_out_this_line > 0) {
+              fprintf(file, "\n");
             }
-
-            num_out_this_line++;
-
-          } /*---i1---*/
-        } /*---i0---*/
-        if (file == stdout) {
-          if (num_out_this_line > 0) {
-            fprintf(file, "\n");
           }
-        }
-      } /*---index---*/
+        } /*---index---*/
+
+      } /*---if---*/
 
     } break;
 
@@ -532,8 +607,23 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     GMInsist(env->num_stage < 1000000);
     GMInsist(env->num_phase < 1000000);
     GMInsist(GMEnv_num_proc(env) < 10000000000);
-    sprintf(path, "%s_%06i_%06i_%010i", stub, env->phase_num,
-            env->stage_num, GMEnv_proc_num(env));
+
+    if (env->num_stage == 1) {
+      if (env->num_phase == 1) {
+        sprintf(path, "%s_%010i", stub, GMEnv_proc_num(env));
+      } else {
+        sprintf(path, "%s_%06i_%010i", stub, env->phase_num,
+                GMEnv_proc_num(env));
+      }
+    } else {
+      if (env->num_phase == 1) {
+        sprintf(path, "%s_%06i_%010i", stub, env->stage_num,
+                GMEnv_proc_num(env));
+      } else {
+        sprintf(path, "%s_%06i_%06i_%010i", stub, env->phase_num,
+                env->stage_num, GMEnv_proc_num(env));
+      }
+    }
 
     /*---Do output---*/
 

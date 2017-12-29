@@ -254,10 +254,10 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
                                     GMEnv* env) {
   GMAssert(metrics && env);
 
-  const GMFloat one = 1;
+  const GMFloat f_one = 1;
 
-  const GMFloat fi = (one / 2) * recip_ci * si;
-  const GMFloat fj = (one / 2) * recip_cj * sj;
+  const GMFloat fi = (f_one / 2) * recip_ci * si;
+  const GMFloat fj = (f_one / 2) * recip_cj * sj;
 
   const GMFloat fij = recip_sumcij * rij;
 
@@ -269,13 +269,86 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
   const GMFloat ccc_param = GMEnv_ccc_param(env);
 
   /* clang-format off */
-  const GMFloat result = ccc_multiplier * fij * (one - ccc_param * fmin) *
-                                                (one - ccc_param * fmax);
+  const GMFloat result = ccc_multiplier * fij * (f_one - ccc_param * fmin) *
+                                                (f_one - ccc_param * fmax);
   /* clang-format on */
 
   return result;
 }
 
+//-----------------------------------------------------------------------------
+
+#ifndef XXX
+
+static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
+                                              size_t index,
+                                              int i0,
+                                              int i1,
+                                              GMEnv* env) {
+  GMAssert(metrics && env);
+  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(i0 >= 0 && i0 < 2);
+  GMAssert(i1 >= 0 && i1 < 2);
+
+  const GMFloat f_one = 1;
+  const GMFloat recip_m = metrics->recip_m;
+
+  const GMTally2x2 t22 = GMMetrics_tally2x2_get_from_index(metrics, index, env);
+  const GMTally1 rij = GMTally2x2_get(t22, i0, i1);
+
+  const GMFloat2 si1_sj1 =
+      GMMetrics_float2_S_get_from_index(metrics, index, env);
+  GMTally1 si1, sj1;
+  GMFloat2_decode(&si1, &sj1, si1_sj1);
+
+  if (env->sparse) {
+
+    const GMFloat2 ci_cj =
+      GMMetrics_float2_C_get_from_index(metrics, index, env);
+    GMTally1 ci, cj;
+    GMFloat2_decode(&ci, &cj, ci_cj);
+
+    GMTally1 cij = GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
+                   GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1);
+    if (ci == 0 || cj == 0 || cij == 0) {
+      return 0;
+    }
+    const GMFloat f_ci = (GMFloat) ci;
+    const GMFloat f_cj = (GMFloat) cj;
+
+    const GMFloat f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
+    const GMFloat f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
+
+    const GMFloat f_cij = (GMFloat) cij;
+    const GMFloat recip_cicjcij = f_one / (f_cicj_min * f_cicj_max * f_cij);
+
+    /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
+    const GMTally1 si = i0 == 0 ? (2 * ci - si1) : si1;
+    const GMTally1 sj = i1 == 0 ? (2 * cj - sj1) : sj1;
+
+    const GMFloat recip_ci = f_cj * f_cij * recip_cicjcij;
+    const GMFloat recip_cj = f_ci * f_cij * recip_cicjcij;
+
+    const GMFloat recip_sumcij = f_cicj_min * f_cicj_max * recip_cicjcij;
+
+    return GMMetrics_ccc_value_2(metrics, rij, si, sj,
+                                 recip_ci, recip_cj, recip_sumcij, env);
+  } /*---if sparse---*/
+
+  GMAssert(metrics->num_field_active > 0);
+
+  /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
+  const GMTally1 si = i0 == 0 ? (2 * metrics->num_field_active - si1) : si1;
+  const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field_active - sj1) : sj1;
+
+  const GMFloat recip_sumcij = (f_one / 4) * recip_m;
+
+  return GMMetrics_ccc_value_2(metrics, rij, si, sj,
+                               recip_m, recip_m, recip_sumcij, env);
+}
+
+#else
 //-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
@@ -333,6 +406,7 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
                                recip_ci, recip_cj, recip_sumcij, env);
 }
 
+#endif
 //=============================================================================
 //=============================================================================
 /*---Accessors: value from (local) coord: set: 2-way---*/

@@ -554,6 +554,12 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
     const double ref10 = .588;
     const double ref11 = .312;
 
+    printf("G G  %.5f\n", ref00);
+    printf("G A  %.5f\n", ref01);
+    printf("T G  %.5f\n", ref10);
+    printf("T A  %.5f\n", ref11);
+    printf("\n");
+
     const double eps = 1.e-5;
 
     EXPECT_EQ(true, fabs(result00 - ref00) < eps);
@@ -706,6 +712,12 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
     const double ref10 = fm * f_10 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_0 );
     const double ref11 = fm * f_11 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_1 );
 
+    printf("G G  %.5f\n", ref00);
+    printf("G A  %.5f\n", ref01);
+    printf("T G  %.5f\n", ref10);
+    printf("T A  %.5f\n", ref11);
+    printf("\n");
+
     const double eps = 1.e-5;
 
     EXPECT_EQ(true, fabs(result00 - ref00) < eps);
@@ -836,14 +848,25 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
     printf("T T T  %.8f\n", result111);
     printf("\n");
 
-    const double ref000 = .055;
-    const double ref001 = .016;
-    const double ref010 = .016;
-    const double ref011 = .030;
-    const double ref100 = .039;
-    const double ref101 = .008;
-    const double ref110 = .008;
-    const double ref111 = .015;
+    const double fm = 9 / (double) 2;
+    const double ref000 = fm * .055;
+    const double ref001 = fm * .016;
+    const double ref010 = fm * .016;
+    const double ref011 = fm * .030;
+    const double ref100 = fm * .039;
+    const double ref101 = fm * .008;
+    const double ref110 = fm * .008;
+    const double ref111 = fm * .015;
+
+    printf("A A A  %.8f\n", ref000);
+    printf("A A T  %.5f\n", ref001);
+    printf("A T A  %.8f\n", ref010);
+    printf("A T T  %.8f\n", ref011);
+    printf("T A A  %.8f\n", ref100);
+    printf("T A T  %.8f\n", ref101);
+    printf("T T A  %.8f\n", ref110);
+    printf("T T T  %.8f\n", ref111);
+    printf("\n");
 
     const double eps = 1.e-3;
 
@@ -1078,7 +1101,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     const double f_110 = r_110 / c;
     const double f_111 = r_111 / c;
 
-    const double fm = 1;
+    const double fm = 9 / (double) 2;
     const double cp = 2 / (double) 3;
 
     const double ref000 = fm * f_000 * (1-cp*f0_0) * (1-cp*f1_0) * (1-cp*f2_0);
@@ -1089,6 +1112,16 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     const double ref101 = fm * f_101 * (1-cp*f0_1) * (1-cp*f1_0) * (1-cp*f2_1);
     const double ref110 = fm * f_110 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_0);
     const double ref111 = fm * f_111 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_1);
+
+    printf("A A A  %.8f\n", ref000);
+    printf("A A T  %.5f\n", ref001);
+    printf("A T A  %.8f\n", ref010);
+    printf("A T T  %.8f\n", ref011);
+    printf("T A A  %.8f\n", ref100);
+    printf("T A T  %.8f\n", ref101);
+    printf("T T A  %.8f\n", ref110);
+    printf("T T T  %.8f\n", ref111);
+    printf("\n");
 
     //const double ref000 = .055;
     //const double ref001 = .016;
@@ -1524,7 +1557,8 @@ void DriverTest_ccc_() {
 
 //=============================================================================
 
-#if 1
+#if 0
+#endif
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }
@@ -1544,13 +1578,10 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();
 }
-#if 0
-#endif
 
 //=============================================================================
 

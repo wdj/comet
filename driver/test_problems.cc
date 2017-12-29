@@ -389,7 +389,12 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
           const GMFloat value_expected = (((GMFloat)2) * n) / d;
 
-          num_incorrect += value_expected != value;
+          const bool is_incorrect = value_expected != value;
+          if (is_incorrect) {
+            printf("%.16e %.16e\n", (double)value_expected, (double)value);
+          }
+
+          num_incorrect += is_incorrect;
         } //---for index
       } //---if
       if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
@@ -441,7 +446,12 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
           const GMFloat value_expected = (((GMFloat)1.5) * n) / d;
 
-          num_incorrect += value_expected != value;
+          const bool is_incorrect = value_expected != value;
+          if (is_incorrect) {
+            printf("%.16e %.16e\n", (double)value_expected, (double)value);
+          }
+
+          num_incorrect += is_incorrect;
         } //---for index
       } //---if
     } break;
@@ -518,19 +528,44 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
             GMFloat value_expected = 0;
             if (!(ci == 0 || cj == 0 || cij == 0)) {
-              const GMFloat one = 1;
+              const GMFloat f_one = 1;
 
-              const GMFloat recip_ci = env->sparse ? one/ci : metrics->recip_m;
-              const GMFloat recip_cj = env->sparse ? one/cj : metrics->recip_m;
+              const GMFloat f_ci = (GMFloat) ci;
+              const GMFloat f_cj = (GMFloat) cj;
 
-              const GMFloat recip_sumcij = env->sparse ? one/cij :
-                                             (one / 4) * metrics->recip_m;
+              const GMFloat f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
+              const GMFloat f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
+
+              const GMFloat f_cij = (GMFloat) cij;
+              const GMFloat recip_cicjcij = f_one /
+                                            (f_cicj_min * f_cicj_max * f_cij);
+
+              const GMFloat recip_ci = env->sparse ?
+                f_cj * f_cij * recip_cicjcij : metrics->recip_m;
+              const GMFloat recip_cj = env->sparse ?
+                f_ci * f_cij * recip_cicjcij : metrics->recip_m;
+
+              const GMFloat recip_sumcij = env->sparse ?
+                f_cicj_min * f_cicj_max * recip_cicjcij :
+                (f_one / 4) * metrics->recip_m;
+
+              //const GMFloat recip_ci = env->sparse ? f_one/ci : metrics->recip_m;
+              //const GMFloat recip_cj = env->sparse ? f_one/cj : metrics->recip_m;
+
+              //const GMFloat recip_sumcij = env->sparse ? f_one/cij :
+              //                               (f_one / 4) * metrics->recip_m;
 
               value_expected =
                 GMMetrics_ccc_value_2(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env);
             }
-            num_incorrect += value_expected != value;
+
+            const bool is_incorrect = value_expected != value;
+            if (is_incorrect) {
+              printf("%.16e %.16e\n", (double)value_expected, (double)value);
+            }
+
+            num_incorrect += is_incorrect;
           } //---j
         } //---i
       } //---for index
@@ -631,23 +666,29 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
               GMFloat value_expected = 0;
               if (!(ci == 0 || cj == 0 || ck == 0 || cijk == 0)) {
-                const GMFloat one = 1;
+                const GMFloat f_one = 1;
   
-                const GMFloat recip_ci = env->sparse ? one/ci
+                const GMFloat recip_ci = env->sparse ? f_one/ci
                                                      : metrics->recip_m;
-                const GMFloat recip_cj = env->sparse ? one/cj
+                const GMFloat recip_cj = env->sparse ? f_one/cj
                                                      : metrics->recip_m;
-                const GMFloat recip_ck = env->sparse ? one/ck
+                const GMFloat recip_ck = env->sparse ? f_one/ck
                                                      : metrics->recip_m;
   
-                const GMFloat recip_sumcijk = env->sparse ? one/cijk :
-                                               (one / 8) * metrics->recip_m;
+                const GMFloat recip_sumcijk = env->sparse ? f_one/cijk :
+                                               (f_one / 8) * metrics->recip_m;
   
                 value_expected =
                   GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, recip_ci,
                                         recip_cj, recip_ck, recip_sumcijk, env);
               }
-              num_incorrect += value_expected != value;
+
+              const bool is_incorrect = value_expected != value;
+              if (is_incorrect) {
+                printf("%.16e %.16e\n", (double)value_expected, (double)value);
+              }
+
+              num_incorrect += is_incorrect;
             } //---k
           } //---j
         } //---i
