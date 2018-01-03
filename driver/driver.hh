@@ -29,10 +29,10 @@ typedef struct {
   bool num_vector_local_initialized;
   bool num_vector_active_initialized;
   int verbosity;
-  int stage_min_1based;
-  int stage_max_1based;
-  int phase_min_1based;
-  int phase_max_1based;
+  int stage_min_0based;
+  int stage_max_0based;
+  int phase_min_0based;
+  int phase_max_0based;
   char* input_file_path;
   char* output_file_path_stub;
   int problem_type;

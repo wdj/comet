@@ -108,11 +108,11 @@ Options:
 
     --stage_min <value>
         the lowest stage number of the sequence of stages to be computed
-        for this run (default is 1)
+        for this run (0-based, default is 0)
 
     --stage_max <value>
         the highest stage number of the sequence of stages to be computed
-        for this run (default is num_stage)
+        for this run (0-based, default is num_stage-1)
 
     --num_phase <value>
         the number of phases the computation is divided into
@@ -120,11 +120,11 @@ Options:
 
     --phase_min <value>
         the lowest phase number of the sequence of phases to be computed
-        for this run (default is 1)
+        for this run (0-based, default is 0)
 
     --phase_max <value>
         the highest phase number of the sequence of phases to be computed
-        for this run (default is num_phase)
+        for this run (0-based, default is num_phase-1)
 
     --problem_type <value>
         the kind of synthetic test case to run. Allowed choices are

@@ -109,28 +109,28 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
                     && (long)(int)num_stage == num_stage
                     && "Invalid setting for num_stage.");
       env->num_stage = num_stage;
-      do_->stage_min_1based = 1;
-      do_->stage_max_1based = env->num_stage;
+      do_->stage_min_0based = 0;
+      do_->stage_max_0based = env->num_stage - 1;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_min") == 0) {
     /*----------*/
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for stage_min.");
-      const long stage_min_1based = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, errno == 0 && stage_min_1based >= 1
-                    && (long)(int)stage_min_1based == stage_min_1based
+      const long stage_min_0based = strtol(argv[i], NULL, 10);
+      GMInsistInterface(env, errno == 0 && stage_min_0based >= 0
+                    && (long)(int)stage_min_0based == stage_min_0based
                     && "Invalid setting for stage_min.");
-      do_->stage_min_1based = stage_min_1based;
+      do_->stage_min_0based = stage_min_0based;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_max") == 0) {
     /*----------*/
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for stage_max.");
-      const long stage_max_1based = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, errno == 0 && stage_max_1based <= env->num_stage
-                    && (long)(int)stage_max_1based == stage_max_1based
+      const long stage_max_0based = strtol(argv[i], NULL, 10);
+      GMInsistInterface(env, errno == 0 && stage_max_0based < env->num_stage
+                    && (long)(int)stage_max_0based == stage_max_0based
                     && "Invalid setting for stage_max.");
-      do_->stage_max_1based = stage_max_1based;
+      do_->stage_max_0based = stage_max_0based;
     /*----------*/
     } else if (strcmp(argv[i], "--num_phase") == 0) {
     /*----------*/
@@ -141,28 +141,28 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
                     && (long)(int)num_phase == num_phase
                     && "Invalid setting for num_phase.");
       env->num_phase = num_phase;
-      do_->phase_min_1based = 1;
-      do_->phase_max_1based = env->num_phase;
+      do_->phase_min_0based = 0;
+      do_->phase_max_0based = env->num_phase - 1;
     /*----------*/
     } else if (strcmp(argv[i], "--phase_min") == 0) {
     /*----------*/
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for phase_min.");
-      const long phase_min_1based = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, errno == 0 && phase_min_1based >= 1
-                    && (long)(int)phase_min_1based == phase_min_1based
+      const long phase_min_0based = strtol(argv[i], NULL, 10);
+      GMInsistInterface(env, errno == 0 && phase_min_0based >= 0
+                    && (long)(int)phase_min_0based == phase_min_0based
                     && "Invalid setting for phase_min.");
-      do_->phase_min_1based = phase_min_1based;
+      do_->phase_min_0based = phase_min_0based;
     /*----------*/
     } else if (strcmp(argv[i], "--phase_max") == 0) {
     /*----------*/
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for phase_max.");
-      const long phase_max_1based = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, errno == 0 && phase_max_1based <= env->num_phase
-                    && (long)(int)phase_max_1based == phase_max_1based
+      const long phase_max_0based = strtol(argv[i], NULL, 10);
+      GMInsistInterface(env, errno == 0 && phase_max_0based < env->num_phase
+                    && (long)(int)phase_max_0based == phase_max_0based
                     && "Invalid setting for phase_max.");
-      do_->phase_max_1based = phase_max_1based;
+      do_->phase_max_0based = phase_max_0based;
     /*----------*/
     } else if (strcmp(argv[i], "--input_file") == 0) {
     /*----------*/
@@ -285,10 +285,10 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   do_.num_vector_local_initialized = false;
   do_.num_vector_active_initialized = false;
   do_.verbosity = 1;
-  do_.stage_min_1based = 1;
-  do_.stage_max_1based = env->num_stage;
-  do_.phase_min_1based = 1;
-  do_.phase_max_1based = env->num_phase;
+  do_.stage_min_0based = 0;
+  do_.stage_max_0based = env->num_stage - 1;
+  do_.phase_min_0based = 0;
+  do_.phase_max_0based = env->num_phase - 1;
   do_.input_file_path = NULL;
   do_.output_file_path_stub = NULL;
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
@@ -368,11 +368,11 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   {
   MetricsFile mf(&do_, env);
 
-  for (env->stage_num=do_.stage_min_1based-1;
-       env->stage_num<=do_.stage_max_1based-1; ++env->stage_num) {
+  for (env->stage_num=do_.stage_min_0based;
+       env->stage_num<=do_.stage_max_0based; ++env->stage_num) {
 
-    for (env->phase_num=do_.phase_min_1based-1;
-         env->phase_num<=do_.phase_max_1based-1; ++env->phase_num) {
+    for (env->phase_num=do_.phase_min_0based;
+         env->phase_num<=do_.phase_max_0based; ++env->phase_num) {
 
       /*---Set up metrics container for results---*/
 
@@ -433,13 +433,13 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     GMInsist(mpi_code == MPI_SUCCESS);
 
     if (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env) &&
-        do_.phase_min_1based==1 && do_.phase_max_1based==env->num_phase) {
+        do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase - 1) {
       GMInsist(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) / 2);
     }
 
     if (GMEnv_num_way(env) == GM_NUM_WAY_3 && GMEnv_all2all(env) &&
-        do_.stage_min_1based==1 && do_.stage_max_1based==env->num_stage) {
+        do_.stage_min_0based==0 && do_.stage_max_0based==env->num_stage - 1) {
       GMInsist(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) * (size_t)
                                           (do_.num_vector - 2) / 6);
