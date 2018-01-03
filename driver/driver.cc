@@ -365,6 +365,9 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
   size_t num_elts_local_computed = 0;
 
+  {
+  MetricsFile mf(&do_, env);
+
   for (env->stage_num=do_.stage_min_1based-1;
        env->stage_num<=do_.stage_max_1based-1; ++env->stage_num) {
 
@@ -388,7 +391,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
       /*---Output results---*/
 
       time_beg = GMEnv_get_synced_time(env);
-      output_metrics(metrics, &do_, env);
+      mf.write(metrics, env);
+      //output_metrics(metrics, &do_, env);
       time_end = GMEnv_get_synced_time(env);
       outtime += time_end - time_beg;
 
@@ -410,6 +414,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     }
 
   } /*---End loops over phases, stages---*/
+
+  }
 
   GMVectors_destroy(vectors, env);
 

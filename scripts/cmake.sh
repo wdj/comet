@@ -160,6 +160,7 @@ C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-math-errno -ffinite-math-only -fno-roundi
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-signed-zeros -fno-trapping-math -freciprocal-math"
 
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-functions -finline-limit=1000"
+C_FLAGS_RELEASE="$C_FLAGS_RELEASE -march=bdver1"
 #C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -fargument-noalias-anything"
 
 #----------

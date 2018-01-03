@@ -19,6 +19,7 @@
 #include "vectors.hh"
 #include "metrics.hh"
 #include "driver.hh"
+#include "input_output.hh"
 
 //=============================================================================
 // Input vectors from files
@@ -290,9 +291,9 @@ public:
 //=============================================================================
 // Output results metrics to file: implementation
 
-void output_metrics_impl(GMMetrics* metrics, DriverOptions* do_,
-                         FILE* file, double threshold, GMEnv* env) {
-  GMInsist(metrics && do_ && file && env);
+void output_metrics_impl(GMMetrics* metrics, FILE* file,
+                         double threshold, GMEnv* env) {
+  GMInsist(metrics && file && env);
 
   if (! GMEnv_is_proc_active(env)) {
     return;
@@ -627,10 +628,8 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
     /*---Do output---*/
 
-    double threshold = do_->threshold;
-
     FILE* file = fopen(path, "w");
-    output_metrics_impl(metrics, do_, file, threshold, env);
+    output_metrics_impl(metrics, file, do_->threshold, env);
     fclose(file);
     free(path);
   }
@@ -639,7 +638,95 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
   if (do_->verbosity > 1) {
     double threshold = do_->verbosity > 2 ? -1. : do_->threshold;
-    output_metrics_impl(metrics, do_, stdout, threshold, env);
+    output_metrics_impl(metrics, stdout, threshold, env);
+  }
+}
+
+//=============================================================================
+
+MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env) {
+  GMInsist(do_ && env);
+
+  this->file = NULL;
+  this->verbosity = do_->verbosity;
+  this->threshold = do_->threshold;
+
+  char* stub = do_->output_file_path_stub;
+
+  /*---Output to file if requested---*/
+
+  if (NULL != stub && GMEnv_is_proc_active(env) &&
+      GMEnv_proc_num_field(env) == 0) {
+
+    /*---Form filename---*/
+
+    size_t len = strlen(stub);
+    char* path = (char*)malloc((len+50) * sizeof(char));
+
+#if 0
+    GMInsist(env->num_stage < 1000000);
+    GMInsist(env->num_phase < 1000000);
+    GMInsist(GMEnv_num_proc(env) < 10000000000);
+
+    if (env->num_stage == 1) {
+      if (env->num_phase == 1) {
+        sprintf(path, "%s_%010i.bin", stub, GMEnv_proc_num(env));
+      } else {
+        sprintf(path, "%s_%06i_%010i.bin", stub, env->phase_num,
+                GMEnv_proc_num(env));
+      }
+    } else {
+      if (env->num_phase == 1) {
+        sprintf(path, "%s_%06i_%010i.bin", stub, env->stage_num,
+                GMEnv_proc_num(env));
+      } else {
+        sprintf(path, "%s_%06i_%06i_%010i.bin", stub, env->phase_num,
+                env->stage_num, GMEnv_proc_num(env));
+      }
+    }
+#endif
+
+    int num_digits = 0;
+    for (int tmp = 1; ; tmp*=10, ++num_digits) {
+      if (tmp > GMEnv_num_proc(env)) {
+        break;
+      }
+    }
+
+    char format[100];
+    sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
+
+    sprintf(path, format, stub, GMEnv_proc_num(env));
+
+    /*---Do output---*/
+
+    this->file = fopen(path, "w");
+    free(path);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+MetricsFile::~MetricsFile() {
+
+  if (this->file) {
+    fclose(this->file);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void MetricsFile::write(GMMetrics* metrics, GMEnv* env) {
+
+  if (this->file) {
+    output_metrics_impl(metrics, this->file, this->threshold, env);
+  }
+
+  /*---Output to stdout if requested---*/
+
+  if (this->verbosity > 1) {
+    double threshold = this->verbosity > 2 ? -1. : this->threshold;
+    output_metrics_impl(metrics, stdout, threshold, env);
   }
 }
 

@@ -24,6 +24,29 @@ void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
                          FILE* file, double threshold, GMEnv* env);
 
 void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
+   
+//-----------------------------------------------------------------------------
+
+class MetricsFile {
+public:
+
+  MetricsFile(DriverOptions* do_, GMEnv* env);
+
+  ~MetricsFile();
+
+  void write(GMMetrics* metrics, GMEnv* env);
+
+private:
+
+  FILE* file;
+  int verbosity;
+  double threshold;
+
+  //---Disallowed methods.
+
+  MetricsFile(    const MetricsFile& );
+  void operator=( const MetricsFile& );
+};
 
 //=============================================================================
 
