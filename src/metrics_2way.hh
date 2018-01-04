@@ -245,13 +245,13 @@ static GMFloat GMMetrics_czek_get_from_index(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
-                                    const GMTally1 rij,
-                                    const GMTally1 si,
-                                    const GMTally1 sj,
-                                    const GMFloat recip_ci,
-                                    const GMFloat recip_cj,
-                                    const GMFloat recip_sumcij,
-                                    GMEnv* env) {
+                                     const GMTally1 rij,
+                                     const GMTally1 si,
+                                     const GMTally1 sj,
+                                     const GMFloat recip_ci,
+                                     const GMFloat recip_cj,
+                                     const GMFloat recip_sumcij,
+                                     GMEnv* env) {
   GMAssert(metrics && env);
 
   const GMFloat f_one = 1;
@@ -277,8 +277,6 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
 }
 
 //-----------------------------------------------------------------------------
-
-#ifndef XXX
 
 static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
                                               size_t index,
@@ -344,11 +342,135 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
 
   const GMFloat recip_sumcij = (f_one / 4) * recip_m;
 
-  return GMMetrics_ccc_value_2(metrics, rij, si, sj,
-                               recip_m, recip_m, recip_sumcij, env);
+  const GMFloat result = GMMetrics_ccc_value_2(metrics, rij, si, sj,
+                                recip_m, recip_m, recip_sumcij, env);
+  //GMFloat v00, v01, v10, v11;
+  //GMMetrics_ccc_get_from_index_2_all(metrics, index, v00, v01, v10, v11, env);
+  //const GMFloat value = i0 ? (i1 ? v11 : v10) : (i1 ? v01 : v00);
+  //GMAssert(result == value);
+
+  return result;
 }
 
-#else
+//-----------------------------------------------------------------------------
+
+static void GMMetrics_ccc_get_from_index_2_all(GMMetrics* metrics,
+                                               const size_t index,
+                                               GMFloat& v00,
+                                               GMFloat& v01,
+                                               GMFloat& v10,
+                                               GMFloat& v11,
+                                               GMEnv* env) {
+  GMAssert(metrics && env);
+  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+
+  const GMFloat f_one = 1;
+  //const GMFloat recip_m = metrics->recip_m;
+
+  const GMFloat ccc_multiplier = GMEnv_ccc_multiplier(env);
+  const GMFloat ccc_param = GMEnv_ccc_param(env);
+
+  const GMTally2x2 t22 = GMMetrics_tally2x2_get_from_index(metrics, index, env);
+  const GMTally1 rij00 = GMTally2x2_get(t22, 0, 0);
+  const GMTally1 rij01 = GMTally2x2_get(t22, 0, 1);
+  const GMTally1 rij10 = GMTally2x2_get(t22, 1, 0);
+  const GMTally1 rij11 = GMTally2x2_get(t22, 1, 1);
+
+  const GMFloat2 si1_sj1 =
+      GMMetrics_float2_S_get_from_index(metrics, index, env);
+  GMTally1 si1, sj1;
+  GMFloat2_decode(&si1, &sj1, si1_sj1);
+
+  if (env->sparse) {
+
+    const GMFloat2 ci_cj =
+      GMMetrics_float2_C_get_from_index(metrics, index, env);
+    GMTally1 ci, cj;
+    GMFloat2_decode(&ci, &cj, ci_cj);
+
+    GMTally1 cij = rij00 + rij01 + rij10 + rij11;
+    if (ci == 0 || cj == 0 || cij == 0) {
+      v00 = 0;
+      v01 = 0;
+      v10 = 0;
+      v11 = 0;
+      return;
+    }
+
+    const GMFloat f_ci = (GMFloat) ci;
+    const GMFloat f_cj = (GMFloat) cj;
+
+    const GMFloat f_cicj = f_ci < f_cj ? f_ci * f_cj : f_cj * f_ci;
+
+    const GMFloat f_cij = (GMFloat) cij;
+    const GMFloat recip_3 = f_one / (f_cicj * f_cij);
+
+    const GMFloat recip_sumcij = f_cicj * recip_3;
+
+    const GMFloat recip_ci = f_cj * f_cij * recip_3;
+    const GMFloat recip_cj = f_ci * f_cij * recip_3;
+
+    /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
+
+    const GMTally1 si0 = 2 * ci - si1;
+    const GMTally1 sj0 = 2 * cj - sj1;
+
+    const GMFloat fi0 = (f_one / 2) * recip_ci * si0;
+    const GMFloat fi1 = (f_one / 2) * recip_ci * si1;
+    const GMFloat fj0 = (f_one / 2) * recip_cj * sj0;
+    const GMFloat fj1 = (f_one / 2) * recip_cj * sj1;
+
+    const GMFloat fij00 = recip_sumcij * rij00;
+    const GMFloat fij01 = recip_sumcij * rij01;
+    const GMFloat fij10 = recip_sumcij * rij10;
+    const GMFloat fij11 = recip_sumcij * rij11;
+
+    /*---Make floating point arithmetic order-independent---*/
+
+    if (fi0 < fj0) {
+      v00 = ccc_multiplier * fij00 * (f_one - ccc_param * fi0) *
+                                     (f_one - ccc_param * fj0);
+    } else {
+      v00 = ccc_multiplier * fij00 * (f_one - ccc_param * fj0) *
+                                     (f_one - ccc_param * fi0);
+    }
+
+    if (fi0 < fj1) {
+      v01 = ccc_multiplier * fij01 * (f_one - ccc_param * fi0) *
+                                     (f_one - ccc_param * fj1);
+    } else {
+      v01 = ccc_multiplier * fij01 * (f_one - ccc_param * fj1) *
+                                     (f_one - ccc_param * fi0);
+    }
+
+    if (fi1 < fj0) {
+      v10 = ccc_multiplier * fij10 * (f_one - ccc_param * fi1) *
+                                     (f_one - ccc_param * fj0);
+    } else {
+      v10 = ccc_multiplier * fij10 * (f_one - ccc_param * fj0) *
+                                     (f_one - ccc_param * fi1);
+    }
+
+    if (fi1 < fj1) {
+      v11 = ccc_multiplier * fij11 * (f_one - ccc_param * fi1) *
+                                     (f_one - ccc_param * fj1);
+    } else {
+      v11 = ccc_multiplier * fij11 * (f_one - ccc_param * fj1) *
+                                     (f_one - ccc_param * fi1);
+    }
+
+    return;
+  } /*---if sparse---*/
+
+  v00 = GMMetrics_ccc_get_from_index_2(metrics, index, 0, 0, env);
+  v01 = GMMetrics_ccc_get_from_index_2(metrics, index, 0, 1, env);
+  v10 = GMMetrics_ccc_get_from_index_2(metrics, index, 1, 0, env);
+  v11 = GMMetrics_ccc_get_from_index_2(metrics, index, 1, 1, env);
+
+}
+
+#if 0
 //-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
@@ -405,8 +527,8 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   return GMMetrics_ccc_value_2(metrics, rij, si, sj,
                                recip_ci, recip_cj, recip_sumcij, env);
 }
-
 #endif
+
 //=============================================================================
 //=============================================================================
 /*---Accessors: value from (local) coord: set: 2-way---*/

@@ -395,66 +395,67 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
         size_t num_buf_ind = 1000000;
         size_t num_buf = 4 * num_buf_ind;
 
-        bool do_out_buf[num_buf];
+        char do_out_buf[num_buf];
         int coord0_buf[num_buf];
         int coord1_buf[num_buf];
         int i01_buf[num_buf];
-        //size_t loc_buf[num_buf];
         GMFloat value_buf[num_buf];
 
-        //const size_t nva = metrics->num_vector_active;
-        //const size_t no_out = 4 * nva * nva;
+        for (int i=0; i<(int)num_buf; ++i) {
+          do_out_buf[i] = 0;
+        }
   
         for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
              ind_base += num_buf_ind) {
           const size_t ind_max = gm_min_i8(metrics->num_elts_local,
                                            ind_base + num_buf_ind);
-#pragma omp parallel for collapse(3) schedule(dynamic,10000)
+#pragma omp parallel for collapse(1) schedule(dynamic,1000)
           for (size_t index = ind_base; index < ind_max; ++index) {
+            GMFloat v00, v01, v10, v11;
+            GMMetrics_ccc_get_from_index_2_all(metrics, index, v00, v01, v10, v11, env);
             for (int i0 = 0; i0 < 2; ++i0) {
               for (int i1 = 0; i1 < 2; ++i1) {
-                const GMFloat value =
-                  GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+                const GMFloat value = i0 ? (i1 ? v11 : v10) : (i1 ? v01 : v00);
+                //const GMFloat value0 =
+                //  GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+                //if (value != value0) printf("%e %e\n", value0, value);
                 const bool do_thresh = threshold<0. || value>threshold;
-                const size_t coord0 = (!do_thresh) ? 0 :
-                  GMMetrics_coord_global_from_index(metrics, index, 0, env);
-                const size_t coord1 = (!do_thresh) ? 0 :
-                  GMMetrics_coord_global_from_index(metrics, index, 1, env);
-                const bool do_out = do_thresh &&
-                  coord0 < metrics->num_vector_active &&
-                  coord1 < metrics->num_vector_active;
-                const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
+                if (do_thresh) {
+                  const size_t coord0 =
+                    GMMetrics_coord_global_from_index(metrics, index, 0, env);
+                  const size_t coord1 =
+                    GMMetrics_coord_global_from_index(metrics, index, 1, env);
+                  const char do_out = coord0 < metrics->num_vector_active &&
+                                      coord1 < metrics->num_vector_active;
+                  const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
 
-                do_out_buf[ind_buf] = do_out;
-                coord0_buf[ind_buf] = coord0;
-                coord1_buf[ind_buf] = coord1;
-                //i0_buf[ind_buf] = i0;
-                //i1_buf[ind_buf] = i1;
-                i01_buf[ind_buf] = i0 + 2*i1;
-
-                //loc_buf[ind_buf] = (!do_out) ? no_out :
-                //                   i0 +2*(i1 + 2*(coord0 + nva*coord1));
-
-                value_buf[ind_buf] = value;
+                  do_out_buf[ind_buf] = do_out;
+                  coord0_buf[ind_buf] = coord0;
+                  coord1_buf[ind_buf] = coord1;
+                  i01_buf[ind_buf] = i0 + 2*i1;
+                  value_buf[ind_buf] = value;
+                } /*---if---*/
               } /*---i1---*/
             } /*---i0---*/
           } /*---index---*/
 
+          //assert(sizeof(int) == 4 * sizeof(char));
           const size_t ind_buf_max = 4 * (ind_max - ind_base);
-          for (size_t ind_buf = 0; ind_buf < ind_buf_max; ++ind_buf) {
-            const bool do_out = do_out_buf[ind_buf];
-            //const bool do_out = i01_buf[ind_buf] != -1;
-            //const bool do_out = loc_buf[ind_buf] != no_out;
-            if (do_out) {
-                const int i0 = i01_buf[ind_buf] % 2;
-                const int i1 = i01_buf[ind_buf] / 2;
-                const size_t coord0 = coord0_buf[ind_buf];
-                const size_t coord1 = coord1_buf[ind_buf];
-                //const int i0 = loc_buf[ind_buf] % 2;
-                //const int i1 = (loc_buf[ind_buf] / 2 ) % nva;
-                //const size_t coord0 = (loc_buf[ind_buf] / 4) % nva;
-                //const size_t coord1 =  loc_buf[ind_buf] / (4 * nva);
-                writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
+          const int* const do_out_ptr_max = (int*)(do_out_buf + ind_buf_max);
+          int* do_out_ptr = (int*)do_out_buf;
+          for (; do_out_ptr < do_out_ptr_max;) {
+            if (*(do_out_ptr++)) {
+              for (int i=0; i<4; ++i) {
+                const size_t ind_buf = (do_out_ptr - (int*)do_out_buf - 1)*4 + i;
+                if (do_out_buf[ind_buf]) {
+                  const int i0 = i01_buf[ind_buf] % 2;
+                  const int i1 = i01_buf[ind_buf] / 2;
+                  const size_t coord0 = coord0_buf[ind_buf];
+                  const size_t coord1 = coord1_buf[ind_buf];
+                  writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
+                  do_out_buf[ind_buf] = 0;
+                }
+              }
             }
           } /*---ind_buf---*/
         } /*---ind_base---*/
