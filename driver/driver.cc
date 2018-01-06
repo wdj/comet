@@ -277,6 +277,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
   GMEnv_create(env, MPI_COMM_WORLD, argc, argv, description);
 
+  double total_time_beg = GMEnv_get_synced_time(env);
+
   /*---Parse remaining unprocessed arguments---*/
 
   DriverOptions do_ = {0};
@@ -299,6 +301,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
   finish_parsing(argc, argv, &do_, env);
 
+  /*---Set up parallel deomp for vectors, metrics---*/
+
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm,
     do_.num_field_local_initialized,
@@ -308,10 +312,6 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
     GMEnv_data_type_vectors(env), env);
-
-
-
-
 
   if (do_.num_vector_local_initialized) {
     do_.num_vector = do_.num_vector_local *
@@ -335,11 +335,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     do_.num_field = do_.num_field_local * (size_t) GMEnv_num_proc_field(env);
   }
 
-
-
-
-
-  /*---Initialize vectors---*/
+  /*---Allocate vectors---*/
 
   double vctime = 0;
   double time_beg = GMEnv_get_synced_time(env);
@@ -348,11 +344,15 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   double time_end = GMEnv_get_synced_time(env);
   vctime += time_end - time_beg;
 
+  /*---Set vectors---*/
+
   double intime = 0;
   time_beg = GMEnv_get_synced_time(env);
   set_vectors(vectors, &do_, env);
   time_end = GMEnv_get_synced_time(env);
   intime += time_end - time_beg;
+
+  /*---More initializations---*/
 
   GMChecksum checksum_value = GMChecksum_null(), *checksum = &checksum_value;
   checksum->computing_checksum = do_.checksum;
@@ -361,12 +361,18 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   double mctime = 0;
   double cktime = 0;
 
-  /*---Loops over phases, stages---*/
-
   size_t num_elts_local_computed = 0;
+  size_t num_local_written = 0;
+
+  /*---Open output files---*/
 
   {
-  MetricsFile mf(&do_, env);
+  time_beg = GMEnv_get_synced_time(env);
+  MetricsFile metric_file(&do_, env);
+  time_end = GMEnv_get_synced_time(env);
+  outtime += time_end - time_beg;
+
+  /*---Loops over phases, stages---*/
 
   for (env->stage_num=do_.stage_min_0based;
        env->stage_num<=do_.stage_max_0based; ++env->stage_num) {
@@ -391,8 +397,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
       /*---Output results---*/
 
       time_beg = GMEnv_get_synced_time(env);
-      mf.write(metrics, env);
-      //output_metrics(metrics, &do_, env);
+      metric_file.write(metrics, env);
       time_end = GMEnv_get_synced_time(env);
       outtime += time_end - time_beg;
 
@@ -409,25 +414,45 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
         cktime += time_end - time_beg;
       }
 
+      time_beg = GMEnv_get_synced_time(env);
       GMMetrics_destroy(metrics, env);
+      time_end = GMEnv_get_synced_time(env);
+      mctime += time_end - time_beg;
 
     }
 
   } /*---End loops over phases, stages---*/
 
-  }
+  /*---Close output files---*/
 
+  num_local_written += metric_file.get_num_written();
+  time_beg = GMEnv_get_synced_time(env);
+  }
+  time_end = GMEnv_get_synced_time(env);
+  outtime += time_end - time_beg;
+
+  /*---Dellocate vectors---*/
+
+  time_beg = GMEnv_get_synced_time(env);
   GMVectors_destroy(vectors, env);
+  time_end = GMEnv_get_synced_time(env);
+  vctime += time_end - time_beg;
 
   /*---Perform some checks---*/
 
   GMInsist(env->cpu_mem == 0);
   GMInsist(env->gpu_mem == 0);
 
+  size_t num_written = 0;
   if (GMEnv_is_proc_active(env)) {
-  int mpi_code = 0;
+    int mpi_code = 0;
     size_t num_elts_computed = 0;
     mpi_code = MPI_Allreduce(&num_elts_local_computed, &num_elts_computed, 1,
+                             MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+                             GMEnv_mpi_comm_vector(env));
+    GMInsist(mpi_code == MPI_SUCCESS);
+
+    mpi_code = MPI_Allreduce(&num_local_written, &num_written, 1,
                              MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                              GMEnv_mpi_comm_vector(env));
     GMInsist(mpi_code == MPI_SUCCESS);
@@ -445,6 +470,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
                                           (do_.num_vector - 2) / 6);
     }
   }
+
+  double total_time_end = GMEnv_get_synced_time(env);
 
   /*---Output run information---*/
 
@@ -465,13 +492,15 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
       printf(" ");
     }
     //-----
-    printf("time %.6f", env->time);
+    printf("ctime %.6f", env->time);
     //-----
     printf(" ops %e", env->ops);
     if (env->time > 0) {
       printf(" rate %e", env->ops / env->time);
       printf(" rate/proc %e", env->ops / (env->time*GMEnv_num_proc(env)) );
     }
+    //-----
+    printf(" cmpout %e", (double)num_written);
     //-----
     printf(" cmp %e", env->compares);
     if (env->time > 0) {
@@ -493,6 +522,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     //-----
     printf(" cpumem %e", (double)env->cpu_mem_max);
     printf(" gpumem %e", (double)env->gpu_mem_max);
+    //-----
+    printf(" tottime %.6f", total_time_end - total_time_beg);
     //-----
     printf("\n");
   }

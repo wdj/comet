@@ -152,7 +152,8 @@ public:
   GMWriter(FILE* file, GMMetrics* metrics, GMEnv* env) :
     file_(file),
     data_type_(GMEnv_data_type_metrics(env)),
-    num_way_(GMEnv_num_way(env)) {
+    num_way_(GMEnv_num_way(env)),
+    num_written_total_(0){
 
     if (file_ != stdout) {
       GMInsistInterface(env, metrics->num_vector_active ==
@@ -169,7 +170,7 @@ public:
       //if (file != stdout) {
         //size_t num_written = fwrite(&buf, sizeof(out_t), buf_elts, file);
         //num_written_total += num_written;
-        //GMAssert(num_written == buf_elts*sizeof(out_t));
+        //GMAssert(num_written == buf_elts;
         //buf_elts = 0;
         //printf("Wrote %lu elements of %lu from proc %i.\n",
         //       num_written_total, metrics->num_elts_local,
@@ -177,6 +178,10 @@ public:
       //}
 
   }
+
+  //--------------------
+
+  size_t get_num_written() {return this->num_written_total_;}
 
   //--------------------
   // CZEK 2-way
@@ -187,15 +192,15 @@ public:
 
     const GMUInt32 outc0 = coord0;
     size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-    success = success && num_written == 1*sizeof(outc0);
+    success = success && num_written == 1;
 
     const GMUInt32 outc1 = coord1;
     num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-    success = success && num_written == 1*sizeof(outc1);
+    success = success && num_written == 1;
 
     const GMFp32 outv = value;
     num_written = fwrite(&outv, sizeof(outv), 1, file_);
-    success = success && num_written == 1*sizeof(outv);
+    success = success && num_written == 1;
 
     num_written_total_ += success ? 1 : 0;
 
@@ -205,7 +210,7 @@ public:
     //  size_t num_written = fwrite(&buf, sizeof(out_t),
     //                              buf_elts, file);
     //  num_written_total += num_written;
-    //  GMAssert(num_written == buf_elts*sizeof(out_t));
+    //  GMAssert(num_written == buf_elts);
     //  buf_elts = 0;
     //}
   }
@@ -219,19 +224,19 @@ public:
 
     const GMUInt32 outc0 = coord0;
     size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-    success = success && num_written == 1*sizeof(outc0);
+    success = success && num_written == 1;
 
     const GMUInt32 outc1 = coord1;
     num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-    success = success && num_written == 1*sizeof(outc1);
+    success = success && num_written == 1;
 
     const GMUInt32 outc2 = coord2;
     num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
-    success = success && num_written == 1*sizeof(outc2);
+    success = success && num_written == 1;
 
     const GMFp32 outv = value;
     num_written = fwrite(&outv, sizeof(outv), 1, file_);
-    success = success && num_written == 1*sizeof(outv);
+    success = success && num_written == 1;
 
     num_written_total_ += success ? 1 : 0;
   }
@@ -245,18 +250,17 @@ public:
 
     const GMUInt32 outc0 = i0 + 2 * coord0;
     size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-    success = success && num_written == 1*sizeof(outc0);
+    success = success && num_written == 1;
 
     const GMUInt32 outc1 = i1 + 2 * coord1;
     num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-    success = success && num_written == 1*sizeof(outc1);
+    success = success && num_written == 1;
 
     const GMFp32 outv = value;
     num_written = fwrite(&outv, sizeof(outv), 1, file_);
-    success = success && num_written == 1*sizeof(outv);
+    success = success && num_written == 1;
 
     num_written_total_ += success ? 1 : 0;
-
   }
 
   //--------------------
@@ -269,19 +273,19 @@ public:
 
     const GMUInt32 outc0 = i0 + 2 * coord0;
     size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-    success = success && num_written == 1*sizeof(outc0);
+    success = success && num_written == 1;
 
     const GMUInt32 outc1 = i1 + 2 * coord1;
     num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-    success = success && num_written == 1*sizeof(outc1);
+    success = success && num_written == 1;
 
     const GMUInt32 outc2 = i2 + 2 * coord2;
     num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
-    success = success && num_written == 1*sizeof(outc2);
+    success = success && num_written == 1;
 
     const GMFp32 outv = value;
     num_written = fwrite(&outv, sizeof(outv), 1, file_);
-    success = success && num_written == 1*sizeof(outv);
+    success = success && num_written == 1;
 
     num_written_total_ += success ? 1 : 0;
 
@@ -292,7 +296,7 @@ public:
 // Output results metrics to file: implementation
 
 void output_metrics_impl(GMMetrics* metrics, FILE* file,
-                         double threshold, GMEnv* env) {
+                         double threshold, size_t& num_written, GMEnv* env) {
   GMInsist(metrics && file && env);
 
   if (! GMEnv_is_proc_active(env)) {
@@ -586,6 +590,8 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
     default:
       GMInsist(false && "Invalid data type.");
   } /*---switch---*/
+
+  num_written += writer.get_num_written();
 }
 
 //=============================================================================
@@ -630,7 +636,8 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     /*---Do output---*/
 
     FILE* file = fopen(path, "w");
-    output_metrics_impl(metrics, file, do_->threshold, env);
+    size_t num_written = 0;
+    output_metrics_impl(metrics, file, do_->threshold, num_written, env);
     fclose(file);
     free(path);
   }
@@ -639,7 +646,8 @@ void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
   if (do_->verbosity > 1) {
     double threshold = do_->verbosity > 2 ? -1. : do_->threshold;
-    output_metrics_impl(metrics, stdout, threshold, env);
+    size_t num_written = 0;
+    output_metrics_impl(metrics, stdout, threshold, num_written, env);
   }
 }
 
@@ -651,6 +659,8 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env) {
   this->file = NULL;
   this->verbosity = do_->verbosity;
   this->threshold = do_->threshold;
+
+  this->num_written_ = 0;
 
   char* stub = do_->output_file_path_stub;
 
@@ -699,7 +709,7 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env) {
 
     sprintf(path, format, stub, GMEnv_proc_num(env));
 
-    /*---Do output---*/
+    /*---Do open---*/
 
     this->file = fopen(path, "w");
     free(path);
@@ -720,14 +730,15 @@ MetricsFile::~MetricsFile() {
 void MetricsFile::write(GMMetrics* metrics, GMEnv* env) {
 
   if (this->file) {
-    output_metrics_impl(metrics, this->file, this->threshold, env);
+    output_metrics_impl(metrics, this->file, this->threshold,
+                        this->num_written_, env);
   }
 
   /*---Output to stdout if requested---*/
 
   if (this->verbosity > 1) {
     double threshold = this->verbosity > 2 ? -1. : this->threshold;
-    output_metrics_impl(metrics, stdout, threshold, env);
+    output_metrics_impl(metrics, stdout, threshold, this->num_written_, env);
   }
 }
 

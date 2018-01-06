@@ -36,11 +36,14 @@ public:
 
   void write(GMMetrics* metrics, GMEnv* env);
 
+  size_t get_num_written() {return num_written_;}
+
 private:
 
   FILE* file;
   int verbosity;
   double threshold;
+  size_t num_written_;
 
   //---Disallowed methods.
 

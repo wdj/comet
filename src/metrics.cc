@@ -277,7 +277,7 @@ void GMMetrics_create(GMMetrics* metrics,
         continue;
       }
       const int j_block_unwrapped = i_block + diag;
-#pragma omp parallel for collapse(2)
+      #pragma omp parallel for collapse(2) schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
         const size_t j_global_unwrapped = j + j_block_unwrapped * (size_t)nvl;
@@ -339,7 +339,7 @@ void GMMetrics_create(GMMetrics* metrics,
         for (int j = j_min; j < j_max; ++j) {
           const int j_block = i_block;
           const size_t j_global = j + nvl * j_block;
-#pragma omp parallel for collapse(2)
+          #pragma omp parallel for collapse(2) schedule(dynamic,1000)
           for (int k = j+1; k < nvl; ++k) {
             for (int i = 0; i < j; ++i) {
             const int k_block = i_block;
@@ -372,7 +372,7 @@ void GMMetrics_create(GMMetrics* metrics,
           const int j_max = J_hi;
           for (int j = j_min; j < j_max; ++j) {
             const size_t j_global = j + nvl * j_block;
-#pragma omp parallel for collapse(2)
+            #pragma omp parallel for collapse(2) schedule(dynamic,1000)
             for (int k = j+1; k < nvl; ++k) {
               for (int i = 0; i < nvl; ++i) {
               const int k_block = j_block;
@@ -416,7 +416,7 @@ void GMMetrics_create(GMMetrics* metrics,
           const bool sax0 = section_axis == 0;
           const bool sax1 = section_axis == 1;
           for (int J = J_lo; J < J_hi; ++J) {
-#pragma omp parallel for collapse(2)
+            #pragma omp parallel for collapse(2) schedule(dynamic,1000)
             for (int K = 0; K < nvl; ++K) {
               for (int I = 0; I < nvl; ++I) {
 
@@ -658,7 +658,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
   const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
-#pragma omp parallel for collapse(2)
+  #pragma omp parallel for collapse(2) schedule(dynamic,1000)
   for (size_t j = 0; j < metrics_buf->dim1; ++j) {
     for (size_t i = 0; i < metrics_buf->dim0; ++i) {
 

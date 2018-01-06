@@ -41,7 +41,7 @@ void gm_compute_numerators_3way_gpu_form_matX_(
   /*----------*/
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
     /*----------*/
-#pragma omp parallel for collapse(2)
+    #pragma omp parallel for collapse(2) schedule(dynamic,1000)
     for (int I = I_min; I < I_max; ++I) {
       /*---Operate on columns x_i and x_j elementwise---*/
       for (int f = 0; f < npvfl; ++f) {
@@ -177,7 +177,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK && ! GMEnv_all2all(env)) {
     /*----------*/
 
-#pragma omp parallel for collapse(2)
+    #pragma omp parallel for collapse(2) schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
         const GMFloat min_IJ = GMMirroredBuf_elt_const<GMFloat>(matM_IJ_buf, I, J);;
@@ -209,7 +209,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
     /*----------*/
 
     GMIndexCache index_cache = {0};
-#pragma omp parallel for collapse(2) firstprivate(index_cache)
+    #pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
         const GMFloat min_IJ = GMMirroredBuf_elt_const<GMFloat>(matM_IJ_buf, I, J);;
@@ -243,7 +243,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
     const bool no_perm = ! (all2all && si->is_part3);
     GMIndexCache index_cache = {0};
 
-#pragma omp parallel for collapse(2) firstprivate(index_cache)
+    #pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
 /*---For the permuted case,

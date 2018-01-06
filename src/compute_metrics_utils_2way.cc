@@ -456,6 +456,7 @@ void gm_compute_czek_2way_combine_(
     /*----------------------------------------*/
 
     if (do_compute_triang_only) {
+      #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
         const int i_max = j;
@@ -467,10 +468,13 @@ void gm_compute_czek_2way_combine_(
           GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
                                         2 * numer / denom, env);
         } /*---for i---*/
+      }   /*---for j---*/
+      for (int j = 0; j < nvl; ++j) {
+        const int i_max = j;
         metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
     } else {
-#pragma omp parallel for collapse(2)
+      #pragma omp parallel for collapse(2) schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
           const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
@@ -489,6 +493,7 @@ void gm_compute_czek_2way_combine_(
   } else {
     /*----------------------------------------*/
 
+    #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
       const int i_max = j;
@@ -499,6 +504,9 @@ void gm_compute_czek_2way_combine_(
         const GMFloat denom = vi < vj ? vi + vj : vj + vi;
         GMMetrics_float_set_2(metrics, i, j, 2 * numer / denom, env);
       } /*---for i---*/
+    }   /*---for j---*/
+    for (int j = 0; j < nvl; ++j) {
+      const int i_max = j;
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
 
@@ -533,6 +541,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
       /*--------------------*/
 
       if (do_compute_triang_only) {
+        #pragma omp parallel for schedule(dynamic,1000)
         for (int j = 0; j < nvl; ++j) {
           const int i_max = j;
           for (int i = 0; i < i_max; ++i) {
@@ -557,7 +566,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
           } /*---for i---*/
         }   /*---for j---*/
       } else {
-        #pragma omp parallel for collapse(2)
+        #pragma omp parallel for collapse(2) schedule(dynamic,1000)
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
             const GMTally2x2 value =
@@ -585,6 +594,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
       /*--------------------*/
     } else /*---(! GMEnv_all2all(env))---*/ {
       /*--------------------*/
+      #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
@@ -620,6 +630,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
     /*--------------------*/
 
     if (do_compute_triang_only) {
+      #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
         const int i_max = j;
@@ -634,10 +645,13 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
             GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
         }   /*---for i---*/
+      }   /*---for j---*/
+      for (int j = 0; j < nvl; ++j) {
+        const int i_max = j;
         metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
     } else {
-      #pragma omp parallel for collapse(2)
+      #pragma omp parallel for collapse(2) schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
@@ -658,6 +672,7 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
     /*--------------------*/
   } else /*---(! GMEnv_all2all(env))---*/ {
     /*--------------------*/
+    #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
       const int i_max = do_compute_triang_only ? j : nvl;
@@ -672,6 +687,9 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
           GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
         } /*---if sparse---*/
       } /*---for i---*/
+    }   /*---for j---*/
+    for (int j = 0; j < nvl; ++j) {
+      const int i_max = do_compute_triang_only ? j : nvl;
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
     /*--------------------*/

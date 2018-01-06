@@ -100,7 +100,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
 
   /*---Sum up all values in each vector---*/
 
-#pragma omp parallel for
+  #pragma omp parallel for schedule(dynamic,1000)
   for (int i = 0; i < vectors->num_vector_local; ++i) {
     GMFloat sum = 0;
     //#pragma omp parallel for reduction(+:sum)
@@ -145,7 +145,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
   //----------
   if (env->compute_method_ == GM_COMPUTE_METHOD_REF) {
     //----------
-#pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic,1000)
     for (int i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;
       if (env->sparse) {

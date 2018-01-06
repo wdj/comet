@@ -111,7 +111,7 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
   //--------------------
 
   double value_max_this = cs->value_max;
-#pragma omp parallel for reduction(max:value_max_this)
+  #pragma omp parallel for reduction(max:value_max_this)
   for (UI64 index = 0; index < metrics->num_elts_local; ++index) {
     bool is_active = true;
     for (int i = 0; i < GMEnv_num_way(env); ++i) {
@@ -185,7 +185,7 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
 {
   GMMultiprecInt sum_this_private = {0};
   double sum_d_this_private = 0;
-#pragma omp for collapse(2)
+  #pragma omp for collapse(2)
   for (UI64 index = 0; index < metrics->num_elts_local; ++index) {
     // Loop over data values at this index
     for (int i_value = 0; i_value < metrics->data_type_num_values; ++i_value) {
@@ -287,7 +287,7 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
     } // for i_value
   }   // for index
 
-#pragma omp critical
+  #pragma omp critical
   {
       sum_d_this += sum_d_this_private; // Reduction
       for (int i = 0; i < 8; ++i) {
