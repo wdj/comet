@@ -18,6 +18,38 @@
 #include "mirrored_buf.hh"
 
 //=============================================================================
+/*---Helper class for memory---*/
+
+class GMMetricsMem {
+
+public:
+  GMMetricsMem(GMEnv* env);
+  ~GMMetricsMem();
+
+  void* malloc_data(size_t data_size);
+  void* malloc_data_S(size_t data_size_S);
+  void* malloc_data_C(size_t data_size_C);
+  void* malloc_coords_global_from_index(size_t coords_global_from_index_size);
+
+private:
+
+  GMEnv* env_;
+  void* __restrict__ data_;
+  size_t data_size_;
+  void* __restrict__ data_S_;
+  size_t data_S_size_;
+  void* __restrict__ data_C_;
+  size_t data_C_size_;
+  void* coords_global_from_index_;
+  size_t coords_global_from_index_size_;
+
+  //---Disallowed methods.
+
+  GMMetricsMem(  const GMMetricsMem&);
+  void operator=(const GMMetricsMem&);
+};
+
+//=============================================================================
 /*---Struct declaration---*/
 
 typedef struct {
@@ -68,7 +100,7 @@ GMMetrics GMMetrics_null(void);
 /*---Metrics pseudo-constructor---*/
 
 void GMMetrics_create(GMMetrics* metrics, int data_type_id,
-                      GMDecompMgr* dm, GMEnv* env);
+                      GMDecompMgr* dm, GMMetricsMem* metrics_mem, GMEnv* env);
 
 //-----------------------------------------------------------------------------
 

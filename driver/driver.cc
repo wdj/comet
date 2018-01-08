@@ -372,6 +372,9 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   time_end = GMEnv_get_synced_time(env);
   outtime += time_end - time_beg;
 
+  {
+  GMMetricsMem metrics_mem(env);
+
   /*---Loops over phases, stages---*/
 
   for (env->stage_num=do_.stage_min_0based;
@@ -384,7 +387,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
       time_beg = GMEnv_get_synced_time(env);
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
-      GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm, env);
+      GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
+                       &metrics_mem, env);
       time_end = GMEnv_get_synced_time(env);
       mctime += time_end - time_beg;
 
@@ -423,6 +427,12 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
   } /*---End loops over phases, stages---*/
 
+  /*---Finalize metrics mem---*/
+
+  time_beg = GMEnv_get_synced_time(env);
+  }
+  time_end = GMEnv_get_synced_time(env);
+  mctime += time_end - time_beg;
   /*---Close output files---*/
 
   num_local_written += metric_file.get_num_written();
@@ -431,7 +441,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   time_end = GMEnv_get_synced_time(env);
   outtime += time_end - time_beg;
 
-  /*---Dellocate vectors---*/
+  /*---Deallocate vectors---*/
 
   time_beg = GMEnv_get_synced_time(env);
   GMVectors_destroy(vectors, env);

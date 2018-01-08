@@ -145,6 +145,11 @@ class GMWriter {
   //int buf_elts = 0;
   //out_t buf[buf_size];
 
+  //---Disallowed methods.
+
+  GMWriter(     const GMWriter&);
+  void operator=(const GMWriter&);
+
 public:
 
   //--------------------

@@ -47,8 +47,8 @@ private:
 
   //---Disallowed methods.
 
-  MetricsFile(    const MetricsFile& );
-  void operator=( const MetricsFile& );
+  MetricsFile(   const MetricsFile&);
+  void operator=(const MetricsFile&);
 };
 
 //=============================================================================
