@@ -8,6 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
+#include "math.h"
+
 #ifndef _gm_metrics_2way_hh_
 #define _gm_metrics_2way_hh_
 
@@ -354,35 +356,31 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
-static void GMMetrics_ccc_get_from_index_2_all(GMMetrics* metrics,
-                                               const size_t index,
-                                               GMFloat& v00,
-                                               GMFloat& v01,
-                                               GMFloat& v10,
-                                               GMFloat& v11,
-                                               GMEnv* env) {
+static bool GMMetrics_ccc_get_from_index_2_threshold(GMMetrics* metrics,
+                                                     const size_t index,
+                                                     GMFloat threshold,
+                                                     GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
-  const GMFloat f_one = 1;
-  //const GMFloat recip_m = metrics->recip_m;
-
-  const GMFloat ccc_multiplier = GMEnv_ccc_multiplier(env);
-  const GMFloat ccc_param = GMEnv_ccc_param(env);
-
-  const GMTally2x2 t22 = GMMetrics_tally2x2_get_from_index(metrics, index, env);
-  const GMTally1 rij00 = GMTally2x2_get(t22, 0, 0);
-  const GMTally1 rij01 = GMTally2x2_get(t22, 0, 1);
-  const GMTally1 rij10 = GMTally2x2_get(t22, 1, 0);
-  const GMTally1 rij11 = GMTally2x2_get(t22, 1, 1);
-
-  const GMFloat2 si1_sj1 =
-      GMMetrics_float2_S_get_from_index(metrics, index, env);
-  GMTally1 si1, sj1;
-  GMFloat2_decode(&si1, &sj1, si1_sj1);
-
   if (env->sparse) {
+
+    const GMFloat f_one = 1;
+
+    const GMFloat ccc_multiplier = GMEnv_ccc_multiplier(env);
+    const GMFloat ccc_param = GMEnv_ccc_param(env);
+
+    const GMTally2x2 t22 = GMMetrics_tally2x2_get_from_index(metrics, index, env);
+    const GMTally1 rij00 = GMTally2x2_get(t22, 0, 0);
+    const GMTally1 rij01 = GMTally2x2_get(t22, 0, 1);
+    const GMTally1 rij10 = GMTally2x2_get(t22, 1, 0);
+    const GMTally1 rij11 = GMTally2x2_get(t22, 1, 1);
+
+    const GMFloat2 si1_sj1 =
+      GMMetrics_float2_S_get_from_index(metrics, index, env);
+    GMTally1 si1, sj1;
+    GMFloat2_decode(&si1, &sj1, si1_sj1);
 
     const GMFloat2 ci_cj =
       GMMetrics_float2_C_get_from_index(metrics, index, env);
@@ -391,13 +389,61 @@ static void GMMetrics_ccc_get_from_index_2_all(GMMetrics* metrics,
 
     GMTally1 cij = rij00 + rij01 + rij10 + rij11;
     if (ci == 0 || cj == 0 || cij == 0) {
-      v00 = 0;
-      v01 = 0;
-      v10 = 0;
-      v11 = 0;
-      return;
+      return 0 > threshold;
     }
 
+    const GMFloat f_ci = (GMFloat) ci;
+    const GMFloat f_cj = (GMFloat) cj;
+    const GMFloat f_cij = (GMFloat) cij;
+
+    //const GMFloat f_cicj = f_ci < f_cj ? f_ci * f_cj : f_cj * f_ci;
+    const GMFloat f_cicj = f_ci * f_cj;
+
+    const GMFloat recip_2 = f_one / f_cicj;
+
+    const GMFloat recip_ci = f_cj * recip_2;
+    const GMFloat recip_cj = f_ci * recip_2;
+
+    /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
+
+    const GMTally1 si0 = 2 * ci - si1;
+    const GMTally1 sj0 = 2 * cj - sj1;
+
+    const GMFloat fi0_2 = recip_ci * si0;
+    const GMFloat fi1_2 = recip_ci * si1;
+    const GMFloat fj0_2 = recip_cj * sj0;
+    const GMFloat fj1_2 = recip_cj * sj1;
+
+    /*---Make floating point arithmetic order-independent---*/
+
+
+    const GMFloat threshold_multiplier = ((f_one*4) / ccc_multiplier) * f_cij;
+
+
+    const GMFloat f = threshold * threshold_multiplier * (f_one - 1.e-5);;
+
+    const GMFloat v00 = rij00 * ((f_one*2) - ccc_param * fi0_2) *
+                                ((f_one*2) - ccc_param * fj0_2);
+    const GMFloat v01 = rij01 * ((f_one*2) - ccc_param * fi0_2) *
+                                ((f_one*2) - ccc_param * fj1_2);
+    const GMFloat v10 = rij10 * ((f_one*2) - ccc_param * fi1_2) *
+                                ((f_one*2) - ccc_param * fj0_2);
+    const GMFloat v11 = rij11 * ((f_one*2) - ccc_param * fi1_2) *
+                                ((f_one*2) - ccc_param * fj1_2);
+
+    GMAssert(fabs(v00 - threshold_multiplier * GMMetrics_ccc_get_from_index_2(metrics, index, 0, 0, env) )
+             < 1.e-5 * threshold_multiplier);
+    GMAssert(fabs(v01 - threshold_multiplier * GMMetrics_ccc_get_from_index_2(metrics, index, 0, 1, env) )
+             < 1.e-5 * threshold_multiplier);
+    GMAssert(fabs(v10 - threshold_multiplier * GMMetrics_ccc_get_from_index_2(metrics, index, 1, 0, env) )
+             < 1.e-5 * threshold_multiplier);
+    GMAssert(fabs(v11 - threshold_multiplier * GMMetrics_ccc_get_from_index_2(metrics, index, 1, 1, env) )
+             < 1.e-5 * threshold_multiplier);
+
+    return v00 > f || v01 > f || v10 > f || v11 > f;
+
+#if 0
+    const GMFloat recip_m = metrics->recip_m;
     const GMFloat f_ci = (GMFloat) ci;
     const GMFloat f_cj = (GMFloat) cj;
 
@@ -427,6 +473,8 @@ static void GMMetrics_ccc_get_from_index_2_all(GMMetrics* metrics,
     const GMFloat fij11 = recip_sumcij * rij11;
 
     /*---Make floating point arithmetic order-independent---*/
+
+    GMFloat v00, v01, v10, v11;
 
     if (fi0 < fj0) {
       v00 = ccc_multiplier * fij00 * (f_one - ccc_param * fi0) *
@@ -460,13 +508,21 @@ static void GMMetrics_ccc_get_from_index_2_all(GMMetrics* metrics,
                                      (f_one - ccc_param * fi1);
     }
 
-    return;
+    return v00 > threshold || v01 > threshold ||
+           v10 > threshold || v11 > threshold;;
+#endif
+
+
   } /*---if sparse---*/
+
+  GMFloat v00, v01, v10, v11;
 
   v00 = GMMetrics_ccc_get_from_index_2(metrics, index, 0, 0, env);
   v01 = GMMetrics_ccc_get_from_index_2(metrics, index, 0, 1, env);
   v10 = GMMetrics_ccc_get_from_index_2(metrics, index, 1, 0, env);
   v11 = GMMetrics_ccc_get_from_index_2(metrics, index, 1, 1, env);
+  return v00 > threshold || v01 > threshold ||
+         v10 > threshold || v11 > threshold;;
 
 }
 
