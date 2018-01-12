@@ -36,6 +36,8 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  char* metricsbinfilename = argv[4];
+
   FILE* metricsbinfile = fopen(argv[4], "rb");
   if (!metricsbinfile) {
     printf("Error: unable to open file. %s\n", argv[4]);
@@ -110,7 +112,7 @@ int main(int argc, char** argv) {
 
       num_read = fread(&al[i], sizeof(unsigned char), al_len, alfile);
       if (al_len != num_read) {
-        printf("Error: error reading file. 5\n");
+        printf("Error: error reading file. 5 %s\n", metricsbinfilename);
         return 1;
       }
 

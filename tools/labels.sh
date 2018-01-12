@@ -26,7 +26,7 @@ function main
   dots=$(for i in $(seq 1 $MAX_LABEL_LEN) ; do echo -n "."; done)
 
   local num_long_lines
-  num_long_lines=$(grep $dots "$infile" | wc -l)
+  num_long_lines=$(grep ".$dots" "$infile" | wc -l)
 
   if [ $num_long_lines -gt 0 ] ; then
     echo "Error: labels are too long; please adjust code." 1>&2

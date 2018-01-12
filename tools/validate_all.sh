@@ -1,24 +1,28 @@
 #!/bin/bash
 #==============================================================================
+# Compare the validation files against the actual metrics files.
+# Compare up a certain floating point tolerance.
+# Can use parallel nodes with mpirun to make faster.
+#==============================================================================
 
 function process_files_simple
 {
   local num_way="$1"
   shift
-  local infiles="$*"
+  local metricstxtfiles="$*"
 
-  local infile
-  for infile in $infiles ; do
+  local metricstxtfile
+  for metricstxtfile in $metricstxtfiles ; do
 
-    if [ ! -e $infile ] ; then
-      echo "Checking $infile ... Error: file does not exist."
+    if [ ! -e $metricstxtfile ] ; then
+      echo "Checking $metricstxtfile ... Error: file does not exist."
       continue
     fi
 
-    infilev=$(echo $infile | sed -e 's/.txt$/_validate&/')
+    metricsvalidationfile=$(echo $metricstxtfile | sed -e 's/.txt$/_validate&/')
 
-    if [ ! -e $infilev ] ; then
-      echo "Checking $infile ... Error: validation file does not exist."
+    if [ ! -e $metricsvalidationfile ] ; then
+      echo "Checking $metricstxtfile ... Error: validation file does not exist."
       continue
     fi
 
@@ -27,8 +31,8 @@ function process_files_simple
 
     TOL=.00001
   
-    F1=$infile
-    F2=$infilev
+    F1=$metricstxtfile
+    F2=$metricsvalidationfile
     C1=$(( 3 * $num_way + 1 ))
     C2=$(( 6 * $num_way + 2 ))
 
@@ -50,29 +54,42 @@ function process_files_simple
 function main
 {
   if [ "$*" = "" ] ; then
-    echo "Usage: ${0##*/} <num_way> <file> ..."
+    echo "Usage: ${0##*/} <num_way> <metrics_txt_file> ..."
     exit
   fi
 
   local num_way="$1"
-  shift
-  local infiles="$*"
+  if [ "$num_way" -ne 2 -a "$num_way" -ne 3 ] ; then
+    echo "Error: invalid value for num_way. $num_way" 1>&2
+    exit 1
+  fi
 
-  if [ -n "$PBS_NUM_NODES" ] ; then
-    if [ -z "$OMPI_COMM_WORLD_SIZE" ] ; then
+  shift
+  local files_spec="$*"
+
+  if [ -n "$PBS_NUM_NODES" ] ; then # If on rhea and in a batch job ...
+    if [ -z "$OMPI_COMM_WORLD_SIZE" ] ; then # if not invoked by mpirun ...
       ppn=16
       tmpfile=tmp_$$
-      echo "$infiles" > tmp_$$
-      mpirun -np $(( $PBS_NUM_NODES * $ppn )) --npernode $ppn ${0##*/} $num_way $tmpfile
+      # Store list of files in file because mpirun breaks command line breaks
+      # if too many
+      echo "$files_spec" > $tmpfile
+      # Invoke mpirun, on this bash script
+      mpirun -np $(( $PBS_NUM_NODES * $ppn )) --npernode $ppn $0 $num_way $tmpfile
       rm $tmpfile
-    else
-      infiles="$(cat $infiles)" # to avoid mpirun arg list too long error
-      local infiles_this
-      infiles_this="$(echo $infiles | tr ' ' '\12' | awk 'NR%'${OMPI_COMM_WORLD_SIZE}'=='${OMPI_COMM_WORLD_RANK})"
-      process_files_simple $num_way $infiles_this
+    else # if invoked by mpirun ...
+      files="$(cat $files_spec)" # retrieve the list of files
+      # Let each mpi rank own a subset of the files
+      local files_thisrank
+      files_thisrank="$(echo $files \
+        | tr ' ' '\12' \
+        | awk 'NR%'${OMPI_COMM_WORLD_SIZE}'=='${OMPI_COMM_WORLD_RANK})"
+      # Process the files serially
+      process_files_simple $num_way $files_thisrank
     fi
-  else
-    process_files_simple $num_way $infiles
+  else # Not a rhea batch job ...
+    # Process the files serially
+    process_files_simple $num_way $files_spec
   fi
 }
 

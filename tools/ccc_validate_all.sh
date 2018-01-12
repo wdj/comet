@@ -24,7 +24,7 @@ function process_files_simple
     fi
 
     local outfile
-    outfile=$(echo $infile | sed -e 's/\.txt.*$/_validate&/')
+    outfile=$(echo $metricstxtfile | sed -e 's/\.txt.*$/_validate&/')
 
     cut -f1-$(( 2 * $num_way )) -d' ' <$metricstxtfile \
       | ccc_validate $num_way $snpbinfile $lifile > $outfile
@@ -60,7 +60,7 @@ function main
       # if too many
       echo "$files_spec" > $tmpfile
       # Invoke mpirun, on this bash script
-      mpirun -np $(( $PBS_NUM_NODES * $ppn )) --npernode $ppn ${0##*/} $num_way $tmpfile
+      mpirun -np $(( $PBS_NUM_NODES * $ppn )) --npernode $ppn $0 $num_way $tmpfile
       rm $tmpfile
     else # if invoked by mpirun ...
       files="$(cat $files_spec)" # retrieve the list of files
@@ -68,9 +68,18 @@ function main
       local files_thisrank
       files_thisrank="$(echo $files \
         | tr ' ' '\12' \
+        | tail -n +3 \
         | awk 'NR%'${OMPI_COMM_WORLD_SIZE}'=='${OMPI_COMM_WORLD_RANK})"
+      local snpbinfile
+      snpbinfile=$(echo $files \
+        | tr ' ' '\12' \
+        | sed -n -e '1p')
+      local line_index_file
+      line_index_file=$(echo $files \
+        | tr ' ' '\12' \
+        | sed -n -e '2p')
       # Process the files serially
-      process_files_simple $num_way $files_thisrank
+      process_files_simple $num_way $snpbinfile $line_index_file $files_thisrank
     fi
   else # Not a rhea batch job ...
     # Process the files serially
