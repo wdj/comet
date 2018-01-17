@@ -407,7 +407,12 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
 
       /*---Check correctness---*/
 
-      check_metrics(metrics, &do_, env);
+      if (do_.checksum) {
+        time_beg = GMEnv_get_synced_time(env);
+        check_metrics(metrics, &do_, env);
+        time_end = GMEnv_get_synced_time(env);
+        cktime += time_end - time_beg;
+      }
 
       /*---Compute checksum---*/
 
@@ -523,12 +528,12 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     if (do_.checksum) {
       printf(" cktime %.6f", cktime);
     }
-    if (NULL != do_.input_file_path) {
-      printf(" intime %.6f", intime);
-    }
-    if (NULL != do_.output_file_path_stub) {
-      printf(" outtime %.6f", outtime);
-    }
+    //if (NULL != do_.input_file_path) {
+    printf(" intime %.6f", intime);
+    //}
+    //if (NULL != do_.output_file_path_stub) {
+    printf(" outtime %.6f", outtime);
+    //}
     //-----
     printf(" cpumem %e", (double)env->cpu_mem_max);
     printf(" gpumem %e", (double)env->gpu_mem_max);

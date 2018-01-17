@@ -33,7 +33,7 @@ if [ -n "$CRAYOS_VERSION" ] ; then
   CC=$(which CC)
 else #---IBM
   #if [ -n "$OLCF_XL_ROOT" ] ; then
-  module load gcc
+  module load gcc/6.4.0
   #fi
   module load cuda
   module load cmake
@@ -180,6 +180,8 @@ C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-signed-zeros -fno-trapping-math -frecipro
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-functions -finline-limit=1000"
 if [ -n "$CRAYOS_VERSION" ] ; then
   C_FLAGS_RELEASE="$C_FLAGS_RELEASE -march=bdver1"
+else
+  C_FLAGS_RELEASE="$C_FLAGS_RELEASE -mcpu=power9 -mtune=power9 -mcmodel=large -m64"
 fi
 #C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -fargument-noalias-anything"
 

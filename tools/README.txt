@@ -71,13 +71,21 @@ Tue Jan  9 20:15:18 EST 2018
 CoMeT execution example
 -----------------------
 
+Titan:
 ssh titan.ccs.ornl.gov
-
 qsub -Abif102 -lnodes=6000 -lwalltime=0:5:0 mybatchscript.sh
+
+Summit:
+ssh summit.olcf.ornl.gov
+bsub -P bif102 -Is -nnodes 1000 -W 5 mybatchscript.sh
 
 num_vector=28342758
 num_field=882
-num_proc_vector=6000
+if [ -n "${CRAYOS_VERSION:-}" ] ; then # Titan
+  num_proc_vector=6000
+else # Summit
+  num_proc_vector=1000
+fi
 num_phase=200
 phase_min=0
 phase_max=7
@@ -93,13 +101,20 @@ phase_max=7
 # (3) Run at least several phases per individual run to amortize
 # certain costs such as input file read.
 
-out_dir=outs_full_${num_proc_vector}_2way_200_000-007
+out_dir=$PWD/outs_full_${num_proc_vector}_2way_200_000-007
 mkdir -p $out_dir
 
-executable=/lustre/atlas1/bif102/proj-shared/comet/genomics_metric
+if [ -n "${CRAYOS_VERSION:-}" ] ; then # Titan
+  executable=/lustre/atlas1/bif102/proj-shared/comet/genomics_metric
+  exec_command="env OMP_NUM_THREADS=16 aprun -cc none -n$num_proc_vector -d16 -N1"
+else # Summit
+  #TBD
+  executable=/lustre/atlas1/bif102/proj-shared/comet/genomics_metric_summit
+  exec_command="env OMP_NUM_THREADS=7 jsrun --nrs $num_proc_vector --bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 --rs_per_host 6 --tasks_per_rs 1"
+  module load cuda
+fi
 
-time env OMP_NUM_THREADS=16 \
-  aprun -n$num_proc_vector -d16 -N1 $executable \
+time $exec_command $executable \
   --num_field $num_field \
   --num_vector $num_vector \
   --metric_type ccc \
@@ -108,13 +123,14 @@ time env OMP_NUM_THREADS=16 \
   --compute_method GPU \
   --num_proc_vector $num_proc_vector \
   --num_phase $num_phase --phase_min $phase_min --phase_max $phase_max \
-  --input_file 28M_permuted/28M.bin \
+  --input_file $PWD/28M_permuted/28M.bin \
   --threshold .7 \
   --checksum no \
   --output_file_stub $out_dir/out \
   --verbosity 1 \
   | tee ${out_dir}_log.txt
 
+Titan:
 ctime 47.856096 ops 0.000000e+00 rate 0.000000e+00 rate/proc 0.000000e+00 cmpout 2.738229e+09 cmp 5.645041e+16 rate 1.179587e+15 rate/proc 1.965978e+11 vctime 0.002566 mctime 7.133783 intime 7.442626 outtime 17.090905 cpumem 1.446527e+10 gpumem 1.074351e+09 tottime 79.595748
 
 # KEY:
