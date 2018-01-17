@@ -58,7 +58,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         const size_t addr_file = elt_num * sizeof(GMFloat);
         int fseek_success = fseek(input_file, addr_file, SEEK_SET);
         fseek_success += 0; /*---Avoid unused var warning---*/
-        GMInsist(0 == fseek_success);
+        GMInsist(0 == fseek_success && "File seek failure.");
         GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
         /*---NOTE: the following call is ok since has no side effects---*/
         GMInsist((fl+1 >= vectors->num_field_local ||
@@ -68,7 +68,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         size_t num_read = fread(addr_mem, sizeof(GMFloat),
                                 vectors->num_field_local, input_file);
         num_read += 0; /*---Avoid unused var warning---*/
-        GMInsist((size_t)vectors->num_field_local == (size_t)num_read);
+        GMInsist((size_t)vectors->num_field_local == (size_t)num_read && "File read failure.");
 
       } /*---vl---*/
 
@@ -104,7 +104,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 
         int fseek_success = fseek(input_file, addr_file, SEEK_SET);
         fseek_success += 0; /*---Avoid unused var warning---*/
-        GMInsist(0 == fseek_success);
+        GMInsist(0 == fseek_success && "File seek failure.");
 
         input_t* const addr_mem
            = (input_t*)GMVectors_bits2x64_ptr(vectors, pvfl, vl, env);
@@ -112,7 +112,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         size_t num_read = fread(addr_mem, sizeof(input_t),
                                 bytes_per_vector, input_file);
         num_read += 0; /*---Avoid unused var warning---*/
-        GMInsist(bytes_per_vector == (size_t)num_read);
+        GMInsist(bytes_per_vector == (size_t)num_read && "File read failure.");
 
       } /*---vl---*/
 
@@ -208,6 +208,7 @@ public:
     success = success && num_written == 1;
 
     num_written_total_ += success ? 1 : 0;
+    GMInsist(success && "File write failure.");
 
     //out_t out_v = (out_t)(value * out_max);
     //buf[buf_elts++] = out_v;
@@ -244,6 +245,7 @@ public:
     success = success && num_written == 1;
 
     num_written_total_ += success ? 1 : 0;
+    GMInsist(success && "File write failure.");
   }
 
   //--------------------
@@ -266,6 +268,7 @@ public:
     success = success && num_written == 1;
 
     num_written_total_ += success ? 1 : 0;
+    GMInsist(success && "File write failure.");
   }
 
   //--------------------
@@ -293,7 +296,7 @@ public:
     success = success && num_written == 1;
 
     num_written_total_ += success ? 1 : 0;
-
+    GMInsist(success && "File write failure.");
   }
 };
 
