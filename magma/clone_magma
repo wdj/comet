@@ -161,7 +161,7 @@ cat <<EOF
 If no errors occurred above, the clone process is now complete.  To
 prepare the cloned Magma code for usage, please do the following:
 
-1. Copy the file make.inc into the new cloned Magma directory.
+1. Copy the appropriate make.inc file into the new cloned Magma directory.
 
 2. Make the desired changes to Magma, such as redefinition of certain
    mathematical operations. See in particular gemm_stencil.cuh,

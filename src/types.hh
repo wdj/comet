@@ -45,7 +45,8 @@ static void gm_check_type_sizes() {
 
 #ifdef FP_PRECISION_SINGLE
   typedef float GMFloat;
-  enum { GM_MPI_FLOAT = MPI_FLOAT };
+  #define GM_MPI_FLOAT MPI_FLOAT
+  //enum { GM_MPI_FLOAT = MPI_FLOAT };
   enum { GM_FP_PRECISION_DOUBLE = false };
 #ifdef FP_PRECISION_DOUBLE
 #error Cannot set both FP_PRECISION_SINGLE and FP_PRECISION_DOUBLE.
@@ -53,7 +54,8 @@ static void gm_check_type_sizes() {
 #else
 #ifdef FP_PRECISION_DOUBLE
   typedef double GMFloat;
-  enum { GM_MPI_FLOAT = MPI_DOUBLE };
+  #define GM_MPI_FLOAT MPI_DOUBLE
+  //enum { GM_MPI_FLOAT = MPI_DOUBLE };
   enum { GM_FP_PRECISION_DOUBLE = true };
 #else
 #error Must set FP_PRECISION_SINGLE or FP_PRECISION_DOUBLE.

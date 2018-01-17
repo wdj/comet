@@ -5,11 +5,19 @@
 #
 #==============================================================================
 
-if [ "$PE_ENV" = "PGI" ] ; then
-  module swap PrgEnv-pgi PrgEnv-gnu
+if [ -n "$CRAYOS_VERSION" ] ; then
+  if [ "$PE_ENV" = "PGI" ] ; then
+    module unload PrgEnv-pgi
+  fi
+  module load PrgEnv-gnu
+  module load cudatoolkit
+  module load acml
+else #---IBM
+  #if [ -n "$OLCF_XL_ROOT" ] ; then
+  module load gcc
+  #fi
+  module load cuda
 fi
-module load cudatoolkit
-module load acml
 
 time make VERBOSE=1
 

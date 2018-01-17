@@ -659,15 +659,14 @@ int GMFloat_mant_dig() {
 
 //-----------------------------------------------------------------------------
 
-int gm_mpi_type(const GMEnv* const env) {
+MPI_Datatype gm_mpi_type(const GMEnv* const env) {
   GMInsist(env);
 
   /* clang-format off */
-  const int mpi_type = GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ?
-                         GM_MPI_FLOAT :
-                       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
-                         MPI_DOUBLE_COMPLEX :
-                       0;
+  const MPI_Datatype mpi_type =
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ? GM_MPI_FLOAT :
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ? MPI_DOUBLE_COMPLEX :
+                                                   0; // should never get here
   /* clang-format on */
 
   return mpi_type;

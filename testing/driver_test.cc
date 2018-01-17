@@ -437,7 +437,7 @@ void DriverTest_czek_() {
                     "--num_field 7 --num_vector 10 "
                     "--num_way 2 --metric_type czekanowski "
                     "--compute_method GPU --all2all yes "
-                    "--verbosity 2 "
+                    "--verbosity 1 "
                     "--output_file_stub test_czek_2way"));
 
   //----------
@@ -454,7 +454,7 @@ void DriverTest_czek_() {
                     "--num_field 7 --num_vector 18 "
                     "--num_way 3 --metric_type czekanowski "
                     "--compute_method GPU --all2all yes "
-                    "--verbosity 2 "
+                    "--verbosity 1 "
                     "--output_file_stub test_czek_3way"));
 
   //----------
@@ -464,10 +464,10 @@ void DriverTest_czek_() {
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_field 30 --num_vector 3 "
-                    "--verbosity 2 --all2all yes "
+                    "--verbosity 1 --all2all yes "
                     "--compute_method GPU",
                     "--num_proc_vector 1 --num_field 30 --num_vector 3 "
-                    "--verbosity 2 --all2all yes "
+                    "--verbosity 1 --all2all yes "
                     "--compute_method GPU --threshold .65"));
 
   EXPECT_EQ(
@@ -1188,9 +1188,9 @@ void DriverTest_ccc_() {
   sprintf(options3, options_template_1, 2, 1, 2, "GPU");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-  sprintf(options1, options_template_1, 2, 100, 2, "REF");
-  sprintf(options2, options_template_1, 2, 100, 2, "CPU");
-  sprintf(options3, options_template_1, 2, 100, 2, "GPU");
+  sprintf(options1, options_template_1, 1, 100, 2, "REF");
+  sprintf(options2, options_template_1, 1, 100, 2, "CPU");
+  sprintf(options3, options_template_1, 1, 100, 2, "GPU");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   sprintf(options1, options_template_1, 1, 100, 48, "REF");
@@ -1497,7 +1497,7 @@ void DriverTest_ccc_() {
                     "--num_field 7 --num_vector 10 "
                     "--num_way 2 --metric_type ccc "
                     "--compute_method GPU --all2all yes "
-                    "--verbosity 2 "
+                    "--verbosity 1 "
                     "--output_file_stub test_ccc_2way"));
 
   //----------
@@ -1514,7 +1514,7 @@ void DriverTest_ccc_() {
                     "--num_field 7 --num_vector 18 "
                     "--num_way 3 --metric_type ccc "
                     "--compute_method GPU --all2all yes "
-                    "--verbosity 2 "
+                    "--verbosity 1 "
                     "--output_file_stub test_ccc_3way"));
 
   //----------
@@ -1565,8 +1565,6 @@ void DriverTest_ccc_() {
 
 //=============================================================================
 
-#if 0
-#endif
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }

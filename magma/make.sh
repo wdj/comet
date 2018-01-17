@@ -12,10 +12,21 @@
 
 function do_make
 {
-  module unload PrgEnv-pgi
-  module load PrgEnv-gnu
-  module load cudatoolkit
-  module load acml
+  if [ -n "$CRAYOS_VERSION" ] ; then
+    if [ "$PE_ENV" = "PGI" ] ; then
+      module unload PrgEnv-pgi
+    fi
+    module load PrgEnv-gnu
+    module load cudatoolkit
+    module load acml
+    cp ../make.inc.titan make.inc
+  else #---IBM
+    #if [ -n "$OLCF_XL_ROOT" ] ; then
+    module load gcc
+    #i
+    module load cuda
+    cp ../make.inc.summit make.inc
+  fi
 
   time make -j8
 }

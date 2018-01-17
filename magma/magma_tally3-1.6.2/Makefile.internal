@@ -85,6 +85,9 @@ ifneq ($(findstring Kepler, $(GPU_TARGET)),)
     GPU_TARGET += sm30 sm35
 endif
 
+ifneq ($(findstring Volta, $(GPU_TARGET)),)
+    GPU_TARGET += sm70
+endif
 #
 # Next, add compile options for specific smXX
 # sm_xx is binary, compute_xx is PTX for forward compatability
@@ -122,6 +125,11 @@ ifneq ($(findstring sm35, $(GPU_TARGET)),)
     MIN_ARCH ?= 350
     NV_SM    += -gencode arch=compute_35,code=sm_35
     NV_COMP  := -gencode arch=compute_35,code=compute_35
+endif
+ifneq ($(findstring sm70, $(GPU_TARGET)),)
+    MIN_ARCH ?= 700
+    NV_SM    += -gencode arch=compute_70,code=sm_70
+    NV_COMP  := -gencode arch=compute_70,code=compute_70
 endif
 ifeq ($(NV_COMP),)
     $(error GPU_TARGET, currently $(GPU_TARGET), must contain one or more of Tesla, Fermi, Kepler, or sm{10,13,20,30,35}. Please edit your make.inc file)

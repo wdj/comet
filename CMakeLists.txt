@@ -98,7 +98,7 @@ if(TESTING)
     TARGET_LINK_LIBRARIES(${test_target} "-L${GTEST_DIR}/lib -lgtest")
 
     #add_test(${test_target} env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64 ${CMAKE_CURRENT_BINARY_DIR}/${test_target})
-    add_test(${test_target} bash -c "cd ${CMAKE_INSTALL_PREFIX} ; env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64 ${CMAKE_CURRENT_BINARY_DIR}/${test_target}")
+    add_test(${test_target} bash -c "cd ${CMAKE_INSTALL_PREFIX} ; ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${test_target}")
   endforeach(test_target)
 endif(TESTING) 
 

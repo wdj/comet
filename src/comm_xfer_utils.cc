@@ -29,7 +29,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
 
   MPI_Request mpi_request;
 
-  const int mpi_type = gm_mpi_type(env);
+  const MPI_Datatype mpi_type = gm_mpi_type(env);
 
   const int mpi_code =
       MPI_Isend((void*)vectors->data, vectors->num_packedval_local, mpi_type,
@@ -50,7 +50,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
 
   MPI_Request mpi_request;
 
-  const int mpi_type = gm_mpi_type(env);
+  const MPI_Datatype mpi_type = gm_mpi_type(env);
 
   const int mpi_code =
       MPI_Irecv((void*)vectors->data, vectors->num_packedval_local, mpi_type,
@@ -94,7 +94,7 @@ void gm_reduce_metrics(GMMetrics* metrics,
 
   const int nvl = metrics->num_vector_local;
 
-  const int mpi_type = gm_mpi_type(env);
+  const MPI_Datatype mpi_type = gm_mpi_type(env);
 
   const int mpi_code = MPI_Allreduce(metrics_buf_source->h,
                                      metrics_buf_target->h,
@@ -114,7 +114,7 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
 
   const int nvl = metrics->num_vector_local;
 
-  const int mpi_type = gm_mpi_type(env);
+  const MPI_Datatype mpi_type = gm_mpi_type(env);
 
   MPI_Request mpi_request;
   const int mpi_code = MPI_Iallreduce(metrics_buf_source->h,

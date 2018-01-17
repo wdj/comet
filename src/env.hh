@@ -50,10 +50,10 @@ typedef struct {
   size_t gpu_mem_max;
   /*---MPI---*/
   bool make_comms_;
-  int mpi_comm_base_;
-  int mpi_comm_;
-  int mpi_comm_vector_;
-  int mpi_comm_field_;
+  MPI_Comm mpi_comm_base_;
+  MPI_Comm mpi_comm_;
+  MPI_Comm mpi_comm_vector_;
+  MPI_Comm mpi_comm_field_;
   /*---*/
   int num_proc_base_;
   int num_proc_;
@@ -179,21 +179,21 @@ static int GMEnv_compute_method(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-static int GMEnv_mpi_comm(const GMEnv* const env) {
+static MPI_Comm GMEnv_mpi_comm(const GMEnv* const env) {
   GMAssert(env);
   return env->mpi_comm_;
 }
 
 //-----------------------------------------------------------------------------
 
-static int GMEnv_mpi_comm_vector(const GMEnv* const env) {
+static MPI_Comm GMEnv_mpi_comm_vector(const GMEnv* const env) {
   GMAssert(env);
   return env->mpi_comm_vector_;
 }
 
 //-----------------------------------------------------------------------------
 
-static int GMEnv_mpi_comm_field(const GMEnv* const env) {
+static MPI_Comm GMEnv_mpi_comm_field(const GMEnv* const env) {
   GMAssert(env);
   return env->mpi_comm_field_;
 }
@@ -489,7 +489,7 @@ int GMFloat_mant_dig();
 
 //-----------------------------------------------------------------------------
 
-int gm_mpi_type(const GMEnv* const env);
+MPI_Datatype gm_mpi_type(const GMEnv* const env);
 
 //=============================================================================
 

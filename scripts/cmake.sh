@@ -18,13 +18,31 @@
 #------------------------------------------------------------------------------
 #---Load modules.
 
-if [ "$PE_ENV" = "PGI" ] ; then
-  module swap PrgEnv-pgi PrgEnv-gnu
+if [ -n "$CRAYOS_VERSION" ] ; then
+  if [ "$PE_ENV" = "PGI" ] ; then
+    module unload PrgEnv-pgi
+  fi
+  module load PrgEnv-gnu
+  module load cudatoolkit
+  module load acml
+  module load cmake
+  #PLATFORM_=cray
+  CUDA_INCLUDE_OPTS=$CRAY_CUDATOOLKIT_INCLUDE_OPTS
+  CUDA_POST_LINK_OPTS=$CRAY_CUDATOOLKIT_POST_LINK_OPTS
+  cc=$(which cc)
+  CC=$(which CC)
+else #---IBM
+  #if [ -n "$OLCF_XL_ROOT" ] ; then
+  module load gcc
+  #fi
+  module load cuda
+  module load cmake
+  CUDA_INCLUDE_OPTS="-I$CUDA_DIR/include -I$CUDA_DIR/extras/CUPTI/include -I$CUDA_DIR/extras/Debugger/include"
+  CUDA_POST_LINK_OPTS="-L$CUDA_DIR/targets/ppc64le-linux/lib"
+  cc=$(which mpicc)
+  CC=$(which mpiCC)
+  #PLATFORM_=ibm
 fi
-module load cudatoolkit
-module load acml
-module load cmake
-#module load cmake3/3.2.3
 
 #------------------------------------------------------------------------------
 #---Cleanup.
@@ -35,14 +53,14 @@ rm -rf CMakeFiles
 #------------------------------------------------------------------------------
 #---Main project dir for cloned repo.
 
-if [ "$PROJECT_DIR" = "" ] ; then
+if [ -z "$PROJECT_DIR" ] ; then
   PROJECT_DIR=${PWD}/../genomics_gpu
 fi
 
 #------------------------------------------------------------------------------
 #---Set build type.
 
-if [ "$BUILD_TYPE" = "" ] ; then
+if [ -z "$BUILD_TYPE" ] ; then
   BUILD_TYPE=Debug
   #BUILD_TYPE=Release
 fi
@@ -54,7 +72,7 @@ fi
 #------------------------------------------------------------------------------
 #---Set installation dir.
 
-if [ "$INSTALL_DIR" = "" ] ; then
+if [ -z "$INSTALL_DIR" ] ; then
   if [ "$BUILD_TYPE" = "Debug" ] ; then
     INSTALL_DIR=${PROJECT_DIR}/../install_debug
   else
@@ -65,7 +83,7 @@ fi
 #------------------------------------------------------------------------------
 #---Set floating point precision for certain calculations.
 
-if [ "$FP_PRECISION" = "" ] ; then
+if [ -z "$FP_PRECISION" ] ; then
   #FP_PRECISION=SINGLE
   FP_PRECISION=DOUBLE
 fi
@@ -78,7 +96,7 @@ fi
 #------------------------------------------------------------------------------
 #---Set whether to build unit test code.
 
-if [ "$TESTING" = "" ] ; then
+if [ -z "$TESTING" ] ; then
   TESTING=OFF
   #TESTING=ON
 fi
@@ -140,7 +158,7 @@ C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_minproduct/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally4/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally3/include"
 C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally2/include"
-C_CXX_FLAGS="$C_CXX_FLAGS $CRAY_CUDATOOLKIT_INCLUDE_OPTS"
+C_CXX_FLAGS="$C_CXX_FLAGS $CUDA_INCLUDE_OPTS"
 C_CXX_FLAGS="$C_CXX_FLAGS -g -rdynamic" # for stack trace
 C_CXX_FLAGS="$C_CXX_FLAGS -Wall -Wno-unused-function -Werror"
 C_CXX_FLAGS="$C_CXX_FLAGS -fno-associative-math"
@@ -160,7 +178,9 @@ C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-math-errno -ffinite-math-only -fno-roundi
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-signed-zeros -fno-trapping-math -freciprocal-math"
 
 C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-functions -finline-limit=1000"
-C_FLAGS_RELEASE="$C_FLAGS_RELEASE -march=bdver1"
+if [ -n "$CRAYOS_VERSION" ] ; then
+  C_FLAGS_RELEASE="$C_FLAGS_RELEASE -march=bdver1"
+fi
 #C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -fargument-noalias-anything"
 
 #----------
@@ -169,9 +189,17 @@ LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally3/lib -lmagma_tally3"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally2/lib -lmagma_tally2"
-LFLAGS="$LFLAGS $CRAY_CUDATOOLKIT_POST_LINK_OPTS -lcublas"
-LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
-LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
+LFLAGS="$LFLAGS $CUDA_POST_LINK_OPTS -lcublas -lcudart"
+if [ -n "$CRAYOS_VERSION" ] ; then
+  LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
+  LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
+fi
+
+if [ -n "$CRAYOS_VERSION" ] ; then
+  TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64"
+else
+  TEST_COMMAND="module load cuda ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32"
+fi
 
 #------------------------------------------------------------------------------
 
@@ -180,11 +208,11 @@ time cmake \
   -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
   -DCMAKE_INSTALL_PREFIX:PATH="$INSTALL_DIR" \
  \
-  -DCMAKE_C_COMPILER:STRING="$(which cc)" \
-  -DMPI_C_COMPILER="$(which cc)" \
+  -DCMAKE_C_COMPILER:STRING="$cc" \
+  -DMPI_C_COMPILER="$cc" \
  \
-  -DCMAKE_CXX_COMPILER:STRING="$(which CC)" \
-  -DMPI_CXX_COMPILER="$(which CC)" \
+  -DCMAKE_CXX_COMPILER:STRING="$CC" \
+  -DMPI_CXX_COMPILER="$CC" \
   -DMPI_CXX_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include \
   -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
  \
@@ -202,6 +230,7 @@ time cmake \
  \
   -DTESTING:BOOL=$TESTING \
   -DGTEST_DIR:STRING=$GTEST_DIR \
+  -DTEST_COMMAND="$TEST_COMMAND" \
  \
   $PROJECT_DIR
 
