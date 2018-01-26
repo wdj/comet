@@ -479,16 +479,24 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
   env->is_proc_active_ = env->proc_num_ < env->num_proc_;
 
-  int itmp = env->proc_num_;
+  const bool proc_field_varies_fastest = true;
 
-  env->proc_num_repl_ = itmp % env->num_proc_repl_;
-  itmp /= env->num_proc_repl_;
+  if (proc_field_varies_fastest) {
 
-  env->proc_num_vector_i_ = itmp % env->num_proc_vector_i_;
-  itmp /= env->num_proc_vector_i_;
+    env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
+    env->proc_num_vector_ = env->proc_num_ / env->num_proc_field_;
+    env->proc_num_repl_ = env->proc_num_vector_ % env->num_proc_repl_;
+    env->proc_num_vector_i_ = env->proc_num_vector_ / env->num_proc_repl_;
 
-  env->proc_num_field_ = itmp % env->num_proc_field_;
-  env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_total_;
+  } else { // ! proc_field_varies_fastest
+
+    env->proc_num_repl_ = env->proc_num_ % env->num_proc_repl_;
+    env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_repl_)
+                                              % env->num_proc_vector_i_;
+    env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_total_;
+    env->proc_num_field_ = env->proc_num_ / env->num_proc_vector_total_;
+
+  } // proc_field_varies_fastest
 
   /*---Destroy old communicators if necessary---*/
 
