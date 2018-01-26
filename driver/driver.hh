@@ -34,7 +34,7 @@ typedef struct {
   int phase_min_0based;
   int phase_max_0based;
   char* input_file_path;
-  char* output_file_path_stub;
+  char* metrics_file_path_stub;
   int problem_type;
   size_t num_incorrect;
   double threshold;

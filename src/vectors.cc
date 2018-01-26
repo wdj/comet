@@ -97,7 +97,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
       vectors->num_packedval_field_local * dm->num_vector_local;
 
   vectors->data_size = vectors->num_packedval_local *
-                       (dm->num_bits_per_packedfield / bits_per_byte);
+                       (vectors->num_bits_per_packedval / bits_per_byte);
 
   // Set up vector storage, mirrored buffer
 

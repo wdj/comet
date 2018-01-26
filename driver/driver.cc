@@ -174,7 +174,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     /*----------*/
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for output_file_stub.");
-      do_->output_file_path_stub = argv[i];
+      do_->metrics_file_path_stub = argv[i];
       /*--------------------*/
     } else if (strcmp(argv[i], "--problem_type") == 0) {
       /*--------------------*/
@@ -292,7 +292,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   do_.phase_min_0based = 0;
   do_.phase_max_0based = env->num_phase - 1;
   do_.input_file_path = NULL;
-  do_.output_file_path_stub = NULL;
+  do_.metrics_file_path_stub = NULL;
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
   do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
   do_.threshold = -1.;
@@ -531,7 +531,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     //if (NULL != do_.input_file_path) {
     printf(" intime %.6f", intime);
     //}
-    //if (NULL != do_.output_file_path_stub) {
+    //if (NULL != do_.metrics_file_path_stub) {
     printf(" outtime %.6f", outtime);
     //}
     //-----

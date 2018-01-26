@@ -20,12 +20,47 @@
 
 void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env);
 
-void output_metrics_file(GMMetrics* metrics, DriverOptions* do_,
-                         FILE* file, double threshold, GMEnv* env);
+void write_vectors_to_file(GMVectors* vectors, char* vectors_file_path,
+                           GMEnv* env);
 
-void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
-   
-//-----------------------------------------------------------------------------
+//=============================================================================
+// Class to help output the result metrics values to file
+
+class MetricWriter {
+public:
+
+  MetricWriter(FILE* file, GMMetrics* metrics, GMEnv* env);
+
+  ~MetricWriter() {}
+
+  size_t get_num_written() {return this->num_written_total_;}
+
+  void write(size_t coord0, size_t coord1, GMFloat value);
+
+  void write(size_t coord0, size_t coord1, size_t coord2, GMFloat value);
+
+  void write(size_t coord0, size_t coord1, int i0, int i1, GMFloat value);
+
+  void write(size_t coord0, size_t coord1, size_t coord2,
+             int i0, int i1, int i2, GMFloat value);
+
+private:
+
+  FILE* file_;
+  const int data_type_;
+  int num_way_;
+  GMEnv* env_;
+
+  size_t num_written_total_;
+
+  //---Disallowed methods.
+
+  MetricWriter(  const MetricWriter&);
+  void operator=(const MetricWriter&);
+
+};
+
+//=============================================================================
 
 class MetricsFile {
 public:
@@ -40,9 +75,9 @@ public:
 
 private:
 
-  FILE* file;
-  int verbosity;
-  double threshold;
+  FILE* file_;
+  int verbosity_;
+  double threshold_;
   size_t num_written_;
 
   //---Disallowed methods.

@@ -24,101 +24,122 @@
 //=============================================================================
 // Input vectors from files
 
-void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
-  GMInsist(vectors && do_ && env);
-  GMInsist(do_->input_file_path);
+void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
+                                 GMEnv* env) {
+  GMInsist(vectors && do_ && env && do_->input_file_path);
 
   if (! GMEnv_is_proc_active(env)) {
     return;
   }
+
+  FILE* input_file = fopen(do_->input_file_path, "r");
+  GMInsist(NULL != input_file && "Unable to open input file.");
+
+  const int fl = 0;
+  const size_t field_base = fl +
+    vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+
+  for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+
+    const size_t proc_num = GMEnv_proc_num_vector_i(env);
+    const size_t vector = vl + vectors->num_vector_local * proc_num;
+    //---shuffle.
+    //const size_t vector = proc_num + GMEnv_num_proc_vector_i(env) * vl;
+    /*---Fill pad vectors with copies of the last vector---*/
+    const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                 vector : do_->num_vector_active-1;
+
+    const size_t elt_num = field_base + vectors->num_field * vector_capped;
+    const size_t addr_file = elt_num * sizeof(GMFloat);
+    int fseek_success = fseek(input_file, addr_file, SEEK_SET);
+    fseek_success += 0; /*---Avoid unused var warning---*/
+    GMInsist(0 == fseek_success && "File seek failure.");
+    GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
+    /*---NOTE: the following call is ok since has no side effects---*/
+    GMInsist((fl+1 >= vectors->num_field_local ||
+        GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1)
+        && "Vector layout is incompatible with operation.");
+
+    size_t num_read = fread(addr_mem, sizeof(GMFloat),
+                            vectors->num_field_local, input_file);
+    num_read += 0; /*---Avoid unused var warning---*/
+    GMInsist((size_t)vectors->num_field_local == (size_t)num_read &&
+             "File read failure.");
+
+  } /*---vl---*/
+
+  fclose(input_file);
+}
+
+//-----------------------------------------------------------------------------
+
+void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
+                                 GMEnv* env) {
+  GMInsist(vectors && do_ && env && do_->input_file_path);
+
+  if (! GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  GMInsistInterface(env, GMEnv_num_proc_field(env) == 1 &&
+                    "CCC file read for this case not yet implemented.");
+  const int pvfl = 0;
+
+  typedef char input_t;
+
+  FILE* input_file = fopen(do_->input_file_path, "r");
+  GMInsist(NULL != input_file && "Unable to open input file.");
+
+  for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+
+    const size_t proc_num = GMEnv_proc_num_vector_i(env);
+    const size_t vector = vl + vectors->num_vector_local * proc_num;
+    /*---Fill pad vectors with copies of the last vector---*/
+    const size_t vector_capped = vector <= do_->num_vector_active-1 ?
+                                 vector : do_->num_vector_active-1;
+
+    const int bits_per_field = 2;
+    const int bits_per_byte = 8;
+    const size_t bytes_per_vector
+      = gm_ceil_i8(vectors->num_field * bits_per_field, bits_per_byte);
+    const size_t addr_file = bytes_per_vector * vector_capped;
+
+    int fseek_success = fseek(input_file, addr_file, SEEK_SET);
+    fseek_success += 0; /*---Avoid unused var warning---*/
+    GMInsist(0 == fseek_success && "File seek failure.");
+
+    input_t* const addr_mem
+       = (input_t*)GMVectors_bits2x64_ptr(vectors, pvfl, vl, env);
+
+    size_t num_read = fread(addr_mem, sizeof(input_t),
+                            bytes_per_vector, input_file);
+    num_read += 0; /*---Avoid unused var warning---*/
+    GMInsist(bytes_per_vector == (size_t)num_read && "File read failure.");
+
+  } /*---vl---*/
+
+  fclose(input_file);
+}
+
+//-----------------------------------------------------------------------------
+
+void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
+  GMInsist(vectors && do_ && env && do_->input_file_path);
 
   switch (GMEnv_data_type_vectors(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
 
-      const int fl = 0;
-      const size_t field_base = fl +
-        vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-
-      FILE* input_file = fopen(do_->input_file_path, "r");
-      GMInsist(NULL != input_file && "Unable to open input file.");
-
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
-
-        const size_t proc_num = GMEnv_proc_num_vector_i(env);
-        const size_t vector = vl + vectors->num_vector_local * proc_num;
-        //---shuffle.
-        //const size_t vector = proc_num + GMEnv_num_proc_vector_i(env) * vl;
-        /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                     vector : do_->num_vector_active-1;
-
-        const size_t elt_num = field_base + vectors->num_field * vector_capped;
-        const size_t addr_file = elt_num * sizeof(GMFloat);
-        int fseek_success = fseek(input_file, addr_file, SEEK_SET);
-        fseek_success += 0; /*---Avoid unused var warning---*/
-        GMInsist(0 == fseek_success && "File seek failure.");
-        GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
-        /*---NOTE: the following call is ok since has no side effects---*/
-        GMInsist((fl+1 >= vectors->num_field_local ||
-            GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1)
-            && "Vector layout is incompatible with operation.");
-
-        size_t num_read = fread(addr_mem, sizeof(GMFloat),
-                                vectors->num_field_local, input_file);
-        num_read += 0; /*---Avoid unused var warning---*/
-        GMInsist((size_t)vectors->num_field_local == (size_t)num_read && "File read failure.");
-
-      } /*---vl---*/
-
-      fclose(input_file);
+      set_vectors_from_file_float(vectors, do_, env);
 
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
 
-      GMInsistInterface(env, GMEnv_num_proc_field(env) == 1 &&
-                        "CCC file read for this case not yet implemented.");
-      const int pvfl = 0;
+      set_vectors_from_file_bits2(vectors, do_, env);
 
-      typedef char input_t;
-
-      FILE* input_file = fopen(do_->input_file_path, "r");
-      GMInsist(NULL != input_file && "Unable to open input file.");
-
-      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
-
-        const size_t proc_num = GMEnv_proc_num_vector_i(env);
-        const size_t vector = vl + vectors->num_vector_local * proc_num;
-        /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                     vector : do_->num_vector_active-1;
-
-        const int bits_per_field = 2;
-        const int bits_per_byte = 8;
-	const size_t bytes_per_vector
-          = gm_ceil_i8(vectors->num_field * bits_per_field, bits_per_byte);
-        const size_t addr_file = bytes_per_vector * vector_capped;
-
-        int fseek_success = fseek(input_file, addr_file, SEEK_SET);
-        fseek_success += 0; /*---Avoid unused var warning---*/
-        GMInsist(0 == fseek_success && "File seek failure.");
-
-        input_t* const addr_mem
-           = (input_t*)GMVectors_bits2x64_ptr(vectors, pvfl, vl, env);
-
-        size_t num_read = fread(addr_mem, sizeof(input_t),
-                                bytes_per_vector, input_file);
-        num_read += 0; /*---Avoid unused var warning---*/
-        GMInsist(bytes_per_vector == (size_t)num_read && "File read failure.");
-
-      } /*---vl---*/
-
-      fclose(input_file);
-
-      //GMInsistInterface(env, false && "Not yet implemented.");
     } break;
     /*--------------------*/
     default:
@@ -128,177 +149,87 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 }
 
 //=============================================================================
-// Class to help output the result metrics values to file
 
-class GMWriter {
+void write_vectors_to_file(GMVectors* vectors, char* vectors_file_path, 
+                           GMEnv* env) {
+  GMInsist(vectors && vectors_file_path && env);
 
-  FILE* file_;
-  const int data_type_;
-  int num_way_;
-  GMEnv* env_;
-
-  size_t num_written_total_;
-
-  //typedef unsigned char out_t;
-  //const GMFloat out_max = 255;
-  //const int buf_size = 4096;
-  //int buf_elts = 0;
-  //out_t buf[buf_size];
-
-  //---Disallowed methods.
-
-  GMWriter(     const GMWriter&);
-  void operator=(const GMWriter&);
-
-public:
-
-  //--------------------
-
-  GMWriter(FILE* file, GMMetrics* metrics, GMEnv* env) :
-    file_(file),
-    data_type_(GMEnv_data_type_metrics(env)),
-    num_way_(GMEnv_num_way(env)),
-    num_written_total_(0){
-
-    if (file_ != stdout) {
-      GMInsistInterface(env, metrics->num_vector_active ==
-                    (GMUInt32)metrics->num_vector_active &&
-                    "Too many vectors for output format.");
-    }
-
+  if (! GMEnv_is_proc_active(env)) {
+    return;
   }
 
-  //--------------------
+  FILE* vectors_file = fopen(vectors_file_path, "w");
 
-  ~GMWriter() {
+  switch (GMEnv_data_type_vectors(env)) {
+    /*--------------------*/
+    case GM_DATA_TYPE_FLOAT: {
+    /*--------------------*/
 
-      //if (file != stdout) {
-        //size_t num_written = fwrite(&buf, sizeof(out_t), buf_elts, file);
-        //num_written_total += num_written;
-        //GMAssert(num_written == buf_elts;
-        //buf_elts = 0;
-        //printf("Wrote %lu elements of %lu from proc %i.\n",
-        //       num_written_total, metrics->num_elts_local,
-        //       GMEnv_proc_num(env));
-      //}
+      const size_t nval = vectors->dm->num_vector_active_local;
+      const size_t nfal = vectors->dm->num_field_active_local;
 
-  }
+      size_t num_written_total = 0;
+      const size_t num_written_attempted_total = nval * nfal;
 
-  //--------------------
+      for (size_t vl = 0 ; vl < nval; ++vl) {
+        for (size_t fl = 0 ; fl < nfal; ++fl) {
 
-  size_t get_num_written() {return this->num_written_total_;}
+          const GMFloat outv = GMVectors_float_get(vectors, fl, vl, env);
+          const size_t num_written = fwrite(&outv, sizeof(outv), 1,
+                                            vectors_file);
+          num_written_total += num_written;
+        }
+      }
 
-  //--------------------
-  // CZEK 2-way
+      GMInsist(num_written_attempted_total == num_written_total &&
+               "File write failure.");
 
-  void write(size_t coord0, size_t coord1, GMFloat value) {
+    } break;
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS2: {
+    /*--------------------*/
 
-    bool success = true;
+      const size_t nval = vectors->dm->num_vector_active_local;
+      const size_t npfl = vectors->dm->num_packedfield_local;
 
-    const GMUInt32 outc0 = coord0;
-    size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-    success = success && num_written == 1;
+      size_t num_written_total = 0;
+      size_t num_written_attempted_total = 0;
 
-    const GMUInt32 outc1 = coord1;
-    num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-    success = success && num_written == 1;
+      for (size_t vl = 0 ; vl < nval; ++vl) {
+        for (size_t pfl = 0 ; pfl < npfl; ++pfl) {
 
-    const GMFp32 outv = value;
-    num_written = fwrite(&outv, sizeof(outv), 1, file_);
-    success = success && num_written == 1;
+          GMBits2x64 outv = GMVectors_bits2x64_get(vectors, pfl, vl, env);
 
-    num_written_total_ += success ? 1 : 0;
-    GMInsist(success && "File write failure.");
+          if (pfl == npfl-1) {
+            const size_t num_written = fwrite(&outv, sizeof(outv), 1,
+                                              vectors_file);
+            num_written_total += num_written;
+            num_written_attempted_total += sizeof(outv);
+            continue;
+          }
 
-    //out_t out_v = (out_t)(value * out_max);
-    //buf[buf_elts++] = out_v;
-    //if (buf_elts == buf_size) {
-    //  size_t num_written = fwrite(&buf, sizeof(out_t),
-    //                              buf_elts, file);
-    //  num_written_total += num_written;
-    //  GMAssert(num_written == buf_elts);
-    //  buf_elts = 0;
-    //}
-  }
 
-  //--------------------
-  // CZEK 3-way
 
-  void write(size_t coord0, size_t coord1, size_t coord2, GMFloat value) {
+//FIX
 
-    bool success = true;
 
-    const GMUInt32 outc0 = coord0;
-    size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-    success = success && num_written == 1;
 
-    const GMUInt32 outc1 = coord1;
-    num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-    success = success && num_written == 1;
 
-    const GMUInt32 outc2 = coord2;
-    num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
-    success = success && num_written == 1;
+        }
+      }
 
-    const GMFp32 outv = value;
-    num_written = fwrite(&outv, sizeof(outv), 1, file_);
-    success = success && num_written == 1;
+      GMInsist(num_written_attempted_total == num_written_total &&
+               "File write failure.");
 
-    num_written_total_ += success ? 1 : 0;
-    GMInsist(success && "File write failure.");
-  }
+    } break;
+    /*--------------------*/
+    default:
+    /*--------------------*/
+      GMInsist(false && "Invalid data type.");
+  } /*---switch---*/
 
-  //--------------------
-  // CCC 2-way
-
-  void write(size_t coord0, size_t coord1, int i0, int i1, GMFloat value) {
-
-    bool success = true;
-
-    const GMUInt32 outc0 = i0 + 2 * coord0;
-    size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-    success = success && num_written == 1;
-
-    const GMUInt32 outc1 = i1 + 2 * coord1;
-    num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-    success = success && num_written == 1;
-
-    const GMFp32 outv = value;
-    num_written = fwrite(&outv, sizeof(outv), 1, file_);
-    success = success && num_written == 1;
-
-    num_written_total_ += success ? 1 : 0;
-    GMInsist(success && "File write failure.");
-  }
-
-  //--------------------
-  // CCC 3-way
-
-  void write(size_t coord0, size_t coord1, size_t coord2,
-             int i0, int i1, int i2, GMFloat value) {
-
-    bool success = true;
-
-    const GMUInt32 outc0 = i0 + 2 * coord0;
-    size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-    success = success && num_written == 1;
-
-    const GMUInt32 outc1 = i1 + 2 * coord1;
-    num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-    success = success && num_written == 1;
-
-    const GMUInt32 outc2 = i2 + 2 * coord2;
-    num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
-    success = success && num_written == 1;
-
-    const GMFp32 outv = value;
-    num_written = fwrite(&outv, sizeof(outv), 1, file_);
-    success = success && num_written == 1;
-
-    num_written_total_ += success ? 1 : 0;
-    GMInsist(success && "File write failure.");
-  }
-};
+  fclose(vectors_file);
+}
 
 //=============================================================================
 // Output results metrics to file: implementation
@@ -316,7 +247,7 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
     return;
   }
 
-  GMWriter writer(file, metrics, env);
+  MetricWriter writer(file, metrics, env);
 
   switch (GMEnv_data_type_metrics(env)) {
     /*--------------------*/
@@ -603,133 +534,178 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
 }
 
 //=============================================================================
-// Output results metrics to file
+// MetricWriter member definitions.
 
-void output_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
-  GMInsist(metrics && do_ && env);
+MetricWriter::MetricWriter(FILE* file, GMMetrics* metrics, GMEnv* env) :
+  file_(file),
+  data_type_(GMEnv_data_type_metrics(env)),
+  num_way_(GMEnv_num_way(env)),
+  num_written_total_(0) {
 
-  char* stub = do_->output_file_path_stub;
-
-  /*---Output to file if requested---*/
-
-  if (NULL != stub && GMEnv_is_proc_active(env) &&
-      GMEnv_proc_num_field(env) == 0) {
-
-    /*---Form filename---*/
-
-    size_t len = strlen(stub);
-    char* path = (char*)malloc((len+50) * sizeof(char));
-
-    GMInsist(env->num_stage < 1000000);
-    GMInsist(env->num_phase < 1000000);
-    GMInsist(GMEnv_num_proc(env) < 10000000000);
-
-    if (env->num_stage == 1) {
-      if (env->num_phase == 1) {
-        sprintf(path, "%s_%010i", stub, GMEnv_proc_num(env));
-      } else {
-        sprintf(path, "%s_%06i_%010i", stub, env->phase_num,
-                GMEnv_proc_num(env));
-      }
-    } else {
-      if (env->num_phase == 1) {
-        sprintf(path, "%s_%06i_%010i", stub, env->stage_num,
-                GMEnv_proc_num(env));
-      } else {
-        sprintf(path, "%s_%06i_%06i_%010i", stub, env->phase_num,
-                env->stage_num, GMEnv_proc_num(env));
-      }
-    }
-
-    /*---Do output---*/
-
-    FILE* file = fopen(path, "w");
-    size_t num_written = 0;
-    output_metrics_impl(metrics, file, do_->threshold, num_written, env);
-    fclose(file);
-    free(path);
-  }
-
-  /*---Output to stdout if requested---*/
-
-  if (do_->verbosity > 1) {
-    double threshold = do_->verbosity > 2 ? -1. : do_->threshold;
-    size_t num_written = 0;
-    output_metrics_impl(metrics, stdout, threshold, num_written, env);
+  if (stdout != file_) {
+    GMInsistInterface(env, metrics->num_vector_active ==
+                  (GMUInt32)metrics->num_vector_active &&
+                  "Too many vectors for output format.");
   }
 }
 
-//=============================================================================
+//-----------------------------------------------------------------------------
+// CZEK 2-way
 
-MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env) {
+void
+MetricWriter::write(size_t coord0, size_t coord1, GMFloat value) {
+
+  bool success = true;
+
+  const GMUInt32 outc0 = coord0;
+  size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
+  success = success && num_written == 1;
+
+  const GMUInt32 outc1 = coord1;
+  num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
+  success = success && num_written == 1;
+
+  const GMFp32 outv = value;
+  num_written = fwrite(&outv, sizeof(outv), 1, file_);
+  success = success && num_written == 1;
+
+  num_written_total_ += success ? 1 : 0;
+  GMInsist(success && "File write failure.");
+  }
+
+//-----------------------------------------------------------------------------
+// CZEK 3-way
+
+void
+MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
+                     GMFloat value) {
+
+  bool success = true;
+
+  const GMUInt32 outc0 = coord0;
+  size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
+  success = success && num_written == 1;
+
+  const GMUInt32 outc1 = coord1;
+  num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
+  success = success && num_written == 1;
+
+  const GMUInt32 outc2 = coord2;
+  num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
+  success = success && num_written == 1;
+
+  const GMFp32 outv = value;
+  num_written = fwrite(&outv, sizeof(outv), 1, file_);
+  success = success && num_written == 1;
+
+  num_written_total_ += success ? 1 : 0;
+  GMInsist(success && "File write failure.");
+}
+
+//-----------------------------------------------------------------------------
+// CCC 2-way
+
+void
+MetricWriter::write(size_t coord0, size_t coord1, int i0, int i1,
+                     GMFloat value) {
+  GMAssert(i0 >=0 && i0 < 2);
+  GMAssert(i1 >=0 && i1 < 2);
+
+  bool success = true;
+
+  const GMUInt32 outc0 = i0 + 2 * coord0;
+  size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
+  success = success && num_written == 1;
+
+  const GMUInt32 outc1 = i1 + 2 * coord1;
+  num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
+  success = success && num_written == 1;
+
+  const GMFp32 outv = value;
+  num_written = fwrite(&outv, sizeof(outv), 1, file_);
+  success = success && num_written == 1;
+
+  num_written_total_ += success ? 1 : 0;
+  GMInsist(success && "File write failure.");
+}
+
+//-----------------------------------------------------------------------------
+// CCC 3-way
+
+void
+MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
+              int i0, int i1, int i2, GMFloat value) {
+  GMAssert(i0 >=0 && i0 < 2);
+  GMAssert(i1 >=0 && i1 < 2);
+  GMAssert(i2 >=0 && i2 < 2);
+
+  bool success = true;
+
+  const GMUInt32 outc0 = i0 + 2 * coord0;
+  size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
+  success = success && num_written == 1;
+
+  const GMUInt32 outc1 = i1 + 2 * coord1;
+  num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
+  success = success && num_written == 1;
+
+  const GMUInt32 outc2 = i2 + 2 * coord2;
+  num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
+  success = success && num_written == 1;
+
+  const GMFp32 outv = value;
+    num_written = fwrite(&outv, sizeof(outv), 1, file_);
+  success = success && num_written == 1;
+
+  num_written_total_ += success ? 1 : 0;
+  GMInsist(success && "File write failure.");
+}
+
+//=============================================================================
+// MetricsFile member definitions.
+
+MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
+  : file_(NULL)
+  , num_written_(0) {
   GMInsist(do_ && env);
 
-  this->file = NULL;
-  this->verbosity = do_->verbosity;
-  this->threshold = do_->threshold;
+  verbosity_ = do_->verbosity;
+  threshold_ = do_->threshold;
 
-  this->num_written_ = 0;
-
-  char* stub = do_->output_file_path_stub;
-
-  /*---Output to file if requested---*/
-
-  if (NULL != stub && GMEnv_is_proc_active(env) &&
-      GMEnv_proc_num_field(env) == 0) {
-
-    /*---Form filename---*/
-
-    size_t len = strlen(stub);
-    char* path = (char*)malloc((len+50) * sizeof(char));
-
-#if 0
-    GMInsist(env->num_stage < 1000000);
-    GMInsist(env->num_phase < 1000000);
-    GMInsist(GMEnv_num_proc(env) < 10000000000);
-
-    if (env->num_stage == 1) {
-      if (env->num_phase == 1) {
-        sprintf(path, "%s_%010i.bin", stub, GMEnv_proc_num(env));
-      } else {
-        sprintf(path, "%s_%06i_%010i.bin", stub, env->phase_num,
-                GMEnv_proc_num(env));
-      }
-    } else {
-      if (env->num_phase == 1) {
-        sprintf(path, "%s_%06i_%010i.bin", stub, env->stage_num,
-                GMEnv_proc_num(env));
-      } else {
-        sprintf(path, "%s_%06i_%06i_%010i.bin", stub, env->phase_num,
-                env->stage_num, GMEnv_proc_num(env));
-      }
-    }
-#endif
-
-    int num_digits = 0;
-    for (int tmp = 1; ; tmp*=10, ++num_digits) {
-      if (tmp > GMEnv_num_proc(env)) {
-        break;
-      }
-    }
-
-    char format[100];
-    sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
-
-    sprintf(path, format, stub, GMEnv_proc_num(env));
-
-    /*---Do open---*/
-
-    this->file = fopen(path, "w");
-    free(path);
+  char* stub = do_->metrics_file_path_stub;
+  if (! (NULL != stub && GMEnv_is_proc_active(env) &&
+      GMEnv_proc_num_field(env) == 0) ) {
+    return;
   }
+
+  // Form filename
+
+  size_t len = strlen(stub);
+  char* path = (char*)malloc((len+50) * sizeof(char));
+
+  int num_digits = 0;
+  for (int tmp = 1; ; tmp*=10, ++num_digits) {
+    if (tmp > GMEnv_num_proc(env)) {
+      break;
+    }
+  }
+
+  char format[100];
+  sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
+
+  sprintf(path, format, stub, GMEnv_proc_num(env));
+
+  /*---Do open---*/
+
+  file_ = fopen(path, "w");
+  free(path);
 }
 
 //-----------------------------------------------------------------------------
 
 MetricsFile::~MetricsFile() {
-
-  if (this->file) {
-    fclose(this->file);
+  if (file_) {
+    fclose(file_);
   }
 }
 
@@ -737,16 +713,17 @@ MetricsFile::~MetricsFile() {
 
 void MetricsFile::write(GMMetrics* metrics, GMEnv* env) {
 
-  if (this->file) {
-    output_metrics_impl(metrics, this->file, this->threshold,
-                        this->num_written_, env);
+  // Output to file
+
+  if (file_) {
+    output_metrics_impl(metrics, file_, threshold_, num_written_, env);
   }
 
-  /*---Output to stdout if requested---*/
+  // Output to stdout if requested
 
-  if (this->verbosity > 1) {
-    double threshold = this->verbosity > 2 ? -1. : this->threshold;
-    output_metrics_impl(metrics, stdout, threshold, this->num_written_, env);
+  if (verbosity_ > 1) {
+    double threshold = verbosity_ > 2 ? -1. : threshold_;
+    output_metrics_impl(metrics, stdout, threshold, num_written_, env);
   }
 }
 

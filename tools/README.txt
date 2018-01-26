@@ -105,7 +105,7 @@ out_dir=$PWD/outs_full_${num_proc_vector}_2way_200_000-007
 mkdir -p $out_dir
 
 if [ -n "${CRAYOS_VERSION:-}" ] ; then # Titan
-  executable=/lustre/atlas1/bif102/proj-shared/comet/genomics_metric
+  executable=/lustre/atlas1/bif102/proj-shared/comet/genomics_metric_titan
   exec_command="env OMP_NUM_THREADS=16 aprun -cc none -n$num_proc_vector -d16 -N1"
 else # Summit
   #TBD
