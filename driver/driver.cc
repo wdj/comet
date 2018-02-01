@@ -243,10 +243,8 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 
   if (do_->input_file_path != NULL) {
     set_vectors_from_file(vectors, do_, env);
-  } else if (do_->problem_type == GM_PROBLEM_TYPE_RANDOM) {
-    set_vectors_random(vectors, do_, env);
   } else {
-    set_vectors_analytic(vectors, do_, env);
+    set_vectors_synthetic(vectors, do_->problem_type, do_->verbosity, env);
   }
 }
 //=============================================================================
@@ -294,7 +292,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
   do_.input_file_path = NULL;
   do_.metrics_file_path_stub = NULL;
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
-  do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
+  //do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
+  do_.problem_type = problem_type_default();
   do_.threshold = -1.;
   do_.checksum = true;
   do_.num_incorrect = 0;

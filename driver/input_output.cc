@@ -33,40 +33,51 @@ void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
   }
 
   FILE* input_file = fopen(do_->input_file_path, "r");
-  GMInsist(NULL != input_file && "Unable to open input file.");
+  GMInsist(NULL != input_file && "Unable to open file.");
 
-  const int fl = 0;
-  const size_t field_base = fl +
-    vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+  typedef GMFloat inval_t;
+
+  const size_t proc_num_v = GMEnv_proc_num_vector_i(env);
+  const size_t proc_num_f = GMEnv_proc_num_field(env);
+
+  const size_t nva = vectors->dm->num_vector_active;
+  const size_t nfa = vectors->dm->num_field_active;
+
+  const size_t bytes_per_vector_file = nfa * sizeof(inval_t);
+  const int fl_min = 0;
+  const size_t f_min = fl_min + vectors->num_field_local * proc_num_f;
+
+  const size_t invals_to_read = vectors->dm->num_field_active_local;
+
+  // Loop to input vectors
 
   for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
 
-    const size_t proc_num = GMEnv_proc_num_vector_i(env);
-    const size_t vector = vl + vectors->num_vector_local * proc_num;
-    //---shuffle.
-    //const size_t vector = proc_num + GMEnv_num_proc_vector_i(env) * vl;
-    /*---Fill pad vectors with copies of the last vector---*/
-    const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                 vector : do_->num_vector_active-1;
+    const size_t v = vl + vectors->num_vector_local * proc_num_v;
+    // Fill the pad vectors with copies of the last vector
+    const size_t v_file = gm_min_i8(v, nva-1);
+    // Offset into file to first byte to read
+    const size_t addr_min_file = f_min * sizeof(inval_t) +
+      bytes_per_vector_file * v_file;
 
-    const size_t elt_num = field_base + vectors->num_field * vector_capped;
-    const size_t addr_file = elt_num * sizeof(GMFloat);
-    int fseek_success = fseek(input_file, addr_file, SEEK_SET);
-    fseek_success += 0; /*---Avoid unused var warning---*/
+    int fseek_success = fseek(input_file, addr_min_file, SEEK_SET);
     GMInsist(0 == fseek_success && "File seek failure.");
-    GMFloat* const addr_mem = GMVectors_float_ptr(vectors, fl, vl, env);
-    /*---NOTE: the following call is ok since has no side effects---*/
-    GMInsist((fl+1 >= vectors->num_field_local ||
-        GMVectors_float_ptr(vectors, fl+1, vl, env) == addr_mem + 1)
+
+    // First location in memory to store into
+    inval_t* const addr_min_mem = GMVectors_float_ptr(vectors, fl_min, vl, env);
+    // NOTE: the following call is ok since has no side effects
+    GMInsist((fl_min+1 >= vectors->num_field_local ||
+        GMVectors_float_ptr(vectors, fl_min+1, vl, env) == addr_min_mem + 1)
         && "Vector layout is incompatible with operation.");
 
-    size_t num_read = fread(addr_mem, sizeof(GMFloat),
-                            vectors->num_field_local, input_file);
-    num_read += 0; /*---Avoid unused var warning---*/
-    GMInsist((size_t)vectors->num_field_local == (size_t)num_read &&
-             "File read failure.");
+      const size_t num_read = fread(addr_min_mem, sizeof(inval_t),
+                                    invals_to_read, input_file);
+      GMInsist(invals_to_read == num_read && "File read failure.");
 
-  } /*---vl---*/
+  } //---for vl
+
+  // Ensure any end of vector pad set to zero
+  GMVectors_initialize_pad(vectors, env);
 
   fclose(input_file);
 }
@@ -81,43 +92,97 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
     return;
   }
 
-  GMInsistInterface(env, GMEnv_num_proc_field(env) == 1 &&
-                    "CCC file read for this case not yet implemented.");
-  const int pvfl = 0;
-
-  typedef char input_t;
-
   FILE* input_file = fopen(do_->input_file_path, "r");
-  GMInsist(NULL != input_file && "Unable to open input file.");
+  GMInsist(NULL != input_file && "Unable to open file.");
+
+  typedef unsigned char inval_t;
+
+  const size_t proc_num_v = GMEnv_proc_num_vector_i(env);
+
+  const int bits_per_field = vectors->num_bits_per_val; // = 2
+  const int bits_per_byte = 8;
+  const int fields_per_byte = bits_per_byte / bits_per_field;
+  const size_t bytes_per_packedval = vectors->num_bits_per_packedval /
+               bits_per_byte;
+  // The storage format assumes each vector padded to a whole number of bytes.
+
+  const size_t bytes_per_vector_file
+    = gm_ceil_i8(vectors->num_field_active, fields_per_byte);
+
+  const int npvfl = vectors->num_packedval_field_local;
+  const size_t nfal = vectors->dm->num_field_active_local;
+
+  const size_t fl_min = 0;
+  const size_t f_min = fl_min + vectors->dm->field_base;
+  const size_t f_max = f_min + nfal;
+
+  const size_t nva = vectors->dm->num_vector_active;
+
+  const size_t buf_size = nfal * fields_per_byte + 1;
+  inval_t* buf = (inval_t*)malloc(buf_size * sizeof(*buf));
+
+  // Loop to input vectors
 
   for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
 
-    const size_t proc_num = GMEnv_proc_num_vector_i(env);
-    const size_t vector = vl + vectors->num_vector_local * proc_num;
-    /*---Fill pad vectors with copies of the last vector---*/
-    const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                 vector : do_->num_vector_active-1;
+    const size_t v = vl + vectors->num_vector_local * proc_num_v;
 
-    const int bits_per_field = 2;
-    const int bits_per_byte = 8;
-    const size_t bytes_per_vector
-      = gm_ceil_i8(vectors->num_field * bits_per_field, bits_per_byte);
-    const size_t addr_file = bytes_per_vector * vector_capped;
+    // Fill the pad vectors with copies of the last vector
+    const size_t v_file = gm_min_i8(v, nva-1);
 
-    int fseek_success = fseek(input_file, addr_file, SEEK_SET);
-    fseek_success += 0; /*---Avoid unused var warning---*/
+    // Byte in file where this vector starts
+    const size_t v_base = bytes_per_vector_file * v_file;
+
+    // Offset into file to first byte to read
+    const size_t addr_min_file = gm_floor_i8(f_min, fields_per_byte) + v_base;
+
+    // Offset into file to (1 plus) last byte to read
+    const size_t addr_max_file = gm_ceil_i8(f_max, fields_per_byte) + v_base;
+
+    // total num bytes to read
+    const size_t invals_to_read = addr_max_file - addr_min_file;
+
+    const int f_offset = f_min % fields_per_byte;
+
+    // the num bytes read could be at most one additional byte, if straddle
+    GMInsist(invals_to_read <= npvfl*bytes_per_packedval + (f_offset ? 1 : 0));
+
+    int fseek_success = fseek(input_file, addr_min_file, SEEK_SET);
     GMInsist(0 == fseek_success && "File seek failure.");
 
-    input_t* const addr_mem
-       = (input_t*)GMVectors_bits2x64_ptr(vectors, pvfl, vl, env);
+    const size_t num_read = fread(buf, sizeof(inval_t),
+                                  invals_to_read, input_file);
+    GMInsist(invals_to_read == num_read && "File read failure.");
 
-    size_t num_read = fread(addr_mem, sizeof(input_t),
-                            bytes_per_vector, input_file);
-    num_read += 0; /*---Avoid unused var warning---*/
-    GMInsist(bytes_per_vector == (size_t)num_read && "File read failure.");
+    // Initialize elements buffer to store into vectors struct
+    GMBits2x64 outval = GMBits2x64_null();
+
+    const size_t invals_to_read_1 = gm_min_i8(invals_to_read,
+      npvfl*bytes_per_packedval);
+
+    for (size_t i = 0; i < invals_to_read_1; ++i) {
+      inval_t* const p = buf + i;
+      const int vlo = p[0];
+      const int vhi = (i+1 < invals_to_read) ? p[1] : 0;
+      const inval_t inval = ( (vhi << (8-2*f_offset)) |
+                              (vlo >> (2*f_offset)) ) & (int)255;
+      const int wordnum = (i % 16) / 8;
+      outval.data[wordnum] += ((GMUInt64)inval) << ((i % 8) * 8) ;
+      if (i % 16 == 15 || i == invals_to_read_1-1) {
+        // Flush buffer
+        const size_t pfl = i / 16;
+        GMVectors_bits2x64_set(vectors, pfl, vl, outval, env);
+        outval = GMBits2x64_null();
+      }
+
+    } // for p
 
   } /*---vl---*/
 
+  // Ensure any end of vector pad set to zero
+  GMVectors_initialize_pad(vectors, env);
+
+  free(buf);
   fclose(input_file);
 }
 
@@ -150,7 +215,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 
 //=============================================================================
 
-void write_vectors_to_file(GMVectors* vectors, char* vectors_file_path, 
+void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path, 
                            GMEnv* env) {
   GMInsist(vectors && vectors_file_path && env);
 
@@ -158,12 +223,18 @@ void write_vectors_to_file(GMVectors* vectors, char* vectors_file_path,
     return;
   }
 
+  GMInsistInterface(env, GMEnv_num_proc(env) == 1 &&
+                    "Only single proc case supported.");
+
   FILE* vectors_file = fopen(vectors_file_path, "w");
+  GMInsist(NULL != vectors_file && "Unable to open file.");
 
   switch (GMEnv_data_type_vectors(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
+
+      typedef GMFloat outval_t;
 
       const size_t nval = vectors->dm->num_vector_active_local;
       const size_t nfal = vectors->dm->num_field_active_local;
@@ -174,8 +245,8 @@ void write_vectors_to_file(GMVectors* vectors, char* vectors_file_path,
       for (size_t vl = 0 ; vl < nval; ++vl) {
         for (size_t fl = 0 ; fl < nfal; ++fl) {
 
-          const GMFloat outv = GMVectors_float_get(vectors, fl, vl, env);
-          const size_t num_written = fwrite(&outv, sizeof(outv), 1,
+          const outval_t outv = GMVectors_float_get(vectors, fl, vl, env);
+          const size_t num_written = fwrite(&outv, sizeof(outval_t), 1,
                                             vectors_file);
           num_written_total += num_written;
         }
@@ -189,6 +260,14 @@ void write_vectors_to_file(GMVectors* vectors, char* vectors_file_path,
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
 
+      typedef unsigned char outval_t;
+
+      const int bits_per_field = vectors->num_bits_per_val; // = 2
+      const int bits_per_byte = 8;
+      const int fields_per_byte = bits_per_byte / bits_per_field;
+      const size_t bytes_per_packedval = vectors->num_bits_per_packedval /
+                   bits_per_byte;
+
       const size_t nval = vectors->dm->num_vector_active_local;
       const size_t npfl = vectors->dm->num_packedfield_local;
 
@@ -198,25 +277,40 @@ void write_vectors_to_file(GMVectors* vectors, char* vectors_file_path,
       for (size_t vl = 0 ; vl < nval; ++vl) {
         for (size_t pfl = 0 ; pfl < npfl; ++pfl) {
 
-          GMBits2x64 outv = GMVectors_bits2x64_get(vectors, pfl, vl, env);
+          GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
 
-          if (pfl == npfl-1) {
-            const size_t num_written = fwrite(&outv, sizeof(outv), 1,
-                                              vectors_file);
+          // Calculate begin and end byte numbers of vector to write
+
+          const size_t offset_min = pfl * bytes_per_packedval;
+
+          const size_t byte_max =
+            gm_ceil_i8(vectors->dm->num_field_active_local, fields_per_byte);
+
+          const size_t offset_max = gm_min_i8((pfl+1) * bytes_per_packedval,
+                                              byte_max);
+
+          // Loop over bytes to output
+
+          for (size_t offset = offset_min, i = 0; offset < offset_max;
+               ++offset, ++i) {
+
+            const int index0 = i % 8;
+            const int index1 = i / 8;
+
+            const outval_t outval = ((val.data[index1] >> (8*index0)) &
+                                    (GMUInt64)255);
+
+            const size_t num_to_write = 1;
+
+            const size_t num_written = fwrite(&outval, sizeof(outval_t),
+                                              num_to_write, vectors_file);
+
             num_written_total += num_written;
-            num_written_attempted_total += sizeof(outv);
-            continue;
+            num_written_attempted_total += num_to_write;
           }
 
-
-
-//FIX
-
-
-
-
-        }
-      }
+        } // pfl
+      } // vl
 
       GMInsist(num_written_attempted_total == num_written_total &&
                "File write failure.");
@@ -698,6 +792,7 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   /*---Do open---*/
 
   file_ = fopen(path, "w");
+  GMInsist(NULL != file_ && "Unable to open file.");
   free(path);
 }
 

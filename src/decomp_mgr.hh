@@ -22,6 +22,7 @@ typedef struct {
   size_t num_field_local;
   size_t num_field_active;
   size_t num_field_active_local;
+  size_t field_base;
   // Vector counts
   size_t num_vector;
   size_t num_vector_local;

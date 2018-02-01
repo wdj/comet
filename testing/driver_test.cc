@@ -22,6 +22,8 @@
 #include "compute_metrics.hh"
 
 #include "driver.hh"
+#include "input_output.hh"
+#include "test_problems.hh"
 
 enum {PROCS_MAX = TEST_PROCS_MAX};
 
@@ -89,6 +91,33 @@ bool compare_3runs(const char* options1,
 void test_2runs(const char* options1,
                 const char* options2) {
   EXPECT_EQ(true, compare_2runs(options1, options2));
+}
+
+//=============================================================================
+
+void create_vectors_file(const char* file_path, int num_field, int num_vector,
+                         int metric_type, int num_way, int problem_type,
+                         int verbosity) {
+
+  GMEnv env_value = GMEnv_null(), *env = &env_value;
+  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
+  env->metric_type_ = metric_type;
+  env->num_way_ = num_way;
+  GMEnv_set_num_proc(env, 1, 1, 1);
+
+  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
+  GMDecompMgr_create(dm, false, false, num_field, num_vector,
+                     GMEnv_data_type_vectors(env), env);
+
+  GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  set_vectors_synthetic(vectors, problem_type, verbosity, env);
+
+  write_vectors_to_file(vectors, file_path, env);
+
+  GMVectors_destroy(vectors, env);
+  GMDecompMgr_destroy(dm, env);
+  GMEnv_destroy(env);
 }
 
 //=============================================================================
@@ -477,6 +506,37 @@ void DriverTest_czek_() {
                     "--num_proc_vector 1 --num_field 3 --num_vector 3 "
                     "--compute_method GPU --checksum no"));
 
+  //----------
+  //---file input
+  //----------
+
+  for (int num_vector = 13; num_vector <= 13; ++num_vector) {
+    for (int num_field = 1; num_field <= 10; ++num_field) {
+      create_vectors_file("czek_2way_in.bin", num_field, num_vector,
+                          GM_METRIC_TYPE_CZEK, 2, problem_type_default(), 1);
+      for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+        for (int num_proc_field=1; num_proc_field<=5; ++num_proc_field) {
+
+          char options1[1024];
+          char options2[1024];
+
+          char options_template[] =
+                 "--num_vector %i --num_field %i "
+                 "--num_proc_vector %i --num_proc_field %i "
+                 "--compute_method GPU --all2all yes %s --verbosity 1";
+
+          sprintf(options1, options_template,
+                  num_vector, num_field, num_proc_vector, num_proc_field, "");
+
+          sprintf(options2, options_template,
+                  num_vector, num_field, num_proc_vector, num_proc_field,
+                  "--input_file czek_2way_in.bin");
+
+          test_2runs(options1, options2);
+        }
+      }
+    }
+  }
 }
 
 //=============================================================================
@@ -572,7 +632,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
-
+  GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
 }
 
@@ -732,7 +792,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
-
+  GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
 }
 
@@ -888,7 +948,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
-
+  GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
 }
 
@@ -1154,7 +1214,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
-
+  GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
 }
 
@@ -1173,7 +1233,6 @@ void DriverTest_ccc_() {
   char options2[1024];
   char options3[1024];
 
-#if 1
   //----------
   //---2-way, all2all no
   //----------
@@ -1202,9 +1261,9 @@ void DriverTest_ccc_() {
     if ((i+3) % 32 > 6) {
       continue;
     }
-    sprintf(options1, options_template_1, 0, i, 48, "REF");
-    sprintf(options2, options_template_1, 0, i, 48, "CPU");
-    sprintf(options3, options_template_1, 0, i, 48, "GPU");
+    sprintf(options1, options_template_1, 1, i, 48, "REF");
+    sprintf(options2, options_template_1, 1, i, 48, "CPU");
+    sprintf(options3, options_template_1, 1, i, 48, "GPU");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
@@ -1258,7 +1317,6 @@ void DriverTest_ccc_() {
   sprintf(options2, options_template_2, 1, 2, 100, 24, "CPU", "yes");
   sprintf(options3, options_template_2, 1, 2, 100, 24, "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
-#endif
 
   //----------
   //---3-way, all2all no
@@ -1561,6 +1619,46 @@ void DriverTest_ccc_() {
     sprintf(options3, options_template_4, 1, 4, 100, 12, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
+
+  //----------
+  //---file input
+  //----------
+
+  for (int num_vector = 13; num_vector <= 13; ++num_vector) {
+    for (int num_field = 1; num_field <= 3*300; ++num_field) {
+      create_vectors_file("ccc_2way_in.bin", num_field, num_vector,
+                          GM_METRIC_TYPE_CCC, 2, problem_type_default(), 1);
+      for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
+        for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
+
+          const bool is_nearly_multiple_of_32 =
+            (num_field/num_proc_field+4) % 32 <= 8;
+          if (! is_nearly_multiple_of_32) {
+            continue;
+          }
+
+          char options1[1024];
+          char options2[1024];
+
+          char options_template[] =
+                 "--metric_type ccc "
+                 "--num_vector %i --num_field %i "
+                 "--num_proc_vector %i --num_proc_field %i "
+                 "--compute_method GPU --all2all yes %s --verbosity 1";
+
+          sprintf(options1, options_template,
+                  num_vector, num_field, num_proc_vector, num_proc_field, "");
+
+          sprintf(options2, options_template,
+                  num_vector, num_field, num_proc_vector, num_proc_field,
+                  "--input_file ccc_2way_in.bin");
+
+          test_2runs(options1, options2);
+        }
+      }
+    }
+  }
+
 }
 
 //=============================================================================

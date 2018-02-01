@@ -61,10 +61,18 @@ void GMVectors_create_with_buf(GMVectors* vectors,
                                GMDecompMgr* dm,
                                GMEnv* env);
 
+//-----------------------------------------------------------------------------
+
+void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env);
+
 //=============================================================================
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
+
+//=============================================================================
+
+void GMVectors_print(GMVectors* vectors, GMEnv* env);
 
 //=============================================================================
 // Copy vectors to mirrored buffer

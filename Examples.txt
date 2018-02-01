@@ -39,7 +39,7 @@ cd build_single_release
 env FP_PRECISION=SINGLE BUILD_TYPE=Release ../genomics_gpu/scripts/cmake.sh
 ../genomics_gpu/scripts/make.sh
 
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 genomics_metric: calculation of comparison metrics from genomics data
 
@@ -126,6 +126,11 @@ Options:
         the highest phase number of the sequence of phases to be computed
         for this run (0-based, default is num_phase-1)
 
+     --input_file <value>
+         string denoting the filename or pathname file
+         used to store input vectors.  If this option not present,
+         a synthetic test case is run.
+
     --problem_type <value>
         the kind of synthetic test case to run. Allowed choices are
         analytic (default) or random
@@ -148,7 +153,42 @@ Options:
     --verbosity <value>
        verbosity level of output (0=none, 1=some (default) 2,3=more)
 
--------------------------------------------------------------------------------
+Input File Formats
+
+Input is stored as a single binary file; each process reads the part
+of the file it needs.  Elements of the matrix of vectors are stored in
+lexicographical order in the file, with the field dimension varyng
+fastest.  Raw values are stored in a packed fashion with no indexing
+data: dimensions are supplied via command line arguments.
+
+For the Czekanowski metric, values are stored packed in sequence as
+4-byte floats or 8-byte doubles, depending on the code version being
+used.
+
+CCC 2-bit values are packed 4 per byte, starting at tle least significant
+bit of the byte.  The last byte of each vector is padded with zero bits
+before the next vector in the file is started.
+
+Output File Formats
+
+Output files are written one file per process.  The files are written
+in binary format as a packed series of results, written in no particular
+order.  Each value is stored as two (for 2-way) or three (for 3-way)
+8-byte unsigned integers, followed by the 4-byte (for single precision
+code version) or 8-byte (for double precision code version) floating
+point value.
+
+For the Czekanowski metric, each integer denotes the (0-based) vector
+number relevant to the metric value.
+
+For CCC, the lowest order bit of the integer denotes whether the
+0 bits or the 1 bits of the vector are being compared, and
+all other bits of the integer denote the vector number.
+
+For input and oputput, the endianness of integer and floating point
+values matches that of the system on which the code is run.
+
+--------------------------------------------------------------------------------
 
 # The following test runs assume:
 

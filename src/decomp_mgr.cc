@@ -104,6 +104,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_field_local = dm->num_field_active_local;
     dm->num_field = dm->num_field_local * GMEnv_num_proc_field(env);
     dm->num_field_active = dm->num_field;
+    dm->field_base = dm->num_field_local * GMEnv_proc_num_field(env);
   } else { // ! fields_by_local
     dm->num_field_active = num_field_specifier;
     // Pad up as needed so that every proc has same number
@@ -115,11 +116,14 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     // Upper procs fully inactive
     // One proc in between may be mixed
     // NOTE: see below for possible more inactive fields in packedfield
-    const size_t nl = dm->num_field_local;
-    const size_t na = dm->num_field_active;
-    dm->num_field_active_local = na <= nl * proc_num ? 0 :
-                                 na >= nl * (proc_num + 1) ? nl :
-                                 na - nl * proc_num;
+    const size_t nfl = dm->num_field_local;
+    const size_t nfa = dm->num_field_active;
+    dm->num_field_active_local =
+      nfa <= nfl * proc_num       ? 0 :
+      nfa >= nfl * (proc_num + 1) ? nfl :
+                                    nfa - nfl * proc_num;
+    dm->field_base = nfl * proc_num <= nfa ? nfl * proc_num : nfa;
+
   } // if fields_by_local
 
   //--------------------

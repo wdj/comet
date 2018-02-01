@@ -332,7 +332,7 @@ static int gm_floor_i(const int i, const int j) {
 //-----------------------------------------------------------------------------
 
 static size_t gm_floor_i8(const size_t i, const size_t j) {
-  GMAssert(i + 1 > 1);
+  GMAssert(i + 1 >= 1);
   GMAssert(j + 1 > 1);
 
   return i / j;
@@ -349,7 +349,7 @@ static int gm_ceil_i(const int i, const int j) {
 //-----------------------------------------------------------------------------
 
 static size_t gm_ceil_i8(const size_t i, const size_t j) {
-  GMAssert(i + 1 > 1);
+  GMAssert(i + 1 >= 1);
   GMAssert(j + 1 > 1);
 
   return (i + j - 1) / j;

@@ -31,14 +31,19 @@ GMVectors GMVectors_null() {
 //=============================================================================
 /*---Set unused (pad) vector entries to zero---*/
 
-void GMVectors_initialize_pad_(GMVectors* vectors, GMEnv* env) {
+void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
   GMInsist(vectors && env);
 
   /*---Ensure final pad words/bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
 
-  const size_t pfl_min = vectors->dm->num_field_active_local /
-                         vectors->dm->num_field_per_packedfield;
+  if (! GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  const size_t nfal = vectors->dm->num_field_active_local;
+
+  const size_t pfl_min = nfal / vectors->dm->num_field_per_packedfield;
   const size_t pfl_max = vectors->dm->num_packedfield_local;
 
   switch (vectors->data_type_id) {
@@ -51,12 +56,35 @@ void GMVectors_initialize_pad_(GMVectors* vectors, GMEnv* env) {
       }
     } break;
     case GM_DATA_TYPE_BITS2: {
-      GMBits2x64 zero = GMBits2x64_null();
+      const GMBits2x64 zero = GMBits2x64_null();
+      const GMUInt64 allbits = 0xffffffffffffffff;
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
-          /*---Doesn't hurt to set partly active words to zero here---*/
-          GMVectors_bits2x64_set(vectors, pfl, vl, zero, env);
-        }
+          const size_t fl = 64 * pfl;
+
+          if (fl >= nfal) {
+
+            GMVectors_bits2x64_set(vectors, pfl, vl, zero, env);
+
+          } else if (fl + 32 >= nfal) {
+
+            GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
+            const int shift_dist = 64 - 2*(nfal-fl);
+            GMAssert(shift_dist >= 0 && shift_dist < 64);
+            val.data[0] &= allbits >> shift_dist;
+            val.data[1] = 0;
+            GMVectors_bits2x64_set(vectors, pfl, vl, val, env);
+
+          } else if (fl + 64 >= nfal) {
+
+            GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
+            const int shift_dist = 64 - 2*(nfal-fl-32);
+            GMAssert(shift_dist >= 0 && shift_dist < 64);
+            val.data[1] &= allbits >> shift_dist;
+            GMVectors_bits2x64_set(vectors, pfl, vl, val, env);
+
+          } // if
+        } // for pfl
       }
     } break;
     default:
@@ -113,7 +141,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   // Set pad entries to zero
 
-  GMVectors_initialize_pad_(vectors, env);
+  GMVectors_initialize_pad(vectors, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -211,6 +239,52 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
     default:
       GMInsistInterface(env, false && "Unimplemented.");
   } /*---case---*/
+}
+
+//=============================================================================
+// Print entries of vectors
+
+void GMVectors_print(GMVectors* vectors, GMEnv* env) {
+  GMInsist(vectors && env);
+
+  if (! GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  const int nval = vectors->dm->num_vector_active_local;
+  const int nfal = vectors->dm->num_field_active_local;
+  
+  switch (GMEnv_data_type_vectors(env)) {
+    /*--------------------*/
+    case GM_DATA_TYPE_FLOAT: {
+    /*--------------------*/
+      for (int vl = 0; vl < nval; ++vl) {
+        for (int fl = 0; fl < nfal; ++fl) {
+          const GMFloat float_value = GMVectors_float_get(vectors, fl, vl, env);
+            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
+                   GMEnv_proc_num_vector_i(env), vl,
+                   GMEnv_proc_num_field(env), fl, float_value);
+        } /*---fl---*/
+      }   /*---vl---*/
+    } break;       
+    /*--------------------*/
+    case GM_DATA_TYPE_BITS2: {
+    /*--------------------*/
+      for (int vl = 0; vl < nval; ++vl) {
+        for (int fl = 0; fl < nfal; ++fl) {
+          const GMBits2 value = GMVectors_bits2_get(vectors, fl, vl, env);
+            printf("vec_proc %i vec %i "
+                   "field_proc %i field %i value %.1i%.1i\n",
+                   GMEnv_proc_num_vector_i(env), vl,
+                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
+        } /*---fl---*/
+      }   /*---vl---*/
+    } break;
+    /*--------------------*/
+    default:
+    /*--------------------*/
+      GMInsist(false && "Invalid data type.");
+  } /*---switch---*/
 }
 
 //-----------------------------------------------------------------------------

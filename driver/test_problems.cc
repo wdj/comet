@@ -25,13 +25,14 @@
 //=============================================================================
 /*---Set the entries of the vectors---*/
 
-void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
-  GMInsist(vectors && do_ && env);
-  GMInsist(do_->problem_type == GM_PROBLEM_TYPE_RANDOM);
+void set_vectors_random(GMVectors* vectors, int verbosity, GMEnv* env) {
+  GMInsist(vectors && env);
 
   if (! GMEnv_is_proc_active(env)) {
     return;
   }
+
+  const size_t nva = vectors->dm->num_vector_active;
 
   switch (GMEnv_data_type_vectors(env)) {
     /*--------------------*/
@@ -42,8 +43,7 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                     vector : do_->num_vector_active-1;
+        const size_t vector_capped = gm_min_i8(vector, nva);
         int fl = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -77,14 +77,17 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           GMInsist(float_value * vectors->num_field_active <
                          ((size_t)1)<<GMFloat_mant_dig());
           GMVectors_float_set(vectors, fl, vl, float_value, env);
-          /*---Print---*/
-          if (do_->verbosity > 2) {
-            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-                   GMEnv_proc_num_vector_i(env), vl,
-                   GMEnv_proc_num_field(env), fl, float_value);
-          }
+//          if (verbosity > 2) {
+//            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
+//                   GMEnv_proc_num_vector_i(env), vl,
+//                   GMEnv_proc_num_field(env), fl, float_value);
+//          }
         } /*---field_local---*/
       }   /*---vector_local---*/
+      /*---Print---*/
+      if (verbosity > 2) {
+        GMVectors_print(vectors, env);
+      }
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
@@ -94,8 +97,7 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                     vector : do_->num_vector_active-1;
+        const size_t vector_capped = gm_min_i8(vector, nva);
         int fl;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -115,15 +117,19 @@ void set_vectors_random(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
           /*---Store---*/
           GMVectors_bits2_set(vectors, fl, vl, value, env);
-          /*---Print---*/
-          if (do_->verbosity > 2) {
-            printf("vec_proc %i vec %i "
-                   "field_proc %i field %i value %.1i%.1i\n",
-                   GMEnv_proc_num_vector_i(env), vl,
-                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
-          }
+//          /*---Print---*/
+//          if (verbosity > 2) {
+//            printf("vec_proc %i vec %i "
+//                   "field_proc %i field %i value %.1i%.1i\n",
+//                   GMEnv_proc_num_vector_i(env), vl,
+//                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
+//          }
         } /*---fl---*/
       }   /*---vl---*/
+      /*---Print---*/
+      if (verbosity > 2) {
+        GMVectors_print(vectors, env);
+      }
     } break;
     /*--------------------*/
     default:
@@ -182,16 +188,15 @@ static size_t perm(size_t key, size_t i, size_t n) {
 
 //-----------------------------------------------------------------------------
 
-void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
-  GMInsist(vectors && do_ && env);
-  GMInsist(do_->problem_type == GM_PROBLEM_TYPE_ANALYTIC);
+void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
+  GMInsist(vectors && env);
 
   if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
   const size_t nf = vectors->num_field_active;
-  const size_t nv = do_->num_vector_active;
+  const size_t nva = vectors->dm->num_vector_active;
 
   // Upper bound on integer representable exactly by GMFloat.
   const size_t max_float = ((size_t)1) << GMFloat_mant_dig();
@@ -199,8 +204,8 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   const size_t value_limit = (max_float - 1) / nf;
 
   const size_t value_min = 1;
-  const size_t value_max = (nv+value_min) < value_limit ?
-                           (nv+value_min) : value_limit;
+  const size_t value_max = (nva+value_min) < value_limit ?
+                           (nva+value_min) : value_limit;
 
   // The elements of a single permuted vector are partitioned into
   // "groups", with all elements in a group contiguous and having
@@ -222,8 +227,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                     vector : do_->num_vector_active-1;
+        const size_t vector_capped = gm_min_i8(vector, nva-1);
         int fl = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -238,10 +242,10 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           const size_t g = pf / group_size_max; // group number
           GMAssert(g>=0 && g<num_group);
 
-          const size_t pv = perm(g, v, nv); // permuted vector number
+          const size_t pv = perm(g, v, nva); // permuted vector number
 
           // Linearly map pv to small interval.
-          const size_t value = value_min + ( pv * value_max ) / (nv+value_min);
+          const size_t value = value_min + ( pv * value_max ) / (nva+value_min);
 
           const GMFloat float_value = value;
 
@@ -249,14 +253,18 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           GMInsist(float_value * vectors->num_field_active < max_float);
           GMVectors_float_set(vectors, fl, vl, float_value, env);
 
-          /*---Print---*/
-          if (do_->verbosity > 2) {
-            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-                   GMEnv_proc_num_vector_i(env), vl,
-                   GMEnv_proc_num_field(env), fl, float_value);
-          }
+//          /*---Print---*/
+//          if (verbosity > 2) {
+//            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
+//                   GMEnv_proc_num_vector_i(env), vl,
+//                   GMEnv_proc_num_field(env), fl, float_value);
+//          }
         } /*---field_local---*/
       }   /*---vector_local---*/
+      /*---Print---*/
+      if (verbosity > 2) {
+        GMVectors_print(vectors, env);
+      }
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
@@ -266,8 +274,7 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = vector <= do_->num_vector_active-1 ?
-                                     vector : do_->num_vector_active-1;
+        const size_t vector_capped = gm_min_i8(vector, nva-1);
         int fl = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -284,31 +291,48 @@ void set_vectors_analytic(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
           const size_t g = pf / group_size_max;
           GMAssert(g>=0 && g<num_group);
 
-          const size_t pv = perm(g, v, nv);
+          const size_t pv = perm(g, v, nva);
 
-          const size_t value = value_min + ( pv * value_max ) / (nv+value_min);
+          const size_t value = value_min + ( pv * value_max ) / (nva+value_min);
 
           const GMBits2 bval = ((size_t)3) & (value - value_min);
 
           /*---Store---*/
           GMVectors_bits2_set(vectors, fl, vl, bval, env);
 
-          /*---Print---*/
-          if (do_->verbosity > 2) {
-            printf("vec_proc %i vec %i "
-                   "field_proc %i field %i value %.1i%.1i\n",
-                   GMEnv_proc_num_vector_i(env), vl,
-                   GMEnv_proc_num_field(env), fl,
-                   (int)bval / 2, (int)bval % 2);
-          }
+//          /*---Print---*/
+//          if (verbosity > 2) {
+//            printf("vec_proc %i vec %i "
+//                   "field_proc %i field %i value %.1i%.1i\n",
+//                   GMEnv_proc_num_vector_i(env), vl,
+//                   GMEnv_proc_num_field(env), fl,
+//                   (int)bval / 2, (int)bval % 2);
+//          }
         } /*---field_local---*/
       }   /*---vector_local---*/
+      if (verbosity > 2) {
+        GMVectors_print(vectors, env);
+      }
     } break;
     /*--------------------*/
     default:
     /*--------------------*/
       GMInsist(false && "Invalid data type.");
   } /*---switch---*/
+}
+
+//=============================================================================
+
+void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,                            GMEnv* env) {
+  GMInsist(vectors && env);
+
+  if (problem_type == GM_PROBLEM_TYPE_RANDOM) {
+    set_vectors_random(vectors, verbosity, env);
+  } else if (problem_type == GM_PROBLEM_TYPE_ANALYTIC) {
+    set_vectors_analytic(vectors, verbosity, env);
+  } else {
+    GMInsist(false && "Invalid problem_type");
+  }
 }
 
 //=============================================================================
