@@ -55,6 +55,8 @@ void gm_compute_numerators_3way_gpu_form_matX_(
     /*----------*/
     for (int I = I_min; I < I_max; ++I) {
 
+      // Mask for odd bits (starting at lowest-order bit: bit 0, bit 2, ...)
+
       const GMUInt64 oddbits = 0x5555555555555555;
 
       /*---Operate on columns v_i and v_j elementwise---*/
@@ -68,8 +70,9 @@ void gm_compute_numerators_3way_gpu_form_matX_(
           const GMUInt64 vJ = GMMirroredBuf_elt_const<GMBits2x64>(
                                            vectors_J_buf, pvfl, J).data[word];
 
-          // Create word whose odd bits sample the lo or hi bit of interest
-          // of the seminibble.  Also create the complement thereof.
+          // Create word whose odd bits sample the lo (denoted here "..._0")
+          // or hi ("..._1") bit of the seminibble.  Also create the
+          // complement thereof (denoted "n...").
 
           const GMUInt64  vI_0 =   vI        & oddbits;
           const GMUInt64  vI_1 =  (vI >> 1)  & oddbits;
@@ -82,32 +85,49 @@ void gm_compute_numerators_3way_gpu_form_matX_(
           // Create a mask whose odd bits denote whether each respective
           // seminibble of vector I matches the case we are handling
           // in this 2-way step (and the complement thereof).
+          // step 0: select (only) entries equal to 00
+          // step 1: select (only) entries equal to 01 or 10 (nonsparse case)
+          // step 1: select (only) entries equal to 01 (sparse case) (ignore 10)
+          // step 2: select (only) entries equal to 11
+          // Note here that 10 is in some situations used as a special marker
+          // meaning, ignore this seminiblle for the calculations.
 
-          const GMUInt64  vI_match =
+          const GMUInt64  vI_mask =
             step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
             step_2way==1 && sparse ?
                            ( vI_0 & nvI_1) & oddbits : // 01
             step_2way==1 ? ( vI_0 ^  vI_1) & oddbits : // 01, 10
           /*step_2way==2*/   vI_0 &  vI_1  & oddbits;  // 11
 
-          const GMUInt64 nvI_match =
+          const GMUInt64 nvI_mask =
             step_2way==0 ? ( vI_0 |  vI_1) & oddbits :
             step_2way==1 && sparse ?
                            (nvI_0 |  vI_1) & oddbits :
             step_2way==1 ? ( vI_0 ^ nvI_1) & oddbits :
           /*step_2way==2*/ (nvI_0 | nvI_1) & oddbits;
 
-          // Construct the lo and hi bit of the result seminibble, based
-          // on truth table:
-          //  - lo bit is 1 (00 or 01) if vJ is 01, 10 or 11 and vI is the
+          // Construct the lo and hi bit of the result seminibble of matrix X.
+          // This is best understood by looking at the truth table (see paper).
+          // case vI_mask = 1: vJ = 00 => X = 00
+          // case vI_mask = 1: vJ = 01 => X = 01
+          // case vI_mask = 1: vJ = 10 => X = 01 (nonsparse case)
+          // case vI_mask = 1: vJ = 10 => X = 10 (sparse case)
+          // case vI_mask = 1: vJ = 11 => X = 11
+          // case vI_mask = 0: X = 10
+          // Thus for the nonsparse case:
+          //  - lo bit is 1 (11 or 01) if vJ is 01, 10 or 11 and vI is the
           //    case being handled for this 2-way step.
           //  - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
           //    being handled for this 2-way step.
 
-          const GMUInt64 r_0 =  vI_match & (sparse ? vJ_0 : vJ_0 | vJ_1);
-          const GMUInt64 r_1 = nvI_match | (sparse ? vJ_1 : vJ_0 & vJ_1);
+          const GMUInt64 r_0 =  vI_mask & (sparse ? vJ_0 : vJ_0 | vJ_1);
+          const GMUInt64 r_1 = nvI_mask | (sparse ? vJ_1 : vJ_0 & vJ_1);
+
+          // Combine even and odd bits
 
           const GMUInt64 r = r_0 | (r_1 << 1);
+
+          // Store result
 
           GMMirroredBuf_elt<GMBits2x64>(matX_buf, pvfl, I).data[word] = r;
         } /*---word---*/
