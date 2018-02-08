@@ -170,6 +170,49 @@ FloatingPoint_t tally4_compute(
     const GMBits2x64 vi = *(GMBits2x64*)&A;
     const GMBits2x64 vj = *(GMBits2x64*)&B;
 
+#if 1
+    const GMUInt64 oddbits = 0x5555555555555555;
+    
+    const GMUInt64& vi0 = vi.data[0];
+    const GMUInt64& vi1 = vi.data[1];
+    const GMUInt64& vj0 = vj.data[0];
+    const GMUInt64& vj1 = vj.data[1];
+
+    const GMUInt64 nvi0 = ~vi.data[0];
+    const GMUInt64 nvi1 = ~vi.data[1];
+    const GMUInt64 nvj0 = ~vj.data[0];
+    const GMUInt64 nvj1 = ~vj.data[1];
+
+    const GMUInt64 vj0s = ((vj0 >> 1) & oddbits) | ((vj0 & oddbits) << 1);
+    const GMUInt64 vj1s = ((vj1 >> 1) & oddbits) | ((vj1 & oddbits) << 1);
+
+    const GMUInt64 r01 = gm_popcount64(nvi0 &  vj0) +
+                         gm_popcount64(nvi0 &  vj0s) +
+                         gm_popcount64(nvi1 &  vj1) +
+                         gm_popcount64(nvi1 &  vj1s);   
+
+    const GMUInt64 nvj0s = ~vj0s;
+    const GMUInt64 nvj1s = ~vj1s;
+    
+    const GMUInt64 r00 = gm_popcount64(nvi0 & nvj0) +
+                         gm_popcount64(nvi0 & nvj0s) +
+                         gm_popcount64(nvi1 & nvj1) +
+                         gm_popcount64(nvi1 & nvj1s);
+    
+    const GMUInt64 r10 = gm_popcount64( vi0 & nvj0) +
+                         gm_popcount64( vi0 & nvj0s) +
+                         gm_popcount64( vi1 & nvj1) +
+                         gm_popcount64( vi1 & nvj1s);
+
+    const GMUInt64 r11 = 4 * 64 - r00 - r01 - r10;
+        
+    /*---Accumulate---*/
+        
+    sum.data[0] += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
+    sum.data[1] += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+#endif
+
+#if 0
     //--------------------
     // Nomenclature:
     //
@@ -182,7 +225,6 @@ FloatingPoint_t tally4_compute(
     //  |---test for value or for its negative/complement
     //--------------------
 
-#if 1
     const GMUInt64 vi0 = vi.data[0];
     const GMUInt64 vi1 = vi.data[1];
     const GMUInt64 vj0 = vj.data[0];
@@ -249,7 +291,9 @@ FloatingPoint_t tally4_compute(
 
     sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
     sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
-#else
+#endif
+
+#if 0
     /*---This code reduces register pressure but runs somewhat slower---*/
 
     const GMUInt64 oddbits = 0x5555555555555555;
