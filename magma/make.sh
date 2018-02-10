@@ -28,7 +28,7 @@ function do_make
     cp ../make.inc.summit make.inc
   fi
 
-  time make -j8
+  time make lib -j8
 }
 
 #==============================================================================

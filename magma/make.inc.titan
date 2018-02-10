@@ -2,7 +2,7 @@
 GPU_TARGET = Kepler
 CC        = gcc -DCUBLAS_GFORTRAN
 NVCC      = nvcc
-FORT      = gfortran -DCUBLAS_GFORTRAN
+#FORT      = gfortran -DCUBLAS_GFORTRAN
 ARCH      = ar
 ARCHFLAGS = cr
 RANLIB    = ranlib
