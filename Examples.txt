@@ -13,12 +13,7 @@ mkdir gm_work
 cd gm_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-git checkout -q tags/v0.4   #---use currently active release tag.
-#for magma_version in minproduct tally3 tally4; do
-#  cd genomics_gpu/magma/magma_${magma_version}-1.6.2
-#  ../make.sh
-#  cd ../../..
-#done
+#git checkout -q tags/v0.4   #---use currently active release tag.
 mkdir build_debug
 cd build_debug
 env BUILD_TYPE=Debug ../genomics_gpu/scripts/cmake.sh
@@ -166,8 +161,10 @@ For the Czekanowski metric, values are stored packed in sequence as
 used.
 
 CCC 2-bit values are packed 4 per byte, starting at tle least significant
-bit of the byte.  The last byte of each vector is padded with zero bits
-before the next vector in the file is started.
+bit of the byte.  For the 2 bits, the higher order bit is considered the
+"first" bit, the lower order bit is considered to be "second." The last
+byte of each vector is padded with zero bits before the next vector in
+the file is started.
 
 Output File Formats
 
