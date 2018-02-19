@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
       const int c0 = cprev;
       const int c1 = c;
 
-      // Next map the token pair to a pair of bits needed by CoMeT.
+      // Next map the token pair to a pair of bits needed by CoMet.
 
       // Note the alphabetically first allele is mapped to the zero bit
 

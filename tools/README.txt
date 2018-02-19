@@ -68,8 +68,91 @@ Tue Jan  9 20:15:18 EST 2018
 [1333s] rhea114$ 
 
 
-CoMeT execution example
------------------------
+How to select CoMet settings, 2-way case
+----------------------------------------
+
+When using a GPU-capable system like Titan or Summit, the CoMet code is
+set up to use 1 GPU per MPI rank (denoted below as "proc" or "process").
+On Titan this means 1 rank per node, on Summit 6 ranks per node.
+OpenMP is also used to divide up the CPU cores on the node to
+speed up the non-GPU work (16 OpenMP threads per MPI rank on Titan,
+7 threads per rank on Summit).
+
+CoMet has several tuning parameters for running in parallel:
+
+  --num_proc_vector: the number of process along the "vector" axis.
+
+  --num_proc_field: the number of process along the "field" axis.
+    Note num_proc_vector X num_proc_field = num_proc equals the total
+    number of MPI processes used to solve the problem.  num_proc
+    nodes should be selected by qsub/aprun on Titan.  On Summit which
+    has 6 GPUs per node, one should select ceil(num_proc/6) nodes.
+
+  --num_phase, --phase_min, --phase_max: Since solving an entire
+    problem meay require more memory than is available, it is
+    possible to divide the computation into smaller "phases,"
+    each of which computes only a subset of the result metrics.
+    Computing a single phase fully utilizes all GPUs in the
+    allocation.  Example: one could set num_phase=200,
+    phase_min=0, phase_max=0 to compute the first phase only
+    out of 200 phases.  One can num_phase=200, phase_min=0,
+    phase_max=199 to compute all phases, while only requiring
+    the amount of memory required to compute one phase at a time.
+    NOTE: For computing all the metrics for a given fixed problem,
+    one must fix the num_proc_vector and num_phase values for all phases
+    computed to ensure a consistent definition of which metrics
+    are contained in each phase.
+
+The rationale for adjusting the settings is:
+  1) to make the number of vectors and vector elements on each GPU as large
+     as possible to mximize performance;
+  2) to make num_phase large enough to ensure metrics will fit onto memory;
+  3) to run at least several phases per individual run to amortize setup
+     costs.
+
+The settings advisor tool can be used to assist with determining good
+settings:
+
+titan-ext1$ ./settings_advisor --help
+usage: settings_advisor [-h] --num_node NUM_NODE --platform {Titan,Summit}
+                        --num_way {2,3} --metric_type {czekanowski,ccc}
+                        --num_vector NUM_VECTOR --num_field NUM_FIELD
+
+Suggest settings for running the CoMet code.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --num_node NUM_NODE   The number of compute nodes to run on.
+  --platform {Titan,Summit}
+                        Platform to be run on (Titan or Summit)
+  --num_way {2,3}       dimension of metric to compute (2 for 2-way, 3 for
+                        3-way)
+  --metric_type {czekanowski,ccc}
+                        metric type (czekanowski or ccc)
+  --num_vector NUM_VECTOR
+                        number of vectors to process
+  --num_field NUM_FIELD
+                        number of fields to process
+
+titan-ext1$ ./settings_advisor --num_node 6000 --platform Titan --num_vector 28342758 --num_field 882 --metric_type ccc --num_way 2
+
+GPU memory: 1.07430846 GB required out of 5.637144576 GB available: OK.
+To fit into memory, suggest using num_phase = 86 (or higher). Then:
+CPU memory: 32.317998864 GB required out of 32.641751449 GB available: OK.
+Suggest executing at least several phases per run to amortize setup costs.
+Local problem size: num_vector_local = 4724, target = 4000.
+
+titan-ext1$ ./settings_advisor --num_node 1000 --platform Titan --num_vector 28342758 --num_field 882 --metric_type ccc --num_way 2
+
+Insufficient GPU memory, please increase num_node.
+GPU memory: 38.578422561 GB requested out of 5.637144576 GB available.
+
+NOTE: Currently it is recommended to set --num_field to 1.  A later version
+of the tool will give more detailed information on this setting.
+
+
+CoMet execution example, 2-way case
+-----------------------------------
 
 Titan:
 ssh titan.ccs.ornl.gov
@@ -90,16 +173,6 @@ num_phase=200
 phase_min=0
 phase_max=7
 #phase_max=199
-
-# The following is guidance for running 2-way CCC with 882 fields
-# and differing vector counts. The objectives are:
-# (1) For good performance, the number of vectors per processor
-# ( = $num_vector / $num_proc_vector ) should be several thousand.
-# (2) Make num_phase large enough so that the metrics for a single
-# phase can fit into memory; however making this value excessively
-# large may worsen performance.
-# (3) Run at least several phases per individual run to amortize
-# certain costs such as input file read.
 
 out_dir=$PWD/outs_full_${num_proc_vector}_2way_200_000-007
 mkdir -p $out_dir

@@ -51,7 +51,7 @@ Options:
         (Required) the number of elements in each vector on each processor
 
     --num_vector <value>
-        (Required) the number of vectors to be process
+        (Required) the number of vectors to be processed
 
     --num_vector_local <value>
         (Required) the number of vectors to be processed on each processor
@@ -162,9 +162,11 @@ used.
 
 CCC 2-bit values are packed 4 per byte, starting at tle least significant
 bit of the byte.  For the 2 bits, the higher order bit is considered the
-"first" bit, the lower order bit is considered to be "second." The last
-byte of each vector is padded with zero bits before the next vector in
-the file is started.
+"first" bit, the lower order bit is considered to be "second," thus
+for "01" or "(0,1)" the first but is "0" and the second bit is "1".
+Note for the sparse case "(1,0)" is the marker for a missing allele.
+The last byte of each vector is padded with zero bits before the next
+vector in the file is started.
 
 Output File Formats
 

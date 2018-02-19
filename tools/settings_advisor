@@ -1,0 +1,341 @@
+#!/usr/bin/env python
+"""
+-------------------------------------------------------------------------------
+settings_advisor: suggest settings for running CoMet code.
+-------------------------------------------------------------------------------
+"""
+
+import argparse
+
+#------------------------------------------------------------------------------
+
+def process_command_line_args():
+    """Get the command line arguments."""
+
+    command_description = (
+        'Suggest settings for running the CoMet code.')
+
+    num_node_help = ('The number of compute nodes to run on.')
+    platform_help = ('Platform to be run on (Titan or Summit)')
+    num_way_help = ('dimension of metric to compute (2 for 2-way, 3 for 3-way)')
+    metric_type_help = ('metric type (czekanowski or ccc)')
+    num_vector_help = ('number of vectors to process')
+    num_field_help = ('number of fields to process')
+
+    parser = argparse.ArgumentParser(description=command_description)
+    parser.add_argument('--num_node', help=num_node_help, required=True)
+    parser.add_argument('--platform', help=platform_help, required=True,
+                        choices=['Titan', 'Summit'])
+    parser.add_argument('--num_way', help=num_way_help, required=True,
+                        choices=['2', '3'])
+    parser.add_argument('--metric_type', help=metric_type_help, required=True,
+                        choices=['czekanowski', 'ccc'])
+    parser.add_argument('--num_vector', help=num_vector_help, required=True)
+    parser.add_argument('--num_field', help=num_field_help, required=True)
+
+    args = parser.parse_args()
+
+    return args
+
+#------------------------------------------------------------------------------
+
+def is_titan(args):
+    """ """
+    return args.platform == 'Titan'
+
+#------------------------------------------------------------------------------
+
+def is_ccc(args):
+    """ """
+    assert args.metric_type == 'ccc', 'Czekanowski not yet implemented.'
+    return args.metric_type == 'ccc'
+
+#------------------------------------------------------------------------------
+
+def proc_per_node(args):
+    """ """
+    return 1 if is_titan(args) else 6
+
+#------------------------------------------------------------------------------
+
+def num_node_avail(args):
+    """ """
+    return int(args.num_node)
+
+#------------------------------------------------------------------------------
+
+def num_proc_avail(args):
+    """ """
+    return num_node_avail(args) * proc_per_node(args)
+
+#------------------------------------------------------------------------------
+
+def num_way(args):
+    """ """
+    assert args.num_way == '2', '3-way not yet implemented.'
+    return int(args.num_way)
+
+#------------------------------------------------------------------------------
+
+def num_vector(args):
+    """ """
+    result = int(args.num_vector)
+    assert result > 0, 'Nonzero number of vectors required.'
+    return result
+
+#------------------------------------------------------------------------------
+
+def num_field(args):
+    """ """
+    result = int(args.num_field)
+    assert result > 0, 'Nonzero number of fields required.'
+    return result
+
+#------------------------------------------------------------------------------
+
+def gpu_bytes_per_proc_avail(args):
+    """ """
+    GiB = 1024. * 1024. * 1024.
+    return int((5.25 if is_titan(args) else 15.5) * GiB)
+
+#------------------------------------------------------------------------------
+
+def cpu_bytes_per_proc_avail(args):
+    """ """
+    GiB = 1024. * 1024. * 1024.
+    return int((32.*.95 if is_titan(args) else 512.*.95) /
+               proc_per_node(args) * GiB)
+
+#==============================================================================
+
+def int_floor(i, j):
+    """ """
+    assert i >= 0
+    assert j > 0
+    assert isinstance(i, int)
+    assert isinstance(j, int)
+
+    return int(i / j)
+
+#------------------------------------------------------------------------------
+
+def int_ceil(i, j):
+    """ """
+    assert i >= 0
+    assert j > 0
+    assert isinstance(i, int)
+    assert isinstance(j, int)
+
+    return int((i+j-1) / j)
+
+#------------------------------------------------------------------------------
+
+def bits_per_vector_elt(args):
+    """ """
+    return 2 if is_ccc(args) else (
+           64 if is_double(args) else 32)
+
+#------------------------------------------------------------------------------
+
+def bytes_per_metric_elt(args):
+    """ """
+    return 16 if is_ccc(args) and num_way(args) == 2 else (
+           32 if is_ccc(args) else (
+           8 if is_double(args) else (
+           4)))
+
+#------------------------------------------------------------------------------
+
+def bytes_per_metric(args):
+    """ """
+    is_sparse = True
+
+    elt_size_index = 8
+    elt_size_S = 8
+    elt_size_C = 8 if is_sparse else 0
+
+    return bytes_per_metric_elt(args) + elt_size_index + elt_size_S + elt_size_C
+
+#------------------------------------------------------------------------------
+
+def num_vector_local(num_proc_vector, args):
+    """ """
+    assert num_proc_vector > 0
+    assert isinstance(num_proc_vector, int)
+
+    return int_ceil(num_vector(args), num_proc_vector)
+
+#------------------------------------------------------------------------------
+
+def num_field_local(num_proc_field, args):
+    """ """
+    assert num_proc_field > 0
+    assert isinstance(num_proc_field, int)
+
+    return int_ceil(num_field(args), num_proc_field)
+
+#------------------------------------------------------------------------------
+
+def num_proc_field(num_proc_vector, args):
+    """ """
+    assert num_proc_vector > 0
+    assert isinstance(num_proc_vector, int)
+
+    return int_floor(num_proc_avail(args), num_proc_vector)
+
+#------------------------------------------------------------------------------
+
+def bytes_per_vectors_block(num_proc_vector, args):
+    """Memory required to store an on-proc portion of the set of vectors."""
+    assert num_proc_vector > 0
+    assert isinstance(num_proc_vector, int)
+
+    num_proc_field_ = num_proc_field(num_proc_vector, args)
+
+    num_field_local_ = num_field_local(num_proc_field_, args)
+
+    bits_per_byte = 8
+    bytes_per_vector = int_ceil(num_field_local_ * bits_per_vector_elt(args),
+                                bits_per_byte)
+
+    return bytes_per_vector * num_vector_local(num_proc_vector, args)
+
+#------------------------------------------------------------------------------
+
+def bytes_per_metrics_block(num_proc_vector, args):
+    """Memory required to store an on-proc blc=ock of metrics values."""
+    assert num_proc_vector > 0
+    assert isinstance(num_proc_vector, int)
+
+    num_vector_local_ = num_vector_local(num_proc_vector, args)
+
+    return bytes_per_metric_elt(args) * num_vector_local_ * num_vector_local_
+
+#------------------------------------------------------------------------------
+
+def gpu_bytes_per_proc_used(num_proc_vector, args):
+    """ """
+    assert num_proc_vector > 0
+    assert isinstance(num_proc_vector, int)
+
+    bytes_per_vectors_block_ = bytes_per_vectors_block(num_proc_vector, args)
+    bytes_per_metrics_block_ = bytes_per_metrics_block(num_proc_vector, args)
+
+    if num_way(args) == 2:
+      return 3 * bytes_per_vectors_block_ + 3 * bytes_per_metrics_block_
+    else:
+      assert False, 'Not yet implemented.'
+
+#------------------------------------------------------------------------------
+
+def cpu_bytes_per_proc_used(num_proc_vector, num_phase, args):
+    """ """
+    assert num_proc_vector > 0
+    assert num_phase > 0
+    assert isinstance(num_proc_vector, int)
+    assert isinstance(num_phase, int)
+
+    bytes_per_vectors_block_ = bytes_per_vectors_block(num_proc_vector, args)
+    bytes_per_metrics_block_ = bytes_per_metrics_block(num_proc_vector, args)
+
+    num_vector_local_ = num_vector_local(num_proc_vector, args)
+
+    if num_way(args) == 2:
+
+        num_blocks_local = int_ceil(int_ceil(num_proc_vector, 2), num_phase)
+        num_metrics_elts_local = (num_vector_local_ * num_vector_local_ *
+                              num_blocks_local)
+
+        bytes_metrics_local = num_metrics_elts_local * bytes_per_metric(args) 
+
+        return (4 * bytes_per_vectors_block_ + 3 * bytes_per_metrics_block_ +
+                bytes_metrics_local)
+
+    else:
+        assert False, 'Not yet implemented.'
+
+#------------------------------------------------------------------------------
+
+def main():
+    """Main program for determining good CoMet settings."""
+
+    # Get the command line arguments.
+
+    args = process_command_line_args()
+
+    #print(cpu_bytes_per_proc_used(6000, 200, args)/1000000000.,
+    #      gpu_bytes_per_proc_used(6000, args)/1000000000.)
+
+    cpu_bytes_per_proc_avail_ = cpu_bytes_per_proc_avail(args)
+    gpu_bytes_per_proc_avail_ = gpu_bytes_per_proc_avail(args)
+
+    # First determine how many compute nodes needed.
+
+    num_proc_avail_ = num_proc_avail(args)
+    num_proc_vector = num_proc_avail_
+    gpu_bytes_per_proc_used_ = gpu_bytes_per_proc_used(num_proc_vector, args)
+
+    GB = 1000. * 1000. * 1000.
+
+    if gpu_bytes_per_proc_used_ <= gpu_bytes_per_proc_avail_:
+        print('GPU memory: ' +
+              str(gpu_bytes_per_proc_used_/GB) +
+              ' GB required out of ' +
+              str(gpu_bytes_per_proc_avail_/GB) +
+              ' GB available: OK.')
+    else:
+        print('Insufficient GPU memory, please increase num_node.')
+        print('GPU memory: ' +
+              str(gpu_bytes_per_proc_used_/GB) +
+              ' GB requested out of ' +
+              str(gpu_bytes_per_proc_avail_/GB) +
+              ' GB available.')
+        return
+
+    for num_phase in range(1,num_proc_avail_+1):
+        cpu_bytes_per_proc_used_ = cpu_bytes_per_proc_used(num_proc_vector,
+                                                           num_phase, args)
+        if cpu_bytes_per_proc_used_ <= cpu_bytes_per_proc_avail_:
+            break
+
+    cpu_bytes_per_proc_used_ = cpu_bytes_per_proc_used(num_proc_vector,
+                                                       num_phase, args)
+
+    if cpu_bytes_per_proc_used_ <= cpu_bytes_per_proc_avail_:
+        print('To fit into memory, suggest using num_phase = ' +
+              str(num_phase) + ' (or higher). Then:')
+        print('CPU memory: ' +
+              str(cpu_bytes_per_proc_used_/GB) +
+              ' GB required out of ' +
+              str(cpu_bytes_per_proc_avail_/GB) +
+              ' GB available: OK.')
+    else:
+        print('Insufficient CPU memory, please increase num_node.')
+        print('Using num_phase = ' + str(num_phase) + ' at this node count:')
+        print('CPU memory: ' +
+              str(cpu_bytes_per_proc_used_/GB) +
+              ' GB requested out of ' +
+              str(cpu_bytes_per_proc_avail_/GB) +
+              ' GB available.')
+        return
+
+    if num_phase > 1:
+        print('Suggest executing at least several phases per run ' +
+              'to amortize setup costs.')
+
+    num_vector_local_target = 4000
+
+    num_vector_local_ =  num_vector_local(num_proc_vector, args)
+
+    print('Local problem size: num_vector_local = ' + str(num_vector_local_) +
+          ', target = ' + str(num_vector_local_target) + '.')
+
+    if num_vector_local_ < num_vector_local_target:
+        print('Suggest lowering num_nodes to improve performance.')
+
+#------------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    main()
+
+#------------------------------------------------------------------------------

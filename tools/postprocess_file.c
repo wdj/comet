@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// Postprocess a single output file from CoMeT - convert binary to text.
+// Postprocess a single output file from CoMet - convert binary to text.
 //-----------------------------------------------------------------------------
 
 #include <stdio.h>
