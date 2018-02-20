@@ -82,6 +82,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
 
   env->time = 0;
   env->compares = 0;
+  env->eltcompares = 0;
   env->ops_local = 0;
   env->ops = 0;
   env->cpu_mem = 0;

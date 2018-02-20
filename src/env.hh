@@ -42,6 +42,7 @@ typedef struct {
   /*---Counters---*/
   double time;
   double compares;
+  double eltcompares;
   double ops_local;
   double ops;
   size_t cpu_mem;

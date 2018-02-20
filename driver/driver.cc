@@ -517,9 +517,10 @@ GMChecksum perform_run(int argc, char** argv, const char* const description) {
     printf(" cmpout %e", (double)num_written);
     //-----
     printf(" cmp %e", env->compares);
+    printf(" ecmp %e", env->eltcompares);
     if (env->time > 0) {
-      printf(" rate %e", env->compares / env->time);
-      printf(" rate/proc %e", env->compares / (env->time*GMEnv_num_proc(env)) );
+      printf(" rate %e", env->eltcompares / env->time);
+      printf(" rate/proc %e", env->eltcompares / (env->time*GMEnv_num_proc(env)) );
     }
     //-----
     printf(" vctime %.6f", vctime);
