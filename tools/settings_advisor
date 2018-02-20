@@ -17,10 +17,12 @@ def process_command_line_args():
 
     num_node_help = ('The number of compute nodes to run on.')
     platform_help = ('Platform to be run on (Titan or Summit)')
-    num_way_help = ('dimension of metric to compute (2 for 2-way, 3 for 3-way)')
+    num_way_help = ('dimension of metric to compute (2-way or 3-way)')
     metric_type_help = ('metric type (czekanowski or ccc)')
     num_vector_help = ('number of vectors to process')
     num_field_help = ('number of fields to process')
+    precision_help = ('Whether using single or double (default) precision')
+    sparse_help = ('Whether sparse input (default yes)')
 
     parser = argparse.ArgumentParser(description=command_description)
     parser.add_argument('--num_node', help=num_node_help, required=True)
@@ -32,6 +34,10 @@ def process_command_line_args():
                         choices=['czekanowski', 'ccc'])
     parser.add_argument('--num_vector', help=num_vector_help, required=True)
     parser.add_argument('--num_field', help=num_field_help, required=True)
+    parser.add_argument('--precision', help=precision_help, required=False,
+                        choices=['single', 'double'], default='double')
+    parser.add_argument('--sparse', help=sparse_help, required=False,
+                        choices=['yes', 'no'], default='yes')
 
     args = parser.parse_args()
 
@@ -47,8 +53,13 @@ def is_titan(args):
 
 def is_ccc(args):
     """ """
-    assert args.metric_type == 'ccc', 'Czekanowski not yet implemented.'
     return args.metric_type == 'ccc'
+
+#------------------------------------------------------------------------------
+
+def is_sparse(args):
+    """ """
+    return args.sparse == 'yes'
 
 #------------------------------------------------------------------------------
 
@@ -72,8 +83,13 @@ def num_proc_avail(args):
 
 def num_way(args):
     """ """
-    assert args.num_way == '2', '3-way not yet implemented.'
     return int(args.num_way)
+
+#------------------------------------------------------------------------------
+
+def is_double(args):
+    """ """
+    return args.precision == 'double'
 
 #------------------------------------------------------------------------------
 
@@ -132,34 +148,42 @@ def int_ceil(i, j):
 
 def bits_per_vector_elt(args):
     """ """
+    sizeof_double = 8
+    sizeof_float = 4
+
     return 2 if is_ccc(args) else (
-           64 if is_double(args) else 32)
+           8*sizeof_double if is_double(args) else (
+           8*sizeof_float))
 
 #------------------------------------------------------------------------------
 
 def bytes_per_metric_elt(args):
     """ """
-    return 16 if is_ccc(args) and num_way(args) == 2 else (
-           32 if is_ccc(args) else (
-           8 if is_double(args) else (
-           4)))
+    sizeof_double = 8
+    sizeof_float = 4
+
+    return ((1 << num_way(args))/2) * sizeof_double if is_ccc(args) else (
+           sizeof_double if is_double(args) else (
+           sizeof_float))
 
 #------------------------------------------------------------------------------
 
 def bytes_per_metric(args):
     """ """
-    is_sparse = True
+    sizeof_double = 8
+    sizeof_int64 = 8
 
-    elt_size_index = 8
-    elt_size_S = 8
-    elt_size_C = 8 if is_sparse else 0
+    elt_size_index = sizeof_int64
+    elt_size_S = sizeof_double
+    elt_size_C = sizeof_double if is_sparse(args) else 0
 
     return bytes_per_metric_elt(args) + elt_size_index + elt_size_S + elt_size_C
 
 #------------------------------------------------------------------------------
 
-def num_vector_local(num_proc_vector, args):
+def num_vector_local(settings, args):
     """ """
+    num_proc_vector = settings['num_proc_vector']
     assert num_proc_vector > 0
     assert isinstance(num_proc_vector, int)
 
@@ -167,8 +191,9 @@ def num_vector_local(num_proc_vector, args):
 
 #------------------------------------------------------------------------------
 
-def num_field_local(num_proc_field, args):
+def num_field_local(settings, args):
     """ """
+    num_proc_field = settings['num_proc_field']
     assert num_proc_field > 0
     assert isinstance(num_proc_field, int)
 
@@ -176,83 +201,133 @@ def num_field_local(num_proc_field, args):
 
 #------------------------------------------------------------------------------
 
-def num_proc_field(num_proc_vector, args):
-    """ """
-    assert num_proc_vector > 0
-    assert isinstance(num_proc_vector, int)
-
-    return int_floor(num_proc_avail(args), num_proc_vector)
-
-#------------------------------------------------------------------------------
-
-def bytes_per_vectors_block(num_proc_vector, args):
+def bytes_per_vectors_block(settings, args):
     """Memory required to store an on-proc portion of the set of vectors."""
+    num_proc_vector = settings['num_proc_vector']
     assert num_proc_vector > 0
     assert isinstance(num_proc_vector, int)
 
-    num_proc_field_ = num_proc_field(num_proc_vector, args)
+    num_proc_field = settings['num_proc_field']
 
-    num_field_local_ = num_field_local(num_proc_field_, args)
+    num_field_local_ = num_field_local(settings, args)
 
     bits_per_byte = 8
     bytes_per_vector = int_ceil(num_field_local_ * bits_per_vector_elt(args),
                                 bits_per_byte)
 
-    return bytes_per_vector * num_vector_local(num_proc_vector, args)
+    return bytes_per_vector * num_vector_local(settings, args)
 
 #------------------------------------------------------------------------------
 
-def bytes_per_metrics_block(num_proc_vector, args):
+def bytes_per_metrics_block(settings, args):
     """Memory required to store an on-proc blc=ock of metrics values."""
+    num_proc_vector = settings['num_proc_vector']
     assert num_proc_vector > 0
     assert isinstance(num_proc_vector, int)
 
-    num_vector_local_ = num_vector_local(num_proc_vector, args)
+    num_vector_local_ = num_vector_local(settings, args)
 
     return bytes_per_metric_elt(args) * num_vector_local_ * num_vector_local_
 
 #------------------------------------------------------------------------------
 
-def gpu_bytes_per_proc_used(num_proc_vector, args):
+def gpu_bytes_per_proc_used(settings, args):
     """ """
+    num_proc_vector = settings['num_proc_vector']
     assert num_proc_vector > 0
     assert isinstance(num_proc_vector, int)
 
-    bytes_per_vectors_block_ = bytes_per_vectors_block(num_proc_vector, args)
-    bytes_per_metrics_block_ = bytes_per_metrics_block(num_proc_vector, args)
+    bytes_per_vectors_block_ = bytes_per_vectors_block(settings, args)
+    bytes_per_metrics_block_ = bytes_per_metrics_block(settings, args)
 
     if num_way(args) == 2:
-      return 3 * bytes_per_vectors_block_ + 3 * bytes_per_metrics_block_
+
+        return 3 * bytes_per_vectors_block_ + 3 * bytes_per_metrics_block_
+
     else:
-      assert False, 'Not yet implemented.'
+
+        bytes_num_create = (2 * bytes_per_vectors_block_ +
+                            2 * bytes_per_metrics_block_)
+
+        if num_proc_field(settings, env) > 1:
+            bytes_num_create += 2 * bytes_per_vectors_block_
+
+        if not is_ccc(args):
+            bytes_num_create += 3 * bytes_per_vectors_block_
+
+        bytes_part1 = bytes_per_vectors_block_
+
+        bytes_part2 = bytes_per_vectors_block_
+
+        bytes_part3 = bytes_per_vectors_block_
+
+        result = bytes_num_create + bytes_part1 + bytes_part2 + bytes_part3
+
+        return result
 
 #------------------------------------------------------------------------------
 
-def cpu_bytes_per_proc_used(num_proc_vector, num_phase, args):
+def cpu_bytes_per_proc_used(settings, args):
     """ """
+    num_proc_vector = settings['num_proc_vector']
+    num_phase = settings['num_phase']
+    num_stage = settings['num_stage']
     assert num_proc_vector > 0
     assert num_phase > 0
     assert isinstance(num_proc_vector, int)
     assert isinstance(num_phase, int)
 
-    bytes_per_vectors_block_ = bytes_per_vectors_block(num_proc_vector, args)
-    bytes_per_metrics_block_ = bytes_per_metrics_block(num_proc_vector, args)
+    bytes_per_vectors_block_ = bytes_per_vectors_block(settings, args)
+    bytes_per_metrics_block_ = bytes_per_metrics_block(settings, args)
 
-    num_vector_local_ = num_vector_local(num_proc_vector, args)
+    num_vector_local_ = num_vector_local(settings, args)
+
+    num_proc_repl_ = settings['num_proc_repl']
 
     if num_way(args) == 2:
 
-        num_blocks_local = int_ceil(int_ceil(num_proc_vector, 2), num_phase)
+        result = 4 * bytes_per_vectors_block_ + 3 * bytes_per_metrics_block_
+
+        num_block_local = int_ceil(int_ceil(int_ceil(num_proc_vector, 2),
+                                                     num_proc_repl_), num_phase)
         num_metrics_elts_local = (num_vector_local_ * num_vector_local_ *
-                              num_blocks_local)
+                              num_block_local)
 
         bytes_metrics_local = num_metrics_elts_local * bytes_per_metric(args) 
 
-        return (4 * bytes_per_vectors_block_ + 3 * bytes_per_metrics_block_ +
-                bytes_metrics_local)
+        result += bytes_metrics_local
+
+        return result
 
     else:
-        assert False, 'Not yet implemented.'
+
+        bytes_num_create = (2 * bytes_per_vectors_block_ +
+                            2 * bytes_per_metrics_block_)
+
+        if num_proc_field(num_proc_vector, env) > 1:
+            bytes_num_create += 2 * bytes_per_vectors_block_
+
+        if not is_ccc(args):
+            bytes_num_create += 3 * bytes_per_vectors_block_
+
+        bytes_part1 = bytes_per_vectors_block_
+
+        bytes_part2 = 3*bytes_per_vectors_block_
+
+        bytes_part3 = 3*bytes_per_vectors_block_
+
+        result = bytes_num_create + bytes_part1 + bytes_part2 + bytes_part3
+
+        num_block_local = num_proc_vector * num_proc_vector
+
+        num_metrics_elts_local = int_ceil(int_ceil(num_vector_local_,
+                                                   num_proc_repl_), num_stage)
+
+        bytes_metrics_local = num_metrics_elts_local * bytes_per_metric(args) 
+
+        result += bytes_metrics_local
+
+        return result
 
 #------------------------------------------------------------------------------
 
@@ -269,11 +344,17 @@ def main():
     cpu_bytes_per_proc_avail_ = cpu_bytes_per_proc_avail(args)
     gpu_bytes_per_proc_avail_ = gpu_bytes_per_proc_avail(args)
 
+    settings = {'num_proc_vector': 1,
+                'num_proc_field': 1,
+                'num_proc_repl': 1,
+                'num_phase': 1,
+                'num_stage': 1}
+
     # First determine how many compute nodes needed.
 
     num_proc_avail_ = num_proc_avail(args)
-    num_proc_vector = num_proc_avail_
-    gpu_bytes_per_proc_used_ = gpu_bytes_per_proc_used(num_proc_vector, args)
+    settings['num_proc_vector'] = num_proc_avail_
+    gpu_bytes_per_proc_used_ = gpu_bytes_per_proc_used(settings, args)
 
     GB = 1000. * 1000. * 1000.
 
@@ -292,18 +373,17 @@ def main():
               ' GB available.')
         return
 
-    for num_phase in range(1,num_proc_avail_+1):
-        cpu_bytes_per_proc_used_ = cpu_bytes_per_proc_used(num_proc_vector,
-                                                           num_phase, args)
+    for num_phase in range(1,int(1+settings['num_proc_vector']/2)+1):
+        settings['num_phase'] = num_phase
+        cpu_bytes_per_proc_used_ = cpu_bytes_per_proc_used(settings, args)
         if cpu_bytes_per_proc_used_ <= cpu_bytes_per_proc_avail_:
             break
 
-    cpu_bytes_per_proc_used_ = cpu_bytes_per_proc_used(num_proc_vector,
-                                                       num_phase, args)
+    cpu_bytes_per_proc_used_ = cpu_bytes_per_proc_used(settings, args)
 
     if cpu_bytes_per_proc_used_ <= cpu_bytes_per_proc_avail_:
         print('To fit into memory, suggest using num_phase = ' +
-              str(num_phase) + ' (or higher). Then:')
+              str(settings['num_phase']) + ' (or higher). Then:')
         print('CPU memory: ' +
               str(cpu_bytes_per_proc_used_/GB) +
               ' GB required out of ' +
@@ -311,7 +391,8 @@ def main():
               ' GB available: OK.')
     else:
         print('Insufficient CPU memory, please increase num_node.')
-        print('Using num_phase = ' + str(num_phase) + ' at this node count:')
+        print('Using num_phase = ' + str(settings['num_phase']) +
+               ' at this node count:')
         print('CPU memory: ' +
               str(cpu_bytes_per_proc_used_/GB) +
               ' GB requested out of ' +
@@ -319,13 +400,13 @@ def main():
               ' GB available.')
         return
 
-    if num_phase > 1:
+    if settings['num_phase'] > 1:
         print('Suggest executing at least several phases per run ' +
               'to amortize setup costs.')
 
     num_vector_local_target = 4000
 
-    num_vector_local_ =  num_vector_local(num_proc_vector, args)
+    num_vector_local_ =  num_vector_local(settings, args)
 
     print('Local problem size: num_vector_local = ' + str(num_vector_local_) +
           ', target = ' + str(num_vector_local_target) + '.')
@@ -336,6 +417,9 @@ def main():
 #------------------------------------------------------------------------------
 
 if __name__ == '__main__':
+
+    print('-' * 79)
     main()
+    print('-' * 79)
 
 #------------------------------------------------------------------------------
