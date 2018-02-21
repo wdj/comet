@@ -256,9 +256,15 @@ int main(int argc, char** argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
 
     const char* options_template_1 =
-        "--num_field 1 --num_vector_local 2 "
-        "--num_proc_vector %i --all2all no --num_way 2 "
-        "--compute_method GPU --verbosity 0";
+        GMEnv_metric_type(&env) == GM_METRIC_TYPE_CZEK ?
+          "--num_field 1 --num_vector_local 2 "
+          "--metric_type ccc "
+          "--num_proc_vector %i --all2all no --num_way 2 "
+          "--compute_method GPU --verbosity 0" :
+          "--num_field 1 --num_vector_local 2 "
+          "--metric_type czekanowski "
+          "--num_proc_vector %i --all2all no --num_way 2 "
+          "--compute_method GPU --verbosity 0";
 
     char options1[1024];
     sprintf(options1, options_template_1, num_proc);
