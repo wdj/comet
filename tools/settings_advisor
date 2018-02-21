@@ -174,8 +174,8 @@ def bytes_per_metric(args):
     sizeof_int64 = 8
 
     elt_size_index = sizeof_int64
-    elt_size_S = sizeof_double
-    elt_size_C = sizeof_double if is_sparse(args) else 0
+    elt_size_S = sizeof_double if is_ccc(args) else 0
+    elt_size_C = sizeof_double if is_sparse(args) and is_ccc(args) else 0
 
     return bytes_per_metric_elt(args) + elt_size_index + elt_size_S + elt_size_C
 
@@ -246,20 +246,20 @@ def gpu_bytes_per_proc_used(settings, args):
 
     else:
 
-        bytes_num_create = (2 * bytes_per_vectors_block_ +
-                            2 * bytes_per_metrics_block_)
-
-        if num_proc_field(settings, env) > 1:
-            bytes_num_create += 2 * bytes_per_vectors_block_
-
-        if not is_ccc(args):
-            bytes_num_create += 3 * bytes_per_vectors_block_
-
         bytes_part1 = bytes_per_vectors_block_
 
         bytes_part2 = bytes_per_vectors_block_
 
         bytes_part3 = bytes_per_vectors_block_
+
+        bytes_num_create = (2 * bytes_per_vectors_block_ +
+                            2 * bytes_per_metrics_block_)
+
+        if settings['num_proc_field'] > 1:
+            bytes_num_create += 2 * bytes_per_metrics_block_
+
+        if not is_ccc(args):
+            bytes_num_create += 3 * bytes_per_metrics_block_
 
         result = bytes_num_create + bytes_part1 + bytes_part2 + bytes_part3
 
@@ -301,27 +301,29 @@ def cpu_bytes_per_proc_used(settings, args):
 
     else:
 
-        bytes_num_create = (2 * bytes_per_vectors_block_ +
-                            2 * bytes_per_metrics_block_)
-
-        if num_proc_field(num_proc_vector, env) > 1:
-            bytes_num_create += 2 * bytes_per_vectors_block_
-
-        if not is_ccc(args):
-            bytes_num_create += 3 * bytes_per_vectors_block_
-
         bytes_part1 = bytes_per_vectors_block_
 
         bytes_part2 = 3*bytes_per_vectors_block_
 
         bytes_part3 = 3*bytes_per_vectors_block_
 
+        bytes_num_create = (3 * bytes_per_vectors_block_ +
+                            2 * bytes_per_metrics_block_)
+
+        if settings['num_proc_field'] > 1:
+            bytes_num_create += 2 * bytes_per_metrics_block_
+
+        if not is_ccc(args):
+            bytes_num_create += 3 * bytes_per_metrics_block_
+
         result = bytes_num_create + bytes_part1 + bytes_part2 + bytes_part3
 
-        num_block_local = num_proc_vector * num_proc_vector
+        planes_per_block = int_ceil(num_vector_local_, 6*num_stage)
 
-        num_metrics_elts_local = int_ceil(int_ceil(num_vector_local_,
-                                                   num_proc_repl_), num_stage)
+        num_block = int_ceil(num_proc_vector*num_proc_vector, num_proc_repl_)
+
+        num_metrics_elts_local = (num_vector_local_ * num_vector_local_ *
+                                  planes_per_block * num_block)
 
         bytes_metrics_local = num_metrics_elts_local * bytes_per_metric(args) 
 
