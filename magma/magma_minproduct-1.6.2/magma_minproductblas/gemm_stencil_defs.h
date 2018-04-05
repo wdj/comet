@@ -118,8 +118,15 @@
 //#define myfmin(A, B, C) fma(A, B, C)
     //---BEGIN ADDED GENOMICS_METRICS
     #ifdef DOUBLE
-      #define myfmin(A, B, C) C += fmin((A), (B))
+      #if (__CUDA_ARCH__ == 700)
+        #define myfmin(A, B, C) C += fminf((A), (B))
+      #else
+        #define myfmin(A, B, C) C += fmin((A), (B))
+      #endif
+      //#define myfmin(A, B, C) C += fmin((A), (B))
       //#define myfmin(A, B, C) C += ( (A) < (B) ? (A) : (B) )
+      //#define myfmin(A, B, C) C += fminf((A), (B))
+      //#define myfmin(A, B, C) C += ( ( (A) + (B) - fabs( (A) - (B) ) ) * .5 )
     #else
       #define myfmin(A, B, C) C += fminf((A), (B))
       //#define myfmin(A, B, C) C += ( (A) < (B) ? (A) : (B) )
