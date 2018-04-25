@@ -50,9 +50,11 @@ enum {
 
 //void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env);
 
-GMChecksum perform_run(int argc, char** argv, const char* const description);
+GMChecksum perform_run(int argc, char** argv, const char* const description,
+                       MPI_Comm base_comm = MPI_COMM_WORLD);
 
-GMChecksum perform_run(const char* const options);
+GMChecksum perform_run(const char* const options,
+                       MPI_Comm base_comm = MPI_COMM_WORLD);
 
 //=============================================================================
 

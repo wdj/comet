@@ -58,7 +58,7 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
 //=============================================================================
 /*---Initialize environment---*/
 
-void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
+void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
                         char** argv, const char* const description,
                         bool make_comms, int num_proc, int proc_num) {
   GMInsist(env);
@@ -91,7 +91,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
   env->gpu_mem_max = 0;
   env->description = description;
 
-  env->mpi_comm_base_ = comm;
+  env->mpi_comm_base_ = base_comm;
   env->make_comms_ = make_comms;
 
   if (env->make_comms_) {
@@ -237,16 +237,17 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm comm, int argc,
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_create(GMEnv* const env, MPI_Comm comm, int argc, char** argv,
+void GMEnv_create(GMEnv* const env, MPI_Comm base_comm, int argc, char** argv,
                   const char* const description) {
   GMInsist(env);
 
-  GMEnv_create_impl_(env, comm, argc, argv, description, true, 0, 0);
+  GMEnv_create_impl_(env, base_comm, argc, argv, description, true, 0, 0);
 }
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_create(GMEnv* const env, MPI_Comm comm, const char* const options,
+void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
+                  const char* const options,
                   const char* const description) {
   GMInsist(env);
 
@@ -259,7 +260,7 @@ void GMEnv_create(GMEnv* const env, MPI_Comm comm, const char* const options,
   strcpy(argstring, options);
   gm_create_args(argstring, &argc, argv);
 
-  GMEnv_create_impl_(env, comm, argc, argv, description, true, 0, 0);
+  GMEnv_create_impl_(env, base_comm, argc, argv, description, true, 0, 0);
 }
 
 //-----------------------------------------------------------------------------

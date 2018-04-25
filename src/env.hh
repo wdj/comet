@@ -110,10 +110,11 @@ GMEnv GMEnv_null(void);
 
 void gm_create_args(char* argstring, int* argc, char** argv);
 
-void GMEnv_create(GMEnv* const env, MPI_Comm comm, int argc, char** argv,
+void GMEnv_create(GMEnv* const env, MPI_Comm base_comm, int argc, char** argv,
                   const char* const description);
 
-void GMEnv_create(GMEnv* const env, MPI_Comm comm, const char* const options,
+void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
+                  const char* const options,
                   const char* const description);
 
 void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,

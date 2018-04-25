@@ -14,7 +14,7 @@ if [ -n "$CRAYOS_VERSION" ] ; then
   module load acml
 else #---IBM
   #if [ -n "$OLCF_XL_ROOT" ] ; then
-  module load gcc/6.4.0
+  module load gcc
   #fi
   module load cuda
 fi

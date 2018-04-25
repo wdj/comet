@@ -229,34 +229,21 @@ void usage() {
 }
 
 //=============================================================================
-/*---Main---*/
 
-int main(int argc, char** argv) {
-  /*---Initialize---*/
+void perform_run_preflight(int argc, char** argv) {
 
-  MPI_Init(&argc, &argv);
+  GMEnv env_val = GMEnv_null(), *env = &env_val;;
+  GMEnv_create(env, MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
-  if (argc == 1) {
-    usage();
-    MPI_Finalize();
-    return 0;
-  }
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
 
-  //install_handler();
-
-  /*---If using GPU---*/
-
-  GMEnv env = GMEnv_null();
-  GMEnv_create(&env, MPI_COMM_WORLD, argc, (char**)argv, NULL);
-
-  if (GMEnv_compute_method(&env) == GM_COMPUTE_METHOD_GPU) {
     /*---Perform preliminary run on GPU since sometimes first use is slower---*/
 
     int num_proc = 0;
     MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
 
     const char* options_template_1 =
-        GMEnv_metric_type(&env) == GM_METRIC_TYPE_CZEK ?
+        GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ?
           "--num_field 1 --num_vector_local 2 "
           "--metric_type ccc "
           "--num_proc_vector %i --all2all no --num_way 2 "
@@ -272,7 +259,28 @@ int main(int argc, char** argv) {
     perform_run(options1);
   }
 
-  GMEnv_destroy(&env);
+  GMEnv_destroy(env);
+}
+
+//=============================================================================
+/*---Main---*/
+
+int main(int argc, char** argv) {
+  /*---Initialize---*/
+
+  MPI_Init(&argc, &argv);
+
+  if (argc == 1) {
+    usage();
+    MPI_Finalize();
+    return 0;
+  }
+
+  //install_handler();
+
+  /*---Perform preflight warmup---*/
+
+  perform_run_preflight(argc, argv);
 
   /*---Perform actual run---*/
 

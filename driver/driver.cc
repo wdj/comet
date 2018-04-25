@@ -250,7 +250,7 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 //=============================================================================
 /*---Perform a single metrics computation run---*/
 
-GMChecksum perform_run(const char* const options) {
+GMChecksum perform_run(const char* const options, MPI_Comm base_comm) {
   GMInsist(options);
 
   /*---Convert options string to args---*/
@@ -262,18 +262,19 @@ GMChecksum perform_run(const char* const options) {
   strcpy(argstring, options);
   gm_create_args(argstring, &argc, argv);
 
-  return perform_run(argc, argv, options);
+  return perform_run(argc, argv, options, base_comm);
 }
 
 //-----------------------------------------------------------------------------
 
-GMChecksum perform_run(int argc, char** argv, const char* const description) {
+GMChecksum perform_run(int argc, char** argv, const char* const description,
+                       MPI_Comm base_comm) {
 
   /*---Initialize environment---*/
 
   GMEnv env_value = GMEnv_null(), *env = &env_value;;
 
-  GMEnv_create(env, MPI_COMM_WORLD, argc, argv, description);
+  GMEnv_create(env, base_comm, argc, argv, description);
 
   double total_time_beg = GMEnv_get_synced_time(env);
 

@@ -662,6 +662,7 @@ MetricWriter::write(size_t coord0, size_t coord1, GMFloat value) {
   const GMFp32 outv = value;
   num_written = fwrite(&outv, sizeof(outv), 1, file_);
   success = success && num_written == 1;
+//printf("%i %i %f\n", (int)outc0, (int)outc1, (double)outv);
 
   num_written_total_ += success ? 1 : 0;
   GMInsist(success && "File write failure.");
