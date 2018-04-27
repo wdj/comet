@@ -35,7 +35,7 @@ else #---IBM
   #if [ -n "$OLCF_XL_ROOT" ] ; then
   module load gcc/6.4.0
   #fi
-  module load cuda
+  module load cuda/9.1.85
   module load cmake
   CUDA_INCLUDE_OPTS="-I$CUDA_DIR/include -I$CUDA_DIR/extras/CUPTI/include -I$CUDA_DIR/extras/Debugger/include"
   CUDA_POST_LINK_OPTS="-L$CUDA_DIR/targets/ppc64le-linux/lib"
@@ -195,6 +195,8 @@ LFLAGS="$LFLAGS $CUDA_POST_LINK_OPTS -lcublas -lcudart"
 if [ -n "$CRAYOS_VERSION" ] ; then
   LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
   LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
+else
+  LFLAGS="$LFLAGS -Wl,-rpath=$CUDA_DIR/lib64"
 fi
 
 if [ -n "$CRAYOS_VERSION" ] ; then

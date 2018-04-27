@@ -250,7 +250,8 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 //=============================================================================
 /*---Perform a single metrics computation run---*/
 
-GMChecksum perform_run(const char* const options, MPI_Comm base_comm) {
+GMChecksum perform_run(const char* const options, MPI_Comm base_comm,
+                       GMEnv* env) {
   GMInsist(options);
 
   /*---Convert options string to args---*/
@@ -262,19 +263,28 @@ GMChecksum perform_run(const char* const options, MPI_Comm base_comm) {
   strcpy(argstring, options);
   gm_create_args(argstring, &argc, argv);
 
-  return perform_run(argc, argv, options, base_comm);
+  return perform_run(argc, argv, options, base_comm, env);
 }
 
 //-----------------------------------------------------------------------------
 
 GMChecksum perform_run(int argc, char** argv, const char* const description,
-                       MPI_Comm base_comm) {
+                       MPI_Comm base_comm, GMEnv* env) {
 
   /*---Initialize environment---*/
 
-  GMEnv env_value = GMEnv_null(), *env = &env_value;;
+  bool create_env = ! env;
 
-  GMEnv_create(env, base_comm, argc, argv, description);
+  GMEnv env_local = GMEnv_null();
+
+  if (create_env) {
+    env = &env_local;
+    GMEnv_create(env, base_comm, argc, argv, description);
+  }
+
+  if (! GMEnv_is_proc_active(env)) {
+    return GMChecksum_null();
+  }
 
   double total_time_beg = GMEnv_get_synced_time(env);
 
@@ -348,7 +358,18 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
   double intime = 0;
   time_beg = GMEnv_get_synced_time(env);
+
+//double t1 = GMEnv_get_time(env);
+
   set_vectors(vectors, &do_, env);
+
+//double t2 = GMEnv_get_time(env);
+//printf("TIME %f %i\n", t2-t1, GMEnv_is_proc_active(env));
+
+//  int rank = 0;
+//  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+//  printf("RANK %i\n", rank);
+
   time_end = GMEnv_get_synced_time(env);
   intime += time_end - time_beg;
 
@@ -549,7 +570,9 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
   /*---Finalize---*/
 
   GMDecompMgr_destroy(dm, env);
-  GMEnv_destroy(env);
+  if (create_env) {
+    GMEnv_destroy(env);
+  }
 
   return *checksum;
 }

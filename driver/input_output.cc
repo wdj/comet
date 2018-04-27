@@ -764,6 +764,10 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   , num_written_(0) {
   GMInsist(do_ && env);
 
+  if (! GMEnv_is_proc_active(env)) {
+    return;
+  }
+
   verbosity_ = do_->verbosity;
   threshold_ = do_->threshold;
 
@@ -808,6 +812,10 @@ MetricsFile::~MetricsFile() {
 //-----------------------------------------------------------------------------
 
 void MetricsFile::write(GMMetrics* metrics, GMEnv* env) {
+
+  if (! GMEnv_is_proc_active(env)) {
+    return;
+  }
 
   // Output to file
 

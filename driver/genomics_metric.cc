@@ -230,6 +230,249 @@ void usage() {
 
 //=============================================================================
 
+int get_node_id() {
+
+  //int proc_num = 0;
+  //MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
+
+  //char name[MPI_MAX_PROCESSOR_NAME];
+  //int len = MPI_MAX_PROCESSOR_NAME;
+  //MPI_Get_processor_name(name, &len);
+
+  const size_t len = 256;
+  char name[len];
+  gethostname(name, len);
+
+  // Ignore trailing nonnumeric chars
+
+  for (size_t i=len-1; i>=0; --i) {
+    int c = name[i];
+    if (c >= '0' && c <= '9') {
+      break;
+    }
+    name[i] = 0;
+  }
+
+  int node_id = 1;
+  for (size_t i=0; i<len; ++i) {
+    if (! name[i]) {
+      break;
+    }
+    int c = name[i];
+    if (c >= '0' && c <= '9') {
+      node_id = node_id * 10 + (c - '0');
+    }
+    if (c >= 'a' && c <= 'z') {
+      node_id = node_id * 26 + (c - 'a');
+    }
+  }
+
+  return node_id;
+}
+
+//=============================================================================
+
+double bad_node_penalty() {
+  const size_t len = 256;
+  char name[len];
+  gethostname(name, len);
+
+  return strcmp(name, "h25n12") == 0 ? 1e6 - 1 // 4X slower
+       : strcmp(name, "d06n12") == 0 ? 1e6 - 1 // 2X slower - once
+       : -1.;
+// b35n16:	62.965595
+}
+
+//=============================================================================
+
+typedef struct {
+  double time;
+  int node;
+} PFElt;
+
+int pfelt_cmp(const void* e1, const void* e2) {
+  PFElt pf_elt1 = *(PFElt*)e1;
+  PFElt pf_elt2 = *(PFElt*)e2;
+  return pf_elt1.time < pf_elt2.time ? -1 :
+         pf_elt1.time > pf_elt2.time ? 1 : 0;
+}
+
+//=============================================================================
+
+void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
+
+  // Create an env just to extract run options
+
+  GMEnv env_val = GMEnv_null(), *env = &env_val;;
+  GMEnv_create(env, MPI_COMM_WORLD, argc, (char**)argv, NULL);
+
+  const int num_rank_requested = GMEnv_num_proc(env);
+
+  int num_rank_avail = 0;
+  MPI_Comm_size(MPI_COMM_WORLD, &num_rank_avail);
+
+  if (num_rank_requested == num_rank_avail) {
+    MPI_Comm_dup(MPI_COMM_WORLD, fast_comm);
+    return;
+  }
+
+  const int metric_type = GMEnv_metric_type(env);
+
+  GMEnv_destroy(env);
+
+  // Initialize
+
+  //int num_proc = 0;
+  //MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
+
+  int rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    //char name[MPI_MAX_PROCESSOR_NAME];
+    //int len = 0;
+    //MPI_Get_processor_name(name, &len);
+    //const size_t len2 = 256;
+    //char name2[len2];
+    //gethostname(name2, len2);
+    //printf("%s %s %i\n", name, name2, rank);
+
+  // Identify node
+
+  const int node_id = get_node_id();
+
+  // Make node-related communicators
+
+  MPI_Comm node_comm;
+  MPI_Comm_split(MPI_COMM_WORLD, node_id, rank, &node_comm);
+
+  int rank_in_node = 0;
+  MPI_Comm_rank(node_comm, &rank_in_node);
+
+  int ranks_in_node = 0;
+  MPI_Comm_size(node_comm, &ranks_in_node);
+
+  int max_ranks_in_node = 0;
+  MPI_Allreduce(&ranks_in_node, &max_ranks_in_node, 1, MPI_INT, MPI_MAX,
+                MPI_COMM_WORLD);
+
+  MPI_Comm rank_in_node_comm;
+  MPI_Comm_split(MPI_COMM_WORLD, rank_in_node, rank, &rank_in_node_comm);
+
+  int num_node = 0;
+  MPI_Comm_size(rank_in_node_comm, &num_node);
+  MPI_Bcast(&num_node, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  int node_num = 0;
+  MPI_Comm_rank(rank_in_node_comm, &node_num);
+
+  // Run single node case on every node
+
+  const char* options_template =
+    metric_type == GM_METRIC_TYPE_CZEK && GM_FP_PRECISION_DOUBLE ?
+    "--num_field 25000 --num_vector_local 13000 "
+    "--metric_type czekanowski --all2all yes --compute_method GPU "
+    "--num_proc_vector %i --num_proc_field 1 "
+    "--num_phase 1 --phase_min 0 --phase_max 0 --checksum no --verbosity 0"
+    : metric_type == GM_METRIC_TYPE_CZEK ?
+    "--num_field 56000 --num_vector_local 15000 "
+    "--metric_type czekanowski --all2all yes --compute_method GPU "
+    "--num_proc_vector %i --num_proc_field 1 "
+    "--num_phase 1 --phase_min 0 --phase_max 0 --checksum no --verbosity 0"
+    :
+    "--num_field 1280000 --num_vector_local 4000 --metric_type ccc --sparse no "
+    "--all2all yes --compute_method GPU --num_proc_vector %i "
+    "--num_proc_field 1 --num_phase 1 --phase_min 0 --phase_max 0 "
+    "--checksum no --verbosity 0";
+
+  char options[1024];
+  sprintf(options, options_template, ranks_in_node);
+
+  int num_trial = 1; //FIX 3;
+  double max_time = 0.;
+
+  for (int trial=0; trial<num_trial; ++trial) {
+    const size_t len = 256;
+    char name[len];
+    gethostname(name, len);
+    const double penalty = bad_node_penalty();
+    if (penalty > 0.) {
+      max_time = penalty;
+      continue;
+    }
+    GMEnv env_val = GMEnv_null(), *env = &env_val;;
+    GMEnv_create(env, node_comm, options, NULL);
+    double t1 = GMEnv_get_synced_time(env);
+    perform_run(options, node_comm, env);
+    double t2 = GMEnv_get_synced_time(env);
+    double time = t2 - t1;
+//FIX    if (trial != 0) {
+      max_time = time > max_time ? time : max_time;
+//FIX    }
+    GMEnv_destroy(env);
+  }
+  if (rank_in_node == 0) {
+    printf("0 %f\n", max_time);
+  }
+
+  // Collect all timings to node 0
+
+  double* max_times = (double*)malloc(num_node * sizeof(*max_times));
+
+  MPI_Gather(&max_time, 1, MPI_DOUBLE,
+             max_times, 1, MPI_DOUBLE, 0, rank_in_node_comm);
+
+  // Sort
+
+  int* node_ranking = (int*)malloc(num_node * sizeof(*node_ranking));
+
+  if (rank == 0) {
+    PFElt* pf_elt = (PFElt*)malloc(num_node * sizeof(*pf_elt));
+    for (int i=0; i<num_node; ++i) {
+      pf_elt[i].time = max_times[i];
+      pf_elt[i].node = i;
+    }
+    qsort(pf_elt, num_node, sizeof(PFElt), *pfelt_cmp);
+
+    for (int i=0; i<num_node; ++i) {
+      node_ranking[i] = pf_elt[i].node;
+      //printf("%i %i %f\n", i, pf_elt[i].node,  pf_elt[i].time);
+    }
+
+    free(pf_elt);
+  }
+
+  // Broadcast ranking
+
+  MPI_Bcast(node_ranking, num_node, MPI_INT, 0, MPI_COMM_WORLD);
+
+  int node_ranking_this = 0;
+  for (int i=0; i<num_node; ++i) {
+    if (node_ranking[i] == node_num) {
+      node_ranking_this = i;
+    }
+  }
+
+  //if (rank_in_node == 0) {
+  //  printf("%i %f\n", node_ranking_this, max_time);
+  //}
+
+  const int proc_ranking_this = rank_in_node +
+    max_ranks_in_node * node_ranking_this;
+
+  // Create world communicator with this ranking
+
+  MPI_Comm_split(MPI_COMM_WORLD, 0, proc_ranking_this, fast_comm);
+
+  // Cleanup
+
+  free(node_ranking);
+  free(max_times);
+  MPI_Comm_free(&rank_in_node_comm);
+  MPI_Comm_free(&node_comm);
+}
+
+//=============================================================================
+
 void perform_run_preflight(int argc, char** argv) {
 
   GMEnv env_val = GMEnv_null(), *env = &env_val;;
@@ -270,21 +513,39 @@ int main(int argc, char** argv) {
 
   MPI_Init(&argc, &argv);
 
+  setbuf(stdout, NULL);
+
+  int rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
   if (argc == 1) {
-    usage();
+    if (rank == 0) {
+      usage();
+    }
     MPI_Finalize();
     return 0;
+  }
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  if (rank == 0) {
+    printf("MPI_Init called.\n");
   }
 
   //install_handler();
 
   /*---Perform preflight warmup---*/
 
-  perform_run_preflight(argc, argv);
+  //perform_run_preflight(argc, argv);
+
+  MPI_Comm fast_comm;
+
+  perform_run_preflight_2(argc, argv, &fast_comm);
 
   /*---Perform actual run---*/
 
-  perform_run(argc, (char**)argv, NULL);
+  perform_run(argc, (char**)argv, NULL, MPI_COMM_WORLD);
+
+  MPI_Comm_free(&fast_comm);
 
   MPI_Finalize();
   return 0;

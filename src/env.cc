@@ -560,6 +560,10 @@ double GMEnv_get_time(const GMEnv* const env) {
 double GMEnv_get_synced_time(const GMEnv* const env) {
   GMInsist(env);
 
+  if (! GMEnv_is_proc_active(env)) {
+    return 0;
+  }
+
   /*
   cudaThreadSynchronize();
   */
