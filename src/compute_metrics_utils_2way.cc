@@ -474,7 +474,9 @@ void gm_compute_czek_2way_combine_(
         metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
     } else {
-      #pragma omp parallel for collapse(2) schedule(dynamic,1000)
+      // don't use collapse because of overflow for large sizes
+      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+      #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
           const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
@@ -566,7 +568,9 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
           } /*---for i---*/
         }   /*---for j---*/
       } else {
-        #pragma omp parallel for collapse(2) schedule(dynamic,1000)
+        // don't use collapse because of overflow for large sizes
+        //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+        #pragma omp parallel for schedule(dynamic,1000)
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
             const GMTally2x2 value =
@@ -651,7 +655,9 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
         metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
     } else {
-      #pragma omp parallel for collapse(2) schedule(dynamic,1000)
+      // don't use collapse because of overflow for large sizes
+      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+      #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);

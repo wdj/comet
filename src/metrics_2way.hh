@@ -140,7 +140,7 @@ static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
 
   /* clang-format off */
   return metrics->index_offset_0_ +
-      i + metrics->num_vector_local * (
+      i + metrics->num_vector_local * (size_t)(
       j + metrics->num_vector_local * (
       ((j_block - block_min + num_block) % num_block) / num_proc_r ));
   /* clang-format on */

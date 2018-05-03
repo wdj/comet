@@ -138,6 +138,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   // To overlap transfers with compute, set up double buffers for the
   // vectors sent to the GPU and the metrics received from the GPU.
 
+  // TODO: consider moving some of these allocations up in call tree
+  // to amortize over phases.
+
   GMMirroredBuf metrics_buf_01[2];
   GMMirroredBuf vectors_buf = GMMirroredBuf_null();
   GMMirroredBuf metrics_tmp_buf = GMMirroredBuf_null();
@@ -145,7 +148,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     GMMirroredBuf_create(&metrics_buf_01[i], nvl, nvl, env);
   }
   GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
-  GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, env);
+  if (env->do_reduce) {
+    GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, env);
+  }
 
   // Result matrix is diagonal block and half the blocks to the right
   // (including wraparound to left side of matrix when appropriate).
@@ -317,6 +322,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
         GMVectorSums* vector_sums_right =
           vars_prev.is_main_diag
           ? &vector_sums_onproc : &vector_sums_offproc;
+
         gm_compute_2way_combine(metrics, metrics_buf_prev_ptr,
                                 vector_sums_left, vector_sums_right,
                                 vars_prev.j_block,
@@ -342,6 +348,18 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
                            vars_next.vectors_right_buf, env);
     }
 
+    // Compute sums for denominators
+
+    if (vars.is_compute_step && vars.do_compute_block) {
+      //TODO: possibly move this
+      if (vars.is_first_compute_step) {
+        GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
+      }
+      if (! vars.is_main_diag) {
+        GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
+      }
+    }
+
     // Wait for numerators computation to complete
 
     if (vars.is_compute_step && vars.do_compute_block) {
@@ -354,17 +372,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       gm_get_metrics_start(metrics, vars.metrics_buf, env);
     }
 
-    // Compute sums for denominators
-
-    if (vars.is_compute_step && vars.do_compute_block) {
-      //TODO: possibly move this
-      if (vars.is_first_compute_step) {
-        GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
-      }
-      if (! vars.is_main_diag) {
-        GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
-      }
-    }
+    // (NOTE: previously for Titan had denom compute here.)
 
     // CPU case: combine numerators, denominators to obtain final result
 
@@ -403,7 +411,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     GMMirroredBuf_destroy(&metrics_buf_01[i], env);
   }
   GMMirroredBuf_destroy(&vectors_buf, env);
-  GMMirroredBuf_destroy(&metrics_tmp_buf, env);
+  if (env->do_reduce) {
+    GMMirroredBuf_destroy(&metrics_tmp_buf, env);
+  }
 
   gm_linalg_finalize(env);
 }

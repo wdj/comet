@@ -279,6 +279,10 @@ double bad_node_penalty() {
 
   return strcmp(name, "h25n12") == 0 ? 1e6 - 1 // 4X slower
        : strcmp(name, "d06n12") == 0 ? 1e6 - 1 // 2X slower - once
+//       : strcmp(name, "d16n06") == 0 ? 1e6 - 1 // at least 4X slower multiple times
+//       : strcmp(name, "d15n03") == 0 ? 1e6 - 1
+//       : strcmp(name, "f11n11") == 0 ? 1e6 - 1
+//       : strcmp(name, "f13n10") == 0 ? 1e6 - 1
        : -1.;
 // b35n16:	62.965595
 }
@@ -319,6 +323,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   const int metric_type = GMEnv_metric_type(env);
 
   GMEnv_destroy(env);
+  //const int metric_type = GM_METRIC_TYPE_CZEK;
 
   // Initialize
 
@@ -374,6 +379,10 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     "--num_proc_vector %i --num_proc_field 1 "
     "--num_phase 1 --phase_min 0 --phase_max 0 --checksum no --verbosity 0"
     : metric_type == GM_METRIC_TYPE_CZEK ?
+    //"--num_field 1 --num_vector_local 2 "
+    //"--num_field 560 --num_vector_local 150 "
+    //"--num_field 5600 --num_vector_local 1500 "
+    //"--num_field 56000 --num_vector_local 5000 "
     "--num_field 56000 --num_vector_local 15000 "
     "--metric_type czekanowski --all2all yes --compute_method GPU "
     "--num_proc_vector %i --num_proc_field 1 "
@@ -405,13 +414,16 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     perform_run(options, node_comm, env);
     double t2 = GMEnv_get_synced_time(env);
     double time = t2 - t1;
-//FIX    if (trial != 0) {
+    if (!(trial == 0 && num_trial != 1)) {
       max_time = time > max_time ? time : max_time;
-//FIX    }
+    }
     GMEnv_destroy(env);
   }
   if (rank_in_node == 0) {
-    printf("0 %f\n", max_time);
+    const size_t len = 256;
+    char name[len];
+    gethostname(name, len);
+    printf("%s %f\n", name, max_time);
   }
 
   // Collect all timings to node 0
@@ -526,26 +538,40 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (rank == 0) {
-    printf("MPI_Init called.\n");
-  }
+  //MPI_Barrier(MPI_COMM_WORLD);
+  //if (rank == 0) {
+  //  printf("MPI_Init called.\n");
+  //}
 
   //install_handler();
 
-  /*---Perform preflight warmup---*/
+  const bool use_fast_nodes = false;
 
-  //perform_run_preflight(argc, argv);
+  if (use_fast_nodes) { 
 
-  MPI_Comm fast_comm;
+    MPI_Comm fast_comm;
 
-  perform_run_preflight_2(argc, argv, &fast_comm);
+    /*---Perform preflight warmup---*/
 
-  /*---Perform actual run---*/
+    perform_run_preflight_2(argc, argv, &fast_comm);
 
-  perform_run(argc, (char**)argv, NULL, MPI_COMM_WORLD);
+    /*---Perform actual run---*/
 
-  MPI_Comm_free(&fast_comm);
+    perform_run(argc, (char**)argv, NULL, fast_comm);
+
+    MPI_Comm_free(&fast_comm);
+
+  } else {
+
+    /*---Perform preflight warmup---*/
+
+    perform_run_preflight(argc, argv);
+
+    /*---Perform actual run---*/
+
+    perform_run(argc, (char**)argv, NULL, MPI_COMM_WORLD);
+
+  }
 
   MPI_Finalize();
   return 0;

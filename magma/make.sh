@@ -24,7 +24,7 @@ function do_make
     #if [ -n "$OLCF_XL_ROOT" ] ; then
     module load gcc
     #i
-    module load cuda
+    module load cuda/9.1.85
     cp ../make.inc.summit make.inc
   fi
 
