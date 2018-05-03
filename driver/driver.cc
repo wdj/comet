@@ -283,6 +283,9 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
   }
 
   if (! GMEnv_is_proc_active(env)) {
+    if (create_env) {
+      GMEnv_destroy(env);
+    }
     return GMChecksum_null();
   }
 
