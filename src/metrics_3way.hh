@@ -819,7 +819,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
   GMAssert(i1 >= 0 && i1 < 2);
   GMAssert(i2 >= 0 && i2 < 2);
 
-  const GMFloat one = 1;
+  const GMFloat f_one = 1;
   const GMFloat recip_m = metrics->recip_m;
 
   const GMTally4x2 t42 = GMMetrics_tally4x2_get_from_index(metrics, index, env);
@@ -827,9 +827,59 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
 
   const GMFloat3 si1_sj1_sk1 =
       GMMetrics_float3_S_get_from_index(metrics, index, env);
-
   GMTally1 si1, sj1, sk1;
   GMFloat3_decode(&si1, &sj1, &sk1, si1_sj1_sk1);
+
+  if (env->sparse) {
+
+    const GMFloat3 ci_cj_ck =
+      GMMetrics_float3_C_get_from_index(metrics, index, env);
+    GMTally1 ci, cj, ck;
+    GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
+
+    GMTally1 cijk =
+           GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
+           GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
+           GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
+           GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1);
+    if (ci == 0 || cj == 0 || ck == 0 || cijk == 0) {
+      return 0;
+    }
+
+    /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
+    const GMTally1 si = i0 == 0 ? (2 * ci - si1) : si1;
+    const GMTally1 sj = i1 == 0 ? (2 * cj - sj1) : sj1;
+    const GMTally1 sk = i2 == 0 ? (2 * ck - sk1) : sk1;
+
+    // TODO: it may be possible to decrease the number of divides
+    // here - see GMMetrics_ccc_get_from_index_2.
+    const GMFloat recip_ci = f_one / ci;
+    const GMFloat recip_cj = f_one / cj;
+    const GMFloat recip_ck = f_one / ck;
+
+    const GMFloat recip_sumcijk =
+      f_one / (GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
+               GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
+               GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
+               GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1));
+
+    return GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, recip_ci,
+                                 recip_cj, recip_ck, recip_sumcijk, env);
+  }
+
+  GMAssert(metrics->num_field_active > 0);
+
+  /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
+  const GMTally1 si = i0 == 0 ? (2 * metrics->num_field_active - si1) : si1;
+  const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field_active - sj1) : sj1;
+  const GMTally1 sk = i2 == 0 ? (2 * metrics->num_field_active - sk1) : sk1;
+
+  const GMFloat recip_sumcijk = (f_one / 8) * recip_m;
+
+  return GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, recip_m,
+                               recip_m, recip_m, recip_sumcijk, env);
+
+#if 0
 
   GMTally1 ci, cj, ck;
   if (env->sparse) {
@@ -856,19 +906,134 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
   const GMTally1 sj = i1 == 0 ? (2 * cj - sj1) : sj1;
   const GMTally1 sk = i2 == 0 ? (2 * ck - sk1) : sk1;
 
-  const GMFloat recip_ci = env->sparse ? one / ci : recip_m;
-  const GMFloat recip_cj = env->sparse ? one / cj : recip_m;
-  const GMFloat recip_ck = env->sparse ? one / ck : recip_m;
+  const GMFloat recip_ci = env->sparse ? f_one / ci : recip_m;
+  const GMFloat recip_cj = env->sparse ? f_one / cj : recip_m;
+  const GMFloat recip_ck = env->sparse ? f_one / ck : recip_m;
 
   const GMFloat recip_sumcijk = env->sparse ?
-    one / (GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
-           GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
-           GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
-           GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1)) :
-    (one / 8) * recip_m;
+    f_one / (GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
+             GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
+             GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
+             GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1)) :
+    (f_one / 8) * recip_m;
 
   return GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, recip_ci,
                                recip_cj, recip_ck, recip_sumcijk, env);
+#endif
+}
+
+//-----------------------------------------------------------------------------
+
+static bool GMMetrics_ccc_get_from_index_3_threshold(GMMetrics* metrics,
+                                                     const size_t index,
+                                                     GMFloat threshold,
+                                                     GMEnv* env) {
+  GMAssert(metrics && env);
+  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_3);
+
+  if (env->sparse) {
+
+    const GMFloat f_one = 1;
+
+    const GMTally4x2 t42 = GMMetrics_tally4x2_get_from_index(metrics, index, env);
+    const GMTally1 rijk000 = GMTally4x2_get(t42, 0, 0, 0);
+    const GMTally1 rijk001 = GMTally4x2_get(t42, 0, 0, 1);
+    const GMTally1 rijk010 = GMTally4x2_get(t42, 0, 1, 0);
+    const GMTally1 rijk011 = GMTally4x2_get(t42, 0, 1, 1);
+    const GMTally1 rijk100 = GMTally4x2_get(t42, 1, 0, 0);
+    const GMTally1 rijk101 = GMTally4x2_get(t42, 1, 0, 1);
+    const GMTally1 rijk110 = GMTally4x2_get(t42, 1, 1, 0);
+    const GMTally1 rijk111 = GMTally4x2_get(t42, 1, 1, 1);
+
+    const GMFloat3 si1_sj1_sk1 =
+        GMMetrics_float3_S_get_from_index(metrics, index, env);
+    GMTally1 si1, sj1, sk1;
+    GMFloat3_decode(&si1, &sj1, &sk1, si1_sj1_sk1);
+
+    const GMFloat3 ci_cj_ck =
+      GMMetrics_float3_C_get_from_index(metrics, index, env);
+    GMTally1 ci, cj, ck;
+    GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
+
+    GMTally1 cijk = rijk000 + rijk001 + rijk010 + rijk011 +
+                    rijk100 + rijk101 + rijk110 + rijk111;
+    if (ci == 0 || cj == 0 || ck == 0 || cijk == 0) {
+      return 0 > threshold;
+    }
+
+    /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
+
+    const GMTally1 si0 = 2 * ci - si1;
+    const GMTally1 sj0 = 2 * cj - sj1;
+    const GMTally1 sk0 = 2 * ck - sk1;
+
+    // TODO: optimize this further
+
+    const GMFloat recip_ci = f_one / ci;
+    const GMFloat recip_cj = f_one / cj;
+    const GMFloat recip_ck = f_one / ck;
+
+    const GMFloat recip_sumcijk = f_one / cijk;
+
+    GMAssert(GMMetrics_ccc_value_3(metrics, rijk000, si0, sj0, sk0,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
+             GMMetrics_ccc_get_from_index_3(metrics, index, 0, 0, 0, env));
+    GMAssert(GMMetrics_ccc_value_3(metrics, rijk001, si0, sj0, sk1,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
+             GMMetrics_ccc_get_from_index_3(metrics, index, 0, 0, 1, env));
+    GMAssert(GMMetrics_ccc_value_3(metrics, rijk010, si0, sj1, sk0,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
+             GMMetrics_ccc_get_from_index_3(metrics, index, 0, 1, 0, env));
+    GMAssert(GMMetrics_ccc_value_3(metrics, rijk011, si0, sj1, sk1,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
+             GMMetrics_ccc_get_from_index_3(metrics, index, 0, 1, 1, env));
+    GMAssert(GMMetrics_ccc_value_3(metrics, rijk100, si1, sj0, sk0,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
+             GMMetrics_ccc_get_from_index_3(metrics, index, 1, 0, 0, env));
+    GMAssert(GMMetrics_ccc_value_3(metrics, rijk101, si1, sj0, sk1,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
+             GMMetrics_ccc_get_from_index_3(metrics, index, 1, 0, 1, env));
+    GMAssert(GMMetrics_ccc_value_3(metrics, rijk110, si1, sj1, sk0,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
+             GMMetrics_ccc_get_from_index_3(metrics, index, 1, 1, 0, env));
+    GMAssert(GMMetrics_ccc_value_3(metrics, rijk111, si1, sj1, sk1,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
+             GMMetrics_ccc_get_from_index_3(metrics, index, 1, 1, 1, env));
+
+    return GMMetrics_ccc_value_3(metrics, rijk000, si0, sj0, sk0,
+               recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
+           GMMetrics_ccc_value_3(metrics, rijk001, si0, sj0, sk1,
+               recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
+           GMMetrics_ccc_value_3(metrics, rijk010, si0, sj1, sk0,
+               recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
+           GMMetrics_ccc_value_3(metrics, rijk011, si0, sj1, sk1,
+               recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
+           GMMetrics_ccc_value_3(metrics, rijk100, si1, sj0, sk0,
+               recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
+           GMMetrics_ccc_value_3(metrics, rijk101, si1, sj0, sk1,
+               recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
+           GMMetrics_ccc_value_3(metrics, rijk110, si1, sj1, sk0,
+               recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
+           GMMetrics_ccc_value_3(metrics, rijk111, si1, sj1, sk1,
+               recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold;
+
+  } /*---if sparse---*/
+
+  GMFloat v000, v001, v010, v011, v100, v101, v110, v111;
+
+  v000 = GMMetrics_ccc_get_from_index_3(metrics, index, 0, 0, 0, env);
+  v001 = GMMetrics_ccc_get_from_index_3(metrics, index, 0, 0, 1, env);
+  v010 = GMMetrics_ccc_get_from_index_3(metrics, index, 0, 1, 0, env);
+  v011 = GMMetrics_ccc_get_from_index_3(metrics, index, 0, 1, 1, env);
+  v100 = GMMetrics_ccc_get_from_index_3(metrics, index, 1, 0, 0, env);
+  v101 = GMMetrics_ccc_get_from_index_3(metrics, index, 1, 0, 1, env);
+  v110 = GMMetrics_ccc_get_from_index_3(metrics, index, 1, 1, 0, env);
+  v111 = GMMetrics_ccc_get_from_index_3(metrics, index, 1, 1, 1, env);
+  return v000 > threshold || v001 > threshold ||
+         v010 > threshold || v011 > threshold ||
+         v100 > threshold || v101 > threshold ||
+         v110 > threshold || v111 > threshold;
 }
 
 //=============================================================================

@@ -416,7 +416,6 @@ static bool GMMetrics_ccc_get_from_index_2_threshold(GMMetrics* metrics,
 
     /*---Make floating point arithmetic order-independent---*/
 
-
     const GMFloat threshold_multiplier = ((f_one*4) / ccc_multiplier) * f_cij;
 
 
@@ -522,7 +521,7 @@ static bool GMMetrics_ccc_get_from_index_2_threshold(GMMetrics* metrics,
   v10 = GMMetrics_ccc_get_from_index_2(metrics, index, 1, 0, env);
   v11 = GMMetrics_ccc_get_from_index_2(metrics, index, 1, 1, env);
   return v00 > threshold || v01 > threshold ||
-         v10 > threshold || v11 > threshold;;
+         v10 > threshold || v11 > threshold;
 
 }
 

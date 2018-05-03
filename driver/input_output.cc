@@ -328,8 +328,215 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 //=============================================================================
 // Output results metrics to file: implementation
 
-void output_metrics_impl(GMMetrics* metrics, FILE* file,
-                         double threshold, size_t& num_written, GMEnv* env) {
+void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
+                     double threshold, size_t& num_written, GMEnv* env) {
+  GMInsist(metrics && file && env);
+  GMInsist(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(file != stdout);
+
+  MetricWriter writer(file, metrics, env);
+
+  //enum {vals_per_index = 4;}
+
+  // Number of index values values visited for one pass across buffer
+  const size_t num_buf_ind = 1000 * 1000;
+  // Number of (index, i0, i1) entries (potentially) stored in buffer
+  const size_t num_buf = 4 * num_buf_ind;
+
+  // Each buffer entry contains: whether value is to be written,
+  // coord0, coord1, i0, i1, and value
+
+  char do_out_buf[num_buf];
+  int coord0_buf[num_buf];
+  int coord1_buf[num_buf];
+  int i01_buf[num_buf];
+  GMFloat value_buf[num_buf];
+
+  for (int i=0; i<(int)num_buf; ++i) {
+    do_out_buf[i] = 0;
+  }
+
+  const GMFloat threshold_eff = threshold<0. ? -1e20 : threshold;
+
+  // Process num_buf_ind index values at a time
+  for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
+       ind_base += num_buf_ind) {
+    const size_t ind_max = gm_min_i8(metrics->num_elts_local,
+                                     ind_base + num_buf_ind);
+    // Fill buffer
+#pragma omp parallel for schedule(dynamic,1000)
+    for (size_t index = ind_base; index < ind_max; ++index) {
+      // Do any of the values exceed the threshold
+      if (GMMetrics_ccc_get_from_index_2_threshold(
+             metrics, index, threshold_eff, env)) {
+        for (int i0 = 0; i0 < 2; ++i0) {
+          for (int i1 = 0; i1 < 2; ++i1) {
+            const GMFloat value =
+              GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+            const bool pass_thresh = value>threshold_eff;
+            if (pass_thresh) {
+              const size_t coord0 =
+                GMMetrics_coord_global_from_index(metrics, index, 0, env);
+              const size_t coord1 =
+                GMMetrics_coord_global_from_index(metrics, index, 1, env);
+              const char do_out = coord0 < metrics->num_vector_active &&
+                                  coord1 < metrics->num_vector_active;
+              const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
+              do_out_buf[ind_buf] = do_out;
+              coord0_buf[ind_buf] = coord0;
+              coord1_buf[ind_buf] = coord1;
+              i01_buf[ind_buf] = i0 + 2*i1;
+              value_buf[ind_buf] = value;
+            } /*---if---*/
+          } /*---i1---*/
+        } /*---i0---*/
+      }
+    } /*---for index---*/
+
+    // Flush buffer
+
+    // Number of buffer entries to visit
+    const size_t ind_buf_max = 4 * (ind_max - ind_base);
+    // Use 4 byte integer ptr to check 4 chars at a time, for speed
+    typedef int multi_t;
+    //assert(sizeof(multi_t) == 4 * sizeof(char));
+    const multi_t* const do_out_ptr_max = (multi_t*)(do_out_buf + ind_buf_max);
+    multi_t* do_out_ptr = (multi_t*)do_out_buf;
+    for (; do_out_ptr < do_out_ptr_max;) {
+      // Do any of the 4 need to be output
+      if (*(do_out_ptr++)) {
+        for (int i=0; i<4; ++i) {
+          const size_t ind_buf = (do_out_ptr - (multi_t*)do_out_buf - 1)*4 + i;
+          if (do_out_buf[ind_buf]) {
+            const int i0 = i01_buf[ind_buf] % 2;
+            const int i1 = i01_buf[ind_buf] / 2;
+            const size_t coord0 = coord0_buf[ind_buf];
+            const size_t coord1 = coord1_buf[ind_buf];
+            writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
+            // Reset buffer entry to false
+            do_out_buf[ind_buf] = 0;
+          }
+        }
+      }
+    } /*---ind_buf---*/
+  } /*---ind_base---*/
+
+  num_written += writer.get_num_written();
+}
+
+//=============================================================================
+
+void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
+                     double threshold, size_t& num_written, GMEnv* env) {
+  GMInsist(metrics && file && env);
+  GMInsist(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(file != stdout);
+
+  MetricWriter writer(file, metrics, env);
+
+  //enum {vals_per_index = 8;}
+
+  // Number of index values values visited for one pass across buffer
+  const size_t num_buf_ind = 1000 * 1000;
+  // Number of (index, i0, i1) entries (potentially) stored in buffer
+  const size_t num_buf = 8 * num_buf_ind;
+
+  // Each buffer entry contains: whether value is to be written,
+  // coord0, coord1, coord2, i0, i1, i2, and value
+
+  char do_out_buf[num_buf];
+  int coord0_buf[num_buf];
+  int coord1_buf[num_buf];
+  int coord2_buf[num_buf];
+  int i012_buf[num_buf];
+  GMFloat value_buf[num_buf];
+
+  for (int i=0; i<(int)num_buf; ++i) {
+    do_out_buf[i] = 0;
+  }
+
+  const GMFloat threshold_eff = threshold<0. ? -1e20 : threshold;
+
+  // Process num_buf_ind index values at a time
+  for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
+       ind_base += num_buf_ind) {
+    const size_t ind_max = gm_min_i8(metrics->num_elts_local,
+                                     ind_base + num_buf_ind);
+    // Fill buffer
+#pragma omp parallel for schedule(dynamic,1000)
+    for (size_t index = ind_base; index < ind_max; ++index) {
+      // Do any of the values exceed the threshold
+      if (GMMetrics_ccc_get_from_index_3_threshold(
+             metrics, index, threshold_eff, env)) {
+        for (int i0 = 0; i0 < 2; ++i0) {
+          for (int i1 = 0; i1 < 2; ++i1) {
+            for (int i2 = 0; i2 < 2; ++i2) {
+              const GMFloat value =
+                GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env);
+              const bool pass_thresh = value>threshold_eff;
+              if (pass_thresh) {
+                const size_t coord0 =
+                  GMMetrics_coord_global_from_index(metrics, index, 0, env);
+                const size_t coord1 =
+                  GMMetrics_coord_global_from_index(metrics, index, 1, env);
+                const size_t coord2 =
+                  GMMetrics_coord_global_from_index(metrics, index, 2, env);
+                const char do_out = coord0 < metrics->num_vector_active &&
+                                    coord1 < metrics->num_vector_active &&
+                                    coord2 < metrics->num_vector_active;
+                const size_t ind_buf = i1 + 2*(i0 + 2*(i2 +2*(index-ind_base)));
+                do_out_buf[ind_buf] = do_out;
+                coord0_buf[ind_buf] = coord0;
+                coord1_buf[ind_buf] = coord1;
+                coord2_buf[ind_buf] = coord2;
+                i012_buf[ind_buf] = i0 + 2*(i1 + 2*i2);
+                value_buf[ind_buf] = value;
+              } /*---if---*/
+            } /*---i2---*/
+          } /*---i1---*/
+        } /*---i0---*/
+      }
+    } /*---for index---*/
+
+    // Flush buffer
+
+    // Number of buffer entries to visit
+    const size_t ind_buf_max = 8 * (ind_max - ind_base);
+    // Use 4 byte integer ptr to check 4 chars at a time, for speed
+    typedef size_t multi_t;
+    //assert(sizeof(multi_t) == 8 * sizeof(char));
+    const multi_t* const do_out_ptr_max = (multi_t*)(do_out_buf + ind_buf_max);
+    multi_t* do_out_ptr = (multi_t*)do_out_buf;
+    for (; do_out_ptr < do_out_ptr_max;) {
+      // Do any of the 8 need to be output
+      if (*(do_out_ptr++)) {
+        for (int i=0; i<8; ++i) {
+          const size_t ind_buf = (do_out_ptr - (multi_t*)do_out_buf - 1)*8 + i;
+          if (do_out_buf[ind_buf]) {
+            const int i0 = i012_buf[ind_buf] % 2;
+            const int i1 = (i012_buf[ind_buf] / 2) % 2;
+            const int i2 = i012_buf[ind_buf] / 4;
+            const size_t coord0 = coord0_buf[ind_buf];
+            const size_t coord1 = coord1_buf[ind_buf];
+            const size_t coord2 = coord2_buf[ind_buf];
+            writer.write(coord0, coord1, coord2, i0,i1,i2, value_buf[ind_buf]);
+            // Reset buffer entry to false
+            do_out_buf[ind_buf] = 0;
+          }
+        }
+      }
+    } /*---ind_buf---*/
+  } /*---ind_base---*/
+
+  num_written += writer.get_num_written();
+}
+
+//=============================================================================
+
+void output_metrics_(GMMetrics* metrics, FILE* file,
+                     double threshold, size_t& num_written, GMEnv* env) {
   GMInsist(metrics && file && env);
 
   if (! GMEnv_is_proc_active(env)) {
@@ -341,8 +548,6 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
     return;
   }
 
-  MetricWriter writer(file, metrics, env);
-
   switch (GMEnv_data_type_metrics(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
@@ -351,8 +556,10 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
       /*----------*/
       if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
       /*----------*/
-        size_t index = 0;
-        for (index = 0; index < metrics->num_elts_local; ++index) {
+
+        MetricWriter writer(file, metrics, env);
+
+        for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t coord0 =
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
           const size_t coord1 =
@@ -379,14 +586,19 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
             writer.write(coord0, coord1, value);
 
           }
-        }
-      }
+        } /*---for index---*/
+
+        num_written += writer.get_num_written();
+
+      } /*---if---*/
 
       /*----------*/
       if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
       /*----------*/
-        size_t index = 0;
-        for (index = 0; index < metrics->num_elts_local; ++index) {
+
+        MetricWriter writer(file, metrics, env);
+
+        for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t coord0 =
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
           const size_t coord1 =
@@ -417,87 +629,26 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
             writer.write(coord0, coord1, coord2, value);
 
           }
-        }
-      }
+        } /*---for index---*/
+
+        num_written += writer.get_num_written();
+
+      } /*---if---*/
 
     } break;
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
-
       GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
       if (file != stdout) {
 
-        const size_t num_buf_ind = 1000 * 1000;
-        const size_t num_buf = 4 * num_buf_ind;
-
-        char do_out_buf[num_buf];
-        int coord0_buf[num_buf];
-        int coord1_buf[num_buf];
-        int i01_buf[num_buf];
-        GMFloat value_buf[num_buf];
-
-        for (int i=0; i<(int)num_buf; ++i) {
-          do_out_buf[i] = 0;
-        }
-
-        const GMFloat threshold_eff = threshold<0. ? -1e20 : threshold;
-  
-        for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
-             ind_base += num_buf_ind) {
-          const size_t ind_max = gm_min_i8(metrics->num_elts_local,
-                                           ind_base + num_buf_ind);
-#pragma omp parallel for schedule(dynamic,1000)
-          for (size_t index = ind_base; index < ind_max; ++index) {
-            if (GMMetrics_ccc_get_from_index_2_threshold(
-                   metrics, index, threshold_eff, env)) {
-              for (int i0 = 0; i0 < 2; ++i0) {
-                for (int i1 = 0; i1 < 2; ++i1) {
-                  const GMFloat value =
-                    GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
-                  const bool do_thresh = value>threshold_eff;
-                  if (do_thresh) {
-                    const size_t coord0 =
-                      GMMetrics_coord_global_from_index(metrics, index, 0, env);
-                    const size_t coord1 =
-                      GMMetrics_coord_global_from_index(metrics, index, 1, env);
-                    const char do_out = coord0 < metrics->num_vector_active &&
-                                        coord1 < metrics->num_vector_active;
-                    const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
-                    do_out_buf[ind_buf] = do_out;
-                    coord0_buf[ind_buf] = coord0;
-                    coord1_buf[ind_buf] = coord1;
-                    i01_buf[ind_buf] = i0 + 2*i1;
-                    value_buf[ind_buf] = value;
-                  } /*---if---*/
-                } /*---i1---*/
-              } /*---i0---*/
-            }
-          } /*---for index---*/
-
-          //assert(sizeof(int) == 4 * sizeof(char));
-          const size_t ind_buf_max = 4 * (ind_max - ind_base);
-          const int* const do_out_ptr_max = (int*)(do_out_buf + ind_buf_max);
-          int* do_out_ptr = (int*)do_out_buf;
-          for (; do_out_ptr < do_out_ptr_max;) {
-            if (*(do_out_ptr++)) {
-              for (int i=0; i<4; ++i) {
-                const size_t ind_buf = (do_out_ptr - (int*)do_out_buf - 1)*4 + i;
-                if (do_out_buf[ind_buf]) {
-                  const int i0 = i01_buf[ind_buf] % 2;
-                  const int i1 = i01_buf[ind_buf] / 2;
-                  const size_t coord0 = coord0_buf[ind_buf];
-                  const size_t coord1 = coord1_buf[ind_buf];
-                  writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
-                  do_out_buf[ind_buf] = 0;
-                }
-              }
-            }
-          } /*---ind_buf---*/
-        } /*---ind_base---*/
+        output_metrics_tally2x2_bin_(metrics, file, threshold,
+                                     num_written, env);
 
       } else /*---stdout---*/ {
+
+        MetricWriter writer(file, metrics, env);
 
         size_t index = 0;
         for (index = 0; index < metrics->num_elts_local; ++index) {
@@ -512,10 +663,8 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
             continue;
           }
           int num_out_this_line = 0;
-          int i0;
-          for (i0 = 0; i0 < 2; ++i0) {
-            int i1;
-            for (i1 = 0; i1 < 2; ++i1) {
+          for (int i0 = 0; i0 < 2; ++i0) {
+            for (int i1 = 0; i1 < 2; ++i1) {
               const GMFloat value
                 = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
               if (!(threshold < 0. || value > threshold)) {
@@ -552,7 +701,9 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
           }
         } /*---index---*/
 
-      } /*---if---*/
+        num_written += writer.get_num_written();
+
+      } /*---if stdout---*/
 
     } break;
 
@@ -560,71 +711,79 @@ void output_metrics_impl(GMMetrics* metrics, FILE* file,
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
 
-      size_t index = 0;
-      for (index = 0; index < metrics->num_elts_local; ++index) {
-        const size_t coord0 =
-          GMMetrics_coord_global_from_index(metrics, index, 0, env);
-        const size_t coord1 =
-          GMMetrics_coord_global_from_index(metrics, index, 1, env);
-        const size_t coord2 =
-          GMMetrics_coord_global_from_index(metrics, index, 2, env);
-        if (coord0 >= metrics->num_vector_active ||
-            coord1 >= metrics->num_vector_active ||
-            coord2 >= metrics->num_vector_active) {
-          continue;
-        }
-        int num_out_this_line = 0;
-        int i0;
-        for (i0 = 0; i0 < 2; ++i0) {
-          int i1;
-          for (i1 = 0; i1 < 2; ++i1) {
-            int i2;
-            for (i2 = 0; i2 < 2; ++i2) {
-              const GMFloat value
-                = GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2,
+      if (file != stdout) {
+      //if (false) {
+
+        output_metrics_tally4x2_bin_(metrics, file, threshold,
+                                     num_written, env);
+
+      } else /*---stdout---*/ {
+
+        MetricWriter writer(file, metrics, env);
+
+        for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+          const size_t coord0 =
+            GMMetrics_coord_global_from_index(metrics, index, 0, env);
+          const size_t coord1 =
+            GMMetrics_coord_global_from_index(metrics, index, 1, env);
+          const size_t coord2 =
+            GMMetrics_coord_global_from_index(metrics, index, 2, env);
+          if (coord0 >= metrics->num_vector_active ||
+              coord1 >= metrics->num_vector_active ||
+              coord2 >= metrics->num_vector_active) {
+            continue;
+          }
+          int num_out_this_line = 0;
+          for (int i0 = 0; i0 < 2; ++i0) {
+            for (int i1 = 0; i1 < 2; ++i1) {
+              for (int i2 = 0; i2 < 2; ++i2) {
+                const GMFloat value
+                  = GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2,
                                                 env);
-              if (!(threshold < 0. || value > threshold)) {
-                continue;
-              }
-
-              /*---Output the value---*/
-              if (file == stdout) {
-
-                if (num_out_this_line == 0) {
-                  fprintf(file,
-                    "element (%li,%li,%li): values:", coord0, coord1, coord2);
+                if (!(threshold < 0. || value > threshold)) {
+                  continue;
                 }
 
-                fprintf(file,
-                  sizeof(GMFloat) == 8 ?
-                  " %i %i %i %.17e" :
-                  " %i %i %i %.8e", i0, i1, i2, value);
+                /*---Output the value---*/
+                if (file == stdout) {
 
-              } else {
+                  if (num_out_this_line == 0) {
+                    fprintf(file,
+                      "element (%li,%li,%li): values:", coord0, coord1, coord2);
+                  }
 
-                writer.write(coord0, coord1, coord2, i0, i1, i2, value);
+                  fprintf(file,
+                    sizeof(GMFloat) == 8 ?
+                    " %i %i %i %.17e" :
+                    " %i %i %i %.8e", i0, i1, i2, value);
 
-              }
+                } else {
 
-              num_out_this_line++;
+                  writer.write(coord0, coord1, coord2, i0, i1, i2, value);
 
-            } /*---i2---*/
-          } /*---i1---*/
-        } /*---i0---*/
-        if (file == stdout) {
-          if (num_out_this_line > 0) {
-            fprintf(file, "\n");
+                }
+
+                num_out_this_line++;
+
+              } /*---i2---*/
+            } /*---i1---*/
+          } /*---i0---*/
+          if (file == stdout) {
+            if (num_out_this_line > 0) {
+              fprintf(file, "\n");
+            }
           }
-        }
-      } /*---index---*/
+        } /*---index---*/
+
+        num_written += writer.get_num_written();
+
+      } /*---if stdout---*/
 
     } break;
     /*--------------------*/
     default:
       GMInsist(false && "Invalid data type.");
   } /*---switch---*/
-
-  num_written += writer.get_num_written();
 }
 
 //=============================================================================
@@ -820,14 +979,14 @@ void MetricsFile::write(GMMetrics* metrics, GMEnv* env) {
   // Output to file
 
   if (file_) {
-    output_metrics_impl(metrics, file_, threshold_, num_written_, env);
+    output_metrics_(metrics, file_, threshold_, num_written_, env);
   }
 
   // Output to stdout if requested
 
   if (verbosity_ > 1) {
     double threshold = verbosity_ > 2 ? -1. : threshold_;
-    output_metrics_impl(metrics, stdout, threshold, num_written_, env);
+    output_metrics_(metrics, stdout, threshold, num_written_, env);
   }
 }
 
