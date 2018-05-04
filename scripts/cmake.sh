@@ -19,6 +19,7 @@
 #---Load modules.
 
 if [ -n "$CRAYOS_VERSION" ] ; then
+  # For Titan or Chester
   if [ "$PE_ENV" = "PGI" ] ; then
     module unload PrgEnv-pgi
   fi
@@ -26,22 +27,19 @@ if [ -n "$CRAYOS_VERSION" ] ; then
   module load cudatoolkit
   module load acml
   module load cmake
-  #PLATFORM_=cray
   CUDA_INCLUDE_OPTS=$CRAY_CUDATOOLKIT_INCLUDE_OPTS
   CUDA_POST_LINK_OPTS=$CRAY_CUDATOOLKIT_POST_LINK_OPTS
   cc=$(which cc)
   CC=$(which CC)
 else #---IBM
-  #if [ -n "$OLCF_XL_ROOT" ] ; then
+  # For Summit or Peak
   module load gcc/6.4.0
-  #fi
   module load cuda/9.1.85
   module load cmake
   CUDA_INCLUDE_OPTS="-I$CUDA_DIR/include -I$CUDA_DIR/extras/CUPTI/include -I$CUDA_DIR/extras/Debugger/include"
   CUDA_POST_LINK_OPTS="-L$CUDA_DIR/targets/ppc64le-linux/lib"
   cc=$(which mpicc)
   CC=$(which mpiCC)
-  #PLATFORM_=ibm
 fi
 
 #------------------------------------------------------------------------------
@@ -111,12 +109,12 @@ fi
 GTEST_DIR=""
 
 if [ "$TESTING" = ON ] ; then
-  if [ -e ../tools/googletest-release-1.7.0.tar.gz ] ; then
-    ln -s ../tools/googletest-release-1.7.0.tar.gz
-  else
-    wget -O googletest-release-1.7.0.tar.gz \
-      https://github.com/google/googletest/archive/release-1.7.0.tar.gz
-  fi
+  #if [ -e ../genomics_gpu/tools/googletest-release-1.7.0.tar.gz ] ; then
+    ln -s ../genomics_gpu/build_tools/googletest-release-1.7.0.tar.gz
+  #else
+  #  wget -O googletest-release-1.7.0.tar.gz \
+  #    https://github.com/google/googletest/archive/release-1.7.0.tar.gz
+  #fi
   gunzip <googletest-release-1.7.0.tar.gz | tar xf -
   GTEST_DIR=$(pwd)/googletest-release-1.7.0
   mkdir $GTEST_DIR/lib
@@ -202,7 +200,7 @@ fi
 if [ -n "$CRAYOS_VERSION" ] ; then
   TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64"
 else
-  TEST_COMMAND="module load cuda ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32"
+  TEST_COMMAND="module load cuda/9.1.85 ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32"
 fi
 
 #------------------------------------------------------------------------------

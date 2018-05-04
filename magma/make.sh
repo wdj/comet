@@ -13,6 +13,7 @@
 function do_make
 {
   if [ -n "$CRAYOS_VERSION" ] ; then
+    # Build for Titan or Chester
     if [ "$PE_ENV" = "PGI" ] ; then
       module unload PrgEnv-pgi
     fi
@@ -21,9 +22,8 @@ function do_make
     module load acml
     cp ../make.inc.titan make.inc
   else #---IBM
-    #if [ -n "$OLCF_XL_ROOT" ] ; then
-    module load gcc
-    #i
+    # Build for Summit or Peak
+    module load gcc/6.4.0
     module load cuda/9.1.85
     cp ../make.inc.summit make.inc
   fi
