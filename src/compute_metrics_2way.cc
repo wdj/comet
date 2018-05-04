@@ -8,6 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
+#include "string.h"
+
 #include "env.hh"
 #include "mirrored_buf.hh"
 #include "vector_sums.hh"
@@ -350,13 +352,15 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     // Compute sums for denominators
 
-    if (vars.is_compute_step && vars.do_compute_block) {
-      //TODO: possibly move this
-      if (vars.is_first_compute_step) {
-        GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
-      }
-      if (! vars.is_main_diag) {
-        GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
+    if (strcmp("__PPC64__", "__" "PPC64" "__") != 0) { // put it here for speed on this arch
+      if (vars.is_compute_step && vars.do_compute_block) {
+        //TODO: possibly move this
+        if (vars.is_first_compute_step) {
+          GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
+        }
+        if (! vars.is_main_diag) {
+          GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
+        }
       }
     }
 
@@ -372,7 +376,19 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
       gm_get_metrics_start(metrics, vars.metrics_buf, env);
     }
 
-    // (NOTE: previously for Titan had denom compute here.)
+    // Compute sums for denominators
+
+    if (strcmp("__PPC64__", "__" "PPC64" "__") == 0) { // put it here for speed on this arch
+      if (vars.is_compute_step && vars.do_compute_block) {
+        //TODO: possibly move this
+        if (vars.is_first_compute_step) {
+          GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
+        }
+        if (! vars.is_main_diag) {
+          GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
+        }
+      }
+    }
 
     // CPU case: combine numerators, denominators to obtain final result
 

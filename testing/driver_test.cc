@@ -1542,40 +1542,6 @@ void DriverTest_ccc_() {
   }
 
   //----------
-  //---file output, 2-way
-  //----------
-
-  EXPECT_EQ(
-      true,
-      compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
-                    "--num_field 7 --num_vector 10 "
-                    "--num_way 2 --metric_type ccc "
-                    "--compute_method REF --all2all yes",
-                    "--num_proc_vector 1 --num_proc_vector 3 "
-                    "--num_field 7 --num_vector 10 "
-                    "--num_way 2 --metric_type ccc "
-                    "--compute_method GPU --all2all yes "
-                    "--verbosity 1 "
-                    "--output_file_stub test_ccc_2way"));
-
-  //----------
-  //---file output, 3-way
-  //----------
-
-  EXPECT_EQ(
-      true,
-      compare_2runs("--num_proc_vector 1 --num_proc_vector 1 "
-                    "--num_field 7 --num_vector 18 "
-                    "--num_way 3 --metric_type ccc "
-                    "--compute_method REF --all2all yes",
-                    "--num_proc_vector 1 --num_proc_vector 3 "
-                    "--num_field 7 --num_vector 18 "
-                    "--num_way 3 --metric_type ccc "
-                    "--compute_method GPU --all2all yes "
-                    "--verbosity 1 "
-                    "--output_file_stub test_ccc_3way"));
-
-  //----------
   //---2-way, all2all yes, large, sparse
   //----------
 
@@ -1656,6 +1622,52 @@ void DriverTest_ccc_() {
           test_2runs(options1, options2);
         }
       }
+    }
+  }
+
+  //----------
+  //---file output, 2-way
+  //----------
+
+  {
+    char options_template[] =
+                    "--num_proc_vector 1 --num_proc_vector 1 "
+                    "--num_field 7 --num_vector 100 "
+                    "--num_way 2 --metric_type ccc "
+                    "--all2all yes --sparse %s "
+                    "--problem_type random %s";
+    for (int sparse=0; sparse<2; ++sparse) {
+      sprintf(options1, options_template, sparse==1 ? "yes" : "no",
+              "--compute_method REF");
+      sprintf(options2, options_template, sparse==1 ? "yes" : "no",
+              "--compute_method GPU "
+              "--verbosity 1 "
+              "--threshold .5 "
+              "--output_file_stub test_ccc_2way");
+      test_2runs(options1, options2);
+    }
+  }
+
+  //----------
+  //---file output, 3-way
+  //----------
+
+  {
+    char options_template[] =
+                    "--num_proc_vector 1 --num_proc_vector 1 "
+                    "--num_field 7 --num_vector 18 "
+                    "--num_way 3 --metric_type ccc "
+                    "--all2all yes --sparse %s "
+                    "--problem_type random %s";
+    for (int sparse=0; sparse<2; ++sparse) {
+      sprintf(options1, options_template, sparse==1 ? "yes" : "no",
+              "--compute_method REF");
+      sprintf(options2, options_template, sparse==1 ? "yes" : "no",
+              "--compute_method GPU "
+              "--verbosity 1 "
+              "--threshold .1 "
+              "--output_file_stub test_ccc_3way");
+      test_2runs(options1, options2);
     }
   }
 

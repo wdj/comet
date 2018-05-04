@@ -712,7 +712,6 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
     /*--------------------*/
 
       if (file != stdout) {
-      //if (false) {
 
         output_metrics_tally4x2_bin_(metrics, file, threshold,
                                      num_written, env);
