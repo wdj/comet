@@ -337,6 +337,20 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     // on the relative speeds.  If these would be put in two different
     // CPU threads, then it wouldn't matter.
 
+    // Compute sums for denominators
+
+    if (GMEnv_is_ppc64()) { // put it here for speed on this arch
+      if (vars.is_compute_step && vars.do_compute_block) {
+        //TODO: possibly move this
+        if (vars.is_first_compute_step) {
+          GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
+        }
+        if (! vars.is_main_diag) {
+          GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
+        }
+      }
+    }
+
     // Wait for recvs to complete
 
     if (vars_next.is_compute_step && ! comm_with_self) {
@@ -348,20 +362,6 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     if (vars_next.is_compute_step && vars_next.do_compute_block) {
       gm_set_vectors_start(vars_next.vectors_right,
                            vars_next.vectors_right_buf, env);
-    }
-
-    // Compute sums for denominators
-
-    if (strcmp("__PPC64__", "__" "PPC64" "__") != 0) { // put it here for speed on this arch
-      if (vars.is_compute_step && vars.do_compute_block) {
-        //TODO: possibly move this
-        if (vars.is_first_compute_step) {
-          GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
-        }
-        if (! vars.is_main_diag) {
-          GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
-        }
-      }
     }
 
     // Wait for numerators computation to complete
@@ -378,7 +378,7 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     // Compute sums for denominators
 
-    if (strcmp("__PPC64__", "__" "PPC64" "__") == 0) { // put it here for speed on this arch
+    if (! GMEnv_is_ppc64()) { // put it here for speed on this arch
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
@@ -408,6 +408,10 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
 
     if (vars_next.is_compute_step && ! comm_with_self) {
       gm_send_vectors_wait(&(mpi_requests[0]), env);
+    }
+
+    if (GMEnv_is_ppc64()) { // makes code runs faster, unclear why
+      GMEnv_get_synced_time(env);
     }
 
   //========================================

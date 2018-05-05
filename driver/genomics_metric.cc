@@ -525,6 +525,13 @@ int main(int argc, char** argv) {
 
   MPI_Init(&argc, &argv);
 
+  bool use_fast_nodes = false;
+  for (int i=1; i<argc; ++i) {
+    if (strcmp(argv[i], "--fastnodes") == 0) {
+      use_fast_nodes = true;
+    }
+  }
+
   setbuf(stdout, NULL);
 
   int rank = 0;
@@ -538,24 +545,32 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  //MPI_Barrier(MPI_COMM_WORLD);
-  //if (rank == 0) {
-  //  printf("MPI_Init called.\n");
-  //}
-
   //install_handler();
 
-  const bool use_fast_nodes = false;
+  //const bool use_fast_nodes = false;
+  //const bool use_fast_nodes = true;
 
   if (use_fast_nodes) { 
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+      printf("MPI_Init called.\n");
+    }
 
     MPI_Comm fast_comm;
 
     /*---Perform preflight warmup---*/
 
+    perform_run_preflight(argc, argv);
+
     perform_run_preflight_2(argc, argv, &fast_comm);
 
     /*---Perform actual run---*/
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+      printf("Commencing run.\n");
+    }
 
     perform_run(argc, (char**)argv, NULL, fast_comm);
 

@@ -618,6 +618,17 @@ void gm_free(void* p, size_t n, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
+bool GMEnv_is_ppc64() {
+#ifdef __powerpc64__
+  return true;
+#else
+  return false;
+#endif
+   //return strcmp("__PPC64__", "__" "PPC64" "__") != 0;
+}
+
+//-----------------------------------------------------------------------------
+
 GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
   GMInsist(env);
   GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);

@@ -217,10 +217,12 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--sparse") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
+    } else if (strcmp(argv[i], "--fastnodes") == 0) {
+      ++i; /*---optionally processed by caller---*/
     } else {
     /*----------*/
       if (GMEnv_proc_num(env) == 0) {
-        fprintf(stderr, "Invalid argument \"%s\".", argv[i]);
+        fprintf(stderr, "Invalid argument \"%s\". ", argv[i]);
       }
       GMInsistInterface(env, false && "Error: argument not recognized.");
     /*----------*/

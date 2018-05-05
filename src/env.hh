@@ -482,6 +482,8 @@ bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
 void* gm_malloc(size_t n, GMEnv* env);
 void gm_free(void* p, size_t n, GMEnv* env);
 
+bool GMEnv_is_ppc64();
+
 GMFloat* GMFloat_malloc(size_t n, GMEnv* env);
 void GMFloat_free(GMFloat* p, size_t n, GMEnv* env);
 
