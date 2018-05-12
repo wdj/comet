@@ -11,10 +11,10 @@
                    --num_vector 28342758 --num_field 882 \
                    --metric_type czekanowski --num_way 2
 
-./settings_advisor --num_node 3 --platform Titan \
-                   --num_vector 450 --num_field 1000 \
-                   --metric_type czekanowski --num_way 3 \
-                   --sparse no
+./settings_advisor --num_node 18688 --platform Titan \
+                   --num_vector $(( 1000 * 1000 )) --num_field 82 \
+                   --metric_type ccc --num_way 3 \
+                   --sparse yes
 
 
 

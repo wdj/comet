@@ -516,10 +516,10 @@ void gm_compute_numerators_3way_gpu_start_(
   /*--------------------*/
 
   GMMirroredBuf* tmp_buf[2] = {&this_->tmp_buf[0],
-                                   &this_->tmp_buf[1]};
+                               &this_->tmp_buf[1]};
 
   GMMirroredBuf* const matM_ij_buf = need_mat_ij ? &this_->matM_ij_buf :
-                                                      NULL;
+                                                   NULL;
 
   if (need_mat_ij) {
     GMMirroredBuf* matM_ij_buf_ptr =
