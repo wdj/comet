@@ -196,16 +196,16 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   // Lowest/highest (block) diag to be computed for this phase,
   // measured from (block) main diag.
 
-  const int j_i_offset_min = gm_diag_computed_min(env);
-  const int j_i_offset_max = gm_diag_computed_max(env);
-  const int j_i_offset_this_row_max = gm_diag_computed_this_row_max(env);
+  const int j_i_offset_min = gm_bdiag_computed_min(env);
+  const int j_i_offset_max = gm_bdiag_computed_max(env);
+  const int j_i_offset_this_row_max = gm_block_computed_this_row_max(env);
 
-  const int num_diag_computed = j_i_offset_max - j_i_offset_min;
+  const int num_bdiag_computed = j_i_offset_max - j_i_offset_min;
 
   // Num steps to take to compute blocks
   // (note: at each step, num_proc_r processors each compute a block)
 
-  const int num_step = gm_ceil_i(num_diag_computed, num_proc_r);
+  const int num_step = gm_ceil_i(num_bdiag_computed, num_proc_r);
 
   typedef struct {
     GMVectors* vectors_right;

@@ -111,7 +111,7 @@ Options:
 
     --num_phase <value>
         the number of phases the computation is divided into
-        (default is 1) (available for 2-way case only)
+        (default is 1)
 
     --phase_min <value>
         the lowest phase number of the sequence of phases to be computed

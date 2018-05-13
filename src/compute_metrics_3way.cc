@@ -217,8 +217,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   gm_set_vectors_start(vectors_i, vectors_i_buf, env);
   gm_set_vectors_wait(env);
 
-  for (int section_step=0; section_step<gm_num_section_steps(env, 1);
-       ++section_step) {
+  const int num_section_steps_1 = gm_num_section_steps(env, 1);
+  for (int section_step=0; section_step<num_section_steps_1; ++section_step) {
     if (gm_proc_r_active(section_block_num, env)) {
 
       if (have_unprocessed_section_block) {
@@ -254,8 +254,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Part 2 Computation: triangular prisms---*/
   /*------------------------*/
 
-  for (int section_step=0; section_step<gm_num_section_steps(env, 2);
-       ++section_step) {
+  const int num_section_steps_2 = gm_num_section_steps(env, 2);
+  for (int section_step=0; section_step<num_section_steps_2; ++section_step) {
     for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
 
       const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
@@ -329,8 +329,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   int k_block_currently_resident = -1;
 
-  for (int section_step=0; section_step<gm_num_section_steps(env, 3);
-       ++section_step) {
+  const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
+  for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
     for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
       const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
 

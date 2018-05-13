@@ -182,7 +182,7 @@ void usage() {
   "\n"
   "    --num_phase <value>\n"
   "        the number of phases the computation is divided into\n"
-  "        (default is 1) (available for 2-way case only)\n"
+  "        (default is 1)\n"
   "\n"
   "    --phase_min <value>\n"
   "        the lowest phase number of the sequence of phases to be computed\n"

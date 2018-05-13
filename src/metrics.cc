@@ -184,7 +184,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
       metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
     }
     ++section_block_num;
-  }
+  } // section_step
   metrics->index_offset_0_ = metrics->num_elts_local;
 
   //---Compute size part 2: (triang prisms) i_block!=j_block==k_block part.
@@ -215,34 +215,37 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
       }
       ++section_block_num;
     }
-  }
+  } // section_step
   metrics->index_offset_01_ = metrics->num_elts_local;
 
   //---Compute size part 3: (block sections) i_block!=j_block!=k_block part.
 
   //---Loop over block for part3.
-  const int i_block = GMEnv_proc_num_vector_i(env);
-  for (int k_i_offset=1; k_i_offset<num_block; ++k_i_offset) {
-    const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
-    for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
-      const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
-      if (j_block == k_block) {
-        continue;
+  const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
+  for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
+    const int i_block = GMEnv_proc_num_vector_i(env);
+    for (int k_i_offset=1; k_i_offset<num_block; ++k_i_offset) {
+      const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
+      for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
+        const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
+        if (j_block == k_block) {
+          continue;
+        }
+        //---Get slice bounds.
+        const int section_num = gm_section_num_part3(i_block, j_block, k_block);
+        const int J_lo = gm_J_lo(section_num, nvl, 3, env);
+        const int J_hi = gm_J_hi(section_num, nvl, 3, env);
+        if (gm_proc_r_active(section_block_num, env)) {
+          //---Elements in slice of block/cube.
+          const GMInt64 elts_local = (GMInt64)nvl * (GMInt64)nvl *
+                                     (GMInt64)(J_hi - J_lo);
+          GMInsist(elts_local >= 0);
+          metrics->num_elts_local += elts_local;
+        }
+        ++section_block_num;
       }
-      //---Get slice bounds.
-      const int section_num = gm_section_num_part3(i_block, j_block, k_block);
-      const int J_lo = gm_J_lo(section_num, nvl, 3, env);
-      const int J_hi = gm_J_hi(section_num, nvl, 3, env);
-      if (gm_proc_r_active(section_block_num, env)) {
-        //---Elements in slice of block/cube.
-        const GMInt64 elts_local = (GMInt64)nvl * (GMInt64)nvl *
-                                   (GMInt64)(J_hi - J_lo);
-        GMInsist(elts_local >= 0);
-        metrics->num_elts_local += elts_local;
-      }
-      ++section_block_num;
     }
-  }
+  } // section_step
 }
 
 //=============================================================================
@@ -315,10 +318,10 @@ void GMMetrics_create(GMMetrics* metrics,
   /*---Compute number of elements etc.---*/
 
   GMInsistInterface(env, env->stage_num >= 0 && env->stage_num < env->num_stage
-                && "Invalid stage number specified.");
+                    && "Invalid stage number specified.");
 
   GMInsistInterface(env, env->phase_num >= 0 && env->phase_num < env->num_phase
-                && "Invalid phase number specified.");
+                    && "Invalid phase number specified.");
 
   metrics->num_elts_local_computed = 0;
 
@@ -330,7 +333,7 @@ void GMMetrics_create(GMMetrics* metrics,
                       && "Staged computations not allowed for 2-way case.");
 
     GMInsistInterface(env, env->num_phase <= 1 + num_block / 2
-                      && "num_phase must be at most 1 + nproc_vector/2.");
+                      && "num_phase must be at most 1 + num_proc_vector/2.");
 
     /*---Store the following in this block-row:
         1) strict upper triangular part of main diagonal block
@@ -347,14 +350,14 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*---PART A.1: (triangle) i_block==j_block part---*/
     const bool have_main_diag = proc_num_r == 0 &&
-                                gm_diag_computed_min(env) == 0;
+                                gm_bdiag_computed_min(env) == 0;
     metrics->num_elts_local += have_main_diag ? nchoosek : 0;
     metrics->index_offset_0_ = have_main_diag ? nchoosek - nvlsq : 0;
-    metrics->block_min = (i_block + gm_diag_computed_min(env)) % num_block;
+    metrics->block_min = (i_block + gm_bdiag_computed_min(env)) % num_block;
 
 
     /*---PART A.2: (wrapped rect) i_block!=j_block part---*/
-    const int num_computed_blocks_this_row = gm_computed_blocks_this_row(env);
+    const int num_computed_blocks_this_row = gm_blocks_computed_this_row(env);
     const int num_computed_blocks_this_proc = rr_pack_(proc_num_r, num_proc_r,
                                                num_computed_blocks_this_row);
     const int num_computed_offdiag_blocks_this_proc =
@@ -371,6 +374,8 @@ void GMMetrics_create(GMMetrics* metrics,
     /*---PART C.1: (triangle) i_block==j_block part---*/
     size_t index = 0;
     if (have_main_diag) {
+      GMAssert(GMEnv_proc_num_repl(env) == 0);
+      GMAssert(gm_proc_r_active(0, env));
       for (int j = 0; j < nvl; ++j) {
         const size_t j_global = j + nvl * i_block;
         for (int i = 0; i < j; ++i) {
@@ -385,10 +390,11 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*---PART C.2: (wrapped rectangle) i_block!=j_block part---*/
 
-    const int beg = gm_diag_computed_min(env);
+    const int beg = gm_bdiag_computed_min(env);
     const int end = beg + num_computed_blocks_this_row;
     for (int diag=beg; diag<end; ++diag) {
-      if (diag == 0 || ! gm_proc_r_active(diag-beg, env)) {
+      const int diag_offset = diag - beg;
+      if (diag == 0 || ! gm_proc_r_active(diag_offset, env)) {
         continue;
       }
       const int j_block_unwrapped = i_block + diag;
@@ -416,9 +422,9 @@ void GMMetrics_create(GMMetrics* metrics,
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && GMEnv_all2all(env)) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_phase == 1
-                      && "Phaseed computations not currently implemented "
-                        "for 3-way case.");
+    GMInsistInterface(env, env->num_phase <= (num_block+1)*(num_block+2)
+           && "num_phase must be at most "
+              "(num_proc_vector+1)*(num_proc_vector+2).");
 
     /*---Make the following assumption to greatly simplify calculations---*/
     GMInsistInterface(env, (num_block<=2 || metrics->num_vector_local % 6 == 0)
@@ -431,8 +437,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*---Fused counter for section_num and block_num, same across all procs---*/
     int section_block_num = 0;
-
-    const int num_section_steps_12 = gm_num_section_steps(env, 1);
 
     /*===PART B: ALLOCATE INDEX===*/
 
@@ -447,7 +451,8 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*---Set index part 1: (tetrahedron) i_block==j_block==k_block part---*/
 
-    for (int section_step=0; section_step<num_section_steps_12; ++section_step){
+    const int num_section_steps_1 = gm_num_section_steps(env, 1);
+    for (int section_step=0; section_step<num_section_steps_1; ++section_step){
       if (gm_proc_r_active(section_block_num, env)) {
         const int section_num = section_step;
         const int J_lo = gm_J_lo(section_num, nvl, 1, env);
@@ -477,11 +482,12 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       } /*---if block_num---*/
       ++section_block_num;
-    }
+    } // section_step
 
     /*---Set index part 2: (triang prisms) i_block!=j_block==k_block part---*/
 
-    for (int section_step=0; section_step<num_section_steps_12; ++section_step){
+    const int num_section_steps_2 = gm_num_section_steps(env, 2);
+    for (int section_step=0; section_step<num_section_steps_2; ++section_step){
       for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
         const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
         if (gm_proc_r_active(section_block_num, env)) {
@@ -513,69 +519,72 @@ void GMMetrics_create(GMMetrics* metrics,
         } /*---if block_num---*/
         ++section_block_num;
       } /*---k_block---*/
-    }
+    } // section_step
 
     /*---Set index part 3: (block sections) i_block!=j_block!=k_block part---*/
 
-    for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
-      const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
-      for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
-        const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
-        if (j_block == k_block) {
-          continue;
-        }
-        if (gm_proc_r_active(section_block_num, env)) {
-
-          const int section_axis = gm_section_axis_part3(i_block, j_block,
-                                                         k_block);
-          const int section_num = gm_section_num_part3(i_block, j_block,
-                                                       k_block);
-
-          const int J_lo = gm_J_lo(section_num, nvl, 3, env);
-          const int J_hi = gm_J_hi(section_num, nvl, 3, env);
-          metrics->J_lo_part3_[section_num] = J_lo;
-          metrics->J_wi_part3_[section_num] = J_hi - J_lo;
-          const bool sax0 = section_axis == 0;
-          const bool sax1 = section_axis == 1;
-          for (int J = J_lo; J < J_hi; ++J) {
-            // don't use collapse because of overflow for large sizes
-            //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-            #pragma omp parallel for schedule(dynamic,1000)
-            for (int K = 0; K < nvl; ++K) {
-              for (int I = 0; I < nvl; ++I) {
-
-                /* clang-format off */
-                const int i = sax0 ?   J :
-                              sax1 ?   I :
-                           /* sax2 ?*/ K;
-                const int j = sax0 ?   K :
-                              sax1 ?   J :
-                           /* sax2 ?*/ I;
-                const int k = sax0 ?   I :
-                              sax1 ?   K :
-                           /* sax2 ?*/ J;
-                /* clang-format on */
-
-                const size_t j_global = j + nvl * j_block;
-                const size_t k_global = k + nvl * k_block;
-                const size_t i_global = i + nvl * i_block;
-                GMAssert(i_global>=0 && metrics->num_vector-i_global>0);
-                GMAssert(j_global>=0 && metrics->num_vector-j_global>0);
-                GMAssert(k_global>=0 && metrics->num_vector-k_global>0);
-                const size_t index_this = index + I + K * (size_t)nvl;
-                GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
-                metrics->coords_global_from_index[index_this] =
-                    i_global +
-                    metrics->num_vector *
-                        (j_global + metrics->num_vector * (k_global));
-              }
-            }
-            index += nvl*(size_t)nvl;
+    const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
+    for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
+      for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
+        const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
+        for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
+          const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
+          if (j_block == k_block) {
+            continue;
           }
-        } /*---if block_num---*/
-        ++section_block_num;
-      } /*---j_block---*/
-    }   /*---k_block---*/
+          if (gm_proc_r_active(section_block_num, env)) {
+
+            const int section_axis = gm_section_axis_part3(i_block, j_block,
+                                                           k_block);
+            const int section_num = gm_section_num_part3(i_block, j_block,
+                                                         k_block);
+
+            const int J_lo = gm_J_lo(section_num, nvl, 3, env);
+            const int J_hi = gm_J_hi(section_num, nvl, 3, env);
+            metrics->J_lo_part3_[section_num] = J_lo;
+            metrics->J_wi_part3_[section_num] = J_hi - J_lo;
+            const bool sax0 = section_axis == 0;
+            const bool sax1 = section_axis == 1;
+            for (int J = J_lo; J < J_hi; ++J) {
+              // don't use collapse because of overflow for large sizes
+              //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+              #pragma omp parallel for schedule(dynamic,1000)
+              for (int K = 0; K < nvl; ++K) {
+                for (int I = 0; I < nvl; ++I) {
+
+                  /* clang-format off */
+                  const int i = sax0 ?   J :
+                                sax1 ?   I :
+                             /* sax2 ?*/ K;
+                  const int j = sax0 ?   K :
+                                sax1 ?   J :
+                             /* sax2 ?*/ I;
+                  const int k = sax0 ?   I :
+                                sax1 ?   K :
+                             /* sax2 ?*/ J;
+                  /* clang-format on */
+
+                  const size_t j_global = j + nvl * j_block;
+                  const size_t k_global = k + nvl * k_block;
+                  const size_t i_global = i + nvl * i_block;
+                  GMAssert(i_global>=0 && metrics->num_vector-i_global>0);
+                  GMAssert(j_global>=0 && metrics->num_vector-j_global>0);
+                  GMAssert(k_global>=0 && metrics->num_vector-k_global>0);
+                  const size_t index_this = index + I + K * (size_t)nvl;
+                  GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+                  metrics->coords_global_from_index[index_this] =
+                      i_global +
+                      metrics->num_vector *
+                          (j_global + metrics->num_vector * (k_global));
+                }
+              }
+              index += nvl*(size_t)nvl;
+            }
+          } /*---if block_num---*/
+          ++section_block_num;
+        } /*---j_block---*/
+      }   /*---k_block---*/
+    } // section_step
 
     GMInsist(index == metrics->num_elts_local);
 
@@ -652,14 +661,14 @@ void GMMetrics_create(GMMetrics* metrics,
                            GMEnv_mpi_comm_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
 
-  if (GMEnv_num_way(env) == GM_NUM_WAY_2 && env->num_stage == 1 &&
+  if (GMEnv_num_way(env) == GM_NUM_WAY_2 &&
       env->num_phase == 1 && GMEnv_all2all(env)) {
     GMInsist(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) / 2);
   }
 
   if (GMEnv_num_way(env) == GM_NUM_WAY_3 && env->num_stage == 1 &&
-      GMEnv_all2all(env)) {
+      env->num_phase == 1 && GMEnv_all2all(env)) {
     GMInsist(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) * (size_t)
                                (metrics->num_vector - 2) / 6);

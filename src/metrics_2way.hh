@@ -16,8 +16,11 @@
 //=============================================================================
 /*---Helper functions for 2-way case---*/
 
-static int gm_max_computed_blocks_per_row(GMEnv* env) {
+static int gm_bdiag_computed_max_allphase(GMEnv* env) {
   GMAssert(env);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(GMEnv_all2all(env));
+
   /*---Max number of blocks of any block row computed on all phases---*/
   const int num_block = GMEnv_num_block_vector(env);
   return 1 + num_block / 2;
@@ -25,24 +28,44 @@ static int gm_max_computed_blocks_per_row(GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_diag_computed_min(GMEnv* env) {
+static int gm_bdiag_computed_min(GMEnv* env) {
   GMAssert(env);
-  const int max_rectangle_width = gm_max_computed_blocks_per_row(env);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(GMEnv_all2all(env));
+
+  // First block diag computed for this phase (min across vec procs)
+  const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
   return (max_rectangle_width*env->phase_num) / env->num_phase;
 }
 
 //-----------------------------------------------------------------------------
 
-static int gm_diag_computed_max(GMEnv* env) {
+static int gm_bdiag_computed_max(GMEnv* env) {
   GMAssert(env);
-  const int max_rectangle_width = gm_max_computed_blocks_per_row(env);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(GMEnv_all2all(env));
+
+  // 1 + last block diag computed for this phase (max across vec procs)
+  const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
   return (max_rectangle_width*(env->phase_num+1)) / env->num_phase;
 }
 
 //-----------------------------------------------------------------------------
 
-static int gm_diag_computed_this_row_max(GMEnv* env) {
+static int gm_block_computed_this_row_min(GMEnv* env) {
   GMAssert(env);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(GMEnv_all2all(env));
+
+  return gm_bdiag_computed_min(env);
+}
+
+//-----------------------------------------------------------------------------
+
+static int gm_block_computed_this_row_max(GMEnv* env) {
+  GMAssert(env);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(GMEnv_all2all(env));
 
   const int num_block = GMEnv_num_block_vector(env);
   const int i_block = GMEnv_proc_num_vector_i(env);
@@ -50,8 +73,9 @@ static int gm_diag_computed_this_row_max(GMEnv* env) {
   const bool is_row_short_by_1 = num_block % 2 == 0 && 2*i_block >= num_block;
   const bool is_last_phase = env->phase_num == env->num_phase - 1;
 
-  const int diag_max = gm_diag_computed_max(env);
+  const int diag_max = gm_bdiag_computed_max(env);
 
+  // 1 + last block diag computed for this phase, all repl procs (this vec proc)
   const int n = is_last_phase && is_row_short_by_1 ? diag_max - 1 : diag_max;
   GMAssert(n >= 0);
   GMAssert(n <= num_block);
@@ -60,9 +84,14 @@ static int gm_diag_computed_this_row_max(GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_computed_blocks_this_row(GMEnv* env) {
+static int gm_blocks_computed_this_row(GMEnv* env) {
   GMAssert(env);
-  const int n = gm_diag_computed_this_row_max(env) - gm_diag_computed_min(env);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(GMEnv_all2all(env));
+
+  // num block diags computed for this phase, all repl procs (this vec proc)
+  const int n = gm_block_computed_this_row_max(env) -
+                gm_block_computed_this_row_min(env);
   GMAssert(n >= 0);
   GMAssert(n <= GMEnv_num_block_vector(env));
   return n;
@@ -73,16 +102,6 @@ static int gm_computed_blocks_this_row(GMEnv* env) {
 
 static size_t gm_triang_(int i) {
   return (i * (size_t)(i-1)) >> 1;
-}
-
-//-----------------------------------------------------------------------------
-/*---Helper: is this (section_)block_num to be processed by this proc_r---*/
-
-static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
-  GMAssert(env);
-  GMAssert(section_block_num >= 0);
-  return section_block_num % GMEnv_num_proc_repl(env)
-         == GMEnv_proc_num_repl(env);
 }
 
 //-----------------------------------------------------------------------------

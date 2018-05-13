@@ -403,11 +403,11 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
   /*---Loops over phases, stages---*/
 
-  for (env->stage_num=do_.stage_min_0based;
-       env->stage_num<=do_.stage_max_0based; ++env->stage_num) {
+  for (env->phase_num=do_.phase_min_0based;
+       env->phase_num<=do_.phase_max_0based; ++env->phase_num) {
 
-    for (env->phase_num=do_.phase_min_0based;
-         env->phase_num<=do_.phase_max_0based; ++env->phase_num) {
+    for (env->stage_num=do_.stage_min_0based;
+         env->stage_num<=do_.stage_max_0based; ++env->stage_num) {
 
       /*---Set up metrics container for results---*/
 
@@ -505,6 +505,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     }
 
     if (GMEnv_num_way(env) == GM_NUM_WAY_3 && GMEnv_all2all(env) &&
+        do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase - 1 &&
         do_.stage_min_0based==0 && do_.stage_max_0based==env->num_stage - 1) {
       GMInsist(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) * (size_t)

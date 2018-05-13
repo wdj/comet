@@ -33,6 +33,7 @@ static int gm_num_sections(const GMEnv* const env, int part_num) {
   GMAssert(env);
   GMAssert(part_num >= 1 && part_num <= 3);
 
+  // Number of sections the block is divided into
   return part_num == 3 ? 6 : gm_num_section_steps(env, part_num);
 }
 
