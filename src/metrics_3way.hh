@@ -20,8 +20,8 @@
 /*---NOTE: the following does not specialize based on part1/2/3---*/
 
 static int gm_num_section_steps(const GMEnv* const env, int part_num) {
-  GMAssert(env);
-  GMAssert(part_num >= 1 && part_num <= 3);
+  GMAssert(env && part_num >= 1 && part_num <= 3);
+  // Number of section steps to be executed for a given block.
 
   const bool collapse = ! GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1;
   return collapse || part_num == 3 ? 1 : 6;
@@ -30,11 +30,50 @@ static int gm_num_section_steps(const GMEnv* const env, int part_num) {
 //-----------------------------------------------------------------------------
 
 static int gm_num_sections(const GMEnv* const env, int part_num) {
-  GMAssert(env);
-  GMAssert(part_num >= 1 && part_num <= 3);
+  GMAssert(env && part_num >= 1 && part_num <= 3);
+  // Number of sections the block is divided into.
 
-  // Number of sections the block is divided into
   return part_num == 3 ? 6 : gm_num_section_steps(env, part_num);
+}
+
+//-----------------------------------------------------------------------------
+
+static int gm_num_section_blocks(const GMEnv* const env) {
+  GMAssert(env);
+  // Total section steps across all blocks, phases.
+
+  const int npv = GMEnv_num_proc_vector_i(env);
+
+  const bool collapse = ! GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1;
+  return collapse ? npv*npv - 2*npv + 2 : (npv+1) * (npv+2);
+}
+
+//-----------------------------------------------------------------------------
+
+static int gm_section_block_phase_min(const GMEnv* const env) {
+  GMAssert(env);
+
+  return (gm_num_section_blocks(env)*env->phase_num) / env->num_phase;
+}
+
+//-----------------------------------------------------------------------------
+
+static int gm_section_block_phase_max(const GMEnv* const env) {
+  GMAssert(env);
+
+  return (gm_num_section_blocks(env)*(env->phase_num+1)) / env->num_phase;
+}
+
+
+//-----------------------------------------------------------------------------
+
+static bool gm_is_section_block_in_phase(const GMEnv* const env,
+                                        int section_block) {
+  GMAssert(env);
+  GMAssert(section_block >= 0 && section_block < gm_num_section_blocks(env));
+
+  return section_block >= gm_section_block_phase_min(env) &&
+         section_block < gm_section_block_phase_max(env);
 }
 
 //-----------------------------------------------------------------------------
@@ -347,7 +386,8 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
 
   const int num_block = GMEnv_num_block_vector(env);
   const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
-  const int block_num_part2 = j_i_offset - 1;
+  const int block_num_part2 = j_i_offset - 1
+      - metrics->phase_block_start_2_[section_num];
 
   // Packing offset for multiple section blocks for this proc_r and section_num
   const int num_proc_r = GMEnv_num_proc_repl(env);
@@ -394,7 +434,8 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   const int k_i_offset = gm_mod1_(k_block - i_block, num_block);
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
-    (j_i_offset - 1 - (j_i_offset > k_i_offset));
+    (j_i_offset - 1 - (j_i_offset > k_i_offset))
+    - metrics->phase_block_start_3_;
 
   // Packing offset for multiple blocks for this proc_r
   const int num_proc_r = GMEnv_num_proc_repl(env);
@@ -519,21 +560,24 @@ static size_t GMMetrics_helper3way_part3_permuted_(
     GMEnv* env) {
   const int nvl = metrics->num_vector_local;
 
+  //const int num_section_steps = 1;               
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
+
+  const GMInt64 elts_offset = metrics->index_offset_01_;
 
   const int num_block = GMEnv_num_block_vector(env);
   const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
   const int k_i_offset = gm_mod1_(k_block - i_block, num_block);
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
-    (j_i_offset - 1 - (j_i_offset > k_i_offset));
+    (j_i_offset - 1 - (j_i_offset > k_i_offset))
+    - metrics->phase_block_start_3_;
+
   const int num_proc_r = GMEnv_num_proc_repl(env);
   const int blocks_offset = block_num_part3 / num_proc_r;
 
   const int J_lo = metrics->J_lo_part3_[section_num];
   const int J_wi = metrics->J_wi_part3_[section_num];
-
-  const GMInt64 elts_offset = metrics->index_offset_01_;
 
   /* clang-format off */
 

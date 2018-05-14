@@ -73,6 +73,8 @@ typedef struct {
   bool section_num_valid_part1_[6];
   bool section_num_valid_part2_[6];
   size_t section_size_part2[6];
+  size_t phase_block_start_2_[6];
+  size_t phase_block_start_3_;
   GMFloat m;
   GMFloat recip_m;
   int block_min;

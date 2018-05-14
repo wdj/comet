@@ -371,16 +371,10 @@ void DriverTest_czek_() {
       "--num_proc_vector %i --num_proc_repl %i "
       "--num_proc_field %i --num_way %i --num_stage %i";
 
-  int num_vector_local = 0;
-  int num_proc_vector = 0;
-  int num_proc_repl = 0;
-  int gpu = 0;
-  int num_stage = 1;
-
-  for (gpu=0; gpu<=1; ++gpu) {
-    for (num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
-      for (num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+  for (int gpu=0; gpu<=1; ++gpu) {
+    for (int num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
+      for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
+        for (int num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
           if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
             continue;
@@ -392,7 +386,7 @@ void DriverTest_czek_() {
                   1, num_way, 1);
           sprintf(options2, options_template_1, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
-                  num_proc_field, num_way, num_stage);
+                  num_proc_field, num_way, 1);
           test_2runs(options1, options2);
         }
       }
@@ -403,11 +397,11 @@ void DriverTest_czek_() {
   //---num_repl, num_stage, 3-way
   //----------
 
-  for (gpu=0; gpu<=1; ++gpu) {
-    for (num_vector_local=6; num_vector_local<=18; num_vector_local+=12) {
-      for (num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
-          for (num_stage=1; num_stage<=6; num_stage+=4) {
+  for (int gpu=0; gpu<=1; ++gpu) {
+    for (int num_vector_local=6; num_vector_local<=18; num_vector_local+=12) {
+      for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
+        for (int num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+          for (int num_stage=1; num_stage<=6; num_stage+=4) {
           const int num_proc_field = gpu ? 2 : 1;
             if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
               continue;
@@ -431,11 +425,9 @@ void DriverTest_czek_() {
   //---num_phase, 2-way
   //----------
 
-  int num_phase = 0;
-
-  for (num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
-    for (num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
-      for (num_phase=2; num_phase<=8; ++num_phase) {
+  for (int num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
+    for (int num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
+      for (int num_phase=2; num_phase<=8; ++num_phase) {
         if (!(num_phase <= 1 + num_proc_vector/2)) {
           continue;
         }
@@ -448,6 +440,48 @@ void DriverTest_czek_() {
                 num_phase);
         sprintf(options2, options_template, 1, 1, 1);
         test_2runs(options1, options2);
+      }
+    }
+  }
+
+  char options_template_2[] =
+      "--metric_type czekanowski "
+      "--num_field 4 --num_vector_local %i --compute_method %s --all2all yes "
+      "--num_proc_vector %i --num_proc_repl %i "
+      "--num_proc_field %i --num_way %i --num_phase %i";
+
+  //----------
+  //---num_repl, num_phase, 3-way
+  //----------
+
+  for (int gpu=0; gpu<=1; ++gpu) {
+    for (int num_vector_local=6; num_vector_local<=6; num_vector_local+=12) {
+      for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+        for (int num_proc_repl=1; num_proc_repl<=4; ++num_proc_repl) {
+          const int npv = num_proc_vector;
+          const int num_phase_max = num_proc_repl==1 ? npv*npv - 2*npv + 2 :
+                                                      (npv+1)*(npv+2);
+          const int num_phase_min = num_phase_max / 2;
+          for (int num_phase=num_phase_min; num_phase<=num_phase_max;
+               num_phase+=(num_phase_max-num_phase_min)) {
+            if (num_phase < 1) {
+              continue;
+            }
+            const int num_proc_field = gpu ? 2 : 1;
+            if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
+              continue;
+            }
+            const int num_way = 3;
+            sprintf(options1, options_template_2,
+                    num_vector_local*num_proc_vector,
+                    "GPU", 1, 1,
+                   1, num_way, 1);
+            sprintf(options2, options_template_2, num_vector_local,
+                    gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
+                    num_proc_field, num_way, num_phase);
+            test_2runs(options1, options2);
+          }
+        }
       }
     }
   }
