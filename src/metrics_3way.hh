@@ -321,7 +321,7 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
 }
 
 //-----------------------------------------------------------------------------
-/*---Faster version of true mod needed for special situation---*/
+/*---Faster version of true mod, needed for special situation---*/
 
 static int gm_mod1_(int i, int n) {
   return (i + n) % n;
@@ -346,11 +346,16 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
   const GMInt64 elts_offset = metrics->index_offset_section_part2_[section_num];
 
   const int num_block = GMEnv_num_block_vector(env);
-  const int block_num_part2 = gm_mod1_(j_block - i_block, num_block) - 1;
+  const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
+  const int block_num_part2 = j_i_offset - 1;
+
+  // Packing offset for multiple section blocks for this proc_r and section_num
   const int num_proc_r = GMEnv_num_proc_repl(env);
   const int blocks_offset = block_num_part2 / num_proc_r;
 
   const size_t section_size = metrics->section_size_part2[section_num];
+
+  // Ordering: outer loop is section num, inner loop is block num.
 
   /* clang-format off */
   const GMInt64 index = elts_offset +
@@ -379,8 +384,10 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
                                           GMEnv* env) {
   const int nvl = metrics->num_vector_local;
 
-  const int section_axis = gm_section_axis_part3(i_block, j_block, k_block);
+  //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
+
+  const GMInt64 elts_offset = metrics->index_offset_01_;
 
   const int num_block = GMEnv_num_block_vector(env);
   const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
@@ -388,13 +395,14 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
     (j_i_offset - 1 - (j_i_offset > k_i_offset));
+
+  // Packing offset for multiple blocks for this proc_r
   const int num_proc_r = GMEnv_num_proc_repl(env);
   const int blocks_offset = block_num_part3 / num_proc_r;
 
+  const int section_axis = gm_section_axis_part3(i_block, j_block, k_block);
   const int J_lo = metrics->J_lo_part3_[section_num];
   const int J_wi = metrics->J_wi_part3_[section_num];
-
-  const GMInt64 elts_offset = metrics->index_offset_01_;
 
   /* clang-format off */
   const GMInt64 index = elts_offset +
