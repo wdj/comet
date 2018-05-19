@@ -1263,6 +1263,19 @@ void DriverTest_ccc3_simple_sparse_() {
 //=============================================================================
 
 void DriverTest_ccc_() {
+
+
+  EXPECT_EQ(
+      true,
+      compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
+                    "--compute_method CPU --metric_type ccc "
+                    "--verbosity 0 ",
+                    "--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
+                    "--compute_method GPU --metric_type ccc "
+                    "--verbosity 3 --tc yes"));
+
+
+#if 0
   char options1[1024];
   char options2[1024];
   char options3[1024];
@@ -1704,11 +1717,13 @@ void DriverTest_ccc_() {
       test_2runs(options1, options2);
     }
   }
+#endif
 
 }
 
 //=============================================================================
 
+#if 0
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }
@@ -1728,6 +1743,8 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
+#endif
+//FIX
 
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();

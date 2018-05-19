@@ -28,6 +28,7 @@
 #include "metrics.hh"
 
 #include "linalg.hh"
+#include "linalg_cuda.hh"
 
 //=============================================================================
 /*---Magma setup, teardown---*/
@@ -585,6 +586,15 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
   if (m==0 || n==0 || k==0) {
+    return;
+  }
+
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+      GMEnv_num_way(env) == GM_NUM_WAY_2 && ! env->sparse) {
+    gm_tc_buf_write(0, m, k, dA, env);
+    gm_tc_buf_write(1, m, k, dB, env);
+    gm_tc_solve(m, n, k, dA, ldda, dB, lddb, dC, lddc, env);
+    gm_tc_fix_metrics(m, dC, env);
     return;
   }
 

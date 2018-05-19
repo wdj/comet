@@ -32,6 +32,7 @@ SET(LIB_SOURCES
   src/compute_metrics_utils_3way_gpu.cc
   src/compute_metrics_2way.cc
   src/compute_metrics_3way.cc
+  src/linalg_cuda.cu
   )
 
 SET(LIB_INCLUDES
@@ -53,6 +54,7 @@ SET(LIB_INCLUDES
   src/compute_metrics_utils_3way.hh
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh
+  src/linalg_cuda.hh
   )
 
 #--------------------
@@ -67,7 +69,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_AND_CXX_FLAGS}")
 find_package(MPI REQUIRED)
 find_package(CUDA REQUIRED)
 
-ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES})
+SET(CUDA_SOURCES, src/linalg_cuda.cu)
+CUDA_INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
+
+CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
 
 ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc driver/driver.cc driver/test_problems.cc driver/input_output.cc)

@@ -23,11 +23,12 @@ if [ -n "${CRAYOS_VERSION:-}" ] ; then
   module load cudatoolkit
 else
   # For Summit or Peak
-  module load gcc/6.4.0
-  module load cuda/9.1.85
+  module -q load gcc/6.4.0
+  module -q load cuda/9.1.85
 fi
 
-dirs="build_test_$DIRNAME_STUB build_single_test_$DIRNAME_STUB"
+#FIXdirs="build_test_$DIRNAME_STUB build_single_test_$DIRNAME_STUB"
+dirs="build_test_$DIRNAME_STUB"
 
 for i in $dirs ; do
   echo "===================="

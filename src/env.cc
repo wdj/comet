@@ -90,6 +90,10 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->gpu_mem = 0;
   env->gpu_mem_max = 0;
   env->description = description;
+  env->tc = false;
+  env->tc_buf_left = NULL;
+  env->tc_buf_right = NULL;
+  env->tc_buf_size = 0;
 
   env->mpi_comm_base_ = base_comm;
   env->make_comms_ = make_comms;
@@ -225,6 +229,18 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
         env->sparse = false;
       } else {
         GMInsistInterface(env, false && "Invalid setting for sparse.");
+      }
+      /*--------------------*/
+    } else if (strcmp(argv[i], "--tc") == 0) {
+      /*--------------------*/
+      ++i;
+      GMInsistInterface(env, i < argc && "Missing value for tc.");
+      if (strcmp(argv[i], "yes") == 0) {
+        env->tc = true;
+      } else if (strcmp(argv[i], "no") == 0) {
+        env->tc = false;
+      } else {
+        GMInsistInterface(env, false && "Invalid setting for tc.");
       }
       /*--------------------*/
     } /*---if/else---*/
@@ -406,6 +422,8 @@ void GMEnv_destroy(GMEnv* const env) {
   GMEnv_terminate_comms(env);
 
   GMEnv_terminate_streams(env);
+
+  gm_tc_bufs_free(env);
 
   *env = GMEnv_null();
 }
@@ -695,6 +713,77 @@ MPI_Datatype gm_mpi_type(const GMEnv* const env) {
   /* clang-format on */
 
   return mpi_type;
+}
+
+//-----------------------------------------------------------------------------
+
+void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local, 
+                       int num_packedval_field_local) {
+  GMInsist(env);
+  GMInsist((env->tc_buf_left != 0) == (env->tc_buf_right != 0));
+  GMInsist(num_vector_local >= 0);
+  GMInsist(num_packedval_field_local >= 0);
+
+  if (env->tc_buf_left) {
+    return;
+  }
+
+  if (GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC) {
+    return;
+  }
+
+  if (!env->tc) {
+    return;
+  }
+
+  const size_t nvl = num_vector_local;
+  const size_t npvfl = num_packedval_field_local;
+  const int sizeof_half = 2;
+
+  env->tc_buf_size = 1 + (nvl * 2) * (npvfl * 64) * sizeof_half;
+
+  cudaMalloc(&env->tc_buf_left, env->tc_buf_size);
+  GMEnv_cuda_last_call_succeeded(env);
+  env->gpu_mem += env->tc_buf_size;
+  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+
+  cudaMalloc(&env->tc_buf_right, env->tc_buf_size);
+  GMEnv_cuda_last_call_succeeded(env);
+  env->gpu_mem += env->tc_buf_size;
+  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+
+  cublasStatus_t status = cublasCreate(&env->cublas_handle);
+  GMInsist(status == CUBLAS_STATUS_SUCCESS);
+
+  status = cublasSetStream(env->cublas_handle, env->stream_compute_);
+  GMInsist(status == CUBLAS_STATUS_SUCCESS);
+
+  status = cublasSetMathMode(env->cublas_handle, CUBLAS_TENSOR_OP_MATH);
+  GMInsist(status == CUBLAS_STATUS_SUCCESS);
+}
+
+//-----------------------------------------------------------------------------
+
+void gm_tc_bufs_free(GMEnv* const env) {
+  GMInsist(env);
+  GMInsist((env->tc_buf_left != 0) == (env->tc_buf_right != 0));
+
+  if (!env->tc_buf_left) {
+    return;
+  }
+
+  cudaFree(env->tc_buf_left);
+  GMEnv_cuda_last_call_succeeded(env);
+  env->tc_buf_left = NULL;
+  env->gpu_mem -= env->tc_buf_size;
+
+  cudaFree(env->tc_buf_right);
+  GMEnv_cuda_last_call_succeeded(env);
+  env->tc_buf_right = NULL;
+  env->gpu_mem -= env->tc_buf_size;
+
+  cublasStatus_t status = cublasDestroy(env->cublas_handle);
+  GMInsist(status == CUBLAS_STATUS_SUCCESS);
 }
 
 //-----------------------------------------------------------------------------

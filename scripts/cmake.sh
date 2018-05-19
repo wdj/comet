@@ -200,8 +200,11 @@ fi
 if [ -n "$CRAYOS_VERSION" ] ; then
   TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64"
 else
-  TEST_COMMAND="module load cuda/9.1.85 ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32"
+  TEST_COMMAND="module load cuda/9.1.85 ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32 -X 1"
 fi
+
+#  -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v$DEBUG_FLAG" \
+#  -DCUDA_HOST_COMPILER:STRING=/usr/bin/gcc \
 
 #------------------------------------------------------------------------------
 
@@ -233,6 +236,8 @@ time cmake \
   -DTESTING:BOOL=$TESTING \
   -DGTEST_DIR:STRING=$GTEST_DIR \
   -DTEST_COMMAND="$TEST_COMMAND" \
+ \
+  -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON \
  \
   $PROJECT_DIR
 

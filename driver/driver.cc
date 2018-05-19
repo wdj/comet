@@ -219,6 +219,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--fastnodes") == 0) {
       ++i; /*---optionally processed by caller---*/
+    } else if (strcmp(argv[i], "--tc") == 0) {
+      ++i; /*---optionally processed by caller---*/
     } else {
     /*----------*/
       if (GMEnv_proc_num(env) == 0) {
@@ -478,6 +480,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
   GMVectors_destroy(vectors, env);
   time_end = GMEnv_get_synced_time(env);
   vctime += time_end - time_beg;
+
+  gm_tc_bufs_free(env);
 
   /*---Perform some checks---*/
 

@@ -142,6 +142,9 @@ void GMVectors_create_imp_(GMVectors* vectors,
   // Set pad entries to zero
 
   GMVectors_initialize_pad(vectors, env);
+
+  gm_tc_bufs_malloc(env, vectors->num_vector_local,
+                    vectors->num_packedval_field_local);
 }
 
 //-----------------------------------------------------------------------------

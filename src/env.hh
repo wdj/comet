@@ -19,6 +19,7 @@
 #include "mpi.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
+#include "cublas_v2.h"
 
 #include "assertions.hh"
 #include "types.hh"
@@ -82,6 +83,11 @@ typedef struct {
   bool need_2way; // does the 3-way calc require 2-way metrics
   /*---OTHER---*/
   const char* description;
+  bool tc;
+  void* tc_buf_left;
+  void* tc_buf_right;
+  size_t tc_buf_size;
+  cublasHandle_t cublas_handle;
 } GMEnv;
 
 enum {
@@ -490,6 +496,12 @@ void GMFloat_free(GMFloat* p, size_t n, GMEnv* env);
 void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);
 int GMFloat_mant_dig();
+
+//-----------------------------------------------------------------------------
+
+void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
+                       int num_field_local);
+void gm_tc_bufs_free(GMEnv* const env);
 
 //-----------------------------------------------------------------------------
 
