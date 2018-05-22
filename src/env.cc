@@ -90,7 +90,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->gpu_mem = 0;
   env->gpu_mem_max = 0;
   env->description = description;
-  env->tc = false;
+  env->tc = 0;
   env->tc_buf_left = NULL;
   env->tc_buf_right = NULL;
   env->tc_buf_size = 0;
@@ -235,13 +235,12 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       /*--------------------*/
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for tc.");
-      if (strcmp(argv[i], "yes") == 0) {
-        env->tc = true;
-      } else if (strcmp(argv[i], "no") == 0) {
-        env->tc = false;
-      } else {
-        GMInsistInterface(env, false && "Invalid setting for tc.");
-      }
+      errno = 0;
+      const long tc = strtol(argv[i], NULL, 10);
+      GMInsistInterface(env, 0 == errno
+                    && (long)(int)tc == tc
+                    && "Invalid setting for tc.");
+      env->tc = tc;
       /*--------------------*/
     } /*---if/else---*/
   }   /*---for i---*/
@@ -738,9 +737,9 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
 
   const size_t nvl = num_vector_local;
   const size_t npvfl = num_packedval_field_local;
-  const int sizeof_half = 2;
+  const int sizeof_scalar = env->tc == 2 ? 1 : 2;
 
-  env->tc_buf_size = 1 + (nvl * 2) * (npvfl * 64) * sizeof_half;
+  env->tc_buf_size = 1 + (nvl * 2) * (npvfl * 64) * sizeof_scalar;
 
   cudaMalloc(&env->tc_buf_left, env->tc_buf_size);
   GMEnv_cuda_last_call_succeeded(env);

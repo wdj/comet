@@ -99,19 +99,69 @@ __global__ void gm_tc_buf_write_(
   const int seminibble0 = nibble & 3;
   const int seminibble1 = (nibble>>2) & 3;
 
-  const GMUInt32 half0 = seminibble0 ==     3*i01 ? 0x4000 :
-                         seminibble0 == 3 - 3*i01 ? 0x0000 :
-                                                    0x3c00;
+  const GMUInt32 out0 = seminibble0 ==     3*i01 ? 0x4000 :
+                        seminibble0 == 3 - 3*i01 ? 0x0000 :
+                                                   0x3c00;
 
-  const GMUInt32 half1 = seminibble1 ==     3*i01 ? 0x4000 :
-                         seminibble1 == 3 - 3*i01 ? 0x0000 :
-                                                    0x3c00;
-  const GMUInt32 half01 = half0 + ( half1 << 16);
+  const GMUInt32 out1 = seminibble1 ==     3*i01 ? 0x4000 :
+                        seminibble1 == 3 - 3*i01 ? 0x0000 :
+                                                   0x3c00;
+  const GMUInt32 out01 = out0 + ( out1 << 16);
 
   const int col = left_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
-  vo[fl2 + nfl2*col] = half01;
+  vo[fl2 + nfl2*col] = out01;
+
+//if (seminibble0) printf("vec %i field %i  %i\n", vl, 2*fl2+0, seminibble0);
+//if (seminibble1) printf("vec %i field %i  %i\n", vl, 2*fl2+1, seminibble1);
+}
+
+//-----------------------------------------------------------------------------
+
+__global__ void gm_tc_buf_write_8_(
+  int left_right,
+  GMUInt32* vi,
+  int vi_dim0,
+  int nvl,
+  int nvl2,
+  int nfl,
+  int nfl2,
+  GMUInt16* vo) {
+
+  // Two fields (seminibbles) map to two half words of 32-bit word
+
+  const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
+  const int i01 = blockIdx.y;
+  const int vl = blockIdx.z;
+
+  if (fl2 >= nfl2) {
+    return;
+  }
+
+  const GMUInt32 * const vi_col = vi + vl * vi_dim0;
+
+  // NOTE: first field seminibble0, second field seminibble1
+  const int nibble = (vi_col[fl2/8] >> (4 * (fl2%8))) & 15;
+
+  const int seminibble0 = nibble & 3;
+  const int seminibble1 = (nibble>>2) & 3;
+
+  const GMUInt16 out0 = seminibble0 ==     3*i01 ? 2 :
+                        seminibble0 == 3 - 3*i01 ? 0 :
+                                                   1;
+
+  const GMUInt16 out1 = seminibble1 ==     3*i01 ? 2 :
+                        seminibble1 == 3 - 3*i01 ? 0 :
+                                                   1;
+  const GMUInt16 out01 = out0 + ( out1 << 8);
+
+  const int col = left_right ? i01 + 2*vl :
+                  i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
+
+  vo[fl2 + nfl2*col] = out01;
+
+//printf("%i %i\n", (int)out0, (int)out1);
 
 //if (seminibble0) printf("vec %i field %i  %i\n", vl, 2*fl2+0, seminibble0);
 //if (seminibble1) printf("vec %i field %i  %i\n", vl, 2*fl2+1, seminibble1);
@@ -152,19 +202,39 @@ void gm_tc_buf_write(
   const int threadblocksize = 256;
   const int fl2_threadblocks = (nfl2+threadblocksize-1) / threadblocksize;
 
-  gm_tc_buf_write_<<<
-    dim3(fl2_threadblocks, 2, nvl),
-    dim3(threadblocksize, 1, 1),
-    0,
-    env->stream_compute_>>>(
-    left_right,
-    (GMUInt32*)bufd,
-    npvfl * 4,
-    nvl,
-    nvl2,
-    nfl,
-    nfl2,
-    left_right ? (GMUInt32*)env->tc_buf_right : (GMUInt32*)env->tc_buf_left);
+  if (env->tc == 2) {
+
+    gm_tc_buf_write_8_<<<
+      dim3(fl2_threadblocks, 2, nvl),
+      dim3(threadblocksize, 1, 1),
+      0,
+      env->stream_compute_>>>(
+      left_right,
+      (GMUInt32*)bufd,
+      npvfl * 4,
+      nvl,
+      nvl2,
+      nfl,
+      nfl2,
+      left_right ? (GMUInt16*)env->tc_buf_right : (GMUInt16*)env->tc_buf_left);
+
+  } else {
+
+    gm_tc_buf_write_<<<
+      dim3(fl2_threadblocks, 2, nvl),
+      dim3(threadblocksize, 1, 1),
+      0,
+      env->stream_compute_>>>(
+      left_right,
+      (GMUInt32*)bufd,
+      npvfl * 4,
+      nvl,
+      nvl2,
+      nfl,
+      nfl2,
+      left_right ? (GMUInt32*)env->tc_buf_right : (GMUInt32*)env->tc_buf_left);
+
+  }
 
   GMEnv_cuda_last_call_succeeded(env);
 }
@@ -216,8 +286,8 @@ void gm_tc_solve(
     CUBLAS_OP_T, CUBLAS_OP_N,
     m, n, k,
     &alpha,
-    env->tc_buf_left, CUDA_R_16F, k,
-    env->tc_buf_right, CUDA_R_16F, k,
+    env->tc_buf_left, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
+    env->tc_buf_right, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
     &beta,
     dC, CUDA_R_32F, m,
     CUDA_R_32F, CUBLAS_GEMM_DFALT_TENSOR_OP);

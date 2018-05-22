@@ -16,8 +16,9 @@
 //=============================================================================
 /*---Types: general---*/
 
-/*---Boolean type---*/
+/*---Integer types---*/
 
+typedef unsigned short int GMUInt16;
 typedef unsigned int GMUInt32;
 
 typedef signed long long int GMInt64;
@@ -33,6 +34,7 @@ static void gm_check_type_sizes() {
   GMStaticAssert(sizeof(GMFp64) == 64/8);
   GMStaticAssert(sizeof(int) == 4);
   GMStaticAssert(sizeof(size_t) == 8);
+  GMStaticAssert(sizeof(GMUInt16) == 2);
   GMStaticAssert(sizeof(GMUInt32) == 4);
   GMStaticAssert(sizeof(GMInt64) == 8);
   GMStaticAssert(sizeof(GMUInt64) == 8);

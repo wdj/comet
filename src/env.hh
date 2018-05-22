@@ -83,7 +83,7 @@ typedef struct {
   bool need_2way; // does the 3-way calc require 2-way metrics
   /*---OTHER---*/
   const char* description;
-  bool tc;
+  int tc;
   void* tc_buf_left;
   void* tc_buf_right;
   size_t tc_buf_size;
