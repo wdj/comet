@@ -218,7 +218,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
     } else if (strcmp(argv[i], "--sparse") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--fastnodes") == 0) {
-      ++i; /*---optionally processed by caller---*/
+      /*---optionally processed by caller---*/
     } else if (strcmp(argv[i], "--tc") == 0) {
       ++i; /*---optionally processed by caller---*/
     } else {

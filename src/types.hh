@@ -158,8 +158,8 @@ static void GMTally1_decode(GMTally1* __restrict__ val0,
   *val1 = v1;
   GMAssert(v ==
            (GMFp64)(v0 + (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) * v1));
-  GMAssert(v0 >= 0);
-  GMAssert(v1 >= 0);
+  //GMAssert(v0 >= 0);
+  //GMAssert(v1 >= 0);
   GMAssert(v0 < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
   GMAssert(v1 < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
 }
@@ -225,7 +225,7 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
   const GMTally1 result =
       i1 == 0 ? tally2 % (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
               : tally2 / (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS);
-  GMAssert(result >= 0);
+  //GMAssert(result >= 0);
   GMAssert(result < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
@@ -243,7 +243,7 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
   const GMTally1 result =
       i2 == 0 ? tally2 % (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
               : tally2 / (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS);
-  GMAssert(result >= 0);
+  //GMAssert(result >= 0);
   GMAssert(result < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }

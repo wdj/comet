@@ -1267,12 +1267,14 @@ void DriverTest_ccc_() {
 
   EXPECT_EQ(
       true,
-      compare_2runs("--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
+      compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 40 "
                     "--compute_method CPU --metric_type ccc "
-                    "--verbosity 0 ",
-                    "--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
+                    "--problem_type random "
+                    "--verbosity 1 ",
+                    "--num_proc_vector 1 --num_field 100 --num_vector_local 40 "
                     "--compute_method GPU --metric_type ccc "
-                    "--verbosity 3 --tc yes"));
+                    "--problem_type random "
+                    "--verbosity 1 --tc yes"));
 
 
 #if 0

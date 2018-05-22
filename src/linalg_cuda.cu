@@ -113,10 +113,8 @@ __global__ void gm_tc_buf_write_(
 
   vo[fl2 + nfl2*col] = half01;
 
-//if (seminibble0)
-//  printf("vec %i field %i  %i\n", vl, 2*fl2+0, seminibble0);
-//if (seminibble1)
-//  printf("vec %i field %i  %i\n", vl, 2*fl2+1, seminibble1);
+//if (seminibble0) printf("vec %i field %i  %i\n", vl, 2*fl2+0, seminibble0);
+//if (seminibble1) printf("vec %i field %i  %i\n", vl, 2*fl2+1, seminibble1);
 }
 
 //-----------------------------------------------------------------------------
@@ -201,6 +199,7 @@ void gm_tc_solve(
   const float alpha = 1;
   const float beta = 0;
 
+#if 0
   cublasStatus_t status = cublasSgemmEx(
     env->cublas_handle,
     CUBLAS_OP_T, CUBLAS_OP_N,
@@ -210,6 +209,18 @@ void gm_tc_solve(
     env->tc_buf_right, CUDA_R_16F, k,
     &beta,
     dC, CUDA_R_32F, m);
+#endif
+
+  cublasStatus_t status = cublasGemmEx(
+    env->cublas_handle,
+    CUBLAS_OP_T, CUBLAS_OP_N,
+    m, n, k,
+    &alpha,
+    env->tc_buf_left, CUDA_R_16F, k,
+    env->tc_buf_right, CUDA_R_16F, k,
+    &beta,
+    dC, CUDA_R_32F, m,
+    CUDA_R_32F, CUBLAS_GEMM_DFALT_TENSOR_OP);
 
   GMInsist(status == CUBLAS_STATUS_SUCCESS);
 
