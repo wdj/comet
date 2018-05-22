@@ -17,6 +17,7 @@ else #---IBM
   # For Summit or Peak
   module load gcc/6.4.0
   module load cuda/9.1.85
+  #module load cuda
 fi
 
 time make VERBOSE=1

@@ -269,6 +269,9 @@ void gm_tc_solve(
   const float alpha = 1;
   const float beta = 0;
 
+  GMInsist(k % 8 == 0);
+  GMInsist(m % 8 == 0);
+
 #if 0
   cublasStatus_t status = cublasSgemmEx(
     env->cublas_handle,
@@ -290,7 +293,25 @@ void gm_tc_solve(
     env->tc_buf_right, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
     &beta,
     dC, CUDA_R_32F, m,
-    CUDA_R_32F, CUBLAS_GEMM_DFALT_TENSOR_OP);
+    CUDA_R_32F,
+    CUBLAS_GEMM_ALGO4_TENSOR_OP); // best, for cuda 9.1.85
+    //CUBLAS_GEMM_DFALT_TENSOR_OP);
+
+  if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
+    printf("Error: CUBLAS_STATUS_NOT_INITIALIZED\n");
+  }
+  if (status == CUBLAS_STATUS_ARCH_MISMATCH) {
+    printf("Error: CUBLAS_STATUS_ARCH_MISMATCH\n");
+  }
+  if (status == CUBLAS_STATUS_NOT_SUPPORTED) {
+    printf("Error: CUBLAS_STATUS_NOT_SUPPORTED\n");
+  }
+  if (status == CUBLAS_STATUS_INVALID_VALUE) {
+    printf("Error: CUBLAS_STATUS_INVALID_VALUE\n");
+  }
+  if (status == CUBLAS_STATUS_EXECUTION_FAILED) {
+    printf("Error: CUBLAS_STATUS_EXECUTION_FAILED\n");
+  }
 
   GMInsist(status == CUBLAS_STATUS_SUCCESS);
 
