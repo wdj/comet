@@ -72,6 +72,7 @@ const GMUInt32* MGEMM2::table[] = {MGEMM2_table0, MGEMM2_table1};
 //-----------------------------------------------------------------------------
 
 __global__ void gm_tc_buf_write_(
+  bool is_sparse,
   int left_right,
   GMUInt32* vi,
   int vi_dim0,
@@ -84,31 +85,56 @@ __global__ void gm_tc_buf_write_(
   // Two fields (seminibbles) map to two half words of 32-bit word
 
   const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int i01 = blockIdx.y;
+  const int i01 = blockIdx.y; // count either 0 bits or 1 bits.
   const int vl = blockIdx.z;
 
   if (fl2 >= nfl2) {
     return;
   }
 
+  // Output array as floats has nfl/2 rows, as halfs has nfl rows.
+
+  // Column offset in input array.
+
   const GMUInt32 * const vi_col = vi + vl * vi_dim0;
 
+  // Pick up two consecutive field values.
   // NOTE: first field seminibble0, second field seminibble1
+
   const int nibble = (vi_col[fl2/8] >> (4 * (fl2%8))) & 15;
 
   const int seminibble0 = nibble & 3;
   const int seminibble1 = (nibble>>2) & 3;
 
-  const GMUInt32 out0 = seminibble0 ==     3*i01 ? 0x4000 :
-                        seminibble0 == 3 - 3*i01 ? 0x0000 :
-                                                   0x3c00;
+  // Count number of 0 (or 1) bits in respective seminibble.
 
-  const GMUInt32 out1 = seminibble1 ==     3*i01 ? 0x4000 :
-                        seminibble1 == 3 - 3*i01 ? 0x0000 :
-                                                   0x3c00;
+  const GMUInt32 zero = 0x0000;
+  const GMUInt32 one = 0x3c00;
+  const GMUInt16 two = 0x4000;
+
+  const GMUInt32 out0 = seminibble0 == 3*i01      ? two :
+                        seminibble0 == 3*(1-i01)  ? zero :
+                                       !is_sparse ? one :
+                        seminibble0 == 1          ? one :
+                                                    zero;
+
+  const GMUInt32 out1 = seminibble1 == 3*i01      ? two :
+                        seminibble1 == 3*(1-i01)  ? zero :
+                                       !is_sparse ? one :
+                        seminibble1 == 1          ? one :
+                                                    zero;
+  // Combine two halfs into one float.
+
   const GMUInt32 out01 = out0 + ( out1 << 16);
 
-  const int col = left_right ? i01 + 2*vl :
+  // Always keep pair of cols together, corresponding to the two i01 values.
+  // Right case: stright copy of cols to cols in sequence.
+  // Left case: interlace to make swizzling of result array work:
+  // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
+
+  const bool is_right = left_right != 0;
+
+  const int col = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
   vo[fl2 + nfl2*col] = out01;
@@ -120,6 +146,7 @@ __global__ void gm_tc_buf_write_(
 //-----------------------------------------------------------------------------
 
 __global__ void gm_tc_buf_write_8_(
+  bool is_sparse,
   int left_right,
   GMUInt32* vi,
   int vi_dim0,
@@ -132,31 +159,56 @@ __global__ void gm_tc_buf_write_8_(
   // Two fields (seminibbles) map to two half words of 32-bit word
 
   const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int i01 = blockIdx.y;
+  const int i01 = blockIdx.y; // count either 0 bits or 1 bits.
   const int vl = blockIdx.z;
 
   if (fl2 >= nfl2) {
     return;
   }
 
+  // Output array as shorts has nfl/2 rows, as chars has nfl rows.
+
+  // Column offset in input array.
+
   const GMUInt32 * const vi_col = vi + vl * vi_dim0;
 
+  // Pick up two consecutive field values.
   // NOTE: first field seminibble0, second field seminibble1
+
   const int nibble = (vi_col[fl2/8] >> (4 * (fl2%8))) & 15;
 
   const int seminibble0 = nibble & 3;
   const int seminibble1 = (nibble>>2) & 3;
 
-  const GMUInt16 out0 = seminibble0 ==     3*i01 ? 2 :
-                        seminibble0 == 3 - 3*i01 ? 0 :
-                                                   1;
+  // Count number of 0 (or 1) bits in respective seminibble.
 
-  const GMUInt16 out1 = seminibble1 ==     3*i01 ? 2 :
-                        seminibble1 == 3 - 3*i01 ? 0 :
-                                                   1;
+  const GMUInt16 zero = 0;
+  const GMUInt16 one = 1;
+  const GMUInt16 two = 2;
+
+  const GMUInt16 out0 = seminibble0 == 3*i01      ? two :
+                        seminibble0 == 3*(1-i01)  ? zero :
+                                       !is_sparse ? one :
+                        seminibble0 == 1          ? one :
+                                                    zero;
+
+  const GMUInt16 out1 = seminibble1 == 3*i01      ? two :
+                        seminibble1 == 3*(1-i01)  ? zero :
+                                       !is_sparse ? one :
+                        seminibble1 == 1          ? one :
+                                                    zero;
+  // Combine two chars into one short int.
+
   const GMUInt16 out01 = out0 + ( out1 << 8);
 
-  const int col = left_right ? i01 + 2*vl :
+  // Always keep pair of cols together, corresponding to the two i01 values.
+  // Right case: stright copy of cols to cols in sequence.
+  // Left case: interlace to make swizzling of result array work:
+  // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
+
+  const bool is_right = left_right != 0;
+
+  const int col = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
   vo[fl2 + nfl2*col] = out01;
@@ -168,6 +220,7 @@ __global__ void gm_tc_buf_write_8_(
 }
 
 //-----------------------------------------------------------------------------
+// Convert packed-bits fields of input vectors into halfs (or chars).
 
 void gm_tc_buf_write(
   int left_right,
@@ -188,7 +241,7 @@ void gm_tc_buf_write(
 
   GMInsistInterface(env, GMEnv_num_way(env) == GM_NUM_WAY_2 &&
                     "Not yet implemented.");
-  GMInsistInterface(env, !env->sparse && "Not yet implemented.");
+  //GMInsistInterface(env, !env->sparse && "Not yet implemented.");
 
   const int nvl = num_vector_local;
   const int nvl2 = nvl / 2;
@@ -209,6 +262,7 @@ void gm_tc_buf_write(
       dim3(threadblocksize, 1, 1),
       0,
       env->stream_compute_>>>(
+      env->sparse,
       left_right,
       (GMUInt32*)bufd,
       npvfl * 4,
@@ -225,6 +279,7 @@ void gm_tc_buf_write(
       dim3(threadblocksize, 1, 1),
       0,
       env->stream_compute_>>>(
+      env->sparse,
       left_right,
       (GMUInt32*)bufd,
       npvfl * 4,
@@ -240,6 +295,7 @@ void gm_tc_buf_write(
 }
 
 //-----------------------------------------------------------------------------
+// Call tensor core enabled cuBLAS function to tally bits for CCC.
 
 void gm_tc_solve(
   int num_vector_local,
@@ -262,15 +318,15 @@ void gm_tc_solve(
   const int npvfl = num_packedval_field_local;
   const int nfl = npvfl * 64;
 
-  const int m = nvl * 2;
-  const int n = nvl * 2;
-  const int k = nfl;
+  const int m = 2 * nvl; // metrics array (as floats) dim
+  const int n = 2 * nvl; // metrics array (as floats) dim
+  const int k = nfl; // vectors array (as halfs) dim
 
   const float alpha = 1;
   const float beta = 0;
 
-  GMInsist(k % 8 == 0);
-  GMInsist(m % 8 == 0);
+  GMInsist(k % 8 == 0); // nfl is derived from padded-up npvfl, so ok.
+  GMInsist(m % 8 == 0); // need nvl % 4 == 0
 
 #if 0
   cublasStatus_t status = cublasSgemmEx(
@@ -325,6 +381,8 @@ __global__ void gm_tc_fix_metrics_(
   int nvl2,
   float* bufd) {
 
+  // Row and column of metrics array.
+
   const int thread_r = threadIdx.x + blockIdx.x * blockDim.x;
   const int thread_c = blockIdx.y;
 
@@ -332,8 +390,17 @@ __global__ void gm_tc_fix_metrics_(
     return;
   }
 
+  // Considered as an array of floats, array is 2*nvl rows X 2*nvl cols.
+  // Each thread manipulates a block of 4 rows and 2 cols.
+  // Thus the dimensions of the metrics array in blocks is nvl2 X nvl.
+  // Each block viewed as an array of doubles is 2 X 2.
+
+  // Two col numbers being processed of this (float) array.
+
   const int fc0 = thread_c * (4*nvl);
   const int fc1 = thread_c * (4*nvl) + 2*nvl;
+
+  // Read the 8 floats.
 
   const float f00 = bufd[fc0+0+4*thread_r];
   const float f01 = bufd[fc0+1+4*thread_r];
@@ -344,6 +411,13 @@ __global__ void gm_tc_fix_metrics_(
   const float f11 = bufd[fc1+1+4*thread_r];
   const float f12 = bufd[fc1+2+4*thread_r];
   const float f13 = bufd[fc1+3+4*thread_r];
+
+  // Apply the permutation.
+  //
+  // [ A  A ]      [ A  B ]
+  // [ A  A ]  ->  [ A  B ]
+  // [ B  B ]  ->  [ A  B ]
+  // [ B  B ]      [ A  B ]
 
   const float f00p = f00;
   const float f01p = f01;
@@ -357,6 +431,8 @@ __global__ void gm_tc_fix_metrics_(
   const float f12p = f12;
   const float f13p = f13;
 
+  // Pack two 25-bit integers into mantissa of double.
+
   const double shifter = (((GMUInt32)1)<<GM_TALLY1_MAX_VALUE_BITS);
 
   const double d00 = f00p + f02p * shifter;
@@ -364,6 +440,8 @@ __global__ void gm_tc_fix_metrics_(
 
   const double d10 = f10p + f12p * shifter;
   const double d11 = f11p + f13p * shifter;
+
+  // Overwrite block with the new values.
 
   const int dc0 = thread_c * (2*nvl);
   const int dc1 = thread_c * (2*nvl) + nvl;
@@ -379,6 +457,7 @@ __global__ void gm_tc_fix_metrics_(
 }
 
 //-----------------------------------------------------------------------------
+// Swizzle/cast values from the CUBLAS call into required double complex format.
 
 void gm_tc_fix_metrics(
   int num_vector_local,
