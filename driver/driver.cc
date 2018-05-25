@@ -181,9 +181,11 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for problem_type.");
       if (strcmp(argv[i], "random") == 0) {
-        GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_RANDOM);
+        do_->problem_type = GM_PROBLEM_TYPE_RANDOM;
+        //GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_RANDOM);
       } else if (strcmp(argv[i], "analytic") == 0) {
-        GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_ANALYTIC);
+        do_->problem_type = GM_PROBLEM_TYPE_ANALYTIC;
+        //GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_ANALYTIC);
       } else {
         GMInsistInterface(env, false && "Invalid setting for problem_type.");
       }
