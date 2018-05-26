@@ -121,7 +121,7 @@ __global__ void gm_tc_buf_write_fp16_(
 
   const GMUInt32 zero = 0x0000;
   const GMUInt32 one = 0x3c00;
-  const GMUInt16 two = 0x4000;
+  const GMUInt32 two = 0x4000;
 
   const GMUInt32 out0 = seminibble0 == 3*i01     ? two :
                         seminibble0 == 3*(1-i01) ? zero :
@@ -147,6 +147,27 @@ __global__ void gm_tc_buf_write_fp16_(
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
   vo[fl2 + nfl2*col] = out01;
+
+
+  if (fl2==0 && vl==0 && i01==0) printf("//////  %i\n", (int) *(GMUInt16*)vo);
+
+
+  const int fl0 = 0 + 2*fl2;
+  const int fl1 = 1 + 2*fl2;
+
+  const GMUInt16 out0_16 = out0;
+  const GMUInt16 out1_16 = out1;
+
+  ((GMUInt16*)vo)[col+2*nvl*fl0] = out0_16;
+  ((GMUInt16*)vo)[col+2*nvl*fl1] = out1_16;
+
+
+//  if (fl2==0)
+//    printf("////// %s %i %i  %i %i %i %i  %i %i %i  %i %i\n", left_right ? "r" : "l", (int)nvl, (int)nfl,  fl0, fl1, i01, vl,  fl0, fl1, col,  (int)(col+2*nvl*fl0), (int)(col+2*nvl*fl1));
+
+
+
+
 
 //if (fl2==0) printf("%s vec %i field %i  %i\n", left_right ? "r" : "l", vl, 2*fl2+0, seminibble0);
 //if (fl2==0) printf("lr %i vec %i field %i  %i\n", left_right, vl, 2*fl2+1, seminibble1);
@@ -346,8 +367,8 @@ void gm_tc_solve(
   const int npvfl = num_packedval_field_local;
   const int nfl = npvfl * 64;
 
-  const int m = 2 * nvl; // metrics array (as floats) dim
-  const int n = 2 * nvl; // metrics array (as floats) dim
+  const int m = 2 * nvl; // metrics array dim
+  const int n = 2 * nvl; // metrics array dim
   const int k = nfl; // vectors array (as halfs) dim
 
   const float alpha = 1;
@@ -370,11 +391,14 @@ void gm_tc_solve(
 
   cublasStatus_t status = cublasGemmEx(
     env->cublas_handle,
-    CUBLAS_OP_T, CUBLAS_OP_N,
+    //CUBLAS_OP_T, CUBLAS_OP_N,
+    CUBLAS_OP_N, CUBLAS_OP_T,
     m, n, k,
     &alpha,
-    env->tc_buf_left, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
-    env->tc_buf_right, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
+    //env->tc_buf_left, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
+    env->tc_buf_left, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, m,
+    //env->tc_buf_right, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
+    env->tc_buf_right, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, n,
     &beta,
     dC, CUDA_R_32F, m,
     CUDA_R_32F,
