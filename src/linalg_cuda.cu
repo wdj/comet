@@ -71,11 +71,13 @@ const GMUInt32* MGEMM2::table[] = {MGEMM2_table0, MGEMM2_table1};
 
 //-----------------------------------------------------------------------------
 
-__global__ void gm_tc_buf_write_(
+__global__ void gm_tc_buf_write_fp16_(
+  int num_way,
   bool is_sparse,
   int left_right,
   GMUInt32* vi,
   int vi_dim0,
+  int nvl_in,
   int nvl,
   int nvl2,
   int nfl,
@@ -87,8 +89,13 @@ __global__ void gm_tc_buf_write_(
   const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
   const int i01 = blockIdx.y; // count either 0 bits or 1 bits.
   const int vl = blockIdx.z;
+  const int vl_in = vl <= nvl_in-1 ? vl : nvl_in-1;
 
   if (fl2 >= nfl2) {
+    return;
+  }
+
+  if (vl < 0 || vl >= nvl) {
     return;
   }
 
@@ -96,7 +103,7 @@ __global__ void gm_tc_buf_write_(
 
   // Column offset in input array.
 
-  const GMUInt32 * const vi_col = vi + vl * vi_dim0;
+  const GMUInt32 * const vi_col = vi + vl_in * vi_dim0;
 
   // Pick up two consecutive field values.
   // NOTE: first field seminibble0, second field seminibble1
@@ -108,48 +115,52 @@ __global__ void gm_tc_buf_write_(
 
   // Count number of 0 (or 1) bits in respective seminibble.
 
+  const bool is_right = left_right != 0;
+
+  const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
+
   const GMUInt32 zero = 0x0000;
   const GMUInt32 one = 0x3c00;
   const GMUInt16 two = 0x4000;
 
-  const GMUInt32 out0 = seminibble0 == 3*i01      ? two :
-                        seminibble0 == 3*(1-i01)  ? zero :
-                                       !is_sparse ? one :
-                        seminibble0 == 1          ? one :
-                                                    zero;
+  const GMUInt32 out0 = seminibble0 == 3*i01     ? two :
+                        seminibble0 == 3*(1-i01) ? zero :
+                                       !skip_10  ? one :
+                        seminibble0 == 1         ? one :
+                                                   zero;
 
-  const GMUInt32 out1 = seminibble1 == 3*i01      ? two :
-                        seminibble1 == 3*(1-i01)  ? zero :
-                                       !is_sparse ? one :
-                        seminibble1 == 1          ? one :
-                                                    zero;
+  const GMUInt32 out1 = seminibble1 == 3*i01     ? two :
+                        seminibble1 == 3*(1-i01) ? zero :
+                                       !skip_10  ? one :
+                        seminibble1 == 1         ? one :
+                                                   zero;
   // Combine two halfs into one float.
 
   const GMUInt32 out01 = out0 + ( out1 << 16);
 
   // Always keep pair of cols together, corresponding to the two i01 values.
-  // Right case: stright copy of cols to cols in sequence.
-  // Left case: interlace to make swizzling of result array work:
+  // Right case: straight copy of cols to cols in sequence.
+  // Left case: interleave to make swizzling of result array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
-
-  const bool is_right = left_right != 0;
 
   const int col = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
   vo[fl2 + nfl2*col] = out01;
 
-//if (seminibble0) printf("vec %i field %i  %i\n", vl, 2*fl2+0, seminibble0);
-//if (seminibble1) printf("vec %i field %i  %i\n", vl, 2*fl2+1, seminibble1);
+//if (fl2==0) printf("%s vec %i field %i  %i\n", left_right ? "r" : "l", vl, 2*fl2+0, seminibble0);
+//if (fl2==0) printf("lr %i vec %i field %i  %i\n", left_right, vl, 2*fl2+1, seminibble1);
 }
 
 //-----------------------------------------------------------------------------
 
-__global__ void gm_tc_buf_write_8_(
+__global__ void gm_tc_buf_write_int8_(
+  int num_way,
   bool is_sparse,
   int left_right,
   GMUInt32* vi,
   int vi_dim0,
+  int nvl_in,
   int nvl,
   int nvl2,
   int nfl,
@@ -161,8 +172,13 @@ __global__ void gm_tc_buf_write_8_(
   const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
   const int i01 = blockIdx.y; // count either 0 bits or 1 bits.
   const int vl = blockIdx.z;
+  const int vl_in = vl <= nvl_in-1 ? vl : nvl_in-1;
 
   if (fl2 >= nfl2) {
+    return;
+  }
+
+  if (vl < 0 || vl >= nvl) {
     return;
   }
 
@@ -170,7 +186,7 @@ __global__ void gm_tc_buf_write_8_(
 
   // Column offset in input array.
 
-  const GMUInt32 * const vi_col = vi + vl * vi_dim0;
+  const GMUInt32 * const vi_col = vi + vl_in * vi_dim0;
 
   // Pick up two consecutive field values.
   // NOTE: first field seminibble0, second field seminibble1
@@ -182,31 +198,33 @@ __global__ void gm_tc_buf_write_8_(
 
   // Count number of 0 (or 1) bits in respective seminibble.
 
+  const bool is_right = left_right != 0;
+
+  const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
+
   const GMUInt16 zero = 0;
   const GMUInt16 one = 1;
   const GMUInt16 two = 2;
 
-  const GMUInt16 out0 = seminibble0 == 3*i01      ? two :
-                        seminibble0 == 3*(1-i01)  ? zero :
-                                       !is_sparse ? one :
-                        seminibble0 == 1          ? one :
-                                                    zero;
+  const GMUInt16 out0 = seminibble0 == 3*i01     ? two :
+                        seminibble0 == 3*(1-i01) ? zero :
+                                       !skip_10  ? one :
+                        seminibble0 == 1         ? one :
+                                                   zero;
 
-  const GMUInt16 out1 = seminibble1 == 3*i01      ? two :
-                        seminibble1 == 3*(1-i01)  ? zero :
-                                       !is_sparse ? one :
-                        seminibble1 == 1          ? one :
-                                                    zero;
+  const GMUInt16 out1 = seminibble1 == 3*i01     ? two :
+                        seminibble1 == 3*(1-i01) ? zero :
+                                       !skip_10  ? one :
+                        seminibble1 == 1         ? one :
+                                                   zero;
   // Combine two chars into one short int.
 
   const GMUInt16 out01 = out0 + ( out1 << 8);
 
   // Always keep pair of cols together, corresponding to the two i01 values.
-  // Right case: stright copy of cols to cols in sequence.
-  // Left case: interlace to make swizzling of result array work:
+  // Right case: straight copy of cols to cols in sequence.
+  // Left case: interleave to make swizzling of result array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
-
-  const bool is_right = left_right != 0;
 
   const int col = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
@@ -214,6 +232,8 @@ __global__ void gm_tc_buf_write_8_(
   vo[fl2 + nfl2*col] = out01;
 
 //printf("%i %i\n", (int)out0, (int)out1);
+
+//if (fl2==0) printf("%s i01 %i vec %i field %i  %i  %i\n", left_right ? "r" : "l", i01, vl, 2*fl2+0, seminibble0, (int)out0);
 
 //if (seminibble0) printf("vec %i field %i  %i\n", vl, 2*fl2+0, seminibble0);
 //if (seminibble1) printf("vec %i field %i  %i\n", vl, 2*fl2+1, seminibble1);
@@ -224,12 +244,14 @@ __global__ void gm_tc_buf_write_8_(
 
 void gm_tc_buf_write(
   int left_right,
+  int I_max,
   int num_vector_local,
   int num_packedval_field_local,
   void* bufd,
   GMEnv* env) {
-  GMInsist(left_right ==0 || left_right == 1);
+  GMInsist(left_right == 0 || left_right == 1);
   GMInsist(env && bufd);
+  GMInsist(I_max >= 0);
   GMInsist(num_vector_local >= 0);
   GMInsist(num_packedval_field_local >= 0);
   GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
@@ -239,8 +261,8 @@ void gm_tc_buf_write(
   cudaGetDeviceProperties(&deviceProp, 0);
   GMInsist(deviceProp.major >= 7);
 
-  GMInsistInterface(env, GMEnv_num_way(env) == GM_NUM_WAY_2 &&
-                    "Not yet implemented.");
+  //GMInsistInterface(env, GMEnv_num_way(env) == GM_NUM_WAY_2 &&
+  //                  "Not yet implemented.");
   //GMInsistInterface(env, !env->sparse && "Not yet implemented.");
 
   const int nvl = num_vector_local;
@@ -255,39 +277,45 @@ void gm_tc_buf_write(
   const int threadblocksize = 256;
   const int fl2_threadblocks = (nfl2+threadblocksize-1) / threadblocksize;
 
+  const bool is_right = left_right != 0;
+
   if (env->tc == 2) {
 
-    gm_tc_buf_write_8_<<<
+    gm_tc_buf_write_int8_<<<
       dim3(fl2_threadblocks, 2, nvl),
       dim3(threadblocksize, 1, 1),
       0,
       env->stream_compute_>>>(
+      GMEnv_num_way(env),
       env->sparse,
       left_right,
       (GMUInt32*)bufd,
       npvfl * 4,
+      left_right ? nvl : I_max,
       nvl,
       nvl2,
       nfl,
       nfl2,
-      left_right ? (GMUInt16*)env->tc_buf_right : (GMUInt16*)env->tc_buf_left);
+      is_right ? (GMUInt16*)env->tc_buf_right : (GMUInt16*)env->tc_buf_left);
 
   } else {
 
-    gm_tc_buf_write_<<<
+    gm_tc_buf_write_fp16_<<<
       dim3(fl2_threadblocks, 2, nvl),
       dim3(threadblocksize, 1, 1),
       0,
       env->stream_compute_>>>(
+      GMEnv_num_way(env),
       env->sparse,
       left_right,
       (GMUInt32*)bufd,
       npvfl * 4,
+      left_right ? nvl : I_max,
       nvl,
       nvl2,
       nfl,
       nfl2,
-      left_right ? (GMUInt32*)env->tc_buf_right : (GMUInt32*)env->tc_buf_left);
+      is_right ? (GMUInt32*)env->tc_buf_right : (GMUInt32*)env->tc_buf_left);
 
   }
 
@@ -298,8 +326,8 @@ void gm_tc_buf_write(
 // Call tensor core enabled cuBLAS function to tally bits for CCC.
 
 void gm_tc_solve(
+  int I_max,
   int num_vector_local,
-  int num_vector_local_copy,
   int num_packedval_field_local,
   void* dA,
   int ldda,
@@ -309,8 +337,8 @@ void gm_tc_solve(
   int lddc,
   GMEnv* env) {
   GMInsist(env && dA && dB && dC);
+  GMInsist(I_max >= 0);
   GMInsist(num_vector_local >= 0);
-  GMInsist(num_vector_local_copy >= 0);
   GMInsist(num_packedval_field_local >= 0);
   GMInsist(ldda >= 0 && lddb >= 0 && lddc >= 0);
 
@@ -460,10 +488,12 @@ __global__ void gm_tc_fix_metrics_(
 // Swizzle/cast values from the CUBLAS call into required double complex format.
 
 void gm_tc_fix_metrics(
+  int I_max,
   int num_vector_local,
   void* bufd,
   GMEnv* env) {
   GMInsist(env && bufd);
+  GMInsist(I_max >= 0);
   GMInsist(num_vector_local >= 0);
 
   const int nvl = num_vector_local;

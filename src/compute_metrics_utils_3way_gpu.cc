@@ -315,6 +315,8 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
         GMTally1 mB10, mB11;
         GMTally1_decode(&mB10, &mB11, mB.data[1]);
 
+        //printf("////////// %i  %i %i     %i %i %i %i\n", (int)step_2way, I, K, (int)mB00, (int)mB01, (int)mB10, (int)mB11); //FIX
+
         /* clang-format off */
         int r000 = r000_permuted;
         int r100 = no_perm  ?   r100_permuted :

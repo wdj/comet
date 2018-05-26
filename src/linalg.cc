@@ -589,13 +589,15 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     return;
   }
 
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-      GMEnv_num_way(env) == GM_NUM_WAY_2 &&
-      env->tc) {
-    gm_tc_buf_write(0, m, k, dA, env);
-    gm_tc_buf_write(1, m, k, dB, env);
-    gm_tc_solve(m, n, k, dA, ldda, dB, lddb, dC, lddc, env);
-    gm_tc_fix_metrics(m, dC, env);
+  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->tc) {
+    // NOTE: may be possible to use (smaller) m somehow here.
+    const int I_max = m;
+    const int nvl = n;
+    gm_tc_buf_write(0, I_max, nvl, k, dA, env);
+    gm_tc_buf_write(1, I_max, nvl, k, dB, env);
+    //for (int i=0; i<400; ++i)
+    gm_tc_solve(I_max, nvl, k, dA, ldda, dB, lddb, dC, lddc, env);
+    gm_tc_fix_metrics(I_max, nvl, dC, env);
     return;
   }
 

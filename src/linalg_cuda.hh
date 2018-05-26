@@ -18,13 +18,14 @@
 
 void gm_tc_buf_write(
   int left_right,
+  int I_max,
   int num_vector_local,
   int num_packedval_field_local,
   void* bufd, GMEnv* env);
 
 void gm_tc_solve(
+  int I_max,
   int num_vector_local,
-  int num_vector_local_copy,
   int num_packedval_field_local,
   void* dA,
   int ldda,
@@ -35,6 +36,7 @@ void gm_tc_solve(
   GMEnv* env);
 
 void gm_tc_fix_metrics(
+  int I_max,
   int num_vector_local,
   void* bufd,
   GMEnv* env);

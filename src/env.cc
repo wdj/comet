@@ -739,8 +739,10 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
   const size_t npvfl = num_packedval_field_local;
   const int sizeof_scalar = env->tc == 2 ? 1 : 2;
 
-  env->tc_buf_size = 1 + (nvl * 2) * (npvfl * 64) * sizeof_scalar;
+  env->tc_buf_size = (nvl * 2) * (npvfl * 64) * sizeof_scalar;
+  env->tc_buf_size = env->tc_buf_size ? env->tc_buf_size : 1;
 
+#if 1
   cudaMalloc(&env->tc_buf_left, env->tc_buf_size);
   GMEnv_cuda_last_call_succeeded(env);
   env->gpu_mem += env->tc_buf_size;
@@ -750,6 +752,21 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
   GMEnv_cuda_last_call_succeeded(env);
   env->gpu_mem += env->tc_buf_size;
   env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+#endif
+
+#if 0
+  // For alignment of right buf
+  env->tc_buf_size = ((env->tc_buf_size + 4096 - 1) / 4096) * 4096;
+
+  // Make left and right bufs close in memory, in case it matters
+  // for performance.
+
+  cudaMalloc(&env->tc_buf_left, env->tc_buf_size * 2);
+  GMEnv_cuda_last_call_succeeded(env);
+  env->tc_buf_right = (void*)&(((char*)(env->tc_buf_left))[env->tc_buf_size]);
+  env->gpu_mem += env->tc_buf_size * 2;
+  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+#endif
 
   cublasStatus_t status = cublasCreate(&env->cublas_handle);
   GMInsist(status == CUBLAS_STATUS_SUCCESS);
@@ -771,6 +788,7 @@ void gm_tc_bufs_free(GMEnv* const env) {
     return;
   }
 
+#if 1
   cudaFree(env->tc_buf_left);
   GMEnv_cuda_last_call_succeeded(env);
   env->tc_buf_left = NULL;
@@ -780,6 +798,15 @@ void gm_tc_bufs_free(GMEnv* const env) {
   GMEnv_cuda_last_call_succeeded(env);
   env->tc_buf_right = NULL;
   env->gpu_mem -= env->tc_buf_size;
+#endif
+
+#if 0
+  cudaFree(env->tc_buf_left);
+  GMEnv_cuda_last_call_succeeded(env);
+  env->tc_buf_left = NULL;
+  env->tc_buf_right = NULL;
+  env->gpu_mem -= env->tc_buf_size * 2;
+#endif
 
   cublasStatus_t status = cublasDestroy(env->cublas_handle);
   GMInsist(status == CUBLAS_STATUS_SUCCESS);

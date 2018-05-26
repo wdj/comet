@@ -1265,23 +1265,31 @@ void DriverTest_ccc3_simple_sparse_() {
 void DriverTest_ccc_() {
 
   {
-  char options1[1024];
-  char options2[1024];
+    char options1[1024];
+    char options2[1024];
 
-  char options_template_1[] =
-      "--num_proc_vector 1 --num_field 10 --num_vector_local 4 "
-      "--compute_method %s --metric_type ccc --sparse %s "
-      "--problem_type random --verbosity %i --tc %i";
+    char options_template_1[] =
+        "--num_proc_vector 1 --num_field 100 --num_vector_local 40 "
+        //"--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
+        "--compute_method %s --metric_type ccc --sparse %s "
+        "--problem_type random --verbosity %i --tc %i --num_way %i";
 
-  for (int sparse=0; sparse<=1; ++sparse) {
-  for (int tc=1; tc<=2; ++tc) {
-    sprintf(options1, options_template_1, "REF", sparse==0 ? "no" : "yes",
-            1, 0);
-    sprintf(options2, options_template_1, "GPU", sparse==0 ? "no" : "yes",
-            1, tc);
-    EXPECT_EQ(true, compare_2runs(options1, options2));
-  }
-  }
+    //for (int num_way=2; num_way<=3; ++num_way) {
+    for (int num_way=2; num_way<=2; ++num_way) {
+    //for (int num_way=3; num_way<=3; ++num_way) {
+    for (int sparse=0; sparse<=1; ++sparse) {
+    //for (int sparse=0; sparse<=0; ++sparse) {
+    for (int tc=1; tc<=2; ++tc) {
+    //for (int tc=2; tc<=2; ++tc) {
+      //sprintf(options1, options_template_1, "GPU", sparse==0 ? "no" : "yes",
+      sprintf(options1, options_template_1, "REF", sparse==0 ? "no" : "yes",
+              1, 0, num_way);
+      sprintf(options2, options_template_1, "GPU", sparse==0 ? "no" : "yes",
+              1, tc, num_way);
+      EXPECT_EQ(true, compare_2runs(options1, options2));
+    }
+    }
+    }
 
   }
 
