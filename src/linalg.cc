@@ -594,8 +594,9 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     const int I_max = m;
     const int nvl = n;
     gm_tc_buf_write(0, I_max, nvl, k, dA, env);
+    //for (int i=0; i<2; ++i)
     gm_tc_buf_write(1, I_max, nvl, k, dB, env);
-    //for (int i=0; i<20; ++i)
+    //for (int i=0; i<10; ++i)
     gm_tc_solve(I_max, nvl, k, dA, ldda, dB, lddb, dC, lddc, env);
     gm_tc_fix_metrics(I_max, nvl, dC, env);
     return;

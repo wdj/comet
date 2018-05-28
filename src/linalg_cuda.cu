@@ -12,59 +12,6 @@
 
 //-----------------------------------------------------------------------------
 
-#if 0
-__device__ static const GMUInt32 MGEMM2_table1[] = {
-  0x00000000,
-  0x00003c00,
-  0x00003c00,
-  0x00004000,
-
-  0x3c000000,
-  0x3c003c00,
-  0x3c003c00,
-  0x3c004000,
-
-  0x3c000000,
-  0x3c003c00,
-  0x3c003c00,
-  0x3c004000,
-
-  0x40000000,
-  0x40003c00,
-  0x40003c00,
-  0x40004000
-  };
-
-__device__ static const GMUInt32 MGEMM2_table0[] = {
-  0x40004000,
-  0x40003c00,
-  0x40003c00,
-  0x40000000,
-
-  0x3c004000,
-  0x3c003c00,
-  0x3c003c00,
-  0x3c000000,
-
-  0x3c004000,
-  0x3c003c00,
-  0x3c003c00,
-  0x3c000000,
-
-  0x00004000,
-  0x00003c00,
-  0x00003c00,
-  0x00000000
-  };
-
-struct MGEMM2 {
-  static const GMUInt32* table[2];
-};
-
-const GMUInt32* MGEMM2::table[] = {MGEMM2_table0, MGEMM2_table1};
-
-#endif
-
 #define TRANSPOSE
 
 //-----------------------------------------------------------------------------
@@ -88,16 +35,30 @@ __global__ void gm_tc_buf_write_fp16_(
 
   // Two fields (seminibbles) map to two half words of 32-bit word
 
+#ifdef TRANSPOSE
+  const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
+  const int fl2 = blockIdx.y;
+#else
   const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int i01 = blockIdx.y; // count either 0 bits or 1 bits.
-  const int vl = blockIdx.z;
+  const int vlX2 = blockIdx.y;
+#endif
+  const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
+  const int vl = vlX2 / 2;
   const int vl_in = vl <= nvl_in-1 ? vl : nvl_in-1;
 
-  if (fl2 >= nfl2) {
+  if (vlX2 < 0 || vlX2 >= 2*nvl) {
+    return;
+  }
+
+  if (i01 < 0 || i01 >= 2) {
     return;
   }
 
   if (vl < 0 || vl >= nvl) {
+    return;
+  }
+
+  if (fl2 >= nfl2) {
     return;
   }
 
@@ -188,16 +149,30 @@ __global__ void gm_tc_buf_write_int8_(
 
   // Two fields (seminibbles) map to two half words of 32-bit word
 
+#ifdef TRANSPOSE
+  const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
+  const int fl2 = blockIdx.y;
+#else
   const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int i01 = blockIdx.y; // count either 0 bits or 1 bits.
-  const int vl = blockIdx.z;
+  const int vlX2 = blockIdx.y;
+#endif
+  const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
+  const int vl = vlX2 / 2;
   const int vl_in = vl <= nvl_in-1 ? vl : nvl_in-1;
 
-  if (fl2 >= nfl2) {
+  if (vlX2 < 0 || vlX2 >= 2*nvl) {
+    return;
+  }
+
+  if (i01 < 0 || i01 >= 2) {
     return;
   }
 
   if (vl < 0 || vl >= nvl) {
+    return;
+  }
+
+  if (fl2 >= nfl2) {
     return;
   }
 
@@ -325,7 +300,13 @@ void gm_tc_buf_write(
                     "tc method requires num_vector_local multiple of 2.");
 
   const int threadblocksize = 256;
-  const int fl2_threadblocks = (nfl2+threadblocksize-1) / threadblocksize;
+#ifdef TRANSPOSE
+  const int num_threadblocks_0 = (2*nvl+threadblocksize-1) / threadblocksize;
+  const int num_threadblocks_1 = nfl2;
+#else
+  const int num_threadblocks_0 = (nfl2+threadblocksize-1) / threadblocksize;
+  const int num_threadblocks_1 = 2 * nvl;
+#endif
 
   const bool is_right = left_right != 0;
   const bool is_int8 = env->tc == 2;
@@ -333,7 +314,7 @@ void gm_tc_buf_write(
   if (is_int8) {
 
     gm_tc_buf_write_int8_<<<
-      dim3(fl2_threadblocks, 2, nvl),
+      dim3(num_threadblocks_0, num_threadblocks_1, 1),
       dim3(threadblocksize, 1, 1),
       0,
       env->stream_compute_>>>(
@@ -352,7 +333,7 @@ void gm_tc_buf_write(
   } else {
 
     gm_tc_buf_write_fp16_<<<
-      dim3(fl2_threadblocks, 2, nvl),
+      dim3(num_threadblocks_0, num_threadblocks_1, 1),
       dim3(threadblocksize, 1, 1),
       0,
       env->stream_compute_>>>(
@@ -410,18 +391,6 @@ void gm_tc_solve(
   GMInsist(k % 8 == 0); // nfl is derived from padded-up npvfl, so ok.
   GMInsist(m % 8 == 0); // need nvl % 4 == 0
 
-#if 0
-  cublasStatus_t status = cublasSgemmEx(
-    env->cublas_handle,
-    CUBLAS_OP_T, CUBLAS_OP_N,
-    m, n, k,
-    &alpha,
-    env->tc_buf_left, CUDA_R_16F, k,
-    env->tc_buf_right, CUDA_R_16F, k,
-    &beta,
-    dC, CUDA_R_32F, m);
-#endif
-
   cublasStatus_t status = cublasGemmEx(
     env->cublas_handle,
 #ifdef TRANSPOSE
@@ -446,8 +415,12 @@ void gm_tc_solve(
     &beta,
     dC, CUDA_R_32F, m,
     CUDA_R_32F,
-    CUBLAS_GEMM_DFALT_TENSOR_OP);
-    //CUBLAS_GEMM_ALGO4_TENSOR_OP); // best, for cuda 9.1.85 non-transpose
+#ifdef TRANSPOSE
+    CUBLAS_GEMM_ALGO3_TENSOR_OP); //best, for cuda 9.1.85 transpose
+#else
+    CUBLAS_GEMM_ALGO4_TENSOR_OP); // best, for cuda 9.1.85 non-transpose
+#endif
+    //CUBLAS_GEMM_DFALT_TENSOR_OP);
 
   if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
     printf("Error: CUBLAS_STATUS_NOT_INITIALIZED\n");
