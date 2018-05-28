@@ -1269,8 +1269,8 @@ void DriverTest_ccc_() {
     char options2[1024];
 
     char options_template_1[] =
-        //"--num_proc_vector 1 --num_field 100 --num_vector_local 40 "
-        "--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
+        "--num_proc_vector 1 --num_field 100 --num_vector_local 40 "
+        //"--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
         "--compute_method %s --metric_type ccc --sparse %s "
         "--problem_type random --verbosity %i --tc %i --num_way %i";
 
@@ -1279,8 +1279,8 @@ void DriverTest_ccc_() {
     //for (int num_way=3; num_way<=3; ++num_way) {
     for (int sparse=0; sparse<=1; ++sparse) {
     //for (int sparse=0; sparse<=0; ++sparse) {
-    //for (int tc=1; tc<=2; ++tc) {
-    for (int tc=1; tc<=1; ++tc) {
+    for (int tc=1; tc<=2; ++tc) {
+    //for (int tc=1; tc<=1; ++tc) {
     //for (int tc=2; tc<=2; ++tc) {
       //sprintf(options1, options_template_1, "GPU", sparse==0 ? "no" : "yes",
       sprintf(options1, options_template_1, "REF", sparse==0 ? "no" : "yes",

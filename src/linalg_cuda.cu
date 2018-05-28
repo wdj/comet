@@ -136,10 +136,6 @@ __global__ void gm_tc_buf_write_fp16_(
                                        !skip_10  ? one :
                         seminibble1 == 1         ? one :
                                                    zero;
-  // Combine two halfs into one float.
-
-  const GMUInt32 out01 = ((GMUInt32)out0 + ( ((GMUInt32out1) << 16);
-
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make swizzling of result array work:
@@ -149,9 +145,16 @@ __global__ void gm_tc_buf_write_fp16_(
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
   const int fl2_index = fl2;
+
+#ifndef TRANSPOSE
   const int fl2_dim = nfl2;
 
+  // Combine two halfs into one float.
+
+  const GMUInt32 out01 = ((GMUInt32)out0) + ( ((GMUInt32)out1) << 16 );
+
   vo[ fl2_index + fl2_dim * vlX2_index ] = out01;
+#endif
 
 #ifdef TRANSPOSE
 // switch?
@@ -234,10 +237,6 @@ __global__ void gm_tc_buf_write_int8_(
                                       !skip_10  ? one :
                        seminibble1 == 1         ? one :
                                                   zero;
-  // Combine two chars into one short int.
-
-  const GMUInt16 out01 = ((GMUInt16)out0) + ( ((GMUInt16)out1) << 8);
-
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make swizzling of result array work:
@@ -247,9 +246,16 @@ __global__ void gm_tc_buf_write_int8_(
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
   const int fl2_index = fl2;
+
+#ifndef TRANSPOSE
   const int fl2_dim = nfl2;
 
+  // Combine two chars into one short int.
+
+  const GMUInt16 out01 = ((GMUInt16)out0) + ( ((GMUInt16)out1) << 8 );
+
   vo[ fl2_index + fl2_dim * vlX2_index ] = out01;
+#endif
 
 // byte address {0,1} + 2 * fl2 
 
@@ -259,6 +265,12 @@ __global__ void gm_tc_buf_write_int8_(
   const int fl_index_1 = 1 + 2 * fl2_index;
 
   const int vlX2_dim = 2 * nvl;
+
+//  if (vl==0 && i01==0)
+//  {
+//  printf("%i %i  %i\n", 2*(fl2_index + fl2_dim * vlX2_index),   vlX2_index + vlX2_dim * fl_index_0, (int)out0);
+  //printf("%i %i \n", 2*(fl2_index + fl2_dim * vlX2_index)+1, vlX2_index + vlX2_dim * fl_index_1);
+//  }
 
   ((GMUInt8*)vo)[ vlX2_index + vlX2_dim * fl_index_0 ] = out0;
   ((GMUInt8*)vo)[ vlX2_index + vlX2_dim * fl_index_1 ] = out1;
@@ -495,6 +507,12 @@ __global__ void gm_tc_fix_metrics_(
   const float f11 = bufd[fc1+1+4*thread_r];
   const float f12 = bufd[fc1+2+4*thread_r];
   const float f13 = bufd[fc1+3+4*thread_r];
+
+//if(thread_r == 0 && thread_c == 0)
+//  printf("%i %i  %e %e %e %e %e %e %e %e\n",
+//thread_r, thread_c,
+//f00, f01, f02, f03,
+//f10, f11, f12, f13);
 
   // Apply the permutation.
   //
