@@ -65,6 +65,8 @@ const GMUInt32* MGEMM2::table[] = {MGEMM2_table0, MGEMM2_table1};
 
 #endif
 
+#define TRANSPOSE
+
 //-----------------------------------------------------------------------------
 
 // https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
@@ -119,55 +121,48 @@ __global__ void gm_tc_buf_write_fp16_(
 
   const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
 
-  const GMUInt32 zero = 0x0000;
-  const GMUInt32 one = 0x3c00;
-  const GMUInt32 two = 0x4000;
+  const GMUInt16 zero = 0x0000;
+  const GMUInt16 one = 0x3c00;
+  const GMUInt16 two = 0x4000;
 
-  const GMUInt32 out0 = seminibble0 == 3*i01     ? two :
+  const GMUInt16 out0 = seminibble0 == 3*i01     ? two :
                         seminibble0 == 3*(1-i01) ? zero :
                                        !skip_10  ? one :
                         seminibble0 == 1         ? one :
                                                    zero;
 
-  const GMUInt32 out1 = seminibble1 == 3*i01     ? two :
+  const GMUInt16 out1 = seminibble1 == 3*i01     ? two :
                         seminibble1 == 3*(1-i01) ? zero :
                                        !skip_10  ? one :
                         seminibble1 == 1         ? one :
                                                    zero;
   // Combine two halfs into one float.
 
-  const GMUInt32 out01 = out0 + ( out1 << 16);
+  const GMUInt32 out01 = ((GMUInt32)out0 + ( ((GMUInt32out1) << 16);
 
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make swizzling of result array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
 
-  const int col = is_right ? i01 + 2*vl :
+  const int vlX2_index = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
-  vo[fl2 + nfl2*col] = out01;
+  const int fl2_index = fl2;
+  const int fl2_dim = nfl2;
 
+  vo[ fl2_index + fl2_dim * vlX2_index ] = out01;
 
-  if (fl2==0 && vl==0 && i01==0) printf("//////  %i\n", (int) *(GMUInt16*)vo);
+#ifdef TRANSPOSE
+// switch?
+  const int fl_index_0 = 0 + 2 * fl2_index;
+  const int fl_index_1 = 1 + 2 * fl2_index;
 
+  const int vlX2_dim = 2 * nvl;
 
-  const int fl0 = 0 + 2*fl2;
-  const int fl1 = 1 + 2*fl2;
-
-  const GMUInt16 out0_16 = out0;
-  const GMUInt16 out1_16 = out1;
-
-  ((GMUInt16*)vo)[col+2*nvl*fl0] = out0_16;
-  ((GMUInt16*)vo)[col+2*nvl*fl1] = out1_16;
-
-
-//  if (fl2==0)
-//    printf("////// %s %i %i  %i %i %i %i  %i %i %i  %i %i\n", left_right ? "r" : "l", (int)nvl, (int)nfl,  fl0, fl1, i01, vl,  fl0, fl1, col,  (int)(col+2*nvl*fl0), (int)(col+2*nvl*fl1));
-
-
-
-
+  ((GMUInt16*)vo)[ vlX2_index + vlX2_dim * fl_index_0 ] = out0;
+  ((GMUInt16*)vo)[ vlX2_index + vlX2_dim * fl_index_1 ] = out1;
+#endif
 
 //if (fl2==0) printf("%s vec %i field %i  %i\n", left_right ? "r" : "l", vl, 2*fl2+0, seminibble0);
 //if (fl2==0) printf("lr %i vec %i field %i  %i\n", left_right, vl, 2*fl2+1, seminibble1);
@@ -221,36 +216,58 @@ __global__ void gm_tc_buf_write_int8_(
 
   const bool is_right = left_right != 0;
 
+  // this needs work
   const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
 
-  const GMUInt16 zero = 0;
-  const GMUInt16 one = 1;
-  const GMUInt16 two = 2;
+  const GMUInt8 zero = 0;
+  const GMUInt8 one = 1;
+  const GMUInt8 two = 2;
 
-  const GMUInt16 out0 = seminibble0 == 3*i01     ? two :
-                        seminibble0 == 3*(1-i01) ? zero :
-                                       !skip_10  ? one :
-                        seminibble0 == 1         ? one :
-                                                   zero;
+  const GMUInt8 out0 = seminibble0 == 3*i01     ? two :
+                       seminibble0 == 3*(1-i01) ? zero :
+                                      !skip_10  ? one :
+                       seminibble0 == 1         ? one :
+                                                  zero;
 
-  const GMUInt16 out1 = seminibble1 == 3*i01     ? two :
-                        seminibble1 == 3*(1-i01) ? zero :
-                                       !skip_10  ? one :
-                        seminibble1 == 1         ? one :
-                                                   zero;
+  const GMUInt8 out1 = seminibble1 == 3*i01     ? two :
+                       seminibble1 == 3*(1-i01) ? zero :
+                                      !skip_10  ? one :
+                       seminibble1 == 1         ? one :
+                                                  zero;
   // Combine two chars into one short int.
 
-  const GMUInt16 out01 = out0 + ( out1 << 8);
+  const GMUInt16 out01 = ((GMUInt16)out0) + ( ((GMUInt16)out1) << 8);
 
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make swizzling of result array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
 
-  const int col = is_right ? i01 + 2*vl :
+  const int vlX2_index = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
-  vo[fl2 + nfl2*col] = out01;
+  const int fl2_index = fl2;
+  const int fl2_dim = nfl2;
+
+  vo[ fl2_index + fl2_dim * vlX2_index ] = out01;
+
+// byte address {0,1} + 2 * fl2 
+
+#ifdef TRANSPOSE
+// switch?
+  const int fl_index_0 = 0 + 2 * fl2_index;
+  const int fl_index_1 = 1 + 2 * fl2_index;
+
+  const int vlX2_dim = 2 * nvl;
+
+  ((GMUInt8*)vo)[ vlX2_index + vlX2_dim * fl_index_0 ] = out0;
+  ((GMUInt8*)vo)[ vlX2_index + vlX2_dim * fl_index_1 ] = out1;
+#endif
+
+//  if (fl2==0 && vl==0 && i01==0) printf("//////  %i\n", (int) *(GMUInt16*)vo);
+
+//  if (fl2==0)
+//    printf("////// %s %i %i  %i %i %i %i  %i %i %i  %i %i\n", left_right ? "r" : "l", (int)nvl, (int)nfl,  fl0, fl1, i01, vl,  fl0, fl1, col,  (int)(col+2*nvl*fl0), (int)(col+2*nvl*fl1));
 
 //printf("%i %i\n", (int)out0, (int)out1);
 
@@ -299,8 +316,9 @@ void gm_tc_buf_write(
   const int fl2_threadblocks = (nfl2+threadblocksize-1) / threadblocksize;
 
   const bool is_right = left_right != 0;
+  const bool is_int8 = env->tc == 2;
 
-  if (env->tc == 2) {
+  if (is_int8) {
 
     gm_tc_buf_write_int8_<<<
       dim3(fl2_threadblocks, 2, nvl),
@@ -362,6 +380,7 @@ void gm_tc_solve(
   GMInsist(num_vector_local >= 0);
   GMInsist(num_packedval_field_local >= 0);
   GMInsist(ldda >= 0 && lddb >= 0 && lddc >= 0);
+  GMInsist(env->tc == 1 || env->tc == 2);
 
   const int nvl = num_vector_local;
   const int npvfl = num_packedval_field_local;
@@ -373,6 +392,8 @@ void gm_tc_solve(
 
   const float alpha = 1;
   const float beta = 0;
+
+  const bool is_int8 = env->tc == 2;
 
   GMInsist(k % 8 == 0); // nfl is derived from padded-up npvfl, so ok.
   GMInsist(m % 8 == 0); // need nvl % 4 == 0
@@ -391,19 +412,30 @@ void gm_tc_solve(
 
   cublasStatus_t status = cublasGemmEx(
     env->cublas_handle,
-    //CUBLAS_OP_T, CUBLAS_OP_N,
+#ifdef TRANSPOSE
     CUBLAS_OP_N, CUBLAS_OP_T,
+#else
+    CUBLAS_OP_T, CUBLAS_OP_N,
+#endif
     m, n, k,
     &alpha,
-    //env->tc_buf_left, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
-    env->tc_buf_left, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, m,
-    //env->tc_buf_right, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, k,
-    env->tc_buf_right, env->tc == 2 ? CUDA_R_8I : CUDA_R_16F, n,
+    env->tc_buf_left, is_int8 ? CUDA_R_8I : CUDA_R_16F,
+#ifdef TRANSPOSE
+    m,
+#else
+    k,
+#endif
+    env->tc_buf_right, is_int8 ? CUDA_R_8I : CUDA_R_16F,
+#ifdef TRANSPOSE
+    n,
+#else
+    k,
+#endif
     &beta,
     dC, CUDA_R_32F, m,
     CUDA_R_32F,
-    CUBLAS_GEMM_ALGO4_TENSOR_OP); // best, for cuda 9.1.85
-    //CUBLAS_GEMM_DFALT_TENSOR_OP);
+    CUBLAS_GEMM_DFALT_TENSOR_OP);
+    //CUBLAS_GEMM_ALGO4_TENSOR_OP); // best, for cuda 9.1.85 non-transpose
 
   if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
     printf("Error: CUBLAS_STATUS_NOT_INITIALIZED\n");
