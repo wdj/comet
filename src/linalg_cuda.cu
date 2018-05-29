@@ -388,8 +388,15 @@ void gm_tc_solve(
 
   const bool is_int8 = env->tc == 2;
 
+  // See https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
+  // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
+  // and m is a multiple of 4"
+  // "GEMMs that do not satisfy the above rules will fall back
+  // to a non-Tensor Core implementation"
+
   GMInsist(k % 8 == 0); // nfl is derived from padded-up npvfl, so ok.
   GMInsist(m % 8 == 0); // need nvl % 4 == 0
+  GMInsist(n % 8 == 0);
 
   cublasStatus_t status = cublasGemmEx(
     env->cublas_handle,
