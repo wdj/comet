@@ -27,8 +27,8 @@ else
   module -q load cuda/9.1.85
 fi
 
-#FIXdirs="build_test_$DIRNAME_STUB build_single_test_$DIRNAME_STUB"
-dirs="build_test_$DIRNAME_STUB"
+dirs="build_test_$DIRNAME_STUB build_single_test_$DIRNAME_STUB"
+#dirs="build_test_$DIRNAME_STUB"
 
 for i in $dirs ; do
   echo "===================="
