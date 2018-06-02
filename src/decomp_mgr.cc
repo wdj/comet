@@ -62,11 +62,11 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     // Lower procs fully packed with active values
     // Upper procs fully inactive
     // One proc in between may be mixed
-    const size_t nl = dm->num_vector_local;
-    const size_t na = dm->num_vector_active;
-    dm->num_vector_active_local = na <= nl * proc_num ? 0 :
-                                  na >= nl * (proc_num + 1) ? nl :
-                                  na - nl * proc_num;
+    const size_t nvl = dm->num_vector_local;
+    const size_t nva = dm->num_vector_active;
+    dm->num_vector_active_local = nva <= nvl * proc_num ? 0 :
+                                  nva >= nvl * (proc_num + 1) ? nvl :
+                                  nva - nvl * proc_num;
   } // if vectors_by_local
 
   //--------------------

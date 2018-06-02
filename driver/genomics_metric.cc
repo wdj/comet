@@ -279,6 +279,7 @@ double bad_node_penalty() {
 
   return strcmp(name, "h25n12") == 0 ? 1e6 - 1 // 4X slower
        : strcmp(name, "d06n12") == 0 ? 1e6 - 1 // 2X slower - once
+       : strcmp(name, "b08n02") == 0 ? 1e6 - 1 // 5X slower - twice
 //       : strcmp(name, "d16n06") == 0 ? 1e6 - 1 // at least 4X slower multiple times
 //       : strcmp(name, "d15n03") == 0 ? 1e6 - 1
 //       : strcmp(name, "f11n11") == 0 ? 1e6 - 1
