@@ -502,8 +502,8 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
         ORDER_RVF = 1,
         ORDER_FVR = 2};
 
-  //const int order = ORDER_FRV;
-  const int order = ORDER_FVR;
+  const int order = ORDER_FRV;
+  //const int order = ORDER_FVR;
 
   if (order == ORDER_FRV) {
     env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
@@ -790,8 +790,13 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
   status = cublasSetStream(env->cublas_handle, env->stream_compute_);
   GMInsist(status == CUBLAS_STATUS_SUCCESS);
 
+#ifdef USE_TC
   status = cublasSetMathMode(env->cublas_handle, CUBLAS_TENSOR_OP_MATH);
   GMInsist(status == CUBLAS_STATUS_SUCCESS);
+#else
+  GMInsistInterface(env,
+                    false && "TC option not implemented for this platform.");
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -804,7 +809,6 @@ void gm_tc_bufs_free(GMEnv* const env) {
     return;
   }
 
-#if 1
   cudaFree(env->tc_buf_left);
   GMEnv_cuda_last_call_succeeded(env);
   env->tc_buf_left = NULL;
@@ -814,7 +818,6 @@ void gm_tc_bufs_free(GMEnv* const env) {
   GMEnv_cuda_last_call_succeeded(env);
   env->tc_buf_right = NULL;
   env->gpu_mem -= env->tc_buf_size;
-#endif
 
 #if 0
   cudaFree(env->tc_buf_left);

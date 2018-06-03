@@ -14,6 +14,8 @@
 
 #define TRANSPOSE
 
+#ifdef USE_TC
+
 //-----------------------------------------------------------------------------
 
 // https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
@@ -568,6 +570,7 @@ void gm_tc_fix_metrics_(
 
   GMEnv_cuda_last_call_succeeded(env);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -582,6 +585,7 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   GMInsist(env->tc);
 
+#ifdef USE_TC
   // NOTE: may be possible to use (smaller) m somehow here.
   const int I_max = m;
   const int nvl = n;
@@ -591,7 +595,10 @@ void gm_tc_gemm_start(int m, int n, int k,
   //for (int i=0; i<10; ++i) //FIX
   gm_tc_solve_(I_max, nvl, k, dA, ldda, dB, lddb, dC, lddc, env);
   gm_tc_fix_metrics_(I_max, nvl, dC, env);
-  return;
+#else
+  GMInsistInterface(env,
+                    false && "TC option not implemented for this platform.");
+#endif
 }
 
 //-----------------------------------------------------------------------------

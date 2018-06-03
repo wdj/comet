@@ -1709,6 +1709,7 @@ void DriverTest_ccc_() {
   }
 #endif
 
+#ifdef USE_TC
   {
     char options1[1024];
     char options2[1024];
@@ -1731,8 +1732,8 @@ void DriverTest_ccc_() {
     }
     }
     }
-
   }
+#endif
 
 }
 
