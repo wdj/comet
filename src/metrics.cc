@@ -687,7 +687,7 @@ void GMMetrics_create(GMMetrics* metrics,
   size_t num_elts = 0;
   mpi_code = MPI_Allreduce(&metrics->num_elts_local, &num_elts, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_vector(env));
+                           GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
 
   if (GMEnv_num_way(env) == GM_NUM_WAY_2 &&

@@ -69,7 +69,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   double num_elts = 0;
 
   int mpi_code = MPI_Allreduce(&num_elts_local, &num_elts, 1,
-                           MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_vector(env));
+                           MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
 
   env->compares += metrics->num_field * num_elts *
@@ -78,7 +78,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   env->eltcompares += metrics->num_field * num_elts;
 
   mpi_code = MPI_Allreduce(&env->ops_local, &env->ops, 1, MPI_DOUBLE, MPI_SUM,
-                           GMEnv_mpi_comm_vector(env));
+                           GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
 
   // Compute global CPU, GPU memory high water marks.
@@ -86,13 +86,13 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
   const size_t cpu_mem_max_local = env->cpu_mem_max;
   mpi_code = MPI_Allreduce(&cpu_mem_max_local, &env->cpu_mem_max, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_MAX,
-                           GMEnv_mpi_comm_vector(env));
+                           GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
 
   const size_t gpu_mem_max_local = env->gpu_mem_max;
   mpi_code = MPI_Allreduce(&gpu_mem_max_local, &env->gpu_mem_max, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_MAX,
-                           GMEnv_mpi_comm_vector(env));
+                           GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
 }
 

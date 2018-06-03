@@ -25,7 +25,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int mpi_tag,
                                   GMEnv* env) {
   GMInsist(vectors && env);
-  GMInsist(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
+  GMInsist(proc_num >= 0 && proc_num < GMEnv_num_proc_repl_vector(env));
 
   MPI_Request mpi_request;
 
@@ -33,7 +33,8 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
 
   const int mpi_code =
       MPI_Isend((void*)vectors->data, vectors->num_packedval_local, mpi_type,
-                proc_num, mpi_tag, GMEnv_mpi_comm_vector(env), &mpi_request);
+                proc_num, mpi_tag, GMEnv_mpi_comm_repl_vector(env),
+                &mpi_request);
   GMInsist(mpi_code == MPI_SUCCESS);
 
   return mpi_request;
@@ -46,7 +47,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   int mpi_tag,
                                   GMEnv* env) {
   GMInsist(vectors && env);
-  GMInsist(proc_num >= 0 && proc_num < GMEnv_num_proc_vector_total(env));
+  GMInsist(proc_num >= 0 && proc_num < GMEnv_num_proc_repl_vector(env));
 
   MPI_Request mpi_request;
 
@@ -54,7 +55,8 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
 
   const int mpi_code =
       MPI_Irecv((void*)vectors->data, vectors->num_packedval_local, mpi_type,
-                proc_num, mpi_tag, GMEnv_mpi_comm_vector(env), &mpi_request);
+                proc_num, mpi_tag, GMEnv_mpi_comm_repl_vector(env),
+                &mpi_request);
   GMInsist(mpi_code == MPI_SUCCESS);
 
   return mpi_request;

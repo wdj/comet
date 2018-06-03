@@ -183,7 +183,7 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
   GMAssert(j_block < GMEnv_num_block_vector(env));
   GMAssert(i < j || j_block != GMEnv_proc_num_vector_i(env));
 //  GMAssert(GMEnv_proc_num_repl(env) == 0 ||
-//           j_block != GMEnv_proc_num_vector(env));
+//           j_block != GMEnv_proc_num_vector(env)); // DEFUNCT
   /*---WARNING: these conditions on j_block are not exhaustive---*/
 
   const int i_block = GMEnv_proc_num_vector_i(env);

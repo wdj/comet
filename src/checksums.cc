@@ -154,7 +154,7 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
 
   int mpi_code = 0;
   mpi_code = MPI_Allreduce(&value_max_this, &cs->value_max, 1,
-                           MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_vector(env));
+                           MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
 
   // The largest we expect any value to be if using "special" inputs
@@ -302,7 +302,7 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
   GMMultiprecInt sum = {0};
   mpi_code = MPI_Allreduce(sum_this.data, sum.data, GM_MULTIPREC_INT_SIZE,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_vector(env));
+                           GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
   for (int i = 0; i < GM_MULTIPREC_INT_SIZE; ++i) {
     cs->sum.data[i] += sum.data[i];
@@ -331,7 +331,7 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
 
   const double tmp = sum_d_this;
   mpi_code = MPI_Allreduce(&tmp, &sum_d_this, 1, MPI_DOUBLE, MPI_SUM,
-                           GMEnv_mpi_comm_vector(env));
+                           GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
   cs->sum_d += sum_d_this;
 

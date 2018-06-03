@@ -378,11 +378,11 @@ void GMEnv_initialize_comms(GMEnv* const env) {
 
   mpi_code = MPI_Comm_split(env->mpi_comm_base_,
       env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
-      env->proc_num_, &env->mpi_comm_vector_);
+      env->proc_num_, &env->mpi_comm_repl_vector_);
   GMInsist(mpi_code == MPI_SUCCESS);
 
   mpi_code = MPI_Comm_split(env->mpi_comm_base_,
-      env->is_proc_active_ ? env->proc_num_vector_ : env->num_proc_,
+      env->is_proc_active_ ? env->proc_num_repl_vector_ : env->num_proc_,
       env->proc_num_, &env->mpi_comm_field_);
   GMInsist(mpi_code == MPI_SUCCESS);
 
@@ -403,7 +403,7 @@ void GMEnv_terminate_comms(GMEnv* const env) {
   int mpi_code = MPI_Comm_free(&(env->mpi_comm_));
   GMInsist(mpi_code == MPI_SUCCESS);
 
-  mpi_code = MPI_Comm_free(&(env->mpi_comm_vector_));
+  mpi_code = MPI_Comm_free(&(env->mpi_comm_repl_vector_));
   GMInsist(mpi_code == MPI_SUCCESS);
 
   mpi_code = MPI_Comm_free(&(env->mpi_comm_field_));
@@ -487,9 +487,9 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   env->num_proc_repl_ = num_proc_repl;
   env->num_proc_field_ = num_proc_field;
 
-  env->num_proc_vector_total_ = env->num_proc_vector_i_ * env->num_proc_repl_;
+  env->num_proc_repl_vector_ = env->num_proc_vector_i_ * env->num_proc_repl_;
 
-  env->num_proc_ = env->num_proc_vector_total_ * num_proc_field;
+  env->num_proc_ = env->num_proc_repl_vector_ * num_proc_field;
   GMInsist(env->num_proc_ <= env->num_proc_base_);
 
   /*---Set proc nums---*/
@@ -498,24 +498,38 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
   env->is_proc_active_ = env->proc_num_ < env->num_proc_;
 
-  const bool proc_field_varies_fastest = true;
+  enum {ORDER_FRV = 0,
+        ORDER_RVF = 1,
+        ORDER_FVR = 2};
 
-  if (proc_field_varies_fastest) {
+  const int order = ORDER_FRV;
 
+  if (order == ORDER_FRV) {
     env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
-    env->proc_num_vector_ = env->proc_num_ / env->num_proc_field_;
-    env->proc_num_repl_ = env->proc_num_vector_ % env->num_proc_repl_;
-    env->proc_num_vector_i_ = env->proc_num_vector_ / env->num_proc_repl_;
+    env->proc_num_repl_ = (env->proc_num_ / env->num_proc_field_)
+                                          % env->num_proc_repl_;
+    env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_field_)
+                                              / env->num_proc_repl_;
+  }
 
-  } else { // ! proc_field_varies_fastest
-
+  if (order == ORDER_RVF) {
     env->proc_num_repl_ = env->proc_num_ % env->num_proc_repl_;
     env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_repl_)
                                               % env->num_proc_vector_i_;
-    env->proc_num_vector_ = env->proc_num_ % env->num_proc_vector_total_;
-    env->proc_num_field_ = env->proc_num_ / env->num_proc_vector_total_;
+    env->proc_num_field_ = (env->proc_num_ / env->num_proc_repl_)
+                                           / env->num_proc_vector_i_;
+  }
 
-  } // proc_field_varies_fastest
+  if (order == ORDER_FVR) {
+    env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
+    env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_field_)
+                                              % env->num_proc_vector_i_;
+    env->proc_num_repl_ = (env->proc_num_ / env->num_proc_field_)
+                                          / env->num_proc_vector_i_;
+  }
+
+  env->proc_num_repl_vector_ = env->proc_num_repl_ + env->num_proc_repl_ *
+                               env->proc_num_vector_i_;;
 
   /*---Destroy old communicators if necessary---*/
 
@@ -810,6 +824,21 @@ void gm_tc_bufs_free(GMEnv* const env) {
 
   cublasStatus_t status = cublasDestroy(env->cublas_handle);
   GMInsist(status == CUBLAS_STATUS_SUCCESS);
+}
+
+//-----------------------------------------------------------------------------
+
+size_t gm_num_vector_local_required(size_t num_vector_active,
+       GMEnv* const env) {
+  GMInsist(env);
+
+  const int num_proc = GMEnv_num_proc_vector_i(env);
+
+  const int roundup_factor = env->tc ? 4 : 1;
+
+  const size_t val1 = gm_ceil_i8(num_vector_active, num_proc);
+
+  return gm_ceil_i8(val1, roundup_factor) * roundup_factor;
 }
 
 //-----------------------------------------------------------------------------

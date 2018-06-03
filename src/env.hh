@@ -54,7 +54,7 @@ typedef struct {
   bool make_comms_;
   MPI_Comm mpi_comm_base_;
   MPI_Comm mpi_comm_;
-  MPI_Comm mpi_comm_vector_;
+  MPI_Comm mpi_comm_repl_vector_;
   MPI_Comm mpi_comm_field_;
   /*---*/
   int num_proc_base_;
@@ -62,7 +62,7 @@ typedef struct {
   int num_proc_field_;
   int num_proc_repl_;
   int num_proc_vector_i_;
-  int num_proc_vector_total_;
+  int num_proc_repl_vector_;
   bool are_mpi_comms_initialized_;
   /*---*/
   int proc_num_base_;
@@ -70,7 +70,7 @@ typedef struct {
   int proc_num_field_;
   int proc_num_repl_;
   int proc_num_vector_i_;
-  int proc_num_vector_;
+  int proc_num_repl_vector_;
   /*---*/
   bool is_proc_active_;
   /*---CUDA---*/
@@ -194,9 +194,9 @@ static MPI_Comm GMEnv_mpi_comm(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-static MPI_Comm GMEnv_mpi_comm_vector(const GMEnv* const env) {
+static MPI_Comm GMEnv_mpi_comm_repl_vector(const GMEnv* const env) {
   GMAssert(env);
-  return env->mpi_comm_vector_;
+  return env->mpi_comm_repl_vector_;
 }
 
 //-----------------------------------------------------------------------------
@@ -250,9 +250,9 @@ static int GMEnv_num_proc_repl(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-static int GMEnv_num_proc_vector_total(const GMEnv* const env) {
+static int GMEnv_num_proc_repl_vector(const GMEnv* const env) {
   GMAssert(env);
-  return env->num_proc_vector_total_;
+  return env->num_proc_repl_vector_;
 }
 
 //-----------------------------------------------------------------------------
@@ -502,6 +502,8 @@ int GMFloat_mant_dig();
 void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
                        int num_field_local);
 void gm_tc_bufs_free(GMEnv* const env);
+
+size_t gm_num_vector_local_required(size_t num_vector_active, GMEnv* const env);
 
 //-----------------------------------------------------------------------------
 

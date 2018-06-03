@@ -54,10 +54,12 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector_active = dm->num_vector;
   } else { // ! vectors_by_local
     dm->num_vector_active = num_vector_specifier;
-    // Pad up as needed so that every proc has same number
+    // Pad up as needed, require every proc has same number
     const int num_proc = GMEnv_num_proc_vector_i(env);
     const int proc_num = GMEnv_proc_num_vector_i(env);
-    dm->num_vector_local = gm_ceil_i8(dm->num_vector_active, num_proc);
+    //dm->num_vector_local = gm_ceil_i8(dm->num_vector_active, num_proc);
+    dm->num_vector_local = gm_num_vector_local_required(dm->num_vector_active,
+                                                        env);
     dm->num_vector = dm->num_vector_local * num_proc;
     // Lower procs fully packed with active values
     // Upper procs fully inactive
@@ -83,15 +85,15 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 
   mpi_code = MPI_Allreduce(&dm->num_vector_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_vector(env));
+                           GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
-  GMInsist(sum == dm->num_vector_local * GMEnv_num_proc_vector_total(env) &&
+  GMInsist(sum == dm->num_vector_local * GMEnv_num_proc_repl_vector(env) &&
            "Every process must have the same number of vectors.");
   GMInsist(sum == dm->num_vector * GMEnv_num_proc_repl(env));
 
   mpi_code = MPI_Allreduce(&dm->num_vector_active_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_vector(env));
+                           GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
   GMInsist(sum == dm->num_vector_active * GMEnv_num_proc_repl(env));
 

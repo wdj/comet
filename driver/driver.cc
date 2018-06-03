@@ -496,12 +496,12 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     size_t num_elts_computed = 0;
     mpi_code = MPI_Allreduce(&num_elts_local_computed, &num_elts_computed, 1,
                              MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                             GMEnv_mpi_comm_vector(env));
+                             GMEnv_mpi_comm_repl_vector(env));
     GMInsist(mpi_code == MPI_SUCCESS);
 
     mpi_code = MPI_Allreduce(&num_local_written, &num_written, 1,
                              MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                             GMEnv_mpi_comm_vector(env));
+                             GMEnv_mpi_comm_repl_vector(env));
     GMInsist(mpi_code == MPI_SUCCESS);
 
     if (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env) &&

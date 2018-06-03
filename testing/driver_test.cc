@@ -1715,7 +1715,7 @@ void DriverTest_ccc_() {
 
     char options_template_tc[] =
         //"--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
-        "--num_proc_vector 1 --num_field 100 --num_vector_local 40 "
+        "--num_proc_vector 1 --num_field 100 --num_vector 37 "
         "--compute_method %s --metric_type ccc --sparse %s "
         "--problem_type random --verbosity %i --tc %i --num_way %i";
 
