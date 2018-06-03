@@ -502,7 +502,8 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
         ORDER_RVF = 1,
         ORDER_FVR = 2};
 
-  const int order = ORDER_FRV;
+  //const int order = ORDER_FRV;
+  const int order = ORDER_FVR;
 
   if (order == ORDER_FRV) {
     env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
@@ -520,6 +521,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
                                            / env->num_proc_vector_i_;
   }
 
+  // TODO: debug this
   if (order == ORDER_FVR) {
     env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
     env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_field_)

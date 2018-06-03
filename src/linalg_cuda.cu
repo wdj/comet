@@ -20,7 +20,7 @@
 
 //-----------------------------------------------------------------------------
 
-__global__ void gm_tc_buf_write_fp16_(
+__global__ void gm_tc_buf_write_fp16_kernel_(
   int num_way,
   bool is_sparse,
   int left_right,
@@ -134,7 +134,7 @@ __global__ void gm_tc_buf_write_fp16_(
 
 //-----------------------------------------------------------------------------
 
-__global__ void gm_tc_buf_write_int8_(
+__global__ void gm_tc_buf_write_int8_kernel_(
   int num_way,
   bool is_sparse,
   int left_right,
@@ -267,7 +267,7 @@ __global__ void gm_tc_buf_write_int8_(
 //-----------------------------------------------------------------------------
 // Convert packed-bits fields of input vectors into halfs (or chars).
 
-void gm_tc_buf_write(
+void gm_tc_buf_write_(
   int left_right,
   int I_max,
   int num_vector_local,
@@ -313,7 +313,7 @@ void gm_tc_buf_write(
 
   if (is_int8) {
 
-    gm_tc_buf_write_int8_<<<
+    gm_tc_buf_write_int8_kernel_<<<
       dim3(num_threadblocks_0, num_threadblocks_1, 1),
       dim3(threadblocksize, 1, 1),
       0,
@@ -332,7 +332,7 @@ void gm_tc_buf_write(
 
   } else {
 
-    gm_tc_buf_write_fp16_<<<
+    gm_tc_buf_write_fp16_kernel_<<<
       dim3(num_threadblocks_0, num_threadblocks_1, 1),
       dim3(threadblocksize, 1, 1),
       0,
@@ -357,7 +357,7 @@ void gm_tc_buf_write(
 //-----------------------------------------------------------------------------
 // Call tensor core enabled cuBLAS function to tally bits for CCC.
 
-void gm_tc_solve(
+void gm_tc_solve_(
   int I_max,
   int num_vector_local,
   int num_packedval_field_local,
@@ -452,7 +452,7 @@ void gm_tc_solve(
 
 //-----------------------------------------------------------------------------
 
-__global__ void gm_tc_fix_metrics_(
+__global__ void gm_tc_fix_metrics_kernel_(
   int nvl,
   int nvl2,
   float* bufd) {
@@ -541,7 +541,7 @@ __global__ void gm_tc_fix_metrics_(
 //-----------------------------------------------------------------------------
 // Swizzle/cast values from the CUBLAS call into required double complex format.
 
-void gm_tc_fix_metrics(
+void gm_tc_fix_metrics_(
   int I_max,
   int num_vector_local,
   void* bufd,
@@ -556,7 +556,7 @@ void gm_tc_fix_metrics(
   const int threadblocksize = 256;
   const int vl2_threadblocks = (nvl2+threadblocksize-1) / threadblocksize;
 
-  gm_tc_fix_metrics_<<<
+  gm_tc_fix_metrics_kernel_<<<
     dim3(vl2_threadblocks, nvl, 1),
     dim3(threadblocksize, 1, 1),
     0,
@@ -567,6 +567,31 @@ void gm_tc_fix_metrics(
   );
 
   GMEnv_cuda_last_call_succeeded(env);
+}
+
+//-----------------------------------------------------------------------------
+
+void gm_tc_gemm_start(int m, int n, int k,
+                      void* dA, int ldda,
+                      void* dB, int lddb,
+                      void* dC, int lddc,
+                      GMEnv* env) {
+  GMInsist(dA && dB && dC && env);
+  GMInsist(m >= 0 && n >= 0 && k >= 0);
+  GMInsist(ldda >= 0 && lddb >= 0);
+  GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMInsist(env->tc);
+
+  // NOTE: may be possible to use (smaller) m somehow here.
+  const int I_max = m;
+  const int nvl = n;
+  gm_tc_buf_write_(0, I_max, nvl, k, dA, env);
+  //for (int i=0; i<2; ++i)
+  gm_tc_buf_write_(1, I_max, nvl, k, dB, env);
+  //for (int i=0; i<10; ++i) //FIX
+  gm_tc_solve_(I_max, nvl, k, dA, ldda, dB, lddb, dC, lddc, env);
+  gm_tc_fix_metrics_(I_max, nvl, dC, env);
+  return;
 }
 
 //-----------------------------------------------------------------------------

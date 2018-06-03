@@ -16,6 +16,7 @@
 
 //-----------------------------------------------------------------------------
 
+#if 0
 void gm_tc_buf_write(
   int left_right,
   int I_max,
@@ -40,6 +41,13 @@ void gm_tc_fix_metrics(
   int num_vector_local,
   void* bufd,
   GMEnv* env);
+#endif
+
+void gm_tc_gemm_start(int m, int n, int k,
+                      void* dA, int ldda,
+                      void* dB, int lddb,
+                      void* dC, int lddc,
+                      GMEnv* env);
 
 //-----------------------------------------------------------------------------
 
