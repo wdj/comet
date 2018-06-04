@@ -310,8 +310,13 @@ static size_t GMVectors_num_local_required(size_t num_vector_active,
   const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
                                    GMEnv_all2all(env) && num_proc_vector > 2;
 
-  const size_t num_vector_local = need_divisible_by_6 ?
-                                  gm_ceil_i8(nvl_1, 6)*6 : nvl_1;
+  const bool need_divisible_by_4 = env->tc;
+
+  const int round_factor = (need_divisible_by_4 && need_divisible_by_6) ? 12 :
+                            need_divisible_by_4 ? 4 :
+                            need_divisible_by_6 ? 6 : 1;
+
+  const size_t num_vector_local = gm_ceil_i8(nvl_1, round_factor)*round_factor;
 
   return num_vector_local;
 }

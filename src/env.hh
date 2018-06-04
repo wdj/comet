@@ -503,7 +503,8 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
                        int num_field_local);
 void gm_tc_bufs_free(GMEnv* const env);
 
-size_t gm_num_vector_local_required(size_t num_vector_active, GMEnv* const env);
+size_t gm_num_vector_local_required(size_t num_vector_active,
+                                    GMEnv* const env);
 
 //-----------------------------------------------------------------------------
 

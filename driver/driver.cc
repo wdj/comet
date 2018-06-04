@@ -338,7 +338,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     do_.num_vector_active = do_.num_vector;
   } else {
     /*---Pad up so that every proc has same number of vectors---*/
-    do_.num_vector_local = GMVectors_num_local_required(
+    do_.num_vector_local = gm_num_vector_local_required(
         do_.num_vector_active, env);
     do_.num_vector = do_.num_vector_local *
       (size_t)GMEnv_num_proc_vector_i(env);

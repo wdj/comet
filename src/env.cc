@@ -376,7 +376,6 @@ void GMEnv_initialize_comms(GMEnv* const env) {
                             env->proc_num_, &env->mpi_comm_);
   GMInsist(mpi_code == MPI_SUCCESS);
 
-//CHANGE
   mpi_code = MPI_Comm_split(env->mpi_comm_base_,
       env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->proc_num_,
@@ -501,7 +500,6 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
   env->is_proc_active_ = env->proc_num_ < env->num_proc_;
 
-//CHANGE
   enum {ORDER_FRV = 0,
         ORDER_RVF = 1,
         ORDER_FVR = 2};
@@ -525,7 +523,6 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
                                            / env->num_proc_vector_i_;
   }
 
-  // TODO: debug this
   if (order == ORDER_FVR) {
     env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
     env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_field_)
@@ -838,16 +835,24 @@ void gm_tc_bufs_free(GMEnv* const env) {
 //-----------------------------------------------------------------------------
 
 size_t gm_num_vector_local_required(size_t num_vector_active,
-       GMEnv* const env) {
-  GMInsist(env);
+                                    GMEnv* const env) {
 
-  const int num_proc = GMEnv_num_proc_vector_i(env);
+  const int num_proc_vector = GMEnv_num_proc_vector_i(env);
 
-  const int roundup_factor = env->tc ? 4 : 1;
+  const size_t nvl_1 = gm_ceil_i8(num_vector_active, num_proc_vector);
 
-  const size_t val1 = gm_ceil_i8(num_vector_active, num_proc);
+  const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
+                                   GMEnv_all2all(env) && num_proc_vector > 2;
 
-  return gm_ceil_i8(val1, roundup_factor) * roundup_factor;
+  const bool need_divisible_by_4 = env->tc;
+
+  const int round_factor = (need_divisible_by_4 && need_divisible_by_6) ? 12 :
+                            need_divisible_by_4 ? 4 :
+                            need_divisible_by_6 ? 6 : 1;
+
+  const size_t num_vector_local = gm_ceil_i8(nvl_1, round_factor)*round_factor;
+
+  return num_vector_local;
 }
 
 //-----------------------------------------------------------------------------

@@ -111,9 +111,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
   /*---Create flattened index within space of procs assigned to
        vectors (non-field procs) - i.e., vector_i (=block) X repl ---*/
 
-//CHANGE
   const int proc_num_rv = proc_num_r + num_proc_r * i_block;
-//CHANGE
   const int num_proc_rv = num_block * num_proc_r;
 
   /*------------------------*/
@@ -270,10 +268,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
       //TODO: can possibly simplify this - mod by num_proc_i instead
 
-//CHANGE
       const int proc_send_j = gm_mod_i(proc_num_rv - j_i_offset*num_proc_r,
                                        num_proc_rv);
-//CHANGE
       const int proc_recv_j = gm_mod_i(proc_num_rv + j_i_offset*num_proc_r,
                                        num_proc_rv);
 
@@ -352,10 +348,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
     for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
       const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
 
-//CHANGE
       const int proc_send_k = gm_mod_i(proc_num_rv - k_i_offset*num_proc_r,
                                        num_proc_rv);
-//CHANGE
       const int proc_recv_k = gm_mod_i(proc_num_rv + k_i_offset*num_proc_r,
                                        num_proc_rv);
 
@@ -363,10 +357,8 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
         const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
 
-//CHANGE
         const int proc_send_j = gm_mod_i(proc_num_rv-j_i_offset*num_proc_r,
                                          num_proc_rv);
-//CHANGE
         const int proc_recv_j = gm_mod_i(proc_num_rv+j_i_offset*num_proc_r,
                                          num_proc_rv);
         if (j_block == k_block) {
