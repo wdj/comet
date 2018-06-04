@@ -165,9 +165,9 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
   // Flatten the proc_vector and proc_repl indices into a single index.
 
 //CHANGE
-  const int num_proc_ir = num_block * num_proc_r;
+  const int num_proc_rv = num_block * num_proc_r;
 //CHANGE
-  const int proc_num_ir = proc_num_r + num_proc_r * i_block;
+  const int proc_num_rv = proc_num_r + num_proc_r * i_block;
 
   MPI_Request mpi_requests[2];
 
@@ -265,12 +265,12 @@ void gm_compute_metrics_2way_all2all(GMMetrics* metrics,
     // Prepare for sends/recvs: procs for communication
 
 //CHANGE
-    const int proc_send = gm_mod_i(proc_num_ir
-        - vars_next.j_i_offset*num_proc_r, num_proc_ir);
+    const int proc_send = gm_mod_i(proc_num_rv
+        - vars_next.j_i_offset*num_proc_r, num_proc_rv);
 
 //CHANGE
-    const int proc_recv = gm_mod_i(proc_num_ir
-        + vars_next.j_i_offset*num_proc_r, num_proc_ir);
+    const int proc_recv = gm_mod_i(proc_num_rv
+        + vars_next.j_i_offset*num_proc_r, num_proc_rv);
 
     const bool comm_with_self = vars_next.is_main_diag;
 

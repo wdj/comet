@@ -376,14 +376,17 @@ void GMEnv_initialize_comms(GMEnv* const env) {
                             env->proc_num_, &env->mpi_comm_);
   GMInsist(mpi_code == MPI_SUCCESS);
 
+//CHANGE
   mpi_code = MPI_Comm_split(env->mpi_comm_base_,
       env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
-      env->proc_num_, &env->mpi_comm_repl_vector_);
+      env->is_proc_active_ ? env->proc_num_repl_vector_ : env->proc_num_,
+      &env->mpi_comm_repl_vector_);
   GMInsist(mpi_code == MPI_SUCCESS);
 
   mpi_code = MPI_Comm_split(env->mpi_comm_base_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->num_proc_,
-      env->proc_num_, &env->mpi_comm_field_);
+      env->is_proc_active_ ? env->proc_num_field_ : env->proc_num_,
+      &env->mpi_comm_field_);
   GMInsist(mpi_code == MPI_SUCCESS);
 
   env->are_mpi_comms_initialized_ = true;
@@ -498,12 +501,13 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
   env->is_proc_active_ = env->proc_num_ < env->num_proc_;
 
+//CHANGE
   enum {ORDER_FRV = 0,
         ORDER_RVF = 1,
         ORDER_FVR = 2};
 
-  const int order = ORDER_FRV;
-  //const int order = ORDER_FVR;
+  //const int order = ORDER_FRV;
+  const int order = ORDER_FVR;
 
   if (order == ORDER_FRV) {
     env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;

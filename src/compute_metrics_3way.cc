@@ -112,9 +112,9 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
        vectors (non-field procs) - i.e., vector_i (=block) X repl ---*/
 
 //CHANGE
-  const int proc_num_ir = proc_num_r + num_proc_r * i_block;
+  const int proc_num_rv = proc_num_r + num_proc_r * i_block;
 //CHANGE
-  const int num_proc_ir = num_block * num_proc_r;
+  const int num_proc_rv = num_block * num_proc_r;
 
   /*------------------------*/
   /*---Allocations: Part 1---*/
@@ -271,11 +271,11 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       //TODO: can possibly simplify this - mod by num_proc_i instead
 
 //CHANGE
-      const int proc_send_j = gm_mod_i(proc_num_ir - j_i_offset*num_proc_r,
-                                       num_proc_ir);
+      const int proc_send_j = gm_mod_i(proc_num_rv - j_i_offset*num_proc_r,
+                                       num_proc_rv);
 //CHANGE
-      const int proc_recv_j = gm_mod_i(proc_num_ir + j_i_offset*num_proc_r,
-                                       num_proc_ir);
+      const int proc_recv_j = gm_mod_i(proc_num_rv + j_i_offset*num_proc_r,
+                                       num_proc_rv);
 
       if (gm_proc_r_active(section_block_num, env)) {
 
@@ -353,22 +353,22 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
       const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
 
 //CHANGE
-      const int proc_send_k = gm_mod_i(proc_num_ir - k_i_offset*num_proc_r,
-                                       num_proc_ir);
+      const int proc_send_k = gm_mod_i(proc_num_rv - k_i_offset*num_proc_r,
+                                       num_proc_rv);
 //CHANGE
-      const int proc_recv_k = gm_mod_i(proc_num_ir + k_i_offset*num_proc_r,
-                                       num_proc_ir);
+      const int proc_recv_k = gm_mod_i(proc_num_rv + k_i_offset*num_proc_r,
+                                       num_proc_rv);
 
       for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
 
         const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
 
 //CHANGE
-        const int proc_send_j = gm_mod_i(proc_num_ir-j_i_offset*num_proc_r,
-                                         num_proc_ir);
+        const int proc_send_j = gm_mod_i(proc_num_rv-j_i_offset*num_proc_r,
+                                         num_proc_rv);
 //CHANGE
-        const int proc_recv_j = gm_mod_i(proc_num_ir+j_i_offset*num_proc_r,
-                                         num_proc_ir);
+        const int proc_recv_j = gm_mod_i(proc_num_rv+j_i_offset*num_proc_r,
+                                         num_proc_rv);
         if (j_block == k_block) {
           /*---NOTE: this condition occurs on all procs at exactly the same
                j/k iteration in lockstep, so there is no chance the immediately
