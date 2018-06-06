@@ -87,6 +87,8 @@ typedef struct {
   void* tc_buf_left;
   void* tc_buf_right;
   size_t tc_buf_size;
+  int npvfl_step_max;
+  int num_tc_steps;
   cublasHandle_t cublas_handle;
 } GMEnv;
 

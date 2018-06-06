@@ -33,24 +33,28 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   int nvleX2,
   int nfl,
   int nfl2,
+  int nfl2_step,
+  int fl2_min,
   GMUInt32* vo) {
 
   // Two fields (seminibbles) map to two halves of 32-bit word
 
 #ifdef TRANSPOSE
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int fl2 = blockIdx.y;
+  const int fl2_step = blockIdx.y;
 #else
-  const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
+  const int fl2_step = threadIdx.x + blockIdx.x * blockDim.x;
   const int vlX2 = blockIdx.y;
 #endif
 
   const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
   const int vl = vlX2 / 2;
 
-  if (vlX2 >= nvleX2 || fl2 >= nfl2) {
+  if (vlX2 >= nvleX2 || fl2_step >= nfl2_step) {
     return;
   }
+
+  const int fl2 = fl2_min + fl2_step;
 
   // Output array as floats has nfl/2 rows, as halfs has nfl rows.
 
@@ -95,7 +99,7 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   const int vlX2_index = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvle2 ? 2*vl : 2*vl - nvle + 1 );
 
-  const int fl2_index = fl2;
+  const int fl2_index = fl2_step;
 
 #ifdef TRANSPOSE
   //CHECK
@@ -107,7 +111,7 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   ((GMUInt16*)vo)[ vlX2_index + vlX2_dim * fl_index_0 ] = out0;
   ((GMUInt16*)vo)[ vlX2_index + vlX2_dim * fl_index_1 ] = out1;
 #else
-  const int fl2_dim = nfl2;
+  const int fl2_dim = nfl2_step;
 
   // Combine two halfs into one float.
 
@@ -131,24 +135,28 @@ __global__ void gm_tc_buf_write_int8_kernel_(
   int nvleX2,
   int nfl,
   int nfl2,
+  int nfl2_step,
+  int fl2_min,
   GMUInt16* vo) {
 
   // Two fields (seminibbles) map to two halves of 16-bit word
 
 #ifdef TRANSPOSE
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int fl2 = blockIdx.y;
+  const int fl2_step = blockIdx.y;
 #else
-  const int fl2 = threadIdx.x + blockIdx.x * blockDim.x;
+  const int fl2_step = threadIdx.x + blockIdx.x * blockDim.x;
   const int vlX2 = blockIdx.y;
 #endif
 
   const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
   const int vl = vlX2 / 2;
 
-  if (vlX2 >= nvleX2 || fl2 >= nfl2) {
+  if (vlX2 >= nvleX2 || fl2_step >= nfl2_step) {
     return;
   }
+
+  const int fl2 = fl2_min + fl2_step;
 
   // Output array as shorts has nfl/2 rows, as chars has nfl rows.
 
@@ -193,7 +201,7 @@ __global__ void gm_tc_buf_write_int8_kernel_(
   const int vlX2_index = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvle2 ? 2*vl : 2*vl - nvle + 1 );
 
-  const int fl2_index = fl2;
+  const int fl2_index = fl2_step;
 
 #ifdef TRANSPOSE
   //CHECK
@@ -205,7 +213,7 @@ __global__ void gm_tc_buf_write_int8_kernel_(
   ((GMUInt8*)vo)[ vlX2_index + vlX2_dim * fl_index_0 ] = out0;
   ((GMUInt8*)vo)[ vlX2_index + vlX2_dim * fl_index_1 ] = out1;
 #else
-  const int fl2_dim = nfl2;
+  const int fl2_dim = nfl2_step;
 
   // Combine two chars into one short int.
 
@@ -224,13 +232,13 @@ void gm_tc_buf_write_(
   int I_max_dim,
   int nvl,
   int npvfl,
+  int npvfl_step,
+  int pvfl_min,
   void* vi_ptr,
   GMEnv* env) {
   GMInsist(env && vi_ptr);
-  GMInsist(I_max >= 0);
-  GMInsist(I_max_dim >= 0);
-  GMInsist(I_max <= I_max_dim);
-  GMInsist(I_max_dim <= nvl);
+  GMInsist(I_max_dim >= 0 && I_max_dim <= nvl);
+  GMInsist(I_max >= 0 && I_max <= I_max_dim);
   GMInsist(nvl >= 0);
   GMInsist(npvfl >= 0);
 
@@ -240,8 +248,14 @@ void gm_tc_buf_write_(
   const int nvle2 = nvle / 2;
   const int nvleX2 = 2 * nvle;
   const int nvlea = is_right ? nvl : I_max; // num active nvle; others zeroed
+
   const int nfl = npvfl * 64;
   const int nfl2 = nfl / 2;
+  const int nfl_step = npvfl_step * 64;
+  const int nfl2_step = nfl_step / 2;
+  const int fl_min = pvfl_min * 64;
+  const int fl2_min = fl_min / 2;
+
   const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
 
   GMInsistInterface(env, nvle % 2 == 0 && nvl % 2 == 0 &&
@@ -250,9 +264,9 @@ void gm_tc_buf_write_(
   const int threadblocksize = 256;
 #ifdef TRANSPOSE
   const int num_threadblocks_0 = gm_ceil_i8(nvleX2, threadblocksize);
-  const int num_threadblocks_1 = nfl2;
+  const int num_threadblocks_1 = nfl2_step;
 #else
-  const int num_threadblocks_0 = gm_ceil_i8(nfl2, threadblocksize);
+  const int num_threadblocks_0 = gm_ceil_i8(nfl2_step, threadblocksize);
   const int num_threadblocks_1 = nvleX2;
 #endif
 
@@ -276,6 +290,8 @@ void gm_tc_buf_write_(
       nvleX2,
       nfl,
       nfl2,
+      nfl2_step,
+      fl2_min,
       (GMUInt32*)tc_buf);
 
   } else {
@@ -296,6 +312,8 @@ void gm_tc_buf_write_(
       nvleX2,
       nfl,
       nfl2,
+      nfl2_step,
+      fl2_min,
       (GMUInt16*)tc_buf);
 
   }
@@ -307,34 +325,29 @@ void gm_tc_buf_write_(
 // Call tensor core enabled cuBLAS function to tally bits for CCC.
 
 void gm_tc_solve_(
-  int I_max_dim,
+  bool is_first,
+  int nvll,
   int nvl,
-  int npvfl,
+  int npvfl_step,
   void* dA,
-  int ldda,
   void* dB,
-  int lddb,
   void* dC,
-  int lddc,
   GMEnv* env) {
   GMInsist(env && dA && dB && dC);
-  GMInsist(I_max_dim >= 0);
+  GMInsist(nvll >= 0);
   GMInsist(nvl >= 0);
-  GMInsist(I_max_dim <= nvl);
-  GMInsist(npvfl >= 0);
-  GMInsist(ldda >= 0 && lddb >= 0 && lddc >= 0);
+  GMInsist(nvll <= nvl);
+  GMInsist(npvfl_step >= 0);
   GMInsist(env->tc == 1 || env->tc == 2);
 
-  const int nvll = I_max_dim; // effective nvl for left matrix
-
-  const int nfl = npvfl * 64;
+  const int nfl = npvfl_step * 64;
 
   const int m = 2 * nvll; // metrics array dim
   const int n = 2 * nvl; // metrics array dim
   const int k = nfl; // vectors array (as halfs/bytes) dim
 
   const float alpha = 1;
-  const float beta = 0;
+  const float beta = is_first ? 0 : 1;
 
   const bool is_int8 = env->tc == 2;
 
@@ -376,11 +389,12 @@ void gm_tc_solve_(
     dC, CUDA_R_32F, m,
     CUDA_R_32F,
 #ifdef TRANSPOSE
-    CUBLAS_GEMM_ALGO3_TENSOR_OP); // best timing, for cuda 9.1.85, transpose
+    CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
 #else
-    CUBLAS_GEMM_ALGO4_TENSOR_OP); // best timing, for cuda 9.1.85, non-transpose
+    CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.1.85, non-transpose
 #endif
-    //CUBLAS_GEMM_DFALT_TENSOR_OP);
+    //CUBLAS_GEMM_DFALT_TENSOR_OP
+  );
 
   if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
     printf("Error: CUBLAS_STATUS_NOT_INITIALIZED\n");
@@ -486,16 +500,14 @@ __global__ void gm_tc_fix_metrics_kernel_(
 // Swizzle/cast values from the CUBLAS call into required double complex format.
 
 void gm_tc_fix_metrics_(
-  int I_max_dim,
+  int nvll,
   int nvl,
   void* vo_ptr,
   GMEnv* env) {
   GMInsist(env && vo_ptr);
-  GMInsist(I_max_dim >= 0);
+  GMInsist(nvll >= 0);
   GMInsist(nvl >= 0);
-  GMInsist(I_max_dim <= nvl);
-
-  const int nvll = I_max_dim; // effective nvl for left matrix
+  GMInsist(nvll <= nvl);
 
   const int nvll2 = nvll / 2;
 
@@ -541,18 +553,35 @@ void gm_tc_gemm_start(int m, int n, int k,
 #ifdef USE_TC
   const int I_max = m;
   const int I_max_dim = lddc;
+  const int nvll = I_max_dim; // effective nvl for left matrix
   const int nvl = n;
   const int npvfl = k;
 
-  const bool left_matrix = false; // A
-  const bool right_matrix = true; // B
-  gm_tc_buf_write_(left_matrix, I_max, I_max_dim, nvl, npvfl, dA, env);
-  gm_tc_buf_write_(right_matrix, I_max, I_max_dim, nvl, npvfl, dB, env);
+  const int num_steps = env->num_tc_steps;
 
-  //for (int i=0; i<10; ++i)
-  gm_tc_solve_(I_max_dim, nvl, npvfl, dA, ldda, dB, lddb, dC, lddc, env);
+  for (int step_num = 0; step_num < num_steps; ++step_num) {
+    const int pvfl_min = ((step_num+0) * npvfl) / num_steps;
+    const int pvfl_max = ((step_num+1) * npvfl) / num_steps;
+    const int npvfl_step = pvfl_max - pvfl_min;
+    GMAssert(npvfl_step <= env->npvfl_step_max);
 
-  gm_tc_fix_metrics_(I_max_dim, nvl, dC, env);
+    if (npvfl_step == 0) {
+      continue;
+    }
+
+    const bool left_matrix = false; // A
+    const bool right_matrix = true; // B
+    gm_tc_buf_write_(left_matrix, I_max, I_max_dim, nvl, npvfl,
+                     npvfl_step, pvfl_min, dA, env);
+    gm_tc_buf_write_(right_matrix, I_max, I_max_dim, nvl, npvfl,
+                     npvfl_step, pvfl_min, dB, env);
+
+    //for (int i=0; i<10; ++i)
+    gm_tc_solve_(pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, env);
+  }
+
+  gm_tc_fix_metrics_(nvll, nvl, dC, env);
+
 #else
   GMInsistInterface(env,
                     false && "TC option not implemented for this platform.");

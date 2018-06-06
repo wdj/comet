@@ -223,6 +223,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       /*---optionally processed by caller---*/
     } else if (strcmp(argv[i], "--tc") == 0) {
       ++i; /*---optionally processed by caller---*/
+    } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
+      ++i; /*---optionally processed by caller---*/
     } else {
     /*----------*/
       if (GMEnv_proc_num(env) == 0) {

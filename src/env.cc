@@ -94,6 +94,8 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->tc_buf_left = NULL;
   env->tc_buf_right = NULL;
   env->tc_buf_size = 0;
+  env->npvfl_step_max = 0;
+  env->num_tc_steps = 1;
 
   env->mpi_comm_base_ = base_comm;
   env->make_comms_ = make_comms;
@@ -239,8 +241,21 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       const long tc = strtol(argv[i], NULL, 10);
       GMInsistInterface(env, 0 == errno
                     && (long)(int)tc == tc
+                    && tc >= 0
                     && "Invalid setting for tc.");
       env->tc = tc;
+      /*--------------------*/
+    } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
+      /*--------------------*/
+      ++i;
+      GMInsistInterface(env, i < argc && "Missing value for num_tc_steps.");
+      errno = 0;
+      const long num_tc_steps = strtol(argv[i], NULL, 10);
+      GMInsistInterface(env, 0 == errno
+                    && (long)(int)num_tc_steps == num_tc_steps
+                    && num_tc_steps >= 1
+                    && "Invalid setting for tc.");
+      env->num_tc_steps = num_tc_steps;
       /*--------------------*/
     } /*---if/else---*/
   }   /*---for i---*/
@@ -740,7 +755,7 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
   GMInsist(num_vector_local >= 0);
   GMInsist(num_packedval_field_local >= 0);
 
-  if (env->tc_buf_left) {
+  if (!env->tc) {
     return;
   }
 
@@ -748,18 +763,18 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
     return;
   }
 
-  if (!env->tc) {
+  if (env->tc_buf_left) {
     return;
   }
 
   const size_t nvl = num_vector_local;
   const size_t npvfl = num_packedval_field_local;
-  const int sizeof_scalar = env->tc == 2 ? 1 : 2;
+  env->npvfl_step_max = gm_ceil_i8(npvfl, env->num_tc_steps);
 
-  env->tc_buf_size = (nvl * 2) * (npvfl * 64) * sizeof_scalar;
+  const int sizeof_scalar = env->tc == 2 ? 1 : 2;
+  env->tc_buf_size = (nvl * 2) * (env->npvfl_step_max * 64) * sizeof_scalar;
   env->tc_buf_size = env->tc_buf_size ? env->tc_buf_size : 1;
 
-#if 1
   cudaMalloc(&env->tc_buf_left, env->tc_buf_size);
   GMEnv_cuda_last_call_succeeded(env);
   env->gpu_mem += env->tc_buf_size;
@@ -769,7 +784,6 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
   GMEnv_cuda_last_call_succeeded(env);
   env->gpu_mem += env->tc_buf_size;
   env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
-#endif
 
 #if 0
   // For alignment of right buf
