@@ -834,15 +834,12 @@ void gm_tc_bufs_free(GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-size_t gm_num_vector_local_required(size_t num_vector_active,
+size_t gm_num_vector_local_required(size_t num_vector_active_local,
                                     GMEnv* const env) {
 
-  const int num_proc_vector = GMEnv_num_proc_vector_i(env);
-
-  const size_t nvl_1 = gm_ceil_i8(num_vector_active, num_proc_vector);
-
   const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
-                                   GMEnv_all2all(env) && num_proc_vector > 2;
+                                   GMEnv_all2all(env) &&
+                                   GMEnv_num_proc_vector_i(env) > 2;
 
   const bool need_divisible_by_4 = env->tc;
 
@@ -850,9 +847,19 @@ size_t gm_num_vector_local_required(size_t num_vector_active,
                             need_divisible_by_4 ? 4 :
                             need_divisible_by_6 ? 6 : 1;
 
-  const size_t num_vector_local = gm_ceil_i8(nvl_1, round_factor)*round_factor;
+  const size_t num_vector_local = gm_ceil_i8(num_vector_active_local,
+                                             round_factor)*round_factor;
 
   return num_vector_local;
+}
+
+//-----------------------------------------------------------------------------
+
+size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
+
+  const bool need_divisible_by_4 = env->tc;
+
+  return need_divisible_by_4 ? gm_ceil_i8(size_requested, 4)*4 : size_requested;
 }
 
 //-----------------------------------------------------------------------------

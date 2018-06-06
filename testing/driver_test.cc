@@ -1715,20 +1715,21 @@ void DriverTest_ccc_() {
     char options2[1024];
 
     char options_template_tc[] =
-        //"--num_proc_vector 1 --num_field 1 --num_vector_local 4 "
-        "--num_proc_vector 1 --num_field 100 --num_vector 37 "
+        //"--num_proc_vector 1 --num_field 1 --num_vector_local 5 "
+        "--num_proc_vector 1 --num_field 100 --num_vector %i "
         "--compute_method %s --metric_type ccc --sparse %s "
         "--problem_type random --verbosity %i --tc %i --num_way %i";
 
-    //for (int num_way=2; num_way<=3; ++num_way) {
-    for (int num_way=2; num_way<=2; ++num_way) {
+    for (int nvl=3; nvl<=10; ++nvl) {
+    for (int num_way=2; num_way<=3; ++num_way) {
     for (int sparse=0; sparse<=1; ++sparse) {
     for (int tc=1; tc<=2; ++tc) {
-      sprintf(options1, options_template_tc, "REF", sparse==0 ? "no" : "yes",
+      sprintf(options1, options_template_tc, nvl, "REF", sparse==0 ? "no" : "yes",
               1, 0, num_way);
-      sprintf(options2, options_template_tc, "GPU", sparse==0 ? "no" : "yes",
+      sprintf(options2, options_template_tc, nvl, "GPU", sparse==0 ? "no" : "yes",
               1, tc, num_way);
       EXPECT_EQ(true, compare_2runs(options1, options2));
+    }
     }
     }
     }

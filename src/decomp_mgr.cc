@@ -51,17 +51,17 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector_active_local = num_vector_specifier;
     dm->num_vector_local = gm_num_vector_local_required(
                                dm->num_vector_active_local, env);
-    dm->num_vector = dm->num_vector_local * GMEnv_num_proc_vector_i(env);
     dm->num_vector_active = dm->num_vector_active_local *
                             GMEnv_num_proc_vector_i(env);
+    dm->num_vector = dm->num_vector_local * GMEnv_num_proc_vector_i(env);
   } else { // ! vectors_by_local
     dm->num_vector_active = num_vector_specifier;
     // Pad up as needed, require every proc has same number
     const int num_proc = GMEnv_num_proc_vector_i(env);
     const int proc_num = GMEnv_proc_num_vector_i(env);
     //dm->num_vector_local = gm_ceil_i8(dm->num_vector_active, num_proc);
-    dm->num_vector_local = gm_num_vector_local_required(dm->num_vector_active,
-                                                        env);
+    dm->num_vector_local = gm_num_vector_local_required(
+      gm_ceil_i8(dm->num_vector_active, GMEnv_num_proc_vector_i(env)), env);
     dm->num_vector = dm->num_vector_local * num_proc;
     // Lower procs fully packed with active values
     // Upper procs fully inactive
@@ -79,6 +79,16 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 
   int mpi_code = 0;
   size_t sum = 0;
+
+#if 0
+printf("%i %i %i %i %i\n",
+(int)GMEnv_num_proc_vector_i(env),
+(int)dm->num_vector_active,
+(int)dm->num_vector,
+(int)dm->num_vector_active_local,
+(int)dm->num_vector_local
+);
+#endif
 
   GMInsist(dm->num_vector_active >= 0 &&
            dm->num_vector_active <= dm->num_vector);

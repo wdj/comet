@@ -506,6 +506,8 @@ void gm_tc_bufs_free(GMEnv* const env);
 size_t gm_num_vector_local_required(size_t num_vector_active,
                                     GMEnv* const env);
 
+size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env);
+
 //-----------------------------------------------------------------------------
 
 MPI_Datatype gm_mpi_type(const GMEnv* const env);

@@ -339,7 +339,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
   } else {
     /*---Pad up so that every proc has same number of vectors---*/
     do_.num_vector_local = gm_num_vector_local_required(
-        do_.num_vector_active, env);
+      gm_ceil_i8(do_.num_vector_active, GMEnv_num_proc_vector_i(env)), env);
     do_.num_vector = do_.num_vector_local *
       (size_t)GMEnv_num_proc_vector_i(env);
   }

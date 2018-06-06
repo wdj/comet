@@ -714,6 +714,7 @@ void gm_compute_numerators_3way_gpu_start_(
     vars_next.J = J_min + gm_floor_i(vars_next.step_num, num_step_2way);
     vars_next.I_min = 0;
     vars_next.I_max = si->is_part1 ? vars_next.J : nvl;
+    const int vars_next_I_max_dim = gm_gemm_size_required(vars_next.I_max, env);
     vars_next.K_min = si->is_part3 ? 0 : vars_next.J + 1;
     vars_next.K_max = nvl;
     vars_next.empty = vars_next.I_min >= vars_next.I_max ||
@@ -723,22 +724,22 @@ void gm_compute_numerators_3way_gpu_start_(
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
     vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
     if (vars_next.I_max <= nvl) {
+      GMInsist(vars_next_I_max_dim <= nvl);
       // Create buffer aliases with required shape.
       if (env->do_reduce) {
         GMMirroredBuf_create(&vars_next.tmp_buf,
-                                 tmp_buf[vars_next.index_01],
-                                 vars_next.I_max, env);
+                             tmp_buf[vars_next.index_01],
+                             vars_next_I_max_dim, env);
       }
       GMMirroredBuf_create(&(vars_next.matB_buf),
-                               matB_buf[vars_next.index_01],
-                               vars_next.I_max, env);
+                             matB_buf[vars_next.index_01],
+                             vars_next_I_max_dim, env);
     }
 
-    GMMirroredBuf* matB_buf_ptr_prev = env->do_reduce ?
-                                           &vars_prev.tmp_buf :
-                                           &vars_prev.matB_buf;
+    GMMirroredBuf* matB_buf_ptr_prev = env->do_reduce ?  &vars_prev.tmp_buf :
+                                                         &vars_prev.matB_buf;
     GMMirroredBuf* matB_buf_ptr = env->do_reduce ? &vars.tmp_buf :
-                                                       &vars.matB_buf;
+                                                   &vars.matB_buf;
 
     bool& lock_matB_buf_ptr_h_prevprev = env->do_reduce ?
                                    lock_tmp_buf_h[vars_prevprev.index_01] :
@@ -812,7 +813,8 @@ void gm_compute_numerators_3way_gpu_start_(
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
                            matX_buf[vars.index_01]->d, npvfl,
                            vectors_K_buf->d, npvfl,
-                           matB_buf_ptr->d, vars.I_max, env);
+                           matB_buf_ptr->d, matB_buf_ptr->dim0, env);
+                           //matB_buf_ptr->d, vars.I_max, env);
     }
 
     //==========
