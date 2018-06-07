@@ -917,6 +917,36 @@ MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
 //=============================================================================
 // MetricsFile member definitions.
 
+FILE* gm_metrics_file_open(char* metrics_file_path_stub, GMEnv* env) {
+
+  // Form filename
+
+  size_t len = strlen(metrics_file_path_stub);
+  char* path = (char*)malloc((len+50) * sizeof(char));
+
+  int num_digits = 0;
+  for (int tmp = 1; ; tmp*=10, ++num_digits) {
+    if (tmp > GMEnv_num_proc(env)) {
+      break;
+    }
+  }
+
+  char format[100];
+  sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
+
+  sprintf(path, format, metrics_file_path_stub, GMEnv_proc_num(env));
+
+  // Do open
+
+  FILE* const file = fopen(path, "w");
+  free(path);
+
+  return file;
+}
+
+//-----------------------------------------------------------------------------
+
+
 MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   : file_(NULL)
   , num_written_(0) {
@@ -929,6 +959,7 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   verbosity_ = do_->verbosity;
   threshold_ = do_->threshold;
 
+#if 0
   char* stub = do_->metrics_file_path_stub;
   if (! (NULL != stub && GMEnv_is_proc_active(env) &&
       GMEnv_proc_num_field(env) == 0) ) {
@@ -957,6 +988,12 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   file_ = fopen(path, "w");
   GMInsist(NULL != file_ && "Unable to open file.");
   free(path);
+#endif
+
+  if (do_->metrics_file_path_stub) {
+    file_ = gm_metrics_file_open(do_->metrics_file_path_stub, env);
+    GMInsist(NULL != file_ && "Unable to open file.");
+  }
 }
 
 //-----------------------------------------------------------------------------

@@ -26,6 +26,7 @@
 #include "compute_metrics.hh"
 
 #include "driver.hh"
+#include "input_output.hh"
 
 //=============================================================================
 /* Stack tracing code */
@@ -323,10 +324,26 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   const int metric_type = GMEnv_metric_type(env);
 
-  GMEnv_destroy(env);
-  //const int metric_type = GM_METRIC_TYPE_CZEK;
+  // Identify nodes for which can't open output file (if needed), mark down.
 
-  // Initialize
+  bool outfile_can_open = true;
+
+  for (int i=1; i<argc; ++i) {
+    if (strcmp(argv[i], "--output_file_stub") == 0) {
+      if (i < argc-1) {
+        FILE* const outfile = gm_metrics_file_open(argv[i+1], env);
+        if (!outfile) {
+          outfile_can_open= false;
+        }
+        fclose(outfile);
+        break;
+      }
+    }
+  }
+
+  GMEnv_destroy(env);
+
+  // Initialize communicators.
 
   //int num_proc = 0;
   //MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
@@ -404,7 +421,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     const size_t len = 256;
     char name[len];
     gethostname(name, len);
-    const double penalty = bad_node_penalty();
+    const double penalty = !outfile_can_open ? 991010. : bad_node_penalty();
     if (penalty > 0.) {
       max_time = penalty;
       continue;

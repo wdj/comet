@@ -26,6 +26,8 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 //=============================================================================
 // Class to help output the result metrics values to file
 
+FILE* gm_metrics_file_open(char* metrics_file_path_stub, GMEnv* env);
+
 class MetricWriter {
 public:
 
