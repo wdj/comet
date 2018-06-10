@@ -332,10 +332,11 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     if (strcmp(argv[i], "--output_file_stub") == 0) {
       if (i < argc-1) {
         FILE* const outfile = gm_metrics_file_open(argv[i+1], env);
-        if (!outfile) {
+        if (outfile) {
+          fclose(outfile);
+        } else {
           outfile_can_open= false;
         }
-        fclose(outfile);
         break;
       }
     }
