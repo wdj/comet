@@ -13,11 +13,61 @@
 
 #include "env.hh"
 #include "vectors.hh"
+#include "vector_sums.hh"
 #include "metrics.hh"
 
 //=============================================================================
 
+typedef struct {
+  GMVectorSums vector_sums_onproc;
+  GMVectorSums vector_sums_offproc;
+  GMVectors vectors_01[2];
+  GMMirroredBuf metrics_buf_01[2];
+  GMMirroredBuf vectors_buf;
+  GMMirroredBuf metrics_tmp_buf;
+} GMComputeMetrics;
+
+//-----------------------------------------------------------------------------
+
+void GMComputeMetrics_create(
+    GMComputeMetrics* this_,
+    GMDecompMgr* dm,
+    GMEnv* env);
+
+void GMComputeMetrics_destroy(
+    GMComputeMetrics* this_,
+    GMEnv* env);
+
+//-----------------------------------------------------------------------------
+
+void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
+                        GMVectors* vectors, GMEnv* env);
+
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
+
+//-----------------------------------------------------------------------------
+
+void gm_compute_metrics_2way_notall2all(GMComputeMetrics* compute_metrics,
+                                        GMMetrics* metrics,
+                                        GMVectors* vectors,
+                                        GMEnv* env);
+
+void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
+                                     GMMetrics* metrics,
+                                     GMVectors* vectors,
+                                     GMEnv* env);
+
+//-----------------------------------------------------------------------------
+
+void gm_compute_metrics_3way_notall2all(GMComputeMetrics* compute_metrics,
+                                        GMMetrics* metrics,
+                                        GMVectors* vectors,
+                                        GMEnv* env);
+
+void gm_compute_metrics_3way_all2all(GMComputeMetrics* compute_metrics,
+                                     GMMetrics* metrics,
+                                     GMVectors* vectors,
+                                     GMEnv* env);
 
 //=============================================================================
 

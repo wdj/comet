@@ -15,12 +15,13 @@
 #include "metrics.hh"
 #include "linalg.hh"
 #include "comm_xfer_utils.hh"
+#include "compute_metrics.hh"
 #include "compute_metrics_utils_3way.hh"
-#include "compute_metrics_3way.hh"
 
 //=============================================================================
 
-void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
+void gm_compute_metrics_3way_notall2all(GMComputeMetrics* compute_metrics,
+                                        GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
   GMInsist(metrics && vectors && env);
@@ -29,7 +30,7 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
   /*---Denominator---*/
 
   GMVectorSums vector_sums = GMVectorSums_null();
-  GMVectorSums_create(&vector_sums, vectors, env);
+  GMVectorSums_create(&vector_sums, vectors->num_vector_local, env);
   GMVectorSums_compute(&vector_sums, vectors, env);
 
   /*---------------*/
@@ -86,7 +87,8 @@ void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
 
 //=============================================================================
 
-void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
+void gm_compute_metrics_3way_all2all(GMComputeMetrics* compute_metrics,
+                                     GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
   GMInsist(metrics && vectors && env);
@@ -120,7 +122,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   GMVectorSums vector_sums_i_value = GMVectorSums_null();
   GMVectorSums* const vector_sums_i = &vector_sums_i_value;
-  GMVectorSums_create(vector_sums_i, vectors, env);
+  GMVectorSums_create(vector_sums_i, vectors->num_vector_local, env);
 
   GMVectors* vectors_i = vectors;
 
@@ -134,7 +136,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   GMVectorSums vector_sums_j_value = GMVectorSums_null();
   GMVectorSums* const vector_sums_j = &vector_sums_j_value;
-  GMVectorSums_create(vector_sums_j, vectors, env);
+  GMVectorSums_create(vector_sums_j, vectors->num_vector_local, env);
 
   GMVectors vectors_j_value_0 = GMVectors_null();
   GMVectors vectors_j_value_1 = GMVectors_null();
@@ -152,7 +154,7 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 
   GMVectorSums vector_sums_k_value = GMVectorSums_null();
   GMVectorSums* const vector_sums_k = &vector_sums_k_value;
-  GMVectorSums_create(vector_sums_k, vectors, env);
+  GMVectorSums_create(vector_sums_k, vectors->num_vector_local, env);
 
   GMVectors vectors_k_value_0 = GMVectors_null();
   GMVectors vectors_k_value_1 = GMVectors_null();

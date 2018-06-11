@@ -34,7 +34,9 @@ GMVectorSums GMVectorSums_null(void);
 //=============================================================================
 /*---Pseudo-constructor---*/
 
-void GMVectorSums_create(GMVectorSums* this_, GMVectors* vectors, GMEnv* env);
+void GMVectorSums_create(GMVectorSums* this_,
+                         int num_vector_local,
+                         GMEnv* env);
 
 //=============================================================================
 /*---Pseudo-destructor---*/

@@ -24,7 +24,7 @@ GMVectorSums GMVectorSums_null(void) {
   v.sums_tmp_ = NULL;
   v.counts_tmp_ = NULL;
   v.size_ = 0;
-  v.num_field_ = 0;
+  //v.num_field_ = 0;
   return v;
 }
 
@@ -32,31 +32,32 @@ GMVectorSums GMVectorSums_null(void) {
 /*---Pseudo-constructor---*/
 
 void GMVectorSums_create(GMVectorSums* this_,
-                         GMVectors* vectors,
+                         int num_vector_local,
                          GMEnv* env) {
-  GMInsist(this_ && vectors && env);
+  GMInsist(this_ && env);
+  GMInsist(num_vector_local >= 0);
 
-  this_->size_ = vectors->num_vector_local;
-  this_->num_field_ = vectors->num_field;
+  this_->size_ = num_vector_local;
+  //this_->num_field_ = vectors->num_field;
   const int num_proc = GMEnv_num_proc_field(env);
 
   switch (GMEnv_metric_type(env)) {
     case GM_METRIC_TYPE_CZEK: {
-      this_->sums = GMFloat_malloc(vectors->num_vector_local, env);
+      this_->sums = GMFloat_malloc(num_vector_local, env);
       this_->sums_tmp_ = num_proc == 1
                               ? NULL
-                              : GMFloat_malloc(vectors->num_vector_local, env);
+                              : GMFloat_malloc(num_vector_local, env);
     } break;
     case GM_METRIC_TYPE_CCC: {
-      this_->sums = GMFloat_malloc(vectors->num_vector_local, env);
+      this_->sums = GMFloat_malloc(num_vector_local, env);
       this_->sums_tmp_ = num_proc == 1
                               ? NULL
-                              : GMFloat_malloc(vectors->num_vector_local, env);
+                              : GMFloat_malloc(num_vector_local, env);
       if (env->sparse) {
-        this_->counts = GMFloat_malloc(vectors->num_vector_local, env);
+        this_->counts = GMFloat_malloc(num_vector_local, env);
         this_->counts_tmp_ = num_proc == 1
                               ? NULL
-                              : GMFloat_malloc(vectors->num_vector_local, env);
+                              : GMFloat_malloc(num_vector_local, env);
       }
     } break;
     default:

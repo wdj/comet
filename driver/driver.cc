@@ -407,6 +407,11 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
   {
   GMMetricsMem metrics_mem(env);
 
+  GMComputeMetrics compute_metrics_value = {0},
+                  *compute_metrics = &compute_metrics_value;
+
+  GMComputeMetrics_create(compute_metrics, dm, env);
+
   /*---Loops over phases, stages---*/
 
   for (env->phase_num=do_.phase_min_0based;
@@ -426,7 +431,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
       /*---Calculate metrics---*/
 
-      gm_compute_metrics(metrics, vectors, env);
+      gm_compute_metrics(compute_metrics, metrics, vectors, env);
 
       num_elts_local_computed += metrics->num_elts_local_computed;
 
@@ -463,6 +468,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     }
 
   } /*---End loops over phases, stages---*/
+
+  GMComputeMetrics_destroy(compute_metrics, env);
 
   /*---Finalize metrics mem---*/
 

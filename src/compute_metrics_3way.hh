@@ -1,3 +1,4 @@
+#if 0
 //-----------------------------------------------------------------------------
 /*!
  * \file   compute_metrics_3way.hh
@@ -17,11 +18,13 @@
 
 //=============================================================================
 
-void gm_compute_metrics_3way_notall2all(GMMetrics* metrics,
+void gm_compute_metrics_3way_notall2all(GMComputeMetrics* compute_metrics,
+                                        GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env);
 
-void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
+void gm_compute_metrics_3way_all2all(GMComputeMetrics* compute_metrics,
+                                     GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env);
 
@@ -30,3 +33,4 @@ void gm_compute_metrics_3way_all2all(GMMetrics* metrics,
 #endif /*---_gm_compute_metrics_3way_hh_---*/
 
 //-----------------------------------------------------------------------------
+#endif
