@@ -33,9 +33,10 @@ if [ -n "$CRAYOS_VERSION" ] ; then
   CC=$(which CC)
 else #---IBM
   # For Summit or Peak
+  module load spectrum-mpi/10.2.0.0-20180508 #FIX
   module load gcc/6.4.0
-  module load cuda/9.1.85
-  #module load cuda
+  #module load cuda/9.1.85
+  module load cuda
   module load cmake
   CUDA_INCLUDE_OPTS="-I$CUDA_DIR/include -I$CUDA_DIR/extras/CUPTI/include -I$CUDA_DIR/extras/Debugger/include"
   CUDA_POST_LINK_OPTS="-L$CUDA_DIR/targets/ppc64le-linux/lib"

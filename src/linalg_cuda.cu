@@ -389,7 +389,8 @@ void gm_tc_solve_(
     dC, CUDA_R_32F, m,
     CUDA_R_32F,
 #ifdef TRANSPOSE
-    CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
+    //CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
+    CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
 #else
     CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.1.85, non-transpose
 #endif
@@ -576,7 +577,7 @@ void gm_tc_gemm_start(int m, int n, int k,
     gm_tc_buf_write_(right_matrix, I_max, I_max_dim, nvl, npvfl,
                      npvfl_step, pvfl_min, dB, env);
 
-    //for (int i=0; i<10; ++i)
+    //for (int i=0; i<2; ++i)
     gm_tc_solve_(pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, env);
   }
 
