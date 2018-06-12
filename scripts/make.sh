@@ -17,8 +17,8 @@ else #---IBM
   # For Summit or Peak
   module load spectrum-mpi/10.2.0.0-20180508 #FIX
   module load gcc/6.4.0
-  #module load cuda/9.1.85
-  module load cuda
+  module load cuda/9.1.85
+  #module load cuda
 fi
 
 time make -j4 VERBOSE=1

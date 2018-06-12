@@ -391,14 +391,20 @@ void GMEnv_initialize_comms(GMEnv* const env) {
                             env->proc_num_, &env->mpi_comm_);
   GMInsist(mpi_code == MPI_SUCCESS);
 
+  // Communicator along repl / vector axis.
+
   mpi_code = MPI_Comm_split(env->mpi_comm_base_,
       env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
+      //env->proc_num_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->proc_num_,
       &env->mpi_comm_repl_vector_);
   GMInsist(mpi_code == MPI_SUCCESS);
 
+  // Communicator along field axis.
+
   mpi_code = MPI_Comm_split(env->mpi_comm_base_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->num_proc_,
+      //env->proc_num_,
       env->is_proc_active_ ? env->proc_num_field_ : env->proc_num_,
       &env->mpi_comm_field_);
   GMInsist(mpi_code == MPI_SUCCESS);
@@ -547,7 +553,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   }
 
   env->proc_num_repl_vector_ = env->proc_num_repl_ + env->num_proc_repl_ *
-                               env->proc_num_vector_i_;;
+                               env->proc_num_vector_i_;
 
   /*---Destroy old communicators if necessary---*/
 

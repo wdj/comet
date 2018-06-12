@@ -356,6 +356,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     do_.num_field = do_.num_field_local * (size_t) GMEnv_num_proc_field(env);
   }
 
+//printf("%i %i %i %i\n", env->proc_num_base_, env->proc_num_, env->proc_num_repl_, env->proc_num_vector_i_);
+
   /*---Allocate vectors---*/
 
   double vctime = 0;
