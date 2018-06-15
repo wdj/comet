@@ -19,6 +19,8 @@
 
 #ifdef USE_TC
 
+#include "cuda_fp16.h"
+
 //-----------------------------------------------------------------------------
 
 __global__ void gm_tc_buf_write_fp16_kernel_(
@@ -79,6 +81,9 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   const GMUInt16 zero = 0x0000;
   const GMUInt16 one = 0x3c00;
   const GMUInt16 two = 0x4000;
+  //const GMUInt16 zero = __float2half(0.);
+  //const GMUInt16 one = __float2half(1.);
+  //const GMUInt16 two = __float2half(2.));
 
   const GMUInt16 out0 = seminibble0 == 3*i01     ? two :
                         seminibble0 == 3*(1-i01) ? zero :
@@ -390,7 +395,8 @@ void gm_tc_solve_(
     CUDA_R_32F,
 #ifdef TRANSPOSE
     //CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
-    CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
+    //CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
+    CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.2.88, transpose
 #else
     CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.1.85, non-transpose
 #endif
@@ -577,7 +583,7 @@ void gm_tc_gemm_start(int m, int n, int k,
     gm_tc_buf_write_(right_matrix, I_max, I_max_dim, nvl, npvfl,
                      npvfl_step, pvfl_min, dB, env);
 
-    //for (int i=0; i<2; ++i)
+    //for (int i=0; i<20; ++i)
     gm_tc_solve_(pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, env);
   }
 

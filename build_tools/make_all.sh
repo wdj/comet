@@ -13,7 +13,7 @@ DIRNAME_STUB=$HOST_
 
 for dir in build_*_$DIRNAME_STUB ; do
   pushd $dir
-  ../genomics_gpu/scripts/make.sh
+  ../genomics_gpu/scripts/make.sh 2>&1 | tee out_make.sh
   if [ $? != 0 ] ; then
     exit 1
   fi
