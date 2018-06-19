@@ -119,7 +119,7 @@
     //---BEGIN ADDED GENOMICS_METRICS
     #ifdef DOUBLE
       #if (__CUDA_ARCH__ == 700)
-        #define myfmin(A, B, C) C += fminf((A), (B))
+        #define myfmin(A, B, C) C += ((double)fminf((float)(A), (float)(B)))
       #else
         #define myfmin(A, B, C) C += fmin((A), (B))
       #endif
