@@ -21,6 +21,9 @@
 
 #include "cuda_fp16.h"
 
+//TODO: get rid of multiplier
+#define MULTIPLIER 1
+
 //-----------------------------------------------------------------------------
 
 __global__ void gm_tc_buf_write_fp16_kernel_(
@@ -38,6 +41,8 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   int nfl2_step,
   int fl2_min,
   GMUInt32* vo) {
+//TODO: rename nvle->nvl, nvlea->nvla . . .
+//TODO: vi32
 
   // Two fields (seminibbles) map to two halves of 32-bit word
 
@@ -49,24 +54,25 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   const int vlX2 = blockIdx.y;
 #endif
 
-  const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
-  const int vl = vlX2 / 2;
-
   if (vlX2 >= nvleX2 || fl2_step >= nfl2_step) {
     return;
   }
+
+  const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
+  const int vl = vlX2 / 2;
 
   const int fl2 = fl2_min + fl2_step;
 
   // Output array as floats has nfl/2 rows, as halfs has nfl rows.
 
-  const GMUInt32* const vi_col_offset = vi + vl * vi_dim0;
+//TODO: cast vi_dim0 to size_t
+  const GMUInt32* const vi_col = vi + vl * vi_dim0;
 
   // Pick up two consecutive field values:
   // first field seminibble0, second field seminibble1
   // Set to zero if outside of active range.
 
-  const int nibble = vl<nvlea ? (vi_col_offset[fl2/8] >> (4*(fl2%8))) & 15 : 0;
+  const int nibble = vl<nvlea ? (vi_col[fl2/8] >> (4*(fl2%8))) & 15 : 0;
 
   const int seminibble0 = nibble & 3;
   const int seminibble1 = (nibble>>2) & 3;
@@ -77,13 +83,13 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   //CHECK
   const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
 
-  // Possibe counts, represented as FP16.
+  // Possible counts, represented as FP16.
   const GMUInt16 zero = 0x0000;
   const GMUInt16 one = 0x3c00;
   const GMUInt16 two = 0x4000;
-  //const GMUInt16 zero = __float2half(0.);
-  //const GMUInt16 one = __float2half(1.);
-  //const GMUInt16 two = __float2half(2.));
+  //const GMUInt16 zero = *(GMUInt16*)&__float2half(0.);
+  //const GMUInt16 one = *(GMUInt16*)&__float2half(1.);
+  //const GMUInt16 two = *(GMUInt16*)&__float2half(2.);
 
   const GMUInt16 out0 = seminibble0 == 3*i01     ? two :
                         seminibble0 == 3*(1-i01) ? zero :
@@ -101,28 +107,32 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   // Left case: interleave to make later swizzling of metrics array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
 
+//TODO: vl_index = is_right ? vl : vl < nvle2 ? 2*vl : 2*vl - nvle + 1
   const int vlX2_index = is_right ? i01 + 2*vl :
                   i01 + 2*( vl < nvle2 ? 2*vl : 2*vl - nvle + 1 );
 
   const int fl2_index = fl2_step;
 
 #ifdef TRANSPOSE
-  //CHECK
   const int fl_index_0 = 0 + 2 * fl2_index;
   const int fl_index_1 = 1 + 2 * fl2_index;
 
   const int vlX2_dim = nvleX2;
 
-  ((GMUInt16*)vo)[ vlX2_index + vlX2_dim * fl_index_0 ] = out0;
-  ((GMUInt16*)vo)[ vlX2_index + vlX2_dim * fl_index_1 ] = out1;
+//TODO: void* vo, GMUInt16* vo16;
+  ((GMUInt16*)vo)[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
+  ((GMUInt16*)vo)[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
+
 #else
   const int fl2_dim = nfl2_step;
 
-  // Combine two halfs into one float.
+  // Combine two halfs into one 32-bit value.
 
   const GMUInt32 out01 = ((GMUInt32)out0) + ( ((GMUInt32)out1) << 16 );
 
-  vo[ fl2_index + fl2_dim * vlX2_index ] = out01;
+//TODO: GMUInt32* vo32
+//TODO: cast vlX2_index to size_t
+  vo[fl2_index + fl2_dim * vlX2_index] = out01;
 #endif
 }
 
@@ -154,24 +164,25 @@ __global__ void gm_tc_buf_write_int8_kernel_(
   const int vlX2 = blockIdx.y;
 #endif
 
-  const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
-  const int vl = vlX2 / 2;
-
   if (vlX2 >= nvleX2 || fl2_step >= nfl2_step) {
     return;
   }
+
+  const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
+  const int vl = vlX2 / 2;
 
   const int fl2 = fl2_min + fl2_step;
 
   // Output array as shorts has nfl/2 rows, as chars has nfl rows.
 
-  const GMUInt32* const vi_col_offset = vi + vl * vi_dim0;
+// ISSUE; int32 vs int16
+  const GMUInt32* const vi_col = vi + vl * vi_dim0;
 
   // Pick up two consecutive field values:
   // first field seminibble0, second field seminibble1
   // Set to zero if outside of active range.
 
-  const int nibble = vl<nvlea ? (vi_col_offset[fl2/8] >> (4*(fl2%8))) & 15 : 0; 
+  const int nibble = vl<nvlea ? (vi_col[fl2/8] >> (4*(fl2%8))) & 15 : 0; 
 
   const int seminibble0 = nibble & 3;
   const int seminibble1 = (nibble>>2) & 3;
@@ -246,6 +257,8 @@ void gm_tc_buf_write_(
   GMInsist(I_max >= 0 && I_max <= I_max_dim);
   GMInsist(nvl >= 0);
   GMInsist(npvfl >= 0);
+//TODO: more assertions
+//TODO: void: vi, int32* vi32
 
   const bool is_int8 = env->tc == 2;
 
@@ -261,6 +274,7 @@ void gm_tc_buf_write_(
   const int fl_min = pvfl_min * 64;
   const int fl2_min = fl_min / 2;
 
+// ISSUE: is this right for int16 case
   const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
 
   GMInsistInterface(env, nvle % 2 == 0 && nvl % 2 == 0 &&
@@ -345,11 +359,11 @@ void gm_tc_solve_(
   GMInsist(npvfl_step >= 0);
   GMInsist(env->tc == 1 || env->tc == 2);
 
-  const int nfl = npvfl_step * 64;
+  const int nfl_step = npvfl_step * 64;
 
   const int m = 2 * nvll; // metrics array dim
   const int n = 2 * nvl; // metrics array dim
-  const int k = nfl; // vectors array (as halfs/bytes) dim
+  const int k = nfl_step; // vectors array (as halfs/bytes) dim
 
   const float alpha = 1;
   const float beta = is_first ? 0 : 1;
@@ -426,7 +440,8 @@ __global__ void gm_tc_fix_metrics_kernel_(
   int nvl,
   int nvll,
   int nvll2,
-  float* vo) {
+  float* vo,
+  float multiplier) {
 
   // Row and column of metrics array.
 
@@ -444,20 +459,25 @@ __global__ void gm_tc_fix_metrics_kernel_(
 
   // Two col numbers being processed of this (float) array.
 
+//TODO: use only single pointer instead . . . ?
+
+//TODO: make size_t; cast 4*nvll to size_t
   const int fc_offset0 = thread_c * (4*nvll);
   const int fc_offset1 = thread_c * (4*nvll) + 2*nvll;
+//TODO: fcr_offset0/1
 
   // Read the 8 floats.
 
-  const float f00 = vo[fc_offset0+0+4*thread_r];
-  const float f01 = vo[fc_offset0+1+4*thread_r];
-  const float f02 = vo[fc_offset0+2+4*thread_r];
-  const float f03 = vo[fc_offset0+3+4*thread_r];
+//TODO: variable fvo
+  const float f00 = vo[fc_offset0+0+4*thread_r] * multiplier;
+  const float f01 = vo[fc_offset0+1+4*thread_r] * multiplier;
+  const float f02 = vo[fc_offset0+2+4*thread_r] * multiplier;
+  const float f03 = vo[fc_offset0+3+4*thread_r] * multiplier;
 
-  const float f10 = vo[fc_offset1+0+4*thread_r];
-  const float f11 = vo[fc_offset1+1+4*thread_r];
-  const float f12 = vo[fc_offset1+2+4*thread_r];
-  const float f13 = vo[fc_offset1+3+4*thread_r];
+  const float f10 = vo[fc_offset1+0+4*thread_r] * multiplier;
+  const float f11 = vo[fc_offset1+1+4*thread_r] * multiplier;
+  const float f12 = vo[fc_offset1+2+4*thread_r] * multiplier;
+  const float f13 = vo[fc_offset1+3+4*thread_r] * multiplier;
 
   // Apply the permutation:
 
@@ -484,6 +504,7 @@ __global__ void gm_tc_fix_metrics_kernel_(
 
   // Pack two 25-bit integers into mantissa of double.
 
+// TODO: explicitly cast float values to double
   const double d00 = f00p + f02p * shifter;
   const double d01 = f01p + f03p * shifter;
 
@@ -493,14 +514,17 @@ __global__ void gm_tc_fix_metrics_kernel_(
   // Overwrite block with the new values.
   // All is isolated to a single thread, should be thread safe.
 
-  const int dc0 = thread_c * (2*nvll);
-  const int dc1 = thread_c * (2*nvll) + nvll;
+//TODO: make size_t; cast 2*nvll to size_t
+  const int dc_offset0 = thread_c * (2*nvll);
+  const int dc_offset1 = thread_c * (2*nvll) + nvll;
+//TODO: dcr_offset0/1
 
-  ((double*)vo)[dc0+0+2*thread_r] = d00;
-  ((double*)vo)[dc0+1+2*thread_r] = d01;
+//TODO: variable dvo
+  ((double*)vo)[dc_offset0+0+2*thread_r] = d00;
+  ((double*)vo)[dc_offset0+1+2*thread_r] = d01;
 
-  ((double*)vo)[dc1+0+2*thread_r] = d10;
-  ((double*)vo)[dc1+1+2*thread_r] = d11;
+  ((double*)vo)[dc_offset1+0+2*thread_r] = d10;
+  ((double*)vo)[dc_offset1+1+2*thread_r] = d11;
 }
 
 //-----------------------------------------------------------------------------
@@ -521,6 +545,8 @@ void gm_tc_fix_metrics_(
   const int threadblocksize = 256;
   const int vll2_threadblocks = gm_ceil_i8(nvll2, threadblocksize);
 
+  const bool is_int8 = env->tc == 2;
+
   gm_tc_fix_metrics_kernel_<<<
       dim3(vll2_threadblocks, nvl, 1),
       dim3(threadblocksize, 1, 1),
@@ -529,7 +555,8 @@ void gm_tc_fix_metrics_(
     nvl,
     nvll,
     nvll2,
-    (float*)vo_ptr
+    (float*)vo_ptr,
+    is_int8 ? 1 : MULTIPLIER * MULTIPLIER
   );
 
   GMEnv_cuda_last_call_succeeded(env);
