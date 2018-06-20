@@ -48,9 +48,18 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   //--------------------
 
   if (vectors_by_local) {
+    dm->num_vector_local = num_vector_specifier;
+    const size_t num_vector_local_required = gm_num_vector_local_required(
+                                              dm->num_vector_local, env);
+    GMInsistInterface(env, dm->num_vector_local == num_vector_local_required
+                      && "Divisibility requirement not met.");
+    // All vectors active on every proc.
+    dm->num_vector_active_local = dm->num_vector_local;
+#if 0
     dm->num_vector_active_local = num_vector_specifier;
     dm->num_vector_local = gm_num_vector_local_required(
                                dm->num_vector_active_local, env);
+#endif
     dm->num_vector_active = dm->num_vector_active_local *
                             GMEnv_num_proc_vector_i(env);
     dm->num_vector = dm->num_vector_local * GMEnv_num_proc_vector_i(env);
