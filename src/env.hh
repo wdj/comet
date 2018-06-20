@@ -528,6 +528,10 @@ size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env);
 
 MPI_Datatype gm_mpi_type(const GMEnv* const env);
 
+//-----------------------------------------------------------------------------
+
+size_t gm_array_cksum(unsigned char* a, size_t n);
+
 //=============================================================================
 
 #endif /*---_gm_env_hh_---*/

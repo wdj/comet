@@ -913,3 +913,20 @@ size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
 }
 
 //-----------------------------------------------------------------------------
+
+size_t gm_array_cksum(unsigned char* a, size_t n) {
+  GMInsist(a);
+
+  size_t result = 0;
+
+  const size_t mask = (((size_t)1) << 32) - 1;
+
+#pragma omp parallel for schedule(dynamic,1000) reduction(+:result)
+  for (size_t i=0; i<n; ++i) {
+    result += (a[i] * i) & mask;
+  }
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------

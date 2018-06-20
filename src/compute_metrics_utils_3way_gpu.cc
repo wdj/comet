@@ -702,8 +702,12 @@ void gm_compute_numerators_3way_gpu_start_(
   bool lock_matB_buf_h[2] = {false, false};
   bool lock_matB_buf_d[2] = {false, false};
 
+  //========================================
   for (int step_num = 0-extra_step; step_num < num_step+extra_step*2;
        ++step_num) {
+  //========================================
+
+    // Set per-step variables
 
     vars_prevprev = vars_prev;
     vars_prev = vars;
@@ -741,7 +745,7 @@ void gm_compute_numerators_3way_gpu_start_(
     GMMirroredBuf* matB_buf_ptr = env->do_reduce ? &vars.tmp_buf :
                                                    &vars.matB_buf;
 
-    // Lock aliases
+    // Set up lock aliases
 
     bool& lock_matB_buf_ptr_h_prevprev = env->do_reduce ?
                                    lock_tmp_buf_h[vars_prevprev.index_01] :
@@ -874,15 +878,20 @@ void gm_compute_numerators_3way_gpu_start_(
       unlock(lock_matB_buf_ptr_h_prevprev);
     }
 
-    //==========
+  //========================================
+  } // step_num
+  //========================================
 
-  } /*---for step_num---*/
+  // Terminations
 
-//TODO: ? check that all locks are unlocked
-
-  /*--------------------*/
-  /*---Free memory---*/
-  /*--------------------*/
+  for (int i=0; i<2; ++i) {
+    GMInsist(!lock_tmp_buf_h[i]);
+    GMInsist(!lock_tmp_buf_d[i]);
+    GMInsist(!lock_matX_buf_h[i]);
+    GMInsist(!lock_matX_buf_d[i]);
+    GMInsist(!lock_matB_buf_h[i]);
+    GMInsist(!lock_matB_buf_d[i]);
+  }
 
   GMSectionInfo_destroy(si, env);
 }

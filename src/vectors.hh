@@ -75,6 +75,10 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
 void GMVectors_print(GMVectors* vectors, GMEnv* env);
 
 //=============================================================================
+
+size_t GMVectors_cksum(GMVectors* vectors, GMEnv* env);
+
+//=============================================================================
 // Copy vectors to mirrored buffer
 
 void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,

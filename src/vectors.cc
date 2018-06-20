@@ -294,4 +294,17 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
   } /*---switch---*/
 }
 
+//=============================================================================
+// hecksum of entries.
+
+size_t GMVectors_cksum(GMVectors* vectors, GMEnv* env) {
+  GMInsist(vectors && env);
+
+  if (! GMEnv_is_proc_active(env)) {
+    return 0;
+  }
+
+  return gm_array_cksum((unsigned char*)(vectors->data), vectors->data_size);
+}
+
 //-----------------------------------------------------------------------------
