@@ -741,6 +741,8 @@ void gm_compute_numerators_3way_gpu_start_(
     GMMirroredBuf* matB_buf_ptr = env->do_reduce ? &vars.tmp_buf :
                                                    &vars.matB_buf;
 
+    // Lock aliases
+
     bool& lock_matB_buf_ptr_h_prevprev = env->do_reduce ?
                                    lock_tmp_buf_h[vars_prevprev.index_01] :
                                    lock_matB_buf_h[vars_prevprev.index_01];
@@ -875,6 +877,8 @@ void gm_compute_numerators_3way_gpu_start_(
     //==========
 
   } /*---for step_num---*/
+
+//TODO: ? check that all locks are unlocked
 
   /*--------------------*/
   /*---Free memory---*/

@@ -25,7 +25,7 @@
 //=============================================================================
 /*---Set the entries of the vectors---*/
 
-void set_vectors_random(GMVectors* vectors, int verbosity, GMEnv* env) {
+void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
   GMInsist(vectors && env);
 
   if (! GMEnv_is_proc_active(env)) {
@@ -33,6 +33,7 @@ void set_vectors_random(GMVectors* vectors, int verbosity, GMEnv* env) {
   }
 
   const size_t nva = vectors->dm->num_vector_active;
+  const size_t nfa = vectors->dm->num_field_active;
 
   switch (GMEnv_data_type_vectors(env)) {
     /*--------------------*/
@@ -43,16 +44,17 @@ void set_vectors_random(GMVectors* vectors, int verbosity, GMEnv* env) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         /*---Fill pad vectors with copies of the last vector---*/
+        // By construction, active vectors are packed for lower procs.
         const size_t vector_capped = gm_min_i8(vector, nva);
         int fl = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
               vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
           if (field >= vectors->num_field_active) {
-            continue;
+            continue; // These entries will be padded to zero elsewhere.
           }
           /*---Compute element unique id---*/
-          const size_t uid = field + vectors->num_field_active*vector_capped;
+          const size_t uid = field + nfa * vector_capped;
           /*---Generate large random number---*/
           size_t rand1 = uid;
           rand1 = gm_randomize(rand1);
@@ -61,30 +63,33 @@ void set_vectors_random(GMVectors* vectors, int verbosity, GMEnv* env) {
           rand2 = gm_randomize(rand2);
           rand2 = gm_randomize(rand2);
           rand2 = gm_randomize(rand2);
-          const size_t randomize_max = gm_randomize_max();
-          size_t rand_value = rand1 + randomize_max * rand2;
+          const size_t rand_max = gm_randomize_max();
+          size_t rand_value = rand1 + rand_max * rand2;
           /*---Reduce so that after summing num_field times the integer
                still exactly representable by floating point type---*/
-          const size_t rand_max = randomize_max * randomize_max;
-          const int log2_num_summands_3way_numerator = 2;
-          const int shift_amount = gm_log2(log2_num_summands_3way_numerator*
-                                           rand_max*vectors->num_field_active)
-                                   - GMFloat_mant_dig();
+          const size_t rand_max2 = rand_max * rand_max;
+          const int log2_num_summands_3way_numer = 2;
+          const int shift_amount1 = gm_max_i8(0,
+             gm_log2(log2_num_summands_3way_numer * rand_max2 * nfa)
+             - gm_mant_dig<GMFloat>() + 1);
+          // Account for cast to float in magma Volta version.
+          const int shift_amount2 = gm_max_i8(0,
+                             gm_log2(rand_max2) - gm_mant_dig<float>() + 1);
+          const int shift_amount = gm_max_i8(shift_amount1, shift_amount2);
+          //const int shift_amount = gm_log2(log2_num_summands_3way_numer*
+          //                                 rand_max2*nfa)
+          //                         - mant_dig;
           rand_value >>= shift_amount > 0 ? shift_amount : 0;
           /*---Store---*/
           GMFloat float_value = (GMFloat)rand_value;
           GMInsist((size_t)float_value == rand_value);
           GMInsist(float_value * vectors->num_field_active <
-                         ((size_t)1)<<GMFloat_mant_dig());
+                         ((size_t)1)<<gm_mant_dig<GMFloat>());
           GMVectors_float_set(vectors, fl, vl, float_value, env);
-//          if (verbosity > 2) {
-//            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-//                   GMEnv_proc_num_vector_i(env), vl,
-//                   GMEnv_proc_num_field(env), fl, float_value);
-//          }
         } /*---field_local---*/
       }   /*---vector_local---*/
       /*---Print---*/
+//TODO: move this
       if (verbosity > 2) {
         GMVectors_print(vectors, env);
       }
@@ -94,19 +99,26 @@ void set_vectors_random(GMVectors* vectors, int verbosity, GMEnv* env) {
     /*--------------------*/
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+
         size_t vector = vl +
             vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         /*---Fill pad vectors with copies of the last vector---*/
         const size_t vector_capped = gm_min_i8(vector, nva);
-        int fl;
-        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+
+        // XXX
+        /*---Fill pad vectors with copies of the last vector---*/
+        // const int nval = vectors->dm->num_vector_active_local;
+        // const size_t vector_capped = gm_min_i8(vl, nval) +
+        //   nval * (size_t)GMEnv_proc_num_vector_i(env);
+
+        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
               vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
           if (field >= vectors->num_field_active) {
-            continue;
+            continue; // These entries will be padded to zero elsewhere.
           }
           /*---Compute element unique id---*/
-          const size_t uid = field + vectors->num_field_active*vector_capped;
+          const size_t uid = field + vectors->num_field_active * vector_capped;
           size_t index = uid;
           /*---Randomize---*/
           index = gm_randomize(index);
@@ -117,16 +129,10 @@ void set_vectors_random(GMVectors* vectors, int verbosity, GMEnv* env) {
           GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
           /*---Store---*/
           GMVectors_bits2_set(vectors, fl, vl, value, env);
-//          /*---Print---*/
-//          if (verbosity > 2) {
-//            printf("vec_proc %i vec %i "
-//                   "field_proc %i field %i value %.1i%.1i\n",
-//                   GMEnv_proc_num_vector_i(env), vl,
-//                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
-//          }
         } /*---fl---*/
       }   /*---vl---*/
       /*---Print---*/
+//TODO: move this
       if (verbosity > 2) {
         GMVectors_print(vectors, env);
       }
@@ -188,20 +194,24 @@ static size_t perm(size_t key, size_t i, size_t n) {
 
 //-----------------------------------------------------------------------------
 
-void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
+void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   GMInsist(vectors && env);
 
   if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
-  const size_t nf = vectors->num_field_active;
+  const size_t nfa = vectors->num_field_active;
   const size_t nva = vectors->dm->num_vector_active;
 
-  // Upper bound on integer representable exactly by GMFloat.
-  const size_t max_float = ((size_t)1) << GMFloat_mant_dig();
-  // Sum nf times down the vector, is it still exact.
-  const size_t value_limit = (max_float - 1) / nf;
+  // Upper bound on integer representable exactly by floating point type.
+  // Account for cast to float in magma Volta version.
+  const size_t max_float = ((size_t)1) <<
+    (GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT ?
+     gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
+
+  // Sum nfa times down the vector, is it still exact.
+  const size_t value_limit = (max_float - 1) / nfa;
 
   const size_t value_min = 1;
   const size_t value_max = (nva+value_min) < value_limit ?
@@ -216,7 +226,7 @@ void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
   // is the same across all elements of the group.
 
   const size_t num_group = 1 << NUM_SHUFFLE;
-  const size_t group_size_max = (nf+num_group-1) / num_group;
+  const size_t group_size_max = (nfa+num_group-1) / num_group;
 
   switch (GMEnv_data_type_vectors(env)) {
     /*--------------------*/
@@ -233,12 +243,12 @@ void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
           size_t field = fl +
               vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
           if (field >= vectors->num_field_active) {
-            continue;
+            continue; // These entries will be padded to zero elsewhere.
           }
           const size_t f = field; // field number
           const size_t v = vector_capped; // vector number
 
-          const size_t pf = perm(0, f, nf); // permuted field number
+          const size_t pf = perm(0, f, nfa); // permuted field number
           const size_t g = pf / group_size_max; // group number
           GMAssert(g>=0 && g<num_group);
 
@@ -253,15 +263,10 @@ void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
           GMInsist(float_value * vectors->num_field_active < max_float);
           GMVectors_float_set(vectors, fl, vl, float_value, env);
 
-//          /*---Print---*/
-//          if (verbosity > 2) {
-//            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-//                   GMEnv_proc_num_vector_i(env), vl,
-//                   GMEnv_proc_num_field(env), fl, float_value);
-//          }
         } /*---field_local---*/
       }   /*---vector_local---*/
       /*---Print---*/
+//TODO: move this
       if (verbosity > 2) {
         GMVectors_print(vectors, env);
       }
@@ -269,6 +274,7 @@ void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
+//int mycount[4] = {0, 0, 0, 0};
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
@@ -280,14 +286,14 @@ void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
           size_t field = fl +
               vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
           if (field >= vectors->num_field_active) {
-            continue;
+            continue; // These entries will be padded to zero elsewhere.
           }
           /*---Create 2-bit value - make extra sure less than 4---*/
 
           const size_t f = field;
           const size_t v = vector_capped;
 
-          const size_t pf = perm(0, f, nf);
+          const size_t pf = perm(0, f, nfa);
           const size_t g = pf / group_size_max;
           GMAssert(g>=0 && g<num_group);
 
@@ -296,23 +302,18 @@ void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
           const size_t value = value_min + ( pv * value_max ) / (nva+value_min);
 
           const GMBits2 bval = ((size_t)3) & (value - value_min);
+//mycount[bval]++;
 
           /*---Store---*/
           GMVectors_bits2_set(vectors, fl, vl, bval, env);
 
-//          /*---Print---*/
-//          if (verbosity > 2) {
-//            printf("vec_proc %i vec %i "
-//                   "field_proc %i field %i value %.1i%.1i\n",
-//                   GMEnv_proc_num_vector_i(env), vl,
-//                   GMEnv_proc_num_field(env), fl,
-//                   (int)bval / 2, (int)bval % 2);
-//          }
         } /*---field_local---*/
       }   /*---vector_local---*/
+//TODO: move this
       if (verbosity > 2) {
         GMVectors_print(vectors, env);
       }
+//printf("%i %i %i %i\n", mycount[0], mycount[1], mycount[2], mycount[3]);
     } break;
     /*--------------------*/
     default:
@@ -323,13 +324,14 @@ void set_vectors_analytic(GMVectors* vectors, int verbosity, GMEnv* env) {
 
 //=============================================================================
 
-void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,                            GMEnv* env) {
+void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
+                           GMEnv* env) {
   GMInsist(vectors && env);
 
   if (problem_type == GM_PROBLEM_TYPE_RANDOM) {
-    set_vectors_random(vectors, verbosity, env);
+    set_vectors_random_(vectors, verbosity, env);
   } else if (problem_type == GM_PROBLEM_TYPE_ANALYTIC) {
-    set_vectors_analytic(vectors, verbosity, env);
+    set_vectors_analytic_(vectors, verbosity, env);
   } else {
     GMInsist(false && "Invalid problem_type");
   }
@@ -338,41 +340,50 @@ void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity, 
 //=============================================================================
 /*---Check correctness of metrics, if possible---*/
 
-void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
+void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
+                             GMEnv* env) {
   GMInsist(metrics && do_ && env);
-
-  if (GM_PROBLEM_TYPE_ANALYTIC != do_->problem_type ||
-      NULL != do_->input_file_path) {
-    return;
-  }
+  GMInsist(GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type);
+  GMInsist(NULL == do_->input_file_path);
 
   if (! GMEnv_is_proc_active(env)) {
     return;
   }
 
-  const size_t nf = metrics->num_field_active;
-  const size_t nv = metrics->num_vector_active;
+  const size_t nfa = metrics->num_field_active;
+  const size_t nva = metrics->num_vector_active;
 
-  // Upper bound on integer representable exactly by GMFloat.
-  const size_t max_float = ((size_t)1) << GMFloat_mant_dig();
-  // Sum nf times down the vector, is it still exact.
-  const size_t value_limit = (max_float - 1) / nf;
+  // Upper bound on integer representable exactly by floating point type.
+  // Account for cast to float in magma Volta version.
+  const size_t max_float = ((size_t)1) <<
+    (GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT ?
+     gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
+  // Sum nfa times down the vector, is it still exact.
+  const size_t value_limit = (max_float - 1) / nfa;
 
   const size_t value_min = 1;
-  const size_t value_max = (nv+value_min) < value_limit ?
-                           (nv+value_min) : value_limit;
+  const size_t value_max = (nva+value_min) < value_limit ?
+                           (nva+value_min) : value_limit;
 
   const size_t num_group = 1 << NUM_SHUFFLE;
-  const size_t group_size_max = (nf+num_group-1) / num_group;
+  const size_t group_size_max = (nfa+num_group-1) / num_group;
 
   size_t num_incorrect = 0;
+  const size_t max_to_print = 10;
+  double max_incorrect_diff = 0.;
 
   switch (GMEnv_data_type_metrics(env)) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
+//      if (gm_gpu_compute_capability() == 700 &&
+//          GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU &&
+//          GM_FP_PRECISION_DOUBLE) {
+//        // For this case modified MAGMA code casts down to single.
+//        break;
+//      }
       if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
-#pragma omp parallel for reduction(+:num_incorrect)
+#pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t vi =
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -396,16 +407,16 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
           for (size_t g=0; g<num_group; ++g) {
 
             const size_t pf_min = g * group_size_max;
-            const size_t pf_max = gm_min_i8((g+1) * group_size_max, nf);
+            const size_t pf_max = gm_min_i8((g+1) * group_size_max, nfa);
             const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-            const size_t pvi = perm(g, vi, nv);
-            const size_t pvj = perm(g, vj, nv);
+            const size_t pvi = perm(g, vi, nva);
+            const size_t pvj = perm(g, vj, nva);
 
             const size_t value_i = value_min + ( pvi * value_max ) /
-                                               (nv+value_min);
+                                               (nva+value_min);
             const size_t value_j = value_min + ( pvj * value_max ) /
-                                               (nv+value_min);
+                                               (nva+value_min);
             n += gm_min_i8(value_i, value_j) * gs_this;
             d += (value_i + value_j) * gs_this;
 
@@ -415,14 +426,20 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
-            printf("%.16e %.16e\n", (double)value_expected, (double)value);
+            const double diff = fabs(value - value_expected);
+            max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
+            if (num_incorrect < max_to_print) {
+              printf("Error: incorrect result detected.  coords %zu %zu  "
+                     "expected %.16e  actual %.16e\n", vi, vj,
+                     (double)value_expected, (double)value);
+            }
           }
 
           num_incorrect += is_incorrect;
         } //---for index
       } //---if
       if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
-#pragma omp parallel for reduction(+:num_incorrect)
+#pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t vi =
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -444,19 +461,19 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
           for (size_t g=0; g<num_group; ++g) {
 
             const size_t pf_min = g * group_size_max;
-            const size_t pf_max = gm_min_i8((g+1) * group_size_max, nf);
+            const size_t pf_max = gm_min_i8((g+1) * group_size_max, nfa);
             const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-            const size_t pvi = perm(g, vi, nv);
-            const size_t pvj = perm(g, vj, nv);
-            const size_t pvk = perm(g, vk, nv);
+            const size_t pvi = perm(g, vi, nva);
+            const size_t pvj = perm(g, vj, nva);
+            const size_t pvk = perm(g, vk, nva);
 
             const size_t value_i = value_min + ( pvi * value_max ) /
-                                               (nv+value_min);
+                                               (nva+value_min);
             const size_t value_j = value_min + ( pvj * value_max ) /
-                                               (nv+value_min);
+                                               (nva+value_min);
             const size_t value_k = value_min + ( pvk * value_max ) /
-                                               (nv+value_min);
+                                               (nva+value_min);
 
             n += gm_min_i8(value_i, value_j) * gs_this;
             n += gm_min_i8(value_i, value_k) * gs_this;
@@ -472,7 +489,13 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
-            printf("%.16e %.16e\n", (double)value_expected, (double)value);
+            const double diff = fabs(value - value_expected);
+            max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
+            if (num_incorrect < max_to_print) {
+              printf("Error: incorrect result detected.  coords %zu %zu %zu  "
+                     "expected %.16e  actual %.16e\n", vi, vj, vk,
+                     (double)value_expected, (double)value);
+            }
           }
 
           num_incorrect += is_incorrect;
@@ -482,7 +505,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
-#pragma omp parallel for reduction(+:num_incorrect)
+#pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -507,16 +530,16 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
             for (size_t g=0; g<num_group; ++g) {
 
               const size_t pf_min = g * group_size_max;
-              const size_t pf_max = gm_min_i8((g+1) * group_size_max, nf);
+              const size_t pf_max = gm_min_i8((g+1) * group_size_max, nfa);
               const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-              const size_t pvi = perm(g, vi, nv);
-              const size_t pvj = perm(g, vj, nv);
+              const size_t pvi = perm(g, vi, nva);
+              const size_t pvj = perm(g, vj, nva);
 
               const size_t value_i = value_min + ( pvi * value_max ) /
-                                                 (nv+value_min);
+                                                 (nva+value_min);
               const size_t value_j = value_min + ( pvj * value_max ) /
-                                                 (nv+value_min);
+                                                 (nva+value_min);
 
               const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
               const GMBits2 bval_j = ((size_t)3) & (value_j - value_min);
@@ -583,10 +606,17 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
                 GMMetrics_ccc_value_2(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env);
             }
+//value_expected = num_incorrect==0 ? value_expected + .01 : value_expected; //FIX;
 
             const bool is_incorrect = value_expected != value;
             if (is_incorrect) {
-              printf("%.16e %.16e\n", (double)value_expected, (double)value);
+              const double diff = fabs(value - value_expected);
+              max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
+              if (num_incorrect < max_to_print) {
+                printf("Error: incorrect result detected.  coords %zu %zu  "
+                       "expected %.16e  actual %.16e\n", vi, vj,
+                       (double)value_expected, (double)value);
+              }
             }
 
             num_incorrect += is_incorrect;
@@ -597,7 +627,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
-#pragma omp parallel for reduction(+:num_incorrect)
+#pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -628,19 +658,19 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
               for (size_t g=0; g<num_group; ++g) {
 
                 const size_t pf_min = g * group_size_max;
-                const size_t pf_max = gm_min_i8((g+1) * group_size_max, nf);
+                const size_t pf_max = gm_min_i8((g+1) * group_size_max, nfa);
                 const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-                const size_t pvi = perm(g, vi, nv);
-                const size_t pvj = perm(g, vj, nv);
-                const size_t pvk = perm(g, vk, nv);
+                const size_t pvi = perm(g, vi, nva);
+                const size_t pvj = perm(g, vj, nva);
+                const size_t pvk = perm(g, vk, nva);
 
                 const size_t value_i = value_min + ( pvi * value_max ) /
-                                                   (nv+value_min);
+                                                   (nva+value_min);
                 const size_t value_j = value_min + ( pvj * value_max ) /
-                                                   (nv+value_min);
+                                                   (nva+value_min);
                 const size_t value_k = value_min + ( pvk * value_max ) /
-                                                   (nv+value_min);
+                                                   (nva+value_min);
 
                 const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
                 const GMBits2 bval_j = ((size_t)3) & (value_j - value_min);
@@ -709,7 +739,13 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 
               const bool is_incorrect = value_expected != value;
               if (is_incorrect) {
-                printf("%.16e %.16e\n", (double)value_expected, (double)value);
+                const double diff = fabs(value - value_expected);
+                max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
+                if (num_incorrect < max_to_print) {
+                  printf("Error: incorrect result detected.  coords %zu %zu %zu  "
+                         "expected %.16e  actual %.16e\n", vi, vj, vk,
+                         (double)value_expected, (double)value);
+                }
               }
 
               num_incorrect += is_incorrect;
@@ -723,6 +759,22 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
       GMInsist(false && "Invalid data type.");
   } /*---switch---*/
   do_->num_incorrect += num_incorrect;
+  do_->max_incorrect_diff = max_incorrect_diff > do_->max_incorrect_diff ?
+                            max_incorrect_diff : do_->max_incorrect_diff;
+}
+
+//=============================================================================
+
+void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
+  GMInsist(metrics && do_ && env);
+
+  if (NULL != do_->input_file_path) {
+    return;
+  }
+
+  if (GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type) {
+    check_metrics_analytic_(metrics, do_, env);
+  }
 }
 
 //=============================================================================

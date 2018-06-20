@@ -35,8 +35,9 @@ else #---IBM
   # For Summit or Peak
   #module load spectrum-mpi/10.2.0.0-20180508 #FIX
   module load gcc/6.4.0
-  #module load cuda/9.1.85
-  module load cuda
+  #CUDA_MODULE=cuda/9.1.85
+  CUDA_MODULE=cuda
+  module load $CUDA_MODULE
   module load cmake
   CUDA_INCLUDE_OPTS="-I$CUDA_DIR/include -I$CUDA_DIR/extras/CUPTI/include -I$CUDA_DIR/extras/Debugger/include"
   CUDA_POST_LINK_OPTS="-L$CUDA_DIR/targets/ppc64le-linux/lib"
@@ -169,21 +170,25 @@ C_CXX_FLAGS="$C_CXX_FLAGS -DTEST_PROCS_MAX=64"
 
 #----------
 
-C_FLAGS_RELEASE="-DNDEBUG -O3 -fomit-frame-pointer"
+C_FLAGS_OPT="-DNDEBUG -O3 -fomit-frame-pointer"
 
 #---The following change slows performance by 1% on a test case but helps
 #---make results exactly reproducible on vryng number of procs.
-#C_FLAGS_RELEASE="$C_FLAGS_RELEASE -ffast-math"
-C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-math-errno -ffinite-math-only -fno-rounding-math -fno-signaling-nans -fcx-limited-range"
-C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fno-signed-zeros -fno-trapping-math -freciprocal-math"
+#C_FLAGS_OPT="$C_FLAGS_OPT -ffast-math"
+C_FLAGS_OPT="$C_FLAGS_OPT -fno-math-errno -ffinite-math-only -fno-rounding-math -fno-signaling-nans -fcx-limited-range"
+C_FLAGS_OPT="$C_FLAGS_OPT -fno-signed-zeros -fno-trapping-math -freciprocal-math"
 
-C_FLAGS_RELEASE="$C_FLAGS_RELEASE -finline-functions -finline-limit=1000"
+C_FLAGS_OPT="$C_FLAGS_OPT -finline-functions -finline-limit=1000"
 if [ -n "$CRAYOS_VERSION" ] ; then
-  C_FLAGS_RELEASE="$C_FLAGS_RELEASE -march=bdver1"
+  C_FLAGS_OPT="$C_FLAGS_OPT -march=bdver1"
 else
-  C_FLAGS_RELEASE="$C_FLAGS_RELEASE -mcpu=power9 -mtune=power9 -mcmodel=large -m64"
+  C_FLAGS_OPT="$C_FLAGS_OPT -mcpu=power9 -mtune=power9 -mcmodel=large -m64"
 fi
-#C_FLAGS_RELEASE="$C_FLAGS_RELEASE -fstrict-aliasing -fargument-noalias-anything"
+#C_FLAGS_OPT="$C_FLAGS_OPT -fstrict-aliasing -fargument-noalias-anything"
+
+C_FLAGS_RELEASE=""
+#C_FLAGS_RELEASE="$C_FLAGS_OPT"
+C_CXX_FLAGS="$C_CXX_FLAGS $C_FLAGS_OPT"
 
 #----------
 
@@ -202,7 +207,7 @@ fi
 if [ -n "$CRAYOS_VERSION" ] ; then
   TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64"
 else
-  TEST_COMMAND="module load cuda/9.1.85 ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32 -X 1"
+  TEST_COMMAND="module load $CUDA_MODULE ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32 -X 1"
   C_CXX_FLAGS="$C_CXX_FLAGS -DUSE_TC"
 fi
 

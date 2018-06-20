@@ -24,7 +24,8 @@ if [ -n "${CRAYOS_VERSION:-}" ] ; then
 else
   # For Summit or Peak
   module -q load gcc/6.4.0
-  module -q load cuda/9.1.85
+  #module -q load cuda/9.1.85
+  module -q load cuda
 fi
 
 dirs="build_test_$DIRNAME_STUB build_single_test_$DIRNAME_STUB"

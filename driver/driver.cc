@@ -8,6 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
+#include "unistd.h"
+
 #include "stdio.h"
 #include "stdlib.h"
 #include "stddef.h"
@@ -319,6 +321,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
   do_.threshold = -1.;
   do_.checksum = true;
   do_.num_incorrect = 0;
+  do_.max_incorrect_diff = 0.;
 
   finish_parsing(argc, argv, &do_, env);
 
@@ -334,6 +337,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
                                      : do_.num_vector_active,
     GMEnv_data_type_vectors(env), env);
 
+//TODO: possibly replace this with stuff from dm
   if (do_.num_vector_local_initialized) {
     do_.num_vector = do_.num_vector_local *
       (size_t)GMEnv_num_proc_vector_i(env);
@@ -357,6 +361,9 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
   }
 
 //printf("%i %i %i %i\n", env->proc_num_base_, env->proc_num_, env->proc_num_repl_, env->proc_num_vector_i_);
+
+  const bool do_print = GMEnv_is_proc_active(env) &&
+     GMEnv_proc_num(env) == 0 && do_.verbosity > 0;
 
   /*---Allocate vectors---*/
 
@@ -467,6 +474,19 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
       time_end = GMEnv_get_synced_time(env);
       mctime += time_end - time_beg;
 
+      if (do_print) {
+        if (env->num_phase > 1 && env->num_stage > 1) {
+          printf("Completed phase %i stage %i\n",
+                 env->phase_num, env->stage_num);
+        } else if (env->num_phase > 1) {
+          printf("Completed phase %i\n",
+                 env->phase_num);
+        } else if (env->num_stage > 1) {
+          printf("Completed stage %i\n",
+                 env->stage_num);
+        }
+      }
+
     }
 
   } /*---End loops over phases, stages---*/
@@ -534,8 +554,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
   /*---Output run information---*/
 
-  if (GMEnv_is_proc_active(env) && GMEnv_proc_num(env) == 0 &&
-      do_.verbosity > 0) {
+  if (do_print) {
     //-----
     if (do_.checksum) {
       printf("metrics checksum ");
@@ -588,7 +607,22 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     printf("\n");
   }
 
-  GMInsist(do_.num_incorrect == 0);
+  // One more sync before checking num_correct, to allow flush of output.
+  GMEnv_get_synced_time(env);
+
+  if (do_.num_incorrect) {
+    const size_t hnlen = 256;
+    char hn[hnlen];
+    gethostname(hn, hnlen);
+    int rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    printf("Error: incorrect results found.  num_incorrect  %zu  "
+           "max_incorrect_diff  %e  hostname  %s  rank  %i\n",
+           do_.num_incorrect, do_.max_incorrect_diff, hn, rank);
+  }
+
+  //GMInsist(do_.num_incorrect == 0);
 
   /*---Finalize---*/
 

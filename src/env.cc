@@ -654,6 +654,18 @@ bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
+int gm_gpu_compute_capability() {
+  cudaDeviceProp deviceProp;
+
+  // Assume only one GPU visible per rank.
+
+  cudaGetDeviceProperties(&deviceProp, 0);
+
+  return deviceProp.major * 100 + deviceProp.minor;
+}
+
+//-----------------------------------------------------------------------------
+
 void* gm_malloc(size_t n, GMEnv* env) {
   GMInsist(env);
   void* p = malloc(n);
@@ -732,9 +744,19 @@ void GMFloat_check(GMFloat* const a, size_t n) {
 
 //-----------------------------------------------------------------------------
 
-int GMFloat_mant_dig() {
+//int GMFloat_mant_dig() {
+//  GMInsist(FLT_RADIX == 2);
+//  return sizeof(GMFloat) == 8 ? DBL_MANT_DIG : FLT_MANT_DIG;
+//}
+
+template<> int gm_mant_dig<float>() {
   GMInsist(FLT_RADIX == 2);
-  return sizeof(GMFloat) == 8 ? DBL_MANT_DIG : FLT_MANT_DIG;
+  return FLT_MANT_DIG;
+}
+
+template<> int gm_mant_dig<double>() {
+  GMInsist(FLT_RADIX == 2);
+  return DBL_MANT_DIG;
 }
 
 //-----------------------------------------------------------------------------
@@ -777,8 +799,12 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
   const size_t npvfl = num_packedval_field_local;
   env->npvfl_step_max = gm_ceil_i8(npvfl, env->num_tc_steps);
 
-  const int sizeof_scalar = env->tc == 2 ? 1 : 2;
-  env->tc_buf_size = (nvl * 2) * (env->npvfl_step_max * 64) * sizeof_scalar;
+  const bool is_int8 = env->tc == 2;
+  const int sizeof_scalar = is_int8 ? 1 : 2;
+
+  const size_t nvlX2 = nvl * 2;
+
+  env->tc_buf_size = nvlX2 * (env->npvfl_step_max * 64) * sizeof_scalar;
   env->tc_buf_size = env->tc_buf_size ? env->tc_buf_size : 1;
 
   cudaMalloc(&env->tc_buf_left, env->tc_buf_size);
@@ -856,6 +882,9 @@ void gm_tc_bufs_free(GMEnv* const env) {
 
 size_t gm_num_vector_local_required(size_t num_vector_active_local,
                                     GMEnv* const env) {
+  GMInsist(env);
+  // NOTE: this function should receive the same num_vector_active_local
+  // and give the same result independent of MPI rank.
 
   const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
                                    GMEnv_all2all(env) &&
@@ -876,6 +905,7 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
 //-----------------------------------------------------------------------------
 
 size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
+  GMInsist(env);
 
   const bool need_divisible_by_4 = env->tc;
 

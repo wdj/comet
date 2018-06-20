@@ -485,6 +485,18 @@ static void GMFloat_sort_3(GMFloat* const __restrict__ min,
 
 bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
 
+int gm_gpu_compute_capability();
+
+#if 0
+static bool gm_assertions_on() {
+#ifdef GM_ASSERTIONS_ON
+  return true;
+#else
+  return false;
+#endif
+}
+#endif
+
 //-----------------------------------------------------------------------------
 
 void* gm_malloc(size_t n, GMEnv* env);
@@ -497,7 +509,9 @@ void GMFloat_free(GMFloat* p, size_t n, GMEnv* env);
 
 void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);
-int GMFloat_mant_dig();
+//int GMFloat_mant_dig();
+
+template<typename T> int gm_mant_dig();
 
 //-----------------------------------------------------------------------------
 
