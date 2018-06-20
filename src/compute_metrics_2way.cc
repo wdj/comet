@@ -107,6 +107,18 @@ void gm_compute_metrics_2way_notall2all(GMComputeMetrics* compute_metrics,
 
 //=============================================================================
 
+static void lock(bool& lock_val) {
+  GMInsist(! lock_val);
+  lock_val = true;
+};
+
+static void unlock(bool& lock_val) {
+  GMInsist(lock_val);
+  lock_val = false;
+};
+
+//=============================================================================
+
 void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
                                      GMMetrics* metrics,
                                      GMVectors* vectors,
@@ -203,6 +215,7 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
 
   // Lowest/highest (block) diag to be computed for this phase,
   // measured from (block) main diag.
+  // For all repl procs.
 
   const int j_i_offset_min = gm_bdiag_computed_min(env);
   const int j_i_offset_max = gm_bdiag_computed_max(env);
@@ -212,6 +225,7 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
 
   // Num steps to take to compute blocks
   // (note: at each step, num_proc_r processors each compute a block)
+  // NOTE: num_step should be consistent within same proc_r.
 
   const int num_step = gm_ceil_i(num_bdiag_computed, num_proc_r);
 
@@ -223,6 +237,7 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
     bool is_first_compute_step;
     bool do_compute_block;
     bool is_main_diag;
+    bool is_right_aliased;
     int step_num;
     int index_01;
     int j_i_offset;
@@ -232,6 +247,18 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
   LoopVars vars = {0};
   LoopVars vars_prev = {0};
   LoopVars vars_next = {0};
+
+  // Use locks to verify no race condition on a buffer.
+  // Lock buffer when in use for read or write, unlock when done.
+
+  bool lock_vectors_01_buf_h[2] = {false, false};
+  bool lock_vectors_01_buf_d[2] = {false, false};
+  bool lock_metrics_buf_01_h[2] = {false, false};
+  bool lock_metrics_buf_01_d[2] = {false, false};
+  bool lock_vectors_buf_h = false;
+  bool lock_vectors_buf_d = false;
+  //bool lock_metrics_tmp_buf_d = false; // Not needed
+  bool lock_metrics_tmp_buf_h = false;
 
   /*========================================*/
   for (int step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num){
@@ -255,17 +282,44 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
     // Pointers to left/right-side vecs.
     // Here we are computing V^T W, for V, W containing column vectors.
 
-    vars_next.vectors_right = vars_next.is_main_diag ?
-      vectors : &vectors_01[vars_next.index_01];
-    GMVectors* vectors_left = vectors;
+    vars_next.is_right_aliased = vars_next.is_main_diag;
 
-    vars_next.vectors_right_buf = vars_next.is_main_diag ?
-      &vectors_buf : &vectors_01[vars_next.index_01].buf;
+    GMVectors* vectors_left = vectors;
+    vars_next.vectors_right = vars_next.is_right_aliased ?
+      vectors_left : &vectors_01[vars_next.index_01];
+
     GMMirroredBuf* vectors_left_buf = &vectors_buf;
+    vars_next.vectors_right_buf = vars_next.is_right_aliased ?
+      vectors_left_buf : &vectors_01[vars_next.index_01].buf;
 
     // Pointer to metrics buffer
 
     vars_next.metrics_buf = &metrics_buf_01[vars_next.index_01];
+
+    // Lock aliases
+
+    bool& lock_metrics_buf_ptr_h_prev
+                                  = lock_metrics_buf_01_h[vars_prev.index_01];
+    bool& lock_metrics_buf_ptr_d_prev
+                                  = lock_metrics_buf_01_d[vars_prev.index_01];
+
+    bool& lock_metrics_buf_ptr_h = lock_metrics_buf_01_h[vars.index_01];
+    bool& lock_metrics_buf_ptr_d = lock_metrics_buf_01_d[vars.index_01];
+
+    bool& lock_vectors_left_buf_h = lock_vectors_buf_h;
+    bool& lock_vectors_left_buf_d = lock_vectors_buf_d;
+
+    bool& lock_vectors_right_buf_h_next = vars_next.is_right_aliased ?
+      lock_vectors_left_buf_h : lock_vectors_01_buf_h[vars_next.index_01];
+
+    bool& lock_vectors_right_buf_d_next = vars_next.is_right_aliased ?
+      lock_vectors_left_buf_d : lock_vectors_01_buf_d[vars_next.index_01];
+
+    bool& lock_vectors_right_buf_h = vars.is_right_aliased ?
+      lock_vectors_left_buf_h : lock_vectors_01_buf_h[vars.index_01];
+
+    bool& lock_vectors_right_buf_d = vars.is_right_aliased ?
+      lock_vectors_left_buf_d : lock_vectors_01_buf_d[vars.index_01];
 
     // Prepare for sends/recvs: procs for communication
 
@@ -281,45 +335,46 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
 
     if (vars_next.is_compute_step && ! comm_with_self) {
       const int mpi_tag = step_num + 1;
-
-      // NOTE: this order helps performance
+      // NOTE: the following order helps performance
+      GMInsist(!vars_next.is_right_aliased);
+      lock(lock_vectors_right_buf_h_next);
       mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
                                               proc_recv, mpi_tag, env);
       mpi_requests[0] = gm_send_vectors_start(vectors_left,
                                               proc_send, mpi_tag, env);
     }
 
-    // First step: send (left) vecs to GPU
-
-    if (vars_next.is_first_compute_step) {
-      gm_vectors_to_buf(vectors_left_buf, vectors_left, env);
-      gm_set_vectors_start(vectors_left, vectors_left_buf, env);
-      gm_set_vectors_wait(env);
-    }
-
-#if 0
-    if (vars_next.is_first_compute_step) {
-      gm_vectors_to_buf(vectors_left_buf, vectors_left, env);
-      gm_set_vectors_start(vectors_left, vectors_left_buf, env);
-      //gm_set_vectors_wait(env);
-    }
-
-    if (vars.is_first_compute_step) {
-      //gm_vectors_to_buf(vectors_left_buf, vectors_left, env);
-      //gm_set_vectors_start(vectors_left, vectors_left_buf, env);
-      gm_set_vectors_wait(env);
-    }
-#endif
-
     // Send right vectors to GPU end
 
-    if (vars.is_compute_step && vars.do_compute_block) {
+    if (vars.is_compute_step && vars.do_compute_block &&
+        ! vars.is_right_aliased) {
       gm_set_vectors_wait(env);
+      unlock(lock_vectors_right_buf_h);
+      unlock(lock_vectors_right_buf_d);
+    }
+
+    // First step (for any repl or phase): send (left) vecs to GPU
+
+    if (vars_next.is_first_compute_step) {
+      lock(lock_vectors_left_buf_h);
+      gm_vectors_to_buf(vectors_left_buf, vectors_left, env);
+      lock(lock_vectors_left_buf_d);
+      gm_set_vectors_start(vectors_left, vectors_left_buf, env);
+      // TODO: examine whether overlap possible.
+      // May not be possible for general repl and phase (??).
+      gm_set_vectors_wait(env);
+      unlock(lock_vectors_left_buf_h);
+      unlock(lock_vectors_left_buf_d);
     }
 
     // Commence numerators computation
 
     if (vars.is_compute_step && vars.do_compute_block) {
+      lock(lock_vectors_left_buf_d);
+      if (! vars.is_right_aliased) {
+        lock(lock_vectors_right_buf_d);
+      }
+      lock(lock_metrics_buf_ptr_d);
       gm_compute_numerators_2way_start(
           vectors_left, vars.vectors_right, metrics,
           vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
@@ -332,25 +387,39 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
     if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
         gm_get_metrics_wait(metrics, vars_prev.metrics_buf, env);
+        unlock(lock_metrics_buf_ptr_d_prev);
+        unlock(lock_metrics_buf_ptr_h_prev);
+        lock(lock_metrics_buf_ptr_h_prev);
         gm_metrics_pad_adjust(metrics, vars_prev.metrics_buf, env);
-
-        GMMirroredBuf* metrics_buf_prev_ptr =
-            env->do_reduce ?  &metrics_tmp_buf : vars_prev.metrics_buf;
-
-        if (env->do_reduce) {
-          gm_reduce_metrics(metrics, metrics_buf_prev_ptr,
-                            vars_prev.metrics_buf, env);
-        }
+        unlock(lock_metrics_buf_ptr_h_prev);
 
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =
           vars_prev.is_main_diag
           ? &vector_sums_onproc : &vector_sums_offproc;
 
+        //TODO: remove need to allocate metrics_tmp_buf device array
+        GMMirroredBuf* metrics_buf_prev_ptr =
+            env->do_reduce ?  &metrics_tmp_buf : vars_prev.metrics_buf;
+
+        lock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
+
+        if (env->do_reduce) {
+          lock(lock_metrics_tmp_buf_h);
+          gm_reduce_metrics(metrics, metrics_buf_prev_ptr,
+                            vars_prev.metrics_buf, env);
+        }
+
         gm_compute_2way_combine(metrics, metrics_buf_prev_ptr,
                                 vector_sums_left, vector_sums_right,
                                 vars_prev.j_block,
                                 vars_prev.is_main_diag, env);
+
+        unlock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
+
+        if (env->do_reduce) {
+          unlock(lock_metrics_tmp_buf_h);
+        }
       }
     }
 
@@ -377,11 +446,17 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
 
     if (vars_next.is_compute_step && ! comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), env);
+      GMInsist(!vars_next.is_right_aliased);
+      unlock(lock_vectors_right_buf_h_next);
     }
 
     // Send right vectors for next step to GPU start
 
-    if (vars_next.is_compute_step && vars_next.do_compute_block) {
+    if (vars_next.is_compute_step && vars_next.do_compute_block &&
+        ! vars_next.is_right_aliased) {
+      // ISSUE: this might not be necessary if vars_next.is_right_aliased
+      lock(lock_vectors_right_buf_h_next);
+      lock(lock_vectors_right_buf_d_next);
       gm_set_vectors_start(vars_next.vectors_right,
                            vars_next.vectors_right_buf, env);
     }
@@ -390,11 +465,18 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
 
     if (vars.is_compute_step && vars.do_compute_block) {
       gm_compute_wait(env);
+      unlock(lock_vectors_left_buf_d);
+      if (! vars.is_right_aliased) {
+        unlock(lock_vectors_right_buf_d);
+      }
+      unlock(lock_metrics_buf_ptr_d);
     }
 
     // Commence copy of completed numerators back from GPU
 
     if (vars.is_compute_step && vars.do_compute_block) {
+      lock(lock_metrics_buf_ptr_h);
+      lock(lock_metrics_buf_ptr_d);
       gm_get_metrics_start(metrics, vars.metrics_buf, env);
     }
 
@@ -420,9 +502,14 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
         GMVectorSums* vector_sums_right =
             vars.is_main_diag
             ? &vector_sums_onproc : &vector_sums_offproc;
+        gm_get_metrics_wait(metrics, vars.metrics_buf, env); // NO-OP
+        unlock(lock_metrics_buf_ptr_d);
+        unlock(lock_metrics_buf_ptr_h);
+        lock(lock_metrics_buf_ptr_h);
         gm_compute_2way_combine(metrics, vars.metrics_buf, vector_sums_left,
                                 vector_sums_right, vars.j_block,
                                 vars.is_main_diag, env);
+        unlock(lock_metrics_buf_ptr_h);
       }
     }
 
@@ -439,6 +526,16 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
   //========================================
   } // step_num
   //========================================
+
+  for (int i=0; i<2; ++i) {
+    GMInsist(!lock_vectors_01_buf_h[i]);
+    GMInsist(!lock_vectors_01_buf_d[i]);
+    GMInsist(!lock_metrics_buf_01_h[i]);
+    GMInsist(!lock_metrics_buf_01_d[i]);
+  }
+  GMInsist(!lock_vectors_buf_h);
+  GMInsist(!lock_vectors_buf_d);
+  GMInsist(!lock_metrics_tmp_buf_h);
 
   // Terminations
 
