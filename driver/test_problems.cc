@@ -573,7 +573,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               }
             } //---g
 
-            GMFloat value_expected = 0;
+            GMFloat value_expected_floatcalc = 0;
             if (!(ci == 0 || cj == 0 || cij == 0)) {
               const GMFloat f_one = 1;
 
@@ -602,16 +602,27 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               //const GMFloat recip_sumcij = env->sparse ? f_one/cij :
               //                               (f_one / 4) * metrics->recip_m;
 
-              value_expected =
+              value_expected_floatcalc =
                 GMMetrics_ccc_value_2(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env);
             }
-//value_expected = num_incorrect==0 ? value_expected + .01 : value_expected; //FIX;
+
+            GMFloat value_expected = value_expected_floatcalc;
+
+#ifdef HAVE_INT128
+            if (env->are_ccc_params_default) {
+            if (!(ci == 0 || cj == 0 || cij == 0)) {
+              value_expected = GMMetrics_ccc_value_nofp_2(metrics,
+                rij, si, sj, ci, cj, cij, env); 
+            }
+            }
+#endif
 
             const bool is_incorrect = value_expected != value;
             if (is_incorrect) {
               const double diff = fabs(value - value_expected);
-              max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
+              max_incorrect_diff = diff > max_incorrect_diff ?
+                                   diff : max_incorrect_diff;
               if (num_incorrect < max_to_print) {
                 printf("Error: incorrect result detected.  coords %zu %zu  "
                        "expected %.16e  actual %.16e\n", vi, vj,

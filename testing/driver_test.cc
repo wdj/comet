@@ -1276,6 +1276,7 @@ void DriverTest_ccc_() {
 
   char options_template_1[] =
       "--metric_type ccc --verbosity %i "
+      //"--problem_type analytic " 
       "--num_proc_vector 1 --num_field %i --num_vector_local %i "
       "--compute_method %s --sparse no";
 
@@ -1310,6 +1311,7 @@ void DriverTest_ccc_() {
 
   char options_template_2[] =
       "--metric_type ccc --verbosity %i "
+      //"--problem_type analytic "
       "--num_proc_vector %i --num_field %i --num_vector_local %i "
       "--compute_method %s --all2all %s";
 
@@ -1326,19 +1328,24 @@ void DriverTest_ccc_() {
   EXPECT_EQ(
       true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 5 "
+                    //"--problem_type analytic "
                     "--compute_method REF --all2all yes --metric_type ccc",
                     "--num_proc_vector 2 --num_field 2 --num_vector 5 "
+                    //"--problem_type analytic "
                     "--compute_method CPU --all2all yes --metric_type ccc",
                     "--num_proc_vector 2 --num_field 2 --num_vector 5 "
+                    //"--problem_type analytic "
                     "--compute_method GPU --all2all yes --metric_type ccc"));
 
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
                     "--num_field 7 --num_vector 2 "
+                    //"--problem_type analytic "
                     "--compute_method REF --all2all yes --metric_type ccc",
                     "--num_proc_vector 1 --num_proc_field 3 "
                     "--num_field 7 --num_vector 2 "
+                    //"--problem_type analytic "
                     "--compute_method GPU --all2all yes --metric_type ccc"));
 
   //----------
@@ -1362,6 +1369,7 @@ void DriverTest_ccc_() {
   char options_template_3[] =
                     "--metric_type ccc --verbosity %i "
                     "--num_proc_vector 1 --num_field %i --num_vector_local %i "
+                    //"--problem_type analytic "
                     "--compute_method %s --num_way 3 --sparse no";
 
   sprintf(options1, options_template_3, 2, 1, 3, "REF");
@@ -1391,6 +1399,7 @@ void DriverTest_ccc_() {
   char options_template_4[] =
       "--metric_type ccc --verbosity %i "
       "--num_proc_vector %i --num_field %i --num_vector_local %i "
+      //"--problem_type analytic "
       "--compute_method %s --all2all %s --num_way 3";
 
   sprintf(options1, options_template_4, 2, 1, 1, 3, "REF", "no");
@@ -1426,22 +1435,27 @@ void DriverTest_ccc_() {
   EXPECT_EQ(
       true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 16 "
+                    //"--problem_type analytic "
                     "--compute_method REF --all2all yes --num_way 3 "
                     "--metric_type ccc",
                     "--num_proc_vector 3 --num_field 2 --num_vector 16 "
+                    //"--problem_type analytic "
                     "--compute_method CPU --all2all yes --num_way 3 "
                     "--metric_type ccc",
                     "--num_proc_vector 3 --num_field 2 --num_vector 16 "
+                    //"--problem_type analytic "
                     "--compute_method GPU --all2all yes --num_way 3 "
                     "--metric_type ccc"));
 
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_proc_field 1 "
+                    //"--problem_type analytic "
                     "--num_field 13 --num_vector 3 "
                     "--compute_method REF --all2all yes --num_way 3 "
                     "--metric_type ccc",
                     "--num_proc_vector 1 --num_proc_field 5 "
+                    //"--problem_type analytic "
                     "--num_field 13 --num_vector 3 "
                     "--compute_method GPU --all2all yes --num_way 3 "
                     "--metric_type ccc"));
@@ -1454,6 +1468,7 @@ void DriverTest_ccc_() {
       "--metric_type ccc --verbosity %i "
       "--num_proc_vector %i --num_proc_field %i "
       " --num_field %i --num_vector_local %i "
+      //"--problem_type analytic "
       "--compute_method %s --all2all %s";
 
   for (int i = 1; i <= 3; ++i) {
@@ -1474,6 +1489,7 @@ void DriverTest_ccc_() {
 
   char options_template_10[] =
       "--metric_type ccc "
+      //"--problem_type analytic "
       "--num_field 4 --num_vector_local %i --compute_method %s --all2all yes "
       "--num_proc_vector %i --num_proc_repl %i "
       "--num_proc_field %i --num_way %i --num_stage %i";
@@ -1534,12 +1550,14 @@ void DriverTest_ccc_() {
 
   char options_template_11a[] =
       "--metric_type ccc --verbosity %i "
+      //"--problem_type analytic "
       "--num_proc_vector 1 --num_field 30 --num_vector_local 40 "
       "--compute_method GPU";
   char options_template_11b[] =
       "--metric_type ccc --verbosity %i "
+      //"--problem_type analytic "
       "--num_proc_vector 1 --num_field 30 --num_vector_local 40 "
-      "--compute_method GPU --ccc_param %.20e";
+      "--compute_method GPU --ccc_param %.20e --problem_type analytic";
 
   sprintf(options1, options_template_11a, 1);
   sprintf(options2, options_template_11b, 1, ((double)2) / ((double)3));
@@ -1567,6 +1585,7 @@ void DriverTest_ccc_() {
         }
         char options_template[] =
           "--metric_type ccc "
+          //"--problem_type analytic "
           "--num_field 7 --num_vector 12 --compute_method GPU --all2all yes "
           "--num_proc_vector %i --num_proc_repl %i --num_phase %i "
           "--num_way 2";
@@ -1585,6 +1604,7 @@ void DriverTest_ccc_() {
   {
     char options_template_2[] =
       "--metric_type ccc --verbosity %i "
+      //"--problem_type analytic "
       "--num_proc_vector %i --num_field %i --num_vector %i "
       "--compute_method %s --all2all %s --sparse yes";
 
@@ -1609,6 +1629,7 @@ void DriverTest_ccc_() {
   {
     char options_template_4[] =
         "--metric_type ccc --verbosity %i "
+        //"--problem_type analytic "
         "--num_proc_vector %i --num_field %i --num_vector_local %i "
         "--compute_method %s --all2all %s --num_way 3 --sparse yes";
 
@@ -1748,6 +1769,7 @@ void DriverTest_ccc_() {
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }
+#endif
 
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
@@ -1764,7 +1786,6 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();

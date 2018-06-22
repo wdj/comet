@@ -77,8 +77,8 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->num_phase = 1;
   env->phase_num = 0;
   env->sparse = false;
-  env->ccc_param_ = ((double) 2) / ((double) 3);
-  env->ccc_multiplier_ = ((double) 9) / ((double) 2);
+  GMEnv_ccc_param_set(GMEnv_ccc_param_default(), env);
+  GMEnv_ccc_multiplier_set(GMEnv_ccc_multiplier_default(), env);
 
   env->time = 0;
   env->compares = 0;
@@ -209,7 +209,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       const double ccc_param = strtod(argv[i], NULL);
       GMInsistInterface(env, 0 == errno && ccc_param >= 0
                                && "Invalid setting for ccc_param.");
-      env->ccc_param_ = ccc_param;
+      GMEnv_ccc_param_set(ccc_param, env);
       /*--------------------*/
     } else if (strcmp(argv[i], "--ccc_multiplier") == 0) {
       /*--------------------*/
@@ -219,7 +219,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       const double ccc_multiplier = strtod(argv[i], NULL);
       GMInsistInterface(env, 0 == errno && ccc_multiplier >= 0
                                && "Invalid setting for ccc_multiplier.");
-      env->ccc_multiplier_ = ccc_multiplier;
+      GMEnv_ccc_multiplier_set(ccc_multiplier, env);
       /*--------------------*/
     } else if (strcmp(argv[i], "--sparse") == 0) {
       /*--------------------*/

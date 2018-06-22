@@ -299,6 +299,99 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
+#ifdef HAVE_INT128
+
+//-----------------------------------------------------------------------------
+
+static GMFloat GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
+                                          const GMTally1 rij,
+                                          const GMTally1 si,
+                                          const GMTally1 sj,
+                                          const GMTally1 ci,
+                                          const GMTally1 cj,
+                                          const GMTally1 cij,
+                                          GMEnv* env) {
+  GMAssert(metrics && env);
+
+  const GMUInt128 num = rij * (GMUInt128)(3 * ci - 1 * si) *
+                              (GMUInt128)(3 * cj - 1 * sj);
+
+  const GMUInt128 denom = 2 * cij * (GMUInt128)ci * (GMUInt128)cj;
+
+  const int shift = gm_mant_dig<GMFloat>() - 2;
+
+  const GMFloat result = ( (GMFloat) ((num << shift) / denom) ) /
+                         ( (GMFloat)( ((size_t)1) << shift ) );
+
+  return result;
+}
+
+
+//-----------------------------------------------------------------------------
+
+static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
+                                                   size_t index,
+                                                   int i0,
+                                                   int i1,
+                                                   GMEnv* env) {
+  GMAssert(metrics && env);
+  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
+  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(i0 >= 0 && i0 < 2);
+  GMAssert(i1 >= 0 && i1 < 2);
+  GMAssert(env->are_ccc_params_default);
+
+  const GMTally2x2 t22 = GMMetrics_tally2x2_get_from_index(metrics, index, env);
+  const GMTally1 rij = GMTally2x2_get(t22, i0, i1);
+
+  const GMFloat2 si1_sj1 =
+      GMMetrics_float2_S_get_from_index(metrics, index, env);
+  GMTally1 si1, sj1;
+  GMFloat2_decode(&si1, &sj1, si1_sj1);
+
+  GMTally1 ci, cj, cij;
+
+  if (env->sparse) {
+    const GMFloat2 ci_cj =
+      GMMetrics_float2_C_get_from_index(metrics, index, env);
+    GMFloat2_decode(&ci, &cj, ci_cj);
+
+     cij = GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
+           GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1);
+
+    if (ci == 0 || cj == 0 || cij == 0) {
+      return (GMFloat)0;
+    }
+  } else {
+    const int m = metrics->num_field_active;
+
+    ci = m;
+    cj = m;
+
+    cij = 4 * m;
+  }
+
+  const GMTally1 si = i0 == 0 ? (2 * ci - si1) : si1;
+  const GMTally1 sj = i1 == 0 ? (2 * cj - sj1) : sj1;
+
+  return GMMetrics_ccc_value_nofp_2(metrics, rij, si, sj, ci, cj, cij, env);
+
+#if 0
+  const GMUInt128 denom = 2 * cij * (GMUInt128)ci * (GMUInt128)cj;
+
+  const int shift = gm_mant_dig<GMFloat>() - 2;
+
+  const GMFloat result = ( (GMFloat) ((num << shift) / denom) ) /
+                         ( (GMFloat)( ((size_t)1) << shift ) );
+
+  return result;
+#endif
+}
+
+#endif
+
+//-----------------------------------------------------------------------------
+
 static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
                                               size_t index,
                                               int i0,
@@ -320,6 +413,8 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
       GMMetrics_float2_S_get_from_index(metrics, index, env);
   GMTally1 si1, sj1;
   GMFloat2_decode(&si1, &sj1, si1_sj1);
+
+  GMFloat result_floatcalc = 0;
 
   if (env->sparse) {
 
@@ -351,26 +446,50 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
 
     const GMFloat recip_sumcij = f_cicj_min * f_cicj_max * recip_cicjcij;
 
-    return GMMetrics_ccc_value_2(metrics, rij, si, sj,
+    result_floatcalc = GMMetrics_ccc_value_2(metrics, rij, si, sj,
                                  recip_ci, recip_cj, recip_sumcij, env);
+
+  } else { /*---if sparse---*/
+
+    GMAssert(metrics->num_field_active > 0);
+
+    /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
+    const GMTally1 si = i0 == 0 ? (2 * metrics->num_field_active - si1) : si1;
+    const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field_active - sj1) : sj1;
+
+    const GMFloat recip_sumcij = (f_one / 4) * recip_m;
+
+    result_floatcalc = GMMetrics_ccc_value_2(metrics, rij, si, sj,
+                                   recip_m, recip_m, recip_sumcij, env);
+    //GMFloat v00, v01, v10, v11;
+    //GMMetrics_ccc_get_from_index_2_all(metrics, index, v00, v01, v10, v11, env);
+    //const GMFloat value = i0 ? (i1 ? v11 : v10) : (i1 ? v01 : v00);
+    //GMAssert(result == value);
+
   } /*---if sparse---*/
 
-  GMAssert(metrics->num_field_active > 0);
+#ifdef HAVE_INT128
 
-  /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
-  const GMTally1 si = i0 == 0 ? (2 * metrics->num_field_active - si1) : si1;
-  const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field_active - sj1) : sj1;
+  if (env->are_ccc_params_default) {
+    const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_2(metrics,
+                                         index, i0, i1, env);
 
-  const GMFloat recip_sumcij = (f_one / 4) * recip_m;
+    const double eps = 1. / ( ((size_t)1) << (gm_mant_dig<GMFloat>() - 5) );
 
-  const GMFloat result = GMMetrics_ccc_value_2(metrics, rij, si, sj,
-                                recip_m, recip_m, recip_sumcij, env);
-  //GMFloat v00, v01, v10, v11;
-  //GMMetrics_ccc_get_from_index_2_all(metrics, index, v00, v01, v10, v11, env);
-  //const GMFloat value = i0 ? (i1 ? v11 : v10) : (i1 ? v01 : v00);
-  //GMAssert(result == value);
+    const double diff = fabs(result_intcalc - result_floatcalc);
 
-  return result;
+    GMInsist(diff < eps);
+
+    return result_intcalc;
+  } else {
+    return result_floatcalc;
+  }
+
+#else
+
+  return result_floatcalc;
+
+#endif
 }
 
 //-----------------------------------------------------------------------------

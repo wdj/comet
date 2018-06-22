@@ -39,6 +39,7 @@ typedef struct {
   int phase_num;
   double ccc_param_;
   double ccc_multiplier_;
+  bool are_ccc_params_default;
   bool sparse;
   /*---Counters---*/
   double time;
@@ -154,6 +155,18 @@ static int GMEnv_metric_type(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
+static double GMEnv_ccc_multiplier_default() {
+  return ((double) 9) / ((double) 2);
+}
+
+//-----------------------------------------------------------------------------
+
+static double GMEnv_ccc_param_default() {
+  return ((double) 2) / ((double) 3);
+}
+
+//-----------------------------------------------------------------------------
+
 static double GMEnv_ccc_param(const GMEnv* const env) {
   GMAssert(env);
   return env->ccc_param_;
@@ -164,6 +177,27 @@ static double GMEnv_ccc_param(const GMEnv* const env) {
 static double GMEnv_ccc_multiplier(const GMEnv* const env) {
   GMAssert(env);
   return env->ccc_multiplier_;
+}
+
+//-----------------------------------------------------------------------------
+
+static void GMEnv_ccc_param_set(double value, GMEnv* const env) {
+  GMInsist(env);
+  env->ccc_param_ = value;
+  env->are_ccc_params_default =
+     GMEnv_ccc_multiplier_default() == env->ccc_multiplier_ &&
+     GMEnv_ccc_param_default() == env->ccc_param_;
+}
+
+//-----------------------------------------------------------------------------
+
+static void GMEnv_ccc_multiplier_set(double value, GMEnv* const env) {
+  GMInsist(env);
+  GMInsist(value >= 0);
+  env->ccc_multiplier_ = value;
+  env->are_ccc_params_default =
+     GMEnv_ccc_multiplier_default() == env->ccc_multiplier_ &&
+     GMEnv_ccc_param_default() == env->ccc_param_;
 }
 
 //-----------------------------------------------------------------------------

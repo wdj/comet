@@ -455,7 +455,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
       if (do_.checksum) {
         time_beg = GMEnv_get_synced_time(env);
-//FIX        check_metrics(metrics, &do_, env);
+        check_metrics(metrics, &do_, env);
         time_end = GMEnv_get_synced_time(env);
         cktime += time_end - time_beg;
       }

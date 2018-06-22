@@ -542,8 +542,6 @@ void gm_tc_fix_metrics_(
   const int threadblocksize = 256;
   const int vll2_threadblocks = gm_ceil_i8(nvll2, threadblocksize);
 
-  const bool is_int8 = env->tc == 2;
-
   gm_tc_fix_metrics_kernel_<<<
       dim3(vll2_threadblocks, nvl, 1),
       dim3(threadblocksize, 1, 1),
