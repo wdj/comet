@@ -622,7 +622,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
            do_.num_incorrect, do_.max_incorrect_diff, hn, rank);
   }
 
-  //GMInsist(do_.num_incorrect == 0);
+  GMInsist(do_.num_incorrect == 0);
 
   /*---Finalize---*/
 

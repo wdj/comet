@@ -299,6 +299,29 @@ static GMFloat GMMetrics_ccc_value_2(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
+static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, GMEnv* env) {
+  GMInsist(metrics && env);
+
+#ifdef HAVE_INT128
+  if (GMEnv_num_way(env) != GM_NUM_WAY_2 || ! env->are_ccc_params_default) {
+    return;
+  }
+
+  const size_t m = metrics->num_field_active;
+  const int lm = gm_log2(m);
+
+  // Bound on log2(numerator)
+  const int lnum = 2+lm + 2+lm + 2+lm; 
+
+  const int shift = gm_mant_dig<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
+
+  // To make this less restrictive, see 3-way counterpart code.
+  GMInsistInterface(env, lnum + shift < 128 && "Number of fields too large.");
+#endif
+}
+
+//-----------------------------------------------------------------------------
+
 #ifdef HAVE_INT128
 
 //-----------------------------------------------------------------------------
@@ -318,10 +341,15 @@ static GMFloat GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
 
   const GMUInt128 denom = 2 * cij * (GMUInt128)ci * (GMUInt128)cj;
 
-  const int shift = gm_mant_dig<GMFloat>() - 2;
+  const int shift = gm_mant_dig<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
 
-  const GMFloat result = ( (GMFloat) ((num << shift) / denom) ) /
-                         ( (GMFloat)( ((size_t)1) << shift ) );
+  // This should be an integer with no more than
+  // gm_mant_dig<GMFloat>() binary digits
+  const GMUInt128 int_ratio = (num << shift) / denom;
+
+  // Convert to floting point and then adjust exponent.
+  const GMFloat result = ( (GMFloat) int_ratio ) /
+                         ( (GMFloat) ( ((size_t)1) << shift ) );
 
   return result;
 }
@@ -356,10 +384,10 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
       GMMetrics_float2_C_get_from_index(metrics, index, env);
     GMFloat2_decode(&ci, &cj, ci_cj);
 
-     cij = GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
-           GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1);
+    cij = GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
+          GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1);
 
-    if (ci == 0 || cj == 0 || cij == 0) {
+    if (0 == ci || 0 == cj || 0 == cij) {
       return (GMFloat)0;
     }
   } else {
@@ -375,17 +403,6 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
   const GMTally1 sj = i1 == 0 ? (2 * cj - sj1) : sj1;
 
   return GMMetrics_ccc_value_nofp_2(metrics, rij, si, sj, ci, cj, cij, env);
-
-#if 0
-  const GMUInt128 denom = 2 * cij * (GMUInt128)ci * (GMUInt128)cj;
-
-  const int shift = gm_mant_dig<GMFloat>() - 2;
-
-  const GMFloat result = ( (GMFloat) ((num << shift) / denom) ) /
-                         ( (GMFloat)( ((size_t)1) << shift ) );
-
-  return result;
-#endif
 }
 
 #endif
@@ -425,9 +442,10 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
 
     GMTally1 cij = GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
                    GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1);
-    if (ci == 0 || cj == 0 || cij == 0) {
-      return 0;
+    if (0 == ci || 0 == cj || 0 == cij) {
+      return (GMFloat)0;
     }
+
     const GMFloat f_ci = (GMFloat) ci;
     const GMFloat f_cj = (GMFloat) cj;
 
@@ -469,7 +487,6 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
   } /*---if sparse---*/
 
 #ifdef HAVE_INT128
-
   if (env->are_ccc_params_default) {
     const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_2(metrics,
                                          index, i0, i1, env);
@@ -478,17 +495,18 @@ static GMFloat GMMetrics_ccc_get_from_index_2(GMMetrics* metrics,
 
     const double diff = fabs(result_intcalc - result_floatcalc);
 
-    GMInsist(diff < eps);
+    if (!(diff < eps)) {
+      printf("Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
+             (double)result_floatcalc, (double)result_intcalc);
+      GMInsist(diff < eps);
+    }
 
     return result_intcalc;
   } else {
     return result_floatcalc;
   }
-
 #else
-
   return result_floatcalc;
-
 #endif
 }
 

@@ -611,7 +611,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #ifdef HAVE_INT128
             if (env->are_ccc_params_default) {
-            if (!(ci == 0 || cj == 0 || cij == 0)) {
+            if (!(0 == ci || 0 == cj || 0 == cij)) {
               value_expected = GMMetrics_ccc_value_nofp_2(metrics,
                 rij, si, sj, ci, cj, cij, env); 
             }
@@ -729,7 +729,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 }
               } //---g
 
-              GMFloat value_expected = 0;
+              GMFloat value_expected_floatcalc = 0;
               if (!(ci == 0 || cj == 0 || ck == 0 || cijk == 0)) {
                 const GMFloat f_one = 1;
   
@@ -743,10 +743,21 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 const GMFloat recip_sumcijk = env->sparse ? f_one/cijk :
                                                (f_one / 8) * metrics->recip_m;
   
-                value_expected =
+                value_expected_floatcalc =
                   GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, recip_ci,
                                         recip_cj, recip_ck, recip_sumcijk, env);
               }
+
+              GMFloat value_expected = value_expected_floatcalc;
+
+#ifdef HAVE_INT128
+              if (env->are_ccc_params_default) {
+              if (!(0 == ci || 0 == cj || 0 == ck || 0 == cijk)) {
+                value_expected = GMMetrics_ccc_value_nofp_3(metrics,
+                  rijk, si, sj, sk, ci, cj, ck, cijk, env); 
+              }
+              }
+#endif
 
               const bool is_incorrect = value_expected != value;
               if (is_incorrect) {

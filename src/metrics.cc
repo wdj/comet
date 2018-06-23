@@ -345,6 +345,9 @@ void GMMetrics_create(GMMetrics* metrics,
   GMInsistInterface(env, env->phase_num >= 0 && env->phase_num < env->num_phase
                     && "Invalid phase number specified.");
 
+  GMMetrics_ccc_check_size_nofp_2(metrics, env);
+  GMMetrics_ccc_check_size_nofp_3(metrics, env);
+
   metrics->num_elts_local_computed = 0;
 
   /*==================================================*/
