@@ -420,15 +420,22 @@ void gm_compute_czek_2way_combine_(
     /*----------------------------------------*/
 
     for (int j = 0; j < nvl; ++j) {
-      const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
+      const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
       const int i_max = do_compute_triang_only ? j : nvl;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer =
             GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
-        const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-        const GMFloat denom = vi < vj ?  vi + vj : vj + vi;
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
-                                      2 * numer / denom, env);
+        const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
+        const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
+        const GMFloat multiplier = (GMFloat)2;
+        const GMFloat value = (multiplier * numer) / denom;
+        GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
+//const size_t index = GMMetrics_index_from_coord_all2all_2(metrics, i, j, j_block, env);
+//const size_t vi_ = GMMetrics_coord_global_from_index(metrics, index, 0, env);
+//const size_t vj_ = GMMetrics_coord_global_from_index(metrics, index, 1, env);
+//if (vi_==364001 && vj_==8714000) printf("===========================+++ %.15e %.15e %.20e\n", numer, denom, value);
+//if (denom != (GMFloat)(size_t)denom) printf("Bad d %zu %zu %.20e\n", vi_, vj_, denom);
+//if (numer != (GMFloat)(size_t)numer) printf("Bad n %zu %zu %.20e\n", vi_, vj_, numer);
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
@@ -440,13 +447,15 @@ void gm_compute_czek_2way_combine_(
     /*----------------------------------------*/
 
     for (int j = 0; j < nvl; ++j) {
-      const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
+      const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer = GMMetrics_float_get_2(metrics, i, j, env);
-        const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-        const GMFloat denom = vi < vj ?  vi + vj : vj + vi;
-        GMMetrics_float_set_2(metrics, i, j, 2 * numer / denom, env);
+        const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
+        const GMFloat denom = vs_i < vs_j ?  vs_i + vs_j : vs_j + vs_i;
+        const GMFloat multiplier = (GMFloat)2;
+        const GMFloat value = (multiplier * numer) / denom;
+        GMMetrics_float_set_2(metrics, i, j, value, env);
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
@@ -458,15 +467,16 @@ void gm_compute_czek_2way_combine_(
     if (do_compute_triang_only) {
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
-        const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
+        const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const GMFloat numer =
             GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
-          const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-          const GMFloat denom = vi < vj ? vi + vj : vj + vi;
-          GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
-                                        2 * numer / denom, env);
+          const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
+          const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
+          const GMFloat multiplier = (GMFloat)2;
+          const GMFloat value = (multiplier * numer) / denom;
+          GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
         } /*---for i---*/
       }   /*---for j---*/
       for (int j = 0; j < nvl; ++j) {
@@ -479,13 +489,14 @@ void gm_compute_czek_2way_combine_(
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
-          const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
+          const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
           const GMFloat numer =
             GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
-          const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-          const GMFloat denom = vi < vj ? vi + vj : vj + vi;
-          GMMetrics_float_set_all2all_2(metrics, i, j, j_block,
-                                        2 * numer / denom, env);
+          const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
+          const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
+          const GMFloat multiplier = (GMFloat)2;
+          const GMFloat value = (multiplier * numer) / denom;
+          GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
         } /*---for i---*/
       }   /*---for j---*/
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
@@ -497,14 +508,16 @@ void gm_compute_czek_2way_combine_(
 
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
-      const GMFloat vj = GMVectorSums_sum(vs_r, j, env);
+      const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer =
           GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
-        const GMFloat vi = GMVectorSums_sum(vs_l, i, env);
-        const GMFloat denom = vi < vj ? vi + vj : vj + vi;
-        GMMetrics_float_set_2(metrics, i, j, 2 * numer / denom, env);
+        const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
+        const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
+        const GMFloat multiplier = (GMFloat)2;
+        const GMFloat value = (multiplier * numer) / denom;
+        GMMetrics_float_set_2(metrics, i, j, value, env);
       } /*---for i---*/
     }   /*---for j---*/
     for (int j = 0; j < nvl; ++j) {
@@ -604,14 +617,46 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
               const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-              GMInsist((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
-                           (GMUInt64)r11 ==
-                       (GMUInt64)(4 * metrics->num_field_active));
-              // 2-sum checks.
+              const bool error1 = (GMUInt64)r00 + (GMUInt64)r01 +
+                                  (GMUInt64)r10 + (GMUInt64)r11 !=
+                       (GMUInt64)(4 * metrics->num_field_active);
+              if (error1) {
+                const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
+                  i, j, j_block, env);
+                const size_t coords = metrics->coords_global_from_index[index];
+                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu m %llu coords %zu\n",
+                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
+                       (GMUInt64)r11, (GMUInt64)(metrics->num_field_active),
+                       coords);
+                GMInsist(! error1);
+              }
+              // 2-sum check.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
+              const bool error2 = (GMUInt64)r10 + (GMUInt64)r11 !=
+                                  (GMUInt64)(2 * si1);
+              if (error2) {
+                const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
+                  i, j, j_block, env);
+                const size_t coords = metrics->coords_global_from_index[index];
+                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu si1 %llu coords %zu\n",
+                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
+                       (GMUInt64)r11, (GMUInt64)si1, coords);
+                GMInsist(! error2);
+              }
+              // 2-sum check.
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-              GMInsist((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
-              GMInsist((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+              const bool error3 = (GMUInt64)r01 + (GMUInt64)r11 !=
+                                  (GMUInt64)(2 * sj1);
+              if (error3) {
+              //if (coords == 241191199142400) {
+                const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
+                  i, j, j_block, env);
+                const size_t coords = metrics->coords_global_from_index[index];
+                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu sj1 %llu coords %zu\n",
+                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
+                       (GMUInt64)r11, (GMUInt64)sj1, coords);
+                GMInsist(! error3);
+              }
             }
 #endif
 #ifdef GM_ASSERTIONS_ON

@@ -209,13 +209,17 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   const size_t max_float = ((size_t)1) <<
     (GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT ?
      gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
-
+  // Czek account for number of terms summed in denom or num
+  const size_t overflow_limit =
+    GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 0 :
+    GMEnv_num_way(env) == GM_NUM_WAY_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
-  const size_t value_limit = (max_float - 1) / nfa;
+  const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
 
   const size_t value_min = 1;
-  const size_t value_max = (nva+value_min) < value_limit ?
-                           (nva+value_min) : value_limit;
+  //const size_t value_max = (nva+value_min) < value_limit ?
+  //                         (nva+value_min) : value_limit;
+  const size_t value_max = gm_min_i8(value_min+nva, value_limit);
 
   // The elements of a single permuted vector are partitioned into
   // "groups", with all elements in a group contiguous and having
@@ -226,7 +230,8 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   // is the same across all elements of the group.
 
   const size_t num_group = 1 << NUM_SHUFFLE;
-  const size_t group_size_max = (nfa+num_group-1) / num_group;
+  //const size_t group_size_max = (nfa+num_group-1) / num_group;
+  const size_t group_size_max = gm_ceil_i8(nfa, num_group);
 
   switch (GMEnv_data_type_vectors(env)) {
     /*--------------------*/
@@ -238,11 +243,10 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
             vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         /*---Fill pad vectors with copies of the last vector---*/
         const size_t vector_capped = gm_min_i8(vector, nva-1);
-        int fl = 0;
-        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
               vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-          if (field >= vectors->num_field_active) {
+          if (field >= nfa) {
             continue; // These entries will be padded to zero elsewhere.
           }
           const size_t f = field; // field number
@@ -255,12 +259,13 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
           const size_t pv = perm(g, v, nva); // permuted vector number
 
           // Linearly map pv to small interval.
-          const size_t value = value_min + ( pv * value_max ) / (nva+value_min);
+          const size_t value = value_min + (pv * value_max) / (value_min+nva);
 
           const GMFloat float_value = value;
 
           /*---Store---*/
-          GMInsist(float_value * vectors->num_field_active < max_float);
+          GMInsist(float_value * nfa >= 1);
+          GMInsist(float_value * nfa < max_float);
           GMVectors_float_set(vectors, fl, vl, float_value, env);
 
         } /*---field_local---*/
@@ -285,7 +290,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
               vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
-          if (field >= vectors->num_field_active) {
+          if (field >= nfa) {
             continue; // These entries will be padded to zero elsewhere.
           }
           /*---Create 2-bit value - make extra sure less than 4---*/
@@ -358,15 +363,21 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   const size_t max_float = ((size_t)1) <<
     (GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT ?
      gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
+  // Czek account for number of terms summed in denom or num
+  const size_t overflow_limit =
+    GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 0 :
+    GMEnv_num_way(env) == GM_NUM_WAY_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
-  const size_t value_limit = (max_float - 1) / nfa;
+  const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
 
   const size_t value_min = 1;
-  const size_t value_max = (nva+value_min) < value_limit ?
-                           (nva+value_min) : value_limit;
+  //const size_t value_max = (nva+value_min) < value_limit ?
+  //                         (nva+value_min) : value_limit;
+  const size_t value_max = gm_min_i8(value_min+nva, value_limit);
 
   const size_t num_group = 1 << NUM_SHUFFLE;
-  const size_t group_size_max = (nfa+num_group-1) / num_group;
+  //const size_t group_size_max = (nfa+num_group-1) / num_group;
+  const size_t group_size_max = gm_ceil_i8(nfa, num_group);
 
   size_t num_incorrect = 0;
   const size_t max_to_print = 10;
@@ -389,15 +400,17 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
           const size_t vj =
             GMMetrics_coord_global_from_index(metrics, index, 1, env);
-          if (vi >= metrics->num_vector_active ||
-              vj >= metrics->num_vector_active) {
+          if (vi >= nva || vj >= nva) {
             continue;
           }
           const GMFloat value
             = GMMetrics_czek_get_from_index(metrics, index, env);
 
-          GMFloat n = 0;
-          GMFloat d = 0;
+          GMFloat float_n = 0;
+          GMFloat float_d = 0;
+
+          size_t n = 0;
+          size_t d = 0;
 
           // For each comparison of vectors, the compared/summed
           // elements are treated as num_group groups.  All element
@@ -414,15 +427,22 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             const size_t pvj = perm(g, vj, nva);
 
             const size_t value_i = value_min + ( pvi * value_max ) /
-                                               (nva+value_min);
+                                               (value_min+nva);
             const size_t value_j = value_min + ( pvj * value_max ) /
-                                               (nva+value_min);
+                                               (value_min+nva);
+            float_n += gm_min_i8(value_i, value_j) * gs_this;
+            float_d += (value_i + value_j) * gs_this;
             n += gm_min_i8(value_i, value_j) * gs_this;
             d += (value_i + value_j) * gs_this;
 
           } //---g
 
-          const GMFloat value_expected = (((GMFloat)2) * n) / d;
+          GMInsist(n == (size_t)float_n);
+          GMInsist(d == (size_t)float_d);
+
+          const GMFloat multiplier = (GMFloat)2;
+
+          const GMFloat value_expected = (multiplier * float_n) / float_d;
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
@@ -430,8 +450,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
             if (num_incorrect < max_to_print) {
               printf("Error: incorrect result detected.  coords %zu %zu  "
-                     "expected %.16e  actual %.16e\n", vi, vj,
-                     (double)value_expected, (double)value);
+                     "expected %.20e  actual %.20e  diff %.20e\n", vi, vj,
+                     (double)value_expected, (double)value,
+                     (double)value-(double)value_expected);
             }
           }
 
@@ -447,16 +468,14 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             GMMetrics_coord_global_from_index(metrics, index, 1, env);
           const size_t vk =
             GMMetrics_coord_global_from_index(metrics, index, 2, env);
-          if (vi >= metrics->num_vector_active ||
-              vj >= metrics->num_vector_active ||
-              vk >= metrics->num_vector_active) {
+          if (vi >= nva || vj >= nva || vk >= nva) {
             continue;
           }
           const GMFloat value
             = GMMetrics_czek_get_from_index(metrics, index, env);
 
-          GMFloat n = 0;
-          GMFloat d = 0;
+          GMFloat float_n = 0;
+          GMFloat float_d = 0;
 
           for (size_t g=0; g<num_group; ++g) {
 
@@ -475,17 +494,19 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             const size_t value_k = value_min + ( pvk * value_max ) /
                                                (nva+value_min);
 
-            n += gm_min_i8(value_i, value_j) * gs_this;
-            n += gm_min_i8(value_i, value_k) * gs_this;
-            n += gm_min_i8(value_j, value_k) * gs_this;
+            float_n += gm_min_i8(value_i, value_j) * gs_this;
+            float_n += gm_min_i8(value_i, value_k) * gs_this;
+            float_n += gm_min_i8(value_j, value_k) * gs_this;
 
-            n -= gm_min_i8(value_i, gm_min_i8(value_j, value_k)) * gs_this;
+            float_n -= gm_min_i8(value_i, gm_min_i8(value_j, value_k)) * gs_this;
 
-            d += (value_i + value_j + value_k) * gs_this;
+            float_d += (value_i + value_j + value_k) * gs_this;
 
           } //---g
 
-          const GMFloat value_expected = (((GMFloat)1.5) * n) / d;
+          const GMFloat multiplier = (GMFloat)1.5;
+
+          const GMFloat value_expected = (multiplier * float_n) / float_d;
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
@@ -493,8 +514,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
             if (num_incorrect < max_to_print) {
               printf("Error: incorrect result detected.  coords %zu %zu %zu  "
-                     "expected %.16e  actual %.16e\n", vi, vj, vk,
-                     (double)value_expected, (double)value);
+                     "expected %.20e  actual %.20e  diff %.20e\n", vi, vj, vk,
+                     (double)value_expected, (double)value,
+                     (double)value-(double)value_expected);
             }
           }
 
@@ -511,8 +533,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
         const size_t vj =
           GMMetrics_coord_global_from_index(metrics, index, 1, env);
-        if (vi >= metrics->num_vector_active ||
-            vj >= metrics->num_vector_active) {
+        if (vi >= nva || vj >= nva) {
           continue;
         }
         for (int i0 = 0; i0 < 2; ++i0) {
@@ -625,8 +646,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                                    diff : max_incorrect_diff;
               if (num_incorrect < max_to_print) {
                 printf("Error: incorrect result detected.  coords %zu %zu  "
-                       "expected %.16e  actual %.16e\n", vi, vj,
-                       (double)value_expected, (double)value);
+                       "expected %.20e  actual %.20e  diff %.20e\n", vi, vj,
+                       (double)value_expected, (double)value,
+                       (double)value-(double)value_expected);
               }
             }
 
@@ -646,9 +668,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           GMMetrics_coord_global_from_index(metrics, index, 1, env);
         const size_t vk =
           GMMetrics_coord_global_from_index(metrics, index, 2, env);
-        if (vi >= metrics->num_vector_active ||
-            vj >= metrics->num_vector_active ||
-            vk >= metrics->num_vector_active) {
+        if (vi >= nva || vj >= nva || vk >= nva) {
           continue;
         }
         for (int i0 = 0; i0 < 2; ++i0) {
@@ -765,8 +785,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
                 if (num_incorrect < max_to_print) {
                   printf("Error: incorrect result detected.  coords %zu %zu %zu  "
-                         "expected %.16e  actual %.16e\n", vi, vj, vk,
-                         (double)value_expected, (double)value);
+                         "expected %.20e  actual %.20e  diff %.20e\n", vi, vj, vk,
+                         (double)value_expected, (double)value,
+                         (double)value-(double)value_expected);
                 }
               }
 
