@@ -43,10 +43,10 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
 
 #ifdef TRANSPOSE
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int fl2_step = blockIdx.y;
+  const int fl2_step = blockIdx.y + gridDim.y * blockIdx.z;
 #else
   const int fl2_step = threadIdx.x + blockIdx.x * blockDim.x;
-  const int vlX2 = blockIdx.y;
+  const int vlX2 = blockIdx.y + gridDim.y * blockIdx.z;
 #endif
 
   if (vlX2 >= nvlX2 || fl2_step >= nfl2_step) {
@@ -150,10 +150,10 @@ __global__ void gm_tc_buf_write_int8_kernel_(
 
 #ifdef TRANSPOSE
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int fl2_step = blockIdx.y;
+  const int fl2_step = blockIdx.y + gridDim.y * blockIdx.z;
 #else
   const int fl2_step = threadIdx.x + blockIdx.x * blockDim.x;
-  const int vlX2 = blockIdx.y;
+  const int vlX2 = blockIdx.y + gridDim.y * blockIdx.z;
 #endif
 
   if (vlX2 >= nvlX2 || fl2_step >= nfl2_step) {
@@ -276,11 +276,14 @@ void gm_tc_buf_write_(
 
   const int threadblocksize = 256;
 #ifdef TRANSPOSE
+  const int blockdim_y = 32768;
   const int num_threadblocks_0 = gm_ceil_i8(nvleX2, threadblocksize);
-  const int num_threadblocks_1 = nfl2_step;
+  const int num_threadblocks_1 = gm_min_i8(nfl2_step, blockdim_y);
+  const int num_threadblocks_2 = gm_ceil_i8(nfl2_step, blockdim_y);
 #else
   const int num_threadblocks_0 = gm_ceil_i8(nfl2_step, threadblocksize);
   const int num_threadblocks_1 = nvleX2;
+  const int num_threadblocks_2 = 1;
 #endif
 
   void* const tc_buf = is_right ? env->tc_buf_right : env->tc_buf_left;
@@ -289,7 +292,7 @@ void gm_tc_buf_write_(
   if (! is_int8) {
 
     gm_tc_buf_write_fp16_kernel_<<<
-        dim3(num_threadblocks_0, num_threadblocks_1, 1),
+        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1),
         0,
         env->stream_compute_>>>(
@@ -311,7 +314,7 @@ void gm_tc_buf_write_(
   } else {
 
     gm_tc_buf_write_int8_kernel_<<<
-        dim3(num_threadblocks_0, num_threadblocks_1, 1),
+        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1),
         0,
         env->stream_compute_>>>(
@@ -331,6 +334,7 @@ void gm_tc_buf_write_(
       tc_buf);
 
   }
+  //printf("%i %i\n", (int)num_threadblocks_0, (int)num_threadblocks_1); //FIX
 
   GMEnv_cuda_last_call_succeeded(env);
 }
@@ -552,7 +556,6 @@ void gm_tc_fix_metrics_(
     nvll2,
     (float*)vo_ptr
   );
-
   GMEnv_cuda_last_call_succeeded(env);
 }
 #endif
