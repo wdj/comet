@@ -24,9 +24,12 @@ function do_make
   else #---IBM
     # Build for Summit or Peak
     module load gcc/6.4.0
-    module load cuda/9.1.85
+    #module load cuda/9.1.85
+    module load cuda
     cp ../make.inc.summit make.inc
   fi
+
+  module list 2>&1
 
   time make lib -j8
 }

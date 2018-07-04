@@ -281,6 +281,10 @@ double bad_node_penalty() {
   return strcmp(name, "h25n12") == 0 ? 1e6 - 1 // 4X slower
        : strcmp(name, "d06n12") == 0 ? 1e6 - 1 // 2X slower - once
        : strcmp(name, "b08n02") == 0 ? 1e6 - 1 // 5X slower - twice
+       : strcmp(name, "d27n11") == 0 ? 1e6 - 1 // seems to be giving problems
+       : strcmp(name, "d36n04") == 0 ? 1e6 - 1 // 40X slower - at least once
+       : strcmp(name, "d23n01") == 0 ? 1e6 - 1 // several times slower - once
+       : strcmp(name, "h41n11") == 0 ? 1e3 - 1 // slow Peak node
 //       : strcmp(name, "d16n06") == 0 ? 1e6 - 1 // at least 4X slower multiple times
 //       : strcmp(name, "d15n03") == 0 ? 1e6 - 1
 //       : strcmp(name, "f11n11") == 0 ? 1e6 - 1
@@ -442,7 +446,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     const size_t len = 256;
     char name[len];
     gethostname(name, len);
-    printf("%s %f\n", name, max_time);
+    printf("Warmup run: node %s time %f\n", name, max_time);
   }
 
   // Collect all timings to node 0
@@ -542,6 +546,8 @@ void perform_run_preflight(int argc, char** argv) {
 int main(int argc, char** argv) {
   /*---Initialize---*/
 
+  const double t1 = GMEnv_get_time();
+
   MPI_Init(&argc, &argv);
 
   bool use_fast_nodes = false;
@@ -572,8 +578,9 @@ int main(int argc, char** argv) {
   if (use_fast_nodes) { 
 
     MPI_Barrier(MPI_COMM_WORLD);
+    const double t2 = GMEnv_get_time();
     if (rank == 0) {
-      printf("MPI_Init called.\n");
+      printf("MPI_Init called, %i seconds.\n", (int)(.5+t2-t1));
     }
 
     MPI_Comm fast_comm;

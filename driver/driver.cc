@@ -371,6 +371,8 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
   double time_beg = GMEnv_get_synced_time(env);
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  gm_tc_bufs_malloc(env, vectors->num_vector_local,
+                    vectors->num_packedval_field_local);
   double time_end = GMEnv_get_synced_time(env);
   vctime += time_end - time_beg;
 
@@ -511,10 +513,9 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
   time_beg = GMEnv_get_synced_time(env);
   GMVectors_destroy(vectors, env);
+  gm_tc_bufs_free(env);
   time_end = GMEnv_get_synced_time(env);
   vctime += time_end - time_beg;
-
-  gm_tc_bufs_free(env);
 
   /*---Perform some checks---*/
 

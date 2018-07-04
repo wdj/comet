@@ -601,7 +601,6 @@ cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
 /*---Timer functions---*/
 
 double GMEnv_get_time(const GMEnv* const env) {
-  GMInsist(env);
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -669,7 +668,8 @@ int gm_gpu_compute_capability() {
 void* gm_malloc(size_t n, GMEnv* env) {
   GMInsist(env);
   void* p = malloc(n);
-  GMInsist(p);
+  GMInsist(p && "Invalid pointer from malloc,"
+                " possibly due to insufficient memory.");
   env->cpu_mem += n;
   env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
   return p;
@@ -831,19 +831,25 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
   env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 #endif
 
-  cublasStatus_t status = cublasCreate(&env->cublas_handle);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS);
+  cublasStatus_t cb_status = cublasCreate(&env->cublas_handle);
+  GMInsist(cb_status == CUBLAS_STATUS_SUCCESS);
 
-  status = cublasSetStream(env->cublas_handle, env->stream_compute_);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS);
+  cb_status = cublasSetStream(env->cublas_handle, env->stream_compute_);
+  GMInsist(cb_status == CUBLAS_STATUS_SUCCESS);
 
 #ifdef USE_TC
-  status = cublasSetMathMode(env->cublas_handle, CUBLAS_TENSOR_OP_MATH);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS);
+  cb_status = cublasSetMathMode(env->cublas_handle, CUBLAS_TENSOR_OP_MATH);
+  GMInsist(cb_status == CUBLAS_STATUS_SUCCESS);
 #else
   GMInsistInterface(env,
                     false && "TC option not implemented for this platform.");
 #endif
+
+//  cudaError_t event_status = cudaEventCreateWithFlags(&env->tc_event,
+//                                                      cudaEventDisableTiming);
+//  GMInsist(cudaSuccess == event_status);
+//  // cudaSuccess, cudaErrorInitializationError, cudaErrorInvalidValue,
+//  // cudaErrorLaunchFailure, cudaErrorMemoryAllocation
 }
 
 //-----------------------------------------------------------------------------
@@ -874,8 +880,13 @@ void gm_tc_bufs_free(GMEnv* const env) {
   env->gpu_mem -= env->tc_buf_size * 2;
 #endif
 
-  cublasStatus_t status = cublasDestroy(env->cublas_handle);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS);
+  cublasStatus_t cb_status = cublasDestroy(env->cublas_handle);
+  GMInsist(cb_status == CUBLAS_STATUS_SUCCESS);
+
+//  cudaError_t event_status = cudaEventDestroy(env->tc_event);
+//  GMInsist(cudaSuccess == event_status);
+//  // cudaSuccess, cudaErrorInitializationError, cudaErrorInvalidValue,
+//  // cudaErrorLaunchFailure
 }
 
 //-----------------------------------------------------------------------------

@@ -195,22 +195,26 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&p->h, n);
       GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in call to magma_minproduct_dmalloc_pinned.");
+                   "Error in call to magma_minproduct_dmalloc_pinned,"
+                   " possibly due to insufficient memory.");
     } else {
       magma_code = magma_minproduct_smalloc_pinned((float**)&p->h, n);
       GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in call to magma_minproduct_smalloc_pinned.");
+                   "Error in call to magma_minproduct_smalloc_pinned,"
+                   " possibly due to insufficient memory.");
     }
     GMFloat_fill_nan((GMFloat*)p->h, n);
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
       GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in call to magma_minproduct_dmalloc.");
+                   "Error in call to magma_minproduct_dmalloc,"
+                   " possibly due to insufficient memory.");
     } else {
       magma_code = magma_minproduct_smalloc((float**)&p->d, n);
       GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in call to magma_minproduct_smalloc.");
+                   "Error in call to magma_minproduct_smalloc,"
+                   " possibly due to insufficient memory.");
     }
 
     p->size = n*sizeof(GMFloat);
@@ -229,11 +233,13 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
     magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p->h, n);
     GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
-                   "Error in call to magma_tally2_zmalloc_pinned.");
+                   "Error in call to magma_tally2_zmalloc_pinned,"
+                   " possibly due to insufficient memory.");
 
     magma_code = magma_tally2_zmalloc((Float_t**)&p->d, n);
     GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
-                   "Error in call to magma_tally2_zmalloc.");
+                   "Error in call to magma_tally2_zmalloc,"
+                   " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
     env->cpu_mem += p->size;
@@ -252,11 +258,13 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
     magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p->h, n);
     GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
-                   "Error in call to magma_tally4_zmalloc_pinned.");
+                   "Error in call to magma_tally4_zmalloc_pinned,"
+                   " possibly due to insufficient memory.");
 
     magma_code = magma_tally4_zmalloc((Float_t**)&p->d, n);
     GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
-                   "Error in call to magma_tally4_zmalloc.");
+                   "Error in call to magma_tally4_zmalloc,"
+                   " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
     env->cpu_mem += p->size;
@@ -275,11 +283,13 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
     magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p->h, n);
     GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
-                   "Error in call to magma_tally3_zmalloc_pinned.");
+                   "Error in call to magma_tally3_zmalloc_pinned,"
+                   " possibly due to insufficient memory.");
 
     magma_code = magma_tally3_zmalloc((Float_t**)&p->d, n);
     GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
-                   "Error in call to magma_tally3_zmalloc.");
+                   "Error in call to magma_tally3_zmalloc,"
+                   " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
     env->cpu_mem += p->size;

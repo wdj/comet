@@ -91,6 +91,7 @@ typedef struct {
   int npvfl_step_max;
   int num_tc_steps;
   cublasHandle_t cublas_handle;
+  //cudaEvent_t tc_event;
 } GMEnv;
 
 enum {
@@ -337,7 +338,7 @@ static int GMEnv_proc_num_field(const GMEnv* const env) {
 //=============================================================================
 /*---Timer functions---*/
 
-double GMEnv_get_time(const GMEnv* const env);
+double GMEnv_get_time(const GMEnv* const env = 0);
 double GMEnv_get_synced_time(const GMEnv* const env);
 
 //=============================================================================
