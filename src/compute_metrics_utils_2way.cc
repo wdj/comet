@@ -624,10 +624,10 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu m %llu coords %zu\n",
+                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu m %llu coords %zu rank %i\n",
                        (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
                        (GMUInt64)r11, (GMUInt64)(metrics->num_field_active),
-                       coords);
+                       coords, GMEnv_proc_num(env));
                 GMInsist(! error1);
               }
               // 2-sum check.
@@ -638,9 +638,11 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu si1 %llu coords %zu\n",
+                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu si1 %llu actual %llu expected %llu coords %zu rank %i\n",
                        (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
-                       (GMUInt64)r11, (GMUInt64)si1, coords);
+                       (GMUInt64)r11, (GMUInt64)si1,
+                       (GMUInt64)r10 + (GMUInt64)r11, (GMUInt64)(2 * si1),
+                       coords, GMEnv_proc_num(env));
                 GMInsist(! error2);
               }
               // 2-sum check.
@@ -648,13 +650,14 @@ void gm_compute_ccc_2way_combine_(GMMetrics* metrics,
               const bool error3 = (GMUInt64)r01 + (GMUInt64)r11 !=
                                   (GMUInt64)(2 * sj1);
               if (error3) {
-              //if (coords == 241191199142400) {
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu sj1 %llu coords %zu\n",
+                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu sj1 %llu actual %llu expected %llu coords %zu rank %i\n",
                        (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
-                       (GMUInt64)r11, (GMUInt64)sj1, coords);
+                       (GMUInt64)r11, (GMUInt64)sj1,
+                       (GMUInt64)r01 + (GMUInt64)r11, (GMUInt64)(2 * sj1),
+                       coords, GMEnv_proc_num(env));
                 GMInsist(! error3);
               }
             }
