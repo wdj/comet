@@ -21,6 +21,7 @@ if [ -n "${CRAYOS_VERSION:-}" ] ; then
   fi
   module load PrgEnv-gnu
   module load cudatoolkit
+  #module load cudatoolkit/7.5.18-1.0502.10743.2.1
 else
   # For Summit or Peak
   module -q load gcc/6.4.0

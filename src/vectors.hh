@@ -220,9 +220,9 @@ static void GMVectors_bits2_set(GMVectors* vectors,
   const int size1 = 32;
   const int size2 = 2;
 
-  int field_index0 = field_local % size1;
-  int field_index1 = (field_local / size1) % size2;
-  size_t field_index2 = field_local / (size1 * size2);
+  const int field_index0 = field_local % size1;
+  const int field_index1 = (field_local / size1) % size2;
+  const size_t field_index2 = field_local / (size1 * size2);
 
   GMBits1_2x64* const __restrict__ address =
       &(((GMBits2x64*)(vectors->data))[field_index2 +

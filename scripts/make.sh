@@ -11,7 +11,9 @@ if [ -n "$CRAYOS_VERSION" ] ; then
     module unload PrgEnv-pgi
   fi
   module load PrgEnv-gnu
+  #module swap gcc gcc/4.9.3
   module load cudatoolkit
+  #module load cudatoolkit/7.5.18-1.0502.10743.2.1
   module load acml
 else #---IBM
   # For Summit or Peak

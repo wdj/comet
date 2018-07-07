@@ -6,10 +6,10 @@ NVCC      = nvcc
 ARCH      = ar
 ARCHFLAGS = cr
 RANLIB    = ranlib
-OPTS      = -O3 -DADD_ -fPIC
+OPTS      = -O3 -DADD_ -fPIC -march=bdver1
 F77OPTS   = -O3 -DADD_ -fno-second-underscore
 FOPTS     = -O3 -DADD_ -fno-second-underscore
-NVOPTS    = -O3 -DADD_ --compiler-options -fno-strict-aliasing -DUNIX
+NVOPTS    = -O3 -DADD_ --compiler-options -fno-strict-aliasing,-march=bdver1 -DUNIX
 LDOPTS    = -fPIC -Xlinker -zmuldefs
 LIB       = -lacml -lpthread -lcublas -lm -lcblas -lcudart
 CUDADIR   = $(CRAY_CUDATOOLKIT_DIR)

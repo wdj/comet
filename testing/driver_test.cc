@@ -1781,7 +1781,6 @@ TEST(DriverTest, ccc2_simple) {
 TEST(DriverTest, ccc2_simple_sparse) {
   DriverTest_ccc2_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();
@@ -1790,6 +1789,7 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();

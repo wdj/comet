@@ -24,7 +24,9 @@ if [ -n "$CRAYOS_VERSION" ] ; then
     module unload PrgEnv-pgi
   fi
   module load PrgEnv-gnu
+  #module swap gcc gcc/4.9.3
   module load cudatoolkit
+  #module load cudatoolkit/7.5.18-1.0502.10743.2.1
   module load acml
   module load cmake
   CUDA_INCLUDE_OPTS=$CRAY_CUDATOOLKIT_INCLUDE_OPTS
@@ -166,6 +168,7 @@ C_CXX_FLAGS="$C_CXX_FLAGS -fno-associative-math"
 C_CXX_FLAGS="$C_CXX_FLAGS -fopenmp"
 C_CXX_FLAGS="$C_CXX_FLAGS -Wno-error=unknown-pragmas"
 C_CXX_FLAGS="$C_CXX_FLAGS -DTEST_PROCS_MAX=64"
+#C_CXX_FLAGS="$C_CXX_FLAGS -std=c++11"
 #C_CXX_FLAGS="$C_CXX_FLAGS -Wconversion"
 
 #----------

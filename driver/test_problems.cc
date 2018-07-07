@@ -211,7 +211,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
      gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
-    GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 0 :
+    GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 1 :
     GMEnv_num_way(env) == GM_NUM_WAY_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
@@ -279,6 +279,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
     /*--------------------*/
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
+
 //int mycount[4] = {0, 0, 0, 0};
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
@@ -286,8 +287,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
             vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
         /*---Fill pad vectors with copies of the last vector---*/
         const size_t vector_capped = gm_min_i8(vector, nva-1);
-        int fl = 0;
-        for (fl = 0; fl < vectors->num_field_local; ++fl) {
+        for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
               vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
           if (field >= nfa) {
@@ -365,7 +365,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
      gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
-    GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 0 :
+    GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 1 :
     GMEnv_num_way(env) == GM_NUM_WAY_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
