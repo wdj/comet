@@ -11,13 +11,17 @@ set -eu -o pipefail
 HOST_=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
 DIRNAME_STUB=$HOST_
 
+PROJECT=stf006
+
 if [ -n "${CRAYOS_VERSION:-}" ] ; then
   # For Titan or Chester
-  INSTALL_TOP_DIR=/lustre/atlas/scratch/$(whoami)/stf006/
+  INSTALL_TOP_DIR=/lustre/atlas/scratch/$(whoami)/$PROJECT/comet
 else
   # For Summit or Peak
-  INSTALL_TOP_DIR=/gpfs/alpinetds/stf006/scratch/$(whoami)/comet
+  INSTALL_TOP_DIR=/gpfs/alpinetds/$PROJECT/scratch/$(whoami)/comet
 fi
+
+mkdir -p "$INSTALL_TOP_DIR"
 
 #--------------------
 # test build
