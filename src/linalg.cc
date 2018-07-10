@@ -604,6 +604,18 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     return;
   }
 
+#if 0
+  if (m == 16384)
+  {
+    typedef magma_tally4DoubleComplex Float_t;
+    Float_t zero = {37, -19};
+    magma_tally4blas_zlaset(Magma_tally4Full, k, m, zero, zero,
+                            (Float_t*)dA, ldda);
+    magma_tally4blas_zlaset(Magma_tally4Full, k, n, zero, zero,
+                            (Float_t*)dB, lddb);
+  }
+#endif
+
   const size_t rows = k;
   const size_t cols_A = m;
   const size_t cols_B = n;
