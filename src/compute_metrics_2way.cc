@@ -237,6 +237,7 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
   //========================================
   for (int step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num){
   //========================================
+//double t0 = GMEnv_get_time();
 
     // Set per-step variables
 
@@ -495,6 +496,8 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
       gm_send_vectors_wait(&(mpi_requests[0]), env);
     }
 
+//double t1 = GMEnv_get_time();
+//printf("%i %f\n", step_num, t1-t0);
   //========================================
   } // step_num
   //========================================

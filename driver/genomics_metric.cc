@@ -285,6 +285,16 @@ double bad_node_penalty() {
        : strcmp(name, "d36n04") == 0 ? 1e6 - 1 // 40X slower - at least once
        : strcmp(name, "d23n01") == 0 ? 1e6 - 1 // several times slower - once
        : strcmp(name, "h41n11") == 0 ? 1e3 - 1 // slow Peak node
+
+       : strcmp(name, "a12n18") == 0 ? 1e4 - 1 // to help workaround: ERROR:  One or more process terminated with signal 9
+       : strcmp(name, "a03n12") == 0 ? 1e4 - 1 // ditto
+
+       //: strcmp(name, "a03n10") == 0 ? 1e3 - 1 // one of these 5 nodes causes
+       //: strcmp(name, "a03n11") == 0 ? 1e3 - 1 // ERROR:  One or more process terminated with signal 9
+       //: strcmp(name, "a03n12") == 0 ? 1e3 - 1 //
+       //: strcmp(name, "a03n13") == 0 ? 1e3 - 1 //
+       //: strcmp(name, "a03n14") == 0 ? 1e3 - 1 //
+
 //       : strcmp(name, "d16n06") == 0 ? 1e6 - 1 // at least 4X slower multiple times
 //       : strcmp(name, "d15n03") == 0 ? 1e6 - 1
 //       : strcmp(name, "f11n11") == 0 ? 1e6 - 1
