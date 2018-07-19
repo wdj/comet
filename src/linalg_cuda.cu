@@ -364,8 +364,11 @@ void gm_tc_solve_(
   const int n = 2 * nvl; // metrics array dim
   const int k = nfl_step; // vectors array (as halfs/bytes) dim
 
-  const float alpha = 1;
-  const float beta = is_first ? 0 : 1;
+  const float alpha_f32 = 1;
+  const float beta_f32 = is_first ? 0 : 1;
+
+  const int alpha_i32 = 1;
+  const int beta_i32 = is_first ? 0 : 1;
 
   const bool is_int8 = env->tc == 2;
 
@@ -390,7 +393,7 @@ void gm_tc_solve_(
     CUBLAS_OP_T, CUBLAS_OP_N,
 #endif
     m, n, k,
-    &alpha,
+    is_int8 ? (void*)&alpha_i32 : (void*)&alpha_f32,
     env->tc_buf_left, is_int8 ? CUDA_R_8I : CUDA_R_16F,
 #ifdef TRANSPOSE
     m,
@@ -403,9 +406,10 @@ void gm_tc_solve_(
 #else
     k,
 #endif
-    &beta,
-    dC, CUDA_R_32F, m,
-    CUDA_R_32F,
+    is_int8 ? (void*)&beta_i32 : (void*)&beta_f32,
+    //(void*)&beta_f32,
+    dC, is_int8 ? CUDA_R_32I : CUDA_R_32F, m,
+    is_int8 ? CUDA_R_32I : CUDA_R_32F,
 #ifdef TRANSPOSE
     //CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
     //CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
@@ -435,6 +439,7 @@ void gm_tc_solve_(
 
 //-----------------------------------------------------------------------------
 
+template<typename INTYPE32>
 __global__ void gm_tc_fix_metrics_kernel_(
   int nvl,
   int nvll,
@@ -467,17 +472,17 @@ __global__ void gm_tc_fix_metrics_kernel_(
 
   // Read the 8 floats.
 
-  float* fvo = (float*)vo;
+  INTYPE32* fvo = (INTYPE32*)vo;
 
-  const float f00 = fvo[fcr_offset0+0];
-  const float f01 = fvo[fcr_offset0+1];
-  const float f02 = fvo[fcr_offset0+2];
-  const float f03 = fvo[fcr_offset0+3];
+  const INTYPE32 f00 = fvo[fcr_offset0+0];
+  const INTYPE32 f01 = fvo[fcr_offset0+1];
+  const INTYPE32 f02 = fvo[fcr_offset0+2];
+  const INTYPE32 f03 = fvo[fcr_offset0+3];
 
-  const float f10 = fvo[fcr_offset1+0];
-  const float f11 = fvo[fcr_offset1+1];
-  const float f12 = fvo[fcr_offset1+2];
-  const float f13 = fvo[fcr_offset1+3];
+  const INTYPE32 f10 = fvo[fcr_offset1+0];
+  const INTYPE32 f11 = fvo[fcr_offset1+1];
+  const INTYPE32 f12 = fvo[fcr_offset1+2];
+  const INTYPE32 f13 = fvo[fcr_offset1+3];
 
   // Apply the permutation:
 
@@ -486,17 +491,17 @@ __global__ void gm_tc_fix_metrics_kernel_(
   // [ B  B ]  ->  [ A  B ]
   // [ B  B ]  ->  [ A  B ]
 
-  const float f00p = f00;
-  const float f01p = f01;
+  const INTYPE32 f00p = f00;
+  const INTYPE32 f01p = f01;
 
-  const float f02p = f10;
-  const float f03p = f11;
+  const INTYPE32 f02p = f10;
+  const INTYPE32 f03p = f11;
 
-  const float f10p = f02;
-  const float f11p = f03;
+  const INTYPE32 f10p = f02;
+  const INTYPE32 f11p = f03;
 
-  const float f12p = f12;
-  const float f13p = f13;
+  const INTYPE32 f12p = f12;
+  const INTYPE32 f13p = f13;
 
   // Use helper value to move value to upper half of mantissa.
 
@@ -546,16 +551,32 @@ void gm_tc_fix_metrics_(
   const int threadblocksize = 256;
   const int vll2_threadblocks = gm_ceil_i8(nvll2, threadblocksize);
 
-  gm_tc_fix_metrics_kernel_<<<
-      dim3(vll2_threadblocks, nvl, 1),
-      dim3(threadblocksize, 1, 1),
+  const bool is_int8 = env->tc == 2;
+
+  if (is_int8) {
+    gm_tc_fix_metrics_kernel_<int><<<
+        dim3(vll2_threadblocks, nvl, 1),
+        dim3(threadblocksize, 1, 1),
       0,
-      env->stream_compute_>>>(
-    nvl,
-    nvll,
-    nvll2,
-    (float*)vo_ptr
-  );
+        env->stream_compute_>>>(
+      nvl,
+      nvll,
+      nvll2,
+      vo_ptr
+    );
+  } else {
+    gm_tc_fix_metrics_kernel_<float><<<
+        dim3(vll2_threadblocks, nvl, 1),
+        dim3(threadblocksize, 1, 1),
+      0,
+        env->stream_compute_>>>(
+      nvl,
+      nvll,
+      nvll2,
+      vo_ptr
+    );
+  }
+
   GMEnv_cuda_last_call_succeeded(env);
 }
 #endif
