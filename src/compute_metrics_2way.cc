@@ -407,7 +407,10 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
 
     // Compute sums for denominators
 
-    if (GMEnv_is_ppc64()) { // put it here for speed on this arch
+    //const bool compute_sums_early = GMEnv_is_ppc64();
+    const bool compute_sums_early = true;
+
+    if (compute_sums_early) { // put it here for speed on this arch
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
@@ -459,7 +462,7 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
 
     // Compute sums for denominators
 
-    if (! GMEnv_is_ppc64()) { // put it here for speed on this arch
+    if (! compute_sums_early) { // put it here for speed on this arch
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
