@@ -501,6 +501,12 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   GMInsist(num_proc_repl > 0);
   GMInsist(num_proc_field > 0);
 
+#ifdef NOMPI
+  GMInsist(num_proc_vector_i == 1);
+  GMInsist(num_proc_repl == 1);
+  GMInsist(num_proc_field == 1);
+#endif
+
   GMInsist(env->num_proc_base_ != 0);
   //GMInsist(env->proc_num_base_ is initialized);
 

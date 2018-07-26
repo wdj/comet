@@ -99,6 +99,31 @@ if [ 1 = 1 ] ; then
 fi
 
 #--------------------
+# release nompi build
+#--------------------
+
+if [ 1 = 1 ] ; then
+  DIR_=build_release_nompi_$DIRNAME_STUB
+  echo "Creating $DIR_ ..."
+  mkdir -p $DIR_
+  pushd $DIR_
+  rm -rf *
+  if [ -e ../magma_build_$DIRNAME_STUB ] ; then
+    ln -s ../magma_build_$DIRNAME_STUB magma
+  fi
+  INSTALL_DIR=$INSTALL_TOP_DIR/install_release_nompi_$DIRNAME_STUB
+  env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Release NOMPI=ON \
+      ../genomics_gpu/scripts/cmake.sh
+  if [ ! -e  ../magma_build_$DIRNAME_STUB ] ; then
+    mv magma ../magma_build_$DIRNAME_STUB
+    ln -s    ../magma_build_$DIRNAME_STUB magma
+  fi
+  popd
+  rm -f $(basename $INSTALL_DIR)
+  ln -s $INSTALL_DIR .
+fi
+
+#--------------------
 # release / single precision build
 #--------------------
 

@@ -73,14 +73,14 @@ if [ "$BUILD_TYPE" != "Debug" -a "$BUILD_TYPE" != "Release" ] ; then
 fi
 
 #------------------------------------------------------------------------------
-#---Set installation dir.
+# Set whether to build with MPI stub library.
 
-if [ -z "$INSTALL_DIR" ] ; then
-  if [ "$BUILD_TYPE" = "Debug" ] ; then
-    INSTALL_DIR=${PROJECT_DIR}/../install_debug
-  else
-    INSTALL_DIR=${PROJECT_DIR}/../install_release
-  fi
+if [ -z "$NOMPI" ] ; then
+  NOMPI=OFF
+fi
+if [ "$NOMPI" != "ON" -a "$NOMPI" != "OFF" ] ; then
+  echo "Invalid setting for NOMPI. $FP_PRECISION" 1>&2
+  exit 1
 fi
 
 #------------------------------------------------------------------------------
@@ -108,6 +108,17 @@ if [ "$TESTING" != "ON" -a "$TESTING" != "OFF" ] ; then
   exit 1
 fi
 
+#------------------------------------------------------------------------------
+#---Set installation dir.
+
+if [ -z "$INSTALL_DIR" ] ; then
+  if [ "$BUILD_TYPE" = "Debug" ] ; then
+    INSTALL_DIR=${PROJECT_DIR}/../install_debug
+  else
+    INSTALL_DIR=${PROJECT_DIR}/../install_release
+  fi
+fi
+
 #==============================================================================
 #---Get unit test harness if needed.
 
@@ -121,11 +132,25 @@ if [ "$TESTING" = ON ] ; then
   #    https://github.com/google/googletest/archive/release-1.7.0.tar.gz
   #fi
   gunzip <googletest-release-1.7.0.tar.gz | tar xf -
-  GTEST_DIR=$(pwd)/googletest-release-1.7.0
+  GTEST_DIR=$PWD/googletest-release-1.7.0
   mkdir $GTEST_DIR/lib
   g++ -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
     -pthread -c ${GTEST_DIR}/src/gtest-all.cc
   ar -rv $GTEST_DIR/lib/libgtest.a gtest-all.o
+fi
+
+#==============================================================================
+#---Get mpi stub library if needed.
+
+if [ "$NOMPI" = ON ] ; then
+  echo "Building mpi-stub ..."
+  ln -s ../genomics_gpu/build_tools/mpi-stub.tar.gz
+  rm -rf mpi-stub
+  gunzip <mpi-stub.tar.gz | tar xf -
+  pushd mpi-stub
+  CC=g++ # NOTE: redefinitin!
+  make CC=$CC
+  popd
 fi
 
 #==============================================================================
@@ -176,7 +201,7 @@ C_CXX_FLAGS="$C_CXX_FLAGS -DTEST_PROCS_MAX=64"
 C_FLAGS_OPT="-DNDEBUG -O3 -fomit-frame-pointer"
 
 #---The following change slows performance by 1% on a test case but helps
-#---make results exactly reproducible on vryng number of procs.
+#---make results exactly reproducible on varyng number of procs.
 #C_FLAGS_OPT="$C_FLAGS_OPT -ffast-math"
 C_FLAGS_OPT="$C_FLAGS_OPT -fno-math-errno -ffinite-math-only -fno-rounding-math -fno-signaling-nans -fcx-limited-range"
 C_FLAGS_OPT="$C_FLAGS_OPT -fno-signed-zeros -fno-trapping-math -freciprocal-math"
@@ -216,23 +241,37 @@ else
   C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
 fi
 
+if [ "$NOMPI" = ON ] ; then
+  C_CXX_FLAGS="$C_CXX_FLAGS -DNOMPI -I$PWD/mpi-stub/include"
+  LFLAGS="$LFLAGS -L$PWD/mpi-stub/lib -lmpi"
+fi
+
 #  -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v$DEBUG_FLAG" \
 #  -DCUDA_HOST_COMPILER:STRING=/usr/bin/gcc \
 
 #------------------------------------------------------------------------------
+
+if [ "$NOMPI" = OFF ] ; then
+  CMAKE_MPI_OPTIONS="\
+    -DMPI_C_COMPILER="$cc" \
+    -DMPI_CXX_COMPILER="$CC" \
+    -DMPI_CXX_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include \
+    -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
+  "
+else
+  CMAKE_MPI_OPTIONS="-DNOMPI=ON"
+fi
 
 time cmake \
  \
   -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
   -DCMAKE_INSTALL_PREFIX:PATH="$INSTALL_DIR" \
  \
+  $CMAKE_MPI_OPTIONS \
+ \
   -DCMAKE_C_COMPILER:STRING="$cc" \
-  -DMPI_C_COMPILER="$cc" \
  \
   -DCMAKE_CXX_COMPILER:STRING="$CC" \
-  -DMPI_CXX_COMPILER="$CC" \
-  -DMPI_CXX_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include \
-  -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
  \
   -DC_AND_CXX_FLAGS:STRING="$C_CXX_FLAGS" \
  \
