@@ -397,8 +397,10 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
   /*---More initializations---*/
 
-  GMChecksum checksum_value = GMChecksum_null(), *checksum = &checksum_value;
-  checksum->computing_checksum = do_.checksum;
+  GMChecksum cksum_value = GMChecksum_null(), *cksum = &cksum_value;
+  GMChecksum cksum_local_value = GMChecksum_null(), *cksum_local = &cksum_local_value;
+  cksum->computing_checksum = do_.checksum;
+  cksum_local->computing_checksum = do_.checksum;
 
   double outtime = 0;
   double mctime = 0;
@@ -466,11 +468,10 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
       if (do_.checksum) {
         time_beg = GMEnv_get_synced_time(env);
-        GMChecksum_metrics(checksum, metrics, env);
+        GMChecksum_metrics(cksum, cksum_local, metrics, env);
         time_end = GMEnv_get_synced_time(env);
         cktime += time_end - time_beg;
       }
-
       time_beg = GMEnv_get_synced_time(env);
       GMMetrics_destroy(metrics, env);
       time_end = GMEnv_get_synced_time(env);
@@ -559,15 +560,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     //-----
     if (do_.checksum) {
       printf("metrics checksum ");
-      int i = 0;
-      for (i = 0; i < GM_CHECKSUM_SIZE; ++i) {
-        printf("%s%li", i == 0 ? "" : "-",
-               checksum->data[GM_CHECKSUM_SIZE - 1 - i]);
-      }
-      if (checksum->is_overflowed) {
-        printf("-OVFL");
-        printf("-%e", checksum->value_max);
-      }
+      GMChecksum_print(cksum, env);
       printf(" ");
     }
     //-----
@@ -610,6 +603,12 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
 
   // One more sync before checking num_correct, to allow flush of output.
   GMEnv_get_synced_time(env);
+  if (do_.checksum && GMEnv_is_proc_active(env) && do_.verbosity > 0) {
+    printf("local checksum: ");
+    GMChecksum_print(cksum_local, env);
+    printf("\n");
+  }
+  GMEnv_get_synced_time(env);
 
   if (do_.num_incorrect) {
     const size_t hnlen = 256;
@@ -632,7 +631,7 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     GMEnv_destroy(env);
   }
 
-  return *checksum;
+  return *cksum;
 }
 
 //=============================================================================

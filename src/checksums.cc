@@ -38,16 +38,16 @@ GMChecksum GMChecksum_null() {
 //-----------------------------------------------------------------------------
 // Check whether two checksums equal
 
-bool GMChecksum_equal(GMChecksum* cs1, GMChecksum* cs2) {
-  if ( ! cs1->computing_checksum || ! cs2->computing_checksum ) {
+bool GMChecksum_equal(GMChecksum* cksum1, GMChecksum* cksum2) {
+  if ( ! cksum1->computing_checksum || ! cksum2->computing_checksum ) {
     return true;
   }
   bool result = true;
   for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
-    result = result && cs1->data[i] == cs2->data[i];
+    result = result && cksum1->data[i] == cksum2->data[i];
   }
-  result = result && cs1->is_overflowed == cs2->is_overflowed;
-  result = result && cs1->value_max == cs2->value_max;
+  result = result && cksum1->is_overflowed == cksum2->is_overflowed;
+  result = result && cksum1->value_max == cksum2->value_max;
   return result;
 }
 
@@ -78,8 +78,9 @@ static size_t lshift(size_t a, int j) {
 //-----------------------------------------------------------------------------
 // Compute checksum of metrics object
 
-void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
-  GMInsist(cs && metrics && env);
+void GMChecksum_metrics(GMChecksum* cksum, GMChecksum* cksum_local,
+                        GMMetrics* metrics, GMEnv* env) {
+  GMInsist(cksum && cksum_local && metrics && env);
   GMInsist(metrics->data || ! GMEnv_is_proc_active(env));
 
   //--------------------
@@ -110,7 +111,7 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
   // Calculate the global largest value
   //--------------------
 
-  double value_max_this = cs->value_max;
+  double value_max_this = cksum->value_max;
   #pragma omp parallel for reduction(max:value_max_this)
   for (UI64 index = 0; index < metrics->num_elts_local; ++index) {
     bool is_active = true;
@@ -153,19 +154,21 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
   } // for index
 
   int mpi_code = 0;
-  mpi_code = MPI_Allreduce(&value_max_this, &cs->value_max, 1,
+  mpi_code = MPI_Allreduce(&value_max_this, &cksum->value_max, 1,
                            MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
+  cksum_local->value_max = cksum->value_max;
 
   // The largest we expect any value to be if using "special" inputs
   const int log2_value_max_allowed = 4;
   const double value_max_allowed = 1 << log2_value_max_allowed;
 
-  cs->is_overflowed = cs->is_overflowed && cs->value_max > value_max_allowed;
+  cksum->is_overflowed = cksum->is_overflowed && cksum->value_max > value_max_allowed;
+  cksum_local->is_overflowed = cksum->is_overflowed;
 
   const double scaling = value_max_allowed;
 
-  //const double scaling = cs->is_overflowed ? cs->value_max : value_max_allowed;
+  //const double scaling = cksum->is_overflowed ? cksum->value_max : value_max_allowed;
 
   //--------------------
   // Calculate checksum
@@ -305,42 +308,68 @@ void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env) {
                            GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
   for (int i = 0; i < GM_MULTIPREC_INT_SIZE; ++i) {
-    cs->sum.data[i] += sum.data[i];
+    cksum->sum.data[i] += sum.data[i];
+    cksum_local->sum.data[i] += sum_this.data[i];
   }
 
   // Combine results
 
   for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
-    cs->data[i] = 0;
+    cksum->data[i] = 0;
+    cksum_local->data[i] = 0;
     for (int j = 0; j < 8; ++j) {
-      cs->data[i] +=
-          lshift(cs->sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
-      cs->data[i] +=
-          lshift(cs->sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
+      cksum->data[i] +=
+          lshift(cksum->sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
+      cksum->data[i] +=
+          lshift(cksum->sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
+      cksum_local->data[i] +=
+          lshift(cksum_local->sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
+      cksum_local->data[i] +=
+          lshift(cksum_local->sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
     }
   }
   /// (move the carry bits
-  cs->data[1] += cs->data[0] >> (2 * w);
-  cs->data[0] &= lohimask;
-  cs->data[2] += cs->data[1] >> (2 * w);
-  cs->data[1] &= lohimask;
+  cksum->data[1] += cksum->data[0] >> (2 * w);
+  cksum->data[0] &= lohimask;
+  cksum->data[2] += cksum->data[1] >> (2 * w);
+  cksum->data[1] &= lohimask;
+  cksum_local->data[1] += cksum_local->data[0] >> (2 * w);
+  cksum_local->data[0] &= lohimask;
+  cksum_local->data[2] += cksum_local->data[1] >> (2 * w);
+  cksum_local->data[1] &= lohimask;
 
   //--------------------
   // Check against floating point result
   //--------------------
 
-  const double tmp = sum_d_this;
-  mpi_code = MPI_Allreduce(&tmp, &sum_d_this, 1, MPI_DOUBLE, MPI_SUM,
+  double sum_d;
+  mpi_code = MPI_Allreduce(&sum_d_this, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
-  cs->sum_d += sum_d_this;
+  cksum->sum_d += sum_d;
+  cksum_local->sum_d += sum_d_this;
 
-  double result_d = cs->data[0] / ((double)(one64 << (2 * w))) +
-                    cs->data[1] +
-                    cs->data[2] * ((double)(one64 << (2 * w)));
-  GMInsist(fabs(cs->sum_d - result_d) <= cs->sum_d * 1.e-10);
+  double result_d = cksum->data[0] / ((double)(one64 << (2 * w))) +
+                    cksum->data[1] +
+                    cksum->data[2] * ((double)(one64 << (2 * w)));
+  GMInsist(fabs(cksum->sum_d - result_d) <= cksum->sum_d * 1.e-10);
 }
 
 //=============================================================================
+// Print ckecksum to stdout.
+
+void GMChecksum_print(GMChecksum* cksum, GMEnv* env) {
+  GMInsist(cksum && env);
+
+  for (int i = 0; i < GM_CHECKSUM_SIZE; ++i) {
+    printf("%s%li", i == 0 ? "" : "-",
+           cksum->data[GM_CHECKSUM_SIZE - 1 - i]);
+  }
+  if (cksum->is_overflowed) {
+    printf("-OVFL");
+    printf("-%e", cksum->value_max);
+  }
+}
+
 
 //-----------------------------------------------------------------------------

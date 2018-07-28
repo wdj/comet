@@ -47,12 +47,18 @@ GMChecksum GMChecksum_null();
 //-----------------------------------------------------------------------------
 // Check whether two checksums equal
 
-bool GMChecksum_equal(GMChecksum* cs1, GMChecksum* cs2);
+bool GMChecksum_equal(GMChecksum* cksum1, GMChecksum* cksum2);
 
 //-----------------------------------------------------------------------------
 // Compute checksum of metrics object
 
-void GMChecksum_metrics(GMChecksum* cs, GMMetrics* metrics, GMEnv* env);
+void GMChecksum_metrics(GMChecksum* cksum, GMChecksum* cksum_local,
+                        GMMetrics* metrics, GMEnv* env);
+
+//-----------------------------------------------------------------------------
+// Print ckecksum to stdout.
+
+void GMChecksum_print(GMChecksum* cksum, GMEnv* env);
 
 //=============================================================================
 
