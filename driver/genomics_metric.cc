@@ -278,13 +278,48 @@ double bad_node_penalty() {
   char name[len];
   gethostname(name, len);
 
-  return strcmp(name, "h25n12") == 0 ? 1e6 - 1 // 4X slower
+  return false ? 1
+
+       : strcmp(name, "a04n08") == 0 ? 1e3 - .01
+       : strcmp(name, "a07n16") == 0 ? 1e3 - .02
+       : strcmp(name, "a13n10") == 0 ? 1e3 - .03
+       : strcmp(name, "a19n04") == 0 ? 1e3 - .04
+       : strcmp(name, "a19n07") == 0 ? 1e3 - .05
+       : strcmp(name, "a20n03") == 0 ? 1e3 - .06
+       : strcmp(name, "a22n17") == 0 ? 1e3 - .07
+       : strcmp(name, "a24n09") == 0 ? 1e3 - .08
+       : strcmp(name, "a26n12") == 0 ? 1e3 - .09
+       : strcmp(name, "a34n15") == 0 ? 1e3 - .10
+       : strcmp(name, "b07n03") == 0 ? 1e3 - .11
+       : strcmp(name, "b12n13") == 0 ? 1e3 - .12
+       : strcmp(name, "b14n03") == 0 ? 1e3 - .13
+       : strcmp(name, "b31n08") == 0 ? 1e3 - .14
+       : strcmp(name, "c27n10") == 0 ? 1e3 - .15
+       : strcmp(name, "c29n14") == 0 ? 1e3 - .16
+       : strcmp(name, "d01n18") == 0 ? 1e3 - .17
+       : strcmp(name, "d16n13") == 0 ? 1e3 - .18
+       : strcmp(name, "d20n01") == 0 ? 1e3 - .19
+       : strcmp(name, "d24n18") == 0 ? 1e3 - .20
+       : strcmp(name, "e01n05") == 0 ? 1e3 - .21
+       : strcmp(name, "e08n07") == 0 ? 1e3 - .22
+       : strcmp(name, "e08n15") == 0 ? 1e3 - .23
+       : strcmp(name, "f17n01") == 0 ? 1e3 - .24
+       : strcmp(name, "f25n02") == 0 ? 1e3 - .25
+       : strcmp(name, "f31n14") == 0 ? 1e3 - .26
+       : strcmp(name, "g03n17") == 0 ? 1e3 - .27
+       : strcmp(name, "g26n14") == 0 ? 1e3 - .28
+       : strcmp(name, "g33n09") == 0 ? 1e3 - .29
+       : strcmp(name, "h12n01") == 0 ? 1e3 - .30
+       : strcmp(name, "h14n09") == 0 ? 1e3 - .31
+       : strcmp(name, "h24n18") == 0 ? 1e3 - .32
+
+       : strcmp(name, "h25n12") == 0 ? 1e6 - 1 // 4X slower
        : strcmp(name, "d06n12") == 0 ? 1e6 - 1 // 2X slower - once
        : strcmp(name, "b08n02") == 0 ? 1e6 - 1 // 5X slower - twice
        : strcmp(name, "d27n11") == 0 ? 1e6 - 1 // seems to be giving problems
        : strcmp(name, "d36n04") == 0 ? 1e6 - 1 // 40X slower - at least once
        : strcmp(name, "d23n01") == 0 ? 1e6 - 1 // several times slower - once
-       : strcmp(name, "h41n11") == 0 ? 1e3 - 1 // slow Peak node
+       : strcmp(name, "h41n11") == 0 ? 1e4 - 1 // slow Peak node
 
        : strcmp(name, "a12n18") == 0 ? 1e4 - 1 // to help workaround: ERROR:  One or more process terminated with signal 9
        : strcmp(name, "a03n12") == 0 ? 1e4 - 1 // ditto
