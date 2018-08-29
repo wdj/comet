@@ -173,10 +173,12 @@ void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
                            MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS);
 
-  env->compares += metrics->num_field * num_elts *
+  env->compares += metrics->num_field_active * num_elts *
                    metrics->data_type_num_values;
 
-  env->eltcompares += metrics->num_field * num_elts;
+  env->eltcompares += metrics->num_field_active * num_elts;
+
+  env->veccompares += num_elts;
 
   mpi_code = MPI_Allreduce(&env->ops_local, &env->ops, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(env));

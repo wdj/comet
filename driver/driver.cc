@@ -568,17 +568,20 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     //-----
     printf(" ops %e", env->ops);
     if (env->time > 0) {
-      printf(" rate %e", env->ops / env->time);
-      printf(" rate/proc %e", env->ops / (env->time*GMEnv_num_proc(env)) );
+      printf(" ops_rate %e", env->ops / env->time);
+      printf(" ops_rate/proc %e", env->ops / (env->time*GMEnv_num_proc(env)) );
     }
     //-----
-    printf(" cmpout %e", (double)num_written);
+    printf(" vcmp %e", env->veccompares);
+    if (NULL != do_.metrics_file_path_stub) {
+      printf(" vcmpout %e", (double)num_written);
+    }
     //-----
     printf(" cmp %e", env->compares);
     printf(" ecmp %e", env->eltcompares);
     if (env->time > 0) {
-      printf(" rate %e", env->eltcompares / env->time);
-      printf(" rate/proc %e", env->eltcompares / (env->time*GMEnv_num_proc(env)) );
+      printf(" ecmp_rate %e", env->eltcompares / env->time);
+      printf(" ecmp_rate/proc %e", env->eltcompares / (env->time*GMEnv_num_proc(env)) );
     }
     //-----
     printf(" vctime %.6f", vctime);
@@ -601,14 +604,20 @@ GMChecksum perform_run(int argc, char** argv, const char* const description,
     printf("\n");
   }
 
-  // One more sync before checking num_correct, to allow flush of output.
-  GMEnv_get_synced_time(env);
-  if (do_.checksum && GMEnv_is_proc_active(env) && do_.verbosity > 0) {
-    printf("local checksum: ");
-    GMChecksum_print(cksum_local, env);
-    printf("\n");
+  // Output a local checksum, for testing purposes.
+
+  if (false) {
+    // One more sync before checking num_correct, to allow flush of output.
+    GMEnv_get_synced_time(env);
+    if (do_.checksum && GMEnv_is_proc_active(env) && do_.verbosity > 0) {
+      printf("local checksum: ");
+      GMChecksum_print(cksum_local, env);
+      printf("\n");
+    }
   }
   GMEnv_get_synced_time(env);
+
+  // Validation: check for any wrong answers.
 
   if (do_.num_incorrect) {
     const size_t hnlen = 256;

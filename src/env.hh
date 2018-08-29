@@ -45,6 +45,7 @@ typedef struct {
   double time;
   double compares;
   double eltcompares;
+  double veccompares;
   double ops_local;
   double ops;
   size_t cpu_mem;
