@@ -16,9 +16,19 @@
 #==============================================================================
 
 #------------------------------------------------------------------------------
+
+BUILD_DIR=$PWD
+
+if [ -n "${CRAYOS_VERSION:-}" ] ; then
+  IS_CRAY_XK7="YES"
+else
+  IS_CRAY_XK7="NO"
+fi
+
+#------------------------------------------------------------------------------
 #---Load modules.
 
-if [ -n "$CRAYOS_VERSION" ] ; then
+if [ $IS_CRAY_XK7 = YES ] ; then
   # For Titan or Chester
   if [ "$PE_ENV" = "PGI" ] ; then
     module unload PrgEnv-pgi
@@ -56,8 +66,8 @@ rm -rf CMakeFiles
 #------------------------------------------------------------------------------
 #---Main project dir for cloned repo.
 
-if [ -z "$PROJECT_DIR" ] ; then
-  PROJECT_DIR=${PWD}/../genomics_gpu
+if [ -z "$REPO_DIR" ] ; then
+  REPO_DIR=$BUILD_DIR/../genomics_gpu
 fi
 
 #------------------------------------------------------------------------------
@@ -113,9 +123,9 @@ fi
 
 if [ -z "$INSTALL_DIR" ] ; then
   if [ "$BUILD_TYPE" = "Debug" ] ; then
-    INSTALL_DIR=${PROJECT_DIR}/../install_debug
+    INSTALL_DIR=$REPO_DIR/../install_debug
   else
-    INSTALL_DIR=${PROJECT_DIR}/../install_release
+    INSTALL_DIR=$REPO_DIR/../install_release
   fi
 fi
 
@@ -125,14 +135,11 @@ fi
 GTEST_DIR=""
 
 if [ "$TESTING" = ON ] ; then
-  #if [ -e ../genomics_gpu/tools/googletest-release-1.7.0.tar.gz ] ; then
-    ln -s ../genomics_gpu/build_tools/googletest-release-1.7.0.tar.gz
-  #else
-  #  wget -O googletest-release-1.7.0.tar.gz \
-  #    https://github.com/google/googletest/archive/release-1.7.0.tar.gz
-  #fi
+  ln -s ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz
+  # wget -O googletest-release-1.7.0.tar.gz \
+  #   https://github.com/google/googletest/archive/release-1.7.0.tar.gz
   gunzip <googletest-release-1.7.0.tar.gz | tar xf -
-  GTEST_DIR=$PWD/googletest-release-1.7.0
+  GTEST_DIR=$BUILD_DIR/googletest-release-1.7.0
   mkdir $GTEST_DIR/lib
   g++ -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
     -pthread -c ${GTEST_DIR}/src/gtest-all.cc
@@ -144,7 +151,7 @@ fi
 
 if [ "$NOMPI" = ON ] ; then
   echo "Building mpi-stub ..."
-  ln -s ../genomics_gpu/build_tools/mpi-stub.tar.gz
+  ln -s ../genomics_gpu/tpls/mpi-stub.tar.gz
   rm -rf mpi-stub
   gunzip <mpi-stub.tar.gz | tar xf -
   pushd mpi-stub
@@ -156,10 +163,16 @@ fi
 #==============================================================================
 #---Build magma variants.
 
-MAGMA_DIR=$PWD/magma
+MAGMA_DIR=$BUILD_DIR/magma
 if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
+  rm -rf $MAGMA_DIR
   echo "Copying magma ..."
-  cp -rp $PROJECT_DIR/magma $MAGMA_DIR
+  cp -r $REPO_DIR/magma $MAGMA_DIR
+  rm $MAGMA_DIR//magma-*.tar.gz
+  cp $REPO_DIR/tpls/magma-*.tar.gz $MAGMA_DIR/
+  pushd $MAGMA_DIR
+  ./create_modified_magmas.sh
+  popd
   touch $MAGMA_DIR/copy_is_complete
 fi
 
@@ -168,7 +181,7 @@ for magma_version in magma_minproduct magma_tally4 magma_tally3 \
   MAGMA_SUBDIR=$MAGMA_DIR/$magma_version
   if [ ! -e $MAGMA_SUBDIR/build_is_complete ] ; then
     pushd $MAGMA_SUBDIR
-    ../make.sh
+    ../make_magma.sh
     popd
     if [ -e $MAGMA_SUBDIR/lib/lib${magma_version}.a ] ; then
       touch $MAGMA_SUBDIR/build_is_complete
@@ -207,7 +220,7 @@ C_FLAGS_OPT="$C_FLAGS_OPT -fno-math-errno -ffinite-math-only -fno-rounding-math 
 C_FLAGS_OPT="$C_FLAGS_OPT -fno-signed-zeros -fno-trapping-math -freciprocal-math"
 
 C_FLAGS_OPT="$C_FLAGS_OPT -finline-functions -finline-limit=1000"
-if [ -n "$CRAYOS_VERSION" ] ; then
+if [ $IS_CRAY_XK7 = YES ] ; then
   C_FLAGS_OPT="$C_FLAGS_OPT -march=bdver1"
 else
   C_FLAGS_OPT="$C_FLAGS_OPT -mcpu=power9 -mtune=power9 -mcmodel=large -m64"
@@ -225,14 +238,14 @@ LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally3/lib -lmagma_tally3"
 LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally2/lib -lmagma_tally2"
 LFLAGS="$LFLAGS $CUDA_POST_LINK_OPTS -lcublas -lcudart"
-if [ -n "$CRAYOS_VERSION" ] ; then
+if [ $IS_CRAY_XK7 = YES ] ; then
   LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
   LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
 else
   LFLAGS="$LFLAGS -Wl,-rpath=$CUDA_DIR/lib64"
 fi
 
-if [ -n "$CRAYOS_VERSION" ] ; then
+if [ $IS_CRAY_XK7 = YES ] ; then
   TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64"
   C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
 else
@@ -242,7 +255,7 @@ else
 fi
 
 if [ "$NOMPI" = ON ] ; then
-  C_CXX_FLAGS="$C_CXX_FLAGS -DNOMPI -I$PWD/mpi-stub/include"
+  C_CXX_FLAGS="$C_CXX_FLAGS -DNOMPI -I$BUILD_DIR/mpi-stub/include"
   LFLAGS="$LFLAGS -L$PWD/mpi-stub/lib -lmpi"
 fi
 
@@ -291,7 +304,7 @@ time cmake \
  \
   -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON \
  \
-  $PROJECT_DIR
+  $REPO_DIR
 
 ln -s $INSTALL_DIR install_dir
 
