@@ -2,16 +2,18 @@
 CoMet: Combinatorial Metrics code
 =================================
 
-
-
-
-
-
+CoMet is an application for calculating vector similarity metrics
+on large-scale parallel accelerated computing systems
+to solve problems in computational genomics.
+Currently the 2-way and 3-way Proportionbal Similarity
+(Czekanowski) metrics and Custom Correlation Coefficient are supported.
+Currently the OLCF Summit and Titan systems are supported.
+Dependencies include GCC, CUDA, MPI, CMake and googletest.
 
 Getting started
 ---------------
 
-See the file Examples.txt for a step-by-step guide to building and running
+See the file Quick_Start.txt for a step-by-step guide to building and running
 CoMet on the OLCF Summit system.
 
 References
@@ -31,7 +33,7 @@ https://arxiv.org/abs/1705.08213
 Wayne Joubert, Deborah Weighill, David Kainer, Sharlee Climer, Amy Justice,
 Kjiersten Fagnan, Daniel Jacobson, "Attacking the Opioid Epidemic:
 Determining the Epistatic and Pleiotropic Genetic Architectures
-for Chronic Pain and Opioid Addiction," SC18, Gordon Bell awardee,
+for Chronic Pain and Opioid Addiction," SC18 Gordon Bell paper,
 https://dl.acm.org/citation.cfm?id=3291732
 
 "GPU-enabled comparative genomiocs calculations on leadership-class HPC systems,"
