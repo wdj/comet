@@ -17,7 +17,7 @@ function main
   for tag in minproduct tally2 tally3 tally4 ; do
     ./clone_magma.sh $tag
     ./patch_magma.sh $tag
-  done # for
+  done
 }
 
 #==============================================================================

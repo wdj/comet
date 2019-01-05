@@ -1,7 +1,7 @@
 #!/bin/bash
 #==============================================================================
 #
-# Apply a patch file to to the cloned (unpatched) Magma dir to get
+# Apply a patch file to to the cloned (unpatched) MAGMA dir to get
 # the cloned and patched Magma dir.
 #
 #==============================================================================

@@ -1,7 +1,8 @@
 #!/bin/bash
 #==============================================================================
 #
-# Create a custom version of MAGMA that avoids namespace collisions.
+# Create a custom version of MAGMA that avoids namespace collisions
+# with other such versions.
 #
 #==============================================================================
 
@@ -12,6 +13,8 @@ set -eu -o pipefail
 
 function main
 {
+  # Parse command line.
+
   local tag="${1:-}"
   if [ "$tag" = "" -o "$tag" = "-h" -o "$tag" = "--help" ] ; then 
     echo "Usage: ${0##*/} <tag>"
@@ -27,7 +30,11 @@ function main
     exit 1
   fi
 
+  # Set up input and output directory names.
+
   local magma_name="magma-1.6.2"
+  # NOTE: if the MAGMA librsry version is updated, the lists below may also need
+  # to be updated and other changes made, e.g, patch files.
 
   local source_file=${magma_name}.tar.gz
   if [ ! -e $source_file ] ; then
@@ -37,17 +44,18 @@ function main
 
   local source_dir=$magma_name
   if [ -e $source_dir ] ; then
-    echo "Error: source directory already exists; please delete. $source_dir" 1>&2
+    echo "Error: source directory already exists. $source_dir" 1>&2
     exit 1
   fi
 
-  #target_dir=$(echo $source_dir | sed "s/magma/&_$tag/")
   local target_dir=magma_${tag}.cloned
 
   if [ -e $target_dir ] ; then
     echo "Error: target directory already exists. $source_dir" 1>&2
     exit 1
   fi
+
+  # Un-tar the (real) MAGMA library.
 
   echo "Cloning $source_dir to $target_dir ..."
 
@@ -62,15 +70,16 @@ function main
     exit 1
   fi
 
-  # Remove unneeded files
+  # Remove a few unneeded files from the library.
 
   rm $(find $source_dir -name '._*' -print)
   rmdir $source_dir/exp/lib $source_dir/exp/quark/lib
   rmdir $source_dir/testing/checkdiag/lib
 
+  # Modify possibly conflicting strings.
+
   echo "Modifying name-colliding strings in each file ..."
 
-  #for file in `find $magma_name -name '*' -type f -print` ; do
   local file
   echo -n "magma"
   for file in `grep -ril 'magma' $source_dir` ; do
@@ -149,9 +158,10 @@ function main
 
   echo
 
-  echo "Changing names of name-colliding files and directories ..."
+  # Modify possibly conflicting filenames.
+  # NOTE: this is somewhat brittle, may break if ordering is changed.
 
-  #---NOTE: this is somewhat brittle, may break if ordering is wrong.
+  echo "Changing names of name-colliding files and directories ..."
 
   names="
   zhetrf_nopiv
@@ -184,6 +194,8 @@ function main
   done
 
   echo
+
+  # Complete.
 
   mv $source_dir $target_dir
 

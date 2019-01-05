@@ -1,7 +1,7 @@
 #!/bin/bash
 #==============================================================================
 #
-# Infer a patch file that can be applied to a cloned (unpatched) Magma dir to
+# Infer a patch file that can be applied to a cloned (unpatched) MAGMA dir to
 # get the cloned and patched Magma dir.
 #
 #==============================================================================
