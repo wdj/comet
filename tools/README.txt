@@ -1,6 +1,6 @@
 
 Genomics calculation workflow
------------------------------
+=============================
 
 NOTE: see https://code.ornl.gov/wjd/genomics_gpu/tree/master/tools
 for the reference copy of the files in this directory
@@ -111,7 +111,7 @@ The rationale for adjusting the settings is:
      costs.
 
 The settings advisor tool can be used to assist with determining good
-settings:
+settings (EXPERIMENTAL):
 
 titan-ext1$ ./settings_advisor --help
 usage: settings_advisor [-h] --num_node NUM_NODE --platform {Titan,Summit}
