@@ -13,9 +13,9 @@ To create the modified MAGMA source libraries, type:
 To compile, type:
 
 for tag in minproduct tally2 tally3 tally4 ; do
-  pushd magma_$tag
-  ../make_magma.sh
-  popd
+  pushd magma_$tag;
+  ../make_magma.sh;
+  popd;
 done
 
 FOR DEVELOPERS:
