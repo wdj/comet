@@ -14,6 +14,65 @@
 #include "env.hh"
 #include "metrics.hh"
 
+//-----------------------------------------------------------------------------
+
+namespace CoMet {
+
+//=============================================================================
+/*! \brief Checksum class to compute exact checksum of metrics object.
+ *
+ */
+
+class Checksum {
+public:
+
+  Checksum();
+
+  bool is_equal(const Checksum& cksum2) const;
+
+  void print(GMEnv& env);
+
+  // TODO: try to make metrics, env const here.
+  static void compute(Checksum& cksum, Checksum& cksum_local,
+                      GMMetrics& metrics, GMEnv& env);
+
+private:
+
+  struct MultiprecInt {
+    enum { MULTIPREC_INT_SIZE = 16 };
+    size_t data[MULTIPREC_INT_SIZE];
+  };
+
+  enum { CKSUM_SIZE = 3 };
+
+  size_t data[CKSUM_SIZE];
+  bool is_overflowed;
+  double value_max;
+  MultiprecInt sum;
+  double sum_d;
+  bool is_started;
+  bool computing_checksum;
+
+  // TODO: try to make metrics, env const here.
+  static double metrics_max_value(GMMetrics& metrics, GMEnv& env);
+
+  // Disallowed methods.
+
+  Checksum(  const Checksum&);
+  void operator=(const Checksum&);
+
+}; // class Checksum
+
+//=============================================================================
+
+} // namespace CoMet
+
+
+
+
+
+
+
 //=============================================================================
 // Multiprecision integers
 
