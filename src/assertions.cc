@@ -15,23 +15,29 @@
 #include "gtest/gtest.h"
 #endif
 
-#include "assertions.hh"
+//#include "assertions.hh"
 #include "env.hh"
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 
-void gm_test_wrapper() {
+namespace CoMet {
+
+//-----------------------------------------------------------------------------
+/// \brief For a test build, cause test harness to throw an error.
+
+static void make_test_harness_failure() {
 #ifdef TESTING
   ASSERT_TRUE(0);
 #endif
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Function to support the GMAssert, GMInsist macros.
 
-void gm_assert(const char* condition_string, const char* file, int line) {
+void assert_(const char* condition_string, const char* file, int line) {
   fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Assertion error",
           condition_string, file, line);
-  gm_test_wrapper();
+  make_test_harness_failure();
 #ifdef GM_ASSERTIONS_ON
   raise(SIGUSR1);
 #else
@@ -40,8 +46,9 @@ void gm_assert(const char* condition_string, const char* file, int line) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Function to support the GMInsistInterface macro.
 
-void gm_insist_interface(const void* const env,
+void insist_interface(const void* const env,
                          const char* condition_string,
                          const char* file,
                          int line) {
@@ -49,8 +56,12 @@ void gm_insist_interface(const void* const env,
     fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Interface error",
             condition_string, file, line);
   }
-  gm_test_wrapper();
+  make_test_harness_failure();
   exit(EXIT_FAILURE);
 }
+
+//=============================================================================
+
+} // namespace CoMet
 
 //-----------------------------------------------------------------------------

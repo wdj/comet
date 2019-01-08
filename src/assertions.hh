@@ -11,20 +11,26 @@
 #ifndef _gm_assertions_hh_
 #define _gm_assertions_hh_
 
-//-----------------------------------------------------------------------------
+//=============================================================================
+// Macros.
 
-// Check for error from improper user settings
+//-----------------------------------------------------------------------------
+/// \brief Insist macro - assert a condition even for release builds.
+///        This should be used only for non-performance-sensitive
+///        code locations -- e.g., not in a deep loop nest.
+
+#define GMInsist(condition) \
+  (void)((condition) || (CoMet::assert_(#condition, __FILE__, __LINE__), 0))
+
+//-----------------------------------------------------------------------------
+/// \brief Insist macro specifically for a user-caused error condition.
 
 #define GMInsistInterface(env, condition) \
   (void)((condition) || \
-         (gm_insist_interface(env, #condition, __FILE__, __LINE__), 0))
+         (CoMet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
 
-// Insist - assert always, incl. release mode
-
-#define GMInsist(condition) \
-  (void)((condition) || (gm_assert(#condition, __FILE__, __LINE__), 0))
-
-// Assertion
+//-----------------------------------------------------------------------------
+/// \brief Assertion macro (for debug builds only).
 
 #ifndef NDEBUG
 #define GM_ASSERTIONS_ON
@@ -33,7 +39,9 @@
 #define GMAssert(condition)
 #endif
 
-// Static assertion
+//-----------------------------------------------------------------------------
+/// \brief Static (i.e., compile time) assertion macro.
+///        TODO: replace with C++11 equivalent.
 
 #ifndef NDEBUG
 // Fail compilation and (hopefully) give a filename/line number
@@ -46,16 +54,30 @@
 #define GMStaticAssert(condition)
 #endif
 
+//=============================================================================
+// Declarations.
+
+namespace CoMet {
+
 //-----------------------------------------------------------------------------
+/// \brief Function to support the GMAssert, GMInsist macros.
+///        Trailing underscore to avoid collision with C assert macro.
 
-void gm_assert(const char* condition_string, const char* file, int line);
+void assert_(const char* condition_string, const char* file, int line);
 
-void gm_insist_interface(void const * const env,
+//-----------------------------------------------------------------------------
+/// \brief Function to support the GMInsistInterface macro.
+
+void insist_interface(void const * const env,
                          const char* condition_string,
                          const char* file,
                          int line);
 
 //=============================================================================
+
+} // namespace CoMet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_assertions_hh_
 
