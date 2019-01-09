@@ -60,8 +60,14 @@ function main
   for dir in $dirs ; do
     grep -H fail $dir/out_test.txt
   done
+  out_files="$(for dir in $dirs ; do echo $dir/out_test.txt ; done)"
+  if [ $(grep ' tests fail' $out_files <(echo ' tests fail') | wc -l) = \
+       $(grep ' 0 tests fail' $out_files <(echo ' 0 tests fail') | wc -l) ] ; then
+    echo "!!! All tests PASSED !!!"
+  fi
+
   echo "-------------------------------------------------------------------------------"
-}
+} # main
 
 #==============================================================================
 
