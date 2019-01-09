@@ -36,17 +36,21 @@ Checksum::Checksum()
 /// \brief Check whether two checksums are equal.
 
 bool Checksum::is_equal(const Checksum& cksum2) const {
-  // Don't make this test if not computing both checksums.
+  bool result = true;
+
+  // Don't perform this test if not computing both checksums.
   if ( ! this->computing_checksum || ! cksum2.computing_checksum ) {
-    return true;
+    for (int i = 0; i < CKSUM_SIZE; ++i) {
+      result = result && this->data[i] == cksum2.data[i];
+    }
+    // ISSUE: for now, check overflow like this because
+    // overflow is not ncessarily an error (e.g., setting of
+    // ccc_multiplier).
+    // TODO: fix this better.
+    result = result && this->is_overflowed == cksum2.is_overflowed;
+    result = result && this->value_max == cksum2.value_max;
   }
 
-  bool result = true;
-  for (int i = 0; i < CKSUM_SIZE; ++i) {
-    result = result && this->data[i] == cksum2.data[i];
-  }
-  result = result && this->is_overflowed == cksum2.is_overflowed;
-  result = result && this->value_max == cksum2.value_max;
   return result;
 }
 
@@ -197,11 +201,18 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
   // Get max metrics value.
 
-  double value_max_this = Checksum::metrics_max_value(metrics, env);
-  value_max_this = value_max_this > cksum.value_max ?
-                   value_max_this : cksum.value_max;
+  // The only impact this has on the output is to determine whether
+  // an "overflow" in size of the metric value beyond what the checksum
+  // functionality can compute has occurred.
+  // It might also be useful for debugging.
+  // Note there is no effort to strictly differentiate the
+  // local (per proc) vs. global value.
 
-  int mpi_code = MPI_Allreduce(&value_max_this, &cksum.value_max, 1,
+  double value_max_tmp = Checksum::metrics_max_value(metrics, env);
+  value_max_tmp = value_max_tmp > cksum.value_max ?
+                  value_max_tmp : cksum.value_max;
+
+  int mpi_code = MPI_Allreduce(&value_max_tmp, &cksum.value_max, 1,
                         MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_repl_vector(&env));
   GMInsist(mpi_code == MPI_SUCCESS);
   cksum_local.value_max = cksum.value_max;
@@ -209,35 +220,40 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   // Check whether values are within a range for which we can compute
   // the checksum with this code.
 
-  // The largest we expect any value to be if using "special" inputs
+  // The largest we expect any value to be if using "special" inputs.
+  //
+  // This size constraint may be violated if there is an error in the
+  // calculation.  It may also be violated by setting of ccc_multiplier large.
+  // TODO: examine whether the bound here could be made tighter.
+  // TODO: consider polling the metrics object for what the max value
+  // upper bound should be - e.g., ccc_multiplier * (1 + roundoff_fuzz)
   const int log2_value_max_allowed = 4;
   const double value_max_allowed = 1 << log2_value_max_allowed;
 
-  cksum.is_overflowed = cksum.is_overflowed &&
-                        cksum.value_max > value_max_allowed;
-  cksum_local.is_overflowed = cksum.is_overflowed;
+  cksum.is_overflowed = cksum_local.is_overflowed =
+    cksum.is_overflowed && cksum.value_max > value_max_allowed;
 
-  // Scaling factor for values.
+  // Scaling factor for values - so that after scaling, value is <= 1.
   const double scaling = value_max_allowed;
 
   //--------------------
   // Calculate checksum
   //--------------------
 
-  const int w = 30;
-  GMInsist(64 - 2 * w >= 4);
-  const UI64 one64 = 1;
+  const int w = 30; // 2*w is the integer size
+  GMInsist(64 - 2 * w >= 4); // fits into uint64, with some headroom
+  const UI64 one64 = 1; // the constant "1"
 
-  const UI64 lomask = (one64 << w) - 1;
+  const UI64 lomask = (one64 << w) - 1; // masks for lo and hi parts of integer
   const UI64 lohimask = (one64 << (2 * w)) - 1;
 
-  GMMultiprecInt sum_this; // checksum valune on this proc
-  double sum_d_this = 0; // floating point representation of the same, as check
+  GMMultiprecInt sum_local; // = 0 // checksum valune on this proc
+  double sum_d_local = 0; // floating point representation of the same, as check
 
   #pragma omp parallel
   {
-    GMMultiprecInt sum_this_private;
-    double sum_d_this_private = 0;
+    GMMultiprecInt sum_local_private; // = 0
+    double sum_d_local_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
     for (UI64 index = 0; index < metrics.num_elts_local; ++index) {
@@ -245,7 +261,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
       for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
         // Obtain global coords of metrics elt
         UI64 coords[NUM_WAY_MAX];
-        int ind_coords[NUM_WAY_MAX];
+        int ind_coords[NUM_WAY_MAX]; // permutation index
         for (int i = 0; i < NUM_WAY_MAX; ++i) {
           coords[i] = 0;
           ind_coords[i] = i;
@@ -254,11 +270,19 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         for (int i = 0; i < GMEnv_num_way(&env); ++i) {
           const UI64 coord = GMMetrics_coord_global_from_index(&metrics, index,
                                                                i, &env);
+          // Ignore padding vectors.
           is_active = is_active && coord < metrics.num_vector_active;
           coords[i] = coord;
         }
         // Reflect coords by symmetry to get uniform result -
         //   sort into descending order
+        //
+        // The idea here is that, because the tensor has reflective
+        // symmetries, a different equivlent reflected tensor value may be
+        // computed based on the parallel decomposition.
+        // This permutation puts the indices into a uniform order
+        // so that this is not viewed as a difference in the results.
+        // Note also below we will permute i0 / i1 / i2 as needed.
         makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
         makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
         makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
@@ -300,20 +324,29 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           default:
             GMInsist(false && "Invalid data type.");
         } // switch
-        // Convert to integer.  Store only 2*w bits max
-        UI64 ivalue = (value / scaling) * (one64 << (2 * w));
-        // Construct global id for metrics data value
+        // Convert to uint64.  Store only 2*w+1 bits, at most -
+        // if (value / scaling) <= 1, which it should be if
+        // floating point arithmetic works as expected,
+        // must have ivalue <= (1<<(2*w)).
+        // Note: it would have been better to set this to be 2*w bits max
+        // instead - would need to subtract 1 from the second multiplicand
+        // and make sure floating point arith works as expected.
+        // HOWEVER, see note below.
+        UI64 ivalue = (UI64)( (value / scaling) * (one64 << (2 * w)) );
+        // Construct an id that is a single number representing the coord
+        // and value number.
         UI64 uid = coords[0];
         for (int i = 1; i < GMEnv_num_way(&env); ++i) {
           uid = uid * metrics.num_vector_active + coords[i];
         }
         uid = uid * metrics.data_type_num_values + i_value;
-        // Randomize
+        // Randomize this id
         const UI64 rand1 = gm_randomize(uid + 956158765);
         const UI64 rand2 = gm_randomize(uid + 842467637);
         UI64 rand_value = rand1 + gm_randomize_max() * rand2;
+        // Truncate to 2*w bits.
         rand_value &= lohimask;
-        // Multiply the two values
+        // Multiply the two values.
         const UI64 a = rand_value;
         const UI64 alo = a & lomask;
         const UI64 ahi = a >> w;
@@ -321,21 +354,27 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         const UI64 blo = b & lomask;
         const UI64 bhi = b >> w;
         const UI64 cx = alo * bhi + ahi * blo;
+        // Note: since a < (1<<(2*w)) and b <= (1<<(2*w)),
+        // it is guaranteed that c < (1<<(4*w)),
+        // so the result is in the right range of bits.
         UI64 clo = alo * blo + ((cx & lomask) << w);
         UI64 chi = ahi * bhi + (cx >> w);
         // (move the carry bits)
         chi += clo >> (2 * w);
         clo &= lohimask;
+        // The checksum is the product of the metric value and the
+        // global coord / value number id, this summed across all.
         const double value_d =
             ivalue * (double)rand_value / ((double)(one64 << (2 * w)));
+        // Accumulate
         if (is_active) {
-          sum_d_this_private += value_d; // (private) reduction
+          sum_d_local_private += value_d; // (private) reduction
           // Split the product into one-char chunks, accumulate to sums
           for (int i = 0; i < 8; ++i) {
             const UI64 value0 = (clo << (64 - 8 - 8 * i)) >> (64 - 8);
             const UI64 value1 = (chi << (64 - 8 - 8 * i)) >> (64 - 8);
-            sum_this_private.data[0 + i] += value0; // Reduction
-            sum_this_private.data[8 + i] += value1; // Reduction
+            sum_local_private.data[0 + i] += value0; // (private) reduction
+            sum_local_private.data[8 + i] += value1; // (private) reduction
           }
         }
       } // for i_value
@@ -344,29 +383,29 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
     #pragma omp critical
     {
-        sum_d_this += sum_d_this_private; // Reduction
+        sum_d_local += sum_d_local_private; // (critical) reduction
         for (int i = 0; i < 8; ++i) {
-          sum_this.data[0 + i] += sum_this_private.data[0 + i];// Reduction
-          sum_this.data[8 + i] += sum_this_private.data[8 + i];// Reduction
+          sum_local.data[0 + i] += sum_local_private.data[0 + i]; // (critical)
+          sum_local.data[8 + i] += sum_local_private.data[8 + i]; // reduction
         }
     }
   } // omp parallel
 
   // Global sum of multiprecision int
 
-  GMMultiprecInt sum;
-  mpi_code = MPI_Allreduce(sum_this.data, sum.data,
-                           MultiprecInt::MULTIPREC_INT_SIZE,
+  GMMultiprecInt sum; // = 0
+  mpi_code = MPI_Allreduce(sum_local.data, sum.data,
+                           MultiprecInt::SIZE,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(&env));
   GMInsist(mpi_code == MPI_SUCCESS);
-  // Add in to multiprec int data we have so far.
-  for (int i = 0; i < MultiprecInt::MULTIPREC_INT_SIZE; ++i) {
+  // Add to multiprec int data we have so far.
+  for (int i = 0; i < MultiprecInt::SIZE; ++i) {
     cksum.sum.data[i] += sum.data[i];
-    cksum_local.sum.data[i] += sum_this.data[i];
+    cksum_local.sum.data[i] += sum_local.data[i];
   }
 
-  // Add up results into smaller number of 64 bit ints.
+  // Condense results into smaller number of 64 bit ints.
 
   for (int i = 0; i < CKSUM_SIZE; ++i) {
     cksum.data[i] = 0;
@@ -382,7 +421,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         lshift(cksum_local.sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
     }
   }
-  // adjustment: move the carry bits
+  // Adjustments: move the carry bits
   cksum.data[1] += cksum.data[0] >> (2 * w);
   cksum.data[0] &= lohimask;
   cksum.data[2] += cksum.data[1] >> (2 * w);
@@ -394,12 +433,12 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
   // Validate by checking against floating point result
 
-  double sum_d;
-  mpi_code = MPI_Allreduce(&sum_d_this, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
+  double sum_d = 0;
+  mpi_code = MPI_Allreduce(&sum_d_local, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(&env));
   GMInsist(mpi_code == MPI_SUCCESS);
   cksum.sum_d += sum_d;
-  cksum_local.sum_d += sum_d_this;
+  cksum_local.sum_d += sum_d_local;
 
   double result_d = cksum.data[0] / ((double)(one64 << (2 * w))) +
                     cksum.data[1] +
