@@ -25,12 +25,33 @@ namespace CoMet {
 //=============================================================================
 /// \brief Checksum default constructor.
 
-Checksum::Checksum()
-  : is_overflowed(false)
-  , value_max(-DBL_MAX)
-  , is_started(false)
-  , computing_checksum(true)
-  {}
+Checksum::Checksum(bool computing_checksum)
+  : is_overflowed_(false)
+  , value_max_(-DBL_MAX)
+  , sum_d_(0)
+  , is_started_(false)
+  , computing_checksum_(computing_checksum) {
+
+  for (int i=0; i<SIZE; ++i) {
+    data_[i] = 0;
+  }
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Manual copy of checksum entries.
+
+void Checksum::copy(const Checksum& cksum) {
+  for (int i=0; i<SIZE; ++i) {
+    data_[i] = cksum.data_[i];
+  }
+
+  is_overflowed_ = cksum.is_overflowed_;
+  value_max_ = cksum.value_max_;
+  sum_ = cksum.sum_;
+  sum_d_ = cksum.sum_d_;
+  is_started_ = cksum.is_started_;
+  computing_checksum_ = cksum.computing_checksum_;
+}
 
 //-----------------------------------------------------------------------------
 /// \brief Check whether two checksums are equal.
@@ -39,16 +60,16 @@ bool Checksum::is_equal(const Checksum& cksum2) const {
   bool result = true;
 
   // Don't perform this test if not computing both checksums.
-  if ( ! this->computing_checksum || ! cksum2.computing_checksum ) {
-    for (int i = 0; i < CKSUM_SIZE; ++i) {
-      result = result && this->data[i] == cksum2.data[i];
+  if ( this->computing_checksum_ && cksum2.computing_checksum_ ) {
+    for (int i = 0; i < SIZE; ++i) {
+      result = result && this->data_[i] == cksum2.data_[i];
     }
     // ISSUE: for now, check overflow like this because
     // overflow is not ncessarily an error (e.g., setting of
     // ccc_multiplier).
     // TODO: fix this better.
-    result = result && this->is_overflowed == cksum2.is_overflowed;
-    result = result && this->value_max == cksum2.value_max;
+    result = result && this->is_overflowed_ == cksum2.is_overflowed_;
+    result = result && this->value_max_ == cksum2.value_max_;
   }
 
   return result;
@@ -59,13 +80,13 @@ bool Checksum::is_equal(const Checksum& cksum2) const {
 
 void Checksum::print(GMEnv& env) {
 
-  for (int i = 0; i < CKSUM_SIZE; ++i) {
+  for (int i = 0; i < SIZE; ++i) {
     printf("%s%li", i == 0 ? "" : "-",
-           this->data[CKSUM_SIZE - 1 - i]);
+           this->data_[SIZE - 1 - i]);
   }
-  if (this->is_overflowed) {
+  if (this->is_overflowed_) {
     printf("-OVFL");
-    printf("-%e", this->value_max);
+    printf("-%e", this->value_max_);
   }
 }
 
@@ -209,13 +230,13 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   // local (per proc) vs. global value.
 
   double value_max_tmp = Checksum::metrics_max_value(metrics, env);
-  value_max_tmp = value_max_tmp > cksum.value_max ?
-                  value_max_tmp : cksum.value_max;
+  value_max_tmp = value_max_tmp > cksum.value_max_ ?
+                  value_max_tmp : cksum.value_max_;
 
-  int mpi_code = MPI_Allreduce(&value_max_tmp, &cksum.value_max, 1,
+  int mpi_code = MPI_Allreduce(&value_max_tmp, &cksum.value_max_, 1,
                         MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_repl_vector(&env));
   GMInsist(mpi_code == MPI_SUCCESS);
-  cksum_local.value_max = cksum.value_max;
+  cksum_local.value_max_ = cksum.value_max_;
 
   // Check whether values are within a range for which we can compute
   // the checksum with this code.
@@ -230,8 +251,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   const int log2_value_max_allowed = 4;
   const double value_max_allowed = 1 << log2_value_max_allowed;
 
-  cksum.is_overflowed = cksum_local.is_overflowed =
-    cksum.is_overflowed && cksum.value_max > value_max_allowed;
+  cksum.is_overflowed_ = cksum_local.is_overflowed_ =
+    cksum.is_overflowed_ && cksum.value_max_ > value_max_allowed;
 
   // Scaling factor for values - so that after scaling, value is <= 1.
   const double scaling = value_max_allowed;
@@ -247,12 +268,12 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   const UI64 lomask = (one64 << w) - 1; // masks for lo and hi parts of integer
   const UI64 lohimask = (one64 << (2 * w)) - 1;
 
-  GMMultiprecInt sum_local; // = 0 // checksum valune on this proc
+  MultiprecInt sum_local; // = 0 // checksum valune on this proc
   double sum_d_local = 0; // floating point representation of the same, as check
 
   #pragma omp parallel
   {
-    GMMultiprecInt sum_local_private; // = 0
+    MultiprecInt sum_local_private; // = 0
     double sum_d_local_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
@@ -373,8 +394,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           for (int i = 0; i < 8; ++i) {
             const UI64 value0 = (clo << (64 - 8 - 8 * i)) >> (64 - 8);
             const UI64 value1 = (chi << (64 - 8 - 8 * i)) >> (64 - 8);
-            sum_local_private.data[0 + i] += value0; // (private) reduction
-            sum_local_private.data[8 + i] += value1; // (private) reduction
+            sum_local_private.data_[0 + i] += value0; // (private) reduction
+            sum_local_private.data_[8 + i] += value1; // (private) reduction
           }
         }
       } // for i_value
@@ -385,65 +406,67 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     {
         sum_d_local += sum_d_local_private; // (critical) reduction
         for (int i = 0; i < 8; ++i) {
-          sum_local.data[0 + i] += sum_local_private.data[0 + i]; // (critical)
-          sum_local.data[8 + i] += sum_local_private.data[8 + i]; // reduction
+          sum_local.data_[0 + i] += sum_local_private.data_[0 + i]; // (critical)
+          sum_local.data_[8 + i] += sum_local_private.data_[8 + i]; // reduction
         }
     }
   } // omp parallel
 
   // Global sum of multiprecision int
 
-  GMMultiprecInt sum; // = 0
-  mpi_code = MPI_Allreduce(sum_local.data, sum.data,
+  MultiprecInt sum; // = 0
+  mpi_code = MPI_Allreduce(sum_local.data_, sum.data_,
                            MultiprecInt::SIZE,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(&env));
   GMInsist(mpi_code == MPI_SUCCESS);
   // Add to multiprec int data we have so far.
   for (int i = 0; i < MultiprecInt::SIZE; ++i) {
-    cksum.sum.data[i] += sum.data[i];
-    cksum_local.sum.data[i] += sum_local.data[i];
+    cksum.sum_.data_[i] += sum.data_[i];
+    cksum_local.sum_.data_[i] += sum_local.data_[i];
   }
 
   // Condense results into smaller number of 64 bit ints.
 
-  for (int i = 0; i < CKSUM_SIZE; ++i) {
-    cksum.data[i] = 0;
-    cksum_local.data[i] = 0;
+  for (int i = 0; i < SIZE; ++i) {
+    cksum.data_[i] = 0;
+    cksum_local.data_[i] = 0;
     for (int j = 0; j < 8; ++j) {
-      cksum.data[i] +=
-        lshift(cksum.sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
-      cksum.data[i] +=
-        lshift(cksum.sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
-      cksum_local.data[i] +=
-        lshift(cksum_local.sum.data[0 + j], 8 * j - 2 * w * i) & lohimask;
-      cksum_local.data[i] +=
-        lshift(cksum_local.sum.data[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
+      cksum.data_[i] +=
+        lshift(cksum.sum_.data_[0 + j], 8 * j - 2 * w * i) & lohimask;
+      cksum.data_[i] +=
+        lshift(cksum.sum_.data_[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
+      cksum_local.data_[i] +=
+        lshift(cksum_local.sum_.data_[0 + j], 8 * j - 2 * w * i) & lohimask;
+      cksum_local.data_[i] +=
+        lshift(cksum_local.sum_.data_[8 + j], 8 * j - 2 * w * (i - 1)) & lohimask;
     }
   }
   // Adjustments: move the carry bits
-  cksum.data[1] += cksum.data[0] >> (2 * w);
-  cksum.data[0] &= lohimask;
-  cksum.data[2] += cksum.data[1] >> (2 * w);
-  cksum.data[1] &= lohimask;
-  cksum_local.data[1] += cksum_local.data[0] >> (2 * w);
-  cksum_local.data[0] &= lohimask;
-  cksum_local.data[2] += cksum_local.data[1] >> (2 * w);
-  cksum_local.data[1] &= lohimask;
+  cksum.data_[1] += cksum.data_[0] >> (2 * w);
+  cksum.data_[0] &= lohimask;
+  cksum.data_[2] += cksum.data_[1] >> (2 * w);
+  cksum.data_[1] &= lohimask;
+  cksum_local.data_[1] += cksum_local.data_[0] >> (2 * w);
+  cksum_local.data_[0] &= lohimask;
+  cksum_local.data_[2] += cksum_local.data_[1] >> (2 * w);
+  cksum_local.data_[1] &= lohimask;
 
+//printf("%zu\n", cksum.data_[0]); //FIX
   // Validate by checking against floating point result
 
   double sum_d = 0;
   mpi_code = MPI_Allreduce(&sum_d_local, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(&env));
   GMInsist(mpi_code == MPI_SUCCESS);
-  cksum.sum_d += sum_d;
-  cksum_local.sum_d += sum_d_local;
+  cksum.sum_d_ += sum_d;
+  cksum_local.sum_d_ += sum_d_local;
 
-  double result_d = cksum.data[0] / ((double)(one64 << (2 * w))) +
-                    cksum.data[1] +
-                    cksum.data[2] * ((double)(one64 << (2 * w)));
-  GMInsist(fabs(cksum.sum_d - result_d) <= cksum.sum_d * 1.e-10);
+  double result_d = cksum.data_[0] / ((double)(one64 << (2 * w))) +
+                    cksum.data_[1] +
+                    cksum.data_[2] * ((double)(one64 << (2 * w)));
+//  printf("%e %e\n", cksum.sum_d, result_d);
+  GMInsist(fabs(cksum.sum_d_ - result_d) <= cksum.sum_d_ * 1.e-10);
 } // Checksum::compute
 
 //=============================================================================
@@ -789,6 +812,7 @@ void GMChecksum_metrics(GMChecksum* cksum, GMChecksum* cksum_local,
   double result_d = cksum->data[0] / ((double)(one64 << (2 * w))) +
                     cksum->data[1] +
                     cksum->data[2] * ((double)(one64 << (2 * w)));
+//FIX  printf("%e %e\n", cksum->sum_d, result_d);
   GMInsist(fabs(cksum->sum_d - result_d) <= cksum->sum_d * 1.e-10);
 }
 

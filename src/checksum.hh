@@ -51,7 +51,12 @@ public:
   //---------------------------------------------------------------------------
   /// \brief Checksum default constructor.
 
-  Checksum();
+  Checksum(bool computing_checksum = true);
+
+  //---------------------------------------------------------------------------
+  /// \brief Manual copy of checksum entries.
+
+  void copy(const Checksum& cksum);
 
   //---------------------------------------------------------------------------
    /// \brief Check whether two checksums are equal.
@@ -75,19 +80,29 @@ private:
   //---------------------------------------------------------------------------
 
   struct MultiprecInt {
+
     enum { SIZE = 16 };
-    size_t data[SIZE];
+    size_t data_[SIZE];
+
+    MultiprecInt() {
+      for (int i=0; i<SIZE; ++i) {
+        data_[i] = 0;
+      }
+    }
+
   };
 
-  enum { CKSUM_SIZE = 3 };
+  //---------------------------------------------------------------------------
 
-  size_t data[CKSUM_SIZE];
-  bool is_overflowed;
-  double value_max;
-  MultiprecInt sum;
-  double sum_d;
-  bool is_started;
-  bool computing_checksum;
+  enum { SIZE = 3 };
+
+  size_t data_[SIZE];
+  bool is_overflowed_;
+  double value_max_;
+  MultiprecInt sum_;
+  double sum_d_;
+  bool is_started_;
+  bool computing_checksum_;
 
   //---------------------------------------------------------------------------
   /// \brief Checksum helper: return largest value in metrics object.
