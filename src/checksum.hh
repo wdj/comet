@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   checksums.hh
+ * \file   checksum.hh
  * \author Wayne Joubert
  * \date   Mon Aug  7 14:47:01 EDT 2017
  * \brief  Checksums for metrics, header.
@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_checksums_hh_
-#define _gm_checksums_hh_
+#ifndef _gm_checksum_hh_
+#define _gm_checksum_hh_
 
 #include "env.hh"
 #include "metrics.hh"
@@ -161,6 +161,6 @@ void GMChecksum_print(GMChecksum* cksum, GMEnv* env);
 
 //=============================================================================
 
-#endif // _gm_checksums_hh_
+#endif // _gm_checksum_hh_
 
 //-----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   checksums.cc
+ * \file   checksum.cc
  * \author Wayne Joubert
  * \date   Mon Aug  7 14:47:01 EDT 2017
  * \brief  Checksums for metrics.
@@ -16,7 +16,7 @@
 
 #include "env.hh"
 #include "metrics.hh"
-#include "checksums.hh"
+#include "checksum.hh"
 
 //-----------------------------------------------------------------------------
 

@@ -12,7 +12,7 @@
 #define _gm_driver_hh_
 
 #include "env.hh"
-#include "checksums.hh"
+#include "checksum.hh"
 
 //=============================================================================
 /*---Struct to hold driver options (options not in GMEnv)---*/
