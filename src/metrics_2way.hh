@@ -8,10 +8,12 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "math.h"
-
 #ifndef _gm_metrics_2way_hh_
 #define _gm_metrics_2way_hh_
+
+#include "math.h"
+
+#include "env.hh"
 
 //=============================================================================
 /*---Helper functions for 2-way case---*/

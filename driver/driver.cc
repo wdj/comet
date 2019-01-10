@@ -8,8 +8,6 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "unistd.h"
-
 #include "stdio.h"
 #include "stdlib.h"
 #include "stddef.h"
@@ -17,15 +15,18 @@
 #include "float.h"
 #include "errno.h"
 
+#include "unistd.h"
+
 #include "env.hh"
 #include "decomp_mgr.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "checksum.hh"
 #include "compute_metrics.hh"
-#include "driver.hh"
+
 #include "test_problems.hh"
 #include "input_output.hh"
+#include "driver.hh"
 
 //=============================================================================
 /*---Parse remaining unprocessed arguments---*/

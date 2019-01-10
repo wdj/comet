@@ -11,8 +11,8 @@
 #include "stdlib.h"
 
 #include "env.hh"
-#include "vector_sums.hh"
 #include "vectors.hh"
+#include "vector_sums.hh"
 
 //=============================================================================
 /*---Null object---*/

@@ -12,23 +12,17 @@
 
 #include "magma_minproduct.h"
 #include "magma_minproduct_lapack.h"
-
 #include "magma_tally4.h"
 #include "magma_tally4_lapack.h"
-
 #include "magma_tally3.h"
 #include "magma_tally3_lapack.h"
-
 #include "magma_tally2.h"
 #include "magma_tally2_lapack.h"
 
 #include "env.hh"
-#include "vector_sums.hh"
-#include "vectors.hh"
-#include "metrics.hh"
-
-#include "linalg.hh"
+#include "assertions.hh"
 #include "linalg_cuda.hh"
+#include "linalg.hh"
 
 //=============================================================================
 /*---Magma setup, teardown---*/

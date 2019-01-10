@@ -15,8 +15,6 @@
 
 #include "env.hh"
 #include "decomp_mgr.hh"
-#include "mirrored_buf.hh"
-#include "linalg.hh"
 #include "vectors.hh"
 
 //=============================================================================

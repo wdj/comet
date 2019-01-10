@@ -13,9 +13,9 @@
 
 #include "env.hh"
 #include "mirrored_buf.hh"
-#include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
+#include "vector_sums.hh"
 
 //=============================================================================
 

@@ -13,9 +13,9 @@
 
 #include "env.hh"
 #include "mirrored_buf.hh"
-#include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
+#include "vector_sums.hh"
 
 //=============================================================================
 
@@ -55,6 +55,7 @@ void GMComputeNumerators3Way_start(
     int section_step,
     GMEnv* env);
 
+#if 0
 void gm_compute_numerators_3way_gpu_form_matX_(
   const GMVectors* vectors_i,
   const GMMirroredBuf* vectors_I_buf,
@@ -86,6 +87,7 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
   const GMVectorSums* vector_sums_j,
   const GMVectorSums* vector_sums_k,
   GMEnv* const env);
+#endif
 
 void gm_compute_numerators_3way_gpu_start_(
     GMComputeNumerators3Way* this_,

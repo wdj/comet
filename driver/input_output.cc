@@ -9,15 +9,16 @@
 //-----------------------------------------------------------------------------
 
 #include "stdio.h"
+#include "string.h"
 //#include "stdlib.h"
 //#include "stddef.h"
-#include "string.h"
 //#include "float.h"
 //#include "errno.h"
 
 #include "env.hh"
 #include "vectors.hh"
 #include "metrics.hh"
+
 #include "driver.hh"
 #include "input_output.hh"
 
