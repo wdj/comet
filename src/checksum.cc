@@ -11,6 +11,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
+#include "stdint.h"
 
 #include "mpi.h"
 
@@ -117,7 +118,7 @@ inline static size_t lshift(size_t a, int j) {
 //-----------------------------------------------------------------------------
 /// \brief Checksum helper: return largest value in metrics object.
 ///
-///        NOTE: this computes the max value on proc, not across procs,
+///        Note: this computes the max value on proc, not across procs,
 ///        so each proc's result in general can have a different value.
 
 double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
@@ -129,17 +130,14 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
     return result;
   }
 
-  typedef size_t UI64;
-  GMStaticAssert(sizeof(UI64) == 8);
-
   // Loop over metrics indices to find max.
   #pragma omp parallel for reduction(max:result)
-  for (UI64 index = 0; index < metrics.num_elts_local; ++index) {
+  for (size_t index = 0; index < metrics.num_elts_local; ++index) {
     // Determine whether this cell is active.
     bool is_active = true;
     for (int i = 0; i < GMEnv_num_way(&env); ++i) {
-      const UI64 coord = GMMetrics_coord_global_from_index(&metrics, index,
-                                                           i, &env);
+      const size_t coord = GMMetrics_coord_global_from_index(&metrics, index,
+                                                             i, &env);
       is_active = is_active && coord < metrics.num_vector_active;
     }
     double value_max = -DBL_MAX;
@@ -204,10 +202,6 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     return;
   }
 
-  // TODO: is there a standard C++ type for this.
-  typedef size_t UI64;
-  GMStaticAssert(sizeof(UI64) == 8);
-
   enum { NUM_WAY_MAX = GM_NUM_NUM_WAY + 1 };
   GMInsist(GMEnv_num_way(&env) <= NUM_WAY_MAX && "This num_way not supported.");
 
@@ -261,12 +255,14 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   // Calculate checksum
   //--------------------
 
+  typedef uint64_t UI64_t;
+
   const int w = 30; // 2*w is the integer size
   GMInsist(64 - 2 * w >= 4); // fits into uint64, with some headroom
-  const UI64 one64 = 1; // the constant "1"
+  const UI64_t one64 = 1; // the constant "1"
 
-  const UI64 lomask = (one64 << w) - 1; // masks for lo and hi parts of integer
-  const UI64 lohimask = (one64 << (2 * w)) - 1;
+  const UI64_t lomask = (one64 << w) - 1; // masks for lo and hi parts of int
+  const UI64_t lohimask = (one64 << (2 * w)) - 1;
 
   MultiprecInt sum_local; // = 0 // checksum valune on this proc
   double sum_d_local = 0; // floating point representation of the same, as check
@@ -277,11 +273,11 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     double sum_d_local_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
-    for (UI64 index = 0; index < metrics.num_elts_local; ++index) {
+    for (size_t index = 0; index < metrics.num_elts_local; ++index) {
       // Loop over data values at this index
       for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
         // Obtain global coords of metrics elt
-        UI64 coords[NUM_WAY_MAX];
+        size_t coords[NUM_WAY_MAX];
         int ind_coords[NUM_WAY_MAX]; // permutation index
         for (int i = 0; i < NUM_WAY_MAX; ++i) {
           coords[i] = 0;
@@ -289,8 +285,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         }
         bool is_active = true;
         for (int i = 0; i < GMEnv_num_way(&env); ++i) {
-          const UI64 coord = GMMetrics_coord_global_from_index(&metrics, index,
-                                                               i, &env);
+          const size_t coord =
+            GMMetrics_coord_global_from_index(&metrics, index, i, &env);
           // Ignore padding vectors.
           is_active = is_active && coord < metrics.num_vector_active;
           coords[i] = coord;
@@ -345,6 +341,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           default:
             GMInsist(false && "Invalid data type.");
         } // switch
+
         // Convert to uint64.  Store only 2*w+1 bits, at most -
         // if (value / scaling) <= 1, which it should be if
         // floating point arithmetic works as expected,
@@ -353,33 +350,33 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         // instead - would need to subtract 1 from the second multiplicand
         // and make sure floating point arith works as expected.
         // HOWEVER, see note below.
-        UI64 ivalue = (UI64)( (value / scaling) * (one64 << (2 * w)) );
+        UI64_t ivalue = (UI64_t)( (value / scaling) * (one64 << (2 * w)) );
         // Construct an id that is a single number representing the coord
         // and value number.
-        UI64 uid = coords[0];
+        UI64_t uid = coords[0];
         for (int i = 1; i < GMEnv_num_way(&env); ++i) {
           uid = uid * metrics.num_vector_active + coords[i];
         }
         uid = uid * metrics.data_type_num_values + i_value;
         // Randomize this id
-        const UI64 rand1 = gm_randomize(uid + 956158765);
-        const UI64 rand2 = gm_randomize(uid + 842467637);
-        UI64 rand_value = rand1 + gm_randomize_max() * rand2;
+        const UI64_t rand1 = gm_randomize(uid + 956158765);
+        const UI64_t rand2 = gm_randomize(uid + 842467637);
+        UI64_t rand_value = rand1 + gm_randomize_max() * rand2;
         // Truncate to 2*w bits.
         rand_value &= lohimask;
         // Multiply the two values.
-        const UI64 a = rand_value;
-        const UI64 alo = a & lomask;
-        const UI64 ahi = a >> w;
-        const UI64 b = ivalue;
-        const UI64 blo = b & lomask;
-        const UI64 bhi = b >> w;
-        const UI64 cx = alo * bhi + ahi * blo;
+        const UI64_t a = rand_value;
+        const UI64_t alo = a & lomask;
+        const UI64_t ahi = a >> w;
+        const UI64_t b = ivalue;
+        const UI64_t blo = b & lomask;
+        const UI64_t bhi = b >> w;
+        const UI64_t cx = alo * bhi + ahi * blo;
         // Note: since a < (1<<(2*w)) and b <= (1<<(2*w)),
         // it is guaranteed that c < (1<<(4*w)),
         // so the result is in the right range of bits.
-        UI64 clo = alo * blo + ((cx & lomask) << w);
-        UI64 chi = ahi * bhi + (cx >> w);
+        UI64_t clo = alo * blo + ((cx & lomask) << w);
+        UI64_t chi = ahi * bhi + (cx >> w);
         // (move the carry bits)
         chi += clo >> (2 * w);
         clo &= lohimask;
@@ -392,8 +389,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           sum_d_local_private += value_d; // (private) reduction
           // Split the product into one-char chunks, accumulate to sums
           for (int i = 0; i < 8; ++i) {
-            const UI64 value0 = (clo << (64 - 8 - 8 * i)) >> (64 - 8);
-            const UI64 value1 = (chi << (64 - 8 - 8 * i)) >> (64 - 8);
+            const UI64_t value0 = (clo << (64 - 8 - 8 * i)) >> (64 - 8);
+            const UI64_t value1 = (chi << (64 - 8 - 8 * i)) >> (64 - 8);
             sum_local_private.data_[0 + i] += value0; // (private) reduction
             sum_local_private.data_[8 + i] += value1; // (private) reduction
           }

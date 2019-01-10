@@ -78,6 +78,7 @@ public:
 private:
 
   //---------------------------------------------------------------------------
+  /// \brief Internal class to manage multiple precision integers.
 
   struct MultiprecInt {
 
