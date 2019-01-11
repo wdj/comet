@@ -3,7 +3,7 @@
  * \file   linalg_cuda.cu
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
- * \brief  Supporting CUDA functions.
+ * \brief  CUDA code to support linear algebra operations.
  * \note   Copyright (C) 2018 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -11,11 +11,6 @@
 #include "linalg_cuda.cuh"
 
 //-----------------------------------------------------------------------------
-
-#define TRANSPOSE
-
-// If TRANSPOSE, then copied matrices are stored as A, B^T, for speed on
-// the tensor cores.  Otherwise, store as the rest of the code: A^T, B.
 
 #ifdef USE_TC
 
@@ -41,13 +36,8 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
 
   // Two fields (seminibbles) map to two halves of 32-bit word
 
-#ifdef TRANSPOSE
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
   const int fl2_step = blockIdx.y + gridDim.y * blockIdx.z;
-#else
-  const int fl2_step = threadIdx.x + blockIdx.x * blockDim.x;
-  const int vlX2 = blockIdx.y + gridDim.y * blockIdx.z;
-#endif
 
   if (vlX2 >= nvlX2 || fl2_step >= nfl2_step) {
     return;
@@ -105,7 +95,6 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
 
   const int fl2_index = fl2_step;
 
-#ifdef TRANSPOSE
   const int fl_index_0 = 0 + 2 * fl2_index;
   const int fl_index_1 = 1 + 2 * fl2_index;
 
@@ -115,17 +104,6 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
 
   vo16[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
   vo16[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
-#else
-  const int fl2_dim = nfl2_step;
-
-  // Combine two halfs into one 32-bit value.
-
-  const GMUInt32 out01 = ((GMUInt32)out0) + ( ((GMUInt32)out1) << 16 );
-
-  GMUInt32* vo32 = (GMUInt32*)vo;
-
-  vo32[fl2_index + fl2_dim * (size_t)vlX2_index] = out01;
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -148,13 +126,8 @@ __global__ void gm_tc_buf_write_int8_kernel_(
 
   // Two fields (seminibbles) map to two halves of 16-bit word
 
-#ifdef TRANSPOSE
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
   const int fl2_step = blockIdx.y + gridDim.y * blockIdx.z;
-#else
-  const int fl2_step = threadIdx.x + blockIdx.x * blockDim.x;
-  const int vlX2 = blockIdx.y + gridDim.y * blockIdx.z;
-#endif
 
   if (vlX2 >= nvlX2 || fl2_step >= nfl2_step) {
     return;
@@ -212,7 +185,6 @@ __global__ void gm_tc_buf_write_int8_kernel_(
 
   const int fl2_index = fl2_step;
 
-#ifdef TRANSPOSE
   const int fl_index_0 = 0 + 2 * fl2_index;
   const int fl_index_1 = 1 + 2 * fl2_index;
 
@@ -222,17 +194,6 @@ __global__ void gm_tc_buf_write_int8_kernel_(
 
   vo8[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
   vo8[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
-#else
-  const int fl2_dim = nfl2_step;
-
-  // Combine two chars into one short int.
-
-  const GMUInt16 out01 = ((GMUInt16)out0) + ( ((GMUInt16)out1) << 8 );
-
-  GMUInt16* vo16 = (GMUInt16*)vo;
-
-  vo16[fl2_index + fl2_dim * (size_t)vlX2_index] = out01;
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -275,16 +236,10 @@ void gm_tc_buf_write_(
                     "tc method here requires num_vector_local multiple of 2.");
 
   const int threadblocksize = 256;
-#ifdef TRANSPOSE
   const int blockdim_y = 32768;
   const int num_threadblocks_0 = gm_ceil_i8(nvleX2, threadblocksize);
   const int num_threadblocks_1 = gm_min_i8(nfl2_step, blockdim_y);
   const int num_threadblocks_2 = gm_ceil_i8(nfl2_step, blockdim_y);
-#else
-  const int num_threadblocks_0 = gm_ceil_i8(nfl2_step, threadblocksize);
-  const int num_threadblocks_1 = nvleX2;
-  const int num_threadblocks_2 = 1;
-#endif
 
   void* const tc_buf = is_right ? env->tc_buf_right : env->tc_buf_left;
   GMUInt32* vi32 = (GMUInt32*)vi;
@@ -334,7 +289,6 @@ void gm_tc_buf_write_(
       tc_buf);
 
   }
-  //printf("%i %i\n", (int)num_threadblocks_0, (int)num_threadblocks_1); //FIX
 
   GMEnv_cuda_last_call_succeeded(env);
 }
@@ -387,36 +341,20 @@ void gm_tc_solve_(
 
   cublasStatus_t status = cublasGemmEx(
     env->cublas_handle,
-#ifdef TRANSPOSE
     CUBLAS_OP_N, CUBLAS_OP_T,
-#else
-    CUBLAS_OP_T, CUBLAS_OP_N,
-#endif
     m, n, k,
     is_int8 ? (void*)&alpha_i32 : (void*)&alpha_f32,
     env->tc_buf_left, is_int8 ? CUDA_R_8I : CUDA_R_16F,
-#ifdef TRANSPOSE
     m,
-#else
-    k,
-#endif
     env->tc_buf_right, is_int8 ? CUDA_R_8I : CUDA_R_16F,
-#ifdef TRANSPOSE
     n,
-#else
-    k,
-#endif
     is_int8 ? (void*)&beta_i32 : (void*)&beta_f32,
     //(void*)&beta_f32,
     dC, is_int8 ? CUDA_R_32I : CUDA_R_32F, m,
     is_int8 ? CUDA_R_32I : CUDA_R_32F,
-#ifdef TRANSPOSE
     //CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
     //CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
     CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.2.88, transpose
-#else
-    CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.1.85, non-transpose
-#endif
     //CUBLAS_GEMM_DFALT_TENSOR_OP
   );
 
@@ -579,9 +517,64 @@ void gm_tc_fix_metrics_(
 
   GMEnv_cuda_last_call_succeeded(env);
 }
+
+//-----------------------------------------------------------------------------
+/// \brief Use a standard GEMM to compute bitwise result: implementation.
+
+void gm_tc_gemm_start_impl_(int m, int n, int k,
+                            void* dA, int ldda,
+                            void* dB, int lddb,
+                            void* dC, int lddc,
+                            GMEnv* env) {
+
+  // Ensure tensor core hardware is available.
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, 0);
+  GMInsist(deviceProp.major >= 7);
+
+  const int I_max = m;
+  const int I_max_dim = lddc;
+  const int nvll = I_max_dim; // effective nvl for left matrix
+  const int nvl = n;
+  const int npvfl = k;
+  const int num_steps = env->num_tc_steps;
+
+  // Loop over steps of algorithm.
+  for (int step_num = 0; step_num < num_steps; ++step_num) {
+
+    // Select the block row of the left and right matrices for this step.
+    const int pvfl_min = ((step_num+0) * npvfl) / num_steps;
+    const int pvfl_max = ((step_num+1) * npvfl) / num_steps;
+    const int npvfl_step = pvfl_max - pvfl_min;
+    GMInsist(npvfl_step <= env->npvfl_step_max);
+
+    if (npvfl_step == 0) {  // empty block row
+      continue;
+    }
+
+    // Convert the input matrices of packed bit values into matrices
+    // of values of a type suitable for the GEMM.
+    const bool left_matrix = false; // A
+    const bool right_matrix = true; // B
+    gm_tc_buf_write_(left_matrix, I_max, I_max_dim, nvl, npvfl,
+                     npvfl_step, pvfl_min, dA, env);
+    gm_tc_buf_write_(right_matrix, I_max, I_max_dim, nvl, npvfl,
+                     npvfl_step, pvfl_min, dB, env);
+
+    // Perform the GEMM for this pair of block rows; accumulate.
+    gm_tc_solve_(pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, env);
+  }
+
+  // Revise the results of the GEMMs to be in the needed double complex format.
+  gm_tc_fix_metrics_(nvll, nvl, dC, env);
+}
+
+//-----------------------------------------------------------------------------
+
 #endif
 
 //-----------------------------------------------------------------------------
+/// \brief Use a standard GEMM to compute bitwise result.
 
 void gm_tc_gemm_start(int m, int n, int k,
                       void* dA, int ldda,
@@ -603,37 +596,7 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(deviceProp.major >= 7);
 
 #ifdef USE_TC
-  const int I_max = m;
-  const int I_max_dim = lddc;
-  const int nvll = I_max_dim; // effective nvl for left matrix
-  const int nvl = n;
-  const int npvfl = k;
-
-  const int num_steps = env->num_tc_steps;
-
-  for (int step_num = 0; step_num < num_steps; ++step_num) {
-    const int pvfl_min = ((step_num+0) * npvfl) / num_steps;
-    const int pvfl_max = ((step_num+1) * npvfl) / num_steps;
-    const int npvfl_step = pvfl_max - pvfl_min;
-    GMAssert(npvfl_step <= env->npvfl_step_max);
-
-    if (npvfl_step == 0) {
-      continue;
-    }
-
-    const bool left_matrix = false; // A
-    const bool right_matrix = true; // B
-    gm_tc_buf_write_(left_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_step, pvfl_min, dA, env);
-    gm_tc_buf_write_(right_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_step, pvfl_min, dB, env);
-
-    //for (int i=0; i<20; ++i)
-    gm_tc_solve_(pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, env);
-  }
-
-  gm_tc_fix_metrics_(nvll, nvl, dC, env);
-
+  gm_tc_gemm_start_impl_(m, n, k, dA, ldda, dB, lddb, dC, lddc, env);
 #else
   GMInsistInterface(env,
                     false && "TC option not implemented for this platform.");
