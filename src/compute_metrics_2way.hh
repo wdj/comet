@@ -1,10 +1,9 @@
-#if 0
 //-----------------------------------------------------------------------------
 /*!
  * \file   compute_metrics_2way.hh
  * \author Wayne Joubert
  * \date   Thu Jan  7 10:21:09 EST 2016
- * \brief  Functions for computing 2-way metrics, header.
+ * \brief  Compute metrics, 2-way, headers.
  * \note   Copyright (C) 2016 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -15,6 +14,7 @@
 #include "env.hh"
 #include "vectors.hh"
 #include "metrics.hh"
+#include "compute_metrics.hh"
 
 //=============================================================================
 
@@ -33,4 +33,3 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
 #endif // _gm_compute_metrics_2way_hh_
 
 //-----------------------------------------------------------------------------
-#endif

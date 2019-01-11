@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_utils_3way_gpu.cc
+ * \file   compute_metrics_3way_nums_gpu.cc
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Functions for computing metrics, utilities, 3-way, gpu.
+ * \brief  Compute metrics, 3-way, numerators, gpu case.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -17,11 +17,12 @@
 #include "vectors.hh"
 #include "metrics.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics_utils_3way.hh"
+#include "compute_metrics_3way_nums.hh"
+#include "compute_metrics_3way_nums_gpu.hh"
 
 //=============================================================================
 
-void gm_compute_numerators_3way_gpu_form_matX_(
+void gm_compute_3way_nums_gpu_form_matX_(
   const GMVectors* vectors_i,
   const GMMirroredBuf* vectors_I_buf,
   const GMMirroredBuf* vectors_J_buf,
@@ -142,7 +143,7 @@ void gm_compute_numerators_3way_gpu_form_matX_(
 
 //=============================================================================
 
-void gm_compute_numerators_3way_gpu_form_metrics_(
+void gm_compute_3way_nums_gpu_form_metrics_(
   GMMirroredBuf* const matM_IJ_buf,
   GMMirroredBuf* const matM_JK_buf,
   GMMirroredBuf* const matM_KIK_buf,
@@ -462,7 +463,7 @@ static void unlock(bool& lock_val) {
 //=============================================================================
 /*---Start calculation of numerators, 3-way gpu---*/
 
-void gm_compute_numerators_3way_gpu_start_(
+void gm_compute_3way_nums_gpu_start_(
     GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
     GMVectors* vectors_j,
@@ -765,7 +766,7 @@ void gm_compute_numerators_3way_gpu_start_(
     if (vars_next.do_compute) {
       /*---Populate leading columns of matX---*/
       lock(lock_matX_buf_h[vars_next.index_01]);
-      gm_compute_numerators_3way_gpu_form_matX_(vectors_i,
+      gm_compute_3way_nums_gpu_form_matX_(vectors_i,
           vectors_I_buf, vectors_J_buf, matX_buf[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
           vars_next.I_min, vars_next.I_max, env);
@@ -862,7 +863,7 @@ void gm_compute_numerators_3way_gpu_start_(
     if (vars_prevprev.do_compute) {
       /*---Compute numerators using ijk piece and (if needed) 2-way pieces---*/
       lock(lock_matB_buf_ptr_h_prevprev);
-      gm_compute_numerators_3way_gpu_form_metrics_(
+      gm_compute_3way_nums_gpu_form_metrics_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
           &vars_prevprev.matB_buf,
           metrics, nvl,

@@ -1,62 +1,26 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_utils_3way.hh
- * \author Wayne Joubert, James Nance
+ * \file   gm_compute_3way_nums_gpu.hh
+ * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Functions for computing metrics, utilities, 3-way case, header.
+ * \brief  Compute metrics, 3-way, numerators, gpu case, headers.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_metrics_utils_3way_hh_
-#define _gm_compute_metrics_utils_3way_hh_
+#ifndef _gm_compute_3way_nums_gpu_hh_
+#define _gm_compute_3way_nums_gpu_hh_
 
 #include "env.hh"
 #include "mirrored_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
+#include "compute_metrics_3way_nums.hh"
 
 //=============================================================================
 
-typedef struct {
-  GMMirroredBuf tmp_buf[2];
-  GMMirroredBuf matM_ij_buf;
-  GMMirroredBuf matM_jk_buf;
-  GMMirroredBuf matM_kik_buf;
-  GMMirroredBuf matX_buf[2];
-  GMMirroredBuf matB_buf[2];
-} GMComputeNumerators3Way;
-
-void GMComputeNumerators3Way_create(
-    GMComputeNumerators3Way* this_,
-    int nvl,
-    int npvfl,
-    GMEnv* env);
-
-void GMComputeNumerators3Way_destroy(
-    GMComputeNumerators3Way* this_,
-    GMEnv* env);
-
-void GMComputeNumerators3Way_start(
-    GMComputeNumerators3Way* this_,
-    GMVectors* vectors_i,
-    GMVectors* vectors_j,
-    GMVectors* vectors_k,
-    GMMetrics* numerators,
-    GMMirroredBuf* vectors_i_buf,
-    GMMirroredBuf* vectors_j_buf,
-    GMMirroredBuf* vectors_k_buf,
-    int j_proc,
-    int k_proc,
-    const GMVectorSums* vector_sums_i,
-    const GMVectorSums* vector_sums_j,
-    const GMVectorSums* vector_sums_k,
-    int section_step,
-    GMEnv* env);
-
-#if 0
-void gm_compute_numerators_3way_gpu_form_matX_(
+void gm_compute_3way_nums_gpu_form_matX_(
   const GMVectors* vectors_i,
   const GMMirroredBuf* vectors_I_buf,
   const GMMirroredBuf* vectors_J_buf,
@@ -67,7 +31,7 @@ void gm_compute_numerators_3way_gpu_form_matX_(
   const int I_max,
   GMEnv* const env);
 
-void gm_compute_numerators_3way_gpu_form_metrics_(
+void gm_compute_3way_nums_gpu_form_metrics_(
   GMMirroredBuf* const matM_IJ_buf,
   GMMirroredBuf* const matM_JK_buf,
   GMMirroredBuf* const matM_KIK_buf,
@@ -87,9 +51,8 @@ void gm_compute_numerators_3way_gpu_form_metrics_(
   const GMVectorSums* vector_sums_j,
   const GMVectorSums* vector_sums_k,
   GMEnv* const env);
-#endif
 
-void gm_compute_numerators_3way_gpu_start_(
+void gm_compute_3way_nums_gpu_start_(
     GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
     GMVectors* vectors_j,
@@ -108,6 +71,6 @@ void gm_compute_numerators_3way_gpu_start_(
 
 //=============================================================================
 
-#endif /*---_gm_compute_metrics_utils_3way_hh_---*/
+#endif // _gm_compute_3way_nums_gpu_hh_
 
 //-----------------------------------------------------------------------------

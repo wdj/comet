@@ -12,6 +12,7 @@
 #define _gm_metrics_hh_
 
 #include "stddef.h"
+#include "math.h"
 
 #include "env.hh"
 #include "decomp_mgr.hh"
@@ -142,8 +143,10 @@ static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
 //=============================================================================
 /*---Companion include files---*/
 
-#include "metrics_2way.hh"
-#include "metrics_3way.hh"
+#include "metrics_2way_indexing.hh"
+#include "metrics_2way_accessors.hh"
+#include "metrics_3way_indexing.hh"
+#include "metrics_3way_accessors.hh"
 
 #endif // _gm_metrics_hh_
 

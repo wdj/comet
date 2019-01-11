@@ -57,6 +57,6 @@ GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
 
 //-----------------------------------------------------------------------------
 
-#endif /*---_gm_vector_sums_hh_---*/
+#endif // _gm_vector_sums_hh_
 
 //-----------------------------------------------------------------------------

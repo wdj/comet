@@ -3,7 +3,7 @@
  * \file   compute_metrics_3way.cc
  * \author Wayne Joubert
  * \date   Thu Jan 21 19:07:47 EST 2016
- * \brief  Functions for computing 3-way metrics.
+ * \brief  Compute metrics, 3-way.
  * \note   Copyright (C) 2016 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -15,8 +15,9 @@
 #include "metrics.hh"
 #include "linalg.hh"
 #include "comm_xfer_utils.hh"
+#include "compute_metrics_3way_nums.hh"
 #include "compute_metrics.hh"
-#include "compute_metrics_utils_3way.hh"
+#include "compute_metrics_3way.hh"
 
 //=============================================================================
 

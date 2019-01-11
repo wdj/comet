@@ -21,7 +21,7 @@
 
 #include "env.hh"
 #include "assertions.hh"
-#include "linalg_cuda.hh"
+#include "linalg_cuda.cuh"
 #include "linalg.hh"
 
 //=============================================================================

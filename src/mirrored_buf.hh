@@ -60,6 +60,6 @@ static T GMMirroredBuf_elt_const(const GMMirroredBuf* p, int i0, int i1) {
 
 //=============================================================================
 
-#endif /*---_gm_mirrored_buf_hh_---*/
+#endif // _gm_mirrored_buf_hh_
 
 //-----------------------------------------------------------------------------

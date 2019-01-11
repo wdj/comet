@@ -10,11 +10,10 @@
 
 #include "env.hh"
 #include "mirrored_buf.hh"
-#include "vector_sums.hh"
+#include "linalg.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-#include "linalg.hh"
-
+#include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
 
 //=============================================================================

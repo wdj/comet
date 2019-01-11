@@ -13,6 +13,8 @@
 #include "env.hh"
 #include "vectors.hh"
 #include "metrics.hh"
+#include "compute_metrics_2way.hh"
+#include "compute_metrics_3way.hh"
 #include "compute_metrics.hh"
 
 //=============================================================================

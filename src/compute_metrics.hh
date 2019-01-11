@@ -3,7 +3,7 @@
  * \file   compute_metrics.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Functions for computing metrics, header.
+ * \brief  Functions for computing metrics, headers.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -27,6 +27,13 @@ typedef struct {
   GMMirroredBuf metrics_tmp_buf;
 } GMComputeMetrics;
 
+//=============================================================================
+
+// TODO: fix this by C++ forward declarqtion of GMComputeMetrics class in these include files.
+
+#include "compute_metrics_2way.hh"
+#include "compute_metrics_3way.hh"
+
 //-----------------------------------------------------------------------------
 
 void GMComputeMetrics_create(
@@ -47,6 +54,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
 
 //-----------------------------------------------------------------------------
 
+#if 0
 void gm_compute_metrics_2way_notall2all(GMComputeMetrics* compute_metrics,
                                         GMMetrics* metrics,
                                         GMVectors* vectors,
@@ -68,6 +76,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics* compute_metrics,
                                      GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env);
+#endif
 
 //=============================================================================
 

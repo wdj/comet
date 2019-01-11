@@ -3,7 +3,7 @@
  * \file   compute_metrics_2way.cc
  * \author Wayne Joubert
  * \date   Thu Jan  7 10:21:09 EST 2016
- * \brief  Functions for computing 2-way metrics.
+ * \brief  Compute metrics, 2-way.
  * \note   Copyright (C) 2016 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -18,7 +18,8 @@
 #include "linalg.hh"
 #include "comm_xfer_utils.hh"
 #include "compute_metrics.hh"
-#include "compute_metrics_utils_2way.hh"
+#include "compute_metrics_2way_proc_nums.hh"
+#include "compute_metrics_2way_proc_combine.hh"
 
 //=============================================================================
 
@@ -68,10 +69,10 @@ void gm_compute_metrics_2way_notall2all(GMComputeMetrics* compute_metrics,
   gm_set_vectors_start(vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
 
-  gm_compute_numerators_2way_start(vectors, vectors, metrics, &vectors_buf,
-                                   &vectors_buf, metrics_buf_ptr,
-                                   GMEnv_proc_num_vector_i(env),
-                                   true, env);
+  gm_compute_2way_proc_nums_start(vectors, vectors, metrics, &vectors_buf,
+                                  &vectors_buf, metrics_buf_ptr,
+                                  GMEnv_proc_num_vector_i(env),
+                                  true, env);
   gm_compute_wait(env);
 
   // Copy result from GPU
@@ -88,8 +89,9 @@ void gm_compute_metrics_2way_notall2all(GMComputeMetrics* compute_metrics,
 
   // Combine
 
-  gm_compute_2way_combine(metrics, &metrics_buf, &vector_sums, &vector_sums,
-                          GMEnv_proc_num_vector_i(env), true, env);
+  gm_compute_2way_proc_combine(metrics, &metrics_buf,
+                               &vector_sums, &vector_sums,
+                               GMEnv_proc_num_vector_i(env), true, env);
 
   // Terminations
 
@@ -352,10 +354,10 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
         lock(lock_vectors_right_buf_d);
       }
       lock(lock_metrics_buf_ptr_d);
-      gm_compute_numerators_2way_start(
-          vectors_left, vars.vectors_right, metrics,
-          vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
-          vars.j_block, vars.is_main_diag, env);
+      gm_compute_2way_proc_nums_start(
+        vectors_left, vars.vectors_right, metrics,
+        vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
+        vars.j_block, vars.is_main_diag, env);
     }
 
     // GPU case: wait for prev step get metrics to complete, then combine.
@@ -387,10 +389,11 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
                             vars_prev.metrics_buf, env);
         }
 
-        gm_compute_2way_combine(metrics, metrics_buf_prev_ptr,
-                                vector_sums_left, vector_sums_right,
-                                vars_prev.j_block,
-                                vars_prev.is_main_diag, env);
+        gm_compute_2way_proc_combine(
+          metrics, metrics_buf_prev_ptr,
+          vector_sums_left, vector_sums_right,
+          vars_prev.j_block,
+          vars_prev.is_main_diag, env);
 
         unlock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
 
@@ -486,9 +489,10 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
         unlock(lock_metrics_buf_ptr_d);
         unlock(lock_metrics_buf_ptr_h);
         lock(lock_metrics_buf_ptr_h);
-        gm_compute_2way_combine(metrics, vars.metrics_buf, vector_sums_left,
-                                vector_sums_right, vars.j_block,
-                                vars.is_main_diag, env);
+        gm_compute_2way_proc_combine(
+          metrics, vars.metrics_buf, vector_sums_left,
+          vector_sums_right, vars.j_block,
+          vars.is_main_diag, env);
         unlock(lock_metrics_buf_ptr_h);
       }
     }

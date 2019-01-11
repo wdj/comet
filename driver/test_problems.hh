@@ -29,6 +29,6 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
 
 //=============================================================================
 
-#endif /*---_gm_test_problems_hh_---*/
+#endif // _gm_test_problems_hh_
 
 //-----------------------------------------------------------------------------
