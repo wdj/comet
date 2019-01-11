@@ -13,7 +13,6 @@
 #include "linalg.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-#include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
 
 //=============================================================================

@@ -36,7 +36,7 @@ Determining the Epistatic and Pleiotropic Genetic Architectures
 for Chronic Pain and Opioid Addiction," SC18 Gordon Bell paper,
 https://dl.acm.org/citation.cfm?id=3291732
 
-"GPU-enabled comparative genomiocs calculations on leadership-class HPC systems,"
+"GPU-enabled comparative genomics calculations on leadership-class HPC systems,"
 http://on-demand.gputechconf.com/gtc/2017/presentation/s7156-wayne-joubert-comparative.pdf
 
 "CoMet: An HPC application for comparative genomics calculations,"

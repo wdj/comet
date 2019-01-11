@@ -1,6 +1,6 @@
-diff -aur magma_tally4.cloned/Makefile.internal magma_tally4/Makefile.internal
---- magma_tally4.cloned/Makefile.internal	2019-01-04 14:57:14.086197000 -0500
-+++ magma_tally4/Makefile.internal	2019-01-04 12:03:53.184952000 -0500
+diff -aur magma_mgemm2.cloned/Makefile.internal magma_mgemm2/Makefile.internal
+--- magma_mgemm2.cloned/Makefile.internal	2019-01-11 09:20:24.090079000 -0500
++++ magma_mgemm2/Makefile.internal	2019-01-11 09:25:44.046761000 -0500
 @@ -84,6 +84,9 @@
  ifneq ($(findstring Kepler, $(GPU_TARGET)),)
      GPU_TARGET += sm30 sm35
@@ -23,9 +23,9 @@ diff -aur magma_tally4.cloned/Makefile.internal magma_tally4/Makefile.internal
  ifeq ($(NV_COMP),)
      $(error GPU_TARGET, currently $(GPU_TARGET), must contain one or more of Tesla, Fermi, Kepler, or sm{10,13,20,30,35}. Please edit your make.inc file)
  endif
-diff -aur magma_tally4.cloned/magma_tally4blas/gemm_stencil.cuh magma_tally4/magma_tally4blas/gemm_stencil.cuh
---- magma_tally4.cloned/magma_tally4blas/gemm_stencil.cuh	2019-01-04 14:57:13.036192000 -0500
-+++ magma_tally4/magma_tally4blas/gemm_stencil.cuh	2019-01-04 12:03:55.653967000 -0500
+diff -aur magma_mgemm2.cloned/magma_mgemm2blas/gemm_stencil.cuh magma_mgemm2/magma_mgemm2blas/gemm_stencil.cuh
+--- magma_mgemm2.cloned/magma_mgemm2blas/gemm_stencil.cuh	2019-01-11 09:20:22.991799000 -0500
++++ magma_mgemm2/magma_mgemm2blas/gemm_stencil.cuh	2019-01-11 09:24:41.371870000 -0500
 @@ -138,6 +138,245 @@
  #define THR_M ( BLK_M / DIM_X )
  #define THR_N ( BLK_N / DIM_Y )
@@ -44,7 +44,7 @@ diff -aur magma_tally4.cloned/magma_tally4blas/gemm_stencil.cuh magma_tally4/mag
 +#define gm_popcount64(x) __popcll(x)
 +
 +extern "C" static __device__
-+FloatingPoint_t tally4_compute(
++FloatingPoint_t mgemm2_compute(
 +    FloatingPoint_t A,
 +    FloatingPoint_t B,
 +    FloatingPoint_t C)
@@ -279,7 +279,7 @@ diff -aur magma_tally4.cloned/magma_tally4blas/gemm_stencil.cuh magma_tally4/mag
 -                        fma(rA[m], rB[n], rC[n][m]);
 +                        //---BEGIN MODIFIED GENOMICS_METRICS
 +                        #if (version == trans_tn) && (precision == z)
-+                          rC[n][m] = tally4_compute(rA[m], rB[n], rC[n][m]);
++                          rC[n][m] = mgemm2_compute(rA[m], rB[n], rC[n][m]);
 +                        #else
 +                          fma(rA[m], rB[n], rC[n][m]);
 +                        #endif
@@ -294,7 +294,7 @@ diff -aur magma_tally4.cloned/magma_tally4blas/gemm_stencil.cuh magma_tally4/mag
 -                    fma(rA[m], rB[n], rC[n][m]);
 +                    //---BEGIN MODIFIED GENOMICS_METRICS
 +                    #if (version == trans_tn) && (precision == z)
-+                      rC[n][m] = tally4_compute(rA[m], rB[n], rC[n][m]);
++                      rC[n][m] = mgemm2_compute(rA[m], rB[n], rC[n][m]);
 +                    #else
 +                      fma(rA[m], rB[n], rC[n][m]);
 +                    #endif

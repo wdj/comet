@@ -12,12 +12,12 @@
 
 #include "magma_minproduct.h"
 #include "magma_minproduct_lapack.h"
-#include "magma_tally4.h"
-#include "magma_tally4_lapack.h"
-#include "magma_tally3.h"
-#include "magma_tally3_lapack.h"
-#include "magma_tally2.h"
-#include "magma_tally2_lapack.h"
+#include "magma_mgemm2.h"
+#include "magma_mgemm2_lapack.h"
+#include "magma_mgemm3.h"
+#include "magma_mgemm3_lapack.h"
+#include "magma_mgemm4.h"
+#include "magma_mgemm4_lapack.h"
 
 #include "env.hh"
 #include "assertions.hh"
@@ -52,45 +52,45 @@ void gm_linalg_initialize(GMEnv* env) {
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    magma_tally2_int_t magma_code = magma_tally2_init();
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
-                   "Error in call to magma_tally2_init.");
+    magma_mgemm4_int_t magma_code = magma_mgemm4_init();
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+                   "Error in call to magma_mgemm4_init.");
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
-    magma_code = magma_tally2blasSetKernelStream(GMEnv_stream_compute(env));
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS ?
-                   "Error in call to magma_tally2blasSetKernelStream." : 0);
+    magma_code = magma_mgemm4blasSetKernelStream(GMEnv_stream_compute(env));
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS ?
+                   "Error in call to magma_mgemm4blasSetKernelStream." : 0);
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    magma_tally4_int_t magma_code = magma_tally4_init();
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
-                   "Error in call to magma_tally4_init.");
+    magma_mgemm2_int_t magma_code = magma_mgemm2_init();
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+                   "Error in call to magma_mgemm2_init.");
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
-    magma_code = magma_tally4blasSetKernelStream(GMEnv_stream_compute(env));
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
-                   "Error in call to magma_tally4blasSetKernelStream.");
+    magma_code = magma_mgemm2blasSetKernelStream(GMEnv_stream_compute(env));
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+                   "Error in call to magma_mgemm2blasSetKernelStream.");
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    magma_tally3_int_t magma_code = magma_tally3_init();
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
-                   "Error in call to magma_tally3_init.");
+    magma_mgemm3_int_t magma_code = magma_mgemm3_init();
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+                   "Error in call to magma_mgemm3_init.");
     /*---need this -- see
      * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
      * page 14 ---*/
-    magma_code = magma_tally3blasSetKernelStream(GMEnv_stream_compute(env));
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
-                   "Error in call to magma_tally3blasSetKernelStream.");
+    magma_code = magma_mgemm3blasSetKernelStream(GMEnv_stream_compute(env));
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+                   "Error in call to magma_mgemm3blasSetKernelStream.");
 
   /*----------------------------------------*/
   } else {
@@ -127,9 +127,9 @@ void gm_linalg_finalize(GMEnv* env) {
   /*----------------------------------------*/
 
     // TODO: reset kernel stream (not really needed)
-    magma_tally2_int_t magma_code = magma_tally2_finalize();
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
-                   "Error in call to magma_tally2_finalize.");
+    magma_mgemm4_int_t magma_code = magma_mgemm4_finalize();
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+                   "Error in call to magma_mgemm4_finalize.");
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -137,9 +137,9 @@ void gm_linalg_finalize(GMEnv* env) {
   /*----------------------------------------*/
 
     // TODO: reset kernel stream (not really needed)
-    magma_tally4_int_t magma_code = magma_tally4_finalize();
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
-                   "Error in call to magma_tally4_finalize.");
+    magma_mgemm2_int_t magma_code = magma_mgemm2_finalize();
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+                   "Error in call to magma_mgemm2_finalize.");
 
   /*----------------------------------------*/
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
@@ -147,9 +147,9 @@ void gm_linalg_finalize(GMEnv* env) {
   /*----------------------------------------*/
 
     // TODO: reset kernel stream (not really needed)
-    magma_tally3_int_t magma_code = magma_tally3_finalize();
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
-                   "Error in call to magma_tally3_finalize.");
+    magma_mgemm3_int_t magma_code = magma_mgemm3_finalize();
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+                   "Error in call to magma_mgemm3_finalize.");
 
   /*----------------------------------------*/
   } else {
@@ -221,18 +221,18 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    typedef magma_tally2DoubleComplex Float_t;
+    typedef magma_mgemm4DoubleComplex Float_t;
 
-    magma_tally2_int_t magma_code = 0;
+    magma_mgemm4_int_t magma_code = 0;
 
-    magma_code = magma_tally2_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
-                   "Error in call to magma_tally2_zmalloc_pinned,"
+    magma_code = magma_mgemm4_zmalloc_pinned((Float_t**)&p->h, n);
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+                   "Error in call to magma_mgemm4_zmalloc_pinned,"
                    " possibly due to insufficient memory.");
 
-    magma_code = magma_tally2_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS &&
-                   "Error in call to magma_tally2_zmalloc,"
+    magma_code = magma_mgemm4_zmalloc((Float_t**)&p->d, n);
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+                   "Error in call to magma_mgemm4_zmalloc,"
                    " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
@@ -246,18 +246,18 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    typedef magma_tally4DoubleComplex Float_t;
+    typedef magma_mgemm2DoubleComplex Float_t;
 
-    magma_tally4_int_t magma_code = 0;
+    magma_mgemm2_int_t magma_code = 0;
 
-    magma_code = magma_tally4_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
-                   "Error in call to magma_tally4_zmalloc_pinned,"
+    magma_code = magma_mgemm2_zmalloc_pinned((Float_t**)&p->h, n);
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+                   "Error in call to magma_mgemm2_zmalloc_pinned,"
                    " possibly due to insufficient memory.");
 
-    magma_code = magma_tally4_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS &&
-                   "Error in call to magma_tally4_zmalloc,"
+    magma_code = magma_mgemm2_zmalloc((Float_t**)&p->d, n);
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+                   "Error in call to magma_mgemm2_zmalloc,"
                    " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
@@ -271,18 +271,18 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    typedef magma_tally3DoubleComplex Float_t;
+    typedef magma_mgemm3DoubleComplex Float_t;
 
-    magma_tally3_int_t magma_code = 0;
+    magma_mgemm3_int_t magma_code = 0;
 
-    magma_code = magma_tally3_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
-                   "Error in call to magma_tally3_zmalloc_pinned,"
+    magma_code = magma_mgemm3_zmalloc_pinned((Float_t**)&p->h, n);
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+                   "Error in call to magma_mgemm3_zmalloc_pinned,"
                    " possibly due to insufficient memory.");
 
-    magma_code = magma_tally3_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS &&
-                   "Error in call to magma_tally3_zmalloc,"
+    magma_code = magma_mgemm3_zmalloc((Float_t**)&p->d, n);
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+                   "Error in call to magma_mgemm3_zmalloc,"
                    " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
@@ -335,10 +335,10 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    magma_tally2_int_t magma_code = magma_tally2_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS);
-    magma_code = magma_tally2_free(p->d);
-    GMInsist(magma_code == MAGMA_tally2_SUCCESS);
+    magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(p->h);
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS);
+    magma_code = magma_mgemm4_free(p->d);
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS);
 
     env->cpu_mem -= size;
     env->gpu_mem -= size;
@@ -348,10 +348,10 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    magma_tally4_int_t magma_code = magma_tally4_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS);
-    magma_code = magma_tally4_free(p->d);
-    GMInsist(magma_code == MAGMA_tally4_SUCCESS);
+    magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(p->h);
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS);
+    magma_code = magma_mgemm2_free(p->d);
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS);
 
     env->cpu_mem -= size;
     env->gpu_mem -= size;
@@ -361,10 +361,10 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    magma_tally3_int_t magma_code = magma_tally3_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS);
-    magma_code = magma_tally3_free(p->d);
-    GMInsist(magma_code == MAGMA_tally3_SUCCESS);
+    magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(p->h);
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS);
+    magma_code = magma_mgemm3_free(p->d);
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS);
 
     env->cpu_mem -= size;
     env->gpu_mem -= size;
@@ -413,11 +413,11 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    typedef magma_tally2DoubleComplex Float_t;
+    typedef magma_mgemm4DoubleComplex Float_t;
 
     Float_t zero = {0, 0};
 
-    magma_tally2blas_zlaset(Magma_tally2Full, mat_dim1, mat_dim2, zero, zero,
+    magma_mgemm4blas_zlaset(Magma_mgemm4Full, mat_dim1, mat_dim2, zero, zero,
                             (Float_t*)matrix_buf->d, mat_dim1);
 
   /*----------------------------------------*/
@@ -425,11 +425,11 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    typedef magma_tally4DoubleComplex Float_t;
+    typedef magma_mgemm2DoubleComplex Float_t;
 
     Float_t zero = {0, 0};
 
-    magma_tally4blas_zlaset(Magma_tally4Full, mat_dim1, mat_dim2, zero, zero,
+    magma_mgemm2blas_zlaset(Magma_mgemm2Full, mat_dim1, mat_dim2, zero, zero,
                             (Float_t*)matrix_buf->d, mat_dim1);
 
   /*----------------------------------------*/
@@ -437,11 +437,11 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    typedef magma_tally3DoubleComplex Float_t;
+    typedef magma_mgemm3DoubleComplex Float_t;
 
     Float_t zero = {0, 0};
 
-    magma_tally3blas_zlaset(Magma_tally3Full, mat_dim1, mat_dim2, zero, zero,
+    magma_mgemm3blas_zlaset(Magma_mgemm3Full, mat_dim1, mat_dim2, zero, zero,
                             (Float_t*)matrix_buf->d, mat_dim1);
 
   /*----------------------------------------*/
@@ -515,14 +515,14 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    typedef magma_tally2DoubleComplex Float_t;
+    typedef magma_mgemm4DoubleComplex Float_t;
 
     const Float_t zero = {0, 0};
     const Float_t one = {1, 0};
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
-    magma_tally2blas_zgemm(Magma_tally2Trans, Magma_tally2NoTrans, m, n, k,
+    magma_mgemm4blas_zgemm(Magma_mgemm4Trans, Magma_mgemm4NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
     GMInsist(GMEnv_cuda_last_call_succeeded(env));
@@ -532,14 +532,14 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    typedef magma_tally4DoubleComplex Float_t;
+    typedef magma_mgemm2DoubleComplex Float_t;
 
     const Float_t zero = {0, 0};
     const Float_t one = {1, 0};
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
-    magma_tally4blas_zgemm(Magma_tally4Trans, Magma_tally4NoTrans, m, n, k,
+    magma_mgemm2blas_zgemm(Magma_mgemm2Trans, Magma_mgemm2NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
     GMInsist(GMEnv_cuda_last_call_succeeded(env));
@@ -549,14 +549,14 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    typedef magma_tally3DoubleComplex Float_t;
+    typedef magma_mgemm3DoubleComplex Float_t;
 
     const Float_t zero = {0, 0};
     const Float_t one = {1, 0};
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
-    magma_tally3blas_zgemm(Magma_tally3Trans, Magma_tally3NoTrans, m, n, k,
+    magma_mgemm3blas_zgemm(Magma_mgemm3Trans, Magma_mgemm3NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
     GMInsist(GMEnv_cuda_last_call_succeeded(env));
@@ -601,11 +601,11 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 #if 0
   if (m == 16384)
   {
-    typedef magma_tally4DoubleComplex Float_t;
+    typedef magma_mgemm2DoubleComplex Float_t;
     Float_t zero = {37, -19};
-    magma_tally4blas_zlaset(Magma_tally4Full, k, m, zero, zero,
+    magma_mgemm2blas_zlaset(Magma_mgemm2Full, k, m, zero, zero,
                             (Float_t*)dA, ldda);
-    magma_tally4blas_zlaset(Magma_tally4Full, k, n, zero, zero,
+    magma_mgemm2blas_zlaset(Magma_mgemm2Full, k, n, zero, zero,
                             (Float_t*)dB, lddb);
   }
 #endif
@@ -617,11 +617,11 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   const size_t elt_size =
     GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ? sizeof(GMFloat) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) ?
-                                         sizeof(magma_tally2DoubleComplex) :
+                                         sizeof(magma_mgemm4DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-    GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_tally4DoubleComplex) :
+    GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_mgemm2DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-    GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_tally3DoubleComplex) : 0;
+    GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_mgemm3DoubleComplex) : 0;
   GMInsist(elt_size > 0);
 
   const size_t align_factor = 128 / elt_size;
@@ -722,9 +722,9 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    typedef magma_tally2DoubleComplex Float_t;
+    typedef magma_mgemm4DoubleComplex Float_t;
 
-    magma_tally2_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
+    magma_mgemm4_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
 
@@ -733,9 +733,9 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    typedef magma_tally4DoubleComplex Float_t;
+    typedef magma_mgemm2DoubleComplex Float_t;
 
-    magma_tally4_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
+    magma_mgemm2_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
 
@@ -744,9 +744,9 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    typedef magma_tally3DoubleComplex Float_t;
+    typedef magma_mgemm3DoubleComplex Float_t;
 
-    magma_tally3_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
+    magma_mgemm3_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
 
@@ -810,9 +810,9 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
   } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
   /*----------------------------------------*/
 
-    typedef magma_tally2DoubleComplex Float_t;
+    typedef magma_mgemm4DoubleComplex Float_t;
 
-    magma_tally2_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
+    magma_mgemm4_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
 
@@ -821,9 +821,9 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
              GMEnv_num_way(env) == GM_NUM_WAY_2) {
   /*----------------------------------------*/
 
-    typedef magma_tally4DoubleComplex Float_t;
+    typedef magma_mgemm2DoubleComplex Float_t;
 
-    magma_tally4_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
+    magma_mgemm2_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
 
@@ -832,9 +832,9 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
              GMEnv_num_way(env) == GM_NUM_WAY_3) {
   /*----------------------------------------*/
 
-    typedef magma_tally3DoubleComplex Float_t;
+    typedef magma_mgemm3DoubleComplex Float_t;
 
-    magma_tally3_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
+    magma_mgemm3_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
 

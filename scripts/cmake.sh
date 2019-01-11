@@ -168,11 +168,11 @@ function main
   #----------------------------------------------------------------------------
   #---Create magma variants.
 
-  local MAGMA_DIR=$BUILD_DIR/magma
+  local MAGMA_DIR=$BUILD_DIR/magma_patch
   if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
     rm -rf $MAGMA_DIR
     echo "Copying magma ..."
-    cp -r $REPO_DIR/magma $MAGMA_DIR
+    cp -r $REPO_DIR/magma_patch $MAGMA_DIR
     # copy MAGMA source since link will be broken.
     rm $MAGMA_DIR//magma-*.tar.gz
     cp $REPO_DIR/tpls/magma-*.tar.gz $MAGMA_DIR/
@@ -186,7 +186,7 @@ function main
   #---Compile magma variants.
 
   local tag
-  for tag in minproduct tally4 tally3 tally2 ; do
+  for tag in minproduct mgemm2 mgemm3 mgemm4 ; do
     local magma_version=magma_$tag
     local magma_subdir=$MAGMA_DIR/$magma_version
     if [ ! -e $magma_subdir/build_is_complete ] ; then
@@ -207,9 +207,9 @@ function main
   local C_CXX_FLAGS
   C_CXX_FLAGS="-DFP_PRECISION_$FP_PRECISION -DADD_"
   C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_minproduct/include"
-  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally4/include"
-  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally3/include"
-  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_tally2/include"
+  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm2/include"
+  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm3/include"
+  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm4/include"
   C_CXX_FLAGS="$C_CXX_FLAGS $CUDA_INCLUDE_OPTS"
   C_CXX_FLAGS="$C_CXX_FLAGS -g -rdynamic" # for stack trace
   C_CXX_FLAGS="$C_CXX_FLAGS -Wall -Wno-unused-function -Werror"
@@ -247,9 +247,9 @@ function main
 
   local LFLAGS=
   LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
-  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally4/lib -lmagma_tally4"
-  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally3/lib -lmagma_tally3"
-  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_tally2/lib -lmagma_tally2"
+  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm2/lib -lmagma_mgemm2"
+  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm3/lib -lmagma_mgemm3"
+  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm4/lib -lmagma_mgemm4"
   LFLAGS="$LFLAGS $CUDA_POST_LINK_OPTS -lcublas -lcudart"
   if [ $IS_CRAY_XK7 = YES ] ; then
     LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"

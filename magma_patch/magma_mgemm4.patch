@@ -1,32 +1,32 @@
-diff -aur magma_tally3.cloned/Makefile.internal magma_tally3/Makefile.internal
---- magma_tally3.cloned/Makefile.internal	2019-01-04 14:12:39.212474000 -0500
-+++ magma_tally3/Makefile.internal	2019-01-04 14:31:46.791282000 -0500
-@@ -85,6 +85,9 @@
+diff -aur magma_mgemm4.cloned/Makefile.internal magma_mgemm4/Makefile.internal
+--- magma_mgemm4.cloned/Makefile.internal	2019-01-11 09:06:30.754862000 -0500
++++ magma_mgemm4/Makefile.internal	2019-01-11 09:43:48.366884000 -0500
+@@ -84,6 +84,9 @@
+ ifneq ($(findstring Kepler, $(GPU_TARGET)),)
      GPU_TARGET += sm30 sm35
  endif
- 
 +ifneq ($(findstring Volta, $(GPU_TARGET)),)
 +    GPU_TARGET += sm70
 +endif
+ 
  #
  # Next, add compile options for specific smXX
- # sm_xx is binary, compute_xx is PTX for forward compatability
 @@ -123,6 +126,11 @@
      NV_SM    += -gencode arch=compute_35,code=sm_35
      NV_COMP  := -gencode arch=compute_35,code=compute_35
  endif
 +ifneq ($(findstring sm70, $(GPU_TARGET)),)
-+    MIN_ARCH ?= 700
++    MIN_ARCH ?= 350
 +    NV_SM    += -gencode arch=compute_70,code=sm_70
 +    NV_COMP  := -gencode arch=compute_70,code=compute_70
 +endif
  ifeq ($(NV_COMP),)
      $(error GPU_TARGET, currently $(GPU_TARGET), must contain one or more of Tesla, Fermi, Kepler, or sm{10,13,20,30,35}. Please edit your make.inc file)
  endif
-diff -aur magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh magma_tally3/magma_tally3blas/gemm_stencil.cuh
---- magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh	2019-01-04 14:12:38.147471000 -0500
-+++ magma_tally3/magma_tally3blas/gemm_stencil.cuh	2019-01-04 14:31:46.796281000 -0500
-@@ -138,6 +138,272 @@
+diff -aur magma_mgemm4.cloned/magma_mgemm4blas/gemm_stencil.cuh magma_mgemm4/magma_mgemm4blas/gemm_stencil.cuh
+--- magma_mgemm4.cloned/magma_mgemm4blas/gemm_stencil.cuh	2019-01-11 09:06:29.652863000 -0500
++++ magma_mgemm4/magma_mgemm4blas/gemm_stencil.cuh	2019-01-11 09:43:14.356840000 -0500
+@@ -138,6 +138,191 @@
  #define THR_M ( BLK_M / DIM_X )
  #define THR_N ( BLK_N / DIM_Y )
  
@@ -44,7 +44,7 @@ diff -aur magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh magma_tally3/mag
 +#define gm_popcount64(x) __popcll(x)
 +
 +extern "C" static __device__
-+FloatingPoint_t tally3_compute(
++FloatingPoint_t mgemm4_compute(
 +    FloatingPoint_t A,
 +    FloatingPoint_t B,
 +    FloatingPoint_t C)
@@ -64,55 +64,56 @@ diff -aur magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh magma_tally3/mag
 +
 +#if 1
 +    const GMUInt64 oddbits = 0x5555555555555555;
-+    
++
 +    const GMUInt64& vi0 = vi.data[0];
 +    const GMUInt64& vi1 = vi.data[1];
 +    const GMUInt64& vj0 = vj.data[0];
 +    const GMUInt64& vj1 = vj.data[1];
-+    
++
 +    const GMUInt64 nvi0 = ~vi.data[0];
 +    const GMUInt64 nvi1 = ~vi.data[1];
 +    const GMUInt64 nvj0 = ~vj.data[0];
 +    const GMUInt64 nvj1 = ~vj.data[1];
++    const GMUInt64 vij0_10mask1 = (vi0 | (nvi0 >> 1)) &
++                                  (vj0 | (nvj0 >> 1)) & oddbits;
++    const GMUInt64 vij1_10mask1 = (vi1 | (nvi1 >> 1)) &
++                                  (vj1 | (nvj1 >> 1)) & oddbits;
++    const GMUInt64 vij0_10mask = vij0_10mask1 | (vij0_10mask1<<1);
++    const GMUInt64 vij1_10mask = vij1_10mask1 | (vij1_10mask1<<1);
 +
-+    const GMUInt64 vi0_10mask1 = (vi0 | (nvi0 >> 1)) & oddbits;
-+    const GMUInt64 vi1_10mask1 = (vi1 | (nvi1 >> 1)) & oddbits;
-+    const GMUInt64 vi0_10mask = vi0_10mask1 | (vi0_10mask1<<1);
-+    const GMUInt64 vi1_10mask = vi1_10mask1 | (vi1_10mask1<<1);
-+    
-+    const GMUInt64 vi0m = vi0 & vi0_10mask;;
-+    const GMUInt64 vi1m = vi1 & vi1_10mask;;
-+    const GMUInt64 nvi0m = nvi0 & vi0_10mask;;
-+    const GMUInt64 nvi1m = nvi1 & vi1_10mask;;
-+    
++    const GMUInt64 vi0m = vi0 & vij0_10mask;;
++    const GMUInt64 vi1m = vi1 & vij1_10mask;;
++    const GMUInt64 nvi0m = nvi0 & vij0_10mask;;
++    const GMUInt64 nvi1m = nvi1 & vij1_10mask;;
++
 +    const GMUInt64 vj0s = ((vj0 >> 1) & oddbits) | ((vj0 & oddbits) << 1);
 +    const GMUInt64 vj1s = ((vj1 >> 1) & oddbits) | ((vj1 & oddbits) << 1);
-+    
++
 +    const GMUInt64 r01 = gm_popcount64(nvi0m &  vj0) +
 +                         gm_popcount64(nvi0m &  vj0s) +
 +                         gm_popcount64(nvi1m &  vj1) +
 +                         gm_popcount64(nvi1m &  vj1s);
-+    
++
 +    const GMUInt64 nvj0s = ~vj0s;
 +    const GMUInt64 nvj1s = ~vj1s;
-+    
++
 +    const GMUInt64 r00 = gm_popcount64(nvi0m & nvj0) +
 +                         gm_popcount64(nvi0m & nvj0s) +
 +                         gm_popcount64(nvi1m & nvj1) +
 +                         gm_popcount64(nvi1m & nvj1s);
-+    
++
 +    const GMUInt64 r10 = gm_popcount64( vi0m & nvj0) +
 +                         gm_popcount64( vi0m & nvj0s) +
 +                         gm_popcount64( vi1m & nvj1) +
 +                         gm_popcount64( vi1m & nvj1s);
-+                         
-+    const GMUInt64 r11 = gm_popcount64( vi0m & vj0) +
-+                         gm_popcount64( vi0m & vj0s) +
-+                         gm_popcount64( vi1m & vj1) +
-+                         gm_popcount64( vi1m & vj1s);
-+    
-+    /*---Accumulate---*/ 
-+                         
++
++    const GMUInt64 r11 = gm_popcount64( vi0m &  vj0) +
++                         gm_popcount64( vi0m &  vj0s) +
++                         gm_popcount64( vi1m &  vj1) +
++                         gm_popcount64( vi1m &  vj1s);
++
++    /*---Accumulate---*/
++
 +    sum.data[0] += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
 +    sum.data[1] += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
 +#endif
@@ -143,16 +144,19 @@ diff -aur magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh magma_tally3/mag
 +    const GMUInt64 vi0_10mask = (vi0 | ~(vi0 >> 1)) & oddbits;
 +    const GMUInt64 vi1_10mask = (vi1 | ~(vi1 >> 1)) & oddbits;
 +
++    const GMUInt64 vj0_10mask = (vj0 | ~(vj0 >> 1)) & oddbits;
++    const GMUInt64 vj1_10mask = (vj1 | ~(vj1 >> 1)) & oddbits;
++
 +    /*---Get even, odd bits for each semi-nibble, then mask---*/
 +
 +    const GMUInt64 vi0_0 =  vi0       & vi0_10mask;
 +    const GMUInt64 vi0_1 = (vi0 >> 1) & vi0_10mask;
 +    const GMUInt64 vi1_0 =  vi1       & vi1_10mask;
 +    const GMUInt64 vi1_1 = (vi1 >> 1) & vi1_10mask;
-+    const GMUInt64 vj0_0 =  vj0       & oddbits;
-+    const GMUInt64 vj0_1 = (vj0 >> 1) & oddbits;
-+    const GMUInt64 vj1_0 =  vj1       & oddbits;
-+    const GMUInt64 vj1_1 = (vj1 >> 1) & oddbits;
++    const GMUInt64 vj0_0 =  vj0       & vj0_10mask;
++    const GMUInt64 vj0_1 = (vj0 >> 1) & vj0_10mask;
++    const GMUInt64 vj1_0 =  vj1       & vj1_10mask;
++    const GMUInt64 vj1_1 = (vj1 >> 1) & vj1_10mask;
 +
 +    /*---Get complements of the same bits, then mask---*/
 +
@@ -160,10 +164,10 @@ diff -aur magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh magma_tally3/mag
 +    const GMUInt64 nvi0_1 = ~(vi0 >> 1) & vi0_10mask;
 +    const GMUInt64 nvi1_0 = ~ vi1       & vi1_10mask;
 +    const GMUInt64 nvi1_1 = ~(vi1 >> 1) & vi1_10mask;
-+    const GMUInt64 nvj0_0 = ~ vj0       & oddbits;
-+    const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits;
-+    const GMUInt64 nvj1_0 = ~ vj1       & oddbits;
-+    const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits;
++    const GMUInt64 nvj0_0 = ~ vj0       & vj0_10mask;
++    const GMUInt64 nvj0_1 = ~(vj0 >> 1) & vj0_10mask;
++    const GMUInt64 nvj1_0 = ~ vj1       & vj1_10mask;
++    const GMUInt64 nvj1_1 = ~(vj1 >> 1) & vj1_10mask;
 +
 +    const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
 +                                ( (nvi0_0 & nvj0_1) << 1 )) +
@@ -204,91 +208,6 @@ diff -aur magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh magma_tally3/mag
 +    sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
 +#endif
 +
-+#if 0
-+    /*---This code reduces register pressure but runs somewhat slower---*/
-+
-+    const GMUInt64 oddbits = 0x5555555555555555;
-+
-+{
-+    const GMUInt64 vi0 = vi.data[0];
-+    const GMUInt64 vi0_10mask = (vi0 | ~(vi0 >> 1)) & oddbits;
-+    const GMUInt64  vi0_0 =   vi0       & vi0_10mask;
-+    const GMUInt64  vi0_1 =  (vi0 >> 1) & vi0_10mask;
-+    const GMUInt64 nvi0_0 = ~ vi0       & vi0_10mask;
-+    const GMUInt64 nvi0_1 = ~(vi0 >> 1) & vi0_10mask;
-+
-+    const GMUInt64 vj0 = vj.data[0];
-+    const GMUInt64  vj0_0 =   vj0       & oddbits;
-+    const GMUInt64  vj0_1 =  (vj0 >> 1) & oddbits;
-+    const GMUInt64 nvj0_0 = ~ vj0       & oddbits;
-+    const GMUInt64 nvj0_1 = ~(vj0 >> 1) & oddbits;
-+
-+    const int r00 = gm_popcount64( (nvi0_0 & nvj0_0) |
-+                                 ( (nvi0_0 & nvj0_1) << 1 ) ) +
-+                    gm_popcount64( (nvi0_1 & nvj0_0) |
-+                                 ( (nvi0_1 & nvj0_1) << 1 ));
-+
-+    const int r01 = gm_popcount64( (nvi0_0 &  vj0_0) |
-+                                 ( (nvi0_0 &  vj0_1) << 1 )) +
-+                    gm_popcount64( (nvi0_1 &  vj0_0) |
-+                                 ( (nvi0_1 &  vj0_1) << 1 ));
-+
-+    const int r10 = gm_popcount64( ( vi0_0 & nvj0_0) |
-+                                 ( ( vi0_0 & nvj0_1) << 1 )) +
-+                    gm_popcount64( ( vi0_1 & nvj0_0) |
-+                                 ( ( vi0_1 & nvj0_1) << 1 ));
-+
-+    const int r11 = gm_popcount64( ( vi0_0 &  vj0_0) |
-+                                 ( ( vi0_0 &  vj0_1) << 1 )) +
-+                    gm_popcount64( ( vi0_1 &  vj0_0) |
-+                                 ( ( vi0_1 &  vj0_1) << 1 ));
-+
-+    /*---Accumulate---*/
-+
-+    sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-+    sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
-+}
-+{
-+    const GMUInt64 vi1 = vi.data[1];
-+    const GMUInt64 vi1_10mask = (vi1 | ~(vi1 >> 1)) & oddbits;
-+    const GMUInt64  vi1_0 =   vi1       & vi1_10mask;
-+    const GMUInt64  vi1_1 =  (vi1 >> 1) & vi1_10mask;
-+    const GMUInt64 nvi1_0 = ~ vi1       & vi1_10mask;
-+    const GMUInt64 nvi1_1 = ~(vi1 >> 1) & vi1_10mask;
-+
-+    const GMUInt64 vj1 = vj.data[1];
-+    const GMUInt64  vj1_0 =   vj1       & oddbits;
-+    const GMUInt64  vj1_1 =  (vj1 >> 1) & oddbits;
-+    const GMUInt64 nvj1_0 = ~ vj1       & oddbits;
-+    const GMUInt64 nvj1_1 = ~(vj1 >> 1) & oddbits;
-+
-+    const int r00 = gm_popcount64( (nvi1_0 & nvj1_0) |
-+                                 ( (nvi1_0 & nvj1_1) << 1 )) +
-+                    gm_popcount64( (nvi1_1 & nvj1_0) |
-+                                 ( (nvi1_1 & nvj1_1) << 1 ));
-+
-+    const int r01 = gm_popcount64( (nvi1_0 &  vj1_0) |
-+                                 ( (nvi1_0 &  vj1_1) << 1 )) +
-+                    gm_popcount64( (nvi1_1 &  vj1_0) |
-+                                 ( (nvi1_1 &  vj1_1) << 1 ));
-+
-+    const int r10 = gm_popcount64( ( vi1_0 & nvj1_0) |
-+                                 ( ( vi1_0 & nvj1_1) << 1 )) +
-+                    gm_popcount64( ( vi1_1 & nvj1_0) |
-+                                 ( ( vi1_1 & nvj1_1) << 1 ));
-+
-+    const int r11 = gm_popcount64( ( vi1_0 &  vj1_0) |
-+                                 ( ( vi1_0 &  vj1_1) << 1 )) +
-+                    gm_popcount64( ( vi1_1 &  vj1_0) |
-+                                 ( ( vi1_1 &  vj1_1) << 1 ));
-+
-+    /*---Accumulate---*/
-+
-+    sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-+    sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
-+}
-+#endif
-+
 +//printf("%i %i %i %i %e %e\n", r00, r01, r10, r11, sum.data[0], sum.data[1]);
 +    return *(FloatingPoint_t*)&sum;
 +}
@@ -299,14 +218,14 @@ diff -aur magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh magma_tally3/mag
  ///////////////////////////////////////////////////////////////////////////////////////////////////
  extern "C" static __device__
  void devfunc_name(precision) (
-@@ -344,7 +610,13 @@
+@@ -344,7 +529,13 @@
                        #ifdef CONJ_B
                          fma(rA[m], conj(rB[n]), rC[n][m]);
                        #else
 -                        fma(rA[m], rB[n], rC[n][m]);
 +                        //---BEGIN MODIFIED GENOMICS_METRICS
 +                        #if (version == trans_tn) && (precision == z)
-+                          rC[n][m] = tally3_compute(rA[m], rB[n], rC[n][m]);
++                          rC[n][m] = mgemm4_compute(rA[m], rB[n], rC[n][m]);
 +                        #else
 +                          fma(rA[m], rB[n], rC[n][m]);
 +                        #endif
@@ -314,14 +233,14 @@ diff -aur magma_tally3.cloned/magma_tally3blas/gemm_stencil.cuh magma_tally3/mag
                        #endif
                      #endif
                  }
-@@ -419,7 +691,13 @@
+@@ -419,7 +610,13 @@
                    #ifdef CONJ_B
                      fma(rA[m], conj(rB[n]), rC[n][m]);
                    #else
 -                    fma(rA[m], rB[n], rC[n][m]);
 +                    //---BEGIN MODIFIED GENOMICS_METRICS
 +                    #if (version == trans_tn) && (precision == z)
-+                      rC[n][m] = tally3_compute(rA[m], rB[n], rC[n][m]);
++                      rC[n][m] = mgemm4_compute(rA[m], rB[n], rC[n][m]);
 +                    #else
 +                      fma(rA[m], rB[n], rC[n][m]);
 +                    #endif
