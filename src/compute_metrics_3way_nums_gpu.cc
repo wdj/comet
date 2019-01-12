@@ -531,7 +531,8 @@ void gm_compute_3way_nums_gpu_start_(
     gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_i_buf->d, npvfl,
                          vectors_j_buf->d, npvfl,
-                         matM_ij_buf_ptr->d, nvl, env);
+                         matM_ij_buf_ptr->d, nvl,
+                         vectors_i->dm, env);
     gm_compute_wait(env);
 
     gm_get_metrics_start(metrics, matM_ij_buf_ptr, env);
@@ -560,7 +561,8 @@ void gm_compute_3way_nums_gpu_start_(
     gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_j_buf->d, npvfl,
                          vectors_k_buf->d, npvfl,
-                         matM_jk_buf_ptr->d, nvl, env);
+                         matM_jk_buf_ptr->d, nvl,
+                         vectors_i->dm, env);
     gm_compute_wait(env);
 
     gm_get_metrics_start(metrics, matM_jk_buf_ptr, env);
@@ -592,7 +594,8 @@ void gm_compute_3way_nums_gpu_start_(
     gm_linalg_gemm_start(nvl, nvl, npvfl,
                          vectors_k_buf->d, npvfl,
                          vectors_i_buf->d, npvfl,
-                         matM_kik_buf_ptr->d, nvl, env);
+                         matM_kik_buf_ptr->d, nvl,
+                         vectors_i->dm, env);
     gm_compute_wait(env);
 
     gm_get_metrics_start(metrics, matM_kik_buf_ptr, env);
@@ -820,7 +823,8 @@ void gm_compute_3way_nums_gpu_start_(
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
                            matX_buf[vars.index_01]->d, npvfl,
                            vectors_K_buf->d, npvfl,
-                           matB_buf_ptr->d, matB_buf_ptr->dim0, env);
+                           matB_buf_ptr->d, matB_buf_ptr->dim0,
+                           vectors_i->dm, env);
                            //matB_buf_ptr->d, vars.I_max, env);
     }
 

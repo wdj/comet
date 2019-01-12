@@ -1272,12 +1272,12 @@ void DriverTest_ccc3_simple_sparse_() {
 
 void DriverTest_ccc_() {
 
+//FIX
+#if 1
   char options1[1024];
   char options2[1024];
   char options3[1024];
 
-//FIX
-#if 1
   //----------
   //---2-way, all2all no
   //----------
@@ -1777,7 +1777,7 @@ void DriverTest_ccc_() {
 //=============================================================================
 
 //FIX
-#if 1
+#if 0
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }

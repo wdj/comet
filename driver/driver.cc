@@ -393,8 +393,7 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
   double time_beg = GMEnv_get_synced_time(env);
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
-  gm_tc_bufs_malloc(env, vectors->num_vector_local,
-                    vectors->num_packedval_field_local);
+//  gm_tc_bufs_malloc(env, vectors->num_vector_local, vectors->num_packedval_field_local); //FIX
   double time_end = GMEnv_get_synced_time(env);
   vctime += time_end - time_beg;
 
@@ -534,7 +533,8 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
 
   time_beg = GMEnv_get_synced_time(env);
   GMVectors_destroy(vectors, env);
-  gm_tc_bufs_free(env);
+//  gm_tc_bufs_free(env); //FIX
+  GMDecompMgr_destroy(dm, env);
   time_end = GMEnv_get_synced_time(env);
   vctime += time_end - time_beg;
 
@@ -656,7 +656,6 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Finalize---*/
 
-  GMDecompMgr_destroy(dm, env);
   if (create_env) {
     GMEnv_destroy(env);
   }

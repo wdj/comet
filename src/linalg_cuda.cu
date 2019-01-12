@@ -17,6 +17,7 @@
 #include "cuda_fp16.h"
 
 //-----------------------------------------------------------------------------
+/// \brief GPU kernel to support gm_tc_buf_write_.
 
 __global__ void gm_tc_buf_write_fp16_kernel_(
   int num_way,
@@ -107,6 +108,7 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GPU kernel to support gm_tc_buf_write_.
 
 __global__ void gm_tc_buf_write_int8_kernel_(
   int num_way,
@@ -197,7 +199,7 @@ __global__ void gm_tc_buf_write_int8_kernel_(
 }
 
 //-----------------------------------------------------------------------------
-// Convert matrix stored as packed 2-bit values into matrix of FP16 (or Int8).
+/// \brief Convert bitwise matrix to required format for GEMM.
 
 void gm_tc_buf_write_(
   bool is_right,
@@ -208,12 +210,16 @@ void gm_tc_buf_write_(
   int npvfl_step,
   int pvfl_min,
   void* vi,
+  TCBufs& tc_bufs,
   GMEnv* env) {
+
   GMInsist(env && vi);
   GMInsist(I_max_dim >= 0 && I_max_dim <= nvl);
   GMInsist(I_max >= 0 && I_max <= I_max_dim);
   GMInsist(nvl >= 0);
   GMInsist(npvfl >= 0);
+  GMInsist(tc_bufs.tc_buf_left);
+  GMInsist(tc_bufs.tc_buf_right);
 //TODO: more assertions
 
   const bool is_int8 = env->tc == 2;
@@ -241,7 +247,9 @@ void gm_tc_buf_write_(
   const int num_threadblocks_1 = gm_min_i8(nfl2_step, blockdim_y);
   const int num_threadblocks_2 = gm_ceil_i8(nfl2_step, blockdim_y);
 
-  void* const tc_buf = is_right ? env->tc_buf_right : env->tc_buf_left;
+  // TODO: check dims against tc_bufs.tc_buf_size
+
+  void* const tc_buf = is_right ? tc_bufs.tc_buf_right : tc_bufs.tc_buf_left;
   GMUInt32* vi32 = (GMUInt32*)vi;
 
   if (! is_int8) {
@@ -294,7 +302,7 @@ void gm_tc_buf_write_(
 }
 
 //-----------------------------------------------------------------------------
-// Call tensor core enabled cuBLAS function to tally bits for CCC.
+/// \brief Call cublas to perform required GEMM.
 
 void gm_tc_solve_(
   bool is_first,
@@ -304,7 +312,9 @@ void gm_tc_solve_(
   void* dA,
   void* dB,
   void* dC,
+  TCBufs& tc_bufs,
   GMEnv* env) {
+
   GMInsist(env && dA && dB && dC);
   GMInsist(nvll >= 0);
   GMInsist(nvl >= 0);
@@ -340,13 +350,13 @@ void gm_tc_solve_(
   // Make BLAS call.
 
   cublasStatus_t status = cublasGemmEx(
-    env->cublas_handle,
+    tc_bufs.cublas_handle,
     CUBLAS_OP_N, CUBLAS_OP_T,
     m, n, k,
     is_int8 ? (void*)&alpha_i32 : (void*)&alpha_f32,
-    env->tc_buf_left, is_int8 ? CUDA_R_8I : CUDA_R_16F,
+    tc_bufs.tc_buf_left, is_int8 ? CUDA_R_8I : CUDA_R_16F,
     m,
-    env->tc_buf_right, is_int8 ? CUDA_R_8I : CUDA_R_16F,
+    tc_bufs.tc_buf_right, is_int8 ? CUDA_R_8I : CUDA_R_16F,
     n,
     is_int8 ? (void*)&beta_i32 : (void*)&beta_f32,
     //(void*)&beta_f32,
@@ -376,6 +386,7 @@ void gm_tc_solve_(
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GPU kernel to support gm_tc_fix_metrics_.
 
 template<typename INTYPE32>
 __global__ void gm_tc_fix_metrics_kernel_(
@@ -472,13 +483,15 @@ __global__ void gm_tc_fix_metrics_kernel_(
 }
 
 //-----------------------------------------------------------------------------
-// Swizzle/cast values from the CUBLAS call into required double complex format.
+/// \brief Swizzle/cast values from cublas call into double complex format.
 
 void gm_tc_fix_metrics_(
   int nvll,
   int nvl,
   void* vo_ptr,
+  TCBufs& tc_bufs,
   GMEnv* env) {
+
   GMInsist(env && vo_ptr);
   GMInsist(nvll >= 0);
   GMInsist(nvl >= 0);
@@ -525,6 +538,7 @@ void gm_tc_gemm_start_impl_(int m, int n, int k,
                             void* dA, int ldda,
                             void* dB, int lddb,
                             void* dC, int lddc,
+                            TCBufs& tc_bufs,
                             GMEnv* env) {
 
   // Ensure tensor core hardware is available.
@@ -546,7 +560,6 @@ void gm_tc_gemm_start_impl_(int m, int n, int k,
     const int pvfl_min = ((step_num+0) * npvfl) / num_steps;
     const int pvfl_max = ((step_num+1) * npvfl) / num_steps;
     const int npvfl_step = pvfl_max - pvfl_min;
-    GMInsist(npvfl_step <= env->npvfl_step_max);
 
     if (npvfl_step == 0) {  // empty block row
       continue;
@@ -557,16 +570,16 @@ void gm_tc_gemm_start_impl_(int m, int n, int k,
     const bool left_matrix = false; // A
     const bool right_matrix = true; // B
     gm_tc_buf_write_(left_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_step, pvfl_min, dA, env);
+                     npvfl_step, pvfl_min, dA, tc_bufs, env);
     gm_tc_buf_write_(right_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_step, pvfl_min, dB, env);
+                     npvfl_step, pvfl_min, dB, tc_bufs, env);
 
     // Perform the GEMM for this pair of block rows; accumulate.
-    gm_tc_solve_(pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, env);
+    gm_tc_solve_(pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, tc_bufs, env);
   }
 
   // Revise the results of the GEMMs to be in the needed double complex format.
-  gm_tc_fix_metrics_(nvll, nvl, dC, env);
+  gm_tc_fix_metrics_(nvll, nvl, dC, tc_bufs, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -580,6 +593,7 @@ void gm_tc_gemm_start(int m, int n, int k,
                       void* dA, int ldda,
                       void* dB, int lddb,
                       void* dC, int lddc,
+                      TCBufs& tc_bufs,
                       GMEnv* env) {
   GMInsist(dA && dB && dC && env);
   GMInsist(m >= 0 && n >= 0 && k >= 0);
@@ -590,17 +604,111 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(env->tc);
   GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+#ifndef USE_TC
+  GMInsistInterface(env,
+                    false && "TC option unavailable for this platform/build.");
+#endif
 
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, 0);
   GMInsist(deviceProp.major >= 7);
 
+  gm_tc_gemm_start_impl_(m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Initialize TCBufs object by allocating memory etc.
+
+void gm_tc_bufs_malloc(int num_vector_local,
+                       int num_field_local,
+                       int num_packedval_field_local,
+                       TCBufs& tc_bufs,
+                       GMEnv* env) {
+  GMInsist(env);
+  GMInsist(num_vector_local >= 0);
+  GMInsist(num_packedval_field_local >= 0);
+  GMInsist(!tc_bufs.tc_buf_left);
+  GMInsist(!tc_bufs.tc_buf_right);
+
+  if (!env->tc) {
+    return;
+  }
+
+  if (GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC) {
+    return;
+  }
+
+  // Calculate sizes.
+
+  const size_t nvl = num_vector_local;
+  const size_t npvfl = num_packedval_field_local;
+  const size_t npvfl_step_max = gm_ceil_i8(npvfl, env->num_tc_steps);
+
+  const bool is_int8 = env->tc == 2;
+  const int sizeof_scalar = is_int8 ? 1 : 2;
+
+  const size_t nvlX2 = nvl * 2;
+
+  tc_bufs.tc_buf_size = nvlX2 * (npvfl_step_max * 64) * sizeof_scalar;
+  tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
+
+  // Allocate buffers.
+
+  cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
+  GMEnv_cuda_last_call_succeeded(env);
+  env->gpu_mem += tc_bufs.tc_buf_size;
+  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+
+  cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
+  GMEnv_cuda_last_call_succeeded(env);
+  env->gpu_mem += tc_bufs.tc_buf_size;
+  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+
+  // Set up cublas handle.
+
+  cublasStatus_t status_cb = cublasCreate(&tc_bufs.cublas_handle);
+  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
+
+  status_cb = cublasSetStream(tc_bufs.cublas_handle, env->stream_compute_);
+  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
+
 #ifdef USE_TC
-  gm_tc_gemm_start_impl_(m, n, k, dA, ldda, dB, lddb, dC, lddc, env);
+  status_cb = cublasSetMathMode(tc_bufs.cublas_handle, CUBLAS_TENSOR_OP_MATH);
+  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
 #else
   GMInsistInterface(env,
-                    false && "TC option not implemented for this platform.");
+                    false && "TC option unavailable for this platform/build.");
 #endif
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Terminate TCBufs object by deallocating memory etc.
+
+void gm_tc_bufs_free(TCBufs& tc_bufs,
+                     GMEnv* env) {
+  GMInsist(env);
+  GMInsist((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
+
+  if (!tc_bufs.tc_buf_left) {
+    return;
+  }
+
+  // Free buffers.
+
+  cudaFree(tc_bufs.tc_buf_left);
+  GMEnv_cuda_last_call_succeeded(env);
+  tc_bufs.tc_buf_left = NULL;
+  env->gpu_mem -= tc_bufs.tc_buf_size;
+
+  cudaFree(tc_bufs.tc_buf_right);
+  GMEnv_cuda_last_call_succeeded(env);
+  tc_bufs.tc_buf_right = NULL;
+  env->gpu_mem -= tc_bufs.tc_buf_size;
+
+  // Free cublas handle.
+
+  cublasStatus_t status_cb = cublasDestroy(tc_bufs.cublas_handle);
+  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
 }
 
 //-----------------------------------------------------------------------------

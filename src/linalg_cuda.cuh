@@ -15,11 +15,30 @@
 
 //-----------------------------------------------------------------------------
 
+struct TCBufs {
+  size_t tc_buf_size;
+  void* tc_buf_left;
+  void* tc_buf_right;
+  cublasHandle_t cublas_handle;
+};
+
+//-----------------------------------------------------------------------------
+
 void gm_tc_gemm_start(int m, int n, int k,
                       void* dA, int ldda,
                       void* dB, int lddb,
                       void* dC, int lddc,
+                      TCBufs& tc_bufs,
                       GMEnv* env);
+
+void gm_tc_bufs_malloc(int num_vector_local,
+                       int num_field_local,
+                       int num_packedval_field_local,
+                       TCBufs& tc_bufs,
+                       GMEnv* env);
+
+void gm_tc_bufs_free(TCBufs& tc_bufs,
+                     GMEnv* env);
 
 //-----------------------------------------------------------------------------
 

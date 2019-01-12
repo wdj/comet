@@ -16,6 +16,7 @@
 
 #include "env.hh"
 #include "mirrored_buf.hh"
+#include "decomp_mgr.hh"
 
 //=============================================================================
 
@@ -43,6 +44,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
                           magma_minproduct_int_t lddb,
                           void* dC,
                           magma_minproduct_int_t lddc,
+                          GMDecompMgr* dm,
                           GMEnv* env);
 
 void gm_compute_wait(GMEnv* env);

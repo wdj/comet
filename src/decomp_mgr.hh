@@ -12,6 +12,7 @@
 #define _gm_decomp_mgr_hh_
 
 #include "env.hh"
+#include "linalg_cuda.cuh"
 
 //=============================================================================
 // DecompMgr struct
@@ -34,6 +35,8 @@ typedef struct {
   int num_field_per_packedfield;
   int num_pad_field_local;
   size_t num_packedfield_local;
+  // Other
+  TCBufs tc_bufs;
 } GMDecompMgr;
 
 //-----------------------------------------------------------------------------

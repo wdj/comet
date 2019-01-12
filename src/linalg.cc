@@ -21,6 +21,7 @@
 
 #include "env.hh"
 #include "assertions.hh"
+#include "decomp_mgr.hh"
 #include "linalg_cuda.cuh"
 #include "linalg.hh"
 
@@ -583,6 +584,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
                           magma_minproduct_int_t lddb,
                           void* dC,
                           magma_minproduct_int_t lddc,
+                          GMDecompMgr* dm,
                           GMEnv* env) {
   GMInsist(dA && dB && dC && env);
   GMInsist(m >= 0 && n >= 0 && k >= 0);
@@ -594,7 +596,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   }
 
   if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->tc) {
-    gm_tc_gemm_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, env);
+    gm_tc_gemm_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, dm->tc_bufs, env);
     return;
   }
 

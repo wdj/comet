@@ -92,10 +92,10 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->gpu_mem_max = 0;
   env->description = description;
   env->tc = 0;
-  env->tc_buf_left = NULL;
-  env->tc_buf_right = NULL;
-  env->tc_buf_size = 0;
-  env->npvfl_step_max = 0;
+  //env->tc_buf_left = NULL; //FIX
+  //env->tc_buf_right = NULL; //FIX
+  //env->tc_buf_size = 0; //FIX
+  //env->npvfl_step_max = 0; //FIX
   env->num_tc_steps = 1;
 
   env->mpi_comm_base_ = base_comm;
@@ -446,7 +446,7 @@ void GMEnv_destroy(GMEnv* const env) {
 
   GMEnv_terminate_streams(env);
 
-  gm_tc_bufs_free(env);
+//  gm_tc_bufs_free(env); //FIX
 
   *env = GMEnv_null();
 }
@@ -781,10 +781,12 @@ MPI_Datatype gm_mpi_type(const GMEnv* const env) {
   return mpi_type;
 }
 
+#if 0
 //-----------------------------------------------------------------------------
 
 void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local, 
                        int num_packedval_field_local) {
+return;
   GMInsist(env);
   GMInsist((env->tc_buf_left != 0) == (env->tc_buf_right != 0));
   GMInsist(num_vector_local >= 0);
@@ -823,6 +825,7 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
   GMEnv_cuda_last_call_succeeded(env);
   env->gpu_mem += env->tc_buf_size;
   env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+//printf("Hey1 %i", (int)env->tc_buf_size);
 
 #if 0
   // For alignment of right buf
@@ -862,6 +865,7 @@ void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
 //-----------------------------------------------------------------------------
 
 void gm_tc_bufs_free(GMEnv* const env) {
+return;
   GMInsist(env);
   GMInsist((env->tc_buf_left != 0) == (env->tc_buf_right != 0));
 
@@ -895,6 +899,7 @@ void gm_tc_bufs_free(GMEnv* const env) {
 //  // cudaSuccess, cudaErrorInitializationError, cudaErrorInvalidValue,
 //  // cudaErrorLaunchFailure
 }
+#endif
 
 //-----------------------------------------------------------------------------
 

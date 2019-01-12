@@ -13,6 +13,7 @@
 #include "mpi.h"
 
 #include "env.hh"
+#include "linalg_cuda.cuh"
 #include "decomp_mgr.hh"
 
 //=============================================================================
@@ -217,6 +218,13 @@ printf("%i %i %i %i %i\n",
     dm->num_packedfield_local *
     dm->num_field_per_packedfield -
     dm->num_field_active_local;
+
+  //--------------------
+  // tc memory
+  //--------------------
+
+  gm_tc_bufs_malloc(dm->num_vector_local, dm->num_field_local,
+                    dm->num_packedfield_local, dm->tc_bufs, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -229,6 +237,11 @@ void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env) {
     return;
   }
 
+  //--------------------
+  // tc memory
+  //--------------------
+
+  gm_tc_bufs_free(dm->tc_bufs, env);
 }
 
 //-----------------------------------------------------------------------------
