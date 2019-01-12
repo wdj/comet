@@ -86,13 +86,7 @@ typedef struct {
   /*---OTHER---*/
   const char* description;
   int tc;
-  //void* tc_buf_left; // FIX
-  //void* tc_buf_right; // FIX
-  //size_t tc_buf_size; // FIX
-  //int npvfl_step_max; // FIX
   int num_tc_steps;
-  //cublasHandle_t cublas_handle; //FIX
-  //cudaEvent_t tc_event;
 } GMEnv;
 
 enum {
@@ -550,11 +544,6 @@ void GMFloat_check(GMFloat* const a, size_t n);
 template<typename T> int gm_mant_dig();
 
 //-----------------------------------------------------------------------------
-
-//FIX
-//void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local,
-//                       int num_field_local);
-//void gm_tc_bufs_free(GMEnv* const env);
 
 size_t gm_num_vector_local_required(size_t num_vector_active,
                                     GMEnv* const env);

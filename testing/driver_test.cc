@@ -1777,7 +1777,7 @@ void DriverTest_ccc_() {
 //=============================================================================
 
 //FIX
-#if 0
+#if 1
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }

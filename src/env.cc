@@ -92,10 +92,6 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->gpu_mem_max = 0;
   env->description = description;
   env->tc = 0;
-  //env->tc_buf_left = NULL; //FIX
-  //env->tc_buf_right = NULL; //FIX
-  //env->tc_buf_size = 0; //FIX
-  //env->npvfl_step_max = 0; //FIX
   env->num_tc_steps = 1;
 
   env->mpi_comm_base_ = base_comm;
@@ -446,8 +442,6 @@ void GMEnv_destroy(GMEnv* const env) {
 
   GMEnv_terminate_streams(env);
 
-//  gm_tc_bufs_free(env); //FIX
-
   *env = GMEnv_null();
 }
 
@@ -780,126 +774,6 @@ MPI_Datatype gm_mpi_type(const GMEnv* const env) {
 
   return mpi_type;
 }
-
-#if 0
-//-----------------------------------------------------------------------------
-
-void gm_tc_bufs_malloc(GMEnv* const env, int num_vector_local, 
-                       int num_packedval_field_local) {
-return;
-  GMInsist(env);
-  GMInsist((env->tc_buf_left != 0) == (env->tc_buf_right != 0));
-  GMInsist(num_vector_local >= 0);
-  GMInsist(num_packedval_field_local >= 0);
-
-  if (!env->tc) {
-    return;
-  }
-
-  if (GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC) {
-    return;
-  }
-
-  if (env->tc_buf_left) {
-    return;
-  }
-
-  const size_t nvl = num_vector_local;
-  const size_t npvfl = num_packedval_field_local;
-  env->npvfl_step_max = gm_ceil_i8(npvfl, env->num_tc_steps);
-
-  const bool is_int8 = env->tc == 2;
-  const int sizeof_scalar = is_int8 ? 1 : 2;
-
-  const size_t nvlX2 = nvl * 2;
-
-  env->tc_buf_size = nvlX2 * (env->npvfl_step_max * 64) * sizeof_scalar;
-  env->tc_buf_size = env->tc_buf_size ? env->tc_buf_size : 1;
-
-  cudaMalloc(&env->tc_buf_left, env->tc_buf_size);
-  GMEnv_cuda_last_call_succeeded(env);
-  env->gpu_mem += env->tc_buf_size;
-  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
-
-  cudaMalloc(&env->tc_buf_right, env->tc_buf_size);
-  GMEnv_cuda_last_call_succeeded(env);
-  env->gpu_mem += env->tc_buf_size;
-  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
-//printf("Hey1 %i", (int)env->tc_buf_size);
-
-#if 0
-  // For alignment of right buf
-  env->tc_buf_size = ((env->tc_buf_size + 4096 - 1) / 4096) * 4096;
-
-  // Make left and right bufs close in memory, in case it matters
-  // for performance.
-
-  cudaMalloc(&env->tc_buf_left, env->tc_buf_size * 2);
-  GMEnv_cuda_last_call_succeeded(env);
-  env->tc_buf_right = (void*)&(((char*)(env->tc_buf_left))[env->tc_buf_size]);
-  env->gpu_mem += env->tc_buf_size * 2;
-  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
-#endif
-
-  cublasStatus_t cb_status = cublasCreate(&env->cublas_handle);
-  GMInsist(cb_status == CUBLAS_STATUS_SUCCESS);
-
-  cb_status = cublasSetStream(env->cublas_handle, env->stream_compute_);
-  GMInsist(cb_status == CUBLAS_STATUS_SUCCESS);
-
-#ifdef USE_TC
-  cb_status = cublasSetMathMode(env->cublas_handle, CUBLAS_TENSOR_OP_MATH);
-  GMInsist(cb_status == CUBLAS_STATUS_SUCCESS);
-#else
-  GMInsistInterface(env,
-                    false && "TC option not implemented for this platform.");
-#endif
-
-//  cudaError_t event_status = cudaEventCreateWithFlags(&env->tc_event,
-//                                                      cudaEventDisableTiming);
-//  GMInsist(cudaSuccess == event_status);
-//  // cudaSuccess, cudaErrorInitializationError, cudaErrorInvalidValue,
-//  // cudaErrorLaunchFailure, cudaErrorMemoryAllocation
-}
-
-//-----------------------------------------------------------------------------
-
-void gm_tc_bufs_free(GMEnv* const env) {
-return;
-  GMInsist(env);
-  GMInsist((env->tc_buf_left != 0) == (env->tc_buf_right != 0));
-
-  if (!env->tc_buf_left) {
-    return;
-  }
-
-  cudaFree(env->tc_buf_left);
-  GMEnv_cuda_last_call_succeeded(env);
-  env->tc_buf_left = NULL;
-  env->gpu_mem -= env->tc_buf_size;
-
-  cudaFree(env->tc_buf_right);
-  GMEnv_cuda_last_call_succeeded(env);
-  env->tc_buf_right = NULL;
-  env->gpu_mem -= env->tc_buf_size;
-
-#if 0
-  cudaFree(env->tc_buf_left);
-  GMEnv_cuda_last_call_succeeded(env);
-  env->tc_buf_left = NULL;
-  env->tc_buf_right = NULL;
-  env->gpu_mem -= env->tc_buf_size * 2;
-#endif
-
-  cublasStatus_t cb_status = cublasDestroy(env->cublas_handle);
-  GMInsist(cb_status == CUBLAS_STATUS_SUCCESS);
-
-//  cudaError_t event_status = cudaEventDestroy(env->tc_event);
-//  GMInsist(cudaSuccess == event_status);
-//  // cudaSuccess, cudaErrorInitializationError, cudaErrorInvalidValue,
-//  // cudaErrorLaunchFailure
-}
-#endif
 
 //-----------------------------------------------------------------------------
 

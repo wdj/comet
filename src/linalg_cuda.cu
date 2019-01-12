@@ -19,6 +19,8 @@
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support gm_tc_buf_write_.
 
+// TODO: combine the following two functions via templating.
+
 __global__ void gm_tc_buf_write_fp16_kernel_(
   int num_way,
   bool is_sparse,
