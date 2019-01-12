@@ -8,20 +8,46 @@
  */
 //-----------------------------------------------------------------------------
 
+#include "stdint.h"
+
 #include "linalg_cuda.cuh"
 
 //-----------------------------------------------------------------------------
-
 #ifdef USE_TC
+//-----------------------------------------------------------------------------
 
 #include "cuda_fp16.h"
 
 //-----------------------------------------------------------------------------
+/// \brief Specialized class to support gm_tc_buf_write_kernel_ type seletion.
+
+// Note: we could use __half here instead of GMUInt16.  The intent here
+// was to use a type based on standard C/C++.  No actual computations
+// are done in this code based on the specifics of the type, so it doesn't
+// matter.  Important thing is that sizeof(GMUInt16) == sizeof(__half) == 2.
+
+template<typename Buf_t> struct TCBuf_types;
+
+template<> struct TCBuf_types<GMUInt16> {
+  static __device__ GMUInt16 zero() {return (GMUInt16)0x0000;}
+                                        // = *(GMUInt16*)&__float2half(0.);
+  static __device__ GMUInt16 one() {return (GMUInt16)0x3c00;}
+                                        // = *(GMUInt16*)&__float2half(1.);
+  static __device__ GMUInt16 two() {return (GMUInt16)0x4000;}
+                                        // = *(GMUInt16*)&__float2half(2.);
+};
+
+template<> struct TCBuf_types<GMUInt8> {
+  static __device__ GMUInt8 zero() {return (GMUInt8)0;}
+  static __device__ GMUInt8 one() {return (GMUInt8)1;}
+  static __device__ GMUInt8 two() {return (GMUInt8)2;}
+};
+
+//-----------------------------------------------------------------------------
 /// \brief GPU kernel to support gm_tc_buf_write_.
 
-// TODO: combine the following two functions via templating.
-
-__global__ void gm_tc_buf_write_fp16_kernel_(
+template<typename Buf_t>
+__global__ void gm_tc_buf_write_kernel_(
   int num_way,
   bool is_sparse,
   bool is_right,
@@ -37,7 +63,7 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   int fl2_min,
   void* vo) {
 
-  // Two fields (seminibbles) map to two halves of 32-bit word
+  // Two fields (seminibbles) map to two halves of (2*sizeof(Buf_t))-bit word
 
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
   const int fl2_step = blockIdx.y + gridDim.y * blockIdx.z;
@@ -51,7 +77,7 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
 
   const int fl2 = fl2_min + fl2_step;
 
-  // Output array as floats has nfl/2 rows, as halfs has nfl rows.
+  // Output array interpreted as having Buf_t scalars has nfl rows.
 
   const GMUInt32* const vi32_col = vi32 + vl * (size_t)vi32_dim0;
 
@@ -67,25 +93,24 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
   // Count number of 0 (or 1) bits in respective seminibble.
   // Determine whether to skip (1,0) null indicator value.
 
-  //CHECK
   const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
 
-  // Possible counts, represented as FP16.
-  const GMUInt16 zero = 0x0000; // = *(GMUInt16*)&__float2half(0.);
-  const GMUInt16 one = 0x3c00;  // = *(GMUInt16*)&__float2half(1.);
-  const GMUInt16 two = 0x4000;  // = *(GMUInt16*)&__float2half(2.);
+  // Possible counts, represented in target type.
+  const Buf_t zero = TCBuf_types<Buf_t>::zero();
+  const Buf_t one = TCBuf_types<Buf_t>::one();
+  const Buf_t two = TCBuf_types<Buf_t>::two();
 
-  const GMUInt16 out0 = seminibble0 == 3*i01     ? two :
-                        seminibble0 == 3*(1-i01) ? zero :
-                                       !skip_10  ? one :
-                        seminibble0 == 1         ? one :
-                                                   zero;
+  const Buf_t out0 = seminibble0 == 3*i01     ? two :
+                     seminibble0 == 3*(1-i01) ? zero :
+                                    !skip_10  ? one :
+                     seminibble0 == 1         ? one :
+                                                zero;
 
-  const GMUInt16 out1 = seminibble1 == 3*i01     ? two :
-                        seminibble1 == 3*(1-i01) ? zero :
-                                       !skip_10  ? one :
-                        seminibble1 == 1         ? one :
-                                                   zero;
+  const Buf_t out1 = seminibble1 == 3*i01     ? two :
+                     seminibble1 == 3*(1-i01) ? zero :
+                                    !skip_10  ? one :
+                     seminibble1 == 1         ? one :
+                                                zero;
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make later swizzling of metrics array work:
@@ -93,8 +118,6 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
 
   const int vl_index = is_right ? vl : vl < nvl2 ? 2*vl : 2*vl - nvl + 1;
   const int vlX2_index = i01 + 2*vl_index;
-  //const int vlX2_index = is_right ? i01 + 2*vl :
-  //                i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
 
   const int fl2_index = fl2_step;
 
@@ -103,101 +126,10 @@ __global__ void gm_tc_buf_write_fp16_kernel_(
 
   const int vlX2_dim = nvlX2;
 
-  GMUInt16* vo16 = (GMUInt16*)vo;
+  Buf_t* vo_typed = (Buf_t*)vo;
 
-  vo16[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
-  vo16[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief GPU kernel to support gm_tc_buf_write_.
-
-__global__ void gm_tc_buf_write_int8_kernel_(
-  int num_way,
-  bool is_sparse,
-  bool is_right,
-  GMUInt32* vi32,
-  int vi32_dim0,
-  int nvla,
-  int nvl,
-  int nvl2,
-  int nvlX2,
-  int nfl,
-  int nfl2,
-  int nfl2_step,
-  int fl2_min,
-  void* vo) {
-
-  // Two fields (seminibbles) map to two halves of 16-bit word
-
-  const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int fl2_step = blockIdx.y + gridDim.y * blockIdx.z;
-
-  if (vlX2 >= nvlX2 || fl2_step >= nfl2_step) {
-    return;
-  }
-
-  const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
-  const int vl = vlX2 / 2;
-
-  const int fl2 = fl2_min + fl2_step;
-
-  // Output array as shorts has nfl/2 rows, as chars has nfl rows.
-
-  const GMUInt32* const vi32_col = vi32 + vl * (size_t)vi32_dim0;
-
-  // Pick up two consecutive field values:
-  // first field seminibble0, second field seminibble1
-  // Set to zero if outside of active range.
-
-  const int nibble = vl<nvla ? (vi32_col[fl2/8] >> (4*(fl2%8))) & 15 : 0; 
-
-  const int seminibble0 = nibble & 3;
-  const int seminibble1 = (nibble>>2) & 3;
-
-  // Count number of 0 (or 1) bits in respective seminibble.
-  // Determine whether to skip (1,0) null indicator value.
-
-  //CHECK
-  const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
-
-  // Possibe counts, represented as Int8.
-  const GMUInt8 zero = 0;
-  const GMUInt8 one = 1;
-  const GMUInt8 two = 2;
-
-  const GMUInt8 out0 = seminibble0 == 3*i01     ? two :
-                       seminibble0 == 3*(1-i01) ? zero :
-                                      !skip_10  ? one :
-                       seminibble0 == 1         ? one :
-                                                  zero;
-
-  const GMUInt8 out1 = seminibble1 == 3*i01     ? two :
-                       seminibble1 == 3*(1-i01) ? zero :
-                                      !skip_10  ? one :
-                       seminibble1 == 1         ? one :
-                                                  zero;
-  // Always keep pair of cols together, corresponding to the two i01 values.
-  // Right case: straight copy of cols to cols in sequence.
-  // Left case: interleave to make later swizzling of metrics array work:
-  // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
-
-  const int vl_index = is_right ? vl : vl < nvl2 ? 2*vl : 2*vl - nvl + 1;
-  const int vlX2_index = i01 + 2*vl_index;
-  //const int vlX2_index = is_right ? i01 + 2*vl :
-  //                i01 + 2*( vl < nvl2 ? 2*vl : 2*vl - nvl + 1 );
-
-  const int fl2_index = fl2_step;
-
-  const int fl_index_0 = 0 + 2 * fl2_index;
-  const int fl_index_1 = 1 + 2 * fl2_index;
-
-  const int vlX2_dim = nvlX2;
-
-  GMUInt8* vo8 = (GMUInt8*)vo;
-
-  vo8[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
-  vo8[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
+  vo_typed[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
+  vo_typed[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
 }
 
 //-----------------------------------------------------------------------------
@@ -256,47 +188,25 @@ void gm_tc_buf_write_(
 
   if (! is_int8) {
 
-    gm_tc_buf_write_fp16_kernel_<<<
+    gm_tc_buf_write_kernel_<GMUInt16><<<
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1),
         0,
         env->stream_compute_>>>(
-      GMEnv_num_way(env),
-      env->sparse,
-      is_right,
-      vi32,
-      vi_dim0,
-      nvlea,
-      nvle,
-      nvle2,
-      nvleX2,
-      nfl,
-      nfl2,
-      nfl2_step,
-      fl2_min,
-      tc_buf);
+      GMEnv_num_way(env), env->sparse, is_right,
+      vi32, vi_dim0, nvlea, nvle, nvle2, nvleX2,
+      nfl, nfl2, nfl2_step, fl2_min, tc_buf);
 
   } else {
 
-    gm_tc_buf_write_int8_kernel_<<<
+    gm_tc_buf_write_kernel_<GMUInt8><<<
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1),
         0,
         env->stream_compute_>>>(
-      GMEnv_num_way(env),
-      env->sparse,
-      is_right,
-      vi32,
-      vi_dim0,
-      nvlea,
-      nvle,
-      nvle2,
-      nvleX2,
-      nfl,
-      nfl2,
-      nfl2_step,
-      fl2_min,
-      tc_buf);
+      GMEnv_num_way(env), env->sparse, is_right,
+      vi32, vi_dim0, nvlea, nvle, nvle2, nvleX2,
+      nfl, nfl2, nfl2_step, fl2_min, tc_buf);
 
   }
 
@@ -356,13 +266,17 @@ void gm_tc_solve_(
     CUBLAS_OP_N, CUBLAS_OP_T,
     m, n, k,
     is_int8 ? (void*)&alpha_i32 : (void*)&alpha_f32,
-    tc_bufs.tc_buf_left, is_int8 ? CUDA_R_8I : CUDA_R_16F,
+    tc_bufs.tc_buf_left,
+    is_int8 ? CUDA_R_8I : CUDA_R_16F,
     m,
-    tc_bufs.tc_buf_right, is_int8 ? CUDA_R_8I : CUDA_R_16F,
+    tc_bufs.tc_buf_right,
+    is_int8 ? CUDA_R_8I : CUDA_R_16F,
     n,
     is_int8 ? (void*)&beta_i32 : (void*)&beta_f32,
     //(void*)&beta_f32,
-    dC, is_int8 ? CUDA_R_32I : CUDA_R_32F, m,
+    dC,
+    is_int8 ? CUDA_R_32I : CUDA_R_32F,
+    m,
     is_int8 ? CUDA_R_32I : CUDA_R_32F,
     //CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
     //CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
@@ -388,15 +302,11 @@ void gm_tc_solve_(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel to support gm_tc_fix_metrics_.
+/// \brief GPU kernel to support gm_tc_repair_metrics_.
 
-template<typename INTYPE32>
-__global__ void gm_tc_fix_metrics_kernel_(
-  int nvl,
-  int nvll,
-  int nvll2,
-  void* vo) {
-
+template<typename GemmOut_t>
+__global__ void gm_tc_repair_metrics_kernel_(
+  int nvl, int nvll, int nvll2, void* vo) { 
   // Row and column of metrics array.
 
   const int thread_r = threadIdx.x + blockIdx.x * blockDim.x;
@@ -413,7 +323,7 @@ __global__ void gm_tc_fix_metrics_kernel_(
 
   // Two col numbers being processed of this (float) array.
 
-  // ISSUE: does the compiler understand that the pointers are aliased
+  // ISSUE: does the compiler need to / understand that the pointers are aliased
 
   const size_t fc_offset0 = thread_c * (size_t)(4*nvll);
   const size_t fc_offset1 = thread_c * (size_t)(4*nvll) + 2*nvll;
@@ -423,17 +333,17 @@ __global__ void gm_tc_fix_metrics_kernel_(
 
   // Read the 8 floats.
 
-  INTYPE32* fvo = (INTYPE32*)vo;
+  GemmOut_t* fvo = (GemmOut_t*)vo;
 
-  const INTYPE32 f00 = fvo[fcr_offset0+0];
-  const INTYPE32 f01 = fvo[fcr_offset0+1];
-  const INTYPE32 f02 = fvo[fcr_offset0+2];
-  const INTYPE32 f03 = fvo[fcr_offset0+3];
+  const GemmOut_t f00 = fvo[fcr_offset0+0];
+  const GemmOut_t f01 = fvo[fcr_offset0+1];
+  const GemmOut_t f02 = fvo[fcr_offset0+2];
+  const GemmOut_t f03 = fvo[fcr_offset0+3];
 
-  const INTYPE32 f10 = fvo[fcr_offset1+0];
-  const INTYPE32 f11 = fvo[fcr_offset1+1];
-  const INTYPE32 f12 = fvo[fcr_offset1+2];
-  const INTYPE32 f13 = fvo[fcr_offset1+3];
+  const GemmOut_t f10 = fvo[fcr_offset1+0];
+  const GemmOut_t f11 = fvo[fcr_offset1+1];
+  const GemmOut_t f12 = fvo[fcr_offset1+2];
+  const GemmOut_t f13 = fvo[fcr_offset1+3];
 
   // Apply the permutation:
 
@@ -442,17 +352,17 @@ __global__ void gm_tc_fix_metrics_kernel_(
   // [ B  B ]  ->  [ A  B ]
   // [ B  B ]  ->  [ A  B ]
 
-  const INTYPE32 f00p = f00;
-  const INTYPE32 f01p = f01;
+  const GemmOut_t f00p = f00;
+  const GemmOut_t f01p = f01;
 
-  const INTYPE32 f02p = f10;
-  const INTYPE32 f03p = f11;
+  const GemmOut_t f02p = f10;
+  const GemmOut_t f03p = f11;
 
-  const INTYPE32 f10p = f02;
-  const INTYPE32 f11p = f03;
+  const GemmOut_t f10p = f02;
+  const GemmOut_t f11p = f03;
 
-  const INTYPE32 f12p = f12;
-  const INTYPE32 f13p = f13;
+  const GemmOut_t f12p = f12;
+  const GemmOut_t f13p = f13;
 
   // Use helper value to move value to upper half of mantissa.
 
@@ -486,8 +396,14 @@ __global__ void gm_tc_fix_metrics_kernel_(
 
 //-----------------------------------------------------------------------------
 /// \brief Swizzle/cast values from cublas call into double complex format.
+///
+///        The cublas gemm poduces a matrix of scalars of 32 bit size
+///        (int32 or float).  However the required format of the metrics
+///        is a matrix of double complex values, with each double
+///        containing two packed 25-bit integers.
+///        This code does an in-place transformation from one to the other.
 
-void gm_tc_fix_metrics_(
+void gm_tc_repair_metrics_(
   int nvll,
   int nvl,
   void* vo_ptr,
@@ -507,27 +423,17 @@ void gm_tc_fix_metrics_(
   const bool is_int8 = env->tc == 2;
 
   if (is_int8) {
-    gm_tc_fix_metrics_kernel_<int><<<
+    gm_tc_repair_metrics_kernel_<int32_t><<<
         dim3(vll2_threadblocks, nvl, 1),
         dim3(threadblocksize, 1, 1),
       0,
-        env->stream_compute_>>>(
-      nvl,
-      nvll,
-      nvll2,
-      vo_ptr
-    );
+        env->stream_compute_>>>(nvl, nvll, nvll2, vo_ptr);
   } else {
-    gm_tc_fix_metrics_kernel_<float><<<
+    gm_tc_repair_metrics_kernel_<float><<<
         dim3(vll2_threadblocks, nvl, 1),
         dim3(threadblocksize, 1, 1),
       0,
-        env->stream_compute_>>>(
-      nvl,
-      nvll,
-      nvll2,
-      vo_ptr
-    );
+        env->stream_compute_>>>(nvl, nvll, nvll2, vo_ptr);
   }
 
   GMEnv_cuda_last_call_succeeded(env);
@@ -581,12 +487,12 @@ void gm_tc_gemm_start_impl_(int m, int n, int k,
   }
 
   // Revise the results of the GEMMs to be in the needed double complex format.
-  gm_tc_fix_metrics_(nvll, nvl, dC, tc_bufs, env);
+  gm_tc_repair_metrics_(nvll, nvl, dC, tc_bufs, env);
 }
 
 //-----------------------------------------------------------------------------
-
-#endif
+#endif // USE_TC
+//-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute bitwise result.
