@@ -349,6 +349,8 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Set up parallel deomp for vectors, metrics---*/
 
+  double vctime = 0;
+  double time_beg = GMEnv_get_synced_time(env);
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm,
     do_.num_field_local_initialized,
@@ -358,6 +360,8 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
     GMEnv_data_type_vectors(env), env);
+  double time_end = GMEnv_get_synced_time(env);
+  vctime += time_end - time_beg;
 
 //TODO: possibly replace this with stuff from dm
   if (do_.num_vector_local_initialized) {
@@ -389,11 +393,10 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Allocate vectors---*/
 
-  double vctime = 0;
-  double time_beg = GMEnv_get_synced_time(env);
+  time_beg = GMEnv_get_synced_time(env);
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
-  double time_end = GMEnv_get_synced_time(env);
+  time_end = GMEnv_get_synced_time(env);
   vctime += time_end - time_beg;
 
   /*---Set vectors---*/
