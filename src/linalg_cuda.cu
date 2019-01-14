@@ -43,6 +43,10 @@ template<> struct TCBuf_types<GMUInt8> {
   static __device__ GMUInt8 two() {return (GMUInt8)2;}
 };
 
+static bool gm_tc_is_gemm_out_type_int32(const GMEnv* const env) {
+  return env->tc == GM_TC_GEMM_SOURCE_TYPE_INT8;
+}
+
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support gm_tc_buf_write_.
 
@@ -420,9 +424,7 @@ void gm_tc_repair_metrics_(
   const int threadblocksize = 256;
   const int vll2_threadblocks = gm_ceil_i8(nvll2, threadblocksize);
 
-  const bool is_int8 = env->tc == 2;
-
-  if (is_int8) {
+  if (gm_tc_is_gemm_out_type_int32(env)) {
     gm_tc_repair_metrics_kernel_<int32_t><<<
         dim3(vll2_threadblocks, nvl, 1),
         dim3(threadblocksize, 1, 1),

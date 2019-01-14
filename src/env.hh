@@ -103,7 +103,19 @@ enum {
   GM_NUM_COMPUTE_METHOD = 3
 };
 
-enum { GM_NUM_WAY_2 = 2, GM_NUM_WAY_3 = 3, GM_NUM_NUM_WAY = 2 };
+enum {
+  GM_NUM_WAY_2 = 2,
+  GM_NUM_WAY_3 = 3,
+  GM_NUM_NUM_WAY = 2 };
+
+enum {
+  GM_TC_GEMM_SOURCE_TYPE_NONE = 0,
+  GM_TC_GEMM_SOURCE_TYPE_FLOAT16 = 1,
+  GM_TC_GEMM_SOURCE_TYPE_INT8 = 2,
+  //GM_TC_GEMM_SOURCE_TYPE_INT4 = 3,
+  //GM_TC_GEMM_SOURCE_TYPE_INT1 = 4,
+  GM_NUM_TC_GEMM_SOURCE_TYPE = 3
+};
 
 //=============================================================================
 /*---Null object---*/

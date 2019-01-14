@@ -239,6 +239,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       GMInsistInterface(env, 0 == errno
                     && (long)(int)tc == tc
                     && tc >= 0
+                    && tc < GM_NUM_TC_GEMM_SOURCE_TYPE
                     && "Invalid setting for tc.");
       env->tc = tc;
       /*--------------------*/
