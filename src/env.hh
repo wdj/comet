@@ -19,16 +19,15 @@
 #include "mpi.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
-#include "cublas_v2.h"
 
 #include "assertions.hh"
 #include "types.hh"
 
 //=============================================================================
-/*---Environment struct declarations---*/
+// Environment struct declarations.
 
 typedef struct {
-  /*---Settings---*/
+  // CoMet Settings
   int metric_type_;
   int num_way_;
   bool all2all_;
@@ -41,7 +40,9 @@ typedef struct {
   double ccc_multiplier_;
   bool are_ccc_params_default;
   bool sparse;
-  /*---Counters---*/
+  int tc;
+  int num_tc_steps;
+  // Counters
   double time;
   double compares;
   double eltcompares;
@@ -52,13 +53,13 @@ typedef struct {
   size_t cpu_mem_max;
   size_t gpu_mem;
   size_t gpu_mem_max;
-  /*---MPI---*/
+  // MPI
   bool make_comms_;
   MPI_Comm mpi_comm_base_;
   MPI_Comm mpi_comm_;
   MPI_Comm mpi_comm_repl_vector_;
   MPI_Comm mpi_comm_field_;
-  /*---*/
+  // MPI proc counts
   int num_proc_base_;
   int num_proc_;
   int num_proc_field_;
@@ -66,34 +67,36 @@ typedef struct {
   int num_proc_vector_i_;
   int num_proc_repl_vector_;
   bool are_mpi_comms_initialized_;
-  /*---*/
+  // MPI proc numbers
   int proc_num_base_;
   int proc_num_;
   int proc_num_field_;
   int proc_num_repl_;
   int proc_num_vector_i_;
   int proc_num_repl_vector_;
-  /*---*/
   bool is_proc_active_;
-  /*---CUDA---*/
+  // CUDA
   cudaStream_t stream_compute_;
   cudaStream_t stream_togpu_;
   cudaStream_t stream_fromgpu_;
   bool are_cuda_streams_initialized_;
-  /*---HELPERS---*/
+  // HELPERS
   bool do_reduce;
   bool need_2way; // does the 3-way calc require 2-way metrics
-  /*---OTHER---*/
+  // OTHER
   const char* description;
-  int tc;
-  int num_tc_steps;
 } GMEnv;
+
+//-----------------------------------------------------------------------------
+// Enums for settings choices.
 
 enum {
   GM_METRIC_TYPE_SORENSON = 0, // Not implemented
   GM_METRIC_TYPE_CZEK = 1,
   GM_METRIC_TYPE_CCC = 2,
   GM_NUM_METRIC_TYPE = 3
+  //GM_METRIC_TYPE_DUO = 3,
+  //GM_NUM_METRIC_TYPE = 4
 };
 
 enum {
@@ -109,12 +112,13 @@ enum {
   GM_NUM_NUM_WAY = 2 };
 
 enum {
-  GM_TC_GEMM_SOURCE_TYPE_NONE = 0,
-  GM_TC_GEMM_SOURCE_TYPE_FLOAT16 = 1,
-  GM_TC_GEMM_SOURCE_TYPE_INT8 = 2,
-  //GM_TC_GEMM_SOURCE_TYPE_INT4 = 3,
-  //GM_TC_GEMM_SOURCE_TYPE_INT1 = 4,
-  GM_NUM_TC_GEMM_SOURCE_TYPE = 3
+  GM_TC_METHOD_NONE = 0,
+  GM_TC_METHOD_FLOAT16 = 1,
+  GM_TC_METHOD_INT8 = 2,
+  GM_NUM_TC_METHOD = 3
+  //GM_TC_METHOD_INT4 = 3,
+  //GM_TC_METHOD_INT1 = 4,
+  //GM_NUM_TC_METHOD = 5
 };
 
 //=============================================================================
@@ -152,6 +156,7 @@ void GMEnv_destroy(GMEnv* const env);
 
 void GMEnv_initialize_streams(GMEnv* const env);
 void GMEnv_terminate_streams(GMEnv* const env);
+void GMEnv_stream_synchronize(cudaStream_t stream, GMEnv* const env);
 
 //=============================================================================
 /*---Accessors: general---*/
@@ -529,16 +534,6 @@ bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
 
 int gm_gpu_compute_capability();
 
-#if 0
-static bool gm_assertions_on() {
-#ifdef GM_ASSERTIONS_ON
-  return true;
-#else
-  return false;
-#endif
-}
-#endif
-
 //-----------------------------------------------------------------------------
 
 void* gm_malloc(size_t n, GMEnv* env);
@@ -551,7 +546,6 @@ void GMFloat_free(GMFloat* p, size_t n, GMEnv* env);
 
 void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);
-//int GMFloat_mant_dig();
 
 template<typename T> int gm_mant_dig();
 

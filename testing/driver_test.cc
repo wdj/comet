@@ -579,7 +579,7 @@ void DriverTest_czek_() {
       }
     }
   }
-}
+} // DriverTest_czek_
 
 //=============================================================================
 
@@ -676,7 +676,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
-}
+} // DriverTest_ccc2_simple_compute_method
 
 //=============================================================================
 
@@ -836,7 +836,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
-}
+} // DriverTest_ccc2_simple_sparse_compute_method
 
 //=============================================================================
 
@@ -992,7 +992,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
-}
+} // DriverTest_ccc3_simple_compute_method
 
 //=============================================================================
 
@@ -1258,7 +1258,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
   GMEnv_destroy(env);
-}
+} // DriverTest_ccc3_simple_sparse_compute_method
 
 //=============================================================================
 
@@ -1742,8 +1742,7 @@ void DriverTest_ccc_() {
   }
 #endif
 
-#ifdef USE_TC
-  {
+  if (gm_gpu_compute_capability() >= 700) {
     char options1[1024];
     char options2[1024];
 
@@ -1770,9 +1769,8 @@ void DriverTest_ccc_() {
     }
     }
   }
-#endif
 
-}
+} // DriverTest_ccc_
 
 //=============================================================================
 

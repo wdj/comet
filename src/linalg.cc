@@ -8,8 +8,6 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "cuda.h"
-
 #include "magma_minproduct.h"
 #include "magma_minproduct_lapack.h"
 #include "magma_mgemm2.h"
@@ -683,10 +681,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 void gm_compute_wait(GMEnv* env) {
   GMInsist(env);
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    cudaStreamSynchronize(GMEnv_stream_compute(env));
-    GMInsist(GMEnv_cuda_last_call_succeeded(env));
-  }
+  GMEnv_stream_synchronize(GMEnv_stream_compute(env), env);
 }
 
 //=============================================================================
@@ -768,12 +763,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 void gm_linalg_set_matrix_wait(GMEnv* env) {
   GMInsist(env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  cudaStreamSynchronize(GMEnv_stream_togpu(env));
-  GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  GMEnv_stream_synchronize(GMEnv_stream_togpu(env), env);
 }
 
 //=============================================================================
@@ -856,12 +846,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 void gm_linalg_get_matrix_wait(GMEnv* env) {
   GMInsist(env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
-    return;
-  }
-
-  cudaStreamSynchronize(GMEnv_stream_fromgpu(env));
-  GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  GMEnv_stream_synchronize(GMEnv_stream_fromgpu(env), env);
 }
 
 //-----------------------------------------------------------------------------

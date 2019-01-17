@@ -11,6 +11,8 @@
 #ifndef _gm_linalg_cuda_cuh_
 #define _gm_linalg_cuda_cuh_
 
+#include "cublas_v2.h"
+
 #include "env.hh"
 
 //-----------------------------------------------------------------------------

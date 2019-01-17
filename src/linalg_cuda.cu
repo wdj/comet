@@ -10,25 +10,29 @@
 
 #include "stdint.h"
 
-#include "linalg_cuda.cuh"
-
-//-----------------------------------------------------------------------------
-#ifdef USE_TC
-//-----------------------------------------------------------------------------
-
+#include "cublas_v2.h"
 #include "cuda_fp16.h"
 
+#include "linalg_cuda.cuh"
+
+//=============================================================================
+// HELPERS
+//=============================================================================
+
 //-----------------------------------------------------------------------------
-/// \brief Specialized class to support gm_tc_buf_write_kernel_ type seletion.
+/// \brief Specialized class to provide selected constants of GemmIn_t type.
+///
+///        Provide constants "0", "1" and "2" in the datatype
+///        required to input to the cuBLAS reduced precision GEMM.
 
 // Note: we could use __half here instead of GMUInt16.  The intent here
 // was to use a type based on standard C/C++.  No actual computations
 // are done in this code based on the specifics of the type, so it doesn't
 // matter.  Important thing is that sizeof(GMUInt16) == sizeof(__half) == 2.
 
-template<typename Buf_t> struct TCBuf_types;
+template<typename GemmIn_t> struct TCBufTypes;
 
-template<> struct TCBuf_types<GMUInt16> {
+template<> struct TCBufTypes<GMUInt16> {
   static __device__ GMUInt16 zero() {return (GMUInt16)0x0000;}
                                         // = *(GMUInt16*)&__float2half(0.);
   static __device__ GMUInt16 one() {return (GMUInt16)0x3c00;}
@@ -37,21 +41,44 @@ template<> struct TCBuf_types<GMUInt16> {
                                         // = *(GMUInt16*)&__float2half(2.);
 };
 
-template<> struct TCBuf_types<GMUInt8> {
+template<> struct TCBufTypes<GMUInt8> {
   static __device__ GMUInt8 zero() {return (GMUInt8)0;}
   static __device__ GMUInt8 one() {return (GMUInt8)1;}
   static __device__ GMUInt8 two() {return (GMUInt8)2;}
 };
 
-static bool gm_tc_is_gemm_out_type_int32(const GMEnv* const env) {
-  return env->tc == GM_TC_GEMM_SOURCE_TYPE_INT8;
-}
+//-----------------------------------------------------------------------------
+/// \brief Seclector for types etc. for tc methods.
+
+template<int TC_METHOD> struct TCSelector;
+
+template<> struct TCSelector<GM_TC_METHOD_INT8> {
+  typedef GMUInt8 GemmIn_t;
+  typedef int32_t GemmOut_t;
+  static bool __host__ __device__ is_gemm_out_type_int32() {return true;}
+  static cudaDataType __host__ __device__ cuda_type_in() {return CUDA_R_8I;}
+  static cudaDataType __host__ __device__ cuda_type_out() {return CUDA_R_32I;}
+  enum { COUNT = 1 };
+};
+
+template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
+  typedef GMUInt16 GemmIn_t;
+  typedef float GemmOut_t;
+  static bool __host__ __device__ is_gemm_out_type_int32() {return false;}
+  static cudaDataType __host__ __device__ cuda_type_in() {return CUDA_R_16F;}
+  static cudaDataType __host__ __device__ cuda_type_out() {return CUDA_R_32F;}
+  enum { COUNT = 1 };
+};
+
+//=============================================================================
+// FILE_LOCAL (STATIC) FUNCTIONS
+//=============================================================================
 
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support gm_tc_buf_write_.
 
-template<typename Buf_t>
-__global__ void gm_tc_buf_write_kernel_(
+template<typename GemmIn_t>
+__global__ static void gm_tc_buf_write_kernel_(
   int num_way,
   bool is_sparse,
   bool is_right,
@@ -67,7 +94,7 @@ __global__ void gm_tc_buf_write_kernel_(
   int fl2_min,
   void* vo) {
 
-  // Two fields (seminibbles) map to two halves of (2*sizeof(Buf_t))-bit word
+  // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
   const int fl2_step = blockIdx.y + gridDim.y * blockIdx.z;
@@ -81,7 +108,7 @@ __global__ void gm_tc_buf_write_kernel_(
 
   const int fl2 = fl2_min + fl2_step;
 
-  // Output array interpreted as having Buf_t scalars has nfl rows.
+  // Output array interpreted as having GemmIn_t scalars has nfl rows.
 
   const GMUInt32* const vi32_col = vi32 + vl * (size_t)vi32_dim0;
 
@@ -100,21 +127,21 @@ __global__ void gm_tc_buf_write_kernel_(
   const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
 
   // Possible counts, represented in target type.
-  const Buf_t zero = TCBuf_types<Buf_t>::zero();
-  const Buf_t one = TCBuf_types<Buf_t>::one();
-  const Buf_t two = TCBuf_types<Buf_t>::two();
+  const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
+  const GemmIn_t one = TCBufTypes<GemmIn_t>::one();
+  const GemmIn_t two = TCBufTypes<GemmIn_t>::two();
 
-  const Buf_t out0 = seminibble0 == 3*i01     ? two :
-                     seminibble0 == 3*(1-i01) ? zero :
-                                    !skip_10  ? one :
-                     seminibble0 == 1         ? one :
-                                                zero;
+  const GemmIn_t out0 = seminibble0 == 3*i01     ? two :
+                        seminibble0 == 3*(1-i01) ? zero :
+                                       !skip_10  ? one :
+                        seminibble0 == 1         ? one :
+                                                   zero;
 
-  const Buf_t out1 = seminibble1 == 3*i01     ? two :
-                     seminibble1 == 3*(1-i01) ? zero :
-                                    !skip_10  ? one :
-                     seminibble1 == 1         ? one :
-                                                zero;
+  const GemmIn_t out1 = seminibble1 == 3*i01     ? two :
+                        seminibble1 == 3*(1-i01) ? zero :
+                                       !skip_10  ? one :
+                        seminibble1 == 1         ? one :
+                                                   zero;
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make later swizzling of metrics array work:
@@ -130,7 +157,7 @@ __global__ void gm_tc_buf_write_kernel_(
 
   const int vlX2_dim = nvlX2;
 
-  Buf_t* vo_typed = (Buf_t*)vo;
+  GemmIn_t* vo_typed = (GemmIn_t*)vo;
 
   vo_typed[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
   vo_typed[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
@@ -139,7 +166,8 @@ __global__ void gm_tc_buf_write_kernel_(
 //-----------------------------------------------------------------------------
 /// \brief Convert bitwise matrix to required format for GEMM.
 
-void gm_tc_buf_write_(
+template<int TC_METHOD>
+static void gm_tc_buf_write_(
   bool is_right,
   int I_max,
   int I_max_dim,
@@ -159,8 +187,6 @@ void gm_tc_buf_write_(
   GMInsist(tc_bufs.tc_buf_left);
   GMInsist(tc_bufs.tc_buf_right);
 //TODO: more assertions
-
-  const bool is_int8 = env->tc == 2;
 
   const int nvle = is_right ? nvl : I_max_dim; // effective nvl dimension
   const int nvle2 = nvle / 2;
@@ -185,34 +211,22 @@ void gm_tc_buf_write_(
   const int num_threadblocks_1 = gm_min_i8(nfl2_step, blockdim_y);
   const int num_threadblocks_2 = gm_ceil_i8(nfl2_step, blockdim_y);
 
-  // TODO: check dims against tc_bufs.tc_buf_size
+  GMInsist(nvleX2 * (2*nfl2_step) *
+           sizeof(typename TCSelector<TC_METHOD>::GemmIn_t)
+           <= tc_bufs.tc_buf_size &&
+           "Subscriptrange error on tc buf.");
 
   void* const tc_buf = is_right ? tc_bufs.tc_buf_right : tc_bufs.tc_buf_left;
   GMUInt32* vi32 = (GMUInt32*)vi;
 
-  if (! is_int8) {
-
-    gm_tc_buf_write_kernel_<GMUInt16><<<
-        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
-        dim3(threadblocksize, 1, 1),
-        0,
-        env->stream_compute_>>>(
-      GMEnv_num_way(env), env->sparse, is_right,
-      vi32, vi_dim0, nvlea, nvle, nvle2, nvleX2,
-      nfl, nfl2, nfl2_step, fl2_min, tc_buf);
-
-  } else {
-
-    gm_tc_buf_write_kernel_<GMUInt8><<<
-        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
-        dim3(threadblocksize, 1, 1),
-        0,
-        env->stream_compute_>>>(
-      GMEnv_num_way(env), env->sparse, is_right,
-      vi32, vi_dim0, nvlea, nvle, nvle2, nvleX2,
-      nfl, nfl2, nfl2_step, fl2_min, tc_buf);
-
-  }
+  gm_tc_buf_write_kernel_<typename TCSelector<TC_METHOD>::GemmIn_t><<<
+      dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
+      dim3(threadblocksize, 1, 1),
+      0,
+      env->stream_compute_>>>(
+    GMEnv_num_way(env), env->sparse, is_right,
+    vi32, vi_dim0, nvlea, nvle, nvle2, nvleX2,
+    nfl, nfl2, nfl2_step, fl2_min, tc_buf);
 
   GMEnv_cuda_last_call_succeeded(env);
 }
@@ -220,7 +234,8 @@ void gm_tc_buf_write_(
 //-----------------------------------------------------------------------------
 /// \brief Call cublas to perform required GEMM.
 
-void gm_tc_solve_(
+template<int TC_METHOD>
+static void gm_tc_solve_(
   bool is_first,
   int nvll,
   int nvl,
@@ -238,19 +253,16 @@ void gm_tc_solve_(
   GMInsist(npvfl_step >= 0);
   GMInsist(env->tc == 1 || env->tc == 2);
 
+#if __CUDACC_VER_MAJOR__ >= 9
+
   const int nfl_step = npvfl_step * 64;
 
   const int m = 2 * nvll; // metrics array dim
   const int n = 2 * nvl; // metrics array dim
   const int k = nfl_step; // vectors array (as halfs/bytes) dim
 
-  const float alpha_f32 = 1;
-  const float beta_f32 = is_first ? 0 : 1;
-
-  const int alpha_i32 = 1;
-  const int beta_i32 = is_first ? 0 : 1;
-
-  const bool is_int8 = env->tc == 2;
+  const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
+  const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
   // See https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
   // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
@@ -269,23 +281,21 @@ void gm_tc_solve_(
     tc_bufs.cublas_handle,
     CUBLAS_OP_N, CUBLAS_OP_T,
     m, n, k,
-    is_int8 ? (void*)&alpha_i32 : (void*)&alpha_f32,
+    (void*)&alpha,
     tc_bufs.tc_buf_left,
-    is_int8 ? CUDA_R_8I : CUDA_R_16F,
+    TCSelector<TC_METHOD>::cuda_type_in(),
     m,
     tc_bufs.tc_buf_right,
-    is_int8 ? CUDA_R_8I : CUDA_R_16F,
+    TCSelector<TC_METHOD>::cuda_type_in(),
     n,
-    is_int8 ? (void*)&beta_i32 : (void*)&beta_f32,
-    //(void*)&beta_f32,
+    (void*)&beta,
     dC,
-    is_int8 ? CUDA_R_32I : CUDA_R_32F,
+    TCSelector<TC_METHOD>::cuda_type_out(),
     m,
-    is_int8 ? CUDA_R_32I : CUDA_R_32F,
+    TCSelector<TC_METHOD>::cuda_type_out(),
     //CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
     //CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
     CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.2.88, transpose
-    //CUBLAS_GEMM_DFALT_TENSOR_OP
   );
 
   if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
@@ -303,13 +313,72 @@ void gm_tc_solve_(
   GMInsist(status == CUBLAS_STATUS_SUCCESS);
 
   env->ops_local += 2 * m * (double)n * (double)k;
+
+#endif // __CUDACC_VER_MAJOR__
 }
 
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support gm_tc_repair_metrics_.
+///
+///        This function has two purposes:
+///        1. Convert the 2X2 table from each pair of compared vectors
+///        from 4 32-bit (int32 or float32) values to the required
+///        16-byte double complex packed format.
+///        2. Permute the table elements to the required places.
+///
+///        The reason for the permutation is as follows.
+///        For the output matrix of this function, each single 2X2 matrix
+///        is arranged contiguously in memory as a double complex value.
+///        However, the input matrices to the GEMM do not give a result
+///        matrix that is consistent with this ordering.
+///        Thus there needs to be a copy to rearrange.  Furthermore,
+///        we want to make this an in-place rearrangement to save
+///        space, and additionally we want to assign work to threads
+///        with no race conditions and with coalesced memory accesses.
+///
+///        The method can be explained as follows.
+///        1. The input "left" and "right" matrices to the modified GEMM
+///        can be thought of each as a group of column vectors.
+///        2. Each column (of 2-bit entries) is converted into two columns,
+///        with entries being the counts of 0 bits and 1 bits of the
+///        original vectors.  Each pair of vectors is kept together
+///        side-by-side in these new left and right matrices L and R.
+///        3. The columns of L are permuted, to give L' = L P
+///        Example:
+///          R  = [ G, G, H, H, I, I, J, J, K, K, L, L ]
+///          L  = [ A, A, B, B, C, C, D, D, E, E, F, F ]
+///          L' = [ A, A, D, D, B, B, E, E, C, C, F, F ]
+///        (note L is used in 2 different senses here)
+///        4. The GEMM is computed, M = (L')^T R = P^T L^T R.  Because of
+///        the permutation of L, the rows of M are permuted.
+///        Here, for brevity we drop the transpose, writing A^T G as AG, etc.
+///          M = [ AG, AG, AH, AH, . . . ]
+///              [ AG, AG, AH, AH, . . . ]
+///              [ DG, DG, DH, DH, . . . ]
+///              [ DG, DG, DH, DH, . . . ]
+///              [ BG, BG, BH, BH, . . . ]
+///              [ BG, BG, BH, BH, . . . ]
+///              [ EG, EG, EH, EH, . . . ]
+///              [ EG, EG, EH, EH, . . . ]
+///              [ CG, CG, CH, CH, . . . ]
+///              [ CG, CG, CH, CH, . . . ]
+///              [ FG, FG, FH, FH, . . . ]
+///              [ FG, FG, FH, FH, . . . ]
+///        Here we are considering M to be stored in column-major order.
+///        5. Next we consider this as composed of size 4X2 blocks,
+///        assign a CUDA thread to each block and do an in-block
+///        permutation. Note each thread loads 2 16-byte (double) words,
+///        with stride between threads of 16 bytes.
+///        (need to check on efficiency of this w.r.t. coalescing etc.)
+///          [ AG, AG ] -> [ AG, DG ]
+///          [ AG, AG ] -> [ AG, DG ]
+///          [ DG, DG ] -> [ AG, DG ]
+///          [ DG, DG ] -> [ AG, DG ]
+///        As can be seen, all four entries AG of the table are now
+///        contiguous in memory.
 
 template<typename GemmOut_t>
-__global__ void gm_tc_repair_metrics_kernel_(
+__global__ static void gm_tc_repair_metrics_kernel_(
   int nvl, int nvll, int nvll2, void* vo) { 
   // Row and column of metrics array.
 
@@ -329,11 +398,14 @@ __global__ void gm_tc_repair_metrics_kernel_(
 
   // ISSUE: does the compiler need to / understand that the pointers are aliased
 
-  const size_t fc_offset0 = thread_c * (size_t)(4*nvll);
-  const size_t fc_offset1 = thread_c * (size_t)(4*nvll) + 2*nvll;
+//  const size_t fc_offset0 = thread_c * (size_t)(4*nvll);
+//  const size_t fc_offset1 = thread_c * (size_t)(4*nvll) + 2*nvll;
+//
+//  const size_t fcr_offset0 = fc_offset0 + 4*thread_r;
+//  const size_t fcr_offset1 = fc_offset1 + 4*thread_r;
 
-  const size_t fcr_offset0 = fc_offset0 + 4*thread_r;
-  const size_t fcr_offset1 = fc_offset1 + 4*thread_r;
+  const size_t fcr_offset0 = 4*thread_r + thread_c * (size_t)(4*nvll);
+  const size_t fcr_offset1 = 4*thread_r + thread_c * (size_t)(4*nvll) + 2*nvll;
 
   // Read the 8 floats.
 
@@ -351,10 +423,10 @@ __global__ void gm_tc_repair_metrics_kernel_(
 
   // Apply the permutation:
 
-  // [ A  A ]  ->  [ A  B ]
-  // [ A  A ]  ->  [ A  B ]
-  // [ B  B ]  ->  [ A  B ]
-  // [ B  B ]  ->  [ A  B ]
+  // [ f00  f10 ]  ->  [ f00  f02 ]
+  // [ f01  f11 ]  ->  [ f01  f03 ]
+  // [ f02  f12 ]  ->  [ f10  f12 ]
+  // [ f03  f13 ]  ->  [ f11  f13 ]
 
   const GemmOut_t f00p = f00;
   const GemmOut_t f01p = f01;
@@ -368,7 +440,7 @@ __global__ void gm_tc_repair_metrics_kernel_(
   const GemmOut_t f12p = f12;
   const GemmOut_t f13p = f13;
 
-  // Use helper value to move value to upper half of mantissa.
+  // Use "shifter" to move one value to upper half of mantissa.
 
   const double shifter = (((GMUInt32)1) << GM_TALLY1_MAX_VALUE_BITS);
 
@@ -407,7 +479,8 @@ __global__ void gm_tc_repair_metrics_kernel_(
 ///        containing two packed 25-bit integers.
 ///        This code does an in-place transformation from one to the other.
 
-void gm_tc_repair_metrics_(
+template<int TC_METHOD>
+static void gm_tc_repair_metrics_(
   int nvll,
   int nvl,
   void* vo_ptr,
@@ -424,37 +497,41 @@ void gm_tc_repair_metrics_(
   const int threadblocksize = 256;
   const int vll2_threadblocks = gm_ceil_i8(nvll2, threadblocksize);
 
-  if (gm_tc_is_gemm_out_type_int32(env)) {
-    gm_tc_repair_metrics_kernel_<int32_t><<<
-        dim3(vll2_threadblocks, nvl, 1),
-        dim3(threadblocksize, 1, 1),
+  gm_tc_repair_metrics_kernel_<typename TCSelector<TC_METHOD>::GemmOut_t><<<
+      dim3(vll2_threadblocks, nvl, 1),
+      dim3(threadblocksize, 1, 1),
       0,
-        env->stream_compute_>>>(nvl, nvll, nvll2, vo_ptr);
-  } else {
-    gm_tc_repair_metrics_kernel_<float><<<
-        dim3(vll2_threadblocks, nvl, 1),
-        dim3(threadblocksize, 1, 1),
-      0,
-        env->stream_compute_>>>(nvl, nvll, nvll2, vo_ptr);
-  }
+      env->stream_compute_>>>(nvl, nvll, nvll2, vo_ptr);
 
   GMEnv_cuda_last_call_succeeded(env);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute bitwise result: implementation.
+///
+///        This is the main function to perform the relevant
+///        bitwise modified GEMM operation by use of standard GEMM
+///        computations, typically using reduced precision arithmetic
+///        and associated hardware features.
+///
+///        This is composed of three steps:
+///        1. copy the input matrices into the required matrix format
+///        2. apply the GEMM
+///        3. adjust the results in-place to the required format.
+///        To save on memory, this 3-step process is broken into
+///        a sequence of steps as an outer loop.
+///        All of these operations are pipelined in a (CUDA) execution
+///        stream.
+///
 
-void gm_tc_gemm_start_impl_(int m, int n, int k,
-                            void* dA, int ldda,
-                            void* dB, int lddb,
-                            void* dC, int lddc,
-                            TCBufs& tc_bufs,
-                            GMEnv* env) {
-
-  // Ensure tensor core hardware is available.
-  cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp, 0);
-  GMInsist(deviceProp.major >= 7);
+template<int TC_METHOD>
+static void gm_tc_gemm_start_impl_(
+  int m, int n, int k,
+  void* dA, int ldda,
+  void* dB, int lddb,
+  void* dC, int lddc,
+  TCBufs& tc_bufs,
+  GMEnv* env) {
 
   const int I_max = m;
   const int I_max_dim = lddc;
@@ -479,25 +556,26 @@ void gm_tc_gemm_start_impl_(int m, int n, int k,
     // of values of a type suitable for the GEMM.
     const bool left_matrix = false; // A
     const bool right_matrix = true; // B
-    gm_tc_buf_write_(left_matrix, I_max, I_max_dim, nvl, npvfl,
+    gm_tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
                      npvfl_step, pvfl_min, dA, tc_bufs, env);
-    gm_tc_buf_write_(right_matrix, I_max, I_max_dim, nvl, npvfl,
+    gm_tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
                      npvfl_step, pvfl_min, dB, tc_bufs, env);
 
     // Perform the GEMM for this pair of block rows; accumulate.
-    gm_tc_solve_(pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, tc_bufs, env);
+    gm_tc_solve_<TC_METHOD>(
+      pvfl_min==0, nvll, nvl, npvfl_step, dA, dB, dC, tc_bufs, env);
   }
 
   // Revise the results of the GEMMs to be in the needed double complex format.
-  gm_tc_repair_metrics_(nvll, nvl, dC, tc_bufs, env);
+  gm_tc_repair_metrics_<TC_METHOD>(nvll, nvl, dC, tc_bufs, env);
 }
 
-//-----------------------------------------------------------------------------
-#endif // USE_TC
-//-----------------------------------------------------------------------------
+//=============================================================================
+// "PUBLIC" FUNCTIONS
+//=============================================================================
 
 //-----------------------------------------------------------------------------
-/// \brief Use a standard GEMM to compute bitwise result.
+/// \brief Use a standard GEMM to compute CoMet metrics bitwise result.
 
 void gm_tc_gemm_start(int m, int n, int k,
                       void* dA, int ldda,
@@ -514,16 +592,27 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(env->tc);
   GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
-#ifndef USE_TC
-  GMInsistInterface(env,
-                    false && "TC option unavailable for this platform/build.");
-#endif
+  // Ensure tensor core hardware is available.
+  GMInsistInterface(env, gm_gpu_compute_capability() >= 700 &&
+                    "TC option unavailable for this platform/build.");
 
-  cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp, 0);
-  GMInsist(deviceProp.major >= 7);
+  // Select required template function instance.
 
-  gm_tc_gemm_start_impl_(m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
+  switch (env->tc) {
+    // --------------
+    case GM_TC_METHOD_INT8: {
+      gm_tc_gemm_start_impl_<GM_TC_METHOD_INT8>(
+        m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
+    } break;
+    // --------------
+    case GM_TC_METHOD_FLOAT16: {
+      gm_tc_gemm_start_impl_<GM_TC_METHOD_FLOAT16>(
+        m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
+    } break;
+    // --------------
+    default:
+      GMInsist(false && "Invalid tc type.");
+  } // switch
 }
 
 //-----------------------------------------------------------------------------
@@ -548,18 +637,26 @@ void gm_tc_bufs_malloc(int num_vector_local,
     return;
   }
 
+  GMInsistInterface(env, gm_gpu_compute_capability() >= 700 &&
+                    "TC option unavailable for this platform/build.");
+
   // Calculate sizes.
 
   const size_t nvl = num_vector_local;
   const size_t npvfl = num_packedval_field_local;
   const size_t npvfl_step_max = gm_ceil_i8(npvfl, env->num_tc_steps);
 
-  const bool is_int8 = env->tc == 2;
-  const int sizeof_scalar = is_int8 ? 1 : 2;
+  const int sizeof_gemm_in_t =
+     env->tc == GM_TC_METHOD_INT8 ?
+       sizeof(typename TCSelector<GM_TC_METHOD_INT8>::GemmIn_t) :
+     env->tc == GM_TC_METHOD_FLOAT16 ?
+       sizeof(typename TCSelector<GM_TC_METHOD_FLOAT16>::GemmIn_t) :
+     0;
+  GMInsist(GM_NUM_TC_METHOD == 3); // this code must be updated if new method
 
   const size_t nvlX2 = nvl * 2;
 
-  tc_bufs.tc_buf_size = nvlX2 * (npvfl_step_max * 64) * sizeof_scalar;
+  tc_bufs.tc_buf_size = nvlX2 * (npvfl_step_max * 64) * sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 
   // Allocate buffers.
@@ -582,12 +679,9 @@ void gm_tc_bufs_malloc(int num_vector_local,
   status_cb = cublasSetStream(tc_bufs.cublas_handle, env->stream_compute_);
   GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
 
-#ifdef USE_TC
+#if __CUDACC_VER_MAJOR__ >= 9
   status_cb = cublasSetMathMode(tc_bufs.cublas_handle, CUBLAS_TENSOR_OP_MATH);
   GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
-#else
-  GMInsistInterface(env,
-                    false && "TC option unavailable for this platform/build.");
 #endif
 }
 

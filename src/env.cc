@@ -239,7 +239,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       GMInsistInterface(env, 0 == errno
                     && (long)(int)tc == tc
                     && tc >= 0
-                    && tc < GM_NUM_TC_GEMM_SOURCE_TYPE
+                    && tc < GM_NUM_TC_METHOD
                     && "Invalid setting for tc.");
       env->tc = tc;
       /*--------------------*/
@@ -657,11 +657,8 @@ bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
 
 int gm_gpu_compute_capability() {
   cudaDeviceProp deviceProp;
-
   // Assume only one GPU visible per rank.
-
   cudaGetDeviceProperties(&deviceProp, 0);
-
   return deviceProp.major * 100 + deviceProp.minor;
 }
 
@@ -825,6 +822,18 @@ size_t gm_array_cksum(unsigned char* a, size_t n) {
   }
 
   return result;
+}
+
+//-----------------------------------------------------------------------------
+
+void GMEnv_stream_synchronize(cudaStream_t stream, GMEnv* const env) {
+  GMInsist(env);
+
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+    cudaStreamSynchronize(stream);
+    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  }
+
 }
 
 //-----------------------------------------------------------------------------

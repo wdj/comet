@@ -267,7 +267,7 @@ function main
   fi
   if [ $IS_IBM_AC922 = YES ] ; then
     local TEST_COMMAND="module load $CUDA_MODULE ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32 -X 1"
-    C_CXX_FLAGS="$C_CXX_FLAGS -DUSE_TC"
+    #C_CXX_FLAGS="$C_CXX_FLAGS -DUSE_TC"
     C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
   fi
 

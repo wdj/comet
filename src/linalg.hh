@@ -15,8 +15,8 @@
 #include "magma_minproduct_lapack.h"
 
 #include "env.hh"
-#include "mirrored_buf.hh"
 #include "decomp_mgr.hh"
+#include "mirrored_buf.hh"
 
 //=============================================================================
 
