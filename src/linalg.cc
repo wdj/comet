@@ -191,10 +191,8 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     }
 
     p->size = n*sizeof(GMFloat);
-    env->cpu_mem += p->size;
-    env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
-    env->gpu_mem += p->size;
-    env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+    gm_cpu_mem_inc(p->size, env);
+    gm_gpu_mem_inc(p->size, env);
 
   } else if (use_mgemm4(env)) { //--------------------
 
@@ -213,10 +211,8 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
-    env->cpu_mem += p->size;
-    env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
-    env->gpu_mem += p->size;
-    env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+    gm_cpu_mem_inc(p->size, env);
+    gm_gpu_mem_inc(p->size, env);
 
   } else if (use_mgemm2(env)) { //--------------------
 
@@ -235,10 +231,8 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
-    env->cpu_mem += p->size;
-    env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
-    env->gpu_mem += p->size;
-    env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+    gm_cpu_mem_inc(p->size, env);
+    gm_gpu_mem_inc(p->size, env);
 
   } else if (use_mgemm3(env)) { //--------------------
 
@@ -257,10 +251,8 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    " possibly due to insufficient memory.");
 
     p->size = n*sizeof(Float_t);
-    env->cpu_mem += p->size;
-    env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
-    env->gpu_mem += p->size;
-    env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+    gm_cpu_mem_inc(p->size, env);
+    gm_gpu_mem_inc(p->size, env);
 
   } else { //--------------------
 
@@ -293,8 +285,8 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_code = magma_minproduct_free(p->d);
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS);
 
-    env->cpu_mem -= size;
-    env->gpu_mem -= size;
+    gm_cpu_mem_dec(size, env);
+    gm_gpu_mem_dec(size, env);
 
   } else if (use_mgemm4(env)) { //--------------------
 
@@ -303,8 +295,8 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_code = magma_mgemm4_free(p->d);
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS);
 
-    env->cpu_mem -= size;
-    env->gpu_mem -= size;
+    gm_cpu_mem_dec(size, env);
+    gm_gpu_mem_dec(size, env);
 
   } else if (use_mgemm2(env)) { //--------------------
 
@@ -313,8 +305,8 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_code = magma_mgemm2_free(p->d);
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS);
 
-    env->cpu_mem -= size;
-    env->gpu_mem -= size;
+    gm_cpu_mem_dec(size, env);
+    gm_gpu_mem_dec(size, env);
 
   } else if (use_mgemm3(env)) { //--------------------
 
@@ -323,8 +315,8 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_code = magma_mgemm3_free(p->d);
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS);
 
-    env->cpu_mem -= size;
-    env->gpu_mem -= size;
+    gm_cpu_mem_dec(size, env);
+    gm_gpu_mem_dec(size, env);
 
   } else { //--------------------
 

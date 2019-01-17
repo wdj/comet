@@ -380,7 +380,6 @@ void GMEnv_stream_synchronize(cudaStream_t stream, GMEnv* const env) {
     cudaStreamSynchronize(stream);
     GMInsist(GMEnv_cuda_last_call_succeeded(env));
   }
-
 }
 
 //=============================================================================
@@ -452,9 +451,7 @@ void GMEnv_destroy(GMEnv* const env) {
   GMInsist(env);
 
   GMEnv_terminate_comms(env);
-
   GMEnv_terminate_streams(env);
-
   *env = GMEnv_null();
 }
 
@@ -463,8 +460,7 @@ void GMEnv_destroy(GMEnv* const env) {
 
 void GMEnv_set_compute_method(GMEnv* const env, int compute_method) {
   GMInsist(env);
-  GMInsist(compute_method >= 0);
-  GMInsist(compute_method < GM_NUM_COMPUTE_METHOD);
+  GMInsist(compute_method >= 0 && compute_method < GM_NUM_COMPUTE_METHOD);
 
   env->compute_method_ = compute_method;
 }
@@ -636,13 +632,36 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
 //=============================================================================
 // Arrays and floating point
 
+void gm_cpu_mem_inc(size_t n, GMEnv* env) {
+  GMInsist(env);
+  env->cpu_mem += n;
+  env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
+}
+
+void gm_cpu_mem_dec(size_t n, GMEnv* env) {
+  GMInsist(env);
+  env->cpu_mem -= n;
+}
+
+void gm_gpu_mem_inc(size_t n, GMEnv* env) {
+  GMInsist(env);
+  env->gpu_mem += n;
+  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+}
+
+void gm_gpu_mem_dec(size_t n, GMEnv* env) {
+  GMInsist(env);
+  env->gpu_mem -= n;
+}
+
+//-----------------------------------------------------------------------------
+
 void* gm_malloc(size_t n, GMEnv* env) {
   GMInsist(env);
   void* p = malloc(n);
   GMInsist(p && "Invalid pointer from malloc,"
                 " possibly due to insufficient memory.");
-  env->cpu_mem += n;
-  env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
+  gm_cpu_mem_inc(n, env);
   return p;
 }
 
@@ -651,7 +670,7 @@ void* gm_malloc(size_t n, GMEnv* env) {
 void gm_free(void* p, size_t n, GMEnv* env) {
   GMInsist(p && env);
   free(p);
-  env->cpu_mem -= n;
+  gm_cpu_mem_dec(n, env);
 }
 
 //-----------------------------------------------------------------------------

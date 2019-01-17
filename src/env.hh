@@ -530,6 +530,11 @@ static void GMFloat_sort_3(GMFloat* const __restrict__ min,
 //=============================================================================
 // Arrays and floating point
 
+void gm_cpu_mem_inc(size_t n, GMEnv* env);
+void gm_cpu_mem_dec(size_t n, GMEnv* env);
+void gm_gpu_mem_inc(size_t n, GMEnv* env);
+void gm_gpu_mem_dec(size_t n, GMEnv* env);
+
 void* gm_malloc(size_t n, GMEnv* env);
 void gm_free(void* p, size_t n, GMEnv* env);
 
