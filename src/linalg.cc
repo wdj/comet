@@ -24,6 +24,27 @@
 #include "linalg.hh"
 
 //=============================================================================
+// Helpers
+
+static bool use_minproduct(GMEnv* env) {
+  return GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK;
+}
+
+static bool use_mgemm2(GMEnv* env) {
+  return GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+         GMEnv_num_way(env) == GM_NUM_WAY_2 && ! env->sparse;
+}
+
+static bool use_mgemm3(GMEnv* env) {
+  return GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+         GMEnv_num_way(env) == GM_NUM_WAY_3 && ! env->sparse;
+}
+
+static bool use_mgemm4(GMEnv* env) {
+  return GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse;
+}
+
+//=============================================================================
 /*---Magma setup, teardown---*/
 
 void gm_linalg_initialize(GMEnv* env) {
@@ -33,73 +54,51 @@ void gm_linalg_initialize(GMEnv* env) {
     return;
   }
 
-  /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
-  /*----------------------------------------*/
+  // need magma blasSetKernelStream -- see
+  // http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
+  // page 14
+
+  if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_init();
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in call to magma_minproduct_init.");
-    /*---need this -- see
-     * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
-     * page 14 ---*/
     magma_code = magma_minproductblasSetKernelStream(GMEnv_stream_compute(env));
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
                    "Error in call to magma_minproductblasSetKernelStream." : 0);
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
-  /*----------------------------------------*/
+  } else if (use_mgemm4(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_init();
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4_init.");
-    /*---need this -- see
-     * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
-     * page 14 ---*/
     magma_code = magma_mgemm4blasSetKernelStream(GMEnv_stream_compute(env));
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS ?
                    "Error in call to magma_mgemm4blasSetKernelStream." : 0);
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_2) {
-  /*----------------------------------------*/
+  } else if (use_mgemm2(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_init();
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2_init.");
-    /*---need this -- see
-     * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
-     * page 14 ---*/
     magma_code = magma_mgemm2blasSetKernelStream(GMEnv_stream_compute(env));
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2blasSetKernelStream.");
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_3) {
-  /*----------------------------------------*/
+  } else if (use_mgemm3(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_init();
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3_init.");
-    /*---need this -- see
-     * http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
-     * page 14 ---*/
     magma_code = magma_mgemm3blasSetKernelStream(GMEnv_stream_compute(env));
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3blasSetKernelStream.");
 
-  /*----------------------------------------*/
-  } else {
-  /*----------------------------------------*/
+  } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented.");
 
-  /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+  } // if //--------------------
 }
 
 //-----------------------------------------------------------------------------
@@ -111,54 +110,37 @@ void gm_linalg_finalize(GMEnv* env) {
     return;
   }
 
-  /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
-  /*----------------------------------------*/
+  // TODO: (maybe) reset kernel stream (probably not really needed)
 
+  if (use_minproduct(env)) { //--------------------
 
-    // TODO: reset kernel stream (not really needed)
     magma_minproduct_int_t magma_code = magma_minproduct_finalize();
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in call to magma_minproduct_finalize.");
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
-  /*----------------------------------------*/
+  } else if (use_mgemm4(env)) { //--------------------
 
-    // TODO: reset kernel stream (not really needed)
     magma_mgemm4_int_t magma_code = magma_mgemm4_finalize();
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4_finalize.");
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_2) {
-  /*----------------------------------------*/
+  } else if (use_mgemm2(env)) { //--------------------
 
-    // TODO: reset kernel stream (not really needed)
     magma_mgemm2_int_t magma_code = magma_mgemm2_finalize();
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2_finalize.");
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_3) {
-  /*----------------------------------------*/
+  } else if (use_mgemm3(env)) { //--------------------
 
-    // TODO: reset kernel stream (not really needed)
     magma_mgemm3_int_t magma_code = magma_mgemm3_finalize();
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3_finalize.");
 
-  /*----------------------------------------*/
-  } else {
-  /*----------------------------------------*/
+  } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented.");
 
-  /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+  } // if //--------------------
 }
 
 //=============================================================================
@@ -179,9 +161,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   const size_t n = dim0 * dim1;
 
-  /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
-  /*----------------------------------------*/
+  if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = 0;
 
@@ -216,9 +196,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     env->gpu_mem += p->size;
     env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
-  /*----------------------------------------*/
+  } else if (use_mgemm4(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
@@ -240,10 +218,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     env->gpu_mem += p->size;
     env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_2) {
-  /*----------------------------------------*/
+  } else if (use_mgemm2(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
@@ -265,10 +240,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     env->gpu_mem += p->size;
     env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_3) {
-  /*----------------------------------------*/
+  } else if (use_mgemm3(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
@@ -290,15 +262,11 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     env->gpu_mem += p->size;
     env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
 
-  /*----------------------------------------*/
-  } else {
-  /*----------------------------------------*/
+  } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented.");
 
-  /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+  } // if //--------------------
 
   GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc.");
   GMInsist(p->d && "Invalid device pointer created in gm_linalg_malloc.");
@@ -318,9 +286,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 
   const size_t size = p->size;
 
-  /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
-  /*----------------------------------------*/
+  if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS);
@@ -330,9 +296,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     env->cpu_mem -= size;
     env->gpu_mem -= size;
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
-  /*----------------------------------------*/
+  } else if (use_mgemm4(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS);
@@ -342,10 +306,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     env->cpu_mem -= size;
     env->gpu_mem -= size;
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_2) {
-  /*----------------------------------------*/
+  } else if (use_mgemm2(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS);
@@ -355,10 +316,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     env->cpu_mem -= size;
     env->gpu_mem -= size;
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_3) {
-  /*----------------------------------------*/
+  } else if (use_mgemm3(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS);
@@ -368,15 +326,11 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     env->cpu_mem -= size;
     env->gpu_mem -= size;
 
-  /*----------------------------------------*/
-  } else {
-  /*----------------------------------------*/
+  } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented.");
 
-  /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+  } // if //--------------------
 }
 
 //-----------------------------------------------------------------------------
@@ -394,9 +348,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
 
   // ISSUE: these MAGMA routines don't return an error code.
 
-  /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
-  /*----------------------------------------*/
+  if (use_minproduct(env)) { //--------------------
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproductblas_dlaset
@@ -408,9 +360,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
          (float*)matrix_buf->d, mat_dim1);
     }
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
-  /*----------------------------------------*/
+  } else if (use_mgemm4(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
@@ -419,10 +369,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
     magma_mgemm4blas_zlaset(Magma_mgemm4Full, mat_dim1, mat_dim2, zero, zero,
                             (Float_t*)matrix_buf->d, mat_dim1);
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_2) {
-  /*----------------------------------------*/
+  } else if (use_mgemm2(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
@@ -431,10 +378,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
     magma_mgemm2blas_zlaset(Magma_mgemm2Full, mat_dim1, mat_dim2, zero, zero,
                             (Float_t*)matrix_buf->d, mat_dim1);
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_3) {
-  /*----------------------------------------*/
+  } else if (use_mgemm3(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
@@ -443,15 +387,11 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
     magma_mgemm3blas_zlaset(Magma_mgemm3Full, mat_dim1, mat_dim2, zero, zero,
                             (Float_t*)matrix_buf->d, mat_dim1);
 
-  /*----------------------------------------*/
-  } else {
-  /*----------------------------------------*/
+  } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented.");
 
-  /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+  } // if //--------------------
 }
 
 //-----------------------------------------------------------------------------
@@ -490,9 +430,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
 
   // ISSUE: these MAGMA routines don't return an error code.
 
-  /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
-  /*----------------------------------------*/
+  if (use_minproduct(env)) { //--------------------
 
     const GMFloat alpha = 1;
     const GMFloat beta = is_beta_one ? 1 : 0;
@@ -510,9 +448,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
 
     env->ops_local += 2 * m * (double)n * (double)k;
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
-  /*----------------------------------------*/
+  } else if (use_mgemm4(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
@@ -526,10 +462,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                            beta, (Float_t*)dC, lddc);
     GMInsist(GMEnv_cuda_last_call_succeeded(env));
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_2) {
-  /*----------------------------------------*/
+  } else if (use_mgemm2(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
@@ -543,10 +476,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                            beta, (Float_t*)dC, lddc);
     GMInsist(GMEnv_cuda_last_call_succeeded(env));
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_3) {
-  /*----------------------------------------*/
+  } else if (use_mgemm3(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
@@ -560,15 +490,11 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
                            beta, (Float_t*)dC, lddc);
     GMInsist(GMEnv_cuda_last_call_succeeded(env));
 
-  /*----------------------------------------*/
-  } else {
-  /*----------------------------------------*/
+  } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented.");
 
-  /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+  } // if //--------------------
 }
 
 //-----------------------------------------------------------------------------
@@ -597,18 +523,6 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     gm_tc_gemm_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, dm->tc_bufs, env);
     return;
   }
-
-#if 0
-  if (m == 16384)
-  {
-    typedef magma_mgemm2DoubleComplex Float_t;
-    Float_t zero = {37, -19};
-    magma_mgemm2blas_zlaset(Magma_mgemm2Full, k, m, zero, zero,
-                            (Float_t*)dA, ldda);
-    magma_mgemm2blas_zlaset(Magma_mgemm2Full, k, n, zero, zero,
-                            (Float_t*)dB, lddb);
-  }
-#endif
 
   const size_t rows = k;
   const size_t cols_A = m;
@@ -701,9 +615,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
   // ISSUE: these MAGMA routines don't return an error code.
 
-  /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
-  /*----------------------------------------*/
+  if (use_minproduct(env)) { //--------------------
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproduct_dsetmatrix_async(
@@ -715,9 +627,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
         (float*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
     }
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
-  /*----------------------------------------*/
+  } else if (use_mgemm4(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
@@ -725,10 +635,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_2) {
-  /*----------------------------------------*/
+  } else if (use_mgemm2(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
@@ -736,10 +643,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_3) {
-  /*----------------------------------------*/
+  } else if (use_mgemm3(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
@@ -747,15 +651,11 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
 
-  /*----------------------------------------*/
-  } else {
-  /*----------------------------------------*/
+  } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented.");
 
-  /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+  } // if //--------------------
 }
 
 //-----------------------------------------------------------------------------
@@ -784,9 +684,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
   // ISSUE: these MAGMA routines don't return an error code.
 
-  /*----------------------------------------*/
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK) {
-  /*----------------------------------------*/
+  if (use_minproduct(env)) { //--------------------
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproduct_dgetmatrix_async(
@@ -798,9 +696,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
         (float*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
     }
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) {
-  /*----------------------------------------*/
+  } else if (use_mgemm4(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
@@ -808,10 +704,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_2) {
-  /*----------------------------------------*/
+  } else if (use_mgemm2(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
@@ -819,10 +712,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
 
-  /*----------------------------------------*/
-  } else if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-             GMEnv_num_way(env) == GM_NUM_WAY_3) {
-  /*----------------------------------------*/
+  } else if (use_mgemm3(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
@@ -830,15 +720,11 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
 
-  /*----------------------------------------*/
-  } else {
-  /*----------------------------------------*/
+  } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented.");
 
-  /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+  } // if //--------------------
 }
 
 //-----------------------------------------------------------------------------

@@ -7,33 +7,34 @@ ref.: John Lakos, Large-Scale C++ Software Design. Addison-Wesley, 1996.
     assertions
     types
 
-2 . decomp_mgr
-    linalg_cuda
+2.  linalg_cuda
 
-3.  linalg
+3.  decomp_mgr
+
+4.  linalg
     mirrored_buf
 
-4a. vectors
-4b. metrics
+5a. vectors
+5b. metrics
 
-5a. vector_sums (depends on 4a)
-5b. checksum (depends on 4b)
-5c. comm_xfer_utils
+6a. vector_sums (depends on 5a)
+6b. checksum (depends on 5b)
+6c. comm_xfer_utils
 
-6a. compute_metrics_2way_proc_nums
-6b. compute_metrics_2way_proc_combine
-6c. compute_metrics_3way_nums_gpu
+7a. compute_metrics_2way_proc_nums
+7b. compute_metrics_2way_proc_combine
+7c. compute_metrics_3way_nums_gpu
     compute_metrics_3way_nums_nongpu
     compute_metrics_3way_nums
 
-7a. compute_metrics_2way (depends on 6a, 6b)
-7b. compute_metrics_3way (depends on 6c)
+8a. compute_metrics_2way (depends on 7a, 7b)
+8b. compute_metrics_3way (depends on 7c)
 
-8.  compute_metrics
+9.  compute_metrics
 
-9.  input_output
+10. input_output
     test_problems
     driver
 
-10. genomics_metric
+11. genomics_metric
 

@@ -40,6 +40,11 @@ typedef struct {
 } GMDecompMgr;
 
 //-----------------------------------------------------------------------------
+
+size_t gm_num_vector_local_required(size_t num_vector_active,
+                                    GMEnv* const env);
+
+//-----------------------------------------------------------------------------
 // Set to null
 
 GMDecompMgr GMDecompMgr_null();

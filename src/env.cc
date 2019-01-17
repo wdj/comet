@@ -24,7 +24,7 @@
 #include "env.hh"
 
 //=============================================================================
-/*---Null object---*/
+// Null object
 
 GMEnv GMEnv_null() {
   GMEnv result;
@@ -33,7 +33,7 @@ GMEnv GMEnv_null() {
 }
 
 //=============================================================================
-/*---Utility to parse a string to construct arguments---*/
+// Utility to parse a string to construct arguments
 
 void gm_create_args(char* argstring, int* argc, char** argv) {
   size_t len = strlen(argstring);
@@ -56,7 +56,7 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
 }
 
 //=============================================================================
-/*---Initialize environment---*/
+// Initialize environment
 
 void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
                         char** argv, const char* const description,
@@ -65,7 +65,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
 
   *env = GMEnv_null();
 
-  /*---Set default values---*/
+  // Set default values
   env->metric_type_ = GM_METRIC_TYPE_CZEK;
   env->num_way_ = GM_NUM_WAY_2;
   env->all2all_ = false;
@@ -109,10 +109,10 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
 
   GMEnv_set_num_proc(env, env->num_proc_base_, 1, 1);
 
-  /*---Modify based on user options---*/
+  // Modify based on user options
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--metric_type") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for metric_type.");
       if (strcmp(argv[i], "czekanowski") == 0) {
@@ -122,9 +122,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       } else {
         GMInsistInterface(env, false && "Invalid setting for metric_type.");
       }
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--num_way") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for num_way.");
       errno = 0;
@@ -135,9 +135,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       env->num_way_ = num_way;
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
                        env->num_proc_field_);
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--all2all") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for all2all.");
       if (strcmp(argv[i], "yes") == 0) {
@@ -147,9 +147,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       } else {
         GMInsistInterface(env, false && "Invalid setting for all2all.");
       }
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--compute_method") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for compute_method.");
       if (strcmp(argv[i], "CPU") == 0) {
@@ -161,9 +161,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       } else {
         GMInsistInterface(env, false && "Invalid setting for compute_method.");
       }
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       errno = 0;
       GMInsistInterface(env, i < argc && "Missing value for num_proc_vector.");
@@ -173,9 +173,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
                     && "Invalid setting for num_proc_vector.");
       GMEnv_set_num_proc(env, num_proc_vector_i, env->num_proc_repl_,
                          env->num_proc_field_);
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       errno = 0;
       GMInsistInterface(env, i < argc && "Missing value for num_proc_field.");
@@ -185,9 +185,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
                     && "Invalid setting for num_proc_field.");
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
                          num_proc_field);
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       errno = 0;
       GMInsistInterface(env, i < argc && "Missing value for num_proc_repl.");
@@ -197,9 +197,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
                     && "Invalid setting for num_proc_repl.");
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, num_proc_repl,
                          env->num_proc_field_);
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for ccc_param.");
       errno = 0;
@@ -207,9 +207,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       GMInsistInterface(env, 0 == errno && ccc_param >= 0
                                && "Invalid setting for ccc_param.");
       GMEnv_ccc_param_set(ccc_param, env);
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--ccc_multiplier") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for ccc_multiplier.");
       errno = 0;
@@ -217,9 +217,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       GMInsistInterface(env, 0 == errno && ccc_multiplier >= 0
                                && "Invalid setting for ccc_multiplier.");
       GMEnv_ccc_multiplier_set(ccc_multiplier, env);
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--sparse") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for sparse.");
       if (strcmp(argv[i], "yes") == 0) {
@@ -229,9 +229,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       } else {
         GMInsistInterface(env, false && "Invalid setting for sparse.");
       }
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--tc") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for tc.");
       errno = 0;
@@ -242,9 +242,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
                     && tc < GM_NUM_TC_METHOD
                     && "Invalid setting for tc.");
       env->tc = tc;
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for num_tc_steps.");
       errno = 0;
@@ -254,11 +254,11 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
                     && num_tc_steps >= 1
                     && "Invalid setting for tc.");
       env->num_tc_steps = num_tc_steps;
-      /*--------------------*/
-    } /*---if/else---*/
-  }   /*---for i---*/
+      //--------------------
+    } // if/else
+  }   // for i
 
-  /*---Helper variables---*/
+  // Helper variables
   env->do_reduce = env->num_proc_field_ > 1;
   env->need_2way = env->metric_type_ == GM_METRIC_TYPE_CZEK;
 }
@@ -279,7 +279,7 @@ void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
                   const char* const description) {
   GMInsist(env);
 
-  /*---Convert options string to args---*/
+  // Convert options string to args
 
   size_t len = strlen(options);
   char argstring[len+1];
@@ -309,7 +309,7 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
                            int num_proc, int proc_num) {
   GMInsist(env);
 
-  /*---Convert options string to args---*/
+  // Convert options string to args
 
   size_t len = strlen(options);
   char argstring[len+1];
@@ -323,12 +323,12 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
 }
 
 //=============================================================================
-/*---Manage cuda streams---*/
+// Manage cuda streams
 
 void GMEnv_initialize_streams(GMEnv* const env) {
   GMInsist(env);
 
-  /*---NOTE: this is used for lazy initialization---*/
+  // NOTE: this is used for lazy initialization
 
   if (env->are_cuda_streams_initialized_) {
     return;
@@ -371,8 +371,20 @@ void GMEnv_terminate_streams(GMEnv* const env) {
   env->are_cuda_streams_initialized_ = false;
 }
 
+//-----------------------------------------------------------------------------
+
+void GMEnv_stream_synchronize(cudaStream_t stream, GMEnv* const env) {
+  GMInsist(env);
+
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+    cudaStreamSynchronize(stream);
+    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  }
+
+}
+
 //=============================================================================
-/*---Manage MPI comms---*/
+// Manage MPI comms
 
 void GMEnv_initialize_comms(GMEnv* const env) {
   GMInsist(env);
@@ -419,7 +431,7 @@ void GMEnv_terminate_comms(GMEnv* const env) {
     return;
   }
 
-  /*---Destroy any nontrivial communicators---*/
+  // Destroy any nontrivial communicators
 
   int mpi_code = MPI_Comm_free(&(env->mpi_comm_));
   GMInsist(mpi_code == MPI_SUCCESS);
@@ -434,7 +446,7 @@ void GMEnv_terminate_comms(GMEnv* const env) {
 }
 
 //=============================================================================
-/*---Finalize environment---*/
+// Finalize environment
 
 void GMEnv_destroy(GMEnv* const env) {
   GMInsist(env);
@@ -447,7 +459,7 @@ void GMEnv_destroy(GMEnv* const env) {
 }
 
 //=============================================================================
-/*---Accessors---*/
+// Accessors
 
 void GMEnv_set_compute_method(GMEnv* const env, int compute_method) {
   GMInsist(env);
@@ -506,7 +518,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   GMInsist(env->num_proc_base_ != 0);
   //GMInsist(env->proc_num_base_ is initialized);
 
-  /*---Set proc counts---*/
+  // Set proc counts
 
   env->num_proc_vector_i_ = num_proc_vector_i;
   env->num_proc_repl_ = num_proc_repl;
@@ -517,7 +529,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   env->num_proc_ = env->num_proc_repl_vector_ * num_proc_field;
   GMInsist(env->num_proc_ <= env->num_proc_base_);
 
-  /*---Set proc nums---*/
+  // Set proc nums
 
   env->proc_num_ = env->proc_num_base_;
 
@@ -557,11 +569,11 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   env->proc_num_repl_vector_ = env->proc_num_repl_ + env->num_proc_repl_ *
                                env->proc_num_vector_i_;
 
-  /*---Destroy old communicators if necessary---*/
+  // Destroy old communicators if necessary
 
   GMEnv_terminate_comms(env);
 
-  /*---Make new communicators---*/
+  // Make new communicators
 
   GMEnv_initialize_comms(env);
 }
@@ -570,10 +582,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
 cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
   GMInsist(env);
-  // GMInsist(env->are_cuda_streams_initialized_);
-
   GMEnv_initialize_streams(env);
-
   return env->stream_compute_;
 }
 
@@ -581,10 +590,7 @@ cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
 
 cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
   GMInsist(env);
-  // GMInsist(env->are_cuda_streams_initialized_);
-
   GMEnv_initialize_streams(env);
-
   return env->stream_togpu_;
 }
 
@@ -592,15 +598,12 @@ cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
 
 cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
   GMInsist(env);
-  // GMInsist(env->are_cuda_streams_initialized_);
-
   GMEnv_initialize_streams(env);
-
   return env->stream_fromgpu_;
 }
 
 //=============================================================================
-/*---Timer functions---*/
+// Timer functions
 
 double GMEnv_get_time(const GMEnv* const env) {
 
@@ -620,10 +623,6 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
     return 0;
   }
 
-  /*
-  cudaThreadSynchronize();
-  */
-
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaDeviceSynchronize();
     GMInsist(GMEnv_cuda_last_call_succeeded(env));
@@ -635,34 +634,7 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
 }
 
 //=============================================================================
-/*---Misc.---*/
-
-bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
-  GMInsist(env);
-
-  bool result = true;
-
-  /*---NOTE: this read of the last error is a destructive read---*/
-  cudaError_t error = cudaGetLastError();
-
-  if (error != cudaSuccess) {
-    result = false;
-    printf("CUDA error detected: %s\n", cudaGetErrorString(error));
-  }
-
-  return result;
-}
-
-//-----------------------------------------------------------------------------
-
-int gm_gpu_compute_capability() {
-  cudaDeviceProp deviceProp;
-  // Assume only one GPU visible per rank.
-  cudaGetDeviceProperties(&deviceProp, 0);
-  return deviceProp.major * 100 + deviceProp.minor;
-}
-
-//-----------------------------------------------------------------------------
+// Arrays and floating point
 
 void* gm_malloc(size_t n, GMEnv* env) {
   GMInsist(env);
@@ -743,11 +715,6 @@ void GMFloat_check(GMFloat* const a, size_t n) {
 
 //-----------------------------------------------------------------------------
 
-//int GMFloat_mant_dig() {
-//  GMInsist(FLT_RADIX == 2);
-//  return sizeof(GMFloat) == 8 ? DBL_MANT_DIG : FLT_MANT_DIG;
-//}
-
 template<> int gm_mant_dig<float>() {
   GMInsist(FLT_RADIX == 2);
   return FLT_MANT_DIG;
@@ -775,40 +742,6 @@ MPI_Datatype gm_mpi_type(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-size_t gm_num_vector_local_required(size_t num_vector_active_local,
-                                    GMEnv* const env) {
-  GMInsist(env);
-  // NOTE: this function should receive the same num_vector_active_local
-  // and give the same result independent of MPI rank.
-
-  const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
-                                   GMEnv_all2all(env) &&
-                                   GMEnv_num_proc_vector_i(env) > 2;
-
-  const bool need_divisible_by_4 = env->tc;
-
-  const int round_factor = (need_divisible_by_4 && need_divisible_by_6) ? 12 :
-                            need_divisible_by_4 ? 4 :
-                            need_divisible_by_6 ? 6 : 1;
-
-  const size_t num_vector_local = gm_ceil_i8(num_vector_active_local,
-                                             round_factor)*round_factor;
-
-  return num_vector_local;
-}
-
-//-----------------------------------------------------------------------------
-
-size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
-  GMInsist(env);
-
-  const bool need_divisible_by_4 = env->tc;
-
-  return need_divisible_by_4 ? gm_ceil_i8(size_requested, 4)*4 : size_requested;
-}
-
-//-----------------------------------------------------------------------------
-
 size_t gm_array_cksum(unsigned char* a, size_t n) {
   GMInsist(a);
 
@@ -824,16 +757,29 @@ size_t gm_array_cksum(unsigned char* a, size_t n) {
   return result;
 }
 
-//-----------------------------------------------------------------------------
+//=============================================================================
+// Misc.
 
-void GMEnv_stream_synchronize(cudaStream_t stream, GMEnv* const env) {
+bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
   GMInsist(env);
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    cudaStreamSynchronize(stream);
-    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  // NOTE: this read of the last error is a destructive read.
+  cudaError_t error = cudaGetLastError();
+  const bool result = error == cudaSuccess;
+
+  if (!result) {
+    printf("CUDA error detected: %s\n", cudaGetErrorString(error));
   }
 
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+
+int gm_gpu_compute_capability() {
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
+  return deviceProp.major * 100 + deviceProp.minor;
 }
 
 //-----------------------------------------------------------------------------

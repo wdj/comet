@@ -88,13 +88,14 @@ void gm_compute_2way_proc_nums_czek_start_(
 
     /*---Perform pseudo GEMM---*/
 
-    gm_linalg_gemm_start(vectors_left->num_vector_local,
-                         vectors_left->num_vector_local,
-                         vectors_left->num_field_local,
-                         vectors_left_buf->d, vectors_left->num_field_local,
-                         vectors_right_buf->d, vectors_left->num_field_local,
-                         metrics_buf->d, vectors_left->num_vector_local,
-                         vectors_left->dm, env);
+    gm_linalg_gemm_start(
+      vectors_left->num_vector_local,
+      vectors_left->num_vector_local,
+      vectors_left->num_field_local,
+      vectors_left_buf->d, vectors_left->num_field_local,
+      vectors_right_buf->d, vectors_left->num_field_local,
+      metrics_buf->d, vectors_left->num_vector_local,
+      vectors_left->dm, env);
 
     /*----------------------------------------*/
   } /*---if---*/
@@ -341,12 +342,13 @@ void gm_compute_2way_proc_nums_ccc_start_(
     /*---Perform pseudo GEMM---*/
 
     gm_linalg_gemm_start(
-        vectors_left->num_vector_local, vectors_left->num_vector_local,
-        vectors_left->num_packedval_field_local,
-        vectors_left_buf->d, vectors_left->num_packedval_field_local,
-        vectors_right_buf->d, vectors_left->num_packedval_field_local,
-        metrics_buf->d, vectors_left->num_vector_local,
-        vectors_left->dm, env);
+      vectors_left->num_vector_local,
+      vectors_left->num_vector_local,
+      vectors_left->num_packedval_field_local,
+      vectors_left_buf->d, vectors_left->num_packedval_field_local,
+      vectors_right_buf->d, vectors_left->num_packedval_field_local,
+      metrics_buf->d, vectors_left->num_vector_local,
+      vectors_left->dm, env);
 
     /*----------------------------------------*/
   } /*---if---*/

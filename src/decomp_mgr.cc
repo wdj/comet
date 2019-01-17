@@ -17,6 +17,24 @@
 #include "decomp_mgr.hh"
 
 //=============================================================================
+
+size_t gm_num_vector_local_required(size_t num_vector_active_local,
+                                    GMEnv* const env) {
+  GMInsist(env);
+  // NOTE: this function should receive the same num_vector_active_local
+  // and give the same result independent of MPI rank.
+
+  const size_t nval_gemm = gm_gemm_size_required(num_vector_active_local, env);
+
+  const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
+                                   GMEnv_all2all(env) &&
+                                   GMEnv_num_proc_vector_i(env) > 2;
+
+  return need_divisible_by_6 ? gm_ceil_i8(num_vector_active_local, 6)*6 
+                             : nval_gemm;
+}
+
+//-----------------------------------------------------------------------------
 // Set to null
 
 GMDecompMgr GMDecompMgr_null() {

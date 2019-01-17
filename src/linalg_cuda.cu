@@ -13,6 +13,7 @@
 #include "cublas_v2.h"
 #include "cuda_fp16.h"
 
+#include "env.hh"
 #include "linalg_cuda.cuh"
 
 //=============================================================================
@@ -79,34 +80,34 @@ template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
 
 template<typename GemmIn_t>
 __global__ static void gm_tc_buf_write_kernel_(
+  GemmIn_t* vo,
+  GMUInt32* vi32,
+  int vi32_dim0,
   int num_way,
   bool is_sparse,
   bool is_right,
-  GMUInt32* vi32,
-  int vi32_dim0,
-  int nvla,
-  int nvl,
-  int nvl2,
-  int nvlX2,
+  int nvlea,
+  int nvle,
+  int nvleD2,
+  int nvleX2,
   int nfl,
-  int nfl2,
-  int nfl2_step,
-  int fl2_min,
-  void* vo) {
+  int nflD2,
+  int nflD2_step,
+  int flD2_min) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
   const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int fl2_step = blockIdx.y + gridDim.y * blockIdx.z;
+  const int flD2_step = blockIdx.y + gridDim.y * blockIdx.z;
 
-  if (vlX2 >= nvlX2 || fl2_step >= nfl2_step) {
+  if (vlX2 >= nvleX2 || flD2_step >= nflD2_step) {
     return;
   }
 
   const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
   const int vl = vlX2 / 2;
 
-  const int fl2 = fl2_min + fl2_step;
+  const int flD2 = flD2_min + flD2_step;
 
   // Output array interpreted as having GemmIn_t scalars has nfl rows.
 
@@ -116,7 +117,7 @@ __global__ static void gm_tc_buf_write_kernel_(
   // first field seminibble0, second field seminibble1
   // Set to zero if outside of active range.
 
-  const int nibble = vl<nvla ? (vi32_col[fl2/8] >> (4*(fl2%8))) & 15 : 0;
+  const int nibble = vl<nvlea ? (vi32_col[flD2/8] >> (4*(flD2%8))) & 15 : 0;
 
   const int seminibble0 = nibble & 3;
   const int seminibble1 = (nibble>>2) & 3;
@@ -147,20 +148,18 @@ __global__ static void gm_tc_buf_write_kernel_(
   // Left case: interleave to make later swizzling of metrics array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
 
-  const int vl_index = is_right ? vl : vl < nvl2 ? 2*vl : 2*vl - nvl + 1;
+  const int vl_index = is_right ? vl : vl < nvleD2 ? 2*vl : 2*vl - nvle + 1;
   const int vlX2_index = i01 + 2*vl_index;
 
-  const int fl2_index = fl2_step;
+  const int flD2_index = flD2_step;
 
-  const int fl_index_0 = 0 + 2 * fl2_index;
-  const int fl_index_1 = 1 + 2 * fl2_index;
+  const int fl_index_0 = 0 + 2 * flD2_index;
+  const int fl_index_1 = 1 + 2 * flD2_index;
 
-  const int vlX2_dim = nvlX2;
+  const int vlX2_dim = nvleX2;
 
-  GemmIn_t* vo_typed = (GemmIn_t*)vo;
-
-  vo_typed[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
-  vo_typed[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
+  vo[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
+  vo[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
 }
 
 //-----------------------------------------------------------------------------
@@ -186,47 +185,63 @@ static void gm_tc_buf_write_(
   GMInsist(npvfl >= 0);
   GMInsist(tc_bufs.tc_buf_left);
   GMInsist(tc_bufs.tc_buf_right);
-//TODO: more assertions
+  GMInsist(npvfl >= 0);
+  GMInsist(npvfl_step >= 0 && npvfl_step <= npvfl);
+  GMInsist(pvfl_min >= 0 && pvfl_min + npvfl_step <= npvfl);
+
+  // num_vector-related dimensions.
 
   const int nvle = is_right ? nvl : I_max_dim; // effective nvl dimension
-  const int nvle2 = nvle / 2;
-  const int nvleX2 = 2 * nvle;
+  const int nvleD2 = nvle / 2;
+  const int nvleX2 = nvle * 2;
   const int nvlea = is_right ? nvl : I_max; // num active nvle; others zeroed
+  // NOTE: we are ignoring the issue from decomp_mgr that
+  // num_vector_active_local may be strictly less than num_vector_local;
+  // doesn't matter: just compute on fake values that will later be ignored.
+
+  GMInsist(nvle % 2 == 0 && nvl % 2 == 0 &&
+           "tc method here requires num_vector_local multiple of 2.");
+
+  // num_field-related dimensions.
 
   const int nfl = npvfl * 64;
-  const int nfl2 = nfl / 2;
+  const int nflD2 = nfl / 2;
   const int nfl_step = npvfl_step * 64;
-  const int nfl2_step = nfl_step / 2;
+  const int nflD2_step = nfl_step / 2;
   const int fl_min = pvfl_min * 64;
-  const int fl2_min = fl_min / 2;
+  const int flD2_min = fl_min / 2;
+  // Remember: end padding is set to zero; will correct zero counts later.
 
-  const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
-
-  GMInsistInterface(env, nvle % 2 == 0 && nvl % 2 == 0 &&
-                    "tc method here requires num_vector_local multiple of 2.");
+  // CUDA thread dims.
 
   const int threadblocksize = 256;
   const int blockdim_y = 32768;
   const int num_threadblocks_0 = gm_ceil_i8(nvleX2, threadblocksize);
-  const int num_threadblocks_1 = gm_min_i8(nfl2_step, blockdim_y);
-  const int num_threadblocks_2 = gm_ceil_i8(nfl2_step, blockdim_y);
+  const int num_threadblocks_1 = gm_min_i8(nflD2_step, blockdim_y);
+  const int num_threadblocks_2 = gm_ceil_i8(nflD2_step, blockdim_y);
 
-  GMInsist(nvleX2 * (2*nfl2_step) *
+  // Arrays.
+
+  typedef typename TCSelector<TC_METHOD>::GemmIn_t GemmIn_t;
+  GMUInt32* vi32 = (GMUInt32*)vi;
+  const int vi32_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
+  GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
+                                      (GemmIn_t*)tc_bufs.tc_buf_left;
+  GMInsist(nvleX2 * (2*nflD2_step) *
            sizeof(typename TCSelector<TC_METHOD>::GemmIn_t)
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
 
-  void* const tc_buf = is_right ? tc_bufs.tc_buf_right : tc_bufs.tc_buf_left;
-  GMUInt32* vi32 = (GMUInt32*)vi;
+  // Kernel call.
 
-  gm_tc_buf_write_kernel_<typename TCSelector<TC_METHOD>::GemmIn_t><<<
+  gm_tc_buf_write_kernel_<GemmIn_t><<<
       dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
       dim3(threadblocksize, 1, 1),
       0,
       env->stream_compute_>>>(
+    tc_buf, vi32, vi32_dim0,
     GMEnv_num_way(env), env->sparse, is_right,
-    vi32, vi_dim0, nvlea, nvle, nvle2, nvleX2,
-    nfl, nfl2, nfl2_step, fl2_min, tc_buf);
+    nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_step, flD2_min);
 
   GMEnv_cuda_last_call_succeeded(env);
 }
@@ -251,7 +266,7 @@ static void gm_tc_solve_(
   GMInsist(nvl >= 0);
   GMInsist(nvll <= nvl);
   GMInsist(npvfl_step >= 0);
-  GMInsist(env->tc == 1 || env->tc == 2);
+  GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
 
 #if __CUDACC_VER_MAJOR__ >= 9
 
@@ -259,7 +274,7 @@ static void gm_tc_solve_(
 
   const int m = 2 * nvll; // metrics array dim
   const int n = 2 * nvl; // metrics array dim
-  const int k = nfl_step; // vectors array (as halfs/bytes) dim
+  const int k = nfl_step; // vectors array (as GemmIn_t) dim
 
   const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
   const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
@@ -272,7 +287,7 @@ static void gm_tc_solve_(
   // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
 
   GMInsist(k % 8 == 0); // nfl is derived from padded-up npvfl, so always ok.
-  GMInsist(m % 8 == 0); // need I_max_dim % 4 == 0
+  GMInsist(m % 8 == 0); // need I_max_dim % 4 == 0; see gm_gemm_size_required()
   GMInsist(n % 8 == 0); // need nvl % 4 == 0
 
   // Make BLAS call.
@@ -297,6 +312,7 @@ static void gm_tc_solve_(
     //CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
     CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.2.88, transpose
   );
+  // TODO: use CUDA 10 autotuning here (later).
 
   if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
     printf("Error: CUBLAS_STATUS_NOT_INITIALIZED\n");
@@ -533,11 +549,21 @@ static void gm_tc_gemm_start_impl_(
   TCBufs& tc_bufs,
   GMEnv* env) {
 
-  const int I_max = m;
-  const int I_max_dim = lddc;
-  const int nvll = I_max_dim; // effective nvl for left matrix
+  GMInsist(ldda == k); // For our purposes, always true
+  GMInsist(lddb == k);
+
   const int nvl = n;
   const int npvfl = k;
+  const int I_max = m;
+  const int I_max_dim = lddc;
+  GMInsist(I_max <= I_max_dim);
+  GMInsist(I_max_dim <= nvl);
+  // nvll is the effective nvl for left matrix
+  // only really need to compute up to I_max, but compute more to
+  // satisfy divisibiulity requirements.
+  const int nvll = I_max_dim;
+  GMInsist((size_t)nvll == gm_gemm_size_required(nvll, env));
+
   const int num_steps = env->num_tc_steps;
 
   // Loop over steps of algorithm.
@@ -575,6 +601,17 @@ static void gm_tc_gemm_start_impl_(
 //=============================================================================
 
 //-----------------------------------------------------------------------------
+/// \brief Divisibility requirement for GEMM.
+
+size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
+  GMInsist(env);
+
+  const bool need_divisible_by_4 = env->tc;
+
+  return need_divisible_by_4 ? gm_ceil_i8(size_requested, 4)*4 : size_requested;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute CoMet metrics bitwise result.
 
 void gm_tc_gemm_start(int m, int n, int k,
@@ -589,7 +626,7 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(k <= ldda);
   GMInsist(k <= lddb);
   GMInsist(m <= lddc);
-  GMInsist(env->tc);
+  GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
   GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   // Ensure tensor core hardware is available.

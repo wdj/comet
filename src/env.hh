@@ -122,12 +122,12 @@ enum {
 };
 
 //=============================================================================
-/*---Null object---*/
+// Null object
 
 GMEnv GMEnv_null(void);
 
 //=============================================================================
-/*---Initialize environment---*/
+// Initialize environment
 
 void gm_create_args(char* argstring, int* argc, char** argv);
 
@@ -147,19 +147,19 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
                            int num_proc, int proc_num);
 
 //=============================================================================
-/*---Finalize environment---*/
+// Finalize environment
 
 void GMEnv_destroy(GMEnv* const env);
 
 //=============================================================================
-/*---Manage cuda streams---*/
+// Manage cuda streams
 
 void GMEnv_initialize_streams(GMEnv* const env);
 void GMEnv_terminate_streams(GMEnv* const env);
 void GMEnv_stream_synchronize(cudaStream_t stream, GMEnv* const env);
 
 //=============================================================================
-/*---Accessors: general---*/
+// Accessors: general
 
 static int GMEnv_metric_type(const GMEnv* const env) {
   GMAssert(env);
@@ -276,7 +276,7 @@ cudaStream_t GMEnv_stream_togpu(GMEnv* const env);
 cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env);
 
 //=============================================================================
-/*---Accessors: num proc---*/
+// Accessors: num proc
 
 static int GMEnv_num_block_vector(const GMEnv* const env) {
   GMAssert(env);
@@ -319,7 +319,7 @@ static int GMEnv_num_proc(const GMEnv* const env) {
 }
 
 //=============================================================================
-/*---Accessors: proc_num---*/
+// Accessors: proc_num
 
 static int GMEnv_proc_num(const GMEnv* const env) {
   GMAssert(env);
@@ -348,13 +348,13 @@ static int GMEnv_proc_num_field(const GMEnv* const env) {
 }
 
 //=============================================================================
-/*---Timer functions---*/
+// Timer functions
 
 double GMEnv_get_time(const GMEnv* const env = 0);
 double GMEnv_get_synced_time(const GMEnv* const env);
 
 //=============================================================================
-/*---Math utility functions---*/
+// Math utility functions
 
 static int gm_min_i(const int i, const int j) {
   return i < j ? i : j;
@@ -473,7 +473,7 @@ static size_t gm_nchoosek(int n, int k) {
 //-----------------------------------------------------------------------------
 
 static int gm_popcount64(GMUInt64 x) {
-  /*---Adapted from https://en.wikipedia.org/wiki/Hamming_weight---*/
+  // Adapted from https://en.wikipedia.org/wiki/Hamming_weight
   const GMUInt64 m1 = 0x5555555555555555;
   const GMUInt64 m2 = 0x3333333333333333;
   const GMUInt64 m4 = 0x0f0f0f0f0f0f0f0f;
@@ -528,13 +528,7 @@ static void GMFloat_sort_3(GMFloat* const __restrict__ min,
 }
 
 //=============================================================================
-/*---Misc.---*/
-
-bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
-
-int gm_gpu_compute_capability();
-
-//-----------------------------------------------------------------------------
+// Arrays and floating point
 
 void* gm_malloc(size_t n, GMEnv* env);
 void gm_free(void* p, size_t n, GMEnv* env);
@@ -549,20 +543,16 @@ void GMFloat_check(GMFloat* const a, size_t n);
 
 template<typename T> int gm_mant_dig();
 
-//-----------------------------------------------------------------------------
-
-size_t gm_num_vector_local_required(size_t num_vector_active,
-                                    GMEnv* const env);
-
-size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env);
-
-//-----------------------------------------------------------------------------
-
 MPI_Datatype gm_mpi_type(const GMEnv* const env);
 
-//-----------------------------------------------------------------------------
-
 size_t gm_array_cksum(unsigned char* a, size_t n);
+
+//=============================================================================
+// Misc.
+
+bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
+
+int gm_gpu_compute_capability();
 
 //=============================================================================
 
