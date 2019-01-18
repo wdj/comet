@@ -3,7 +3,7 @@
  * \file   checksum.hh
  * \author Wayne Joubert
  * \date   Mon Aug  7 14:47:01 EDT 2017
- * \brief  Checksums for metrics, header.
+ * \brief  Utility to compute checksum of data in a metrics object.
  * \note   Copyright (C) 2017 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

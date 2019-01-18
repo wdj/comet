@@ -3,7 +3,7 @@
  * \file   decomp_mgr.hh
  * \author Wayne Joubert
  * \date   Tue Aug  8 19:58:57 EDT 2017
- * \brief  Manage parallel decomposition of vectors, fields, header.
+ * \brief  Define distribution of vectors to MPI ranks, padding needed, etc.
  * \note   Copyright (C) 2017 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

@@ -31,7 +31,7 @@ SET(LIB_SOURCES
   src/compute_metrics_2way_proc_combine.cc
   src/compute_metrics_3way_nums_nongpu.cc
   src/compute_metrics_3way_nums_gpu.cc
-  src/compute_metrics_3way_nums.cc
+  src/compute_metrics_3way_nums_proc.cc
   src/compute_metrics_2way.cc
   src/compute_metrics_3way.cc
   src/compute_metrics.cc
@@ -58,7 +58,7 @@ SET(LIB_INCLUDES
   src/compute_metrics_2way_proc_combine.hh
   src/compute_metrics_3way_nums_nongpu.hh
   src/compute_metrics_3way_nums_gpu.hh
-  src/compute_metrics_3way_nums.hh
+  src/compute_metrics_3way_nums_proc.hh
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh
   src/compute_metrics.cc

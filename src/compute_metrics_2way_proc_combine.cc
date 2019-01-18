@@ -3,17 +3,17 @@
  * \file   compute_metrics_2way_proc_combine.cc
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Compute metrics, 2-way, single proc part, combine num/denom.
+ * \brief  Combine numerators and denominators, 2-way, on a single rank.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
 
 #include "env.hh"
+#include "linalg.hh"
 #include "mirrored_buf.hh"
-#include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-#include "linalg.hh"
+#include "vector_sums.hh"
 #include "compute_metrics_2way_proc_combine.hh"
 
 //=============================================================================

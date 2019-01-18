@@ -3,7 +3,7 @@
  * \file   comm_xfer_utils.hh
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Communication, host/device transfer utilities, header.
+ * \brief  Utilities for communication and CPU/GPU transfer of vectors, metrics.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

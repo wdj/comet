@@ -3,7 +3,7 @@
  * \file   vectors.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Vectors pseudo-class, header.
+ * \brief  Class to manage the set of vectors taken as input to the methods.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

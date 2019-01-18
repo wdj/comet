@@ -3,7 +3,7 @@
  * \file   linalg.cc
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Magma interface.
+ * \brief  Interface to generalized linear algebra functions, e.g. MAGMA.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -19,8 +19,8 @@
 
 #include "env.hh"
 #include "assertions.hh"
-#include "decomp_mgr.hh"
 #include "linalg_cuda.cuh"
+#include "decomp_mgr.hh"
 #include "linalg.hh"
 
 //=============================================================================

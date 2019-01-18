@@ -1,15 +1,15 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_3way_nums.hh
+ * \file   compute_metrics_3way_nums_proc.hh
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Compute metrics, 3-way, numerators, headers.
+ * \brief  Calculate numerators, 3-way, on a single rank.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_metrics_3way_nums_hh_
-#define _gm_compute_metrics_3way_nums_hh_
+#ifndef _gm_compute_metrics_3way_nums_proc_hh_
+#define _gm_compute_metrics_3way_nums_proc_hh_
 
 #include "env.hh"
 #include "mirrored_buf.hh"
@@ -27,13 +27,6 @@ typedef struct {
   GMMirroredBuf matX_buf[2];
   GMMirroredBuf matB_buf[2];
 } GMComputeNumerators3Way;
-
-//=============================================================================
-
-#include "compute_metrics_3way_nums_nongpu.hh"
-#include "compute_metrics_3way_nums_gpu.hh"
-
-// TODO: fix this by C++ forward declarqtion of GMComputeMetrics class in these include files.
 
 //=============================================================================
 
@@ -66,6 +59,6 @@ void GMComputeNumerators3Way_start(
 
 //=============================================================================
 
-#endif // _gm_compute_metrics_3way_nums_hh_
+#endif // _gm_compute_metrics_3way_nums_proc_hh_
 
 //-----------------------------------------------------------------------------

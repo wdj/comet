@@ -3,7 +3,7 @@
  * \file   assertions.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Assertions.
+ * \brief  Macros and code for assertions.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -15,8 +15,8 @@
 #include "gtest/gtest.h"
 #endif
 
-//#include "assertions.hh"
 #include "env.hh"
+#include "assertions.hh"
 
 //=============================================================================
 

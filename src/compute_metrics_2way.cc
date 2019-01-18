@@ -3,7 +3,7 @@
  * \file   compute_metrics_2way.cc
  * \author Wayne Joubert
  * \date   Thu Jan  7 10:21:09 EST 2016
- * \brief  Compute metrics, 2-way.
+ * \brief  Calculate metrics, 2-way.
  * \note   Copyright (C) 2016 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -11,22 +11,97 @@
 #include "string.h"
 
 #include "env.hh"
+#include "linalg.hh"
 #include "mirrored_buf.hh"
-#include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-#include "linalg.hh"
+#include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics.hh"
 #include "compute_metrics_2way_proc_nums.hh"
 #include "compute_metrics_2way_proc_combine.hh"
+#include "compute_metrics_2way.hh"
 
 //=============================================================================
 
-void gm_compute_metrics_2way_notall2all(GMComputeMetrics* compute_metrics,
-                                        GMMetrics* metrics,
-                                        GMVectors* vectors,
-                                        GMEnv* env) {
+void GMComputeMetrics2Way_create(
+    GMComputeMetrics2Way* this_,
+    GMDecompMgr* dm,
+    GMEnv* env) {
+  GMInsist(this_ && dm && env);
+
+  if (!(GMEnv_num_way(env) == 2 && GMEnv_all2all(env))) {
+    return;
+  }
+
+  if (! GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  *this_ = {0};
+
+  GMVectorSums_create(&this_->vector_sums_onproc, dm->num_vector_local, env);
+  GMVectorSums_create(&this_->vector_sums_offproc, dm->num_vector_local, env);
+
+  for (int i = 0; i < 2; ++i) {
+    GMVectors_create_with_buf(&this_->vectors_01[i],
+                              GMEnv_data_type_vectors(env), dm, env);
+  }
+
+  for (int i = 0; i < 2; ++i) {
+    GMMirroredBuf_create(&this_->metrics_buf_01[i],
+                         dm->num_vector_local, dm->num_vector_local, env);
+  }
+
+  GMMirroredBuf_create(&this_->vectors_buf, dm->num_packedfield_local,
+                       dm->num_vector_local, env);
+
+  if (env->do_reduce) {
+    GMMirroredBuf_create(&this_->metrics_tmp_buf,
+                         dm->num_vector_local, dm->num_vector_local, env);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void GMComputeMetrics2Way_destroy(
+    GMComputeMetrics2Way* this_,
+    GMEnv* env) {
+  GMInsist(this_ && env);
+
+  if (!(GMEnv_num_way(env) == 2 && GMEnv_all2all(env))) {
+    return;
+  }
+
+  if (! GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  GMVectorSums_destroy(&this_->vector_sums_onproc, env);
+  GMVectorSums_destroy(&this_->vector_sums_offproc, env);
+
+  for (int i = 0; i < 2; ++i) {
+    GMVectors_destroy(&this_->vectors_01[i], env);
+  }
+
+  for (int i = 0; i < 2; ++i) {
+    GMMirroredBuf_destroy(&this_->metrics_buf_01[i], env);
+  }
+
+  GMMirroredBuf_destroy(&this_->vectors_buf, env);
+
+  if (env->do_reduce) {
+    GMMirroredBuf_destroy(&this_->metrics_tmp_buf, env);
+  }
+}
+
+//=============================================================================
+
+void gm_compute_metrics_2way_notall2all(
+  GMComputeMetrics2Way* this_,
+  GMMetrics* metrics,
+  GMVectors* vectors,
+  GMEnv* env) {
+
   GMInsist(metrics && vectors && env);
   GMInsist(! GMEnv_all2all(env));
 
@@ -121,10 +196,12 @@ static void unlock(bool& lock_val) {
 
 //=============================================================================
 
-void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
-                                     GMMetrics* metrics,
-                                     GMVectors* vectors,
-                                     GMEnv* env) {
+void gm_compute_metrics_2way_all2all(
+  GMComputeMetrics2Way* this_,
+  GMMetrics* metrics,
+  GMVectors* vectors,
+  GMEnv* env) {
+
   GMInsist(metrics && vectors && env);
   GMInsist(GMEnv_all2all(env));
 
@@ -133,22 +210,22 @@ void gm_compute_metrics_2way_all2all(GMComputeMetrics* compute_metrics,
   const int num_block = GMEnv_num_block_vector(env);
   const int i_block = GMEnv_proc_num_vector_i(env);
 
-  GMVectorSums vector_sums_onproc = compute_metrics->vector_sums_onproc;
-  GMVectorSums vector_sums_offproc = compute_metrics->vector_sums_offproc;
+  GMVectorSums vector_sums_onproc = this_->vector_sums_onproc;
+  GMVectorSums vector_sums_offproc = this_->vector_sums_offproc;
 
   gm_linalg_initialize(env);
 
   // Create double buffer of vectors objects for send/recv
 
-  GMVectors* const & vectors_01 = compute_metrics->vectors_01;
+  GMVectors* const & vectors_01 = this_->vectors_01;
 
   // Allocate GPU buffers
   // To overlap transfers with compute, set up double buffers for the
   // vectors sent to the GPU and the metrics received from the GPU.
 
-  GMMirroredBuf* const & metrics_buf_01 = compute_metrics->metrics_buf_01;
-  GMMirroredBuf& vectors_buf = compute_metrics->vectors_buf;
-  GMMirroredBuf& metrics_tmp_buf = compute_metrics->metrics_tmp_buf;
+  GMMirroredBuf* const & metrics_buf_01 = this_->metrics_buf_01;
+  GMMirroredBuf& vectors_buf = this_->vectors_buf;
+  GMMirroredBuf& metrics_tmp_buf = this_->metrics_tmp_buf;
 
   // Result matrix is diagonal block and half the blocks to the right
   // (including wraparound to left side of matrix when appropriate).

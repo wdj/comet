@@ -3,7 +3,7 @@
  * \file   compute_metrics_2way_proc_nums.hh
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Compute metrics, 2-way, single proc part, numerators, headers.
+ * \brief  Calculate metrics numerators, 2-way, on a single rank.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

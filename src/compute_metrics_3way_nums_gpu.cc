@@ -3,7 +3,7 @@
  * \file   compute_metrics_3way_nums_gpu.cc
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Compute metrics, 3-way, numerators, gpu case.
+ * \brief  Calculate numerators, 3-way, on a single rank, GPU case.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -11,13 +11,13 @@
 #include "string.h"
 
 #include "env.hh"
-#include "mirrored_buf.hh"
 #include "linalg.hh"
-#include "vector_sums.hh"
+#include "mirrored_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
+#include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics_3way_nums.hh"
+#include "compute_metrics_3way_nums_proc.hh"
 #include "compute_metrics_3way_nums_gpu.hh"
 
 //=============================================================================

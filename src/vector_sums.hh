@@ -3,7 +3,7 @@
  * \file   vector_sums.hh
  * \author Wayne Joubert
  * \date   Sat Oct 24 10:48:32 EDT 2015
- * \brief  Per-vector computed quantities, header.
+ * \brief  Compute the denominators needed by the methods.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

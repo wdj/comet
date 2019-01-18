@@ -3,7 +3,7 @@
  * \file   env.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Environment settings and general utilities.
+ * \brief  Basic environment - settings, MPI communicators, etc.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

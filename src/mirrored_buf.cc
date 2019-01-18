@@ -3,7 +3,7 @@
  * \file   mirrored_buf.cc
  * \author Wayne Joubert
  * \date   Thu Aug  3 15:04:05 EDT 2017
- * \brief  CPU/GPU mirrored buffer.
+ * \brief  Struct/code to manage dual CPU/GPU reflected arrays.
  * \note   Copyright (C) 2017 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

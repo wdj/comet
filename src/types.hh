@@ -3,7 +3,7 @@
  * \file   types.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Types, header.
+ * \brief  Fundamental scalar types for algorithms; associated functions.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

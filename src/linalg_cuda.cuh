@@ -3,7 +3,7 @@
  * \file   linalg_cuda.cuh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
- * \brief  CUDA code to support linear algebra operations, headers.
+ * \brief  CUDA code, primarily for using tensor cores.
  * \note   Copyright (C) 2018 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

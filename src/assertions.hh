@@ -3,7 +3,7 @@
  * \file   assertions.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Assertions, header.
+ * \brief  Macros and code for assertions.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

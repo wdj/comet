@@ -3,7 +3,7 @@
  * \file   metrics.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  Metrics pseudo-class.
+ * \brief  Class to manage the calculated metrics output from the methods.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

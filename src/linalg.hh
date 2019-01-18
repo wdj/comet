@@ -3,7 +3,7 @@
  * \file   linalg.hh
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Magma interface, header.
+ * \brief  Interface to generalized linear algebra functions, e.g. MAGMA.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------

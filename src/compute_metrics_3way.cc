@@ -3,25 +3,44 @@
  * \file   compute_metrics_3way.cc
  * \author Wayne Joubert
  * \date   Thu Jan 21 19:07:47 EST 2016
- * \brief  Compute metrics, 3-way.
+ * \brief  Calculate metrics, 3-way.
  * \note   Copyright (C) 2016 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
 
 #include "env.hh"
+#include "linalg.hh"
 #include "mirrored_buf.hh"
-#include "vector_sums.hh"
 #include "vectors.hh"
 #include "metrics.hh"
-#include "linalg.hh"
+#include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics_3way_nums.hh"
-#include "compute_metrics.hh"
+#include "compute_metrics_3way_nums_proc.hh"
 #include "compute_metrics_3way.hh"
 
 //=============================================================================
 
-void gm_compute_metrics_3way_notall2all(GMComputeMetrics* compute_metrics,
+void GMComputeMetrics3Way_create(
+    GMComputeMetrics3Way* this_,
+    GMDecompMgr* dm,
+    GMEnv* env) {
+  GMInsist(this_ && dm && env);
+
+  //*this_ = {0};
+} 
+
+//-----------------------------------------------------------------------------
+  
+void GMComputeMetrics3Way_destroy(
+    GMComputeMetrics3Way* this_,
+    GMEnv* env) {
+  GMInsist(this_ && env);
+  
+}
+
+//=============================================================================
+
+void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
                                         GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
@@ -88,7 +107,7 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics* compute_metrics,
 
 //=============================================================================
 
-void gm_compute_metrics_3way_all2all(GMComputeMetrics* compute_metrics,
+void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
                                      GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
