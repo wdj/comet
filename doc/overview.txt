@@ -75,7 +75,7 @@ mkdir comet_work
 cd comet_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-MY_PROJID=stf006 #---modify this as needed
+MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
 env OLCF_PROJECT=$MY_PROJID ./genomics_gpu/scripts/configure_all.sh
 ./genomics_gpu/scripts/make_all.sh
 bsub -P $MY_PROJID -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
@@ -86,7 +86,7 @@ bsub -P $MY_PROJID -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
 
 The following runs a simple test case.  Bash shell is assumed.
 
-MY_PROJID=stf006 #---modify this as needed
+MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
 bsub -P $MY_PROJID -Is -nnodes 1 -W 120 $SHELL
 ...
 module -q load gcc/6.4.0

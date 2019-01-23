@@ -8,7 +8,8 @@ The following is run on the ORNL Summit system.
 
 # To build debug/test and release versions of the code:
 
-cd $MEMBERWORK/stf006    #---replace stf006 with your OLCF account id.
+MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
+cd $MEMBERWORK/$MY_PROJID
 mkdir comet_work
 cd comet_work
 module load git
@@ -192,8 +193,9 @@ values matches that of the system on which the code is run.
 # Run the tester.
 #--------------------
 
-bsub -P stf006 -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
-cd $MEMBERWORK/stf006/comet_work
+MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
+bsub -P $MY_PROJID -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
+cd $MEMBERWORK/$MY_PROJID/comet_work
 module -q load gcc/6.4.0
 pushd build_test
 make test ARGS=-V
@@ -203,8 +205,9 @@ popd
 
 # The following test runs assume:
 
-bsub -P stf006 -Is -nnodes 2 -W 120 $SHELL
-cd $MEMBERWORK/stf006/comet_work
+MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
+bsub -P $MY_PROJID -Is -nnodes 2 -W 120 $SHELL
+cd $MEMBERWORK/$MY_PROJID/comet_work
 module -q load gcc/6.4.0
 
 # The following code also assumes bash shell.
