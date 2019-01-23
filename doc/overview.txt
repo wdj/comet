@@ -45,30 +45,31 @@ with clang-format -style chromium, thpough this is under reevaluation.
 
 ----------
 
-THe following are the main reop subdirectories:
+The following are the main repo subdirectories:
 
 - ATTIC - defunct code from original prototypes
 
 - doc - documentation
 
+- src - priomary source code directory
+
 - driver - command line driver source code
+
+- tpls - source code for publicly available third party libraries
 
 - magma_patch - code to modify the MAGMA library to support needed operations
 
-- scripts shell scripts for building etc.
-
-- src - priomary source code directory
+- scripts - shell scripts for building etc.
 
 - testing - source code for testing, using CTest and googletest.
 
 - tools - software tools, mainly for mnipulating CoMet input and output files
 
-- tpls - wsource code for publicly available third party libraries
-
 ----------
 
 The following commands configure, build and test all versions
-of CoMet on Summit.  Bash shell is assumed.
+of CoMet on Summit.  This is the typical setup used for development.
+Bash shell is assumed.
 
 mkdir comet_work
 cd comet_work

@@ -1,7 +1,8 @@
 
 Code levelization: subpackage dependencies
+------------------------------------------
 
-ref.: John Lakos, Large-Scale C++ Software Design. Addison-Wesley, 1996.
+(ref.: John Lakos, Large-Scale C++ Software Design. Addison-Wesley, 1996)
 
 1.  env
           Basic environment - settings, MPI communicators, etc.
