@@ -69,7 +69,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->metric_type_ = GM_METRIC_TYPE_CZEK;
   env->num_way_ = GM_NUM_WAY_2;
   env->all2all_ = false;
-  env->are_cuda_streams_initialized_ = false;
+  env->are_accel_streams_initialized_ = false;
   env->are_mpi_comms_initialized_ = false;
   GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
   env->num_stage = 1;
@@ -330,7 +330,7 @@ void GMEnv_initialize_streams(GMEnv* const env) {
 
   // NOTE: this is used for lazy initialization
 
-  if (env->are_cuda_streams_initialized_) {
+  if (env->are_accel_streams_initialized_) {
     return;
   }
 
@@ -339,15 +339,15 @@ void GMEnv_initialize_streams(GMEnv* const env) {
   }
 
   cudaStreamCreate(&env->stream_compute_);
-  GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env));
 
   cudaStreamCreate(&env->stream_togpu_);
-  GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env));
 
   cudaStreamCreate(&env->stream_fromgpu_);
-  GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env));
 
-  env->are_cuda_streams_initialized_ = true;
+  env->are_accel_streams_initialized_ = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -355,30 +355,30 @@ void GMEnv_initialize_streams(GMEnv* const env) {
 void GMEnv_terminate_streams(GMEnv* const env) {
   GMInsist(env);
 
-  if (! env->are_cuda_streams_initialized_) {
+  if (! env->are_accel_streams_initialized_) {
     return;
   }
 
   cudaStreamDestroy(env->stream_compute_);
-  GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env));
 
   cudaStreamDestroy(env->stream_togpu_);
-  GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env));
 
   cudaStreamDestroy(env->stream_fromgpu_);
-  GMInsist(GMEnv_cuda_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env));
 
-  env->are_cuda_streams_initialized_ = false;
+  env->are_accel_streams_initialized_ = false;
 }
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_stream_synchronize(cudaStream_t stream, GMEnv* const env) {
+void GMEnv_stream_synchronize(accelStream_t stream, GMEnv* const env) {
   GMInsist(env);
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaStreamSynchronize(stream);
-    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env));
   }
 }
 
@@ -576,7 +576,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
 //-----------------------------------------------------------------------------
 
-cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
+accelStream_t GMEnv_stream_compute(GMEnv* const env) {
   GMInsist(env);
   GMEnv_initialize_streams(env);
   return env->stream_compute_;
@@ -584,7 +584,7 @@ cudaStream_t GMEnv_stream_compute(GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
+accelStream_t GMEnv_stream_togpu(GMEnv* const env) {
   GMInsist(env);
   GMEnv_initialize_streams(env);
   return env->stream_togpu_;
@@ -592,7 +592,7 @@ cudaStream_t GMEnv_stream_togpu(GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
+accelStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
   GMInsist(env);
   GMEnv_initialize_streams(env);
   return env->stream_fromgpu_;
@@ -621,7 +621,7 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaDeviceSynchronize();
-    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env));
   }
 
   const int mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
@@ -779,7 +779,7 @@ size_t gm_array_cksum(unsigned char* a, size_t n) {
 //=============================================================================
 // Misc.
 
-bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env) {
+bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
   GMInsist(env);
 
   // NOTE: this read of the last error is a destructive read.

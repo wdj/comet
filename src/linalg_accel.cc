@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   linalg_cuda.cu
+ * \file   linalg_accel.cc
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  CUDA code, primarily for using tensor cores.
@@ -14,7 +14,7 @@
 #include "cuda_fp16.h"
 
 #include "env.hh"
-#include "linalg_cuda.cuh"
+#include "linalg_accel.hh"
 
 //=============================================================================
 // HELPERS
@@ -56,16 +56,16 @@ template<int TC_METHOD> struct TCSelector;
 template<> struct TCSelector<GM_TC_METHOD_INT8> {
   typedef GMUInt8 GemmIn_t;
   typedef int32_t GemmOut_t;
-  static cudaDataType __host__ __device__ cuda_type_in() {return CUDA_R_8I;}
-  static cudaDataType __host__ __device__ cuda_type_out() {return CUDA_R_32I;}
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
   enum { COUNT = 1 };
 };
 
 template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
   typedef GMUInt16 GemmIn_t;
   typedef float GemmOut_t;
-  static cudaDataType __host__ __device__ cuda_type_in() {return CUDA_R_16F;}
-  static cudaDataType __host__ __device__ cuda_type_out() {return CUDA_R_32F;}
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
   enum { COUNT = 1 };
 };
 
@@ -241,7 +241,7 @@ static void gm_tc_buf_write_(
     GMEnv_num_way(env), env->sparse, is_right,
     nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
 
-  GMEnv_cuda_last_call_succeeded(env);
+  GMEnv_accel_last_call_succeeded(env);
 }
 
 //-----------------------------------------------------------------------------
@@ -296,16 +296,16 @@ static void gm_tc_solve_(
     m, n, k,
     (void*)&alpha,
     tc_bufs.tc_buf_left,
-    TCSelector<TC_METHOD>::cuda_type_in(),
+    TCSelector<TC_METHOD>::gemm_type_in(),
     m,
     tc_bufs.tc_buf_right,
-    TCSelector<TC_METHOD>::cuda_type_in(),
+    TCSelector<TC_METHOD>::gemm_type_in(),
     n,
     (void*)&beta,
     dC,
-    TCSelector<TC_METHOD>::cuda_type_out(),
+    TCSelector<TC_METHOD>::gemm_type_out(),
     m,
-    TCSelector<TC_METHOD>::cuda_type_out(),
+    TCSelector<TC_METHOD>::gemm_type_out(),
     //CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
     //CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
     CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.2.88, transpose
@@ -512,7 +512,7 @@ static void gm_tc_repair_metrics_(
       0,
       env->stream_compute_>>>(nvl, nvll, nvllD2, vo);
 
-  GMEnv_cuda_last_call_succeeded(env);
+  GMEnv_accel_last_call_succeeded(env);
 }
 
 //-----------------------------------------------------------------------------
@@ -693,11 +693,11 @@ void gm_tc_bufs_malloc(int num_vector_local,
   // Allocate buffers.
 
   cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
-  GMEnv_cuda_last_call_succeeded(env);
+  GMEnv_accel_last_call_succeeded(env);
   gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
 
   cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
-  GMEnv_cuda_last_call_succeeded(env);
+  GMEnv_accel_last_call_succeeded(env);
   gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
 
   // Set up cublas handle.
@@ -729,12 +729,12 @@ void gm_tc_bufs_free(TCBufs& tc_bufs,
   // Free buffers.
 
   cudaFree(tc_bufs.tc_buf_left);
-  GMEnv_cuda_last_call_succeeded(env);
+  GMEnv_accel_last_call_succeeded(env);
   tc_bufs.tc_buf_left = NULL;
   gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
 
   cudaFree(tc_bufs.tc_buf_right);
-  GMEnv_cuda_last_call_succeeded(env);
+  GMEnv_accel_last_call_succeeded(env);
   tc_bufs.tc_buf_right = NULL;
   gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
 

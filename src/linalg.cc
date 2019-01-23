@@ -19,7 +19,7 @@
 
 #include "env.hh"
 #include "assertions.hh"
-#include "linalg_cuda.cuh"
+#include "linalg_accel.hh"
 #include "decomp_mgr.hh"
 #include "linalg.hh"
 
@@ -436,7 +436,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
         (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
          (float*)dA, ldda, (float*)dB, lddb, beta, (float*)dC, lddc);
     }
-    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env));
 
     env->ops_local += 2 * m * (double)n * (double)k;
 
@@ -452,7 +452,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_mgemm4blas_zgemm(Magma_mgemm4Trans, Magma_mgemm4NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env));
 
   } else if (use_mgemm2(env)) { //--------------------
 
@@ -466,7 +466,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_mgemm2blas_zgemm(Magma_mgemm2Trans, Magma_mgemm2NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env));
 
   } else if (use_mgemm3(env)) { //--------------------
 
@@ -480,7 +480,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_mgemm3blas_zgemm(Magma_mgemm3Trans, Magma_mgemm3NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMInsist(GMEnv_cuda_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env));
 
   } else { //--------------------
 

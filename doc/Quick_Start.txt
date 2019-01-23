@@ -129,11 +129,6 @@ Options:
         the kind of synthetic test case to run. Allowed choices are
         analytic (default) or random
 
-    --input_file <value>
-        string denoting the filename or pathname file
-        used to store input vectors.  If this option not present,
-        a synthetic test case is run.
-
     --output_file_stub <value>
         string denoting the filename or pathname stub of filenames
         used to store result metrics.  Metric values are stored in files

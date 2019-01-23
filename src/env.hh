@@ -26,6 +26,8 @@
 //=============================================================================
 // Environment struct declarations.
 
+typedef cudaStream_t accelStream_t;
+
 typedef struct {
   // CoMet Settings
   int metric_type_;
@@ -76,10 +78,10 @@ typedef struct {
   int proc_num_repl_vector_;
   bool is_proc_active_;
   // CUDA
-  cudaStream_t stream_compute_;
-  cudaStream_t stream_togpu_;
-  cudaStream_t stream_fromgpu_;
-  bool are_cuda_streams_initialized_;
+  accelStream_t stream_compute_;
+  accelStream_t stream_togpu_;
+  accelStream_t stream_fromgpu_;
+  bool are_accel_streams_initialized_;
   // HELPERS
   bool do_reduce;
   bool need_2way; // does the 3-way calc require 2-way metrics
@@ -156,7 +158,7 @@ void GMEnv_destroy(GMEnv* const env);
 
 void GMEnv_initialize_streams(GMEnv* const env);
 void GMEnv_terminate_streams(GMEnv* const env);
-void GMEnv_stream_synchronize(cudaStream_t stream, GMEnv* const env);
+void GMEnv_stream_synchronize(accelStream_t stream, GMEnv* const env);
 
 //=============================================================================
 // Accessors: general
@@ -271,9 +273,9 @@ int GMEnv_data_type_metrics(const GMEnv* const env);
 void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
                       int num_proc_repl, int num_proc_field);
 
-cudaStream_t GMEnv_stream_compute(GMEnv* const env);
-cudaStream_t GMEnv_stream_togpu(GMEnv* const env);
-cudaStream_t GMEnv_stream_fromgpu(GMEnv* const env);
+accelStream_t GMEnv_stream_compute(GMEnv* const env);
+accelStream_t GMEnv_stream_togpu(GMEnv* const env);
+accelStream_t GMEnv_stream_fromgpu(GMEnv* const env);
 
 //=============================================================================
 // Accessors: num proc
@@ -555,7 +557,7 @@ size_t gm_array_cksum(unsigned char* a, size_t n);
 //=============================================================================
 // Misc.
 
-bool GMEnv_cuda_last_call_succeeded(const GMEnv* const env);
+bool GMEnv_accel_last_call_succeeded(const GMEnv* const env);
 
 int gm_gpu_compute_capability();
 

@@ -21,7 +21,7 @@ SET(LIB_SOURCES
   src/decomp_mgr.cc
   src/mirrored_buf.cc
   src/linalg.cc
-  src/linalg_cuda.cu
+  src/linalg_accel.cc
   src/metrics.cc
   src/checksum.cc
   src/vectors.cc
@@ -44,7 +44,7 @@ SET(LIB_INCLUDES
   src/decomp_mgr.hh
   src/mirrored_buf.hh
   src/linalg.hh
-  src/linalg_cuda.cuh
+  src/linalg_accel.hh
   src/metrics.hh
   src/metrics_2way_indexing.hh
   src/metrics_2way_accessors.hh
@@ -78,8 +78,11 @@ if(NOT NOMPI)
 endif()
 find_package(CUDA REQUIRED)
 
-SET(CUDA_SOURCES, src/linalg_cuda.cu)
+#SET(CUDA_SOURCES, src/linalg_cuda.cu)
 CUDA_INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
+
+# see https://stackoverflow.com/questions/36021233/cmake-cuda-compile-cpp-files-in-cuda-mode-x-cu
+set_source_files_properties( src/linalg_accel.cc PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
 
 CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 INCLUDE_DIRECTORIES(${INCLUDE_DIRS})

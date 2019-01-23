@@ -13,7 +13,7 @@
 #include "mpi.h"
 
 #include "env.hh"
-#include "linalg_cuda.cuh"
+#include "linalg_accel.hh"
 #include "decomp_mgr.hh"
 
 //=============================================================================

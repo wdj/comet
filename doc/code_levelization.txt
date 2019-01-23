@@ -10,7 +10,7 @@ ref.: John Lakos, Large-Scale C++ Software Design. Addison-Wesley, 1996.
     types
           Fundamental scalar types for algorithms; associated functions
 
-2.  linalg_cuda
+2.  linalg_accel
           CUDA code, primarily for using tensor cores
 
 3.  decomp_mgr

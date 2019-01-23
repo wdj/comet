@@ -12,7 +12,7 @@
 #define _gm_decomp_mgr_hh_
 
 #include "env.hh"
-#include "linalg_cuda.cuh"
+#include "linalg_accel.hh"
 
 //=============================================================================
 // DecompMgr struct

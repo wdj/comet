@@ -206,6 +206,7 @@ function main
 
   local C_CXX_FLAGS
   C_CXX_FLAGS="-DFP_PRECISION_$FP_PRECISION -DADD_"
+  C_CXX_FLAGS="$C_CXX_FLAGS -DUSE_CUDA"
   C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_minproduct/include"
   C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm2/include"
   C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm3/include"
