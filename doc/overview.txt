@@ -75,9 +75,9 @@ mkdir comet_work
 cd comet_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-./genomics_gpu/scripts/configure_all.sh
-./genomics_gpu/scripts/make_all.sh
 MY_PROJID=stf006 #---modify this as needed
+env OLCF_PROJECT=$MY_PROJID ./genomics_gpu/scripts/configure_all.sh
+./genomics_gpu/scripts/make_all.sh
 bsub -P $MY_PROJID -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
 ...
 ./genomics_gpu/scripts/test_all.sh
