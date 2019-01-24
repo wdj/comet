@@ -4,12 +4,12 @@ Code levelization: subpackage dependencies
 
 (ref.: John Lakos, Large-Scale C++ Software Design. Addison-Wesley, 1996)
 
-1.  env
-          Basic environment - settings, MPI communicators, etc.
-    assertions
+1.  assertions
           Macros and code for assertions
     types
           Fundamental scalar types for algorithms; associated functions
+    env
+          Basic environment - settings, MPI communicators, etc.
 
 2.  linalg_accel
           CUDA code, primarily for using tensor cores
@@ -38,10 +38,10 @@ Code levelization: subpackage dependencies
           Calculate metrics numerators, 2-way, on a single rank
 7b. compute_metrics_2way_proc_combine
           Combine numerators and denominators, 2-way, on a single rank
-7c. compute_metrics_3way_nums_gpu
-          Calculate numerators, 3-way, on a single rank, GPU case
-    compute_metrics_3way_nums_nongpu
+7c. compute_metrics_3way_nums_nongpu
           Calculate numerators, 3-way, on a single rank, non-GPU case
+    compute_metrics_3way_nums_gpu
+          Calculate numerators, 3-way, on a single rank, GPU case
     compute_metrics_3way_nums_proc
           Calculate numerators, 3-way, on a single rank
 
