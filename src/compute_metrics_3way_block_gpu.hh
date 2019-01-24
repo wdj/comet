@@ -1,22 +1,22 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   gm_compute_3way_nums_gpu.hh
+ * \file   gm_compute_metrics_3way_block_gpu.hh
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Calculate numerators, 3-way, on a single rank, GPU case.
+ * \brief  Calculate numerators, 3-way, for a single block, GPU case.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_3way_nums_gpu_hh_
-#define _gm_compute_3way_nums_gpu_hh_
+#ifndef _gm_compute_metrics_3way_block_gpu_hh_
+#define _gm_compute_metrics_3way_block_gpu_hh_
 
 #include "env.hh"
 #include "mirrored_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
-#include "compute_metrics_3way_nums_proc.hh"
+#include "compute_metrics_3way_block.hh"
 
 //=============================================================================
 
@@ -71,6 +71,6 @@ void gm_compute_3way_nums_gpu_start_(
 
 //=============================================================================
 
-#endif // _gm_compute_3way_nums_gpu_hh_
+#endif // _gm_compute_metrics_3way_block_gpu_hh_
 
 //-----------------------------------------------------------------------------

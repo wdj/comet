@@ -163,6 +163,8 @@ void GMEnv_stream_synchronize(accelStream_t stream, GMEnv* const env);
 //=============================================================================
 // Accessors: general
 
+// TODO: can move many of these to env.cc.
+
 static int GMEnv_metric_type(const GMEnv* const env) {
   GMAssert(env);
   return env->metric_type_;
@@ -332,6 +334,7 @@ static int GMEnv_proc_num(const GMEnv* const env) {
 
 static int GMEnv_proc_num_vector_i(const GMEnv* const env) {
   GMAssert(env);
+  // TODO: fix _i nomenclature.
   return env->proc_num_vector_i_;
 }
 
@@ -357,6 +360,8 @@ double GMEnv_get_synced_time(const GMEnv* const env);
 
 //=============================================================================
 // Math utility functions
+
+// TODO: maybe put in separate file.
 
 static int gm_min_i(const int i, const int j) {
   return i < j ? i : j;

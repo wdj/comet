@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_2way_proc_combine.cc
+ * \file   compute_metrics_2way_block_combine.cc
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Combine numerators and denominators, 2-way, on a single rank.
+ * \brief  Combine numerators and denominators, 2-way, for a single block.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -14,7 +14,7 @@
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
-#include "compute_metrics_2way_proc_combine.hh"
+#include "compute_metrics_2way_block_combine.hh"
 
 //=============================================================================
 /*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
@@ -185,7 +185,7 @@ void gm_compute_2way_proc_combine_ccc_(
   const GMVectorSums* vs_l = vector_sums_left;
   const GMVectorSums* vs_r = vector_sums_right;
 
-  /*---Copy from metrics_buffer for GPU case---*/
+  /*---Copy from metrics_buffer for GPU case; perform checks---*/
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     /*--------------------*/

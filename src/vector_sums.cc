@@ -195,6 +195,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
           sum += (GMFloat)gm_popcount64(data1 & v10_mask1);
           count += (GMFloat)gm_popcount64(v10_oddmask0 | (v10_oddmask1 << 1));
         }
+        //TODO: should decomp_mgr own more of this
         // Adjust for end pad
         const int num_fields_pad =
           vectors->dm->num_packedfield_local *

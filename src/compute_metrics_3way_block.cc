@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_3way_nums_proc.cc
+ * \file   compute_metrics_3way_block.cc
  * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Calculate numerators, 3-way, on a single rank.
+ * \brief  Calculate numerators, 3-way, for a single block.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -17,9 +17,9 @@
 #include "metrics.hh"
 #include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics_3way_nums_gpu.hh"
-#include "compute_metrics_3way_nums_nongpu.hh"
-#include "compute_metrics_3way_nums_proc.hh"
+#include "compute_metrics_3way_block_gpu.hh"
+#include "compute_metrics_3way_block_nongpu.hh"
+#include "compute_metrics_3way_block.hh"
 
 //=============================================================================
 

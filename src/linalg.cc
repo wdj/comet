@@ -189,6 +189,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    "Error in call to magma_minproduct_smalloc,"
                    " possibly due to insufficient memory.");
     }
+    // TODO: ? fill GPU memory with NaNs
 
     p->size = n*sizeof(GMFloat);
     gm_cpu_mem_inc(p->size, env);

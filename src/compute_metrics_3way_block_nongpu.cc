@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_3way_nums_nongpu.cc
+ * \file   compute_metrics_3way_block_nongpu.cc
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Calculate numerators, 3-way, on a single rank, non-GPU case.
+ * \brief  Calculate numerators, 3-way, for a single block, non-GPU case.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -17,8 +17,8 @@
 #include "metrics.hh"
 #include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics_3way_nums_proc.hh"
-#include "compute_metrics_3way_nums_nongpu.hh"
+#include "compute_metrics_3way_block.hh"
+#include "compute_metrics_3way_block_nongpu.hh"
 
 //=============================================================================
 /*---Start calculation of numerators, 3-way Czekanowski non-gpu---*/

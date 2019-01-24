@@ -28,6 +28,8 @@ enum {
 //=============================================================================
 // Types: general
 
+// TODO: use C++ types that have guaranteed sizes, e.g., int32_t.
+
 // Integer types
 
 typedef unsigned char GMUInt8;

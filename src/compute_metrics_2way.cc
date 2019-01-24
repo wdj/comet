@@ -17,8 +17,8 @@
 #include "metrics.hh"
 #include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics_2way_proc_nums.hh"
-#include "compute_metrics_2way_proc_combine.hh"
+#include "compute_metrics_2way_block_nums.hh"
+#include "compute_metrics_2way_block_combine.hh"
 #include "compute_metrics_2way.hh"
 
 //=============================================================================

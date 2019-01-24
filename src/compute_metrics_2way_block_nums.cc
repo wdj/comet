@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_2way_proc_nums.cc
+ * \file   compute_metrics_2way_block_nums.cc
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Calculate metrics numerators, 2-way, on a single rank.
+ * \brief  Calculate metrics numerators, 2-way, for a single block.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -14,7 +14,7 @@
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
-#include "compute_metrics_2way_proc_nums.hh"
+#include "compute_metrics_2way_block_nums.hh"
 
 //=============================================================================
 /*---Start calculation of numerators, 2-way Czekanowski---*/

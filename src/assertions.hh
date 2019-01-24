@@ -16,6 +16,7 @@
 
 //-----------------------------------------------------------------------------
 /// \brief Insist macro - assert a condition even for release builds.
+///
 ///        This should be used only for non-performance-sensitive
 ///        code locations -- e.g., not in a deep loop nest.
 
@@ -41,7 +42,8 @@
 
 //-----------------------------------------------------------------------------
 /// \brief Static (i.e., compile time) assertion macro.
-///        TODO: replace with C++11 equivalent.
+
+// TODO: replace with C++11 equivalent.
 
 #ifndef NDEBUG
 // Fail compilation and (hopefully) give a filename/line number
@@ -61,7 +63,8 @@ namespace CoMet {
 
 //-----------------------------------------------------------------------------
 /// \brief Function to support the GMAssert, GMInsist macros.
-///        Trailing underscore to avoid collision with C assert macro.
+
+//        Use trailing underscore to avoid collision with C assert macro.
 
 void assert_(const char* condition_string, const char* file, int line);
 

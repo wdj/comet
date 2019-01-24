@@ -25,6 +25,7 @@ GMMirroredBuf GMMirroredBuf_null(void) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Mirrored buf pseudo-constructor: allocate CPU and GPU arrays.
 
 void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1, 
                           GMEnv* env) {
@@ -35,6 +36,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Mirrored buf pseudo-constructor: create alias to existing mirror.
 
 void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
                           GMEnv* env) {
@@ -51,6 +53,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Mirrored buf pseudo-destructor
 
 void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env) {
   GMInsist(p && env);

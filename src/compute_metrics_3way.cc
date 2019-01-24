@@ -15,7 +15,7 @@
 #include "metrics.hh"
 #include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics_3way_nums_proc.hh"
+#include "compute_metrics_3way_block.hh"
 #include "compute_metrics_3way.hh"
 
 //=============================================================================

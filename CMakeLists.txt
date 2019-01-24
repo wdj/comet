@@ -27,11 +27,11 @@ SET(LIB_SOURCES
   src/vectors.cc
   src/vector_sums.cc
   src/comm_xfer_utils.cc
-  src/compute_metrics_2way_proc_nums.cc
-  src/compute_metrics_2way_proc_combine.cc
-  src/compute_metrics_3way_nums_nongpu.cc
-  src/compute_metrics_3way_nums_gpu.cc
-  src/compute_metrics_3way_nums_proc.cc
+  src/compute_metrics_2way_block_nums.cc
+  src/compute_metrics_2way_block_combine.cc
+  src/compute_metrics_3way_block_nongpu.cc
+  src/compute_metrics_3way_block_gpu.cc
+  src/compute_metrics_3way_block.cc
   src/compute_metrics_2way.cc
   src/compute_metrics_3way.cc
   src/compute_metrics.cc
@@ -54,11 +54,11 @@ SET(LIB_INCLUDES
   src/vectors.hh
   src/vector_sums.hh
   src/comm_xfer_utils.hh
-  src/compute_metrics_2way_proc_nums.hh
-  src/compute_metrics_2way_proc_combine.hh
-  src/compute_metrics_3way_nums_nongpu.hh
-  src/compute_metrics_3way_nums_gpu.hh
-  src/compute_metrics_3way_nums_proc.hh
+  src/compute_metrics_2way_block_nums.hh
+  src/compute_metrics_2way_block_combine.hh
+  src/compute_metrics_3way_block_nongpu.hh
+  src/compute_metrics_3way_block_gpu.hh
+  src/compute_metrics_3way_block.hh
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh
   src/compute_metrics.cc

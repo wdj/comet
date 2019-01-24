@@ -24,6 +24,8 @@ typedef struct {
   bool is_alias;
 } GMMirroredBuf;
 
+// TODO: is it appropriate to put copy to host / copy to device fns here
+
 //-----------------------------------------------------------------------------
 
 GMMirroredBuf GMMirroredBuf_null(void);
@@ -37,6 +39,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
 void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env);
 
 //-----------------------------------------------------------------------------
+/// \brief Mirrored buf element accessor.
 
 template<typename T>
 static T& GMMirroredBuf_elt(GMMirroredBuf* p, int i0, int i1) {
@@ -48,6 +51,7 @@ static T& GMMirroredBuf_elt(GMMirroredBuf* p, int i0, int i1) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Mirrored buf const element accessor.
 
 template<typename T>
 static T GMMirroredBuf_elt_const(const GMMirroredBuf* p, int i0, int i1) {

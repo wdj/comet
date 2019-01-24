@@ -630,7 +630,7 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
 }
 
 //=============================================================================
-// Arrays and floating point
+// Memory, arrays and floating point
 
 void gm_cpu_mem_inc(size_t n, GMEnv* env) {
   GMInsist(env);
