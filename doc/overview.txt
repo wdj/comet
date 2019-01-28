@@ -41,7 +41,7 @@ high-level structure is not likely to change much.
 
 The code loosely adheres to the Google C++ style guide,
 https://google.github.io/styleguide/cppguide.html.  Source code is formatted
-with clang-format -style chromium, thpough this is under reevaluation.
+with clang-format -style chromium, though this is under reevaluation.
 
 ----------
 
