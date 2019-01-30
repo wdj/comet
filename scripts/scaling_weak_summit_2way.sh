@@ -1,11 +1,32 @@
 #!/bin/bash
 #==============================================================================
-
-#num_node_solve="4560" # 20 50 200 500 1000 2000 3000 4400 4560
-
-#env num_node_solve=4560 bsub -P stf006 -nnodes 4580 -W 30 -J CoMet-benchmark scaling_weak_summit_2way.sh
-
-#/ccs/home/joubert/proj/genomics/results/gbrev_max
+#
+# Script for executing 2-way weak scaling study on Summit.
+#
+# Usage:
+#
+# env num_node_solve=20   bsub -P stf006 -nnodes 40   -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+# env num_node_solve=50   bsub -P stf006 -nnodes 70   -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+# env num_node_solve=200  bsub -P stf006 -nnodes 220  -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+# env num_node_solve=500  bsub -P stf006 -nnodes 520  -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+# env num_node_solve=1000 bsub -P stf006 -nnodes 1020 -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+# env num_node_solve=2000 bsub -P stf006 -nnodes 2020 -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+# env num_node_solve=3000 bsub -P stf006 -nnodes 3020 -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+# env num_node_solve=4400 bsub -P stf006 -nnodes 4420 -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+# env num_node_solve=4560 bsub -P stf006 -nnodes 4580 -W 60 -J CoMet-benchmark scaling_weak_summit_2way.sh
+#
+# Options:
+#
+# export ccc=1 sparse=yes # default
+# export ccc=1 sparse=yes tc=0
+# export ccc=1 sparse=no
+# export ccc=1 sparse=no tc=0
+# export ccc=0 single=1
+# export ccc=0 single=0
+#
+# original file: /ccs/home/joubert/proj/genomics/results/gbrev_max
+#
+#==============================================================================
 
 #------------------------------------------------------------------------------
 # Node counts
