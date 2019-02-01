@@ -42,6 +42,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 void gm_tc_bufs_free(TCBufs& tc_bufs,
                      GMEnv* env);
 
+size_t gm_gemm_divisibility_required(GMEnv* const env);
 size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env);
 
 //-----------------------------------------------------------------------------

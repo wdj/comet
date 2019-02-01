@@ -285,8 +285,8 @@ static void gm_tc_solve_(
   // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
 
   GMInsist(k % 8 == 0); // nfl is derived from padded-up npvfl, so always ok.
-  GMInsist(m % 8 == 0); // since I_max_dim % 4 == 0; see gm_gemm_size_required()
-  GMInsist(n % 8 == 0); // since nvl % 4 == 0; see gm_gemm_size_required()
+  GMInsist(m % 8 == 0); // since I_max_dim % 4 == 0; see gm_gemm_divisibility_required()
+  GMInsist(n % 8 == 0); // since nvl % 4 == 0; see gm_gemm_divisibility_required()
 
   // Make BLAS call.
 
@@ -500,7 +500,7 @@ static void gm_tc_repair_metrics_(
   GMInsist(nvl >= 0);
   GMInsist(nvll <= nvl);
 
-  GMInsist(nvll % 2 == 0); // always true, because of gm_gemm_size_required()
+  GMInsist(nvll % 2 == 0); // always true, because of gm_gemm_divisibility_required()
   const int nvllD2 = nvll / 2;
 
   const int threadblocksize = 256;
@@ -597,12 +597,23 @@ static void gm_tc_gemm_start_impl_(
 //-----------------------------------------------------------------------------
 /// \brief Divisibility requirement for GEMM.
 
-size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
+size_t gm_gemm_divisibility_required(GMEnv* const env) {
   GMInsist(env);
 
   const bool need_divisible_by_4 = env->tc;
 
-  return need_divisible_by_4 ? gm_ceil_i8(size_requested, 4)*4 : size_requested;
+  return need_divisible_by_4 ? 4 : 1;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM.
+
+size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
+  GMInsist(env);
+
+  const size_t factor = gm_gemm_divisibility_required(env);
+
+  return gm_ceil_i8(size_requested, factor)*factor;
 }
 
 //-----------------------------------------------------------------------------

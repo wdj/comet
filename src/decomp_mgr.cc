@@ -24,14 +24,16 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
   // NOTE: this function should receive the same num_vector_active_local
   // and give the same result independent of MPI rank.
 
-  const size_t nval_gemm = gm_gemm_size_required(num_vector_active_local, env);
+  const size_t factor_4 = gm_gemm_divisibility_required(env);
 
   const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
                                    GMEnv_all2all(env) &&
                                    GMEnv_num_proc_vector_i(env) > 2;
 
-  return need_divisible_by_6 ? gm_ceil_i8(num_vector_active_local, 6)*6 
-                             : nval_gemm;
+  const size_t lcm = (! need_divisible_by_6) ? factor_4 :
+                     factor_4 % 2 == 0 ? 3 * factor_4 : 6 * factor_4;
+
+  return gm_ceil_i8(num_vector_active_local, lcm)*lcm;
 }
 
 //-----------------------------------------------------------------------------
@@ -96,9 +98,12 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     // One proc in between may be mixed
     const size_t nvl = dm->num_vector_local;
     const size_t nva = dm->num_vector_active;
+    // Pack in lower procs with no gaps to ensure indexing of actives works
+    // right independent of decomposition
     dm->num_vector_active_local = nva <= nvl * proc_num ? 0 :
                                   nva >= nvl * (proc_num + 1) ? nvl :
                                   nva - nvl * proc_num;
+//printf("%i  %i %i %i %i\n", proc_num, (int)dm->num_vector_active, (int)dm->num_vector, (int)dm->num_vector_active_local, (int)dm->num_vector_local);
   } // if vectors_by_local
 
   //--------------------
@@ -164,6 +169,8 @@ printf("%i %i %i %i %i\n",
       nfa <= nfl * proc_num       ? 0 :
       nfa >= nfl * (proc_num + 1) ? nfl :
                                     nfa - nfl * proc_num;
+    // Pack in lower procs with no gaps to ensure indexing of actives works
+    // right independent of decomposition
     dm->field_base = nfl * proc_num <= nfa ? nfl * proc_num : nfa;
 
   } // if fields_by_local

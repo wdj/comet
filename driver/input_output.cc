@@ -648,7 +648,6 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
                                      num_written, env);
 
       } else /*---stdout---*/ {
-
         MetricWriter writer(file, metrics, env);
 
         size_t index = 0;

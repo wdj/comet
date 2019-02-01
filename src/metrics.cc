@@ -409,6 +409,7 @@ void GMMetrics_create(GMMetrics* metrics,
                                                         env) == index);
           metrics->coords_global_from_index[index++] =
               i_global + metrics->num_vector * j_global;
+//printf("HEY%i   %i %i\n", env->tc, (int)i_global, (int)j_global);
         }
       }
     }
@@ -435,6 +436,7 @@ void GMMetrics_create(GMMetrics* metrics,
           GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
           metrics->coords_global_from_index[index_this] =
               i_global + metrics->num_vector * j_global;
+//printf("HEY%i   %i %i\n", env->tc, (int)i_global, (int)j_global);
         }
       }
       index += nvlsq;
