@@ -107,7 +107,8 @@ void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
 
   } else {
 
-    GMInsistInterface(env, false && "Unimplemented.");
+    GMInsistInterface(env, false &&
+                      "This num_way/all2all combination unimplemented.");
 
   }
 
@@ -118,7 +119,8 @@ void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
 
   // Check computed element count.
 
-  GMInsist(metrics->num_elts_local == metrics->num_elts_local_computed);
+  GMInsist(metrics->num_elts_local == metrics->num_elts_local_computed &&
+           "Failure to compute all requested metrics.");
 
   // Compute global counts of compares and operations.
 
@@ -127,7 +129,7 @@ void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
 
   int mpi_code = MPI_Allreduce(&num_elts_local, &num_elts, 1,
                            MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_repl_vector(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
 
   env->compares += metrics->num_field_active * num_elts *
                    metrics->data_type_num_values;
@@ -138,7 +140,7 @@ void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
 
   mpi_code = MPI_Allreduce(&env->ops_local, &env->ops, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
 
   // Compute global CPU, GPU memory high water marks.
 
@@ -146,13 +148,13 @@ void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
   mpi_code = MPI_Allreduce(&cpu_mem_max_local, &env->cpu_mem_max, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_MAX,
                            GMEnv_mpi_comm_repl_vector(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
 
   const size_t gpu_mem_max_local = env->gpu_mem_max;
   mpi_code = MPI_Allreduce(&gpu_mem_max_local, &env->gpu_mem_max, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_MAX,
                            GMEnv_mpi_comm_repl_vector(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
 }
 
 //-----------------------------------------------------------------------------

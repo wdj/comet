@@ -196,8 +196,8 @@ def bytes_per_metric(args):
     """ """
 
     elt_size_index = g_sizeof_int64
-    elt_size_S = g_sizeof_double if is_ccc(args) else 0
-    elt_size_C = g_sizeof_double if is_sparse(args) and is_ccc(args) else 0
+    elt_size_S = g_sizeof_double if is_ccc(args) else 0 # ERROR - FIX
+    elt_size_C = g_sizeof_double if is_sparse(args) and is_ccc(args) else 0 # ERROR - FIX
 
     return bytes_per_metric_elt(args) + elt_size_index + elt_size_S + elt_size_C
 

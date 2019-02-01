@@ -33,7 +33,7 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
       MPI_Isend((void*)vectors->data, vectors->num_packedval_local, mpi_type,
                 proc_num, mpi_tag, GMEnv_mpi_comm_repl_vector(env),
                 &mpi_request);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Isend.");
 
   return mpi_request;
 }
@@ -55,7 +55,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
       MPI_Irecv((void*)vectors->data, vectors->num_packedval_local, mpi_type,
                 proc_num, mpi_tag, GMEnv_mpi_comm_repl_vector(env),
                 &mpi_request);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Irecv.");
 
   return mpi_request;
 }
@@ -68,7 +68,7 @@ void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   MPI_Status mpi_status;
 
   const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Wait.");
 }
 
 //-----------------------------------------------------------------------------
@@ -79,7 +79,7 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
   MPI_Status mpi_status;
 
   const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Wait.");
 }
 
 //=============================================================================
@@ -100,7 +100,7 @@ void gm_reduce_metrics(GMMetrics* metrics,
                                      metrics_buf_target->h,
                                      nvl * (size_t)nvl, mpi_type, MPI_SUM,
                                      GMEnv_mpi_comm_field(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
 }
 
 //-----------------------------------------------------------------------------
@@ -122,7 +122,7 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
                                       nvl * (size_t)nvl, mpi_type, MPI_SUM,
                                       GMEnv_mpi_comm_field(env),
                                       &mpi_request);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Iallreduce.");
 
   return mpi_request;
 }
@@ -135,7 +135,7 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
   MPI_Status mpi_status;
 
   const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Wait.");
 }
 
 //=============================================================================

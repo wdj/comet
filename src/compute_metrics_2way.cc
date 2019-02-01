@@ -392,7 +392,8 @@ void gm_compute_metrics_2way_all2all(
     if (vars_next.is_compute_step && ! comm_with_self) {
       const int mpi_tag = step_num + 1;
       // NOTE: the following order helps performance
-      GMInsist(!vars_next.is_right_aliased);
+      GMInsist((!vars_next.is_right_aliased) &&
+               "Next step should always compute off-diag block.");
       lock(lock_vectors_right_buf_h_next);
       mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
                                               proc_recv, mpi_tag, env);
@@ -506,7 +507,8 @@ void gm_compute_metrics_2way_all2all(
 
     if (vars_next.is_compute_step && ! comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), env);
-      GMInsist(!vars_next.is_right_aliased);
+      GMInsist((!vars_next.is_right_aliased) &&
+               "Next step should always compute off-diag block.");
       unlock(lock_vectors_right_buf_h_next);
     }
 

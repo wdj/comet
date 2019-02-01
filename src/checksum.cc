@@ -167,8 +167,8 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
               GMMetrics_ccc_get_from_index_3(&metrics, index, i0, i1, i2, &env);
           } break;
           // --------------
-        default:
-          GMInsist(false && "Invalid data type.");
+          default:
+          GMInsist(false && "Invalid metrics data type. metrics.data_type_id.");
         } // switch
         // value_max is the largest of the values at this index.
         value_max = value > value_max ? value : value_max;
@@ -229,7 +229,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
   int mpi_code = MPI_Allreduce(&value_max_tmp, &cksum.value_max_, 1,
                         MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_repl_vector(&env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Faiure in call to MPI_Allreduce.");
   cksum_local.value_max_ = cksum.value_max_;
 
   // Check whether values are within a range for which we can compute
@@ -339,7 +339,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           } break;
           // --------------
           default:
-            GMInsist(false && "Invalid data type.");
+            GMInsist(false && "Invalid data type. metrics.data_type_id.");
         } // switch
 
         // Convert to uint64.  Store only 2*w+1 bits, at most -
@@ -416,7 +416,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
                            MultiprecInt::SIZE,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(&env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   // Add to multiprec int data we have so far.
   for (int i = 0; i < MultiprecInt::SIZE; ++i) {
     cksum.sum_.data_[i] += sum.data_[i];
@@ -454,14 +454,15 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   double sum_d = 0;
   mpi_code = MPI_Allreduce(&sum_d_local, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(&env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   cksum.sum_d_ += sum_d;
   cksum_local.sum_d_ += sum_d_local;
 
   double result_d = cksum.data_[0] / ((double)(one64 << (2 * w))) +
                     cksum.data_[1] +
                     cksum.data_[2] * ((double)(one64 << (2 * w)));
-  GMInsist(fabs(cksum.sum_d_ - result_d) <= cksum.sum_d_ * 1.e-10);
+  GMInsist(fabs(cksum.sum_d_ - result_d) <= cksum.sum_d_ * 1.e-10 &&
+           "Error in checksum calculation");
 } // Checksum::compute
 
 //=============================================================================
