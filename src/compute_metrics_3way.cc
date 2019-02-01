@@ -79,7 +79,8 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
   /*---Compute numerators---*/
 
   const int section_step = 0;
-  GMInsist(gm_num_section_steps(env, 1) == 1);
+  GMInsist(gm_num_section_steps(env, 1) == 1 &&
+           "not all2all case always has 1 section step.");
 
   GMComputeNumerators3Way gm_compute_numerators_3way = {0};
   GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
@@ -389,7 +390,8 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
                following communication will deadlock/mispair---*/
           continue;
         }
-        GMInsist((j_block == k_block) == (j_i_offset == k_i_offset));
+        GMInsist((j_block == k_block) == (j_i_offset == k_i_offset) &&
+                  "Error in block indexing for communication.");
         if (gm_proc_r_active(section_block_num, env)) {
 
           const bool do_k_comm = k_block != k_block_currently_resident;

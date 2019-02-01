@@ -99,9 +99,9 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
 
   if (env->make_comms_) {
     int mpi_code = MPI_Comm_size(env->mpi_comm_base_, &env->num_proc_base_);
-    GMInsist(mpi_code == MPI_SUCCESS);
+    GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_size.");
     mpi_code = MPI_Comm_rank(env->mpi_comm_base_, &env->proc_num_base_);
-    GMInsist(mpi_code == MPI_SUCCESS);
+    GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_rank.");
   } else {
     env->num_proc_base_ = num_proc;
     env->proc_num_base_ = proc_num;
@@ -130,7 +130,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       errno = 0;
       const long num_way = strtol(argv[i], NULL, 10);
       GMInsistInterface(env, 0 == errno && (num_way == GM_NUM_WAY_2 ||
-                                   num_way == GM_NUM_WAY_3)
+                                            num_way == GM_NUM_WAY_3)
                                && "Invalid setting for num_way.");
       env->num_way_ = num_way;
       GMEnv_set_num_proc(env, env->num_proc_vector_i_, env->num_proc_repl_,
@@ -339,13 +339,16 @@ void GMEnv_initialize_streams(GMEnv* const env) {
   }
 
   cudaStreamCreate(&env->stream_compute_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to cudaStreamCreate.");
 
   cudaStreamCreate(&env->stream_togpu_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to cudaStreamCreate.");
 
   cudaStreamCreate(&env->stream_fromgpu_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to cudaStreamCreate.");
 
   env->are_accel_streams_initialized_ = true;
 }
@@ -360,13 +363,16 @@ void GMEnv_terminate_streams(GMEnv* const env) {
   }
 
   cudaStreamDestroy(env->stream_compute_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to cudaStreamDestroy.");
 
   cudaStreamDestroy(env->stream_togpu_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to cudaStreamDestroy.");
 
   cudaStreamDestroy(env->stream_fromgpu_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env));
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to cudaStreamDestroy.");
 
   env->are_accel_streams_initialized_ = false;
 }
@@ -378,7 +384,8 @@ void GMEnv_stream_synchronize(accelStream_t stream, GMEnv* const env) {
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaStreamSynchronize(stream);
-    GMInsist(GMEnv_accel_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+             "Failure in call to cudaStreamSynchronize.");
   }
 }
 
@@ -398,7 +405,7 @@ void GMEnv_initialize_comms(GMEnv* const env) {
 
   int mpi_code = MPI_Comm_split(env->mpi_comm_base_, env->is_proc_active_,
                             env->proc_num_, &env->mpi_comm_);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
 
   // Communicator along repl / vector axis.
 
@@ -407,7 +414,7 @@ void GMEnv_initialize_comms(GMEnv* const env) {
       //env->proc_num_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->proc_num_,
       &env->mpi_comm_repl_vector_);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
 
   // Communicator along field axis.
 
@@ -416,7 +423,7 @@ void GMEnv_initialize_comms(GMEnv* const env) {
       //env->proc_num_,
       env->is_proc_active_ ? env->proc_num_field_ : env->proc_num_,
       &env->mpi_comm_field_);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
 
   env->are_mpi_comms_initialized_ = true;
 }
@@ -433,13 +440,13 @@ void GMEnv_terminate_comms(GMEnv* const env) {
   // Destroy any nontrivial communicators
 
   int mpi_code = MPI_Comm_free(&(env->mpi_comm_));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_free.");
 
   mpi_code = MPI_Comm_free(&(env->mpi_comm_repl_vector_));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_free.");
 
   mpi_code = MPI_Comm_free(&(env->mpi_comm_field_));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_free.");
 
   env->are_mpi_comms_initialized_ = false;
 }
@@ -476,7 +483,7 @@ int GMEnv_data_type_vectors(const GMEnv* const env) {
     case GM_METRIC_TYPE_CCC:
       return GM_DATA_TYPE_BITS2;
   }
-  GMInsist(false && "Invalid metric type.");
+  GMInsist(false && "Invalid metric_type.");
   return 0;
 }
 
@@ -492,7 +499,7 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
       return env->num_way_ == GM_NUM_WAY_2 ? GM_DATA_TYPE_TALLY2X2
                                            : GM_DATA_TYPE_TALLY4X2;
   }
-  GMInsist(false && "Invalid metric type.");
+  GMInsist(false && "Invalid metric_type.");
   return 0;
 }
 
@@ -523,7 +530,8 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   env->num_proc_repl_vector_ = env->num_proc_vector_i_ * env->num_proc_repl_;
 
   env->num_proc_ = env->num_proc_repl_vector_ * num_proc_field;
-  GMInsist(env->num_proc_ <= env->num_proc_base_);
+  GMInsist(env->num_proc_ <= env->num_proc_base_ &&
+           "Number of procs requested exceeds number available.");
 
   // Set proc nums
 
@@ -621,11 +629,12 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
     cudaDeviceSynchronize();
-    GMInsist(GMEnv_accel_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+             "Failure in call to cudaDeviceSynchronize.");
   }
 
   const int mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Barrier.");
   return GMEnv_get_time(env);
 }
 
@@ -659,8 +668,8 @@ void gm_gpu_mem_dec(size_t n, GMEnv* env) {
 void* gm_malloc(size_t n, GMEnv* env) {
   GMInsist(env);
   void* p = malloc(n);
-  GMInsist(p && "Invalid pointer from malloc,"
-                " possibly due to insufficient memory.");
+  GMInsist(p &&
+           "Invalid pointer from malloc, possibly due to insufficient memory.");
   gm_cpu_mem_inc(n, env);
   return p;
 }
@@ -689,7 +698,6 @@ bool GMEnv_is_ppc64() {
 GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
   GMInsist(env);
   GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);
-  GMInsist(p);
   GMFloat_fill_nan(p, n);
   return p;
 }

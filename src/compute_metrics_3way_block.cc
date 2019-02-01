@@ -136,7 +136,7 @@ void GMComputeNumerators3Way_start(
             section_step, env);
       } break;
       default:
-        GMInsistInterface(env, false && "Unimplemented.");
+        GMInsistInterface(env, false && "Selected metric_type unimplemented.");
     } /*---case---*/
     /*----------------------------------------*/
   } /*---if---*/

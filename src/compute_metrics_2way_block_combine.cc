@@ -219,7 +219,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
                        (GMUInt64)r11, (GMUInt64)(metrics->num_field_active),
                        coords, GMEnv_proc_num(env));
-                GMInsist(! error1);
+                GMInsist((! error1) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
@@ -234,7 +234,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (GMUInt64)r11, (GMUInt64)si1,
                        (GMUInt64)r10 + (GMUInt64)r11, (GMUInt64)(2 * si1),
                        coords, GMEnv_proc_num(env));
-                GMInsist(! error2);
+                GMInsist((! error2) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
@@ -249,7 +249,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (GMUInt64)r11, (GMUInt64)sj1,
                        (GMUInt64)r01 + (GMUInt64)r11, (GMUInt64)(2 * sj1),
                        coords, GMEnv_proc_num(env));
-                GMInsist(! error3);
+                GMInsist((! error3) && "Violation of algorithm computational invariant.");
               }
             }
 #endif
@@ -300,7 +300,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
                        (GMUInt64)r11, (GMUInt64)(metrics->num_field_active),
                        coords, GMEnv_proc_num(env));
-                GMInsist(! error1);
+                GMInsist((! error1) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
@@ -315,7 +315,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (GMUInt64)r11, (GMUInt64)si1,
                        (GMUInt64)r10 + (GMUInt64)r11, (GMUInt64)(2 * si1),
                        coords, GMEnv_proc_num(env));
-                GMInsist(! error2);
+                GMInsist((! error2) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
@@ -330,7 +330,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (GMUInt64)r11, (GMUInt64)sj1,
                        (GMUInt64)r01 + (GMUInt64)r11, (GMUInt64)(2 * sj1),
                        coords, GMEnv_proc_num(env));
-                GMInsist(! error3);
+                GMInsist((! error3) && "Violation of algorithm computational invariant.");
               }
             }
 #endif
@@ -494,7 +494,7 @@ void gm_compute_2way_proc_combine(
                                         j_block, do_compute_triang_only, env);
     } break;
     default:
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Selected metric_type unimplemented.");
   } /*---case---*/
 }
 

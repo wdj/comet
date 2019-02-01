@@ -284,9 +284,12 @@ static void gm_tc_solve_(
   // to a non-Tensor Core implementation"
   // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
 
-  GMInsist(k % 8 == 0); // nfl is derived from padded-up npvfl, so always ok.
-  GMInsist(m % 8 == 0); // since I_max_dim % 4 == 0; see gm_gemm_divisibility_required()
-  GMInsist(n % 8 == 0); // since nvl % 4 == 0; see gm_gemm_divisibility_required()
+  // nfl is derived from padded-up npvfl, so always ok.
+  GMInsist(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
+  // since I_max_dim % 4 == 0; see gm_gemm_divisibility_required()
+  GMInsist(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
+  // since nvl % 4 == 0; see gm_gemm_divisibility_required()
+  GMInsist(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
   // Make BLAS call.
 
@@ -324,7 +327,8 @@ static void gm_tc_solve_(
     printf("Error: CUBLAS_STATUS_EXECUTION_FAILED\n");
   }
 
-  GMInsist(status == CUBLAS_STATUS_SUCCESS);
+  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
+           "Failure in call to cublasGemmEx.");
 
   env->ops_local += 2 * m * (double)n * (double)k;
 
@@ -500,7 +504,8 @@ static void gm_tc_repair_metrics_(
   GMInsist(nvl >= 0);
   GMInsist(nvll <= nvl);
 
-  GMInsist(nvll % 2 == 0); // always true, because of gm_gemm_divisibility_required()
+  // always true, because of gm_gemm_divisibility_required()
+  GMInsist(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
   const int nvllD2 = nvll / 2;
 
   const int threadblocksize = 256;
@@ -714,14 +719,17 @@ void gm_tc_bufs_malloc(int num_vector_local,
   // Set up cublas handle.
 
   cublasStatus_t status_cb = cublasCreate(&tc_bufs.cublas_handle);
-  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
+  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS &&
+           "Failure in call to cublasCreate.");
 
   status_cb = cublasSetStream(tc_bufs.cublas_handle, env->stream_compute_);
-  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
+  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS &&
+           "Failure in call to cublasSetStream.");
 
 #if __CUDACC_VER_MAJOR__ >= 9
   status_cb = cublasSetMathMode(tc_bufs.cublas_handle, CUBLAS_TENSOR_OP_MATH);
-  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
+  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS &&
+           "Failure in call to cublasSetMathMode.");
 #endif
 }
 
@@ -752,7 +760,8 @@ void gm_tc_bufs_free(TCBufs& tc_bufs,
   // Free cublas handle.
 
   cublasStatus_t status_cb = cublasDestroy(tc_bufs.cublas_handle);
-  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS);
+  GMInsist(status_cb == CUBLAS_STATUS_SUCCESS &&
+           "Failure in call to cublasDestroy.");
 }
 
 //-----------------------------------------------------------------------------

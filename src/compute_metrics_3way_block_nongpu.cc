@@ -72,10 +72,11 @@ void gm_compute_3way_nums_nongpu_czek_start_(
       ! GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce
-                      && "num_proc_field>1 for REF/CPU cases not supported");
+    GMInsistInterface(env, ! env->do_reduce &&
+                  "num_proc_field>1 for REF/CPU compute_method not supported");
 
-    GMInsist(gm_num_section_steps(env, 1) == 1);
+    GMInsist(gm_num_section_steps(env, 1) == 1 &&
+             "not all2all case always has one section step.");
 
     /*---No off-proc all2all: compute tetrahedron of values---*/
 
@@ -117,8 +118,8 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce
-                      && "num_proc_field>1 for REF/CPU cases not supported");
+    GMInsistInterface(env, ! env->do_reduce &&
+                  "num_proc_field>1 for REF/CPU compute_method not supported");
 
     const bool no_perm = ! si->is_part3;
 
@@ -185,7 +186,7 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
-    GMInsist(false && "logic error - code branch should never be executed");
+    GMInsist(false && "Invalid compute_method.");
 
   } /*---if GPU---*/
 
@@ -242,8 +243,8 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce
-                      && "num_proc_field>1 for CPU case not supported");
+    GMInsistInterface(env, ! env->do_reduce &&
+                      "num_proc_field>1 for CPU compute_method not supported");
 
     const int nfal = vectors_i->dm->num_field_active_local;
     const bool no_perm = ! si->is_part3;
@@ -416,8 +417,8 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce
-                      && "num_proc_field>1 for CPU case not supported");
+    GMInsistInterface(env, ! env->do_reduce &&
+                      "num_proc_field>1 for CPU compute_method not supported");
 
     /* clang-format off */
 
@@ -718,7 +719,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     /*----------------------------------------*/
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
-    GMInsist(false && "logic error; should never be executed");
+    GMInsist(false && "Invalid compute_method");
     /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/

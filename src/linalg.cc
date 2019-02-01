@@ -64,8 +64,8 @@ void gm_linalg_initialize(GMEnv* env) {
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in call to magma_minproduct_init.");
     magma_code = magma_minproductblasSetKernelStream(GMEnv_stream_compute(env));
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS ?
-                   "Error in call to magma_minproductblasSetKernelStream." : 0);
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+                   "Error in call to magma_minproductblasSetKernelStream.");
 
   } else if (use_mgemm4(env)) { //--------------------
 
@@ -73,8 +73,8 @@ void gm_linalg_initialize(GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4_init.");
     magma_code = magma_mgemm4blasSetKernelStream(GMEnv_stream_compute(env));
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS ?
-                   "Error in call to magma_mgemm4blasSetKernelStream." : 0);
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+                   "Error in call to magma_mgemm4blasSetKernelStream.");
 
   } else if (use_mgemm2(env)) { //--------------------
 
@@ -96,7 +96,7 @@ void gm_linalg_initialize(GMEnv* env) {
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 }
@@ -138,7 +138,7 @@ void gm_linalg_finalize(GMEnv* env) {
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 }
@@ -257,12 +257,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 
-  GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc.");
-  GMInsist(p->d && "Invalid device pointer created in gm_linalg_malloc.");
+  GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc,"
+                   " possibly due to insufficient memory.");
+  GMInsist(p->d && "Invalid device pointer created in gm_linalg_malloc,"
+                   " possibly due to insufficient memory.");
   p->is_alias = false;
 }
 
@@ -282,9 +284,11 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS);
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+             "Failure in call to magma_minproduct_free_pinned.");
     magma_code = magma_minproduct_free(p->d);
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS);
+    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+             "Failure in call to magma_minproduct_free.");
 
     gm_cpu_mem_dec(size, env);
     gm_gpu_mem_dec(size, env);
@@ -292,9 +296,11 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   } else if (use_mgemm4(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS);
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+             "Failure in call to magma_mgemm4_free_pinned.");
     magma_code = magma_mgemm4_free(p->d);
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS);
+    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+             "Failure in call to magma_mgemm4_free.");
 
     gm_cpu_mem_dec(size, env);
     gm_gpu_mem_dec(size, env);
@@ -302,9 +308,11 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   } else if (use_mgemm2(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS);
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+             "Failure in call to magma_mgemm2_free_pinned.");
     magma_code = magma_mgemm2_free(p->d);
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS);
+    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+             "Failure in call to magma_mgemm2_free.");
 
     gm_cpu_mem_dec(size, env);
     gm_gpu_mem_dec(size, env);
@@ -312,16 +320,18 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   } else if (use_mgemm3(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS);
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+             "Failure in call to magma_mgemm3_free_pinned.");
     magma_code = magma_mgemm3_free(p->d);
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS);
+    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+             "Failure in call to magma_mgemm3_free.");
 
     gm_cpu_mem_dec(size, env);
     gm_gpu_mem_dec(size, env);
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 }
@@ -382,7 +392,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 }
@@ -417,8 +427,9 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     size_t sizeB = (size_t) lddb * (Bn - 1) + Bm;
 
     size_t CUBLAS_MAX_1DBUF_SIZE = ((1 << 27) - 512);
-    GMInsist( ! (sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
-                 sizeB >= CUBLAS_MAX_1DBUF_SIZE ));
+    GMInsist((! (sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
+                 sizeB >= CUBLAS_MAX_1DBUF_SIZE )) &&
+             "Error in MAGMA block sizes.");
   }
 
   // ISSUE: these MAGMA routines don't return an error code.
@@ -432,12 +443,15 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
       magma_minproductblas_dgemm
         (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
          (double*)dA, ldda, (double*)dB, lddb, beta, (double*)dC, lddc);
+      GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+               "Failure in call to magma_minproductblas_dgemm.");
     } else {
       magma_minproductblas_sgemm
         (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
          (float*)dA, ldda, (float*)dB, lddb, beta, (float*)dC, lddc);
+      GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+               "Failure in call to magma_minproductblas_sgemm.");
     }
-    GMInsist(GMEnv_accel_last_call_succeeded(env));
 
     env->ops_local += 2 * m * (double)n * (double)k;
 
@@ -453,7 +467,8 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_mgemm4blas_zgemm(Magma_mgemm4Trans, Magma_mgemm4NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMInsist(GMEnv_accel_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+             "Failure in call to magma_mgemm4blas_zgemm.");
 
   } else if (use_mgemm2(env)) { //--------------------
 
@@ -467,7 +482,8 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_mgemm2blas_zgemm(Magma_mgemm2Trans, Magma_mgemm2NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMInsist(GMEnv_accel_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+             "Failure in call to magma_mgemm2blas_zgemm.");
 
   } else if (use_mgemm3(env)) { //--------------------
 
@@ -481,11 +497,12 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     magma_mgemm3blas_zgemm(Magma_mgemm3Trans, Magma_mgemm3NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);
-    GMInsist(GMEnv_accel_last_call_succeeded(env));
+    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+             "Failure in call to magma_mgemm3blas_zgemm.");
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 }
@@ -529,7 +546,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_mgemm2DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
     GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_mgemm3DoubleComplex) : 0;
-  GMInsist(elt_size > 0);
+  GMInsist(elt_size > 0 && "Error in gemm block calculation.");
 
   const size_t align_factor = 128 / elt_size;
   const size_t max_elts = (1 << 27) - 512;
@@ -546,8 +563,8 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   const size_t max_cols_per_block = (max_cols_per_block_raw / align_factor)
                                                             * align_factor;
 
-  GMInsist(max_rows_per_block != 0);
-  GMInsist(max_cols_per_block != 0);
+  GMInsist(max_rows_per_block != 0 && "Error in gemm block calculation.");
+  GMInsist(max_cols_per_block != 0 && "Error in gemm block calculation.");
 
   const size_t cols_per_block_A = gm_min_i8(cols_A, max_cols_per_block);
   const size_t cols_per_block_B = gm_min_i8(cols_B, max_cols_per_block);
@@ -646,7 +663,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 }
@@ -715,7 +732,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 }

@@ -61,7 +61,7 @@ void GMVectorSums_create(GMVectorSums* this_,
       }
     } break;
     default:
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented metric_type.");
   } /*---case---*/
 }
 
@@ -118,7 +118,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
     int mpi_code = 0;
     mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
                              GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
-    GMInsist(mpi_code == MPI_SUCCESS);
+    GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   }
 
   env->ops_local += 2 * vectors->num_vector_local *
@@ -229,11 +229,11 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
     int mpi_code = 0;
     mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
                       GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
-    GMInsist(mpi_code == MPI_SUCCESS);
+    GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
     if (env->sparse) {
       mpi_code = MPI_Allreduce(counts_local, counts, vectors->num_vector_local,
                         GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
-      GMInsist(mpi_code == MPI_SUCCESS);
+      GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
     } /*---if sparse---*/
   }
 }
@@ -251,7 +251,7 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
       GMVectorSums_compute_bits2_(this_, vectors, env);
     } break;
     default:
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented metric_type.");
   } /*---case---*/
 }
 

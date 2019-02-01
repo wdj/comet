@@ -172,7 +172,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     const int J_hi = gm_J_hi(section_num, nvl, 1, env);
     const GMInt64 trap_size_lo = gm_trap_size(J_lo, nvl);
     const GMInt64 trap_size_hi = gm_trap_size(J_hi, nvl);
-    GMInsist(trap_size_hi >= trap_size_lo);
+    GMInsist(trap_size_hi >= trap_size_lo && "Error in sizes calculation.");
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part1_[section_num]
       = (GMInt64)metrics->num_elts_local - trap_size_lo;
@@ -180,7 +180,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
       if (gm_proc_r_active(section_block_num, env)) {
         //---Elements in slice of trapezoid.
         const GMInt64 elts_local = trap_size_hi - trap_size_lo;
-        GMInsist(elts_local >= 0);
+        GMInsist(elts_local >= 0 && "Error in sizes calculation.");
         metrics->num_elts_local += elts_local;
         metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
       } // if
@@ -218,7 +218,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
           //---Elements in slice of triang prism.
           const GMInt64 elts_local = (GMInt64)nvl *
                                      (triang_size_hi - triang_size_lo);
-          GMInsist(elts_local >= 0);
+          GMInsist(elts_local >= 0 && "Error in sizes calculation.");
           metrics->num_elts_local += elts_local;
           metrics->section_num_valid_part2_[section_num] = (elts_local != 0);
         } // if
@@ -257,7 +257,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
             //---Elements in slice of block/cube.
             const GMInt64 elts_local = (GMInt64)nvl * (GMInt64)nvl *
                                        (GMInt64)(J_hi - J_lo);
-            GMInsist(elts_local >= 0);
+            GMInsist(elts_local >= 0 && "Error in sizes calculation.");
             metrics->num_elts_local += elts_local;
           } // if
         } // if
@@ -285,7 +285,7 @@ void GMMetrics_create(GMMetrics* metrics,
   }
 
   GMInsistInterface(env, (GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1)
-          && "multidim parallelism only available for all2all case");
+          && "Multidim parallelism only available for all2all case");
 
   /*---The following less important cases are not yet tested---*/
 
@@ -443,16 +443,16 @@ void GMMetrics_create(GMMetrics* metrics,
     } /*---for diag---*/
 
     /*---Final check---*/
-    GMInsist(index == metrics->num_elts_local);
+    GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && GMEnv_all2all(env)) {
   /*==================================================*/
 
     GMInsistInterface(env, env->num_phase <= gm_num_section_blocks(env)
-           && "num_phase too large.");
+     && "num_phase must be at most (num_proc_vector+1)*(num_proc_vector+2)/2.");
 
-    /*---Make the following assumption to greatly simplify calculations---*/
+    //---Make the following assumption to greatly simplify calculations.
     GMInsistInterface(env, (num_block<=2 || metrics->num_vector_local % 6 == 0)
                       && "3-way all2all case requires num vectors per proc "
                         "divisible by 6.");
@@ -619,7 +619,7 @@ void GMMetrics_create(GMMetrics* metrics,
       } // k_i_offset
     } // section_step
 
-    GMInsist(index == metrics->num_elts_local);
+    GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_2 && ! GMEnv_all2all(env)) {
@@ -646,7 +646,7 @@ void GMMetrics_create(GMMetrics* metrics,
             i_global + metrics->num_vector * j_global;
       }
     }
-    GMInsist(index == metrics->num_elts_local);
+    GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && ! GMEnv_all2all(env)) {
@@ -680,7 +680,7 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
     }
-    GMInsist(index == metrics->num_elts_local);
+    GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else {
@@ -750,7 +750,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } break;
     /*----------*/
     default:
-      GMInsist(false && "Invalid data type.");
+      GMInsist(false && "Invalid data_type_id.");
   } /*---switch---*/
 }
 
@@ -810,7 +810,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
       result64 = GMMetrics_coord2_global_from_index_3(metrics, index, env);
       break;
     default:
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Invalid num_way or coord_num.");
   } /*---case---*/
 
   const int result = (int)result64;

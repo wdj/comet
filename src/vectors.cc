@@ -86,7 +86,7 @@ void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
       }
     } break;
     default:
-      GMInsist(false && "Invalid data type.");
+      GMInsist(false && "Invalid vectors data_type_id.");
   } /*---switch---*/
 }
 
@@ -242,7 +242,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
       }
     } break;
     default:
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Unimplemented metric_type.");
   } /*---case---*/
 }
 
@@ -288,7 +288,7 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false && "Invalid data type.");
+      GMInsist(false && "Invalid data_type_vectors.");
   } /*---switch---*/
 }
 

@@ -732,7 +732,8 @@ void gm_compute_3way_nums_gpu_start_(
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
     vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
     if (vars_next.I_max <= nvl) {
-      GMInsist(vars_next_I_max_dim <= nvl);
+      GMInsist(vars_next_I_max_dim <= nvl &&
+               "Block size rounding-up error.");
       // Create buffer aliases with required shape.
       if (env->do_reduce) {
         GMMirroredBuf_create(&vars_next.tmp_buf,

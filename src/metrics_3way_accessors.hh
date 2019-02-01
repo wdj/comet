@@ -351,7 +351,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
       GMInsist(diff < eps);
     }
 
-    GMInsist(diff < eps);
+    //GMInsist(diff < eps);
 
     return result_intcalc;
   } else {

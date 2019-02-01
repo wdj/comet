@@ -38,8 +38,8 @@ void gm_compute_2way_proc_nums_czek_start_(
   if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce
-                      && "num_proc_field>1 for REF case not supported");
+    GMInsistInterface(env, ! env->do_reduce &&
+                      "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -60,8 +60,8 @@ void gm_compute_2way_proc_nums_czek_start_(
   } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce
-                      && "num_proc_field>1 for CPU case not supported");
+    GMInsistInterface(env, ! env->do_reduce &&
+                      "num_proc_field>1 for CPU compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -124,8 +124,8 @@ void gm_compute_2way_proc_nums_ccc_start_(
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce
-                      && "num_proc_field>1 for REF case not supported");
+    GMInsistInterface(env, ! env->do_reduce &&
+                      "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -199,8 +199,8 @@ void gm_compute_2way_proc_nums_ccc_start_(
   } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce
-                      && "num_proc_field>1 for CPU case not supported");
+    GMInsistInterface(env, ! env->do_reduce &&
+                      "num_proc_field>1 for CPU compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -390,7 +390,7 @@ void gm_compute_2way_proc_nums_start(
           env);
     } break;
     default:
-      GMInsistInterface(env, false && "Unimplemented.");
+      GMInsistInterface(env, false && "Selected metric_type unimplemented.");
   } /*---case---*/
 }
 

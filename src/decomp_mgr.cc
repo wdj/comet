@@ -73,7 +73,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     const size_t num_vector_local_required = gm_num_vector_local_required(
                                               dm->num_vector_local, env);
     GMInsistInterface(env, dm->num_vector_local == num_vector_local_required
-                      && "Divisibility requirement not met.");
+                      && "Manual selection of nvl requires divisibility condition");
     // All vectors active on every proc.
     dm->num_vector_active_local = dm->num_vector_local;
 #if 0
@@ -103,7 +103,6 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector_active_local = nva <= nvl * proc_num ? 0 :
                                   nva >= nvl * (proc_num + 1) ? nvl :
                                   nva - nvl * proc_num;
-//printf("%i  %i %i %i %i\n", proc_num, (int)dm->num_vector_active, (int)dm->num_vector, (int)dm->num_vector_active_local, (int)dm->num_vector_local);
   } // if vectors_by_local
 
   //--------------------
@@ -131,16 +130,18 @@ printf("%i %i %i %i %i\n",
   mpi_code = MPI_Allreduce(&dm->num_vector_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   GMInsist(sum == dm->num_vector_local * GMEnv_num_proc_repl_vector(env) &&
            "Every process must have the same number of vectors.");
-  GMInsist(sum == dm->num_vector * GMEnv_num_proc_repl(env));
+  GMInsist(sum == dm->num_vector * GMEnv_num_proc_repl(env) &&
+           "Error in local/global sizes computation.");
 
   mpi_code = MPI_Allreduce(&dm->num_vector_active_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_repl_vector(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
-  GMInsist(sum == dm->num_vector_active * GMEnv_num_proc_repl(env));
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+  GMInsist(sum == dm->num_vector_active * GMEnv_num_proc_repl(env) &&
+           "Error in local/global sizes computation.");
 
   //--------------------
   // Field counts
@@ -186,16 +187,18 @@ printf("%i %i %i %i %i\n",
   mpi_code = MPI_Allreduce(&dm->num_field_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_field(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   GMInsist(sum == dm->num_field_local * GMEnv_num_proc_field(env) &&
            "Every process must have the same number of fields.");
-  GMInsist(sum == dm->num_field);
+  GMInsist(sum == dm->num_field &&
+           "Error in local/global sizes computation.");
 
   mpi_code = MPI_Allreduce(&dm->num_field_active_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
                            GMEnv_mpi_comm_field(env));
-  GMInsist(mpi_code == MPI_SUCCESS);
-  GMInsist(sum == dm->num_field_active);
+  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+  GMInsist(sum == dm->num_field_active &&
+           "Error in local/global sizes computation.");
 
   //--------------------
   // Element sizes
@@ -204,25 +207,28 @@ printf("%i %i %i %i %i\n",
   const int bits_per_byte = 8;
 
   switch (vectors_data_type_id) {
+    //--------------------
     case GM_DATA_TYPE_FLOAT: {
       dm->num_bits_per_field = bits_per_byte * sizeof(GMFloat);
       dm->num_bits_per_packedfield = bits_per_byte * sizeof(GMFloat);
     } break;
+    //--------------------
     case GM_DATA_TYPE_BITS2: {
       dm->num_bits_per_field = GM_BITS2_MAX_VALUE_BITS;
       dm->num_bits_per_packedfield = bits_per_byte * sizeof(GMBits2x64);
-      /*---By design can only store this number of fields for this metric---*/
+      // By design can only store this number of fields for this metric
       GMInsistInterface(env,
                ((GMUInt64)(4 * dm->num_field)) <
                        (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
                 && "Number of fields requested is too large for this metric");
     } break;
-    /*--------------------*/
+    //--------------------
     default:
-      GMInsist(false && "Invalid data type.");
-  } /*---switch---*/
+      GMInsist(false && "Invalid vectors_data_type_id.");
+  } //---switch---
 
-  GMInsist(dm->num_bits_per_packedfield % bits_per_byte == 0);
+  GMInsist(dm->num_bits_per_packedfield % bits_per_byte == 0 &&
+           "Error in size computation.");
 
   dm->num_field_per_packedfield = dm->num_bits_per_packedfield /
                                   dm->num_bits_per_field;
