@@ -277,9 +277,14 @@ def gpu_bytes_per_proc_used(settings, args):
     bytes_per_vectors_block_ = bytes_per_vectors_block(settings, args)
     bytes_per_metrics_block_ = bytes_per_metrics_block(settings, args)
 
+    do_reduce = num_proc_field > 1
+
+    # TODO: add in TC contribution
+
     if num_way(args) == 2:
 
-        return 3 * bytes_per_vectors_block_ + 3 * bytes_per_metrics_block_
+        return (3 * bytes_per_vectors_block_ +
+               (2 + (1 if do_reduce else 0)) * bytes_per_metrics_block_)
 
     else:
 
@@ -297,7 +302,6 @@ def gpu_bytes_per_proc_used(settings, args):
         bytes_gpu_pipeline = (2 * bytes_per_vectors_block_ +
                               2 * bytes_per_metrics_block_)
 
-        do_reduce = num_proc_field > 1
         if do_reduce:
             bytes_gpu_pipeline += 2 * bytes_per_metrics_block_
 
@@ -342,7 +346,8 @@ def cpu_bytes_per_proc_used(settings, args):
 
     if num_way(args) == 2:
 
-        result = 4 * bytes_per_vectors_block_ + 3 * bytes_per_metrics_block_
+        result = (4 * bytes_per_vectors_block_ +
+                 (2 + (1 if do_reduce else 0)) * bytes_per_metrics_block_)
 
         num_block_local = int_ceil(int_ceil(int_ceil(num_proc_vector, 2),
                                                      num_proc_repl), num_phase)
@@ -383,6 +388,7 @@ def cpu_bytes_per_proc_used(settings, args):
 
         planes_per_3Dblock = int_ceil(num_vector_local_, 6 * num_stage)
 
+#TODO: account for num_phase
         num_3Dblock = int_ceil((num_proc_vector+1)*(num_proc_vector+2),
                                num_proc_repl)
 
@@ -396,6 +402,8 @@ def cpu_bytes_per_proc_used(settings, args):
         result = bytes_comm_pipeline + bytes_gpu_pipeline + bytes_metrics_local
 
         return result
+
+#TODO: put in constraints and limits, e.g., num_phase
 
 #==============================================================================
 
