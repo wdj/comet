@@ -8,7 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdio.h"
+#include "cstdio"
+#include "cstdint"
 #include "string.h"
 //#include "stdlib.h"
 //#include "stddef.h"
@@ -168,7 +169,7 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
       const inval_t inval = ( (vhi << (8-2*f_offset)) |
                               (vlo >> (2*f_offset)) ) & (int)255;
       const int wordnum = (i % 16) / 8;
-      outval.data[wordnum] += ((GMUInt64)inval) << ((i % 8) * 8) ;
+      outval.data[wordnum] += ((uint64_t)inval) << ((i % 8) * 8) ;
       if (i % 16 == 15 || i == invals_to_read_1-1) {
         // Flush buffer
         const size_t pfl = i / 16;
@@ -299,7 +300,7 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
             const int index1 = i / 8;
 
             const outval_t outval = ((val.data[index1] >> (8*index0)) &
-                                    (GMUInt64)255);
+                                    (uint64_t)255);
 
             const size_t num_to_write = 1;
 
@@ -796,7 +797,7 @@ MetricWriter::MetricWriter(FILE* file, GMMetrics* metrics, GMEnv* env) :
 
   if (stdout != file_) {
     GMInsistInterface(env, metrics->num_vector_active ==
-                  (GMUInt32)metrics->num_vector_active &&
+                  (uint32_t)metrics->num_vector_active &&
                   "Too many vectors for output format.");
   }
 }
@@ -809,11 +810,11 @@ MetricWriter::write(size_t coord0, size_t coord1, GMFloat value) {
 
   bool success = true;
 
-  const GMUInt32 outc0 = coord0;
+  const uint32_t outc0 = coord0;
   size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
   success = success && num_written == 1;
 
-  const GMUInt32 outc1 = coord1;
+  const uint32_t outc1 = coord1;
   num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
   success = success && num_written == 1;
 
@@ -835,15 +836,15 @@ MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
 
   bool success = true;
 
-  const GMUInt32 outc0 = coord0;
+  const uint32_t outc0 = coord0;
   size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
   success = success && num_written == 1;
 
-  const GMUInt32 outc1 = coord1;
+  const uint32_t outc1 = coord1;
   num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
   success = success && num_written == 1;
 
-  const GMUInt32 outc2 = coord2;
+  const uint32_t outc2 = coord2;
   num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
   success = success && num_written == 1;
 
@@ -866,11 +867,11 @@ MetricWriter::write(size_t coord0, size_t coord1, int i0, int i1,
 
   bool success = true;
 
-  const GMUInt32 outc0 = i0 + 2 * coord0;
+  const uint32_t outc0 = i0 + 2 * coord0;
   size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
   success = success && num_written == 1;
 
-  const GMUInt32 outc1 = i1 + 2 * coord1;
+  const uint32_t outc1 = i1 + 2 * coord1;
   num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
   success = success && num_written == 1;
 
@@ -894,15 +895,15 @@ MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
 
   bool success = true;
 
-  const GMUInt32 outc0 = i0 + 2 * coord0;
+  const uint32_t outc0 = i0 + 2 * coord0;
   size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
   success = success && num_written == 1;
 
-  const GMUInt32 outc1 = i1 + 2 * coord1;
+  const uint32_t outc1 = i1 + 2 * coord1;
   num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
   success = success && num_written == 1;
 
-  const GMUInt32 outc2 = i2 + 2 * coord2;
+  const uint32_t outc2 = i2 + 2 * coord2;
   num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
   success = success && num_written == 1;
 

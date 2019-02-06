@@ -11,6 +11,8 @@
 #ifndef _gm_metrics_3way_indexing_hh_
 #define _gm_metrics_3way_indexing_hh_
 
+#include "cstdint"
+
 //=============================================================================
 /*---Helper functions for 3-way case---*/
 
@@ -303,13 +305,13 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
   const int nvl = metrics->num_vector_local;
 
   /* clang-format off */
-  const GMInt64 index = i +
+  const int64_t index = i +
                         (k-j-1)*(size_t)j +
                         gm_trap_size(j, nvl);
   /* clang-format on */
 
   GMAssert(index >= 0);
-  GMAssert(index < (GMInt64)metrics->num_elts_local);
+  GMAssert(index < (int64_t)metrics->num_elts_local);
 
   GMAssert(i + metrics->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env) ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
@@ -339,17 +341,17 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_part1_[section_num]);
 
-  const GMInt64 elts_offset = metrics->index_offset_section_part1_[section_num];
+  const int64_t elts_offset = metrics->index_offset_section_part1_[section_num];
 
   /* clang-format off */
-  const GMInt64 index = elts_offset +
+  const int64_t index = elts_offset +
                         i +
                         (k-j-1)*(size_t)j +
                         gm_trap_size(j, nvl);
   /* clang-format on */
 
   GMAssert(index >= 0);
-  GMAssert(index < (GMInt64)metrics->num_elts_local);
+  GMAssert(index < (int64_t)metrics->num_elts_local);
 
   return index;
   //return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
@@ -378,7 +380,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
   const int section_num = (j * num_section_steps) / nvl;
   GMAssert(metrics->section_num_valid_part2_[section_num]);
 
-  const GMInt64 elts_offset = metrics->index_offset_section_part2_[section_num];
+  const int64_t elts_offset = metrics->index_offset_section_part2_[section_num];
 
   const int num_block = GMEnv_num_block_vector(env);
   const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
@@ -394,7 +396,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
   // Ordering: outer loop is section num, inner loop is block num.
 
   /* clang-format off */
-  const GMInt64 index = elts_offset +
+  const int64_t index = elts_offset +
                         i + nvl*(
                         (k-j-1) +
                         gm_triang_size(j, nvl) + section_size*(
@@ -403,7 +405,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
  /* clang-format on */
 
   GMAssert(index >= 0);
-  GMAssert(index < (GMInt64)metrics->num_elts_local);
+  GMAssert(index < (int64_t)metrics->num_elts_local);
 
   return index;
 }
@@ -423,7 +425,7 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
-  const GMInt64 elts_offset = metrics->index_offset_01_;
+  const int64_t elts_offset = metrics->index_offset_01_;
 
   const int num_block = GMEnv_num_block_vector(env);
   const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
@@ -442,19 +444,19 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   const int J_wi = metrics->J_wi_part3_[section_num];
 
   /* clang-format off */
-  const GMInt64 index = elts_offset +
+  const int64_t index = elts_offset +
                         i - ( section_axis == 0 ? J_lo : 0 ) +
                             ( section_axis == 0 ? J_wi : nvl ) * (
                         k - ( section_axis == 2 ? J_lo : 0 ) +
                             ( section_axis == 2 ? J_wi : nvl ) * (
                         j - ( section_axis == 1 ? J_lo : 0 ) +
                             ( section_axis == 1 ? J_wi : nvl ) * (
-                        (GMInt64)blocks_offset
+                        (int64_t)blocks_offset
         )));
   /* clang-format on */
 
   GMAssert(index >= 0);
-  GMAssert(index < (GMInt64)metrics->num_elts_local);
+  GMAssert(index < (int64_t)metrics->num_elts_local);
 
   return index;
 }
@@ -482,7 +484,7 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
-  const GMInt64 index = j_block == i_block && k_block == i_block ?
+  const int64_t index = j_block == i_block && k_block == i_block ?
     GMMetrics_helper3way_part1_(metrics, i, j, k,
                                 i_block, j_block, k_block, env) :
                  j_block == k_block ?
@@ -492,7 +494,7 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                                 i_block, j_block, k_block, env);
 
   GMAssert(index >= 0);
-  GMAssert(index < (GMInt64)metrics->num_elts_local);
+  GMAssert(index < (int64_t)metrics->num_elts_local);
 
   GMAssert(metrics->coords_global_from_index[index] %
              (metrics->num_vector_local * (size_t)GMEnv_num_block_vector(env)) ==
@@ -559,7 +561,7 @@ static size_t GMMetrics_helper3way_part3_permuted_(
   //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
-  const GMInt64 elts_offset = metrics->index_offset_01_;
+  const int64_t elts_offset = metrics->index_offset_01_;
 
   const int num_block = GMEnv_num_block_vector(env);
   const int j_i_offset = gm_mod1_(j_block - i_block, num_block);
@@ -577,17 +579,17 @@ static size_t GMMetrics_helper3way_part3_permuted_(
 
   /* clang-format off */
 
-  const GMInt64 index = elts_offset +
+  const int64_t index = elts_offset +
                         I + nvl * (
                         K + nvl * (
                         J - J_lo + J_wi * (
-                        (GMInt64)blocks_offset
+                        (int64_t)blocks_offset
                         )));
 
   /* clang-format on */
 
   GMAssert(index >= 0);
-  GMAssert(index < (GMInt64)metrics->num_elts_local);
+  GMAssert(index < (int64_t)metrics->num_elts_local);
 
   return index;
 }

@@ -8,7 +8,7 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdio.h"
+#include "cstdio"
 //#include "stdlib.h"
 //#include "stddef.h"
 //#include "string.h"

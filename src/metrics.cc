@@ -8,7 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdlib.h"
+#include "cstdlib"
+#include "cstdint"
 #include "string.h"
 #include "math.h"
 
@@ -170,16 +171,16 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     const int section_num = section_step;
     const int J_lo = gm_J_lo(section_num, nvl, 1, env);
     const int J_hi = gm_J_hi(section_num, nvl, 1, env);
-    const GMInt64 trap_size_lo = gm_trap_size(J_lo, nvl);
-    const GMInt64 trap_size_hi = gm_trap_size(J_hi, nvl);
+    const int64_t trap_size_lo = gm_trap_size(J_lo, nvl);
+    const int64_t trap_size_hi = gm_trap_size(J_hi, nvl);
     GMInsist(trap_size_hi >= trap_size_lo && "Error in sizes calculation.");
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part1_[section_num]
-      = (GMInt64)metrics->num_elts_local - trap_size_lo;
+      = (int64_t)metrics->num_elts_local - trap_size_lo;
     if (gm_is_section_block_in_phase(env, section_block_num)) {
       if (gm_proc_r_active(section_block_num, env)) {
         //---Elements in slice of trapezoid.
-        const GMInt64 elts_local = trap_size_hi - trap_size_lo;
+        const int64_t elts_local = trap_size_hi - trap_size_lo;
         GMInsist(elts_local >= 0 && "Error in sizes calculation.");
         metrics->num_elts_local += elts_local;
         metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
@@ -198,11 +199,11 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     const int section_num = section_step;
     const int J_lo = gm_J_lo(section_num, nvl, 2, env);
     const int J_hi = gm_J_hi(section_num, nvl, 2, env);
-    const GMInt64 triang_size_lo = gm_triang_size(J_lo, nvl);
-    const GMInt64 triang_size_hi = gm_triang_size(J_hi, nvl);
+    const int64_t triang_size_lo = gm_triang_size(J_lo, nvl);
+    const int64_t triang_size_hi = gm_triang_size(J_hi, nvl);
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part2_[section_num]
-      = (GMInt64)metrics->num_elts_local - (GMInt64)nvl*(GMInt64)triang_size_lo;
+      = (int64_t)metrics->num_elts_local - (int64_t)nvl*(int64_t)triang_size_lo;
     metrics->section_size_part2[section_num] = triang_size_hi -
                                                triang_size_lo;
     int block_num_part2 = 0;
@@ -216,7 +217,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
         }
         if (gm_proc_r_active(section_block_num, env)) {
           //---Elements in slice of triang prism.
-          const GMInt64 elts_local = (GMInt64)nvl *
+          const int64_t elts_local = (int64_t)nvl *
                                      (triang_size_hi - triang_size_lo);
           GMInsist(elts_local >= 0 && "Error in sizes calculation.");
           metrics->num_elts_local += elts_local;
@@ -255,8 +256,8 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
           }
           if (gm_proc_r_active(section_block_num, env)) {
             //---Elements in slice of block/cube.
-            const GMInt64 elts_local = (GMInt64)nvl * (GMInt64)nvl *
-                                       (GMInt64)(J_hi - J_lo);
+            const int64_t elts_local = (int64_t)nvl * (int64_t)nvl *
+                                       (int64_t)(J_hi - J_lo);
             GMInsist(elts_local >= 0 && "Error in sizes calculation.");
             metrics->num_elts_local += elts_local;
           } // if

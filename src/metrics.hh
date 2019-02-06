@@ -11,7 +11,8 @@
 #ifndef _gm_metrics_hh_
 #define _gm_metrics_hh_
 
-#include "stddef.h"
+#include "cstddef"
+#include "cstdint"
 #include "math.h"
 
 #include "env.hh"
@@ -67,10 +68,10 @@ typedef struct {
   int pad1;
   size_t num_elts_local;
   /*---Helper values---*/
-  GMInt64 index_offset_0_;
-  GMInt64 index_offset_01_;
-  GMInt64 index_offset_section_part1_[6];
-  GMInt64 index_offset_section_part2_[6];
+  int64_t index_offset_0_;
+  int64_t index_offset_01_;
+  int64_t index_offset_section_part1_[6];
+  int64_t index_offset_section_part2_[6];
   bool section_num_valid_part1_[6];
   bool section_num_valid_part2_[6];
   size_t section_size_part2[6];

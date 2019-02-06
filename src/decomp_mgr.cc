@@ -8,6 +8,7 @@
  */
 //-----------------------------------------------------------------------------
 
+#include "cstdint"
 #include "string.h"
 
 #include "mpi.h"
@@ -218,8 +219,8 @@ printf("%i %i %i %i %i\n",
       dm->num_bits_per_packedfield = bits_per_byte * sizeof(GMBits2x64);
       // By design can only store this number of fields for this metric
       GMInsistInterface(env,
-               ((GMUInt64)(4 * dm->num_field)) <
-                       (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
+               ((uint64_t)(4 * dm->num_field)) <
+                       (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
                 && "Number of fields requested is too large for this metric");
     } break;
     //--------------------

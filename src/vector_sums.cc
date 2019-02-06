@@ -8,7 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdlib.h"
+#include "cstdint"
+#include "cstdlib"
 
 #include "env.hh"
 #include "vectors.hh"
@@ -180,17 +181,17 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
     for (int i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;
       if (env->sparse) {
-        const GMUInt64 oddbits = 0x5555555555555555;
+        const uint64_t oddbits = 0x5555555555555555;
         GMFloat count = 0;
         for (int f = 0; f < vectors->num_packedval_field_local; ++f) {
           // Fast way: sum all 64 bits of each word immediately
           const GMBits2x64 value = GMVectors_bits2x64_get(vectors, f, i, env);
-          const GMUInt64 data0 = value.data[0];
-          const GMUInt64 data1 = value.data[1];
-          const GMUInt64 v10_oddmask0 = (data0 | ~(data0 >> 1)) & oddbits;
-          const GMUInt64 v10_oddmask1 = (data1 | ~(data1 >> 1)) & oddbits;
-          const GMUInt64 v10_mask0 = v10_oddmask0 | (v10_oddmask0 << 1);
-          const GMUInt64 v10_mask1 = v10_oddmask1 | (v10_oddmask1 << 1);
+          const uint64_t data0 = value.data[0];
+          const uint64_t data1 = value.data[1];
+          const uint64_t v10_oddmask0 = (data0 | ~(data0 >> 1)) & oddbits;
+          const uint64_t v10_oddmask1 = (data1 | ~(data1 >> 1)) & oddbits;
+          const uint64_t v10_mask0 = v10_oddmask0 | (v10_oddmask0 << 1);
+          const uint64_t v10_mask1 = v10_oddmask1 | (v10_oddmask1 << 1);
           sum += (GMFloat)gm_popcount64(data0 & v10_mask0);
           sum += (GMFloat)gm_popcount64(data1 & v10_mask1);
           count += (GMFloat)gm_popcount64(v10_oddmask0 | (v10_oddmask1 << 1));

@@ -8,6 +8,7 @@
  */
 //-----------------------------------------------------------------------------
 
+#include "cstdint"
 #include "string.h"
 
 #include "env.hh"
@@ -60,7 +61,7 @@ void gm_compute_3way_nums_gpu_form_matX_(
 
       // Mask for odd bits (starting at lowest-order bit: bit 0, bit 2, ...)
 
-      const GMUInt64 oddbits = 0x5555555555555555;
+      const uint64_t oddbits = 0x5555555555555555;
 
       /*---Operate on columns v_i and v_j elementwise---*/
       for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
@@ -68,22 +69,22 @@ void gm_compute_3way_nums_gpu_form_matX_(
         const bool sparse = env->sparse;
 
         for (int word = 0; word<2; ++word) {
-          const GMUInt64 vI = GMMirroredBuf_elt_const<GMBits2x64>(
+          const uint64_t vI = GMMirroredBuf_elt_const<GMBits2x64>(
                                            vectors_I_buf, pvfl, I).data[word];
-          const GMUInt64 vJ = GMMirroredBuf_elt_const<GMBits2x64>(
+          const uint64_t vJ = GMMirroredBuf_elt_const<GMBits2x64>(
                                            vectors_J_buf, pvfl, J).data[word];
 
           // Create word whose odd bits sample the lo (denoted here "..._0")
           // or hi ("..._1") bit of the seminibble.  Also create the
           // complement thereof (denoted "n...").
 
-          const GMUInt64  vI_0 =   vI        & oddbits;
-          const GMUInt64  vI_1 =  (vI >> 1)  & oddbits;
-          const GMUInt64 nvI_0 = ~ vI        & oddbits;
-          const GMUInt64 nvI_1 = ~(vI >> 1)  & oddbits;
+          const uint64_t  vI_0 =   vI        & oddbits;
+          const uint64_t  vI_1 =  (vI >> 1)  & oddbits;
+          const uint64_t nvI_0 = ~ vI        & oddbits;
+          const uint64_t nvI_1 = ~(vI >> 1)  & oddbits;
 
-          const GMUInt64  vJ_0 =   vJ        & oddbits;
-          const GMUInt64  vJ_1 =  (vJ  >> 1) & oddbits;
+          const uint64_t  vJ_0 =   vJ        & oddbits;
+          const uint64_t  vJ_1 =  (vJ  >> 1) & oddbits;
 
           // Create a mask whose odd bits denote whether each respective
           // seminibble of vector I matches the case we are handling
@@ -95,14 +96,14 @@ void gm_compute_3way_nums_gpu_form_matX_(
           // Note here that 10 is in some situations used as a special marker
           // meaning, ignore this seminiblle for the calculations.
 
-          const GMUInt64  vI_mask =
+          const uint64_t  vI_mask =
             step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
             step_2way==1 && sparse ?
                            ( vI_0 & nvI_1) & oddbits : // 01
             step_2way==1 ? ( vI_0 ^  vI_1) & oddbits : // 01, 10
           /*step_2way==2*/   vI_0 &  vI_1  & oddbits;  // 11
 
-          const GMUInt64 nvI_mask =
+          const uint64_t nvI_mask =
             step_2way==0 ? ( vI_0 |  vI_1) & oddbits :
             step_2way==1 && sparse ?
                            (nvI_0 |  vI_1) & oddbits :
@@ -123,12 +124,12 @@ void gm_compute_3way_nums_gpu_form_matX_(
           //  - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
           //    being handled for this 2-way step.
 
-          const GMUInt64 r_0 =  vI_mask & (sparse ? vJ_0 : vJ_0 | vJ_1);
-          const GMUInt64 r_1 = nvI_mask | (sparse ? vJ_1 : vJ_0 & vJ_1);
+          const uint64_t r_0 =  vI_mask & (sparse ? vJ_0 : vJ_0 | vJ_1);
+          const uint64_t r_1 = nvI_mask | (sparse ? vJ_1 : vJ_0 & vJ_1);
 
           // Combine even and odd bits
 
-          const GMUInt64 r = r_0 | (r_1 << 1);
+          const uint64_t r = r_0 | (r_1 << 1);
 
           // Store result
 

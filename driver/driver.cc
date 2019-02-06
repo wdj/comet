@@ -8,9 +8,9 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdio.h"
-#include "stdlib.h"
-#include "stddef.h"
+#include "cstdio"
+#include "cstdlib"
+#include "cstddef"
 #include "string.h"
 #include "float.h"
 #include "errno.h"

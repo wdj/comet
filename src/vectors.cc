@@ -8,7 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdlib.h"
+#include "cstdlib"
+#include "cstdint"
 #include "string.h"
 
 #include "mpi.h"
@@ -55,7 +56,7 @@ void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
     } break;
     case GM_DATA_TYPE_BITS2: {
       const GMBits2x64 zero = GMBits2x64_null();
-      const GMUInt64 allbits = 0xffffffffffffffff;
+      const uint64_t allbits = 0xffffffffffffffff;
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
           const size_t fl = 64 * pfl;

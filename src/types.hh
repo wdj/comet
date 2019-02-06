@@ -11,6 +11,8 @@
 #ifndef _gm_types_hh_
 #define _gm_types_hh_
 
+#include "cstdint"
+
 #include "assertions.hh"
 
 //=============================================================================
@@ -32,12 +34,12 @@ enum {
 
 // Integer types
 
-typedef unsigned char GMUInt8;
-typedef unsigned short int GMUInt16;
-typedef unsigned int GMUInt32;
+//typedef unsigned char GMUInt8;
+//typedef unsigned short int GMUInt16;
+//typedef unsigned int GMUInt32;
 
-typedef signed long long int GMInt64;
-typedef unsigned long long int GMUInt64;
+//typedef signed long long int GMInt64;
+//typedef unsigned long long int GMUInt64;
 
 #ifdef HAVE_INT128
 typedef unsigned __int128 GMUInt128;
@@ -53,11 +55,11 @@ static void gm_check_type_sizes() {
   GMStaticAssert(sizeof(GMFp64) == 64/8);
   GMStaticAssert(sizeof(int) == 4);
   GMStaticAssert(sizeof(size_t) == 8);
-  GMStaticAssert(sizeof(GMUInt8) == 1);
-  GMStaticAssert(sizeof(GMUInt16) == 2);
-  GMStaticAssert(sizeof(GMUInt32) == 4);
-  GMStaticAssert(sizeof(GMInt64) == 8);
-  GMStaticAssert(sizeof(GMUInt64) == 8);
+//  GMStaticAssert(sizeof(GMUInt8) == 1);
+//  GMStaticAssert(sizeof(GMUInt16) == 2);
+//  GMStaticAssert(sizeof(GMUInt32) == 4);
+//  GMStaticAssert(sizeof(GMInt64) == 8);
+//  GMStaticAssert(sizeof(GMUInt64) == 8);
 #ifdef HAVE_INT128
   GMStaticAssert(sizeof(GMUInt128) == 16);
 #endif
@@ -172,30 +174,30 @@ static void GMTally1_decode(GMTally1* __restrict__ val0,
                             GMFp64 v) {
   GMAssert(val0);
   GMAssert(val1);
-  const GMUInt64 tally2 = (GMUInt64)v;
+  const uint64_t tally2 = (uint64_t)v;
   GMAssert(v == (GMFp64)tally2);
   const GMTally1 v0 =
-      tally2 & ((((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) - 1);
+      tally2 & ((((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) - 1);
   const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
   *val0 = v0;
   *val1 = v1;
   GMAssert(v ==
-           (GMFp64)(v0 + (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) * v1));
+           (GMFp64)(v0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * v1));
   //GMAssert(v0 >= 0);
   //GMAssert(v1 >= 0);
-  GMAssert(v0 < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
-  GMAssert(v1 < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(v0 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(v1 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
 }
 
 //----------
 
 static GMFp64 GMTally1_encode(GMTally1 val0, GMTally1 val1) {
-  const GMUInt64 tally2 =
-      val0 + (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) * val1;
+  const uint64_t tally2 =
+      val0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * val1;
   const GMFp64 result = (GMFp64)tally2;
-  GMAssert(val0 == (((GMUInt64)result) &
-                    ((((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS) - 1)));
-  GMAssert(val1 == ((GMUInt64)result) >> GM_TALLY1_MAX_VALUE_BITS);
+  GMAssert(val0 == (((uint64_t)result) &
+                    ((((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) - 1)));
+  GMAssert(val1 == ((uint64_t)result) >> GM_TALLY1_MAX_VALUE_BITS);
   return result;
 }
 
@@ -243,13 +245,13 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
   GMAssert(i0 >= 0 && i0 < 2);
   GMAssert(i1 >= 0 && i1 < 2);
 
-  const GMUInt64 tally2 = tally2x2.data[i0];
+  const uint64_t tally2 = tally2x2.data[i0];
 
   const GMTally1 result =
-      i1 == 0 ? tally2 % (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
-              : tally2 / (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS);
+      i1 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
+              : tally2 / (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
   //GMAssert(result >= 0);
-  GMAssert(result < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
 
@@ -261,13 +263,13 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
   GMAssert(i1 >= 0 && i1 < 2);
   GMAssert(i2 >= 0 && i2 < 2);
 
-  const GMUInt64 tally2 = tally4x2.data[i1 + 2 * i0];
+  const uint64_t tally2 = tally4x2.data[i1 + 2 * i0];
 
   const GMTally1 result =
-      i2 == 0 ? tally2 % (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS)
-              : tally2 / (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS);
+      i2 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
+              : tally2 / (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
   //GMAssert(result >= 0);
-  GMAssert(result < (((GMUInt64)1) << GM_TALLY1_MAX_VALUE_BITS));
+  GMAssert(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
 

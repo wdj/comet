@@ -8,10 +8,10 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdlib.h"
+#include "cstdlib"
+#include "cstdint"
 #include "string.h"
 #include "math.h"
-#include "stdint.h"
 
 #include "mpi.h"
 

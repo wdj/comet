@@ -8,6 +8,7 @@
  */
 //-----------------------------------------------------------------------------
 
+#include "cstdint"
 #include "string.h"
 
 #include "env.hh"
@@ -468,67 +469,67 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
             const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pvfl, k,
                                                           env);
 
-            const GMUInt64 vi0 = vi.data[0];
-            const GMUInt64 vi1 = vi.data[1];
-            const GMUInt64 vj0 = vj.data[0];
-            const GMUInt64 vj1 = vj.data[1];
-            const GMUInt64 vk0 = vk.data[0];
-            const GMUInt64 vk1 = vk.data[1];
+            const uint64_t vi0 = vi.data[0];
+            const uint64_t vi1 = vi.data[1];
+            const uint64_t vj0 = vj.data[0];
+            const uint64_t vj1 = vj.data[1];
+            const uint64_t vk0 = vk.data[0];
+            const uint64_t vk1 = vk.data[1];
 
             /*---Compute masks---*/
 
-            const GMUInt64 oddbits = 0x5555555555555555;
+            const uint64_t oddbits = 0x5555555555555555;
 
-            const GMUInt64 vi0mask =
+            const uint64_t vi0mask =
                        (env->sparse ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vi1mask =
+            const uint64_t vi1mask =
                        (env->sparse ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vj0mask =
+            const uint64_t vj0mask =
                        (env->sparse ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vj1mask =
+            const uint64_t vj1mask =
                        (env->sparse ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vk0mask =
+            const uint64_t vk0mask =
                        (env->sparse ? (vk0 | ~(vk0 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 vk1mask =
+            const uint64_t vk1mask =
                        (env->sparse ? (vk1 | ~(vk1 >> 1)) & oddbits : oddbits);
 
-            const GMUInt64 v0mask = vi0mask & vj0mask & vk0mask;
-            const GMUInt64 v1mask = vi1mask & vj1mask & vk1mask;
+            const uint64_t v0mask = vi0mask & vj0mask & vk0mask;
+            const uint64_t v1mask = vi1mask & vj1mask & vk1mask;
 
             /*---Get even/odd bits for each seminibble, masked to active---*/
 
-            const GMUInt64 vi0_0 =  vi0       & v0mask;
-            const GMUInt64 vi0_1 = (vi0 >> 1) & v0mask;
-            const GMUInt64 vi1_0 =  vi1       & v1mask;
-            const GMUInt64 vi1_1 = (vi1 >> 1) & v1mask;
-            const GMUInt64 vj0_0 =  vj0       & v0mask;
-            const GMUInt64 vj0_1 = (vj0 >> 1) & v0mask;
-            const GMUInt64 vj1_0 =  vj1       & v1mask;
-            const GMUInt64 vj1_1 = (vj1 >> 1) & v1mask;
-            const GMUInt64 vk0_0 =  vk0       & v0mask;
-            const GMUInt64 vk0_1 = (vk0 >> 1) & v0mask;
-            const GMUInt64 vk1_0 =  vk1       & v1mask;
-            const GMUInt64 vk1_1 = (vk1 >> 1) & v1mask;
+            const uint64_t vi0_0 =  vi0       & v0mask;
+            const uint64_t vi0_1 = (vi0 >> 1) & v0mask;
+            const uint64_t vi1_0 =  vi1       & v1mask;
+            const uint64_t vi1_1 = (vi1 >> 1) & v1mask;
+            const uint64_t vj0_0 =  vj0       & v0mask;
+            const uint64_t vj0_1 = (vj0 >> 1) & v0mask;
+            const uint64_t vj1_0 =  vj1       & v1mask;
+            const uint64_t vj1_1 = (vj1 >> 1) & v1mask;
+            const uint64_t vk0_0 =  vk0       & v0mask;
+            const uint64_t vk0_1 = (vk0 >> 1) & v0mask;
+            const uint64_t vk1_0 =  vk1       & v1mask;
+            const uint64_t vk1_1 = (vk1 >> 1) & v1mask;
 
             /*---Get complements of even/odd bits for each seminibble; mask---*/
 
-            const GMUInt64 nvi0_0 = ~ vi0       & v0mask;
-            const GMUInt64 nvi0_1 = ~(vi0 >> 1) & v0mask;
-            const GMUInt64 nvi1_0 = ~ vi1       & v1mask;
-            const GMUInt64 nvi1_1 = ~(vi1 >> 1) & v1mask;
-            const GMUInt64 nvj0_0 = ~ vj0       & v0mask;
-            const GMUInt64 nvj0_1 = ~(vj0 >> 1) & v0mask;
-            const GMUInt64 nvj1_0 = ~ vj1       & v1mask;
-            const GMUInt64 nvj1_1 = ~(vj1 >> 1) & v1mask;
-            const GMUInt64 nvk0_0 = ~ vk0       & v0mask;
-            const GMUInt64 nvk0_1 = ~(vk0 >> 1) & v0mask;
-            const GMUInt64 nvk1_0 = ~ vk1       & v1mask;
-            const GMUInt64 nvk1_1 = ~(vk1 >> 1) & v1mask;
+            const uint64_t nvi0_0 = ~ vi0       & v0mask;
+            const uint64_t nvi0_1 = ~(vi0 >> 1) & v0mask;
+            const uint64_t nvi1_0 = ~ vi1       & v1mask;
+            const uint64_t nvi1_1 = ~(vi1 >> 1) & v1mask;
+            const uint64_t nvj0_0 = ~ vj0       & v0mask;
+            const uint64_t nvj0_1 = ~(vj0 >> 1) & v0mask;
+            const uint64_t nvj1_0 = ~ vj1       & v1mask;
+            const uint64_t nvj1_1 = ~(vj1 >> 1) & v1mask;
+            const uint64_t nvk0_0 = ~ vk0       & v0mask;
+            const uint64_t nvk0_1 = ~(vk0 >> 1) & v0mask;
+            const uint64_t nvk1_0 = ~ vk1       & v1mask;
+            const uint64_t nvk1_1 = ~(vk1 >> 1) & v1mask;
 
             const int r000 = gm_popcount64((nvi0_0 & nvj0_0 & nvk0_0) |
                                          ( (nvi0_0 & nvj0_0 & nvk0_1) << 1 )) +

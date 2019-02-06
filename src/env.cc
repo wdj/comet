@@ -8,18 +8,20 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "sys/time.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "stddef.h"
+#include "cstdio"
+#include "cstdlib"
+#include "cstddef"
 #include "string.h"
 #include "math.h"
-#include "errno.h"
 
+#include "errno.h"
+#include "sys/time.h"
 #include "signal.h"
 
 #include "mpi.h"
+#ifdef USE_CUDA
 #include "cuda.h"
+#endif
 
 #include "env.hh"
 
@@ -323,7 +325,7 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
 }
 
 //=============================================================================
-// Manage cuda streams
+// Manage accelerator streams
 
 void GMEnv_initialize_streams(GMEnv* const env) {
   GMInsist(env);
@@ -338,6 +340,7 @@ void GMEnv_initialize_streams(GMEnv* const env) {
     return;
   }
 
+#ifdef USE_CUDA
   cudaStreamCreate(&env->stream_compute_);
   GMInsist(GMEnv_accel_last_call_succeeded(env) &&
            "Failure in call to cudaStreamCreate.");
@@ -349,6 +352,7 @@ void GMEnv_initialize_streams(GMEnv* const env) {
   cudaStreamCreate(&env->stream_fromgpu_);
   GMInsist(GMEnv_accel_last_call_succeeded(env) &&
            "Failure in call to cudaStreamCreate.");
+#endif
 
   env->are_accel_streams_initialized_ = true;
 }
@@ -362,6 +366,7 @@ void GMEnv_terminate_streams(GMEnv* const env) {
     return;
   }
 
+#ifdef USE_CUDA
   cudaStreamDestroy(env->stream_compute_);
   GMInsist(GMEnv_accel_last_call_succeeded(env) &&
            "Failure in call to cudaStreamDestroy.");
@@ -373,6 +378,7 @@ void GMEnv_terminate_streams(GMEnv* const env) {
   cudaStreamDestroy(env->stream_fromgpu_);
   GMInsist(GMEnv_accel_last_call_succeeded(env) &&
            "Failure in call to cudaStreamDestroy.");
+#endif
 
   env->are_accel_streams_initialized_ = false;
 }
@@ -383,9 +389,11 @@ void GMEnv_stream_synchronize(accelStream_t stream, GMEnv* const env) {
   GMInsist(env);
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+#ifdef USE_CUDA
     cudaStreamSynchronize(stream);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to cudaStreamSynchronize.");
+#endif
   }
 }
 
@@ -620,6 +628,26 @@ double GMEnv_get_time(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
+void GMEnv_accel_sync(const GMEnv* const env) {
+  GMInsist(env);
+
+  if (! GMEnv_is_proc_active(env)) {
+    return;
+  }
+
+  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+    return;
+  }
+
+#ifdef USE_CUDA
+  cudaDeviceSynchronize();
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to cudaDeviceSynchronize.");
+#endif
+}
+
+//-----------------------------------------------------------------------------
+
 double GMEnv_get_synced_time(const GMEnv* const env) {
   GMInsist(env);
 
@@ -627,11 +655,7 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
     return 0;
   }
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
-    cudaDeviceSynchronize();
-    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-             "Failure in call to cudaDeviceSynchronize.");
-  }
+  GMEnv_accel_sync(env);
 
   const int mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Barrier.");
@@ -790,6 +814,7 @@ size_t gm_array_cksum(unsigned char* a, size_t n) {
 bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
   GMInsist(env);
 
+#ifdef USE_CUDA
   // NOTE: this read of the last error is a destructive read.
   cudaError_t error = cudaGetLastError();
   const bool result = error == cudaSuccess;
@@ -797,6 +822,9 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
   if (!result) {
     printf("CUDA error detected: %s\n", cudaGetErrorString(error));
   }
+#else
+  const bool result = true;
+#endif
 
   return result;
 }
@@ -804,9 +832,13 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
 //-----------------------------------------------------------------------------
 
 int gm_gpu_compute_capability() {
+#ifdef USE_CUDA
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
   return deviceProp.major * 100 + deviceProp.minor;
+#else
+  return ((int32_t)1) << 28;
+#endif
 }
 
 //-----------------------------------------------------------------------------

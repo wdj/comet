@@ -11,14 +11,17 @@
 #ifndef _gm_env_hh_
 #define _gm_env_hh_
 
-#include "stddef.h"
+#include "cstdint"
+#include "cstddef"
 #include "assert.h"
 #include "float.h"
-#include "stdio.h"  //FIX
+#include "cstdio"  //FIX
 
 #include "mpi.h"
+#ifdef USE_CUDA
 #include "cuda.h"
 #include "cuda_runtime.h"
+#endif
 
 #include "assertions.hh"
 #include "types.hh"
@@ -26,7 +29,11 @@
 //=============================================================================
 // Environment struct declarations.
 
+#ifdef USE_CUDA
 typedef cudaStream_t accelStream_t;
+#else
+typedef int accelStream_t;
+#endif
 
 typedef struct {
   // CoMet Settings
@@ -77,7 +84,7 @@ typedef struct {
   int proc_num_vector_i_;
   int proc_num_repl_vector_;
   bool is_proc_active_;
-  // CUDA
+  // ACCELERATOR
   accelStream_t stream_compute_;
   accelStream_t stream_togpu_;
   accelStream_t stream_fromgpu_;
@@ -356,6 +363,7 @@ static int GMEnv_proc_num_field(const GMEnv* const env) {
 // Timer functions
 
 double GMEnv_get_time(const GMEnv* const env = 0);
+void GMEnv_accel_sync(const GMEnv* const env);
 double GMEnv_get_synced_time(const GMEnv* const env);
 
 //=============================================================================
@@ -479,12 +487,12 @@ static size_t gm_nchoosek(int n, int k) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_popcount64(GMUInt64 x) {
+static int gm_popcount64(uint64_t x) {
   // Adapted from https://en.wikipedia.org/wiki/Hamming_weight
-  const GMUInt64 m1 = 0x5555555555555555;
-  const GMUInt64 m2 = 0x3333333333333333;
-  const GMUInt64 m4 = 0x0f0f0f0f0f0f0f0f;
-  const GMUInt64 h01 = 0x0101010101010101;
+  const uint64_t m1 = 0x5555555555555555;
+  const uint64_t m2 = 0x3333333333333333;
+  const uint64_t m4 = 0x0f0f0f0f0f0f0f0f;
+  const uint64_t h01 = 0x0101010101010101;
   x -= (x >> 1) & m1;
   x = (x & m2) + ((x >> 2) & m2);
   x = (x + (x >> 4)) & m4;

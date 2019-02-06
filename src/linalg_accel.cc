@@ -8,7 +8,7 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdint.h"
+#include "cstdint"
 
 #include "cublas_v2.h"
 #include "cuda_fp16.h"
@@ -21,40 +21,53 @@
 //=============================================================================
 
 //-----------------------------------------------------------------------------
+/// \brief Abstracted thread indexing/dimensions functions.
+
+__device__ static int threadIdx_x() { return threadIdx.x; }
+
+__device__ static int blockIdx_x() { return blockIdx.x; }
+__device__ static int blockIdx_y() { return blockIdx.y; }
+__device__ static int blockIdx_z() { return blockIdx.z; }
+
+__device__ static int blockDim_x() { return blockDim.x; }
+
+__device__ static int gridDim_y() { return gridDim.y; }
+
+//-----------------------------------------------------------------------------
 /// \brief Specialized class to provide selected constants of GemmIn_t type.
 ///
 ///        Provide constants "0", "1" and "2" in the datatype
 ///        required to input to the cuBLAS reduced precision GEMM.
 
-// Note: we could use __half here instead of GMUInt16.  The intent here
+// Note: we could use __half here instead of uint16_t.  The intent here
 // was to use a type based on standard C/C++.  No actual computations
 // are done in this code based on the specifics of the type, so it doesn't
-// matter.  Important thing is that sizeof(GMUInt16) == sizeof(__half) == 2.
+// matter.  Important thing is that sizeof(uint16_t) == sizeof(__half) == 2.
 
 template<typename GemmIn_t> struct TCBufTypes;
 
-template<> struct TCBufTypes<GMUInt16> {
-  static __device__ GMUInt16 zero() {return (GMUInt16)0x0000;}
-                                        // = *(GMUInt16*)&__float2half(0.);
-  static __device__ GMUInt16 one() {return (GMUInt16)0x3c00;}
-                                        // = *(GMUInt16*)&__float2half(1.);
-  static __device__ GMUInt16 two() {return (GMUInt16)0x4000;}
-                                        // = *(GMUInt16*)&__float2half(2.);
+template<> struct TCBufTypes<uint16_t> {
+  static __device__ uint16_t zero() {return (uint16_t)0x0000;}
+                                        // = *(uint16_t*)&__float2half(0.);
+  static __device__ uint16_t one() {return (uint16_t)0x3c00;}
+                                        // = *(uint16_t*)&__float2half(1.);
+  static __device__ uint16_t two() {return (uint16_t)0x4000;}
+                                        // = *(uint16_t*)&__float2half(2.);
 };
 
-template<> struct TCBufTypes<GMUInt8> {
-  static __device__ GMUInt8 zero() {return (GMUInt8)0;}
-  static __device__ GMUInt8 one() {return (GMUInt8)1;}
-  static __device__ GMUInt8 two() {return (GMUInt8)2;}
+template<> struct TCBufTypes<uint8_t> {
+  static __device__ uint8_t zero() {return (uint8_t)0;}
+  static __device__ uint8_t one() {return (uint8_t)1;}
+  static __device__ uint8_t two() {return (uint8_t)2;}
 };
 
 //-----------------------------------------------------------------------------
-/// \brief Seclector for types etc. for tc methods.
+/// \brief Selector for types etc. for tc methods.
 
 template<int TC_METHOD> struct TCSelector;
 
 template<> struct TCSelector<GM_TC_METHOD_INT8> {
-  typedef GMUInt8 GemmIn_t;
+  typedef uint8_t GemmIn_t;
   typedef int32_t GemmOut_t;
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
@@ -62,7 +75,7 @@ template<> struct TCSelector<GM_TC_METHOD_INT8> {
 };
 
 template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
-  typedef GMUInt16 GemmIn_t;
+  typedef uint16_t GemmIn_t;
   typedef float GemmOut_t;
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
@@ -79,7 +92,7 @@ template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
 template<typename GemmIn_t>
 __global__ static void gm_tc_buf_write_kernel_(
   GemmIn_t* vo,
-  GMUInt32* vi32,
+  uint32_t* vi32,
   int vi32_dim0,
   int num_way,
   bool is_sparse,
@@ -95,8 +108,8 @@ __global__ static void gm_tc_buf_write_kernel_(
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
-  const int vlX2 = threadIdx.x + blockIdx.x * blockDim.x;
-  const int flD2_thisstep = blockIdx.y + gridDim.y * blockIdx.z;
+  const int vlX2 = threadIdx_x() + blockIdx_x() * blockDim_x();
+  const int flD2_thisstep = blockIdx_y() + gridDim_y() * blockIdx_z();
 
   if (vlX2 >= nvleX2 || flD2_thisstep >= nflD2_thisstep) {
     return;
@@ -109,7 +122,7 @@ __global__ static void gm_tc_buf_write_kernel_(
 
   // Output array interpreted as having GemmIn_t scalars has nfl rows.
 
-  const GMUInt32* const vi32_col = vi32 + vl * (size_t)vi32_dim0;
+  const uint32_t* const vi32_col = vi32 + vl * (size_t)vi32_dim0;
 
   // Pick up two consecutive field values:
   // first field seminibble0, second field seminibble1
@@ -127,8 +140,8 @@ __global__ static void gm_tc_buf_write_kernel_(
 
   // Possible counts, represented in target type.
   const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
-  const GemmIn_t one = TCBufTypes<GemmIn_t>::one();
-  const GemmIn_t two = TCBufTypes<GemmIn_t>::two();
+  const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
+  const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
 
   const GemmIn_t out0 = seminibble0 == 3*i01     ? two :
                         seminibble0 == 3*(1-i01) ? zero :
@@ -210,7 +223,7 @@ static void gm_tc_buf_write_(
   const int flD2_min = fl_min / 2;
   // Remember: end padding is set to zero; will correct zero counts later.
 
-  // CUDA thread dims.
+  // accelerator thread dims.
 
   const int threadblocksize = 256;
   const int blockdim_y = 32768;
@@ -221,7 +234,7 @@ static void gm_tc_buf_write_(
   // Arrays.
 
   typedef typename TCSelector<TC_METHOD>::GemmIn_t GemmIn_t;
-  GMUInt32* vi32 = (GMUInt32*)vi;
+  uint32_t* vi32 = (uint32_t*)vi;
   const int vi32_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
   GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
                                       (GemmIn_t*)tc_bufs.tc_buf_left;
@@ -400,8 +413,8 @@ __global__ static void gm_tc_repair_metrics_kernel_(
   int nvl, int nvll, int nvllD2, void* vo) { 
 
   // Row and column threads of metrics array.
-  const int thread_r = threadIdx.x + blockIdx.x * blockDim.x;
-  const int thread_c = blockIdx.y;
+  const int thread_r = threadIdx_x() + blockIdx_x() * blockDim_x();
+  const int thread_c = blockIdx_y();
 
   if (thread_r >= nvllD2 || thread_c >= nvl) {
     return;
@@ -454,7 +467,7 @@ __global__ static void gm_tc_repair_metrics_kernel_(
 
   // Use "shifter" to move a value to the upper half of the mantissa.
 
-  const double shifter = (((GMUInt32)1) << GM_TALLY1_MAX_VALUE_BITS);
+  const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
 
   // Pack two 25-bit integers into mantissa of double.
 

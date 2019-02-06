@@ -8,6 +8,9 @@
  */
 //-----------------------------------------------------------------------------
 
+#include "cstdint"
+#include "inttypes.h"
+
 #include "env.hh"
 #include "linalg.hh"
 #include "mirrored_buf.hh"
@@ -208,46 +211,46 @@ void gm_compute_2way_proc_combine_ccc_(
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
               const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-              const bool error1 = (GMUInt64)r00 + (GMUInt64)r01 +
-                                  (GMUInt64)r10 + (GMUInt64)r11 !=
-                       (GMUInt64)(4 * metrics->num_field_active);
+              const bool error1 = (uint64_t)r00 + (uint64_t)r01 +
+                                  (uint64_t)r10 + (uint64_t)r11 !=
+                       (uint64_t)(4 * metrics->num_field_active);
               if (error1) {
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu m %llu coords %zu rank %i\n",
-                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
-                       (GMUInt64)r11, (GMUInt64)(metrics->num_field_active),
+                printf("Error: r00 %" PRIu64 " r01 %" PRIu64 " r10 %" PRIu64 " r11 %" PRIu64 " m %" PRIu64 " coords %zu rank %i\n",
+                       (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
+                       (uint64_t)r11, (uint64_t)(metrics->num_field_active),
                        coords, GMEnv_proc_num(env));
                 GMInsist((! error1) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
-              const bool error2 = (GMUInt64)r10 + (GMUInt64)r11 !=
-                                  (GMUInt64)(2 * si1);
+              const bool error2 = (uint64_t)r10 + (uint64_t)r11 !=
+                                  (uint64_t)(2 * si1);
               if (error2) {
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu si1 %llu actual %llu expected %llu coords %zu rank %i\n",
-                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
-                       (GMUInt64)r11, (GMUInt64)si1,
-                       (GMUInt64)r10 + (GMUInt64)r11, (GMUInt64)(2 * si1),
+                printf("Error: r00 %" PRIu64 " r01 %" PRIu64 " r10 %" PRIu64 " r11 %" PRIu64 " si1 %" PRIu64 " actual %" PRIu64 " expected %" PRIu64 " coords %zu rank %i\n",
+                       (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
+                       (uint64_t)r11, (uint64_t)si1,
+                       (uint64_t)r10 + (uint64_t)r11, (uint64_t)(2 * si1),
                        coords, GMEnv_proc_num(env));
                 GMInsist((! error2) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-              const bool error3 = (GMUInt64)r01 + (GMUInt64)r11 !=
-                                  (GMUInt64)(2 * sj1);
+              const bool error3 = (uint64_t)r01 + (uint64_t)r11 !=
+                                  (uint64_t)(2 * sj1);
               if (error3) {
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu sj1 %llu actual %llu expected %llu coords %zu rank %i\n",
-                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
-                       (GMUInt64)r11, (GMUInt64)sj1,
-                       (GMUInt64)r01 + (GMUInt64)r11, (GMUInt64)(2 * sj1),
+                printf("Error: r00 %" PRIu64 " r01 %" PRIu64 " r10 %" PRIu64 " r11 %" PRIu64 " sj1 %" PRIu64 " actual %" PRIu64 " expected %" PRIu64 " coords %zu rank %i\n",
+                       (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
+                       (uint64_t)r11, (uint64_t)sj1,
+                       (uint64_t)r01 + (uint64_t)r11, (uint64_t)(2 * sj1),
                        coords, GMEnv_proc_num(env));
                 GMInsist((! error3) && "Violation of algorithm computational invariant.");
               }
@@ -260,14 +263,14 @@ void gm_compute_2way_proc_combine_ccc_(
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
               const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-              GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
-                           (GMUInt64)r11 ==
-                       (GMUInt64)(4 * metrics->num_field_active));
+              GMAssert((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
+                           (uint64_t)r11 ==
+                       (uint64_t)(4 * metrics->num_field_active));
               // 2-sum checks.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-              GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
-              GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+              GMAssert((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
+              GMAssert((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
             }
 #endif
           } /*---for i---*/
@@ -289,46 +292,46 @@ void gm_compute_2way_proc_combine_ccc_(
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
               const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-              const bool error1 = (GMUInt64)r00 + (GMUInt64)r01 +
-                                  (GMUInt64)r10 + (GMUInt64)r11 !=
-                       (GMUInt64)(4 * metrics->num_field_active);
+              const bool error1 = (uint64_t)r00 + (uint64_t)r01 +
+                                  (uint64_t)r10 + (uint64_t)r11 !=
+                       (uint64_t)(4 * metrics->num_field_active);
               if (error1) {
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu m %llu coords %zu rank %i\n",
-                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
-                       (GMUInt64)r11, (GMUInt64)(metrics->num_field_active),
+                printf("Error: r00 %" PRIu64 " r01 %" PRIu64 " r10 %" PRIu64 " r11 %" PRIu64 " m %" PRIu64 " coords %zu rank %i\n",
+                       (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
+                       (uint64_t)r11, (uint64_t)(metrics->num_field_active),
                        coords, GMEnv_proc_num(env));
                 GMInsist((! error1) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
-              const bool error2 = (GMUInt64)r10 + (GMUInt64)r11 !=
-                                  (GMUInt64)(2 * si1);
+              const bool error2 = (uint64_t)r10 + (uint64_t)r11 !=
+                                  (uint64_t)(2 * si1);
               if (error2) {
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu si1 %llu actual %llu expected %llu coords %zu rank %i\n",
-                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
-                       (GMUInt64)r11, (GMUInt64)si1,
-                       (GMUInt64)r10 + (GMUInt64)r11, (GMUInt64)(2 * si1),
+                printf("Error: r00 %" PRIu64 " r01 %" PRIu64 " r10 %" PRIu64 " r11 %" PRIu64 " si1 %" PRIu64 " actual %" PRIu64 " expected %" PRIu64 " coords %zu rank %i\n",
+                       (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
+                       (uint64_t)r11, (uint64_t)si1,
+                       (uint64_t)r10 + (uint64_t)r11, (uint64_t)(2 * si1),
                        coords, GMEnv_proc_num(env));
                 GMInsist((! error2) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-              const bool error3 = (GMUInt64)r01 + (GMUInt64)r11 !=
-                                  (GMUInt64)(2 * sj1);
+              const bool error3 = (uint64_t)r01 + (uint64_t)r11 !=
+                                  (uint64_t)(2 * sj1);
               if (error3) {
                 const size_t index = GMMetrics_index_from_coord_all2all_2(metrics,
                   i, j, j_block, env);
                 const size_t coords = metrics->coords_global_from_index[index];
-                printf("Error: r00 %llu r01 %llu r10 %llu r11 %llu sj1 %llu actual %llu expected %llu coords %zu rank %i\n",
-                       (GMUInt64)r00, (GMUInt64)r01, (GMUInt64)r10,
-                       (GMUInt64)r11, (GMUInt64)sj1,
-                       (GMUInt64)r01 + (GMUInt64)r11, (GMUInt64)(2 * sj1),
+                printf("Error: r00 %" PRIu64 " r01 %" PRIu64 " r10 %" PRIu64 " r11 %" PRIu64 " sj1 %" PRIu64 " actual %" PRIu64 " expected %" PRIu64 " coords %zu rank %i\n",
+                       (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
+                       (uint64_t)r11, (uint64_t)sj1,
+                       (uint64_t)r01 + (uint64_t)r11, (uint64_t)(2 * sj1),
                        coords, GMEnv_proc_num(env));
                 GMInsist((! error3) && "Violation of algorithm computational invariant.");
               }
@@ -341,14 +344,14 @@ void gm_compute_2way_proc_combine_ccc_(
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
               const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-              GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
-                           (GMUInt64)r11 ==
-                       (GMUInt64)(4 * metrics->num_field_active));
+              GMAssert((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
+                           (uint64_t)r11 ==
+                       (uint64_t)(4 * metrics->num_field_active));
               // 2-sum checks.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-              GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
-              GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+              GMAssert((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
+              GMAssert((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
             }
 #endif
           } /*---for i---*/
@@ -372,14 +375,14 @@ void gm_compute_2way_proc_combine_ccc_(
             const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
             const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
             const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-            GMAssert((GMUInt64)r00 + (GMUInt64)r01 + (GMUInt64)r10 +
-                         (GMUInt64)r11 ==
-                     (GMUInt64)(4 * metrics->num_field_active));
+            GMAssert((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
+                         (uint64_t)r11 ==
+                     (uint64_t)(4 * metrics->num_field_active));
             // 2-sum checks.
             const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
             const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-            GMAssert((GMUInt64)r10 + (GMUInt64)r11 == (GMUInt64)(2 * si1));
-            GMAssert((GMUInt64)r01 + (GMUInt64)r11 == (GMUInt64)(2 * sj1));
+            GMAssert((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
+            GMAssert((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
           }
 #endif
         } /*---for i---*/

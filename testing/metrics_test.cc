@@ -8,8 +8,10 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdio.h"
-#include "stdlib.h"
+#include "cstdlib"
+#include "cstdio"
+#include "cstdint"
+#include "inttypes.h"
 #include "string.h"
 #include "math.h"
 
@@ -33,9 +35,9 @@ void MetricsTest_3way_num_elts_local_() {
   const int nvl = 12;
   const int num_stage = 2;
 
-  const GMUInt64 num_vector = nvl * (GMUInt64)num_proc_mock;
+  const uint64_t num_vector = nvl * (uint64_t)num_proc_mock;
 
-  const GMUInt64 num_elts_local_expected = num_vector * (num_vector-1) *
+  const uint64_t num_elts_local_expected = num_vector * (num_vector-1) *
                                            (num_vector-2) / 6;
 
   size_t num_elts_local = 0;
@@ -68,7 +70,7 @@ void MetricsTest_3way_num_elts_local_() {
     } //---for
 
     printf("--------------------------------------- "
-           "Metrics elements found %lu, expected %llu."
+           "Metrics elements found %lu, expected %" PRIu64 "."
            " ---------------------------------------\n",
            num_elts_local, num_elts_local_expected);
 
