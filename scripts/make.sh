@@ -16,9 +16,14 @@ function main
   [[ -n "${CRAYOS_VERSION:-}" ]] && IS_CRAY_XK7="YES" || IS_CRAY_XK7="NO"
   local IS_IBM_AC922 # OLCF Summit or Peak
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
+  local IS_EXPERIMENTAL
+  [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
+                                                 IS_EXPERIMENTAL="NO"
 
   # WARNING: these module loads MUST match those in scripts/cmake.sh
-  if [ $IS_CRAY_XK7 = YES ] ; then
+  if [ $IS_EXPERIMENTAL = YES ] ; then
+    true # skip for now
+  elif [ $IS_CRAY_XK7 = YES ] ; then
     if [ "$PE_ENV" = "PGI" ] ; then
       module unload PrgEnv-pgi
     fi

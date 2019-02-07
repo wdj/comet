@@ -85,16 +85,16 @@ num_vector=$(( $num_vector_local * $num_proc_vector ))
 module -q load gcc
 module -q load cuda
 
-HOST_=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
+host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
 OLCF_PROJECT="$(echo $LSB_PROJECT_NAME | tr A-Z a-z)"
 INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
 
 if [ $debug = 1 ] ; then
-  executable_double=$INSTALLS_DIR/install_test_$HOST_/bin/genomics_metric
-  executable_single=$INSTALLS_DIR/install_single_test_$HOST_/bin/genomics_metric
+  executable_double=$INSTALLS_DIR/install_test_$host/bin/genomics_metric
+  executable_single=$INSTALLS_DIR/install_single_test_$host/bin/genomics_metric
 else
-  executable_double=$INSTALLS_DIR/install_release_$HOST_/bin/genomics_metric
-  executable_single=$INSTALLS_DIR/install_single_release_$HOST_/bin/genomics_metric
+  executable_double=$INSTALLS_DIR/install_release_$host/bin/genomics_metric
+  executable_single=$INSTALLS_DIR/install_single_release_$host/bin/genomics_metric
 fi
 
 if [ "$ccc" = 1 ] ; then
