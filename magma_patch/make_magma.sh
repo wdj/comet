@@ -31,10 +31,12 @@ function do_make
     module load cudatoolkit
     module load acml
     cp ../make.inc.titan make.inc
+    export GPU_TARGET=sm35 NV_SM=" -gencode arch=compute_35,code=sm_35" NV_COMP="-gencode arch=compute_35,code=compute_35" MIN_ARCH=350
   elif [ $IS_IBM_AC922 = YES ] ; then
     module load gcc/6.4.0
     module load cuda
     cp ../make.inc.summit make.inc
+    export GPU_TARGET=sm70 NV_SM=" -gencode arch=compute_70,code=sm_70" NV_COMP="-gencode arch=compute_70,code=compute_70" MIN_ARCH=350
   else
     echo "Unknown platform." 1>&2
     exit 1

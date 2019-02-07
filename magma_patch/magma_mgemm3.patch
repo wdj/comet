@@ -1,31 +1,20 @@
 diff -aur magma_mgemm3.cloned/Makefile.internal magma_mgemm3/Makefile.internal
---- magma_mgemm3.cloned/Makefile.internal	2019-01-11 09:03:58.239914000 -0500
-+++ magma_mgemm3/Makefile.internal	2019-01-11 09:36:30.011835000 -0500
-@@ -85,6 +85,9 @@
-     GPU_TARGET += sm30 sm35
- endif
- 
-+ifneq ($(findstring Volta, $(GPU_TARGET)),)
-+    GPU_TARGET += sm70
-+endif
+--- magma_mgemm3.cloned/Makefile.internal	2019-01-11 10:33:50.039675000 -0500
++++ magma_mgemm3/Makefile.internal	2019-02-07 08:19:51.192397000 -0500
+@@ -94,8 +94,8 @@
  #
- # Next, add compile options for specific smXX
- # sm_xx is binary, compute_xx is PTX for forward compatability
-@@ -123,6 +126,11 @@
-     NV_SM    += -gencode arch=compute_35,code=sm_35
-     NV_COMP  := -gencode arch=compute_35,code=compute_35
- endif
-+ifneq ($(findstring sm70, $(GPU_TARGET)),)
-+    MIN_ARCH ?= 700
-+    NV_SM    += -gencode arch=compute_70,code=sm_70
-+    NV_COMP  := -gencode arch=compute_70,code=compute_70
-+endif
- ifeq ($(NV_COMP),)
-     $(error GPU_TARGET, currently $(GPU_TARGET), must contain one or more of Tesla, Fermi, Kepler, or sm{10,13,20,30,35}. Please edit your make.inc file)
- endif
+ # See also $(info compile for ...) in Makefile
+ #
+-NV_SM    :=
+-NV_COMP  :=
++#NV_SM    :=
++#NV_COMP  :=
+ 
+ ifneq ($(findstring sm10, $(GPU_TARGET)),)
+     # sm10 is no longer supported by CUDA 6.x nvcc
 diff -aur magma_mgemm3.cloned/magma_mgemm3blas/gemm_stencil.cuh magma_mgemm3/magma_mgemm3blas/gemm_stencil.cuh
---- magma_mgemm3.cloned/magma_mgemm3blas/gemm_stencil.cuh	2019-01-11 09:03:57.228902000 -0500
-+++ magma_mgemm3/magma_mgemm3blas/gemm_stencil.cuh	2019-01-11 09:38:28.550939000 -0500
+--- magma_mgemm3.cloned/magma_mgemm3blas/gemm_stencil.cuh	2019-01-11 10:33:48.287580000 -0500
++++ magma_mgemm3/magma_mgemm3blas/gemm_stencil.cuh	2019-01-11 10:36:02.515721000 -0500
 @@ -138,6 +138,272 @@
  #define THR_M ( BLK_M / DIM_X )
  #define THR_N ( BLK_N / DIM_Y )

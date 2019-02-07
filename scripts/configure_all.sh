@@ -44,7 +44,8 @@ function main
   #----------------------------------------------------------------------------
   # test / double precision build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_TEST=1 # 0
+  if [ $DO_BUILD_TEST = 1 ] ; then
     local BUILD_DIR=build_test_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -68,7 +69,8 @@ function main
   #----------------------------------------------------------------------------
   # test / single precision build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_SINGLE_TEST=1 # 0
+  if [ $DO_BUILD_SINGLE_TEST = 1 ] ; then
     local BUILD_DIR=build_single_test_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -92,7 +94,8 @@ function main
   #----------------------------------------------------------------------------
   # release / double precision build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_RELEASE=1 # 0
+  if [ $DO_BUILD_RELEASE = 1 ] ; then
     local BUILD_DIR=build_release_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -116,7 +119,8 @@ function main
   #----------------------------------------------------------------------------
   # release / double precision / nompi build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_RELEASE_NOMPI=1 # 0
+  if [ $DO_BUILD_RELEASE_NOMPI = 1 ] ; then
     local BUILD_DIR=build_release_nompi_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -140,7 +144,8 @@ function main
   #----------------------------------------------------------------------------
   # release / single precision build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_SINGLE_RELEASE=1 # 0
+  if [ $DO_BUILD_SINGLE_RELEASE = 1 ] ; then
     local BUILD_DIR=build_single_release_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
