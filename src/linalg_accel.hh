@@ -11,11 +11,17 @@
 #ifndef _gm_linalg_accel_hh_
 #define _gm_linalg_accel_hh_
 
+#ifdef USE_CUDA
 #include "cublas_v2.h"
+#endif
 
 #include "env.hh"
 
 //-----------------------------------------------------------------------------
+
+#ifndef USE_CUDA
+typedef int cublasHandle_t
+#endif
 
 struct TCBufs {
   size_t tc_buf_size;

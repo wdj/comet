@@ -1742,7 +1742,7 @@ void DriverTest_ccc_() {
   }
 #endif
 
-  if (gm_gpu_compute_capability() >= 700) {
+  {
     char options1[1024];
     char options2[1024];
 
@@ -1758,9 +1758,9 @@ void DriverTest_ccc_() {
     for (int num_way=2; num_way<=3; ++num_way) {
     for (int sparse=0; sparse<=1; ++sparse) {
     for (int tc=1; tc<=2; ++tc) {
-      if (nvl/2 < num_way) {
-        continue;
-      }
+      if (!gm_is_tc_valid(tc)) continue;
+      if (nvl/2 < num_way) continue;
+
       sprintf(options1, options_template_tc, nvl, "REF", sparse==0 ? "no" : "yes",
               1, 0, num_way, 1);
       sprintf(options2, options_template_tc, nvl, "GPU", sparse==0 ? "no" : "yes",

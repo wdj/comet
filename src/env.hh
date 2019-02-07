@@ -572,7 +572,7 @@ size_t gm_array_cksum(unsigned char* a, size_t n);
 
 bool GMEnv_accel_last_call_succeeded(const GMEnv* const env);
 
-int gm_gpu_compute_capability();
+bool gm_is_tc_valid(int tc);
 
 //=============================================================================
 
