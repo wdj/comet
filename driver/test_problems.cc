@@ -630,7 +630,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
             GMFloat value_expected = value_expected_floatcalc;
 
-#ifdef HAVE_INT128
+#if 0
+//#ifdef HAVE_INT128
             if (env->are_ccc_params_default) {
             if (!(0 == ci || 0 == cj || 0 == cij)) {
               value_expected = GMMetrics_ccc_value_nofp_2(metrics,
@@ -770,7 +771,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
               GMFloat value_expected = value_expected_floatcalc;
 
-#ifdef HAVE_INT128
+#if 0
+//#ifdef HAVE_INT128
               if (env->are_ccc_params_default) {
               if (!(0 == ci || 0 == cj || 0 == ck || 0 == cijk)) {
                 value_expected = GMMetrics_ccc_value_nofp_3(metrics,

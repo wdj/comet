@@ -353,7 +353,8 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
 
     //GMInsist(diff < eps);
 
-    return result_intcalc;
+    //return result_intcalc;
+    return result_floatcalc;
   } else {
     return result_floatcalc;
   }

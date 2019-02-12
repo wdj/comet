@@ -227,7 +227,10 @@ function main
 
   #----------------------------------------------------------------------------
 
-  local C_FLAGS_OPT="-DNDEBUG -O3 -fomit-frame-pointer"
+  local C_FLAGS_OPT="-O3 -fomit-frame-pointer"
+  if [ $BUILD_TYPE != "Debug" ] ; then
+    C_FLAGS_OPT="$C_FLAGS_OPT -DNDEBUG"
+  fi
 
   #---The following change slows performance by 1% on a test case but helps
   #---make results exactly reproducible on varyng number of procs.
