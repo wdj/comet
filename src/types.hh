@@ -12,6 +12,7 @@
 #define _gm_types_hh_
 
 #include "cstdint"
+#include "cfloat"
 
 #include "assertions.hh"
 
@@ -127,6 +128,7 @@ enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
 // Return null value; also use static asserts to check sizes
 
 static GMBits2x64 GMBits2x64_null() {
+  GMStaticAssert(2 * GM_TALLY1_MAX_VALUE_BITS <= DBL_MANT_DIG);
   GMStaticAssert(sizeof(GMBits2) * 8 >= GM_BITS2_MAX_VALUE_BITS);
   GMStaticAssert(sizeof(GMBits1_2x64) == 8);
   GMStaticAssert(sizeof(GMBits2x64) == 2 * sizeof(GMBits1_2x64));
