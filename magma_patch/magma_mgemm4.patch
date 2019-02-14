@@ -41,7 +41,7 @@ diff -aur magma_mgemm4.cloned/magma_mgemm4blas/gemm_stencil.cuh magma_mgemm4/mag
 +    typedef unsigned long long int GMUInt64;
 +    typedef GMUInt64 GMBits1_2x64;
 +    typedef struct { GMBits1_2x64 data[2]; } GMBits2x64;
-+    enum { GM_TALLY1_MAX_VALUE_BITS = 25 };
++    enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 +    typedef struct { double data[2]; } GMTally2x2;
 +
 +    GMTally2x2 sum = *(GMTally2x2*)&C;

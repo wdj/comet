@@ -499,7 +499,7 @@ __global__ static void gm_tc_repair_metrics_kernel_(
 
   const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
 
-  // Pack two 25-bit integers into mantissa of double.
+  // Pack two 26-bit integers into mantissa of double.
 
   const double d00 = (double)f00p + (double)f02p * shifter;
   const double d01 = (double)f01p + (double)f03p * shifter;
@@ -531,7 +531,7 @@ __global__ static void gm_tc_repair_metrics_kernel_(
 ///        The cublas gemm poduces a matrix of scalars of 32 bit size
 ///        (int32 or float).  However the required format of the metrics
 ///        is a matrix of double complex values, with each double
-///        containing two packed 25-bit integers.
+///        containing two packed 26-bit integers.
 ///        This code does an in-place transformation from one to the other.
 
 template<int TC_METHOD>

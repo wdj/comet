@@ -73,8 +73,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector_local = num_vector_specifier;
     const size_t num_vector_local_required = gm_num_vector_local_required(
                                               dm->num_vector_local, env);
-    GMInsistInterface(env, dm->num_vector_local == num_vector_local_required
-                      && "Manual selection of nvl requires divisibility condition");
+    GMInsistInterface(env, dm->num_vector_local == num_vector_local_required &&
+         "Manual selection of nvl requires divisibility condition");
     // All vectors active on every proc.
     dm->num_vector_active_local = dm->num_vector_local;
 #if 0
@@ -218,8 +218,11 @@ printf("%i %i %i %i %i\n",
       dm->num_bits_per_field = GM_BITS2_MAX_VALUE_BITS;
       dm->num_bits_per_packedfield = bits_per_byte * sizeof(GMBits2x64);
       // By design can only store this number of fields for this metric
+      // TODO: later may be able to permit higher via rounding -
+      // have 2-way method on-proc be exact, then for 3-way combining
+      // or num_proc_field>1 drop low order bits to allow to fit.
       GMInsistInterface(env,
-               ((uint64_t)(4 * dm->num_field)) <
+               ((uint64_t)((1<<GMEnv_num_way(env)) * dm->num_field)) <
                        (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
                 && "Number of fields requested is too large for this metric");
     } break;

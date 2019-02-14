@@ -111,7 +111,7 @@ typedef struct { GMFp64 data[2]; } GMTally2x2;
 typedef struct { GMFp64 data[4]; } GMTally4x2;
 
 // For Metrics: largest allowed size of a data value
-enum { GM_TALLY1_MAX_VALUE_BITS = 25 };
+enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 
 // For Metrics: for packing of multipliers
 typedef GMFp64 GMFloat2;
