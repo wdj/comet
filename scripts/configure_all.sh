@@ -22,16 +22,22 @@ function main
   [[ -n "${CRAYOS_VERSION:-}" ]] && IS_CRAY_XK7="YES" || IS_CRAY_XK7="NO"
   local IS_IBM_AC922 # OLCF Summit or Peak
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
+  local IS_EXPERIMENTAL
+  [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
+                                                 IS_EXPERIMENTAL="NO"
 
   if [ -z "${OLCF_PROJECT:-}" ] ; then
     local OLCF_PROJECT=stf006
   fi
 
-  local HOST_
-  HOST_=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
-  local DIRNAME_STUB=$HOST_
+  local host
+  host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
+  local DIRNAME_STUB
+  [[ $IS_EXPERIMENTAL = YES ]] && DIRNAME_STUB=experimental || DIRNAME_STUB=$host
 
-  if [ $IS_CRAY_XK7 = YES ] ; then
+  if [ $IS_EXPERIMENTAL = YES ] ; then
+    true # skip for now
+  elif [ $IS_CRAY_XK7 = YES ] ; then
     local INSTALLS_DIR=/lustre/atlas/scratch/$(whoami)/$OLCF_PROJECT/comet
   elif [ $IS_IBM_AC922 = YES ] ; then
     local INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
@@ -44,7 +50,8 @@ function main
   #----------------------------------------------------------------------------
   # test / double precision build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_TEST=1 # 0
+  if [ $DO_BUILD_TEST = 1 ] ; then
     local BUILD_DIR=build_test_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -68,7 +75,8 @@ function main
   #----------------------------------------------------------------------------
   # test / single precision build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_SINGLE_TEST=1 # 0
+  if [ $DO_BUILD_SINGLE_TEST = 1 ] ; then
     local BUILD_DIR=build_single_test_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -92,7 +100,8 @@ function main
   #----------------------------------------------------------------------------
   # release / double precision build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_RELEASE=1 # 0
+  if [ $DO_BUILD_RELEASE = 1 ] ; then
     local BUILD_DIR=build_release_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -116,7 +125,8 @@ function main
   #----------------------------------------------------------------------------
   # release / double precision / nompi build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_RELEASE_NOMPI=1 # 0
+  if [ $DO_BUILD_RELEASE_NOMPI = 1 ] ; then
     local BUILD_DIR=build_release_nompi_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -140,7 +150,8 @@ function main
   #----------------------------------------------------------------------------
   # release / single precision build
 
-  if [ 1 = 1 ] ; then
+  DO_BUILD_SINGLE_RELEASE=1 # 0
+  if [ $DO_BUILD_SINGLE_RELEASE = 1 ] ; then
     local BUILD_DIR=build_single_release_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR

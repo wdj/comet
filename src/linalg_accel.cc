@@ -10,8 +10,10 @@
 
 #include "cstdint"
 
+#ifdef USE_CUDA
 #include "cublas_v2.h"
 #include "cuda_fp16.h"
+#endif
 
 #include "env.hh"
 #include "linalg_accel.hh"
@@ -23,6 +25,7 @@
 //-----------------------------------------------------------------------------
 /// \brief Abstracted thread indexing/dimensions functions.
 
+#ifdef USE_CUDA
 __device__ static int threadIdx_x() { return threadIdx.x; }
 
 __device__ static int blockIdx_x() { return blockIdx.x; }
@@ -32,12 +35,13 @@ __device__ static int blockIdx_z() { return blockIdx.z; }
 __device__ static int blockDim_x() { return blockDim.x; }
 
 __device__ static int gridDim_y() { return gridDim.y; }
+#endif
 
 //-----------------------------------------------------------------------------
-/// \brief Specialized class to provide selected constants of GemmIn_t type.
+/// \brief Provide needed constants of GemmIn_t type.
 ///
 ///        Provide constants "0", "1" and "2" in the datatype
-///        required to input to the cuBLAS reduced precision GEMM.
+///        required to input to the reduced precision GEMM.
 
 // Note: we could use __half here instead of uint16_t.  The intent here
 // was to use a type based on standard C/C++.  No actual computations
@@ -48,37 +52,45 @@ template<typename GemmIn_t> struct TCBufTypes;
 
 template<> struct TCBufTypes<uint16_t> {
   static __device__ uint16_t zero() {return (uint16_t)0x0000;}
-                                        // = *(uint16_t*)&__float2half(0.);
   static __device__ uint16_t one() {return (uint16_t)0x3c00;}
-                                        // = *(uint16_t*)&__float2half(1.);
   static __device__ uint16_t two() {return (uint16_t)0x4000;}
+                                        // = *(uint16_t*)&__float2half(0.);
+                                        // = *(uint16_t*)&__float2half(1.);
                                         // = *(uint16_t*)&__float2half(2.);
 };
 
-template<> struct TCBufTypes<uint8_t> {
-  static __device__ uint8_t zero() {return (uint8_t)0;}
-  static __device__ uint8_t one() {return (uint8_t)1;}
-  static __device__ uint8_t two() {return (uint8_t)2;}
+template<> struct TCBufTypes<int8_t> {
+  static __device__ int8_t zero() {return (int8_t)0;}
+  static __device__ int8_t one() {return (int8_t)1;}
+  static __device__ int8_t two() {return (int8_t)2;}
 };
 
 //-----------------------------------------------------------------------------
-/// \brief Selector for types etc. for tc methods.
+/// \brief Select types etc. based on the setting of the tc param.
 
 template<int TC_METHOD> struct TCSelector;
 
 template<> struct TCSelector<GM_TC_METHOD_INT8> {
-  typedef uint8_t GemmIn_t;
+  // types.
+  typedef int8_t GemmIn_t;
   typedef int32_t GemmOut_t;
+#ifdef USE_CUDA
+  // CUDA type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
+#endif
   enum { COUNT = 1 };
 };
 
 template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
+  // types.
   typedef uint16_t GemmIn_t;
   typedef float GemmOut_t;
+#ifdef USE_CUDA
+  // CUDA type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
+#endif
   enum { COUNT = 1 };
 };
 
@@ -261,11 +273,11 @@ static void gm_tc_buf_write_(
 /// \brief Call cublas to perform required GEMM.
 
 template<int TC_METHOD>
-static void gm_tc_solve_(
+static void gm_tc_solve_cublasgemmex_(
   bool is_first,
-  int nvll,
-  int nvl,
-  int npvfl_thisstep,
+  int m,
+  int n,
+  int k,
   void* dA,
   void* dB,
   void* dC,
@@ -273,22 +285,7 @@ static void gm_tc_solve_(
   GMEnv* env) {
 
   GMInsist(env && dA && dB && dC);
-  GMInsist(nvll >= 0);
-  GMInsist(nvl >= 0);
-  GMInsist(nvll <= nvl);
-  GMInsist(npvfl_thisstep >= 0);
   GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
-
-#if __CUDACC_VER_MAJOR__ >= 9
-
-  const int nfl_thisstep = npvfl_thisstep * 64;
-
-  const int m = 2 * nvll; // metrics array dim
-  const int n = 2 * nvl; // metrics array dim
-  const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
-
-  const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
-  const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
   // See https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
   // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
@@ -304,6 +301,12 @@ static void gm_tc_solve_(
   // since nvl % 4 == 0; see gm_gemm_divisibility_required()
   GMInsist(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
+#ifdef USE_CUDA
+#if __CUDACC_VER_MAJOR__ >= 9
+
+  const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
+  const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
+
   // Make BLAS call.
 
   cublasStatus_t status = cublasGemmEx(
@@ -311,16 +314,10 @@ static void gm_tc_solve_(
     CUBLAS_OP_N, CUBLAS_OP_T,
     m, n, k,
     (void*)&alpha,
-    tc_bufs.tc_buf_left,
-    TCSelector<TC_METHOD>::gemm_type_in(),
-    m,
-    tc_bufs.tc_buf_right,
-    TCSelector<TC_METHOD>::gemm_type_in(),
-    n,
+    tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m,
+    tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n,
     (void*)&beta,
-    dC,
-    TCSelector<TC_METHOD>::gemm_type_out(),
-    m,
+    dC, TCSelector<TC_METHOD>::gemm_type_out(), m,
     TCSelector<TC_METHOD>::gemm_type_out(),
     //CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
     //CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
@@ -346,6 +343,39 @@ static void gm_tc_solve_(
   env->ops_local += 2 * m * (double)n * (double)k;
 
 #endif // __CUDACC_VER_MAJOR__
+#endif // USE_CUDA
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Call to perform required GEMM.
+
+template<int TC_METHOD>
+static void gm_tc_solve_(
+  bool is_first,
+  int nvll,
+  int nvl,
+  int npvfl_thisstep,
+  void* dA,
+  void* dB,
+  void* dC,
+  TCBufs& tc_bufs,
+  GMEnv* env) {
+
+  GMInsist(env && dA && dB && dC);
+  GMInsist(nvll >= 0);
+  GMInsist(nvl >= 0);
+  GMInsist(nvll <= nvl);
+  GMInsist(npvfl_thisstep >= 0);
+  GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
+
+  const int nfl_thisstep = npvfl_thisstep * 64;
+
+  const int m = 2 * nvll; // metrics array dim
+  const int n = 2 * nvl; // metrics array dim
+  const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
+
+  gm_tc_solve_cublasgemmex_<TC_METHOD>(is_first, m, n, k,
+                                       dA, dB, dC, tc_bufs, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -653,8 +683,8 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   // Ensure tensor core hardware is available.
-  GMInsistInterface(env, gm_gpu_compute_capability() >= 700 &&
-                    "TC option unavailable for this platform/build.");
+  GMInsistInterface(env, gm_is_tc_valid(env->tc) &&
+                    "TC option invalid for this platform/build.");
 
   // Select required template function instance.
 
@@ -697,8 +727,8 @@ void gm_tc_bufs_malloc(int num_vector_local,
     return;
   }
 
-  GMInsistInterface(env, gm_gpu_compute_capability() >= 700 &&
-                    "TC option unavailable for this platform/build.");
+  GMInsistInterface(env, gm_is_tc_valid(env->tc) &&
+                    "TC option invalid for this platform/build.");
 
   // Calculate sizes.
 
@@ -721,16 +751,21 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
   // Allocate buffers.
 
+#ifdef USE_CUDA
   cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
+#endif
   GMEnv_accel_last_call_succeeded(env);
   gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
 
+#ifdef USE_CUDA
   cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
+#endif
   GMEnv_accel_last_call_succeeded(env);
   gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
 
   // Set up cublas handle.
 
+#ifdef USE_CUDA
   cublasStatus_t status_cb = cublasCreate(&tc_bufs.cublas_handle);
   GMInsist(status_cb == CUBLAS_STATUS_SUCCESS &&
            "Failure in call to cublasCreate.");
@@ -743,6 +778,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
   status_cb = cublasSetMathMode(tc_bufs.cublas_handle, CUBLAS_TENSOR_OP_MATH);
   GMInsist(status_cb == CUBLAS_STATUS_SUCCESS &&
            "Failure in call to cublasSetMathMode.");
+#endif
 #endif
 }
 
@@ -760,21 +796,27 @@ void gm_tc_bufs_free(TCBufs& tc_bufs,
 
   // Free buffers.
 
+#ifdef USE_CUDA
   cudaFree(tc_bufs.tc_buf_left);
+#endif
   GMEnv_accel_last_call_succeeded(env);
   tc_bufs.tc_buf_left = NULL;
   gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
 
+#ifdef USE_CUDA
   cudaFree(tc_bufs.tc_buf_right);
+#endif
   GMEnv_accel_last_call_succeeded(env);
   tc_bufs.tc_buf_right = NULL;
   gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
 
   // Free cublas handle.
 
+#ifdef USE_CUDA
   cublasStatus_t status_cb = cublasDestroy(tc_bufs.cublas_handle);
   GMInsist(status_cb == CUBLAS_STATUS_SUCCESS &&
            "Failure in call to cublasDestroy.");
+#endif
 }
 
 //-----------------------------------------------------------------------------

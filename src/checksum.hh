@@ -42,7 +42,7 @@ namespace CoMet {
  *  - For synthetic data, two runs with exact same problem settings and with
  *  all stages and phases computed should give identical results under changes
  *  in processor count, processor decomposition, settings of --compute_method,
- *  --tc and _num_tc_steps, and number of stages or phases.
+ *  --tc and --num_tc_steps, and number of stages or phases.
  */
 
 class Checksum {

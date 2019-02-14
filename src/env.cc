@@ -831,14 +831,19 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-int gm_gpu_compute_capability() {
+bool gm_is_tc_valid(int tc) {
+  if (tc < 0 || tc >= GM_NUM_TC_METHOD) return false;
+  if (tc == 0) return true;
 #ifdef USE_CUDA
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-  return deviceProp.major * 100 + deviceProp.minor;
-#else
-  return ((int32_t)1) << 28;
+  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability < 700) return false;
+  if (tc == GM_TC_METHOD_INT8 && compute_capability < 700) return false;
+  //if (tc == GM_TC_METHOD_INT4 && compute_capability < 750) return false;
+  //if (tc == GM_TC_METHOD_INT1 && compute_capability < 750) return false;
 #endif
+  return true;
 }
 
 //-----------------------------------------------------------------------------

@@ -13,9 +13,14 @@ set -eu -o pipefail
 
 function main
 {
-  local HOST_
-  HOST_=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
-  local DIRNAME_STUB=$HOST_
+  local IS_EXPERIMENTAL
+  [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
+                                                 IS_EXPERIMENTAL="NO"
+
+  local host
+  host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
+  local DIRNAME_STUB
+  [[ $IS_EXPERIMENTAL = YES ]] && DIRNAME_STUB=experimental || DIRNAME_STUB=$host
 
   local dir
   for dir in build_*_$DIRNAME_STUB ; do
