@@ -47,6 +47,7 @@ typedef struct {
   int phase_num;
   double ccc_param_;
   double ccc_multiplier_;
+  double duo_multiplier_;
   bool are_ccc_params_default;
   bool sparse;
   int tc;
@@ -184,6 +185,12 @@ static double GMEnv_ccc_multiplier_default() {
 
 //-----------------------------------------------------------------------------
 
+static double GMEnv_duo_multiplier_default() {
+  return (double) 4;
+}
+
+//-----------------------------------------------------------------------------
+
 static double GMEnv_ccc_param_default() {
   return ((double) 2) / ((double) 3);
 }
@@ -200,6 +207,13 @@ static double GMEnv_ccc_param(const GMEnv* const env) {
 static double GMEnv_ccc_multiplier(const GMEnv* const env) {
   GMAssert(env);
   return env->ccc_multiplier_;
+}
+
+//-----------------------------------------------------------------------------
+
+static double GMEnv_duo_multiplier(const GMEnv* const env) {
+  GMAssert(env);
+  return env->duo_multiplier_;
 }
 
 //-----------------------------------------------------------------------------
@@ -221,6 +235,14 @@ static void GMEnv_ccc_multiplier_set(double value, GMEnv* const env) {
   env->are_ccc_params_default =
      GMEnv_ccc_multiplier_default() == env->ccc_multiplier_ &&
      GMEnv_ccc_param_default() == env->ccc_param_;
+}
+
+//-----------------------------------------------------------------------------
+
+static void GMEnv_duo_multiplier_set(double value, GMEnv* const env) {
+  GMInsist(env);
+  GMInsist(value >= 0);
+  env->duo_multiplier_ = value;
 }
 
 //-----------------------------------------------------------------------------

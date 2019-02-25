@@ -842,8 +842,8 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
 void DriverTest_ccc2_simple_sparse_() {
   DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-//FIX  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
-//FIX  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================
@@ -856,7 +856,6 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMEnv* env = &env_value;
   GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
   env->metric_type_ = GM_METRIC_TYPE_DUO;
-  GMEnv_ccc_multiplier_set(4., env); //FIX
   env->num_way_ = 2;
   env->all2all_ = false;
   GMEnv_set_compute_method(env, compute_method);
@@ -994,8 +993,8 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
 
 void DriverTest_duo2_simple_sparse_() {
   DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
-  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+//FIX  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+//FIX  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================

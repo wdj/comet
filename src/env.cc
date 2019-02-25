@@ -81,6 +81,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->sparse = false;
   GMEnv_ccc_param_set(GMEnv_ccc_param_default(), env);
   GMEnv_ccc_multiplier_set(GMEnv_ccc_multiplier_default(), env);
+  GMEnv_duo_multiplier_set(GMEnv_duo_multiplier_default(), env);
 
   env->time = 0;
   env->compares = 0;
@@ -121,14 +122,8 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
         env->metric_type_ = GM_METRIC_TYPE_CZEK;
       } else if (strcmp(argv[i], "ccc") == 0) {
         env->metric_type_ = GM_METRIC_TYPE_CCC;
-        // ISSUE: this will zap setting of ccc_multiplier earlier in cmd line.
-        const double ccc_multiplier = 9 / (double)2;
-        GMEnv_ccc_multiplier_set(ccc_multiplier, env);
       } else if (strcmp(argv[i], "duo") == 0) {
         env->metric_type_ = GM_METRIC_TYPE_DUO;
-        // ISSUE: this will zap setting of ccc_multiplier earlier in cmd line.
-        const double ccc_multiplier = 4;
-        GMEnv_ccc_multiplier_set(ccc_multiplier, env);
       } else {
         GMInsistInterface(env, false && "Invalid setting for metric_type.");
       }
@@ -227,6 +222,16 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
       GMInsistInterface(env, 0 == errno && ccc_multiplier >= 0
                                && "Invalid setting for ccc_multiplier.");
       GMEnv_ccc_multiplier_set(ccc_multiplier, env);
+      //--------------------
+    } else if (strcmp(argv[i], "--duo_multiplier") == 0) {
+      //--------------------
+      ++i;
+      GMInsistInterface(env, i < argc && "Missing value for duo_multiplier.");
+      errno = 0;
+      const double duo_multiplier = strtod(argv[i], NULL);
+      GMInsistInterface(env, 0 == errno && duo_multiplier >= 0
+                               && "Invalid setting for duo_multiplier.");
+      GMEnv_duo_multiplier_set(duo_multiplier, env);
       //--------------------
     } else if (strcmp(argv[i], "--sparse") == 0) {
       //--------------------

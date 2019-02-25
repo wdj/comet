@@ -139,13 +139,13 @@ static GMFloat GMMetrics_duo_value_2(GMMetrics* metrics,
   const GMFloat fmin = fi < fj ? fi : fj;
   const GMFloat fmax = fi < fj ? fj : fi;
 
-  const GMFloat ccc_multiplier = GMEnv_ccc_multiplier(env);
+  const GMFloat duo_multiplier = GMEnv_duo_multiplier(env);
   const GMFloat ccc_param = GMEnv_ccc_param(env);
-//printf("ccc_multiplier  %f\n", (double)ccc_multiplier);
+//printf("duo_multiplier  %f\n", (double)duo_multiplier);
 //printf("ccc_param  %f\n", (double)ccc_param);
 
   /* clang-format off */
-  const GMFloat result = ccc_multiplier * fij * (f_one - ccc_param * fmin) *
+  const GMFloat result = duo_multiplier * fij * (f_one - ccc_param * fmin) *
                                                 (f_one - ccc_param * fmax);
   /* clang-format on */
 

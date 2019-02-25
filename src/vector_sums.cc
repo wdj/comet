@@ -193,7 +193,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
     } // for i
     //----------
   } else {
-GMInsist(false && "TODO!!!");
+GMInsist(env->metric_type_ == GM_METRIC_TYPE_CCC && "FIX!!!");
     //----------
     for (int i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;

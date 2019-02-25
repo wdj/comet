@@ -66,7 +66,7 @@ bool Checksum::is_equal(const Checksum& cksum2) const {
       result = result && this->data_[i] == cksum2.data_[i];
     }
     // ISSUE: for now, check overflow like this because
-    // overflow is not ncessarily an error (e.g., setting of
+    // overflow is not necessarily an error (e.g., setting of
     // ccc_multiplier).
     // TODO: fix this better.
     result = result && this->is_overflowed_ == cksum2.is_overflowed_;
