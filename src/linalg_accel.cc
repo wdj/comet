@@ -109,6 +109,7 @@ __global__ static void gm_tc_buf_write_kernel_(
   int num_way,
   bool is_sparse,
   bool is_right,
+  bool is_duo,
   int nvlea,
   int nvle,
   int nvleD2,
@@ -155,13 +156,17 @@ __global__ static void gm_tc_buf_write_kernel_(
   const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
   const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
 
-  const GemmIn_t out0 = seminibble0 == 3*i01     ? two :
+  const GemmIn_t out0 = seminibble0 == 3*i01 && is_duo
+                                                 ? one :
+                        seminibble0 == 3*i01     ? two :
                         seminibble0 == 3*(1-i01) ? zero :
                                        !skip_10  ? one :
                         seminibble0 == 1         ? one :
                                                    zero;
 
-  const GemmIn_t out1 = seminibble1 == 3*i01     ? two :
+  const GemmIn_t out1 = seminibble1 == 3*i01 && is_duo
+                                                 ? one :
+                        seminibble1 == 3*i01     ? two :
                         seminibble1 == 3*(1-i01) ? zero :
                                        !skip_10  ? one :
                         seminibble1 == 1         ? one :
@@ -199,6 +204,7 @@ static void gm_tc_buf_write_(
   int pvfl_min,
   void* vi,
   TCBufs& tc_bufs,
+  bool is_duo,
   GMEnv* env) {
 
   GMInsist(env && vi);
@@ -263,7 +269,7 @@ static void gm_tc_buf_write_(
       0,
       env->stream_compute_>>>(
     tc_buf, vi32, vi32_dim0,
-    GMEnv_num_way(env), env->sparse, is_right,
+    GMEnv_num_way(env), env->sparse, is_right, is_duo,
     nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
 
   GMEnv_accel_last_call_succeeded(env);
@@ -624,10 +630,11 @@ static void gm_tc_gemm_start_impl_(
     // of values of a type suitable for the GEMM.
     const bool left_matrix = false; // A
     const bool right_matrix = true; // B
+    const bool is_duo = GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
     gm_tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_thisstep, pvfl_min, dA, tc_bufs, env);
+                     npvfl_thisstep, pvfl_min, dA, tc_bufs, is_duo, env);
     gm_tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_thisstep, pvfl_min, dB, tc_bufs, env);
+                     npvfl_thisstep, pvfl_min, dB, tc_bufs, is_duo, env);
 
     // Perform the GEMM for this pair of block rows; accumulate.
     gm_tc_solve_<TC_METHOD>(
@@ -680,7 +687,8 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(k <= lddb);
   GMInsist(m <= lddc);
   GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
-  GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
+  GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+           GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   // Ensure tensor core hardware is available.
   GMInsistInterface(env, gm_is_tc_valid(env->tc) &&
@@ -723,7 +731,8 @@ void gm_tc_bufs_malloc(int num_vector_local,
     return;
   }
 
-  if (GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC) {
+  if (!(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+        GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO)) {
     return;
   }
 

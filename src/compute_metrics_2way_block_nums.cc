@@ -433,12 +433,11 @@ void gm_compute_2way_proc_nums_duo_start_(
     GMInsistInterface(env, ! env->do_reduce &&
                       "num_proc_field>1 for CPU compute_method not supported");
 
-GMInsist(false && "TODO!!!");
     /*---Perform pseudo GEMM---*/
 
     /* clang-format off */
 
-    const int pad_adjustment = 4 * metrics->dm->num_pad_field_local;
+    const int pad_adjustment = 1 * metrics->dm->num_pad_field_local;
     const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
@@ -483,57 +482,25 @@ GMInsist(false && "TODO!!!");
           /*---Get even/odd bits for each seminibble, masked to active---*/
 
           const uint64_t vi0_0 =  vi0       & v0mask;
-          const uint64_t vi0_1 = (vi0 >> 1) & v0mask;
           const uint64_t vi1_0 =  vi1       & v1mask;
-          const uint64_t vi1_1 = (vi1 >> 1) & v1mask;
           const uint64_t vj0_0 =  vj0       & v0mask;
-          const uint64_t vj0_1 = (vj0 >> 1) & v0mask;
           const uint64_t vj1_0 =  vj1       & v1mask;
-          const uint64_t vj1_1 = (vj1 >> 1) & v1mask;
 
           /*---Get complements of even/odd bits for each seminibble; mask---*/
 
           const uint64_t nvi0_0 = ~ vi0       & v0mask;
-          const uint64_t nvi0_1 = ~(vi0 >> 1) & v0mask;
           const uint64_t nvi1_0 = ~ vi1       & v1mask;
-          const uint64_t nvi1_1 = ~(vi1 >> 1) & v1mask;
           const uint64_t nvj0_0 = ~ vj0       & v0mask;
-          const uint64_t nvj0_1 = ~(vj0 >> 1) & v0mask;
           const uint64_t nvj1_0 = ~ vj1       & v1mask;
-          const uint64_t nvj1_1 = ~(vj1 >> 1) & v1mask;
 
           const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
-                                      ( (nvi0_0 & nvj0_1) << 1 )) +
-                          gm_popcount64((nvi0_1 & nvj0_0) |
-                                      ( (nvi0_1 & nvj0_1) << 1 )) +
-                          gm_popcount64((nvi1_0 & nvj1_0) |
-                                      ( (nvi1_0 & nvj1_1) << 1 )) +
-                          gm_popcount64((nvi1_1 & nvj1_0) |
-                                      ( (nvi1_1 & nvj1_1) << 1 ));
+                                      ( (nvi1_0 & nvj1_0) << 1 ));
           const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
-                                      ( (nvi0_0 &  vj0_1) << 1 )) +
-                          gm_popcount64((nvi0_1 &  vj0_0) |
-                                      ( (nvi0_1 &  vj0_1) << 1 )) +
-                          gm_popcount64((nvi1_0 &  vj1_0) |
-                                      ( (nvi1_0 &  vj1_1) << 1 )) +
-                          gm_popcount64((nvi1_1 &  vj1_0) |
-                                      ( (nvi1_1 &  vj1_1) << 1 ));
+                                      ( (nvi1_0 &  vj1_0) << 1 ));
           const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
-                                      ( ( vi0_0 & nvj0_1) << 1 )) +
-                          gm_popcount64(( vi0_1 & nvj0_0) |
-                                      ( ( vi0_1 & nvj0_1) << 1 )) +
-                          gm_popcount64(( vi1_0 & nvj1_0) |
-                                      ( ( vi1_0 & nvj1_1) << 1 )) +
-                          gm_popcount64(( vi1_1 & nvj1_0) |
-                                      ( ( vi1_1 & nvj1_1) << 1 ));
+                                      ( ( vi1_0 & nvj1_0) << 1 ));
           const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
-                                      ( ( vi0_0 &  vj0_1) << 1 )) +
-                          gm_popcount64(( vi0_1 &  vj0_0) |
-                                      ( ( vi0_1 &  vj0_1) << 1 )) +
-                          gm_popcount64(( vi1_0 &  vj1_0) |
-                                      ( ( vi1_0 &  vj1_1) << 1 )) +
-                          gm_popcount64(( vi1_1 &  vj1_0) |
-                                      ( ( vi1_1 &  vj1_1) << 1 ));
+                                      ( ( vi1_0 &  vj1_0) << 1 ));
 
           // Accumulate
 
@@ -567,7 +534,6 @@ GMInsist(false && "TODO!!!");
   } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
     /*----------------------------------------*/
 
-GMInsist(false && "TODO!!!");
     /*---Initialize result matrix to zero (apparently magma requires)---*/
 
     gm_linalg_set_matrix_zero_start(metrics_buf, env);

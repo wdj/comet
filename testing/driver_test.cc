@@ -993,8 +993,8 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
 
 void DriverTest_duo2_simple_sparse_() {
   DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-//FIX  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
-//FIX  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================

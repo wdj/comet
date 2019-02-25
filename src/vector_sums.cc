@@ -193,7 +193,6 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
     } // for i
     //----------
   } else {
-GMInsist(env->metric_type_ == GM_METRIC_TYPE_CCC && "FIX!!!");
     //----------
     for (int i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;
@@ -209,8 +208,14 @@ GMInsist(env->metric_type_ == GM_METRIC_TYPE_CCC && "FIX!!!");
           const uint64_t v10_oddmask1 = (data1 | ~(data1 >> 1)) & oddbits;
           const uint64_t v10_mask0 = v10_oddmask0 | (v10_oddmask0 << 1);
           const uint64_t v10_mask1 = v10_oddmask1 | (v10_oddmask1 << 1);
-          sum += (GMFloat)gm_popcount64(data0 & v10_mask0);
-          sum += (GMFloat)gm_popcount64(data1 & v10_mask1);
+          sum += count_2 ? (GMFloat)gm_popcount64(data0 & v10_mask0)
+                         : (GMFloat)gm_popcount64(data0 & oddbits & v10_mask0);
+          sum += count_2 ? (GMFloat)gm_popcount64(data1 & v10_mask1)
+                         : (GMFloat)gm_popcount64(data1 & oddbits & v10_mask1);
+          // NOTE: the code below interlaces half the bits of each of the two
+          // 64-bit words being processed here.
+          // In fact, "count" counts the VECTOR ELEMENTS that are defined, not
+          // the number of BITS for all the defined elements.
           count += (GMFloat)gm_popcount64(v10_oddmask0 | (v10_oddmask1 << 1));
         }
         //TODO: should decomp_mgr own more of this
@@ -221,19 +226,22 @@ GMInsist(env->metric_type_ == GM_METRIC_TYPE_CCC && "FIX!!!");
           vectors->dm->num_field_active_local;
         count -= num_fields_pad;
         // Finish
-        GMAssert(sum >= 0 && sum <= 2 * vectors->dm->num_field_active_local);
+        GMAssert(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->dm->num_field_active_local);
         GMAssert(count >= 0 && count <= vectors->dm->num_field_active_local);
         sums_local[i] = sum;
         counts_local[i] = count;
       } else { // ! sparse
+        const uint64_t oddbits = 0x5555555555555555;
         for (int f = 0; f < vectors->num_packedval_field_local; ++f) {
           // Fast way: sum all 64 bits of each word immediately
           const GMBits2x64 value = GMVectors_bits2x64_get(vectors, f, i, env);
-          sum += (GMFloat)gm_popcount64(value.data[0]);
-          sum += (GMFloat)gm_popcount64(value.data[1]);
+          sum += count_2 ? (GMFloat)gm_popcount64(value.data[0])
+                         : (GMFloat)gm_popcount64(value.data[0] && oddbits);
+          sum += count_2 ? (GMFloat)gm_popcount64(value.data[1])
+                         : (GMFloat)gm_popcount64(value.data[1] && oddbits);
           // NOTE: for this case pad entries are all zero so no effect on sum
         }
-        GMAssert(sum >= 0 && sum <= 2 * vectors->dm->num_field_active_local);
+        GMAssert(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->dm->num_field_active_local);
         sums_local[i] = sum;
       } // if sparse
     } // for i

@@ -242,6 +242,17 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
         }
       }
     } break;
+    case GM_METRIC_TYPE_DUO: {
+      // don't use collapse because of overflow for large sizes
+      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+      #pragma omp parallel for schedule(dynamic,1000)
+      for (int i = 0; i < vectors->num_vector_local; ++i) {
+        for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
+          GMMirroredBuf_elt<GMBits2x64>(vectors_buf, fl, i) =
+            GMVectors_bits2x64_get(vectors, fl, i, env);
+        }
+      }
+    } break;
     default:
       GMInsistInterface(env, false && "Unimplemented metric_type.");
   } /*---case---*/

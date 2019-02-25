@@ -834,7 +834,9 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
   // TODO: should more of this be owned by decomp_mgr
 
-  const int pad_adjustment = 4 * metrics->dm->num_pad_field_local;
+  const bool count_2 = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC;
+
+  const int pad_adjustment = (count_2 ? 4 : 1) * metrics->dm->num_pad_field_local;
 
   const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 

@@ -16,6 +16,8 @@
 #include "magma_mgemm3_lapack.h"
 #include "magma_mgemm4.h"
 #include "magma_mgemm4_lapack.h"
+#include "magma_mgemm5.h"
+#include "magma_mgemm5_lapack.h"
 
 #include "env.hh"
 #include "assertions.hh"
@@ -42,6 +44,10 @@ static bool use_mgemm3(GMEnv* env) {
 
 static bool use_mgemm4(GMEnv* env) {
   return GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse;
+}
+
+static bool use_mgemm5(GMEnv* env) {
+  return GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO && env->sparse;
 }
 
 //=============================================================================
@@ -94,6 +100,15 @@ void gm_linalg_initialize(GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3blasSetKernelStream.");
 
+  } else if (use_mgemm5(env)) { //--------------------
+
+    magma_mgemm5_int_t magma_code = magma_mgemm5_init();
+    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+                   "Error in call to magma_mgemm5_init.");
+    magma_code = magma_mgemm5blasSetKernelStream(GMEnv_stream_compute(env));
+    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+                   "Error in call to magma_mgemm5blasSetKernelStream.");
+
   } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
@@ -135,6 +150,12 @@ void gm_linalg_finalize(GMEnv* env) {
     magma_mgemm3_int_t magma_code = magma_mgemm3_finalize();
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3_finalize.");
+
+  } else if (use_mgemm5(env)) { //--------------------
+
+    magma_mgemm5_int_t magma_code = magma_mgemm5_finalize();
+    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+                   "Error in call to magma_mgemm5_finalize.");
 
   } else { //--------------------
 
@@ -255,6 +276,26 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     gm_cpu_mem_inc(p->size, env);
     gm_gpu_mem_inc(p->size, env);
 
+  } else if (use_mgemm5(env)) { //--------------------
+
+    typedef magma_mgemm5DoubleComplex Float_t;
+
+    magma_mgemm5_int_t magma_code = 0;
+
+    magma_code = magma_mgemm5_zmalloc_pinned((Float_t**)&p->h, n);
+    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+                   "Error in call to magma_mgemm5_zmalloc_pinned,"
+                   " possibly due to insufficient memory.");
+
+    magma_code = magma_mgemm5_zmalloc((Float_t**)&p->d, n);
+    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+                   "Error in call to magma_mgemm5_zmalloc,"
+                   " possibly due to insufficient memory.");
+
+    p->size = n*sizeof(Float_t);
+    gm_cpu_mem_inc(p->size, env);
+    gm_gpu_mem_inc(p->size, env);
+
   } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
@@ -329,6 +370,18 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     gm_cpu_mem_dec(size, env);
     gm_gpu_mem_dec(size, env);
 
+  } else if (use_mgemm5(env)) { //--------------------
+
+    magma_mgemm5_int_t magma_code = magma_mgemm5_free_pinned(p->h);
+    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+             "Failure in call to magma_mgemm5_free_pinned.");
+    magma_code = magma_mgemm5_free(p->d);
+    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+             "Failure in call to magma_mgemm5_free.");
+
+    gm_cpu_mem_dec(size, env);
+    gm_gpu_mem_dec(size, env);
+
   } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
@@ -388,6 +441,15 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
     Float_t zero = {0, 0};
 
     magma_mgemm3blas_zlaset(Magma_mgemm3Full, mat_dim1, mat_dim2, zero, zero,
+                            (Float_t*)matrix_buf->d, mat_dim1);
+
+  } else if (use_mgemm5(env)) { //--------------------
+
+    typedef magma_mgemm5DoubleComplex Float_t;
+
+    Float_t zero = {0, 0};
+
+    magma_mgemm5blas_zlaset(Magma_mgemm5Full, mat_dim1, mat_dim2, zero, zero,
                             (Float_t*)matrix_buf->d, mat_dim1);
 
   } else { //--------------------
@@ -500,6 +562,21 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm3blas_zgemm.");
 
+  } else if (use_mgemm5(env)) { //--------------------
+
+    typedef magma_mgemm5DoubleComplex Float_t;
+
+    const Float_t zero = {0, 0};
+    const Float_t one = {1, 0};
+    const Float_t alpha = {1, 0};
+    const Float_t beta = is_beta_one ? one : zero;
+
+    magma_mgemm5blas_zgemm(Magma_mgemm5Trans, Magma_mgemm5NoTrans, m, n, k,
+                           alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
+                           beta, (Float_t*)dC, lddc);
+    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+             "Failure in call to magma_mgemm5blas_zgemm.");
+
   } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
@@ -529,7 +606,8 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     return;
   }
 
-  if (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->tc) {
+  if ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+       GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) && env->tc) {
     gm_tc_gemm_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, dm->tc_bufs, env);
     return;
   }
@@ -545,7 +623,9 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
     GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_mgemm2DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-    GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_mgemm3DoubleComplex) : 0;
+    GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_mgemm3DoubleComplex) :
+   (GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO && env->sparse) ?
+                                         sizeof(magma_mgemm5DoubleComplex) : 0;
   GMInsist(elt_size > 0 && "Error in gemm block calculation.");
 
   const size_t align_factor = 128 / elt_size;
@@ -661,6 +741,14 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
 
+  } else if (use_mgemm5(env)) { //--------------------
+
+    typedef magma_mgemm5DoubleComplex Float_t;
+
+    magma_mgemm5_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
+                                  mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
+                                  GMEnv_stream_togpu(env));
+
   } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
@@ -727,6 +815,14 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
     typedef magma_mgemm3DoubleComplex Float_t;
 
     magma_mgemm3_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
+                                  mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
+                                  GMEnv_stream_fromgpu(env));
+
+  } else if (use_mgemm5(env)) { //--------------------
+
+    typedef magma_mgemm5DoubleComplex Float_t;
+
+    magma_mgemm5_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
 
