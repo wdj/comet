@@ -366,6 +366,8 @@ void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
        ind_base += num_buf_ind) {
     const size_t ind_max = gm_min_i8(metrics->num_elts_local,
                                      ind_base + num_buf_ind);
+
+GMInsist(false && "FIX!!!");
     // Fill buffer
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
@@ -435,6 +437,7 @@ void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
   GMInsist(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
   GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
   GMInsist(file != stdout);
+  GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
 
   MetricWriter writer(file, metrics, env);
 
@@ -666,8 +669,9 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
           int num_out_this_line = 0;
           for (int i0 = 0; i0 < 2; ++i0) {
             for (int i1 = 0; i1 < 2; ++i1) {
-              const GMFloat value
-                = GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+              const GMFloat value = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ?
+                GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env) :
+                GMMetrics_duo_get_from_index_2(metrics, index, i0, i1, env);
               if (!(threshold < 0. || value > threshold)) {
                 continue;
               }
@@ -718,6 +722,8 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
                                      num_written, env);
 
       } else /*---stdout---*/ {
+
+        GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
 
         MetricWriter writer(file, metrics, env);
 
@@ -857,7 +863,7 @@ MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
 }
 
 //-----------------------------------------------------------------------------
-// CCC 2-way
+// CCC, DUO 2-way
 
 void
 MetricWriter::write(size_t coord0, size_t coord1, int i0, int i1,

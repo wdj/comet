@@ -89,7 +89,7 @@ static void gm_check_type_sizes() {
 #endif
 
 //=============================================================================
-// Types for CCC metric
+// Types for CCC and DUO metrics
 
 // For Vectors: single 2-bit value (seminibble):
 // use unsigned int as a container for a single item

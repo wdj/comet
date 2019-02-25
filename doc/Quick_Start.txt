@@ -50,18 +50,22 @@ Options:
 
     --metric_type <value>
         metric type to compute (czekanowski=Czekanowski (default),
-        ccc=CCC)
+        ccc=CCC, duo=DUO)
 
     --ccc_multiplier <value>
         fixed front multiplier value used to calculate the CCC metric
-        (default floating point value is 9/2).
+        (default floating point value is 9/2 for CCC).
+
+    --duo_multiplier <value>
+        fixed front multiplier value used to calculate the DUO metric
+        (default floating point value is 4 for DUO).
 
     --ccc_param <value>
-        fixed coefficient value used to calculate the CCC metric
+        fixed coefficient value used to calculate the CCC or DUO metric
         (default floating point value is 2/3).
 
     --sparse <value>
-        for the CCC metric, interpret vector entries of binary "10"
+        for CCC and DUO metric, interpret vector entries of binary "10"
         as empty or incomplete data (yes=yes, no=no (default))
 
     --num_way <value>
@@ -77,7 +81,7 @@ Options:
 
     --tc <value>
         for GPU method on platforms that support it, use the GPU
-        tensor cores for CCC computations (0=no (default), 1=yes)
+        tensor cores for CCC and DUO (0=no (default), 1=yes)
 
     --num_tc_steps <value>
         for tensor core method, tuning parameter to reduce memory
@@ -160,7 +164,7 @@ For the Czekanowski metric, values are stored packed in sequence as
 4-byte floats or 8-byte doubles, depending on the code version being
 used.
 
-CCC 2-bit values are packed 4 per byte, starting at tle least significant
+CCC/DUO 2-bit values are packed 4 per byte, starting at the least significant
 bit of the byte.  For the 2 bits, the higher order bit is considered the
 "first" bit, the lower order bit is considered to be "second," thus
 for "01" or "(0,1)" the first but is "0" and the second bit is "1".
@@ -180,7 +184,7 @@ point value.
 For the Czekanowski metric, each integer denotes the (0-based) vector
 number relevant to the metric value.
 
-For CCC, the lowest order bit of the integer denotes whether the
+For CCC and DUO, the lowest order bit of the integer denotes whether the
 0 bits or the 1 bits of the vector are being compared, and
 all other bits of the integer denote the vector number.
 

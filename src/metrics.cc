@@ -826,7 +826,8 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
   GMInsist(metrics && metrics_buf && env);
 
-  if (! (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
+  if (! ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+          GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) &&
          GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
     return;
   }

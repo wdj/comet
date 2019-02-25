@@ -842,8 +842,160 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
 void DriverTest_ccc2_simple_sparse_() {
   DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+//FIX  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+//FIX  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+}
+
+//=============================================================================
+
+void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
+  const int num_field = 5;
+  const int num_vector_local = 2;
+
+  GMEnv env_value = GMEnv_null();
+  GMEnv* env = &env_value;
+  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
+  env->metric_type_ = GM_METRIC_TYPE_DUO;
+  GMEnv_ccc_multiplier_set(4., env); //FIX
+  env->num_way_ = 2;
+  env->all2all_ = false;
+  GMEnv_set_compute_method(env, compute_method);
+  GMEnv_set_num_proc(env, 1, 1, 1);
+  env->sparse = true;
+
+  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
+  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+                     GMEnv_data_type_vectors(env), env);
+
+  GMVectors vectors_value = GMVectors_null();
+  GMVectors* vectors = &vectors_value;
+  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+
+  if (GMEnv_is_proc_active(env)) {
+    // entry choices
+    const int MIN = 2 * (0) + 1 * (0);
+    const int MAX = 2 * (1) + 1 * (1);
+    const int UNK = 2 * (1) + 1 * (0);
+    // define first vector
+    {
+      int f = 0;
+      const int i = 0;
+      GMVectors_bits2_set(vectors, f++, i, MIN, env);
+      GMVectors_bits2_set(vectors, f++, i, MAX, env);
+      GMVectors_bits2_set(vectors, f++, i, MIN, env);
+      GMVectors_bits2_set(vectors, f++, i, UNK, env);
+      GMVectors_bits2_set(vectors, f++, i, UNK, env);
+    }
+    // define second vector
+    {
+      int f = 0;
+      const int i = 1;
+      GMVectors_bits2_set(vectors, f++, i, UNK, env);
+      GMVectors_bits2_set(vectors, f++, i, MAX, env);
+      GMVectors_bits2_set(vectors, f++, i, MAX, env);
+      GMVectors_bits2_set(vectors, f++, i, MAX, env);
+      GMVectors_bits2_set(vectors, f++, i, UNK, env);
+    }
+  }
+
+  GMMetrics metrics_value = GMMetrics_null();
+  GMMetrics* metrics = &metrics_value;
+  GMMetricsMem metrics_mem(env);
+  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
+                   &metrics_mem, env);
+
+  gm_compute_metrics(metrics, vectors, env);
+
+  if (GMEnv_is_proc_active(env)) {
+    const double result00 =
+        GMMetrics_duo_get_from_index_2(metrics, 0, 0, 0, env);
+    const double result01 =
+        GMMetrics_duo_get_from_index_2(metrics, 0, 0, 1, env);
+    const double result10 =
+        GMMetrics_duo_get_from_index_2(metrics, 0, 1, 0, env);
+    const double result11 =
+        GMMetrics_duo_get_from_index_2(metrics, 0, 1, 1, env);
+
+    printf("COMPUTED: MIN MIN  %.5f\n", result00);
+    printf("COMPUTED: MIN MAX  %.5f\n", result01);
+    printf("COMPUTED: MAX MIN  %.5f\n", result10);
+    printf("COMPUTED: MAX MAX  %.5f\n", result11);
+    printf("\n");
+
+//FIX: check this later, look at how c_i, c_j are computed
+    // calculate by hand the expected DUO value.
+
+    // num_field = 5;
+
+    const double s0_0 = 2; // vector 0, number of MINs
+    const double s0_1 = 1; // vector 0, number of MAXs
+
+    const double s1_0 = 0;
+    const double s1_1 = 3;
+
+    const double c0 = s0_0 + s0_1; // vector 0, number of MINs and MAXs
+    const double c1 = s1_0 + s1_1;
+
+    // const double unk_0 = num_field - c0; // = 2 // vector 0, number of UNK
+    // const double unk_1 = num_field - c1; // = 2 // vector 1, number of UNK
+
+    const double f0_0 = s0_0 / c0; // vector 0, f_0(MIN)
+    const double f0_1 = s0_1 / c0; // vector 0, f_0(MAX)
+
+    const double f1_0 = s1_0 / c1;
+    const double f1_1 = s1_1 / c1;
+
+    // numerators from table computation
+    const double r_00 = 0;
+    const double r_01 = 1;
+    const double r_10 = 0;
+    const double r_11 = 1;
+
+    // sum of all table entries
+    const double c = r_00 + r_01 + r_10 + r_11;
+
+    // Dij of DUO
+    const double d_00 = r_00 / c;
+    const double d_01 = r_01 / c;
+    const double d_10 = r_10 / c;
+    const double d_11 = r_11 / c;
+
+    // Constants needed by method
+    const double fm = 4;
+    const double cp = 2 / (double) 3;
+
+    // DUO values
+    const double ref00 = fm * d_00 * ( 1 - cp * f0_0 ) * ( 1 - cp * f1_0 );
+    const double ref01 = fm * d_01 * ( 1 - cp * f0_0 ) * ( 1 - cp * f1_1 );
+    const double ref10 = fm * d_10 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_0 );
+    const double ref11 = fm * d_11 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_1 );
+
+    printf("EXPECTED: MIN MIN  %.5f\n", ref00);
+    printf("EXPECTED: MIN MAX  %.5f\n", ref01);
+    printf("EXPECTED: MAX MIN  %.5f\n", ref10);
+    printf("EXPECTED: MAX MAX  %.5f\n", ref11);
+    printf("\n");
+
+    const double eps = 1.e-5;
+
+    EXPECT_EQ(true, fabs(result00 - ref00) < eps);
+    EXPECT_EQ(true, fabs(result01 - ref01) < eps);
+    EXPECT_EQ(true, fabs(result10 - ref10) < eps);
+    EXPECT_EQ(true, fabs(result11 - ref11) < eps);
+  }
+
+  GMMetrics_destroy(metrics, env);
+  GMVectors_destroy(vectors, env);
+  GMDecompMgr_destroy(dm, env);
+  GMEnv_destroy(env);
+} // DriverTest_duo2_simple_sparse_compute_method
+
+//=============================================================================
+
+void DriverTest_duo2_simple_sparse_() {
+  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
+  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
+  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================
@@ -1775,6 +1927,10 @@ void DriverTest_ccc_() {
 } // DriverTest_ccc_
 
 //=============================================================================
+
+TEST(DriverTest, duo2_simple_sparse) {
+  DriverTest_duo2_simple_sparse_();
+}
 
 //FIX
 #if 1

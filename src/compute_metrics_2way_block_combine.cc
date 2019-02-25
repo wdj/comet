@@ -469,6 +469,103 @@ void gm_compute_2way_proc_combine_ccc_(
 }
 
 //=============================================================================
+/*---Combine nums and denoms on CPU to get final result, 2-way DUO---*/
+
+void gm_compute_2way_proc_combine_duo_(
+  GMMetrics* metrics,
+  GMMirroredBuf* metrics_buf,
+  const GMVectorSums* vector_sums_left,
+  const GMVectorSums* vector_sums_right,
+  int j_block,
+  bool do_compute_triang_only,
+  GMEnv* env) {
+
+  GMInsist(metrics && metrics_buf);
+  GMInsist(vector_sums_left && vector_sums_right && env);
+  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
+  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+
+  const int nvl = metrics->num_vector_local;
+  const GMVectorSums* vs_l = vector_sums_left;
+  const GMVectorSums* vs_r = vector_sums_right;
+
+  /*---Compute multipliers---*/
+
+  /*--------------------*/
+  if (GMEnv_all2all(env)) {
+    /*--------------------*/
+
+    if (do_compute_triang_only) {
+      #pragma omp parallel for schedule(dynamic,1000)
+      for (int j = 0; j < nvl; ++j) {
+        const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
+        const int i_max = j;
+        for (int i = 0; i < i_max; ++i) {
+          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
+          const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
+          GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+          if (env->sparse) {
+            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
+            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
+            const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
+            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
+          } /*---if sparse---*/
+        }   /*---for i---*/
+      }   /*---for j---*/
+      for (int j = 0; j < nvl; ++j) {
+        const int i_max = j;
+        metrics->num_elts_local_computed += i_max;
+      }   /*---for j---*/
+    } else {
+      // don't use collapse because of overflow for large sizes
+      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+      #pragma omp parallel for schedule(dynamic,1000)
+      for (int j = 0; j < nvl; ++j) {
+        for (int i = 0; i < nvl; ++i) {
+          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
+          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
+          const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
+          GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+          if (env->sparse) {
+            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
+            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
+            const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
+            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
+          } /*---if sparse---*/
+        }   /*---for i---*/
+      }   /*---for j---*/
+      metrics->num_elts_local_computed += nvl * (size_t)nvl;
+   }
+
+    /*--------------------*/
+  } else /*---(! GMEnv_all2all(env))---*/ {
+    /*--------------------*/
+    #pragma omp parallel for schedule(dynamic,1000)
+    for (int j = 0; j < nvl; ++j) {
+      const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
+      const int i_max = do_compute_triang_only ? j : nvl;
+      for (int i = 0; i < i_max; ++i) {
+        const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
+        const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
+        GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
+        if (env->sparse) {
+          const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
+          const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
+          const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
+          GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
+        } /*---if sparse---*/
+      } /*---for i---*/
+    }   /*---for j---*/
+    for (int j = 0; j < nvl; ++j) {
+      const int i_max = do_compute_triang_only ? j : nvl;
+      metrics->num_elts_local_computed += i_max;
+    }   /*---for j---*/
+    /*--------------------*/
+  } /*---if---*/
+  /*--------------------*/
+}
+
+//=============================================================================
 /*---Combine nums and denoms on CPU to get final result, 2-way generic---*/
 
 void gm_compute_2way_proc_combine(
@@ -493,6 +590,11 @@ void gm_compute_2way_proc_combine(
     } break;
     case GM_METRIC_TYPE_CCC: {
       gm_compute_2way_proc_combine_ccc_(metrics, metrics_buf,
+                                        vector_sums_left, vector_sums_right,
+                                        j_block, do_compute_triang_only, env);
+    } break;
+    case GM_METRIC_TYPE_DUO: {
+      gm_compute_2way_proc_combine_duo_(metrics, metrics_buf,
                                         vector_sums_left, vector_sums_right,
                                         j_block, do_compute_triang_only, env);
     } break;

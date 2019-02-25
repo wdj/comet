@@ -26,6 +26,9 @@ void GMComputeMetrics3Way_create(
     GMEnv* env) {
   GMInsist(this_ && dm && env);
 
+  GMInsistInterface(env, env->compute_method_ != GM_METRIC_TYPE_DUO
+                               && "3-way DUO method not supported.");
+
   //*this_ = {0};
 } 
 

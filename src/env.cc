@@ -121,6 +121,14 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
         env->metric_type_ = GM_METRIC_TYPE_CZEK;
       } else if (strcmp(argv[i], "ccc") == 0) {
         env->metric_type_ = GM_METRIC_TYPE_CCC;
+        // ISSUE: this will zap setting of ccc_multiplier earlier in cmd line.
+        const double ccc_multiplier = 9 / (double)2;
+        GMEnv_ccc_multiplier_set(ccc_multiplier, env);
+      } else if (strcmp(argv[i], "duo") == 0) {
+        env->metric_type_ = GM_METRIC_TYPE_DUO;
+        // ISSUE: this will zap setting of ccc_multiplier earlier in cmd line.
+        const double ccc_multiplier = 4;
+        GMEnv_ccc_multiplier_set(ccc_multiplier, env);
       } else {
         GMInsistInterface(env, false && "Invalid setting for metric_type.");
       }
@@ -490,6 +498,8 @@ int GMEnv_data_type_vectors(const GMEnv* const env) {
       return GM_DATA_TYPE_FLOAT;
     case GM_METRIC_TYPE_CCC:
       return GM_DATA_TYPE_BITS2;
+    case GM_METRIC_TYPE_DUO:
+      return GM_DATA_TYPE_BITS2;
   }
   GMInsist(false && "Invalid metric_type.");
   return 0;
@@ -506,6 +516,8 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
     case GM_METRIC_TYPE_CCC:
       return env->num_way_ == GM_NUM_WAY_2 ? GM_DATA_TYPE_TALLY2X2
                                            : GM_DATA_TYPE_TALLY4X2;
+    case GM_METRIC_TYPE_DUO:
+      return GM_DATA_TYPE_TALLY2X2; // 2-way only for now
   }
   GMInsist(false && "Invalid metric_type.");
   return 0;
@@ -785,6 +797,7 @@ MPI_Datatype gm_mpi_type(const GMEnv* const env) {
   const MPI_Datatype mpi_type =
     GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ? GM_MPI_FLOAT :
     GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ? MPI_DOUBLE_COMPLEX :
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO ? MPI_DOUBLE_COMPLEX :
                                                    0; // should never get here
   /* clang-format on */
 
