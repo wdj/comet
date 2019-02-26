@@ -625,7 +625,7 @@ GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && "FIX!!!");
               //                               (f_one / 4) * metrics->recip_m;
 
               value_expected_floatcalc =
-                GMMetrics_ccc_value_2(metrics, rij, si, sj,
+                GMMetrics_ccc_duo_value_2<2>(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env);
             }
 

@@ -135,7 +135,8 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
   GMInsist(metrics && env);
 
 #ifdef HAVE_INT128
-  if (GMEnv_num_way(env) != GM_NUM_WAY_3 || ! env->are_ccc_params_default) {
+  if (GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC || 
+      GMEnv_num_way(env) != GM_NUM_WAY_3 || ! env->are_ccc_params_default) {
     return;
   }
 

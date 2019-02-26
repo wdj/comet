@@ -871,7 +871,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
   if (GMEnv_is_proc_active(env)) {
-    // entry choices
+    // entry choices, binary representation
     const int MIN = 2 * (0) + 1 * (0);
     const int MAX = 2 * (1) + 1 * (1);
     const int UNK = 2 * (1) + 1 * (0);
@@ -921,10 +921,9 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
     printf("COMPUTED: MAX MAX  %.5f\n", result11);
     printf("\n");
 
-//FIX: check this later, look at how c_i, c_j are computed
     // calculate by hand the expected DUO value.
 
-    // num_field = 5;
+    // recall that num_field = 5;
 
     const double s0_0 = 2; // vector 0, number of MINs
     const double s0_1 = 1; // vector 0, number of MAXs
@@ -935,8 +934,8 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
     const double c0 = s0_0 + s0_1; // vector 0, number of MINs and MAXs
     const double c1 = s1_0 + s1_1;
 
-    // const double unk_0 = num_field - c0; // = 2 // vector 0, number of UNK
-    // const double unk_1 = num_field - c1; // = 2 // vector 1, number of UNK
+    // const double unk_0 = num_field - c0; // = 2 // for vector 0, number of UNK
+    // const double unk_1 = num_field - c1; // = 2 // for vector 1, number of UNK
 
     const double f0_0 = s0_0 / c0; // vector 0, f_0(MIN)
     const double f0_1 = s0_1 / c0; // vector 0, f_0(MAX)
