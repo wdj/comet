@@ -527,7 +527,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
-GMInsist(false && "FIX!!!");
+GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && "FIX!!!");
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =

@@ -156,21 +156,30 @@ __global__ static void gm_tc_buf_write_kernel_(
   const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
   const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
 
-  const GemmIn_t out0 = seminibble0 == 3*i01 && is_duo
-                                                 ? one :
-                        seminibble0 == 3*i01     ? two :
-                        seminibble0 == 3*(1-i01) ? zero :
-                                       !skip_10  ? one :
-                        seminibble0 == 1         ? one :
-                                                   zero;
+  const GemmIn_t out0 = is_duo ? (
+                          seminibble0 == 2         ? zero :
+                          (seminibble0 & 1) == i01 ? one :
+                                                     zero
+                        ) : (
+                          seminibble0 == 3*i01     ? two :
+                          seminibble0 == 3*(1-i01) ? zero :
+                                         !skip_10  ? one :
+                          seminibble0 == 1         ? one :
+                                                     zero
+                        );
 
-  const GemmIn_t out1 = seminibble1 == 3*i01 && is_duo
-                                                 ? one :
-                        seminibble1 == 3*i01     ? two :
-                        seminibble1 == 3*(1-i01) ? zero :
-                                       !skip_10  ? one :
-                        seminibble1 == 1         ? one :
-                                                   zero;
+  const GemmIn_t out1 = is_duo ? (
+                          seminibble1 == 2         ? zero :
+                          (seminibble1 & 1) == i01 ? one :
+                                                     zero
+                        ) : (
+                          seminibble1 == 3*i01     ? two :
+                          seminibble1 == 3*(1-i01) ? zero :
+                                         !skip_10  ? one :
+                          seminibble1 == 1         ? one :
+                                                     zero
+                        );
+
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make later swizzling of metrics array work:

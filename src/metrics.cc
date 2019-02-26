@@ -285,6 +285,9 @@ void GMMetrics_create(GMMetrics* metrics,
     return;
   }
 
+  GMInsistInterface(env, (env->compute_method_ != GM_METRIC_TYPE_DUO ||
+                          env->sparse) && "DUO method requires sparse input.");
+
   GMInsistInterface(env, (GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1)
           && "Multidim parallelism only available for all2all case");
 
@@ -826,6 +829,13 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
   GMInsist(metrics && metrics_buf && env);
 
+//for (size_t j = 0; j < metrics_buf->dim1; ++j) {
+//for (size_t i = 0; i < metrics_buf->dim0; ++i) {
+//const GMTally2x2 old = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+//printf("%i %i   %i \n", (int)i, (int)j, (int)GMTally2x2_get(old, 0, 0));
+//}
+//}
+
   if (! ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
           GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) &&
          GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
@@ -848,6 +858,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
 #ifdef GM_ASSERTIONS_ON
       const GMTally2x2 old = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+//printf("%i %i   %i %i\n", (int)i, (int)j, (int)GMTally2x2_get(old, 0, 0), (int)float_pad_adjustment);
 #endif
 
       GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]

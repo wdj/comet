@@ -367,7 +367,7 @@ void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
     const size_t ind_max = gm_min_i8(metrics->num_elts_local,
                                      ind_base + num_buf_ind);
 
-GMInsist(false && "FIX!!!");
+GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && "FIX!!!");
     // Fill buffer
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {

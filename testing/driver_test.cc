@@ -1422,6 +1422,36 @@ void DriverTest_ccc3_simple_sparse_() {
 //=============================================================================
 
 void DriverTest_ccc_() {
+  {
+    char options1[1024];
+    char options2[1024];
+
+    char options_template_tc[] =
+        //"--num_proc_vector 1 --num_field 1 --num_vector_local 5 "
+        "--num_proc_vector 2 --num_field 100 --num_vector %i "
+        "--compute_method %s --metric_type ccc --sparse %s "
+        "--problem_type random --verbosity %i --tc %i --num_way %i "
+        "--num_tc_steps %i --all2all yes";
+
+    for (int num_tc_steps=1; num_tc_steps<=3; ++num_tc_steps) {
+    for (int nvl=3; nvl<=10; ++nvl) {
+    for (int num_way=2; num_way<=3; ++num_way) {
+    for (int sparse=0; sparse<=1; ++sparse) {
+    for (int tc=1; tc<=2; ++tc) {
+      if (!gm_is_tc_valid(tc)) continue;
+      if (nvl/2 < num_way) continue;
+
+      sprintf(options1, options_template_tc, nvl, "REF", sparse==0 ? "no" : "yes",
+              1, 0, num_way, 1);
+      sprintf(options2, options_template_tc, nvl, "GPU", sparse==0 ? "no" : "yes",
+              1, tc, num_way, num_tc_steps);
+      EXPECT_EQ(true, compare_2runs(options1, options2));
+    }
+    }
+    }
+    }
+    }
+  }
 
 //FIX
 #if 1
@@ -1892,37 +1922,6 @@ void DriverTest_ccc_() {
     }
   }
 #endif
-
-  {
-    char options1[1024];
-    char options2[1024];
-
-    char options_template_tc[] =
-        //"--num_proc_vector 1 --num_field 1 --num_vector_local 5 "
-        "--num_proc_vector 2 --num_field 100 --num_vector %i "
-        "--compute_method %s --metric_type ccc --sparse %s "
-        "--problem_type random --verbosity %i --tc %i --num_way %i "
-        "--num_tc_steps %i --all2all yes";
-
-    for (int num_tc_steps=1; num_tc_steps<=3; ++num_tc_steps) {
-    for (int nvl=3; nvl<=10; ++nvl) {
-    for (int num_way=2; num_way<=3; ++num_way) {
-    for (int sparse=0; sparse<=1; ++sparse) {
-    for (int tc=1; tc<=2; ++tc) {
-      if (!gm_is_tc_valid(tc)) continue;
-      if (nvl/2 < num_way) continue;
-
-      sprintf(options1, options_template_tc, nvl, "REF", sparse==0 ? "no" : "yes",
-              1, 0, num_way, 1);
-      sprintf(options2, options_template_tc, nvl, "GPU", sparse==0 ? "no" : "yes",
-              1, tc, num_way, num_tc_steps);
-      EXPECT_EQ(true, compare_2runs(options1, options2));
-    }
-    }
-    }
-    }
-    }
-  }
 } // DriverTest_ccc_
 
 //=============================================================================
@@ -1932,7 +1931,7 @@ TEST(DriverTest, duo2_simple_sparse) {
 }
 
 //FIX
-#if 1
+#if 0
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }

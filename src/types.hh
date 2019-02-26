@@ -122,7 +122,7 @@ typedef struct { GMFp64 data[2]; } GMFloat3;
 enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
 
 //=============================================================================
-// Types for CCC metric: functions
+// Types for CCC and DUO metrics: functions
 
 //-----------------------------------------------------------------------------
 // Return null value; also use static asserts to check sizes

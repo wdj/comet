@@ -47,7 +47,7 @@ static bool use_mgemm4(GMEnv* env) {
 }
 
 static bool use_mgemm5(GMEnv* env) {
-  return GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO && env->sparse;
+  return GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
 }
 
 //=============================================================================
@@ -624,7 +624,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_mgemm2DoubleComplex) :
    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
     GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_mgemm3DoubleComplex) :
-   (GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO && env->sparse) ?
+   (GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) ?
                                          sizeof(magma_mgemm5DoubleComplex) : 0;
   GMInsist(elt_size > 0 && "Error in gemm block calculation.");
 

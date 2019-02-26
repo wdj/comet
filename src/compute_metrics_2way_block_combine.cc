@@ -489,6 +489,53 @@ void gm_compute_2way_proc_combine_duo_(
   const GMVectorSums* vs_l = vector_sums_left;
   const GMVectorSums* vs_r = vector_sums_right;
 
+  /*---Copy from metrics_buffer for GPU case---*/
+
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+    /*--------------------*/
+    if (GMEnv_all2all(env)) {
+      /*--------------------*/
+
+      if (do_compute_triang_only) {
+        #pragma omp parallel for schedule(dynamic,1000)
+        for (int j = 0; j < nvl; ++j) {
+          const int i_max = j;
+          for (int i = 0; i < i_max; ++i) {
+            const GMTally2x2 value =
+              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+            GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
+          } /*---for i---*/
+        }   /*---for j---*/
+      } else {
+        // don't use collapse because of overflow for large sizes
+        //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+        #pragma omp parallel for schedule(dynamic,1000)
+        for (int j = 0; j < nvl; ++j) {
+          for (int i = 0; i < nvl; ++i) {
+            const GMTally2x2 value =
+              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+            GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
+          } /*---for i---*/
+        }   /*---for j---*/
+     }
+
+      /*--------------------*/
+    } else /*---(! GMEnv_all2all(env))---*/ {
+      /*--------------------*/
+      #pragma omp parallel for schedule(dynamic,1000)
+      for (int j = 0; j < nvl; ++j) {
+        const int i_max = do_compute_triang_only ? j : nvl;
+        for (int i = 0; i < i_max; ++i) {
+          const GMTally2x2 value =
+              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+          GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
+        } /*---for i---*/
+      }   /*---for j---*/
+      /*--------------------*/
+    } /*---if---*/
+    /*--------------------*/
+  }
+
   /*---Compute multipliers---*/
 
   /*--------------------*/

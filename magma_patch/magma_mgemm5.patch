@@ -33,7 +33,7 @@ diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/mag
 +#define gm_popcount64(x) __popcll(x)
 +
 +extern "C" static __device__
-+FloatingPoint_t mgemm4_compute(
++FloatingPoint_t mgemm5_compute(
 +    FloatingPoint_t A,
 +    FloatingPoint_t B,
 +    FloatingPoint_t C)
@@ -161,8 +161,8 @@ diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/mag
 +
 +    /*---Accumulate---*/
 +
-+    sum.data[0] += r00 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r01;
-+    sum.data[1] += r10 + (((GMUInt64)1)<<GM_TALLY1_MAX_VALUE_BITS) * r11;
++    sum.data[0] += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
++    sum.data[1] += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
 +#endif
 +
 +    return *(FloatingPoint_t*)&sum;
@@ -179,7 +179,7 @@ diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/mag
 -                        fma(rA[m], rB[n], rC[n][m]);
 +                        //---BEGIN MODIFIED GENOMICS_METRICS
 +                        #if (version == trans_tn) && (precision == z)
-+                          rC[n][m] = mgemm4_compute(rA[m], rB[n], rC[n][m]);
++                          rC[n][m] = mgemm5_compute(rA[m], rB[n], rC[n][m]);
 +                        #else
 +                          fma(rA[m], rB[n], rC[n][m]);
 +                        #endif
@@ -194,7 +194,7 @@ diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/mag
 -                    fma(rA[m], rB[n], rC[n][m]);
 +                    //---BEGIN MODIFIED GENOMICS_METRICS
 +                    #if (version == trans_tn) && (precision == z)
-+                      rC[n][m] = mgemm4_compute(rA[m], rB[n], rC[n][m]);
++                      rC[n][m] = mgemm5_compute(rA[m], rB[n], rC[n][m]);
 +                    #else
 +                      fma(rA[m], rB[n], rC[n][m]);
 +                    #endif
