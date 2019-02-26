@@ -155,8 +155,9 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
           case GM_DATA_TYPE_TALLY2X2: {
             const int i0 = i_value / 2;
             const int i1 = i_value % 2;
-            value =
-              GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env);
+            value = GMEnv_metric_type(&env) == GM_METRIC_TYPE_CCC ?
+              GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env) :
+              GMMetrics_duo_get_from_index_2(&metrics, index, i0, i1, &env);
           } break;
           // --------------
           case GM_DATA_TYPE_TALLY4X2: {
@@ -317,8 +318,9 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
             const int i1_unpermuted = i_value % 2;
             const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
             const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
-            value =
-              GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env);
+            value = GMEnv_metric_type(&env) == GM_METRIC_TYPE_CCC ?
+              GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env) :
+              GMMetrics_duo_get_from_index_2(&metrics, index, i0, i1, &env);
           } break;
           // --------------
           case GM_DATA_TYPE_TALLY4X2: {

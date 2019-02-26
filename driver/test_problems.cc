@@ -280,7 +280,6 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
     case GM_DATA_TYPE_BITS2: {
     /*--------------------*/
 
-//int mycount[4] = {0, 0, 0, 0};
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
@@ -527,7 +526,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
-GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && "FIX!!!");
+
+    const int cbpe = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
+
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =
@@ -539,8 +540,9 @@ GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && "FIX!!!");
         }
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
-            const GMFloat value =
-                GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
+            const GMFloat value = cbpe == 2 ?
+                GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env) :
+                GMMetrics_duo_get_from_index_2(metrics, index, i0, i1, env);
 
             GMTally1 rij = 0;
             GMTally1 si = 0;
@@ -577,20 +579,27 @@ GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && "FIX!!!");
 
               if (! unknown_i) {
                 ci += gs_this;
-                si += ((bval_i_0 == i0) + (bval_i_1 == i0)) * gs_this;
+                si += cbpe == 2 ?
+                  ((bval_i_0 == i0) + (bval_i_1 == i0)) * gs_this :
+                  (bval_i_0 == i0) * gs_this;
               }
 
               if (! unknown_j) {
                 cj += gs_this;
-                sj += ((bval_j_0 == i1) + (bval_j_1 == i1)) * gs_this;
+                sj += cbpe == 2 ?
+                  ((bval_j_0 == i1) + (bval_j_1 == i1)) * gs_this :
+                  (bval_j_0 == i1) * gs_this;
               }
 
               if (! unknown_ij) {
-                cij += 4 * gs_this;
-                rij += (((bval_i_0 == i0) && (bval_j_0 == i1)) +
+                cij += cbpe * cbpe * gs_this;
+                rij += cbpe == 2 ?
+                       (((bval_i_0 == i0) && (bval_j_0 == i1)) +
                         ((bval_i_0 == i0) && (bval_j_1 == i1)) +
                         ((bval_i_1 == i0) && (bval_j_0 == i1)) +
                         ((bval_i_1 == i0) && (bval_j_1 == i1))) *
+                       gs_this :
+                       ((bval_i_0 == i0) && (bval_j_0 == i1)) *
                        gs_this;
               }
             } //---g
@@ -616,7 +625,7 @@ GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && "FIX!!!");
 
               const GMFloat recip_sumcij = env->sparse ?
                 f_cicj_min * f_cicj_max * recip_cicjcij :
-                (f_one / 4) * metrics->recip_m;
+                (f_one / (cbpe * cbpe)) * metrics->recip_m;
 
               //const GMFloat recip_ci = env->sparse ? f_one/ci : metrics->recip_m;
               //const GMFloat recip_cj = env->sparse ? f_one/cj : metrics->recip_m;
@@ -624,8 +633,10 @@ GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && "FIX!!!");
               //const GMFloat recip_sumcij = env->sparse ? f_one/cij :
               //                               (f_one / 4) * metrics->recip_m;
 
-              value_expected_floatcalc =
+              value_expected_floatcalc = cbpe == 2 ?
                 GMMetrics_ccc_duo_value_2<2>(metrics, rij, si, sj,
+                                    recip_ci, recip_cj, recip_sumcij, env) :
+                GMMetrics_ccc_duo_value_2<1>(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env);
             }
 

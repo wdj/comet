@@ -221,8 +221,11 @@ printf("%i %i %i %i %i\n",
       // TODO: later may be able to permit higher via rounding -
       // have 2-way method on-proc be exact, then for 3-way combining
       // or num_proc_field>1 drop low order bits to allow to fit.
+      const int table_entry_limit =
+        GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO ?
+        1 : 1 << GMEnv_num_way(env);
       GMInsistInterface(env,
-               ((uint64_t)((1<<GMEnv_num_way(env)) * dm->num_field)) <
+               ((uint64_t)(table_entry_limit * dm->num_field)) <
                        (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
                 && "Number of fields requested is too large for this metric");
     } break;

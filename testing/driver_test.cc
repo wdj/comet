@@ -1420,30 +1420,35 @@ void DriverTest_ccc3_simple_sparse_() {
 
 //=============================================================================
 
-void DriverTest_ccc_() {
+void DriverTest_ccc_duo_(const char* const metric_type) {
+  const bool is_duo = metric_type[0] == 'd';
+
   {
     char options1[1024];
     char options2[1024];
 
     char options_template_tc[] =
         //"--num_proc_vector 1 --num_field 1 --num_vector_local 5 "
+        "--metric_type %s "
         "--num_proc_vector 2 --num_field 100 --num_vector %i "
-        "--compute_method %s --metric_type ccc --sparse %s "
+        "--compute_method %s --sparse %s "
         "--problem_type random --verbosity %i --tc %i --num_way %i "
-        "--num_tc_steps %i --all2all yes";
+        "--num_tc_steps %i --all2all yes" ;
 
     for (int num_tc_steps=1; num_tc_steps<=3; ++num_tc_steps) {
     for (int nvl=3; nvl<=10; ++nvl) {
     for (int num_way=2; num_way<=3; ++num_way) {
+      if (is_duo && num_way == 3) continue;
     for (int sparse=0; sparse<=1; ++sparse) {
+      if (is_duo && sparse == 0) continue;
     for (int tc=1; tc<=2; ++tc) {
       if (!gm_is_tc_valid(tc)) continue;
       if (nvl/2 < num_way) continue;
 
-      sprintf(options1, options_template_tc, nvl, "REF", sparse==0 ? "no" : "yes",
-              1, 0, num_way, 1);
-      sprintf(options2, options_template_tc, nvl, "GPU", sparse==0 ? "no" : "yes",
-              1, tc, num_way, num_tc_steps);
+      sprintf(options1, options_template_tc, metric_type, nvl, "REF",
+              sparse==0 ? "no" : "yes", 1, 0, num_way, 1);
+      sprintf(options2, options_template_tc, metric_type, nvl, "GPU",
+              sparse==0 ? "no" : "yes", 1, tc, num_way, num_tc_steps);
       EXPECT_EQ(true, compare_2runs(options1, options2));
     }
     }
@@ -1463,33 +1468,33 @@ void DriverTest_ccc_() {
   //----------
 
   char options_template_1[] =
-      "--metric_type ccc --verbosity %i "
+      "--metric_type %s --verbosity %i "
       //"--problem_type analytic " 
       "--num_proc_vector 1 --num_field %i --num_vector_local %i "
       "--compute_method %s --sparse no";
 
-  sprintf(options1, options_template_1, 2, 1, 2, "REF");
-  sprintf(options2, options_template_1, 2, 1, 2, "CPU");
-  sprintf(options3, options_template_1, 2, 1, 2, "GPU");
+  sprintf(options1, options_template_1, metric_type, 2, 1, 2, "REF");
+  sprintf(options2, options_template_1, metric_type, 2, 1, 2, "CPU");
+  sprintf(options3, options_template_1, metric_type, 2, 1, 2, "GPU");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-  sprintf(options1, options_template_1, 1, 100, 2, "REF");
-  sprintf(options2, options_template_1, 1, 100, 2, "CPU");
-  sprintf(options3, options_template_1, 1, 100, 2, "GPU");
+  sprintf(options1, options_template_1, metric_type, 1, 100, 2, "REF");
+  sprintf(options2, options_template_1, metric_type, 1, 100, 2, "CPU");
+  sprintf(options3, options_template_1, metric_type, 1, 100, 2, "GPU");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-  sprintf(options1, options_template_1, 1, 100, 48, "REF");
-  sprintf(options2, options_template_1, 1, 100, 48, "CPU");
-  sprintf(options3, options_template_1, 1, 100, 48, "GPU");
+  sprintf(options1, options_template_1, metric_type, 1, 100, 48, "REF");
+  sprintf(options2, options_template_1, metric_type, 1, 100, 48, "CPU");
+  sprintf(options3, options_template_1, metric_type, 1, 100, 48, "GPU");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   for (int i = 1; i <= 100; ++i) {
     if ((i+3) % 32 > 6) {
       continue;
     }
-    sprintf(options1, options_template_1, 1, i, 48, "REF");
-    sprintf(options2, options_template_1, 1, i, 48, "CPU");
-    sprintf(options3, options_template_1, 1, i, 48, "GPU");
+    sprintf(options1, options_template_1, metric_type, 1, i, 48, "REF");
+    sprintf(options2, options_template_1, metric_type, 1, i, 48, "CPU");
+    sprintf(options3, options_template_1, metric_type, 1, i, 48, "GPU");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
@@ -1498,21 +1503,64 @@ void DriverTest_ccc_() {
   //----------
 
   char options_template_2[] =
-      "--metric_type ccc --verbosity %i "
+      "--metric_type %s --verbosity %i "
       //"--problem_type analytic "
       "--num_proc_vector %i --num_field %i --num_vector_local %i "
       "--compute_method %s --all2all %s";
 
-  sprintf(options1, options_template_2, 2, 1, 1, 2, "REF", "no");
-  sprintf(options2, options_template_2, 2, 1, 1, 2, "CPU", "yes");
-  sprintf(options3, options_template_2, 2, 1, 1, 2, "GPU", "yes");
+  sprintf(options1, options_template_2, metric_type, 2, 1, 1, 2,
+          "REF", "no");
+  sprintf(options2, options_template_2, metric_type, 2, 1, 1, 2,
+          "CPU", "yes");
+  sprintf(options3, options_template_2, metric_type, 2, 1, 1, 2,
+          "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-  sprintf(options1, options_template_2, 1, 1, 1, 4, "REF", "no");
-  sprintf(options2, options_template_2, 1, 2, 1, 2, "CPU", "yes");
-  sprintf(options3, options_template_2, 1, 2, 1, 2, "GPU", "yes");
+  sprintf(options1, options_template_2, metric_type, 1, 1, 1, 4,
+          "REF", "no");
+  sprintf(options2, options_template_2, metric_type, 1, 2, 1, 2,
+          "CPU", "yes");
+  sprintf(options3, options_template_2, metric_type, 1, 2, 1, 2,
+          "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
+  char options_template_2a[] =
+      "--num_proc_vector 1 --num_field 2 --num_vector 5 "
+      //"--problem_type analytic "
+      "--compute_method REF --all2all yes --metric_type %s";
+
+  char options_template_2b[] =
+      "--num_proc_vector 2 --num_field 2 --num_vector 5 "
+      //"--problem_type analytic "
+      "--compute_method CPU --all2all yes --metric_type %s";
+
+  char options_template_2c[] =
+      "--num_proc_vector 2 --num_field 2 --num_vector 5 "
+      //"--problem_type analytic "
+      "--compute_method GPU --all2all yes --metric_type %s";
+
+  sprintf(options1, options_template_2a, metric_type);
+  sprintf(options2, options_template_2b, metric_type);
+  sprintf(options3, options_template_2c, metric_type);
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
+
+  char options_template_2a2[] =
+      "--num_proc_vector 1 --num_proc_field 1 "
+      "--num_field 7 --num_vector 2 "
+      //"--problem_type analytic "
+      "--compute_method REF --all2all yes --metric_type %s";
+
+  char options_template_2b2[] =
+      "--num_proc_vector 1 --num_proc_field 3 "
+      "--num_field 7 --num_vector 2 "
+      //"--problem_type analytic "
+      "--compute_method GPU --all2all yes --metric_type %s";
+
+  sprintf(options1, options_template_2a2, metric_type);
+  sprintf(options2, options_template_2b2, metric_type);
+  EXPECT_EQ(true, compare_2runs(options1, options2));
+
+#if 0
   EXPECT_EQ(
       true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 5 "
@@ -1535,19 +1583,26 @@ void DriverTest_ccc_() {
                     "--num_field 7 --num_vector 2 "
                     //"--problem_type analytic "
                     "--compute_method GPU --all2all yes --metric_type ccc"));
+#endif
 
   //----------
   //---2-way, all2all yes, large
   //----------
 
-  sprintf(options1, options_template_2, 1, 1, 100, 48, "REF", "no");
-  sprintf(options2, options_template_2, 1, 1, 100, 48, "CPU", "yes");
-  sprintf(options3, options_template_2, 1, 1, 100, 48, "GPU", "yes");
+  sprintf(options1, options_template_2, metric_type, 1, 1, 100, 48,
+          "REF", "no");
+  sprintf(options2, options_template_2, metric_type, 1, 1, 100, 48,
+          "CPU", "yes");
+  sprintf(options3, options_template_2, metric_type, 1, 1, 100, 48,
+          "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-  sprintf(options1, options_template_2, 1, 1, 100, 48, "REF", "no");
-  sprintf(options2, options_template_2, 1, 2, 100, 24, "CPU", "yes");
-  sprintf(options3, options_template_2, 1, 2, 100, 24, "GPU", "yes");
+  sprintf(options1, options_template_2, metric_type, 1, 1, 100, 48,
+          "REF", "no");
+  sprintf(options2, options_template_2, metric_type, 1, 2, 100, 24,
+          "CPU", "yes");
+  sprintf(options3, options_template_2, metric_type, 1, 2, 100, 24,
+          "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
 //FIX
@@ -1559,28 +1614,28 @@ void DriverTest_ccc_() {
   //----------
 
   char options_template_3[] =
-                    "--metric_type ccc --verbosity %i "
+                    "--metric_type %s --verbosity %i "
                     "--num_proc_vector 1 --num_field %i --num_vector_local %i "
                     //"--problem_type analytic "
                     "--compute_method %s --num_way 3 --sparse no";
 
-  sprintf(options1, options_template_3, 2, 1, 3, "REF");
-  sprintf(options2, options_template_3, 2, 1, 3, "CPU");
-  sprintf(options3, options_template_3, 2, 1, 3, "GPU");
+  sprintf(options1, options_template_3, metric_type, 2, 1, 3, "REF");
+  sprintf(options2, options_template_3, metric_type, 2, 1, 3, "CPU");
+  sprintf(options3, options_template_3, metric_type, 2, 1, 3, "GPU");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-  sprintf(options1, options_template_3, 1, 100, 48, "REF");
-  sprintf(options2, options_template_3, 1, 100, 48, "CPU");
-  sprintf(options3, options_template_3, 1, 100, 48, "GPU");
+  sprintf(options1, options_template_3, metric_type, 1, 100, 48, "REF");
+  sprintf(options2, options_template_3, metric_type, 1, 100, 48, "CPU");
+  sprintf(options3, options_template_3, metric_type, 1, 100, 48, "GPU");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   for (int i = 1; i <= 100; ++i) {
     if ((i+3) % 32 > 6) {
       continue;
     }
-    sprintf(options1, options_template_3, 0, i, 24, "REF");
-    sprintf(options2, options_template_3, 0, i, 24, "CPU");
-    sprintf(options3, options_template_3, 0, i, 24, "GPU");
+    sprintf(options1, options_template_3, metric_type, 0, i, 24, "REF");
+    sprintf(options2, options_template_3, metric_type, 0, i, 24, "CPU");
+    sprintf(options3, options_template_3, metric_type, 0, i, 24, "GPU");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
@@ -1589,41 +1644,83 @@ void DriverTest_ccc_() {
   //----------
 
   char options_template_4[] =
-      "--metric_type ccc --verbosity %i "
+      "--metric_type %s --verbosity %i "
       "--num_proc_vector %i --num_field %i --num_vector_local %i "
       //"--problem_type analytic "
       "--compute_method %s --all2all %s --num_way 3";
 
-  sprintf(options1, options_template_4, 2, 1, 1, 3, "REF", "no");
-  sprintf(options2, options_template_4, 2, 1, 1, 3, "CPU", "yes");
-  sprintf(options3, options_template_4, 2, 1, 1, 3, "GPU", "yes");
+  sprintf(options1, options_template_4, metric_type, 2, 1, 1, 3, "REF", "no");
+  sprintf(options2, options_template_4, metric_type, 2, 1, 1, 3, "CPU", "yes");
+  sprintf(options3, options_template_4, metric_type, 2, 1, 1, 3, "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-  sprintf(options1, options_template_4, 1, 1, 1, 6, "REF", "no");
-  sprintf(options2, options_template_4, 1, 2, 1, 3, "CPU", "yes");
-  sprintf(options3, options_template_4, 1, 2, 1, 3, "GPU", "yes");
+  sprintf(options1, options_template_4, metric_type, 1, 1, 1, 6, "REF", "no");
+  sprintf(options2, options_template_4, metric_type, 1, 2, 1, 3, "CPU", "yes");
+  sprintf(options3, options_template_4, metric_type, 1, 2, 1, 3, "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
   //----------
   //---3-way, all2all yes, large
   //----------
 
-  sprintf(options1, options_template_4, 1, 1, 100, 48, "REF", "no");
-  sprintf(options2, options_template_4, 1, 1, 100, 48, "CPU", "yes");
-  sprintf(options3, options_template_4, 1, 1, 100, 48, "GPU", "yes");
+  sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
+  sprintf(options2, options_template_4, metric_type, 1, 1, 100, 48, "CPU", "yes");
+  sprintf(options3, options_template_4, metric_type, 1, 1, 100, 48, "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-  sprintf(options1, options_template_4, 1, 1, 100, 48, "REF", "no");
-  sprintf(options2, options_template_4, 1, 4, 100, 12, "CPU", "yes");
-  sprintf(options3, options_template_4, 1, 4, 100, 12, "GPU", "yes");
+  sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
+  sprintf(options2, options_template_4, metric_type, 1, 4, 100, 12, "CPU", "yes");
+  sprintf(options3, options_template_4, metric_type, 1, 4, 100, 12, "GPU", "yes");
   EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-//  sprintf(options1, options_template_4, 1, 3, 1, 6, "REF", "yes");
-//  sprintf(options2, options_template_4, 1, 1, 1, 18, "GPU", "yes");
-//  sprintf(options3, options_template_4, 1, 3, 1, 6, "GPU", "yes");
+//  sprintf(options1, options_template_4, metric_type, 1, 3, 1, 6, "REF", "yes");
+//  sprintf(options2, options_template_4, metric_type, 1, 1, 1, 18, "GPU", "yes");
+//  sprintf(options3, options_template_4, metric_type, 1, 3, 1, 6, "GPU", "yes");
 //  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   //EXPECT_EQ(true, compare_2runs(options1, options2));
 
+  char options_template_4a[] =
+      "--num_proc_vector 1 --num_field 2 --num_vector 16 "
+      //"--problem_type analytic "
+      "--compute_method REF --all2all yes --num_way 3 "
+      "--metric_type %s";
+
+  char options_template_4b[] =
+      "--num_proc_vector 3 --num_field 2 --num_vector 16 "
+      //"--problem_type analytic "
+      "--compute_method CPU --all2all yes --num_way 3 "
+      "--metric_type %s";
+
+  char options_template_4c[] =
+      "--num_proc_vector 3 --num_field 2 --num_vector 16 "
+      //"--problem_type analytic "
+      "--compute_method GPU --all2all yes --num_way 3 "
+      "--metric_type %s";
+
+  sprintf(options1, options_template_4a, metric_type);
+  sprintf(options2, options_template_4b, metric_type);
+  sprintf(options3, options_template_4c, metric_type);
+  EXPECT_EQ(true, compare_3runs(options1, options2, options3));
+
+  char options_template_4a2[] =
+      "--num_proc_vector 1 --num_proc_field 1 "
+      //"--problem_type analytic "
+      "--num_field 13 --num_vector 3 "
+      "--compute_method REF --all2all yes --num_way 3 "
+      "--metric_type %s";
+
+  char options_template_4b2[] =
+      "--num_proc_vector 1 --num_proc_field 5 "
+      //"--problem_type analytic "
+      "--num_field 13 --num_vector 3 "
+      "--compute_method GPU --all2all yes --num_way 3 "
+      "--metric_type %s";
+
+  sprintf(options1, options_template_4a2, metric_type);
+  sprintf(options2, options_template_4b2, metric_type);
+  EXPECT_EQ(true, compare_2runs(options1, options2));
+
+#if 0
   EXPECT_EQ(
       true,
       compare_3runs("--num_proc_vector 1 --num_field 2 --num_vector 16 "
@@ -1651,27 +1748,28 @@ void DriverTest_ccc_() {
                     "--num_field 13 --num_vector 3 "
                     "--compute_method GPU --all2all yes --num_way 3 "
                     "--metric_type ccc"));
+#endif
 
   //----------
   //---num_proc_field
   //----------
 
   char options_template_5[] =
-      "--metric_type ccc --verbosity %i "
+      "--metric_type %s --verbosity %i "
       "--num_proc_vector %i --num_proc_field %i "
       " --num_field %i --num_vector_local %i "
       //"--problem_type analytic "
       "--compute_method %s --all2all %s";
 
   for (int i = 1; i <= 3; ++i) {
-    sprintf(options1, options_template_5, 1, 1, 1, 60, 48, "REF", "no");
-    sprintf(options2, options_template_5, 1, 1, 2 * i - 1, 60, 48, "GPU",
+    sprintf(options1, options_template_5, metric_type, 1, 1, 1, 60, 48, "REF", "no");
+    sprintf(options2, options_template_5, metric_type, 1, 1, 2 * i - 1, 60, 48, "GPU",
             "yes");
-    sprintf(options3, options_template_5, 1, 1, 2 * i, 60, 48, "GPU", "yes");
+    sprintf(options3, options_template_5, metric_type, 1, 1, 2 * i, 60, 48, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
-    sprintf(options1, options_template_5, 1, 1, 1, 60, 48, "REF", "no");
-    sprintf(options2, options_template_5, 1, 1, i, 60, 48, "GPU", "yes");
-    sprintf(options3, options_template_5, 1, 2, i, 60, 24, "GPU", "yes");
+    sprintf(options1, options_template_5, metric_type, 1, 1, 1, 60, 48, "REF", "no");
+    sprintf(options2, options_template_5, metric_type, 1, 1, i, 60, 48, "GPU", "yes");
+    sprintf(options3, options_template_5, metric_type, 1, 2, i, 60, 24, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
@@ -1680,7 +1778,7 @@ void DriverTest_ccc_() {
   //----------
 
   char options_template_10[] =
-      "--metric_type ccc "
+      "--metric_type %s "
       //"--problem_type analytic "
       "--num_field 4 --num_vector_local %i --compute_method %s --all2all yes "
       "--num_proc_vector %i --num_proc_repl %i "
@@ -1698,11 +1796,11 @@ void DriverTest_ccc_() {
         for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
           const int num_way = 2;
-          sprintf(options1, options_template_10,
+          sprintf(options1, options_template_10, metric_type,
                   num_vector_local*num_proc_vector,
                   "GPU", 1, 1,
                   1, num_way, 1);
-          sprintf(options2, options_template_10, num_vector_local,
+          sprintf(options2, options_template_10, metric_type, num_vector_local,
                   gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
                   num_proc_field, num_way, num_stage);
           test_2runs(options1, options2);
@@ -1722,11 +1820,12 @@ void DriverTest_ccc_() {
           for (num_stage=1; num_stage<=6; num_stage+=4) {
             const int num_proc_field = gpu ? 2 : 1;
             const int num_way = 3;
-            sprintf(options1, options_template_10,
+            sprintf(options1, options_template_10, metric_type,
                     num_vector_local*num_proc_vector,
                     "GPU", 1, 1,
                     1, num_way, 1);
-            sprintf(options2, options_template_10, num_vector_local,
+            sprintf(options2, options_template_10, metric_type,
+                    num_vector_local,
                     gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
                     num_proc_field, num_way, num_stage);
             test_2runs(options1, options2);
@@ -1741,25 +1840,25 @@ void DriverTest_ccc_() {
   //----------
 
   char options_template_11a[] =
-      "--metric_type ccc --verbosity %i "
+      "--metric_type %s --verbosity %i "
       //"--problem_type analytic "
       "--num_proc_vector 1 --num_field 30 --num_vector_local 40 "
       "--compute_method GPU";
   char options_template_11b[] =
-      "--metric_type ccc --verbosity %i "
+      "--metric_type %s --verbosity %i "
       //"--problem_type analytic "
       "--num_proc_vector 1 --num_field 30 --num_vector_local 40 "
       "--compute_method GPU --ccc_param %.20e --problem_type analytic";
 
-  sprintf(options1, options_template_11a, 1);
-  sprintf(options2, options_template_11b, 1, ((double)2) / ((double)3));
+  sprintf(options1, options_template_11a, metric_type, 1);
+  sprintf(options2, options_template_11b, metric_type, 1, ((double)2) / ((double)3));
   EXPECT_EQ(true, compare_2runs(options1, options2));
 
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
 
-  sprintf(options1, options_template_11a, 1);
-  sprintf(options2, options_template_11b, 1, ((double)1) / ((double)2));
+  sprintf(options1, options_template_11a, metric_type, 1);
+  sprintf(options2, options_template_11b, metric_type, 1, ((double)1) / ((double)2));
   const int result11 = compare_2runs(options1, options2);
   EXPECT_EQ(true, proc_num==0 ? ! result11 : true);
 
@@ -1776,14 +1875,14 @@ void DriverTest_ccc_() {
           continue;
         }
         char options_template[] =
-          "--metric_type ccc "
+          "--metric_type %s "
           //"--problem_type analytic "
           "--num_field 7 --num_vector 12 --compute_method GPU --all2all yes "
           "--num_proc_vector %i --num_proc_repl %i --num_phase %i "
           "--num_way 2";
-        sprintf(options1, options_template, num_proc_vector, num_proc_repl,
+        sprintf(options1, options_template, metric_type, num_proc_vector, num_proc_repl,
                 num_phase);
-        sprintf(options2, options_template, 1, 1, 1);
+        sprintf(options2, options_template, metric_type, 1, 1, 1);
         test_2runs(options1, options2);
       }
     }
@@ -1795,7 +1894,7 @@ void DriverTest_ccc_() {
 
   {
     char options_template_2[] =
-      "--metric_type ccc --verbosity %i "
+      "--metric_type %s --verbosity %i "
       //"--problem_type analytic "
       "--num_proc_vector %i --num_field %i --num_vector %i "
       "--compute_method %s --all2all %s --sparse yes";
@@ -1803,14 +1902,14 @@ void DriverTest_ccc_() {
     const int nf = 100;
     const int nv = 48;
 
-    sprintf(options1, options_template_2, 1, 1, nf, nv, "REF", "no");
-    sprintf(options2, options_template_2, 1, 1, nf, nv, "CPU", "yes");
-    sprintf(options3, options_template_2, 1, 1, nf, nv, "GPU", "yes");
+    sprintf(options1, options_template_2, metric_type, 1, 1, nf, nv, "REF", "no");
+    sprintf(options2, options_template_2, metric_type, 1, 1, nf, nv, "CPU", "yes");
+    sprintf(options3, options_template_2, metric_type, 1, 1, nf, nv, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-    sprintf(options1, options_template_2, 1, 1, nf, nv, "REF", "no");
-    sprintf(options2, options_template_2, 1, 2, nf, nv, "CPU", "yes");
-    sprintf(options3, options_template_2, 1, 2, nf, nv, "GPU", "yes");
+    sprintf(options1, options_template_2, metric_type, 1, 1, nf, nv, "REF", "no");
+    sprintf(options2, options_template_2, metric_type, 1, 2, nf, nv, "CPU", "yes");
+    sprintf(options3, options_template_2, metric_type, 1, 2, nf, nv, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
@@ -1820,19 +1919,19 @@ void DriverTest_ccc_() {
 
   {
     char options_template_4[] =
-        "--metric_type ccc --verbosity %i "
+        "--metric_type %s --verbosity %i "
         //"--problem_type analytic "
         "--num_proc_vector %i --num_field %i --num_vector_local %i "
         "--compute_method %s --all2all %s --num_way 3 --sparse yes";
 
-    sprintf(options1, options_template_4, 1, 1, 100, 48, "REF", "no");
-    sprintf(options2, options_template_4, 1, 1, 100, 48, "CPU", "yes");
-    sprintf(options3, options_template_4, 1, 1, 100, 48, "GPU", "yes");
+    sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
+    sprintf(options2, options_template_4, metric_type, 1, 1, 100, 48, "CPU", "yes");
+    sprintf(options3, options_template_4, metric_type, 1, 1, 100, 48, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-    sprintf(options1, options_template_4, 1, 1, 100, 48, "REF", "no");
-    sprintf(options2, options_template_4, 1, 4, 100, 12, "CPU", "yes");
-    sprintf(options3, options_template_4, 1, 4, 100, 12, "GPU", "yes");
+    sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
+    sprintf(options2, options_template_4, metric_type, 1, 4, 100, 12, "CPU", "yes");
+    sprintf(options3, options_template_4, metric_type, 1, 4, 100, 12, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
@@ -1842,7 +1941,7 @@ void DriverTest_ccc_() {
 
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 3*300; ++num_field) {
-      create_vectors_file("ccc_2way_in.bin", num_field, num_vector,
+      create_vectors_file("ccc_duo_2way_in.bin", num_field, num_vector,
                           GM_METRIC_TYPE_CCC, 2, problem_type_default(), 1);
       for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
@@ -1857,17 +1956,17 @@ void DriverTest_ccc_() {
           char options2[1024];
 
           char options_template[] =
-                 "--metric_type ccc "
+                 "--metric_type %s "
                  "--num_vector %i --num_field %i "
                  "--num_proc_vector %i --num_proc_field %i "
                  "--compute_method GPU --all2all yes %s --verbosity 1";
 
-          sprintf(options1, options_template,
+          sprintf(options1, options_template, metric_type,
                   num_vector, num_field, num_proc_vector, num_proc_field, "");
 
-          sprintf(options2, options_template,
+          sprintf(options2, options_template, metric_type,
                   num_vector, num_field, num_proc_vector, num_proc_field,
-                  "--input_file ccc_2way_in.bin");
+                  "--input_file ccc_duo_2way_in.bin");
 
           test_2runs(options1, options2);
         }
@@ -1881,19 +1980,20 @@ void DriverTest_ccc_() {
 
   {
     char options_template[] =
+                    "--metric_type %s "
                     "--num_proc_vector 1 --num_proc_vector 1 "
                     "--num_field 7 --num_vector 100 "
-                    "--num_way 2 --metric_type ccc "
+                    "--num_way 2 "
                     "--all2all yes --sparse %s "
                     "--problem_type random %s";
     for (int sparse=0; sparse<2; ++sparse) {
-      sprintf(options1, options_template, sparse==1 ? "yes" : "no",
+      sprintf(options1, options_template, metric_type, sparse==1 ? "yes" : "no",
               "--compute_method REF");
-      sprintf(options2, options_template, sparse==1 ? "yes" : "no",
+      sprintf(options2, options_template, metric_type, sparse==1 ? "yes" : "no",
               "--compute_method GPU "
               "--verbosity 1 "
               "--threshold .5 "
-              "--output_file_stub test_ccc_2way");
+              "--output_file_stub test_ccc_duo_2way");
       test_2runs(options1, options2);
     }
   }
@@ -1904,24 +2004,37 @@ void DriverTest_ccc_() {
 
   {
     char options_template[] =
+                    "--metric_type %s "
                     "--num_proc_vector 1 --num_proc_vector 1 "
                     "--num_field 7 --num_vector 18 "
-                    "--num_way 3 --metric_type ccc "
+                    "--num_way 3 "
                     "--all2all yes --sparse %s "
                     "--problem_type random %s";
     for (int sparse=0; sparse<2; ++sparse) {
-      sprintf(options1, options_template, sparse==1 ? "yes" : "no",
+      sprintf(options1, options_template, metric_type, sparse==1 ? "yes" : "no",
               "--compute_method REF");
-      sprintf(options2, options_template, sparse==1 ? "yes" : "no",
+      sprintf(options2, options_template, metric_type, sparse==1 ? "yes" : "no",
               "--compute_method GPU "
               "--verbosity 1 "
               "--threshold .1 "
-              "--output_file_stub test_ccc_3way");
+              "--output_file_stub test_ccc_duo_3way");
       test_2runs(options1, options2);
     }
   }
 #endif
-} // DriverTest_ccc_
+} // DriverTest_ccc__duo_
+
+//=============================================================================
+
+void DriverTest_ccc_() {
+  DriverTest_ccc_duo_("ccc");
+}
+
+//=============================================================================
+
+void DriverTest_duo_() {
+  DriverTest_ccc_duo_("duo");
+}
 
 //=============================================================================
 
@@ -1951,6 +2064,10 @@ TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
 #endif
+
+TEST(DriverTest, duo) {
+  DriverTest_duo_();
+}
 
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();
