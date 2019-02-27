@@ -2019,10 +2019,8 @@ TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
 
-//FIX
-#if 1
-TEST(DriverTest, czek) {
-  DriverTest_czek_();
+TEST(DriverTest, duo) {
+  DriverTest_duo_();
 }
 
 TEST(DriverTest, ccc2_simple) {
@@ -2040,17 +2038,14 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
-#endif
 
-TEST(DriverTest, duo) {
-  DriverTest_duo_();
-}
-
-#if 1
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();
 }
-#endif
+
+TEST(DriverTest, czek) {
+  DriverTest_czek_();
+}
 
 //=============================================================================
 
