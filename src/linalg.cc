@@ -571,6 +571,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
+//printf("%i %i %i %i %i %i\n", (int)m, (int)n, (int)k, (int)ldda, (int)lddb, (int)lddc);
     magma_mgemm5blas_zgemm(Magma_mgemm5Trans, Magma_mgemm5NoTrans, m, n, k,
                            alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
                            beta, (Float_t*)dC, lddc);

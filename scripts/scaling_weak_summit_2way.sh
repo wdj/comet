@@ -17,12 +17,13 @@
 #
 # Options:
 #
-# export ccc=1 sparse=yes # default
-# export ccc=1 sparse=yes tc=0
-# export ccc=1 sparse=no
-# export ccc=1 sparse=no tc=0
-# export ccc=0 single=1
-# export ccc=0 single=0
+# export metric_type=ccc sparse=yes # default
+# export metric_type=ccc sparse=yes tc=0
+# export metric_type=ccc sparse=no
+# export metric_type=ccc sparse=no tc=0
+# export metric_type=duo sparse=yes
+# export metric_type=czekanowski single=1
+# export metric_type=czekanowski single=0
 #
 # original file: /ccs/home/joubert/proj/genomics/results/gbrev_max
 #
@@ -46,11 +47,13 @@ num_proc=$(( $num_proc_vector * $num_proc_field * $num_proc_repl ))
 #------------------------------------------------------------------------------
 # Algorithm settings
 
-[[ -z "${ccc:-}" ]] && ccc=1
+[[ "${ccc:-}" = 1 ]] && metric_type=ccc   # legacy settings
+[[ "${ccc:-}" = 0 ]] && metric_type=czekanowski   # legacy settings
+[[ -z "${metric_type:-}" ]] && metric_type=ccc
 [[ -z "${single:-}" ]] && single=1
 [[ -z "${sparse:-}" ]] && sparse=yes
-[[ -z "${tc:-}" && $ccc = 1 ]] && tc=1
-[[ -z "${tc:-}" && $ccc = 0 ]] && tc=0
+[[ -z "${tc:-}" && $metric_type != czekanowski ]] && tc=1
+[[ -z "${tc:-}" && $metric_type = czekanowski ]] && tc=0
 [[ -z "${cksum:-}" ]] && cksum=yes # alt. cksum=no
 [[ -z "${problem_type:-}" ]] && problem_type=random # alt. problem_type=analytic
 [[ -z "${debug:-}" ]] && debug=0
@@ -59,7 +62,7 @@ num_proc=$(( $num_proc_vector * $num_proc_field * $num_proc_repl ))
 #------------------------------------------------------------------------------
 # Problem sizes
 
-if [ "$ccc" = 1 ] ; then
+if [ "$metric_type" != czekanowski ] ; then
   num_vector_local=9984
   num_field_local=$(( 98304 * $num_tc_steps ))
 elif [ "$single" = 1 ] ; then
@@ -97,9 +100,9 @@ else
   executable_single=$INSTALLS_DIR/install_single_release_$host/bin/genomics_metric
 fi
 
-if [ "$ccc" = 1 ] ; then
+if [ "$metric_type" != czekanowski ] ; then
   executable=$executable_double
-  [[ "$sparse" == yes ]] && tag=ccc_sparse || tag=ccc_nonsparse
+  [[ "$sparse" == yes ]] && tag=${metric_type}_sparse || tag=${metric_type}_nonsparse
 elif [ "$single" = 1 ] ; then
   executable=$executable_single
   tag=czek_single
@@ -128,11 +131,11 @@ launch_command="env OMP_NUM_THREADS=7 $ar_opts jsrun --nrs $(( $num_node_launch 
 
 # Command to execute, with options
 
-if [ $ccc = 1 ] ; then
+if [ $metric_type != czekanowski ] ; then
   exec_command="$launch_command $executable \
     --num_field_local $num_field_local \
     --num_vector_local $num_vector_local \
-    --metric_type ccc \
+    --metric_type $metric_type \
     --sparse $sparse \
     --all2all yes \
     --compute_method GPU \

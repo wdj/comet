@@ -208,7 +208,9 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
     /* clang-format off */
 
-    const int pad_adjustment = 4 * metrics->dm->num_pad_field_local;
+    const int cbpe = 2;
+
+    const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
     const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
@@ -415,6 +417,10 @@ void gm_compute_2way_proc_nums_duo_start_(
 
             sum.data[0] += GMTally1_encode(r00, r01);
             sum.data[1] += GMTally1_encode(r10, r11);
+//printf("ref 00 %i\n", (int)r00);
+//printf("ref 01 %i\n", (int)r01);
+//printf("ref 10 %i\n", (int)r10);
+//printf("ref 11 %i\n", (int)r11);
 
           } /*---if ! unknown---*/
         } /*---for f---*/
@@ -423,6 +429,10 @@ void gm_compute_2way_proc_nums_duo_start_(
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
         }
+//printf("ref 0 0 %i\n", (int)GMTally2x2_get(sum, 0, 0));
+//printf("ref 0 1 %i\n", (int)GMTally2x2_get(sum, 0, 1));
+//printf("ref 1 0 %i\n", (int)GMTally2x2_get(sum, 1, 0));
+//printf("ref 1 1 %i\n", (int)GMTally2x2_get(sum, 1, 1));
       } /*---for j---*/
     }   /*---for i---*/
 
@@ -437,7 +447,9 @@ void gm_compute_2way_proc_nums_duo_start_(
 
     /* clang-format off */
 
-    const int pad_adjustment = 1 * metrics->dm->num_pad_field_local;
+    const int cbpe = 1;
+
+    const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
     const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
@@ -501,6 +513,7 @@ void gm_compute_2way_proc_nums_duo_start_(
                                       ( ( vi1_0 & nvj1_0) << 1 ));
           const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
                                       ( ( vi1_0 &  vj1_0) << 1 ));
+//printf("cpu %i\n", (int)r01);
 
           // Accumulate
 
@@ -525,6 +538,10 @@ void gm_compute_2way_proc_nums_duo_start_(
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
         }
+//printf("cpu 0 0 %i\n", (int)GMTally2x2_get(sum, 0, 0));
+//printf("cpu 0 1 %i\n", (int)GMTally2x2_get(sum, 0, 1));
+//printf("cpu 1 0 %i\n", (int)GMTally2x2_get(sum, 1, 0));
+//printf("cpu 1 1 %i\n", (int)GMTally2x2_get(sum, 1, 1));
       } /*---for j---*/
     }   /*---for i---*/
 

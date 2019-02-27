@@ -285,7 +285,7 @@ void GMMetrics_create(GMMetrics* metrics,
     return;
   }
 
-  GMInsistInterface(env, (env->compute_method_ != GM_METRIC_TYPE_DUO ||
+  GMInsistInterface(env, (GMEnv_metric_type(env) != GM_METRIC_TYPE_DUO ||
                           env->sparse) && "DUO method requires sparse input.");
 
   GMInsistInterface(env, (GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1)
@@ -866,8 +866,13 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
 #ifdef GM_ASSERTIONS_ON
       const GMTally2x2 new_ = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+//printf("%i %i   %i %i %i\n", (int)i, (int)j, (int)GMTally2x2_get(old, 0, 0), (int)GMTally2x2_get(new_, 0, 0), (int)pad_adjustment);
       GMAssert(GMTally2x2_get(old, 0, 0) ==
                GMTally2x2_get(new_, 0, 0) + pad_adjustment);
+//printf("%i %i  0 0   %i\n", (int)i, (int)j, (int)GMTally2x2_get(new_, 0, 0));
+//printf("%i %i  0 1   %i\n", (int)i, (int)j, (int)GMTally2x2_get(new_, 0, 1));
+//printf("%i %i  1 0   %i\n", (int)i, (int)j, (int)GMTally2x2_get(new_, 1, 0));
+//printf("%i %i  1 1   %i\n", (int)i, (int)j, (int)GMTally2x2_get(new_, 1, 1));
 #endif
 
     } // for j

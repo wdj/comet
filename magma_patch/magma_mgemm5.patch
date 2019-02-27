@@ -150,14 +150,14 @@ diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/mag
 +    const GMUInt64 nvj0_0 = ~ vj0       & vj0_10mask;
 +    const GMUInt64 nvj1_0 = ~ vj1       & vj1_10mask;
 +
-+    const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
-+                                ( (nvi1_0 & nvj1_0) << 1 ));
-+    const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
-+                                ( (nvi1_0 &  vj1_0) << 1 ));
-+    const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
-+                                ( ( vi1_0 & nvj1_0) << 1 ));
-+    const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
-+                                ( ( vi1_0 &  vj1_0) << 1 ));
++    const GMUInt64 r00 = gm_popcount64((nvi0_0 & nvj0_0) |
++                                     ( (nvi1_0 & nvj1_0) << 1 ));
++    const GMUInt64 r01 = gm_popcount64((nvi0_0 &  vj0_0) |
++                                     ( (nvi1_0 &  vj1_0) << 1 ));
++    const GMUInt64 r10 = gm_popcount64(( vi0_0 & nvj0_0) |
++                                     ( ( vi1_0 & nvj1_0) << 1 ));
++    const GMUInt64 r11 = gm_popcount64(( vi0_0 &  vj0_0) |
++                                     ( ( vi1_0 &  vj1_0) << 1 ));
 +
 +    /*---Accumulate---*/
 +

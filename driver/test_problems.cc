@@ -604,6 +604,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               }
             } //---g
 
+//printf("%i %i %i\n", (int) i0, (int)i1, (int)rij);
+
             GMFloat value_expected_floatcalc = 0;
             if (!(ci == 0 || cj == 0 || cij == 0)) {
               const GMFloat f_one = 1;

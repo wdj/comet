@@ -192,8 +192,13 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
       } // if sparse
     } // for i
     //----------
-  } else {
+  } else { // REF
     //----------
+    //TODO: should decomp_mgr own more of this
+    const int num_fields_pad =
+      vectors->dm->num_packedfield_local *
+      vectors->dm->num_field_per_packedfield -
+      vectors->dm->num_field_active_local;
     for (int i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;
       if (env->sparse) {
@@ -218,12 +223,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
           // the number of BITS for all the defined elements.
           count += (GMFloat)gm_popcount64(v10_oddmask0 | (v10_oddmask1 << 1));
         }
-        //TODO: should decomp_mgr own more of this
         // Adjust for end pad
-        const int num_fields_pad =
-          vectors->dm->num_packedfield_local *
-          vectors->dm->num_field_per_packedfield -
-          vectors->dm->num_field_active_local;
         count -= num_fields_pad;
         // Finish
         GMAssert(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->dm->num_field_active_local);
@@ -236,9 +236,9 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
           // Fast way: sum all 64 bits of each word immediately
           const GMBits2x64 value = GMVectors_bits2x64_get(vectors, f, i, env);
           sum += count_2 ? (GMFloat)gm_popcount64(value.data[0])
-                         : (GMFloat)gm_popcount64(value.data[0] && oddbits);
+                         : (GMFloat)gm_popcount64(value.data[0] & oddbits);
           sum += count_2 ? (GMFloat)gm_popcount64(value.data[1])
-                         : (GMFloat)gm_popcount64(value.data[1] && oddbits);
+                         : (GMFloat)gm_popcount64(value.data[1] & oddbits);
           // NOTE: for this case pad entries are all zero so no effect on sum
         }
         GMAssert(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->dm->num_field_active_local);
