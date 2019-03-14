@@ -67,8 +67,8 @@ function main
     local CUDA_MODULE=cuda
     module -q load $CUDA_MODULE
     module -q load cmake
-    local CUDA_INCLUDE_OPTS="-I$CUDA_DIR/include -I$CUDA_DIR/extras/CUPTI/include -I$CUDA_DIR/extras/Debugger/include"
-    local CUDA_POST_LINK_OPTS="-L$CUDA_DIR/targets/ppc64le-linux/lib"
+    local CUDA_INCLUDE_OPTS="-I$OLCF_CUDA_ROOT/include -I$OLCF_CUDA_ROOT/extras/CUPTI/include -I$OLCF_CUDA_ROOT/extras/Debugger/include"
+    local CUDA_POST_LINK_OPTS="-L$OLCF_CUDA_ROOT/targets/ppc64le-linux/lib"
     local cc=$(which mpicc)
     local CC=$(which mpiCC)
   else
@@ -266,7 +266,7 @@ function main
     LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
   fi
   if [ $IS_IBM_AC922 = YES ] ; then
-    LFLAGS="$LFLAGS -Wl,-rpath=$CUDA_DIR/lib64"
+    LFLAGS="$LFLAGS -Wl,-rpath=$OLCF_CUDA_ROOT/lib64"
   fi
 
   #----------------------------------------------------------------------------
