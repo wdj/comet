@@ -39,7 +39,8 @@ void assert_(const char* condition_string, const char* file, int line) {
           condition_string, file, line);
   make_test_harness_failure();
 #ifdef GM_ASSERTIONS_ON
-  raise(SIGUSR1);
+  //raise(SIGUSR1);
+  exit(EXIT_FAILURE);
 #else
   exit(EXIT_FAILURE);
 #endif

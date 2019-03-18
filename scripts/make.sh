@@ -16,6 +16,8 @@ function main
   [[ -n "${CRAYOS_VERSION:-}" ]] && IS_CRAY_XK7="YES" || IS_CRAY_XK7="NO"
   local IS_IBM_AC922 # OLCF Summit or Peak
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
+  local IS_DGX2
+  [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -30,16 +32,18 @@ function main
     module load PrgEnv-gnu
     module load cudatoolkit
     module load acml
+    module list
   elif [ $IS_IBM_AC922 = YES ] ; then
     module -q load gcc/6.4.0
     local CUDA_MODULE=cuda
     module -q load $CUDA_MODULE
+    module list
+  elif [ $IS_DGX2 = YES ] ; then
+    true
   else
     echo "Unknown platform." 1>&2
     exit 1
   fi
-
-  module list
 
   time make -j4 VERBOSE=1
 

@@ -265,7 +265,7 @@ static void gm_tc_buf_write_(
   const int vi32_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
   GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
                                       (GemmIn_t*)tc_bufs.tc_buf_left;
-  GMInsist(nvleX2 * (2*nflD2_thisstep) *
+  GMInsist(nvleX2 * (size_t)(2*nflD2_thisstep) *
            sizeof(typename TCSelector<TC_METHOD>::GemmIn_t)
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");

@@ -22,19 +22,19 @@ function main
   [[ -n "${CRAYOS_VERSION:-}" ]] && IS_CRAY_XK7="YES" || IS_CRAY_XK7="NO"
   local IS_IBM_AC922 # OLCF Summit or Peak
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
+  local IS_DGX2
+  [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
-
   if [ -z "${OLCF_PROJECT:-}" ] ; then
     local OLCF_PROJECT=stf006
   fi
-
   local host
   host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
   local DIRNAME_STUB
   [[ $IS_EXPERIMENTAL = YES ]] && DIRNAME_STUB=experimental || DIRNAME_STUB=$host
-
+  #
   if [ $IS_EXPERIMENTAL = YES ] ; then
     true # skip for now
   elif [ $IS_CRAY_XK7 = YES ] ; then
@@ -42,16 +42,18 @@ function main
   elif [ $IS_IBM_AC922 = YES ] ; then
     local INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
   else
-    echo "Unknown platform." 1>&2
-    exit 1
+    local INSTALLS_DIR="$PWD/installs"
+    #echo "Unknown platform." 1>&2
+    #exit 1
   fi
   mkdir -p "$INSTALLS_DIR"
 
   #----------------------------------------------------------------------------
   # test / double precision build
 
-  DO_BUILD_TEST=1 # 0
-  if [ $DO_BUILD_TEST = 1 ] ; then
+  local DO_BUILD_TEST=YES # NO
+  [[ $IS_DGX2 = YES ]] && DO_BUILD_TEST=NO
+  if [ $DO_BUILD_TEST = YES ] ; then
     local BUILD_DIR=build_test_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -73,10 +75,36 @@ function main
   fi
 
   #----------------------------------------------------------------------------
+  # test / double precision / nompi build
+
+  local DO_BUILD_TEST_NOMPI=YES # NO
+  if [ $DO_BUILD_TEST_NOMPI = YES ] ; then
+    local BUILD_DIR=build_test_nompi_$DIRNAME_STUB
+    echo "Creating $BUILD_DIR ..."
+    mkdir -p $BUILD_DIR
+    pushd $BUILD_DIR
+    rm -rf *
+    if [ -e ../magma_build_$DIRNAME_STUB ] ; then
+      ln -s ../magma_build_$DIRNAME_STUB magma_patch # link to common MAGMA build
+    fi
+    local INSTALL_DIR=$INSTALLS_DIR/install_test_nompi_$DIRNAME_STUB
+    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Debug NOMPI=ON \
+        ../genomics_gpu/scripts/cmake.sh
+    if [ ! -e  ../magma_build_$DIRNAME_STUB ] ; then
+      mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
+      ln -s          ../magma_build_$DIRNAME_STUB magma_patch
+    fi
+    popd
+    rm -f $(basename $INSTALL_DIR)
+    ln -s $INSTALL_DIR .
+  fi
+
+  #----------------------------------------------------------------------------
   # test / single precision build
 
-  DO_BUILD_SINGLE_TEST=1 # 0
-  if [ $DO_BUILD_SINGLE_TEST = 1 ] ; then
+  local DO_BUILD_SINGLE_TEST=YES # NO
+  [[ $IS_DGX2 = YES ]] && DO_BUILD_SINGLE_TEST=NO
+  if [ $DO_BUILD_SINGLE_TEST = YES ] ; then
     local BUILD_DIR=build_single_test_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -100,8 +128,9 @@ function main
   #----------------------------------------------------------------------------
   # release / double precision build
 
-  DO_BUILD_RELEASE=1 # 0
-  if [ $DO_BUILD_RELEASE = 1 ] ; then
+  local DO_BUILD_RELEASE=YES # NO
+  [[ $IS_DGX2 = YES ]] && DO_BUILD_RELEASE=NO
+  if [ $DO_BUILD_RELEASE = YES ] ; then
     local BUILD_DIR=build_release_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -125,8 +154,8 @@ function main
   #----------------------------------------------------------------------------
   # release / double precision / nompi build
 
-  DO_BUILD_RELEASE_NOMPI=1 # 0
-  if [ $DO_BUILD_RELEASE_NOMPI = 1 ] ; then
+  local DO_BUILD_RELEASE_NOMPI=YES # NO
+  if [ $DO_BUILD_RELEASE_NOMPI = YES ] ; then
     local BUILD_DIR=build_release_nompi_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR
@@ -150,8 +179,9 @@ function main
   #----------------------------------------------------------------------------
   # release / single precision build
 
-  DO_BUILD_SINGLE_RELEASE=1 # 0
-  if [ $DO_BUILD_SINGLE_RELEASE = 1 ] ; then
+  local DO_BUILD_SINGLE_RELEASE=YES # NO
+  [[ $IS_DGX2 = YES ]] && DO_BUILD_SINGLE_RELEASE=NO
+  if [ $DO_BUILD_SINGLE_RELEASE = YES ] ; then
     local BUILD_DIR=build_single_release_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
     mkdir -p $BUILD_DIR

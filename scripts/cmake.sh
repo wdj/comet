@@ -36,6 +36,8 @@ function main
   [[ -n "${CRAYOS_VERSION:-}" ]] && IS_CRAY_XK7="YES" || IS_CRAY_XK7="NO"
   local IS_IBM_AC922 # OLCF Summit or Peak
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
+  local IS_DGX2
+  [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -62,6 +64,7 @@ function main
     local CUDA_POST_LINK_OPTS=$CRAY_CUDATOOLKIT_POST_LINK_OPTS
     local cc=$(which cc)
     local CC=$(which CC)
+    local CC_serial=g++
   elif [ $IS_IBM_AC922 = YES ] ; then
     module -q load gcc/6.4.0
     local CUDA_MODULE=cuda
@@ -71,6 +74,14 @@ function main
     local CUDA_POST_LINK_OPTS="-L$OLCF_CUDA_ROOT/targets/ppc64le-linux/lib"
     local cc=$(which mpicc)
     local CC=$(which mpiCC)
+    local CC_serial=g++
+  elif [ $IS_DGX2 = YES ] ; then
+    local CUDA_ROOT="$HOME/cuda"
+    local CUDA_INCLUDE_OPTS="-I$CUDA_ROOT/include -I$CUDA_ROOT/extras/CUPTI/include -I$CUDA_ROOT/extras/Debugger/include"
+    local CUDA_POST_LINK_OPTS="-L$CUDA_ROOT/lib64"
+    local cc=$HOME/.linuxbrew/bin/gcc-6
+    local CC=$HOME/.linuxbrew/bin/g++-6
+    local CC_serial=$CC
   else
     echo "Unknown platform." 1>&2
     exit 1
@@ -150,7 +161,7 @@ function main
     gunzip <googletest-release-1.7.0.tar.gz | tar xf -
     GTEST_DIR=$BUILD_DIR/googletest-release-1.7.0
     mkdir $GTEST_DIR/lib
-    g++ -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
+    $CC_serial -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
       -pthread -c ${GTEST_DIR}/src/gtest-all.cc
     ar -rv $GTEST_DIR/lib/libgtest.a gtest-all.o
   fi
@@ -164,7 +175,7 @@ function main
     rm -rf mpi-stub
     gunzip <mpi-stub.tar.gz | tar xf -
     pushd mpi-stub
-    CC=g++ # NOTE: redefinition!
+    CC=$CC_serial # NOTE: redefinition!
     make CC=$CC
     popd
   fi
@@ -268,6 +279,10 @@ function main
   if [ $IS_IBM_AC922 = YES ] ; then
     LFLAGS="$LFLAGS -Wl,-rpath=$OLCF_CUDA_ROOT/lib64"
   fi
+  if [ $IS_DGX2 = YES ] ; then
+    C_CXX_FLAGS="$C_CXX_FLAGS -std=gnu++11"
+    LFLAGS="$LFLAGS -Wl,-rpath=$CUDA_ROOT/lib64"
+  fi
 
   #----------------------------------------------------------------------------
 
@@ -278,6 +293,10 @@ function main
   if [ $IS_IBM_AC922 = YES ] ; then
     local TEST_COMMAND="module load $CUDA_MODULE ; env OMP_NUM_THREADS=16 jsrun -n 2 -r 1 -c 32 -g 6 -a 32 -X 1"
     #C_CXX_FLAGS="$C_CXX_FLAGS -DUSE_TC"
+    C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
+  fi
+  if [ $IS_DGX2 = YES ] ; then
+    local TEST_COMMAND=""
     C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
   fi
 

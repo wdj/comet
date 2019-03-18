@@ -21,6 +21,8 @@ function do_make
   [[ -n "${CRAYOS_VERSION:-}" ]] && IS_CRAY_XK7="YES" || IS_CRAY_XK7="NO"
   local IS_IBM_AC922 # OLCF Summit or Peak
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
+  local IS_DGX2
+  [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -35,21 +37,29 @@ function do_make
     module load PrgEnv-gnu
     module load cudatoolkit
     module load acml
+    module list 2>&1
     cp ../make.inc.titan make.inc
     export GPU_TARGET=sm35 NV_SM=" -gencode arch=compute_35,code=sm_35" NV_COMP="-gencode arch=compute_35,code=compute_35" MIN_ARCH=350
+    MAKE_ARGS=""
   elif [ $IS_IBM_AC922 = YES ] ; then
     module load gcc/6.4.0
     module load cuda
+    module list 2>&1
+    export CUDA_DIR="${CUDA_DIR:-$OLCF_CUDA_ROOT}"
     cp ../make.inc.summit make.inc
     export GPU_TARGET=sm70 NV_SM=" -gencode arch=compute_70,code=sm_70" NV_COMP="-gencode arch=compute_70,code=compute_70" MIN_ARCH=350
+    MAKE_ARGS=""
+  elif [ $IS_DGX2 = YES ] ; then
+    cp ../make.inc.summit make.inc
+    export CUDA_DIR=$HOME/cuda
+    export GPU_TARGET=sm70 NV_SM=" -gencode arch=compute_70,code=sm_70" NV_COMP="-gencode arch=compute_70,code=compute_70" MIN_ARCH=350
+    MAKE_ARGS="CC=$HOME/.linuxbrew/bin/gcc-6 CXX=$HOME/.linuxbrew/bin/g++-6"
   else
     echo "Unknown platform." 1>&2
     exit 1
   fi
 
-  module list 2>&1
-
-  time make lib -j8
+  time make lib $MAKE_ARGS -j8
 }
 
 #==============================================================================
