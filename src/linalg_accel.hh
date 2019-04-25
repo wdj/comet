@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 
 #ifndef USE_CUDA
-typedef int cublasHandle_t
+typedef int cublasHandle_t;
 #endif
 
 struct TCBufs {

@@ -13,6 +13,9 @@
 #ifdef USE_CUDA
 #include "cublas_v2.h"
 #include "cuda_fp16.h"
+#else
+#define __device__
+#define __global__
 #endif
 
 #include "env.hh"
@@ -35,6 +38,16 @@ __device__ static int blockIdx_z() { return blockIdx.z; }
 __device__ static int blockDim_x() { return blockDim.x; }
 
 __device__ static int gridDim_y() { return gridDim.y; }
+#else
+__device__ static int threadIdx_x() { return 0; }
+
+__device__ static int blockIdx_x() { return 0; }
+__device__ static int blockIdx_y() { return 0; }
+__device__ static int blockIdx_z() { return 0; }
+
+__device__ static int blockDim_x() { return 0; }
+
+__device__ static int gridDim_y() { return 0; }
 #endif
 
 //-----------------------------------------------------------------------------
@@ -272,12 +285,22 @@ static void gm_tc_buf_write_(
 
   // Kernel call.
 
-  gm_tc_buf_write_kernel_<GemmIn_t><<<
+#ifndef USE_CUDA
+    int dummy = 0;
+    dummy += num_threadblocks_0;
+    dummy += num_threadblocks_1;
+    dummy += num_threadblocks_2;
+#endif
+  gm_tc_buf_write_kernel_<GemmIn_t>
+#ifdef USE_CUDA
+      <<<
       dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
       dim3(threadblocksize, 1, 1),
       0,
-      env->stream_compute_>>>(
-    tc_buf, vi32, vi32_dim0,
+      env->stream_compute_
+      >>>
+#endif
+    (tc_buf, vi32, vi32_dim0,
     GMEnv_num_way(env), env->sparse, is_right, is_duo,
     nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
 
@@ -569,11 +592,21 @@ static void gm_tc_repair_metrics_(
   const int threadblocksize = 256;
   const int vll2_threadblocks = gm_ceil_i8(nvllD2, threadblocksize);
 
-  gm_tc_repair_metrics_kernel_<typename TCSelector<TC_METHOD>::GemmOut_t><<<
+#ifndef USE_CUDA
+    int dummy = 0;
+    dummy += vll2_threadblocks;
+    dummy += threadblocksize;
+#endif
+  gm_tc_repair_metrics_kernel_<typename TCSelector<TC_METHOD>::GemmOut_t>
+#ifdef USE_CUDA
+      <<<
       dim3(vll2_threadblocks, nvl, 1),
       dim3(threadblocksize, 1, 1),
       0,
-      env->stream_compute_>>>(nvl, nvll, nvllD2, vo);
+      env->stream_compute_
+      >>>
+#endif
+      (nvl, nvll, nvllD2, vo);
 
   GMEnv_accel_last_call_succeeded(env);
 }

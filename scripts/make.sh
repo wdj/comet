@@ -20,6 +20,8 @@ function main
   [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
   local IS_GPUSYS2
   [[ "$(uname -n)" = "gpusys2" ]] && IS_GPUSYS2="YES" || IS_GPUSYS2="NO"
+  local IS_EDISON
+  [[ "${NERSC_HOST:-}" = "edison" ]] && IS_EDISON="YES" || IS_EDISON="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -44,6 +46,8 @@ function main
     true
   elif [ $IS_GPUSYS2 = YES ] ; then
     true
+  elif [ $IS_EDISON = YES ] ; then
+    module swap PrgEnv-intel PrgEnv-gnu
   else
     echo "Unknown platform." 1>&2
     exit 1

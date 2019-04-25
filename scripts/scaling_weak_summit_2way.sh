@@ -88,7 +88,7 @@ num_vector=$(( $num_vector_local * $num_proc_vector ))
 module -q load gcc
 module -q load cuda
 
-host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
+host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//' -e 's/[0-9]*$//')
 OLCF_PROJECT="$(echo $LSB_PROJECT_NAME | tr A-Z a-z)"
 INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
 

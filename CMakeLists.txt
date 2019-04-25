@@ -76,15 +76,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_AND_CXX_FLAGS}")
 if(NOT NOMPI)
   find_package(MPI REQUIRED)
 endif()
-find_package(CUDA REQUIRED)
 
-#SET(CUDA_SOURCES, src/linalg_cuda.cu)
-CUDA_INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
+if(NOT NOCUDA)
+  find_package(CUDA REQUIRED)
+  #SET(CUDA_SOURCES, src/linalg_cuda.cu)
+  CUDA_INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
+  # see https://stackoverflow.com/questions/36021233/cmake-cuda-compile-cpp-files-in-cuda-mode-x-cu
+  set_source_files_properties( src/linalg_accel.cc PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
+  CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
+else()
+  ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
+endif()
 
-# see https://stackoverflow.com/questions/36021233/cmake-cuda-compile-cpp-files-in-cuda-mode-x-cu
-set_source_files_properties( src/linalg_accel.cc PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
-
-CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
 
 ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc driver/driver.cc driver/test_problems.cc driver/input_output.cc)
@@ -105,7 +108,6 @@ MESSAGE("Compiler ID: ${CMAKE_C_COMPILER_ID}")
 #--------------------
 
 if(TESTING) 
-
   enable_testing()
 
   foreach(test_target driver_test metrics_test)

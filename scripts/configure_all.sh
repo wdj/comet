@@ -26,6 +26,8 @@ function main
   [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
   local IS_GPUSYS2
   [[ "$(uname -n)" = "gpusys2" ]] && IS_GPUSYS2="YES" || IS_GPUSYS2="NO"
+  local IS_EDISON
+  [[ "${NERSC_HOST:-}" = "edison" ]] && IS_EDISON="YES" || IS_EDISON="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -33,7 +35,7 @@ function main
     local OLCF_PROJECT=stf006
   fi
   local host
-  host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//')
+  host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//' -e 's/[0-9]*$//')
   local DIRNAME_STUB
   [[ $IS_EXPERIMENTAL = YES ]] && DIRNAME_STUB=experimental || DIRNAME_STUB=$host
   #
@@ -43,6 +45,8 @@ function main
     local INSTALLS_DIR=/lustre/atlas/scratch/$(whoami)/$OLCF_PROJECT/comet
   elif [ $IS_IBM_AC922 = YES ] ; then
     local INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
+  elif [ $IS_EDISON = YES ] ; then
+    local INSTALLS_DIR="$SCRATCH/comet"
   else
     local INSTALLS_DIR="$PWD/installs"
     #echo "Unknown platform." 1>&2

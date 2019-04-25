@@ -40,6 +40,8 @@ function main
   [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
   local IS_GPUSYS2
   [[ "$(uname -n)" = "gpusys2" ]] && IS_GPUSYS2="YES" || IS_GPUSYS2="NO"
+  local IS_EDISON
+  [[ "${NERSC_HOST:-}" = "edison" ]] && IS_EDISON="YES" || IS_EDISON="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -51,6 +53,9 @@ function main
 
   #----------------------------------------------------------------------------
   #---Load modules etc.
+
+  local NOCUDA=OFF
+  local CC_serial=g++
 
   if [ $IS_EXPERIMENTAL = YES ] ; then
     true # skip for now
@@ -66,7 +71,6 @@ function main
     local CUDA_POST_LINK_OPTS=$CRAY_CUDATOOLKIT_POST_LINK_OPTS
     local cc=$(which cc)
     local CC=$(which CC)
-    local CC_serial=g++
   elif [ $IS_IBM_AC922 = YES ] ; then
     module -q load gcc/6.4.0
     local CUDA_MODULE=cuda
@@ -76,14 +80,12 @@ function main
     local CUDA_POST_LINK_OPTS="-L$OLCF_CUDA_ROOT/targets/ppc64le-linux/lib"
     local cc=$(which mpicc)
     local CC=$(which mpiCC)
-    local CC_serial=g++
   elif [ $IS_DGX2 = YES ] ; then
     local CUDA_ROOT="$HOME/cuda"
     local CUDA_INCLUDE_OPTS="-I$CUDA_ROOT/include -I$CUDA_ROOT/extras/CUPTI/include -I$CUDA_ROOT/extras/Debugger/include"
     local CUDA_POST_LINK_OPTS="-L$CUDA_ROOT/lib64"
     local cc=$HOME/.linuxbrew/bin/gcc-6
     local CC=$HOME/.linuxbrew/bin/g++-6
-    local CC_serial=$CC
   elif [ $IS_GPUSYS2 = YES ] ; then
     export CUDA_ROOT=/usr/local/cuda-10.1
     local CUDA_INCLUDE_OPTS="-I$CUDA_ROOT/include -I$CUDA_ROOT/extras/CUPTI/include -I$CUDA_ROOT/extras/Debugger/include"
@@ -91,7 +93,13 @@ function main
     local cc=$(spack location --install-dir gcc)/bin/gcc
     local CC=$(spack location --install-dir gcc)/bin/g++
     local CC_serial=$CC
-
+  elif [ $IS_EDISON = YES ] ; then
+    module swap PrgEnv-intel PrgEnv-gnu
+    NOCUDA=ON
+    local CUDA_INCLUDE_OPTS=""
+    local CUDA_POST_LINK_OPTS=""
+    local cc=$(which cc)
+    local CC=$(which CC)
   else
     echo "Unknown platform." 1>&2
     exit 1
@@ -193,50 +201,56 @@ function main
   #----------------------------------------------------------------------------
   #---Create magma variants.
 
-  local MAGMA_DIR=$BUILD_DIR/magma_patch
-  if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
-    rm -rf $MAGMA_DIR
-    echo "Copying magma ..."
-    cp -r $REPO_DIR/magma_patch $MAGMA_DIR
-    # copy MAGMA source since link will be broken.
-    rm $MAGMA_DIR//magma-*.tar.gz
-    cp $REPO_DIR/tpls/magma-*.tar.gz $MAGMA_DIR/
-    pushd $MAGMA_DIR
-    ./create_modified_magmas.sh
-    popd
-    touch $MAGMA_DIR/copy_is_complete
+  if [ $NOCUDA = OFF ] ; then
+    local MAGMA_DIR=$BUILD_DIR/magma_patch
+    if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
+      rm -rf $MAGMA_DIR
+      echo "Copying magma ..."
+      cp -r $REPO_DIR/magma_patch $MAGMA_DIR
+      # copy MAGMA source since link will be broken.
+      rm $MAGMA_DIR//magma-*.tar.gz
+      cp $REPO_DIR/tpls/magma-*.tar.gz $MAGMA_DIR/
+      pushd $MAGMA_DIR
+      ./create_modified_magmas.sh
+      popd
+      touch $MAGMA_DIR/copy_is_complete
+    fi
   fi
 
   #----------------------------------------------------------------------------
   #---Compile magma variants.
 
-  local tag
-  for tag in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
-    local magma_version=magma_$tag
-    local magma_subdir=$MAGMA_DIR/$magma_version
-    if [ ! -e $magma_subdir/build_is_complete ] ; then
-      pushd $magma_subdir
-      ../make_magma.sh
-      popd
-      if [ -e $magma_subdir/lib/lib${magma_version}.a ] ; then
-        touch $magma_subdir/build_is_complete
-      else
-        exit 1
+  if [ $NOCUDA = OFF ] ; then
+    local tag
+    for tag in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
+      local magma_version=magma_$tag
+      local magma_subdir=$MAGMA_DIR/$magma_version
+      if [ ! -e $magma_subdir/build_is_complete ] ; then
+        pushd $magma_subdir
+        ../make_magma.sh
+        popd
+        if [ -e $magma_subdir/lib/lib${magma_version}.a ] ; then
+          touch $magma_subdir/build_is_complete
+        else
+          exit 1
+        fi
       fi
-    fi
-  done
+    done
+  fi
 
   #============================================================================
   #---Set variables for cmake.
 
   local C_CXX_FLAGS
   C_CXX_FLAGS="-DFP_PRECISION_$FP_PRECISION -DADD_"
-  C_CXX_FLAGS="$C_CXX_FLAGS -DUSE_CUDA"
-  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_minproduct/include"
-  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm2/include"
-  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm3/include"
-  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm4/include"
-  C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm5/include"
+  if [ $NOCUDA = OFF ] ; then
+    C_CXX_FLAGS="$C_CXX_FLAGS -DUSE_CUDA"
+    C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_minproduct/include"
+    C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm2/include"
+    C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm3/include"
+    C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm4/include"
+    C_CXX_FLAGS="$C_CXX_FLAGS -I$MAGMA_DIR/magma_mgemm5/include"
+  fi
   C_CXX_FLAGS="$C_CXX_FLAGS $CUDA_INCLUDE_OPTS"
   C_CXX_FLAGS="$C_CXX_FLAGS -g -rdynamic" # for stack trace
   C_CXX_FLAGS="$C_CXX_FLAGS -Wall -Wno-unused-function -Werror"
@@ -276,12 +290,14 @@ function main
   #----------------------------------------------------------------------------
 
   local LFLAGS=
-  LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
-  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm2/lib -lmagma_mgemm2"
-  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm3/lib -lmagma_mgemm3"
-  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm4/lib -lmagma_mgemm4"
-  LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm5/lib -lmagma_mgemm5"
-  LFLAGS="$LFLAGS $CUDA_POST_LINK_OPTS -lcublas -lcudart"
+  if [ $NOCUDA = OFF ] ; then
+    LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
+    LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm2/lib -lmagma_mgemm2"
+    LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm3/lib -lmagma_mgemm3"
+    LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm4/lib -lmagma_mgemm4"
+    LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm5/lib -lmagma_mgemm5"
+    LFLAGS="$LFLAGS $CUDA_POST_LINK_OPTS -lcublas -lcudart"
+  fi
   if [ $IS_CRAY_XK7 = YES ] ; then
     LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
     LFLAGS="$LFLAGS -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
@@ -296,6 +312,9 @@ function main
   if [ $IS_GPUSYS2 = YES ] ; then
     C_CXX_FLAGS="$C_CXX_FLAGS -std=gnu++11"
     LFLAGS="$LFLAGS -Wl,-rpath=$CUDA_ROOT/lib64"
+  fi
+  if [ $IS_EDISON = YES ] ; then
+    C_CXX_FLAGS="$C_CXX_FLAGS -std=gnu++11"
   fi
 
   #----------------------------------------------------------------------------
@@ -317,6 +336,9 @@ function main
     local TEST_COMMAND=""
     C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
   fi
+  if [ $IS_EDISON = YES ] ; then
+    local TEST_COMMAND="env OMP_NUM_THREADS=24 srun -n 64"
+  fi
 
   if [ "$NOMPI" = ON ] ; then
     C_CXX_FLAGS="$C_CXX_FLAGS -DNOMPI -I$BUILD_DIR/mpi-stub/include"
@@ -326,18 +348,25 @@ function main
   #  -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v$DEBUG_FLAG" \
   #  -DCUDA_HOST_COMPILER:STRING=/usr/bin/gcc \
 
-  local CMAKE_MPI_OPTIONS=""
+  local CMAKE_EXTRA_OPTIONS=""
   if [ "$NOMPI" = OFF ] ; then
-    if [ $IS_CRAY_XK7 = YES ] ; then
-      CMAKE_MPI_OPTIONS="\
+    if [ $IS_CRAY_XK7 = YES -o $IS_EDISON = YES ] ; then
+      CMAKE_EXTRA_OPTIONS="$CMAKE_EXTRA_OPTIONS \
         -DMPI_C_COMPILER="$cc" \
+        -DMPI_C_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include \
+        -DMPI_C_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
         -DMPI_CXX_COMPILER="$CC" \
         -DMPI_CXX_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include \
         -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
       "
     fi
   else
-    local CMAKE_MPI_OPTIONS="-DNOMPI=ON"
+    CMAKE_EXTRA_OPTIONS="$CMAKE_EXTRA_OPTIONS -DNOMPI=ON"
+  fi
+  if [ "$NOCUDA" = OFF ] ; then
+    CMAKE_EXTRA_OPTIONS="$CMAKE_EXTRA_OPTIONS -DNOCUDA=OFF -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
+  else
+    CMAKE_EXTRA_OPTIONS="$CMAKE_EXTRA_OPTIONS -DNOCUDA=ON "
   fi
 
   #============================================================================
@@ -348,7 +377,7 @@ function main
     -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX:PATH="$INSTALL_DIR" \
    \
-    $CMAKE_MPI_OPTIONS \
+    $CMAKE_EXTRA_OPTIONS \
    \
     -DCMAKE_C_COMPILER:STRING="$cc" \
    \
@@ -370,11 +399,9 @@ function main
     -DGTEST_DIR:STRING=$GTEST_DIR \
     -DTEST_COMMAND="$TEST_COMMAND" \
    \
-    -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON \
-   \
     $REPO_DIR
 
-	ln -s $INSTALL_DIR install_dir
+  ln -s $INSTALL_DIR install_dir
 }
 
 #  -DCUDA_NVCC_FLAGS:STRING="-I$MPICH_DIR/include;-arch=sm_35;-O3;-use_fast_math;-DNDEBUG;--maxrregcount;128;-Xcompiler;-fstrict-aliasing;-Xcompiler;-fargument-noalias-global;-Xcompiler;-O3;-Xcompiler;-fomit-frame-pointer;-Xcompiler;-funroll-loops;-Xcompiler;-finline-limit=100000000;-Xptxas=-v" \
