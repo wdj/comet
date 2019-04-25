@@ -18,6 +18,8 @@ function main
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
   local IS_DGX2
   [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
+  local IS_GPUSYS2
+  [[ "$(uname -n)" = "gpusys2" ]] && IS_GPUSYS2="YES" || IS_GPUSYS2="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -39,6 +41,8 @@ function main
     module -q load $CUDA_MODULE
     module list
   elif [ $IS_DGX2 = YES ] ; then
+    true
+  elif [ $IS_GPUSYS2 = YES ] ; then
     true
   else
     echo "Unknown platform." 1>&2

@@ -66,11 +66,12 @@ void bt_sighandler(int sig, struct sigcontext ctx) {
     fprintf(stdout,"MPI rank %i: stack trace for %s pid=%s\n",
             proc_num, name_buf, pid_buf);
 
-    char cmd[512];
-    sprintf(cmd, "gdb --batch -n -ex thread -ex bt %s %s 2>&1"
-                 " | grep '^#' | sed -e 's/^/MPI rank %i: /'",
-            name_buf, pid_buf, proc_num);
-    system(cmd);
+    //FIX
+    //char cmd[512];
+    //sprintf(cmd, "gdb --batch -n -ex thread -ex bt %s %s 2>&1"
+    //             " | grep '^#' | sed -e 's/^/MPI rank %i: /'",
+    //        name_buf, pid_buf, proc_num);
+    //system(cmd);
 
     abort(); /* If gdb failed to start */
   } else {

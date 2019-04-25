@@ -38,6 +38,8 @@ function main
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
   local IS_DGX2
   [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
+  local IS_GPUSYS2
+  [[ "$(uname -n)" = "gpusys2" ]] && IS_GPUSYS2="YES" || IS_GPUSYS2="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -82,6 +84,14 @@ function main
     local cc=$HOME/.linuxbrew/bin/gcc-6
     local CC=$HOME/.linuxbrew/bin/g++-6
     local CC_serial=$CC
+  elif [ $IS_GPUSYS2 = YES ] ; then
+    export CUDA_ROOT=/usr/local/cuda-10.1
+    local CUDA_INCLUDE_OPTS="-I$CUDA_ROOT/include -I$CUDA_ROOT/extras/CUPTI/include -I$CUDA_ROOT/extras/Debugger/include"
+    local CUDA_POST_LINK_OPTS="-L$CUDA_ROOT/lib64"
+    local cc=$(spack location --install-dir gcc)/bin/gcc
+    local CC=$(spack location --install-dir gcc)/bin/g++
+    local CC_serial=$CC
+
   else
     echo "Unknown platform." 1>&2
     exit 1
@@ -283,6 +293,10 @@ function main
     C_CXX_FLAGS="$C_CXX_FLAGS -std=gnu++11"
     LFLAGS="$LFLAGS -Wl,-rpath=$CUDA_ROOT/lib64"
   fi
+  if [ $IS_GPUSYS2 = YES ] ; then
+    C_CXX_FLAGS="$C_CXX_FLAGS -std=gnu++11"
+    LFLAGS="$LFLAGS -Wl,-rpath=$CUDA_ROOT/lib64"
+  fi
 
   #----------------------------------------------------------------------------
 
@@ -296,6 +310,10 @@ function main
     C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
   fi
   if [ $IS_DGX2 = YES ] ; then
+    local TEST_COMMAND=""
+    C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
+  fi
+  if [ $IS_GPUSYS2 = YES ] ; then
     local TEST_COMMAND=""
     C_CXX_FLAGS="$C_CXX_FLAGS -DHAVE_INT128"
   fi

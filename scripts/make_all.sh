@@ -27,7 +27,7 @@ function main
     pushd $dir
     ../genomics_gpu/scripts/make.sh 2>&1 | tee out_make.sh
     if [ $? != 0 ] ; then
-      echo "Buold failre." 1>&2
+      echo "Build failure." 1>&2
       exit 1
     fi
     popd

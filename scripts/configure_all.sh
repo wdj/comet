@@ -24,6 +24,8 @@ function main
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
   local IS_DGX2
   [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
+  local IS_GPUSYS2
+  [[ "$(uname -n)" = "gpusys2" ]] && IS_GPUSYS2="YES" || IS_GPUSYS2="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -53,6 +55,7 @@ function main
 
   local DO_BUILD_TEST=YES # NO
   [[ $IS_DGX2 = YES ]] && DO_BUILD_TEST=NO
+  [[ $IS_GPUSYS2 = YES ]] && DO_BUILD_TEST=NO
   if [ $DO_BUILD_TEST = YES ] ; then
     local BUILD_DIR=build_test_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
@@ -104,6 +107,7 @@ function main
 
   local DO_BUILD_SINGLE_TEST=YES # NO
   [[ $IS_DGX2 = YES ]] && DO_BUILD_SINGLE_TEST=NO
+  [[ $IS_GPUSYS2 = YES ]] && DO_BUILD_SINGLE_TEST=NO
   if [ $DO_BUILD_SINGLE_TEST = YES ] ; then
     local BUILD_DIR=build_single_test_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
@@ -130,6 +134,7 @@ function main
 
   local DO_BUILD_RELEASE=YES # NO
   [[ $IS_DGX2 = YES ]] && DO_BUILD_RELEASE=NO
+  [[ $IS_GPUSYS2 = YES ]] && DO_BUILD_RELEASE=NO
   if [ $DO_BUILD_RELEASE = YES ] ; then
     local BUILD_DIR=build_release_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."
@@ -181,6 +186,7 @@ function main
 
   local DO_BUILD_SINGLE_RELEASE=YES # NO
   [[ $IS_DGX2 = YES ]] && DO_BUILD_SINGLE_RELEASE=NO
+  [[ $IS_GPUSYS2 = YES ]] && DO_BUILD_SINGLE_RELEASE=NO
   if [ $DO_BUILD_SINGLE_RELEASE = YES ] ; then
     local BUILD_DIR=build_single_release_$DIRNAME_STUB
     echo "Creating $BUILD_DIR ..."

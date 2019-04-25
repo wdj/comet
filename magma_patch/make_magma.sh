@@ -23,6 +23,8 @@ function do_make
   [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
   local IS_DGX2
   [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
+  local IS_GPUSYS2
+  [[ "$(uname -n)" = "gpusys2" ]] && IS_GPUSYS2="YES" || IS_GPUSYS2="NO"
   local IS_EXPERIMENTAL
   [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
                                                  IS_EXPERIMENTAL="NO"
@@ -54,6 +56,11 @@ function do_make
     export CUDA_DIR=$HOME/cuda
     export GPU_TARGET=sm70 NV_SM=" -gencode arch=compute_70,code=sm_70" NV_COMP="-gencode arch=compute_70,code=compute_70" MIN_ARCH=350
     MAKE_ARGS="CC=$HOME/.linuxbrew/bin/gcc-6 CXX=$HOME/.linuxbrew/bin/g++-6"
+  elif [ $IS_GPUSYS2 = YES ] ; then
+    cp ../make.inc.summit make.inc
+    export CUDA_DIR=/usr/local/cuda-10.1
+    export GPU_TARGET=sm70 NV_SM=" -gencode arch=compute_75,code=sm_75" NV_COMP="-gencode arch=compute_75,code=compute_75" MIN_ARCH=350
+    MAKE_ARGS="CC=$(spack location --install-dir gcc)/bin/g++"
   else
     echo "Unknown platform." 1>&2
     exit 1
