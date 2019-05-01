@@ -72,7 +72,7 @@ function main
     local INSTALL_DIR=$INSTALLS_DIR/install_test_$DIRNAME_STUB
     env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Debug TESTING=ON \
         ../genomics_gpu/scripts/cmake.sh
-    if [ ! -e  ../magma_build_$DIRNAME_STUB ] ; then
+    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
       mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
       ln -s          ../magma_build_$DIRNAME_STUB magma_patch
     fi
@@ -97,7 +97,7 @@ function main
     local INSTALL_DIR=$INSTALLS_DIR/install_test_nompi_$DIRNAME_STUB
     env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Debug NOMPI=ON \
         ../genomics_gpu/scripts/cmake.sh
-    if [ ! -e  ../magma_build_$DIRNAME_STUB ] ; then
+    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
       mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
       ln -s          ../magma_build_$DIRNAME_STUB magma_patch
     fi
@@ -124,7 +124,7 @@ function main
     local INSTALL_DIR=$INSTALLS_DIR/install_single_test_$DIRNAME_STUB
     env INSTALL_DIR=$INSTALL_DIR FP_PRECISION=SINGLE BUILD_TYPE=Debug TESTING=ON \
         ../genomics_gpu/scripts/cmake.sh
-    if [ ! -e  ../magma_build_$DIRNAME_STUB ] ; then
+    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
       mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
       ln -s          ../magma_build_$DIRNAME_STUB magma_patch
     fi
@@ -151,7 +151,7 @@ function main
     local INSTALL_DIR=$INSTALLS_DIR/install_release_$DIRNAME_STUB
     env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Release \
         ../genomics_gpu/scripts/cmake.sh
-    if [ ! -e  ../magma_build_$DIRNAME_STUB ] ; then
+    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
       mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
       ln -s          ../magma_build_$DIRNAME_STUB magma_patch
     fi
@@ -176,7 +176,7 @@ function main
     local INSTALL_DIR=$INSTALLS_DIR/install_release_nompi_$DIRNAME_STUB
     env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Release NOMPI=ON \
         ../genomics_gpu/scripts/cmake.sh
-    if [ ! -e  ../magma_build_$DIRNAME_STUB ] ; then
+    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
       mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
       ln -s          ../magma_build_$DIRNAME_STUB magma_patch
     fi
@@ -203,7 +203,7 @@ function main
     local INSTALL_DIR=$INSTALLS_DIR/install_single_release_$DIRNAME_STUB
     env INSTALL_DIR=$INSTALL_DIR FP_PRECISION=SINGLE BUILD_TYPE=Release \
         ../genomics_gpu/scripts/cmake.sh
-    if [ ! -e  ../magma_build_$DIRNAME_STUB ] ; then
+    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
       mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
       ln -s          ../magma_build_$DIRNAME_STUB magma_patch
     fi

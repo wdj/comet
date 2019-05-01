@@ -289,7 +289,7 @@ function main
 
   #----------------------------------------------------------------------------
 
-  local LFLAGS=
+  local LFLAGS="-Wl,--print-map"
   if [ $NOCUDA = OFF ] ; then
     LFLAGS="-L$MAGMA_DIR/magma_minproduct/lib -lmagma_minproduct"
     LFLAGS="$LFLAGS -L$MAGMA_DIR/magma_mgemm2/lib -lmagma_mgemm2"
