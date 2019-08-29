@@ -90,7 +90,8 @@ module -q load cuda
 
 host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//' -e 's/[0-9]*$//')
 OLCF_PROJECT="$(echo $LSB_PROJECT_NAME | tr A-Z a-z)"
-INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
+#INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
+INSTALLS_DIR=$MEMBERWORK/$OLCF_PROJECT/comet_work
 
 if [ $debug = 1 ] ; then
   executable_double=$INSTALLS_DIR/install_test_$host/bin/genomics_metric

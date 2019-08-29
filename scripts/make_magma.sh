@@ -1,0 +1,1 @@
+../magma_patch/make_magma.sh

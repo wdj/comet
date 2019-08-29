@@ -16,63 +16,44 @@ set -eu -o pipefail
 
 function main
 {
-  local IS_CRAY_XK7 # OLCF Titan or Chester
-  [[ -n "${CRAYOS_VERSION:-}" ]] && IS_CRAY_XK7="YES" || IS_CRAY_XK7="NO"
-  local IS_IBM_AC922 # OLCF Summit or Peak
-  [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
-  local IS_EXPERIMENTAL
-  [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
-                                                 IS_EXPERIMENTAL="NO"
+  # Location of this script.
+  local SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+  . $SCRIPT_DIR/_platform_init.sh
 
-  local host
-  host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//' -e 's/[0-9]*$//')
-  local DIRNAME_STUB
-  [[ $IS_EXPERIMENTAL = YES ]] && DIRNAME_STUB=experimental || DIRNAME_STUB=$host
+  local DIRS="build_test_$COMET_PLATFORM_STUB"
+  DIRS+=" build_single_test_$COMET_PLATFORM_STUB"
 
-  # WARNING: these module loads may need to match those in scripts/cmake.sh
-  if [ $IS_EXPERIMENTAL = YES ] ; then
-    true # skip for now
-  elif [ $IS_CRAY_XK7 = YES ] ; then
-    if [ "$PE_ENV" = "PGI" ] ; then
-      module unload PrgEnv-pgi
-    fi
-    module load PrgEnv-gnu
-    module load cudatoolkit
-  elif [ $IS_IBM_AC922 = YES ] ; then
-    module -q load gcc/6.4.0
-    local CUDA_MODULE=cuda
-    module -q load $CUDA_MODULE
-  else
-    echo "Unknown platform." 1>&2
-    exit 1
-  fi
+  # Do tests.
 
-  local dirs="build_test_$DIRNAME_STUB build_single_test_$DIRNAME_STUB"
-
-  local dir
-  for dir in $dirs ; do
+  local DIR
+  for DIR in $DIRS ; do
     echo "===================="
-    echo $dir
+    echo $DIR
     echo "===================="
-    pushd $dir
+    pushd $DIR
     time make test ARGS=-V 2>&1 | tee out_test.txt
     if [ $? != 0 ] ; then
-      exit 1
+      exit $?
     fi
     popd
   done
 
-  echo "-------------------------------------------------------------------------------"
-  for dir in $dirs ; do
-    grep -H fail $dir/out_test.txt
+  # Final reporting.
+
+  printf -- '-%.0s' {1..79}; echo ""
+
+  for DIR in $DIRS ; do
+    grep -H fail $DIR/out_test.txt
   done
-  out_files="$(for dir in $dirs ; do echo $dir/out_test.txt ; done)"
-  if [ $(grep ' tests fail' $out_files <(echo ' tests fail') | wc -l) = \
-       $(grep ' 0 tests fail' $out_files <(echo ' 0 tests fail') | wc -l) ] ; then
+  OUT_FILES="$(for DIR in $DIRS ; do echo $DIR/out_test.txt ; done)"
+  if [ $(awk '/ tests fail/' $OUT_FILES | wc -l) = \
+       $(awk '/ 0 tests fail/' $OUT_FILES | wc -l) ] ; then
     echo "!!! All tests PASSED !!!"
+  else
+    echo "!!! Some tests FAILED !!!"
   fi
 
-  echo "-------------------------------------------------------------------------------"
+  printf -- '-%.0s' {1..79}; echo ""
 } # main
 
 #==============================================================================

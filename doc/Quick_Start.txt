@@ -6,26 +6,16 @@ The following is run on the ORNL Summit system.
 
 --------------------
 
-# To build debug/test and release versions of the code:
+# To build all versions of the code:
 
-MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
-cd $MEMBERWORK/$MY_PROJID
+OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
+cd $MEMBERWORK/$OLCF_PROJECT
 mkdir comet_work
 cd comet_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
-
-mkdir build_test
-pushd build_test
-env BUILD_TYPE=Debug TESTING=ON ../genomics_gpu/scripts/cmake.sh
-../genomics_gpu/scripts/make.sh
-popd
-
-mkdir build_release
-cd build_release
-env BUILD_TYPE=Release ../genomics_gpu/scripts/cmake.sh
-../genomics_gpu/scripts/make.sh
-popd
+genomics_gpu/scripts/configure_all.sh
+genomics_gpu/scripts/make_all.sh
 
 --------------------------------------------------------------------------------
 
@@ -197,22 +187,19 @@ values matches that of the system on which the code is run.
 # Run the tester.
 #--------------------
 
-MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
-bsub -P $MY_PROJID -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
-cd $MEMBERWORK/$MY_PROJID/comet_work
-module -q load gcc/6.4.0
-pushd build_test
-make test ARGS=-V
-popd
+OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
+bsub -P $OLCF_PROJECT -Is -nnodes 2 -W 120 -alloc_flags gpumps $SHELL
+cd $MEMBERWORK/$OLCF_PROJECT/comet_work
+genomics_gpu/scripts/test_all.sh
 
 --------------------------------------------------------------------------------
 
 # The following test runs assume:
 
-MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
-bsub -P $MY_PROJID -Is -nnodes 2 -W 120 $SHELL
-cd $MEMBERWORK/$MY_PROJID/comet_work
-module -q load gcc/6.4.0
+OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
+bsub -P $OLCF_PROJECT -Is -nnodes 2 -W 120 $SHELL
+cd $MEMBERWORK/$OLCF_PROJECT/comet_work
+module -q load gcc/6.4.0 cuda
 
 # The following code also assumes bash shell.
 
@@ -221,11 +208,12 @@ module -q load gcc/6.4.0
 #--------------------
 
 AR_PERFORMANCE_FLAGS="PAMI_IBV_ENABLE_DCT=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ADAPTER_AFFINITY=0 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_OOO_AR=1"
+EXECUTABLE="./install_release_summit/bin/genomics_metric"
 
 env OMP_NUM_THREADS=7 $AR_PERFORMANCE_FLAGS \
 jsrun --nrs 1 --rs_per_host 1 \
   --tasks_per_rs 1 --cpu_per_rs 7 --bind packed:7 --gpu_per_rs 1 -X 1 \
-  ./install_release/bin/genomics_metric \
+  $EXECUTABLE \
     --num_field 2 --num_vector 4 --num_proc_vector 1 \
     --metric_type czekanowski --num_way 2 \
     --compute_method GPU --all2all yes --verbosity 3
@@ -244,7 +232,7 @@ element (1,2): value: 5.99999999999999978e-01
 element (0,3): value: 5.99999999999999978e-01
 element (1,3): value: 8.57142857142857095e-01
 element (2,3): value: 5.99999999999999978e-01
-metrics checksum 0-82898256547-645082804690974176 ctime 0.003188 ops 8.000000e+01 ops_rate 2.509681e+04 ops_rate/proc 2.509681e+04 vcmp 6.000000e+00 cmp 1.200000e+01 ecmp 1.200000e+01 ecmp_rate 3.764521e+03 ecmp_rate/proc 3.764521e+03 vctime 0.000018 mctime 0.000028 cktime 0.000045 intime 0.000082 outtime 0.000070 cpumem 6.720000e+02 gpumem 4.480000e+02 tottime 0.003595
+metrics checksum 0-82898256547-645082804690974176 ctime 0.003131 ops 8.000000e+01 ops_rate 2.554971e+04 ops_rate/proc 2.554971e+04 vcmp 6.000000e+00 cmp 1.200000e+01 ecmp 1.200000e+01 ecmp_rate 3.832456e+03 ecmp_rate/proc 3.832456e+03 vctime 0.000022 mctime 0.000023 cktime 0.000039 intime 0.000069 outtime 0.000044 cpumem 6.720000e+02 gpumem 4.480000e+02 tottime 0.003433
 
 #--------------------
 # Larger case, multiple GPUs.
@@ -253,12 +241,12 @@ metrics checksum 0-82898256547-645082804690974176 ctime 0.003188 ops 8.000000e+0
 env OMP_NUM_THREADS=7 $AR_PERFORMANCE_FLAGS \
 jsrun --nrs 12 --rs_per_host 6 \
   --tasks_per_rs 1 --cpu_per_rs 7 --bind packed:7 --gpu_per_rs 1 -X 1 \
-  ./install_release/bin/genomics_metric \
+  $EXECUTABLE \
     --num_field 20000 --num_vector 150000 --num_proc_vector 10 \
     --metric_type czekanowski --num_way 2 \
     --compute_method GPU --all2all yes --verbosity 1
 
-metrics checksum 95-731337953569731265-108597638988176688 ctime 25.810007 ops 4.950330e+14 ops_rate 1.917989e+13 ops_rate/proc 1.917989e+12 vcmp 1.124992e+10 cmp 2.249985e+14 ecmp 2.249985e+14 ecmp_rate 8.717491e+12 ecmp_rate/proc 8.717491e+11 vctime 0.031947 mctime 0.625697 cktime 53.964935 intime 1.176830 outtime 0.000040 cpumem 3.300012e+10 gpumem 1.080000e+10 tottime 81.609844
+metrics checksum 95-731337953569731265-108597638988176688 ctime 27.617216 ops 4.950330e+14 ops_rate 1.792480e+13 ops_rate/proc 1.792480e+12 vcmp 1.124992e+10 cmp 2.249985e+14 ecmp 2.249985e+14 ecmp_rate 8.147038e+12 ecmp_rate/proc 8.147038e+11 vctime 0.015438 mctime 0.676193 cktime 50.526713 intime 1.086587 outtime 0.000027 cpumem 3.300012e+10 gpumem 1.080000e+10 tottime 79.922458
 
 #--------------------
 # 3-way Czekanowski metric, small case.
@@ -267,7 +255,7 @@ metrics checksum 95-731337953569731265-108597638988176688 ctime 25.810007 ops 4.
 env OMP_NUM_THREADS=7 $AR_PERFORMANCE_FLAGS \
 jsrun --nrs 1 --rs_per_host 1 \
   --tasks_per_rs 1 --cpu_per_rs 7 --bind packed:7 --gpu_per_rs 1 -X 1 \
-  ./install_release/bin/genomics_metric \
+  $EXECUTABLE \
     --num_field 2 --num_vector 4 --num_proc_vector 1 \
     --metric_type czekanowski --num_way 3 \
     --compute_method GPU --all2all yes --verbosity 3
@@ -284,7 +272,7 @@ element (0,1,2): value: 6.92307692307692291e-01
 element (0,1,3): value: 7.94117647058823484e-01
 element (0,2,3): value: 6.92307692307692291e-01
 element (1,2,3): value: 7.94117647058823484e-01
-metrics checksum 0-84749404949-5538720434861296 ctime 0.003640 ops 1.280000e+02 ops_rate 3.516315e+04 ops_rate/proc 3.516315e+04 vcmp 4.000000e+00 cmp 8.000000e+00 ecmp 8.000000e+00 ecmp_rate 2.197697e+03 ecmp_rate/proc 2.197697e+03 vctime 0.000017 mctime 0.000056 cktime 0.000076 intime 0.000090 outtime 0.000062 cpumem 1.440000e+03 gpumem 9.600000e+02 tottime 0.004084
+metrics checksum 0-84749404949-5538720434861296 ctime 0.003335 ops 1.280000e+02 ops_rate 3.838082e+04 ops_rate/proc 3.838082e+04 vcmp 4.000000e+00 cmp 8.000000e+00 ecmp 8.000000e+00 ecmp_rate 2.398801e+03 ecmp_rate/proc 2.398801e+03 vctime 0.000021 mctime 0.000037 cktime 0.000044 intime 0.000066 outtime 0.000040 cpumem 1.440000e+03 gpumem 9.600000e+02 tottime 0.003641
 
 #--------------------
 # 2-way CCC metric, small case.
@@ -293,7 +281,7 @@ metrics checksum 0-84749404949-5538720434861296 ctime 0.003640 ops 1.280000e+02 
 env OMP_NUM_THREADS=7 $AR_PERFORMANCE_FLAGS \
 jsrun --nrs 1 --rs_per_host 1 \
   --tasks_per_rs 1 --cpu_per_rs 7 --bind packed:7 --gpu_per_rs 1 -X 1 \
-  ./install_release/bin/genomics_metric \
+  $EXECUTABLE \
     --num_field 2 --num_vector 4 --num_proc_vector 1 \
     --metric_type ccc --num_way 2 \
     --compute_method GPU --all2all yes --verbosity 3
@@ -312,7 +300,7 @@ element (1,2): values: 0 0 2.34375000000000000e-01 0 1 3.90625000000000000e-01 1
 element (0,3): values: 0 0 2.34375000000000000e-01 0 1 7.03125000000000000e-01 1 0 3.90625000000000000e-01 1 1 2.34375000000000000e-01
 element (1,3): values: 0 0 0.00000000000000000e+00 0 1 4.68750000000000000e-01 1 0 4.68750000000000000e-01 1 1 5.62500000000000000e-01
 element (2,3): values: 0 0 4.68750000000000000e-01 0 1 5.62500000000000000e-01 1 0 0.00000000000000000e+00 1 1 4.68750000000000000e-01
-metrics checksum 0-245201878478-801640733671948288 ctime 0.004888 ops 8.192000e+03 ops_rate 1.676003e+06 ops_rate/proc 1.676003e+06 vcmp 6.000000e+00 cmp 4.800000e+01 ecmp 1.200000e+01 ecmp_rate 2.455083e+03 ecmp_rate/proc 2.455083e+03 vctime 0.000700 mctime 0.000027 cktime 0.000045 intime 0.000073 outtime 0.000135 cpumem 1.024000e+03 gpumem 2.752000e+03 tottime 0.006013
+metrics checksum 0-245201878478-801640733671948288 ctime 0.003012 ops 0.000000e+00 ops_rate 0.000000e+00 ops_rate/proc 0.000000e+00 vcmp 6.000000e+00 cmp 4.800000e+01 ecmp 1.200000e+01 ecmp_rate 3.984141e+03 ecmp_rate/proc 3.984141e+03 vctime 0.000022 mctime 0.000021 cktime 0.000030 intime 0.000071 outtime 0.000115 cpumem 1.024000e+03 gpumem 7.040000e+02 tottime 0.003367
 
 #--------------------
 # Larger case, using tensor cores.
@@ -321,7 +309,7 @@ metrics checksum 0-245201878478-801640733671948288 ctime 0.004888 ops 8.192000e+
 env OMP_NUM_THREADS=7 $AR_PERFORMANCE_FLAGS \
 jsrun --nrs 12 --rs_per_host 6 \
   --tasks_per_rs 1 --cpu_per_rs 7 --bind packed:7 --gpu_per_rs 1 -X 1 \
-  ./install_release/bin/genomics_metric \
+  $EXECUTABLE \
     --num_field 400000 --num_vector 100000 --num_proc_vector 10 \
     --metric_type ccc --num_way 2 \
     --compute_method GPU --tc 1 --num_tc_steps 4 --all2all yes --verbosity 1
@@ -335,7 +323,7 @@ metrics checksum 138-217645116196906322-630503947831869440 ctime 23.484884 ops 1
 env OMP_NUM_THREADS=7 $AR_PERFORMANCE_FLAGS \
 jsrun --nrs 1 --rs_per_host 1 \
   --tasks_per_rs 1 --cpu_per_rs 7 --bind packed:7 --gpu_per_rs 1 -X 1 \
-  ./install_release/bin/genomics_metric \
+  $EXECUTABLE \
     --num_field 2 --num_vector 4 --num_proc_vector 1 \
     --metric_type ccc --num_way 3 \
     --compute_method GPU --all2all yes --verbosity 3
@@ -352,5 +340,5 @@ element (0,1,2): values: 0 0 0 1.17187500000000000e-01 0 0 1 1.95312500000000000
 element (0,1,3): values: 0 0 0 0.00000000000000000e+00 0 0 1 2.34375000000000000e-01 0 1 0 1.17187500000000000e-01 0 1 1 2.10937500000000000e-01 1 0 0 0.00000000000000000e+00 1 0 1 0.00000000000000000e+00 1 1 0 1.95312500000000000e-01 1 1 1 1.17187500000000000e-01
 element (0,2,3): values: 0 0 0 1.17187500000000000e-01 0 0 1 2.10937500000000000e-01 0 1 0 0.00000000000000000e+00 0 1 1 2.34375000000000000e-01 1 0 0 1.95312500000000000e-01 1 0 1 1.17187500000000000e-01 1 1 0 0.00000000000000000e+00 1 1 1 0.00000000000000000e+00
 element (1,2,3): values: 0 0 0 0.00000000000000000e+00 0 0 1 1.17187500000000000e-01 0 1 0 0.00000000000000000e+00 0 1 1 1.95312500000000000e-01 1 0 0 2.34375000000000000e-01 1 0 1 2.10937500000000000e-01 1 1 0 0.00000000000000000e+00 1 1 1 1.17187500000000000e-01
-metrics checksum 0-20352394550-918734323983581184 ctime 0.003616 ops 0.000000e+00 ops_rate 0.000000e+00 ops_rate/proc 0.000000e+00 vcmp 4.000000e+00 cmp 6.400000e+01 ecmp 8.000000e+00 ecmp_rate 2.212332e+03 ecmp_rate/proc 2.212332e+03 vctime 0.000017 mctime 0.000047 cktime 0.000062 intime 0.000073 outtime 0.000135 cpumem 1.472000e+03 gpumem 8.320000e+02 tottime 0.004069
+metrics checksum 0-20352394550-918734323983581184 ctime 0.003430 ops 0.000000e+00 ops_rate 0.000000e+00 ops_rate/proc 0.000000e+00 vcmp 4.000000e+00 cmp 6.400000e+01 ecmp 8.000000e+00 ecmp_rate 2.332274e+03 ecmp_rate/proc 2.332274e+03 vctime 0.000021 mctime 0.000041 cktime 0.000054 intime 0.000062 outtime 0.000133 cpumem 1.472000e+03 gpumem 8.320000e+02 tottime 0.003840
 

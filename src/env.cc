@@ -297,13 +297,17 @@ void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
   // Convert options string to args
 
   size_t len = strlen(options);
-  char argstring[len+1];
-  char* argv[len+1];
+
+  char* argstring = (char*)malloc((len+1)*sizeof(char));
+  char ** argv = (char**)malloc((len+1)*sizeof(char*));
   int argc = 0;
   strcpy(argstring, options);
   gm_create_args(argstring, &argc, argv);
 
   GMEnv_create_impl_(env, base_comm, argc, argv, description, true, 0, 0);
+
+  free(argstring);
+  free(argv);
 }
 
 //-----------------------------------------------------------------------------
@@ -327,14 +331,17 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
   // Convert options string to args
 
   size_t len = strlen(options);
-  char argstring[len+1];
-  char* argv[len+1];
+  char* argstring = (char*)malloc((len+1)*sizeof(char));
+  char ** argv = (char**)malloc((len+1)*sizeof(char*));
   int argc = 0;
   strcpy(argstring, options);
   gm_create_args(argstring, &argc, argv);
 
   GMEnv_create_impl_(env, MPI_COMM_WORLD, argc, argv, description,
                      false, num_proc, proc_num);
+
+  free(argstring);
+  free(argv);
 }
 
 //=============================================================================

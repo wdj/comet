@@ -1,13 +1,14 @@
 #!/bin/bash
 #==============================================================================
 #
-# Configure ALL versions prior to build.
+# Configure ALL CoMet versions prior to build.
 # This should be executed in the directory containing the genomics_gpu
 # repo directory.
 #
 # Relevant input variables:
 #
 # OLCF_PROJECT - OLCF project ID
+# COMET_BUILD_EXPERIMENTAL -
 #
 #==============================================================================
 
@@ -16,36 +17,74 @@ set -eu -o pipefail
 
 #==============================================================================
 
+function configure_1case
+{
+    printf -- '-%.0s' {1..79}; echo ""
+    echo COMET_PLATFORM_STUB=$COMET_PLATFORM_STUB INSTALLS_DIR=$INSTALLS_DIR \
+      BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING NOMPI=$NOMPI \
+      FP_PRECISION=$FP_PRECISION
+
+    local BUILD_STUB=""
+    [[ $FP_PRECISION = SINGLE ]] && BUILD_STUB+="single_"
+    [[ $BUILD_TYPE = Debug ]] && BUILD_STUB+="test" || BUILD_STUB+="release"
+    [[ $NOMPI = ON ]] && BUILD_STUB+="_nompi"
+
+    local BUILD_DIR=build_${BUILD_STUB}_$COMET_PLATFORM_STUB
+    echo "Creating $BUILD_DIR ..."
+    mkdir -p $BUILD_DIR
+    pushd $BUILD_DIR
+    rm -rf * # Clean out any previous build files
+
+    # Link to common MAGMA build if available.
+    local MAGMA_BUILD_DIR=../magma_build_$COMET_PLATFORM_STUB
+    if [ -e $MAGMA_BUILD_DIR ] ; then
+      ln -s $MAGMA_BUILD_DIR magma_patch
+    fi
+
+    local INSTALL_DIR=$INSTALLS_DIR/install_${BUILD_STUB}_$COMET_PLATFORM_STUB
+
+    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
+        NOMPI=$NOMPI FP_PRECISION=$FP_PRECISION \
+        ../genomics_gpu/scripts/cmake.sh
+
+    # Move magma build to location for common use for different builds.
+    if [ -e magma_patch -a ! -e $MAGMA_BUILD_DIR ] ; then
+      mv magma_patch $MAGMA_BUILD_DIR # share common MAGMA build
+      ln -s          $MAGMA_BUILD_DIR magma_patch
+    fi
+
+    popd
+    rm -f $(basename $INSTALL_DIR)
+    ln -s $INSTALL_DIR .
+    printf -- '-%.0s' {1..79}; echo ""
+} # configure_1case
+
+#==============================================================================
+
 function main
 {
-  local IS_CRAY_XK7 # OLCF Titan or Chester
-  [[ -n "${CRAYOS_VERSION:-}" ]] && IS_CRAY_XK7="YES" || IS_CRAY_XK7="NO"
-  local IS_IBM_AC922 # OLCF Summit or Peak
-  [[ -n "${LSF_BINDIR:-}" ]] && IS_IBM_AC922="YES" || IS_IBM_AC922="NO"
-  local IS_DGX2
-  [[ "$(uname -n)" = "dgx2-b" ]] && IS_DGX2="YES" || IS_DGX2="NO"
-  local IS_GPUSYS2
-  [[ "$(uname -n)" = "gpusys2" ]] && IS_GPUSYS2="YES" || IS_GPUSYS2="NO"
-  local IS_EDISON
-  [[ "${NERSC_HOST:-}" = "edison" ]] && IS_EDISON="YES" || IS_EDISON="NO"
-  local IS_EXPERIMENTAL
-  [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && IS_EXPERIMENTAL="YES" || \
-                                                 IS_EXPERIMENTAL="NO"
-  if [ -z "${OLCF_PROJECT:-}" ] ; then
-    local OLCF_PROJECT=stf006
+  # Initial checks.
+  local CBE_="${COMET_BUILD_EXPERIMENTAL:-}"
+  if [ "$CBE_" != "" -a  \ "$CBE_" != "YES" -a "$CBE_" != "NO" ] ; then
+    echo "Error in COMET_BUILD_EXPERIMENTAL setting." 1>&2
+    exit 1
   fi
-  local host
-  host=$(echo $(hostname -f) | sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' -e 's/[.-].*//' -e 's/[0-9]*$//')
-  local DIRNAME_STUB
-  [[ $IS_EXPERIMENTAL = YES ]] && DIRNAME_STUB=experimental || DIRNAME_STUB=$host
-  #
-  if [ $IS_EXPERIMENTAL = YES ] ; then
-    true # skip for now
-  elif [ $IS_CRAY_XK7 = YES ] ; then
-    local INSTALLS_DIR=/lustre/atlas/scratch/$(whoami)/$OLCF_PROJECT/comet
-  elif [ $IS_IBM_AC922 = YES ] ; then
-    local INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
-  elif [ $IS_EDISON = YES ] ; then
+
+  # Location of this script.
+  local SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+  . $SCRIPT_DIR/_platform_init.sh
+
+  [[ -z "${OLCF_PROJECT:-}" ]] && local OLCF_PROJECT=stf006
+
+  # Set directory for all installs.
+  if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
+    true # skip
+  elif [ $COMET_PLATFORM = CRAY_XK7 ] ; then
+    local INSTALLS_DIR=/lustre/atlas/scratch/$(whoami)/$OLCF_PROJECT/comet_work
+  elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
+    #local INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
+    local INSTALLS_DIR=$MEMBERWORK/$OLCF_PROJECT/comet_work
+  elif [ $COMET_PLATFORM = EDISON ] ; then
     local INSTALLS_DIR="$SCRATCH/comet"
   else
     local INSTALLS_DIR="$PWD/installs"
@@ -54,164 +93,67 @@ function main
   fi
   mkdir -p "$INSTALLS_DIR"
 
-  #----------------------------------------------------------------------------
-  # test / double precision build
+  # Prepare for builds.
+  export COMET_PLATFORM_STUB=$COMET_PLATFORM_STUB INSTALLS_DIR=$INSTALLS_DIR
 
-  local DO_BUILD_TEST=YES # NO
-  [[ $IS_DGX2 = YES ]] && DO_BUILD_TEST=NO
-  [[ $IS_GPUSYS2 = YES ]] && DO_BUILD_TEST=NO
-  if [ $DO_BUILD_TEST = YES ] ; then
-    local BUILD_DIR=build_test_$DIRNAME_STUB
-    echo "Creating $BUILD_DIR ..."
-    mkdir -p $BUILD_DIR
-    pushd $BUILD_DIR
-    rm -rf *
-    if [ -e ../magma_build_$DIRNAME_STUB ] ; then
-      ln -s ../magma_build_$DIRNAME_STUB magma_patch # link to common MAGMA build
-    fi
-    local INSTALL_DIR=$INSTALLS_DIR/install_test_$DIRNAME_STUB
-    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Debug TESTING=ON \
-        ../genomics_gpu/scripts/cmake.sh
-    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
-      mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
-      ln -s          ../magma_build_$DIRNAME_STUB magma_patch
-    fi
-    popd
-    rm -f $(basename $INSTALL_DIR)
-    ln -s $INSTALL_DIR .
+  #----------------------------------------------------------------------------
+  # Build: test / double precision case.
+
+  local DO_BUILD=YES # NO
+  [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
+  if [ $DO_BUILD = YES ] ; then
+    export BUILD_TYPE=Debug TESTING=ON NOMPI=OFF FP_PRECISION=DOUBLE
+    configure_1case
   fi
 
   #----------------------------------------------------------------------------
-  # test / double precision / nompi build
+  # Build: test / double precision / nompi case.
 
-  local DO_BUILD_TEST_NOMPI=YES # NO
-  if [ $DO_BUILD_TEST_NOMPI = YES ] ; then
-    local BUILD_DIR=build_test_nompi_$DIRNAME_STUB
-    echo "Creating $BUILD_DIR ..."
-    mkdir -p $BUILD_DIR
-    pushd $BUILD_DIR
-    rm -rf *
-    if [ -e ../magma_build_$DIRNAME_STUB ] ; then
-      ln -s ../magma_build_$DIRNAME_STUB magma_patch # link to common MAGMA build
-    fi
-    local INSTALL_DIR=$INSTALLS_DIR/install_test_nompi_$DIRNAME_STUB
-    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Debug NOMPI=ON \
-        ../genomics_gpu/scripts/cmake.sh
-    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
-      mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
-      ln -s          ../magma_build_$DIRNAME_STUB magma_patch
-    fi
-    popd
-    rm -f $(basename $INSTALL_DIR)
-    ln -s $INSTALL_DIR .
+  local DO_BUILD=YES # NO
+  if [ $DO_BUILD = YES ] ; then
+    export BUILD_TYPE=Debug TESTING=ON NOMPI=ON FP_PRECISION=DOUBLE
+    configure_1case
   fi
 
   #----------------------------------------------------------------------------
-  # test / single precision build
+  # Build: test / single precision case.
 
-  local DO_BUILD_SINGLE_TEST=YES # NO
-  [[ $IS_DGX2 = YES ]] && DO_BUILD_SINGLE_TEST=NO
-  [[ $IS_GPUSYS2 = YES ]] && DO_BUILD_SINGLE_TEST=NO
-  if [ $DO_BUILD_SINGLE_TEST = YES ] ; then
-    local BUILD_DIR=build_single_test_$DIRNAME_STUB
-    echo "Creating $BUILD_DIR ..."
-    mkdir -p $BUILD_DIR
-    pushd $BUILD_DIR
-    rm -rf *
-    if [ -e ../magma_build_$DIRNAME_STUB ] ; then
-      ln -s ../magma_build_$DIRNAME_STUB magma_patch # link to common MAGMA build
-    fi
-    local INSTALL_DIR=$INSTALLS_DIR/install_single_test_$DIRNAME_STUB
-    env INSTALL_DIR=$INSTALL_DIR FP_PRECISION=SINGLE BUILD_TYPE=Debug TESTING=ON \
-        ../genomics_gpu/scripts/cmake.sh
-    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
-      mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
-      ln -s          ../magma_build_$DIRNAME_STUB magma_patch
-    fi
-    popd
-    rm -f $(basename $INSTALL_DIR)
-    ln -s $INSTALL_DIR .
+  local DO_BUILD=YES # NO
+  [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
+  if [ $DO_BUILD = YES ] ; then
+    export BUILD_TYPE=Debug TESTING=ON NOMPI=OFF FP_PRECISION=SINGLE
+    configure_1case
   fi
 
   #----------------------------------------------------------------------------
-  # release / double precision build
+  # Build: release / double precision case.
 
-  local DO_BUILD_RELEASE=YES # NO
-  [[ $IS_DGX2 = YES ]] && DO_BUILD_RELEASE=NO
-  [[ $IS_GPUSYS2 = YES ]] && DO_BUILD_RELEASE=NO
-  if [ $DO_BUILD_RELEASE = YES ] ; then
-    local BUILD_DIR=build_release_$DIRNAME_STUB
-    echo "Creating $BUILD_DIR ..."
-    mkdir -p $BUILD_DIR
-    pushd $BUILD_DIR
-    rm -rf *
-    if [ -e ../magma_build_$DIRNAME_STUB ] ; then
-      ln -s ../magma_build_$DIRNAME_STUB magma_patch # link to common MAGMA build
-    fi
-    local INSTALL_DIR=$INSTALLS_DIR/install_release_$DIRNAME_STUB
-    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Release \
-        ../genomics_gpu/scripts/cmake.sh
-    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
-      mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
-      ln -s          ../magma_build_$DIRNAME_STUB magma_patch
-    fi
-    popd
-    rm -f $(basename $INSTALL_DIR)
-    ln -s $INSTALL_DIR .
+  local DO_BUILD=YES # NO
+  [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
+  if [ $DO_BUILD = YES ] ; then
+    export BUILD_TYPE=Release TESTING=OFF NOMPI=OFF FP_PRECISION=DOUBLE
+    configure_1case
   fi
 
   #----------------------------------------------------------------------------
-  # release / double precision / nompi build
+  # Build: release / double precision / nompi case.
 
-  local DO_BUILD_RELEASE_NOMPI=YES # NO
-  if [ $DO_BUILD_RELEASE_NOMPI = YES ] ; then
-    local BUILD_DIR=build_release_nompi_$DIRNAME_STUB
-    echo "Creating $BUILD_DIR ..."
-    mkdir -p $BUILD_DIR
-    pushd $BUILD_DIR
-    rm -rf *
-    if [ -e ../magma_build_$DIRNAME_STUB ] ; then
-      ln -s ../magma_build_$DIRNAME_STUB magma_patch # link to common MAGMA build
-    fi
-    local INSTALL_DIR=$INSTALLS_DIR/install_release_nompi_$DIRNAME_STUB
-    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=Release NOMPI=ON \
-        ../genomics_gpu/scripts/cmake.sh
-    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
-      mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
-      ln -s          ../magma_build_$DIRNAME_STUB magma_patch
-    fi
-    popd
-    rm -f $(basename $INSTALL_DIR)
-    ln -s $INSTALL_DIR .
+  local DO_BUILD=YES # NO
+  if [ $DO_BUILD = YES ] ; then
+    export BUILD_TYPE=Release TESTING=OFF NOMPI=ON FP_PRECISION=DOUBLE
+    configure_1case
   fi
 
   #----------------------------------------------------------------------------
-  # release / single precision build
+  # Build release / single precision case.
 
-  local DO_BUILD_SINGLE_RELEASE=YES # NO
-  [[ $IS_DGX2 = YES ]] && DO_BUILD_SINGLE_RELEASE=NO
-  [[ $IS_GPUSYS2 = YES ]] && DO_BUILD_SINGLE_RELEASE=NO
-  if [ $DO_BUILD_SINGLE_RELEASE = YES ] ; then
-    local BUILD_DIR=build_single_release_$DIRNAME_STUB
-    echo "Creating $BUILD_DIR ..."
-    mkdir -p $BUILD_DIR
-    pushd $BUILD_DIR
-    rm -rf *
-    if [ -e ../magma_build_$DIRNAME_STUB ] ; then
-      ln -s ../magma_build_$DIRNAME_STUB magma_patch # link to common MAGMA build
-    fi
-    local INSTALL_DIR=$INSTALLS_DIR/install_single_release_$DIRNAME_STUB
-    env INSTALL_DIR=$INSTALL_DIR FP_PRECISION=SINGLE BUILD_TYPE=Release \
-        ../genomics_gpu/scripts/cmake.sh
-    if [ -e magma_patch -a ! -e ../magma_build_$DIRNAME_STUB ] ; then
-      mv magma_patch ../magma_build_$DIRNAME_STUB # share common MAGMA build
-      ln -s          ../magma_build_$DIRNAME_STUB magma_patch
-    fi
-    popd
-    rm -f $(basename $INSTALL_DIR)
-    ln -s $INSTALL_DIR .
+  local DO_BUILD=YES # NO
+  [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
+  if [ $DO_BUILD = YES ] ; then
+    export BUILD_TYPE=Release TESTING=OFF NOMPI=OFF FP_PRECISION=SINGLE 
+    configure_1case
   fi
-}
+} # min
 
 #==============================================================================
 
