@@ -8,7 +8,7 @@ The following is run on the ORNL Summit system.
 
 # To build all versions of the code:
 
-OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
+export OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
 cd $MEMBERWORK/$OLCF_PROJECT
 mkdir comet_work
 cd comet_work
