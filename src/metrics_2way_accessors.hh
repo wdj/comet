@@ -282,6 +282,7 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_2(
   GMAssert(i0 >= 0 && i0 < 2);
   GMAssert(i1 >= 0 && i1 < 2);
 
+  const int cbpe = COUNTED_BITS_PER_ELT;
   const GMFloat f_one = 1;
   const GMFloat recip_m = metrics->recip_m;
 
@@ -318,8 +319,8 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_2(
     const GMFloat recip_cicjcij = f_one / (f_cicj_min * f_cicj_max * f_cij);
 
     /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
-    const GMTally1 si = i0 == 0 ? (COUNTED_BITS_PER_ELT * ci - si1) : si1;
-    const GMTally1 sj = i1 == 0 ? (COUNTED_BITS_PER_ELT * cj - sj1) : sj1;
+    const GMTally1 si = i0 == 0 ? (cbpe * ci - si1) : si1;
+    const GMTally1 sj = i1 == 0 ? (cbpe * cj - sj1) : sj1;
 
     const GMFloat recip_ci = f_cj * f_cij * recip_cicjcij;
     const GMFloat recip_cj = f_ci * f_cij * recip_cicjcij;
@@ -332,8 +333,6 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_2(
   } else { /*---if sparse---*/
 
     GMAssert(metrics->num_field_active > 0);
-
-    const int cbpe = COUNTED_BITS_PER_ELT;
 
     /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
     const GMTally1 si = i0 == 0 ? (cbpe * metrics->num_field_active - si1) : si1;
@@ -424,6 +423,8 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
+  const int cbpe = COUNTED_BITS_PER_ELT;
+
   if (env->sparse) {
 
     const GMFloat f_one = 1;
@@ -467,8 +468,6 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
     // Get number of 1 bits (s*1) OR get number of 0 bits (s*0)
     // from number of 1 bits
 
-    const int cbpe = COUNTED_BITS_PER_ELT;
-
     const GMTally1 si0 = cbpe * ci - si1;
     const GMTally1 sj0 = cbpe * cj - sj1;
 
@@ -487,23 +486,23 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     const GMFloat f = threshold * threshold_multiplier * (f_one-roundoff_fuzz);
 
-    const GMFloat v00 = rij00 * ((f_one*2) - ccc_param * fi0_2) *
-                                ((f_one*2) - ccc_param * fj0_2);
-    const GMFloat v01 = rij01 * ((f_one*2) - ccc_param * fi0_2) *
-                                ((f_one*2) - ccc_param * fj1_2);
-    const GMFloat v10 = rij10 * ((f_one*2) - ccc_param * fi1_2) *
-                                ((f_one*2) - ccc_param * fj0_2);
-    const GMFloat v11 = rij11 * ((f_one*2) - ccc_param * fi1_2) *
-                                ((f_one*2) - ccc_param * fj1_2);
+    const GMFloat v00 = rij00 * ((f_one*cbpe) - ccc_param * fi0_2) *
+                                ((f_one*cbpe) - ccc_param * fj0_2);
+    const GMFloat v01 = rij01 * ((f_one*cbpe) - ccc_param * fi0_2) *
+                                ((f_one*cbpe) - ccc_param * fj1_2);
+    const GMFloat v10 = rij10 * ((f_one*cbpe) - ccc_param * fi1_2) *
+                                ((f_one*cbpe) - ccc_param * fj0_2);
+    const GMFloat v11 = rij11 * ((f_one*cbpe) - ccc_param * fi1_2) *
+                                ((f_one*cbpe) - ccc_param * fj1_2);
 
     // Verify the algebra.
-    GMAssert(fabs(v00 - threshold_multiplier * GMMetrics_ccc_get_from_index_2(metrics, index, 0, 0, env) )
+    GMAssert(fabs(v00 - threshold_multiplier * GMMetrics_ccc_duo_get_from_index_2<COUNTED_BITS_PER_ELT>(metrics, index, 0, 0, env) )
              < roundoff_fuzz * threshold_multiplier);
-    GMAssert(fabs(v01 - threshold_multiplier * GMMetrics_ccc_get_from_index_2(metrics, index, 0, 1, env) )
+    GMAssert(fabs(v01 - threshold_multiplier * GMMetrics_ccc_duo_get_from_index_2<COUNTED_BITS_PER_ELT>(metrics, index, 0, 1, env) )
              < roundoff_fuzz * threshold_multiplier);
-    GMAssert(fabs(v10 - threshold_multiplier * GMMetrics_ccc_get_from_index_2(metrics, index, 1, 0, env) )
+    GMAssert(fabs(v10 - threshold_multiplier * GMMetrics_ccc_duo_get_from_index_2<COUNTED_BITS_PER_ELT>(metrics, index, 1, 0, env) )
              < roundoff_fuzz * threshold_multiplier);
-    GMAssert(fabs(v11 - threshold_multiplier * GMMetrics_ccc_get_from_index_2(metrics, index, 1, 1, env) )
+    GMAssert(fabs(v11 - threshold_multiplier * GMMetrics_ccc_duo_get_from_index_2<COUNTED_BITS_PER_ELT>(metrics, index, 1, 1, env) )
              < roundoff_fuzz * threshold_multiplier);
 
     return v00 > f || v01 > f || v10 > f || v11 > f;
@@ -626,7 +625,8 @@ static bool GMMetrics_duo_get_from_index_2_threshold(
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
   GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
 
-  enum { COUNTED_BITS_PER_ELT = 2 };
+  //enum { COUNTED_BITS_PER_ELT = 2 };
+  enum { COUNTED_BITS_PER_ELT = 1 };
 
   return GMMetrics_ccc_duo_get_from_index_2_threshold<COUNTED_BITS_PER_ELT>(
     metrics, index, threshold, env);
