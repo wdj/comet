@@ -19,6 +19,7 @@ function do_make
 {
   # Location of this script.
   local SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+  # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
   if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
@@ -51,7 +52,7 @@ function do_make
     export NV_COMP="-gencode arch=compute_75,code=compute_75" MIN_ARCH=350
     MAKE_ARGS="CC=$(spack location --install-dir gcc)/bin/g++"
   else
-    echo "Unknown platform." 1>&2
+    echo "${0##*/}: Unknown platform." 1>&2
     exit 1
   fi
 

@@ -15,6 +15,7 @@ function main
 {
   # Location of this script.
   local SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+  # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
   local DIR

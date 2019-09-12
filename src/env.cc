@@ -19,8 +19,13 @@
 #include "signal.h"
 
 #include "mpi.h"
+
 #ifdef USE_CUDA
 #include "cuda.h"
+#endif
+
+#ifdef USE_HIP
+#include "hip_hcc.h"
 #endif
 
 #include "env.hh"
@@ -362,17 +367,30 @@ void GMEnv_initialize_streams(GMEnv* const env) {
 
 #ifdef USE_CUDA
   cudaStreamCreate(&env->stream_compute_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-           "Failure in call to cudaStreamCreate.");
-
-  cudaStreamCreate(&env->stream_togpu_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-           "Failure in call to cudaStreamCreate.");
-
-  cudaStreamCreate(&env->stream_fromgpu_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-           "Failure in call to cudaStreamCreate.");
 #endif
+#ifdef USE_HIP
+  hipStreamCreate(&env->stream_compute_);
+#endif
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to stream create.");
+
+#ifdef USE_CUDA
+  cudaStreamCreate(&env->stream_togpu_);
+#endif
+#ifdef USE_HIP
+  hipStreamCreate(&env->stream_togpu_);
+#endif
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to stream create.");
+
+#ifdef USE_CUDA
+  cudaStreamCreate(&env->stream_fromgpu_);
+#endif
+#ifdef USE_HIP
+  hipStreamCreate(&env->stream_fromgpu_);
+#endif
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to stream create.");
 
   env->are_accel_streams_initialized_ = true;
 }
@@ -388,17 +406,30 @@ void GMEnv_terminate_streams(GMEnv* const env) {
 
 #ifdef USE_CUDA
   cudaStreamDestroy(env->stream_compute_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-           "Failure in call to cudaStreamDestroy.");
-
-  cudaStreamDestroy(env->stream_togpu_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-           "Failure in call to cudaStreamDestroy.");
-
-  cudaStreamDestroy(env->stream_fromgpu_);
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-           "Failure in call to cudaStreamDestroy.");
 #endif
+#ifdef USE_HIP
+  hipStreamDestroy(env->stream_compute_);
+#endif
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to stream destroy.");
+
+#ifdef USE_CUDA
+  cudaStreamDestroy(env->stream_togpu_);
+#endif
+#ifdef USE_HIP
+  hipStreamDestroy(env->stream_togpu_);
+#endif
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to stream destroy.");
+
+#ifdef USE_CUDA
+  cudaStreamDestroy(env->stream_fromgpu_);
+#endif
+#ifdef USE_HIP
+  hipStreamDestroy(env->stream_fromgpu_);
+#endif
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to stream destroy.");
 
   env->are_accel_streams_initialized_ = false;
 }
@@ -411,9 +442,12 @@ void GMEnv_stream_synchronize(accelStream_t stream, GMEnv* const env) {
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
 #ifdef USE_CUDA
     cudaStreamSynchronize(stream);
-    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-             "Failure in call to cudaStreamSynchronize.");
 #endif
+#ifdef USE_HIP
+    hipStreamSynchronize(stream);
+#endif
+    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+             "Failure in call to stream synchronize.");
   }
 }
 
@@ -544,7 +578,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
   GMInsist(num_proc_repl > 0);
   GMInsist(num_proc_field > 0);
 
-#ifdef NOMPI
+#ifndef USE_MPI
   GMInsist(num_proc_vector_i == 1);
   GMInsist(num_proc_repl == 1);
   GMInsist(num_proc_field == 1);
@@ -665,9 +699,12 @@ void GMEnv_accel_sync(const GMEnv* const env) {
 
 #ifdef USE_CUDA
   cudaDeviceSynchronize();
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-           "Failure in call to cudaDeviceSynchronize.");
 #endif
+#ifdef USE_HIP
+  hipDeviceSynchronize();
+#endif
+  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+           "Failure in call to device synchronize.");
 }
 
 //-----------------------------------------------------------------------------
@@ -847,11 +884,23 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
   if (!result) {
     printf("CUDA error detected: %s\n", cudaGetErrorString(error));
   }
-#else
-  const bool result = true;
-#endif
 
   return result;
+#endif
+
+#ifdef USE_HIP
+  // NOTE: this read of the last error is a destructive read.
+  hipError_t error = hipGetLastError();
+  const bool result = error == hipSuccess;
+
+  if (!result) {
+    printf("HIP error detected: %s\n", hipGetErrorString(error));
+  }
+
+  return result;
+#endif
+
+  return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -859,6 +908,7 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
 bool gm_is_tc_valid(int tc) {
   if (tc < 0 || tc >= GM_NUM_TC_METHOD) return false;
   if (tc == 0) return true;
+
 #ifdef USE_CUDA
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
@@ -868,6 +918,16 @@ bool gm_is_tc_valid(int tc) {
   //if (tc == GM_TC_METHOD_INT4 && compute_capability < 750) return false;
   //if (tc == GM_TC_METHOD_INT1 && compute_capability < 750) return false;
 #endif
+
+//FIX this
+#ifdef USE_HIP
+  hipDeviceProp_t deviceProp;
+  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
+  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability < 700) return false;
+  if (tc == GM_TC_METHOD_INT8 && compute_capability < 700) return false;
+#endif
+
   return true;
 }
 

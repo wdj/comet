@@ -15,19 +15,32 @@
 #include "cublas_v2.h"
 #endif
 
+#ifdef USE_HIP
+#include "rocblas.h"
+#endif
+
 #include "env.hh"
 
 //-----------------------------------------------------------------------------
 
-#ifndef USE_CUDA
-typedef int cublasHandle_t;
+#ifdef USE_CUDA
+//typedef cublasStatus_t accelblasStatus_t;
+typedef cublasHandle_t accelblasHandle_t;
+#else
+#ifdef USE_HIP
+//typedef rocblas_status accelblasStatus_t;
+typedef rocblas_handle accelblasHandle_t;
+#else
+//typedef int accelblasStatus_t;
+typedef int accelblasHandle_t;
+#endif
 #endif
 
 struct TCBufs {
   size_t tc_buf_size;
   void* tc_buf_left;
   void* tc_buf_right;
-  cublasHandle_t cublas_handle;
+  accelblasHandle_t accelblas_handle;
 };
 
 //-----------------------------------------------------------------------------

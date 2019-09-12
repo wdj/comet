@@ -8,7 +8,7 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
 #include "magma_minproduct.h"
 #include "magma_minproduct_lapack.h"
 #include "magma_mgemm2.h"
@@ -66,7 +66,7 @@ void gm_linalg_initialize(GMEnv* env) {
   // http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
   // page 14
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_init();
@@ -117,7 +117,7 @@ void gm_linalg_initialize(GMEnv* env) {
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_CUDA
+#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -131,7 +131,7 @@ void gm_linalg_finalize(GMEnv* env) {
 
   // TODO: (maybe) reset kernel stream (probably not really needed)
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_finalize();
@@ -167,7 +167,7 @@ void gm_linalg_finalize(GMEnv* env) {
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_CUDA
+#endif // USE_MAGMA
 }
 
 //=============================================================================
@@ -183,7 +183,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     return;
   }
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   p->dim0 = dim0;
   p->dim1 = dim1;
 
@@ -308,7 +308,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_CUDA
+#endif // USE_MAGMA
 
   GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc,"
                    " possibly due to insufficient memory.");
@@ -328,7 +328,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 
   GMInsist(! p->is_alias);
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   const size_t size = p->size;
 
   if (use_minproduct(env)) { //--------------------
@@ -396,7 +396,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_CUDA
+#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -409,7 +409,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
     return;
   }
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
 
@@ -468,7 +468,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_CUDA
+#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -489,7 +489,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
   GMInsist(ldda >= 0 && lddb >= 0);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   {
     int TransA = 1;
     int TransB = 0;
@@ -596,7 +596,7 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_CUDA
+#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -617,7 +617,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   GMInsist(ldda >= 0 && lddb >= 0);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   if (m==0 || n==0 || k==0) {
     return;
   }
@@ -693,7 +693,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
       }
     }
   }
-#endif // USE_CUDA
+#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -715,7 +715,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
     return;
   }
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
 
@@ -772,7 +772,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_CUDA
+#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -794,7 +794,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
     return;
   }
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
 
@@ -851,7 +851,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_CUDA
+#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------

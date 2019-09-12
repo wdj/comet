@@ -18,9 +18,15 @@
 #include "cstdio"  //FIX
 
 #include "mpi.h"
+
 #ifdef USE_CUDA
 #include "cuda.h"
 #include "cuda_runtime.h"
+#endif
+
+#ifdef USE_HIP
+#include "hip_hcc.h"
+#include "hip/hip_runtime.h"
 #endif
 
 #include "assertions.hh"
@@ -32,7 +38,11 @@
 #ifdef USE_CUDA
 typedef cudaStream_t accelStream_t;
 #else
+#ifdef USE_HIP
+typedef hipStream_t accelStream_t;
+#else
 typedef int accelStream_t;
+#endif
 #endif
 
 typedef struct {
@@ -161,7 +171,7 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
 void GMEnv_destroy(GMEnv* const env);
 
 //=============================================================================
-// Manage cuda streams
+// Manage accelerator streams
 
 void GMEnv_initialize_streams(GMEnv* const env);
 void GMEnv_terminate_streams(GMEnv* const env);

@@ -443,7 +443,7 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
   {
   GMMetricsMem metrics_mem(env);
 
-  GMComputeMetrics compute_metrics_value = {0},
+  GMComputeMetrics compute_metrics_value, //FIX  = {0},
                   *compute_metrics = &compute_metrics_value;
 
   GMComputeMetrics_create(compute_metrics, dm, env);

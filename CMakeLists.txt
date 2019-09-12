@@ -5,7 +5,8 @@
 #==============================================================================
 
 cmake_minimum_required(VERSION 2.8)
-cmake_policy(SET CMP0074 NEW)
+cmake_policy(SET CMP0004 OLD)
+#cmake_policy(SET CMP0074 NEW)
 
 project("genomics_gpu")
 
@@ -78,11 +79,11 @@ SET(DRIVER_SOURCES
 #--------------------
 # Preliminaries.
 
-if(NOT NOMPI)
+if(USE_MPI)
   find_package(MPI REQUIRED)
 endif()
 
-if(NOT NOCUDA)
+if(USE_CUDA)
   find_package(CUDA REQUIRED)
   CUDA_INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
   # see https://stackoverflow.com/questions/36021233/
@@ -92,6 +93,25 @@ if(NOT NOCUDA)
   set_source_files_properties(src/linalg_accel.cc
                               PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
   CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
+elseif(USE_HIP) #=========================================
+  if(NOT DEFINED HIP_PATH)
+    if(NOT DEFINED ENV{HIP_PATH})
+      message(FATAL_ERROR "Could not find HIP..")
+    else()
+      set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to HIP install")
+    endif()
+  endif()
+  set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+  find_package(HIP QUIET)
+  if(HIP_FOUND)
+    message(STATUS "Found HIP: " ${HIP_VERSION})
+  else()
+    message(FATAL_ERROR "Could not find HIP.")
+  endif()
+  set(CMAKE_LINKER "${ROCM_PATH}/bin/hipcc")
+  set_source_files_properties(${LIB_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+  hip_add_library(genomics_metrics ${LIB_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
+  set_source_files_properties(driver/genomics_metric.cc ${DRIVER_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
 else()
   ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 endif()
@@ -103,7 +123,11 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
 #--------------------
 # Main executable, lib.
 
-ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES})
+if(USE_HIP)
+  hip_add_executable(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES} HIPCC_OPTIONS ${CMAKE_CXX_FLAGS})
+else()
+  ADD_EXECUTABLE(genomics_metric driver/genomics_metric.cc ${DRIVER_SOURCES})
+endif()
 TARGET_LINK_LIBRARIES(genomics_metric genomics_metrics)
 TARGET_LINK_LIBRARIES(genomics_metric ${CMAKE_EXE_LINKER_FLAGS})
 

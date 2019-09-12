@@ -169,8 +169,10 @@ enum {NUM_SHUFFLE = 3};
 // This is not a totally (pseudo)random permutation.  However it does
 // have the advantage that it can be computed formulaically and quickly.
 
+#ifndef __clang__
 #pragma GCC push_options
 #pragma GCC optimize ("unroll-loops")
+#endif
 
 static size_t perm(size_t key, size_t i, size_t n) {
   GMAssert((key & (~(size_t)((1<<NUM_SHUFFLE)-1))) == 0);
@@ -190,7 +192,9 @@ static size_t perm(size_t key, size_t i, size_t n) {
   return result;
 }
 
+#ifndef __clang__
 #pragma GCC pop_options
+#endif
 
 //-----------------------------------------------------------------------------
 

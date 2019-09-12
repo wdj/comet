@@ -21,13 +21,13 @@ function configure_1case
 {
     printf -- '-%.0s' {1..79}; echo ""
     echo COMET_PLATFORM_STUB=$COMET_PLATFORM_STUB INSTALLS_DIR=$INSTALLS_DIR \
-      BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING NOMPI=$NOMPI \
+      BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING USE_MPI=$USE_MPI \
       FP_PRECISION=$FP_PRECISION
 
     local BUILD_STUB=""
     [[ $FP_PRECISION = SINGLE ]] && BUILD_STUB+="single_"
     [[ $BUILD_TYPE = Debug ]] && BUILD_STUB+="test" || BUILD_STUB+="release"
-    [[ $NOMPI = ON ]] && BUILD_STUB+="_nompi"
+    [[ $USE_MPI = OFF ]] && BUILD_STUB+="_nompi"
 
     local BUILD_DIR=build_${BUILD_STUB}_$COMET_PLATFORM_STUB
     echo "Creating $BUILD_DIR ..."
@@ -44,7 +44,7 @@ function configure_1case
     local INSTALL_DIR=$INSTALLS_DIR/install_${BUILD_STUB}_$COMET_PLATFORM_STUB
 
     env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
-        NOMPI=$NOMPI FP_PRECISION=$FP_PRECISION \
+        USE_MPI=$USE_MPI FP_PRECISION=$FP_PRECISION \
         ../genomics_gpu/scripts/cmake.sh
 
     # Move magma build to location for common use for different builds.
@@ -66,12 +66,13 @@ function main
   # Initial checks.
   local CBE_="${COMET_BUILD_EXPERIMENTAL:-}"
   if [ "$CBE_" != "" -a  \ "$CBE_" != "YES" -a "$CBE_" != "NO" ] ; then
-    echo "Error in COMET_BUILD_EXPERIMENTAL setting." 1>&2
+    echo "${0##*/}: Error in COMET_BUILD_EXPERIMENTAL setting." 1>&2
     exit 1
   fi
 
   # Location of this script.
   local SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+  # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
   [[ -z "${OLCF_PROJECT:-}" ]] && local OLCF_PROJECT=stf006
@@ -88,7 +89,7 @@ function main
     local INSTALLS_DIR="$SCRATCH/comet"
   else
     local INSTALLS_DIR="$PWD/installs"
-    #echo "Unknown platform." 1>&2
+    #echo "${0##*/}: Unknown platform." 1>&2
     #exit 1
   fi
   mkdir -p "$INSTALLS_DIR"
@@ -101,8 +102,9 @@ function main
 
   local DO_BUILD=YES # NO
   [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
+  [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
   if [ $DO_BUILD = YES ] ; then
-    export BUILD_TYPE=Debug TESTING=ON NOMPI=OFF FP_PRECISION=DOUBLE
+    export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=DOUBLE
     configure_1case
   fi
 
@@ -111,7 +113,7 @@ function main
 
   local DO_BUILD=YES # NO
   if [ $DO_BUILD = YES ] ; then
-    export BUILD_TYPE=Debug TESTING=ON NOMPI=ON FP_PRECISION=DOUBLE
+    export BUILD_TYPE=Debug TESTING=ON USE_MPI=OFF FP_PRECISION=DOUBLE
     configure_1case
   fi
 
@@ -120,8 +122,9 @@ function main
 
   local DO_BUILD=YES # NO
   [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
+  [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
   if [ $DO_BUILD = YES ] ; then
-    export BUILD_TYPE=Debug TESTING=ON NOMPI=OFF FP_PRECISION=SINGLE
+    export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=SINGLE
     configure_1case
   fi
 
@@ -130,8 +133,9 @@ function main
 
   local DO_BUILD=YES # NO
   [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
+  [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
   if [ $DO_BUILD = YES ] ; then
-    export BUILD_TYPE=Release TESTING=OFF NOMPI=OFF FP_PRECISION=DOUBLE
+    export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=DOUBLE
     configure_1case
   fi
 
@@ -140,7 +144,7 @@ function main
 
   local DO_BUILD=YES # NO
   if [ $DO_BUILD = YES ] ; then
-    export BUILD_TYPE=Release TESTING=OFF NOMPI=ON FP_PRECISION=DOUBLE
+    export BUILD_TYPE=Release TESTING=OFF USE_MPI=OFF FP_PRECISION=DOUBLE
     configure_1case
   fi
 
@@ -149,11 +153,12 @@ function main
 
   local DO_BUILD=YES # NO
   [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
+  [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
   if [ $DO_BUILD = YES ] ; then
-    export BUILD_TYPE=Release TESTING=OFF NOMPI=OFF FP_PRECISION=SINGLE 
+    export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=SINGLE 
     configure_1case
   fi
-} # min
+} # main
 
 #==============================================================================
 

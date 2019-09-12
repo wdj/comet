@@ -11,7 +11,7 @@
 #ifndef _gm_linalg_hh_
 #define _gm_linalg_hh_
 
-#ifdef USE_CUDA
+#ifdef USE_MAGMA
 #include "magma_minproduct.h"
 #include "magma_minproduct_lapack.h"
 #else

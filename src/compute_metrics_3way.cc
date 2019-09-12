@@ -85,7 +85,7 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
   GMInsist(gm_num_section_steps(env, 1) == 1 &&
            "not all2all case always has 1 section step.");
 
-  GMComputeNumerators3Way gm_compute_numerators_3way = {0};
+  GMComputeNumerators3Way gm_compute_numerators_3way; // FIX = {0};
   GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
 
   GMComputeNumerators3Way_start(
@@ -210,7 +210,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
 
   bool have_unprocessed_section_block = false;
 
-  GMComputeNumerators3Way gm_compute_numerators_3way = {0};
+  GMComputeNumerators3Way gm_compute_numerators_3way; // FIX = {0};
   GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
 
   // Counter for quantum of work:

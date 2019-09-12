@@ -14,7 +14,7 @@
 # Relevant input variables:
 #
 # INSTALL_DIR - installation directory (default: see below)
-# NOMPI - ON or OFF (default), build with MPI stub library for single proces use
+# USE_MPI - ON or OFF (default), build with true MPI or for single process use
 # BUILD_TYPE - Debug (default) or Release
 # FP_PRECISION - SINGLE or DOUBLE (default) precision for floating point
 #    operations (does not affect use of tensor cores for CCC)
@@ -40,12 +40,16 @@ function main
 {
   # Location of this script.
   local SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+  # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
   #----------------------------------------------------------------------------
   #---Basic platform-specific settings.
 
-  local NOCUDA=OFF
+  local USE_CUDA=ON
+  local USE_MAGMA=ON
+  local USE_HIP=OFF
+  local USE_LAPACK=OFF
   local CC_serial=g++
 
   if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
@@ -65,6 +69,7 @@ function main
     local CUDA_POST_LINK_OPTS="-L$OLCF_CUDA_ROOT/targets/ppc64le-linux/lib"
     local cc=$(which mpicc)
     local CC=$(which mpiCC)
+    USE_LAPACK=ON
   #--------------------
   elif [ $COMET_PLATFORM = DGX2 ] ; then
     local CUDA_ROOT="$HOME/cuda"
@@ -86,14 +91,25 @@ function main
     local CC_serial=$CC
   #--------------------
   elif [ $COMET_PLATFORM = EDISON ] ; then
-    NOCUDA=ON
+    USE_CUDA=OFF
+    USE_MAGMA=OFF
     local CUDA_INCLUDE_OPTS=""
     local CUDA_POST_LINK_OPTS=""
     local cc=$(which cc)
     local CC=$(which CC)
   #--------------------
+  elif [ $COMET_PLATFORM = LYRA ] ; then
+    USE_CUDA=OFF
+    USE_MAGMA=OFF
+    USE_HIP=ON
+    local CUDA_INCLUDE_OPTS=""
+    local CUDA_POST_LINK_OPTS=""
+    local cc=$(which gcc)
+    local CC=$(which g++)
+    CC_serial=hipcc
+  #--------------------
   else
-    echo "Unknown platform." 1>&2
+    echo "${0##*/}: Unknown platform." 1>&2
     exit 1
   fi
 
@@ -107,16 +123,16 @@ function main
 
   [[ -z "${BUILD_TYPE:-}" ]] && local BUILD_TYPE=Debug #=Release
   if [ "$BUILD_TYPE" != "Debug" -a "$BUILD_TYPE" != "Release" ] ; then
-    echo "Invalid setting for BUILD_TYPE. $BUILD_TYPE" 1>&2
+    echo "${0##*/}: Invalid setting for BUILD_TYPE. $BUILD_TYPE" 1>&2
     exit 1
   fi
 
   #----------------------------------------------------------------------------
   # Set whether to build with MPI stub library.
 
-  [[ -z "${NOMPI:-}" ]] && local NOMPI=OFF #=ON
-  if [ "$NOMPI" != "ON" -a "$NOMPI" != "OFF" ] ; then
-    echo "Invalid setting for NOMPI. $NOMPI" 1>&2
+  [[ -z "${USE_MPI:-}" ]] && local USE_MPI=ON #=OFF
+  if [ "$USE_MPI" != "ON" -a "$USE_MPI" != "OFF" ] ; then
+    echo "${0##*/}: Invalid setting for USE_MPI. $USE_MPI" 1>&2
     exit 1
   fi
 
@@ -125,7 +141,7 @@ function main
 
   [[ -z "${FP_PRECISION:-}" ]] && local FP_PRECISION=DOUBLE #=SINGLE
   if [ "$FP_PRECISION" != "SINGLE" -a "$FP_PRECISION" != "DOUBLE" ] ; then
-    echo "Invalid setting for FP_PRECISION. $FP_PRECISION" 1>&2
+    echo "${0##*/}: Invalid setting for FP_PRECISION. $FP_PRECISION" 1>&2
     exit 1
   fi
 
@@ -134,7 +150,7 @@ function main
 
   [[ -z "${TESTING:-}" ]] && local TESTING=OFF #=ON
   if [ "$TESTING" != "ON" -a "$TESTING" != "OFF" ] ; then
-    echo "Invalid setting for TESTING. $TESTING" 1>&2
+    echo "${0##*/}: Invalid setting for TESTING. $TESTING" 1>&2
     exit 1
   fi
 
@@ -152,7 +168,7 @@ function main
   #============================================================================
   #---Get mpi stub library if needed.
 
-  if [ $NOMPI = ON ] ; then
+  if [ $USE_MPI = OFF ] ; then
     echo "Building mpi-stub ..."
     ln -s ../genomics_gpu/tpls/mpi-stub.tar.gz
     rm -rf mpi-stub
@@ -168,7 +184,7 @@ function main
 
   local BUILD_DIR=$PWD
 
-  if [ $NOCUDA = OFF ] ; then
+  if [ $USE_MAGMA = ON ] ; then
     local MAGMA_DIR=$BUILD_DIR/magma_patch
     if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
       rm -rf $MAGMA_DIR
@@ -187,7 +203,7 @@ function main
   #----------------------------------------------------------------------------
   #---Compile magma variants.
 
-  if [ $NOCUDA = OFF ] ; then
+  if [ $USE_MAGMA = ON ] ; then
     local TAG
     for TAG in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
       local MAGMA_VERSION=magma_$TAG
@@ -205,7 +221,7 @@ function main
       else # build_is_complete
         if [ "$(cksum <$MAGMA_SUBDIR/modules_used)" != \
              "$(cksum < <(get_modules_used_magma))" ] ; then
-          echo "Error: inconsistent modules; please rebuild MAGMA." 1>&2
+          echo "${0##*/}: inconsistent modules; please rebuild MAGMA." 1>&2
           exit 1
         fi
       fi # build_is_complete
@@ -235,19 +251,42 @@ function main
   #---Set variables for cmake.
 
   local CMAKE_CXX_FLAGS="-DFP_PRECISION_$FP_PRECISION -DADD_"
-  CMAKE_CXX_FLAGS+=" -g -rdynamic" # for stack trace
+  CMAKE_CXX_FLAGS+=" -g" # for stack trace
+  if [ $USE_HIP = OFF ] ; then
+    CMAKE_CXX_FLAGS+=" -rdynamic" # for stack trace
+  fi
   CMAKE_CXX_FLAGS+=" -Wall -Wno-unused-function -Werror"
   CMAKE_CXX_FLAGS+=" -fno-associative-math -fopenmp"
   CMAKE_CXX_FLAGS+=" -Wno-error=unknown-pragmas"
   CMAKE_CXX_FLAGS+=" -DTEST_PROCS_MAX=64"
   #CMAKE_CXX_FLAGS+=" -std=c++11 -Wconversion"
 
-  if [ $NOCUDA = OFF ] ; then
+  if [ $USE_CUDA = ON ] ; then
     CMAKE_CXX_FLAGS+=" -DUSE_CUDA $CUDA_INCLUDE_OPTS"
+  fi
+
+  if [ $USE_MAGMA = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -DUSE_MAGMA"
     local TAG
     for TAG in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
       CMAKE_CXX_FLAGS+=" -I$MAGMA_DIR/magma_$TAG/include"
     done
+  fi
+
+  if [ $USE_HIP = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -DUSE_HIP"
+    local ROCM_INSTALL_DIR=/opt/rocm
+    CMAKE_CXX_FLAGS+=" -I$ROCM_INSTALL_DIR/rocblas/include"
+    CMAKE_CXX_FLAGS+=" -I$ROCM_INSTALL_DIR/include"
+    CMAKE_CXX_FLAGS+=" -I$ROCM_INSTALL_DIR/hip/include/hip"
+    #CMAKE_CXX_FLAGS+=" -D__HIP_PLATFORM_HCC__"
+  fi
+
+  if [ $USE_LAPACK = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -DUSE_LAPACK"
+    if [ $COMET_PLATFORM = IBM_AC922 ] ; then
+      CMAKE_CXX_FLAGS+=" -I$OLCF_ESSL_ROOT/include"
+    fi
   fi
 
   if [ $TESTING = ON ] ; then
@@ -263,11 +302,18 @@ function main
   #---The following change slows performance by 1% on a test case but helps
   #---make results exactly reproducible on varyng number of procs.
   #CXX_FLAGS_OPT="$CXX_FLAGS_OPT -ffast-math"
-  CXX_FLAGS_OPT+=" -fno-math-errno -ffinite-math-only -fno-rounding-math"
-  CXX_FLAGS_OPT+=" -fno-signaling-nans -fcx-limited-range"
+  CXX_FLAGS_OPT+=" -fno-math-errno -ffinite-math-only"
+  if [ $USE_HIP = OFF ] ; then
+    CXX_FLAGS_OPT+=" -fno-rounding-math"
+    CXX_FLAGS_OPT+=" -fno-signaling-nans"
+    CXX_FLAGS_OPT+=" -fcx-limited-range"
+  fi
   CXX_FLAGS_OPT+=" -fno-signed-zeros -fno-trapping-math -freciprocal-math"
 
-  CXX_FLAGS_OPT+=" -finline-functions -finline-limit=1000"
+  CXX_FLAGS_OPT+=" -finline-functions"
+  if [ $USE_HIP = OFF ] ; then
+    CXX_FLAGS_OPT+=" -finline-limit=1000"
+  fi
   if [ $COMET_PLATFORM = CRAY_XK7 ] ; then
     CXX_FLAGS_OPT+=" -march=bdver1"
   fi
@@ -282,29 +328,53 @@ function main
   #---Load flags.
 
   local LFLAGS=""
-  if [ $NOCUDA = OFF ] ; then
+  if [ $USE_MAGMA = ON ] ; then
     local TAG
     for TAG in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
       LFLAGS+="-L$MAGMA_DIR/magma_$TAG/lib -lmagma_$TAG "
     done
+  fi
+
+  if [ $USE_CUDA = ON ] ; then
     LFLAGS+=" $CUDA_POST_LINK_OPTS -lcublas -lcudart"
   fi
+
+  if [ $USE_HIP = ON ] ; then
+    LFLAGS+=" -L$ROCM_INSTALL_DIR/rocblas/lib -lrocblas"
+    LFLAGS+=" -L$ROCM_INSTALL_DIR/lib -lhip_hcc"
+  fi
+
   if [ $COMET_PLATFORM = CRAY_XK7 ] ; then
     LFLAGS+=" -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
     LFLAGS+=" -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
   fi
+
   if [ $COMET_PLATFORM = IBM_AC922 ] ; then
     LFLAGS+=" -Wl,-rpath=$OLCF_CUDA_ROOT/lib64"
+    if [ $USE_LAPACK = ON ] ; then
+      local XLF_DIR=$(module load xl 2>/dev/null ; echo $OLCF_XLF_ROOT)/lib
+      local XLF_DIR2=$(module load xl 2>/dev/null ; echo $OLCF_XL_ROOT)/lib
+      LFLAGS+=" -L$OLCF_ESSL_ROOT/lib64"
+      LFLAGS+=" -Wl,-rpath,$OLCF_ESSL_ROOT/lib64 -lessl"
+      LFLAGS+=" -L$XLF_DIR -Wl,-rpath,$XLF_DIR2 -lxlf90_r"
+      LFLAGS+=" -lxl -lxlfmath"
+      LFLAGS+=" -Wl,-rpath,$OLCF_GCC_ROOT/lib64"
+    fi
   fi
+
   if [ $COMET_PLATFORM = DGX2 -o $COMET_PLATFORM = GPUSYS2 ] ; then
     CMAKE_CXX_FLAGS+=" -std=gnu++11"
     LFLAGS+=" -Wl,-rpath=$CUDA_ROOT/lib64"
   fi
+
   if [ $COMET_PLATFORM = EDISON ] ; then
     CMAKE_CXX_FLAGS+=" -std=gnu++11"
   fi
-  if [ "$NOMPI" = ON ] ; then
-    CMAKE_CXX_FLAGS+=" -DNOMPI -I$BUILD_DIR/mpi-stub/include"
+
+  if [ "$USE_MPI" = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -DUSE_MPI"
+  else
+    CMAKE_CXX_FLAGS+=" -I$BUILD_DIR/mpi-stub/include"
     LFLAGS+=" -L$PWD/mpi-stub/lib -lmpi"
   fi
 
@@ -317,14 +387,17 @@ function main
     TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64"
     CMAKE_CXX_FLAGS+=" -DHAVE_INT128"
   fi
+
   if [ $COMET_PLATFORM = IBM_AC922 ] ; then
     TEST_COMMAND="module load $COMET_CUDA_MODULE; env OMP_NUM_THREADS=1 jsrun --nrs 2 --rs_per_host 1 --cpu_per_rs 32 -g 6 --tasks_per_rs 32 -X 1"
     TEST_COMMAND+=" -E LD_PRELOAD=${OLCF_SPECTRUM_MPI_ROOT}/lib/pami_451/libpami.so"
     CMAKE_CXX_FLAGS+=" -DHAVE_INT128"
   fi
+
   if [ $COMET_PLATFORM = DGX2 -o $COMET_PLATFORM = GPUSYS2 ] ; then
     CMAKE_CXX_FLAGS+=" -DHAVE_INT128"
   fi
+
   if [ $COMET_PLATFORM = EDISON ] ; then
     TEST_COMMAND="env OMP_NUM_THREADS=24 srun -n 64"
   fi
@@ -334,7 +407,7 @@ function main
 
   local CMAKE_EXTRA_OPTIONS=""
 
-  if [ "$NOMPI" = OFF ] ; then
+  if [ "$USE_MPI" = ON ] ; then
     if [ $COMET_PLATFORM = CRAY_XK7 -o $COMET_PLATFORM = EDISON ] ; then
       CMAKE_EXTRA_OPTIONS+=" \
         -DMPI_C_COMPILER="$cc" \
@@ -345,16 +418,23 @@ function main
         -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
       "
     fi
-    CMAKE_EXTRA_OPTIONS+=" -DNOMPI:BOOL=OFF"
+    CMAKE_EXTRA_OPTIONS+=" -DUSE_MPI:BOOL=ON"
   else
-    CMAKE_EXTRA_OPTIONS+=" -DNOMPI:BOOL=ON"
+    CMAKE_EXTRA_OPTIONS+=" -DUSE_MPI:BOOL=OFF"
   fi
 
-  if [ "$NOCUDA" = OFF ] ; then
+  if [ "$USE_CUDA" = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
-    CMAKE_EXTRA_OPTIONS+=" -DNOCUDA:BOOL=OFF"
+    CMAKE_EXTRA_OPTIONS+=" -DUSE_CUDA:BOOL=ON"
+    CMAKE_EXTRA_OPTIONS+=" -DCUDA_HOST_COMPILER:STRING=$(dirname $(which $CC_serial))"
   else
-    CMAKE_EXTRA_OPTIONS+=" -DNOCUDA:BOOL=ON"
+    CMAKE_EXTRA_OPTIONS+=" -DUSE_CUDA:BOOL=OFF"
+  fi
+
+  if [ "$USE_HIP" = ON ] ; then
+    CMAKE_EXTRA_OPTIONS+=" -DUSE_HIP:BOOL=ON"
+  else
+    CMAKE_EXTRA_OPTIONS+=" -DUSE_HIP:BOOL=OFF"
   fi
 
   #============================================================================
@@ -365,7 +445,6 @@ function main
     -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX:PATH="$INSTALL_DIR" \
    \
-    -DCUDA_HOST_COMPILER:STRING="$(dirname $(which $CC_serial))" \
     -DCMAKE_C_COMPILER:STRING="$cc" \
     -DCMAKE_CXX_COMPILER:STRING="$CC" \
    \
@@ -385,6 +464,8 @@ function main
 
   ln -s $INSTALL_DIR install_dir
 }
+
+#    -DCUDA_HOST_COMPILER:STRING="$(dirname $(which $CC_serial))" \
 
 #==============================================================================
 
