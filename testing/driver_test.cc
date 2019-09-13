@@ -1441,7 +1441,7 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
       if (is_duo && num_way == 3) continue;
     for (int sparse=0; sparse<=1; ++sparse) {
       if (is_duo && sparse == 0) continue;
-    for (int tc=1; tc<=2; ++tc) {
+    for (int tc=1; tc<=3; ++tc) {
       if (!gm_is_tc_valid(tc)) continue;
       if (nvl/2 < num_way) continue;
 

@@ -101,6 +101,12 @@ template<> struct TCBufTypes<int8_t> {
   static __device__ int8_t two() {return (int8_t)2;}
 };
 
+template<> struct TCBufTypes<GMFp32> {
+  static __device__ GMFp32 zero() {return (GMFp32)0;}
+  static __device__ GMFp32 one() {return (GMFp32)1;}
+  static __device__ GMFp32 two() {return (GMFp32)2;}
+};
+
 //-----------------------------------------------------------------------------
 /// \brief Select types etc. based on the setting of the tc param.
 
@@ -130,7 +136,7 @@ template<> struct TCSelector<GM_TC_METHOD_INT8> {
 template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
   // types.
   typedef uint16_t GemmIn_t;
-  typedef float GemmOut_t;
+  typedef GMFp32 GemmOut_t;
 #ifdef USE_CUDA
   // type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
@@ -140,6 +146,27 @@ template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
     return rocblas_datatype_f16_r;
+  }
+  static rocblas_datatype __host__ __device__ gemm_type_out() {
+    return rocblas_datatype_f32_r;
+  }
+#endif
+  enum { COUNT = 1 };
+};
+
+template<> struct TCSelector<GM_TC_METHOD_FLOAT32> {
+  // types.
+  typedef GMFp32 GemmIn_t;
+  typedef GMFp32 GemmOut_t;
+#ifdef USE_CUDA
+  // type selector parameters.
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_32F;}
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
+#endif
+#ifdef USE_HIP
+  // type selector parameters.
+  static rocblas_datatype __host__ __device__ gemm_type_in() {
+    return rocblas_datatype_f32_r;
   }
   static rocblas_datatype __host__ __device__ gemm_type_out() {
     return rocblas_datatype_f32_r;
@@ -354,30 +381,6 @@ static void gm_tc_buf_write_(
     dummy += num_threadblocks_1;
     dummy += num_threadblocks_2;
 #endif
-
-
-
-#if 0
-#ifndef USE_CUDA
-    int dummy = 0;
-    dummy += num_threadblocks_0;
-    dummy += num_threadblocks_1;
-    dummy += num_threadblocks_2;
-#endif
-  gm_tc_buf_write_kernel_<GemmIn_t>
-#ifdef USE_CUDA
-      <<<
-      dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
-      dim3(threadblocksize, 1, 1),
-      0,
-      env->stream_compute_
-      >>>
-#endif
-    (tc_buf, vi32, vi32_dim0,
-    GMEnv_num_way(env), env->sparse, is_right, is_duo,
-    nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
-#endif
-
 
   GMEnv_accel_last_call_succeeded(env);
 }
@@ -876,6 +879,11 @@ void gm_tc_gemm_start(int m, int n, int k,
         m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
     } break;
     // --------------
+    case GM_TC_METHOD_FLOAT32: {
+      gm_tc_gemm_start_impl_<GM_TC_METHOD_FLOAT32>(
+        m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
+    } break;
+    // --------------
     default:
       GMInsist(false && "Invalid tc type.");
   } // switch
@@ -918,8 +926,10 @@ void gm_tc_bufs_malloc(int num_vector_local,
        sizeof(typename TCSelector<GM_TC_METHOD_INT8>::GemmIn_t) :
      env->tc == GM_TC_METHOD_FLOAT16 ?
        sizeof(typename TCSelector<GM_TC_METHOD_FLOAT16>::GemmIn_t) :
+     env->tc == GM_TC_METHOD_FLOAT32 ?
+       sizeof(typename TCSelector<GM_TC_METHOD_FLOAT32>::GemmIn_t) :
      0;
-  GMInsist(GM_NUM_TC_METHOD == 3); // this code must be updated if new method
+  GMInsist(GM_NUM_TC_METHOD == 4); // this code must be updated if new method
 
   const size_t nvlX2 = nvl * 2;
 
