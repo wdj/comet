@@ -108,6 +108,16 @@ function main
     local CC=$(which g++)
     CC_serial=hipcc
   #--------------------
+  elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
+    USE_CUDA=OFF
+    USE_MAGMA=OFF
+    USE_HIP=ON
+    local CUDA_INCLUDE_OPTS=""
+    local CUDA_POST_LINK_OPTS=""
+    local cc=$(which gcc)
+    local CC=$(which g++)
+    CC_serial=hipcc
+  #--------------------
   else
     echo "${0##*/}: Unknown platform." 1>&2
     exit 1
@@ -275,10 +285,9 @@ function main
 
   if [ $USE_HIP = ON ] ; then
     CMAKE_CXX_FLAGS+=" -DUSE_HIP"
-    local ROCM_INSTALL_DIR=/opt/rocm
-    CMAKE_CXX_FLAGS+=" -I$ROCM_INSTALL_DIR/rocblas/include"
-    CMAKE_CXX_FLAGS+=" -I$ROCM_INSTALL_DIR/include"
-    CMAKE_CXX_FLAGS+=" -I$ROCM_INSTALL_DIR/hip/include/hip"
+    CMAKE_CXX_FLAGS+=" -I$ROCBLAS_PATH/include"
+    CMAKE_CXX_FLAGS+=" -I$ROCM_PATH/include"
+    CMAKE_CXX_FLAGS+=" -I$HIP_PATH/include/hip"
     #CMAKE_CXX_FLAGS+=" -D__HIP_PLATFORM_HCC__"
   fi
 
@@ -340,8 +349,8 @@ function main
   fi
 
   if [ $USE_HIP = ON ] ; then
-    LFLAGS+=" -L$ROCM_INSTALL_DIR/rocblas/lib -lrocblas"
-    LFLAGS+=" -L$ROCM_INSTALL_DIR/lib -lhip_hcc"
+    LFLAGS+=" -L$ROCBLAS_PATH/lib -lrocblas"
+    LFLAGS+=" -L$ROCM_PATH/lib -lhip_hcc"
   fi
 
   if [ $COMET_PLATFORM = CRAY_XK7 ] ; then

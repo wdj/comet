@@ -103,6 +103,7 @@ function main
   local DO_BUILD=YES # NO
   [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
   [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
+  [[ $COMET_PLATFORM = AMDINTERNAL ]] && DO_BUILD=NO
   if [ $DO_BUILD = YES ] ; then
     export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=DOUBLE
     configure_1case
@@ -123,6 +124,7 @@ function main
   local DO_BUILD=YES # NO
   [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
   [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
+  [[ $COMET_PLATFORM = AMDINTERNAL ]] && DO_BUILD=NO
   if [ $DO_BUILD = YES ] ; then
     export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=SINGLE
     configure_1case
@@ -134,6 +136,7 @@ function main
   local DO_BUILD=YES # NO
   [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
   [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
+  [[ $COMET_PLATFORM = AMDINTERNAL ]] && DO_BUILD=NO
   if [ $DO_BUILD = YES ] ; then
     export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=DOUBLE
     configure_1case
@@ -154,6 +157,7 @@ function main
   local DO_BUILD=YES # NO
   [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
   [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
+  [[ $COMET_PLATFORM = AMDINTERNAL ]] && DO_BUILD=NO
   if [ $DO_BUILD = YES ] ; then
     export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=SINGLE 
     configure_1case

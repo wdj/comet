@@ -26,6 +26,8 @@ local COMET_PLATFORM=""
 [[ "${NERSC_HOST:-}" = "edison" ]] && COMET_PLATFORM=EDISON
 [[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && COMET_PLATFORM=EXPERIMENTAL
 [[ "$COMET_HOST" = "lyra" ]] && COMET_PLATFORM=LYRA # ORNL AMD GPU system
+# FIX
+[[ "$(whoami)" = "user1" ]] && COMET_PLATFORM=AMDINTERNAL # AMD internal GPU system
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform." 1>&2
   exit 1
@@ -62,6 +64,13 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   module load rocblas
   module load hip
   export ROCM_PATH=/opt/rocm
+  export ROCBLAS_PATH=/opt/rocm/rocblas
+  export HIP_PATH=/opt/rocm/hip
+  (module list) 2>&1 | grep -v '^ *$'
+elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
+  # FIX
+  export ROCM_PATH=/opt/rocm
+  export ROCBLAS_PATH=/opt/rocm/rocblas
   export HIP_PATH=/opt/rocm/hip
 else
   echo "${0##*/}: Unknown platform." 1>&2
