@@ -37,8 +37,6 @@
 //-----------------------------------------------------------------------------
 /// \brief Abstracted thread indexing/dimensions functions.
 
-
-
 #ifdef USE_CUDA
 __device__ static int threadIdx_x_() { return threadIdx.x; }
 

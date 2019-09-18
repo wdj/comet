@@ -923,9 +923,9 @@ bool gm_is_tc_valid(int tc) {
 #ifdef USE_HIP
   hipDeviceProp_t deviceProp;
   hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
-  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability < 700) return false;
-  if (tc == GM_TC_METHOD_INT8 && compute_capability < 700) return false;
+//  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+//  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability < 700) return false;
+//  if (tc == GM_TC_METHOD_INT8 && compute_capability < 700) return false;
 #endif
 
   return true;

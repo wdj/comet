@@ -19,6 +19,15 @@
 #include "magma_mgemm4_lapack.h"
 #include "magma_mgemm5.h"
 #include "magma_mgemm5_lapack.h"
+#else
+
+#ifdef USE_CUDA
+  #include "cublas_v2.h"
+#endif
+#ifdef USE_HIP
+  #include "hip/hip_runtime_api.h"
+  #include "hip/hip_runtime.h"
+#endif
 #endif
 
 #include "env.hh"
@@ -183,13 +192,15 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     return;
   }
 
-#ifdef USE_MAGMA
   p->dim0 = dim0;
   p->dim1 = dim1;
 
   const size_t n = dim0 * dim1;
 
   if (use_minproduct(env)) { //--------------------
+
+#ifdef USE_MAGMA
+    typedef GMFloat Float_t;
 
     magma_minproduct_int_t magma_code = 0;
 
@@ -218,13 +229,26 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    " possibly due to insufficient memory.");
     }
     // TODO: ? fill GPU memory with NaNs
+    p->size = n*sizeof(Float_t);
+#else
+#ifdef USE_CUDA
+  cudaMallocHost((void**)&p->h, n*sizeof(GMFloat));
+  cudaMalloc((void**)&p->d, n*sizeof(GMFloat));
+  p->size = n*sizeof(GMFloat);
+#endif
+#ifdef USE_HIP
+  hipHostMalloc((void**)&p->h, n*sizeof(GMFloat));
+  hipMalloc((void**)&p->d, n*sizeof(GMFloat));
+  p->size = n*sizeof(GMFloat);
+#endif
+#endif
 
-    p->size = n*sizeof(GMFloat);
     gm_cpu_mem_inc(p->size, env);
     gm_gpu_mem_inc(p->size, env);
 
   } else if (use_mgemm4(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm4DoubleComplex Float_t;
 
     magma_mgemm4_int_t magma_code = 0;
@@ -238,13 +262,26 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4_zmalloc,"
                    " possibly due to insufficient memory.");
-
     p->size = n*sizeof(Float_t);
+#else
+#ifdef USE_CUDA
+  cudaMallocHost((void**)&p->h, n*16);
+  cudaMalloc((void**)&p->d, n*16);
+  p->size = n*16;
+#endif
+#ifdef USE_HIP
+  hipHostMalloc((void**)&p->h, n*16);
+  hipMalloc((void**)&p->d, n*16);
+  p->size = n*16;
+#endif
+#endif
+
     gm_cpu_mem_inc(p->size, env);
     gm_gpu_mem_inc(p->size, env);
 
   } else if (use_mgemm2(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm2DoubleComplex Float_t;
 
     magma_mgemm2_int_t magma_code = 0;
@@ -258,13 +295,26 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2_zmalloc,"
                    " possibly due to insufficient memory.");
-
     p->size = n*sizeof(Float_t);
+#else
+#ifdef USE_CUDA
+  cudaMallocHost((void**)&p->h, n*16);
+  cudaMalloc((void**)&p->d, n*16);
+  p->size = n*16;
+#endif
+#ifdef USE_HIP
+  hipHostMalloc((void**)&p->h, n*16);
+  hipMalloc((void**)&p->d, n*16);
+  p->size = n*16;
+#endif
+#endif
+
     gm_cpu_mem_inc(p->size, env);
     gm_gpu_mem_inc(p->size, env);
 
   } else if (use_mgemm3(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm3DoubleComplex Float_t;
 
     magma_mgemm3_int_t magma_code = 0;
@@ -278,13 +328,26 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3_zmalloc,"
                    " possibly due to insufficient memory.");
-
     p->size = n*sizeof(Float_t);
+#else
+#ifdef USE_CUDA
+  cudaMallocHost((void**)&p->h, n*16);
+  cudaMalloc((void**)&p->d, n*16);
+  p->size = n*16;
+#endif
+#ifdef USE_HIP
+  hipHostMalloc((void**)&p->h, n*16);
+  hipMalloc((void**)&p->d, n*16);
+  p->size = n*16;
+#endif
+#endif
+
     gm_cpu_mem_inc(p->size, env);
     gm_gpu_mem_inc(p->size, env);
 
   } else if (use_mgemm5(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm5DoubleComplex Float_t;
 
     magma_mgemm5_int_t magma_code = 0;
@@ -298,8 +361,20 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
                    "Error in call to magma_mgemm5_zmalloc,"
                    " possibly due to insufficient memory.");
-
     p->size = n*sizeof(Float_t);
+#else
+#ifdef USE_CUDA
+  cudaMallocHost((void**)&p->h, n*16);
+  cudaMalloc((void**)&p->d, n*16);
+  p->size = n*16;
+#endif
+#ifdef USE_HIP
+  hipHostMalloc((void**)&p->h, n*16);
+  hipMalloc((void**)&p->d, n*16);
+  p->size = n*16;
+#endif
+#endif
+
     gm_cpu_mem_inc(p->size, env);
     gm_gpu_mem_inc(p->size, env);
 
@@ -308,7 +383,6 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_MAGMA
 
   GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc,"
                    " possibly due to insufficient memory.");
@@ -328,9 +402,9 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 
   GMInsist(! p->is_alias);
 
-#ifdef USE_MAGMA
   const size_t size = p->size;
 
+#ifdef USE_MAGMA
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
@@ -396,6 +470,19 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
+#else
+#ifdef USE_CUDA
+  cudaFreeHost(p->h);
+  cudaFree(p->d);
+  gm_cpu_mem_dec(size, env);
+  gm_gpu_mem_dec(size, env);
+#endif
+#ifdef USE_HIP
+  hipHostFree(p->h);
+  hipFree(p->d);
+  gm_cpu_mem_dec(size, env);
+  gm_gpu_mem_dec(size, env);
+#endif
 #endif // USE_MAGMA
 }
 
@@ -468,6 +555,13 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
+#else
+#ifdef USE_CUDA
+  cudaMemset(matrix_buf->d, 0, matrix_buf->size);
+#endif
+#ifdef USE_HIP
+  hipMemset(matrix_buf->d, 0, matrix_buf->size);
+#endif
 #endif // USE_MAGMA
 }
 
@@ -617,7 +711,6 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
   GMInsist(ldda >= 0 && lddb >= 0);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
-#ifdef USE_MAGMA
   if (m==0 || n==0 || k==0) {
     return;
   }
@@ -628,6 +721,7 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
     return;
   }
 
+#ifdef USE_MAGMA
   const size_t rows = k;
   const size_t cols_A = m;
   const size_t cols_B = n;
@@ -715,7 +809,6 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
     return;
   }
 
-#ifdef USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
 
@@ -725,6 +818,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
   if (use_minproduct(env)) { //--------------------
 
+#ifdef USE_MAGMA
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproduct_dsetmatrix_async(
         mat_dim1, mat_dim2, (double*)matrix_buf->h, mat_dim1,
@@ -734,45 +828,98 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
         mat_dim1, mat_dim2, (float*)matrix_buf->h, mat_dim1,
         (float*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
     }
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*sizeof(GMFloat),
+               cudaMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*sizeof(GMFloat),
+              hipMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else if (use_mgemm4(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm4DoubleComplex Float_t;
 
     magma_mgemm4_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*16,
+               cudaMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*16,
+              hipMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else if (use_mgemm2(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm2DoubleComplex Float_t;
 
     magma_mgemm2_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*16,
+               cudaMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*16,
+              hipMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else if (use_mgemm3(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm3DoubleComplex Float_t;
 
     magma_mgemm3_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*16,
+               cudaMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*16,
+              hipMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else if (use_mgemm5(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm5DoubleComplex Float_t;
 
     magma_mgemm5_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
                                   GMEnv_stream_togpu(env));
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*16,
+               cudaMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*16,
+              hipMemcpyHostToDevice, GMEnv_stream_togpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -794,7 +941,6 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
     return;
   }
 
-#ifdef USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
 
@@ -804,6 +950,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
   if (use_minproduct(env)) { //--------------------
 
+#ifdef USE_MAGMA
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproduct_dgetmatrix_async(
         mat_dim1, mat_dim2, (double*)matrix_buf->d, mat_dim1,
@@ -813,45 +960,98 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
         mat_dim1, mat_dim2, (float*)matrix_buf->d, mat_dim1,
         (float*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
     }
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*sizeof(GMFloat),
+               cudaMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*sizeof(GMFloat),
+              hipMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else if (use_mgemm4(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm4DoubleComplex Float_t;
 
     magma_mgemm4_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*16,
+               cudaMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*16,
+              hipMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else if (use_mgemm2(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm2DoubleComplex Float_t;
 
     magma_mgemm2_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*16,
+               cudaMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*16,
+              hipMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else if (use_mgemm3(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm3DoubleComplex Float_t;
 
     magma_mgemm3_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*16,
+               cudaMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*16,
+              hipMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else if (use_mgemm5(env)) { //--------------------
 
+#ifdef USE_MAGMA
     typedef magma_mgemm5DoubleComplex Float_t;
 
     magma_mgemm5_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
                                   GMEnv_stream_fromgpu(env));
+#else
+#ifdef USE_CUDA
+    cudaMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*16,
+               cudaMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#ifdef USE_HIP
+    hipMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*16,
+              hipMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+#endif
+#endif // USE_MAGMA
 
   } else { //--------------------
 
       GMInsistInterface(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------

@@ -266,7 +266,10 @@ function main
     CMAKE_CXX_FLAGS+=" -rdynamic" # for stack trace
   fi
   CMAKE_CXX_FLAGS+=" -Wall -Wno-unused-function -Werror"
-  CMAKE_CXX_FLAGS+=" -fno-associative-math -fopenmp"
+  CMAKE_CXX_FLAGS+=" -fno-associative-math"
+  if [ $USE_HIP = OFF ] ; then
+    CMAKE_CXX_FLAGS+=" -fopenmp" # TODO: put this back in later
+  fi
   CMAKE_CXX_FLAGS+=" -Wno-error=unknown-pragmas"
   CMAKE_CXX_FLAGS+=" -DTEST_PROCS_MAX=64"
   #CMAKE_CXX_FLAGS+=" -std=c++11 -Wconversion"

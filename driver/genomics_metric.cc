@@ -566,6 +566,8 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
 void perform_run_preflight(int argc, char** argv) {
 
+// TODO: make this better.
+#ifdef USE_MAGMA
   GMEnv env_val = GMEnv_null(), *env = &env_val;;
   GMEnv_create(env, MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
@@ -594,6 +596,7 @@ void perform_run_preflight(int argc, char** argv) {
   }
 
   GMEnv_destroy(env);
+#endif
 }
 
 //=============================================================================
