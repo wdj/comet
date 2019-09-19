@@ -23,7 +23,6 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #elif defined USE_HIP
-#include "hip_hcc.h"
 #include "hip/hip_runtime.h"
 #endif
 
@@ -130,6 +129,7 @@ enum {
 
 enum {
   GM_TC_METHOD_NONE = 0,
+  //GM_TC_METHOD_BEST = 1,
   GM_TC_METHOD_FLOAT16 = 1,
   GM_TC_METHOD_INT8 = 2,
   GM_TC_METHOD_FLOAT32 = 3,

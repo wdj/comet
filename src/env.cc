@@ -22,8 +22,6 @@
 
 #if defined USE_CUDA
 #include "cuda.h"
-#elif defined USE_HIP
-#include "hip_hcc.h"
 #endif
 
 #include "env.hh"
@@ -878,7 +876,7 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
 
   return result;
 #elif defined USE_HIP
-  // NOTE: this read of the last error is a destructive read.
+  // NOTE: this read of the last error is (apparently) a destructive read.
   hipError_t error = hipGetLastError();
   const bool result = error == hipSuccess;
 
