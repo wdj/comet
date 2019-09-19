@@ -59,7 +59,7 @@ void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env) {
     return;
   }
 
-  GMComputeMetrics compute_metrics_value, //FIX = {0},
+  GMComputeMetrics compute_metrics_value = {},
                   *compute_metrics = &compute_metrics_value;
 
   GMComputeMetrics_create(compute_metrics, vectors->dm, env);

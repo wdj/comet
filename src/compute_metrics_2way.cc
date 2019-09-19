@@ -37,7 +37,7 @@ void GMComputeMetrics2Way_create(
     return;
   }
 
-  *this_ = {{0}}; // FIX
+  *this_ = {};
 
   GMVectorSums_create(&this_->vector_sums_onproc, dm->num_vector_local, env);
   GMVectorSums_create(&this_->vector_sums_offproc, dm->num_vector_local, env);

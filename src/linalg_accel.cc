@@ -88,11 +88,15 @@ template<> struct TCBufTypes<uint16_t> {
                                         // = *(uint16_t*)&__float2half(2.);
 };
 
+//----------
+
 template<> struct TCBufTypes<int8_t> {
   static __device__ int8_t zero() {return (int8_t)0;}
   static __device__ int8_t one() {return (int8_t)1;}
   static __device__ int8_t two() {return (int8_t)2;}
 };
+
+//----------
 
 template<> struct TCBufTypes<GMFp32> {
   static __device__ GMFp32 zero() {return (GMFp32)0;}
@@ -125,6 +129,8 @@ template<> struct TCSelector<GM_TC_METHOD_INT8> {
   enum { COUNT = 1 };
 };
 
+//----------
+
 template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
   // types.
   typedef uint16_t GemmIn_t;
@@ -144,6 +150,8 @@ template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
 #endif
   enum { COUNT = 1 };
 };
+
+//----------
 
 template<> struct TCSelector<GM_TC_METHOD_FLOAT32> {
   // types.
@@ -365,12 +373,10 @@ static void gm_tc_buf_write_(
     tc_buf, vi32, vi32_dim0,
     GMEnv_num_way(env), env->sparse, is_right, is_duo,
     nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
-#else
+#else // USE_CUDA_OR_HIP
     int dummy = 0;
-    dummy += num_threadblocks_0;
-    dummy += num_threadblocks_1;
-    dummy += num_threadblocks_2;
-#endif
+    dummy += num_threadblocks_0 + num_threadblocks_1 + num_threadblocks_2;
+#endif // USE_CUDA_OR_HIP
 
   GMEnv_accel_last_call_succeeded(env);
 }
@@ -408,7 +414,6 @@ static void gm_tc_solve_accelblasgemmex_(
   GMInsist(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
 #ifdef USE_CUDA_OR_HIP
-//#if __CUDACC_VER_MAJOR__ >= 9
 
   const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
   const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
@@ -418,8 +423,8 @@ static void gm_tc_solve_accelblasgemmex_(
 #ifdef USE_CUDA
   cublasStatus_t status = cublasGemmEx(
 #else
-  //rocblas_status status = rocblas_gemm_ex(
-  int status = rocblas_gemm_ex(
+  //int status = rocblas_gemm_ex(
+  rocblas_status status = rocblas_gemm_ex(
 #endif
     tc_bufs.accelblas_handle
 #ifdef USE_CUDA
@@ -470,7 +475,6 @@ static void gm_tc_solve_accelblasgemmex_(
 
   env->ops_local += 2 * m * (double)n * (double)k;
 
-//#endif // __CUDACC_VER_MAJOR__
 #endif // USE_CUDA_OR_HIP
 }
 
@@ -702,30 +706,10 @@ static void gm_tc_repair_metrics_(
       ,
 #endif
       nvl, nvll, nvllD2, vo);
-#else
-    int dummy = 0;
-    dummy += vll2_threadblocks;
-    dummy += threadblocksize;
-#endif
-
-
-#if 0
-#ifndef USE_CUDA
-    int dummy = 0;
-    dummy += vll2_threadblocks;
-    dummy += threadblocksize;
-#endif
-  gm_tc_repair_metrics_kernel_<typename TCSelector<TC_METHOD>::GemmOut_t>
-#ifdef USE_CUDA
-      <<<
-      dim3(vll2_threadblocks, nvl, 1),
-      dim3(threadblocksize, 1, 1),
-      0,
-      env->stream_compute_
-      >>>
-#endif
-      (nvl, nvll, nvllD2, vo);
-#endif
+#else // USE_CUDA_OR_HIP
+  int dummy = 0;
+  dummy += vll2_threadblocks + threadblocksize;
+#endif // USE_CUDA_OR_HIP
 
   GMEnv_accel_last_call_succeeded(env);
 }
@@ -949,33 +933,29 @@ void gm_tc_bufs_malloc(int num_vector_local,
 #if defined USE_CUDA
   cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
   GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-           "Failure in call to cublasCreate.");
+           "Error in cublasCreate.");
 
   status = cublasSetStream(tc_bufs.accelblas_handle, env->stream_compute_);
   GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-           "Failure in call to cublasSetStream.");
+           "Error in cublasSetStream.");
 
-#if __CUDACC_VER_MAJOR__ >= 9
   status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
   GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-           "Failure in call to cublasSetMathMode.");
-#endif
+           "Error in cublasSetMathMode.");
 #elif defined USE_HIP
   //rocbas_status_ status = rocblas_create_handle(&tc_bufs.accelblas_handle);
   int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
   GMInsist(status == rocblas_status_success &&
-           "Failure in call to rocblas_create_handle.");
+           "Error in rocblas_create_handle.");
 
   status = rocblas_set_stream(tc_bufs.accelblas_handle, env->stream_compute_);
   GMInsist(status == rocblas_status_success &&
-           "Failure in call to rocblas_set_stream.");
+           "Error in rocblas_set_stream.");
 
 //FIX this
-//#if __CUDACC_VER_MAJOR__ >= 9
 //  status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
 //  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-//           "Failure in call to cublasSetMathMode.");
-//#endif
+//           "Error in cublasSetMathMode.");
 #endif
 }
 
@@ -1015,13 +995,12 @@ void gm_tc_bufs_free(TCBufs& tc_bufs,
 
 #if defined USE_CUDA
   cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-           "Failure in call to cublasDestroy.");
+  GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasDestroy.");
 #elif defined USE_HIP
   //rocblas_status status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
   int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
   GMInsist(status == rocblas_status_success &&
-           "Failure in call to rocblas_destroy_handle.");
+           "Error in rocblas_destroy_handle.");
 #endif
 }
 
