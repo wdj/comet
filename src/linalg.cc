@@ -231,15 +231,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     // TODO: ? fill GPU memory with NaNs
     p->size = n*sizeof(Float_t);
 #else
-#ifdef USE_CUDA
-  cudaMallocHost((void**)&p->h, n*sizeof(GMFloat));
-  cudaMalloc((void**)&p->d, n*sizeof(GMFloat));
   p->size = n*sizeof(GMFloat);
+#ifdef USE_CUDA
+  cudaMallocHost((void**)&p->h, p->size);
+  cudaMalloc((void**)&p->d, p->size);
 #endif
 #ifdef USE_HIP
-  hipHostMalloc((void**)&p->h, n*sizeof(GMFloat));
-  hipMalloc((void**)&p->d, n*sizeof(GMFloat));
-  p->size = n*sizeof(GMFloat);
+  hipHostMalloc((void**)&p->h, p->size);
+  hipMalloc((void**)&p->d, p->size);
 #endif
 #endif
 
@@ -264,15 +263,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    " possibly due to insufficient memory.");
     p->size = n*sizeof(Float_t);
 #else
+  p->size = n*16;
 #ifdef USE_CUDA
   cudaMallocHost((void**)&p->h, n*16);
   cudaMalloc((void**)&p->d, n*16);
-  p->size = n*16;
 #endif
 #ifdef USE_HIP
   hipHostMalloc((void**)&p->h, n*16);
   hipMalloc((void**)&p->d, n*16);
-  p->size = n*16;
 #endif
 #endif
 
@@ -297,15 +295,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    " possibly due to insufficient memory.");
     p->size = n*sizeof(Float_t);
 #else
+  p->size = n*16;
 #ifdef USE_CUDA
   cudaMallocHost((void**)&p->h, n*16);
   cudaMalloc((void**)&p->d, n*16);
-  p->size = n*16;
 #endif
 #ifdef USE_HIP
   hipHostMalloc((void**)&p->h, n*16);
   hipMalloc((void**)&p->d, n*16);
-  p->size = n*16;
 #endif
 #endif
 
@@ -330,15 +327,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    " possibly due to insufficient memory.");
     p->size = n*sizeof(Float_t);
 #else
+  p->size = n*16;
 #ifdef USE_CUDA
   cudaMallocHost((void**)&p->h, n*16);
   cudaMalloc((void**)&p->d, n*16);
-  p->size = n*16;
 #endif
 #ifdef USE_HIP
   hipHostMalloc((void**)&p->h, n*16);
   hipMalloc((void**)&p->d, n*16);
-  p->size = n*16;
 #endif
 #endif
 
@@ -363,15 +359,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
                    " possibly due to insufficient memory.");
     p->size = n*sizeof(Float_t);
 #else
+  p->size = n*16;
 #ifdef USE_CUDA
   cudaMallocHost((void**)&p->h, n*16);
   cudaMalloc((void**)&p->d, n*16);
-  p->size = n*16;
 #endif
 #ifdef USE_HIP
   hipHostMalloc((void**)&p->h, n*16);
   hipMalloc((void**)&p->d, n*16);
-  p->size = n*16;
 #endif
 #endif
 

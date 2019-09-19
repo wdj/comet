@@ -59,16 +59,24 @@ elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
 elif [ $COMET_PLATFORM = EDISON ] ; then
   module swap PrgEnv-intel PrgEnv-gnu
 elif [ $COMET_PLATFORM = LYRA ] ; then
-  module load rocm
-  module load rocblas
-  module load hip
+  #module load rocm
+  #module load rocblas
+  #module load hip
   export ROCM_PATH=/opt/rocm
-  export ROCBLAS_PATH=/opt/rocm/rocblas
+  if [ -e ~/rocBLAS/build/release/rocblas-install/rocblas ] ; then
+    export ROCBLAS_PATH=$HOME/rocBLAS/build/release/rocblas-install/rocblas
+  else
+    export ROCBLAS_PATH=/opt/rocm/rocblas
+  fi
   export HIP_PATH=/opt/rocm/hip
-  (module list) 2>&1 | grep -v '^ *$'
+  #(module list) 2>&1 | grep -v '^ *$'
 elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
   export ROCM_PATH=/opt/rocm
-  export ROCBLAS_PATH=/opt/rocm/rocblas
+  if [ -e ~/rocBLAS/build/release/rocblas-install/rocblas ] ; then
+    export ROCBLAS_PATH=$HOME/rocBLAS/build/release/rocblas-install/rocblas
+  else
+    export ROCBLAS_PATH=/opt/rocm/rocblas
+  fi
   export HIP_PATH=/opt/rocm/hip
 else
   echo "${0##*/}: Unknown platform." 1>&2
