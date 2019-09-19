@@ -19,12 +19,10 @@
 
 #include "mpi.h"
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
 #include "cuda.h"
 #include "cuda_runtime.h"
-#endif
-
-#ifdef USE_HIP
+#elif defined USE_HIP
 #include "hip_hcc.h"
 #include "hip/hip_runtime.h"
 #endif

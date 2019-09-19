@@ -11,11 +11,9 @@
 #ifndef _gm_linalg_accel_hh_
 #define _gm_linalg_accel_hh_
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
 #include "cublas_v2.h"
-#endif
-
-#ifdef USE_HIP
+#elif defined USE_HIP
 #include "rocblas.h"
 #endif
 
@@ -23,17 +21,15 @@
 
 //-----------------------------------------------------------------------------
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
 //typedef cublasStatus_t accelblasStatus_t;
 typedef cublasHandle_t accelblasHandle_t;
-#else
-#ifdef USE_HIP
+#elif defined USE_HIP
 //typedef rocblas_status accelblasStatus_t;
 typedef rocblas_handle accelblasHandle_t;
 #else
 //typedef int accelblasStatus_t;
 typedef int accelblasHandle_t;
-#endif
 #endif
 
 struct TCBufs {

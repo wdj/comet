@@ -10,13 +10,11 @@
 
 #include "cstdint"
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
   #include "cublas_v2.h"
   #include "cuda_fp16.h"
   #define USE_CUDA_OR_HIP
-#else
-#ifdef USE_HIP
-  //#include "hip_hcc.h"
+#elif defined USE_HIP
   #include "hip/hip_runtime_api.h"
   #include "hip/hip_runtime.h"
   #include "rocblas.h"
@@ -24,7 +22,6 @@
 #else
   #define __device__
   #define __global__
-#endif
 #endif
 
 #include "env.hh"
@@ -37,7 +34,7 @@
 //-----------------------------------------------------------------------------
 /// \brief Abstracted thread indexing/dimensions functions.
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
 __device__ static int threadIdx_x_() { return threadIdx.x; }
 
 __device__ static int blockIdx_x_() { return blockIdx.x; }
@@ -47,8 +44,7 @@ __device__ static int blockIdx_z_() { return blockIdx.z; }
 __device__ static int blockDim_x_() { return blockDim.x; }
 
 __device__ static int gridDim_y_() { return gridDim.y; }
-#else
-#ifdef USE_HIP
+#elif defined USE_HIP
 __device__ static int threadIdx_x_() { return hipThreadIdx_x; }
 
 __device__ static int blockIdx_x_() { return hipBlockIdx_x; }
@@ -68,7 +64,6 @@ __device__ static int blockIdx_z_() { return 0; }
 __device__ static int blockDim_x_() { return 0; }
 
 __device__ static int gridDim_y_() { return 0; }
-#endif
 #endif
 
 //-----------------------------------------------------------------------------
@@ -114,12 +109,11 @@ template<> struct TCSelector<GM_TC_METHOD_INT8> {
   // types.
   typedef int8_t GemmIn_t;
   typedef int32_t GemmOut_t;
-#ifdef USE_CUDA
+#if defined USE_CUDA
   // type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
-#endif
-#ifdef USE_HIP
+#elif defined USE_HIP
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
    return rocblas_datatype_u8_r;
@@ -135,12 +129,11 @@ template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
   // types.
   typedef uint16_t GemmIn_t;
   typedef GMFp32 GemmOut_t;
-#ifdef USE_CUDA
+#if defined USE_CUDA
   // type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
-#endif
-#ifdef USE_HIP
+#elif defined USE_HIP
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
     return rocblas_datatype_f16_r;
@@ -156,12 +149,11 @@ template<> struct TCSelector<GM_TC_METHOD_FLOAT32> {
   // types.
   typedef GMFp32 GemmIn_t;
   typedef GMFp32 GemmOut_t;
-#ifdef USE_CUDA
+#if defined USE_CUDA
   // type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_32F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
-#endif
-#ifdef USE_HIP
+#elif defined USE_HIP
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
     return rocblas_datatype_f32_r;
@@ -479,7 +471,7 @@ static void gm_tc_solve_accelblasgemmex_(
   env->ops_local += 2 * m * (double)n * (double)k;
 
 //#endif // __CUDACC_VER_MAJOR__
-#endif // USE_CUDA
+#endif // USE_CUDA_OR_HIP
 }
 
 //-----------------------------------------------------------------------------
@@ -936,19 +928,17 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
   // Allocate buffers.
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
   cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
-#endif
-#ifdef USE_HIP
+#elif defined USE_HIP
   hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #endif
   GMEnv_accel_last_call_succeeded(env);
   gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
   cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
-#endif
-#ifdef USE_HIP
+#elif defined USE_HIP
   hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #endif
   GMEnv_accel_last_call_succeeded(env);
@@ -956,7 +946,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
   // Set up accel blas handle.
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
   cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
   GMInsist(status == CUBLAS_STATUS_SUCCESS &&
            "Failure in call to cublasCreate.");
@@ -970,9 +960,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
   GMInsist(status == CUBLAS_STATUS_SUCCESS &&
            "Failure in call to cublasSetMathMode.");
 #endif
-#endif
-
-#ifdef USE_HIP
+#elif defined USE_HIP
   //rocbas_status_ status = rocblas_create_handle(&tc_bufs.accelblas_handle);
   int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
   GMInsist(status == rocblas_status_success &&
@@ -1005,20 +993,18 @@ void gm_tc_bufs_free(TCBufs& tc_bufs,
 
   // Free buffers.
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
   cudaFree(tc_bufs.tc_buf_left);
-#endif
-#ifdef USE_HIP
+#elif defined USE_HIP
   hipFree(tc_bufs.tc_buf_left);
 #endif
   GMEnv_accel_last_call_succeeded(env);
   tc_bufs.tc_buf_left = NULL;
   gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
   cudaFree(tc_bufs.tc_buf_right);
-#endif
-#ifdef USE_HIP
+#elif defined USE_HIP
   hipFree(tc_bufs.tc_buf_right);
 #endif
   GMEnv_accel_last_call_succeeded(env);
@@ -1027,12 +1013,11 @@ void gm_tc_bufs_free(TCBufs& tc_bufs,
 
   // Free cublas handle.
 
-#ifdef USE_CUDA
+#if defined USE_CUDA
   cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
   GMInsist(status == CUBLAS_STATUS_SUCCESS &&
            "Failure in call to cublasDestroy.");
-#endif
-#ifdef USE_HIP
+#elif defined USE_HIP
   //rocblas_status status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
   int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
   GMInsist(status == rocblas_status_success &&
