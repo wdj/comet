@@ -59,9 +59,9 @@ elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
 elif [ $COMET_PLATFORM = EDISON ] ; then
   module swap PrgEnv-intel PrgEnv-gnu
 elif [ $COMET_PLATFORM = LYRA ] ; then
-  #module load rocm
+  module load rocm
+  module load hip
   #module load rocblas
-  #module load hip
   export ROCM_PATH=/opt/rocm
   if [ -e ~/rocBLAS/build/release/rocblas-install/rocblas ] ; then
     export ROCBLAS_PATH=$HOME/rocBLAS/build/release/rocblas-install/rocblas
