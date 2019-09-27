@@ -1,6 +1,6 @@
 #==============================================================================
-# Make initializations pertaining to platform to build/use CoMet on.
-# This script should not be used directly but is sourced from other scripts.
+# Build initializations pertaining to platform of CoMet build.
+# This script should not be used directly but is sourced by other scripts.
 #==============================================================================
 
 # Initial checks.

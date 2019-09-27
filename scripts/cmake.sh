@@ -441,22 +441,22 @@ function main
       "
     fi
     CMAKE_EXTRA_OPTIONS+=" -DUSE_MPI:BOOL=ON"
-  else
-    CMAKE_EXTRA_OPTIONS+=" -DUSE_MPI:BOOL=OFF"
+#  else
+#    CMAKE_EXTRA_OPTIONS+=" -DUSE_MPI:BOOL=OFF"
   fi
 
   if [ "$USE_CUDA" = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
     CMAKE_EXTRA_OPTIONS+=" -DUSE_CUDA:BOOL=ON"
     CMAKE_EXTRA_OPTIONS+=" -DCUDA_HOST_COMPILER:STRING=$(dirname $(which $CC_serial))"
-  else
-    CMAKE_EXTRA_OPTIONS+=" -DUSE_CUDA:BOOL=OFF"
+#  else
+#    CMAKE_EXTRA_OPTIONS+=" -DUSE_CUDA:BOOL=OFF"
   fi
 
   if [ "$USE_HIP" = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" -DUSE_HIP:BOOL=ON"
-  else
-    CMAKE_EXTRA_OPTIONS+=" -DUSE_HIP:BOOL=OFF"
+#  else
+#    CMAKE_EXTRA_OPTIONS+=" -DUSE_HIP:BOOL=OFF"
   fi
 
   #============================================================================

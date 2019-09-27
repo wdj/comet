@@ -79,6 +79,20 @@ SET(DRIVER_SOURCES
 #--------------------
 # Preliminaries.
 
+if(NOT DEFINED USE_MPI)
+  set(USE_MPI OFF)
+endif()
+
+if(NOT DEFINED USE_CUDA)
+  set(USE_CUDA OFF)
+endif()
+
+if(NOT DEFINED USE_HIP)
+  set(USE_HIP OFF)
+endif()
+
+#--------------------
+
 if(USE_MPI)
   find_package(MPI REQUIRED)
 endif()
