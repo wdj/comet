@@ -24,7 +24,7 @@ Code levelization: subpackage dependencies
           [CoMet code proper does 1 phase/stage; driver loops to do multiple]
 
 
-2.  linalg_accel
+2.  linalg_tc
           CUDA code, primarily for using tensor cores
           [operations: alloc/free buffers, copy in, GEMM, adjust output]
           [A and B are decomposed into block rows to conserve memory]

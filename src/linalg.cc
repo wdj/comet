@@ -28,7 +28,7 @@
 
 #include "env.hh"
 #include "assertions.hh"
-#include "linalg_accel.hh"
+#include "linalg_tc.hh"
 #include "decomp_mgr.hh"
 #include "linalg.hh"
 
@@ -485,33 +485,32 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
-                                magma_minproduct_int_t n,
-                                magma_minproduct_int_t k,
-                                void* dA,
-                                magma_minproduct_int_t ldda,
-                                void* dB,
-                                magma_minproduct_int_t lddb,
-                                void* dC,
-                                magma_minproduct_int_t lddc,
-                                bool is_beta_one,
-                                GMEnv* env) {
+void gm_linalg_gemm_magma_block_start(size_t m,
+                                      size_t n,
+                                      size_t k,
+                                      void* dA,
+                                      size_t ldda,
+                                      void* dB,
+                                      size_t lddb,
+                                      void* dC,
+                                      size_t lddc,
+                                      bool is_beta_one,
+                                      GMEnv* env) {
   GMInsist(dA && dB && dC && env);
-  GMInsist(m >= 0 && n >= 0 && k >= 0);
-  GMInsist(ldda >= 0 && lddb >= 0);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
 #ifdef USE_MAGMA
   {
+    // Ensure Magmablas function doesn't internally failover to CUBLAS call.
     int TransA = 1;
     int TransB = 0;
 
-    magma_minproduct_int_t Am = ( ! TransA ? m : k);
-    magma_minproduct_int_t An = ( ! TransA ? k : m);
-    magma_minproduct_int_t Bm = ( ! TransB ? k : n);
-    magma_minproduct_int_t Bn = ( ! TransB ? n : k);
-    size_t sizeA = (size_t) ldda * (An - 1) + Am;
-    size_t sizeB = (size_t) lddb * (Bn - 1) + Bm;
+    size_t Am = ! TransA ? m : k;
+    size_t An = ! TransA ? k : m;
+    size_t Bm = ! TransB ? k : n;
+    size_t Bn = ! TransB ? n : k;
+    size_t sizeA = ldda * (An - 1) + Am;
+    size_t sizeB = lddb * (Bn - 1) + Bm;
 
     size_t CUBLAS_MAX_1DBUF_SIZE = ((1 << 27) - 512);
     GMInsist((! (sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
@@ -526,16 +525,53 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     const GMFloat alpha = 1;
     const GMFloat beta = is_beta_one ? 1 : 0;
 
+    typedef magma_minproduct_int_t Int_t;
+
+    const Int_t m_ = m;
+    const Int_t n_ = n;
+    const Int_t k_ = k;
+    const Int_t ldda_ = ldda;
+    const Int_t lddb_ = lddb;
+    const Int_t lddc_ = lddc;
+    GMInsist((size_t)m_ == m && "Integer overflow.");
+    GMInsist((size_t)n_ == n && "Integer overflow.");
+    GMInsist((size_t)k_ == k && "Integer overflow.");
+    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
+    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
+    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+
     if (GM_FP_PRECISION_DOUBLE) {
-      magma_minproductblas_dgemm
-        (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
-         (double*)dA, ldda, (double*)dB, lddb, beta, (double*)dC, lddc);
+      magma_minproductblas_dgemm(
+        Magma_minproductTrans,
+        Magma_minproductNoTrans,
+        m_,
+        n_,
+        k_,
+        alpha,
+        (double*)dA,
+        ldda_,
+        (double*)dB,
+        lddb_,
+        beta,
+        (double*)dC,
+        lddc_);
       GMInsist(GMEnv_accel_last_call_succeeded(env) &&
                "Failure in call to magma_minproductblas_dgemm.");
     } else {
-      magma_minproductblas_sgemm
-        (Magma_minproductTrans, Magma_minproductNoTrans, m, n, k, alpha,
-         (float*)dA, ldda, (float*)dB, lddb, beta, (float*)dC, lddc);
+      magma_minproductblas_sgemm(
+        Magma_minproductTrans,
+        Magma_minproductNoTrans,
+        m_,
+        n_,
+        k_,
+        alpha,
+        (float*)dA,
+        ldda_,
+        (float*)dB,
+        lddb_,
+        beta,
+        (float*)dC,
+        lddc_);
       GMInsist(GMEnv_accel_last_call_succeeded(env) &&
                "Failure in call to magma_minproductblas_sgemm.");
     }
@@ -551,9 +587,35 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
-    magma_mgemm4blas_zgemm(Magma_mgemm4Trans, Magma_mgemm4NoTrans, m, n, k,
-                           alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
-                           beta, (Float_t*)dC, lddc);
+    typedef magma_mgemm4_int_t Int_t;
+
+    const Int_t m_ = m;
+    const Int_t n_ = n;
+    const Int_t k_ = k;
+    const Int_t ldda_ = ldda;
+    const Int_t lddb_ = lddb;
+    const Int_t lddc_ = lddc;
+    GMInsist((size_t)m_ == m && "Integer overflow.");
+    GMInsist((size_t)n_ == n && "Integer overflow.");
+    GMInsist((size_t)k_ == k && "Integer overflow.");
+    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
+    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
+    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+
+    magma_mgemm4blas_zgemm(
+      Magma_mgemm4Trans,
+      Magma_mgemm4NoTrans,
+      m_,
+      n_,
+      k_,
+      alpha,
+      (Float_t*)dA,
+      ldda_,
+      (Float_t*)dB,
+      lddb_,
+      beta,
+      (Float_t*)dC,
+      lddc_);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm4blas_zgemm.");
 
@@ -566,9 +628,35 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
-    magma_mgemm2blas_zgemm(Magma_mgemm2Trans, Magma_mgemm2NoTrans, m, n, k,
-                           alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
-                           beta, (Float_t*)dC, lddc);
+    typedef magma_mgemm2_int_t Int_t;
+
+    const Int_t m_ = m;
+    const Int_t n_ = n;
+    const Int_t k_ = k;
+    const Int_t ldda_ = ldda;
+    const Int_t lddb_ = lddb;
+    const Int_t lddc_ = lddc;
+    GMInsist((size_t)m_ == m && "Integer overflow.");
+    GMInsist((size_t)n_ == n && "Integer overflow.");
+    GMInsist((size_t)k_ == k && "Integer overflow.");
+    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
+    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
+    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+
+    magma_mgemm2blas_zgemm(
+      Magma_mgemm2Trans,
+      Magma_mgemm2NoTrans,
+      m_,
+      n_,
+      k_,
+      alpha,
+      (Float_t*)dA,
+      ldda_,
+      (Float_t*)dB,
+      lddb_,
+      beta,
+      (Float_t*)dC,
+      lddc_);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm2blas_zgemm.");
 
@@ -581,9 +669,35 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
-    magma_mgemm3blas_zgemm(Magma_mgemm3Trans, Magma_mgemm3NoTrans, m, n, k,
-                           alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
-                           beta, (Float_t*)dC, lddc);
+    typedef magma_mgemm3_int_t Int_t;
+
+    const Int_t m_ = m;
+    const Int_t n_ = n;
+    const Int_t k_ = k;
+    const Int_t ldda_ = ldda;
+    const Int_t lddb_ = lddb;
+    const Int_t lddc_ = lddc;
+    GMInsist((size_t)m_ == m && "Integer overflow.");
+    GMInsist((size_t)n_ == n && "Integer overflow.");
+    GMInsist((size_t)k_ == k && "Integer overflow.");
+    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
+    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
+    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+
+    magma_mgemm3blas_zgemm(
+      Magma_mgemm3Trans,
+      Magma_mgemm3NoTrans,
+      m_,
+      n_,
+      k_,
+      alpha,
+      (Float_t*)dA,
+      ldda_,
+      (Float_t*)dB,
+      lddb_,
+      beta,
+      (Float_t*)dC,
+      lddc_);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm3blas_zgemm.");
 
@@ -591,15 +705,40 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
 
     typedef magma_mgemm5DoubleComplex Float_t;
 
+    typedef magma_mgemm5_int_t Int_t;
+
+    const Int_t m_ = m;
+    const Int_t n_ = n;
+    const Int_t k_ = k;
+    const Int_t ldda_ = ldda;
+    const Int_t lddb_ = lddb;
+    const Int_t lddc_ = lddc;
+    GMInsist((size_t)m_ == m && "Integer overflow.");
+    GMInsist((size_t)n_ == n && "Integer overflow.");
+    GMInsist((size_t)k_ == k && "Integer overflow.");
+    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
+    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
+    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+
     const Float_t zero = {0, 0};
     const Float_t one = {1, 0};
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
-//printf("%i %i %i %i %i %i\n", (int)m, (int)n, (int)k, (int)ldda, (int)lddb, (int)lddc);
-    magma_mgemm5blas_zgemm(Magma_mgemm5Trans, Magma_mgemm5NoTrans, m, n, k,
-                           alpha, (Float_t*)dA, ldda, (Float_t*)dB, lddb,
-                           beta, (Float_t*)dC, lddc);
+    magma_mgemm5blas_zgemm(
+      Magma_mgemm5Trans,
+      Magma_mgemm5NoTrans,
+      m_,
+      n_,
+      k_,
+      alpha,
+      (Float_t*)dA,
+      ldda_,
+      (Float_t*)dB,
+      lddb_,
+      beta,
+      (Float_t*)dC,
+      lddc_);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm5blas_zgemm.");
 
@@ -613,31 +752,22 @@ void gm_linalg_gemm_block_start(magma_minproduct_int_t m,
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_gemm_start(magma_minproduct_int_t m,
-                          magma_minproduct_int_t n,
-                          magma_minproduct_int_t k,
-                          void* dA,
-                          magma_minproduct_int_t ldda,
-                          void* dB,
-                          magma_minproduct_int_t lddb,
-                          void* dC,
-                          magma_minproduct_int_t lddc,
-                          GMDecompMgr* dm,
-                          GMEnv* env) {
+void gm_linalg_gemm_magma_start(size_t m,
+                                size_t n,
+                                size_t k,
+                                void* dA,
+                                size_t ldda,
+                                void* dB,
+                          size_t lddb,
+                                void* dC,
+                                size_t lddc,
+                                GMDecompMgr* dm,
+                                GMEnv* env) {
   GMInsist(dA && dB && dC && env);
-  GMInsist(m >= 0 && n >= 0 && k >= 0);
-  GMInsist(ldda >= 0 && lddb >= 0);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
-  if (m==0 || n==0 || k==0) {
-    return;
-  }
-
-  if ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-       GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) && env->tc) {
-    gm_tc_gemm_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, dm->tc_bufs, env);
-    return;
-  }
+  // The purpose of this code is to workaround the magma size
+  // limitation (for non CUBLAS failover) by doing gemm in blocks.
 
 #ifdef USE_MAGMA
   const size_t rows = k;
@@ -700,12 +830,40 @@ void gm_linalg_gemm_start(magma_minproduct_int_t m,
 
         void* dC_this = (char*)dC + (col_A_base + lddc*col_B_base)*elt_size;
 
-        gm_linalg_gemm_block_start(cols_A_this, cols_B_this, rows_this,
+        gm_linalg_gemm_magma_block_start(cols_A_this, cols_B_this, rows_this,
           dA_this, ldda, dB_this, lddb, dC_this, lddc, row_base > 0,  env);
       }
     }
   }
 #endif // USE_MAGMA
+}
+
+//-----------------------------------------------------------------------------
+
+void gm_linalg_gemm_start(size_t m,
+                          size_t n,
+                          size_t k,
+                          void* dA,
+                          size_t ldda,
+                          void* dB,
+                          size_t lddb,
+                          void* dC,
+                          size_t lddc,
+                          GMDecompMgr* dm,
+                          GMEnv* env) {
+  GMInsist(dA && dB && dC && env);
+
+  if (m==0 || n==0 || k==0) {
+    return;
+  }
+
+  if ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+       GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) && env->tc) {
+    gm_tc_gemm_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, dm->tc_bufs, env);
+    return;
+  }
+
+  gm_linalg_gemm_magma_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, dm,  env);
 }
 
 //-----------------------------------------------------------------------------

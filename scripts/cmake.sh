@@ -49,7 +49,7 @@ function main
   local USE_CUDA=ON
   local USE_MAGMA=ON
   local USE_HIP=OFF
-  local USE_LAPACK=OFF
+  local USE_CPUBLAS=OFF
   local CC_serial=g++
 
   if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
@@ -69,7 +69,7 @@ function main
     local CUDA_POST_LINK_OPTS="-L$OLCF_CUDA_ROOT/targets/ppc64le-linux/lib"
     local cc=$(which mpicc)
     local CC=$(which mpiCC)
-    USE_LAPACK=ON
+    USE_CPUBLAS=ON
   #--------------------
   elif [ $COMET_PLATFORM = DGX2 ] ; then
     local CUDA_ROOT="$HOME/cuda"
@@ -107,6 +107,9 @@ function main
     local cc=$(which gcc)
     local CC=$(which g++)
     CC_serial=hipcc
+    if [ "${BLIS_PATH:-}" != "" ] ; then
+      USE_CPUBLAS=ON
+    fi
   #--------------------
   elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
     USE_CUDA=OFF
@@ -294,10 +297,13 @@ function main
     #CMAKE_CXX_FLAGS+=" -D__HIP_PLATFORM_HCC__"
   fi
 
-  if [ $USE_LAPACK = ON ] ; then
-    CMAKE_CXX_FLAGS+=" -DUSE_LAPACK"
+  if [ $USE_CPUBLAS = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -DUSE_CPUBLAS"
     if [ $COMET_PLATFORM = IBM_AC922 ] ; then
       CMAKE_CXX_FLAGS+=" -I$OLCF_ESSL_ROOT/include"
+    fi
+    if [ $COMET_PLATFORM = LYRA ] ; then
+      CMAKE_CXX_FLAGS+=" -I$BLIS_PATH/include/zen"
     fi
   fi
 
@@ -354,6 +360,10 @@ function main
   if [ $USE_HIP = ON ] ; then
     LFLAGS+=" -L$ROCBLAS_PATH/lib -lrocblas"
     LFLAGS+=" -L$ROCM_PATH/lib -lhip_hcc"
+    if [ $USE_CPUBLAS = ON ] ; then
+      LFLAGS+=" -L$BLIS_PATH/lib/zen"
+      LFLAGS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
+    fi
   fi
 
   if [ $COMET_PLATFORM = CRAY_XK7 ] ; then
@@ -363,7 +373,7 @@ function main
 
   if [ $COMET_PLATFORM = IBM_AC922 ] ; then
     LFLAGS+=" -Wl,-rpath=$OLCF_CUDA_ROOT/lib64"
-    if [ $USE_LAPACK = ON ] ; then
+    if [ $USE_CPUBLAS = ON ] ; then
       local XLF_DIR=$(module load xl 2>/dev/null ; echo $OLCF_XLF_ROOT)/lib
       local XLF_DIR2=$(module load xl 2>/dev/null ; echo $OLCF_XL_ROOT)/lib
       LFLAGS+=" -L$OLCF_ESSL_ROOT/lib64"

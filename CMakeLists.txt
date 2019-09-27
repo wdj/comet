@@ -27,7 +27,7 @@ SET(LIB_SOURCES
   src/decomp_mgr.cc
   src/mirrored_buf.cc
   src/linalg.cc
-  src/linalg_accel.cc
+  src/linalg_tc.cc
   src/metrics.cc
   src/checksum.cc
   src/vectors.cc
@@ -50,7 +50,7 @@ SET(LIB_INCLUDES
   src/decomp_mgr.hh
   src/mirrored_buf.hh
   src/linalg.hh
-  src/linalg_accel.hh
+  src/linalg_tc.hh
   src/metrics.hh
   src/metrics_2way_indexing.hh
   src/metrics_2way_accessors.hh
@@ -90,7 +90,7 @@ if(USE_CUDA)
   #       cmake-cuda-compile-cpp-files-in-cuda-mode-x-cu
   # Interpret cc file as cu file.
   # NOTE: order of next two lines matters.
-  set_source_files_properties(src/linalg_accel.cc
+  set_source_files_properties(src/linalg_tc.cc
                               PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
   CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 elseif(USE_HIP) #=========================================

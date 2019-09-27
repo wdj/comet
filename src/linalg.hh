@@ -11,13 +11,6 @@
 #ifndef _gm_linalg_hh_
 #define _gm_linalg_hh_
 
-#ifdef USE_MAGMA
-#include "magma_minproduct.h"
-#include "magma_minproduct_lapack.h"
-#else
-typedef int magma_minproduct_int_t;
-#endif
-
 #include "env.hh"
 #include "decomp_mgr.hh"
 #include "mirrored_buf.hh"
@@ -39,15 +32,15 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
 
 /*----------*/
 
-void gm_linalg_gemm_start(magma_minproduct_int_t m,
-                          magma_minproduct_int_t n,
-                          magma_minproduct_int_t k,
+void gm_linalg_gemm_start(size_t m,
+                          size_t n,
+                          size_t k,
                           void* dA,
-                          magma_minproduct_int_t ldda,
+                          size_t ldda,
                           void* dB,
-                          magma_minproduct_int_t lddb,
+                          size_t lddb,
                           void* dC,
-                          magma_minproduct_int_t lddc,
+                          size_t lddc,
                           GMDecompMgr* dm,
                           GMEnv* env);
 

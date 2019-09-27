@@ -14,7 +14,7 @@
 #include "mpi.h"
 
 #include "env.hh"
-#include "linalg_accel.hh"
+#include "linalg_tc.hh"
 #include "decomp_mgr.hh"
 
 //=============================================================================

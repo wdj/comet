@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   linalg_accel.cc
+ * \file   linalg_tc.cc
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  CUDA code, primarily for using tensor cores.
@@ -25,7 +25,7 @@
 #endif
 
 #include "env.hh"
-#include "linalg_accel.hh"
+#include "linalg_tc.hh"
 
 //=============================================================================
 // HELPERS
@@ -741,8 +741,7 @@ static void gm_tc_gemm_start_impl_(
   TCBufs& tc_bufs,
   GMEnv* env) {
 
-  GMInsist(ldda == k); // For our purposes, always true
-  GMInsist(lddb == k);
+  GMInsist(ldda == k && lddb == k); // For our purposes, always true
 
   const int nvl = n;
   const int npvfl = k;
@@ -752,7 +751,7 @@ static void gm_tc_gemm_start_impl_(
   GMInsist(I_max_dim <= nvl);
   // nvll is the effective nvl (column dim) for left matrix
   // only really need to compute up to I_max, but need to compute to I_max_dim
-  // to satisfy divisibiulity requirements.
+  // to satisfy divisibility requirements.
   // Note nvl is always the column dim for the right matrix.
   const int nvll = I_max_dim;
   GMInsist((size_t)nvll == gm_gemm_size_required(nvll, env));
@@ -834,7 +833,7 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
   GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
            GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO);
-  GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  //GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
   // Ensure tensor core hardware is available.
   GMInsistInterface(env, gm_is_tc_valid(env->tc) &&
                     "TC option invalid for this platform/build.");
@@ -877,12 +876,9 @@ void gm_tc_bufs_malloc(int num_vector_local,
   GMInsist(!tc_bufs.tc_buf_left);
   GMInsist(!tc_bufs.tc_buf_right);
 
-  if (!env->tc) {
-    return;
-  }
-
   if (!(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-        GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO)) {
+        GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) ||
+      !env->tc) {
     return;
   }
 
@@ -910,60 +906,73 @@ void gm_tc_bufs_malloc(int num_vector_local,
   tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64) * sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 
-  // Allocate buffers.
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+
+    // Allocate buffers.
 
 #if defined USE_CUDA
-  cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
+    cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #elif defined USE_HIP
-  hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
+    hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #endif
-  GMEnv_accel_last_call_succeeded(env);
-  gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
+    GMEnv_accel_last_call_succeeded(env);
+    gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
 
 #if defined USE_CUDA
-  cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
+    cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #elif defined USE_HIP
-  hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
+    hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #endif
-  GMEnv_accel_last_call_succeeded(env);
-  gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
+    GMEnv_accel_last_call_succeeded(env);
+    gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
 
-  // Set up accel blas handle.
+    // Set up accel blas handle.
 
 #if defined USE_CUDA
-  cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-           "Error in cublasCreate.");
+    cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
+    GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
 
-  status = cublasSetStream(tc_bufs.accelblas_handle, env->stream_compute_);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-           "Error in cublasSetStream.");
+    status = cublasSetStream(tc_bufs.accelblas_handle, env->stream_compute_);
+    GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetStream.");
 
-  status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-           "Error in cublasSetMathMode.");
+    status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
+    GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetMathMode.");
 #elif defined USE_HIP
-  //rocbas_status_ status = rocblas_create_handle(&tc_bufs.accelblas_handle);
-  int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
-  GMInsist(status == rocblas_status_success &&
-           "Error in rocblas_create_handle.");
+    //rocbas_status_ status = rocblas_create_handle(&tc_bufs.accelblas_handle);
+    int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
+    GMInsist(status == rocblas_status_success &&
+             "Error in rocblas_create_handle.");
 
-  status = rocblas_set_stream(tc_bufs.accelblas_handle, env->stream_compute_);
-  GMInsist(status == rocblas_status_success &&
-           "Error in rocblas_set_stream.");
+    status = rocblas_set_stream(tc_bufs.accelblas_handle, env->stream_compute_);
+    GMInsist(status == rocblas_status_success &&
+             "Error in rocblas_set_stream.");
 
-//FIX this
-//  status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
-//  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-//           "Error in cublasSetMathMode.");
+    //FIX - will this be needed?
+    //  status = cublasSetMathMode(tc_bufs.accelblas_handle,
+    //                             CUBLAS_TENSOR_OP_MATH);
+    //  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
+    //           "Error in cublasSetMathMode.");
 #endif
+
+  } else { // compute_method
+
+    // Allocate buffers.
+
+    tc_bufs.tc_buf_left = malloc(tc_bufs.tc_buf_size);
+    GMAssert(tc_bufs.tc_buf_left);
+    gm_cpu_mem_inc(tc_bufs.tc_buf_size, env);
+
+    tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
+    GMAssert(tc_bufs.tc_buf_right);
+    gm_cpu_mem_inc(tc_bufs.tc_buf_size, env);
+
+  } // compute_method
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Terminate TCBufs object by deallocating memory etc.
 
-void gm_tc_bufs_free(TCBufs& tc_bufs,
-                     GMEnv* env) {
+void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
   GMInsist(env);
   GMInsist((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
 
@@ -971,37 +980,51 @@ void gm_tc_bufs_free(TCBufs& tc_bufs,
     return;
   }
 
-  // Free buffers.
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+
+    // Free buffers.
 
 #if defined USE_CUDA
-  cudaFree(tc_bufs.tc_buf_left);
+    cudaFree(tc_bufs.tc_buf_left);
 #elif defined USE_HIP
-  hipFree(tc_bufs.tc_buf_left);
+    hipFree(tc_bufs.tc_buf_left);
 #endif
-  GMEnv_accel_last_call_succeeded(env);
-  tc_bufs.tc_buf_left = NULL;
-  gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
+    GMEnv_accel_last_call_succeeded(env);
+    tc_bufs.tc_buf_left = NULL;
+    gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
 
 #if defined USE_CUDA
-  cudaFree(tc_bufs.tc_buf_right);
+    cudaFree(tc_bufs.tc_buf_right);
 #elif defined USE_HIP
-  hipFree(tc_bufs.tc_buf_right);
+    hipFree(tc_bufs.tc_buf_right);
 #endif
-  GMEnv_accel_last_call_succeeded(env);
-  tc_bufs.tc_buf_right = NULL;
-  gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
+    GMEnv_accel_last_call_succeeded(env);
+    tc_bufs.tc_buf_right = NULL;
+    gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
 
-  // Free cublas handle.
+    // Free accel blas handle.
 
 #if defined USE_CUDA
-  cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
-  GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasDestroy.");
+    cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
+    GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasDestroy.");
 #elif defined USE_HIP
-  //rocblas_status status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
-  int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
-  GMInsist(status == rocblas_status_success &&
-           "Error in rocblas_destroy_handle.");
+    //rocblas_status status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
+    int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
+    GMInsist(status == rocblas_status_success &&
+             "Error in rocblas_destroy_handle.");
 #endif
+
+  } else { // compute_method
+
+    // Free buffers.
+
+    free(tc_bufs.tc_buf_left);
+    tc_bufs.tc_buf_left = NULL;
+
+    free(tc_bufs.tc_buf_right);
+    tc_bufs.tc_buf_right = NULL;
+
+  } // compute_method
 }
 
 //-----------------------------------------------------------------------------

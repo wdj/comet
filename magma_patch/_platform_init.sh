@@ -63,8 +63,9 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   module load hip
   #module load rocblas
   export ROCM_PATH=/opt/rocm
-  if [ -e ~/rocBLAS/build/release/rocblas-install/rocblas ] ; then
-    export ROCBLAS_PATH=$HOME/rocBLAS/build/release/rocblas-install/rocblas
+  export ROCBLAS_PATH=$HOME/rocBLAS/build/release/rocblas-install/rocblas
+  if [ -e $ROCBLAS_PATH ] ; then
+    export BLIS_PATH=$HOME/rocBLAS/extern/blis
   else
     export ROCBLAS_PATH=/opt/rocm/rocblas
   fi

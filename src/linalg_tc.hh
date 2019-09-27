@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   linalg_accel.hh
+ * \file   linalg_tc.hh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  CUDA code, primarily for using tensor cores.
@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_linalg_accel_hh_
-#define _gm_linalg_accel_hh_
+#ifndef _gm_linalg_tc_hh_
+#define _gm_linalg_tc_hh_
 
 #if defined USE_CUDA
 #include "cublas_v2.h"
@@ -62,6 +62,6 @@ size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env);
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_linalg_accel_hh_
+#endif // _gm_linalg_tc_hh_
 
 //-----------------------------------------------------------------------------
