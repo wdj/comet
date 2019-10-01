@@ -38,54 +38,14 @@ function get_modules_used_magma
 
 function main
 {
+  #============================================================================
+  # Initializations.
+  #============================================================================
+
   # Location of this script.
   local SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
-
-  #----------------------------------------------------------------------------
-  #---Basic platform-specific settings.
-
-  local CC_serial=g++
-
-  if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
-    true # skip
-  #--------------------
-  elif [ $COMET_PLATFORM = CRAY_XK7 ] ; then
-    local cc=$(which cc)
-    local CC=$(which CC)
-  #--------------------
-  elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
-    local cc=$(which mpicc)
-    local CC=$(which mpiCC)
-  #--------------------
-  elif [ $COMET_PLATFORM = DGX2 ] ; then
-    local cc=$HOME/.linuxbrew/bin/gcc-6
-    local CC=$HOME/.linuxbrew/bin/g++-6
-  #--------------------
-  elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
-    local cc=$(spack location --install-dir gcc)/bin/gcc
-    local CC=$(spack location --install-dir gcc)/bin/g++
-    local CC_serial=$CC
-  #--------------------
-  elif [ $COMET_PLATFORM = EDISON ] ; then
-    local cc=$(which cc)
-    local CC=$(which CC)
-  #--------------------
-  elif [ $COMET_PLATFORM = LYRA ] ; then
-    local cc=$(which gcc)
-    local CC=$(which g++)
-    CC_serial=hipcc
-  #--------------------
-  elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
-    local cc=$(which gcc)
-    local CC=$(which g++)
-    CC_serial=hipcc
-  #--------------------
-  else
-    echo "${0##*/}: Unknown platform." 1>&2
-    exit 1
-  fi
 
   #----------------------------------------------------------------------------
   #---Cleanup of old files.
@@ -140,21 +100,28 @@ function main
   fi
 
   #============================================================================
+  # Library builds.
+  #============================================================================
+
   #---Get mpi stub library if needed.
 
   local BUILD_DIR=$PWD
 
   if [ $USE_MPI = OFF ] ; then
+    local C_COMPILER=$COMET_C_COMPILER
+    local CXX_COMPILER=$COMET_CXX_SERIAL_COMPILER
     echo "Building mpi-stub ..."
     ln -s ../genomics_gpu/tpls/mpi-stub.tar.gz
     rm -rf mpi-stub
     gunzip <mpi-stub.tar.gz | tar xf -
     pushd mpi-stub
-    CC=$CC_serial # NOTE: redefinition!
-    make CC=$CC
+    make CC=$CXX_COMPILER
     popd
     COMET_MPI_COMPILE_OPTS="-I$BUILD_DIR/mpi-stub/include"
     COMET_MPI_LINK_OPTS="-L$BUILD_DIR/mpi-stub/lib -lmpi"
+  else
+    local C_COMPILER=$COMET_C_COMPILER
+    local CXX_COMPILER=$COMET_CXX_COMPILER
   fi
 
   #----------------------------------------------------------------------------
@@ -218,7 +185,8 @@ function main
     gunzip <googletest-release-1.7.0.tar.gz | tar xf -
     local GTEST_DIR=$BUILD_DIR/googletest-release-1.7.0
     mkdir $GTEST_DIR/lib
-    $CC_serial -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
+    #$CC_serial -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
+    $COMET_CXX_SERIAL_COMPILER -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
       -pthread -c ${GTEST_DIR}/src/gtest-all.cc
     ar -rv $GTEST_DIR/lib/libgtest.a gtest-all.o
     local COMET_TEST_COMPILE_OPTS="-isystem $GTEST_DIR/include -pthread"
@@ -226,7 +194,10 @@ function main
   fi
 
   #============================================================================
-  #---Set variables for cmake.
+  # Set flags.
+  #============================================================================
+
+  #---Compiler flags.
 
   local CMAKE_CXX_FLAGS="-DFP_PRECISION_$FP_PRECISION -DADD_"
   CMAKE_CXX_FLAGS+=" -g" # for stack trace
@@ -238,6 +209,9 @@ function main
       CMAKE_CXX_FLAGS+=" -rdynamic" # for stack trace
   fi
 
+  [[ ${USE_OPENMP:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_OPENMP"
+  CMAKE_CXX_FLAGS+=" ${COMET_OPENMP_COMPILE_OPTS:-}"
+
   [[ ${USE_MAGMA:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_MAGMA"
   CMAKE_CXX_FLAGS+=" ${COMET_MAGMA_COMPILE_OPTS:-}"
 
@@ -246,9 +220,6 @@ function main
 
   [[ ${USE_HIP:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_HIP"
   CMAKE_CXX_FLAGS+=" ${COMET_HIP_COMPILE_OPTS:-}"
-
-  [[ ${USE_OPENMP:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_OPENMP"
-  CMAKE_CXX_FLAGS+=" ${COMET_OPENMP_COMPILE_OPTS:-}"
 
   [[ ${USE_CPUBLAS:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_CPUBLAS"
   CMAKE_CXX_FLAGS+=" ${COMET_CPUBLAS_COMPILE_OPTS:-}"
@@ -290,7 +261,6 @@ function main
   #----------------------------------------------------------------------------
   #---Load flags.
 
-  #local LFLAGS="-v"
   local LFLAGS=""
   LFLAGS+=" ${COMET_MAGMA_LINK_OPTS:-}"
   LFLAGS+=" ${COMET_CUDA_LINK_OPTS:-}"
@@ -301,40 +271,29 @@ function main
   LFLAGS+=" ${COMET_EXTRA_LINK_OPTS:-}"
 
   #----------------------------------------------------------------------------
-  #---Other.
+  #---Other cmake flags.
 
   local CMAKE_EXTRA_OPTIONS=""
 
-#FIX
   if [ "$USE_MPI" = ON ] ; then
-    if [ $COMET_PLATFORM = CRAY_XK7 -o $COMET_PLATFORM = EDISON ] ; then
-      CMAKE_EXTRA_OPTIONS+=" \
-        -DMPI_C_COMPILER="$cc" \
-        -DMPI_C_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include \
-        -DMPI_C_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
-        -DMPI_CXX_COMPILER="$CC" \
-        -DMPI_CXX_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include \
-        -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
-      "
-    fi
+    CMAKE_EXTRA_OPTIONS+="${COMET_MPI_CMAKE_OPTS:-}"
   fi
 
-#FIX
   if [ ${USE_CUDA:-OFF} = ON ] ; then
-    CMAKE_EXTRA_OPTIONS+=" -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
-    CMAKE_EXTRA_OPTIONS+=" -DCUDA_HOST_COMPILER:STRING=$(dirname $(which $CC_serial))"
+    CMAKE_EXTRA_OPTIONS+="${COMET_CUDA_CMAKE_OPTS:-}"
   fi
 
   #============================================================================
-  #---Perform cmake.
+  # Run cmake.
 
+  set -x
   time cmake \
    \
     -DCMAKE_BUILD_TYPE:STRING="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX:PATH="$INSTALL_DIR" \
    \
-    -DCMAKE_C_COMPILER:STRING="$cc" \
-    -DCMAKE_CXX_COMPILER:STRING="$CC" \
+    -DCMAKE_C_COMPILER:STRING="$C_COMPILER" \
+    -DCMAKE_CXX_COMPILER:STRING="$CXX_COMPILER" \
    \
     -DCMAKE_CXX_FLAGS:STRING="$CMAKE_CXX_FLAGS" \
     -DCMAKE_CXX_FLAGS_DEBUG:STRING="-g -ftrapv" \
@@ -343,7 +302,7 @@ function main
     -DCMAKE_EXE_LINKER_FLAGS:STRING="$LFLAGS" \
    \
     -DTESTING:BOOL="$TESTING" \
-    -DTEST_COMMAND="${COMET_TEST_COMMAND:-}" \
+    -DTEST_COMMAND:STRING="${COMET_TEST_COMMAND:-}" \
    \
     $CMAKE_EXTRA_OPTIONS \
     -DUSE_MPI:BOOL=${USE_MPI:-OFF} \
@@ -351,11 +310,10 @@ function main
     -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
    \
     $REPO_DIR
+  set +x
 
   ln -s $INSTALL_DIR install_dir
 }
-
-#    -DCUDA_HOST_COMPILER:STRING="$(dirname $(which $CC_serial))" \
 
 #==============================================================================
 
