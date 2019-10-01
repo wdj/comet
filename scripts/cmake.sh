@@ -46,77 +46,38 @@ function main
   #----------------------------------------------------------------------------
   #---Basic platform-specific settings.
 
-  local USE_CUDA=ON
-  local USE_MAGMA=ON
-  local USE_HIP=OFF
-  local USE_CPUBLAS=OFF
   local CC_serial=g++
 
   if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
     true # skip
   #--------------------
   elif [ $COMET_PLATFORM = CRAY_XK7 ] ; then
-    local CUDA_INCLUDE_OPTS=$CRAY_CUDATOOLKIT_INCLUDE_OPTS
-    local CUDA_POST_LINK_OPTS=$CRAY_CUDATOOLKIT_POST_LINK_OPTS
     local cc=$(which cc)
     local CC=$(which CC)
   #--------------------
   elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
-    local CUDA_ROOT=$OLCF_CUDA_ROOT
-    local CUDA_INCLUDE_OPTS="-I$CUDA_ROOT/include"
-    CUDA_INCLUDE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
-    CUDA_INCLUDE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
-    local CUDA_POST_LINK_OPTS="-L$OLCF_CUDA_ROOT/targets/ppc64le-linux/lib"
     local cc=$(which mpicc)
     local CC=$(which mpiCC)
-    USE_CPUBLAS=ON
   #--------------------
   elif [ $COMET_PLATFORM = DGX2 ] ; then
-    local CUDA_ROOT="$HOME/cuda"
-    local CUDA_INCLUDE_OPTS="-I$CUDA_ROOT/include"
-    CUDA_INCLUDE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
-    CUDA_INCLUDE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
-    local CUDA_POST_LINK_OPTS="-L$CUDA_ROOT/lib64"
     local cc=$HOME/.linuxbrew/bin/gcc-6
     local CC=$HOME/.linuxbrew/bin/g++-6
   #--------------------
   elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
-    export CUDA_ROOT=/usr/local/cuda-10.1
-    local CUDA_INCLUDE_OPTS="-I$CUDA_ROOT/include"
-    CUDA_INCLUDE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
-    CUDA_INCLUDE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
-    local CUDA_POST_LINK_OPTS="-L$CUDA_ROOT/lib64"
     local cc=$(spack location --install-dir gcc)/bin/gcc
     local CC=$(spack location --install-dir gcc)/bin/g++
     local CC_serial=$CC
   #--------------------
   elif [ $COMET_PLATFORM = EDISON ] ; then
-    USE_CUDA=OFF
-    USE_MAGMA=OFF
-    local CUDA_INCLUDE_OPTS=""
-    local CUDA_POST_LINK_OPTS=""
     local cc=$(which cc)
     local CC=$(which CC)
   #--------------------
   elif [ $COMET_PLATFORM = LYRA ] ; then
-    USE_CUDA=OFF
-    USE_MAGMA=OFF
-    USE_HIP=ON
-    local CUDA_INCLUDE_OPTS=""
-    local CUDA_POST_LINK_OPTS=""
     local cc=$(which gcc)
     local CC=$(which g++)
     CC_serial=hipcc
-    if [ "${BLIS_PATH:-}" != "" ] ; then
-      USE_CPUBLAS=ON
-    fi
   #--------------------
   elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
-    USE_CUDA=OFF
-    USE_MAGMA=OFF
-    USE_HIP=ON
-    local CUDA_INCLUDE_OPTS=""
-    local CUDA_POST_LINK_OPTS=""
     local cc=$(which gcc)
     local CC=$(which g++)
     CC_serial=hipcc
@@ -181,6 +142,8 @@ function main
   #============================================================================
   #---Get mpi stub library if needed.
 
+  local BUILD_DIR=$PWD
+
   if [ $USE_MPI = OFF ] ; then
     echo "Building mpi-stub ..."
     ln -s ../genomics_gpu/tpls/mpi-stub.tar.gz
@@ -190,12 +153,12 @@ function main
     CC=$CC_serial # NOTE: redefinition!
     make CC=$CC
     popd
+    COMET_MPI_COMPILE_OPTS="-I$BUILD_DIR/mpi-stub/include"
+    COMET_MPI_LINK_OPTS="-L$BUILD_DIR/mpi-stub/lib -lmpi"
   fi
 
   #----------------------------------------------------------------------------
   #---Create magma variants.
-
-  local BUILD_DIR=$PWD
 
   if [ $USE_MAGMA = ON ] ; then
     local MAGMA_DIR=$BUILD_DIR/magma_patch
@@ -217,6 +180,8 @@ function main
   #---Compile magma variants.
 
   if [ $USE_MAGMA = ON ] ; then
+    local COMET_MAGMA_COMPILE_OPTS=""
+    local COMET_MAGMA_LINK_OPTS=""
     local TAG
     for TAG in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
       local MAGMA_VERSION=magma_$TAG
@@ -238,26 +203,26 @@ function main
           exit 1
         fi
       fi # build_is_complete
+      COMET_MAGMA_COMPILE_OPTS+=" -I$MAGMA_SUBDIR/include"
+      COMET_MAGMA_LINK_OPTS+=" -L$MAGMA_SUBDIR/lib -lmagma_$TAG"
     done # TAG
   fi
 
   #----------------------------------------------------------------------------
   #---Get unit test harness if needed.
 
-  local GTEST_DIR=""
-  local GTEST_LD_FLAGS=""
-
   if [ $TESTING = ON ] ; then
     ln -s ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz
     # wget -O googletest-release-1.7.0.tar.gz \
     #   https://github.com/google/googletest/archive/release-1.7.0.tar.gz
     gunzip <googletest-release-1.7.0.tar.gz | tar xf -
-    GTEST_DIR=$BUILD_DIR/googletest-release-1.7.0
+    local GTEST_DIR=$BUILD_DIR/googletest-release-1.7.0
     mkdir $GTEST_DIR/lib
     $CC_serial -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
       -pthread -c ${GTEST_DIR}/src/gtest-all.cc
     ar -rv $GTEST_DIR/lib/libgtest.a gtest-all.o
-    GTEST_LD_FLAGS="-L$GTEST_DIR/lib -lgtest"
+    local COMET_TEST_COMPILE_OPTS="-isystem $GTEST_DIR/include -pthread"
+    local COMET_TEST_LINK_OPTS="-L$GTEST_DIR/lib -lgtest"
   fi
 
   #============================================================================
@@ -265,170 +230,82 @@ function main
 
   local CMAKE_CXX_FLAGS="-DFP_PRECISION_$FP_PRECISION -DADD_"
   CMAKE_CXX_FLAGS+=" -g" # for stack trace
-  if [ $USE_HIP = OFF ] ; then
-    CMAKE_CXX_FLAGS+=" -rdynamic" # for stack trace
-  fi
   CMAKE_CXX_FLAGS+=" -Wall -Wno-unused-function -Werror"
   CMAKE_CXX_FLAGS+=" -fno-associative-math"
-  if [ $USE_HIP = OFF ] ; then
-    CMAKE_CXX_FLAGS+=" -fopenmp" # TODO: put this back in later
-  fi
   CMAKE_CXX_FLAGS+=" -Wno-error=unknown-pragmas"
-  CMAKE_CXX_FLAGS+=" -DTEST_PROCS_MAX=64"
-  #CMAKE_CXX_FLAGS+=" -std=c++11 -Wconversion"
-
-  if [ $USE_CUDA = ON ] ; then
-    CMAKE_CXX_FLAGS+=" -DUSE_CUDA $CUDA_INCLUDE_OPTS"
+  CMAKE_CXX_FLAGS+=" -DTEST_PROCS_MAX=$COMET_TEST_PROCS_MAX"
+  if [ $USE_GCC = ON ] ; then
+      CMAKE_CXX_FLAGS+=" -rdynamic" # for stack trace
   fi
 
-  if [ $USE_MAGMA = ON ] ; then
-    CMAKE_CXX_FLAGS+=" -DUSE_MAGMA"
-    local TAG
-    for TAG in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
-      CMAKE_CXX_FLAGS+=" -I$MAGMA_DIR/magma_$TAG/include"
-    done
-  fi
+  [[ ${USE_MAGMA:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_MAGMA"
+  CMAKE_CXX_FLAGS+=" ${COMET_MAGMA_COMPILE_OPTS:-}"
 
-  if [ $USE_HIP = ON ] ; then
-    CMAKE_CXX_FLAGS+=" -DUSE_HIP"
-    CMAKE_CXX_FLAGS+=" -I$ROCBLAS_PATH/include"
-    CMAKE_CXX_FLAGS+=" -I$ROCM_PATH/include"
-    CMAKE_CXX_FLAGS+=" -I$HIP_PATH/include/hip"
-    #CMAKE_CXX_FLAGS+=" -D__HIP_PLATFORM_HCC__"
-  fi
+  [[ ${USE_CUDA:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_CUDA"
+  CMAKE_CXX_FLAGS+=" ${COMET_CUDA_COMPILE_OPTS:-}"
 
-  if [ $USE_CPUBLAS = ON ] ; then
-    CMAKE_CXX_FLAGS+=" -DUSE_CPUBLAS"
-    if [ $COMET_PLATFORM = IBM_AC922 ] ; then
-      CMAKE_CXX_FLAGS+=" -I$OLCF_ESSL_ROOT/include"
-    fi
-    if [ $COMET_PLATFORM = LYRA ] ; then
-      CMAKE_CXX_FLAGS+=" -I$BLIS_PATH/include/zen"
-    fi
-  fi
+  [[ ${USE_HIP:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_HIP"
+  CMAKE_CXX_FLAGS+=" ${COMET_HIP_COMPILE_OPTS:-}"
 
-  if [ $TESTING = ON ] ; then
-    CMAKE_CXX_FLAGS+=" -isystem $GTEST_DIR/include -pthread -DTESTING"
-  fi
+  [[ ${USE_OPENMP:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_OPENMP"
+  CMAKE_CXX_FLAGS+=" ${COMET_OPENMP_COMPILE_OPTS:-}"
+
+  [[ ${USE_CPUBLAS:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_CPUBLAS"
+  CMAKE_CXX_FLAGS+=" ${COMET_CPUBLAS_COMPILE_OPTS:-}"
+
+  [[ ${USE_MPI} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_MPI"
+  CMAKE_CXX_FLAGS+=" ${COMET_MPI_COMPILE_OPTS:-}"
+
+  [[ ${TESTING:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DTESTING"
+  CMAKE_CXX_FLAGS+=" ${COMET_TEST_COMPILE_OPTS:-}"
+
+  [[ ${USE_INT128:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DUSE_INT128"
+
+  CMAKE_CXX_FLAGS+=" ${COMET_EXTRA_COMPILE_OPTS:-}"
 
   #----------------------------------------------------------------------------
   #---Compiler optimization flags.
 
-  local CXX_FLAGS_OPT="-O3 -fomit-frame-pointer"
-  [[ $BUILD_TYPE != "Debug" ]] && CXX_FLAGS_OPT+=" -DNDEBUG"
+  [[ $BUILD_TYPE != "Debug" ]] && CMAKE_CXX_FLAGS+=" -DNDEBUG"
+  CMAKE_CXX_FLAGS+=" -O3 -fomit-frame-pointer"
 
   #---The following change slows performance by 1% on a test case but helps
   #---make results exactly reproducible on varyng number of procs.
-  #CXX_FLAGS_OPT="$CXX_FLAGS_OPT -ffast-math"
-  CXX_FLAGS_OPT+=" -fno-math-errno -ffinite-math-only"
-  if [ $USE_HIP = OFF ] ; then
-    CXX_FLAGS_OPT+=" -fno-rounding-math"
-    CXX_FLAGS_OPT+=" -fno-signaling-nans"
-    CXX_FLAGS_OPT+=" -fcx-limited-range"
+  #CMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -ffast-math"
+  CMAKE_CXX_FLAGS+=" -fno-math-errno -ffinite-math-only"
+  CMAKE_CXX_FLAGS+=" -fno-signed-zeros -fno-trapping-math -freciprocal-math"
+  if [ $USE_GCC = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -fno-rounding-math"
+    CMAKE_CXX_FLAGS+=" -fno-signaling-nans"
+    CMAKE_CXX_FLAGS+=" -fcx-limited-range"
   fi
-  CXX_FLAGS_OPT+=" -fno-signed-zeros -fno-trapping-math -freciprocal-math"
 
-  CXX_FLAGS_OPT+=" -finline-functions"
-  if [ $USE_HIP = OFF ] ; then
-    CXX_FLAGS_OPT+=" -finline-limit=1000"
+  CMAKE_CXX_FLAGS+=" -finline-functions"
+  if [ $USE_GCC = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -finline-limit=1000"
   fi
-  if [ $COMET_PLATFORM = CRAY_XK7 ] ; then
-    CXX_FLAGS_OPT+=" -march=bdver1"
-  fi
-  if [ $COMET_PLATFORM = IBM_AC922 ] ; then
-    CXX_FLAGS_OPT+=" -mcpu=power9 -mtune=power9 -mcmodel=large -m64"
-  fi
-  #CXX_FLAGS_OPT+=" -fstrict-aliasing -fargument-noalias-anything"
 
-  CMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS $CXX_FLAGS_OPT"
+  #CMAKE_CXX_FLAGS+=" -fstrict-aliasing -fargument-noalias-anything"
 
   #----------------------------------------------------------------------------
   #---Load flags.
 
+  #local LFLAGS="-v"
   local LFLAGS=""
-  if [ $USE_MAGMA = ON ] ; then
-    local TAG
-    for TAG in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
-      LFLAGS+="-L$MAGMA_DIR/magma_$TAG/lib -lmagma_$TAG "
-    done
-  fi
-
-  if [ $USE_CUDA = ON ] ; then
-    LFLAGS+=" $CUDA_POST_LINK_OPTS -lcublas -lcudart"
-  fi
-
-  if [ $USE_HIP = ON ] ; then
-    LFLAGS+=" -L$ROCBLAS_PATH/lib -lrocblas"
-    LFLAGS+=" -L$ROCM_PATH/lib -lhip_hcc"
-    if [ $USE_CPUBLAS = ON ] ; then
-      LFLAGS+=" -L$BLIS_PATH/lib/zen"
-      LFLAGS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
-    fi
-  fi
-
-  if [ $COMET_PLATFORM = CRAY_XK7 ] ; then
-    LFLAGS+=" -Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
-    LFLAGS+=" -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
-  fi
-
-  if [ $COMET_PLATFORM = IBM_AC922 ] ; then
-    LFLAGS+=" -Wl,-rpath=$OLCF_CUDA_ROOT/lib64"
-    if [ $USE_CPUBLAS = ON ] ; then
-      local XLF_DIR=$(module load xl 2>/dev/null ; echo $OLCF_XLF_ROOT)/lib
-      local XLF_DIR2=$(module load xl 2>/dev/null ; echo $OLCF_XL_ROOT)/lib
-      LFLAGS+=" -L$OLCF_ESSL_ROOT/lib64"
-      LFLAGS+=" -Wl,-rpath,$OLCF_ESSL_ROOT/lib64 -lessl"
-      LFLAGS+=" -L$XLF_DIR -Wl,-rpath,$XLF_DIR2 -lxlf90_r"
-      LFLAGS+=" -lxl -lxlfmath"
-      LFLAGS+=" -Wl,-rpath,$OLCF_GCC_ROOT/lib64"
-    fi
-  fi
-
-  if [ $COMET_PLATFORM = DGX2 -o $COMET_PLATFORM = GPUSYS2 ] ; then
-    CMAKE_CXX_FLAGS+=" -std=gnu++11"
-    LFLAGS+=" -Wl,-rpath=$CUDA_ROOT/lib64"
-  fi
-
-  if [ $COMET_PLATFORM = EDISON ] ; then
-    CMAKE_CXX_FLAGS+=" -std=gnu++11"
-  fi
-
-  if [ "$USE_MPI" = ON ] ; then
-    CMAKE_CXX_FLAGS+=" -DUSE_MPI"
-  else
-    CMAKE_CXX_FLAGS+=" -I$BUILD_DIR/mpi-stub/include"
-    LFLAGS+=" -L$PWD/mpi-stub/lib -lmpi"
-  fi
-
-  #----------------------------------------------------------------------------
-  #---Test flags.
-
-  local TEST_COMMAND=""
-
-  if [ $COMET_PLATFORM = CRAY_XK7 ] ; then
-    TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=16 aprun -n64"
-    CMAKE_CXX_FLAGS+=" -DHAVE_INT128"
-  fi
-
-  if [ $COMET_PLATFORM = IBM_AC922 ] ; then
-    TEST_COMMAND="module load $COMET_CUDA_MODULE; env OMP_NUM_THREADS=1 jsrun --nrs 2 --rs_per_host 1 --cpu_per_rs 32 -g 6 --tasks_per_rs 32 -X 1"
-    TEST_COMMAND+=" -E LD_PRELOAD=${OLCF_SPECTRUM_MPI_ROOT}/lib/pami_451/libpami.so"
-    CMAKE_CXX_FLAGS+=" -DHAVE_INT128"
-  fi
-
-  if [ $COMET_PLATFORM = DGX2 -o $COMET_PLATFORM = GPUSYS2 ] ; then
-    CMAKE_CXX_FLAGS+=" -DHAVE_INT128"
-  fi
-
-  if [ $COMET_PLATFORM = EDISON ] ; then
-    TEST_COMMAND="env OMP_NUM_THREADS=24 srun -n 64"
-  fi
+  LFLAGS+=" ${COMET_MAGMA_LINK_OPTS:-}"
+  LFLAGS+=" ${COMET_CUDA_LINK_OPTS:-}"
+  LFLAGS+=" ${COMET_HIP_LINK_OPTS:-}"
+  LFLAGS+=" ${COMET_CPUBLAS_LINK_OPTS:-}"
+  LFLAGS+=" ${COMET_MPI_LINK_OPTS:-}"
+  LFLAGS+=" ${COMET_TEST_LINK_OPTS:-}"
+  LFLAGS+=" ${COMET_EXTRA_LINK_OPTS:-}"
 
   #----------------------------------------------------------------------------
   #---Other.
 
   local CMAKE_EXTRA_OPTIONS=""
 
+#FIX
   if [ "$USE_MPI" = ON ] ; then
     if [ $COMET_PLATFORM = CRAY_XK7 -o $COMET_PLATFORM = EDISON ] ; then
       CMAKE_EXTRA_OPTIONS+=" \
@@ -440,23 +317,12 @@ function main
         -DMPI_CXX_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib \
       "
     fi
-    CMAKE_EXTRA_OPTIONS+=" -DUSE_MPI:BOOL=ON"
-#  else
-#    CMAKE_EXTRA_OPTIONS+=" -DUSE_MPI:BOOL=OFF"
   fi
 
-  if [ "$USE_CUDA" = ON ] ; then
+#FIX
+  if [ ${USE_CUDA:-OFF} = ON ] ; then
     CMAKE_EXTRA_OPTIONS+=" -DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
-    CMAKE_EXTRA_OPTIONS+=" -DUSE_CUDA:BOOL=ON"
     CMAKE_EXTRA_OPTIONS+=" -DCUDA_HOST_COMPILER:STRING=$(dirname $(which $CC_serial))"
-#  else
-#    CMAKE_EXTRA_OPTIONS+=" -DUSE_CUDA:BOOL=OFF"
-  fi
-
-  if [ "$USE_HIP" = ON ] ; then
-    CMAKE_EXTRA_OPTIONS+=" -DUSE_HIP:BOOL=ON"
-#  else
-#    CMAKE_EXTRA_OPTIONS+=" -DUSE_HIP:BOOL=OFF"
   fi
 
   #============================================================================
@@ -477,10 +343,12 @@ function main
     -DCMAKE_EXE_LINKER_FLAGS:STRING="$LFLAGS" \
    \
     -DTESTING:BOOL="$TESTING" \
-    -DGTEST_LD_FLAGS:STRING="$GTEST_LD_FLAGS" \
-    -DTEST_COMMAND="$TEST_COMMAND" \
+    -DTEST_COMMAND="${COMET_TEST_COMMAND:-}" \
    \
     $CMAKE_EXTRA_OPTIONS \
+    -DUSE_MPI:BOOL=${USE_MPI:-OFF} \
+    -DUSE_CUDA:BOOL=${USE_CUDA:-OFF} \
+    -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
    \
     $REPO_DIR
 
@@ -491,7 +359,7 @@ function main
 
 #==============================================================================
 
-main "$@"
+main "$@" 2>&1 | tee out_cmake.txt
 
 #==============================================================================
 # cruft.

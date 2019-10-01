@@ -1020,9 +1020,11 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 
     free(tc_bufs.tc_buf_left);
     tc_bufs.tc_buf_left = NULL;
+    gm_cpu_mem_dec(tc_bufs.tc_buf_size, env);
 
     free(tc_bufs.tc_buf_right);
     tc_bufs.tc_buf_right = NULL;
+    gm_cpu_mem_dec(tc_bufs.tc_buf_size, env);
 
   } // compute_method
 }

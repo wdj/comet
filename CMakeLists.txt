@@ -5,8 +5,9 @@
 #==============================================================================
 
 cmake_minimum_required(VERSION 2.8)
-cmake_policy(SET CMP0004 OLD)
+#cmake_policy(SET CMP0004 OLD)
 #cmake_policy(SET CMP0074 NEW)
+string(STRIP "${CMAKE_EXE_LINKER_FLAGS}" CMAKE_EXE_LINKER_FLAGS)
 
 project("genomics_gpu")
 
@@ -79,20 +80,6 @@ SET(DRIVER_SOURCES
 #--------------------
 # Preliminaries.
 
-if(NOT DEFINED USE_MPI)
-  set(USE_MPI OFF)
-endif()
-
-if(NOT DEFINED USE_CUDA)
-  set(USE_CUDA OFF)
-endif()
-
-if(NOT DEFINED USE_HIP)
-  set(USE_HIP OFF)
-endif()
-
-#--------------------
-
 if(USE_MPI)
   find_package(MPI REQUIRED)
 endif()
@@ -145,10 +132,6 @@ endif()
 TARGET_LINK_LIBRARIES(genomics_metric genomics_metrics)
 TARGET_LINK_LIBRARIES(genomics_metric ${CMAKE_EXE_LINKER_FLAGS})
 
-if(TESTING) 
-  TARGET_LINK_LIBRARIES(genomics_metric ${GTEST_LD_FLAGS})
-endif() 
-
 install(FILES ${LIB_INCLUDES} DESTINATION include)
 install(TARGETS genomics_metrics DESTINATION lib)
 install(TARGETS genomics_metric DESTINATION bin)
@@ -163,12 +146,13 @@ if(TESTING)
     ADD_EXECUTABLE(${TEST_TARGET} testing/${TEST_TARGET}.cc ${DRIVER_SOURCES})
     TARGET_LINK_LIBRARIES(${TEST_TARGET} genomics_metrics)
     TARGET_LINK_LIBRARIES(${TEST_TARGET} ${CMAKE_EXE_LINKER_FLAGS})
-    TARGET_LINK_LIBRARIES(${TEST_TARGET} ${GTEST_LD_FLAGS})
 
     add_test(${TEST_TARGET} bash -c
              "cd ${CMAKE_INSTALL_PREFIX}; \
               ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
   endforeach()
+else()
+  set(UNUSED_NO_WARN_1, ${TEST_COMMAND}) # turn off unused var warning
 endif() 
 
 MESSAGE("--------------------")

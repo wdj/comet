@@ -42,7 +42,7 @@ enum {
 //typedef signed long long int GMInt64;
 //typedef unsigned long long int GMUInt64;
 
-#ifdef HAVE_INT128
+#ifdef USE_INT128
 typedef unsigned __int128 GMUInt128;
 #endif
 
@@ -61,7 +61,7 @@ static void gm_check_type_sizes() {
 //  GMStaticAssert(sizeof(GMUInt32) == 4);
 //  GMStaticAssert(sizeof(GMInt64) == 8);
 //  GMStaticAssert(sizeof(GMUInt64) == 8);
-#ifdef HAVE_INT128
+#ifdef USE_INT128
   GMStaticAssert(sizeof(GMUInt128) == 16);
 #endif
 }

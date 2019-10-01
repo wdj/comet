@@ -157,7 +157,7 @@ static GMFloat GMMetrics_ccc_duo_value_2(
 static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, GMEnv* env) {
   GMInsist(metrics && env);
 
-#ifdef HAVE_INT128
+#ifdef USE_INT128
   if (GMEnv_metric_type(env) != GM_METRIC_TYPE_CCC ||
       GMEnv_num_way(env) != GM_NUM_WAY_2 || ! env->are_ccc_params_default) {
     return;
@@ -178,7 +178,7 @@ static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-#ifdef HAVE_INT128
+#ifdef USE_INT128
 
 //-----------------------------------------------------------------------------
 /// \brief Formula for CCC 2-way metric using 128 bit integer arithmetic.
@@ -349,7 +349,7 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_2(
 
   } /*---if sparse---*/
 
-#ifdef HAVE_INT128
+#ifdef USE_INT128
   if (env->are_ccc_params_default &&
       GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC) {
     const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_2(metrics,

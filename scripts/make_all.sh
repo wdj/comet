@@ -21,7 +21,7 @@ function main
   local DIR
   for DIR in build_*_$COMET_PLATFORM_STUB ; do
     pushd $DIR
-    $SCRIPT_DIR/make.sh 2>&1 | tee out_make.sh
+    $SCRIPT_DIR/make.sh 2>&1 | tee out_make.txt
     local MYSTATUS=$?
     if [ $MYSTATUS != 0 ] ; then
       echo "Build failure." 1>&2
