@@ -22,41 +22,13 @@ function do_make
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
-    true # skip
-  elif [ $COMET_PLATFORM = CRAY_XK7 ] ; then
-    cp ../make.inc.titan make.inc
-    export GPU_TARGET=sm35
-    export NV_SM=" -gencode arch=compute_35,code=sm_35"
-    export NV_COMP="-gencode arch=compute_35,code=compute_35" MIN_ARCH=350
-    MAKE_ARGS=""
-  elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
-    export CUDA_DIR="${CUDA_DIR:-$OLCF_CUDA_ROOT}"
-    cp ../make.inc.summit make.inc
-    export GPU_TARGET=sm70
-    export NV_SM=" -gencode arch=compute_70,code=sm_70"
-    export NV_COMP="-gencode arch=compute_70,code=compute_70" MIN_ARCH=350
-    MAKE_ARGS=""
-  elif [ $COMET_PLATFORM = DGX2 ] ; then
-    cp ../make.inc.summit make.inc
-    export CUDA_DIR=$HOME/cuda
-    export GPU_TARGET=sm70
-    export NV_SM=" -gencode arch=compute_70,code=sm_70"
-    export NV_COMP="-gencode arch=compute_70,code=compute_70" MIN_ARCH=350
-    MAKE_ARGS="CC=$HOME/.linuxbrew/bin/gcc-6 CXX=$HOME/.linuxbrew/bin/g++-6"
-  elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
-    cp ../make.inc.summit make.inc
-    export CUDA_DIR=/usr/local/cuda-10.1
-    export GPU_TARGET=sm70
-    export NV_SM=" -gencode arch=compute_75,code=sm_75"
-    export NV_COMP="-gencode arch=compute_75,code=compute_75" MIN_ARCH=350
-    MAKE_ARGS="CC=$(spack location --install-dir gcc)/bin/g++"
-  else
-    echo "${0##*/}: Unknown platform." 1>&2
-    exit 1
-  fi
-
-  time make lib $MAKE_ARGS -j8
+  cp ../$COMET_MAGMA_MAKE_INC make.inc
+  local _CMGA_=$COMET_MAGMA_GPU_ARCH
+  env CUDA_DIR=$CUDA_ROOT \
+    GPU_TARGET=sm$_CMGA_ MIN_ARCH=350 \
+    NV_SM=" -gencode arch=compute_${_CMGA_},code=sm_${_CMGA_}" \
+    NV_COMP=" -gencode arch=compute_${_CMGA_},code=compute_${_CMGA_}" \
+  time make lib CC=$COMET_CXX_SERIAL_COMPILER -j8
 }
 
 #==============================================================================

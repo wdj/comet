@@ -65,7 +65,7 @@ function main
 {
   # Initial checks.
   local CBE_="${COMET_BUILD_EXPERIMENTAL:-}"
-  if [ "$CBE_" != "" -a  \ "$CBE_" != "YES" -a "$CBE_" != "NO" ] ; then
+  if [ "$CBE_" != "" -a  \ "$CBE_" != "ON" -a "$CBE_" != "OFF" ] ; then
     echo "${0##*/}: Error in COMET_BUILD_EXPERIMENTAL setting." 1>&2
     exit 1
   fi
@@ -100,11 +100,9 @@ function main
   #----------------------------------------------------------------------------
   # Build: test / double precision case.
 
-  local DO_BUILD=YES # NO
-  [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
-  [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
-  [[ $COMET_PLATFORM = AMDINTERNAL ]] && DO_BUILD=NO
-  if [ $DO_BUILD = YES ] ; then
+  local DO_BUILD=ON # OFF
+  [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
+  if [ $DO_BUILD = ON ] ; then
     export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=DOUBLE
     configure_1case
   fi
@@ -112,8 +110,8 @@ function main
   #----------------------------------------------------------------------------
   # Build: test / double precision / nompi case.
 
-  local DO_BUILD=YES # NO
-  if [ $DO_BUILD = YES ] ; then
+  local DO_BUILD=ON # OFF
+  if [ $DO_BUILD = ON ] ; then
     export BUILD_TYPE=Debug TESTING=ON USE_MPI=OFF FP_PRECISION=DOUBLE
     configure_1case
   fi
@@ -121,11 +119,9 @@ function main
   #----------------------------------------------------------------------------
   # Build: test / single precision case.
 
-  local DO_BUILD=YES # NO
-  [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
-  [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
-  [[ $COMET_PLATFORM = AMDINTERNAL ]] && DO_BUILD=NO
-  if [ $DO_BUILD = YES ] ; then
+  local DO_BUILD=ON # OFF
+  [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
+  if [ $DO_BUILD = ON ] ; then
     export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=SINGLE
     configure_1case
   fi
@@ -133,11 +129,9 @@ function main
   #----------------------------------------------------------------------------
   # Build: release / double precision case.
 
-  local DO_BUILD=YES # NO
-  [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
-  [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
-  [[ $COMET_PLATFORM = AMDINTERNAL ]] && DO_BUILD=NO
-  if [ $DO_BUILD = YES ] ; then
+  local DO_BUILD=ON # OFF
+  [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
+  if [ $DO_BUILD = ON ] ; then
     export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=DOUBLE
     configure_1case
   fi
@@ -145,8 +139,8 @@ function main
   #----------------------------------------------------------------------------
   # Build: release / double precision / nompi case.
 
-  local DO_BUILD=YES # NO
-  if [ $DO_BUILD = YES ] ; then
+  local DO_BUILD=ON # OFF
+  if [ $DO_BUILD = ON ] ; then
     export BUILD_TYPE=Release TESTING=OFF USE_MPI=OFF FP_PRECISION=DOUBLE
     configure_1case
   fi
@@ -154,11 +148,9 @@ function main
   #----------------------------------------------------------------------------
   # Build release / single precision case.
 
-  local DO_BUILD=YES # NO
-  [[ $COMET_PLATFORM = DGX2 || $COMET_PLATFORM = GPUSYS2 ]] && DO_BUILD=NO
-  [[ $COMET_PLATFORM = LYRA ]] && DO_BUILD=NO
-  [[ $COMET_PLATFORM = AMDINTERNAL ]] && DO_BUILD=NO
-  if [ $DO_BUILD = YES ] ; then
+  local DO_BUILD=ON # OFF
+  [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
+  if [ $DO_BUILD = ON ] ; then
     export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=SINGLE 
     configure_1case
   fi

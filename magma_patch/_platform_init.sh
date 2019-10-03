@@ -7,7 +7,7 @@
 # Initial checks.
 
 local CBE_="${COMET_BUILD_EXPERIMENTAL:-}"
-if [ "$CBE_" != "" -a  \ "$CBE_" != "YES" -a "$CBE_" != "NO" ] ; then
+if [ "$CBE_" != "" -a  \ "$CBE_" != "ON" -a "$CBE_" != "OFF" ] ; then
   echo "${0##*/}: Error in COMET_BUILD_EXPERIMENTAL setting." 1>&2
   exit 1
 fi
@@ -26,7 +26,7 @@ local COMET_PLATFORM=""
 [[ "$(uname -n)" = "dgx2-b" ]] && COMET_PLATFORM=DGX2 # ORNL DGX2
 [[ "$(uname -n)" = "gpusys2" ]] && COMET_PLATFORM=GPUSYS2 # Turing GPU
 [[ "${NERSC_HOST:-}" = "edison" ]] && COMET_PLATFORM=EDISON
-[[ "${COMET_BUILD_EXPERIMENTAL:-}" = YES ]] && COMET_PLATFORM=EXPERIMENTAL
+[[ "${COMET_BUILD_EXPERIMENTAL:-}" = ON ]] && COMET_PLATFORM=EXPERIMENTAL
 [[ "$COMET_HOST" = "lyra" ]] && COMET_PLATFORM=LYRA # ORNL AMD GPU system
 [[ "$(uname -n)" = "hal9006" ]] && COMET_PLATFORM=AMDINTERNAL # AMD internal GPU system
 if [ "$COMET_PLATFORM" = "" ] ; then
@@ -90,10 +90,13 @@ elif [ $COMET_PLATFORM = CRAY_XK7 ] ; then
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
 
   local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=35
+  local COMET_MAGMA_MAKE_INC=make.inc.titan
   # Needed for MAGMA.
   local COMET_EXTRA_LINK_OPTS="-Wl,-rpath=/opt/acml/5.3.1/gfortran64/lib"
   COMET_EXTRA_LINK_OPTS+=" -Wl,-rpath=/opt/acml/5.3.1/gfortran64_mp/lib"
 
+  local COMET_CAN_USE_MPI=ON
   local COMET_MPI_CMAKE_OPTS="-DMPI_C_COMPILER:STRING=$COMET_C_COMPILER"
   COMET_MPI_CMAKE_OPTS+=" -DMPI_C_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include"
   COMET_MPI_CMAKE_OPTS+=" -DMPI_C_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib"
@@ -142,10 +145,12 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/targets/ppc64le-linux/lib"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
-  local COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
-  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$COMPILER_DIR_TMP_"
+  local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
 
   local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=70
+  local COMET_MAGMA_MAKE_INC=make.inc.summit
 
   local USE_CPUBLAS=ON
   local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_ESSL_ROOT/include"
@@ -157,6 +162,8 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   COMET_CPUBLAS_LINK_OPTS+=" -L$XLF_DIR -Wl,-rpath,$XLF_DIR2 -lxlf90_r"
   COMET_CPUBLAS_LINK_OPTS+=" -lxl -lxlfmath"
   COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$OLCF_GCC_ROOT/lib64"
+
+  local COMET_CAN_USE_MPI=ON
 
   #---Testing.
 
@@ -190,10 +197,14 @@ elif [ $COMET_PLATFORM = DGX2 ] ; then
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
-  local COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
-  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$COMPILER_DIR_TMP_"
+  local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
 
   local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=70
+  local COMET_MAGMA_MAKE_INC=make.inc.summit
+
+  local COMET_CAN_USE_MPI=OFF
 
 #----------------------------------------
 elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
@@ -222,10 +233,14 @@ elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
   local COMET_CUDA_LINK_OPTS="-L$CUDA_ROOT/lib64"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
-  local COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
-  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$COMPILER_DIR_TMP_"
+  local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
 
   local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=75
+  local COMET_MAGMA_MAKE_INC=make.inc.summit
+
+  local COMET_CAN_USE_MPI=OFF
 
 #----------------------------------------
 elif [ $COMET_PLATFORM = EDISON ] ; then
@@ -250,6 +265,7 @@ elif [ $COMET_PLATFORM = EDISON ] ; then
 
   local USE_MAGMA=OFF
 
+  local COMET_CAN_USE_MPI=ON
   local COMET_MPI_CMAKE_OPTS="-DMPI_C_COMPILER:STRING=$COMET_C_COMPILER"
   COMET_MPI_CMAKE_OPTS+=" -DMPI_C_INCLUDE_PATH:STRING=$CRAY_MPICH2_DIR/include"
   COMET_MPI_CMAKE_OPTS+=" -DMPI_C_LIBRARIES:STRING=$CRAY_MPICH2_DIR/lib"
@@ -310,6 +326,8 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
   fi
 
+  local COMET_CAN_USE_MPI=OFF
+
 #----------------------------------------
 elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
 #----------------------------------------
@@ -341,6 +359,8 @@ elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
   #---Libraries.
 
   local USE_MAGMA=OFF
+
+  local COMET_CAN_USE_MPI=OFF
 
 #----------------------------------------
 else
