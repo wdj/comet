@@ -313,19 +313,7 @@ void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,
-                           const char* const description,
-                           int num_proc, int proc_num) {
-  GMInsist(env);
-
-  GMEnv_create_impl_(env, MPI_COMM_WORLD, argc, argv, description,
-                     false, num_proc, proc_num);
-}
-
-//-----------------------------------------------------------------------------
-
 void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
-                           const char* const description,
                            int num_proc, int proc_num) {
   GMInsist(env);
 
@@ -338,7 +326,7 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
   strcpy(argstring, options);
   gm_create_args(argstring, &argc, argv);
 
-  GMEnv_create_impl_(env, MPI_COMM_WORLD, argc, argv, description,
+  GMEnv_create_impl_(env, MPI_COMM_WORLD, argc, argv, NULL,
                      false, num_proc, proc_num);
 
   free(argstring);
@@ -893,27 +881,27 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
 //-----------------------------------------------------------------------------
 
 bool gm_is_tc_valid(int tc) {
-  if (tc < 0 || tc >= GM_NUM_TC_METHOD) return false;
   if (tc == 0) return true;
+  if (tc < 0 || tc >= GM_NUM_TC_METHOD) return false;
 
 #if defined USE_CUDA
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
   const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
-  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability < 700) return false;
-  if (tc == GM_TC_METHOD_INT8 && compute_capability < 700) return false;
+  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability >= 700) return true;
+  if (tc == GM_TC_METHOD_INT8 && compute_capability >= 700) return true;
   //if (tc == GM_TC_METHOD_INT4 && compute_capability < 750) return false;
   //if (tc == GM_TC_METHOD_INT1 && compute_capability < 750) return false;
 #elif defined USE_HIP
-//FIX this
   hipDeviceProp_t deviceProp;
   hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
+//FIX this
 //  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
-//  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability < 700) return false;
-//  if (tc == GM_TC_METHOD_INT8 && compute_capability < 700) return false;
+//  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability >= 700) return true;
+//  if (tc == GM_TC_METHOD_INT8 && compute_capability >= 700) return true;
 #endif
 
-  return true;
+  return false;
 }
 
 //-----------------------------------------------------------------------------

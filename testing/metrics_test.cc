@@ -56,8 +56,7 @@ void MetricsTest_3way_num_elts_local_() {
         sprintf(options, options_template, num_proc_mock, nvl);
 
         GMEnv env = GMEnv_null();
-        GMEnv_create_no_comms(&env, options, NULL, num_proc_mock,
-                              proc_num_mock);
+        GMEnv_create_no_comms(&env, options, num_proc_mock, proc_num_mock);
         env.num_stage = num_stage;
         env.stage_num = stage_num;
 

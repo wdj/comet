@@ -156,12 +156,11 @@ void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
                   const char* const options,
                   const char* const description);
 
-void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,
-                           const char* const description,
-                           int num_proc, int proc_num);
+//void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,
+//                           const char* const description,
+//                           int num_proc, int proc_num);
 
 void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
-                           const char* const description,
                            int num_proc, int proc_num);
 
 //=============================================================================
@@ -387,6 +386,44 @@ static int GMEnv_proc_num_repl(const GMEnv* const env) {
 static int GMEnv_proc_num_field(const GMEnv* const env) {
   GMAssert(env);
   return env->proc_num_field_;
+}
+
+//=============================================================================
+// Build requirements.
+
+static bool gm_require_mpi(const GMEnv* const env) {
+  GMAssert(env);
+  return GMEnv_num_proc(env) > 1;
+}
+
+//-----------------------------------------------------------------------------
+
+static bool gm_require_accel(const GMEnv* const env) {
+  GMAssert(env);
+  return GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU;
+}
+
+//-----------------------------------------------------------------------------
+
+static bool gm_require_magma(const GMEnv* const env) {
+  GMAssert(env);
+  const bool bitwise_method = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+                              GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
+  const bool using_tc = env->tc == 0;
+  return GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU &&
+    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ||
+     (bitwise_method && using_tc));
+}
+
+//-----------------------------------------------------------------------------
+
+static bool gm_require_tc(const GMEnv* const env) {
+  GMAssert(env);
+  const bool bitwise_method = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+                              GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
+  const bool using_tc = env->tc == 0;
+  return GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU &&
+     bitwise_method && using_tc;
 }
 
 //=============================================================================

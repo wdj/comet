@@ -29,7 +29,45 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 
 //=============================================================================
 
+bool can_run(const char* options) {
+  GMInsist(options);
+
+  int proc_num = 0;
+  int num_proc = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
+
+  GMEnv env_val, *env = &env_val;
+  GMEnv_create_no_comms(env, options, num_proc, proc_num);
+
+  bool result = true;
+
+#ifndef USE_MPI
+  result = result && !gm_require_mpi(env);
+#endif
+#if !defined(USE_CUDA) && !defined(USE_HIP)
+  result = result && !gm_require_accel(env);
+#endif
+#ifndef USE_MAGMA
+  result = result && !gm_require_magma(env);
+#endif
+
+  if (!gm_is_tc_valid(env->tc)) {
+    result = result && !gm_require_tc(env);
+  }
+
+  return result;
+}
+
+//=============================================================================
+
 bool compare_2runs(const char* options1, const char* options2) {
+  GMInsist(options1 && options2);
+
+  if (!(can_run(options1) && can_run(options2))) {
+    return true;
+  }
+
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
 
@@ -62,6 +100,12 @@ bool compare_2runs(const char* options1, const char* options2) {
 bool compare_3runs(const char* options1,
                    const char* options2,
                    const char* options3) {
+  GMInsist(options1 && options2 && options3);
+
+  if (!(can_run(options1) && can_run(options2) && can_run(options3))) {
+    return true;
+  }
+
   int proc_num = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
 
