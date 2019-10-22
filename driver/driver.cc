@@ -29,6 +29,10 @@
 #include "driver.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Parse remaining unprocessed arguments---*/
 
 void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
@@ -667,3 +671,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 }
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------

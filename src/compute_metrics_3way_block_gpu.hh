@@ -20,6 +20,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 void gm_compute_3way_nums_gpu_form_matX_(
   const GMVectors* vectors_i,
   const GMMirroredBuf* vectors_I_buf,
@@ -70,6 +74,10 @@ void gm_compute_3way_nums_gpu_start_(
     GMEnv* env);
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_compute_metrics_3way_block_gpu_hh_
 

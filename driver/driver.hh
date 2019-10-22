@@ -15,6 +15,10 @@
 #include "checksum.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Struct to hold driver options (options not in GMEnv)---*/
 
 typedef struct {
@@ -65,6 +69,10 @@ void perform_run(comet::Checksum& cksum, const char* const options,
                  MPI_Comm base_comm = MPI_COMM_WORLD, GMEnv* env = 0);
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_driver_hh_
 

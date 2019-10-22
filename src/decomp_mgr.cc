@@ -19,6 +19,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 size_t gm_num_vector_local_required(size_t num_vector_active_local,
                                     GMEnv* const env) {
   GMInsist(env);
@@ -281,5 +285,9 @@ void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env) {
 
   gm_tc_bufs_free(dm->tc_bufs, env);
 }
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------

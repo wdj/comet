@@ -14,6 +14,10 @@
 #include "metrics_2way_indexing.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Accessors: value from (contig) index: basic---*/
 
 static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
@@ -935,6 +939,10 @@ static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
 }
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_metrics_2way_accessors_hh_
 

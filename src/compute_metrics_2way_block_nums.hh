@@ -19,6 +19,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 void gm_compute_2way_proc_nums_start(
   GMVectors* vectors_left,
   GMVectors* vectors_right,
@@ -31,6 +35,10 @@ void gm_compute_2way_proc_nums_start(
   GMEnv* env);
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_compute_metrics_2way_block_nums_hh_
 

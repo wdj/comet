@@ -19,6 +19,10 @@
 #include "vectors.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Null object---*/
 
 GMVectors GMVectors_null() {
@@ -316,5 +320,9 @@ size_t GMVectors_cksum(GMVectors* vectors, GMEnv* env) {
 
   return gm_array_cksum((unsigned char*)(vectors->data), vectors->data_size);
 }
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------

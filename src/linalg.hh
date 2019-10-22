@@ -17,6 +17,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 void gm_linalg_initialize(GMEnv* env);
 
 void gm_linalg_finalize(GMEnv* env);
@@ -57,6 +61,10 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env);
 void gm_linalg_get_matrix_wait(GMEnv* env);
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_linalg_hh_
 

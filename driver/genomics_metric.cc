@@ -29,6 +29,10 @@
 #include "input_output.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /* Stack tracing code */
 
 #if 0
@@ -600,9 +604,16 @@ void perform_run_preflight(int argc, char** argv) {
 }
 
 //=============================================================================
-/*---Main---*/
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
+// Main.
 
 int main(int argc, char** argv) {
+
+  using namespace comet; 
+
   /*---Initialize---*/
 
   const double t1 = GMEnv_get_time();

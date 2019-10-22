@@ -15,6 +15,10 @@
 #include "vectors.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Struct declaration---*/
 
 typedef struct {
@@ -54,6 +58,12 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env);
 GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env);
 
 GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
+
+//-----------------------------------------------------------------------------
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------
 

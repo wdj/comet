@@ -16,6 +16,10 @@
 #include "vector_sums.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Null object---*/
 
 GMVectorSums GMVectorSums_null(void) {
@@ -303,5 +307,9 @@ GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env) {
   //return this_->counts ? this_->counts[i] : this_->num_field_;
   return this_->counts[i];
 }
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------

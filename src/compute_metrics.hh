@@ -20,6 +20,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 typedef struct {
   GMComputeMetrics2Way compute_metrics_2way;
   GMComputeMetrics3Way compute_metrics_3way;
@@ -44,6 +48,8 @@ void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
 void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
 
 //=============================================================================
+
+} // namespace comet
 
 #endif // _gm_compute_metrics_hh_
 

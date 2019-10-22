@@ -30,6 +30,9 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 //=============================================================================
 
 bool can_run(const char* options) {
+
+  using namespace comet;
+
   GMInsist(options);
 
   int proc_num = 0;
@@ -78,14 +81,14 @@ bool compare_2runs(const char* options1, const char* options2) {
   }
 
   comet::Checksum checksum1;
-  perform_run(checksum1, options1);
+  comet::perform_run(checksum1, options1);
 
   if (proc_num == 0) {
     printf("%s\n", options2);
   }
 
   comet::Checksum checksum2;
-  perform_run(checksum2, options2);
+  comet::perform_run(checksum2, options2);
 
   /*---Need test result only on proc 0---*/
 
@@ -115,19 +118,19 @@ bool compare_3runs(const char* options1,
     printf("%s\n", options1);
   }
   comet::Checksum checksum1;
-  perform_run(checksum1, options1);
+  comet::perform_run(checksum1, options1);
 
   if (proc_num == 0) {
     printf("%s\n", options2);
   }
   comet::Checksum checksum2;
-  perform_run(checksum2, options2);
+  comet::perform_run(checksum2, options2);
 
   if (proc_num == 0) {
     printf("%s\n", options3);
   }
   comet::Checksum checksum3;
-  perform_run(checksum3, options3);
+  comet::perform_run(checksum3, options3);
 
   /*---Need test result only on proc 0---*/
 
@@ -149,6 +152,8 @@ void test_2runs(const char* options1,
 void create_vectors_file(const char* file_path, int num_field, int num_vector,
                          int metric_type, int num_way, int problem_type,
                          int verbosity) {
+
+  using namespace comet;
 
   GMEnv env_value = GMEnv_null(), *env = &env_value;
   GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
@@ -599,7 +604,7 @@ void DriverTest_czek_() {
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 10; ++num_field) {
       create_vectors_file("czek_2way_in.bin", num_field, num_vector,
-                          GM_METRIC_TYPE_CZEK, 2, problem_type_default(), 1);
+                          comet::GM_METRIC_TYPE_CZEK, 2, comet::problem_type_default(), 1);
       for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=5; ++num_proc_field) {
 
@@ -628,6 +633,9 @@ void DriverTest_czek_() {
 //=============================================================================
 
 void DriverTest_ccc2_simple_compute_method(int compute_method) {
+
+  using namespace comet;
+
   const int num_field = 5;
   const int num_vector_local = 2;
 
@@ -725,14 +733,17 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 //=============================================================================
 
 void DriverTest_ccc2_simple_() {
-  DriverTest_ccc2_simple_compute_method(GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc2_simple_compute_method(GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc2_simple_compute_method(GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc2_simple_compute_method(comet::GM_COMPUTE_METHOD_REF);
+  DriverTest_ccc2_simple_compute_method(comet::GM_COMPUTE_METHOD_CPU);
+  DriverTest_ccc2_simple_compute_method(comet::GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================
 
 void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
+
+  using namespace comet;
+
   const int num_field = 5;
   const int num_vector_local = 2;
 
@@ -885,14 +896,17 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 //=============================================================================
 
 void DriverTest_ccc2_simple_sparse_() {
-  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_REF);
+  DriverTest_ccc2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_CPU);
+  DriverTest_ccc2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================
 
 void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
+
+  using namespace comet;
+
   const int num_field = 5;
   const int num_vector_local = 2;
 
@@ -1035,14 +1049,17 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
 //=============================================================================
 
 void DriverTest_duo2_simple_sparse_() {
-  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
-  DriverTest_duo2_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+  DriverTest_duo2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_REF);
+  DriverTest_duo2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_CPU);
+  DriverTest_duo2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================
 
 void DriverTest_ccc3_simple_compute_method(int compute_method) {
+
+  using namespace comet;
+
   const int num_field = 10;
   const int num_vector_local = 3;
 
@@ -1191,14 +1208,17 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 //=============================================================================
 
 void DriverTest_ccc3_simple_() {
-  DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc3_simple_compute_method(GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc3_simple_compute_method(comet::GM_COMPUTE_METHOD_REF);
+  DriverTest_ccc3_simple_compute_method(comet::GM_COMPUTE_METHOD_CPU);
+  DriverTest_ccc3_simple_compute_method(comet::GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================
 
 void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
+
+  using namespace comet;
+
   const int num_field = 10;
   const int num_vector_local = 3;
 
@@ -1457,9 +1477,9 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 //=============================================================================
 
 void DriverTest_ccc3_simple_sparse_() {
-  DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc3_simple_sparse_compute_method(GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc3_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_REF);
+  DriverTest_ccc3_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_CPU);
+  DriverTest_ccc3_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_GPU);
 }
 
 //=============================================================================
@@ -1486,7 +1506,7 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
     for (int sparse=0; sparse<=1; ++sparse) {
       if (is_duo && sparse == 0) continue;
     for (int tc=1; tc<=3; ++tc) {
-      if (!gm_is_tc_valid(tc)) continue;
+      if (!comet::gm_is_tc_valid(tc)) continue;
       if (nvl/2 < num_way) continue;
 
       sprintf(options1, options_template_tc, metric_type, nvl, "REF",
@@ -1960,7 +1980,7 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 3*300; ++num_field) {
       create_vectors_file("ccc_duo_2way_in.bin", num_field, num_vector,
-                          GM_METRIC_TYPE_CCC, 2, problem_type_default(), 1);
+                          comet::GM_METRIC_TYPE_CCC, 2, comet::problem_type_default(), 1);
       for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
 

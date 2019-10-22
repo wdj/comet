@@ -15,6 +15,10 @@
 #include "linalg_tc.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 // DecompMgr struct
 
 typedef struct {
@@ -66,6 +70,10 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env);
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_decomp_mgr_hh_
 

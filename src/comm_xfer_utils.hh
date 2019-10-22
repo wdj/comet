@@ -18,6 +18,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 MPI_Request gm_send_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
                                   GMEnv* env);
 
@@ -59,6 +63,8 @@ void gm_get_metrics_wait(GMMetrics* metrics,
                          GMEnv* env);
 
 //=============================================================================
+
+} // namespace comet
 
 #endif // _gm_comm_xfer_utils_hh_
 

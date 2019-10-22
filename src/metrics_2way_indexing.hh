@@ -12,6 +12,10 @@
 #define _gm_metrics_2way_indexing_hh_
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Helper functions for 2-way case---*/
 
 static int gm_bdiag_computed_max_allphase(GMEnv* env) {
@@ -232,6 +236,10 @@ static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
 }
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_metrics_2way_indexing_hh_
 

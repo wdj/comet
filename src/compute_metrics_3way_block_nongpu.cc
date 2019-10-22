@@ -22,6 +22,11 @@
 #include "compute_metrics_3way_block_nongpu.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 /*---Start calculation of numerators, 3-way Czekanowski non-gpu---*/
 
 void gm_compute_3way_nums_nongpu_czek_start_(
@@ -729,5 +734,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
 }
 
 //=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------

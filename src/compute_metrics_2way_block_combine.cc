@@ -20,6 +20,10 @@
 #include "compute_metrics_2way_block_combine.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
 
 void gm_compute_2way_proc_combine_czek_(
@@ -649,5 +653,9 @@ void gm_compute_2way_proc_combine(
       GMInsistInterface(env, false && "Selected metric_type unimplemented.");
   } /*---case---*/
 }
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------

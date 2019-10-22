@@ -19,6 +19,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
                            GMEnv* env);
 
@@ -28,6 +32,10 @@ static int problem_type_default() {return GM_PROBLEM_TYPE_ANALYTIC;}
 void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_test_problems_hh_
 

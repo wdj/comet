@@ -23,6 +23,10 @@
 #include "test_problems.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Set the entries of the vectors---*/
 
 void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
@@ -842,3 +846,7 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
 }
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------

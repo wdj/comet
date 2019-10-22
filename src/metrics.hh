@@ -20,6 +20,10 @@
 #include "mirrored_buf.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Helper class for memory---*/
 
 class GMMetricsMem {
@@ -142,6 +146,10 @@ static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
 }
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 /*---Companion include files---*/
 
 #include "metrics_2way_indexing.hh"

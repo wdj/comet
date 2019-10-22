@@ -55,16 +55,16 @@ void MetricsTest_3way_num_elts_local_() {
         char options[1024];
         sprintf(options, options_template, num_proc_mock, nvl);
 
-        GMEnv env = GMEnv_null();
-        GMEnv_create_no_comms(&env, options, num_proc_mock, proc_num_mock);
+        comet::GMEnv env = comet::GMEnv_null();
+        comet::GMEnv_create_no_comms(&env, options, num_proc_mock, proc_num_mock);
         env.num_stage = num_stage;
         env.stage_num = stage_num;
 
-        GMMetrics metrics = GMMetrics_null();
-        GMMetrics_3way_num_elts_local(&metrics, nvl, &env);
+        comet::GMMetrics metrics = comet::GMMetrics_null();
+        comet::GMMetrics_3way_num_elts_local(&metrics, nvl, &env);
         num_elts_local += metrics.num_elts_local;
 
-        GMEnv_destroy(&env);
+        comet::GMEnv_destroy(&env);
       } //---for
     } //---for
 

@@ -14,6 +14,10 @@
 #include "metrics_3way_indexing.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Accessors: value from (contig) index: basic---*/
 
 static GMFloat3 GMMetrics_float3_S_get_from_index(GMMetrics* metrics,
@@ -1007,6 +1011,10 @@ static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted_cache(
 }
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_metrics_3way_accessors_hh_
 

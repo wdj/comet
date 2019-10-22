@@ -19,6 +19,10 @@
 #include "compute_metrics_2way_block_nums.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 /*---Start calculation of numerators, 2-way Czekanowski---*/
 
 void gm_compute_2way_proc_nums_czek_start_(
@@ -615,5 +619,9 @@ void gm_compute_2way_proc_nums_start(
       GMInsistInterface(env, false && "Selected metric_type unimplemented.");
   } /*---case---*/
 }
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------

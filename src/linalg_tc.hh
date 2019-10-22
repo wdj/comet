@@ -19,6 +19,10 @@
 
 #include "env.hh"
 
+//=============================================================================
+
+namespace comet {
+
 //-----------------------------------------------------------------------------
 
 #if defined USE_CUDA
@@ -59,6 +63,10 @@ void gm_tc_bufs_free(TCBufs& tc_bufs,
 
 size_t gm_gemm_divisibility_required(GMEnv* const env);
 size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env);
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------
 

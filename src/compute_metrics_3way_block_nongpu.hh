@@ -20,6 +20,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 void gm_compute_3way_nums_nongpu_czek_start_(
     GMComputeNumerators3Way* this_,
     GMVectors* vectors_i,
@@ -57,6 +61,10 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     GMEnv* env);
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_compute_metrics_3way_block_nongpu_hh_
 

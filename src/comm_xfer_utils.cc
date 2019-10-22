@@ -16,6 +16,10 @@
 #include "comm_xfer_utils.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 // Start/end MPI send/receive of vectors data
 
 MPI_Request gm_send_vectors_start(GMVectors* vectors,
@@ -174,5 +178,9 @@ void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
   gm_linalg_get_matrix_wait(env);
 }
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------

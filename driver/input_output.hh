@@ -19,6 +19,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env);
 
 void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
@@ -90,6 +94,10 @@ private:
 };
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
 
 #endif // _gm_input_output_hh_
 

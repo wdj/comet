@@ -19,6 +19,10 @@
 
 //=============================================================================
 
+namespace comet {
+
+//-----------------------------------------------------------------------------
+
 void GMComputeMetrics_create(
     GMComputeMetrics* this_,
     GMDecompMgr* dm,
@@ -156,5 +160,9 @@ void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
                            GMEnv_mpi_comm_repl_vector(env));
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
 }
+
+//=============================================================================
+
+} // namespace comet
 
 //-----------------------------------------------------------------------------

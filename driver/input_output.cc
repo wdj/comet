@@ -24,6 +24,10 @@
 #include "input_output.hh"
 
 //=============================================================================
+
+namespace comet {
+
+//-----------------------------------------------------------------------------
 // Input vectors from files
 
 void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
@@ -1097,3 +1101,7 @@ void MetricsFile::write(GMMetrics* metrics, GMEnv* env) {
 }
 
 //=============================================================================
+
+} // namespace comet
+
+//-----------------------------------------------------------------------------
