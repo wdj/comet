@@ -57,11 +57,11 @@ void perform_run(int argc, char** argv, const char* const description,
 void perform_run(const char* const options,
                  MPI_Comm base_comm = MPI_COMM_WORLD, GMEnv* env = 0);
 
-void perform_run(CoMet::Checksum& cksum, int argc, char** argv,
+void perform_run(comet::Checksum& cksum, int argc, char** argv,
                  const char* const description,
                  MPI_Comm base_comm = MPI_COMM_WORLD, GMEnv* env = 0);
 
-void perform_run(CoMet::Checksum& cksum, const char* const options,
+void perform_run(comet::Checksum& cksum, const char* const options,
                  MPI_Comm base_comm = MPI_COMM_WORLD, GMEnv* env = 0);
 
 //=============================================================================

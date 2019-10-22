@@ -77,14 +77,14 @@ bool compare_2runs(const char* options1, const char* options2) {
     printf("%s\n", options1);
   }
 
-  CoMet::Checksum checksum1;
+  comet::Checksum checksum1;
   perform_run(checksum1, options1);
 
   if (proc_num == 0) {
     printf("%s\n", options2);
   }
 
-  CoMet::Checksum checksum2;
+  comet::Checksum checksum2;
   perform_run(checksum2, options2);
 
   /*---Need test result only on proc 0---*/
@@ -114,19 +114,19 @@ bool compare_3runs(const char* options1,
   if (proc_num == 0) {
     printf("%s\n", options1);
   }
-  CoMet::Checksum checksum1;
+  comet::Checksum checksum1;
   perform_run(checksum1, options1);
 
   if (proc_num == 0) {
     printf("%s\n", options2);
   }
-  CoMet::Checksum checksum2;
+  comet::Checksum checksum2;
   perform_run(checksum2, options2);
 
   if (proc_num == 0) {
     printf("%s\n", options3);
   }
-  CoMet::Checksum checksum3;
+  comet::Checksum checksum3;
   perform_run(checksum3, options3);
 
   /*---Need test result only on proc 0---*/

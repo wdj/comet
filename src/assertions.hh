@@ -21,14 +21,14 @@
 ///        code locations -- e.g., not in a deep loop nest.
 
 #define GMInsist(condition) \
-  (void)((condition) || (CoMet::assert_(#condition, __FILE__, __LINE__), 0))
+  (void)((condition) || (comet::assert_(#condition, __FILE__, __LINE__), 0))
 
 //-----------------------------------------------------------------------------
 /// \brief Insist macro specifically for a user-caused error condition.
 
 #define GMInsistInterface(env, condition) \
   (void)((condition) || \
-         (CoMet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
+         (comet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
 
 //-----------------------------------------------------------------------------
 /// \brief Assertion macro (for debug builds only).
@@ -59,7 +59,7 @@
 //=============================================================================
 // Declarations.
 
-namespace CoMet {
+namespace comet {
 
 //-----------------------------------------------------------------------------
 /// \brief Function to support the GMAssert, GMInsist macros.
@@ -78,7 +78,7 @@ void insist_interface(void const * const env,
 
 //=============================================================================
 
-} // namespace CoMet
+} // namespace comet
 
 //-----------------------------------------------------------------------------
 

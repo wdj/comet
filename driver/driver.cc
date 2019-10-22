@@ -266,14 +266,14 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 void perform_run(const char* const options, MPI_Comm base_comm, GMEnv* env) {
   GMInsist(options);
 
-  CoMet::Checksum cksum;
+  comet::Checksum cksum;
 
   perform_run(cksum, options, base_comm, env);
 }
 
 //-----------------------------------------------------------------------------
 
-void perform_run(CoMet::Checksum& cksum, const char* const options,
+void perform_run(comet::Checksum& cksum, const char* const options,
                  MPI_Comm base_comm, GMEnv* env) {
   GMInsist(options);
 
@@ -294,14 +294,14 @@ void perform_run(CoMet::Checksum& cksum, const char* const options,
 void perform_run(int argc, char** argv, const char* const description,
                             MPI_Comm base_comm, GMEnv* env) {
 
-  CoMet::Checksum cksum;
+  comet::Checksum cksum;
 
   perform_run(cksum, argc, argv, description, base_comm, env);
 }
 
 //-----------------------------------------------------------------------------
 
-void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
+void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
                  const char* const description,
                  MPI_Comm base_comm, GMEnv* env) {
 
@@ -422,8 +422,8 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
 
   /*---More initializations---*/
 
-  CoMet::Checksum cksum(do_.checksum);
-  CoMet::Checksum cksum_local(do_.checksum);
+  comet::Checksum cksum(do_.checksum);
+  comet::Checksum cksum_local(do_.checksum);
 
   double outtime = 0;
   double mctime = 0;
@@ -491,7 +491,7 @@ void perform_run(CoMet::Checksum& cksum_result, int argc, char** argv,
 
       if (do_.checksum) {
         time_beg = GMEnv_get_synced_time(env);
-        CoMet::Checksum::compute(cksum, cksum_local, *metrics, *env);
+        comet::Checksum::compute(cksum, cksum_local, *metrics, *env);
         time_end = GMEnv_get_synced_time(env);
         cktime += time_end - time_beg;
       }
