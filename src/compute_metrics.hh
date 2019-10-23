@@ -24,28 +24,33 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-typedef struct {
-  GMComputeMetrics2Way compute_metrics_2way;
-  GMComputeMetrics3Way compute_metrics_3way;
-} GMComputeMetrics;
+class ComputeMetrics {
 
-//=============================================================================
+public:
 
-void GMComputeMetrics_create(
-    GMComputeMetrics* this_,
-    GMDecompMgr* dm,
-    GMEnv* env);
+  ComputeMetrics(GMDecompMgr& dm, GMEnv& env);
+  ~ComputeMetrics();
 
-void GMComputeMetrics_destroy(
-    GMComputeMetrics* this_,
-    GMEnv* env);
+  void compute_metrics(GMMetrics& metrics, GMVectors& vectors);
 
-//-----------------------------------------------------------------------------
+  static void compute_metrics(GMMetrics& metrics, GMVectors& vectors,
+    GMEnv& env);
 
-void gm_compute_metrics(GMComputeMetrics* compute_metrics, GMMetrics* metrics,
-                        GMVectors* vectors, GMEnv* env);
+private:
 
-void gm_compute_metrics(GMMetrics* metrics, GMVectors* vectors, GMEnv* env);
+  GMComputeMetrics2Way compute_metrics_2way_;
+  GMComputeMetrics3Way compute_metrics_3way_;
+
+  GMEnv* const env_;
+
+  void compute_stats_(GMMetrics& metrics);
+
+  // Disallowed methods.
+
+  ComputeMetrics(  const ComputeMetrics&);
+  void operator=(const ComputeMetrics&);
+
+}; // ComputeMetrics
 
 //=============================================================================
 

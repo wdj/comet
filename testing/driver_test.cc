@@ -687,7 +687,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
                    &metrics_mem, env);
 
-  gm_compute_metrics(metrics, vectors, env);
+  ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
   if (GMEnv_is_proc_active(env)) {
     const double result00 =
@@ -805,7 +805,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
                    &metrics_mem, env);
 
-  gm_compute_metrics(metrics, vectors, env);
+  ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
   if (GMEnv_is_proc_active(env)) {
     const double result00 =
@@ -961,7 +961,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
                    &metrics_mem, env);
 
-  gm_compute_metrics(metrics, vectors, env);
+  ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
   if (GMEnv_is_proc_active(env)) {
     const double result00 =
@@ -1137,7 +1137,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
                    &metrics_mem, env);
 
-  gm_compute_metrics(metrics, vectors, env);
+  ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
   if (GMEnv_is_proc_active(env)) {
     const double result000 =
@@ -1310,7 +1310,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
                    &metrics_mem, env);
 
-  gm_compute_metrics(metrics, vectors, env);
+  ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
   if (GMEnv_is_proc_active(env)) {
     const double result000 =

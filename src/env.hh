@@ -31,6 +31,11 @@
 
 //=============================================================================
 
+#define COMET_MPI_SAFE_CALL(s) {int error_code = (s); \
+                                GMInsist(MPI_SUCCESS == error_code);}
+
+//-----------------------------------------------------------------------------
+
 namespace comet {
 
 //-----------------------------------------------------------------------------
@@ -70,9 +75,11 @@ typedef struct {
   double veccompares;
   double ops_local;
   double ops;
-  size_t cpu_mem;
+  size_t cpu_mem_local;
+  size_t cpu_mem_max_local;
   size_t cpu_mem_max;
-  size_t gpu_mem;
+  size_t gpu_mem_local;
+  size_t gpu_mem_max_local;
   size_t gpu_mem_max;
   // MPI
   bool make_comms_;

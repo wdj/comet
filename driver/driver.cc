@@ -447,10 +447,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   {
   GMMetricsMem metrics_mem(env);
 
-  GMComputeMetrics compute_metrics_value, //FIX  = {0},
-                  *compute_metrics = &compute_metrics_value;
-
-  GMComputeMetrics_create(compute_metrics, dm, env);
+  ComputeMetrics compute_metrics(*dm, *env);
 
   /*---Loops over phases, stages---*/
 
@@ -471,7 +468,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
       /*---Calculate metrics---*/
 
-      gm_compute_metrics(compute_metrics, metrics, vectors, env);
+      compute_metrics.compute_metrics(*metrics, *vectors);
 
       num_elts_local_computed += metrics->num_elts_local_computed;
 
@@ -517,11 +514,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
         }
       }
 
-    }
+    } // for stage
 
-  } /*---End loops over phases, stages---*/
-
-  GMComputeMetrics_destroy(compute_metrics, env);
+  } // for phase
 
   /*---Finalize metrics mem---*/
 
@@ -547,8 +542,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Perform some checks---*/
 
-  GMInsist(env->cpu_mem == 0);
-  GMInsist(env->gpu_mem == 0);
+  GMInsist(env->cpu_mem_local == 0);
+  GMInsist(env->gpu_mem_local == 0);
 
   size_t num_written = 0;
   if (GMEnv_is_proc_active(env)) {

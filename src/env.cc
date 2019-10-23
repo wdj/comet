@@ -94,9 +94,11 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->veccompares = 0;
   env->ops_local = 0;
   env->ops = 0;
-  env->cpu_mem = 0;
+  env->cpu_mem_local = 0;
+  env->cpu_mem_max_local = 0;
   env->cpu_mem_max = 0;
-  env->gpu_mem = 0;
+  env->gpu_mem_local = 0;
+  env->gpu_mem_max_local = 0;
   env->gpu_mem_max = 0;
   env->description = description;
   env->tc = 0;
@@ -709,24 +711,32 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
 
 void gm_cpu_mem_inc(size_t n, GMEnv* env) {
   GMInsist(env);
-  env->cpu_mem += n;
-  env->cpu_mem_max = gm_max_i8(env->cpu_mem_max, env->cpu_mem);
+  env->cpu_mem_local += n;
+  env->cpu_mem_max_local = gm_max_i8(env->cpu_mem_max_local,
+                                     env->cpu_mem_local);
 }
+
+//----------
 
 void gm_cpu_mem_dec(size_t n, GMEnv* env) {
   GMInsist(env);
-  env->cpu_mem -= n;
+  env->cpu_mem_local -= n;
 }
+
+//----------
 
 void gm_gpu_mem_inc(size_t n, GMEnv* env) {
   GMInsist(env);
-  env->gpu_mem += n;
-  env->gpu_mem_max = gm_max_i8(env->gpu_mem_max, env->gpu_mem);
+  env->gpu_mem_local += n;
+  env->gpu_mem_max_local = gm_max_i8(env->gpu_mem_max_local,
+                                     env->gpu_mem_local);
 }
+
+//----------
 
 void gm_gpu_mem_dec(size_t n, GMEnv* env) {
   GMInsist(env);
-  env->gpu_mem -= n;
+  env->gpu_mem_local -= n;
 }
 
 //-----------------------------------------------------------------------------
