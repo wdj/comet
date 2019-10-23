@@ -126,20 +126,20 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 
   env_->eltcompares += metrics.num_field_active * metrics_num_elts;
   env_->compares += env_->eltcompares * metrics.data_type_num_values;
-  env_->veccompares += num_elts;
+  env_->veccompares += metrics_num_elts;
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_->ops_local, &env_->ops, 1,
-    MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm_repl_vector(env_)));
+    MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm(env_)));
 
   // Compute global CPU, GPU memory high water marks.
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_->cpu_mem_max_local,
     &env_->cpu_mem_max, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX,
-    GMEnv_mpi_comm_repl_vector(env_)));
+    GMEnv_mpi_comm(env_)));
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_->gpu_mem_max_local,
     &env_->gpu_mem_max, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX,
-    GMEnv_mpi_comm_repl_vector(env_)));
+    GMEnv_mpi_comm(env_)));
 }
 
 //-----------------------------------------------------------------------------
