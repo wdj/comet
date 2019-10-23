@@ -51,7 +51,8 @@ typedef int accelStream_t;
 #endif
 #endif
 
-typedef struct {
+class Env {
+public:
   // CoMet Settings
   int metric_type_;
   int num_way_;
@@ -103,17 +104,34 @@ typedef struct {
   int proc_num_vector_i_;
   int proc_num_repl_vector_;
   bool is_proc_active_;
-  // ACCELERATOR
-  accelStream_t stream_compute_;
-  accelStream_t stream_togpu_;
-  accelStream_t stream_fromgpu_;
-  bool are_accel_streams_initialized_;
   // HELPERS
   bool do_reduce;
   bool need_2way; // does the 3-way calc require 2-way metrics
   // OTHER
   const char* description;
-} GMEnv;
+
+
+
+  static double get_time();
+
+  // ACCELERATOR
+  void streams_initialize();
+  void streams_terminate();
+  void stream_synchronize(accelStream_t stream) const;
+  accelStream_t stream_compute();
+  accelStream_t stream_togpu();
+  accelStream_t stream_fromgpu();
+
+private:
+
+  // ACCELERATOR
+  accelStream_t stream_compute_;
+  accelStream_t stream_togpu_;
+  accelStream_t stream_fromgpu_;
+  bool are_accel_streams_initialized_;
+};
+
+typedef Env GMEnv;
 
 //-----------------------------------------------------------------------------
 // Enums for settings choices.
@@ -178,13 +196,6 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
 // Finalize environment
 
 void GMEnv_destroy(GMEnv* const env);
-
-//=============================================================================
-// Manage accelerator streams
-
-void GMEnv_initialize_streams(GMEnv* const env);
-void GMEnv_terminate_streams(GMEnv* const env);
-void GMEnv_stream_synchronize(accelStream_t stream, GMEnv* const env);
 
 //=============================================================================
 // Accessors: general
@@ -440,7 +451,6 @@ static bool gm_require_tc(const GMEnv* const env) {
 //=============================================================================
 // Timer functions
 
-double GMEnv_get_time(const GMEnv* const env = 0);
 void GMEnv_accel_sync(const GMEnv* const env);
 double GMEnv_get_synced_time(const GMEnv* const env);
 

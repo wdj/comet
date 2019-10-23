@@ -368,7 +368,7 @@ static void gm_tc_buf_write_(
       dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
       dim3(threadblocksize, 1, 1),
       0,
-      env->stream_compute_
+      env->stream_compute()
 #ifdef USE_CUDA
       >>> (
 #else
@@ -703,7 +703,7 @@ static void gm_tc_repair_metrics_(
       dim3(vll2_threadblocks, nvl, 1),
       dim3(threadblocksize, 1, 1),
       0,
-      env->stream_compute_
+      env->stream_compute()
 #ifdef USE_CUDA
       >>> (
 #else
@@ -936,7 +936,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
     GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
 
-    status = cublasSetStream(tc_bufs.accelblas_handle, env->stream_compute_);
+    status = cublasSetStream(tc_bufs.accelblas_handle, env->stream_compute());
     GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetStream.");
 
     status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
@@ -947,7 +947,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     GMInsist(status == rocblas_status_success &&
              "Error in rocblas_create_handle.");
 
-    status = rocblas_set_stream(tc_bufs.accelblas_handle, env->stream_compute_);
+    status = rocblas_set_stream(tc_bufs.accelblas_handle, env->stream_compute());
     GMInsist(status == rocblas_status_success &&
              "Error in rocblas_set_stream.");
 

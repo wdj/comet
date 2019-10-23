@@ -410,16 +410,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   double intime = 0;
   time_beg = GMEnv_get_synced_time(env);
 
-//double t1 = GMEnv_get_time(env);
-
   set_vectors(vectors, &do_, env);
-
-//double t2 = GMEnv_get_time(env);
-//printf("TIME %f %i\n", t2-t1, GMEnv_is_proc_active(env));
-
-//  int rank = 0;
-//  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-//  printf("RANK %i\n", rank);
 
   time_end = GMEnv_get_synced_time(env);
   intime += time_end - time_beg;

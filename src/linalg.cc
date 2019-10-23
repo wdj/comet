@@ -81,7 +81,7 @@ void gm_linalg_initialize(GMEnv* env) {
     magma_minproduct_int_t magma_code = magma_minproduct_init();
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in call to magma_minproduct_init.");
-    magma_code = magma_minproductblasSetKernelStream(GMEnv_stream_compute(env));
+    magma_code = magma_minproductblasSetKernelStream(env->stream_compute());
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in call to magma_minproductblasSetKernelStream.");
 
@@ -90,7 +90,7 @@ void gm_linalg_initialize(GMEnv* env) {
     magma_mgemm4_int_t magma_code = magma_mgemm4_init();
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4_init.");
-    magma_code = magma_mgemm4blasSetKernelStream(GMEnv_stream_compute(env));
+    magma_code = magma_mgemm4blasSetKernelStream(env->stream_compute());
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4blasSetKernelStream.");
 
@@ -99,7 +99,7 @@ void gm_linalg_initialize(GMEnv* env) {
     magma_mgemm2_int_t magma_code = magma_mgemm2_init();
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2_init.");
-    magma_code = magma_mgemm2blasSetKernelStream(GMEnv_stream_compute(env));
+    magma_code = magma_mgemm2blasSetKernelStream(env->stream_compute());
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2blasSetKernelStream.");
 
@@ -108,7 +108,7 @@ void gm_linalg_initialize(GMEnv* env) {
     magma_mgemm3_int_t magma_code = magma_mgemm3_init();
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3_init.");
-    magma_code = magma_mgemm3blasSetKernelStream(GMEnv_stream_compute(env));
+    magma_code = magma_mgemm3blasSetKernelStream(env->stream_compute());
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3blasSetKernelStream.");
 
@@ -117,7 +117,7 @@ void gm_linalg_initialize(GMEnv* env) {
     magma_mgemm5_int_t magma_code = magma_mgemm5_init();
     GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
                    "Error in call to magma_mgemm5_init.");
-    magma_code = magma_mgemm5blasSetKernelStream(GMEnv_stream_compute(env));
+    magma_code = magma_mgemm5blasSetKernelStream(env->stream_compute());
     GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
                    "Error in call to magma_mgemm5blasSetKernelStream.");
 
@@ -876,7 +876,7 @@ void gm_linalg_gemm_start(size_t m,
 void gm_compute_wait(GMEnv* env) {
   GMInsist(env);
 
-  GMEnv_stream_synchronize(GMEnv_stream_compute(env), env);
+  env->stream_synchronize(env->stream_compute());
 }
 
 //=============================================================================
@@ -906,11 +906,11 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproduct_dsetmatrix_async(
         mat_dim1, mat_dim2, (double*)matrix_buf->h, mat_dim1,
-        (double*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
+        (double*)matrix_buf->d, mat_dim1, env->stream_togpu());
     } else {
       magma_minproduct_ssetmatrix_async(
         mat_dim1, mat_dim2, (float*)matrix_buf->h, mat_dim1,
-        (float*)matrix_buf->d, mat_dim1, GMEnv_stream_togpu(env));
+        (float*)matrix_buf->d, mat_dim1, env->stream_togpu());
     }
 #else
     size_scalar = sizeof(GMFloat);
@@ -923,7 +923,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
     magma_mgemm4_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
-                                  GMEnv_stream_togpu(env));
+                                  env->stream_togpu());
 #else
     size_scalar = 2 * sizeof(double);
 #endif // USE_MAGMA
@@ -935,7 +935,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
     magma_mgemm2_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
-                                  GMEnv_stream_togpu(env));
+                                  env->stream_togpu());
 #else
     size_scalar = 2 * sizeof(double);
 #endif // USE_MAGMA
@@ -947,7 +947,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
     magma_mgemm3_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
-                                  GMEnv_stream_togpu(env));
+                                  env->stream_togpu());
 #else
     size_scalar = 2 * sizeof(double);
 #endif // USE_MAGMA
@@ -959,7 +959,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
     magma_mgemm5_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
                                   mat_dim1, (Float_t*)matrix_buf->d, mat_dim1,
-                                  GMEnv_stream_togpu(env));
+                                  env->stream_togpu());
 #else
     size_scalar = 2 * sizeof(double);
 #endif // USE_MAGMA
@@ -973,10 +973,10 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 #if defined USE_MAGMA
 #elif defined USE_CUDA
     cudaMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*size_scalar,
-               cudaMemcpyHostToDevice, GMEnv_stream_togpu(env));
+               cudaMemcpyHostToDevice, env->stream_togpu());
 #elif defined USE_HIP
     hipMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*size_scalar,
-              hipMemcpyHostToDevice, GMEnv_stream_togpu(env));
+              hipMemcpyHostToDevice, env->stream_togpu());
 #endif
 }
 
@@ -985,7 +985,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 void gm_linalg_set_matrix_wait(GMEnv* env) {
   GMInsist(env);
 
-  GMEnv_stream_synchronize(GMEnv_stream_togpu(env), env);
+  env->stream_synchronize(env->stream_togpu());
 }
 
 //=============================================================================
@@ -1016,11 +1016,11 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproduct_dgetmatrix_async(
         mat_dim1, mat_dim2, (double*)matrix_buf->d, mat_dim1,
-        (double*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
+        (double*)matrix_buf->h, mat_dim1, env->stream_fromgpu());
     } else {
       magma_minproduct_sgetmatrix_async(
         mat_dim1, mat_dim2, (float*)matrix_buf->d, mat_dim1,
-        (float*)matrix_buf->h, mat_dim1, GMEnv_stream_fromgpu(env));
+        (float*)matrix_buf->h, mat_dim1, env->stream_fromgpu());
     }
 #else
     size_scalar = sizeof(GMFloat);
@@ -1033,7 +1033,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
     magma_mgemm4_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
-                                  GMEnv_stream_fromgpu(env));
+                                  env->stream_fromgpu());
 #else
     size_scalar = 2 * sizeof(double);
 #endif // USE_MAGMA
@@ -1045,7 +1045,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
     magma_mgemm2_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
-                                  GMEnv_stream_fromgpu(env));
+                                  env->stream_fromgpu());
 #else
     size_scalar = 2 * sizeof(double);
 #endif // USE_MAGMA
@@ -1057,7 +1057,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
     magma_mgemm3_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
-                                  GMEnv_stream_fromgpu(env));
+                                  env->stream_fromgpu());
 #else
     size_scalar = 2 * sizeof(double);
 #endif // USE_MAGMA
@@ -1069,7 +1069,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
     magma_mgemm5_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
                                   mat_dim1, (Float_t*)matrix_buf->h, mat_dim1,
-                                  GMEnv_stream_fromgpu(env));
+                                  env->stream_fromgpu());
 #else
     size_scalar = 2 * sizeof(double);
 #endif // USE_MAGMA
@@ -1083,10 +1083,10 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 #if defined USE_MAGMA
 #elif defined USE_CUDA
     cudaMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*size_scalar,
-               cudaMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+               cudaMemcpyDeviceToHost, env->stream_fromgpu());
 #elif defined USE_HIP
     hipMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*size_scalar,
-              hipMemcpyDeviceToHost, GMEnv_stream_fromgpu(env));
+              hipMemcpyDeviceToHost, env->stream_fromgpu());
 #endif
 }
 
@@ -1095,7 +1095,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 void gm_linalg_get_matrix_wait(GMEnv* env) {
   GMInsist(env);
 
-  GMEnv_stream_synchronize(GMEnv_stream_fromgpu(env), env);
+  env->stream_synchronize(env->stream_fromgpu());
 }
 
 //=============================================================================

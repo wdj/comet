@@ -616,7 +616,7 @@ int main(int argc, char** argv) {
 
   /*---Initialize---*/
 
-  const double t1 = GMEnv_get_time();
+  const double t1 = Env::get_time();
 
   MPI_Init(&argc, &argv);
 
@@ -648,7 +648,7 @@ int main(int argc, char** argv) {
   if (use_fast_nodes) { 
 
     MPI_Barrier(MPI_COMM_WORLD);
-    const double t2 = GMEnv_get_time();
+    const double t2 = Env::get_time();
     if (rank == 0) {
       printf("MPI_Init called, %i seconds.\n", (int)(.5+t2-t1));
     }

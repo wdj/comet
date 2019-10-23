@@ -76,7 +76,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->metric_type_ = GM_METRIC_TYPE_CZEK;
   env->num_way_ = GM_NUM_WAY_2;
   env->all2all_ = false;
-  env->are_accel_streams_initialized_ = false;
+  //env->are_accel_streams_initialized_ = false;
   env->are_mpi_comms_initialized_ = false;
   GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
   env->num_stage = 1;
@@ -342,97 +342,93 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
 //=============================================================================
 // Manage accelerator streams
 
-void GMEnv_initialize_streams(GMEnv* const env) {
-  GMInsist(env);
+void Env::streams_initialize() {
 
   // NOTE: this is used for lazy initialization
 
-  if (env->are_accel_streams_initialized_) {
+  if (are_accel_streams_initialized_) {
     return;
   }
 
-  if (env->compute_method_ != GM_COMPUTE_METHOD_GPU) {
+  if (compute_method_ != GM_COMPUTE_METHOD_GPU)
     return;
-  }
 
 #if defined USE_CUDA
-  cudaStreamCreate(&env->stream_compute_);
+  cudaStreamCreate(&stream_compute_);
 #elif defined USE_HIP
-  hipStreamCreate(&env->stream_compute_);
+  hipStreamCreate(&stream_compute_);
 #endif
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
            "Failure in call to stream create.");
 
 #if defined USE_CUDA
-  cudaStreamCreate(&env->stream_togpu_);
+  cudaStreamCreate(&stream_togpu_);
 #elif defined USE_HIP
-  hipStreamCreate(&env->stream_togpu_);
+  hipStreamCreate(&stream_togpu_);
 #endif
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
            "Failure in call to stream create.");
 
 #if defined USE_CUDA
-  cudaStreamCreate(&env->stream_fromgpu_);
+  cudaStreamCreate(&stream_fromgpu_);
 #endif
 #ifdef USE_HIP
-  hipStreamCreate(&env->stream_fromgpu_);
+  hipStreamCreate(&stream_fromgpu_);
 #endif
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
            "Failure in call to stream create.");
 
-  env->are_accel_streams_initialized_ = true;
+  are_accel_streams_initialized_ = true;
 }
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_terminate_streams(GMEnv* const env) {
-  GMInsist(env);
+void Env::streams_terminate() {
 
-  if (! env->are_accel_streams_initialized_) {
+  if (! are_accel_streams_initialized_)
     return;
-  }
 
 #if defined USE_CUDA
-  cudaStreamDestroy(env->stream_compute_);
+  cudaStreamDestroy(stream_compute_);
 #elif defined USE_HIP
-  hipStreamDestroy(env->stream_compute_);
+  hipStreamDestroy(stream_compute_);
 #endif
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
            "Failure in call to stream destroy.");
 
 #if defined USE_CUDA
-  cudaStreamDestroy(env->stream_togpu_);
+  cudaStreamDestroy(stream_togpu_);
 #elif defined USE_HIP
-  hipStreamDestroy(env->stream_togpu_);
+  hipStreamDestroy(stream_togpu_);
 #endif
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
            "Failure in call to stream destroy.");
 
 #if defined USE_CUDA
-  cudaStreamDestroy(env->stream_fromgpu_);
+  cudaStreamDestroy(stream_fromgpu_);
 #elif defined USE_HIP
-  hipStreamDestroy(env->stream_fromgpu_);
+  hipStreamDestroy(stream_fromgpu_);
 #endif
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
            "Failure in call to stream destroy.");
 
-  env->are_accel_streams_initialized_ = false;
+  are_accel_streams_initialized_ = false;
 }
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_stream_synchronize(accelStream_t stream, GMEnv* const env) {
-  GMInsist(env);
+void Env::stream_synchronize(accelStream_t stream) const {
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (GMEnv_compute_method(this) != GM_COMPUTE_METHOD_GPU)
+    return;
+
 #if defined USE_CUDA
-    cudaStreamSynchronize(stream);
+  cudaStreamSynchronize(stream);
 #elif defined USE_HIP
-    hipStreamSynchronize(stream);
+  hipStreamSynchronize(stream);
 #endif
-    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-             "Failure in call to stream synchronize.");
-  }
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to stream synchronize.");
 }
 
 //=============================================================================
@@ -504,7 +500,7 @@ void GMEnv_destroy(GMEnv* const env) {
   GMInsist(env);
 
   GMEnv_terminate_comms(env);
-  GMEnv_terminate_streams(env);
+  env->streams_terminate();
   *env = GMEnv_null();
 }
 
@@ -634,8 +630,25 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
 //-----------------------------------------------------------------------------
 
+accelStream_t GMEnv::stream_compute() {
+  streams_initialize();
+  return stream_compute_;
+}
+
+accelStream_t GMEnv::stream_togpu() {
+  streams_initialize();
+  return stream_togpu_;
+}
+
+accelStream_t GMEnv::stream_fromgpu() {
+  streams_initialize();
+  return stream_fromgpu_;
+}
+
+#if 0
 accelStream_t GMEnv_stream_compute(GMEnv* const env) {
   GMInsist(env);
+  
   GMEnv_initialize_streams(env);
   return env->stream_compute_;
 }
@@ -655,11 +668,12 @@ accelStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
   GMEnv_initialize_streams(env);
   return env->stream_fromgpu_;
 }
+#endif
 
 //=============================================================================
 // Timer functions
 
-double GMEnv_get_time(const GMEnv* const env) {
+double Env::get_time() {
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -703,7 +717,7 @@ double GMEnv_get_synced_time(const GMEnv* const env) {
 
   const int mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Barrier.");
-  return GMEnv_get_time(env);
+  return Env::get_time();
 }
 
 //=============================================================================
