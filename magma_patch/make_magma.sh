@@ -28,7 +28,7 @@ function do_make
     GPU_TARGET=sm$_CMGA_ MIN_ARCH=350 \
     NV_SM=" -gencode arch=compute_${_CMGA_},code=sm_${_CMGA_}" \
     NV_COMP=" -gencode arch=compute_${_CMGA_},code=compute_${_CMGA_}" \
-  time make lib CC=$COMET_CXX_SERIAL_COMPILER -j8
+  make lib CC=$COMET_CXX_SERIAL_COMPILER -j8
 }
 
 #==============================================================================
