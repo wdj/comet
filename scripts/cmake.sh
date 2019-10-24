@@ -29,8 +29,9 @@ set -eu -o pipefail
 
 function get_modules_used_magma
 {
-  if [ -n "$MODULEPATH" ] ; then
-    (module -t list) 2>&1 | sort | egrep 'gcc|cuda' 
+  if [ -n "${MODULEPATH:-}" ] ; then
+    (module -t list) 2>&1 | sort | awk '/gcc/ {print $0}' 
+    (module -t list) 2>&1 | sort | awk '/cuda/ {print $0}' 
   fi
 }
 
@@ -127,6 +128,7 @@ function main
   #----------------------------------------------------------------------------
   #---Create magma variants.
 
+
   if [ $USE_MAGMA = ON ] ; then
     local MAGMA_DIR=$BUILD_DIR/magma_patch
     if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
@@ -149,6 +151,7 @@ function main
   if [ $USE_MAGMA = ON ] ; then
     local COMET_MAGMA_COMPILE_OPTS=""
     local COMET_MAGMA_LINK_OPTS=""
+    local MAGMA_DIR=$BUILD_DIR/magma_patch
     local TAG
     for TAG in minproduct mgemm2 mgemm3 mgemm4 mgemm5 ; do
       local MAGMA_VERSION=magma_$TAG
@@ -159,8 +162,10 @@ function main
         popd
         if [ -e $MAGMA_SUBDIR/lib/lib${MAGMA_VERSION}.a ] ; then
           touch $MAGMA_SUBDIR/build_is_complete
+          echo get_modules_used_magma  $MAGMA_SUBDIR/modules_used
           get_modules_used_magma > $MAGMA_SUBDIR/modules_used
         else
+          echo "${0##*/}: MAGMA library not found." 1>&2
           exit 1
         fi
       else # build_is_complete
