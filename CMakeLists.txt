@@ -77,6 +77,12 @@ SET(DRIVER_SOURCES
   driver/input_output.cc
   )
 
+SET(TEST_TARGETS
+  env_test
+  metrics_test
+  driver_test
+  )
+
 #--------------------
 # Preliminaries.
 
@@ -142,7 +148,7 @@ install(TARGETS genomics_metric DESTINATION bin)
 if(TESTING) 
   enable_testing()
 
-  foreach(TEST_TARGET driver_test metrics_test)
+  foreach(TEST_TARGET ${TEST_TARGETS})
     ADD_EXECUTABLE(${TEST_TARGET} testing/${TEST_TARGET}.cc ${DRIVER_SOURCES})
     TARGET_LINK_LIBRARIES(${TEST_TARGET} genomics_metrics)
     TARGET_LINK_LIBRARIES(${TEST_TARGET} ${CMAKE_EXE_LINKER_FLAGS})

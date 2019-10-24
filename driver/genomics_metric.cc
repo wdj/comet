@@ -493,9 +493,9 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     }
     GMEnv env_val = GMEnv_null(), *env = &env_val;;
     GMEnv_create(env, node_comm, options, NULL);
-    double t1 = GMEnv_get_synced_time(env);
+    double t1 = env->synced_time();
     perform_run(options, node_comm, env);
-    double t2 = GMEnv_get_synced_time(env);
+    double t2 = env->synced_time();
     double time = t2 - t1;
     if (!(trial == 0 && num_trial != 1)) {
       max_time = time > max_time ? time : max_time;
@@ -616,7 +616,7 @@ int main(int argc, char** argv) {
 
   /*---Initialize---*/
 
-  const double t1 = Env::get_time();
+  const double t1 = Env::time();
 
   MPI_Init(&argc, &argv);
 
@@ -648,7 +648,7 @@ int main(int argc, char** argv) {
   if (use_fast_nodes) { 
 
     MPI_Barrier(MPI_COMM_WORLD);
-    const double t2 = Env::get_time();
+    const double t2 = Env::time();
     if (rank == 0) {
       printf("MPI_Init called, %i seconds.\n", (int)(.5+t2-t1));
     }

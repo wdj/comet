@@ -40,7 +40,7 @@ void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
   /*---Ensure final pad words/bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -160,7 +160,7 @@ void GMVectors_create(GMVectors* vectors,
 
   *vectors = GMVectors_null();
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -179,7 +179,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 
   *vectors = GMVectors_null();
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -193,9 +193,9 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
   GMInsist(vectors && env);
-  GMInsist(vectors->data || ! GMEnv_is_proc_active(env));
+  GMInsist(vectors->data || ! env->is_proc_active());
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -268,7 +268,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
 void GMVectors_print(GMVectors* vectors, GMEnv* env) {
   GMInsist(vectors && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -314,7 +314,7 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
 size_t GMVectors_cksum(GMVectors* vectors, GMEnv* env) {
   GMInsist(vectors && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return 0;
   }
 

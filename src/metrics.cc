@@ -41,7 +41,8 @@ GMMetricsMem::GMMetricsMem(GMEnv* env) :
 //-----------------------------------------------------------------------------
 
 GMMetricsMem::~GMMetricsMem() {
-  if (! GMEnv_is_proc_active(env_)) {
+
+  if (! env_->is_proc_active()) {
     return;
   }
   if (data_) {
@@ -62,7 +63,7 @@ GMMetricsMem::~GMMetricsMem() {
 
 void* GMMetricsMem::malloc_data(size_t data_size) {
 
-  if (! GMEnv_is_proc_active(env_)) {
+  if (! env_->is_proc_active()) {
     return NULL;
   }
 
@@ -81,7 +82,7 @@ void* GMMetricsMem::malloc_data(size_t data_size) {
 
 void* GMMetricsMem::malloc_data_S(size_t data_S_size) {
 
-  if (! GMEnv_is_proc_active(env_)) {
+  if (! env_->is_proc_active()) {
     return NULL;
   }
 
@@ -100,7 +101,7 @@ void* GMMetricsMem::malloc_data_S(size_t data_S_size) {
 
 void* GMMetricsMem::malloc_data_C(size_t data_C_size) {
 
-  if (! GMEnv_is_proc_active(env_)) {
+  if (! env_->is_proc_active()) {
     return NULL;
   }
 
@@ -120,7 +121,7 @@ void* GMMetricsMem::malloc_data_C(size_t data_C_size) {
 void* GMMetricsMem::malloc_coords_global_from_index(
   size_t coords_global_from_index_size) {
 
-  if (! GMEnv_is_proc_active(env_)) {
+  if (! env_->is_proc_active()) {
     return NULL;
   }
 
@@ -285,7 +286,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   *metrics = GMMetrics_null();
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -700,7 +701,7 @@ void GMMetrics_create(GMMetrics* metrics,
   size_t num_elts = 0;
   mpi_code = MPI_Allreduce(&metrics->num_elts_local, &num_elts, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_repl_vector(env));
+                           env->comm_repl_vector());
   GMInsist(mpi_code == MPI_SUCCESS);
 
   if (GMEnv_num_way(env) == GM_NUM_WAY_2 &&
@@ -767,9 +768,9 @@ void GMMetrics_create(GMMetrics* metrics,
 
 void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
   GMInsist(metrics && env);
-  GMInsist(metrics->data || ! GMEnv_is_proc_active(env));
+  GMInsist(metrics->data || ! env->is_proc_active());
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 

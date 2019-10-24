@@ -656,7 +656,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     {
       const int G = 0;
       const int T = 1;
@@ -689,7 +689,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     const double result00 =
         GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 0, env);
     const double result01 =
@@ -765,7 +765,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
     {
       const int G = 0;
@@ -807,7 +807,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     const double result00 =
         GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 0, env);
     const double result01 =
@@ -928,7 +928,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     // entry choices, binary representation
     const int MIN = 2 * (0) + 1 * (0);
     const int MAX = 2 * (1) + 1 * (1);
@@ -963,7 +963,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     const double result00 =
         GMMetrics_duo_get_from_index_2(metrics, 0, 0, 0, env);
     const double result01 =
@@ -1080,7 +1080,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     {
       const int A = 0;
       const int T = 1;
@@ -1139,7 +1139,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     const double result000 =
         GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 0, 0, env);
     const double result001 =
@@ -1240,7 +1240,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
     {
       const int A = 0;
@@ -1312,7 +1312,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
 
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     const double result000 =
         GMMetrics_ccc_get_from_index_3(metrics, 0, 0, 0, 0, env);
     const double result001 =
@@ -2120,9 +2120,7 @@ GTEST_API_ int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
   int comm_rank = 0;
-  int mpi_code = 0;
-  mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
   if (comm_rank != 0) {
     ::testing::TestEventListeners& listeners =
@@ -2134,9 +2132,8 @@ GTEST_API_ int main(int argc, char** argv) {
 
   int result_g = 11;
 
-  mpi_code = MPI_Allreduce(&result, &result_g,
-                           1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&result, &result_g, 1, MPI_INT, MPI_MAX,
+    MPI_COMM_WORLD));
 
   MPI_Finalize();
   return result_g;

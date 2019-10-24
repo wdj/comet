@@ -32,7 +32,7 @@ namespace comet {
 void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
   GMInsist(vectors && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -205,7 +205,7 @@ static size_t perm(size_t key, size_t i, size_t n) {
 void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   GMInsist(vectors && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -358,7 +358,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   GMInsist(GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type);
   GMInsist(NULL == do_->input_file_path);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 

@@ -42,14 +42,16 @@ namespace comet {
 // Environment struct declarations.
 
 #ifdef USE_CUDA
-typedef cudaStream_t accelStream_t;
+typedef cudaStream_t Stream_t;
 #else
 #ifdef USE_HIP
-typedef hipStream_t accelStream_t;
+typedef hipStream_t Stream_t;
 #else
-typedef int accelStream_t;
+typedef int Stream_t;
 #endif
 #endif
+
+//----------
 
 class Env {
 public:
@@ -70,7 +72,6 @@ public:
   int tc;
   int num_tc_steps;
   // Counters
-  double time;
   double compares;
   double eltcompares;
   double veccompares;
@@ -84,10 +85,11 @@ public:
   size_t gpu_mem_max;
   // MPI
   bool make_comms_;
-  MPI_Comm mpi_comm_base_;
-  MPI_Comm mpi_comm_;
-  MPI_Comm mpi_comm_repl_vector_;
-  MPI_Comm mpi_comm_field_;
+  MPI_Comm comm_base_;
+  MPI_Comm comm_;
+  MPI_Comm comm_repl_vector_;
+  MPI_Comm comm_field_;
+  bool are_comms_initialized_;
   // MPI proc counts
   int num_proc_base_;
   int num_proc_;
@@ -95,7 +97,6 @@ public:
   int num_proc_repl_;
   int num_proc_vector_i_;
   int num_proc_repl_vector_;
-  bool are_mpi_comms_initialized_;
   // MPI proc numbers
   int proc_num_base_;
   int proc_num_;
@@ -110,26 +111,61 @@ public:
   // OTHER
   const char* description;
 
+  //----------------------------------------
 
+  Env(const char* const options, int num_proc, int proc_num);
+  ~Env();
+  Env() {} // FIX
 
-  static double get_time();
+  // CoMet Settings
 
-  // ACCELERATOR
-  void streams_initialize();
-  void streams_terminate();
-  void stream_synchronize(accelStream_t stream) const;
-  accelStream_t stream_compute();
-  accelStream_t stream_togpu();
-  accelStream_t stream_fromgpu();
+  // Counters
+  double ctime() const {return ctime_;}
+  void ctime_inc(double t) {ctime_ += t;}
+  static double time();
+  double synced_time();
+
+  // MPI comms
+  void comms_terminate_();
+  MPI_Comm comm() const {return comm_;}
+  MPI_Comm comm_repl_vector() const {return comm_repl_vector_;}
+  MPI_Comm comm_field() const {return comm_field_;}
+  // MPI proc counts
+  // MPI proc numbers
+  bool is_proc_active() const {return is_proc_active_;}
+
+  // accelerator streams
+  void stream_synchronize(Stream_t stream) const;
+  Stream_t stream_compute();
+  Stream_t stream_togpu();
+  Stream_t stream_fromgpu();
+  void streams_terminate_();
 
 private:
 
-  // ACCELERATOR
-  accelStream_t stream_compute_;
-  accelStream_t stream_togpu_;
-  accelStream_t stream_fromgpu_;
-  bool are_accel_streams_initialized_;
+  // CoMet Settings
+
+  // Counters
+  double ctime_;
+
+  // MPI comms
+  // MPI proc counts
+  // MPI proc numbers
+
+  // accelerator streams
+  void streams_initialize_();
+  Stream_t stream_compute_;
+  Stream_t stream_togpu_;
+  Stream_t stream_fromgpu_;
+  bool are_streams_initialized_;
+
+  // Disallowed methods.
+
+  //FIX Checksum(  const Checksum&);
+  //FIX void operator=(const Checksum&);
 };
+
+//----------
 
 typedef Env GMEnv;
 
@@ -184,10 +220,6 @@ void GMEnv_create(GMEnv* const env, MPI_Comm base_comm, int argc, char** argv,
 void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
                   const char* const options,
                   const char* const description);
-
-//void GMEnv_create_no_comms(GMEnv* const env, int argc, char** argv,
-//                           const char* const description,
-//                           int num_proc, int proc_num);
 
 void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
                            int num_proc, int proc_num);
@@ -298,44 +330,12 @@ static int GMEnv_compute_method(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-static MPI_Comm GMEnv_mpi_comm(const GMEnv* const env) {
-  GMAssert(env);
-  return env->mpi_comm_;
-}
-
-//-----------------------------------------------------------------------------
-
-static MPI_Comm GMEnv_mpi_comm_repl_vector(const GMEnv* const env) {
-  GMAssert(env);
-  return env->mpi_comm_repl_vector_;
-}
-
-//-----------------------------------------------------------------------------
-
-static MPI_Comm GMEnv_mpi_comm_field(const GMEnv* const env) {
-  GMAssert(env);
-  return env->mpi_comm_field_;
-}
-
-//-----------------------------------------------------------------------------
-
-static int GMEnv_is_proc_active(const GMEnv* const env) {
-  GMAssert(env);
-  return env->is_proc_active_;
-}
-
-//-----------------------------------------------------------------------------
-
 void GMEnv_set_compute_method(GMEnv* const env, int compute_method);
 int GMEnv_data_type_vectors(const GMEnv* const env);
 int GMEnv_data_type_metrics(const GMEnv* const env);
 
 void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
                       int num_proc_repl, int num_proc_field);
-
-accelStream_t GMEnv_stream_compute(GMEnv* const env);
-accelStream_t GMEnv_stream_togpu(GMEnv* const env);
-accelStream_t GMEnv_stream_fromgpu(GMEnv* const env);
 
 //=============================================================================
 // Accessors: num proc
@@ -447,12 +447,6 @@ static bool gm_require_tc(const GMEnv* const env) {
   return GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU &&
      bitwise_method && using_tc;
 }
-
-//=============================================================================
-// Timer functions
-
-void GMEnv_accel_sync(const GMEnv* const env);
-double GMEnv_get_synced_time(const GMEnv* const env);
 
 //=============================================================================
 // Math utility functions

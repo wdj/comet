@@ -37,7 +37,7 @@ void GMComputeMetrics2Way_create(
     return;
   }
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -76,7 +76,7 @@ void GMComputeMetrics2Way_destroy(
     return;
   }
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 

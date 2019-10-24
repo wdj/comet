@@ -41,7 +41,7 @@ private:
   GMComputeMetrics2Way compute_metrics_2way_;
   GMComputeMetrics3Way compute_metrics_3way_;
 
-  GMEnv* const env_;
+  GMEnv& env_;
 
   void compute_stats_(GMMetrics& metrics);
 

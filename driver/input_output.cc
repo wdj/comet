@@ -34,7 +34,7 @@ void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
                                  GMEnv* env) {
   GMInsist(vectors && do_ && env && do_->input_file_path);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -94,7 +94,7 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
                                  GMEnv* env) {
   GMInsist(vectors && do_ && env && do_->input_file_path);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -225,7 +225,7 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
                            GMEnv* env) {
   GMInsist(vectors && vectors_file_path && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -611,7 +611,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
                      double threshold, size_t& num_written, GMEnv* env) {
   GMInsist(metrics && file && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -1026,7 +1026,7 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   , num_written_(0) {
   GMInsist(do_ && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -1035,7 +1035,7 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
 
 #if 0
   char* stub = do_->metrics_file_path_stub;
-  if (! (NULL != stub && GMEnv_is_proc_active(env) &&
+  if (! (NULL != stub && env->is_proc_active() &&
       GMEnv_proc_num_field(env) == 0) ) {
     return;
   }
@@ -1082,7 +1082,7 @@ MetricsFile::~MetricsFile() {
 
 void MetricsFile::write(GMMetrics* metrics, GMEnv* env) {
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 

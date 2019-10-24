@@ -26,20 +26,24 @@ namespace comet {
 /// Constructor for ComputeMetrics class.
 
 ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
-  : env_(&env) {
+  : env_(env) {
 
-  if (! GMEnv_is_proc_active(env_))
+  if (! env_.is_proc_active())
     return;
 
-  double time_begin = GMEnv_get_synced_time(env_);
+  double time_begin = env_.synced_time();
 
-  if (GMEnv_num_way(env_) == GM_NUM_WAY_2) {
-    GMComputeMetrics2Way_create(&compute_metrics_2way_, &dm, env_);
+  //--------------------
+
+  if (GMEnv_num_way(&env_) == GM_NUM_WAY_2) {
+    GMComputeMetrics2Way_create(&compute_metrics_2way_, &dm, &env_);
   } else {
-    GMComputeMetrics3Way_create(&compute_metrics_3way_, &dm, env_);
+    GMComputeMetrics3Way_create(&compute_metrics_3way_, &dm, &env_);
   }
 
-  env_->time += GMEnv_get_synced_time(env_) - time_begin;
+  //--------------------
+
+  env_.ctime_inc(env_.synced_time() - time_begin);
 }
 
 //-----------------------------------------------------------------------------
@@ -48,18 +52,22 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
 
 ComputeMetrics::~ComputeMetrics() {
 
-  if (! GMEnv_is_proc_active(env_))
+  if (! env_.is_proc_active())
     return;
 
-  double time_begin = GMEnv_get_synced_time(env_);
+  double time_begin = env_.synced_time();
 
-  if (GMEnv_num_way(env_) == GM_NUM_WAY_2) {
-    GMComputeMetrics2Way_destroy(&compute_metrics_2way_, env_);
+  //--------------------
+
+  if (GMEnv_num_way(&env_) == GM_NUM_WAY_2) {
+    GMComputeMetrics2Way_destroy(&compute_metrics_2way_, &env_);
   } else {
-    GMComputeMetrics3Way_destroy(&compute_metrics_3way_, env_);
+    GMComputeMetrics3Way_destroy(&compute_metrics_3way_, &env_);
   }
 
-  env_->time += GMEnv_get_synced_time(env_) - time_begin;
+  //--------------------
+
+  env_.ctime_inc(env_.synced_time() - time_begin);
 }
 
 //-----------------------------------------------------------------------------
@@ -68,38 +76,38 @@ ComputeMetrics::~ComputeMetrics() {
 
 void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors) {
 
-  if (! GMEnv_is_proc_active(env_))
+  if (! env_.is_proc_active())
     return;
 
-  double time_begin = GMEnv_get_synced_time(env_);
+  double time_begin = env_.synced_time();
 
   //--------------------
 
-  if (GMEnv_num_way(env_) == 2 && ! GMEnv_all2all(env_)) {
+  if (GMEnv_num_way(&env_) == 2 && ! GMEnv_all2all(&env_)) {
   
     gm_compute_metrics_2way_notall2all(&compute_metrics_2way_,
-      &metrics, &vectors, env_);
+      &metrics, &vectors, &env_);
 
-  } else if (GMEnv_num_way(env_) == 2 && GMEnv_all2all(env_)) {
+  } else if (GMEnv_num_way(&env_) == 2 && GMEnv_all2all(&env_)) {
 
     gm_compute_metrics_2way_all2all(&compute_metrics_2way_,
-      &metrics, &vectors, env_);
+      &metrics, &vectors, &env_);
 
-  } else if (GMEnv_num_way(env_) == 3 && ! GMEnv_all2all(env_)) {
+  } else if (GMEnv_num_way(&env_) == 3 && ! GMEnv_all2all(&env_)) {
 
     gm_compute_metrics_3way_notall2all(&compute_metrics_3way_,
-      &metrics, &vectors, env_);
+      &metrics, &vectors, &env_);
 
-  } else { // (GMEnv_num_way(env_) == 3 && GMEnv_all2all(env_))
+  } else { // (GMEnv_num_way(&env_) == 3 && GMEnv_all2all(&env_))
 
     gm_compute_metrics_3way_all2all(&compute_metrics_3way_,
-      &metrics, &vectors, env_);
+      &metrics, &vectors, &env_);
 
   }
 
   //--------------------
 
-  env_->time += GMEnv_get_synced_time(env_) - time_begin;
+  env_.ctime_inc(env_.synced_time() - time_begin);
 
   compute_stats_(metrics);
 }
@@ -122,24 +130,22 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
   // NOTE: metrics elts have no field axis so just sum across repl/vector procs.
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics.num_elts_local, &metrics_num_elts,
-    1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, GMEnv_mpi_comm_repl_vector(env_)));
+    1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_repl_vector()));
 
-  env_->eltcompares += metrics.num_field_active * metrics_num_elts;
-  env_->compares += env_->eltcompares * metrics.data_type_num_values;
-  env_->veccompares += metrics_num_elts;
+  env_.eltcompares += metrics.num_field_active * metrics_num_elts;
+  env_.compares += env_.eltcompares * metrics.data_type_num_values;
+  env_.veccompares += metrics_num_elts;
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_->ops_local, &env_->ops, 1,
-    MPI_DOUBLE, MPI_SUM, GMEnv_mpi_comm(env_)));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_.ops_local, &env_.ops, 1,
+    MPI_DOUBLE, MPI_SUM, env_.comm()));
 
   // Compute global CPU, GPU memory high water marks.
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_->cpu_mem_max_local,
-    &env_->cpu_mem_max, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX,
-    GMEnv_mpi_comm(env_)));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_.cpu_mem_max_local,
+    &env_.cpu_mem_max, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, env_.comm()));
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_->gpu_mem_max_local,
-    &env_->gpu_mem_max, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX,
-    GMEnv_mpi_comm(env_)));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_.gpu_mem_max_local,
+    &env_.gpu_mem_max, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, env_.comm()));
 }
 
 //-----------------------------------------------------------------------------

@@ -62,7 +62,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                         GMEnv* env) {
   GMInsist(dm && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     *dm = GMDecompMgr_null();
     return;
   }
@@ -134,7 +134,7 @@ printf("%i %i %i %i %i\n",
 
   mpi_code = MPI_Allreduce(&dm->num_vector_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_repl_vector(env));
+                           env->comm_repl_vector());
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   GMInsist(sum == dm->num_vector_local * GMEnv_num_proc_repl_vector(env) &&
            "Every process must have the same number of vectors.");
@@ -143,7 +143,7 @@ printf("%i %i %i %i %i\n",
 
   mpi_code = MPI_Allreduce(&dm->num_vector_active_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_repl_vector(env));
+                           env->comm_repl_vector());
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   GMInsist(sum == dm->num_vector_active * GMEnv_num_proc_repl(env) &&
            "Error in local/global sizes computation.");
@@ -191,7 +191,7 @@ printf("%i %i %i %i %i\n",
 
   mpi_code = MPI_Allreduce(&dm->num_field_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_field(env));
+                           env->comm_field());
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   GMInsist(sum == dm->num_field_local * GMEnv_num_proc_field(env) &&
            "Every process must have the same number of fields.");
@@ -200,7 +200,7 @@ printf("%i %i %i %i %i\n",
 
   mpi_code = MPI_Allreduce(&dm->num_field_active_local, &sum, 1,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_field(env));
+                           env->comm_field());
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   GMInsist(sum == dm->num_field_active &&
            "Error in local/global sizes computation.");
@@ -275,7 +275,7 @@ printf("%i %i %i %i %i\n",
 void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env) {
   GMInsist(dm && env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 

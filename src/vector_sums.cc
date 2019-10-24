@@ -134,7 +134,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
   if (num_proc > 1) {
     int mpi_code = 0;
     mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
-                             GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
+                             GM_MPI_FLOAT, MPI_SUM, env->comm_field());
     GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   }
 
@@ -258,11 +258,11 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
   if (num_proc > 1) {
     int mpi_code = 0;
     mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
-                      GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
+                      GM_MPI_FLOAT, MPI_SUM, env->comm_field());
     GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
     if (env->sparse) {
       mpi_code = MPI_Allreduce(counts_local, counts, vectors->num_vector_local,
-                        GM_MPI_FLOAT, MPI_SUM, GMEnv_mpi_comm_field(env));
+                        GM_MPI_FLOAT, MPI_SUM, env->comm_field());
       GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
     } /*---if sparse---*/
   }

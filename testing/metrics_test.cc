@@ -27,9 +27,7 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 void MetricsTest_3way_num_elts_local_() {
 
   int comm_rank = 0;
-  int mpi_code = 0;
-  mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
   const int num_proc_mock = 20;
   const int nvl = 12;
@@ -65,20 +63,21 @@ void MetricsTest_3way_num_elts_local_() {
         num_elts_local += metrics.num_elts_local;
 
         comet::GMEnv_destroy(&env);
-      } //---for
-    } //---for
+      } // for
+    } // for
 
     printf("--------------------------------------- "
            "Metrics elements found %lu, expected %" PRIu64 "."
            " ---------------------------------------\n",
            num_elts_local, num_elts_local_expected);
 
-  EXPECT_EQ(true, num_elts_local == num_elts_local_expected);
+    EXPECT_EQ(true, num_elts_local == num_elts_local_expected);
+
   } else {
 
     num_elts_local = num_elts_local_expected;
 
-  } //---if
+  } // if comm_rank
 
 }
 
@@ -97,9 +96,7 @@ GTEST_API_ int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
 
   int comm_rank = 0;
-  int mpi_code = 0;
-  mpi_code = MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
   if (comm_rank != 0) {
     ::testing::TestEventListeners& listeners =
@@ -110,9 +107,8 @@ GTEST_API_ int main(int argc, char** argv) {
   int result = RUN_ALL_TESTS();
   int result_g = 11;
 
-  mpi_code = MPI_Allreduce(&result, &result_g,
-                           1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-  GMInsist(mpi_code == MPI_SUCCESS);
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&result, &result_g, 1, MPI_INT, MPI_MAX,
+    MPI_COMM_WORLD));
 
   MPI_Finalize();
   return result_g;

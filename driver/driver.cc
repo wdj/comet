@@ -320,14 +320,14 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     GMEnv_create(env, base_comm, argc, argv, description);
   }
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     if (create_env) {
       GMEnv_destroy(env);
     }
     return;
   }
 
-  double total_time_beg = GMEnv_get_synced_time(env);
+  double total_time_beg = env->synced_time();
 
   /*---Parse remaining unprocessed arguments---*/
 
@@ -356,7 +356,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   /*---Set up parallel deomp for vectors, metrics---*/
 
   double vctime = 0;
-  double time_beg = GMEnv_get_synced_time(env);
+  double time_beg = env->synced_time();
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm,
     do_.num_field_local_initialized,
@@ -366,7 +366,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
     GMEnv_data_type_vectors(env), env);
-  double time_end = GMEnv_get_synced_time(env);
+  double time_end = env->synced_time();
   vctime += time_end - time_beg;
 
 //TODO: possibly replace this with stuff from dm
@@ -394,25 +394,25 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
 //printf("%i %i %i %i\n", env->proc_num_base_, env->proc_num_, env->proc_num_repl_, env->proc_num_vector_i_);
 
-  const bool do_print = GMEnv_is_proc_active(env) &&
+  const bool do_print = env->is_proc_active() &&
      GMEnv_proc_num(env) == 0 && do_.verbosity > 0;
 
   /*---Allocate vectors---*/
 
-  time_beg = GMEnv_get_synced_time(env);
+  time_beg = env->synced_time();
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
   GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
-  time_end = GMEnv_get_synced_time(env);
+  time_end = env->synced_time();
   vctime += time_end - time_beg;
 
   /*---Set vectors---*/
 
   double intime = 0;
-  time_beg = GMEnv_get_synced_time(env);
+  time_beg = env->synced_time();
 
   set_vectors(vectors, &do_, env);
 
-  time_end = GMEnv_get_synced_time(env);
+  time_end = env->synced_time();
   intime += time_end - time_beg;
 
   /*---More initializations---*/
@@ -430,9 +430,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   /*---Open output files---*/
 
   {
-  time_beg = GMEnv_get_synced_time(env);
+  time_beg = env->synced_time();
   MetricsFile metric_file(&do_, env);
-  time_end = GMEnv_get_synced_time(env);
+  time_end = env->synced_time();
   outtime += time_end - time_beg;
 
   {
@@ -450,11 +450,11 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
       /*---Set up metrics container for results---*/
 
-      time_beg = GMEnv_get_synced_time(env);
+      time_beg = env->synced_time();
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
       GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
                        &metrics_mem, env);
-      time_end = GMEnv_get_synced_time(env);
+      time_end = env->synced_time();
       mctime += time_end - time_beg;
 
       /*---Calculate metrics---*/
@@ -465,31 +465,31 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
       /*---Output results---*/
 
-      time_beg = GMEnv_get_synced_time(env);
+      time_beg = env->synced_time();
       metric_file.write(metrics, env);
-      time_end = GMEnv_get_synced_time(env);
+      time_end = env->synced_time();
       outtime += time_end - time_beg;
 
       /*---Check correctness---*/
 
       if (do_.checksum) {
-        time_beg = GMEnv_get_synced_time(env);
+        time_beg = env->synced_time();
         check_metrics(metrics, &do_, env);
-        time_end = GMEnv_get_synced_time(env);
+        time_end = env->synced_time();
         cktime += time_end - time_beg;
       }
 
       /*---Compute checksum---*/
 
       if (do_.checksum) {
-        time_beg = GMEnv_get_synced_time(env);
+        time_beg = env->synced_time();
         comet::Checksum::compute(cksum, cksum_local, *metrics, *env);
-        time_end = GMEnv_get_synced_time(env);
+        time_end = env->synced_time();
         cktime += time_end - time_beg;
       }
-      time_beg = GMEnv_get_synced_time(env);
+      time_beg = env->synced_time();
       GMMetrics_destroy(metrics, env);
-      time_end = GMEnv_get_synced_time(env);
+      time_end = env->synced_time();
       mctime += time_end - time_beg;
 
       if (do_print) {
@@ -511,24 +511,24 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Finalize metrics mem---*/
 
-  time_beg = GMEnv_get_synced_time(env);
+  time_beg = env->synced_time();
   }
-  time_end = GMEnv_get_synced_time(env);
+  time_end = env->synced_time();
   mctime += time_end - time_beg;
   /*---Close output files---*/
 
   num_local_written += metric_file.get_num_written();
-  time_beg = GMEnv_get_synced_time(env);
+  time_beg = env->synced_time();
   }
-  time_end = GMEnv_get_synced_time(env);
+  time_end = env->synced_time();
   outtime += time_end - time_beg;
 
   /*---Deallocate vectors---*/
 
-  time_beg = GMEnv_get_synced_time(env);
+  time_beg = env->synced_time();
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  time_end = GMEnv_get_synced_time(env);
+  time_end = env->synced_time();
   vctime += time_end - time_beg;
 
   /*---Perform some checks---*/
@@ -537,17 +537,17 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   GMInsist(env->gpu_mem_local == 0);
 
   size_t num_written = 0;
-  if (GMEnv_is_proc_active(env)) {
+  if (env->is_proc_active()) {
     int mpi_code = 0;
     size_t num_elts_computed = 0;
     mpi_code = MPI_Allreduce(&num_elts_local_computed, &num_elts_computed, 1,
                              MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                             GMEnv_mpi_comm_repl_vector(env));
+                             env->comm_repl_vector());
     GMInsist(mpi_code == MPI_SUCCESS);
 
     mpi_code = MPI_Allreduce(&num_local_written, &num_written, 1,
                              MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                             GMEnv_mpi_comm_repl_vector(env));
+                             env->comm_repl_vector());
     GMInsist(mpi_code == MPI_SUCCESS);
 
     if (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env) &&
@@ -565,7 +565,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     }
   }
 
-  double total_time_end = GMEnv_get_synced_time(env);
+  double total_time_end = env->synced_time();
 
   /*---Output run information---*/
 
@@ -578,12 +578,12 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       printf(" ");
     }
     //-----
-    printf("ctime %.6f", env->time);
+    printf("ctime %.6f", env->ctime());
     //-----
     printf(" ops %e", env->ops);
-    if (env->time > 0) {
-      printf(" ops_rate %e", env->ops / env->time);
-      printf(" ops_rate/proc %e", env->ops / (env->time*GMEnv_num_proc(env)) );
+    if (env->ctime() > 0) {
+      printf(" ops_rate %e", env->ops / env->ctime());
+      printf(" ops_rate/proc %e", env->ops / (env->ctime()*GMEnv_num_proc(env)) );
     }
     //-----
     printf(" vcmp %e", env->veccompares);
@@ -593,9 +593,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     //-----
     printf(" cmp %e", env->compares);
     printf(" ecmp %e", env->eltcompares);
-    if (env->time > 0) {
-      printf(" ecmp_rate %e", env->eltcompares / env->time);
-      printf(" ecmp_rate/proc %e", env->eltcompares / (env->time*GMEnv_num_proc(env)) );
+    if (env->ctime() > 0) {
+      printf(" ecmp_rate %e", env->eltcompares / env->ctime());
+      printf(" ecmp_rate/proc %e", env->eltcompares / (env->ctime()*GMEnv_num_proc(env)) );
     }
     //-----
     printf(" vctime %.6f", vctime);
@@ -622,14 +622,14 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   if (false) {
     // One more sync before checking num_correct, to allow flush of output.
-    GMEnv_get_synced_time(env);
-    if (do_.checksum && GMEnv_is_proc_active(env) && do_.verbosity > 0) {
+    env->synced_time();
+    if (do_.checksum && env->is_proc_active() && do_.verbosity > 0) {
       printf("local checksum: ");
       cksum_local.print(*env);
       printf("\n");
     }
   }
-  GMEnv_get_synced_time(env);
+  env->synced_time();
 
   // Validation: check for any wrong answers.
 

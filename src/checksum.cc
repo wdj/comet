@@ -126,7 +126,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
   double result = -DBL_MAX;
 
   // TODO: make this unnecessary.
-  if (! GMEnv_is_proc_active(&env)) {
+  if (! env.is_proc_active()) {
     return result;
   }
 
@@ -196,10 +196,10 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
 void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
                        GMMetrics& metrics, GMEnv& env){
   // TODO: make this check unnecessary.
-  GMInsist(metrics.data || ! GMEnv_is_proc_active(&env));
+  GMInsist(metrics.data || ! env.is_proc_active());
 
   // TODO: make this unnecessary.
-  if (! GMEnv_is_proc_active(&env)) {
+  if (! env.is_proc_active()) {
     return;
   }
 
@@ -229,7 +229,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
                   value_max_tmp : cksum.value_max_;
 
   int mpi_code = MPI_Allreduce(&value_max_tmp, &cksum.value_max_, 1,
-                        MPI_DOUBLE, MPI_MAX, GMEnv_mpi_comm_repl_vector(&env));
+                        MPI_DOUBLE, MPI_MAX, env.comm_repl_vector());
   GMInsist(mpi_code == MPI_SUCCESS && "Faiure in call to MPI_Allreduce.");
   cksum_local.value_max_ = cksum.value_max_;
 
@@ -417,7 +417,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   mpi_code = MPI_Allreduce(sum_local.data_, sum.data_,
                            MultiprecInt::SIZE,
                            MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           GMEnv_mpi_comm_repl_vector(&env));
+                           env.comm_repl_vector());
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   // Add to multiprec int data we have so far.
   for (int i = 0; i < MultiprecInt::SIZE; ++i) {
@@ -455,7 +455,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
   double sum_d = 0;
   mpi_code = MPI_Allreduce(&sum_d_local, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
-                           GMEnv_mpi_comm_repl_vector(&env));
+                           env.comm_repl_vector());
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
   cksum.sum_d_ += sum_d;
   cksum_local.sum_d_ += sum_d_local;

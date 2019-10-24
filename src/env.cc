@@ -76,8 +76,8 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->metric_type_ = GM_METRIC_TYPE_CZEK;
   env->num_way_ = GM_NUM_WAY_2;
   env->all2all_ = false;
-  //env->are_accel_streams_initialized_ = false;
-  env->are_mpi_comms_initialized_ = false;
+  //env->are_streams_initialized_ = false;
+  //env->are_comms_initialized_ = false;
   GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
   env->num_stage = 1;
   env->stage_num = 0;
@@ -88,7 +88,7 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   GMEnv_ccc_multiplier_set(GMEnv_ccc_multiplier_default(), env);
   GMEnv_duo_multiplier_set(GMEnv_duo_multiplier_default(), env);
 
-  env->time = 0;
+  //env->ctime_ = 0;
   env->compares = 0;
   env->eltcompares = 0;
   env->veccompares = 0;
@@ -104,13 +104,13 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
   env->tc = 0;
   env->num_tc_steps = 1;
 
-  env->mpi_comm_base_ = base_comm;
+  env->comm_base_ = base_comm;
   env->make_comms_ = make_comms;
 
   if (env->make_comms_) {
-    int mpi_code = MPI_Comm_size(env->mpi_comm_base_, &env->num_proc_base_);
+    int mpi_code = MPI_Comm_size(env->comm_base_, &env->num_proc_base_);
     GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_size.");
-    mpi_code = MPI_Comm_rank(env->mpi_comm_base_, &env->proc_num_base_);
+    mpi_code = MPI_Comm_rank(env->comm_base_, &env->proc_num_base_);
     GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_rank.");
   } else {
     env->num_proc_base_ = num_proc;
@@ -339,16 +339,42 @@ void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
   free(argv);
 }
 
+//-----------------------------------------------------------------------------
+
+Env::Env(const char* const options, int num_proc, int proc_num) {
+
+  // Convert options string to args
+
+  size_t len = strlen(options);
+  char* argstring = (char*)malloc((len+1)*sizeof(char));
+  char ** argv = (char**)malloc((len+1)*sizeof(char*));
+  int argc = 0;
+  strcpy(argstring, options);
+  gm_create_args(argstring, &argc, argv);
+  
+  GMEnv_create_impl_(this, MPI_COMM_WORLD, argc, argv, NULL,
+                     false, num_proc, proc_num);
+  
+  free(argstring);
+  free(argv);
+}
+
+//-----------------------------------------------------------------------------
+
+Env::~Env() {
+  comms_terminate_();
+  streams_terminate_();
+}
+
 //=============================================================================
 // Manage accelerator streams
 
-void Env::streams_initialize() {
+void Env::streams_initialize_() {
 
   // NOTE: this is used for lazy initialization
 
-  if (are_accel_streams_initialized_) {
+  if (are_streams_initialized_)
     return;
-  }
 
   if (compute_method_ != GM_COMPUTE_METHOD_GPU)
     return;
@@ -378,14 +404,14 @@ void Env::streams_initialize() {
   GMInsist(GMEnv_accel_last_call_succeeded(this) &&
            "Failure in call to stream create.");
 
-  are_accel_streams_initialized_ = true;
+  are_streams_initialized_ = true;
 }
 
 //-----------------------------------------------------------------------------
 
-void Env::streams_terminate() {
+void Env::streams_terminate_() {
 
-  if (! are_accel_streams_initialized_)
+  if (! are_streams_initialized_)
     return;
 
 #if defined USE_CUDA
@@ -412,12 +438,12 @@ void Env::streams_terminate() {
   GMInsist(GMEnv_accel_last_call_succeeded(this) &&
            "Failure in call to stream destroy.");
 
-  are_accel_streams_initialized_ = false;
+  are_streams_initialized_ = false;
 }
 
 //-----------------------------------------------------------------------------
 
-void Env::stream_synchronize(accelStream_t stream) const {
+void Env::stream_synchronize(Stream_t stream) const {
 
   if (GMEnv_compute_method(this) != GM_COMPUTE_METHOD_GPU)
     return;
@@ -437,60 +463,51 @@ void Env::stream_synchronize(accelStream_t stream) const {
 void GMEnv_initialize_comms(GMEnv* const env) {
   GMInsist(env);
 
-  if (env->are_mpi_comms_initialized_) {
+  if (env->are_comms_initialized_)
     return;
-  }
 
-  if (! env->make_comms_) {
+  if (! env->make_comms_)
     return;
-  }
 
-  int mpi_code = MPI_Comm_split(env->mpi_comm_base_, env->is_proc_active_,
-                            env->proc_num_, &env->mpi_comm_);
+  int mpi_code = MPI_Comm_split(env->comm_base_, env->is_proc_active_,
+                            env->proc_num_, &env->comm_);
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
 
   // Communicator along repl / vector axis.
 
-  mpi_code = MPI_Comm_split(env->mpi_comm_base_,
+  mpi_code = MPI_Comm_split(env->comm_base_,
       env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
       //env->proc_num_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->proc_num_,
-      &env->mpi_comm_repl_vector_);
+      &env->comm_repl_vector_);
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
 
   // Communicator along field axis.
 
-  mpi_code = MPI_Comm_split(env->mpi_comm_base_,
+  mpi_code = MPI_Comm_split(env->comm_base_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->num_proc_,
       //env->proc_num_,
       env->is_proc_active_ ? env->proc_num_field_ : env->proc_num_,
-      &env->mpi_comm_field_);
+      &env->comm_field_);
   GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
 
-  env->are_mpi_comms_initialized_ = true;
+  env->are_comms_initialized_ = true;
 }
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_terminate_comms(GMEnv* const env) {
-  GMInsist(env);
+void Env::comms_terminate_() {
 
-  if (! env->are_mpi_comms_initialized_) {
+  if (! are_comms_initialized_)
     return;
-  }
 
   // Destroy any nontrivial communicators
 
-  int mpi_code = MPI_Comm_free(&(env->mpi_comm_));
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_free.");
+  COMET_MPI_SAFE_CALL(MPI_Comm_free(&comm_));
+  COMET_MPI_SAFE_CALL(MPI_Comm_free(&comm_repl_vector_));
+  COMET_MPI_SAFE_CALL(MPI_Comm_free(&comm_field_));
 
-  mpi_code = MPI_Comm_free(&(env->mpi_comm_repl_vector_));
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_free.");
-
-  mpi_code = MPI_Comm_free(&(env->mpi_comm_field_));
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_free.");
-
-  env->are_mpi_comms_initialized_ = false;
+  are_comms_initialized_ = false;
 }
 
 //=============================================================================
@@ -499,8 +516,8 @@ void GMEnv_terminate_comms(GMEnv* const env) {
 void GMEnv_destroy(GMEnv* const env) {
   GMInsist(env);
 
-  GMEnv_terminate_comms(env);
-  env->streams_terminate();
+  env->comms_terminate_();
+  env->streams_terminate_();
   *env = GMEnv_null();
 }
 
@@ -621,7 +638,7 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
   // Destroy old communicators if necessary
 
-  GMEnv_terminate_comms(env);
+  env->comms_terminate_();
 
   // Make new communicators
 
@@ -630,50 +647,25 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
 //-----------------------------------------------------------------------------
 
-accelStream_t GMEnv::stream_compute() {
-  streams_initialize();
+Stream_t Env::stream_compute() {
+  streams_initialize_();
   return stream_compute_;
 }
 
-accelStream_t GMEnv::stream_togpu() {
-  streams_initialize();
+Stream_t Env::stream_togpu() {
+  streams_initialize_();
   return stream_togpu_;
 }
 
-accelStream_t GMEnv::stream_fromgpu() {
-  streams_initialize();
+Stream_t Env::stream_fromgpu() {
+  streams_initialize_();
   return stream_fromgpu_;
 }
-
-#if 0
-accelStream_t GMEnv_stream_compute(GMEnv* const env) {
-  GMInsist(env);
-  
-  GMEnv_initialize_streams(env);
-  return env->stream_compute_;
-}
-
-//-----------------------------------------------------------------------------
-
-accelStream_t GMEnv_stream_togpu(GMEnv* const env) {
-  GMInsist(env);
-  GMEnv_initialize_streams(env);
-  return env->stream_togpu_;
-}
-
-//-----------------------------------------------------------------------------
-
-accelStream_t GMEnv_stream_fromgpu(GMEnv* const env) {
-  GMInsist(env);
-  GMEnv_initialize_streams(env);
-  return env->stream_fromgpu_;
-}
-#endif
 
 //=============================================================================
 // Timer functions
 
-double Env::get_time() {
+double Env::time() {
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -687,7 +679,7 @@ double Env::get_time() {
 void GMEnv_accel_sync(const GMEnv* const env) {
   GMInsist(env);
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! env->is_proc_active()) {
     return;
   }
 
@@ -706,18 +698,16 @@ void GMEnv_accel_sync(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-double GMEnv_get_synced_time(const GMEnv* const env) {
-  GMInsist(env);
+double Env::synced_time() {
 
-  if (! GMEnv_is_proc_active(env)) {
+  if (! is_proc_active())
     return 0;
-  }
 
-  GMEnv_accel_sync(env);
+  GMEnv_accel_sync(this);
 
-  const int mpi_code = MPI_Barrier(GMEnv_mpi_comm(env));
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Barrier.");
-  return Env::get_time();
+  COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
+
+  return Env::time();
 }
 
 //=============================================================================
