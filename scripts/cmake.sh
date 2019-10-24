@@ -172,6 +172,7 @@ function main
         if [ "$(cksum <$MAGMA_SUBDIR/modules_used)" != \
              "$(cksum < <(get_modules_used_magma))" ] ; then
           echo "${0##*/}: inconsistent modules; please rebuild MAGMA." 1>&2
+          get_modules_used_magma 1>&2
           exit 1
         fi
       fi # build_is_complete

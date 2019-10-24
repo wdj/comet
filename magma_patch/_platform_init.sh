@@ -367,13 +367,22 @@ elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
 elif [ $COMET_PLATFORM = WOMBAT ] ; then
 #----------------------------------------
 
+  #---Modules etc.
+
+  module load openmpi
+  (module list) 2>&1 | grep -v '^ *$'
+
   #---Compiler.
 
   local USE_GCC=ON
-  local COMET_C_COMPILER=$(which gcc)
-  local COMET_CXX_COMPILER=$(which g++)
-  local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
+  #local COMET_C_COMPILER=$(which gcc)
+  #local COMET_CXX_COMPILER=$(which g++)
+  #local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
+  local COMET_C_COMPILER=$(which mpicc)
+  local COMET_CXX_COMPILER=$(which mpiCC)
+  local COMET_CXX_SERIAL_COMPILER=g++
   local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++11"
+  COMET_EXTRA_COMPILE_OPTS+=" -I$(dirname $(which mpiCC))/../include"
 
   local USE_OPENMP=ON
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
@@ -398,7 +407,7 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   local COMET_MAGMA_GPU_ARCH=70
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
-  local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
 
 #----------------------------------------
 else
