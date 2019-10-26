@@ -534,9 +534,9 @@ void gm_compute_3way_nums_gpu_start_(
     gm_linalg_set_matrix_zero_start(matM_ij_buf_ptr, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_i_buf->d, npvfl,
-                         vectors_j_buf->d, npvfl,
-                         matM_ij_buf_ptr->d, nvl,
+                         vectors_i_buf->active, npvfl,
+                         vectors_j_buf->active, npvfl,
+                         matM_ij_buf_ptr->active, nvl,
                          vectors_i->dm, env);
     gm_compute_wait(env);
 
@@ -564,9 +564,9 @@ void gm_compute_3way_nums_gpu_start_(
     gm_linalg_set_matrix_zero_start(matM_jk_buf_ptr, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_j_buf->d, npvfl,
-                         vectors_k_buf->d, npvfl,
-                         matM_jk_buf_ptr->d, nvl,
+                         vectors_j_buf->active, npvfl,
+                         vectors_k_buf->active, npvfl,
+                         matM_jk_buf_ptr->active, nvl,
                          vectors_i->dm, env);
     gm_compute_wait(env);
 
@@ -597,9 +597,9 @@ void gm_compute_3way_nums_gpu_start_(
     gm_linalg_set_matrix_zero_start(matM_kik_buf_ptr, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_k_buf->d, npvfl,
-                         vectors_i_buf->d, npvfl,
-                         matM_kik_buf_ptr->d, nvl,
+                         vectors_k_buf->active, npvfl,
+                         vectors_i_buf->active, npvfl,
+                         matM_kik_buf_ptr->active, nvl,
                          vectors_i->dm, env);
     gm_compute_wait(env);
 
@@ -827,9 +827,9 @@ void gm_compute_3way_nums_gpu_start_(
       gm_linalg_set_matrix_zero_start(matB_buf_ptr, env);
       /*---Perform pseudo GEMM matB = matX^T PROD V - START---*/
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
-                           matX_buf[vars.index_01]->d, npvfl,
-                           vectors_K_buf->d, npvfl,
-                           matB_buf_ptr->d, matB_buf_ptr->dim0,
+                           matX_buf[vars.index_01]->active, npvfl,
+                           vectors_K_buf->active, npvfl,
+                           matB_buf_ptr->active, matB_buf_ptr->dim0,
                            vectors_i->dm, env);
                            //matB_buf_ptr->d, vars.I_max, env);
     }

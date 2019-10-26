@@ -22,6 +22,7 @@ namespace comet {
 typedef struct {
   void* __restrict__ h;
   void* __restrict__ d;
+  void* __restrict__ active;
   size_t size;
   size_t dim0;
   size_t dim1;

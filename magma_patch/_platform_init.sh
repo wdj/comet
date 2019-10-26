@@ -155,6 +155,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
 
   local USE_CPUBLAS=ON
   local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_ESSL_ROOT/include"
+  COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"essl.h\""'
   local COMET_CPUBLAS_LINK_OPTS=""
   local XLF_DIR=$(module load xl 2>/dev/null ; echo $OLCF_XLF_ROOT)/lib
   local XLF_DIR2=$(module load xl 2>/dev/null ; echo $OLCF_XL_ROOT)/lib
@@ -323,6 +324,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   if [ "${BLIS_PATH:-}" != "" ] ; then
     local USE_CPUBLAS=ON
     local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/zen"
+    COMET_CUDA_CMAKE_OPTS=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"blis.h\""'
     local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/zen"
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
   fi

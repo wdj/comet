@@ -11,18 +11,22 @@
 #include "cstdint"
 
 #if defined USE_CUDA
-  #include "cublas_v2.h"
-  #include "cuda_fp16.h"
-  #define USE_CUDA_OR_HIP
+#  include "cublas_v2.h"
+#  include "cuda_fp16.h"
+#  define USE_CUDA_OR_HIP
 #elif defined USE_HIP
-  #include "hip/hip_runtime_api.h"
-  #include "hip/hip_runtime.h"
-  #include "rocblas.h"
-  #define USE_CUDA_OR_HIP
+#  include "hip/hip_runtime_api.h"
+#  include "hip/hip_runtime.h"
+#  include "rocblas.h"
+#  define USE_CUDA_OR_HIP
 #else
-  #define __device__
-  #define __global__
+#  define __device__
+#  define __global__
 #endif
+
+#if defined USE_CPUBLAS
+#include BLAS_H
+#endif // USE_CPUBLAS
 
 #include "env.hh"
 #include "linalg_tc.hh"
@@ -182,10 +186,10 @@ template<> struct TCSelector<GM_TC_METHOD_FLOAT32> {
 //=============================================================================
 
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel to support gm_tc_buf_write_.
+/// \brief Write individual elements to buf.
 
 template<typename GemmIn_t>
-__global__ static void gm_tc_buf_write_kernel_(
+__host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   GemmIn_t* vo,
   uint32_t* vi32,
   int vi32_dim0,
@@ -200,16 +204,11 @@ __global__ static void gm_tc_buf_write_kernel_(
   int nfl,
   int nflD2,
   int nflD2_thisstep,
-  int flD2_min) {
+  int flD2_min,
+  int vlX2,
+  int flD2_thisstep) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
-
-  const int vlX2 = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int flD2_thisstep = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
-
-  if (vlX2 >= nvleX2 || flD2_thisstep >= nflD2_thisstep) {
-    return;
-  }
 
   const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
   const int vl = vlX2 / 2;
@@ -283,6 +282,42 @@ __global__ static void gm_tc_buf_write_kernel_(
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GPU kernel to support gm_tc_buf_write_.
+
+template<typename GemmIn_t>
+__global__ static void gm_tc_buf_write_kernel_(
+  GemmIn_t* vo,
+  uint32_t* vi32,
+  int vi32_dim0,
+  int num_way,
+  bool is_sparse,
+  bool is_right,
+  bool is_duo,
+  int nvlea,
+  int nvle,
+  int nvleD2,
+  int nvleX2,
+  int nfl,
+  int nflD2,
+  int nflD2_thisstep,
+  int flD2_min) {
+
+  // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
+
+  const int vlX2 = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int flD2_thisstep = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+
+  if (vlX2 >= nvleX2 || flD2_thisstep >= nflD2_thisstep) {
+    return;
+  }
+
+  gm_tc_buf_write_kernel_elt_<GemmIn_t>(vo, vi32, vi32_dim0,
+    num_way, is_sparse, is_right, is_duo,
+    nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
+    vlX2, flD2_thisstep);
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Convert bitwise matrix to required format for GEMM.
 
 template<int TC_METHOD>
@@ -353,36 +388,57 @@ static void gm_tc_buf_write_(
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
 
-  // Kernel call.
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+
+    // Kernel call.
 
 #ifdef USE_CUDA_OR_HIP
-#ifdef USE_HIP
-  hipLaunchKernelGGL(
-#endif
-  gm_tc_buf_write_kernel_<GemmIn_t>
-#ifdef USE_CUDA
-      <<<
-#else
-      ,
-#endif
-      dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
-      dim3(threadblocksize, 1, 1),
-      0,
-      env->stream_compute()
-#ifdef USE_CUDA
-      >>> (
-#else
-      ,
-#endif
-    tc_buf, vi32, vi32_dim0,
-    GMEnv_num_way(env), env->sparse, is_right, is_duo,
-    nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
+#  ifdef USE_HIP
+    hipLaunchKernelGGL(
+#  endif
+    gm_tc_buf_write_kernel_<GemmIn_t>
+#  ifdef USE_CUDA
+        <<<
+#  else
+        ,
+#  endif
+        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
+        dim3(threadblocksize, 1, 1),
+        0,
+        env->stream_compute()
+#  ifdef USE_CUDA
+        >>> (
+#  else
+        ,
+#  endif
+      tc_buf, vi32, vi32_dim0,
+      GMEnv_num_way(env), env->sparse, is_right, is_duo,
+      nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
+
+    GMEnv_accel_last_call_succeeded(env);
+
 #else // USE_CUDA_OR_HIP
-    int dummy = 0;
-    dummy += num_threadblocks_0 + num_threadblocks_1 + num_threadblocks_2;
+
+      int dummy = 0;
+      dummy += num_threadblocks_0 + num_threadblocks_1 + num_threadblocks_2;
+
 #endif // USE_CUDA_OR_HIP
 
-  GMEnv_accel_last_call_succeeded(env);
+  } else { // if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU)
+
+    for (int flD2_thisstep=0; flD2_thisstep<nflD2_thisstep; ++flD2_thisstep) {
+      for (int vlX2=0; vlX2<nvleX2; ++vlX2) {
+
+        gm_tc_buf_write_kernel_elt_<GemmIn_t>(
+          tc_buf, vi32, vi32_dim0,
+          GMEnv_num_way(env), env->sparse, is_right, is_duo,
+          nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
+          vlX2, flD2_thisstep);
+
+      }
+    }
+
+  } // if compute_method
 }
 
 //-----------------------------------------------------------------------------
@@ -417,69 +473,101 @@ static void gm_tc_solve_accelblasgemmex_(
   // since nvl % 4 == 0; see gm_gemm_divisibility_required()
   GMInsist(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
-#ifdef USE_CUDA_OR_HIP
-
-  const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
-  const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
-
   // Make BLAS call.
 
-#ifdef USE_CUDA
-  cublasStatus_t status = cublasGemmEx(
-#else
-  //int status = rocblas_gemm_ex(
-  rocblas_status status = rocblas_gemm_ex(
-#endif
-    tc_bufs.accelblas_handle
-#ifdef USE_CUDA
-    , CUBLAS_OP_N, CUBLAS_OP_T
-#else
-    , rocblas_operation_none, rocblas_operation_transpose
-#endif
-    , m, n, k
-    , (void*)&alpha
-    , tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m
-    , tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
-    , (void*)&beta
-    , dC, TCSelector<TC_METHOD>::gemm_type_out(), m
-#ifdef USE_HIP
-    , dC, TCSelector<TC_METHOD>::gemm_type_out(), m
-#endif
-    , TCSelector<TC_METHOD>::gemm_type_out()
-#ifdef USE_CUDA
-    //, CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
-    //, CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
-    , CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.2.88, transpose
-#else
-    , rocblas_gemm_algo_standard
-    , 0, 0  // solution_index, flags, workspace_size, workspace
-#endif
-  );
-  // TODO: use CUDA 10 autotuning capability here (later).
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
 
-#ifdef USE_CUDA
-  if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
-    printf("Error: CUBLAS_STATUS_NOT_INITIALIZED\n");
-  } else if (status == CUBLAS_STATUS_ARCH_MISMATCH) {
-    printf("Error: CUBLAS_STATUS_ARCH_MISMATCH\n");
-  } else if (status == CUBLAS_STATUS_NOT_SUPPORTED) {
-    printf("Error: CUBLAS_STATUS_NOT_SUPPORTED\n");
-  } else if (status == CUBLAS_STATUS_INVALID_VALUE) {
-    printf("Error: CUBLAS_STATUS_INVALID_VALUE\n");
-  } else if (status == CUBLAS_STATUS_EXECUTION_FAILED) {
-    printf("Error: CUBLAS_STATUS_EXECUTION_FAILED\n");
-  }
+#ifdef USE_CUDA_OR_HIP
 
-  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
-           "Failure in call to cublasGemmEx.");
-#else
-  GMInsist(status == rocblas_status_success &&
-           "Failure in call to rocblas_gemm_ex.");
-#endif
+    const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
+    const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
-  env->ops_local += 2 * m * (double)n * (double)k;
+    // GPU BLAS call.
+
+#  ifdef USE_CUDA
+    const cublasStatus_t status = cublasGemmEx(
+#  else
+    //int status = rocblas_gemm_ex(
+    const rocblas_status status = rocblas_gemm_ex(
+#  endif
+      tc_bufs.accelblas_handle
+#  ifdef USE_CUDA
+      , CUBLAS_OP_N, CUBLAS_OP_T
+#  else
+      , rocblas_operation_none, rocblas_operation_transpose
+#  endif
+      , m, n, k
+      , (void*)&alpha
+      , tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m
+      , tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
+      , (void*)&beta
+      , dC, TCSelector<TC_METHOD>::gemm_type_out(), m
+#  ifdef USE_HIP
+      , dC, TCSelector<TC_METHOD>::gemm_type_out(), m
+#  endif
+      , TCSelector<TC_METHOD>::gemm_type_out()
+#  ifdef USE_CUDA
+      //, CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
+      //, CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
+      , CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.2.88, transpose
+#  else
+      , rocblas_gemm_algo_standard
+      , 0, 0  // solution_index, flags, workspace_size, workspace
+#  endif
+    );
+    // TODO: use CUDA 10 autotuning capability here (later).
+
+#  ifdef USE_CUDA
+    if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
+      printf("Error: CUBLAS_STATUS_NOT_INITIALIZED\n");
+    } else if (status == CUBLAS_STATUS_ARCH_MISMATCH) {
+      printf("Error: CUBLAS_STATUS_ARCH_MISMATCH\n");
+    } else if (status == CUBLAS_STATUS_NOT_SUPPORTED) {
+      printf("Error: CUBLAS_STATUS_NOT_SUPPORTED\n");
+    } else if (status == CUBLAS_STATUS_INVALID_VALUE) {
+      printf("Error: CUBLAS_STATUS_INVALID_VALUE\n");
+    } else if (status == CUBLAS_STATUS_EXECUTION_FAILED) {
+      printf("Error: CUBLAS_STATUS_EXECUTION_FAILED\n");
+    }
+    GMInsist(status == CUBLAS_STATUS_SUCCESS &&
+             "Failure in call to cublasGemmEx.");
+#  else
+    GMInsist(status == rocblas_status_success &&
+             "Failure in call to rocblas_gemm_ex.");
+#  endif
+
+#else // USE_CUDA_OR_HIP
+
+    GMInsist(false && "Failure to call GEMM function.");
 
 #endif // USE_CUDA_OR_HIP
+
+    GMEnv_accel_last_call_succeeded(env);
+
+  } else { // if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+
+#ifdef USE_CPUBLAS
+
+    GMInsist(env->tc == GM_TC_METHOD_FLOAT32);
+
+    const float alpha = 1;
+    const float beta = 0;
+
+    // CPU BLAS call.
+
+    cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
+      m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
+      (float*)tc_bufs.tc_buf_right, n, beta, (float*)dC, m);
+
+#else // USE_CPUBLAS
+
+    GMInsist(false && "Failure to call GEMM function.");
+
+#endif // USE_CPUBLAS
+
+  } // if compute_method
+
+  env->ops_local += 2 * m * (double)n * (double)k;
 }
 
 //-----------------------------------------------------------------------------
@@ -515,76 +603,12 @@ static void gm_tc_solve_(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel to support gm_tc_repair_metrics_.
-///
-///        This function has two purposes:
-///        1. Convert the 2X2 table from each pair of compared vectors
-///        from 4 32-bit (int32 or float32) values to the required
-///        16-byte double complex packed format.
-///        2. Permute the table elements to the required places.
-///
-///        The reason for the permutation is as follows.
-///        For the output matrix of this function, each single 2X2 matrix
-///        is arranged contiguously in memory as a double complex value.
-///        However, the input matrices to the GEMM do not give a result
-///        matrix that is consistent with this ordering.
-///        Thus there needs to be a copy to rearrange.  Furthermore,
-///        we want to make this an in-place rearrangement to save
-///        space, and additionally we want to assign work to threads
-///        with no race conditions and with coalesced memory accesses.
-///
-///        The method can be explained as follows.
-///        1. The input "left" and "right" matrices to the modified GEMM
-///        can be thought of each as a group of column vectors.
-///        2. Each column (of 2-bit entries) is converted into two columns,
-///        with entries being the counts of 0 bits and 1 bits of the
-///        original vectors.  Each pair of vectors is kept together
-///        side-by-side in these new left and right matrices L and R.
-///        3. The columns of L are permuted, to give L' = L P
-///        Example:
-///          R  = [ G, G, H, H, I, I, J, J, K, K, L, L ]
-///          L  = [ A, A, B, B, C, C, D, D, E, E, F, F ]
-///          L' = [ A, A, D, D, B, B, E, E, C, C, F, F ]
-///        (note L is used in 2 different senses here)
-///        4. The GEMM is computed, M = (L')^T R = P^T L^T R.  Because of
-///        the permutation of L, the rows of M are permuted.
-///        Here, for brevity we drop the transpose, writing A^T G as AG, etc.
-///          M = [ AG, AG, AH, AH, . . . ]
-///              [ AG, AG, AH, AH, . . . ]
-///              [ DG, DG, DH, DH, . . . ]
-///              [ DG, DG, DH, DH, . . . ]
-///              [ BG, BG, BH, BH, . . . ]
-///              [ BG, BG, BH, BH, . . . ]
-///              [ EG, EG, EH, EH, . . . ]
-///              [ EG, EG, EH, EH, . . . ]
-///              [ CG, CG, CH, CH, . . . ]
-///              [ CG, CG, CH, CH, . . . ]
-///              [ FG, FG, FH, FH, . . . ]
-///              [ FG, FG, FH, FH, . . . ]
-///        Here we are considering M to be stored in column-major order.
-///        5. Next we consider this as composed of size 4X2 blocks,
-///        assign a CUDA thread to each block and do an in-block
-///        permutation. Note each thread loads 2 16-byte (double) words,
-///        with stride between threads of 16 bytes.
-///        (need to check on efficiency of this w.r.t. coalescing etc.)
-///          [ AG, AG ] -> [ AG, DG ]
-///          [ AG, AG ] -> [ AG, DG ]
-///          [ DG, DG ] -> [ AG, DG ]
-///          [ DG, DG ] -> [ AG, DG ]
-///        As can be seen, all four entries AG of the table are now
-///        contiguous in memory.
+/// \brief Swizzle individual elements in buf.
 
 template<typename GemmOut_t>
-__global__ static void gm_tc_repair_metrics_kernel_(
-  int nvl, int nvll, int nvllD2, void* vo) { 
-
-  // Row and column threads of metrics array.
-  const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int thread_c = blockIdx_y_();
-
-  if (thread_r >= nvllD2 || thread_c >= nvl) {
-    return;
-  }
+__host__ __device__ static void gm_tc_repair_metrics_kernel_elt_(
+  int nvl, int nvll, int nvllD2, void* vo,
+  int thread_r, int thread_c) { 
 
   // Considered as an array of floats, array is 2*nvl rows X 2*nvl cols.
   // Each thread manipulates a block of 4 rows and 2 cols.
@@ -662,6 +686,160 @@ __global__ static void gm_tc_repair_metrics_kernel_(
 }
 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/// \brief GPU kernel to support gm_tc_repair_metrics_.
+///
+///        This function has two purposes:
+///        1. Convert the 2X2 table from each pair of compared vectors
+///        from 4 32-bit (int32 or float32) values to the required
+///        16-byte double complex packed format.
+///        2. Permute the table elements to the required places.
+///
+///        The reason for the permutation is as follows.
+///        For the output matrix of this function, each single 2X2 matrix
+///        is arranged contiguously in memory as a double complex value.
+///        However, the input matrices to the GEMM do not give a result
+///        matrix that is consistent with this ordering.
+///        Thus there needs to be a copy to rearrange.  Furthermore,
+///        we want to make this an in-place rearrangement to save
+///        space, and additionally we want to assign work to threads
+///        with no race conditions and with coalesced memory accesses.
+///
+///        The method can be explained as follows.
+///        1. The input "left" and "right" matrices to the modified GEMM
+///        can be thought of each as a group of column vectors.
+///        2. Each column (of 2-bit entries) is converted into two columns,
+///        with entries being the counts of 0 bits and 1 bits of the
+///        original vectors.  Each pair of vectors is kept together
+///        side-by-side in these new left and right matrices L and R.
+///        3. The columns of L are permuted, to give L' = L P
+///        Example:
+///          R  = [ G, G, H, H, I, I, J, J, K, K, L, L ]
+///          L  = [ A, A, B, B, C, C, D, D, E, E, F, F ]
+///          L' = [ A, A, D, D, B, B, E, E, C, C, F, F ]
+///        (note L is used in 2 different senses here)
+///        4. The GEMM is computed, M = (L')^T R = P^T L^T R.  Because of
+///        the permutation of L, the rows of M are permuted.
+///        Here, for brevity we drop the transpose, writing A^T G as AG, etc.
+///          M = [ AG, AG, AH, AH, . . . ]
+///              [ AG, AG, AH, AH, . . . ]
+///              [ DG, DG, DH, DH, . . . ]
+///              [ DG, DG, DH, DH, . . . ]
+///              [ BG, BG, BH, BH, . . . ]
+///              [ BG, BG, BH, BH, . . . ]
+///              [ EG, EG, EH, EH, . . . ]
+///              [ EG, EG, EH, EH, . . . ]
+///              [ CG, CG, CH, CH, . . . ]
+///              [ CG, CG, CH, CH, . . . ]
+///              [ FG, FG, FH, FH, . . . ]
+///              [ FG, FG, FH, FH, . . . ]
+///        Here we are considering M to be stored in column-major order.
+///        5. Next we consider this as composed of size 4X2 blocks,
+///        assign a CUDA thread to each block and do an in-block
+///        permutation. Note each thread loads 2 16-byte (double) words,
+///        with stride between threads of 16 bytes.
+///        (need to check on efficiency of this w.r.t. coalescing etc.)
+///          [ AG, AG ] -> [ AG, DG ]
+///          [ AG, AG ] -> [ AG, DG ]
+///          [ DG, DG ] -> [ AG, DG ]
+///          [ DG, DG ] -> [ AG, DG ]
+///        As can be seen, all four entries AG of the table are now
+///        contiguous in memory.
+
+template<typename GemmOut_t>
+__global__ static void gm_tc_repair_metrics_kernel_(
+  int nvl, int nvll, int nvllD2, void* vo) { 
+
+  // Row and column threads of metrics array.
+  const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int thread_c = blockIdx_y_();
+
+  if (thread_r >= nvllD2 || thread_c >= nvl) {
+    return;
+  }
+
+  gm_tc_repair_metrics_kernel_elt_<GemmOut_t>(
+    nvl, nvll, nvllD2, vo,
+    thread_r, thread_c);
+
+#if 0
+  // Considered as an array of floats, array is 2*nvl rows X 2*nvl cols.
+  // Each thread manipulates a block of 4 rows and 2 cols.
+  // Thus the dimensions of the metrics array in blocks is nvllD2 X nvl.
+  // Each block viewed as an array of doubles is 2 X 2.
+
+  // Two col numbers being processed of this (float) array.
+
+  // ISSUE: does the compiler need to / understand that the pointers are aliased
+
+  const size_t fcr_offset0 = 4*thread_r + thread_c * (size_t)(4*nvll);
+  const size_t fcr_offset1 = 4*thread_r + thread_c * (size_t)(4*nvll) + 2*nvll;
+
+  // Read the 8 values.
+
+  GemmOut_t* const fvo = (GemmOut_t*)vo;
+
+  const GemmOut_t f00 = fvo[fcr_offset0+0];
+  const GemmOut_t f01 = fvo[fcr_offset0+1];
+  const GemmOut_t f02 = fvo[fcr_offset0+2];
+  const GemmOut_t f03 = fvo[fcr_offset0+3];
+
+  const GemmOut_t f10 = fvo[fcr_offset1+0];
+  const GemmOut_t f11 = fvo[fcr_offset1+1];
+  const GemmOut_t f12 = fvo[fcr_offset1+2];
+  const GemmOut_t f13 = fvo[fcr_offset1+3];
+
+  // Apply the permutation:
+
+  // [ f00  f10 ]  ->  [ f00  f02 ]
+  // [ f01  f11 ]  ->  [ f01  f03 ]
+  // [ f02  f12 ]  ->  [ f10  f12 ]
+  // [ f03  f13 ]  ->  [ f11  f13 ]
+
+  const GemmOut_t f00p = f00;
+  const GemmOut_t f01p = f01;
+
+  const GemmOut_t f02p = f10;
+  const GemmOut_t f03p = f11;
+
+  const GemmOut_t f10p = f02;
+  const GemmOut_t f11p = f03;
+
+  const GemmOut_t f12p = f12;
+  const GemmOut_t f13p = f13;
+
+  // Use "shifter" to move a value to the upper half of the mantissa.
+
+  const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
+
+  // Pack two 26-bit integers into mantissa of double.
+
+  const double d00 = (double)f00p + (double)f02p * shifter;
+  const double d01 = (double)f01p + (double)f03p * shifter;
+
+  const double d10 = (double)f10p + (double)f12p * shifter;
+  const double d11 = (double)f11p + (double)f13p * shifter;
+
+  // Overwrite block with the new values.
+  // All is isolated to a single thread, should be thread safe.
+
+  const size_t dc_offset0 = thread_c * (size_t)(2*nvll);
+  const size_t dc_offset1 = thread_c * (size_t)(2*nvll) + nvll;
+
+  const size_t dcr_offset0 = dc_offset0 + 2*thread_r;
+  const size_t dcr_offset1 = dc_offset1 + 2*thread_r;
+
+  double* const dvo = (double*)vo;
+
+  dvo[dcr_offset0+0] = d00;
+  dvo[dcr_offset0+1] = d01;
+
+  dvo[dcr_offset1+0] = d10;
+  dvo[dcr_offset1+1] = d11;
+#endif
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Swizzle/cast values from cublas call into double complex format.
 ///
 ///        The cublas gemm poduces a matrix of scalars of 32 bit size
@@ -690,32 +868,56 @@ static void gm_tc_repair_metrics_(
   const int threadblocksize = 256;
   const int vll2_threadblocks = gm_ceil_i8(nvllD2, threadblocksize);
 
+  typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
+
+  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+
+    // Kernel call.
+
 #ifdef USE_CUDA_OR_HIP
-#ifdef USE_HIP
-  hipLaunchKernelGGL(
-#endif
-  gm_tc_repair_metrics_kernel_<typename TCSelector<TC_METHOD>::GemmOut_t>
-#ifdef USE_CUDA
-      <<<
-#else
-      ,
-#endif
-      dim3(vll2_threadblocks, nvl, 1),
-      dim3(threadblocksize, 1, 1),
-      0,
-      env->stream_compute()
-#ifdef USE_CUDA
-      >>> (
-#else
-      ,
-#endif
-      nvl, nvll, nvllD2, vo);
+
+
+#  ifdef USE_HIP
+    hipLaunchKernelGGL(
+#  endif
+    gm_tc_repair_metrics_kernel_<GemmOut_t>
+#  ifdef USE_CUDA
+        <<<
+#  else
+        ,
+#  endif
+        dim3(vll2_threadblocks, nvl, 1),
+        dim3(threadblocksize, 1, 1),
+        0,
+        env->stream_compute()
+#  ifdef USE_CUDA
+        >>> (
+#  else
+        ,
+#  endif
+        nvl, nvll, nvllD2, vo);
+
+    GMEnv_accel_last_call_succeeded(env);
+
 #else // USE_CUDA_OR_HIP
+
   int dummy = 0;
   dummy += vll2_threadblocks + threadblocksize;
+
 #endif // USE_CUDA_OR_HIP
 
-  GMEnv_accel_last_call_succeeded(env);
+  } else { // if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU)
+
+    for (int thread_c=0; thread_c<nvllD2; ++thread_c) {
+      for (int thread_r=0; thread_r<nvl; ++thread_r) {
+
+        gm_tc_repair_metrics_kernel_elt_<GemmOut_t>(
+          nvl, nvll, nvllD2, vo, thread_r, thread_c);
+
+      }
+    }
+
+  } // if compute_method
 }
 
 //-----------------------------------------------------------------------------
@@ -963,11 +1165,11 @@ void gm_tc_bufs_malloc(int num_vector_local,
     // Allocate buffers.
 
     tc_bufs.tc_buf_left = malloc(tc_bufs.tc_buf_size);
-    GMAssert(tc_bufs.tc_buf_left);
+    GMInsist(tc_bufs.tc_buf_left);
     gm_cpu_mem_inc(tc_bufs.tc_buf_size, env);
 
     tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
-    GMAssert(tc_bufs.tc_buf_right);
+    GMInsist(tc_bufs.tc_buf_right);
     gm_cpu_mem_inc(tc_bufs.tc_buf_size, env);
 
   } // compute_method

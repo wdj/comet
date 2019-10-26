@@ -98,9 +98,9 @@ void gm_compute_2way_proc_nums_czek_start_(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
       vectors_left->num_field_local,
-      vectors_left_buf->d, vectors_left->num_field_local,
-      vectors_right_buf->d, vectors_left->num_field_local,
-      metrics_buf->d, vectors_left->num_vector_local,
+      vectors_left_buf->active, vectors_left->num_field_local,
+      vectors_right_buf->active, vectors_left->num_field_local,
+      metrics_buf->active, vectors_left->num_vector_local,
       vectors_left->dm, env);
 
     /*----------------------------------------*/
@@ -353,9 +353,9 @@ void gm_compute_2way_proc_nums_ccc_start_(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
       vectors_left->num_packedval_field_local,
-      vectors_left_buf->d, vectors_left->num_packedval_field_local,
-      vectors_right_buf->d, vectors_left->num_packedval_field_local,
-      metrics_buf->d, vectors_left->num_vector_local,
+      vectors_left_buf->active, vectors_left->num_packedval_field_local,
+      vectors_right_buf->active, vectors_left->num_packedval_field_local,
+      metrics_buf->active, vectors_left->num_vector_local,
       vectors_left->dm, env);
 
     /*----------------------------------------*/
@@ -565,9 +565,9 @@ void gm_compute_2way_proc_nums_duo_start_(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
       vectors_left->num_packedval_field_local,
-      vectors_left_buf->d, vectors_left->num_packedval_field_local,
-      vectors_right_buf->d, vectors_left->num_packedval_field_local,
-      metrics_buf->d, vectors_left->num_vector_local,
+      vectors_left_buf->active, vectors_left->num_packedval_field_local,
+      vectors_right_buf->active, vectors_left->num_packedval_field_local,
+      metrics_buf->active, vectors_left->num_vector_local,
       vectors_left->dm, env);
 
     /*----------------------------------------*/

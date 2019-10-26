@@ -492,15 +492,15 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
 void gm_linalg_gemm_magma_block_start(size_t m,
                                       size_t n,
                                       size_t k,
-                                      void* dA,
+                                      void* A,
                                       size_t ldda,
-                                      void* dB,
+                                      void* B,
                                       size_t lddb,
-                                      void* dC,
+                                      void* C,
                                       size_t lddc,
                                       bool is_beta_one,
                                       GMEnv* env) {
-  GMInsist(dA && dB && dC && env);
+  GMInsist(A && B && C && env);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
 #ifdef USE_MAGMA
@@ -552,12 +552,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
         n_,
         k_,
         alpha,
-        (double*)dA,
+        (double*)A,
         ldda_,
-        (double*)dB,
+        (double*)B,
         lddb_,
         beta,
-        (double*)dC,
+        (double*)C,
         lddc_);
       GMInsist(GMEnv_accel_last_call_succeeded(env) &&
                "Failure in call to magma_minproductblas_dgemm.");
@@ -569,12 +569,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
         n_,
         k_,
         alpha,
-        (float*)dA,
+        (float*)A,
         ldda_,
-        (float*)dB,
+        (float*)B,
         lddb_,
         beta,
-        (float*)dC,
+        (float*)C,
         lddc_);
       GMInsist(GMEnv_accel_last_call_succeeded(env) &&
                "Failure in call to magma_minproductblas_sgemm.");
@@ -613,12 +613,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       n_,
       k_,
       alpha,
-      (Float_t*)dA,
+      (Float_t*)A,
       ldda_,
-      (Float_t*)dB,
+      (Float_t*)B,
       lddb_,
       beta,
-      (Float_t*)dC,
+      (Float_t*)C,
       lddc_);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm4blas_zgemm.");
@@ -654,12 +654,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       n_,
       k_,
       alpha,
-      (Float_t*)dA,
+      (Float_t*)A,
       ldda_,
-      (Float_t*)dB,
+      (Float_t*)B,
       lddb_,
       beta,
-      (Float_t*)dC,
+      (Float_t*)C,
       lddc_);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm2blas_zgemm.");
@@ -695,12 +695,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       n_,
       k_,
       alpha,
-      (Float_t*)dA,
+      (Float_t*)A,
       ldda_,
-      (Float_t*)dB,
+      (Float_t*)B,
       lddb_,
       beta,
-      (Float_t*)dC,
+      (Float_t*)C,
       lddc_);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm3blas_zgemm.");
@@ -736,12 +736,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       n_,
       k_,
       alpha,
-      (Float_t*)dA,
+      (Float_t*)A,
       ldda_,
-      (Float_t*)dB,
+      (Float_t*)B,
       lddb_,
       beta,
-      (Float_t*)dC,
+      (Float_t*)C,
       lddc_);
     GMInsist(GMEnv_accel_last_call_succeeded(env) &&
              "Failure in call to magma_mgemm5blas_zgemm.");
@@ -759,15 +759,15 @@ void gm_linalg_gemm_magma_block_start(size_t m,
 void gm_linalg_gemm_magma_start(size_t m,
                                 size_t n,
                                 size_t k,
-                                void* dA,
+                                void* A,
                                 size_t ldda,
-                                void* dB,
-                          size_t lddb,
-                                void* dC,
+                                void* B,
+                                size_t lddb,
+                                void* C,
                                 size_t lddc,
                                 GMDecompMgr* dm,
                                 GMEnv* env) {
-  GMInsist(dA && dB && dC && env);
+  GMInsist(A && B && C && env);
   GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
 
   // The purpose of this code is to workaround the magma size
@@ -821,7 +821,7 @@ void gm_linalg_gemm_magma_start(size_t m,
       const size_t cols_A_remaining = cols_A - col_A_base;
       const size_t cols_A_this = gm_min_i8(cols_A_remaining, cols_per_block_A);
 
-      void* dA_this = (char*)dA + (row_base + ldda*col_A_base)*elt_size;
+      void* A_this = (char*)A + (row_base + ldda*col_A_base)*elt_size;
 
       for (size_t col_B_base=0; col_B_base<cols_B;
            col_B_base+=cols_per_block_B) {
@@ -830,12 +830,12 @@ void gm_linalg_gemm_magma_start(size_t m,
         const size_t cols_B_this = gm_min_i8(cols_B_remaining,
                                              cols_per_block_B);
 
-        void* dB_this = (char*)dB + (row_base + ldda*col_B_base)*elt_size;
+        void* B_this = (char*)B + (row_base + ldda*col_B_base)*elt_size;
 
-        void* dC_this = (char*)dC + (col_A_base + lddc*col_B_base)*elt_size;
+        void* C_this = (char*)C + (col_A_base + lddc*col_B_base)*elt_size;
 
         gm_linalg_gemm_magma_block_start(cols_A_this, cols_B_this, rows_this,
-          dA_this, ldda, dB_this, lddb, dC_this, lddc, row_base > 0,  env);
+          A_this, ldda, B_this, lddb, C_this, lddc, row_base > 0,  env);
       }
     }
   }
@@ -847,15 +847,15 @@ void gm_linalg_gemm_magma_start(size_t m,
 void gm_linalg_gemm_start(size_t m,
                           size_t n,
                           size_t k,
-                          void* dA,
+                          void* A,
                           size_t ldda,
-                          void* dB,
+                          void* B,
                           size_t lddb,
-                          void* dC,
+                          void* C,
                           size_t lddc,
                           GMDecompMgr* dm,
                           GMEnv* env) {
-  GMInsist(dA && dB && dC && env);
+  GMInsist(A && B && C && env);
 
   if (m==0 || n==0 || k==0) {
     return;
@@ -863,11 +863,11 @@ void gm_linalg_gemm_start(size_t m,
 
   if ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
        GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) && env->tc) {
-    gm_tc_gemm_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, dm->tc_bufs, env);
+    gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
     return;
   }
 
-  gm_linalg_gemm_magma_start(m, n, k, dA, ldda, dB, lddb, dC, lddc, dm,  env);
+  gm_linalg_gemm_magma_start(m, n, k, A, ldda, B, lddb, C, lddc, dm,  env);
 }
 
 //-----------------------------------------------------------------------------
