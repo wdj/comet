@@ -13,12 +13,10 @@
 #if defined USE_CUDA
 #  include "cublas_v2.h"
 #  include "cuda_fp16.h"
-#  define USE_CUDA_OR_HIP
 #elif defined USE_HIP
 #  include "hip/hip_runtime_api.h"
 #  include "hip/hip_runtime.h"
 #  include "rocblas.h"
-#  define USE_CUDA_OR_HIP
 #else
 #  define __device__
 #  define __global__
@@ -392,7 +390,7 @@ static void gm_tc_buf_write_(
 
     // Kernel call.
 
-#ifdef USE_CUDA_OR_HIP
+#ifdef USE_ACCEL
 #  ifdef USE_HIP
     hipLaunchKernelGGL(
 #  endif
@@ -417,12 +415,12 @@ static void gm_tc_buf_write_(
 
     GMEnv_accel_last_call_succeeded(env);
 
-#else // USE_CUDA_OR_HIP
+#else // USE_ACCEL
 
       int dummy = 0;
       dummy += num_threadblocks_0 + num_threadblocks_1 + num_threadblocks_2;
 
-#endif // USE_CUDA_OR_HIP
+#endif // USE_ACCEL
 
   } else { // if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU)
 
@@ -457,7 +455,7 @@ static void gm_tc_solve_accelblasgemmex_(
   GMEnv* env) {
 
   GMInsist(env && dA && dB && dC);
-  GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
+  //GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
 
   // See https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
   // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
@@ -477,7 +475,7 @@ static void gm_tc_solve_accelblasgemmex_(
 
   if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
 
-#ifdef USE_CUDA_OR_HIP
+#ifdef USE_ACCEL
 
     const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
     const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
@@ -536,11 +534,11 @@ static void gm_tc_solve_accelblasgemmex_(
              "Failure in call to rocblas_gemm_ex.");
 #  endif
 
-#else // USE_CUDA_OR_HIP
+#else // USE_ACCEL
 
     GMInsist(false && "Failure to call GEMM function.");
 
-#endif // USE_CUDA_OR_HIP
+#endif // USE_ACCEL
 
     GMEnv_accel_last_call_succeeded(env);
 
@@ -548,7 +546,7 @@ static void gm_tc_solve_accelblasgemmex_(
 
 #ifdef USE_CPUBLAS
 
-    GMInsist(env->tc == GM_TC_METHOD_FLOAT32);
+    GMInsist(env->tc_eff() == Env::TC_FLOAT32);
 
     const float alpha = 1;
     const float beta = 0;
@@ -590,7 +588,7 @@ static void gm_tc_solve_(
   GMInsist(nvl >= 0);
   GMInsist(nvll <= nvl);
   GMInsist(npvfl_thisstep >= 0);
-  GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
+  GMInsist(env->tc_eff() != Env::TC_NONE);
 
   const int nfl_thisstep = npvfl_thisstep * 64;
 
@@ -761,82 +759,6 @@ __global__ static void gm_tc_repair_metrics_kernel_(
   gm_tc_repair_metrics_kernel_elt_<GemmOut_t>(
     nvl, nvll, nvllD2, vo,
     thread_r, thread_c);
-
-#if 0
-  // Considered as an array of floats, array is 2*nvl rows X 2*nvl cols.
-  // Each thread manipulates a block of 4 rows and 2 cols.
-  // Thus the dimensions of the metrics array in blocks is nvllD2 X nvl.
-  // Each block viewed as an array of doubles is 2 X 2.
-
-  // Two col numbers being processed of this (float) array.
-
-  // ISSUE: does the compiler need to / understand that the pointers are aliased
-
-  const size_t fcr_offset0 = 4*thread_r + thread_c * (size_t)(4*nvll);
-  const size_t fcr_offset1 = 4*thread_r + thread_c * (size_t)(4*nvll) + 2*nvll;
-
-  // Read the 8 values.
-
-  GemmOut_t* const fvo = (GemmOut_t*)vo;
-
-  const GemmOut_t f00 = fvo[fcr_offset0+0];
-  const GemmOut_t f01 = fvo[fcr_offset0+1];
-  const GemmOut_t f02 = fvo[fcr_offset0+2];
-  const GemmOut_t f03 = fvo[fcr_offset0+3];
-
-  const GemmOut_t f10 = fvo[fcr_offset1+0];
-  const GemmOut_t f11 = fvo[fcr_offset1+1];
-  const GemmOut_t f12 = fvo[fcr_offset1+2];
-  const GemmOut_t f13 = fvo[fcr_offset1+3];
-
-  // Apply the permutation:
-
-  // [ f00  f10 ]  ->  [ f00  f02 ]
-  // [ f01  f11 ]  ->  [ f01  f03 ]
-  // [ f02  f12 ]  ->  [ f10  f12 ]
-  // [ f03  f13 ]  ->  [ f11  f13 ]
-
-  const GemmOut_t f00p = f00;
-  const GemmOut_t f01p = f01;
-
-  const GemmOut_t f02p = f10;
-  const GemmOut_t f03p = f11;
-
-  const GemmOut_t f10p = f02;
-  const GemmOut_t f11p = f03;
-
-  const GemmOut_t f12p = f12;
-  const GemmOut_t f13p = f13;
-
-  // Use "shifter" to move a value to the upper half of the mantissa.
-
-  const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
-
-  // Pack two 26-bit integers into mantissa of double.
-
-  const double d00 = (double)f00p + (double)f02p * shifter;
-  const double d01 = (double)f01p + (double)f03p * shifter;
-
-  const double d10 = (double)f10p + (double)f12p * shifter;
-  const double d11 = (double)f11p + (double)f13p * shifter;
-
-  // Overwrite block with the new values.
-  // All is isolated to a single thread, should be thread safe.
-
-  const size_t dc_offset0 = thread_c * (size_t)(2*nvll);
-  const size_t dc_offset1 = thread_c * (size_t)(2*nvll) + nvll;
-
-  const size_t dcr_offset0 = dc_offset0 + 2*thread_r;
-  const size_t dcr_offset1 = dc_offset1 + 2*thread_r;
-
-  double* const dvo = (double*)vo;
-
-  dvo[dcr_offset0+0] = d00;
-  dvo[dcr_offset0+1] = d01;
-
-  dvo[dcr_offset1+0] = d10;
-  dvo[dcr_offset1+1] = d11;
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -874,8 +796,7 @@ static void gm_tc_repair_metrics_(
 
     // Kernel call.
 
-#ifdef USE_CUDA_OR_HIP
-
+#ifdef USE_ACCEL
 
 #  ifdef USE_HIP
     hipLaunchKernelGGL(
@@ -899,12 +820,12 @@ static void gm_tc_repair_metrics_(
 
     GMEnv_accel_last_call_succeeded(env);
 
-#else // USE_CUDA_OR_HIP
+#else // USE_ACCEL
 
   int dummy = 0;
   dummy += vll2_threadblocks + threadblocksize;
 
-#endif // USE_CUDA_OR_HIP
+#endif // USE_ACCEL
 
   } else { // if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU)
 
@@ -1005,7 +926,7 @@ static void gm_tc_gemm_start_impl_(
 size_t gm_gemm_divisibility_required(GMEnv* const env) {
   GMInsist(env);
 
-  const bool need_divisible_by_4 = env->tc;
+  const bool need_divisible_by_4 = env->tc_eff() != Env::TC_NONE;
 
   return need_divisible_by_4 ? 4 : 1;
 }
@@ -1036,17 +957,13 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(k <= ldda);
   GMInsist(k <= lddb);
   GMInsist(m <= lddc);
-  GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
+  GMInsist(env->tc_eff() != Env::TC_NONE);
   GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
            GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO);
-  //GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
-  // Ensure tensor core hardware is available.
-  GMInsistInterface(env, gm_is_tc_valid(env->tc) &&
-                    "TC option invalid for this platform/build.");
 
   // Select required template function instance.
 
-  switch (env->tc) {
+  switch (env->tc_eff()) {
     // --------------
     case GM_TC_METHOD_INT8: {
       gm_tc_gemm_start_impl_<GM_TC_METHOD_INT8>(
@@ -1084,12 +1001,8 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
   if (!(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
         GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) ||
-      !env->tc) {
+      env->tc_eff() == Env::TC_NONE)
     return;
-  }
-
-  GMInsistInterface(env, gm_is_tc_valid(env->tc) &&
-                    "TC option invalid for this platform/build.");
 
   // Calculate sizes.
 
@@ -1098,11 +1011,11 @@ void gm_tc_bufs_malloc(int num_vector_local,
   const size_t npvfl_thisstep_max = gm_ceil_i8(npvfl, env->num_tc_steps);
 
   const int sizeof_gemm_in_t =
-     env->tc == GM_TC_METHOD_INT8 ?
+     env->tc_eff() == GM_TC_METHOD_INT8 ?
        sizeof(typename TCSelector<GM_TC_METHOD_INT8>::GemmIn_t) :
-     env->tc == GM_TC_METHOD_FLOAT16 ?
+     env->tc_eff() == GM_TC_METHOD_FLOAT16 ?
        sizeof(typename TCSelector<GM_TC_METHOD_FLOAT16>::GemmIn_t) :
-     env->tc == GM_TC_METHOD_FLOAT32 ?
+     env->tc_eff() == GM_TC_METHOD_FLOAT32 ?
        sizeof(typename TCSelector<GM_TC_METHOD_FLOAT32>::GemmIn_t) :
      0;
   GMInsist(GM_NUM_TC_METHOD == 4); // this code must be updated if new method

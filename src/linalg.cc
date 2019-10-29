@@ -862,7 +862,8 @@ void gm_linalg_gemm_start(size_t m,
   }
 
   if ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-       GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) && env->tc) {
+       GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) &&
+      env->tc_eff() != Env::TC_NONE) {
     gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
     return;
   }

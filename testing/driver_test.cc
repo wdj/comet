@@ -35,31 +35,10 @@ bool can_run(const char* options) {
 
   GMInsist(options);
 
-  int proc_num = 0;
-  int num_proc = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
-
   GMEnv env_val, *env = &env_val;
-  GMEnv_create_no_comms(env, options, num_proc, proc_num);
+  GMEnv_create(env, options);
 
-  bool result = true;
-
-#ifndef USE_MPI
-  result = result && !gm_require_mpi(env);
-#endif
-#if !defined(USE_CUDA) && !defined(USE_HIP)
-  result = result && !gm_require_accel(env);
-#endif
-#ifndef USE_MAGMA
-  result = result && !gm_require_magma(env);
-#endif
-
-  if (!gm_is_tc_valid(env->tc)) {
-    result = result && !gm_require_tc(env);
-  }
-
-  return result;
+  return env->can_run();
 }
 
 //=============================================================================
@@ -1506,7 +1485,7 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
     for (int sparse=0; sparse<=1; ++sparse) {
       if (is_duo && sparse == 0) continue;
     for (int tc=1; tc<=3; ++tc) {
-      if (!comet::gm_is_tc_valid(tc)) continue;
+      //if (!comet::Env::is_tc_valid(tc)) continue;
       if (nvl/2 < num_way) continue;
 
       sprintf(options1, options_template_tc, metric_type, nvl, "REF",

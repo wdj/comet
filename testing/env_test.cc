@@ -43,7 +43,7 @@ void EnvTest_general_() {
   sprintf(options, options_template, num_proc);
 
   comet::GMEnv env = comet::GMEnv_null();
-  comet::GMEnv_create_no_comms(&env, options, num_proc, comm_rank);
+  comet::GMEnv_create(&env, options, num_proc, comm_rank);
 
 
 

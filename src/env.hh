@@ -55,6 +55,45 @@ typedef int Stream_t;
 
 class Env {
 public:
+  //----------------------------------------
+  // Build options enums
+
+#ifdef USE_MPI
+  enum {HAVE_MPI = true};
+#else
+  enum {HAVE_MPI = false};
+#endif
+
+#ifdef USE_CUDA
+  enum {HAVE_CUDA = true};
+#else
+  enum {HAVE_CUDA = false};
+#endif
+
+#ifdef USE_HIP
+  enum {HAVE_HIP = true};
+#else
+  enum {HAVE_HIP = false};
+#endif
+
+#ifdef USE_ACCEL
+  enum {HAVE_ACCEL = true};
+#else
+  enum {HAVE_ACCEL = false};
+#endif
+
+#ifdef USE_MAGMA
+  enum {HAVE_MAGMA = true};
+#else
+  enum {HAVE_MAGMA = false};
+#endif
+
+#ifdef USE_CPUBLAS
+  enum {HAVE_CPUBLAS = true};
+#else
+  enum {HAVE_CPUBLAS = false};
+#endif
+
   // CoMet Settings
   int metric_type_;
   int num_way_;
@@ -69,7 +108,7 @@ public:
   double duo_multiplier_;
   bool are_ccc_params_default;
   bool sparse;
-  int tc;
+  int tc_;
   int num_tc_steps;
   // Counters
   double compares;
@@ -112,12 +151,63 @@ public:
   const char* description;
 
   //----------------------------------------
+  // Options enums etc.
+
+  enum {
+    TC_NONE = 0,
+    TC_FLOAT16 = 1,
+    TC_INT8 = 2,
+    TC_FLOAT32 = 3,
+    NUM_TC = 4
+    //TC_AUTO = 1,
+    //TC_INT4 = 3,
+    //TC_INT1 = 4,
+  };
+
+  enum {
+    METRIC_TYPE_SORENSON = 0, // Not implemented
+    METRIC_TYPE_CZEK = 1,
+    METRIC_TYPE_CCC = 2,
+    METRIC_TYPE_DUO = 3,
+    NUM_METRIC_TYPE = 4
+  };
+
+  bool is_metric_type_bitwise() const {
+   return metric_type_==Env::METRIC_TYPE_CCC ||
+          metric_type_==Env::METRIC_TYPE_DUO;
+  }
+
+  enum {
+    COMPUTE_METHOD_CPU = 0,
+    COMPUTE_METHOD_GPU = 1,
+    COMPUTE_METHOD_REF = 2,
+    NUM_COMPUTE_METHOD = 3
+  };
+
+  //----------------------------------------
+  // System info.
+
+  static int num_proc();
+  static int compute_capability();
+  bool can_run() const;
+
+  //----------------------------------------
+  // Constructor/destructor
 
   Env(const char* const options, int num_proc, int proc_num);
   ~Env();
   Env() {} // FIX
 
+  void set_defaults();
+  void parse_args(int argc, char** argv);
+
+  //----------------------------------------
   // CoMet Settings
+
+
+  int tc_eff() const;
+
+
 
   // Counters
   double ctime() const {return ctime_;}
@@ -221,8 +311,8 @@ void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
                   const char* const options,
                   const char* const description);
 
-void GMEnv_create_no_comms(GMEnv* const env, const char* const options,
-                           int num_proc, int proc_num);
+void GMEnv_create(GMEnv* const env, const char* const options,
+                  int num_proc = 0, int proc_num = 0);
 
 //=============================================================================
 // Finalize environment
@@ -410,6 +500,7 @@ static int GMEnv_proc_num_field(const GMEnv* const env) {
   return env->proc_num_field_;
 }
 
+#if 0
 //=============================================================================
 // Build requirements.
 
@@ -429,24 +520,28 @@ static bool gm_require_accel(const GMEnv* const env) {
 
 static bool gm_require_magma(const GMEnv* const env) {
   GMAssert(env);
-  const bool bitwise_method = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-                              GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
-  const bool using_tc = env->tc == 0;
+  const bool is_metric_type_bitwise =
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
+  const bool is_using_tc = env->tc_eff() != Env::TC_NONE;
+
   return GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU &&
-    (GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ||
-     (bitwise_method && using_tc));
+    (!is_metric_type_bitwise || (is_metric_type_bitwise && !is_using_tc));
 }
 
 //-----------------------------------------------------------------------------
 
 static bool gm_require_tc(const GMEnv* const env) {
   GMAssert(env);
-  const bool bitwise_method = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-                              GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
-  const bool using_tc = env->tc == 0;
+  const bool is_metric_type_bitwise =
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
+    GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
+  const bool is_using_tc = env->tc_eff() != Env::TC_NONE;
+
   return GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU &&
-     bitwise_method && using_tc;
+     is_metric_type_bitwise && is_using_tc;
 }
+#endif
 
 //=============================================================================
 // Math utility functions
@@ -653,8 +748,6 @@ size_t gm_array_cksum(unsigned char* a, size_t n);
 // Misc.
 
 bool GMEnv_accel_last_call_succeeded(const GMEnv* const env);
-
-bool gm_is_tc_valid(int tc);
 
 //=============================================================================
 
