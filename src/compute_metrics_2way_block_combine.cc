@@ -37,8 +37,8 @@ void gm_compute_2way_proc_combine_czek_(
 
   GMInsist(metrics && metrics_buf);
   GMInsist(vector_sums_left && vector_sums_right && env);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
 
   // NOTE: here and elsewhere, vector_sums_left and vector_sums_right
   // may sometimes be aliases.  Since they are read-only, there should
@@ -57,7 +57,7 @@ void gm_compute_2way_proc_combine_czek_(
   ---*/
 
   /*----------------------------------------*/
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
+  if (env->compute_method() != ComputeMethod::GPU && env->all2all()) {
     /*----------------------------------------*/
 
     for (int j = 0; j < nvl; ++j) {
@@ -84,7 +84,7 @@ void gm_compute_2way_proc_combine_czek_(
          * zero---*/
 
     /*----------------------------------------*/
-  } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  } else if (env->compute_method() != ComputeMethod::GPU) {
     /*----------------------------------------*/
 
     for (int j = 0; j < nvl; ++j) {
@@ -102,7 +102,7 @@ void gm_compute_2way_proc_combine_czek_(
     }   /*---for j---*/
 
     /*----------------------------------------*/
-  } else if (GMEnv_all2all(env)) {
+  } else if (env->all2all()) {
     /*----------------------------------------*/
 
     if (do_compute_triang_only) {
@@ -185,8 +185,8 @@ void gm_compute_2way_proc_combine_ccc_(
 
   GMInsist(metrics && metrics_buf);
   GMInsist(vector_sums_left && vector_sums_right && env);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
 
   const int nvl = metrics->num_vector_local;
   const GMVectorSums* vs_l = vector_sums_left;
@@ -194,9 +194,9 @@ void gm_compute_2way_proc_combine_ccc_(
 
   /*---Copy from metrics_buffer for GPU case; perform checks---*/
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() == ComputeMethod::GPU) {
     /*--------------------*/
-    if (GMEnv_all2all(env)) {
+    if (env->all2all()) {
       /*--------------------*/
 
       if (do_compute_triang_only) {
@@ -363,7 +363,7 @@ void gm_compute_2way_proc_combine_ccc_(
      }
 
       /*--------------------*/
-    } else /*---(! GMEnv_all2all(env))---*/ {
+    } else /*---(! env->all2all())---*/ {
       /*--------------------*/
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
@@ -399,7 +399,7 @@ void gm_compute_2way_proc_combine_ccc_(
   /*---Compute multipliers---*/
 
   /*--------------------*/
-  if (GMEnv_all2all(env)) {
+  if (env->all2all()) {
     /*--------------------*/
 
     if (do_compute_triang_only) {
@@ -445,7 +445,7 @@ void gm_compute_2way_proc_combine_ccc_(
    }
 
     /*--------------------*/
-  } else /*---(! GMEnv_all2all(env))---*/ {
+  } else /*---(! env->all2all())---*/ {
     /*--------------------*/
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
@@ -486,8 +486,8 @@ void gm_compute_2way_proc_combine_duo_(
 
   GMInsist(metrics && metrics_buf);
   GMInsist(vector_sums_left && vector_sums_right && env);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
 
   const int nvl = metrics->num_vector_local;
   const GMVectorSums* vs_l = vector_sums_left;
@@ -495,9 +495,9 @@ void gm_compute_2way_proc_combine_duo_(
 
   /*---Copy from metrics_buffer for GPU case---*/
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() == ComputeMethod::GPU) {
     /*--------------------*/
-    if (GMEnv_all2all(env)) {
+    if (env->all2all()) {
       /*--------------------*/
 
       if (do_compute_triang_only) {
@@ -524,7 +524,7 @@ void gm_compute_2way_proc_combine_duo_(
      }
 
       /*--------------------*/
-    } else /*---(! GMEnv_all2all(env))---*/ {
+    } else /*---(! env->all2all())---*/ {
       /*--------------------*/
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
@@ -543,7 +543,7 @@ void gm_compute_2way_proc_combine_duo_(
   /*---Compute multipliers---*/
 
   /*--------------------*/
-  if (GMEnv_all2all(env)) {
+  if (env->all2all()) {
     /*--------------------*/
 
     if (do_compute_triang_only) {
@@ -589,7 +589,7 @@ void gm_compute_2way_proc_combine_duo_(
    }
 
     /*--------------------*/
-  } else /*---(! GMEnv_all2all(env))---*/ {
+  } else /*---(! env->all2all())---*/ {
     /*--------------------*/
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
@@ -630,21 +630,21 @@ void gm_compute_2way_proc_combine(
 
   GMInsist(metrics && metrics_buf);
   GMInsist(vector_sums_left && vector_sums_right && env);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
 
-  switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEK: {
+  switch (env->metric_type()) {
+    case MetricType::CZEK: {
       gm_compute_2way_proc_combine_czek_(metrics, metrics_buf,
                                          vector_sums_left, vector_sums_right,
                                          j_block, do_compute_triang_only, env);
     } break;
-    case GM_METRIC_TYPE_CCC: {
+    case MetricType::CCC: {
       gm_compute_2way_proc_combine_ccc_(metrics, metrics_buf,
                                         vector_sums_left, vector_sums_right,
                                         j_block, do_compute_triang_only, env);
     } break;
-    case GM_METRIC_TYPE_DUO: {
+    case MetricType::DUO: {
       gm_compute_2way_proc_combine_duo_(metrics, metrics_buf,
                                         vector_sums_left, vector_sums_right,
                                         j_block, do_compute_triang_only, env);

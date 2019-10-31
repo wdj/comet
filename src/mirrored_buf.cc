@@ -38,7 +38,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
   GMInsist(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
   gm_linalg_malloc(p, dim0, dim1, env);
-  p->active = GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU ? p->d : p->h;
+  p->active = env->compute_method() == ComputeMethod::GPU ? p->d : p->h;
 }
 
 //-----------------------------------------------------------------------------

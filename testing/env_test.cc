@@ -42,12 +42,10 @@ void EnvTest_general_() {
   char options[1024];
   sprintf(options, options_template, num_proc);
 
-  comet::GMEnv env = comet::GMEnv_null();
-  comet::GMEnv_create(&env, options, num_proc, comm_rank);
+  comet::Env env(options, num_proc, comm_rank);
 
 
 
-  comet::GMEnv_destroy(&env);
 
   EXPECT_EQ(true, true);
 
@@ -65,7 +63,7 @@ GTEST_API_ int main(int argc, char** argv) {
 
   ::testing::InitGoogleTest(&argc, argv);
 
-  MPI_Init(&argc, &argv);
+  COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
@@ -82,7 +80,7 @@ GTEST_API_ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&result, &result_g, 1, MPI_INT, MPI_MAX,
     MPI_COMM_WORLD));
 
-  MPI_Finalize();
+  COMET_MPI_SAFE_CALL(MPI_Finalize());
   return result_g;
 }
 

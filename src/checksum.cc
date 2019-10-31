@@ -135,7 +135,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
   for (size_t index = 0; index < metrics.num_elts_local; ++index) {
     // Determine whether this cell is active.
     bool is_active = true;
-    for (int i = 0; i < GMEnv_num_way(&env); ++i) {
+    for (int i = 0; i < env.num_way(); ++i) {
       const size_t coord = GMMetrics_coord_global_from_index(&metrics, index,
                                                              i, &env);
       is_active = is_active && coord < metrics.num_vector_active;
@@ -155,7 +155,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
           case GM_DATA_TYPE_TALLY2X2: {
             const int i0 = i_value / 2;
             const int i1 = i_value % 2;
-            value = GMEnv_metric_type(&env) == GM_METRIC_TYPE_CCC ?
+            value = env.metric_type() == MetricType::CCC ?
               GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env) :
               GMMetrics_duo_get_from_index_2(&metrics, index, i0, i1, &env);
           } break;
@@ -203,9 +203,6 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     return;
   }
 
-  enum { NUM_WAY_MAX = GM_NUM_NUM_WAY + 1 };
-  GMInsist(GMEnv_num_way(&env) <= NUM_WAY_MAX && "This num_way not supported.");
-
   // Check for NaNs if appropriate
 
   // TODO: put this in metrics class - a heavyweight validity check function
@@ -228,9 +225,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   value_max_tmp = value_max_tmp > cksum.value_max_ ?
                   value_max_tmp : cksum.value_max_;
 
-  int mpi_code = MPI_Allreduce(&value_max_tmp, &cksum.value_max_, 1,
-                        MPI_DOUBLE, MPI_MAX, env.comm_repl_vector());
-  GMInsist(mpi_code == MPI_SUCCESS && "Faiure in call to MPI_Allreduce.");
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&value_max_tmp, &cksum.value_max_, 1,
+    MPI_DOUBLE, MPI_MAX, env.comm_repl_vector()));
   cksum_local.value_max_ = cksum.value_max_;
 
   // Check whether values are within a range for which we can compute
@@ -278,14 +274,14 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
       // Loop over data values at this index
       for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
         // Obtain global coords of metrics elt
-        size_t coords[NUM_WAY_MAX];
-        int ind_coords[NUM_WAY_MAX]; // permutation index
-        for (int i = 0; i < NUM_WAY_MAX; ++i) {
+        size_t coords[NUM_WAY::MAX];
+        int ind_coords[NUM_WAY::MAX]; // permutation index
+        for (int i = 0; i < NUM_WAY::MAX; ++i) {
           coords[i] = 0;
           ind_coords[i] = i;
         }
         bool is_active = true;
-        for (int i = 0; i < GMEnv_num_way(&env); ++i) {
+        for (int i = 0; i < env.num_way(); ++i) {
           const size_t coord =
             GMMetrics_coord_global_from_index(&metrics, index, i, &env);
           // Ignore padding vectors.
@@ -318,7 +314,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
             const int i1_unpermuted = i_value % 2;
             const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
             const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
-            value = GMEnv_metric_type(&env) == GM_METRIC_TYPE_CCC ?
+            value = env.metric_type() == MetricType::CCC ?
               GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env) :
               GMMetrics_duo_get_from_index_2(&metrics, index, i0, i1, &env);
           } break;
@@ -356,7 +352,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         // Construct an id that is a single number representing the coord
         // and value number.
         UI64_t uid = coords[0];
-        for (int i = 1; i < GMEnv_num_way(&env); ++i) {
+        for (int i = 1; i < env.num_way(); ++i) {
           uid = uid * metrics.num_vector_active + coords[i];
         }
         uid = uid * metrics.data_type_num_values + i_value;
@@ -414,11 +410,9 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   // Global sum of multiprecision int
 
   MultiprecInt sum; // = 0
-  mpi_code = MPI_Allreduce(sum_local.data_, sum.data_,
-                           MultiprecInt::SIZE,
-                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           env.comm_repl_vector());
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(sum_local.data_, sum.data_,
+    MultiprecInt::SIZE, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+    env.comm_repl_vector()));
   // Add to multiprec int data we have so far.
   for (int i = 0; i < MultiprecInt::SIZE; ++i) {
     cksum.sum_.data_[i] += sum.data_[i];
@@ -454,9 +448,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   // Validate by checking against floating point result
 
   double sum_d = 0;
-  mpi_code = MPI_Allreduce(&sum_d_local, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
-                           env.comm_repl_vector());
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&sum_d_local, &sum_d, 1, MPI_DOUBLE, MPI_SUM,
+    env.comm_repl_vector()));
   cksum.sum_d_ += sum_d;
   cksum_local.sum_d_ += sum_d_local;
 

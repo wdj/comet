@@ -40,25 +40,25 @@ namespace comet {
 // Helpers
 
 static bool use_minproduct(GMEnv* env) {
-  return GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK;
+  return env->metric_type() == MetricType::CZEK;
 }
 
 static bool use_mgemm2(GMEnv* env) {
-  return GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-         GMEnv_num_way(env) == GM_NUM_WAY_2 && ! env->sparse;
+  return env->metric_type() == MetricType::CCC &&
+         env->num_way() == NUM_WAY::_2 && ! env->sparse;
 }
 
 static bool use_mgemm3(GMEnv* env) {
-  return GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-         GMEnv_num_way(env) == GM_NUM_WAY_3 && ! env->sparse;
+  return env->metric_type() == MetricType::CCC &&
+         env->num_way() == NUM_WAY::_3 && ! env->sparse;
 }
 
 static bool use_mgemm4(GMEnv* env) {
-  return GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse;
+  return env->metric_type() == MetricType::CCC && env->sparse;
 }
 
 static bool use_mgemm5(GMEnv* env) {
-  return GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
+  return env->metric_type() == MetricType::DUO;
 }
 
 //=============================================================================
@@ -67,7 +67,7 @@ static bool use_mgemm5(GMEnv* env) {
 void gm_linalg_initialize(GMEnv* env) {
   GMInsist(env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 
@@ -134,7 +134,7 @@ void gm_linalg_initialize(GMEnv* env) {
 void gm_linalg_finalize(GMEnv* env) {
   GMInsist(env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 
@@ -188,7 +188,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   *p = GMMirroredBuf_null();
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 
@@ -325,8 +325,8 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   hipMalloc((void**)&p->d, p->size);
 #endif
 
-  gm_cpu_mem_inc(p->size, env);
-  gm_gpu_mem_inc(p->size, env);
+  env->cpu_mem_inc(p->size);
+  env->gpu_mem_inc(p->size);
 
   GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc,"
                    " possibly due to insufficient memory.");
@@ -340,7 +340,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   GMInsist(p && env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 
@@ -407,8 +407,8 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   hipFree(p->d);
 #endif // USE_MAGMA
 
-  gm_cpu_mem_dec(size, env);
-  gm_gpu_mem_dec(size, env);
+  env->cpu_mem_dec(size);
+  env->gpu_mem_dec(size);
 }
 
 //-----------------------------------------------------------------------------
@@ -417,7 +417,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
                                      GMEnv* env) {
   GMInsist(matrix_buf && env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 
@@ -501,7 +501,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
                                       bool is_beta_one,
                                       GMEnv* env) {
   GMInsist(A && B && C && env);
-  GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMInsist(env->compute_method() == ComputeMethod::GPU);
 
 #ifdef USE_MAGMA
   {
@@ -768,7 +768,7 @@ void gm_linalg_gemm_magma_start(size_t m,
                                 GMDecompMgr* dm,
                                 GMEnv* env) {
   GMInsist(A && B && C && env);
-  GMInsist(GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU);
+  GMInsist(env->compute_method() == ComputeMethod::GPU);
 
   // The purpose of this code is to workaround the magma size
   // limitation (for non CUBLAS failover) by doing gemm in blocks.
@@ -779,14 +779,14 @@ void gm_linalg_gemm_magma_start(size_t m,
   const size_t cols_B = n;
 
   const size_t elt_size =
-    GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ? sizeof(GMFloat) :
-   (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC && env->sparse) ?
+    env->metric_type() == MetricType::CZEK ? sizeof(GMFloat) :
+   (env->metric_type() == MetricType::CCC && env->sparse) ?
                                          sizeof(magma_mgemm4DoubleComplex) :
-   (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-    GMEnv_num_way(env) == GM_NUM_WAY_2) ? sizeof(magma_mgemm2DoubleComplex) :
-   (GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC &&
-    GMEnv_num_way(env) == GM_NUM_WAY_3) ? sizeof(magma_mgemm3DoubleComplex) :
-   (GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) ?
+   (env->metric_type() == MetricType::CCC &&
+    env->num_way() == NUM_WAY::_2) ? sizeof(magma_mgemm2DoubleComplex) :
+   (env->metric_type() == MetricType::CCC &&
+    env->num_way() == NUM_WAY::_3) ? sizeof(magma_mgemm3DoubleComplex) :
+   (env->metric_type() == MetricType::DUO) ?
                                          sizeof(magma_mgemm5DoubleComplex) : 0;
   GMInsist(elt_size > 0 && "Error in gemm block calculation.");
 
@@ -861,9 +861,9 @@ void gm_linalg_gemm_start(size_t m,
     return;
   }
 
-  if ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-       GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) &&
-      env->tc_eff() != Env::TC_NONE) {
+  if ((env->metric_type() == MetricType::CCC ||
+       env->metric_type() == MetricType::DUO) &&
+      env->tc_eff() != TC::NONE) {
     gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
     return;
   }
@@ -886,7 +886,7 @@ void gm_compute_wait(GMEnv* env) {
 void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
   GMInsist(matrix_buf && env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 
@@ -996,7 +996,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                 GMEnv* env) {
   GMInsist(matrix_buf && env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 

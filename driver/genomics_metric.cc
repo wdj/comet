@@ -58,7 +58,7 @@ void handler(int sig) {
 void bt_sighandler(int sig, struct sigcontext ctx) {
 
   int proc_num = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &proc_num));
 
   char pid_buf[30];
   sprintf(pid_buf, "%d", getpid());
@@ -249,11 +249,11 @@ void usage() {
 int get_node_id() {
 
   //int proc_num = 0;
-  //MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
+  //COMET_MPI_SAFE_CALLMPI_Comm_size(MPI_COMM_WORLD, &proc_num));
 
   //char name[MPI_MAX_PROCESSOR_NAME];
   //int len = MPI_MAX_PROCESSOR_NAME;
-  //MPI_Get_processor_name(name, &len);
+  //COMET_MPI_SAFE_CALLMPI_Get_processor_name(name, &len));
 
   const size_t len = 256;
   char name[len];
@@ -373,20 +373,20 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   // Create an env just to extract run options
 
-  GMEnv env_val = GMEnv_null(), *env = &env_val;;
-  GMEnv_create(env, MPI_COMM_WORLD, argc, (char**)argv, NULL);
+  Env env_val(MPI_COMM_WORLD, argc, (char**)argv, NULL);
+  GMEnv* env = &env_val;
 
-  const int num_rank_requested = GMEnv_num_proc(env);
+  const int num_rank_requested = env->num_proc();
 
   int num_rank_avail = 0;
-  MPI_Comm_size(MPI_COMM_WORLD, &num_rank_avail);
+  COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_rank_avail));
 
   if (num_rank_requested == num_rank_avail) {
-    MPI_Comm_dup(MPI_COMM_WORLD, fast_comm);
+    COMET_MPI_SAFE_CALL(MPI_Comm_dup(MPI_COMM_WORLD, fast_comm));
     return;
   }
 
-  const int metric_type = GMEnv_metric_type(env);
+  const int metric_type = env->metric_type();
 
   // Identify nodes for which can't open output file (if needed), mark down.
 
@@ -406,15 +406,13 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     }
   }
 
-  GMEnv_destroy(env);
-
   // Initialize communicators.
 
   //int num_proc = 0;
   //MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
 
   int rank = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
     //char name[MPI_MAX_PROCESSOR_NAME];
     //int len = 0;
@@ -431,37 +429,38 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   // Make node-related communicators
 
   MPI_Comm node_comm;
-  MPI_Comm_split(MPI_COMM_WORLD, node_id, rank, &node_comm);
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(MPI_COMM_WORLD, node_id, rank, &node_comm));
 
   int rank_in_node = 0;
-  MPI_Comm_rank(node_comm, &rank_in_node);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(node_comm, &rank_in_node));
 
   int ranks_in_node = 0;
-  MPI_Comm_size(node_comm, &ranks_in_node);
+  COMET_MPI_SAFE_CALL(MPI_Comm_size(node_comm, &ranks_in_node));
 
   int max_ranks_in_node = 0;
-  MPI_Allreduce(&ranks_in_node, &max_ranks_in_node, 1, MPI_INT, MPI_MAX,
-                MPI_COMM_WORLD);
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&ranks_in_node, &max_ranks_in_node, 1,
+    MPI_INT, MPI_MAX, MPI_COMM_WORLD));
 
   MPI_Comm rank_in_node_comm;
-  MPI_Comm_split(MPI_COMM_WORLD, rank_in_node, rank, &rank_in_node_comm);
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(MPI_COMM_WORLD, rank_in_node, rank,
+    &rank_in_node_comm));
 
   int num_node = 0;
-  MPI_Comm_size(rank_in_node_comm, &num_node);
-  MPI_Bcast(&num_node, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  COMET_MPI_SAFE_CALL(MPI_Comm_size(rank_in_node_comm, &num_node));
+  COMET_MPI_SAFE_CALL(MPI_Bcast(&num_node, 1, MPI_INT, 0, MPI_COMM_WORLD));
 
   int node_num = 0;
-  MPI_Comm_rank(rank_in_node_comm, &node_num);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(rank_in_node_comm, &node_num));
 
   // Run single node case on every node
 
   const char* options_template =
-    metric_type == GM_METRIC_TYPE_CZEK && GM_FP_PRECISION_DOUBLE ?
+    metric_type == MetricType::CZEK && GM_FP_PRECISION_DOUBLE ?
     "--num_field 25000 --num_vector_local 13000 "
     "--metric_type czekanowski --all2all yes --compute_method GPU "
     "--num_proc_vector %i --num_proc_field 1 "
     "--num_phase 1 --phase_min 0 --phase_max 0 --checksum no --verbosity 0"
-    : metric_type == GM_METRIC_TYPE_CZEK ?
+    : metric_type == MetricType::CZEK ?
     //"--num_field 1 --num_vector_local 2 "
     //"--num_field 560 --num_vector_local 150 "
     //"--num_field 5600 --num_vector_local 1500 "
@@ -491,16 +490,14 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
       max_time = penalty;
       continue;
     }
-    GMEnv env_val = GMEnv_null(), *env = &env_val;;
-    GMEnv_create(env, node_comm, options, NULL);
-    double t1 = env->synced_time();
-    perform_run(options, node_comm, env);
-    double t2 = env->synced_time();
+    Env env(node_comm, options, NULL);
+    double t1 = env.synced_time();
+    perform_run(options, node_comm, &env);
+    double t2 = env.synced_time();
     double time = t2 - t1;
     if (!(trial == 0 && num_trial != 1)) {
       max_time = time > max_time ? time : max_time;
     }
-    GMEnv_destroy(env);
   }
   if (rank_in_node == 0) {
     const size_t len = 256;
@@ -513,8 +510,8 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   double* max_times = (double*)malloc(num_node * sizeof(*max_times));
 
-  MPI_Gather(&max_time, 1, MPI_DOUBLE,
-             max_times, 1, MPI_DOUBLE, 0, rank_in_node_comm);
+  COMET_MPI_SAFE_CALL(MPI_Gather(&max_time, 1, MPI_DOUBLE,
+    max_times, 1, MPI_DOUBLE, 0, rank_in_node_comm));
 
   // Sort
 
@@ -538,7 +535,8 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   // Broadcast ranking
 
-  MPI_Bcast(node_ranking, num_node, MPI_INT, 0, MPI_COMM_WORLD);
+  COMET_MPI_SAFE_CALL(MPI_Bcast(node_ranking, num_node,
+    MPI_INT, 0, MPI_COMM_WORLD));
 
   int node_ranking_this = 0;
   for (int i=0; i<num_node; ++i) {
@@ -556,14 +554,15 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   // Create world communicator with this ranking
 
-  MPI_Comm_split(MPI_COMM_WORLD, 0, proc_ranking_this, fast_comm);
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(MPI_COMM_WORLD, 0, proc_ranking_this,
+    fast_comm));
 
   // Cleanup
 
   free(node_ranking);
   free(max_times);
-  MPI_Comm_free(&rank_in_node_comm);
-  MPI_Comm_free(&node_comm);
+  COMET_MPI_SAFE_CALL(MPI_Comm_free(&rank_in_node_comm));
+  COMET_MPI_SAFE_CALL(MPI_Comm_free(&node_comm));
 }
 
 //=============================================================================
@@ -572,18 +571,17 @@ void perform_run_preflight(int argc, char** argv) {
 
 // TODO: make this better.
 #ifdef USE_MAGMA
-  GMEnv env_val = GMEnv_null(), *env = &env_val;;
-  GMEnv_create(env, MPI_COMM_WORLD, argc, (char**)argv, NULL);
+  Env env(MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (env.compute_method() == ComputeMethod::GPU) {
 
     /*---Perform preliminary run on GPU since sometimes first use is slower---*/
 
     int num_proc = 0;
-    MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
+    COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_proc));
 
     const char* options_template_1 =
-        GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ?
+        env.metric_type() == MetricType::CZEK ?
           "--num_field 1 --num_vector_local 2 "
           "--metric_type ccc "
           "--num_proc_vector %i --all2all no --num_way 2 "
@@ -599,7 +597,6 @@ void perform_run_preflight(int argc, char** argv) {
     perform_run(options1);
   }
 
-  GMEnv_destroy(env);
 #endif
 }
 
@@ -616,9 +613,9 @@ int main(int argc, char** argv) {
 
   /*---Initialize---*/
 
-  const double t1 = Env::time();
+  const double t1 = System::time();
 
-  MPI_Init(&argc, &argv);
+  COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
   bool use_fast_nodes = false;
   for (int i=1; i<argc; ++i) {
@@ -630,13 +627,13 @@ int main(int argc, char** argv) {
   setbuf(stdout, NULL);
 
   int rank = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
   if (argc == 1) {
     if (rank == 0) {
       usage();
     }
-    MPI_Finalize();
+    COMET_MPI_SAFE_CALL(MPI_Finalize());
     return 0;
   }
 
@@ -647,8 +644,8 @@ int main(int argc, char** argv) {
 
   if (use_fast_nodes) { 
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    const double t2 = Env::time();
+    COMET_MPI_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD));
+    const double t2 = System::time();
     if (rank == 0) {
       printf("MPI_Init called, %i seconds.\n", (int)(.5+t2-t1));
     }
@@ -663,14 +660,14 @@ int main(int argc, char** argv) {
 
     /*---Perform actual run---*/
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    COMET_MPI_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD));
     if (rank == 0) {
       printf("Commencing run.\n");
     }
 
     perform_run(argc, (char**)argv, NULL, fast_comm);
 
-    MPI_Comm_free(&fast_comm);
+    COMET_MPI_SAFE_CALL(MPI_Comm_free(&fast_comm));
 
   } else {
 
@@ -684,7 +681,7 @@ int main(int argc, char** argv) {
 
   }
 
-  MPI_Finalize();
+  COMET_MPI_SAFE_CALL(MPI_Finalize());
   return 0;
 }
 

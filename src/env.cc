@@ -11,7 +11,7 @@
 #include "cstdio"
 #include "cstdlib"
 #include "cstddef"
-#include "string.h"
+#include "cstring"
 #include "math.h"
 
 #include "errno.h"
@@ -31,25 +31,16 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-// Null object
-
-GMEnv GMEnv_null() {
-  GMEnv result;
-  memset((void*)&result, 0, sizeof(GMEnv));
-  return result;
-}
-
-//-----------------------------------------------------------------------------
 
 void Env::set_defaults() {
 
-  *this = GMEnv_null();
+  memset((void*)this, 0, sizeof(*this));
 
   // CoMet Settings
-  metric_type_ = GM_METRIC_TYPE_CZEK;
-  num_way_ = GM_NUM_WAY_2;
+  metric_type_ = MetricType::CZEK;
+  num_way_ = NUM_WAY::_2;
   all2all_ = false;
-  GMEnv_set_compute_method(this, GM_COMPUTE_METHOD_GPU);
+  compute_method_ = ComputeMethod::GPU;
   num_stage = 1;
   stage_num = 0;
   num_phase = 1;
@@ -58,8 +49,8 @@ void Env::set_defaults() {
   GMEnv_ccc_multiplier_set(GMEnv_ccc_multiplier_default(), this);
   GMEnv_duo_multiplier_set(GMEnv_duo_multiplier_default(), this);
   sparse = false;
-  tc_ = Env::TC_NONE;
-  num_tc_steps = 1;
+  tc_ = TC::NONE;
+  num_tc_steps_ = 1;
   // Counters
   //env->ctime_ = 0;
   compares = 0;
@@ -89,11 +80,11 @@ void Env::parse_args(int argc, char** argv) {
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for metric_type.");
       if (strcmp(argv[i], "czekanowski") == 0) {
-        metric_type_ = GM_METRIC_TYPE_CZEK;
+        metric_type_ = MetricType::CZEK;
       } else if (strcmp(argv[i], "ccc") == 0) {
-        metric_type_ = GM_METRIC_TYPE_CCC;
+        metric_type_ = MetricType::CCC;
       } else if (strcmp(argv[i], "duo") == 0) {
-        metric_type_ = GM_METRIC_TYPE_DUO;
+        metric_type_ = MetricType::DUO;
       } else {
         GMInsistInterface(env, false && "Invalid setting for metric_type.");
       }
@@ -104,11 +95,11 @@ void Env::parse_args(int argc, char** argv) {
       GMInsistInterface(env, i < argc && "Missing value for num_way.");
       errno = 0;
       const long num_way = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, 0 == errno && (num_way == GM_NUM_WAY_2 ||
-                                            num_way == GM_NUM_WAY_3)
+      GMInsistInterface(env, 0 == errno && (num_way == NUM_WAY::_2 ||
+                                            num_way == NUM_WAY::_3)
                                && "Invalid setting for num_way.");
       num_way_ = num_way;
-      GMEnv_set_num_proc(env, num_proc_vector_i_, num_proc_repl_,
+      GMEnv_set_num_proc(env, num_proc_vector_, num_proc_repl_,
                        num_proc_field_);
       //--------------------
     } else if (strcmp(argv[i], "--all2all") == 0) {
@@ -128,11 +119,11 @@ void Env::parse_args(int argc, char** argv) {
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for compute_method.");
       if (strcmp(argv[i], "CPU") == 0) {
-        GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_CPU);
+        compute_method_ =  ComputeMethod::CPU;
       } else if (strcmp(argv[i], "GPU") == 0) {
-        GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_GPU);
+        compute_method_ =  ComputeMethod::GPU;
       } else if (strcmp(argv[i], "REF") == 0) {
-        GMEnv_set_compute_method(env, GM_COMPUTE_METHOD_REF);
+        compute_method_ =  ComputeMethod::REF;
       } else {
         GMInsistInterface(env, false && "Invalid setting for compute_method.");
       }
@@ -142,11 +133,11 @@ void Env::parse_args(int argc, char** argv) {
       ++i;
       errno = 0;
       GMInsistInterface(env, i < argc && "Missing value for num_proc_vector.");
-      long num_proc_vector_i = strtol(argv[i], NULL, 10);
+      long num_proc_vector = strtol(argv[i], NULL, 10);
       GMInsistInterface(env, 0 == errno
-                    && (long)(int)num_proc_vector_i == num_proc_vector_i
+                    && (long)(int)num_proc_vector == num_proc_vector
                     && "Invalid setting for num_proc_vector.");
-      GMEnv_set_num_proc(env, num_proc_vector_i, num_proc_repl_,
+      GMEnv_set_num_proc(env, num_proc_vector, num_proc_repl_,
                          num_proc_field_);
       //--------------------
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
@@ -158,7 +149,7 @@ void Env::parse_args(int argc, char** argv) {
       GMInsistInterface(env, 0 == errno
                     && (long)(int)num_proc_field == num_proc_field
                     && "Invalid setting for num_proc_field.");
-      GMEnv_set_num_proc(env, num_proc_vector_i_, num_proc_repl_,
+      GMEnv_set_num_proc(env, num_proc_vector_, num_proc_repl_,
                          num_proc_field);
       //--------------------
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
@@ -170,7 +161,7 @@ void Env::parse_args(int argc, char** argv) {
       GMInsistInterface(env, 0 == errno
                     && (long)(int)num_proc_repl == num_proc_repl
                     && "Invalid setting for num_proc_repl.");
-      GMEnv_set_num_proc(env, num_proc_vector_i_, num_proc_repl,
+      GMEnv_set_num_proc(env, num_proc_vector_, num_proc_repl,
                          num_proc_field_);
       //--------------------
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
@@ -223,7 +214,7 @@ void Env::parse_args(int argc, char** argv) {
       const long tc = strtol(argv[i], NULL, 10);
       GMInsistInterface(env, 0 == errno
                     && (long)(int)tc == tc
-                    && tc >=0 && tc < Env::NUM_TC
+                    && TC::is_valid(tc)
                     && "Invalid setting for tc.");
       tc_ = tc;
       //--------------------
@@ -237,7 +228,7 @@ void Env::parse_args(int argc, char** argv) {
                     && (long)(int)num_tc_steps == num_tc_steps
                     && num_tc_steps >= 1
                     && "Invalid setting for tc.");
-      num_tc_steps = num_tc_steps;
+      num_tc_steps_ = num_tc_steps;
       //--------------------
     } // if/else
   }   // for i
@@ -287,9 +278,6 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
     env->proc_num_base_ = proc_num;
   }
   GMEnv_set_num_proc(env, env->num_proc_base_, 1, 1);
-  // accelerator streams
-  //env->are_streams_initialized_ = false;
-  //env->are_comms_initialized_ = false;
   // OTHER
   env->description = description;
 
@@ -299,61 +287,28 @@ void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
     GMInsistInterface(env, env->can_run() &&
                       "Invalid problem for this system and build.");
   }
-
-  // Helper variables
-  env->do_reduce = env->num_proc_field_ > 1;
-  env->need_2way = env->metric_type_ == GM_METRIC_TYPE_CZEK;
 }
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
-                  int argc, char** argv,
-                  const char* const description) {
-  GMInsist(env);
+Env::Env(MPI_Comm base_comm,
+        int argc,
+        char** argv,
+        const char* const description) {
 
   const int num_proc = 0;
   const int proc_num = 0;
   const bool make_comms = true;
 
-  GMEnv_create_impl_(env, base_comm, argc, argv, description, make_comms,
+  GMEnv_create_impl_(this, base_comm, argc, argv, description, make_comms,
     num_proc, proc_num);
 }
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_create(GMEnv* const env, MPI_Comm base_comm,
-                  const char* const options,
-                  const char* const description) {
-  GMInsist(env);
-
-  // Convert options string to args
-
-  size_t len = strlen(options);
-
-  char* argstring = (char*)malloc((len+1)*sizeof(char));
-  char ** argv = (char**)malloc((len+1)*sizeof(char*));
-  int argc = 0;
-  strcpy(argstring, options);
-  gm_create_args(argstring, &argc, argv);
-
-  const int num_proc = 0;
-  const int proc_num = 0;
-  const bool make_comms = true;
-
-  GMEnv_create_impl_(env, base_comm, argc, argv, description, make_comms, 
-    num_proc, proc_num);
-
-  free(argstring);
-  free(argv);
-}
-
-//-----------------------------------------------------------------------------
-
-void GMEnv_create(GMEnv* const env,
-                  const char* const options,
-                  int num_proc, int proc_num) {
-  GMInsist(env);
+Env::Env(MPI_Comm base_comm,
+         const char* const options,
+         const char* const description) {
 
   // Convert options string to args
 
@@ -364,11 +319,12 @@ void GMEnv_create(GMEnv* const env,
   strcpy(argstring, options);
   gm_create_args(argstring, &argc, argv);
 
-  const char* const description = NULL;
-  const bool make_comms = false;
+  const int num_proc = 0;
+  const int proc_num = 0;
+  const bool make_comms = true;
 
-  GMEnv_create_impl_(env, MPI_COMM_WORLD, argc, argv, description,
-                     make_comms, num_proc, proc_num);
+  GMEnv_create_impl_(this, base_comm, argc, argv, description, make_comms, 
+    num_proc, proc_num);
 
   free(argstring);
   free(argv);
@@ -411,7 +367,7 @@ void Env::streams_initialize_() {
   if (are_streams_initialized_)
     return;
 
-  if (compute_method_ != GM_COMPUTE_METHOD_GPU)
+  if (compute_method_ != ComputeMethod::GPU)
     return;
 
 #if defined USE_CUDA
@@ -480,7 +436,7 @@ void Env::streams_terminate_() {
 
 void Env::stream_synchronize(Stream_t stream) const {
 
-  if (GMEnv_compute_method(this) != GM_COMPUTE_METHOD_GPU)
+  if (compute_method() != ComputeMethod::GPU)
     return;
 
 #if defined USE_CUDA
@@ -504,27 +460,24 @@ void GMEnv_initialize_comms(GMEnv* const env) {
   if (! env->make_comms_)
     return;
 
-  int mpi_code = MPI_Comm_split(env->comm_base_, env->is_proc_active_,
-                            env->proc_num_, &env->comm_);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(env->comm_base_, env->is_proc_active_,
+    env->proc_num_, &env->comm_));
 
   // Communicator along repl / vector axis.
 
-  mpi_code = MPI_Comm_split(env->comm_base_,
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(env->comm_base_,
       env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
       //env->proc_num_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->proc_num_,
-      &env->comm_repl_vector_);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
+      &env->comm_repl_vector_));
 
   // Communicator along field axis.
 
-  mpi_code = MPI_Comm_split(env->comm_base_,
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(env->comm_base_,
       env->is_proc_active_ ? env->proc_num_repl_vector_ : env->num_proc_,
       //env->proc_num_,
       env->is_proc_active_ ? env->proc_num_field_ : env->proc_num_,
-      &env->comm_field_);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Comm_split.");
+      &env->comm_field_));
 
   env->are_comms_initialized_ = true;
 }
@@ -546,37 +499,17 @@ void Env::comms_terminate_() {
 }
 
 //=============================================================================
-// Finalize environment
-
-void GMEnv_destroy(GMEnv* const env) {
-  GMInsist(env);
-
-  env->comms_terminate_();
-  env->streams_terminate_();
-  *env = GMEnv_null();
-}
-
-//=============================================================================
 // Accessors
-
-void GMEnv_set_compute_method(GMEnv* const env, int compute_method) {
-  GMInsist(env);
-  GMInsist(compute_method >= 0 && compute_method < GM_NUM_COMPUTE_METHOD);
-
-  env->compute_method_ = compute_method;
-}
-
-//-----------------------------------------------------------------------------
 
 int GMEnv_data_type_vectors(const GMEnv* const env) {
   GMInsist(env);
 
-  switch (env->metric_type_) {
-    case GM_METRIC_TYPE_CZEK:
+  switch (env->metric_type()) {
+    case MetricType::CZEK:
       return GM_DATA_TYPE_FLOAT;
-    case GM_METRIC_TYPE_CCC:
+    case MetricType::CCC:
       return GM_DATA_TYPE_BITS2;
-    case GM_METRIC_TYPE_DUO:
+    case MetricType::DUO:
       return GM_DATA_TYPE_BITS2;
   }
   GMInsist(false && "Invalid metric_type.");
@@ -588,13 +521,13 @@ int GMEnv_data_type_vectors(const GMEnv* const env) {
 int GMEnv_data_type_metrics(const GMEnv* const env) {
   GMInsist(env);
 
-  switch (env->metric_type_) {
-    case GM_METRIC_TYPE_CZEK:
+  switch (env->metric_type()) {
+    case MetricType::CZEK:
       return GM_DATA_TYPE_FLOAT;
-    case GM_METRIC_TYPE_CCC:
-      return env->num_way_ == GM_NUM_WAY_2 ? GM_DATA_TYPE_TALLY2X2
+    case MetricType::CCC:
+      return env->num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
                                            : GM_DATA_TYPE_TALLY4X2;
-    case GM_METRIC_TYPE_DUO:
+    case MetricType::DUO:
       return GM_DATA_TYPE_TALLY2X2; // 2-way only for now
   }
   GMInsist(false && "Invalid metric_type.");
@@ -603,29 +536,29 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
+void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector,
                       int num_proc_repl, int num_proc_field) {
   GMInsist(env);
-  GMInsist(num_proc_vector_i > 0);
+  GMInsist(num_proc_vector > 0);
   GMInsist(num_proc_repl > 0);
   GMInsist(num_proc_field > 0);
 
-#ifndef USE_MPI
-  GMInsist(num_proc_vector_i == 1);
-  GMInsist(num_proc_repl == 1);
-  GMInsist(num_proc_field == 1);
-#endif
+  if (!BuildHas::MPI) {
+    GMInsist(num_proc_vector == 1);
+    GMInsist(num_proc_repl == 1);
+    GMInsist(num_proc_field == 1);
+  }
 
   GMInsist(env->num_proc_base_ != 0);
   //GMInsist(env->proc_num_base_ is initialized);
 
   // Set proc counts
 
-  env->num_proc_vector_i_ = num_proc_vector_i;
+  env->num_proc_vector_ = num_proc_vector;
   env->num_proc_repl_ = num_proc_repl;
   env->num_proc_field_ = num_proc_field;
 
-  env->num_proc_repl_vector_ = env->num_proc_vector_i_ * env->num_proc_repl_;
+  env->num_proc_repl_vector_ = env->num_proc_vector_ * env->num_proc_repl_;
 
   env->num_proc_ = env->num_proc_repl_vector_ * num_proc_field;
   GMInsist(env->num_proc_ <= env->num_proc_base_ &&
@@ -648,28 +581,28 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
     env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
     env->proc_num_repl_ = (env->proc_num_ / env->num_proc_field_)
                                           % env->num_proc_repl_;
-    env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_field_)
+    env->proc_num_vector_ = (env->proc_num_ / env->num_proc_field_)
                                               / env->num_proc_repl_;
   }
 
   if (order == ORDER_RVF) {
     env->proc_num_repl_ = env->proc_num_ % env->num_proc_repl_;
-    env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_repl_)
-                                              % env->num_proc_vector_i_;
+    env->proc_num_vector_ = (env->proc_num_ / env->num_proc_repl_)
+                                              % env->num_proc_vector_;
     env->proc_num_field_ = (env->proc_num_ / env->num_proc_repl_)
-                                           / env->num_proc_vector_i_;
+                                           / env->num_proc_vector_;
   }
 
   if (order == ORDER_FVR) {
     env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
-    env->proc_num_vector_i_ = (env->proc_num_ / env->num_proc_field_)
-                                              % env->num_proc_vector_i_;
+    env->proc_num_vector_ = (env->proc_num_ / env->num_proc_field_)
+                                              % env->num_proc_vector_;
     env->proc_num_repl_ = (env->proc_num_ / env->num_proc_field_)
-                                          / env->num_proc_vector_i_;
+                                          / env->num_proc_vector_;
   }
 
   env->proc_num_repl_vector_ = env->proc_num_repl_ + env->num_proc_repl_ *
-                               env->proc_num_vector_i_;
+                               env->proc_num_vector_;
 
   // Destroy old communicators if necessary
 
@@ -682,17 +615,17 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector_i,
 
 //-----------------------------------------------------------------------------
 
-Stream_t Env::stream_compute() {
+Env::Stream_t Env::stream_compute() {
   streams_initialize_();
   return stream_compute_;
 }
 
-Stream_t Env::stream_togpu() {
+Env::Stream_t Env::stream_togpu() {
   streams_initialize_();
   return stream_togpu_;
 }
 
-Stream_t Env::stream_fromgpu() {
+Env::Stream_t Env::stream_fromgpu() {
   streams_initialize_();
   return stream_fromgpu_;
 }
@@ -700,7 +633,7 @@ Stream_t Env::stream_fromgpu() {
 //=============================================================================
 // Timer functions
 
-double Env::time() {
+double System::time() {
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -718,7 +651,7 @@ void GMEnv_accel_sync(const GMEnv* const env) {
     return;
   }
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 
@@ -742,50 +675,18 @@ double Env::synced_time() {
 
   COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
 
-  return Env::time();
+  return System::time();
 }
 
 //=============================================================================
 // Memory, arrays and floating point
-
-void gm_cpu_mem_inc(size_t n, GMEnv* env) {
-  GMInsist(env);
-  env->cpu_mem_local += n;
-  env->cpu_mem_max_local = gm_max_i8(env->cpu_mem_max_local,
-                                     env->cpu_mem_local);
-}
-
-//----------
-
-void gm_cpu_mem_dec(size_t n, GMEnv* env) {
-  GMInsist(env);
-  env->cpu_mem_local -= n;
-}
-
-//----------
-
-void gm_gpu_mem_inc(size_t n, GMEnv* env) {
-  GMInsist(env);
-  env->gpu_mem_local += n;
-  env->gpu_mem_max_local = gm_max_i8(env->gpu_mem_max_local,
-                                     env->gpu_mem_local);
-}
-
-//----------
-
-void gm_gpu_mem_dec(size_t n, GMEnv* env) {
-  GMInsist(env);
-  env->gpu_mem_local -= n;
-}
-
-//-----------------------------------------------------------------------------
 
 void* gm_malloc(size_t n, GMEnv* env) {
   GMInsist(env);
   void* p = malloc(n);
   GMInsist(p &&
            "Invalid pointer from malloc, possibly due to insufficient memory.");
-  gm_cpu_mem_inc(n, env);
+  env->cpu_mem_inc(n);
   return p;
 }
 
@@ -794,7 +695,7 @@ void* gm_malloc(size_t n, GMEnv* env) {
 void gm_free(void* p, size_t n, GMEnv* env) {
   GMInsist(p && env);
   free(p);
-  gm_cpu_mem_dec(n, env);
+  env->cpu_mem_dec(n);
 }
 
 //-----------------------------------------------------------------------------
@@ -874,10 +775,10 @@ MPI_Datatype gm_mpi_type(const GMEnv* const env) {
 
   /* clang-format off */
   const MPI_Datatype mpi_type =
-    GMEnv_metric_type(env) == GM_METRIC_TYPE_CZEK ? GM_MPI_FLOAT :
-    GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ? MPI_DOUBLE_COMPLEX :
-    GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO ? MPI_DOUBLE_COMPLEX :
-                                                   0; // should never get here
+    env->metric_type() == MetricType::CZEK ? GM_MPI_FLOAT :
+    env->metric_type() == MetricType::CCC ? MPI_DOUBLE_COMPLEX :
+    env->metric_type() == MetricType::DUO ? MPI_DOUBLE_COMPLEX :
+                                                0; // should never get here
   /* clang-format on */
 
   return mpi_type;
@@ -933,7 +834,7 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-int Env::num_proc() {
+int System::num_proc() {
   int num_proc = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_proc));
   return num_proc;
@@ -941,7 +842,15 @@ int Env::num_proc() {
 
 //-----------------------------------------------------------------------------
 
-int Env::compute_capability() {
+int System::proc_num() {
+  int proc_num = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &proc_num));
+  return proc_num;
+}
+
+//-----------------------------------------------------------------------------
+
+int System::compute_capability() {
 #if defined USE_CUDA
   cudaDeviceProp deviceProp;
   // Assume only one GPU per rank.
@@ -966,42 +875,42 @@ bool Env::can_run() const {
 
   bool result = true;
 
-  result = result && num_proc_ <= Env::num_proc();
+  result = result && num_proc_ <= System::num_proc();
 
   if (num_proc_ > 1) {
-    result = result && Env::HAVE_MPI;
+    result = result && BuildHas::MPI;
   }
 
-  if (is_metric_type_bitwise() && compute_method_ == Env::COMPUTE_METHOD_CPU) {
-    result = result && (Env::TC_NONE == tc_ ||
-                        (Env::TC_FLOAT32 == tc_ && Env::HAVE_CPUBLAS));
+  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
+    result = result && (TC::NONE == tc_ ||
+                        (TC::FP32 == tc_ && BuildHas::CPUBLAS));
   }
 
-  if (compute_method_ == Env::COMPUTE_METHOD_GPU) {
-    result = result && Env::HAVE_ACCEL && Env::compute_capability() > 0;
+  if (compute_method_ == ComputeMethod::GPU) {
+    result = result && BuildHas::ACCEL && System::compute_capability() > 0;
   }
 
-  if (is_metric_type_bitwise() && compute_method_ == Env::COMPUTE_METHOD_GPU &&
-      Env::TC_FLOAT16 == tc_) {
-    result = result && Env::HAVE_CUDA && Env::compute_capability() >= 700;
+  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
+      TC::FP16 == tc_) {
+    result = result && BuildHas::CUDA && System::compute_capability() >= 700;
   }
 
-  if (is_metric_type_bitwise() && compute_method_ == Env::COMPUTE_METHOD_GPU &&
-      Env::TC_INT8 == tc_) {
-    result = result && Env::HAVE_CUDA && Env::compute_capability() >= 750;
+  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
+      TC::INT8 == tc_) {
+    result = result && BuildHas::CUDA && System::compute_capability() >= 750;
   }
 
-  if (is_metric_type_bitwise() && compute_method_ == Env::COMPUTE_METHOD_GPU &&
-      Env::TC_FLOAT32 == tc_) {
-    result = result && (Env::HAVE_CUDA || Env::HAVE_HIP);
+  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
+      TC::FP32 == tc_) {
+    result = result && (BuildHas::CUDA || BuildHas::HIP);
   }
 
-  const bool tc_on = Env::TC_FLOAT16 == tc_ || Env::TC_INT8 == tc_ ||
-                     Env::TC_FLOAT32 == tc_;
+  const bool tc_on = TC::FP16 == tc_ || TC::INT8 == tc_ ||
+                     TC::FP32 == tc_;
 
-  if (compute_method_ == Env::COMPUTE_METHOD_GPU && (!is_metric_type_bitwise()
+  if (compute_method_ == ComputeMethod::GPU && (!is_metric_type_bitwise()
       || (is_metric_type_bitwise() && tc_on))) {
-    result = result && Env::HAVE_MAGMA;
+    result = result && BuildHas::MAGMA;
   }
 
   return result;
@@ -1013,37 +922,6 @@ int Env::tc_eff() const {
 
   return tc_; // FIX
 }
-
-
-#if 0
-//-----------------------------------------------------------------------------
-
-bool Env::is_tc_valid(int tc) {
-  if (tc == Env::TC_NONE)
-    return true;
-  if (!(tc == TC_FLOAT16 || tc == TC_INT8 || TC_FLOAT32))
-    return false;
-
-#if defined USE_CUDA
-  cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
-  if (tc == TC_FLOAT16 && compute_capability >= 700) return true;
-  if (tc == TC_INT8 && compute_capability >= 700) return true;
-  //if (tc == GM_TC_METHOD_INT4 && compute_capability < 750) return false;
-  //if (tc == GM_TC_METHOD_INT1 && compute_capability < 750) return false;
-#elif defined USE_HIP
-  hipDeviceProp_t deviceProp;
-  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-//FIX this
-//  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
-//  if (tc == GM_TC_METHOD_FLOAT16 && compute_capability >= 700) return true;
-//  if (tc == GM_TC_METHOD_INT8 && compute_capability >= 700) return true;
-#endif
-
-  return false;
-}
-#endif
 
 //=============================================================================
 

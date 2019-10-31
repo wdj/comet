@@ -220,7 +220,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
     GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 1 :
-    GMEnv_num_way(env) == GM_NUM_WAY_2 ? 2 : 4;
+    env->num_way() == NUM_WAY::_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
 
@@ -373,7 +373,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
     GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 1 :
-    GMEnv_num_way(env) == GM_NUM_WAY_2 ? 2 : 4;
+    env->num_way() == NUM_WAY::_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
 
@@ -395,12 +395,12 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
 //      if (gm_gpu_compute_capability() == 700 &&
-//          GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU &&
+//          env->compute_method() == ComputeMethod::GPU &&
 //          GM_FP_PRECISION_DOUBLE) {
 //        // For this case modified MAGMA code casts down to single.
 //        break;
 //      }
-      if (GMEnv_num_way(env) == GM_NUM_WAY_2) {
+      if (env->num_way() == NUM_WAY::_2) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t vi =
@@ -466,7 +466,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           num_incorrect += is_incorrect;
         } //---for index
       } //---if
-      if (GMEnv_num_way(env) == GM_NUM_WAY_3) {
+      if (env->num_way() == NUM_WAY::_3) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
           const size_t vi =
@@ -535,7 +535,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
 
-    const int cbpe = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ? 2 : 1;
+    const int cbpe = env->metric_type() == MetricType::CCC ? 2 : 1;
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
@@ -683,7 +683,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
-    GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC);
+    GMInsist(env->metric_type() == MetricType::CCC);
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =

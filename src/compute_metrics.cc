@@ -35,7 +35,7 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
 
   //--------------------
 
-  if (GMEnv_num_way(&env_) == GM_NUM_WAY_2) {
+  if (env_.num_way() == NUM_WAY::_2) {
     GMComputeMetrics2Way_create(&compute_metrics_2way_, &dm, &env_);
   } else {
     GMComputeMetrics3Way_create(&compute_metrics_3way_, &dm, &env_);
@@ -59,7 +59,7 @@ ComputeMetrics::~ComputeMetrics() {
 
   //--------------------
 
-  if (GMEnv_num_way(&env_) == GM_NUM_WAY_2) {
+  if (env_.num_way() == NUM_WAY::_2) {
     GMComputeMetrics2Way_destroy(&compute_metrics_2way_, &env_);
   } else {
     GMComputeMetrics3Way_destroy(&compute_metrics_3way_, &env_);
@@ -83,22 +83,22 @@ void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors) {
 
   //--------------------
 
-  if (GMEnv_num_way(&env_) == 2 && ! GMEnv_all2all(&env_)) {
+  if (env_.num_way() == 2 && ! env_.all2all()) {
   
     gm_compute_metrics_2way_notall2all(&compute_metrics_2way_,
       &metrics, &vectors, &env_);
 
-  } else if (GMEnv_num_way(&env_) == 2 && GMEnv_all2all(&env_)) {
+  } else if (env_.num_way() == 2 && env_.all2all()) {
 
     gm_compute_metrics_2way_all2all(&compute_metrics_2way_,
       &metrics, &vectors, &env_);
 
-  } else if (GMEnv_num_way(&env_) == 3 && ! GMEnv_all2all(&env_)) {
+  } else if (env_.num_way() == 3 && ! env_.all2all()) {
 
     gm_compute_metrics_3way_notall2all(&compute_metrics_3way_,
       &metrics, &vectors, &env_);
 
-  } else { // (GMEnv_num_way(&env_) == 3 && GMEnv_all2all(&env_))
+  } else { // (env_.num_way() == 3 && env_.all2all())
 
     gm_compute_metrics_3way_all2all(&compute_metrics_3way_,
       &metrics, &vectors, &env_);

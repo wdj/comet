@@ -44,16 +44,16 @@ void GMVectorSums_create(GMVectorSums* this_,
 
   this_->size_ = num_vector_local;
   //this_->num_field_ = vectors->num_field;
-  const int num_proc = GMEnv_num_proc_field(env);
+  const int num_proc = env->num_proc_field();
 
-  switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEK: {
+  switch (env->metric_type()) {
+    case MetricType::CZEK: {
       this_->sums = GMFloat_malloc(num_vector_local, env);
       this_->sums_tmp_ = num_proc == 1
                               ? NULL
                               : GMFloat_malloc(num_vector_local, env);
     } break;
-    case GM_METRIC_TYPE_CCC: {
+    case MetricType::CCC: {
       this_->sums = GMFloat_malloc(num_vector_local, env);
       this_->sums_tmp_ = num_proc == 1
                               ? NULL
@@ -65,7 +65,7 @@ void GMVectorSums_create(GMVectorSums* this_,
                               : GMFloat_malloc(num_vector_local, env);
       }
     } break;
-    case GM_METRIC_TYPE_DUO: {
+    case MetricType::DUO: {
       this_->sums = GMFloat_malloc(num_vector_local, env);
       this_->sums_tmp_ = num_proc == 1
                               ? NULL
@@ -113,7 +113,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
   GMFloat* const __restrict__ sums = this_->sums;
   GMFloat* const __restrict__ sums_tmp = this_->sums_tmp_;
 
-  const int num_proc = GMEnv_num_proc_field(env);
+  const int num_proc = env->num_proc_field();
   GMFloat* const sums_local = num_proc == 1 ? sums : sums_tmp;
 
   /*---Sum up all values in each vector---*/
@@ -132,10 +132,8 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
   /*---Do reduction across field procs if needed---*/
 
   if (num_proc > 1) {
-    int mpi_code = 0;
-    mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
-                             GM_MPI_FLOAT, MPI_SUM, env->comm_field());
-    GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(sums_local, sums,
+      vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
   }
 
   env->ops_local += 2 * vectors->num_vector_local *
@@ -154,16 +152,16 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
   GMFloat* const __restrict__ counts = this_->counts;
   GMFloat* const __restrict__ counts_tmp = this_->counts_tmp_;
 
-  const int num_proc = GMEnv_num_proc_field(env);
+  const int num_proc = env->num_proc_field();
   GMFloat* const sums_local = num_proc == 1 ? sums : sums_tmp;
   GMFloat* const counts_local = num_proc == 1 ? counts : counts_tmp;
 
   // Count number of 1-bits in each vector
 
-  const bool count_2 = env->metric_type_ == GM_METRIC_TYPE_CCC;
+  const bool count_2 = env->metric_type() == MetricType::CCC;
 
   //----------
-  if (env->compute_method_ == GM_COMPUTE_METHOD_REF) {
+  if (env->compute_method() == ComputeMethod::REF) {
     //----------
     #pragma omp parallel for schedule(dynamic,1000)
     for (int i = 0; i < vectors->num_vector_local; ++i) {
@@ -256,14 +254,11 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
   // Do reduction across field procs if needed
 
   if (num_proc > 1) {
-    int mpi_code = 0;
-    mpi_code = MPI_Allreduce(sums_local, sums, vectors->num_vector_local,
-                      GM_MPI_FLOAT, MPI_SUM, env->comm_field());
-    GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(sums_local, sums,
+      vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
     if (env->sparse) {
-      mpi_code = MPI_Allreduce(counts_local, counts, vectors->num_vector_local,
-                        GM_MPI_FLOAT, MPI_SUM, env->comm_field());
-      GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+      COMET_MPI_SAFE_CALL(MPI_Allreduce(counts_local, counts,
+        vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
     } /*---if sparse---*/
   }
 }
@@ -273,14 +268,14 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
 void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
   GMInsist(this_ && vectors && env);
 
-  switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEK: {
+  switch (env->metric_type()) {
+    case MetricType::CZEK: {
       GMVectorSums_compute_float_(this_, vectors, env);
     } break;
-    case GM_METRIC_TYPE_CCC: {
+    case MetricType::CCC: {
       GMVectorSums_compute_bits2_(this_, vectors, env);
     } break;
-    case GM_METRIC_TYPE_DUO: {
+    case MetricType::DUO: {
       GMVectorSums_compute_bits2_(this_, vectors, env);
     } break;
     default:

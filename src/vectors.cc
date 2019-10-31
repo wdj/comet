@@ -183,7 +183,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
     return;
   }
 
-  vectors->has_buf = GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU;
+  vectors->has_buf = env->compute_method() == ComputeMethod::GPU;
 
   GMVectors_create_imp_(vectors, data_type_id, dm, env);
 }
@@ -217,14 +217,14 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
                        GMEnv* env) {
   GMInsist(vectors && vectors_buf && env);
 
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() != ComputeMethod::GPU) {
     return;
   }
 
   /*---Copy vectors into GPU buffers if needed---*/
 
-  switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEK: {
+  switch (env->metric_type()) {
+    case MetricType::CZEK: {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
@@ -235,7 +235,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
         }
       }
     } break;
-    case GM_METRIC_TYPE_CCC: {
+    case MetricType::CCC: {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
@@ -246,7 +246,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
         }
       }
     } break;
-    case GM_METRIC_TYPE_DUO: {
+    case MetricType::DUO: {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)

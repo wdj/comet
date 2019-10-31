@@ -189,10 +189,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsistInterface(env, i < argc && "Missing value for problem_type.");
       if (strcmp(argv[i], "random") == 0) {
         do_->problem_type = GM_PROBLEM_TYPE_RANDOM;
-        //GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_RANDOM);
       } else if (strcmp(argv[i], "analytic") == 0) {
         do_->problem_type = GM_PROBLEM_TYPE_ANALYTIC;
-        //GMEnv_set_compute_method(env, GM_PROBLEM_TYPE_ANALYTIC);
       } else {
         GMInsistInterface(env, false && "Invalid setting for problem_type.");
       }
@@ -307,25 +305,21 @@ void perform_run(int argc, char** argv, const char* const description,
 
 void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
                  const char* const description,
-                 MPI_Comm base_comm, GMEnv* env) {
+                 MPI_Comm base_comm, GMEnv* env_in) {
 
   /*---Initialize environment---*/
 
-  bool create_env = ! env;
+  GMEnv* env_local = NULL;
 
-  GMEnv env_local = GMEnv_null();
-
-  if (create_env) {
-    env = &env_local;
-    GMEnv_create(env, base_comm, argc, argv, description);
-  }
-
-  if (! env->is_proc_active()) {
-    if (create_env) {
-      GMEnv_destroy(env);
+  if (!env_in) {
+    env_local = new Env(base_comm, argc, argv, description);
+    if (! env_local->is_proc_active()) {
+      delete env_local;
+      return;
     }
-    return;
   }
+
+  GMEnv* const env = env_in ? env_in : env_local;
 
   double total_time_beg = env->synced_time();
 
@@ -372,24 +366,24 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 //TODO: possibly replace this with stuff from dm
   if (do_.num_vector_local_initialized) {
     do_.num_vector = do_.num_vector_local *
-      (size_t)GMEnv_num_proc_vector_i(env);
+      (size_t)env->num_proc_vector();
     do_.num_vector_active = do_.num_vector;
   } else {
     /*---Pad up so that every proc has same number of vectors---*/
     do_.num_vector_local = gm_num_vector_local_required(
-      gm_ceil_i8(do_.num_vector_active, GMEnv_num_proc_vector_i(env)), env);
+      gm_ceil_i8(do_.num_vector_active, env->num_proc_vector()), env);
     do_.num_vector = do_.num_vector_local *
-      (size_t)GMEnv_num_proc_vector_i(env);
+      (size_t)env->num_proc_vector();
   }
 
   if (do_.num_field_local_initialized) {
-    do_.num_field = do_.num_field_local * (size_t) GMEnv_num_proc_field(env);
+    do_.num_field = do_.num_field_local * (size_t) env->num_proc_field();
     do_.num_field_active = do_.num_field;
   } else {
     /*---Pad up so that every proc has same number of fields---*/
     do_.num_field_local = gm_ceil_i8(
-        do_.num_field_active, GMEnv_num_proc_field(env));
-    do_.num_field = do_.num_field_local * (size_t) GMEnv_num_proc_field(env);
+        do_.num_field_active, env->num_proc_field());
+    do_.num_field = do_.num_field_local * (size_t) env->num_proc_field();
   }
 
 //printf("%i %i %i %i\n", env->proc_num_base_, env->proc_num_, env->proc_num_repl_, env->proc_num_vector_i_);
@@ -538,25 +532,21 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   size_t num_written = 0;
   if (env->is_proc_active()) {
-    int mpi_code = 0;
     size_t num_elts_computed = 0;
-    mpi_code = MPI_Allreduce(&num_elts_local_computed, &num_elts_computed, 1,
-                             MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                             env->comm_repl_vector());
-    GMInsist(mpi_code == MPI_SUCCESS);
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_elts_local_computed,
+      &num_elts_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+      env->comm_repl_vector()));
 
-    mpi_code = MPI_Allreduce(&num_local_written, &num_written, 1,
-                             MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                             env->comm_repl_vector());
-    GMInsist(mpi_code == MPI_SUCCESS);
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_local_written, &num_written, 1,
+      MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
-    if (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env) &&
+    if (env->num_way() == NUM_WAY::_2 && env->all2all() &&
         do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase - 1) {
       GMInsist(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) / 2);
     }
 
-    if (GMEnv_num_way(env) == GM_NUM_WAY_3 && GMEnv_all2all(env) &&
+    if (env->num_way() == NUM_WAY::_3 && env->all2all() &&
         do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase - 1 &&
         do_.stage_min_0based==0 && do_.stage_max_0based==env->num_stage - 1) {
       GMInsist(num_elts_computed == (do_.num_vector) * (size_t)
@@ -583,7 +573,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     printf(" ops %e", env->ops);
     if (env->ctime() > 0) {
       printf(" ops_rate %e", env->ops / env->ctime());
-      printf(" ops_rate/proc %e", env->ops / (env->ctime()*GMEnv_num_proc(env)) );
+      printf(" ops_rate/proc %e", env->ops / (env->ctime()*env->num_proc()) );
     }
     //-----
     printf(" vcmp %e", env->veccompares);
@@ -595,7 +585,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     printf(" ecmp %e", env->eltcompares);
     if (env->ctime() > 0) {
       printf(" ecmp_rate %e", env->eltcompares / env->ctime());
-      printf(" ecmp_rate/proc %e", env->eltcompares / (env->ctime()*GMEnv_num_proc(env)) );
+      printf(" ecmp_rate/proc %e", env->eltcompares / (env->ctime()*env->num_proc()) );
     }
     //-----
     printf(" vctime %.6f", vctime);
@@ -638,7 +628,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     char hn[hnlen];
     gethostname(hn, hnlen);
     int rank = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
     printf("Error: incorrect results found.  num_incorrect  %zu  "
            "max_incorrect_diff  %e  hostname  %s  rank  %i\n",
@@ -649,8 +639,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Finalize---*/
 
-  if (create_env) {
-    GMEnv_destroy(env);
+  if (env_local) {
+    delete env_local;
   }
 
   cksum_result.copy(cksum);

@@ -30,7 +30,7 @@ void GMComputeMetrics3Way_create(
     GMEnv* env) {
   GMInsist(this_ && dm && env);
 
-  GMInsistInterface(env, env->compute_method_ != GM_METRIC_TYPE_DUO
+  GMInsistInterface(env, env->compute_method() != MetricType::DUO
                                && "3-way DUO method not supported.");
 
   //*this_ = {0};
@@ -52,7 +52,7 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
                                         GMVectors* vectors,
                                         GMEnv* env) {
   GMInsist(metrics && vectors && env);
-  GMInsist(! GMEnv_all2all(env));
+  GMInsist(! env->all2all());
 
   /*---Denominator---*/
 
@@ -120,7 +120,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
                                      GMVectors* vectors,
                                      GMEnv* env) {
   GMInsist(metrics && vectors && env);
-  GMInsist(GMEnv_all2all(env));
+  GMInsist(env->all2all());
 
   /*---Initializations---*/
 
@@ -131,12 +131,12 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
 
   const int data_type = GMEnv_data_type_vectors(env);
 
-  const int num_block = GMEnv_num_block_vector(env);
+  const int num_block = env->num_block_vector();
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
   const int proc_num_r = GMEnv_proc_num_repl(env);
-  const int num_proc_r = GMEnv_num_proc_repl(env);
+  const int num_proc_r = env->num_proc_repl();
 
   /*---Create flattened index within space of procs assigned to
        vectors (non-field procs) - i.e., vector_i (=block) X repl ---*/

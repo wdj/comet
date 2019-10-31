@@ -115,7 +115,7 @@ template<> struct TCBufTypes<GMFp32> {
 
 template<int TC_METHOD> struct TCSelector;
 
-template<> struct TCSelector<GM_TC_METHOD_INT8> {
+template<> struct TCSelector<TC::INT8> {
   // types.
   typedef int8_t GemmIn_t;
   typedef int32_t GemmOut_t;
@@ -137,7 +137,7 @@ template<> struct TCSelector<GM_TC_METHOD_INT8> {
 
 //----------
 
-template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
+template<> struct TCSelector<TC::FP16> {
   // types.
   typedef uint16_t GemmIn_t;
   typedef GMFp32 GemmOut_t;
@@ -159,7 +159,7 @@ template<> struct TCSelector<GM_TC_METHOD_FLOAT16> {
 
 //----------
 
-template<> struct TCSelector<GM_TC_METHOD_FLOAT32> {
+template<> struct TCSelector<TC::FP32> {
   // types.
   typedef GMFp32 GemmIn_t;
   typedef GMFp32 GemmOut_t;
@@ -386,7 +386,7 @@ static void gm_tc_buf_write_(
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() == ComputeMethod::GPU) {
 
     // Kernel call.
 
@@ -410,7 +410,7 @@ static void gm_tc_buf_write_(
         ,
 #  endif
       tc_buf, vi32, vi32_dim0,
-      GMEnv_num_way(env), env->sparse, is_right, is_duo,
+      env->num_way(), env->sparse, is_right, is_duo,
       nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
 
     GMEnv_accel_last_call_succeeded(env);
@@ -422,14 +422,14 @@ static void gm_tc_buf_write_(
 
 #endif // USE_ACCEL
 
-  } else { // if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU)
+  } else { // if (env->compute_method() != ComputeMethod::GPU)
 
     for (int flD2_thisstep=0; flD2_thisstep<nflD2_thisstep; ++flD2_thisstep) {
       for (int vlX2=0; vlX2<nvleX2; ++vlX2) {
 
         gm_tc_buf_write_kernel_elt_<GemmIn_t>(
           tc_buf, vi32, vi32_dim0,
-          GMEnv_num_way(env), env->sparse, is_right, is_duo,
+          env->num_way(), env->sparse, is_right, is_duo,
           nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
           vlX2, flD2_thisstep);
 
@@ -455,7 +455,6 @@ static void gm_tc_solve_accelblasgemmex_(
   GMEnv* env) {
 
   GMInsist(env && dA && dB && dC);
-  //GMInsist(env->tc >= 1 && env->tc < GM_NUM_TC_METHOD);
 
   // See https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
   // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
@@ -473,7 +472,7 @@ static void gm_tc_solve_accelblasgemmex_(
 
   // Make BLAS call.
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() == ComputeMethod::GPU) {
 
 #ifdef USE_ACCEL
 
@@ -542,11 +541,11 @@ static void gm_tc_solve_accelblasgemmex_(
 
     GMEnv_accel_last_call_succeeded(env);
 
-  } else { // if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  } else { // if (env->compute_method() != ComputeMethod::GPU) {
 
 #ifdef USE_CPUBLAS
 
-    GMInsist(env->tc_eff() == Env::TC_FLOAT32);
+    GMInsist(env->tc_eff() == TC::FP32);
 
     const float alpha = 1;
     const float beta = 0;
@@ -588,7 +587,7 @@ static void gm_tc_solve_(
   GMInsist(nvl >= 0);
   GMInsist(nvll <= nvl);
   GMInsist(npvfl_thisstep >= 0);
-  GMInsist(env->tc_eff() != Env::TC_NONE);
+  GMInsist(env->tc_eff() != TC::NONE);
 
   const int nfl_thisstep = npvfl_thisstep * 64;
 
@@ -792,7 +791,7 @@ static void gm_tc_repair_metrics_(
 
   typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() == ComputeMethod::GPU) {
 
     // Kernel call.
 
@@ -827,7 +826,7 @@ static void gm_tc_repair_metrics_(
 
 #endif // USE_ACCEL
 
-  } else { // if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU)
+  } else { // if (env->compute_method() != ComputeMethod::GPU)
 
     for (int thread_c=0; thread_c<nvllD2; ++thread_c) {
       for (int thread_r=0; thread_r<nvl; ++thread_r) {
@@ -883,7 +882,7 @@ static void gm_tc_gemm_start_impl_(
   const int nvll = I_max_dim;
   GMInsist((size_t)nvll == gm_gemm_size_required(nvll, env));
 
-  const int num_steps = env->num_tc_steps;
+  const int num_steps = env->num_tc_steps_;
 
   // Loop over steps of algorithm.
   for (int step_num = 0; step_num < num_steps; ++step_num) {
@@ -901,7 +900,7 @@ static void gm_tc_gemm_start_impl_(
     // of values of a type suitable for the GEMM.
     const bool left_matrix = false; // A
     const bool right_matrix = true; // B
-    const bool is_duo = GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO;
+    const bool is_duo = env->metric_type() == MetricType::DUO;
     gm_tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
                      npvfl_thisstep, pvfl_min, dA, tc_bufs, is_duo, env);
     gm_tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
@@ -926,7 +925,7 @@ static void gm_tc_gemm_start_impl_(
 size_t gm_gemm_divisibility_required(GMEnv* const env) {
   GMInsist(env);
 
-  const bool need_divisible_by_4 = env->tc_eff() != Env::TC_NONE;
+  const bool need_divisible_by_4 = env->tc_eff() != TC::NONE;
 
   return need_divisible_by_4 ? 4 : 1;
 }
@@ -957,26 +956,26 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(k <= ldda);
   GMInsist(k <= lddb);
   GMInsist(m <= lddc);
-  GMInsist(env->tc_eff() != Env::TC_NONE);
-  GMInsist(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-           GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO);
+  GMInsist(env->tc_eff() != TC::NONE);
+  GMInsist(env->metric_type() == MetricType::CCC ||
+           env->metric_type() == MetricType::DUO);
 
   // Select required template function instance.
 
   switch (env->tc_eff()) {
     // --------------
-    case GM_TC_METHOD_INT8: {
-      gm_tc_gemm_start_impl_<GM_TC_METHOD_INT8>(
+    case TC::INT8: {
+      gm_tc_gemm_start_impl_<TC::INT8>(
         m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
     } break;
     // --------------
-    case GM_TC_METHOD_FLOAT16: {
-      gm_tc_gemm_start_impl_<GM_TC_METHOD_FLOAT16>(
+    case TC::FP16: {
+      gm_tc_gemm_start_impl_<TC::FP16>(
         m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
     } break;
     // --------------
-    case GM_TC_METHOD_FLOAT32: {
-      gm_tc_gemm_start_impl_<GM_TC_METHOD_FLOAT32>(
+    case TC::FP32: {
+      gm_tc_gemm_start_impl_<TC::FP32>(
         m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
     } break;
     // --------------
@@ -999,33 +998,33 @@ void gm_tc_bufs_malloc(int num_vector_local,
   GMInsist(!tc_bufs.tc_buf_left);
   GMInsist(!tc_bufs.tc_buf_right);
 
-  if (!(GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-        GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) ||
-      env->tc_eff() == Env::TC_NONE)
+  if (!(env->metric_type() == MetricType::CCC ||
+        env->metric_type() == MetricType::DUO) ||
+      env->tc_eff() == TC::NONE)
     return;
 
   // Calculate sizes.
 
   const size_t nvl = num_vector_local;
   const size_t npvfl = num_packedval_field_local;
-  const size_t npvfl_thisstep_max = gm_ceil_i8(npvfl, env->num_tc_steps);
+  const size_t npvfl_thisstep_max = gm_ceil_i8(npvfl, env->num_tc_steps_);
 
   const int sizeof_gemm_in_t =
-     env->tc_eff() == GM_TC_METHOD_INT8 ?
-       sizeof(typename TCSelector<GM_TC_METHOD_INT8>::GemmIn_t) :
-     env->tc_eff() == GM_TC_METHOD_FLOAT16 ?
-       sizeof(typename TCSelector<GM_TC_METHOD_FLOAT16>::GemmIn_t) :
-     env->tc_eff() == GM_TC_METHOD_FLOAT32 ?
-       sizeof(typename TCSelector<GM_TC_METHOD_FLOAT32>::GemmIn_t) :
+     env->tc_eff() == TC::INT8 ?
+       sizeof(typename TCSelector<TC::INT8>::GemmIn_t) :
+     env->tc_eff() == TC::FP16 ?
+       sizeof(typename TCSelector<TC::FP16>::GemmIn_t) :
+     env->tc_eff() == TC::FP32 ?
+       sizeof(typename TCSelector<TC::FP32>::GemmIn_t) :
      0;
-  GMInsist(GM_NUM_TC_METHOD == 4); // this code must be updated if new method
+  GMInsist(TC::is_valid(env->tc_eff())); // this code must be updated if new method
 
   const size_t nvlX2 = nvl * 2;
 
   tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64) * sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() == ComputeMethod::GPU) {
 
     // Allocate buffers.
 
@@ -1035,7 +1034,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #endif
     GMEnv_accel_last_call_succeeded(env);
-    gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
+    env->gpu_mem_inc(tc_bufs.tc_buf_size);
 
 #if defined USE_CUDA
     cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
@@ -1043,7 +1042,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #endif
     GMEnv_accel_last_call_succeeded(env);
-    gm_gpu_mem_inc(tc_bufs.tc_buf_size, env);
+    env->gpu_mem_inc(tc_bufs.tc_buf_size);
 
     // Set up accel blas handle.
 
@@ -1079,11 +1078,11 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
     tc_bufs.tc_buf_left = malloc(tc_bufs.tc_buf_size);
     GMInsist(tc_bufs.tc_buf_left);
-    gm_cpu_mem_inc(tc_bufs.tc_buf_size, env);
+    env->cpu_mem_inc(tc_bufs.tc_buf_size);
 
     tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
     GMInsist(tc_bufs.tc_buf_right);
-    gm_cpu_mem_inc(tc_bufs.tc_buf_size, env);
+    env->cpu_mem_inc(tc_bufs.tc_buf_size);
 
   } // compute_method
 }
@@ -1099,7 +1098,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
     return;
   }
 
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+  if (env->compute_method() == ComputeMethod::GPU) {
 
     // Free buffers.
 
@@ -1110,7 +1109,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 #endif
     GMEnv_accel_last_call_succeeded(env);
     tc_bufs.tc_buf_left = NULL;
-    gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
+    env->gpu_mem_dec(tc_bufs.tc_buf_size);
 
 #if defined USE_CUDA
     cudaFree(tc_bufs.tc_buf_right);
@@ -1119,7 +1118,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 #endif
     GMEnv_accel_last_call_succeeded(env);
     tc_bufs.tc_buf_right = NULL;
-    gm_gpu_mem_dec(tc_bufs.tc_buf_size, env);
+    env->gpu_mem_dec(tc_bufs.tc_buf_size);
 
     // Free accel blas handle.
 
@@ -1139,11 +1138,11 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 
     free(tc_bufs.tc_buf_left);
     tc_bufs.tc_buf_left = NULL;
-    gm_cpu_mem_dec(tc_bufs.tc_buf_size, env);
+    env->cpu_mem_dec(tc_bufs.tc_buf_size);
 
     free(tc_bufs.tc_buf_right);
     tc_bufs.tc_buf_right = NULL;
-    gm_cpu_mem_dec(tc_bufs.tc_buf_size, env);
+    env->cpu_mem_dec(tc_bufs.tc_buf_size);
 
   } // compute_method
 }

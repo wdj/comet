@@ -37,14 +37,14 @@ void gm_compute_2way_proc_nums_czek_start_(
   GMEnv* env) {
 
   GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
 
   /*----------------------------------------*/
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU && GMEnv_all2all(env)) {
+  if (env->compute_method() != ComputeMethod::GPU && env->all2all()) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                       "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -63,10 +63,10 @@ void gm_compute_2way_proc_nums_czek_start_(
     }   /*---for j---*/
 
     /*----------------------------------------*/
-  } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  } else if (env->compute_method() != ComputeMethod::GPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                       "num_proc_field>1 for CPU compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -85,7 +85,7 @@ void gm_compute_2way_proc_nums_czek_start_(
     }   /*---for j---*/
 
     /*----------------------------------------*/
-  } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
     /*----------------------------------------*/
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
@@ -123,14 +123,14 @@ void gm_compute_2way_proc_nums_ccc_start_(
   GMEnv* env) {
 
   GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
 
   /*----------------------------------------*/
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
+  if (env->compute_method() == ComputeMethod::REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                       "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -193,7 +193,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
           } /*---if ! unknown---*/
         } /*---for f---*/
-        if (GMEnv_all2all(env)) {
+        if (env->all2all()) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
@@ -202,10 +202,10 @@ void gm_compute_2way_proc_nums_ccc_start_(
     }   /*---for i---*/
 
     /*----------------------------------------*/
-  } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
+  } else if (env->compute_method() == ComputeMethod::CPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                       "num_proc_field>1 for CPU compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -329,7 +329,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
 #endif
 
-        if (GMEnv_all2all(env)) {
+        if (env->all2all()) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
@@ -340,7 +340,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
     /*----------------------------------------*/
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
@@ -378,14 +378,14 @@ void gm_compute_2way_proc_nums_duo_start_(
   GMEnv* env) {
 
   GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
 
   /*----------------------------------------*/
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
+  if (env->compute_method() == ComputeMethod::REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                       "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -428,7 +428,7 @@ void gm_compute_2way_proc_nums_duo_start_(
 
           } /*---if ! unknown---*/
         } /*---for f---*/
-        if (GMEnv_all2all(env)) {
+        if (env->all2all()) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
@@ -441,10 +441,10 @@ void gm_compute_2way_proc_nums_duo_start_(
     }   /*---for i---*/
 
     /*----------------------------------------*/
-  } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
+  } else if (env->compute_method() == ComputeMethod::CPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                       "num_proc_field>1 for CPU compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -537,7 +537,7 @@ void gm_compute_2way_proc_nums_duo_start_(
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
 #endif
 
-        if (GMEnv_all2all(env)) {
+        if (env->all2all()) {
           GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
@@ -552,7 +552,7 @@ void gm_compute_2way_proc_nums_duo_start_(
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
     /*----------------------------------------*/
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
@@ -593,23 +593,23 @@ void gm_compute_2way_proc_nums_start(
   GMEnv* env) {
 
   GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
 
-  switch (GMEnv_metric_type(env)) {
-    case GM_METRIC_TYPE_CZEK: {
+  switch (env->metric_type()) {
+    case MetricType::CZEK: {
       gm_compute_2way_proc_nums_czek_start_(
           vectors_left, vectors_right, metrics, vectors_left_buf,
           vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
           env);
     } break;
-    case GM_METRIC_TYPE_CCC: {
+    case MetricType::CCC: {
       gm_compute_2way_proc_nums_ccc_start_(
           vectors_left, vectors_right, metrics, vectors_left_buf,
           vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
           env);
     } break;
-    case GM_METRIC_TYPE_DUO: {
+    case MetricType::DUO: {
       gm_compute_2way_proc_nums_duo_start_(
           vectors_left, vectors_right, metrics, vectors_left_buf,
           vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,

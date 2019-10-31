@@ -53,8 +53,7 @@ void MetricsTest_3way_num_elts_local_() {
         char options[1024];
         sprintf(options, options_template, num_proc_mock, nvl);
 
-        comet::GMEnv env = comet::GMEnv_null();
-        comet::GMEnv_create(&env, options, num_proc_mock, proc_num_mock);
+        comet::Env env(options, num_proc_mock, proc_num_mock);
         env.num_stage = num_stage;
         env.stage_num = stage_num;
 
@@ -62,7 +61,6 @@ void MetricsTest_3way_num_elts_local_() {
         comet::GMMetrics_3way_num_elts_local(&metrics, nvl, &env);
         num_elts_local += metrics.num_elts_local;
 
-        comet::GMEnv_destroy(&env);
       } // for
     } // for
 
@@ -93,7 +91,7 @@ GTEST_API_ int main(int argc, char** argv) {
 
   ::testing::InitGoogleTest(&argc, argv);
 
-  MPI_Init(&argc, &argv);
+  COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
@@ -110,7 +108,7 @@ GTEST_API_ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&result, &result_g, 1, MPI_INT, MPI_MAX,
     MPI_COMM_WORLD));
 
-  MPI_Finalize();
+  COMET_MPI_SAFE_CALL(MPI_Finalize());
   return result_g;
 }
 

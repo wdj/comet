@@ -48,14 +48,14 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   GMInsist(this_ && metrics && env);
   GMInsist(vectors_i && vectors_j && vectors_k);
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(k_block >= 0 && k_block < env->num_block_vector());
   GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
               GMEnv_proc_num_vector_i(env) != k_block));
   GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
               GMEnv_proc_num_vector_i(env) != j_block));
-  GMInsist(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(env->compute_method() != ComputeMethod::GPU);
+  GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
@@ -74,11 +74,11 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   const GMVectorSums* const vs_k = vector_sums_k;
 
   /*----------------------------------------*/
-  if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU &&
-      ! GMEnv_all2all(env)) {
+  if (env->compute_method() != ComputeMethod::GPU &&
+      ! env->all2all()) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                   "num_proc_field>1 for REF/CPU compute_method not supported");
 
     GMInsist(gm_num_section_steps(env, 1) == 1 &&
@@ -121,10 +121,10 @@ void gm_compute_3way_nums_nongpu_czek_start_(
     }
 
     /*----------------------------------------*/
-  } else if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+  } else if (env->compute_method() != ComputeMethod::GPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                   "num_proc_field>1 for REF/CPU compute_method not supported");
 
     const bool no_perm = ! si->is_part3;
@@ -189,7 +189,7 @@ void gm_compute_3way_nums_nongpu_czek_start_(
     } //---J
 
     /*----------------------------------------*/
-  } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
     /*----------------------------------------*/
 
     GMInsist(false && "Invalid compute_method.");
@@ -221,14 +221,14 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
   GMInsist(this_ && metrics && env);
   GMInsist(vectors_i && vectors_j && vectors_k);
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMInsist(j_block >= 0 && j_block < GMEnv_num_block_vector(env));
-  GMInsist(k_block >= 0 && k_block < GMEnv_num_block_vector(env));
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(k_block >= 0 && k_block < env->num_block_vector());
   GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
               GMEnv_proc_num_vector_i(env) != k_block));
   GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
               GMEnv_proc_num_vector_i(env) != j_block));
-  GMInsist(GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU);
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(env->compute_method() != ComputeMethod::GPU);
+  GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
@@ -246,10 +246,10 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
   const GMVectorSums* const vs_k = vector_sums_k;
 
   /*----------------------------------------*/
-  if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_REF) {
+  if (env->compute_method() == ComputeMethod::REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                       "num_proc_field>1 for CPU compute_method not supported");
 
     const int nfal = vectors_i->dm->num_field_active_local;
@@ -389,7 +389,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
           const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-          if (GMEnv_all2all(env)) {
+          if (env->all2all()) {
             GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, sum, &index_cache, env);
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics,
@@ -420,10 +420,10 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     } /*---for J---*/
 
     /*----------------------------------------*/
-  } else if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_CPU) {
+  } else if (env->compute_method() == ComputeMethod::CPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce &&
+    GMInsistInterface(env, ! env->do_reduce() &&
                       "num_proc_field>1 for CPU compute_method not supported");
 
     /* clang-format off */
@@ -691,7 +691,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
           const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-          if (GMEnv_all2all(env)) {
+          if (env->all2all()) {
             GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, sum, &index_cache, env);
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics,
@@ -723,7 +723,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) */ {
+  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
     /*----------------------------------------*/
     GMInsist(false && "Invalid compute_method");
     /*----------------------------------------*/

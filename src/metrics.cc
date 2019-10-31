@@ -160,8 +160,8 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
                                    GMEnv* env) {
   GMInsist(metrics && env);
   GMInsist(nvl >= 0);
-  GMInsist(GMEnv_num_block_vector(env) <= 2 || nvl % 6 == 0);
-  GMInsist(GMEnv_num_way(env) == GM_NUM_WAY_3);
+  GMInsist(env->num_block_vector() <= 2 || nvl % 6 == 0);
+  GMInsist(env->num_way() == NUM_WAY::_3);
 
   metrics->num_elts_local = 0;
 
@@ -197,7 +197,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
 
   //---Compute size part 2: (triang prisms) i_block!=j_block==k_block part.
 
-  const int num_block = GMEnv_num_block_vector(env);
+  const int num_block = env->num_block_vector();
   const int num_section_steps_2 = gm_num_section_steps(env, 2);
   for (int section_step=0; section_step<num_section_steps_2; ++section_step) {
     //---Get slice bounds.
@@ -290,19 +290,19 @@ void GMMetrics_create(GMMetrics* metrics,
     return;
   }
 
-  GMInsistInterface(env, (GMEnv_metric_type(env) != GM_METRIC_TYPE_DUO ||
+  GMInsistInterface(env, (env->metric_type() != MetricType::DUO ||
                           env->sparse) && "DUO method requires sparse input.");
 
-  GMInsistInterface(env, (GMEnv_all2all(env) || GMEnv_num_proc_repl(env) == 1)
+  GMInsistInterface(env, (env->all2all() || env->num_proc_repl() == 1)
           && "Multidim parallelism only available for all2all case");
 
   /*---The following less important cases are not yet tested---*/
 
-  GMInsistInterface(env, (GMEnv_all2all(env) ||
+  GMInsistInterface(env, (env->all2all() ||
                     dm->num_field == dm->num_field_active)
                     && "This case currently not supported.");
 
-  GMInsistInterface(env, (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU ||
+  GMInsistInterface(env, (env->compute_method() == ComputeMethod::GPU ||
                     dm->num_field == dm->num_field_active)
                     && "This case currently not supported.");
 
@@ -331,18 +331,17 @@ void GMMetrics_create(GMMetrics* metrics,
 
   metrics->num_vector = dm->num_vector;
 
-  const int num_block = GMEnv_num_block_vector(env);
-  int mpi_code = 0;
+  const int num_block = env->num_block_vector();
 
   GMInsistInterface(
       env,
-      metrics->num_vector_local >= GMEnv_num_way(env)
+      metrics->num_vector_local >= env->num_way()
         && "Currently require number of vecs on a proc to be at least num-way");
 
   const int i_block = GMEnv_proc_num_vector_i(env);
 
   const size_t nchoosek = gm_nchoosek(metrics->num_vector_local,
-                                      GMEnv_num_way(env));
+                                      env->num_way());
   const int nvl = metrics->num_vector_local;
   const size_t nvlsq = nvl * (size_t)nvl;
 
@@ -360,7 +359,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_elts_local_computed = 0;
 
   /*==================================================*/
-  if (GMEnv_num_way(env) == GM_NUM_WAY_2 && GMEnv_all2all(env)) {
+  if (env->num_way() == NUM_WAY::_2 && env->all2all()) {
   /*==================================================*/
 
     GMInsistInterface(env, env->num_stage == 1
@@ -379,7 +378,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*===PART A: CALCULATE INDEX SIZE===*/
     const int proc_num_r = GMEnv_proc_num_repl(env);
-    const int num_proc_r = GMEnv_num_proc_repl(env);
+    const int num_proc_r = env->num_proc_repl();
     metrics->num_elts_local = 0;
 
     /*---PART A.1: (triangle) i_block==j_block part---*/
@@ -453,7 +452,7 @@ void GMMetrics_create(GMMetrics* metrics,
     GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
-  } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && GMEnv_all2all(env)) {
+  } else if (env->num_way() == NUM_WAY::_3 && env->all2all()) {
   /*==================================================*/
 
     GMInsistInterface(env, env->num_phase <= gm_num_section_blocks(env)
@@ -629,7 +628,7 @@ void GMMetrics_create(GMMetrics* metrics,
     GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
-  } else if (GMEnv_num_way(env) == GM_NUM_WAY_2 && ! GMEnv_all2all(env)) {
+  } else if (env->num_way() == NUM_WAY::_2 && ! env->all2all()) {
   /*==================================================*/
 
     GMInsistInterface(env, env->num_stage == 1 &&
@@ -656,7 +655,7 @@ void GMMetrics_create(GMMetrics* metrics,
     GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
-  } else if (GMEnv_num_way(env) == GM_NUM_WAY_3 && ! GMEnv_all2all(env)) {
+  } else if (env->num_way() == NUM_WAY::_3 && ! env->all2all()) {
   /*==================================================*/
 
     GMInsistInterface(env, env->num_stage == 1
@@ -697,19 +696,17 @@ void GMMetrics_create(GMMetrics* metrics,
   }
 
   size_t num_elts = 0;
-  mpi_code = MPI_Allreduce(&metrics->num_elts_local, &num_elts, 1,
-                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           env->comm_repl_vector());
-  GMInsist(mpi_code == MPI_SUCCESS);
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics->num_elts_local, &num_elts, 1,
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
-  if (GMEnv_num_way(env) == GM_NUM_WAY_2 &&
-      env->num_phase == 1 && GMEnv_all2all(env)) {
+  if (env->num_way() == NUM_WAY::_2 &&
+      env->num_phase == 1 && env->all2all()) {
     GMInsist(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) / 2);
   }
 
-  if (GMEnv_num_way(env) == GM_NUM_WAY_3 && env->num_stage == 1 &&
-      env->num_phase == 1 && GMEnv_all2all(env)) {
+  if (env->num_way() == NUM_WAY::_3 && env->num_stage == 1 &&
+      env->num_phase == 1 && env->all2all()) {
     GMInsist(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) * (size_t)
                                (metrics->num_vector - 2) / 6);
@@ -793,14 +790,11 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
-  GMAssert(coord_num >= 0 && coord_num < GMEnv_num_way(env));
+  GMAssert(coord_num >= 0 && coord_num < env->num_way());
 
   size_t result64 = 0;
 
-  GMAssert(GMEnv_num_way(env) <= GM_NUM_NUM_WAY + 1
-               && "this num_way currently not supported");
-
-  switch (GMEnv_num_way(env) + 4 * coord_num) {
+  switch (env->num_way() + 4 * coord_num) {
     case 2 + 4 * 0: /* 2-way, coord 0 */
       result64 = GMMetrics_coord0_global_from_index_2(metrics, index, env);
       break;
@@ -839,15 +833,15 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 //}
 //}
 
-  if (! ((GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC ||
-          GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO) &&
-         GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU)) {
+  if (! ((env->metric_type() == MetricType::CCC ||
+          env->metric_type() == MetricType::DUO) &&
+         env->compute_method() == ComputeMethod::GPU)) {
     return;
   }
 
   // TODO: should more of this be owned by decomp_mgr
 
-  const bool count_2 = GMEnv_metric_type(env) == GM_METRIC_TYPE_CCC;
+  const bool count_2 = env->metric_type() == MetricType::CCC;
 
   const int pad_adjustment = (count_2 ? 4 : 1) * metrics->dm->num_pad_field_local;
 

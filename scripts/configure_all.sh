@@ -82,9 +82,9 @@ function main
     true # skip
   elif [ $COMET_PLATFORM = CRAY_XK7 ] ; then
     local INSTALLS_DIR=/lustre/atlas/scratch/$(whoami)/$OLCF_PROJECT/comet_work
-#FIX  elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
-#FIX    #local INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
-#FIX    local INSTALLS_DIR=$MEMBERWORK/$OLCF_PROJECT/comet_work
+  elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
+    local INSTALLS_DIR=$MEMBERWORK/$OLCF_PROJECT/comet_work
+    #local INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
   elif [ $COMET_PLATFORM = EDISON ] ; then
     local INSTALLS_DIR="$SCRATCH/comet"
   else

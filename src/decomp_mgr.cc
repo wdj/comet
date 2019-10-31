@@ -31,9 +31,9 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
 
   const size_t factor_4 = gm_gemm_divisibility_required(env);
 
-  const bool need_divisible_by_6 = GMEnv_num_way(env) == GM_NUM_WAY_3 &&
-                                   GMEnv_all2all(env) &&
-                                   GMEnv_num_proc_vector_i(env) > 2;
+  const bool need_divisible_by_6 = env->num_way() == NUM_WAY::_3 &&
+                                   env->all2all() &&
+                                   env->num_proc_vector() > 2;
 
   const size_t lcm = (! need_divisible_by_6) ? factor_4 :
                      factor_4 % 2 == 0 ? 3 * factor_4 : 6 * factor_4;
@@ -87,16 +87,16 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                                dm->num_vector_active_local, env);
 #endif
     dm->num_vector_active = dm->num_vector_active_local *
-                            GMEnv_num_proc_vector_i(env);
-    dm->num_vector = dm->num_vector_local * GMEnv_num_proc_vector_i(env);
+                            env->num_proc_vector();
+    dm->num_vector = dm->num_vector_local * env->num_proc_vector();
   } else { // ! vectors_by_local
     dm->num_vector_active = num_vector_specifier;
     // Pad up as needed, require every proc has same number
-    const int num_proc = GMEnv_num_proc_vector_i(env);
+    const int num_proc = env->num_proc_vector();
     const int proc_num = GMEnv_proc_num_vector_i(env);
     //dm->num_vector_local = gm_ceil_i8(dm->num_vector_active, num_proc);
     dm->num_vector_local = gm_num_vector_local_required(
-      gm_ceil_i8(dm->num_vector_active, GMEnv_num_proc_vector_i(env)), env);
+      gm_ceil_i8(dm->num_vector_active, env->num_proc_vector()), env);
     dm->num_vector = dm->num_vector_local * num_proc;
     // Lower procs fully packed with active values
     // Upper procs fully inactive
@@ -114,38 +114,23 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   // Check the sizes
   //--------------------
 
-  int mpi_code = 0;
   size_t sum = 0;
-
-#if 0
-printf("%i %i %i %i %i\n",
-(int)GMEnv_num_proc_vector_i(env),
-(int)dm->num_vector_active,
-(int)dm->num_vector,
-(int)dm->num_vector_active_local,
-(int)dm->num_vector_local
-);
-#endif
 
   GMInsist(dm->num_vector_active >= 0 &&
            dm->num_vector_active <= dm->num_vector);
   GMInsist(dm->num_vector_active_local >= 0 &&
            dm->num_vector_active_local <= dm->num_vector_local);
 
-  mpi_code = MPI_Allreduce(&dm->num_vector_local, &sum, 1,
-                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           env->comm_repl_vector());
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
-  GMInsist(sum == dm->num_vector_local * GMEnv_num_proc_repl_vector(env) &&
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_vector_local, &sum, 1,
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
+  GMInsist(sum == dm->num_vector_local * env->num_proc_repl_vector() &&
            "Every process must have the same number of vectors.");
-  GMInsist(sum == dm->num_vector * GMEnv_num_proc_repl(env) &&
+  GMInsist(sum == dm->num_vector * env->num_proc_repl() &&
            "Error in local/global sizes computation.");
 
-  mpi_code = MPI_Allreduce(&dm->num_vector_active_local, &sum, 1,
-                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           env->comm_repl_vector());
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
-  GMInsist(sum == dm->num_vector_active * GMEnv_num_proc_repl(env) &&
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_vector_active_local, &sum, 1,
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
+  GMInsist(sum == dm->num_vector_active * env->num_proc_repl() &&
            "Error in local/global sizes computation.");
 
   //--------------------
@@ -155,13 +140,13 @@ printf("%i %i %i %i %i\n",
   if (fields_by_local) {
     dm->num_field_active_local = num_field_specifier;
     dm->num_field_local = dm->num_field_active_local;
-    dm->num_field = dm->num_field_local * GMEnv_num_proc_field(env);
+    dm->num_field = dm->num_field_local * env->num_proc_field();
     dm->num_field_active = dm->num_field;
     dm->field_base = dm->num_field_local * GMEnv_proc_num_field(env);
   } else { // ! fields_by_local
     dm->num_field_active = num_field_specifier;
     // Pad up as needed so that every proc has same number
-    const int num_proc = GMEnv_num_proc_field(env);
+    const int num_proc = env->num_proc_field();
     const int proc_num = GMEnv_proc_num_field(env);
     dm->num_field_local = gm_ceil_i8(dm->num_field_active, num_proc);
     dm->num_field = dm->num_field_local * num_proc;
@@ -189,19 +174,15 @@ printf("%i %i %i %i %i\n",
   GMInsist(dm->num_field_active_local >= 0 &&
            dm->num_field_active_local <= dm->num_field_local);
 
-  mpi_code = MPI_Allreduce(&dm->num_field_local, &sum, 1,
-                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           env->comm_field());
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
-  GMInsist(sum == dm->num_field_local * GMEnv_num_proc_field(env) &&
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_field_local, &sum, 1,
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_field()));
+  GMInsist(sum == dm->num_field_local * env->num_proc_field() &&
            "Every process must have the same number of fields.");
   GMInsist(sum == dm->num_field &&
            "Error in local/global sizes computation.");
 
-  mpi_code = MPI_Allreduce(&dm->num_field_active_local, &sum, 1,
-                           MPI_UNSIGNED_LONG_LONG, MPI_SUM,
-                           env->comm_field());
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_field_active_local, &sum, 1,
+    MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_field()));
   GMInsist(sum == dm->num_field_active &&
            "Error in local/global sizes computation.");
 
@@ -226,8 +207,8 @@ printf("%i %i %i %i %i\n",
       // have 2-way method on-proc be exact, then for 3-way combining
       // or num_proc_field>1 drop low order bits to allow to fit.
       const int table_entry_limit =
-        GMEnv_metric_type(env) == GM_METRIC_TYPE_DUO ?
-        1 : 1 << GMEnv_num_way(env);
+        env->metric_type() == MetricType::DUO ?
+        1 : 1 << env->num_way();
       GMInsistInterface(env,
                ((uint64_t)(table_entry_limit * dm->num_field)) <
                        (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)

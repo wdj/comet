@@ -27,17 +27,15 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int mpi_tag,
                                   GMEnv* env) {
   GMInsist(vectors && env);
-  GMInsist(proc_num >= 0 && proc_num < GMEnv_num_proc_repl_vector(env));
+  GMInsist(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
 
   MPI_Request mpi_request;
 
   const MPI_Datatype mpi_type = gm_mpi_type(env);
 
-  const int mpi_code =
-      MPI_Isend((void*)vectors->data, vectors->num_packedval_local, mpi_type,
-                proc_num, mpi_tag, env->comm_repl_vector(),
-                &mpi_request);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Isend.");
+  COMET_MPI_SAFE_CALL(MPI_Isend((void*)vectors->data,
+    vectors->num_packedval_local, mpi_type, proc_num, mpi_tag
+  , env->comm_repl_vector(), &mpi_request));
 
   return mpi_request;
 }
@@ -49,17 +47,15 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   int mpi_tag,
                                   GMEnv* env) {
   GMInsist(vectors && env);
-  GMInsist(proc_num >= 0 && proc_num < GMEnv_num_proc_repl_vector(env));
+  GMInsist(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
 
   MPI_Request mpi_request;
 
   const MPI_Datatype mpi_type = gm_mpi_type(env);
 
-  const int mpi_code =
-      MPI_Irecv((void*)vectors->data, vectors->num_packedval_local, mpi_type,
-                proc_num, mpi_tag, env->comm_repl_vector(),
-                &mpi_request);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Irecv.");
+  COMET_MPI_SAFE_CALL(MPI_Irecv((void*)vectors->data,
+    vectors->num_packedval_local, mpi_type, proc_num, mpi_tag,
+    env->comm_repl_vector(), &mpi_request));
 
   return mpi_request;
 }
@@ -71,8 +67,7 @@ void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 
   MPI_Status mpi_status;
 
-  const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Wait.");
+  COMET_MPI_SAFE_CALL(MPI_Wait(mpi_request, &mpi_status));
 }
 
 //-----------------------------------------------------------------------------
@@ -82,8 +77,7 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 
   MPI_Status mpi_status;
 
-  const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Wait.");
+  COMET_MPI_SAFE_CALL(MPI_Wait(mpi_request, &mpi_status));
 }
 
 //=============================================================================
@@ -100,11 +94,9 @@ void gm_reduce_metrics(GMMetrics* metrics,
 
   const MPI_Datatype mpi_type = gm_mpi_type(env);
 
-  const int mpi_code = MPI_Allreduce(metrics_buf_source->h,
-                                     metrics_buf_target->h,
-                                     nvl * (size_t)nvl, mpi_type, MPI_SUM,
-                                     env->comm_field());
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Allreduce.");
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(metrics_buf_source->h,
+    metrics_buf_target->h, nvl * (size_t)nvl, mpi_type, MPI_SUM,
+    env->comm_field()));
 }
 
 //-----------------------------------------------------------------------------
@@ -121,12 +113,9 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
   const MPI_Datatype mpi_type = gm_mpi_type(env);
 
   MPI_Request mpi_request;
-  const int mpi_code = MPI_Iallreduce(metrics_buf_source->h,
-                                      metrics_buf_target->h,
-                                      nvl * (size_t)nvl, mpi_type, MPI_SUM,
-                                      env->comm_field(),
-                                      &mpi_request);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Iallreduce.");
+  COMET_MPI_SAFE_CALL(MPI_Iallreduce(metrics_buf_source->h,
+    metrics_buf_target->h, nvl * (size_t)nvl, mpi_type, MPI_SUM,
+    env->comm_field(), &mpi_request));
 
   return mpi_request;
 }
@@ -138,8 +127,7 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
 
   MPI_Status mpi_status;
 
-  const int mpi_code = MPI_Wait(mpi_request, &mpi_status);
-  GMInsist(mpi_code == MPI_SUCCESS && "Failure in call to MPI_Wait.");
+  COMET_MPI_SAFE_CALL(MPI_Wait(mpi_request, &mpi_status));
 }
 
 //=============================================================================

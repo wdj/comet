@@ -12,6 +12,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "math.h"
+#include "string"
 
 #include "gtest/gtest.h"
 
@@ -31,14 +32,11 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 
 bool can_run(const char* options) {
 
-  using namespace comet;
-
   GMInsist(options);
 
-  GMEnv env_val, *env = &env_val;
-  GMEnv_create(env, options);
+  comet::Env env(options);
 
-  return env->can_run();
+  return env.can_run();
 }
 
 //=============================================================================
@@ -50,19 +48,18 @@ bool compare_2runs(const char* options1, const char* options2) {
     return true;
   }
 
-  int proc_num = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
-
   /*---Do runs---*/
 
-  if (proc_num == 0) {
+  const bool is_proc_num_0 = comet::System::is_proc_num_0();
+
+  if (is_proc_num_0) {
     printf("%s\n", options1);
   }
 
   comet::Checksum checksum1;
   comet::perform_run(checksum1, options1);
 
-  if (proc_num == 0) {
+  if (is_proc_num_0) {
     printf("%s\n", options2);
   }
 
@@ -71,8 +68,7 @@ bool compare_2runs(const char* options1, const char* options2) {
 
   /*---Need test result only on proc 0---*/
 
-  const bool is_passed = proc_num != 0 ? true :
-                         checksum1.is_equal(checksum2);
+  const bool is_passed = is_proc_num_0 ? checksum1.is_equal(checksum2) : true;;
 
   return is_passed;
 }
@@ -88,24 +84,23 @@ bool compare_3runs(const char* options1,
     return true;
   }
 
-  int proc_num = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
-
   /*---Do runs---*/
 
-  if (proc_num == 0) {
+  const bool is_proc_num_0 = comet::System::is_proc_num_0();
+
+  if (is_proc_num_0) {
     printf("%s\n", options1);
   }
   comet::Checksum checksum1;
   comet::perform_run(checksum1, options1);
 
-  if (proc_num == 0) {
+  if (is_proc_num_0) {
     printf("%s\n", options2);
   }
   comet::Checksum checksum2;
   comet::perform_run(checksum2, options2);
 
-  if (proc_num == 0) {
+  if (is_proc_num_0) {
     printf("%s\n", options3);
   }
   comet::Checksum checksum3;
@@ -113,9 +108,8 @@ bool compare_3runs(const char* options1,
 
   /*---Need test result only on proc 0---*/
 
-  const bool is_passed = proc_num != 0 ? true :
-                         checksum1.is_equal(checksum2) &&
-                         checksum1.is_equal(checksum3);
+  const bool is_passed = is_proc_num_0 ?  checksum1.is_equal(checksum2) &&
+                                          checksum1.is_equal(checksum3) : true;
   return is_passed;
 }
 
@@ -134,11 +128,11 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
 
   using namespace comet;
 
-  GMEnv env_value = GMEnv_null(), *env = &env_value;
-  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
-  env->metric_type_ = metric_type;
-  env->num_way_ = num_way;
-  GMEnv_set_num_proc(env, 1, 1, 1);
+  std:: string options = " --num_way " + std::to_string(num_way);
+  options += " --metric_type " + std::string(MetricType::str(metric_type));
+  options += " --num_proc_vector " + std::to_string(1);
+  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, false, false, num_field, num_vector,
@@ -152,7 +146,6 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
 
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  GMEnv_destroy(env);
 }
 
 //=============================================================================
@@ -169,7 +162,6 @@ void DriverTest_czek_() {
                     "--compute_method CPU",
                     "--num_proc_vector 1 --num_field 1 --num_vector_local 2 "
                     "--compute_method GPU"));
-
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_vector 1 --num_field 100 --num_vector_local 48 "
@@ -583,7 +575,7 @@ void DriverTest_czek_() {
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 10; ++num_field) {
       create_vectors_file("czek_2way_in.bin", num_field, num_vector,
-                          comet::GM_METRIC_TYPE_CZEK, 2, comet::problem_type_default(), 1);
+                          comet::MetricType::CZEK, 2, comet::problem_type_default(), 1);
       for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=5; ++num_proc_field) {
 
@@ -618,14 +610,13 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   const int num_field = 5;
   const int num_vector_local = 2;
 
-  GMEnv env_value = GMEnv_null();
-  GMEnv* env = &env_value;
-  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
-  env->metric_type_ = GM_METRIC_TYPE_CCC;
-  env->num_way_ = 2;
-  env->all2all_ = false;
-  GMEnv_set_compute_method(env, compute_method);
-  GMEnv_set_num_proc(env, 1, 1, 1);
+  std:: string options = " --num_way " + std::to_string(2);
+  options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
+  options += " --all2all no";
+  options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
+  options += " --num_proc_vector " + std::to_string(1);
+  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
@@ -706,15 +697,15 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  GMEnv_destroy(env);
+  //GMEnv_destroy(env);
 } // DriverTest_ccc2_simple_compute_method
 
 //=============================================================================
 
 void DriverTest_ccc2_simple_() {
-  DriverTest_ccc2_simple_compute_method(comet::GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc2_simple_compute_method(comet::GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc2_simple_compute_method(comet::GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc2_simple_compute_method(comet::ComputeMethod::REF);
+  DriverTest_ccc2_simple_compute_method(comet::ComputeMethod::CPU);
+  DriverTest_ccc2_simple_compute_method(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -726,15 +717,14 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   const int num_field = 5;
   const int num_vector_local = 2;
 
-  GMEnv env_value = GMEnv_null();
-  GMEnv* env = &env_value;
-  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
-  env->metric_type_ = GM_METRIC_TYPE_CCC;
-  env->num_way_ = 2;
-  env->all2all_ = false;
-  GMEnv_set_compute_method(env, compute_method);
-  GMEnv_set_num_proc(env, 1, 1, 1);
-  env->sparse = true;
+  std:: string options = " --num_way " + std::to_string(2);
+  options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
+  options += " --all2all no";
+  options += " --sparse yes";
+  options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
+  options += " --num_proc_vector " + std::to_string(1);
+  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
@@ -869,15 +859,15 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  GMEnv_destroy(env);
+  //GMEnv_destroy(env);
 } // DriverTest_ccc2_simple_sparse_compute_method
 
 //=============================================================================
 
 void DriverTest_ccc2_simple_sparse_() {
-  DriverTest_ccc2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc2_simple_sparse_compute_method(comet::ComputeMethod::REF);
+  DriverTest_ccc2_simple_sparse_compute_method(comet::ComputeMethod::CPU);
+  DriverTest_ccc2_simple_sparse_compute_method(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -889,15 +879,14 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   const int num_field = 5;
   const int num_vector_local = 2;
 
-  GMEnv env_value = GMEnv_null();
-  GMEnv* env = &env_value;
-  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
-  env->metric_type_ = GM_METRIC_TYPE_DUO;
-  env->num_way_ = 2;
-  env->all2all_ = false;
-  GMEnv_set_compute_method(env, compute_method);
-  GMEnv_set_num_proc(env, 1, 1, 1);
-  env->sparse = true;
+  std:: string options = " --num_way " + std::to_string(2);
+  options += " --metric_type " + std::string(MetricType::str(MetricType::DUO));
+  options += " --all2all no";
+  options += " --sparse yes";
+  options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
+  options += " --num_proc_vector " + std::to_string(1);
+  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
@@ -1022,15 +1011,15 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  GMEnv_destroy(env);
+  //GMEnv_destroy(env);
 } // DriverTest_duo2_simple_sparse_compute_method
 
 //=============================================================================
 
 void DriverTest_duo2_simple_sparse_() {
-  DriverTest_duo2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_REF);
-  DriverTest_duo2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_CPU);
-  DriverTest_duo2_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_GPU);
+  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::REF);
+  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::CPU);
+  DriverTest_duo2_simple_sparse_compute_method(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -1042,14 +1031,13 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   const int num_field = 10;
   const int num_vector_local = 3;
 
-  GMEnv env_value = GMEnv_null();
-  GMEnv* env = &env_value;
-  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
-  env->metric_type_ = GM_METRIC_TYPE_CCC;
-  env->num_way_ = 3;
-  env->all2all_ = true;
-  GMEnv_set_compute_method(env, compute_method);
-  GMEnv_set_num_proc(env, 1, 1, 1);
+  std:: string options = " --num_way " + std::to_string(3);
+  options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
+  options += " --all2all yes";
+  options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
+  options += " --num_proc_vector " + std::to_string(1);
+  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
@@ -1181,15 +1169,15 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  GMEnv_destroy(env);
+  //GMEnv_destroy(env);
 } // DriverTest_ccc3_simple_compute_method
 
 //=============================================================================
 
 void DriverTest_ccc3_simple_() {
-  DriverTest_ccc3_simple_compute_method(comet::GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc3_simple_compute_method(comet::GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc3_simple_compute_method(comet::GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc3_simple_compute_method(comet::ComputeMethod::REF);
+  DriverTest_ccc3_simple_compute_method(comet::ComputeMethod::CPU);
+  DriverTest_ccc3_simple_compute_method(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -1201,15 +1189,14 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   const int num_field = 10;
   const int num_vector_local = 3;
 
-  GMEnv env_value = GMEnv_null();
-  GMEnv* env = &env_value;
-  GMEnv_create(env, MPI_COMM_WORLD, 0, NULL, NULL);
-  env->metric_type_ = GM_METRIC_TYPE_CCC;
-  env->num_way_ = 3;
-  env->all2all_ = true;
-  GMEnv_set_compute_method(env, compute_method);
-  GMEnv_set_num_proc(env, 1, 1, 1);
-  env->sparse = true;
+  std:: string options = " --num_way " + std::to_string(3);
+  options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
+  options += " --all2all yes";
+  options += " --sparse yes";
+  options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
+  options += " --num_proc_vector " + std::to_string(1);
+  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
@@ -1450,21 +1437,27 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  GMEnv_destroy(env);
+  //GMEnv_destroy(env);
 } // DriverTest_ccc3_simple_sparse_compute_method
 
 //=============================================================================
 
 void DriverTest_ccc3_simple_sparse_() {
-  DriverTest_ccc3_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_REF);
-  DriverTest_ccc3_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_CPU);
-  DriverTest_ccc3_simple_sparse_compute_method(comet::GM_COMPUTE_METHOD_GPU);
+  DriverTest_ccc3_simple_sparse_compute_method(comet::ComputeMethod::REF);
+  DriverTest_ccc3_simple_sparse_compute_method(comet::ComputeMethod::CPU);
+  DriverTest_ccc3_simple_sparse_compute_method(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
 
 void DriverTest_ccc_duo_(const char* const metric_type) {
   const bool is_duo = metric_type[0] == 'd';
+
+  char options1[1024];
+  char options2[1024];
+  char options3[1024];
+//FIX
+#if 1
 
   {
     char options1[1024];
@@ -1499,12 +1492,6 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
     }
     }
   }
-
-//FIX
-#if 1
-  char options1[1024];
-  char options2[1024];
-  char options3[1024];
 
   //----------
   //---2-way, all2all no
@@ -1869,7 +1856,7 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
   EXPECT_EQ(true, compare_2runs(options1, options2));
 
   int proc_num = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &proc_num);
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &proc_num));
 
   sprintf(options1, options_template_11a, metric_type, 1);
   sprintf(options2, options_template_11b, metric_type, 1, ((double)1) / ((double)2));
@@ -1902,6 +1889,8 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
       }
     }
   }
+//FIX
+#endif
 
   //----------
   //---2-way, all2all yes, large, sparse
@@ -1959,7 +1948,7 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
   for (int num_vector = 13; num_vector <= 13; ++num_vector) {
     for (int num_field = 1; num_field <= 3*300; ++num_field) {
       create_vectors_file("ccc_duo_2way_in.bin", num_field, num_vector,
-                          comet::GM_METRIC_TYPE_CCC, 2, comet::problem_type_default(), 1);
+                          comet::MetricType::CCC, 2, comet::problem_type_default(), 1);
       for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
 
@@ -2041,7 +2030,8 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
       test_2runs(options1, options2);
     }
   }
-#endif
+//FIX
+//#endif
 } // DriverTest_ccc__duo_
 
 //=============================================================================
@@ -2096,7 +2086,7 @@ GTEST_API_ int main(int argc, char** argv) {
 
   ::testing::InitGoogleTest(&argc, argv);
 
-  MPI_Init(&argc, &argv);
+  COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
@@ -2114,7 +2104,7 @@ GTEST_API_ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&result, &result_g, 1, MPI_INT, MPI_MAX,
     MPI_COMM_WORLD));
 
-  MPI_Finalize();
+  COMET_MPI_SAFE_CALL(MPI_Finalize());
   return result_g;
 }
 

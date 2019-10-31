@@ -20,11 +20,11 @@ namespace comet {
 
 static int gm_bdiag_computed_max_allphase(GMEnv* env) {
   GMAssert(env);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(GMEnv_all2all(env));
+  GMAssert(env->num_way() == NUM_WAY::_2);
+  GMAssert(env->all2all());
 
   /*---Max number of blocks of any block row computed on all phases---*/
-  const int num_block = GMEnv_num_block_vector(env);
+  const int num_block = env->num_block_vector();
   return 1 + num_block / 2;
 }
 
@@ -32,8 +32,8 @@ static int gm_bdiag_computed_max_allphase(GMEnv* env) {
 
 static int gm_bdiag_computed_min(GMEnv* env) {
   GMAssert(env);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(GMEnv_all2all(env));
+  GMAssert(env->num_way() == NUM_WAY::_2);
+  GMAssert(env->all2all());
 
   // First block diag computed for this phase (min across vec procs)
   const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
@@ -44,8 +44,8 @@ static int gm_bdiag_computed_min(GMEnv* env) {
 
 static int gm_bdiag_computed_max(GMEnv* env) {
   GMAssert(env);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(GMEnv_all2all(env));
+  GMAssert(env->num_way() == NUM_WAY::_2);
+  GMAssert(env->all2all());
 
   // 1 + last block diag computed for this phase (max across vec procs)
   const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
@@ -56,8 +56,8 @@ static int gm_bdiag_computed_max(GMEnv* env) {
 
 static int gm_block_computed_this_row_min(GMEnv* env) {
   GMAssert(env);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(GMEnv_all2all(env));
+  GMAssert(env->num_way() == NUM_WAY::_2);
+  GMAssert(env->all2all());
 
   return gm_bdiag_computed_min(env);
 }
@@ -66,10 +66,10 @@ static int gm_block_computed_this_row_min(GMEnv* env) {
 
 static int gm_block_computed_this_row_max(GMEnv* env) {
   GMAssert(env);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(GMEnv_all2all(env));
+  GMAssert(env->num_way() == NUM_WAY::_2);
+  GMAssert(env->all2all());
 
-  const int num_block = GMEnv_num_block_vector(env);
+  const int num_block = env->num_block_vector();
   const int i_block = GMEnv_proc_num_vector_i(env);
 
   const bool is_row_short_by_1 = num_block % 2 == 0 && 2*i_block >= num_block;
@@ -88,14 +88,14 @@ static int gm_block_computed_this_row_max(GMEnv* env) {
 
 static int gm_blocks_computed_this_row(GMEnv* env) {
   GMAssert(env);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(GMEnv_all2all(env));
+  GMAssert(env->num_way() == NUM_WAY::_2);
+  GMAssert(env->all2all());
 
   // num block diags computed for this phase, all repl procs (this vec proc)
   const int n = gm_block_computed_this_row_max(env) -
                 gm_block_computed_this_row_min(env);
   GMAssert(n >= 0);
-  GMAssert(n <= GMEnv_num_block_vector(env));
+  GMAssert(n <= env->num_block_vector());
   return n;
 }
 
@@ -113,8 +113,8 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
                                            int j,
                                            GMEnv* env) {
   GMAssert(metrics && env);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(! GMEnv_all2all(env));
+  GMAssert(env->num_way() == NUM_WAY::_2);
+  GMAssert(! env->all2all());
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);
@@ -153,9 +153,9 @@ static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
                                                   GMEnv* env) {
   GMAssert(j_block != GMEnv_proc_num_vector_i(env));
 
-  const int num_block = GMEnv_num_block_vector(env);
+  const int num_block = env->num_block_vector();
 
-  const int num_proc_r = GMEnv_num_proc_repl(env);
+  const int num_proc_r = env->num_proc_repl();
 
   const int block_min = metrics->block_min;
 
@@ -175,14 +175,14 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
                                                    int j_block,
                                                    GMEnv* env) {
   GMAssert(metrics && env);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
-  GMAssert(GMEnv_all2all(env));
+  GMAssert(env->num_way() == NUM_WAY::_2);
+  GMAssert(env->all2all());
   GMAssert(i >= 0);
   GMAssert(i < metrics->num_vector_local);
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(j_block >= 0);
-  GMAssert(j_block < GMEnv_num_block_vector(env));
+  GMAssert(j_block < env->num_block_vector());
   GMAssert(i < j || j_block != GMEnv_proc_num_vector_i(env));
 //  GMAssert(GMEnv_proc_num_repl(env) == 0 ||
 //           j_block != GMEnv_proc_num_vector(env)); // DEFUNCT
@@ -207,7 +207,7 @@ static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
                                                 GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(env->num_way() == NUM_WAY::_2);
 
 
   const size_t i64 = metrics->coords_global_from_index[index] %
@@ -225,7 +225,7 @@ static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
                                                 GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
-  GMAssert(GMEnv_num_way(env) == GM_NUM_WAY_2);
+  GMAssert(env->num_way() == NUM_WAY::_2);
 
   const size_t j64 = metrics->coords_global_from_index[index] /
                      metrics->num_vector;

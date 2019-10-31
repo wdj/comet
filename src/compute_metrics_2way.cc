@@ -33,7 +33,7 @@ void GMComputeMetrics2Way_create(
     GMEnv* env) {
   GMInsist(this_ && dm && env);
 
-  if (!(GMEnv_num_way(env) == 2 && GMEnv_all2all(env))) {
+  if (!(env->num_way() == 2 && env->all2all())) {
     return;
   }
 
@@ -59,7 +59,7 @@ void GMComputeMetrics2Way_create(
   GMMirroredBuf_create(&this_->vectors_buf, dm->num_packedfield_local,
                        dm->num_vector_local, env);
 
-  if (env->do_reduce) {
+  if (env->do_reduce()) {
     GMMirroredBuf_create(&this_->metrics_tmp_buf,
                          dm->num_vector_local, dm->num_vector_local, env);
   }
@@ -72,7 +72,7 @@ void GMComputeMetrics2Way_destroy(
     GMEnv* env) {
   GMInsist(this_ && env);
 
-  if (!(GMEnv_num_way(env) == 2 && GMEnv_all2all(env))) {
+  if (!(env->num_way() == 2 && env->all2all())) {
     return;
   }
 
@@ -93,7 +93,7 @@ void GMComputeMetrics2Way_destroy(
 
   GMMirroredBuf_destroy(&this_->vectors_buf, env);
 
-  if (env->do_reduce) {
+  if (env->do_reduce()) {
     GMMirroredBuf_destroy(&this_->metrics_tmp_buf, env);
   }
 }
@@ -107,7 +107,7 @@ void gm_compute_metrics_2way_notall2all(
   GMEnv* env) {
 
   GMInsist(metrics && vectors && env);
-  GMInsist(! GMEnv_all2all(env));
+  GMInsist(! env->all2all());
 
   // Denominator
 
@@ -132,12 +132,12 @@ void gm_compute_metrics_2way_notall2all(
   GMMirroredBuf_create(&metrics_buf, nvl, nvl, env);
 
   GMMirroredBuf metrics_tmp_buf = GMMirroredBuf_null();
-  if (env->do_reduce) {
+  if (env->do_reduce()) {
     GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, env);
   }
 
   GMMirroredBuf* metrics_buf_ptr =
-      env->do_reduce ?  &metrics_tmp_buf : &metrics_buf;
+      env->do_reduce() ?  &metrics_tmp_buf : &metrics_buf;
 
   // Copy in vectors
 
@@ -162,7 +162,7 @@ void gm_compute_metrics_2way_notall2all(
 
   // Do reduction across field procs if needed
 
-  if (env->do_reduce) {
+  if (env->do_reduce()) {
     gm_reduce_metrics(metrics, &metrics_buf, metrics_buf_ptr, env);
   }
 
@@ -179,7 +179,7 @@ void gm_compute_metrics_2way_notall2all(
   GMMirroredBuf_destroy(&vectors_buf, env);
   GMMirroredBuf_destroy(&metrics_buf, env);
 
-  if (env->do_reduce) {
+  if (env->do_reduce()) {
     GMMirroredBuf_destroy(&metrics_tmp_buf, env);
   }
 
@@ -207,11 +207,11 @@ void gm_compute_metrics_2way_all2all(
   GMEnv* env) {
 
   GMInsist(metrics && vectors && env);
-  GMInsist(GMEnv_all2all(env));
+  GMInsist(env->all2all());
 
   // Initializations
 
-  const int num_block = GMEnv_num_block_vector(env);
+  const int num_block = env->num_block_vector();
   const int i_block = GMEnv_proc_num_vector_i(env);
 
   GMVectorSums vector_sums_onproc = this_->vector_sums_onproc;
@@ -236,7 +236,7 @@ void gm_compute_metrics_2way_all2all(
   // For even number of vector blocks, block rows of lower half of matrix
   //  have one less block to make correct count.
 
-  const int num_proc_r = GMEnv_num_proc_repl(env);
+  const int num_proc_r = env->num_proc_repl();
   const int proc_num_r = GMEnv_proc_num_repl(env);
 
   // Flatten the proc_vector and proc_repl indices into a single index.
@@ -444,7 +444,7 @@ void gm_compute_metrics_2way_all2all(
     // GPU case: wait for prev step get metrics to complete, then combine.
     // Note this is hidden under GPU computation
 
-    if (GMEnv_compute_method(env) == GM_COMPUTE_METHOD_GPU) {
+    if (env->compute_method() == ComputeMethod::GPU) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
         gm_get_metrics_wait(metrics, vars_prev.metrics_buf, env);
         unlock(lock_metrics_buf_ptr_d_prev);
@@ -460,11 +460,11 @@ void gm_compute_metrics_2way_all2all(
 
         //TODO: remove need to allocate metrics_tmp_buf device array
         GMMirroredBuf* metrics_buf_prev_ptr =
-            env->do_reduce ?  &metrics_tmp_buf : vars_prev.metrics_buf;
+            env->do_reduce() ?  &metrics_tmp_buf : vars_prev.metrics_buf;
 
         lock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
 
-        if (env->do_reduce) {
+        if (env->do_reduce()) {
           lock(lock_metrics_tmp_buf_h);
           gm_reduce_metrics(metrics, metrics_buf_prev_ptr,
                             vars_prev.metrics_buf, env);
@@ -478,7 +478,7 @@ void gm_compute_metrics_2way_all2all(
 
         unlock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
 
-        if (env->do_reduce) {
+        if (env->do_reduce()) {
           unlock(lock_metrics_tmp_buf_h);
         }
       }
@@ -561,7 +561,7 @@ void gm_compute_metrics_2way_all2all(
 
     // CPU case: combine numerators, denominators to obtain final result
 
-    if (GMEnv_compute_method(env) != GM_COMPUTE_METHOD_GPU) {
+    if (env->compute_method() != ComputeMethod::GPU) {
       if (vars.is_compute_step && vars.do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =
