@@ -45,16 +45,16 @@ static bool use_minproduct(GMEnv* env) {
 
 static bool use_mgemm2(GMEnv* env) {
   return env->metric_type() == MetricType::CCC &&
-         env->num_way() == NUM_WAY::_2 && ! env->sparse;
+         env->num_way() == NUM_WAY::_2 && ! env->sparse();
 }
 
 static bool use_mgemm3(GMEnv* env) {
   return env->metric_type() == MetricType::CCC &&
-         env->num_way() == NUM_WAY::_3 && ! env->sparse;
+         env->num_way() == NUM_WAY::_3 && ! env->sparse();
 }
 
 static bool use_mgemm4(GMEnv* env) {
-  return env->metric_type() == MetricType::CCC && env->sparse;
+  return env->metric_type() == MetricType::CCC && env->sparse();
 }
 
 static bool use_mgemm5(GMEnv* env) {
@@ -780,7 +780,7 @@ void gm_linalg_gemm_magma_start(size_t m,
 
   const size_t elt_size =
     env->metric_type() == MetricType::CZEK ? sizeof(GMFloat) :
-   (env->metric_type() == MetricType::CCC && env->sparse) ?
+   (env->metric_type() == MetricType::CCC && env->sparse()) ?
                                          sizeof(magma_mgemm4DoubleComplex) :
    (env->metric_type() == MetricType::CCC &&
     env->num_way() == NUM_WAY::_2) ? sizeof(magma_mgemm2DoubleComplex) :

@@ -373,7 +373,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   // Create an env just to extract run options
 
-  Env env_val(MPI_COMM_WORLD, argc, (char**)argv, NULL);
+  Env env_val(MPI_COMM_WORLD, argc, (char**)argv);
   GMEnv* env = &env_val;
 
   const int num_rank_requested = env->num_proc();
@@ -490,7 +490,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
       max_time = penalty;
       continue;
     }
-    Env env(node_comm, options, NULL);
+    Env env(node_comm, options);
     double t1 = env.synced_time();
     perform_run(options, node_comm, &env);
     double t2 = env.synced_time();

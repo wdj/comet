@@ -46,14 +46,14 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
-            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+            vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
         // By construction, active vectors are packed for lower procs.
         const size_t vector_capped = gm_min_i8(vector, nva);
         int fl = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+              vectors->num_field_local * (size_t)env->proc_num_field();
           if (field >= vectors->num_field_active) {
             continue; // These entries will be padded to zero elsewhere.
           }
@@ -105,7 +105,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
 
         size_t vector = vl +
-            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+            vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
         const size_t vector_capped = gm_min_i8(vector, nva);
 
@@ -113,11 +113,11 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
         /*---Fill pad vectors with copies of the last vector---*/
         // const int nval = vectors->dm->num_vector_active_local;
         // const size_t vector_capped = gm_min_i8(vl, nval) +
-        //   nval * (size_t)GMEnv_proc_num_vector_i(env);
+        //   nval * (size_t)env->proc_num_vector();
 
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+              vectors->num_field_local * (size_t)env->proc_num_field();
           if (field >= vectors->num_field_active) {
             continue; // These entries will be padded to zero elsewhere.
           }
@@ -248,12 +248,12 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
-            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+            vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
         const size_t vector_capped = gm_min_i8(vector, nva-1);
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+              vectors->num_field_local * (size_t)env->proc_num_field();
           if (field >= nfa) {
             continue; // These entries will be padded to zero elsewhere.
           }
@@ -291,12 +291,12 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
-            vectors->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env);
+            vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
         const size_t vector_capped = gm_min_i8(vector, nva-1);
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
-              vectors->num_field_local * (size_t)GMEnv_proc_num_field(env);
+              vectors->num_field_local * (size_t)env->proc_num_field();
           if (field >= nfa) {
             continue; // These entries will be padded to zero elsewhere.
           }
@@ -581,8 +581,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               const int bval_j_0 = !!(bval_j&1);
               const int bval_j_1 = !!(bval_j&2);
 
-              const bool unknown_i = env->sparse && bval_i == GM_2BIT_UNKNOWN;
-              const bool unknown_j = env->sparse && bval_j == GM_2BIT_UNKNOWN;
+              const bool unknown_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
+              const bool unknown_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
               const bool unknown_ij = unknown_i || unknown_j;
 
               if (! unknown_i) {
@@ -628,19 +628,19 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               const GMFloat recip_cicjcij = f_one /
                                             (f_cicj_min * f_cicj_max * f_cij);
 
-              const GMFloat recip_ci = env->sparse ?
+              const GMFloat recip_ci = env->sparse() ?
                 f_cj * f_cij * recip_cicjcij : metrics->recip_m;
-              const GMFloat recip_cj = env->sparse ?
+              const GMFloat recip_cj = env->sparse() ?
                 f_ci * f_cij * recip_cicjcij : metrics->recip_m;
 
-              const GMFloat recip_sumcij = env->sparse ?
+              const GMFloat recip_sumcij = env->sparse() ?
                 f_cicj_min * f_cicj_max * recip_cicjcij :
                 (f_one / (cbpe * cbpe)) * metrics->recip_m;
 
-              //const GMFloat recip_ci = env->sparse ? f_one/ci : metrics->recip_m;
-              //const GMFloat recip_cj = env->sparse ? f_one/cj : metrics->recip_m;
+              //const GMFloat recip_ci = env->sparse() ? f_one/ci : metrics->recip_m;
+              //const GMFloat recip_cj = env->sparse() ? f_one/cj : metrics->recip_m;
 
-              //const GMFloat recip_sumcij = env->sparse ? f_one/cij :
+              //const GMFloat recip_sumcij = env->sparse() ? f_one/cij :
               //                               (f_one / 4) * metrics->recip_m;
 
               value_expected_floatcalc = cbpe == 2 ?
@@ -654,7 +654,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #if 0
 //#ifdef USE_INT128
-            if (env->are_ccc_params_default) {
+            if (env->are_ccc_params_default()) {
             if (!(0 == ci || 0 == cj || 0 == cij)) {
               value_expected = GMMetrics_ccc_value_nofp_2(metrics,
                 rij, si, sj, ci, cj, cij, env); 
@@ -739,9 +739,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 const int bval_k_1 = !!(bval_k&2);
 
 
-                const bool unknown_i = env->sparse && bval_i == GM_2BIT_UNKNOWN;
-                const bool unknown_j = env->sparse && bval_j == GM_2BIT_UNKNOWN;
-                const bool unknown_k = env->sparse && bval_k == GM_2BIT_UNKNOWN;
+                const bool unknown_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
+                const bool unknown_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
+                const bool unknown_k = env->sparse() && bval_k == GM_2BIT_UNKNOWN;
                 const bool unknown_ijk = unknown_i || unknown_j || unknown_k;
 
                 if (! unknown_i) {
@@ -777,14 +777,14 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               if (!(ci == 0 || cj == 0 || ck == 0 || cijk == 0)) {
                 const GMFloat f_one = 1;
   
-                const GMFloat recip_ci = env->sparse ? f_one/ci
+                const GMFloat recip_ci = env->sparse() ? f_one/ci
                                                      : metrics->recip_m;
-                const GMFloat recip_cj = env->sparse ? f_one/cj
+                const GMFloat recip_cj = env->sparse() ? f_one/cj
                                                      : metrics->recip_m;
-                const GMFloat recip_ck = env->sparse ? f_one/ck
+                const GMFloat recip_ck = env->sparse() ? f_one/ck
                                                      : metrics->recip_m;
   
-                const GMFloat recip_sumcijk = env->sparse ? f_one/cijk :
+                const GMFloat recip_sumcijk = env->sparse() ? f_one/cijk :
                                                (f_one / 8) * metrics->recip_m;
   
                 value_expected_floatcalc =
@@ -796,7 +796,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #if 0
 //#ifdef USE_INT128
-              if (env->are_ccc_params_default) {
+              if (env->are_ccc_params_default()) {
               if (!(0 == ci || 0 == cj || 0 == ck || 0 == cijk)) {
                 value_expected = GMMetrics_ccc_value_nofp_3(metrics,
                   rijk, si, sj, sk, ci, cj, ck, cijk, env); 

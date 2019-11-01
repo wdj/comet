@@ -144,9 +144,9 @@ void gm_compute_2way_proc_nums_ccc_start_(
         for (int f = 0; f < nfal; ++f) {
           const GMBits2 vi = GMVectors_bits2_get(vectors_left, f, i, env);
           const GMBits2 vj = GMVectors_bits2_get(vectors_right, f, j, env);
-          const bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
+          const bool unknown_i = env->sparse() ? vi == GM_2BIT_UNKNOWN
                                              : false;
-          const bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
+          const bool unknown_j = env->sparse() ? vj == GM_2BIT_UNKNOWN
                                              : false;
 
           if ( ! unknown_i && ! unknown_j ) {
@@ -242,16 +242,16 @@ void gm_compute_2way_proc_nums_ccc_start_(
           const uint64_t oddbits = 0x5555555555555555;
 
           const uint64_t vi0mask =
-                       (env->sparse ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
 
           const uint64_t vi1mask =
-                       (env->sparse ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
 
           const uint64_t vj0mask =
-                       (env->sparse ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
 
           const uint64_t vj1mask =
-                       (env->sparse ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
 
           const uint64_t v0mask = vi0mask & vj0mask;
           const uint64_t v1mask = vi1mask & vj1mask;
@@ -399,9 +399,9 @@ void gm_compute_2way_proc_nums_duo_start_(
         for (int f = 0; f < nfal; ++f) {
           const GMBits2 vi = GMVectors_bits2_get(vectors_left, f, i, env);
           const GMBits2 vj = GMVectors_bits2_get(vectors_right, f, j, env);
-          const bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
+          const bool unknown_i = env->sparse() ? vi == GM_2BIT_UNKNOWN
                                              : false;
-          const bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
+          const bool unknown_j = env->sparse() ? vj == GM_2BIT_UNKNOWN
                                              : false;
 
           if ( ! unknown_i && ! unknown_j ) {
@@ -481,16 +481,16 @@ void gm_compute_2way_proc_nums_duo_start_(
           const uint64_t oddbits = 0x5555555555555555;
 
           const uint64_t vi0mask =
-                       (env->sparse ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
 
           const uint64_t vi1mask =
-                       (env->sparse ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
 
           const uint64_t vj0mask =
-                       (env->sparse ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
 
           const uint64_t vj1mask =
-                       (env->sparse ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
 
           const uint64_t v0mask = vi0mask & vj0mask;
           const uint64_t v1mask = vi1mask & vj1mask;

@@ -150,7 +150,7 @@ void gm_compute_metrics_2way_notall2all(
 
   gm_compute_2way_proc_nums_start(vectors, vectors, metrics, &vectors_buf,
                                   &vectors_buf, metrics_buf_ptr,
-                                  GMEnv_proc_num_vector_i(env),
+                                  env->proc_num_vector(),
                                   true, env);
   gm_compute_wait(env);
 
@@ -170,7 +170,7 @@ void gm_compute_metrics_2way_notall2all(
 
   gm_compute_2way_proc_combine(metrics, &metrics_buf,
                                &vector_sums, &vector_sums,
-                               GMEnv_proc_num_vector_i(env), true, env);
+                               env->proc_num_vector(), true, env);
 
   // Terminations
 
@@ -212,7 +212,7 @@ void gm_compute_metrics_2way_all2all(
   // Initializations
 
   const int num_block = env->num_block_vector();
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = env->proc_num_vector();
 
   GMVectorSums vector_sums_onproc = this_->vector_sums_onproc;
   GMVectorSums vector_sums_offproc = this_->vector_sums_offproc;
@@ -237,7 +237,7 @@ void gm_compute_metrics_2way_all2all(
   //  have one less block to make correct count.
 
   const int num_proc_r = env->num_proc_repl();
-  const int proc_num_r = GMEnv_proc_num_repl(env);
+  const int proc_num_r = env->proc_num_repl();
 
   // Flatten the proc_vector and proc_repl indices into a single index.
 

@@ -70,7 +70,7 @@ void gm_compute_3way_nums_gpu_form_matX_(
       /*---Operate on columns v_i and v_j elementwise---*/
       for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
-        const bool sparse = env->sparse;
+        const bool sparse = env->sparse();
 
         for (int word = 0; word<2; ++word) {
           const uint64_t vI = GMMirroredBuf_elt_const<GMBits2x64>(
@@ -424,7 +424,7 @@ void gm_compute_3way_nums_gpu_form_metrics_(
           } else {
             GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
           }
-          if (env->sparse) {
+          if (env->sparse()) {
             const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_i, i, env);
             const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_j, j, env); 
             const GMTally1 ck = (GMTally1)GMVectorSums_count(vs_k, k, env); 
@@ -489,10 +489,10 @@ void gm_compute_3way_nums_gpu_start_(
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   GMInsist(j_block >= 0 && j_block < env->num_block_vector());
   GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
-              GMEnv_proc_num_vector_i(env) != k_block));
-  GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
-              GMEnv_proc_num_vector_i(env) != j_block));
+  GMInsist(! (env->proc_num_vector() == j_block &&
+              env->proc_num_vector() != k_block));
+  GMInsist(! (env->proc_num_vector() == k_block &&
+              env->proc_num_vector() != j_block));
   GMInsist(env->compute_method() == ComputeMethod::GPU);
   GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
@@ -502,7 +502,7 @@ void gm_compute_3way_nums_gpu_start_(
   const int nvl = metrics->num_vector_local;
   const int npvfl = vectors_i->num_packedval_field_local;
 
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = env->proc_num_vector();
 
   GMSectionInfo si_value;
   GMSectionInfo* si = &si_value;

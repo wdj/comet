@@ -182,13 +182,6 @@ public:
   int stage_num;
   int num_phase;
   int phase_num;
-  double ccc_param_;
-  double ccc_multiplier_;
-  double duo_multiplier_;
-  bool are_ccc_params_default;
-  bool sparse;
-  int tc_;
-  int num_tc_steps_;
   // Counters
   double compares;
   double eltcompares;
@@ -201,30 +194,6 @@ public:
   size_t gpu_mem_local;
   size_t gpu_mem_max_local;
   size_t gpu_mem_max;
-  // MPI
-  bool make_comms_;
-  MPI_Comm comm_base_;
-  MPI_Comm comm_;
-  MPI_Comm comm_repl_vector_;
-  MPI_Comm comm_field_;
-  bool are_comms_initialized_;
-  // MPI proc counts
-  int num_proc_base_;
-  int num_proc_;
-  int num_proc_field_;
-  int num_proc_repl_;
-  int num_proc_vector_;
-  int num_proc_repl_vector_;
-  // MPI proc numbers
-  int proc_num_base_;
-  int proc_num_;
-  int proc_num_field_;
-  int proc_num_repl_;
-  int proc_num_vector_;
-  int proc_num_repl_vector_;
-  bool is_proc_active_;
-  // OTHER
-  const char* description;
 
   //----------------------------------------
   // Constructor/destructor
@@ -256,12 +225,21 @@ public:
   int all2all() const {return all2all_;}
   int compute_method() const {return compute_method_;}
   int num_way() const {return num_way_;}
-  int tc_eff() const;
   bool does_3way_need_2way() const {return metric_type_ == MetricType::CZEK;}
   bool is_metric_type_bitwise() const {
     return metric_type_==MetricType::CCC ||
            metric_type_==MetricType::DUO;
   }
+  bool sparse() const {return sparse_;}
+  int tc_eff() const;
+  int num_tc_steps() const {return num_tc_steps_;};
+  static double ccc_multiplier_default() {return ((double) 9) / ((double) 2);}
+  static double duo_multiplier_default() {return (double) 4; }
+  static double ccc_param_default() {return ((double) 2) / ((double) 3);}
+  double ccc_param() const {return ccc_param_;}
+  double ccc_multiplier() const {return ccc_multiplier_;}
+  double duo_multiplier() const {return duo_multiplier_;}
+  bool are_ccc_params_default() const {return are_ccc_params_default_;}
 
   // Counters
   double ctime() const {return ctime_;}
@@ -279,7 +257,6 @@ public:
   void gpu_mem_dec(size_t n) {gpu_mem_local -= n;}
 
   // MPI comms
-  void comms_terminate_();
   MPI_Comm comm() const {return comm_;}
   MPI_Comm comm_repl_vector() const {return comm_repl_vector_;}
   MPI_Comm comm_field() const {return comm_field_;}
@@ -318,26 +295,78 @@ public:
 
 private:
 
+  void create_impl_(MPI_Comm base_comm, int argc,
+    char** argv, const char* const description,
+    bool make_comms, int num_proc, int proc_num);
+
   // CoMet Settings
   int metric_type_;
   bool all2all_;
   int compute_method_;
   int num_way_;
+  bool sparse_;
+  int tc_;
+  int num_tc_steps_;
+  double ccc_param_;
+  double ccc_multiplier_;
+  double duo_multiplier_;
+  bool are_ccc_params_default_;
+  void ccc_param_set_(double value) {
+    ccc_param_ = value;
+    are_ccc_params_default_ = ccc_multiplier_default() == ccc_multiplier_ &&
+                              ccc_param_default() == ccc_param_;
+  }
+  void ccc_multiplier_set_(double value) {
+    GMInsist(value >= 0);
+    ccc_multiplier_ = value;
+    are_ccc_params_default_ = ccc_multiplier_default() == ccc_multiplier_ &&
+                              ccc_param_default() == ccc_param_;
+  }
+  void duo_multiplier_set_(double value) {
+    GMInsist(value >= 0);
+    duo_multiplier_ = value;
+  }
 
   // Counters
   double ctime_;
 
   // MPI comms
+  bool make_comms_;
+  MPI_Comm comm_base_;
+  MPI_Comm comm_;
+  MPI_Comm comm_repl_vector_;
+  MPI_Comm comm_field_;
+  bool are_comms_initialized_;
+  void comms_initialize_();
+  void comms_terminate_();
 
   // MPI proc counts
+  int num_proc_base_;
+  int num_proc_;
+  int num_proc_field_;
+  int num_proc_repl_;
+  int num_proc_vector_;
+  int num_proc_repl_vector_;
+  void set_num_proc_(int num_proc_vector, int num_proc_repl,
+    int num_proc_field);
 
   // MPI proc numbers
+  int proc_num_base_;
+  int proc_num_;
+  int proc_num_field_;
+  int proc_num_repl_;
+  int proc_num_vector_;
+  int proc_num_repl_vector_;
+  bool is_proc_active_;
 
   // accelerator streams
   void streams_initialize_();
   Stream_t stream_compute_;
   Stream_t stream_togpu_;
   Stream_t stream_fromgpu_;
+
+  // OTHER
+  const char* description_;
 
   // Disallowed methods.
   Env(  const Env&);
@@ -356,118 +385,10 @@ void gm_create_args(char* argstring, int* argc, char** argv);
 //=============================================================================
 // Accessors: general
 
-// TODO: can move many of these to env.cc.
-
-static double GMEnv_ccc_multiplier_default() {
-  return ((double) 9) / ((double) 2);
-}
-
-//-----------------------------------------------------------------------------
-
-static double GMEnv_duo_multiplier_default() {
-  return (double) 4;
-}
-
-//-----------------------------------------------------------------------------
-
-static double GMEnv_ccc_param_default() {
-  return ((double) 2) / ((double) 3);
-}
-
-//-----------------------------------------------------------------------------
-
-static double GMEnv_ccc_param(const GMEnv* const env) {
-  GMAssert(env);
-  return env->ccc_param_;
-}
-
-//-----------------------------------------------------------------------------
-
-static double GMEnv_ccc_multiplier(const GMEnv* const env) {
-  GMAssert(env);
-  return env->ccc_multiplier_;
-}
-
-//-----------------------------------------------------------------------------
-
-static double GMEnv_duo_multiplier(const GMEnv* const env) {
-  GMAssert(env);
-  return env->duo_multiplier_;
-}
-
-//-----------------------------------------------------------------------------
-
-static void GMEnv_ccc_param_set(double value, GMEnv* const env) {
-  GMInsist(env);
-  env->ccc_param_ = value;
-  env->are_ccc_params_default =
-     GMEnv_ccc_multiplier_default() == env->ccc_multiplier_ &&
-     GMEnv_ccc_param_default() == env->ccc_param_;
-}
-
-//-----------------------------------------------------------------------------
-
-static void GMEnv_ccc_multiplier_set(double value, GMEnv* const env) {
-  GMInsist(env);
-  GMInsist(value >= 0);
-  env->ccc_multiplier_ = value;
-  env->are_ccc_params_default =
-     GMEnv_ccc_multiplier_default() == env->ccc_multiplier_ &&
-     GMEnv_ccc_param_default() == env->ccc_param_;
-}
-
-//-----------------------------------------------------------------------------
-
-static void GMEnv_duo_multiplier_set(double value, GMEnv* const env) {
-  GMInsist(env);
-  GMInsist(value >= 0);
-  env->duo_multiplier_ = value;
-}
-
 //-----------------------------------------------------------------------------
 
 int GMEnv_data_type_vectors(const GMEnv* const env);
 int GMEnv_data_type_metrics(const GMEnv* const env);
-
-void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector,
-                      int num_proc_repl, int num_proc_field);
-
-
-
-
-
-//=============================================================================
-// Accessors: proc_num
-
-static int GMEnv_proc_num(const GMEnv* const env) {
-  GMAssert(env);
-  return env->proc_num_;
-}
-
-//-----------------------------------------------------------------------------
-
-static int GMEnv_proc_num_vector_i(const GMEnv* const env) {
-  GMAssert(env);
-  // TODO: fix _i nomenclature.
-  return env->proc_num_vector_;
-}
-
-//-----------------------------------------------------------------------------
-
-static int GMEnv_proc_num_repl(const GMEnv* const env) {
-  GMAssert(env);
-  return env->proc_num_repl_;
-}
-
-//-----------------------------------------------------------------------------
-
-static int GMEnv_proc_num_field(const GMEnv* const env) {
-  GMAssert(env);
-  return env->proc_num_field_;
-}
-
-
-
 
 //=============================================================================
 // Math utility functions

@@ -410,7 +410,7 @@ static void gm_tc_buf_write_(
         ,
 #  endif
       tc_buf, vi32, vi32_dim0,
-      env->num_way(), env->sparse, is_right, is_duo,
+      env->num_way(), env->sparse(), is_right, is_duo,
       nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
 
     GMEnv_accel_last_call_succeeded(env);
@@ -429,7 +429,7 @@ static void gm_tc_buf_write_(
 
         gm_tc_buf_write_kernel_elt_<GemmIn_t>(
           tc_buf, vi32, vi32_dim0,
-          env->num_way(), env->sparse, is_right, is_duo,
+          env->num_way(), env->sparse(), is_right, is_duo,
           nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
           vlX2, flD2_thisstep);
 
@@ -882,7 +882,7 @@ static void gm_tc_gemm_start_impl_(
   const int nvll = I_max_dim;
   GMInsist((size_t)nvll == gm_gemm_size_required(nvll, env));
 
-  const int num_steps = env->num_tc_steps_;
+  const int num_steps = env->num_tc_steps();
 
   // Loop over steps of algorithm.
   for (int step_num = 0; step_num < num_steps; ++step_num) {
@@ -1007,7 +1007,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
   const size_t nvl = num_vector_local;
   const size_t npvfl = num_packedval_field_local;
-  const size_t npvfl_thisstep_max = gm_ceil_i8(npvfl, env->num_tc_steps_);
+  const size_t npvfl_thisstep_max = gm_ceil_i8(npvfl, env->num_tc_steps());
 
   const int sizeof_gemm_in_t =
      env->tc_eff() == TC::INT8 ?

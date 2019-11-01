@@ -95,7 +95,7 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
   GMComputeNumerators3Way_start(
       &gm_compute_numerators_3way,
       vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
-      &vectors_buf, GMEnv_proc_num_vector_i(env), GMEnv_proc_num_vector_i(env),
+      &vectors_buf, env->proc_num_vector(), env->proc_num_vector(),
       &vector_sums, &vector_sums, &vector_sums,
       section_step, env);
   gm_compute_wait(env);
@@ -133,9 +133,9 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
 
   const int num_block = env->num_block_vector();
 
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = env->proc_num_vector();
 
-  const int proc_num_r = GMEnv_proc_num_repl(env);
+  const int proc_num_r = env->proc_num_repl();
   const int num_proc_r = env->num_proc_repl();
 
   /*---Create flattened index within space of procs assigned to

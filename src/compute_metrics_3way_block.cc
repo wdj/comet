@@ -104,10 +104,10 @@ void GMComputeNumerators3Way_start(
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   GMInsist(j_block >= 0 && j_block < env->num_block_vector());
   GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
-              GMEnv_proc_num_vector_i(env) != k_block));
-  GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
-              GMEnv_proc_num_vector_i(env) != j_block));
+  GMInsist(! (env->proc_num_vector() == j_block &&
+              env->proc_num_vector() != k_block));
+  GMInsist(! (env->proc_num_vector() == k_block &&
+              env->proc_num_vector() != j_block));
   GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 

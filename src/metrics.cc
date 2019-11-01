@@ -240,7 +240,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
   //---Loop over block for part3.
   const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
   for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
-    const int i_block = GMEnv_proc_num_vector_i(env);
+    const int i_block = env->proc_num_vector();
     int block_num_part3 = 0;
     bool is_phase_block_start_set = false;
     for (int k_i_offset=1; k_i_offset<num_block; ++k_i_offset) {
@@ -291,7 +291,7 @@ void GMMetrics_create(GMMetrics* metrics,
   }
 
   GMInsistInterface(env, (env->metric_type() != MetricType::DUO ||
-                          env->sparse) && "DUO method requires sparse input.");
+                          env->sparse()) && "DUO method requires sparse input.");
 
   GMInsistInterface(env, (env->all2all() || env->num_proc_repl() == 1)
           && "Multidim parallelism only available for all2all case");
@@ -338,7 +338,7 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->num_vector_local >= env->num_way()
         && "Currently require number of vecs on a proc to be at least num-way");
 
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = env->proc_num_vector();
 
   const size_t nchoosek = gm_nchoosek(metrics->num_vector_local,
                                       env->num_way());
@@ -377,7 +377,7 @@ void GMMetrics_create(GMMetrics* metrics,
     ---*/
 
     /*===PART A: CALCULATE INDEX SIZE===*/
-    const int proc_num_r = GMEnv_proc_num_repl(env);
+    const int proc_num_r = env->proc_num_repl();
     const int num_proc_r = env->num_proc_repl();
     metrics->num_elts_local = 0;
 
@@ -407,7 +407,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*---PART C.1: (triangle) i_block==j_block part---*/
     size_t index = 0;
     if (have_main_diag) {
-      GMAssert(GMEnv_proc_num_repl(env) == 0);
+      GMAssert(env->proc_num_repl() == 0);
       GMAssert(gm_proc_r_active(0, env));
       for (int j = 0; j < nvl; ++j) {
         const size_t j_global = j + nvl * i_block;
@@ -730,7 +730,7 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->data_S_size = metrics->num_elts_local * sizeof(GMFloat2);
       //metrics->data_S = gm_malloc(metrics->data_S_size, env);
       metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
-      if (env->sparse) {
+      if (env->sparse()) {
         metrics->data_C_size = metrics->num_elts_local * sizeof(GMFloat2);
         //metrics->data_C = gm_malloc(metrics->data_C_size, env);
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
@@ -745,7 +745,7 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->data_S_size = metrics->num_elts_local * sizeof(GMFloat3);
       //metrics->data_S = gm_malloc(metrics->data_S_size, env);
       metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
-      if (env->sparse) {
+      if (env->sparse()) {
         metrics->data_C_size = metrics->num_elts_local * sizeof(GMFloat3);
         //metrics->data_C = gm_malloc(metrics->data_C_size, env);
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);

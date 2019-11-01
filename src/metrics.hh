@@ -142,7 +142,7 @@ static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
   GMAssert(env);
   GMAssert(section_block_num >= 0);
   return section_block_num % env->num_proc_repl()
-         == GMEnv_proc_num_repl(env);
+         == env->proc_num_repl();
 }
 
 //=============================================================================

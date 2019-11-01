@@ -93,7 +93,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector_active = num_vector_specifier;
     // Pad up as needed, require every proc has same number
     const int num_proc = env->num_proc_vector();
-    const int proc_num = GMEnv_proc_num_vector_i(env);
+    const int proc_num = env->proc_num_vector();
     //dm->num_vector_local = gm_ceil_i8(dm->num_vector_active, num_proc);
     dm->num_vector_local = gm_num_vector_local_required(
       gm_ceil_i8(dm->num_vector_active, env->num_proc_vector()), env);
@@ -142,12 +142,12 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_field_local = dm->num_field_active_local;
     dm->num_field = dm->num_field_local * env->num_proc_field();
     dm->num_field_active = dm->num_field;
-    dm->field_base = dm->num_field_local * GMEnv_proc_num_field(env);
+    dm->field_base = dm->num_field_local * env->proc_num_field();
   } else { // ! fields_by_local
     dm->num_field_active = num_field_specifier;
     // Pad up as needed so that every proc has same number
     const int num_proc = env->num_proc_field();
-    const int proc_num = GMEnv_proc_num_field(env);
+    const int proc_num = env->proc_num_field();
     dm->num_field_local = gm_ceil_i8(dm->num_field_active, num_proc);
     dm->num_field = dm->num_field_local * num_proc;
     // Lower procs fully packed with active values

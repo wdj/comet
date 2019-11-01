@@ -58,7 +58,7 @@ void GMVectorSums_create(GMVectorSums* this_,
       this_->sums_tmp_ = num_proc == 1
                               ? NULL
                               : GMFloat_malloc(num_vector_local, env);
-      if (env->sparse) {
+      if (env->sparse()) {
         this_->counts = GMFloat_malloc(num_vector_local, env);
         this_->counts_tmp_ = num_proc == 1
                               ? NULL
@@ -70,7 +70,7 @@ void GMVectorSums_create(GMVectorSums* this_,
       this_->sums_tmp_ = num_proc == 1
                               ? NULL
                               : GMFloat_malloc(num_vector_local, env);
-      if (env->sparse) {
+      if (env->sparse()) {
         this_->counts = GMFloat_malloc(num_vector_local, env);
         this_->counts_tmp_ = num_proc == 1
                               ? NULL
@@ -166,7 +166,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
     #pragma omp parallel for schedule(dynamic,1000)
     for (int i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;
-      if (env->sparse) {
+      if (env->sparse()) {
         GMFloat count = 0;
         for (int f = 0; f < vectors->num_field_local; ++f) {
           // Slow way: sum each seminibble individually
@@ -203,7 +203,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
       vectors->dm->num_field_active_local;
     for (int i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;
-      if (env->sparse) {
+      if (env->sparse()) {
         const uint64_t oddbits = 0x5555555555555555;
         GMFloat count = 0;
         for (int f = 0; f < vectors->num_packedval_field_local; ++f) {
@@ -256,7 +256,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
   if (num_proc > 1) {
     COMET_MPI_SAFE_CALL(MPI_Allreduce(sums_local, sums,
       vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
-    if (env->sparse) {
+    if (env->sparse()) {
       COMET_MPI_SAFE_CALL(MPI_Allreduce(counts_local, counts,
         vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
     } /*---if sparse---*/
@@ -297,7 +297,7 @@ GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env) {
 GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env) {
   GMAssert(this_ && env);
   GMAssert(i >= 0 && (size_t)i < this_->size_);
-  GMAssert(env->sparse);
+  GMAssert(env->sparse());
 
   //return this_->counts ? this_->counts[i] : this_->num_field_;
   return this_->counts[i];

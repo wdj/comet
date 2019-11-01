@@ -43,8 +43,8 @@ void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
 
   typedef GMFloat inval_t;
 
-  const size_t proc_num_v = GMEnv_proc_num_vector_i(env);
-  const size_t proc_num_f = GMEnv_proc_num_field(env);
+  const size_t proc_num_v = env->proc_num_vector();
+  const size_t proc_num_f = env->proc_num_field();
 
   const size_t nva = vectors->dm->num_vector_active;
   const size_t nfa = vectors->dm->num_field_active;
@@ -103,7 +103,7 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
 
   typedef unsigned char inval_t;
 
-  const size_t proc_num_v = GMEnv_proc_num_vector_i(env);
+  const size_t proc_num_v = env->proc_num_vector();
 
   const int bits_per_field = vectors->num_bits_per_val; // = 2
   const int bits_per_byte = 8;
@@ -616,7 +616,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
   }
 
   /*---Due to redundancy, only results from some processors are needed---*/
-  if (GMEnv_proc_num_field(env) != 0) {
+  if (env->proc_num_field() != 0) {
     return;
   }
 
@@ -1008,7 +1008,7 @@ FILE* gm_metrics_file_open(char* metrics_file_path_stub, GMEnv* env) {
   char format[100];
   sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
 
-  sprintf(path, format, metrics_file_path_stub, GMEnv_proc_num(env));
+  sprintf(path, format, metrics_file_path_stub, env->proc_num());
 
   // Do open
 
@@ -1036,7 +1036,7 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
 #if 0
   char* stub = do_->metrics_file_path_stub;
   if (! (NULL != stub && env->is_proc_active() &&
-      GMEnv_proc_num_field(env) == 0) ) {
+      env->proc_num_field() == 0) ) {
     return;
   }
 
@@ -1055,7 +1055,7 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   char format[100];
   sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
 
-  sprintf(path, format, stub, GMEnv_proc_num(env));
+  sprintf(path, format, stub, env->proc_num());
 
   /*---Do open---*/
 

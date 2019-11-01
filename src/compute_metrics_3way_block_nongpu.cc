@@ -50,10 +50,10 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   GMInsist(j_block >= 0 && j_block < env->num_block_vector());
   GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
-              GMEnv_proc_num_vector_i(env) != k_block));
-  GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
-              GMEnv_proc_num_vector_i(env) != j_block));
+  GMInsist(! (env->proc_num_vector() == j_block &&
+              env->proc_num_vector() != k_block));
+  GMInsist(! (env->proc_num_vector() == k_block &&
+              env->proc_num_vector() != j_block));
   GMInsist(env->compute_method() != ComputeMethod::GPU);
   GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
@@ -63,7 +63,7 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   const int nvl = metrics->num_vector_local;
   const int nfl = vectors_i->num_field_local;
 
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = env->proc_num_vector();
 
   GMSectionInfo si_value, *si = &si_value;
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
@@ -223,10 +223,10 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
   GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   GMInsist(j_block >= 0 && j_block < env->num_block_vector());
   GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(! (GMEnv_proc_num_vector_i(env) == j_block &&
-              GMEnv_proc_num_vector_i(env) != k_block));
-  GMInsist(! (GMEnv_proc_num_vector_i(env) == k_block &&
-              GMEnv_proc_num_vector_i(env) != j_block));
+  GMInsist(! (env->proc_num_vector() == j_block &&
+              env->proc_num_vector() != k_block));
+  GMInsist(! (env->proc_num_vector() == k_block &&
+              env->proc_num_vector() != j_block));
   GMInsist(env->compute_method() != ComputeMethod::GPU);
   GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
@@ -235,7 +235,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
 
   const int nvl = metrics->num_vector_local;
 
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = env->proc_num_vector();
 
   GMSectionInfo si_value, *si = &si_value;
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
@@ -289,11 +289,11 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
             const GMBits2 vj = GMVectors_bits2_get(vectors_j, f, j, env);
             const GMBits2 vk = GMVectors_bits2_get(vectors_k, f, k, env);
 
-            const bool unknown_i = env->sparse ? vi == GM_2BIT_UNKNOWN
+            const bool unknown_i = env->sparse() ? vi == GM_2BIT_UNKNOWN
                                                : false;
-            const bool unknown_j = env->sparse ? vj == GM_2BIT_UNKNOWN
+            const bool unknown_j = env->sparse() ? vj == GM_2BIT_UNKNOWN
                                                : false;
-            const bool unknown_k = env->sparse ? vk == GM_2BIT_UNKNOWN
+            const bool unknown_k = env->sparse() ? vk == GM_2BIT_UNKNOWN
                                                : false;
 
             if ( ! unknown_i && ! unknown_j  && ! unknown_k ) {
@@ -394,7 +394,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
                 I, J, K, j_block, k_block, sum, &index_cache, env);
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, si1_sj1_sk1, &index_cache, env);
-            if (env->sparse) {
+            if (env->sparse()) {
               const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
               const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
               const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
@@ -405,7 +405,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
           } else /*---! all2all---*/ {
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
             GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
-            if (env->sparse) {
+            if (env->sparse()) {
               const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
               const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
               const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
@@ -486,22 +486,22 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
             const uint64_t oddbits = 0x5555555555555555;
 
             const uint64_t vi0mask =
-                       (env->sparse ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
 
             const uint64_t vi1mask =
-                       (env->sparse ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
 
             const uint64_t vj0mask =
-                       (env->sparse ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
 
             const uint64_t vj1mask =
-                       (env->sparse ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
 
             const uint64_t vk0mask =
-                       (env->sparse ? (vk0 | ~(vk0 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vk0 | ~(vk0 >> 1)) & oddbits : oddbits);
 
             const uint64_t vk1mask =
-                       (env->sparse ? (vk1 | ~(vk1 >> 1)) & oddbits : oddbits);
+                       (env->sparse() ? (vk1 | ~(vk1 >> 1)) & oddbits : oddbits);
 
             const uint64_t v0mask = vi0mask & vj0mask & vk0mask;
             const uint64_t v1mask = vi1mask & vj1mask & vk1mask;
@@ -696,7 +696,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
                 I, J, K, j_block, k_block, sum, &index_cache, env);
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, si1_sj1_sk1, &index_cache, env);
-            if (env->sparse) {
+            if (env->sparse()) {
               const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
               const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
               const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
@@ -707,7 +707,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
           } else /*---! all2all---*/ {
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
             GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
-            if (env->sparse) {
+            if (env->sparse()) {
               const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
               const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
               const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);

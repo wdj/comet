@@ -131,7 +131,7 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   std:: string options = " --num_way " + std::to_string(num_way);
   options += " --metric_type " + std::string(MetricType::str(metric_type));
   options += " --num_proc_vector " + std::to_string(1);
-  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
@@ -615,7 +615,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   options += " --all2all no";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
-  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
@@ -723,7 +723,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
-  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
@@ -885,7 +885,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
-  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
@@ -1036,7 +1036,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   options += " --all2all yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
-  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
@@ -1195,7 +1195,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
-  Env env_value(MPI_COMM_WORLD, options.c_str(), NULL);
+  Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;

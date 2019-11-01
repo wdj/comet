@@ -209,7 +209,7 @@ void gm_compute_2way_proc_combine_ccc_(
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #if 1
             // ISSUE: this check may increase runtime nontrivially
-            if (! env->sparse) {
+            if (! env->sparse()) {
               // 4-sum check.
               const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
@@ -225,7 +225,7 @@ void gm_compute_2way_proc_combine_ccc_(
                 printf("Error: r00 %" PRIu64 " r01 %" PRIu64 " r10 %" PRIu64 " r11 %" PRIu64 " m %" PRIu64 " coords %zu rank %i\n",
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)(metrics->num_field_active),
-                       coords, GMEnv_proc_num(env));
+                       coords, env->proc_num());
                 GMInsist((! error1) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
@@ -240,7 +240,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)si1,
                        (uint64_t)r10 + (uint64_t)r11, (uint64_t)(2 * si1),
-                       coords, GMEnv_proc_num(env));
+                       coords, env->proc_num());
                 GMInsist((! error2) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
@@ -255,13 +255,13 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)sj1,
                        (uint64_t)r01 + (uint64_t)r11, (uint64_t)(2 * sj1),
-                       coords, GMEnv_proc_num(env));
+                       coords, env->proc_num());
                 GMInsist((! error3) && "Violation of algorithm computational invariant.");
               }
             }
 #endif
 #ifdef GM_ASSERTIONS_ON
-            if (! env->sparse) {
+            if (! env->sparse()) {
               // 4-sum check.
               const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
@@ -290,7 +290,7 @@ void gm_compute_2way_proc_combine_ccc_(
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #if 1
             // ISSUE: this check may increase runtime nontrivially
-            if (! env->sparse) {
+            if (! env->sparse()) {
               // 4-sum check.
               const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
@@ -306,7 +306,7 @@ void gm_compute_2way_proc_combine_ccc_(
                 printf("Error: r00 %" PRIu64 " r01 %" PRIu64 " r10 %" PRIu64 " r11 %" PRIu64 " m %" PRIu64 " coords %zu rank %i\n",
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)(metrics->num_field_active),
-                       coords, GMEnv_proc_num(env));
+                       coords, env->proc_num());
                 GMInsist((! error1) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
@@ -321,7 +321,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)si1,
                        (uint64_t)r10 + (uint64_t)r11, (uint64_t)(2 * si1),
-                       coords, GMEnv_proc_num(env));
+                       coords, env->proc_num());
                 GMInsist((! error2) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
@@ -336,13 +336,13 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)sj1,
                        (uint64_t)r01 + (uint64_t)r11, (uint64_t)(2 * sj1),
-                       coords, GMEnv_proc_num(env));
+                       coords, env->proc_num());
                 GMInsist((! error3) && "Violation of algorithm computational invariant.");
               }
             }
 #endif
 #ifdef GM_ASSERTIONS_ON
-            if (! env->sparse) {
+            if (! env->sparse()) {
               // 4-sum check.
               const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
@@ -373,7 +373,7 @@ void gm_compute_2way_proc_combine_ccc_(
               GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
 #ifdef GM_ASSERTIONS_ON
-          if (! env->sparse) {
+          if (! env->sparse()) {
             // 4-sum check.
             const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
             const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
@@ -411,7 +411,7 @@ void gm_compute_2way_proc_combine_ccc_(
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
-          if (env->sparse) {
+          if (env->sparse()) {
             const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
             const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
@@ -433,7 +433,7 @@ void gm_compute_2way_proc_combine_ccc_(
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
-          if (env->sparse) {
+          if (env->sparse()) {
             const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
             const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
@@ -455,7 +455,7 @@ void gm_compute_2way_proc_combine_ccc_(
         const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
         GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
-        if (env->sparse) {
+        if (env->sparse()) {
           const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
           const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
           const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
@@ -555,7 +555,7 @@ void gm_compute_2way_proc_combine_duo_(
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
-          if (env->sparse) {
+          if (env->sparse()) {
             const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
             const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
@@ -577,7 +577,7 @@ void gm_compute_2way_proc_combine_duo_(
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
-          if (env->sparse) {
+          if (env->sparse()) {
             const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
             const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
@@ -599,7 +599,7 @@ void gm_compute_2way_proc_combine_duo_(
         const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
         GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
-        if (env->sparse) {
+        if (env->sparse()) {
           const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
           const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
           const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);

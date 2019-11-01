@@ -45,10 +45,10 @@ void Env::set_defaults() {
   stage_num = 0;
   num_phase = 1;
   phase_num = 0;
-  GMEnv_ccc_param_set(GMEnv_ccc_param_default(), this);
-  GMEnv_ccc_multiplier_set(GMEnv_ccc_multiplier_default(), this);
-  GMEnv_duo_multiplier_set(GMEnv_duo_multiplier_default(), this);
-  sparse = false;
+  ccc_param_set_(Env::ccc_param_default());
+  ccc_multiplier_set_(Env::ccc_multiplier_default());
+  duo_multiplier_set_(Env::duo_multiplier_default());
+  sparse_ = false;
   tc_ = TC::NONE;
   num_tc_steps_ = 1;
   // Counters
@@ -75,7 +75,9 @@ void Env::parse_args(int argc, char** argv) {
   Env* env = this;
 
   for (int i = 1; i < argc; ++i) {
-    if (strcmp(argv[i], "--metric_type") == 0) {
+    if (false) {
+      //--------------------
+    } else if (strcmp(argv[i], "--metric_type") == 0) {
       //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for metric_type.");
@@ -99,8 +101,7 @@ void Env::parse_args(int argc, char** argv) {
                                             num_way == NUM_WAY::_3)
                                && "Invalid setting for num_way.");
       num_way_ = num_way;
-      GMEnv_set_num_proc(env, num_proc_vector_, num_proc_repl_,
-                       num_proc_field_);
+      set_num_proc_(num_proc_vector_, num_proc_repl_, num_proc_field_);
       //--------------------
     } else if (strcmp(argv[i], "--all2all") == 0) {
       //--------------------
@@ -137,8 +138,7 @@ void Env::parse_args(int argc, char** argv) {
       GMInsistInterface(env, 0 == errno
                     && (long)(int)num_proc_vector == num_proc_vector
                     && "Invalid setting for num_proc_vector.");
-      GMEnv_set_num_proc(env, num_proc_vector, num_proc_repl_,
-                         num_proc_field_);
+      set_num_proc_(num_proc_vector, num_proc_repl_, num_proc_field_);
       //--------------------
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
       //--------------------
@@ -149,8 +149,7 @@ void Env::parse_args(int argc, char** argv) {
       GMInsistInterface(env, 0 == errno
                     && (long)(int)num_proc_field == num_proc_field
                     && "Invalid setting for num_proc_field.");
-      GMEnv_set_num_proc(env, num_proc_vector_, num_proc_repl_,
-                         num_proc_field);
+      set_num_proc_(num_proc_vector_, num_proc_repl_, num_proc_field);
       //--------------------
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
       //--------------------
@@ -161,8 +160,7 @@ void Env::parse_args(int argc, char** argv) {
       GMInsistInterface(env, 0 == errno
                     && (long)(int)num_proc_repl == num_proc_repl
                     && "Invalid setting for num_proc_repl.");
-      GMEnv_set_num_proc(env, num_proc_vector_, num_proc_repl,
-                         num_proc_field_);
+      set_num_proc_(num_proc_vector_, num_proc_repl, num_proc_field_);
       //--------------------
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
       //--------------------
@@ -172,7 +170,7 @@ void Env::parse_args(int argc, char** argv) {
       const double ccc_param = strtod(argv[i], NULL);
       GMInsistInterface(env, 0 == errno && ccc_param >= 0
                                && "Invalid setting for ccc_param.");
-      GMEnv_ccc_param_set(ccc_param, env);
+      env->ccc_param_set_(ccc_param);
       //--------------------
     } else if (strcmp(argv[i], "--ccc_multiplier") == 0) {
       //--------------------
@@ -182,7 +180,7 @@ void Env::parse_args(int argc, char** argv) {
       const double ccc_multiplier = strtod(argv[i], NULL);
       GMInsistInterface(env, 0 == errno && ccc_multiplier >= 0
                                && "Invalid setting for ccc_multiplier.");
-      GMEnv_ccc_multiplier_set(ccc_multiplier, env);
+      ccc_multiplier_set_(ccc_multiplier);
       //--------------------
     } else if (strcmp(argv[i], "--duo_multiplier") == 0) {
       //--------------------
@@ -192,16 +190,16 @@ void Env::parse_args(int argc, char** argv) {
       const double duo_multiplier = strtod(argv[i], NULL);
       GMInsistInterface(env, 0 == errno && duo_multiplier >= 0
                                && "Invalid setting for duo_multiplier.");
-      GMEnv_duo_multiplier_set(duo_multiplier, env);
+      duo_multiplier_set_(duo_multiplier);
       //--------------------
     } else if (strcmp(argv[i], "--sparse") == 0) {
       //--------------------
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for sparse.");
       if (strcmp(argv[i], "yes") == 0) {
-        sparse = true;
+        sparse_ = true;
       } else if (strcmp(argv[i], "no") == 0) {
-        sparse = false;
+        sparse_ = false;
       } else {
         GMInsistInterface(env, false && "Invalid setting for sparse.");
       }
@@ -260,31 +258,29 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
 //=============================================================================
 // Initialize environment
 
-void GMEnv_create_impl_(GMEnv* const env, MPI_Comm base_comm, int argc,
-                        char** argv, const char* const description,
-                        bool make_comms, int num_proc, int proc_num) {
-  GMInsist(env);
+void Env::create_impl_(MPI_Comm base_comm, int argc,
+                       char** argv, const char* const description,
+                       bool make_comms, int num_proc, int proc_num) {
+  set_defaults();
 
-  env->set_defaults();
-
-  env->comm_base_ = base_comm;
-  env->make_comms_ = make_comms;
+  comm_base_ = base_comm;
+  make_comms_ = make_comms;
   // MPI proc counts, proc numbers
-  if (env->make_comms_) {
-    COMET_MPI_SAFE_CALL(MPI_Comm_size(env->comm_base_, &env->num_proc_base_));
-    COMET_MPI_SAFE_CALL(MPI_Comm_rank(env->comm_base_, &env->proc_num_base_));
+  if (make_comms_) {
+    COMET_MPI_SAFE_CALL(MPI_Comm_size(comm_base_, &num_proc_base_));
+    COMET_MPI_SAFE_CALL(MPI_Comm_rank(comm_base_, &proc_num_base_));
   } else {
-    env->num_proc_base_ = num_proc;
-    env->proc_num_base_ = proc_num;
+    num_proc_base_ = num_proc;
+    proc_num_base_ = proc_num;
   }
-  GMEnv_set_num_proc(env, env->num_proc_base_, 1, 1);
+  set_num_proc_(num_proc_base_, 1, 1);
   // OTHER
-  env->description = description;
+  this->description_ = description; //FIX
 
-  env->parse_args(argc, argv);
+  parse_args(argc, argv);
 
   if (make_comms) {
-    GMInsistInterface(env, env->can_run() &&
+    GMInsistInterface(this, can_run() &&
                       "Invalid problem for this system and build.");
   }
 }
@@ -300,7 +296,7 @@ Env::Env(MPI_Comm base_comm,
   const int proc_num = 0;
   const bool make_comms = true;
 
-  GMEnv_create_impl_(this, base_comm, argc, argv, description, make_comms,
+  create_impl_(base_comm, argc, argv, description, make_comms,
     num_proc, proc_num);
 }
 
@@ -323,7 +319,7 @@ Env::Env(MPI_Comm base_comm,
   const int proc_num = 0;
   const bool make_comms = true;
 
-  GMEnv_create_impl_(this, base_comm, argc, argv, description, make_comms, 
+  create_impl_(base_comm, argc, argv, description, make_comms, 
     num_proc, proc_num);
 
   free(argstring);
@@ -343,8 +339,7 @@ Env::Env(const char* const options, int num_proc, int proc_num) {
   strcpy(argstring, options);
   gm_create_args(argstring, &argc, argv);
   
-  GMEnv_create_impl_(this, MPI_COMM_WORLD, argc, argv, NULL,
-                     false, num_proc, proc_num);
+  create_impl_(MPI_COMM_WORLD, argc, argv, NULL, false, num_proc, proc_num);
   
   free(argstring);
   free(argv);
@@ -451,35 +446,34 @@ void Env::stream_synchronize(Stream_t stream) const {
 //=============================================================================
 // Manage MPI comms
 
-void GMEnv_initialize_comms(GMEnv* const env) {
-  GMInsist(env);
+void Env::comms_initialize_() {
 
-  if (env->are_comms_initialized_)
+  if (are_comms_initialized_)
     return;
 
-  if (! env->make_comms_)
+  if (! make_comms_)
     return;
 
-  COMET_MPI_SAFE_CALL(MPI_Comm_split(env->comm_base_, env->is_proc_active_,
-    env->proc_num_, &env->comm_));
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_, is_proc_active_,
+    proc_num_, &comm_));
 
   // Communicator along repl / vector axis.
 
-  COMET_MPI_SAFE_CALL(MPI_Comm_split(env->comm_base_,
-      env->is_proc_active_ ? env->proc_num_field_ : env->num_proc_,
-      //env->proc_num_,
-      env->is_proc_active_ ? env->proc_num_repl_vector_ : env->proc_num_,
-      &env->comm_repl_vector_));
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_,
+      is_proc_active_ ? proc_num_field_ : num_proc_,
+      //proc_num_,
+      is_proc_active_ ? proc_num_repl_vector_ : proc_num_,
+      &comm_repl_vector_));
 
   // Communicator along field axis.
 
-  COMET_MPI_SAFE_CALL(MPI_Comm_split(env->comm_base_,
-      env->is_proc_active_ ? env->proc_num_repl_vector_ : env->num_proc_,
-      //env->proc_num_,
-      env->is_proc_active_ ? env->proc_num_field_ : env->proc_num_,
-      &env->comm_field_));
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_,
+      is_proc_active_ ? proc_num_repl_vector_ : num_proc_,
+      //proc_num_,
+      is_proc_active_ ? proc_num_field_ : proc_num_,
+      &comm_field_));
 
-  env->are_comms_initialized_ = true;
+  are_comms_initialized_ = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -536,9 +530,8 @@ int GMEnv_data_type_metrics(const GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 
-void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector,
+void Env::set_num_proc_(int num_proc_vector,
                       int num_proc_repl, int num_proc_field) {
-  GMInsist(env);
   GMInsist(num_proc_vector > 0);
   GMInsist(num_proc_repl > 0);
   GMInsist(num_proc_field > 0);
@@ -549,26 +542,26 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector,
     GMInsist(num_proc_field == 1);
   }
 
-  GMInsist(env->num_proc_base_ != 0);
-  //GMInsist(env->proc_num_base_ is initialized);
+  GMInsist(num_proc_base_ != 0);
+  //GMInsist(proc_num_base_ is initialized);
 
   // Set proc counts
 
-  env->num_proc_vector_ = num_proc_vector;
-  env->num_proc_repl_ = num_proc_repl;
-  env->num_proc_field_ = num_proc_field;
+  num_proc_vector_ = num_proc_vector;
+  num_proc_repl_ = num_proc_repl;
+  num_proc_field_ = num_proc_field;
 
-  env->num_proc_repl_vector_ = env->num_proc_vector_ * env->num_proc_repl_;
+  num_proc_repl_vector_ = num_proc_vector_ * num_proc_repl_;
 
-  env->num_proc_ = env->num_proc_repl_vector_ * num_proc_field;
-  GMInsist(env->num_proc_ <= env->num_proc_base_ &&
+  num_proc_ = num_proc_repl_vector_ * num_proc_field;
+  GMInsist(num_proc_ <= num_proc_base_ &&
            "Number of procs requested exceeds number available.");
 
   // Set proc nums
 
-  env->proc_num_ = env->proc_num_base_;
+  proc_num_ = proc_num_base_;
 
-  env->is_proc_active_ = env->proc_num_ < env->num_proc_;
+  is_proc_active_ = proc_num_ < num_proc_;
 
   enum {ORDER_FRV = 0,
         ORDER_RVF = 1,
@@ -578,39 +571,39 @@ void GMEnv_set_num_proc(GMEnv* const env, int num_proc_vector,
   const int order = ORDER_FVR;
 
   if (order == ORDER_FRV) {
-    env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
-    env->proc_num_repl_ = (env->proc_num_ / env->num_proc_field_)
-                                          % env->num_proc_repl_;
-    env->proc_num_vector_ = (env->proc_num_ / env->num_proc_field_)
-                                              / env->num_proc_repl_;
+    proc_num_field_ = proc_num_ % num_proc_field_;
+    proc_num_repl_ = (proc_num_ / num_proc_field_)
+                                          % num_proc_repl_;
+    proc_num_vector_ = (proc_num_ / num_proc_field_)
+                                              / num_proc_repl_;
   }
 
   if (order == ORDER_RVF) {
-    env->proc_num_repl_ = env->proc_num_ % env->num_proc_repl_;
-    env->proc_num_vector_ = (env->proc_num_ / env->num_proc_repl_)
-                                              % env->num_proc_vector_;
-    env->proc_num_field_ = (env->proc_num_ / env->num_proc_repl_)
-                                           / env->num_proc_vector_;
+    proc_num_repl_ = proc_num_ % num_proc_repl_;
+    proc_num_vector_ = (proc_num_ / num_proc_repl_)
+                                              % num_proc_vector_;
+    proc_num_field_ = (proc_num_ / num_proc_repl_)
+                                           / num_proc_vector_;
   }
 
   if (order == ORDER_FVR) {
-    env->proc_num_field_ = env->proc_num_ % env->num_proc_field_;
-    env->proc_num_vector_ = (env->proc_num_ / env->num_proc_field_)
-                                              % env->num_proc_vector_;
-    env->proc_num_repl_ = (env->proc_num_ / env->num_proc_field_)
-                                          / env->num_proc_vector_;
+    proc_num_field_ = proc_num_ % num_proc_field_;
+    proc_num_vector_ = (proc_num_ / num_proc_field_)
+                                              % num_proc_vector_;
+    proc_num_repl_ = (proc_num_ / num_proc_field_)
+                                          / num_proc_vector_;
   }
 
-  env->proc_num_repl_vector_ = env->proc_num_repl_ + env->num_proc_repl_ *
-                               env->proc_num_vector_;
+  proc_num_repl_vector_ = proc_num_repl_ + num_proc_repl_ *
+                               proc_num_vector_;
 
   // Destroy old communicators if necessary
 
-  env->comms_terminate_();
+  comms_terminate_();
 
   // Make new communicators
 
-  GMEnv_initialize_comms(env);
+  comms_initialize_();
 }
 
 //-----------------------------------------------------------------------------

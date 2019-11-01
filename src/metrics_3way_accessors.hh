@@ -121,8 +121,8 @@ static GMFloat GMMetrics_ccc_value_3(GMMetrics* metrics,
   GMAssert(fmin <= fmid);
   GMAssert(fmid <= fmax);
 
-  const GMFloat ccc_multiplier = GMEnv_ccc_multiplier(env);
-  const GMFloat ccc_param = GMEnv_ccc_param(env);
+  const GMFloat ccc_multiplier = env->ccc_multiplier();
+  const GMFloat ccc_param = env->ccc_param();
 
   /* clang-format off */
   const GMFloat result = ccc_multiplier * fijk * (one - ccc_param * fmin) *
@@ -140,7 +140,7 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
 
 #ifdef USE_INT128
   if (env->metric_type() != MetricType::CCC || 
-      env->num_way() != NUM_WAY::_3 || ! env->are_ccc_params_default) {
+      env->num_way() != NUM_WAY::_3 || ! env->are_ccc_params_default()) {
     return;
   }
 
@@ -216,7 +216,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
   GMAssert(i0 >= 0 && i0 < 2);
   GMAssert(i1 >= 0 && i1 < 2);
   GMAssert(i2 >= 0 && i2 < 2);
-  GMAssert(env->are_ccc_params_default);
+  GMAssert(env->are_ccc_params_default());
 
   const GMTally4x2 t42 = GMMetrics_tally4x2_get_from_index(metrics, index, env);
   const GMTally1 rijk = GMTally4x2_get(t42, i0, i1, i2);
@@ -228,7 +228,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
 
   GMTally1 ci, cj, ck, cijk;
 
-  if (env->sparse) {
+  if (env->sparse()) {
     const GMFloat3 ci_cj_ck =
       GMMetrics_float3_C_get_from_index(metrics, index, env);
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
@@ -290,7 +290,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
 
   GMFloat result_floatcalc = 0;
 
-  if (env->sparse) {
+  if (env->sparse()) {
     const GMFloat3 ci_cj_ck =
       GMMetrics_float3_C_get_from_index(metrics, index, env);
     GMTally1 ci, cj, ck;
@@ -342,7 +342,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
   } /*---if sparse---*/
 
 #ifdef USE_INT128
-  if (env->are_ccc_params_default) {
+  if (env->are_ccc_params_default()) {
     const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_3(metrics,
                                          index, i0, i1, i2, env);
 
@@ -378,7 +378,7 @@ static bool GMMetrics_ccc_get_from_index_3_threshold(GMMetrics* metrics,
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
   GMAssert(env->num_way() == NUM_WAY::_3);
 
-  if (env->sparse) {
+  if (env->sparse()) {
 
     const GMFloat f_one = 1;
 

@@ -204,6 +204,10 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsistInterface(env, 0 == errno && "Invalid setting for threshold.");
       do_->threshold = threshold;
      /*----------*/
+    } else if (strcmp(argv[i], "--num_stage") == 0) {
+      ++i; /*---processed elsewhere by GMEnv---*/
+    } else if (strcmp(argv[i], "--num_phase") == 0) {
+      ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
@@ -234,7 +238,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i; /*---optionally processed by caller---*/
     } else {
     /*----------*/
-      if (GMEnv_proc_num(env) == 0) {
+      if (env->proc_num() == 0) {
         fprintf(stderr, "Invalid argument \"%s\". ", argv[i]);
       }
       GMInsistInterface(env, false && "Error: argument not recognized.");
@@ -389,7 +393,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 //printf("%i %i %i %i\n", env->proc_num_base_, env->proc_num_, env->proc_num_repl_, env->proc_num_vector_i_);
 
   const bool do_print = env->is_proc_active() &&
-     GMEnv_proc_num(env) == 0 && do_.verbosity > 0;
+     env->proc_num() == 0 && do_.verbosity > 0;
 
   /*---Allocate vectors---*/
 

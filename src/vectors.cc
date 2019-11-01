@@ -283,8 +283,8 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
         for (int fl = 0; fl < nfal; ++fl) {
           const GMFloat float_value = GMVectors_float_get(vectors, fl, vl, env);
             printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-                   GMEnv_proc_num_vector_i(env), vl,
-                   GMEnv_proc_num_field(env), fl, float_value);
+                   env->proc_num_vector(), vl,
+                   env->proc_num_field(), fl, float_value);
         } /*---fl---*/
       }   /*---vl---*/
     } break;       
@@ -296,8 +296,8 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
           const GMBits2 value = GMVectors_bits2_get(vectors, fl, vl, env);
             printf("vec_proc %i vec %i "
                    "field_proc %i field %i value %.1i%.1i\n",
-                   GMEnv_proc_num_vector_i(env), vl,
-                   GMEnv_proc_num_field(env), fl, value / 2, value % 2);
+                   env->proc_num_vector(), vl,
+                   env->proc_num_field(), fl, value / 2, value % 2);
         } /*---fl---*/
       }   /*---vl---*/
     } break;

@@ -317,12 +317,12 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
   GMAssert(index >= 0);
   GMAssert(index < (int64_t)metrics->num_elts_local);
 
-  GMAssert(i + metrics->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env) ==
+  GMAssert(i + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
-  GMAssert(j + metrics->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env) ==
+  GMAssert(j + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
            (metrics->coords_global_from_index[index] / metrics->num_vector) %
                metrics->num_vector);
-  GMAssert(k + metrics->num_vector_local * (size_t)GMEnv_proc_num_vector_i(env) ==
+  GMAssert(k + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
            metrics->coords_global_from_index[index] /
                (metrics->num_vector * (size_t)metrics->num_vector));
 
@@ -480,13 +480,13 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
   GMAssert(i >= 0 && j >= 0 && k >= 0);
   GMAssert(j_block >= 0 && j_block < env->num_block_vector());
   GMAssert(k_block >= 0 && k_block < env->num_block_vector());
-  GMAssert(! (GMEnv_proc_num_vector_i(env) == j_block &&
-              GMEnv_proc_num_vector_i(env) != k_block));
-  GMAssert(! (GMEnv_proc_num_vector_i(env) == k_block &&
-              GMEnv_proc_num_vector_i(env) != j_block));
+  GMAssert(! (env->proc_num_vector() == j_block &&
+              env->proc_num_vector() != k_block));
+  GMAssert(! (env->proc_num_vector() == k_block &&
+              env->proc_num_vector() != j_block));
   /*---WARNING: these conditions are not exhaustive---*/
 
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = env->proc_num_vector();
 
   const int64_t index = j_block == i_block && k_block == i_block ?
     GMMetrics_helper3way_part1_(metrics, i, j, k,
@@ -614,13 +614,13 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
   GMAssert(I >= 0 && J >= 0 && K >= 0);
   GMAssert(j_block >= 0 && j_block < env->num_block_vector());
   GMAssert(k_block >= 0 && k_block < env->num_block_vector());
-  GMAssert(! (GMEnv_proc_num_vector_i(env) == j_block &&
-              GMEnv_proc_num_vector_i(env) != k_block));
-  GMAssert(! (GMEnv_proc_num_vector_i(env) == k_block &&
-              GMEnv_proc_num_vector_i(env) != j_block));
+  GMAssert(! (env->proc_num_vector() == j_block &&
+              env->proc_num_vector() != k_block));
+  GMAssert(! (env->proc_num_vector() == k_block &&
+              env->proc_num_vector() != j_block));
   /*---WARNING: these conditions are not exhaustive---*/
 
-  const int i_block = GMEnv_proc_num_vector_i(env);
+  const int i_block = env->proc_num_vector();
 
   size_t index = j_block == i_block && k_block == i_block ?
     GMMetrics_helper3way_part1_permuted_(metrics, I, J, K,
@@ -719,10 +719,10 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_cache(
   GMAssert(I >= 0 && J >= 0 && K >= 0);
   GMAssert(j_block >= 0 && j_block < env->num_block_vector());
   GMAssert(k_block >= 0 && k_block < env->num_block_vector());
-  GMAssert(! (GMEnv_proc_num_vector_i(env) == j_block &&
-              GMEnv_proc_num_vector_i(env) != k_block));
-  GMAssert(! (GMEnv_proc_num_vector_i(env) == k_block &&
-              GMEnv_proc_num_vector_i(env) != j_block));
+  GMAssert(! (env->proc_num_vector() == j_block &&
+              env->proc_num_vector() != k_block));
+  GMAssert(! (env->proc_num_vector() == k_block &&
+              env->proc_num_vector() != j_block));
   /*---WARNING: these conditions are not exhaustive---*/
 
   if (index_cache->is_initialized && K == index_cache->K) {
