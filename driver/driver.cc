@@ -531,8 +531,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Perform some checks---*/
 
-  GMInsist(env->cpu_mem_local == 0);
-  GMInsist(env->gpu_mem_local == 0);
+  GMInsist(env->cpu_mem_local() == 0);
+  GMInsist(env->gpu_mem_local() == 0);
 
   size_t num_written = 0;
   if (env->is_proc_active()) {
@@ -563,6 +563,10 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Output run information---*/
 
+  const double ops = env->ops();
+  const size_t cpu_mem_max = env->cpu_mem_max();
+  const size_t gpu_mem_max = env->gpu_mem_max();
+
   if (do_print) {
     //-----
     if (do_.checksum) {
@@ -574,22 +578,23 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     //-----
     printf("ctime %.6f", env->ctime());
     //-----
-    printf(" ops %e", env->ops);
+    printf(" ops %e", ops);
     if (env->ctime() > 0) {
-      printf(" ops_rate %e", env->ops / env->ctime());
-      printf(" ops_rate/proc %e", env->ops / (env->ctime()*env->num_proc()) );
+      printf(" ops_rate %e", ops / env->ctime());
+      printf(" ops_rate/proc %e", ops / (env->ctime()*env->num_proc()) );
     }
     //-----
-    printf(" vcmp %e", env->veccompares);
+    printf(" vcmp %e", env->veccompares());
     if (NULL != do_.metrics_file_path_stub) {
       printf(" vcmpout %e", (double)num_written);
     }
     //-----
-    printf(" cmp %e", env->compares);
-    printf(" ecmp %e", env->eltcompares);
+    printf(" cmp %e", env->compares());
+    printf(" ecmp %e", env->eltcompares());
     if (env->ctime() > 0) {
-      printf(" ecmp_rate %e", env->eltcompares / env->ctime());
-      printf(" ecmp_rate/proc %e", env->eltcompares / (env->ctime()*env->num_proc()) );
+      printf(" ecmp_rate %e", env->eltcompares() / env->ctime());
+      printf(" ecmp_rate/proc %e", env->eltcompares() /
+        (env->ctime()*env->num_proc()) );
     }
     //-----
     printf(" vctime %.6f", vctime);
@@ -604,8 +609,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     printf(" outtime %.6f", outtime);
     //}
     //-----
-    printf(" cpumem %e", (double)env->cpu_mem_max);
-    printf(" gpumem %e", (double)env->gpu_mem_max);
+    printf(" cpumem %e", (double)cpu_mem_max);
+    printf(" gpumem %e", (double)gpu_mem_max);
     //-----
     printf(" tottime %.6f", total_time_end - total_time_beg);
     //-----

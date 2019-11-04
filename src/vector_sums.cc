@@ -136,8 +136,8 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
       vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
   }
 
-  env->ops_local += 2 * vectors->num_vector_local *
-                    (double)vectors->num_field_local;
+  env->ops_local_inc(2 * vectors->num_vector_local *
+                     (double)vectors->num_field_local);
 }
 
 //-----------------------------------------------------------------------------

@@ -564,7 +564,7 @@ static void gm_tc_solve_accelblasgemmex_(
 
   } // if compute_method
 
-  env->ops_local += 2 * m * (double)n * (double)k;
+  env->ops_local_inc(2 * m * (double)n * (double)k);
 }
 
 //-----------------------------------------------------------------------------
@@ -1034,7 +1034,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #endif
     GMEnv_accel_last_call_succeeded(env);
-    env->gpu_mem_inc(tc_bufs.tc_buf_size);
+    env->gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
 #if defined USE_CUDA
     cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
@@ -1042,7 +1042,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #endif
     GMEnv_accel_last_call_succeeded(env);
-    env->gpu_mem_inc(tc_bufs.tc_buf_size);
+    env->gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
     // Set up accel blas handle.
 
@@ -1078,11 +1078,11 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
     tc_bufs.tc_buf_left = malloc(tc_bufs.tc_buf_size);
     GMInsist(tc_bufs.tc_buf_left);
-    env->cpu_mem_inc(tc_bufs.tc_buf_size);
+    env->cpu_mem_local_inc(tc_bufs.tc_buf_size);
 
     tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
     GMInsist(tc_bufs.tc_buf_right);
-    env->cpu_mem_inc(tc_bufs.tc_buf_size);
+    env->cpu_mem_local_inc(tc_bufs.tc_buf_size);
 
   } // compute_method
 }
@@ -1109,7 +1109,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 #endif
     GMEnv_accel_last_call_succeeded(env);
     tc_bufs.tc_buf_left = NULL;
-    env->gpu_mem_dec(tc_bufs.tc_buf_size);
+    env->gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
 #if defined USE_CUDA
     cudaFree(tc_bufs.tc_buf_right);
@@ -1118,7 +1118,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 #endif
     GMEnv_accel_last_call_succeeded(env);
     tc_bufs.tc_buf_right = NULL;
-    env->gpu_mem_dec(tc_bufs.tc_buf_size);
+    env->gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
     // Free accel blas handle.
 
@@ -1138,11 +1138,11 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 
     free(tc_bufs.tc_buf_left);
     tc_bufs.tc_buf_left = NULL;
-    env->cpu_mem_dec(tc_bufs.tc_buf_size);
+    env->cpu_mem_local_dec(tc_bufs.tc_buf_size);
 
     free(tc_bufs.tc_buf_right);
     tc_bufs.tc_buf_right = NULL;
-    env->cpu_mem_dec(tc_bufs.tc_buf_size);
+    env->cpu_mem_local_dec(tc_bufs.tc_buf_size);
 
   } // compute_method
 }

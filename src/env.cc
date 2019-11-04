@@ -52,18 +52,11 @@ void Env::set_defaults() {
   tc_ = TC::NONE;
   num_tc_steps_ = 1;
   // Counters
-  //env->ctime_ = 0;
-  compares = 0;
-  eltcompares = 0;
-  veccompares = 0;
-  ops_local = 0;
-  ops = 0;
-  cpu_mem_local = 0;
-  cpu_mem_max_local = 0;
-  cpu_mem_max = 0;
-  gpu_mem_local = 0;
-  gpu_mem_max_local = 0;
-  gpu_mem_max = 0;
+  ctime_ = 0;
+  compares_ = 0;
+  eltcompares_ = 0;
+  veccompares_ = 0;
+  ops_local_ = 0;
   // MPI
   are_comms_initialized_ = false;
 }
@@ -353,7 +346,49 @@ Env::~Env() {
 }
 
 //=============================================================================
-// Manage accelerator streams
+// Counters
+
+void Env::cpu_mem_local_inc(size_t n) {
+ cpu_mem_local_ += n;
+ cpu_mem_max_local_ = std::max(cpu_mem_max_local_, cpu_mem_local_);
+}
+
+//-----------------------------------------------------------------------------
+
+void Env::gpu_mem_local_inc(size_t n) {
+ gpu_mem_local_ += n;
+ gpu_mem_max_local_ = std::max(gpu_mem_max_local_, gpu_mem_local_);
+}
+
+//-----------------------------------------------------------------------------
+
+size_t Env::cpu_mem_max() const {
+  size_t result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&cpu_mem_max_local_, &result, 1,
+    MPI_UNSIGNED_LONG_LONG, MPI_MAX, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+
+size_t Env::gpu_mem_max() const {
+  size_t result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&gpu_mem_max_local_, &result, 1,
+    MPI_UNSIGNED_LONG_LONG, MPI_MAX, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+
+double Env::ops() const {
+  double result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&ops_local_, &result, 1, MPI_DOUBLE,
+    MPI_SUM, comm()));
+  return result;
+}
+
+//=============================================================================
+// accelerator streams
 
 void Env::streams_initialize_() {
 
@@ -444,7 +479,7 @@ void Env::stream_synchronize(Stream_t stream) const {
 }
 
 //=============================================================================
-// Manage MPI comms
+// MPI comms
 
 void Env::comms_initialize_() {
 
@@ -679,7 +714,7 @@ void* gm_malloc(size_t n, GMEnv* env) {
   void* p = malloc(n);
   GMInsist(p &&
            "Invalid pointer from malloc, possibly due to insufficient memory.");
-  env->cpu_mem_inc(n);
+  env->cpu_mem_local_inc(n);
   return p;
 }
 
@@ -688,7 +723,7 @@ void* gm_malloc(size_t n, GMEnv* env) {
 void gm_free(void* p, size_t n, GMEnv* env) {
   GMInsist(p && env);
   free(p);
-  env->cpu_mem_dec(n);
+  env->cpu_mem_local_dec(n);
 }
 
 //-----------------------------------------------------------------------------

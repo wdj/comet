@@ -182,18 +182,6 @@ public:
   int stage_num;
   int num_phase;
   int phase_num;
-  // Counters
-  double compares;
-  double eltcompares;
-  double veccompares;
-  double ops_local;
-  double ops;
-  size_t cpu_mem_local;
-  size_t cpu_mem_max_local;
-  size_t cpu_mem_max;
-  size_t gpu_mem_local;
-  size_t gpu_mem_max_local;
-  size_t gpu_mem_max;
 
   //----------------------------------------
   // Constructor/destructor
@@ -245,16 +233,22 @@ public:
   double ctime() const {return ctime_;}
   void ctime_inc(double t) {ctime_ += t;}
   double synced_time();
-  void cpu_mem_inc(size_t n) {
-   cpu_mem_local += n;
-   cpu_mem_max_local = std::max(cpu_mem_max_local, cpu_mem_local);
-  }
-  void gpu_mem_inc(size_t n) {
-   gpu_mem_local += n;
-   gpu_mem_max_local = std::max(gpu_mem_max_local, gpu_mem_local);
-  }
-  void cpu_mem_dec(size_t n) {cpu_mem_local -= n;}
-  void gpu_mem_dec(size_t n) {gpu_mem_local -= n;}
+  size_t cpu_mem_local() const {return cpu_mem_local_;}
+  size_t gpu_mem_local() const {return gpu_mem_local_;}
+  void cpu_mem_local_inc(size_t n);
+  void gpu_mem_local_inc(size_t n);
+  void cpu_mem_local_dec(size_t n) {cpu_mem_local_ -= n;}
+  void gpu_mem_local_dec(size_t n) {gpu_mem_local_ -= n;}
+  size_t cpu_mem_max() const;
+  size_t gpu_mem_max() const;
+  void ops_local_inc(double n) {ops_local_ += n;}
+  double ops() const;
+  double compares() const {return compares_;}
+  double eltcompares() const {return eltcompares_;}
+  double veccompares() const {return veccompares_;}
+  void compares_inc(double n) {compares_ += n;}
+  void eltcompares_inc(double n) {eltcompares_ += n;}
+  void veccompares_inc(double n) {veccompares_ += n;}
 
   // MPI comms
   MPI_Comm comm() const {return comm_;}
@@ -329,6 +323,14 @@ private:
 
   // Counters
   double ctime_;
+  double ops_local_;
+  size_t cpu_mem_local_;
+  size_t gpu_mem_local_;
+  size_t cpu_mem_max_local_;
+  size_t gpu_mem_max_local_;
+  double compares_;
+  double eltcompares_;
+  double veccompares_;
 
   // MPI comms
   bool make_comms_;

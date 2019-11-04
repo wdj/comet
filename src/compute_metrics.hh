@@ -45,6 +45,12 @@ private:
 
   void compute_stats_(GMMetrics& metrics);
 
+  bool can_run_() const {return env_.is_proc_active();}
+
+  double time_begin_tmp_;
+  void start_timer_() {time_begin_tmp_ = env_.synced_time();}
+  void stop_timer_() {env_.ctime_inc(env_.synced_time() - time_begin_tmp_);}
+
   // Disallowed methods.
 
   ComputeMetrics(  const ComputeMetrics&);

@@ -325,8 +325,8 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   hipMalloc((void**)&p->d, p->size);
 #endif
 
-  env->cpu_mem_inc(p->size);
-  env->gpu_mem_inc(p->size);
+  env->cpu_mem_local_inc(p->size);
+  env->gpu_mem_local_inc(p->size);
 
   GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc,"
                    " possibly due to insufficient memory.");
@@ -407,8 +407,8 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   hipFree(p->d);
 #endif // USE_MAGMA
 
-  env->cpu_mem_dec(size);
-  env->gpu_mem_dec(size);
+  env->cpu_mem_local_dec(size);
+  env->gpu_mem_local_dec(size);
 }
 
 //-----------------------------------------------------------------------------
@@ -580,7 +580,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
                "Failure in call to magma_minproductblas_sgemm.");
     }
 
-    env->ops_local += 2 * m * (double)n * (double)k;
+    env->ops_local_inc(2 * m * (double)n * (double)k);
 
   } else if (use_mgemm4(env)) { //--------------------
 

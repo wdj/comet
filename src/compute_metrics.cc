@@ -22,16 +22,16 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-
-/// Constructor for ComputeMetrics class.
+/// \brief Constructor for ComputeMetrics class.
 
 ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
-  : env_(env) {
+  : env_(env)
+  , time_begin_tmp_(0) {
 
-  if (! env_.is_proc_active())
+  if (! can_run_())
     return;
 
-  double time_begin = env_.synced_time();
+  start_timer_();
 
   //--------------------
 
@@ -43,19 +43,18 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
 
   //--------------------
 
-  env_.ctime_inc(env_.synced_time() - time_begin);
+  stop_timer_();
 }
 
 //-----------------------------------------------------------------------------
-
-/// Destructor for ComputeMetrics class.
+/// \brief Destructor for ComputeMetrics class.
 
 ComputeMetrics::~ComputeMetrics() {
 
-  if (! env_.is_proc_active())
+  if (! can_run_())
     return;
 
-  double time_begin = env_.synced_time();
+  start_timer_();
 
   //--------------------
 
@@ -67,19 +66,18 @@ ComputeMetrics::~ComputeMetrics() {
 
   //--------------------
 
-  env_.ctime_inc(env_.synced_time() - time_begin);
+  stop_timer_();
 }
 
 //-----------------------------------------------------------------------------
-
 /// \brief Function to compute 2-way or 3-way metrics.
 
 void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors) {
 
-  if (! env_.is_proc_active())
+  if (! can_run_())
     return;
 
-  double time_begin = env_.synced_time();
+  start_timer_();
 
   //--------------------
 
@@ -107,13 +105,12 @@ void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors) {
 
   //--------------------
 
-  env_.ctime_inc(env_.synced_time() - time_begin);
+  stop_timer_();
 
   compute_stats_(metrics);
 }
 
 //-----------------------------------------------------------------------------
-
 /// \brief Internal function to calculate misc. statistics for the run.
 
 void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
@@ -123,7 +120,7 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
   GMInsist(metrics.num_elts_local == metrics.num_elts_local_computed &&
            "Failure to compute all requested metrics.");
 
-  // Compute global counts of compares and operations.
+  // Compute global counts of compares.
 
   size_t metrics_num_elts = 0;
 
@@ -132,25 +129,14 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics.num_elts_local, &metrics_num_elts,
     1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_repl_vector()));
 
-  env_.eltcompares += metrics.num_field_active * metrics_num_elts;
-  env_.compares += env_.eltcompares * metrics.data_type_num_values;
-  env_.veccompares += metrics_num_elts;
-
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_.ops_local, &env_.ops, 1,
-    MPI_DOUBLE, MPI_SUM, env_.comm()));
-
-  // Compute global CPU, GPU memory high water marks.
-
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_.cpu_mem_max_local,
-    &env_.cpu_mem_max, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, env_.comm()));
-
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&env_.gpu_mem_max_local,
-    &env_.gpu_mem_max, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, env_.comm()));
+  env_.compares_inc(metrics.num_field_active * metrics_num_elts *
+                    metrics.data_type_num_values);
+  env_.eltcompares_inc(metrics.num_field_active * metrics_num_elts);
+  env_.veccompares_inc(metrics_num_elts);
 }
 
 //-----------------------------------------------------------------------------
-
-/// \brief Convenience function for single call to compute the metrics.
+/// \brief Convenience function for constructor, compute, destructor.
 
 void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors,
   GMEnv& env) {
