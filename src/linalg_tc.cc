@@ -587,7 +587,7 @@ static void gm_tc_solve_(
   GMInsist(nvl >= 0);
   GMInsist(nvll <= nvl);
   GMInsist(npvfl_thisstep >= 0);
-  GMInsist(env->tc_eff() != TC::NONE);
+  GMInsist(env->tc_eff() != TC::NO);
 
   const int nfl_thisstep = npvfl_thisstep * 64;
 
@@ -925,7 +925,7 @@ static void gm_tc_gemm_start_impl_(
 size_t gm_gemm_divisibility_required(GMEnv* const env) {
   GMInsist(env);
 
-  const bool need_divisible_by_4 = env->tc_eff() != TC::NONE;
+  const bool need_divisible_by_4 = env->tc_eff() != TC::NO;
 
   return need_divisible_by_4 ? 4 : 1;
 }
@@ -956,9 +956,10 @@ void gm_tc_gemm_start(int m, int n, int k,
   GMInsist(k <= ldda);
   GMInsist(k <= lddb);
   GMInsist(m <= lddc);
-  GMInsist(env->tc_eff() != TC::NONE);
-  GMInsist(env->metric_type() == MetricType::CCC ||
-           env->metric_type() == MetricType::DUO);
+  GMInsist(env->tc_eff() != TC::NO);
+  GMInsist(env->is_metric_type_bitwise());
+
+  GMInsist(tc_bufs.tc_buf_left);
 
   // Select required template function instance.
 
@@ -998,9 +999,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
   GMInsist(!tc_bufs.tc_buf_left);
   GMInsist(!tc_bufs.tc_buf_right);
 
-  if (!(env->metric_type() == MetricType::CCC ||
-        env->metric_type() == MetricType::DUO) ||
-      env->tc_eff() == TC::NONE)
+  if (!env->is_metric_type_bitwise() || env->tc_eff() == TC::NO)
     return;
 
   // Calculate sizes.

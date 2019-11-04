@@ -157,17 +157,18 @@ struct NUM_WAY {
 struct TC {
   enum {
     INVALID = -1,
-    NONE = 0,
-    //GM_TC_METHOD_BEST = 1,
+    NO = 0,
     FP16 = 1,
     INT8 = 2,
     FP32 = 3,
+    AUTO = 4,
     //GM_TC_METHOD_INT4 = 3,
     //GM_TC_METHOD_INT1 = 4,
+    NUM = 5
   };
 
   static bool is_valid(int tc) {
-    return tc >= 0 && tc < 4;
+    return tc >= 0 && tc <= NUM;
   }
 };
 
@@ -204,7 +205,8 @@ public:
   void set_defaults();
   void parse_args(int argc, char** argv);
 
-  bool can_run() const;
+  bool can_run(int tc) const;
+  bool can_run() const {return can_run(tc_eff());};
 
   //----------------------------------------
   // CoMet Settings
@@ -219,6 +221,7 @@ public:
            metric_type_==MetricType::DUO;
   }
   bool sparse() const {return sparse_;}
+  int tc() const {return tc_;};
   int tc_eff() const;
   int num_tc_steps() const {return num_tc_steps_;};
   static double ccc_multiplier_default() {return ((double) 9) / ((double) 2);}

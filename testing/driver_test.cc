@@ -1471,21 +1471,23 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
         "--problem_type random --verbosity %i --tc %i --num_way %i "
         "--num_tc_steps %i --all2all yes" ;
 
+    for (int gpu=0; gpu<=1; ++gpu) {
     for (int num_tc_steps=1; num_tc_steps<=3; ++num_tc_steps) {
     for (int nvl=3; nvl<=10; ++nvl) {
     for (int num_way=2; num_way<=3; ++num_way) {
       if (is_duo && num_way == 3) continue;
     for (int sparse=0; sparse<=1; ++sparse) {
       if (is_duo && sparse == 0) continue;
-    for (int tc=1; tc<=3; ++tc) {
+    for (int tc=1; tc<comet::TC::NUM; ++tc) {
       //if (!comet::Env::is_tc_valid(tc)) continue;
       if (nvl/2 < num_way) continue;
 
       sprintf(options1, options_template_tc, metric_type, nvl, "REF",
               sparse==0 ? "no" : "yes", 1, 0, num_way, 1);
-      sprintf(options2, options_template_tc, metric_type, nvl, "GPU",
+      sprintf(options2, options_template_tc, metric_type, nvl, gpu ? "GPU" : "CPU",
               sparse==0 ? "no" : "yes", 1, tc, num_way, num_tc_steps);
       EXPECT_EQ(true, compare_2runs(options1, options2));
+    }
     }
     }
     }

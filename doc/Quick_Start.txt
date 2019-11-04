@@ -70,12 +70,13 @@ Options:
         REF=reference method)
 
     --tc <value>
-        for GPU method on platforms that support it, use the GPU
-        tensor cores for CCC and DUO (0=no (default), 1=yes)
+        for CCC and DUO, use a standard GEMM computation that employs
+        special hardware such as GPU tensor cores when available
+        (0=no (default), 1=fp16/fp32, 2=int8/int32, 3=fp32, 4=auto)
 
     --num_tc_steps <value>
-        for tensor core method, tuning parameter to reduce memory
-        usage on the GPU (default 1)
+        for tc methods, tuning parameter to reduce memory usage
+        by breaking GEMM into multiple steps (default 1)
 
     --num_proc_vector <value>
         blocking factor to denote number of blocks used to decompose

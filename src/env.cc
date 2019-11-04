@@ -49,7 +49,7 @@ void Env::set_defaults() {
   ccc_multiplier_set_(Env::ccc_multiplier_default());
   duo_multiplier_set_(Env::duo_multiplier_default());
   sparse_ = false;
-  tc_ = TC::NONE;
+  tc_ = TC::NO;
   num_tc_steps_ = 1;
   // Counters
   ctime_ = 0;
@@ -899,7 +899,9 @@ int System::compute_capability() {
 //-----------------------------------------------------------------------------
 /// \brief Determine whether requested run possible on this hardware and build.
 
-bool Env::can_run() const {
+bool Env::can_run(int tc) const {
+
+  GMInsist(TC::AUTO != tc);
 
   bool result = true;
 
@@ -910,34 +912,33 @@ bool Env::can_run() const {
   }
 
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
-    result = result && (TC::NONE == tc_ ||
-                        (TC::FP32 == tc_ && BuildHas::CPUBLAS));
+    result = result && (TC::NO == tc ||
+                        (TC::FP32 == tc && BuildHas::CPUBLAS));
   }
 
   if (compute_method_ == ComputeMethod::GPU) {
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
   }
 
+//TODO: adjust this for HIP case.
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::FP16 == tc_) {
+      TC::FP16 == tc) {
     result = result && BuildHas::CUDA && System::compute_capability() >= 700;
   }
 
+//TODO: adjust this for HIP case.
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::INT8 == tc_) {
+      TC::INT8 == tc) {
     result = result && BuildHas::CUDA && System::compute_capability() >= 750;
   }
 
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::FP32 == tc_) {
+      TC::FP32 == tc) {
     result = result && (BuildHas::CUDA || BuildHas::HIP);
   }
 
-  const bool tc_on = TC::FP16 == tc_ || TC::INT8 == tc_ ||
-                     TC::FP32 == tc_;
-
   if (compute_method_ == ComputeMethod::GPU && (!is_metric_type_bitwise()
-      || (is_metric_type_bitwise() && tc_on))) {
+      || (is_metric_type_bitwise() && TC::NO == tc))) {
     result = result && BuildHas::MAGMA;
   }
 
@@ -945,10 +946,21 @@ bool Env::can_run() const {
 }
 
 //-----------------------------------------------------------------------------
+// \brief Select best tc value if AUTO specified.
 
 int Env::tc_eff() const {
 
-  return tc_; // FIX
+  if (TC::AUTO != tc_)
+    return tc_;
+
+  // NOTE: order is important here: fastest first.
+  for (auto tc : {TC::INT8, TC::FP16, TC::FP32}) {
+    if (can_run(tc))
+      return tc;
+  }
+
+  GMInsist(false && "Suitable tc setting not found for this platform / build.");
+  return 0;
 }
 
 //=============================================================================

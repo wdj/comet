@@ -614,6 +614,10 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     //-----
     printf(" tottime %.6f", total_time_end - total_time_beg);
     //-----
+    if (env->tc() != env->tc_eff()) {
+      printf(" tc_eff %i", env->tc_eff());
+    }
+    //-----
     printf("\n");
   }
 
