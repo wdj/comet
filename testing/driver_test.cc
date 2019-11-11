@@ -486,7 +486,7 @@ void DriverTest_czek_() {
       for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
         for (int num_proc_repl=1; num_proc_repl<=4; ++num_proc_repl) {
           const int npv = num_proc_vector;
-          const int num_phase_max = num_proc_repl==1 ? npv*npv - 2*npv + 2 :
+          const int num_phase_max = 1==num_proc_repl ? npv*npv - 2*npv + 2 :
                                                       (npv+1)*(npv+2);
           const int num_phase_min = num_phase_max / 2;
           for (int num_phase=num_phase_min; num_phase<=num_phase_max;
@@ -1451,7 +1451,7 @@ void DriverTest_ccc3_simple_sparse_() {
 //=============================================================================
 
 void DriverTest_ccc_duo_(const char* const metric_type) {
-  const bool is_duo = metric_type[0] == 'd';
+  const bool is_duo = 'd' == metric_type[0];
 
   char options1[1024];
   char options2[1024];
@@ -1475,17 +1475,17 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
     for (int num_tc_steps=1; num_tc_steps<=3; ++num_tc_steps) {
     for (int nvl=3; nvl<=10; ++nvl) {
     for (int num_way=2; num_way<=3; ++num_way) {
-      if (is_duo && num_way == 3) continue;
+      if (is_duo && 3 == num_way) continue;
     for (int sparse=0; sparse<=1; ++sparse) {
-      if (is_duo && sparse == 0) continue;
+      if (is_duo && 0 == sparse) continue;
     for (int tc=1; tc<comet::TC::NUM; ++tc) {
-      //if (!comet::Env::is_tc_valid(tc)) continue;
       if (nvl/2 < num_way) continue;
 
       sprintf(options1, options_template_tc, metric_type, nvl, "REF",
-              sparse==0 ? "no" : "yes", 1, 0, num_way, 1);
-      sprintf(options2, options_template_tc, metric_type, nvl, gpu ? "GPU" : "CPU",
-              sparse==0 ? "no" : "yes", 1, tc, num_way, num_tc_steps);
+              sparse ? "yes" : "no", 1, 0, num_way, 1);
+      sprintf(options2, options_template_tc, metric_type, nvl,
+              gpu ? "GPU" : "CPU",
+              sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
       EXPECT_EQ(true, compare_2runs(options1, options2));
     }
     }
@@ -1863,7 +1863,7 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
   sprintf(options1, options_template_11a, metric_type, 1);
   sprintf(options2, options_template_11b, metric_type, 1, ((double)1) / ((double)2));
   const int result11 = compare_2runs(options1, options2);
-  EXPECT_EQ(true, proc_num==0 ? ! result11 : true);
+  EXPECT_EQ(true, 0==proc_num ? ! result11 : true);
 
   //----------
   //---num_phase, 2-way
@@ -1996,10 +1996,10 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
         "--all2all yes --sparse %s "
         "--problem_type random %s";
     for (int sparse=0; sparse<2; ++sparse) {
-      if (is_duo && sparse == 0) continue;
-      sprintf(options1, options_template, metric_type, sparse==1 ? "yes" : "no",
+      if (is_duo && 0 == sparse) continue;
+      sprintf(options1, options_template, metric_type, 1==sparse ? "yes" : "no",
               "--compute_method REF");
-      sprintf(options2, options_template, metric_type, sparse==1 ? "yes" : "no",
+      sprintf(options2, options_template, metric_type, 1==sparse ? "yes" : "no",
               "--compute_method GPU "
               "--verbosity 1 "
               "--threshold .5 "
@@ -2021,10 +2021,10 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
         "--all2all yes --sparse %s "
         "--problem_type random %s";
     for (int sparse=0; sparse<2; ++sparse) {
-      if (is_duo && sparse == 0) continue;
-      sprintf(options1, options_template, metric_type, sparse==1 ? "yes" : "no",
+      if (is_duo && 0 == sparse) continue;
+      sprintf(options1, options_template, metric_type, 1==sparse ? "yes" : "no",
               "--compute_method REF");
-      sprintf(options2, options_template, metric_type, sparse==1 ? "yes" : "no",
+      sprintf(options2, options_template, metric_type, 1==sparse ? "yes" : "no",
               "--compute_method GPU "
               "--verbosity 1 "
               "--threshold .1 "

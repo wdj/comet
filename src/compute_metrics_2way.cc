@@ -444,7 +444,7 @@ void gm_compute_metrics_2way_all2all(
     // GPU case: wait for prev step get metrics to complete, then combine.
     // Note this is hidden under GPU computation
 
-    if (env->compute_method() == ComputeMethod::GPU) {
+    if (env->is_using_linalg()) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
         gm_get_metrics_wait(metrics, vars_prev.metrics_buf, env);
         unlock(lock_metrics_buf_ptr_d_prev);
@@ -561,7 +561,7 @@ void gm_compute_metrics_2way_all2all(
 
     // CPU case: combine numerators, denominators to obtain final result
 
-    if (env->compute_method() != ComputeMethod::GPU) {
+    if (!env->is_using_linalg()) {
       if (vars.is_compute_step && vars.do_compute_block) {
         GMVectorSums* vector_sums_left = &vector_sums_onproc;
         GMVectorSums* vector_sums_right =

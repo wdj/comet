@@ -42,7 +42,7 @@ void GMComputeNumerators3Way_create(GMComputeNumerators3Way* this_,
     this_->matB_buf[i] = GMMirroredBuf_null();
   }
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env->is_using_linalg()) {
     for (int i=0; i<2; ++i) {
       if (env->do_reduce()) {
         GMMirroredBuf_create(&(this_->tmp_buf[i]), nvl, nvl, env);
@@ -64,7 +64,7 @@ void GMComputeNumerators3Way_destroy(GMComputeNumerators3Way* this_,
                                      GMEnv* env) {
   GMInsist(this_ && env);
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env->is_using_linalg()) {
     for (int i=0; i<2; ++i) {
       if (env->do_reduce()) {
         GMMirroredBuf_destroy(&this_->tmp_buf[i], env);
@@ -112,7 +112,7 @@ void GMComputeNumerators3Way_start(
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*----------------------------------------*/
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env->is_using_linalg()) {
     /*----------------------------------------*/
     gm_compute_3way_nums_gpu_start_(this_,
                                     vectors_i, vectors_j, vectors_k,
@@ -122,7 +122,7 @@ void GMComputeNumerators3Way_start(
                                     vector_sums_k,
                                     section_step, env);
     /*----------------------------------------*/
-  } else /*---(env->compute_method() != ComputeMethod::GPU)---*/ {
+  } else /*---(!env->is_using_linalg())---*/ {
     /*----------------------------------------*/
     switch (env->metric_type()) {
       case MetricType::CZEK: {

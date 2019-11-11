@@ -493,7 +493,7 @@ void gm_compute_3way_nums_gpu_start_(
               env->proc_num_vector() != k_block));
   GMInsist(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
-  GMInsist(env->compute_method() == ComputeMethod::GPU);
+  GMInsist(env->is_using_linalg());
   GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 

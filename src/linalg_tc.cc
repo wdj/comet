@@ -86,9 +86,9 @@ __device__ static int gridDim_y_() { return 0; }
 template<typename GemmIn_t> struct TCBufTypes;
 
 template<> struct TCBufTypes<uint16_t> {
-  static __device__ uint16_t zero() {return (uint16_t)0x0000;}
-  static __device__ uint16_t one() {return (uint16_t)0x3c00;}
-  static __device__ uint16_t two() {return (uint16_t)0x4000;}
+  static __host__ __device__ uint16_t zero() {return (uint16_t)0x0000;}
+  static __host__ __device__ uint16_t one() {return (uint16_t)0x3c00;}
+  static __host__ __device__ uint16_t two() {return (uint16_t)0x4000;}
                                         // = *(uint16_t*)&__float2half(0.);
                                         // = *(uint16_t*)&__float2half(1.);
                                         // = *(uint16_t*)&__float2half(2.);
@@ -97,17 +97,17 @@ template<> struct TCBufTypes<uint16_t> {
 //----------
 
 template<> struct TCBufTypes<int8_t> {
-  static __device__ int8_t zero() {return (int8_t)0;}
-  static __device__ int8_t one() {return (int8_t)1;}
-  static __device__ int8_t two() {return (int8_t)2;}
+  static __host__ __device__ int8_t zero() {return (int8_t)0;}
+  static __host__ __device__ int8_t one() {return (int8_t)1;}
+  static __host__ __device__ int8_t two() {return (int8_t)2;}
 };
 
 //----------
 
 template<> struct TCBufTypes<GMFp32> {
-  static __device__ GMFp32 zero() {return (GMFp32)0;}
-  static __device__ GMFp32 one() {return (GMFp32)1;}
-  static __device__ GMFp32 two() {return (GMFp32)2;}
+  static __host__ __device__ GMFp32 zero() {return (GMFp32)0;}
+  static __host__ __device__ GMFp32 one() {return (GMFp32)1;}
+  static __host__ __device__ GMFp32 two() {return (GMFp32)2;}
 };
 
 //-----------------------------------------------------------------------------
@@ -548,13 +548,14 @@ static void gm_tc_solve_accelblasgemmex_(
     GMInsist(env->tc_eff() == TC::FP32);
 
     const float alpha = 1;
-    const float beta = 0;
+    const float beta = is_first ? 0 : 1;
 
     // CPU BLAS call.
 
     cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
       m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
       (float*)tc_bufs.tc_buf_right, n, beta, (float*)dC, m);
+
 
 #else // USE_CPUBLAS
 
@@ -1082,6 +1083,9 @@ void gm_tc_bufs_malloc(int num_vector_local,
     tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
     GMInsist(tc_bufs.tc_buf_right);
     env->cpu_mem_local_inc(tc_bufs.tc_buf_size);
+//FIX
+//memset((void*)tc_bufs.tc_buf_left, 0, tc_bufs.tc_buf_size);
+//memset((void*)tc_bufs.tc_buf_right, 0, tc_bufs.tc_buf_size);
 
   } // compute_method
 }

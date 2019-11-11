@@ -194,7 +194,7 @@ void gm_compute_2way_proc_combine_ccc_(
 
   /*---Copy from metrics_buffer for GPU case; perform checks---*/
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env->is_using_linalg()) {
     /*--------------------*/
     if (env->all2all()) {
       /*--------------------*/
@@ -495,7 +495,7 @@ void gm_compute_2way_proc_combine_duo_(
 
   /*---Copy from metrics_buffer for GPU case---*/
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env->is_using_linalg()) {
     /*--------------------*/
     if (env->all2all()) {
       /*--------------------*/

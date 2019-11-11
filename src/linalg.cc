@@ -67,10 +67,6 @@ static bool use_mgemm5(GMEnv* env) {
 void gm_linalg_initialize(GMEnv* env) {
   GMInsist(env);
 
-  if (env->compute_method() != ComputeMethod::GPU) {
-    return;
-  }
-
   // need magma blasSetKernelStream -- see
   // http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
   // page 14
@@ -134,10 +130,6 @@ void gm_linalg_initialize(GMEnv* env) {
 void gm_linalg_finalize(GMEnv* env) {
   GMInsist(env);
 
-  if (env->compute_method() != ComputeMethod::GPU) {
-    return;
-  }
-
   // TODO: (maybe) reset kernel stream (probably not really needed)
 
 #ifdef USE_MAGMA
@@ -188,14 +180,13 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   *p = GMMirroredBuf_null();
 
-  if (env->compute_method() != ComputeMethod::GPU) {
-    return;
-  }
-
   p->dim0 = dim0;
   p->dim1 = dim1;
 
   const size_t n = dim0 * dim1;
+
+  const bool is_compute_method_gpu = env->compute_method() ==
+                                     ComputeMethod::GPU;
 
   if (use_minproduct(env)) { //--------------------
 
@@ -217,16 +208,18 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     }
     GMFloat_fill_nan((GMFloat*)p->h, n);
 
-    if (GM_FP_PRECISION_DOUBLE) {
-      magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+    if (is_compute_method_gpu) {
+      if (GM_FP_PRECISION_DOUBLE) {
+        magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
+        GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in magma_minproduct_dmalloc,"
-                   " possibly insufficient memory.");
-    } else {
-      magma_code = magma_minproduct_smalloc((float**)&p->d, n);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in call to magma_minproduct_smalloc,"
-                   " possibly insufficient memory.");
+                     " possibly insufficient memory.");
+      } else {
+        magma_code = magma_minproduct_smalloc((float**)&p->d, n);
+        GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+                     "Error in call to magma_minproduct_smalloc,"
+                     " possibly insufficient memory.");
+      }
     }
     // TODO: ? fill GPU memory with NaNs
     p->size = n * sizeof(Float_t);
@@ -245,9 +238,11 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
       "Error in magma_mgemm4_zmalloc_pinned, possibly insufficient memory.");
 
-    magma_code = magma_mgemm4_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
-      "Error in magma_mgemm4_zmalloc, possibly insufficient memory.");
+    if (is_compute_method_gpu) {
+      magma_code = magma_mgemm4_zmalloc((Float_t**)&p->d, n);
+      GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+        "Error in magma_mgemm4_zmalloc, possibly insufficient memory.");
+    }
     p->size = n * sizeof(Float_t);
 #else
     p->size = n * 2 * sizeof(double);
@@ -264,9 +259,11 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
       "Error in magma_mgemm2_zmalloc_pinned, possibly insufficient memory.");
 
-    magma_code = magma_mgemm2_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
-      "Error in magma_mgemm2_zmalloc, possibly insufficient memory.");
+    if (is_compute_method_gpu) {
+      magma_code = magma_mgemm2_zmalloc((Float_t**)&p->d, n);
+      GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+        "Error in magma_mgemm2_zmalloc, possibly insufficient memory.");
+    }
     p->size = n * sizeof(Float_t);
 #else
     p->size = n * 2 * sizeof(double);
@@ -283,9 +280,11 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
       "Error in magma_mgemm3_zmalloc_pinned, possibly insufficient memory.");
 
-    magma_code = magma_mgemm3_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
-      "Error in magma_mgemm3_zmalloc, possibly insufficient memory.");
+    if (is_compute_method_gpu) {
+      magma_code = magma_mgemm3_zmalloc((Float_t**)&p->d, n);
+      GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+        "Error in magma_mgemm3_zmalloc, possibly insufficient memory.");
+    }
     p->size = n * sizeof(Float_t);
 #else
     p->size = n * 2 * sizeof(double);
@@ -302,9 +301,11 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
       "Error in magma_mgemm5_zmalloc_pinned, possibly insufficient memory.");
 
-    magma_code = magma_mgemm5_zmalloc((Float_t**)&p->d, n);
-    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
-      "Error in magma_mgemm5_zmalloc, possibly insufficient memory.");
+    if (is_compute_method_gpu) {
+      magma_code = magma_mgemm5_zmalloc((Float_t**)&p->d, n);
+      GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+        "Error in magma_mgemm5_zmalloc, possibly insufficient memory.");
+    }
     p->size = n * sizeof(Float_t);
 #else
     p->size = n * 2 * sizeof(double);
@@ -319,19 +320,31 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 #if defined USE_MAGMA
 #elif defined USE_CUDA
   cudaMallocHost((void**)&p->h, p->size);
-  cudaMalloc((void**)&p->d, p->size);
+  if (is_compute_method_gpu) {
+    cudaMalloc((void**)&p->d, p->size);
+  }
 #elif defined USE_HIP
   hipHostMalloc((void**)&p->h, p->size);
-  hipMalloc((void**)&p->d, p->size);
+  if (is_compute_method_gpu) {
+    hipMalloc((void**)&p->d, p->size);
+  }
+#else
+  p->h = malloc(p->size);
+  GMInsist(!is_compute_method_gpu &&
+    "GPU requested but not supported for this build.");
 #endif
 
   env->cpu_mem_local_inc(p->size);
-  env->gpu_mem_local_inc(p->size);
+  if (is_compute_method_gpu) {
+    env->gpu_mem_local_inc(p->size);
+  }
 
   GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc,"
                    " possibly due to insufficient memory.");
-  GMInsist(p->d && "Invalid device pointer created in gm_linalg_malloc,"
-                   " possibly due to insufficient memory.");
+  if (is_compute_method_gpu) {
+    GMInsist(p->d && "Invalid device pointer created in gm_linalg_malloc,"
+                     " possibly due to insufficient memory.");
+  }
   p->is_alias = false;
 }
 
@@ -340,11 +353,10 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   GMInsist(p && env);
 
-  if (env->compute_method() != ComputeMethod::GPU) {
-    return;
-  }
-
   GMInsist(! p->is_alias);
+
+  const bool is_compute_method_gpu = env->compute_method() ==
+                                     ComputeMethod::GPU;
 
   const size_t size = p->size;
 
@@ -354,45 +366,55 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
              "Error in magma_minproduct_free_pinned.");
-    magma_code = magma_minproduct_free(p->d);
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+    if (is_compute_method_gpu) {
+      magma_code = magma_minproduct_free(p->d);
+      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
              "Error in magma_minproduct_free.");
+    }
 
   } else if (use_mgemm4(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
              "Error in magma_mgemm4_free_pinned.");
-    magma_code = magma_mgemm4_free(p->d);
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
-             "Error in magma_mgemm4_free.");
+    if (is_compute_method_gpu) {
+      magma_code = magma_mgemm4_free(p->d);
+      GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+               "Error in magma_mgemm4_free.");
+    }
 
   } else if (use_mgemm2(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
              "Error in magma_mgemm2_free_pinned.");
-    magma_code = magma_mgemm2_free(p->d);
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
-             "Error in magma_mgemm2_free.");
+    if (is_compute_method_gpu) {
+      magma_code = magma_mgemm2_free(p->d);
+      GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+               "Error in magma_mgemm2_free.");
+    }
 
   } else if (use_mgemm3(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
              "Error in magma_mgemm3_free_pinned.");
-    magma_code = magma_mgemm3_free(p->d);
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
-             "Error in magma_mgemm3_free.");
+    if (is_compute_method_gpu) {
+      magma_code = magma_mgemm3_free(p->d);
+      GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+               "Error in magma_mgemm3_free.");
+    }
 
   } else if (use_mgemm5(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_free_pinned(p->h);
     GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
              "Error in magma_mgemm5_free_pinned.");
-    magma_code = magma_mgemm5_free(p->d);
-    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
-             "Error in magma_mgemm5_free.");
+    if (is_compute_method_gpu) {
+      magma_code = magma_mgemm5_free(p->d);
+      GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+               "Error in magma_mgemm5_free.");
+    }
 
   } else { //--------------------
 
@@ -401,14 +423,27 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   } // if //--------------------
 #elif defined USE_CUDA
   cudaFreeHost(p->h);
-  cudaFree(p->d);
+  if (is_compute_method_gpu) {
+    cudaFree(p->d);
+  }
 #elif defined USE_HIP
   hipHostFree(p->h);
-  hipFree(p->d);
+  if (is_compute_method_gpu) {
+    hipFree(p->d);
+  }
+#else
+  free(p->h);
+  GMInsist(!is_compute_method_gpu &&
+    "GPU requested but not supported for this build.");
 #endif // USE_MAGMA
 
+  p->h = NULL;
+  p->d = NULL;
+
   env->cpu_mem_local_dec(size);
-  env->gpu_mem_local_dec(size);
+  if (is_compute_method_gpu) {
+    env->gpu_mem_local_dec(size);
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -418,6 +453,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
   GMInsist(matrix_buf && env);
 
   if (env->compute_method() != ComputeMethod::GPU) {
+    memset(matrix_buf->h, 0, matrix_buf->size);
     return;
   }
 
@@ -861,9 +897,7 @@ void gm_linalg_gemm_start(size_t m,
     return;
   }
 
-  if ((env->metric_type() == MetricType::CCC ||
-       env->metric_type() == MetricType::DUO) &&
-      env->tc_eff() != TC::NO) {
+  if (env->is_metric_type_bitwise() && env->tc_eff() != TC::NO) {
     gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
     return;
   }

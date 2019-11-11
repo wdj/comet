@@ -8,8 +8,6 @@
  */
 //-----------------------------------------------------------------------------
 
-#include "stdio.h"
-
 #include "env.hh"
 #include "vectors.hh"
 #include "metrics.hh"

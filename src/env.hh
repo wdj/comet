@@ -45,39 +45,39 @@ namespace comet {
 
 struct BuildHas {
 # ifdef USE_MPI
-  enum {MPI = true};
+    enum {MPI = true};
 # else
-  enum {MPI = false};
+    enum {MPI = false};
 # endif
 
 # ifdef USE_CUDA
-  enum {CUDA = true};
+    enum {CUDA = true};
 # else
-  enum {CUDA = false};
+    enum {CUDA = false};
 # endif
 
 # ifdef USE_HIP
-  enum {HIP = true};
+    enum {HIP = true};
 # else
-  enum {HIP = false};
+    enum {HIP = false};
 # endif
 
 # ifdef USE_ACCEL
-  enum {ACCEL = true};
+    enum {ACCEL = true};
 # else
-  enum {ACCEL = false};
+    enum {ACCEL = false};
 # endif
 
 # ifdef USE_MAGMA
-  enum {MAGMA = true};
+    enum {MAGMA = true};
 # else
-  enum {MAGMA = false};
+    enum {MAGMA = false};
 # endif
 
 # ifdef USE_CPUBLAS
-  enum {CPUBLAS = true};
+    enum {CPUBLAS = true};
 # else
-  enum {CPUBLAS = false};
+    enum {CPUBLAS = false};
 # endif
 };
 
@@ -231,6 +231,10 @@ public:
   double ccc_multiplier() const {return ccc_multiplier_;}
   double duo_multiplier() const {return duo_multiplier_;}
   bool are_ccc_params_default() const {return are_ccc_params_default_;}
+  bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_;}
+//  bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
+//    (ComputeMethod::CPU == compute_method_ && tc_eff() != TC::NO &&
+//     is_metric_type_bitwise());}
 
   // Counters
   double ctime() const {return ctime_;}

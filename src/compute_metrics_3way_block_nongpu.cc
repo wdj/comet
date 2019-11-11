@@ -74,12 +74,11 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   const GMVectorSums* const vs_k = vector_sums_k;
 
   /*----------------------------------------*/
-  if (env->compute_method() != ComputeMethod::GPU &&
-      ! env->all2all()) {
+  if (env->compute_method() != ComputeMethod::GPU && ! env->all2all()) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
-                  "num_proc_field>1 for REF/CPU compute_method not supported");
+    GMInsistInterface(env, ! env->do_reduce() && "num_proc_field>1 "
+      "for REF/CPU compute_method for this case not supported");
 
     GMInsist(gm_num_section_steps(env, 1) == 1 &&
              "not all2all case always has one section step.");
@@ -124,8 +123,8 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   } else if (env->compute_method() != ComputeMethod::GPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
-                  "num_proc_field>1 for REF/CPU compute_method not supported");
+    GMInsistInterface(env, ! env->do_reduce() && "num_proc_field>1 "
+      "for REF/CPU compute_method for this case not supported");
 
     const bool no_perm = ! si->is_part3;
 
@@ -227,7 +226,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
               env->proc_num_vector() != k_block));
   GMInsist(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
-  GMInsist(env->compute_method() != ComputeMethod::GPU);
+  GMInsist(!env->is_using_linalg());
   GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
 
@@ -250,7 +249,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
-                      "num_proc_field>1 for CPU compute_method not supported");
+      "num_proc_field>1 for REF compute_method not supported");
 
     const int nfal = vectors_i->dm->num_field_active_local;
     const bool no_perm = ! si->is_part3;
@@ -420,11 +419,12 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     } /*---for J---*/
 
     /*----------------------------------------*/
-  } else if (env->compute_method() == ComputeMethod::CPU) {
+  } else if (env->compute_method() == ComputeMethod::CPU &&
+             !env->is_using_linalg()) {
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
-                      "num_proc_field>1 for CPU compute_method not supported");
+      "num_proc_field>1 for CPU compute_method for this case not supported");
 
     /* clang-format off */
 
@@ -723,7 +723,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
+  } else /* if (env->is_using_linalg()) */ {
     /*----------------------------------------*/
     GMInsist(false && "Invalid compute_method");
     /*----------------------------------------*/

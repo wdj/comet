@@ -183,7 +183,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
     return;
   }
 
-  vectors->has_buf = env->compute_method() == ComputeMethod::GPU;
+  vectors->has_buf = env->is_using_linalg();
 
   GMVectors_create_imp_(vectors, data_type_id, dm, env);
 }
@@ -217,9 +217,8 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
                        GMEnv* env) {
   GMInsist(vectors && vectors_buf && env);
 
-  if (env->compute_method() != ComputeMethod::GPU) {
+  if (!env->is_using_linalg())
     return;
-  }
 
   /*---Copy vectors into GPU buffers if needed---*/
 

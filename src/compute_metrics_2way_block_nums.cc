@@ -45,7 +45,7 @@ void gm_compute_2way_proc_nums_czek_start_(
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
-                      "num_proc_field>1 for REF compute_method not supported");
+      "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -67,7 +67,7 @@ void gm_compute_2way_proc_nums_czek_start_(
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
-                      "num_proc_field>1 for CPU compute_method not supported");
+      "num_proc_field>1 for CPU compute_method for this case not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -131,7 +131,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
-                      "num_proc_field>1 for REF compute_method not supported");
+      "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -202,11 +202,12 @@ void gm_compute_2way_proc_nums_ccc_start_(
     }   /*---for i---*/
 
     /*----------------------------------------*/
-  } else if (env->compute_method() == ComputeMethod::CPU) {
+  } else if (env->compute_method() == ComputeMethod::CPU &&
+             !env->is_using_linalg()) {
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
-                      "num_proc_field>1 for CPU compute_method not supported");
+       "num_proc_field>1 for CPU compute_method for this case not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -340,7 +341,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
+  } else /* if (env->is_using_linalg()) */ {
     /*----------------------------------------*/
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
@@ -386,7 +387,7 @@ void gm_compute_2way_proc_nums_duo_start_(
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
-                      "num_proc_field>1 for REF compute_method not supported");
+      "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -421,10 +422,6 @@ void gm_compute_2way_proc_nums_duo_start_(
 
             sum.data[0] += GMTally1_encode(r00, r01);
             sum.data[1] += GMTally1_encode(r10, r11);
-//printf("ref 00 %i\n", (int)r00);
-//printf("ref 01 %i\n", (int)r01);
-//printf("ref 10 %i\n", (int)r10);
-//printf("ref 11 %i\n", (int)r11);
 
           } /*---if ! unknown---*/
         } /*---for f---*/
@@ -433,19 +430,16 @@ void gm_compute_2way_proc_nums_duo_start_(
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
         }
-//printf("ref 0 0 %i\n", (int)GMTally2x2_get(sum, 0, 0));
-//printf("ref 0 1 %i\n", (int)GMTally2x2_get(sum, 0, 1));
-//printf("ref 1 0 %i\n", (int)GMTally2x2_get(sum, 1, 0));
-//printf("ref 1 1 %i\n", (int)GMTally2x2_get(sum, 1, 1));
       } /*---for j---*/
     }   /*---for i---*/
 
     /*----------------------------------------*/
-  } else if (env->compute_method() == ComputeMethod::CPU) {
+  } else if (env->compute_method() == ComputeMethod::CPU &&
+             !env->is_using_linalg()) {
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
-                      "num_proc_field>1 for CPU compute_method not supported");
+      "num_proc_field>1 for CPU compute_method for this case not supported");
 
     /*---Perform pseudo GEMM---*/
 
@@ -542,17 +536,13 @@ void gm_compute_2way_proc_nums_duo_start_(
         } else {
           GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
         }
-//printf("cpu 0 0 %i\n", (int)GMTally2x2_get(sum, 0, 0));
-//printf("cpu 0 1 %i\n", (int)GMTally2x2_get(sum, 0, 1));
-//printf("cpu 1 0 %i\n", (int)GMTally2x2_get(sum, 1, 0));
-//printf("cpu 1 1 %i\n", (int)GMTally2x2_get(sum, 1, 1));
       } /*---for j---*/
     }   /*---for i---*/
 
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
+  } else /* if (env->is_using_linalg()) */ {
     /*----------------------------------------*/
 
     /*---Initialize result matrix to zero (apparently magma requires)---*/
