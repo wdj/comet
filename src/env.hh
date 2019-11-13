@@ -231,10 +231,12 @@ public:
   double ccc_multiplier() const {return ccc_multiplier_;}
   double duo_multiplier() const {return duo_multiplier_;}
   bool are_ccc_params_default() const {return are_ccc_params_default_;}
-  bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_;}
-//  bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
-//    (ComputeMethod::CPU == compute_method_ && tc_eff() != TC::NO &&
-//     is_metric_type_bitwise());}
+//  bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_;}
+  bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
+    (ComputeMethod::CPU == compute_method_ && tc_eff() != TC::NO &&
+     is_metric_type_bitwise());}
+  //int num_stage() const {return num_stage_;}
+  //int stage_num() const {return stage_num_;}
 
   // Counters
   double ctime() const {return ctime_;}

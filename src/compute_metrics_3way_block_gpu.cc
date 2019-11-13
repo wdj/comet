@@ -320,6 +320,7 @@ void gm_compute_3way_nums_gpu_form_metrics_(
         GMTally1_decode(&mB00, &mB01, mB.data[0]);
         GMTally1 mB10, mB11;
         GMTally1_decode(&mB10, &mB11, mB.data[1]);
+//printf("          %i %i %i %i\n", (int)mB00, (int)mB01, (int)mB10, (int)mB11);
 
         /* clang-format off */
         int r000 = r000_permuted;
@@ -538,7 +539,12 @@ void gm_compute_3way_nums_gpu_start_(
                          vectors_j_buf->active, npvfl,
                          matM_ij_buf_ptr->active, nvl,
                          vectors_i->dm, env);
-    gm_compute_wait(env);
+    //gm_compute_wait(env);
+    gm_linalg_gemm_wait(nvl, nvl, npvfl,
+                        vectors_i_buf->active, npvfl,
+                        vectors_j_buf->active, npvfl,
+                        matM_ij_buf_ptr->active, nvl,
+                        vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_ij_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_ij_buf_ptr, env);
@@ -568,7 +574,12 @@ void gm_compute_3way_nums_gpu_start_(
                          vectors_k_buf->active, npvfl,
                          matM_jk_buf_ptr->active, nvl,
                          vectors_i->dm, env);
-    gm_compute_wait(env);
+    //gm_compute_wait(env);
+    gm_linalg_gemm_wait(nvl, nvl, npvfl,
+                        vectors_j_buf->active, npvfl,
+                        vectors_k_buf->active, npvfl,
+                        matM_jk_buf_ptr->active, nvl,
+                        vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_jk_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_jk_buf_ptr, env);
@@ -601,7 +612,12 @@ void gm_compute_3way_nums_gpu_start_(
                          vectors_i_buf->active, npvfl,
                          matM_kik_buf_ptr->active, nvl,
                          vectors_i->dm, env);
-    gm_compute_wait(env);
+    //gm_compute_wait(env);
+    gm_linalg_gemm_wait(nvl, nvl, npvfl,
+                        vectors_k_buf->active, npvfl,
+                        vectors_i_buf->active, npvfl,
+                        matM_kik_buf_ptr->active, nvl,
+                        vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_kik_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_kik_buf_ptr, env);
@@ -770,17 +786,7 @@ void gm_compute_3way_nums_gpu_start_(
                                    lock_tmp_buf_d[vars.index_01] :
                                    lock_matB_buf_d[vars.index_01];
 
-    //==========
-
-    if (vars_next.do_compute) {
-      /*---Populate leading columns of matX---*/
-      lock(lock_matX_buf_h[vars_next.index_01]);
-      gm_compute_3way_nums_gpu_form_matX_(vectors_i,
-          vectors_I_buf, vectors_J_buf, matX_buf[vars_next.index_01],
-          vars_next.J, vars_next.step_2way,
-          vars_next.I_min, vars_next.I_max, env);
-      unlock(lock_matX_buf_h[vars_next.index_01]);
-    }
+    //TODO: fix locks to work properly for CPU case.
 
     //==========
 
@@ -795,9 +801,26 @@ void gm_compute_3way_nums_gpu_start_(
 
     if (vars_prev.do_compute) {
       /*---Perform pseudo GEMM matB = matX^T PROD V - WAIT---*/
-      gm_compute_wait(env);
+      //gm_compute_wait(env);
+      gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
+                          matX_buf[vars_prev.index_01]->active, npvfl,
+                          vectors_K_buf->active, npvfl,
+                          matB_buf_ptr_prev->active, matB_buf_ptr_prev->dim0,
+                          vectors_i->dm, env);
       unlock(lock_matB_buf_ptr_d_prev);
       unlock(lock_matX_buf_d[vars_prev.index_01]);
+    }
+
+    //==========
+
+    if (vars_next.do_compute) {
+      /*---Populate leading columns of matX---*/
+      lock(lock_matX_buf_h[vars_next.index_01]);
+      gm_compute_3way_nums_gpu_form_matX_(vectors_i,
+          vectors_I_buf, vectors_J_buf, matX_buf[vars_next.index_01],
+          vars_next.J, vars_next.step_2way,
+          vars_next.I_min, vars_next.I_max, env);
+      unlock(lock_matX_buf_h[vars_next.index_01]);
     }
 
     //==========

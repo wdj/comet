@@ -98,7 +98,8 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
       &vectors_buf, env->proc_num_vector(), env->proc_num_vector(),
       &vector_sums, &vector_sums, &vector_sums,
       section_step, env);
-  gm_compute_wait(env);
+
+  gm_compute_wait(env); // NOTE: not needed
 
   /*---------------*/
   /*---Free memory---*/
@@ -260,7 +261,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
           j_block_prev, k_block_prev,
           vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
           section_step_prev, env);
-        gm_compute_wait(env);
+        gm_compute_wait(env); // NOTE: not needed
         have_unprocessed_section_block = false;
       }
 
@@ -324,7 +325,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
             j_block_prev, k_block_prev,
             vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
             section_step_prev, env);
-          gm_compute_wait(env);
+          gm_compute_wait(env); // NOTE: not needed
           have_unprocessed_section_block = false;
         }
 
@@ -433,7 +434,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
               j_block_prev, k_block_prev,
               vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
               section_step_prev, env);
-            gm_compute_wait(env);
+            gm_compute_wait(env); // NOTE: not needed
             have_unprocessed_section_block = false;
           }
 
@@ -507,7 +508,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
       j_block_prev, k_block_prev,
       vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
       section_step_prev, env);
-    gm_compute_wait(env);
+    gm_compute_wait(env); // NOTE: not needed
     have_unprocessed_section_block = false;
   }
 

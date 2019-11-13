@@ -259,6 +259,7 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
                           seminibble1 == 1         ? one :
                                                      zero
                         );
+//if (flD2_thisstep == 0) printf("%f %f\n", (float)out0, (float)out1);
 
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
@@ -435,6 +436,13 @@ static void gm_tc_buf_write_(
 
       }
     }
+//printf("%i %i\n", (int)nflD2_thisstep, (int)nvleX2);
+
+//for (int i=0; i<32; ++i)
+//  printf("%i %zu\n", i, ( (((size_t*)vi32)[0]) >> (2*i) ) & (size_t)3);
+//for (int i=0; i<32; ++i)
+//  printf("%i %zu\n", i, ( (((size_t*)vi32)[1]) >> (2*i) ) & (size_t)3);
+
 
   } // if compute_method
 }
@@ -556,6 +564,8 @@ static void gm_tc_solve_accelblasgemmex_(
       m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
       (float*)tc_bufs.tc_buf_right, n, beta, (float*)dC, m);
 
+//for (int i=0; i< m*n; ++i)
+//  printf("%i %f\n", i, ((float*)dC)[i]);
 
 #else // USE_CPUBLAS
 
@@ -633,6 +643,7 @@ __host__ __device__ static void gm_tc_repair_metrics_kernel_elt_(
   const GemmOut_t f11 = fvo[fcr_offset1+1];
   const GemmOut_t f12 = fvo[fcr_offset1+2];
   const GemmOut_t f13 = fvo[fcr_offset1+3];
+//printf("%f %f %f %f %f %f %f %f\n", (float)f00, (float)f01, (float)f02, (float)f03, (float)f10, (float)f11, (float)f12, (float)f13);
 
   // Apply the permutation:
 
@@ -829,8 +840,10 @@ static void gm_tc_repair_metrics_(
 
   } else { // if (env->compute_method() != ComputeMethod::GPU)
 
-    for (int thread_c=0; thread_c<nvllD2; ++thread_c) {
-      for (int thread_r=0; thread_r<nvl; ++thread_r) {
+//    for (int thread_c=0; thread_c<nvllD2; ++thread_c) {
+//      for (int thread_r=0; thread_r<nvl; ++thread_r) {
+    for (int thread_c=0; thread_c<nvl; ++thread_c) {
+      for (int thread_r=0; thread_r<nvllD2; ++thread_r) {
 
         gm_tc_repair_metrics_kernel_elt_<GemmOut_t>(
           nvl, nvll, nvllD2, vo, thread_r, thread_c);
@@ -1083,7 +1096,6 @@ void gm_tc_bufs_malloc(int num_vector_local,
     tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
     GMInsist(tc_bufs.tc_buf_right);
     env->cpu_mem_local_inc(tc_bufs.tc_buf_size);
-//FIX
 //memset((void*)tc_bufs.tc_buf_left, 0, tc_bufs.tc_buf_size);
 //memset((void*)tc_bufs.tc_buf_right, 0, tc_bufs.tc_buf_size);
 

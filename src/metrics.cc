@@ -825,6 +825,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
   GMInsist(metrics && metrics_buf && env);
+//printf("%i %i\n", (int)metrics_buf->dim0, (int)metrics_buf->dim1);
 
   if (!(env->is_metric_type_bitwise() && env->is_using_linalg()))
     return;
@@ -833,7 +834,8 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
   const bool count_2 = env->metric_type() == MetricType::CCC;
 
-  const int pad_adjustment = (count_2 ? 4 : 1) * metrics->dm->num_pad_field_local;
+  const int pad_adjustment = (count_2 ? 4 : 1) *
+    metrics->dm->num_pad_field_local;
 
   const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
@@ -843,12 +845,22 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
   for (size_t j = 0; j < metrics_buf->dim1; ++j) {
     for (size_t i = 0; i < metrics_buf->dim0; ++i) {
 
+#if 0
+        GMTally1 mB00, mB01;
+        GMTally1_decode(&mB00, &mB01, GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]);
+        GMTally1 mB10, mB11;
+        GMTally1_decode(&mB10, &mB11, GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[1]);
+printf("%i  %i %i %i %i\n", env->compute_method(), (int)mB00, (int)mB01, (int)mB10, (int)mB11);
+#endif
+
 #ifdef GM_ASSERTIONS_ON
       const GMTally2x2 old = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
 #endif
 
+//printf("%i %zu\n", env->compute_method(), (size_t)GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]);
       GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]
          -= float_pad_adjustment;
+//printf("2 %zu\n", (size_t)GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]);
 
 #ifdef GM_ASSERTIONS_ON
       const GMTally2x2 new_ = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);

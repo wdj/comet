@@ -1453,12 +1453,6 @@ void DriverTest_ccc3_simple_sparse_() {
 void DriverTest_ccc_duo_(const char* const metric_type) {
   const bool is_duo = 'd' == metric_type[0];
 
-  char options1[1024];
-  char options2[1024];
-  char options3[1024];
-//FIX
-#if 1
-
   {
     char options1[1024];
     char options2[1024];
@@ -1467,22 +1461,32 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
         //"--num_proc_vector 1 --num_field 1 --num_vector_local 5 "
         "--metric_type %s "
         "--num_proc_vector 2 --num_field 100 --num_vector %i "
+        /////"--num_proc_vector 1 --num_field 1 --num_vector %i "
         "--compute_method %s --sparse %s "
         "--problem_type random --verbosity %i --tc %i --num_way %i "
         "--num_tc_steps %i --all2all yes" ;
 
+    const int num_proc_vector = 2; // 1
+
+    //for (int gpu=0; gpu<=0; ++gpu) {
     for (int gpu=0; gpu<=1; ++gpu) {
     for (int num_tc_steps=1; num_tc_steps<=3; ++num_tc_steps) {
     for (int nvl=3; nvl<=10; ++nvl) {
+    //for (int nvl=3; nvl<=3; ++nvl) {
     for (int num_way=2; num_way<=3; ++num_way) {
+    //for (int num_way=2; num_way<=2; ++num_way) {
       if (is_duo && 3 == num_way) continue;
     for (int sparse=0; sparse<=1; ++sparse) {
+    //for (int sparse=0; sparse<=0; ++sparse) {
       if (is_duo && 0 == sparse) continue;
     for (int tc=1; tc<comet::TC::NUM; ++tc) {
-      if (nvl/2 < num_way) continue;
+    //for (int tc=3; tc<=3; ++tc) {
+      if (nvl/num_proc_vector < num_way) continue;
 
       sprintf(options1, options_template_tc, metric_type, nvl, "REF",
               sparse ? "yes" : "no", 1, 0, num_way, 1);
+      //sprintf(options1, options_template_tc, metric_type, nvl, "GPU",
+      //        sparse ? "yes" : "no", 1, 3, num_way, 1);
       sprintf(options2, options_template_tc, metric_type, nvl,
               gpu ? "GPU" : "CPU",
               sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
@@ -1494,6 +1498,12 @@ void DriverTest_ccc_duo_(const char* const metric_type) {
     }
     }
   }
+
+  char options1[1024];
+  char options2[1024];
+  char options3[1024];
+//FIX
+#if 1
 
   //----------
   //---2-way, all2all no
@@ -2058,6 +2068,8 @@ TEST(DriverTest, duo) {
   DriverTest_duo_();
 }
 
+//FIX
+#if 1
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }
@@ -2073,14 +2085,18 @@ TEST(DriverTest, ccc3_simple) {
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, ccc) {
   DriverTest_ccc_();
 }
 
+//FIX
+#if 1
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }
+#endif
 
 //=============================================================================
 

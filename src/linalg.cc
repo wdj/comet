@@ -453,7 +453,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
   GMInsist(matrix_buf && env);
 
   if (env->compute_method() != ComputeMethod::GPU) {
-    memset(matrix_buf->h, 0, matrix_buf->size);
+//    memset(matrix_buf->h, 0, matrix_buf->size);
     return;
   }
 
@@ -880,29 +880,68 @@ void gm_linalg_gemm_magma_start(size_t m,
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_gemm_start(size_t m,
-                          size_t n,
-                          size_t k,
-                          void* A,
-                          size_t ldda,
-                          void* B,
-                          size_t lddb,
-                          void* C,
-                          size_t lddc,
-                          GMDecompMgr* dm,
-                          GMEnv* env) {
+void gm_linalg_gemm_start(
+  size_t m,
+  size_t n,
+  size_t k,
+  void* A,
+  size_t ldda,
+  void* B,
+  size_t lddb,
+  void* C,
+  size_t lddc,
+  GMDecompMgr* dm,
+  GMEnv* env) {
+
   GMInsist(A && B && C && env);
 
   if (m==0 || n==0 || k==0) {
     return;
   }
 
-  if (env->is_metric_type_bitwise() && env->tc_eff() != TC::NO) {
-    gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
+  const bool is_using_tc = env->is_metric_type_bitwise() &&
+                           env->tc_eff() != TC::NO;
+
+  if (is_using_tc) {
+    if (env->compute_method() == ComputeMethod::GPU) {
+      gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
+    }
+  } else {
+    gm_linalg_gemm_magma_start(m, n, k, A, ldda, B, lddb, C, lddc, dm,  env);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void gm_linalg_gemm_wait(
+  size_t m,
+  size_t n,
+  size_t k,
+  void* A,
+  size_t ldda,
+  void* B,
+  size_t lddb,
+  void* C,
+  size_t lddc,
+  GMDecompMgr* dm,
+  GMEnv* env) {
+
+  GMInsist(A && B && C && env);
+
+  if (m==0 || n==0 || k==0) {
     return;
   }
 
-  gm_linalg_gemm_magma_start(m, n, k, A, ldda, B, lddb, C, lddc, dm,  env);
+  const bool is_using_tc = env->is_metric_type_bitwise() &&
+                           env->tc_eff() != TC::NO;
+
+  if (is_using_tc) {
+    if (env->compute_method() != ComputeMethod::GPU) {
+      gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
+    }
+  }
+
+  env->stream_synchronize(env->stream_compute());
 }
 
 //-----------------------------------------------------------------------------

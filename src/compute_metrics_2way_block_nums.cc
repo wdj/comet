@@ -63,7 +63,7 @@ void gm_compute_2way_proc_nums_czek_start_(
     }   /*---for j---*/
 
     /*----------------------------------------*/
-  } else if (env->compute_method() != ComputeMethod::GPU) {
+  } else { // env->compute_method() != ComputeMethod::GPU
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
@@ -85,31 +85,12 @@ void gm_compute_2way_proc_nums_czek_start_(
     }   /*---for j---*/
 
     /*----------------------------------------*/
-  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
-    /*----------------------------------------*/
-
-    /*---Initialize result matrix to zero (apparently magma requires)---*/
-
-    gm_linalg_set_matrix_zero_start(metrics_buf, env);
-
-    /*---Perform pseudo GEMM---*/
-
-    gm_linalg_gemm_start(
-      vectors_left->num_vector_local,
-      vectors_left->num_vector_local,
-      vectors_left->num_field_local,
-      vectors_left_buf->active, vectors_left->num_field_local,
-      vectors_right_buf->active, vectors_left->num_field_local,
-      metrics_buf->active, vectors_left->num_vector_local,
-      vectors_left->dm, env);
-
-    /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
 }
 
 //=============================================================================
-/*---Start calculation of numerators, 2-way CCC---*/
+// Start calculation of numerators, 2-way CCC.
 
 void gm_compute_2way_proc_nums_ccc_start_(
   GMVectors* vectors_left,
@@ -202,8 +183,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
     }   /*---for i---*/
 
     /*----------------------------------------*/
-  } else if (env->compute_method() == ComputeMethod::CPU &&
-             !env->is_using_linalg()) {
+  } else { // ComputeMethod::CPU && !env->is_using_linalg()
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
@@ -341,31 +321,12 @@ void gm_compute_2way_proc_nums_ccc_start_(
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (env->is_using_linalg()) */ {
-    /*----------------------------------------*/
-
-    /*---Initialize result matrix to zero (apparently magma requires)---*/
-
-    gm_linalg_set_matrix_zero_start(metrics_buf, env);
-
-    /*---Perform pseudo GEMM---*/
-
-    gm_linalg_gemm_start(
-      vectors_left->num_vector_local,
-      vectors_left->num_vector_local,
-      vectors_left->num_packedval_field_local,
-      vectors_left_buf->active, vectors_left->num_packedval_field_local,
-      vectors_right_buf->active, vectors_left->num_packedval_field_local,
-      metrics_buf->active, vectors_left->num_vector_local,
-      vectors_left->dm, env);
-
-    /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
 }
 
 //=============================================================================
-/*---Start calculation of numerators, 2-way DUO---*/
+// Start calculation of numerators, 2-way DUO.
 
 void gm_compute_2way_proc_nums_duo_start_(
   GMVectors* vectors_left,
@@ -434,8 +395,7 @@ void gm_compute_2way_proc_nums_duo_start_(
     }   /*---for i---*/
 
     /*----------------------------------------*/
-  } else if (env->compute_method() == ComputeMethod::CPU &&
-             !env->is_using_linalg()) {
+  } else { // ComputeMethod::CPU && !env->is_using_linalg()
     /*----------------------------------------*/
 
     GMInsistInterface(env, ! env->do_reduce() &&
@@ -542,31 +502,12 @@ void gm_compute_2way_proc_nums_duo_start_(
     /* clang-format on */
 
     /*----------------------------------------*/
-  } else /* if (env->is_using_linalg()) */ {
-    /*----------------------------------------*/
-
-    /*---Initialize result matrix to zero (apparently magma requires)---*/
-
-    gm_linalg_set_matrix_zero_start(metrics_buf, env);
-
-    /*---Perform pseudo GEMM---*/
-
-    gm_linalg_gemm_start(
-      vectors_left->num_vector_local,
-      vectors_left->num_vector_local,
-      vectors_left->num_packedval_field_local,
-      vectors_left_buf->active, vectors_left->num_packedval_field_local,
-      vectors_right_buf->active, vectors_left->num_packedval_field_local,
-      metrics_buf->active, vectors_left->num_vector_local,
-      vectors_left->dm, env);
-
-    /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/
 }
 
 //=============================================================================
-/*---Start calculation of numerators, 2-way generic---*/
+// Start calculation of numerators, 2-way generic.
 
 // NOTE: unlike the 3-way case, this function does not retrieve the
 // metrics_buf from the GPU.
@@ -585,6 +526,27 @@ void gm_compute_2way_proc_nums_start(
   GMInsist(vectors_left && vectors_right && metrics && env);
   GMInsist(j_block >= 0 && j_block < env->num_block_vector());
   GMInsist(env->num_way() == NUM_WAY::_2);
+
+  if (env->is_using_linalg()) {
+
+    /*---Initialize result matrix to zero (apparently magma requires)---*/
+
+    gm_linalg_set_matrix_zero_start(metrics_buf, env);
+
+    /*---Perform pseudo GEMM---*/
+
+    gm_linalg_gemm_start(
+      vectors_left->num_vector_local,
+      vectors_left->num_vector_local,
+      vectors_left->num_packedval_field_local,
+      vectors_left_buf->active, vectors_left->num_packedval_field_local,
+      vectors_right_buf->active, vectors_left->num_packedval_field_local,
+      metrics_buf->active, vectors_left->num_vector_local,
+      vectors_left->dm, env);
+
+    return;
+
+  } // if
 
   switch (env->metric_type()) {
     case MetricType::CZEK: {
@@ -608,6 +570,38 @@ void gm_compute_2way_proc_nums_start(
     default:
       GMInsistInterface(env, false && "Selected metric_type unimplemented.");
   } /*---case---*/
+}
+
+//=============================================================================
+// Finish calculation of numerators, 2-way generic.
+
+void gm_compute_2way_proc_nums_wait(
+  GMVectors* vectors_left,
+  GMVectors* vectors_right,
+  GMMetrics* metrics,
+  GMMirroredBuf* vectors_left_buf,
+  GMMirroredBuf* vectors_right_buf,
+  GMMirroredBuf* metrics_buf,
+  int j_block,
+  bool do_compute_triang_only,
+  GMEnv* env) {
+
+  GMInsist(vectors_left && vectors_right && metrics && env);
+  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
+  GMInsist(env->num_way() == NUM_WAY::_2);
+
+  if (env->is_using_linalg()) {
+
+    gm_linalg_gemm_wait(
+      vectors_left->num_vector_local,
+      vectors_left->num_vector_local,
+      vectors_left->num_packedval_field_local,
+      vectors_left_buf->active, vectors_left->num_packedval_field_local,
+      vectors_right_buf->active, vectors_left->num_packedval_field_local,
+      metrics_buf->active, vectors_left->num_vector_local,
+      vectors_left->dm, env);
+
+  } // if
 }
 
 //=============================================================================

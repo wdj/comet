@@ -152,7 +152,12 @@ void gm_compute_metrics_2way_notall2all(
                                   &vectors_buf, metrics_buf_ptr,
                                   env->proc_num_vector(),
                                   true, env);
-  gm_compute_wait(env);
+
+  //gm_compute_wait(env);
+  gm_compute_2way_proc_nums_wait(vectors, vectors, metrics, &vectors_buf,
+                                 &vectors_buf, metrics_buf_ptr,
+                                 env->proc_num_vector(),
+                                 true, env);
 
   // Copy result from GPU
 
@@ -529,7 +534,11 @@ void gm_compute_metrics_2way_all2all(
     // Wait for numerators computation to complete
 
     if (vars.is_compute_step && vars.do_compute_block) {
-      gm_compute_wait(env);
+      //gm_compute_wait(env);
+      gm_compute_2way_proc_nums_wait(
+        vectors_left, vars.vectors_right, metrics,
+        vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
+        vars.j_block, vars.is_main_diag, env);
       unlock(lock_vectors_left_buf_d);
       if (! vars.is_right_aliased) {
         unlock(lock_vectors_right_buf_d);

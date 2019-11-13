@@ -36,17 +36,31 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
 
 /*----------*/
 
-void gm_linalg_gemm_start(size_t m,
-                          size_t n,
-                          size_t k,
-                          void* dA,
-                          size_t ldda,
-                          void* dB,
-                          size_t lddb,
-                          void* dC,
-                          size_t lddc,
-                          GMDecompMgr* dm,
-                          GMEnv* env);
+void gm_linalg_gemm_start(
+  size_t m,
+  size_t n,
+  size_t k,
+  void* dA,
+  size_t ldda,
+  void* dB,
+  size_t lddb,
+  void* dC,
+  size_t lddc,
+  GMDecompMgr* dm,
+  GMEnv* env);
+
+void gm_linalg_gemm_wait(
+  size_t m,
+  size_t n,
+  size_t k,
+  void* A,
+  size_t ldda,
+  void* B,
+  size_t lddb,
+  void* C,
+  size_t lddc,
+  GMDecompMgr* dm,
+  GMEnv* env);
 
 void gm_compute_wait(GMEnv* env);
 
