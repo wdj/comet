@@ -130,7 +130,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
   const int nvl = metrics->num_vector_local;
   const int npvfl = vectors->num_packedval_field_local;
 
-  const int data_type = GMEnv_data_type_vectors(env);
+  const int data_type = env->data_type_vectors();
 
   const int num_block = env->num_block_vector();
 

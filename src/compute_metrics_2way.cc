@@ -48,7 +48,7 @@ void GMComputeMetrics2Way_create(
 
   for (int i = 0; i < 2; ++i) {
     GMVectors_create_with_buf(&this_->vectors_01[i],
-                              GMEnv_data_type_vectors(env), dm, env);
+                              env->data_type_vectors(), dm, env);
   }
 
   for (int i = 0; i < 2; ++i) {

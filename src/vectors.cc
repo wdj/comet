@@ -274,7 +274,7 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
   const int nval = vectors->dm->num_vector_active_local;
   const int nfal = vectors->dm->num_field_active_local;
   
-  switch (GMEnv_data_type_vectors(env)) {
+  switch (env->data_type_vectors()) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/

@@ -115,9 +115,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsistInterface(env, errno == 0 && num_stage >= 1
                     && (long)(int)num_stage == num_stage
                     && "Invalid setting for num_stage.");
-      env->num_stage = num_stage;
+      env->num_stage(num_stage);
       do_->stage_min_0based = 0;
-      do_->stage_max_0based = env->num_stage - 1;
+      do_->stage_max_0based = env->num_stage() - 1;
     /*----------*/
     } else if (strcmp(argv[i], "--stage_min") == 0) {
     /*----------*/
@@ -134,7 +134,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for stage_max.");
       const long stage_max_0based = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, errno == 0 && stage_max_0based < env->num_stage
+      GMInsistInterface(env, errno == 0 && stage_max_0based < env->num_stage()
                     && (long)(int)stage_max_0based == stage_max_0based
                     && "Invalid setting for stage_max.");
       do_->stage_max_0based = stage_max_0based;
@@ -147,9 +147,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsistInterface(env, errno == 0 && num_phase >= 1
                     && (long)(int)num_phase == num_phase
                     && "Invalid setting for num_phase.");
-      env->num_phase = num_phase;
+      env->num_phase(num_phase);
       do_->phase_min_0based = 0;
-      do_->phase_max_0based = env->num_phase - 1;
+      do_->phase_max_0based = env->num_phase() - 1;
     /*----------*/
     } else if (strcmp(argv[i], "--phase_min") == 0) {
     /*----------*/
@@ -166,7 +166,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       ++i;
       GMInsistInterface(env, i < argc && "Missing value for phase_max.");
       const long phase_max_0based = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, errno == 0 && phase_max_0based < env->num_phase
+      GMInsistInterface(env, errno == 0 && phase_max_0based < env->num_phase()
                     && (long)(int)phase_max_0based == phase_max_0based
                     && "Invalid setting for phase_max.");
       do_->phase_max_0based = phase_max_0based;
@@ -204,10 +204,6 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       GMInsistInterface(env, 0 == errno && "Invalid setting for threshold.");
       do_->threshold = threshold;
      /*----------*/
-    } else if (strcmp(argv[i], "--num_stage") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
-    } else if (strcmp(argv[i], "--num_phase") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by GMEnv---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
@@ -290,7 +286,7 @@ void perform_run(comet::Checksum& cksum, const char* const options,
   char* argv[len+1];
   int argc = 0;
   strcpy(argstring, options);
-  gm_create_args(argstring, &argc, argv);
+  Env::create_args(argstring, &argc, argv);
 
   return perform_run(cksum, argc, argv, options, base_comm, env);
 }
@@ -336,9 +332,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   do_.num_vector_active_initialized = false;
   do_.verbosity = 1;
   do_.stage_min_0based = 0;
-  do_.stage_max_0based = env->num_stage - 1;
+  do_.stage_max_0based = env->num_stage() - 1;
   do_.phase_min_0based = 0;
-  do_.phase_max_0based = env->num_phase - 1;
+  do_.phase_max_0based = env->num_phase() - 1;
   do_.input_file_path = NULL;
   do_.metrics_file_path_stub = NULL;
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
@@ -363,7 +359,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
                                     : do_.num_field_active,
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
-    GMEnv_data_type_vectors(env), env);
+    env->data_type_vectors(), env);
   double time_end = env->synced_time();
   vctime += time_end - time_beg;
 
@@ -399,7 +395,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   time_beg = env->synced_time();
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
   time_end = env->synced_time();
   vctime += time_end - time_beg;
 
@@ -440,17 +436,19 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Loops over phases, stages---*/
 
-  for (env->phase_num=do_.phase_min_0based;
-       env->phase_num<=do_.phase_max_0based; ++env->phase_num) {
+  for (int phase_num=do_.phase_min_0based; phase_num<=do_.phase_max_0based;
+       ++phase_num) {
+      env->phase_num(phase_num);
 
-    for (env->stage_num=do_.stage_min_0based;
-         env->stage_num<=do_.stage_max_0based; ++env->stage_num) {
+    for (int stage_num=do_.stage_min_0based; stage_num<=do_.stage_max_0based;
+         ++stage_num) {
+      env->stage_num(stage_num);
 
       /*---Set up metrics container for results---*/
 
       time_beg = env->synced_time();
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
-      GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
+      GMMetrics_create(metrics, env->data_type_metrics(), dm,
                        &metrics_mem, env);
       time_end = env->synced_time();
       mctime += time_end - time_beg;
@@ -491,15 +489,15 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       mctime += time_end - time_beg;
 
       if (do_print) {
-        if (env->num_phase > 1 && env->num_stage > 1) {
+        if (env->num_phase() > 1 && env->num_stage() > 1) {
           printf("Completed phase %i stage %i\n",
-                 env->phase_num, env->stage_num);
-        } else if (env->num_phase > 1) {
+                 env->phase_num(), env->stage_num());
+        } else if (env->num_phase() > 1) {
           printf("Completed phase %i\n",
-                 env->phase_num);
-        } else if (env->num_stage > 1) {
+                 env->phase_num());
+        } else if (env->num_stage() > 1) {
           printf("Completed stage %i\n",
-                 env->stage_num);
+                 env->stage_num());
         }
       }
 
@@ -545,14 +543,14 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
     if (env->num_way() == NUM_WAY::_2 && env->all2all() &&
-        do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase - 1) {
+        do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase() - 1) {
       GMInsist(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) / 2);
     }
 
     if (env->num_way() == NUM_WAY::_3 && env->all2all() &&
-        do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase - 1 &&
-        do_.stage_min_0based==0 && do_.stage_max_0based==env->num_stage - 1) {
+        do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase() - 1 &&
+        do_.stage_min_0based==0 && do_.stage_max_0based==env->num_stage() - 1) {
       GMInsist(num_elts_computed == (do_.num_vector) * (size_t)
                                           (do_.num_vector - 1) * (size_t)
                                           (do_.num_vector - 2) / 6);

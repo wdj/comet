@@ -25,7 +25,7 @@ static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
                                               GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   return ((GMFloat*)(metrics->data))[index];
 }
@@ -38,7 +38,7 @@ static GMFloat2 GMMetrics_float2_S_get_from_index(GMMetrics* metrics,
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
   GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   GMAssert(metrics->data_S);
 
   return ((GMFloat2*)(metrics->data_S))[index];
@@ -52,7 +52,7 @@ static GMFloat2 GMMetrics_float2_C_get_from_index(GMMetrics* metrics,
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
   GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   GMAssert(metrics->data_C);
 
   return ((GMFloat2*)(metrics->data_C))[index];
@@ -65,7 +65,7 @@ static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
                                                     GMEnv* env) {
   GMAssert(metrics && env);
   GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
   return ((GMTally2x2*)(metrics->data))[index];
 }
@@ -715,7 +715,7 @@ static void GMMetrics_float_set_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(i < j);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
   ((GMFloat*)(metrics->data))[index] = value;
@@ -736,7 +736,7 @@ static void GMMetrics_float2_S_set_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(i < j);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   GMAssert(metrics->data_S);
 
   size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
@@ -758,7 +758,7 @@ static void GMMetrics_float2_C_set_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(i < j);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   GMAssert(metrics->data_C);
 
   size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
@@ -780,7 +780,7 @@ static void GMMetrics_tally2x2_set_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(i < j);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
   size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
   ((GMTally2x2*)(metrics->data))[index] = value;
@@ -804,7 +804,7 @@ static void GMMetrics_float_set_all2all_2(GMMetrics* metrics,
   GMAssert(j_block >= 0);
   GMAssert(j_block < env->num_block_vector());
   GMAssert(i < j || j_block != env->proc_num_vector());
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
   /*---WARNING: these conditions on j_block are not exhaustive---*/
 
   size_t index =
@@ -830,7 +830,7 @@ static void GMMetrics_float2_S_set_all2all_2(GMMetrics* metrics,
   GMAssert(j_block >= 0);
   GMAssert(j_block < env->num_block_vector());
   GMAssert(i < j || j_block != env->proc_num_vector());
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   GMAssert(metrics->data_S);
   /*---WARNING: these conditions on j_block are not exhaustive---*/
 
@@ -857,7 +857,7 @@ static void GMMetrics_float2_C_set_all2all_2(GMMetrics* metrics,
   GMAssert(j_block >= 0);
   GMAssert(j_block < env->num_block_vector());
   GMAssert(i < j || j_block != env->proc_num_vector());
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   GMAssert(metrics->data_C);
   /*---WARNING: these conditions on j_block are not exhaustive---*/
 
@@ -884,7 +884,7 @@ static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics,
   GMAssert(j_block >= 0);
   GMAssert(j_block < env->num_block_vector());
   GMAssert(i < j || j_block != env->proc_num_vector());
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   /*---WARNING: these conditions on j_block are not exhaustive---*/
 
   size_t index =
@@ -907,7 +907,7 @@ static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
   GMAssert(j >= 0);
   GMAssert(j < metrics->num_vector_local);
   GMAssert(i < j);
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
   return GMMetrics_float_get_from_index(metrics, index, env);
@@ -930,7 +930,7 @@ static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
   GMAssert(j_block >= 0);
   GMAssert(j_block < env->num_block_vector());
   GMAssert(i < j || j_block != env->proc_num_vector());
-  GMAssert(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_FLOAT);
+  GMAssert(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
   /*---WARNING: these conditions on j_block are not exhaustive---*/
 
   size_t index =

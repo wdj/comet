@@ -39,7 +39,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
   const size_t nva = vectors->dm->num_vector_active;
   const size_t nfa = vectors->dm->num_field_active;
 
-  switch (GMEnv_data_type_vectors(env)) {
+  switch (env->data_type_vectors()) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -215,11 +215,11 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   // Upper bound on integer representable exactly by floating point type.
   // Account for cast to float in magma Volta version.
   const size_t max_float = ((size_t)1) <<
-    (GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT ?
+    (env->data_type_vectors() == GM_DATA_TYPE_FLOAT ?
      gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
-    GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 1 :
+    env->data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
     env->num_way() == NUM_WAY::_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
@@ -241,7 +241,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   //const size_t group_size_max = (nfa+num_group-1) / num_group;
   const size_t group_size_max = gm_ceil_i8(nfa, num_group);
 
-  switch (GMEnv_data_type_vectors(env)) {
+  switch (env->data_type_vectors()) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -368,11 +368,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   // Upper bound on integer representable exactly by floating point type.
   // Account for cast to float in magma Volta version.
   const size_t max_float = ((size_t)1) <<
-    (GMEnv_data_type_vectors(env) == GM_DATA_TYPE_FLOAT ?
+    (env->data_type_vectors() == GM_DATA_TYPE_FLOAT ?
      gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
-    GMEnv_data_type_vectors(env) != GM_DATA_TYPE_FLOAT ? 1 :
+    env->data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
     env->num_way() == NUM_WAY::_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
@@ -390,7 +390,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   const size_t max_to_print = 10;
   double max_incorrect_diff = 0.;
 
-  switch (GMEnv_data_type_metrics(env)) {
+  switch (env->data_type_metrics()) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/

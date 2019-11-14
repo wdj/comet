@@ -136,10 +136,10 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, false, false, num_field, num_vector,
-                     GMEnv_data_type_vectors(env), env);
+                     env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
   set_vectors_synthetic(vectors, problem_type, verbosity, env);
 
   write_vectors_to_file(vectors, file_path, env);
@@ -620,11 +620,11 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
-                     GMEnv_data_type_vectors(env), env);
+                     env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
 
   if (env->is_proc_active()) {
     {
@@ -654,7 +654,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
@@ -728,11 +728,11 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
-                     GMEnv_data_type_vectors(env), env);
+                     env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -771,7 +771,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
@@ -890,11 +890,11 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
-                     GMEnv_data_type_vectors(env), env);
+                     env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
 
   if (env->is_proc_active()) {
     // entry choices, binary representation
@@ -926,7 +926,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
@@ -1041,11 +1041,11 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
-                     GMEnv_data_type_vectors(env), env);
+                     env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
 
   if (env->is_proc_active()) {
     {
@@ -1101,7 +1101,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);
@@ -1200,11 +1200,11 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
-                     GMEnv_data_type_vectors(env), env);
+                     env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
-  GMVectors_create(vectors, GMEnv_data_type_vectors(env), dm, env);
+  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -1273,7 +1273,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
   GMMetricsMem metrics_mem(env);
-  GMMetrics_create(metrics, GMEnv_data_type_metrics(env), dm,
+  GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
   ComputeMetrics::compute_metrics(*metrics, *vectors, *env);

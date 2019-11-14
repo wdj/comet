@@ -197,7 +197,7 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
 void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
   GMInsist(vectors && do_ && env && do_->input_file_path);
 
-  switch (GMEnv_data_type_vectors(env)) {
+  switch (env->data_type_vectors()) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -235,7 +235,7 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
   FILE* vectors_file = fopen(vectors_file_path, "w");
   GMInsist(NULL != vectors_file && "Unable to open file.");
 
-  switch (GMEnv_data_type_vectors(env)) {
+  switch (env->data_type_vectors()) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -337,7 +337,7 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
                      double threshold, size_t& num_written, GMEnv* env) {
   GMInsist(metrics && file && env);
-  GMInsist(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY2X2);
+  GMInsist(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   GMInsist(env->num_way() == NUM_WAY::_2);
   GMInsist(file != stdout);
 
@@ -501,7 +501,7 @@ void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
 void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
                      double threshold, size_t& num_written, GMEnv* env) {
   GMInsist(metrics && file && env);
-  GMInsist(GMEnv_data_type_metrics(env) == GM_DATA_TYPE_TALLY4X2);
+  GMInsist(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
   GMInsist(env->num_way() == NUM_WAY::_3);
   GMInsist(file != stdout);
   GMInsist(env->metric_type() == MetricType::CCC);
@@ -620,7 +620,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
     return;
   }
 
-  switch (GMEnv_data_type_metrics(env)) {
+  switch (env->data_type_metrics()) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
@@ -864,7 +864,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
 
 MetricWriter::MetricWriter(FILE* file, GMMetrics* metrics, GMEnv* env) :
   file_(file),
-  data_type_(GMEnv_data_type_metrics(env)),
+  data_type_(env->data_type_metrics()),
   num_way_(env->num_way()),
   num_written_total_(0) {
 

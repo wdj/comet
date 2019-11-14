@@ -37,7 +37,7 @@ static int gm_bdiag_computed_min(GMEnv* env) {
 
   // First block diag computed for this phase (min across vec procs)
   const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
-  return (max_rectangle_width*env->phase_num) / env->num_phase;
+  return (max_rectangle_width*env->phase_num()) / env->num_phase();
 }
 
 //-----------------------------------------------------------------------------
@@ -49,7 +49,7 @@ static int gm_bdiag_computed_max(GMEnv* env) {
 
   // 1 + last block diag computed for this phase (max across vec procs)
   const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
-  return (max_rectangle_width*(env->phase_num+1)) / env->num_phase;
+  return (max_rectangle_width*(env->phase_num()+1)) / env->num_phase();
 }
 
 //-----------------------------------------------------------------------------
@@ -73,7 +73,7 @@ static int gm_block_computed_this_row_max(GMEnv* env) {
   const int i_block = env->proc_num_vector();
 
   const bool is_row_short_by_1 = num_block % 2 == 0 && 2*i_block >= num_block;
-  const bool is_last_phase = env->phase_num == env->num_phase - 1;
+  const bool is_last_phase = env->phase_num() == env->num_phase() - 1;
 
   const int diag_max = gm_bdiag_computed_max(env);
 

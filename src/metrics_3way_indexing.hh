@@ -57,7 +57,7 @@ static int gm_num_section_blocks(const GMEnv* const env) {
 static int gm_section_block_phase_min(const GMEnv* const env) {
   GMAssert(env);
 
-  return (gm_num_section_blocks(env)*env->phase_num) / env->num_phase;
+  return (gm_num_section_blocks(env)*env->phase_num()) / env->num_phase();
 }
 
 //-----------------------------------------------------------------------------
@@ -65,7 +65,7 @@ static int gm_section_block_phase_min(const GMEnv* const env) {
 static int gm_section_block_phase_max(const GMEnv* const env) {
   GMAssert(env);
 
-  return (gm_num_section_blocks(env)*(env->phase_num+1)) / env->num_phase;
+  return (gm_num_section_blocks(env)*(env->phase_num()+1)) / env->num_phase();
 }
 
 
@@ -126,11 +126,11 @@ static int gm_J_lo(int section_num, int nvl, int part_num, GMEnv* env) {
   GMAssert(part_num >= 1 && part_num <= 3);
   const int num_sections = gm_num_sections(env, part_num);
   GMAssert(section_num >= 0 && section_num <= num_sections);
-  GMAssert(env->num_stage > 0);
-  GMAssert(env->stage_num >= 0 && env->stage_num < env->num_stage);
+  GMAssert(env->num_stage() > 0);
+  GMAssert(env->stage_num() >= 0 && env->stage_num() < env->num_stage());
 
-  const int result = ((env->stage_num + env->num_stage * section_num)*nvl) /
-                     (num_sections * env->num_stage);
+  const int result = ((env->stage_num() + env->num_stage() * section_num)*nvl) /
+                     (num_sections * env->num_stage());
 
   return result;
 }
@@ -144,11 +144,11 @@ static int gm_J_hi(int section_num, int nvl, int part_num, GMEnv* env) {
   GMAssert(part_num >= 1 && part_num <= 3);
   const int num_sections = gm_num_sections(env, part_num);
   GMAssert(section_num >= 0 && section_num <= num_sections);
-  GMAssert(env->num_stage > 0);
-  GMAssert(env->stage_num >= 0 && env->stage_num < env->num_stage);
+  GMAssert(env->num_stage() > 0);
+  GMAssert(env->stage_num() >= 0 && env->stage_num() < env->num_stage());
 
-  const int result = ((env->stage_num + 1 + env->num_stage * section_num)*nvl) /
-                     (num_sections * env->num_stage);
+  const int result = ((env->stage_num() + 1 + env->num_stage() * section_num)*nvl) /
+                     (num_sections * env->num_stage());
 
   return result;
 }

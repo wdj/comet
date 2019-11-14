@@ -30,10 +30,167 @@
 
 namespace comet {
 
+//=============================================================================
+// System-related operations.
+
 //-----------------------------------------------------------------------------
+/// \brief System (wallclock) timer.
 
-void Env::set_defaults() {
+double System::time() {
 
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double result = ((double)tv.tv_sec + (double)tv.tv_usec * 1.e-6);
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Number of processors (MPI ranks) available.
+
+int System::num_proc() {
+  int num_proc = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_proc));
+  return num_proc;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief MPI rank in comm world.
+
+int System::proc_num() {
+  int proc_num = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &proc_num));
+  return proc_num;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator compute capability.
+
+int System::compute_capability() {
+#if defined USE_CUDA
+  cudaDeviceProp deviceProp;
+  // Assume only one GPU per rank.
+  cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
+  const int compute_capability = error != cudaSuccess ? 0 :
+    deviceProp.major * 100 + deviceProp.minor;
+#elif defined USE_HIP
+  hipDeviceProp_t deviceProp;
+  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
+//FIX this
+  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+#else
+  const int compute_capability = 0;
+#endif
+  return compute_capability;
+}
+
+//=============================================================================
+// Constructor/destructor
+
+void Env::create_impl_(MPI_Comm base_comm, int argc,
+                       char** argv, const char* const description,
+                       bool make_comms, int num_proc, int proc_num) {
+  set_defaults_();
+
+  comm_base_ = base_comm;
+  make_comms_ = make_comms;
+  // MPI proc counts, proc numbers
+  if (make_comms_) {
+    COMET_MPI_SAFE_CALL(MPI_Comm_size(comm_base_, &num_proc_base_));
+    COMET_MPI_SAFE_CALL(MPI_Comm_rank(comm_base_, &proc_num_base_));
+  } else {
+    num_proc_base_ = num_proc;
+    proc_num_base_ = proc_num;
+  }
+  set_num_proc_(num_proc_base_, 1, 1);
+  // Other
+  this->description_ = description; //FIX
+
+  parse_args_(argc, argv);
+
+  if (make_comms) {
+    GMInsistInterface(this, can_run() &&
+                      "Invalid problem for this system and build.");
+  }
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Env constructor using argc/argv.
+
+Env::Env(MPI_Comm base_comm,
+        int argc,
+        char** argv,
+        const char* const description) {
+
+  const int num_proc = 0;
+  const int proc_num = 0;
+  const bool make_comms = true;
+
+  create_impl_(base_comm, argc, argv, description, make_comms,
+    num_proc, proc_num);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Env constructor using options c_string.
+
+Env::Env(MPI_Comm base_comm,
+         const char* const options,
+         const char* const description) {
+
+  // Convert options string to args
+
+  size_t len = strlen(options);
+  char* argstring = (char*)malloc((len+1)*sizeof(char));
+  char ** argv = (char**)malloc((len+1)*sizeof(char*));
+  int argc = 0;
+  strcpy(argstring, options);
+  Env::create_args(argstring, &argc, argv);
+
+  const int num_proc = 0;
+  const int proc_num = 0;
+  const bool make_comms = true;
+
+  create_impl_(base_comm, argc, argv, description, make_comms, 
+    num_proc, proc_num);
+
+  free(argstring);
+  free(argv);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Env constructor using options c_string, don't alloc comms.
+
+Env::Env(const char* const options, int num_proc, int proc_num) {
+
+  // Convert options string to args
+
+  size_t len = strlen(options);
+  char* argstring = (char*)malloc((len+1)*sizeof(char));
+  char ** argv = (char**)malloc((len+1)*sizeof(char*));
+  int argc = 0;
+  strcpy(argstring, options);
+  Env::create_args(argstring, &argc, argv);
+  
+  create_impl_(MPI_COMM_WORLD, argc, argv, NULL, false, num_proc, proc_num);
+  
+  free(argstring);
+  free(argv);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Env destructor.
+
+Env::~Env() {
+  comms_terminate_();
+  streams_terminate_();
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Set scalar entries of Env to default values.
+
+void Env::set_defaults_() {
+
+  // Set all to zero to start.
   memset((void*)this, 0, sizeof(*this));
 
   // CoMet Settings
@@ -41,29 +198,22 @@ void Env::set_defaults() {
   num_way_ = NUM_WAY::_2;
   all2all_ = false;
   compute_method_ = ComputeMethod::GPU;
-  num_stage = 1;
-  stage_num = 0;
-  num_phase = 1;
-  phase_num = 0;
+  num_stage_ = 1;
+  stage_num_ = 0;
+  num_phase_ = 1;
+  phase_num_ = 0;
   ccc_param_set_(Env::ccc_param_default());
   ccc_multiplier_set_(Env::ccc_multiplier_default());
   duo_multiplier_set_(Env::duo_multiplier_default());
   sparse_ = false;
   tc_ = TC::NO;
   num_tc_steps_ = 1;
-  // Counters
-  ctime_ = 0;
-  compares_ = 0;
-  eltcompares_ = 0;
-  veccompares_ = 0;
-  ops_local_ = 0;
-  // MPI
-  are_comms_initialized_ = false;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Parse command line arguments, set Env accordingly.
 
-void Env::parse_args(int argc, char** argv) {
+void Env::parse_args_(int argc, char** argv) {
 
   Env* env = this;
 
@@ -225,10 +375,10 @@ void Env::parse_args(int argc, char** argv) {
   }   // for i
 }
 
-//=============================================================================
-// Utility to parse a string to construct arguments
+//-----------------------------------------------------------------------------
+/// \brief Utility to parse a string to construct argc/argv.
 
-void gm_create_args(char* argstring, int* argc, char** argv) {
+void Env::create_args(char* argstring, int* argc, char** argv) {
   size_t len = strlen(argstring);
 
   argv[0] = &argstring[0];
@@ -249,104 +399,83 @@ void gm_create_args(char* argstring, int* argc, char** argv) {
 }
 
 //=============================================================================
-// Initialize environment
+// CoMet settings
 
-void Env::create_impl_(MPI_Comm base_comm, int argc,
-                       char** argv, const char* const description,
-                       bool make_comms, int num_proc, int proc_num) {
-  set_defaults();
+//-----------------------------------------------------------------------------
+/// \brief Indicate the scalar type to use for vectors entries.
 
-  comm_base_ = base_comm;
-  make_comms_ = make_comms;
-  // MPI proc counts, proc numbers
-  if (make_comms_) {
-    COMET_MPI_SAFE_CALL(MPI_Comm_size(comm_base_, &num_proc_base_));
-    COMET_MPI_SAFE_CALL(MPI_Comm_rank(comm_base_, &proc_num_base_));
-  } else {
-    num_proc_base_ = num_proc;
-    proc_num_base_ = proc_num;
+int Env::data_type_vectors() const {
+
+  switch (metric_type()) {
+    case MetricType::CZEK:
+      return GM_DATA_TYPE_FLOAT;
+    case MetricType::CCC:
+      return GM_DATA_TYPE_BITS2;
+    case MetricType::DUO:
+      return GM_DATA_TYPE_BITS2;
   }
-  set_num_proc_(num_proc_base_, 1, 1);
-  // OTHER
-  this->description_ = description; //FIX
+  GMInsist(false && "Invalid metric_type.");
+  return 0;
+}
 
-  parse_args(argc, argv);
+//-----------------------------------------------------------------------------
+/// \brief Indicate the scalar type to use for metrics entries.
 
-  if (make_comms) {
-    GMInsistInterface(this, can_run() &&
-                      "Invalid problem for this system and build.");
+int Env::data_type_metrics() const {
+
+  switch (metric_type()) {
+    case MetricType::CZEK:
+      return GM_DATA_TYPE_FLOAT;
+    case MetricType::CCC:
+      return num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
+                                      : GM_DATA_TYPE_TALLY4X2;
+    case MetricType::DUO:
+      return GM_DATA_TYPE_TALLY2X2; // 2-way only for now
   }
-}
-
-//-----------------------------------------------------------------------------
-
-Env::Env(MPI_Comm base_comm,
-        int argc,
-        char** argv,
-        const char* const description) {
-
-  const int num_proc = 0;
-  const int proc_num = 0;
-  const bool make_comms = true;
-
-  create_impl_(base_comm, argc, argv, description, make_comms,
-    num_proc, proc_num);
-}
-
-//-----------------------------------------------------------------------------
-
-Env::Env(MPI_Comm base_comm,
-         const char* const options,
-         const char* const description) {
-
-  // Convert options string to args
-
-  size_t len = strlen(options);
-  char* argstring = (char*)malloc((len+1)*sizeof(char));
-  char ** argv = (char**)malloc((len+1)*sizeof(char*));
-  int argc = 0;
-  strcpy(argstring, options);
-  gm_create_args(argstring, &argc, argv);
-
-  const int num_proc = 0;
-  const int proc_num = 0;
-  const bool make_comms = true;
-
-  create_impl_(base_comm, argc, argv, description, make_comms, 
-    num_proc, proc_num);
-
-  free(argstring);
-  free(argv);
-}
-
-//-----------------------------------------------------------------------------
-
-Env::Env(const char* const options, int num_proc, int proc_num) {
-
-  // Convert options string to args
-
-  size_t len = strlen(options);
-  char* argstring = (char*)malloc((len+1)*sizeof(char));
-  char ** argv = (char**)malloc((len+1)*sizeof(char*));
-  int argc = 0;
-  strcpy(argstring, options);
-  gm_create_args(argstring, &argc, argv);
-  
-  create_impl_(MPI_COMM_WORLD, argc, argv, NULL, false, num_proc, proc_num);
-  
-  free(argstring);
-  free(argv);
-}
-
-//-----------------------------------------------------------------------------
-
-Env::~Env() {
-  comms_terminate_();
-  streams_terminate_();
+  GMInsist(false && "Invalid metric_type.");
+  return 0;
 }
 
 //=============================================================================
 // Counters
+
+//-----------------------------------------------------------------------------
+/// \brief Synchronize CPU to all GPU activity.
+
+void Env::accel_sync_() const {
+
+  if (! is_proc_active())
+    return;
+
+  if (compute_method() != ComputeMethod::GPU)
+    return;
+
+# if defined USE_CUDA
+    cudaDeviceSynchronize();
+# elif defined USE_HIP
+    hipDeviceSynchronize();
+#endif
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to device synchronize.");
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Get system time, synced across all active processes and CPUs/GPUs.
+
+double Env::synced_time() {
+
+  if (! is_proc_active())
+    return 0;
+
+  accel_sync_();
+
+  COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
+
+  return System::time();
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Increment byte count of per-rank CPU memory used.
 
 void Env::cpu_mem_local_inc(size_t n) {
  cpu_mem_local_ += n;
@@ -354,6 +483,7 @@ void Env::cpu_mem_local_inc(size_t n) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Increment byte count of per-rank GPU memory used.
 
 void Env::gpu_mem_local_inc(size_t n) {
  gpu_mem_local_ += n;
@@ -361,6 +491,23 @@ void Env::gpu_mem_local_inc(size_t n) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Decrement byte count of per-rank CPU memory used.
+
+void Env::cpu_mem_local_dec(size_t n) {
+  GMInsist(n <= cpu_mem_local_);
+  cpu_mem_local_ -= n;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Decrement byte count of per-rank GPU memory used.
+
+void Env::gpu_mem_local_dec(size_t n) {
+  GMInsist(n <= gpu_mem_local_);
+  gpu_mem_local_ -= n;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute and return per-rank CPU memory (global) high water mark.
 
 size_t Env::cpu_mem_max() const {
   size_t result = 0;
@@ -370,6 +517,7 @@ size_t Env::cpu_mem_max() const {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Compute and return per-rank GPU memory (global) high water mark.
 
 size_t Env::gpu_mem_max() const {
   size_t result = 0;
@@ -379,6 +527,7 @@ size_t Env::gpu_mem_max() const {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Compute and return (global) number of operations performed.
 
 double Env::ops() const {
   double result = 0;
@@ -388,98 +537,10 @@ double Env::ops() const {
 }
 
 //=============================================================================
-// accelerator streams
-
-void Env::streams_initialize_() {
-
-  // NOTE: this is used for lazy initialization
-
-  if (are_streams_initialized_)
-    return;
-
-  if (compute_method_ != ComputeMethod::GPU)
-    return;
-
-#if defined USE_CUDA
-  cudaStreamCreate(&stream_compute_);
-#elif defined USE_HIP
-  hipStreamCreate(&stream_compute_);
-#endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream create.");
-
-#if defined USE_CUDA
-  cudaStreamCreate(&stream_togpu_);
-#elif defined USE_HIP
-  hipStreamCreate(&stream_togpu_);
-#endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream create.");
-
-#if defined USE_CUDA
-  cudaStreamCreate(&stream_fromgpu_);
-#endif
-#ifdef USE_HIP
-  hipStreamCreate(&stream_fromgpu_);
-#endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream create.");
-
-  are_streams_initialized_ = true;
-}
-
-//-----------------------------------------------------------------------------
-
-void Env::streams_terminate_() {
-
-  if (! are_streams_initialized_)
-    return;
-
-#if defined USE_CUDA
-  cudaStreamDestroy(stream_compute_);
-#elif defined USE_HIP
-  hipStreamDestroy(stream_compute_);
-#endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream destroy.");
-
-#if defined USE_CUDA
-  cudaStreamDestroy(stream_togpu_);
-#elif defined USE_HIP
-  hipStreamDestroy(stream_togpu_);
-#endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream destroy.");
-
-#if defined USE_CUDA
-  cudaStreamDestroy(stream_fromgpu_);
-#elif defined USE_HIP
-  hipStreamDestroy(stream_fromgpu_);
-#endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream destroy.");
-
-  are_streams_initialized_ = false;
-}
-
-//-----------------------------------------------------------------------------
-
-void Env::stream_synchronize(Stream_t stream) const {
-
-  if (compute_method() != ComputeMethod::GPU)
-    return;
-
-#if defined USE_CUDA
-  cudaStreamSynchronize(stream);
-#elif defined USE_HIP
-  hipStreamSynchronize(stream);
-#endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream synchronize.");
-}
-
-//=============================================================================
 // MPI comms
+
+//-----------------------------------------------------------------------------
+/// \brief Allocate MPI communicators needed for computation.
 
 void Env::comms_initialize_() {
 
@@ -489,14 +550,15 @@ void Env::comms_initialize_() {
   if (! make_comms_)
     return;
 
-  COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_, is_proc_active_,
-    proc_num_, &comm_));
+  // Communicator for active procs to use for calculation.
+
+  COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_, is_proc_active_, proc_num_,
+    &comm_));
 
   // Communicator along repl / vector axis.
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_,
       is_proc_active_ ? proc_num_field_ : num_proc_,
-      //proc_num_,
       is_proc_active_ ? proc_num_repl_vector_ : proc_num_,
       &comm_repl_vector_));
 
@@ -504,7 +566,6 @@ void Env::comms_initialize_() {
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_,
       is_proc_active_ ? proc_num_repl_vector_ : num_proc_,
-      //proc_num_,
       is_proc_active_ ? proc_num_field_ : proc_num_,
       &comm_field_));
 
@@ -512,13 +573,14 @@ void Env::comms_initialize_() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Dellocate previously allocated MPI communicators.
 
 void Env::comms_terminate_() {
 
   if (! are_comms_initialized_)
     return;
 
-  // Destroy any nontrivial communicators
+  // Destroy communicators.
 
   COMET_MPI_SAFE_CALL(MPI_Comm_free(&comm_));
   COMET_MPI_SAFE_CALL(MPI_Comm_free(&comm_repl_vector_));
@@ -528,42 +590,129 @@ void Env::comms_terminate_() {
 }
 
 //=============================================================================
-// Accessors
+// Accelerator streams
 
-int GMEnv_data_type_vectors(const GMEnv* const env) {
-  GMInsist(env);
+//-----------------------------------------------------------------------------
+/// \brief Allocated accelerator streams needed for computation.
 
-  switch (env->metric_type()) {
-    case MetricType::CZEK:
-      return GM_DATA_TYPE_FLOAT;
-    case MetricType::CCC:
-      return GM_DATA_TYPE_BITS2;
-    case MetricType::DUO:
-      return GM_DATA_TYPE_BITS2;
-  }
-  GMInsist(false && "Invalid metric_type.");
-  return 0;
+void Env::streams_initialize_() {
+
+  if (are_streams_initialized_)
+    return;
+
+  if (compute_method() != ComputeMethod::GPU)
+    return;
+
+# if defined USE_CUDA
+    cudaStreamCreate(&stream_compute_);
+# elif defined USE_HIP
+    hipStreamCreate(&stream_compute_);
+# endif
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to stream create.");
+
+# if defined USE_CUDA
+    cudaStreamCreate(&stream_togpu_);
+# elif defined USE_HIP
+    hipStreamCreate(&stream_togpu_);
+# endif
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to stream create.");
+
+# if defined USE_CUDA
+    cudaStreamCreate(&stream_fromgpu_);
+# elif defined USE_HIP
+    hipStreamCreate(&stream_fromgpu_);
+# endif
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to stream create.");
+
+  are_streams_initialized_ = true;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Dellocate previously allocated accelerator streams.
 
-int GMEnv_data_type_metrics(const GMEnv* const env) {
-  GMInsist(env);
+void Env::streams_terminate_() {
 
-  switch (env->metric_type()) {
-    case MetricType::CZEK:
-      return GM_DATA_TYPE_FLOAT;
-    case MetricType::CCC:
-      return env->num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
-                                           : GM_DATA_TYPE_TALLY4X2;
-    case MetricType::DUO:
-      return GM_DATA_TYPE_TALLY2X2; // 2-way only for now
-  }
-  GMInsist(false && "Invalid metric_type.");
-  return 0;
+  if (! are_streams_initialized_)
+    return;
+
+# if defined USE_CUDA
+    cudaStreamDestroy(stream_compute_);
+# elif defined USE_HIP
+    hipStreamDestroy(stream_compute_);
+# endif
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to stream destroy.");
+
+# if defined USE_CUDA
+    cudaStreamDestroy(stream_togpu_);
+# elif defined USE_HIP
+    hipStreamDestroy(stream_togpu_);
+# endif
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to stream destroy.");
+
+# if defined USE_CUDA
+    cudaStreamDestroy(stream_fromgpu_);
+# elif defined USE_HIP
+    hipStreamDestroy(stream_fromgpu_);
+# endif
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to stream destroy.");
+
+  are_streams_initialized_ = false;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Accelerator stream for kernel launches on accelerator.
+
+Env::Stream_t Env::stream_compute() {
+  streams_initialize_(); // Lazy initialization.
+  return stream_compute_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator stream for transfers from CPU to GPU.
+
+Env::Stream_t Env::stream_togpu() {
+  streams_initialize_(); // Lazy initialization.
+  return stream_togpu_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator stream for transfers to CPU from GPU.
+
+Env::Stream_t Env::stream_fromgpu() {
+  streams_initialize_(); // Lazy initialization.
+  return stream_fromgpu_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief CPU wait for accelerator stream to complete queued work.
+
+void Env::stream_synchronize(Stream_t stream) const {
+
+  if (compute_method() != ComputeMethod::GPU)
+    return;
+
+  GMInsist(are_streams_initialized_);
+
+# if defined USE_CUDA
+    cudaStreamSynchronize(stream);
+# elif defined USE_HIP
+    hipStreamSynchronize(stream);
+# endif
+  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+           "Failure in call to stream synchronize.");
+}
+
+//=============================================================================
+// MPI proc counts.
+
+//-----------------------------------------------------------------------------
+/// \brief Set up proc counts and proc numbers.
 
 void Env::set_num_proc_(int num_proc_vector,
                       int num_proc_repl, int num_proc_field) {
@@ -639,71 +788,6 @@ void Env::set_num_proc_(int num_proc_vector,
   // Make new communicators
 
   comms_initialize_();
-}
-
-//-----------------------------------------------------------------------------
-
-Env::Stream_t Env::stream_compute() {
-  streams_initialize_();
-  return stream_compute_;
-}
-
-Env::Stream_t Env::stream_togpu() {
-  streams_initialize_();
-  return stream_togpu_;
-}
-
-Env::Stream_t Env::stream_fromgpu() {
-  streams_initialize_();
-  return stream_fromgpu_;
-}
-
-//=============================================================================
-// Timer functions
-
-double System::time() {
-
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double result = ((double)tv.tv_sec + (double)tv.tv_usec * 1.e-6);
-
-  return result;
-}
-
-//-----------------------------------------------------------------------------
-
-void GMEnv_accel_sync(const GMEnv* const env) {
-  GMInsist(env);
-
-  if (! env->is_proc_active()) {
-    return;
-  }
-
-  if (env->compute_method() != ComputeMethod::GPU) {
-    return;
-  }
-
-#if defined USE_CUDA
-  cudaDeviceSynchronize();
-#elif defined USE_HIP
-  hipDeviceSynchronize();
-#endif
-  GMInsist(GMEnv_accel_last_call_succeeded(env) &&
-           "Failure in call to device synchronize.");
-}
-
-//-----------------------------------------------------------------------------
-
-double Env::synced_time() {
-
-  if (! is_proc_active())
-    return 0;
-
-  GMEnv_accel_sync(this);
-
-  COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
-
-  return System::time();
 }
 
 //=============================================================================
@@ -858,42 +942,6 @@ bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
 #endif
 
   return true;
-}
-
-//-----------------------------------------------------------------------------
-
-int System::num_proc() {
-  int num_proc = 0;
-  COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_proc));
-  return num_proc;
-}
-
-//-----------------------------------------------------------------------------
-
-int System::proc_num() {
-  int proc_num = 0;
-  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &proc_num));
-  return proc_num;
-}
-
-//-----------------------------------------------------------------------------
-
-int System::compute_capability() {
-#if defined USE_CUDA
-  cudaDeviceProp deviceProp;
-  // Assume only one GPU per rank.
-  cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
-  const int compute_capability = error != cudaSuccess ? 0 :
-    deviceProp.major * 100 + deviceProp.minor;
-#elif defined USE_HIP
-  hipDeviceProp_t deviceProp;
-  hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-//FIX this
-  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
-#else
-  const int compute_capability = 0;
-#endif
-  return compute_capability;
 }
 
 //-----------------------------------------------------------------------------

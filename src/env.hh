@@ -36,8 +36,6 @@
 #define COMET_MPI_SAFE_CALL(s) {int error_code = (s); \
                                 GMInsist(MPI_SUCCESS == error_code);}
 
-//-----------------------------------------------------------------------------
-
 namespace comet {
 
 //-----------------------------------------------------------------------------
@@ -172,17 +170,10 @@ struct TC {
   }
 };
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 class Env {
 public:
-
-  //----------------------------------------
-  // CoMet Settings
-  int num_stage;
-  int stage_num;
-  int num_phase;
-  int phase_num;
 
   //----------------------------------------
   // Constructor/destructor
@@ -202,11 +193,7 @@ public:
 
   ~Env();
 
-  void set_defaults();
-  void parse_args(int argc, char** argv);
-
-  bool can_run(int tc) const;
-  bool can_run() const {return can_run(tc_eff());};
+  static void create_args(char* argstring, int* argc, char** argv);
 
   //----------------------------------------
   // CoMet Settings
@@ -215,11 +202,6 @@ public:
   int all2all() const {return all2all_;}
   int compute_method() const {return compute_method_;}
   int num_way() const {return num_way_;}
-  bool does_3way_need_2way() const {return metric_type_ == MetricType::CZEK;}
-  bool is_metric_type_bitwise() const {
-    return metric_type_==MetricType::CCC ||
-           metric_type_==MetricType::DUO;
-  }
   bool sparse() const {return sparse_;}
   int tc() const {return tc_;};
   int tc_eff() const;
@@ -231,14 +213,32 @@ public:
   double ccc_multiplier() const {return ccc_multiplier_;}
   double duo_multiplier() const {return duo_multiplier_;}
   bool are_ccc_params_default() const {return are_ccc_params_default_;}
-//  bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_;}
+  int num_stage() const {return num_stage_;}
+  void num_stage(int value) {num_stage_ = value;}
+  int stage_num() const {return stage_num_;}
+  void stage_num(int value) {stage_num_ = value;}
+  int num_phase() const {return num_phase_;}
+  void num_phase(int value) {num_phase_ = value;}
+  int phase_num() const {return phase_num_;}
+  void phase_num(int value) {phase_num_ = value;}
+
+  bool does_3way_need_2way() const {return metric_type_ == MetricType::CZEK;}
+  bool is_metric_type_bitwise() const {
+    return metric_type_==MetricType::CCC || metric_type_==MetricType::DUO;
+  }
   bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
     (ComputeMethod::CPU == compute_method_ && tc_eff() != TC::NO &&
-     is_metric_type_bitwise());}
-  //int num_stage() const {return num_stage_;}
-  //int stage_num() const {return stage_num_;}
+     is_metric_type_bitwise());
+  }
+  int data_type_vectors() const;
+  int data_type_metrics() const;
 
+  bool can_run(int tc) const;
+  bool can_run() const {return can_run(tc_eff());};
+
+  //----------------------------------------
   // Counters
+
   double ctime() const {return ctime_;}
   void ctime_inc(double t) {ctime_ += t;}
   double synced_time();
@@ -246,8 +246,8 @@ public:
   size_t gpu_mem_local() const {return gpu_mem_local_;}
   void cpu_mem_local_inc(size_t n);
   void gpu_mem_local_inc(size_t n);
-  void cpu_mem_local_dec(size_t n) {cpu_mem_local_ -= n;}
-  void gpu_mem_local_dec(size_t n) {gpu_mem_local_ -= n;}
+  void cpu_mem_local_dec(size_t n);
+  void gpu_mem_local_dec(size_t n);
   size_t cpu_mem_max() const;
   size_t gpu_mem_max() const;
   void ops_local_inc(double n) {ops_local_ += n;}
@@ -259,12 +259,16 @@ public:
   void eltcompares_inc(double n) {eltcompares_ += n;}
   void veccompares_inc(double n) {veccompares_ += n;}
 
+  //----------------------------------------
   // MPI comms
+
   MPI_Comm comm() const {return comm_;}
   MPI_Comm comm_repl_vector() const {return comm_repl_vector_;}
   MPI_Comm comm_field() const {return comm_field_;}
 
+  //----------------------------------------
   // MPI proc counts
+
   int num_block_vector() const {return num_proc_vector_;}
   int num_proc_vector() const {return num_proc_vector_;}
   int num_proc_field() const {return num_proc_field_;}
@@ -273,34 +277,39 @@ public:
   int num_proc() const {return num_proc_repl_vector()*num_proc_field_;}
   bool do_reduce() const {return num_proc_field_ > 1;}
 
+  //----------------------------------------
   // MPI proc numbers
+
   int proc_num_vector() const {return proc_num_vector_;}
   int proc_num_field() const {return proc_num_field_;}
   int proc_num_repl() const {return proc_num_repl_;}
   int proc_num() const {return proc_num_;}
   bool is_proc_active() const {return is_proc_active_;}
 
-  // accelerator streams
+  //----------------------------------------
+  // Accelerator streams
+
 # if defined USE_CUDA
-  typedef cudaStream_t Stream_t;
+    typedef cudaStream_t Stream_t;
 # elif defined USE_HIP
-  typedef hipStream_t Stream_t;
+    typedef hipStream_t Stream_t;
 # else
-  typedef int Stream_t;
+    typedef int Stream_t;
 # endif
-  void stream_synchronize(Stream_t stream) const;
   Stream_t stream_compute();
   Stream_t stream_togpu();
   Stream_t stream_fromgpu();
-  void streams_terminate_();
+  void stream_synchronize(Stream_t stream) const;
 
-  bool are_streams_initialized_;
-
+//----------------------------------------
 private:
 
+  // Constructor/destructor
   void create_impl_(MPI_Comm base_comm, int argc,
     char** argv, const char* const description,
     bool make_comms, int num_proc, int proc_num);
+  void set_defaults_();
+  void parse_args_(int argc, char** argv);
 
   // CoMet Settings
   int metric_type_;
@@ -329,8 +338,13 @@ private:
     GMInsist(value >= 0);
     duo_multiplier_ = value;
   }
+  int num_stage_;
+  int stage_num_;
+  int num_phase_;
+  int phase_num_;
 
   // Counters
+  void accel_sync_() const;
   double ctime_;
   double ops_local_;
   size_t cpu_mem_local_;
@@ -347,9 +361,9 @@ private:
   MPI_Comm comm_;
   MPI_Comm comm_repl_vector_;
   MPI_Comm comm_field_;
-  bool are_comms_initialized_;
   void comms_initialize_();
   void comms_terminate_();
+  bool are_comms_initialized_;
 
   // MPI proc counts
   int num_proc_base_;
@@ -370,13 +384,15 @@ private:
   int proc_num_repl_vector_;
   bool is_proc_active_;
 
-  // accelerator streams
-  void streams_initialize_();
+  // Accelerator streams
   Stream_t stream_compute_;
   Stream_t stream_togpu_;
   Stream_t stream_fromgpu_;
+  void streams_initialize_();
+  void streams_terminate_();
+  bool are_streams_initialized_;
 
-  // OTHER
+  // Other
   const char* description_;
 
   // Disallowed methods.
@@ -387,19 +403,6 @@ private:
 //----------
 
 typedef Env GMEnv;
-
-//=============================================================================
-// Initialize environment
-
-void gm_create_args(char* argstring, int* argc, char** argv);
-
-//=============================================================================
-// Accessors: general
-
-//-----------------------------------------------------------------------------
-
-int GMEnv_data_type_vectors(const GMEnv* const env);
-int GMEnv_data_type_metrics(const GMEnv* const env);
 
 //=============================================================================
 // Math utility functions

@@ -347,10 +347,11 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute number of elements etc.---*/
 
-  GMInsistInterface(env, env->stage_num >= 0 && env->stage_num < env->num_stage
-                    && "Invalid stage number specified.");
+  GMInsistInterface(env, env->stage_num() >= 0
+    && env->stage_num() < env->num_stage()
+    && "Invalid stage number specified.");
 
-  GMInsistInterface(env, env->phase_num >= 0 && env->phase_num < env->num_phase
+  GMInsistInterface(env, env->phase_num() >= 0 && env->phase_num() < env->num_phase()
                     && "Invalid phase number specified.");
 
   GMMetrics_ccc_check_size_nofp_2(metrics, env);
@@ -362,10 +363,10 @@ void GMMetrics_create(GMMetrics* metrics,
   if (env->num_way() == NUM_WAY::_2 && env->all2all()) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_stage == 1
+    GMInsistInterface(env, env->num_stage() == 1
                       && "Staged computations not allowed for 2-way case.");
 
-    GMInsistInterface(env, env->num_phase <= 1 + num_block / 2
+    GMInsistInterface(env, env->num_phase() <= 1 + num_block / 2
                       && "num_phase must be at most 1 + num_proc_vector/2.");
 
     /*---Store the following in this block-row:
@@ -455,7 +456,7 @@ void GMMetrics_create(GMMetrics* metrics,
   } else if (env->num_way() == NUM_WAY::_3 && env->all2all()) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_phase <= gm_num_section_blocks(env)
+    GMInsistInterface(env, env->num_phase() <= gm_num_section_blocks(env)
      && "num_phase must be at most (num_proc_vector+1)*(num_proc_vector+2)/2.");
 
     //---Make the following assumption to greatly simplify calculations.
@@ -631,10 +632,10 @@ void GMMetrics_create(GMMetrics* metrics,
   } else if (env->num_way() == NUM_WAY::_2 && ! env->all2all()) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_stage == 1 &&
+    GMInsistInterface(env, env->num_stage() == 1 &&
                       "Staged computations not allowed for non-all2all case.");
 
-    GMInsistInterface(env, env->num_phase == 1 &&
+    GMInsistInterface(env, env->num_phase() == 1 &&
                       "Phased computations not allowed for non-all2all case.");
 
     metrics->num_elts_local = nchoosek;
@@ -658,10 +659,10 @@ void GMMetrics_create(GMMetrics* metrics,
   } else if (env->num_way() == NUM_WAY::_3 && ! env->all2all()) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_stage == 1
+    GMInsistInterface(env, env->num_stage() == 1
                       && "Staged computations not allowed for non-all2all case.");
 
-    GMInsistInterface(env, env->num_phase == 1
+    GMInsistInterface(env, env->num_phase() == 1
                       && "Phased computations not allowed for non-all2all case.");
 
     metrics->num_elts_local = nchoosek;
@@ -700,13 +701,13 @@ void GMMetrics_create(GMMetrics* metrics,
     MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
   if (env->num_way() == NUM_WAY::_2 &&
-      env->num_phase == 1 && env->all2all()) {
+      env->num_phase() == 1 && env->all2all()) {
     GMInsist(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) / 2);
   }
 
-  if (env->num_way() == NUM_WAY::_3 && env->num_stage == 1 &&
-      env->num_phase == 1 && env->all2all()) {
+  if (env->num_way() == NUM_WAY::_3 && env->num_stage() == 1 &&
+      env->num_phase() == 1 && env->all2all()) {
     GMInsist(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) * (size_t)
                                (metrics->num_vector - 2) / 6);
