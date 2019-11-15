@@ -593,7 +593,7 @@ double Env::synced_time() {
 
 void Env::cpu_mem_local_inc(size_t n) {
  cpu_mem_local_ += n;
- cpu_mem_max_local_ = std::max(cpu_mem_max_local_, cpu_mem_local_);
+ cpu_mem_max_local_ = utils::max(cpu_mem_max_local_, cpu_mem_local_);
 }
 
 //-----------------------------------------------------------------------------
@@ -601,7 +601,7 @@ void Env::cpu_mem_local_inc(size_t n) {
 
 void Env::gpu_mem_local_inc(size_t n) {
  gpu_mem_local_ += n;
- gpu_mem_max_local_ = std::max(gpu_mem_max_local_, gpu_mem_local_);
+ gpu_mem_max_local_ = utils::max(gpu_mem_max_local_, gpu_mem_local_);
 }
 
 //-----------------------------------------------------------------------------

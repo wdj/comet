@@ -289,7 +289,7 @@ void gm_compute_metrics_2way_all2all(
   // (note: at each step, num_proc_r processors each compute a block)
   // NOTE: num_step should be consistent within same proc_r.
 
-  const int num_step = gm_ceil_i(num_bdiag_computed, num_proc_r);
+  const int num_step = utils::ceil(num_bdiag_computed, num_proc_r);
 
   typedef struct {
     GMVectors* vectors_right;
@@ -335,11 +335,11 @@ void gm_compute_metrics_2way_all2all(
     vars_next.is_compute_step = vars_next.step_num >= 0 &&
                                 vars_next.step_num < num_step;
     vars_next.is_first_compute_step = vars_next.step_num == 0;
-    vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
+    vars_next.index_01 = utils::mod_i(vars_next.step_num, 2);
     vars_next.j_i_offset = j_i_offset_min + vars_next.step_num * num_proc_r
                            + proc_num_r;
     vars_next.is_main_diag = vars_next.j_i_offset == 0;
-    vars_next.j_block = gm_mod_i(i_block + vars_next.j_i_offset, num_block);
+    vars_next.j_block = utils::mod_i(i_block + vars_next.j_i_offset, num_block);
     vars_next.do_compute_block = vars_next.is_compute_step &&
                    vars_next.j_i_offset < j_i_offset_this_row_max;
 
@@ -387,10 +387,10 @@ void gm_compute_metrics_2way_all2all(
 
     // Prepare for sends/recvs: procs for communication
 
-    const int proc_send = gm_mod_i(proc_num_rv
+    const int proc_send = utils::mod_i(proc_num_rv
         - vars_next.j_i_offset*num_proc_r, num_proc_rv);
 
-    const int proc_recv = gm_mod_i(proc_num_rv
+    const int proc_recv = utils::mod_i(proc_num_rv
         + vars_next.j_i_offset*num_proc_r, num_proc_rv);
 
     const bool comm_with_self = vars_next.is_main_diag;

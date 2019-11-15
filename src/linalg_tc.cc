@@ -371,9 +371,9 @@ static void gm_tc_buf_write_(
 
   const int threadblocksize = 256;
   const int blockdim_y = 32768;
-  const int num_threadblocks_0 = gm_ceil_i8(nvleX2, threadblocksize);
-  const int num_threadblocks_1 = gm_min_i8(nflD2_thisstep, blockdim_y);
-  const int num_threadblocks_2 = gm_ceil_i8(nflD2_thisstep, blockdim_y);
+  const int num_threadblocks_0 = utils::ceil(nvleX2, threadblocksize);
+  const int num_threadblocks_1 = utils::min(nflD2_thisstep, blockdim_y);
+  const int num_threadblocks_2 = utils::ceil(nflD2_thisstep, blockdim_y);
 
   // Arrays.
 
@@ -799,7 +799,7 @@ static void gm_tc_repair_metrics_(
   const int nvllD2 = nvll / 2;
 
   const int threadblocksize = 256;
-  const int vll2_threadblocks = gm_ceil_i8(nvllD2, threadblocksize);
+  const int vll2_threadblocks = utils::ceil(nvllD2, threadblocksize);
 
   typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
 
@@ -952,7 +952,7 @@ size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
 
   const size_t factor = gm_gemm_divisibility_required(env);
 
-  return gm_ceil_i8(size_requested, factor)*factor;
+  return utils::ceil(size_requested, factor)*factor;
 }
 
 //-----------------------------------------------------------------------------
@@ -1020,7 +1020,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
   const size_t nvl = num_vector_local;
   const size_t npvfl = num_packedval_field_local;
-  const size_t npvfl_thisstep_max = gm_ceil_i8(npvfl, env->num_tc_steps());
+  const size_t npvfl_thisstep_max = utils::ceil(npvfl, (size_t)env->num_tc_steps());
 
   const int sizeof_gemm_in_t =
      env->tc_eff() == TC::INT8 ?

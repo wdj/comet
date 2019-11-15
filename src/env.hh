@@ -80,6 +80,7 @@ struct BuildHas {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Helper class for system functions.
 
 struct System {
   static int num_proc();
@@ -91,6 +92,7 @@ struct System {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Helper class for metric type values.
 
 struct MetricType {
   enum {INVALID = -1,
@@ -114,6 +116,7 @@ struct MetricType {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Helper class for compute method values.
 
 struct ComputeMethod {
   enum {INVALID = -1,
@@ -140,6 +143,7 @@ struct ComputeMethod {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Helper class for num way values.
 
 struct NUM_WAY {
   enum {_2 = 2,
@@ -152,6 +156,7 @@ struct NUM_WAY {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Helper class for tc method values.
 
 struct TC {
   enum {
@@ -411,87 +416,104 @@ typedef Env GMEnv;
 
 // TODO: maybe put in separate file.
 
-static int gm_min_i(const int i, const int j) {
-  return i < j ? i : j;
+namespace utils {
+
+//-----------------------------------------------------------------------------
+/// \brief Minimum of two scalars, native implementation for speed.
+
+template<typename T>
+T min(const T& i, const T& j) {
+  const T r = i < j ? i : j;
+  COMET_ASSERT(std::min(i, j) == r);
+  return r;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Maximum of two scalars, native implementation for speed.
 
-static size_t gm_min_i8(const size_t i, const size_t j) {
-  return i < j ? i : j;
+template<typename T>
+T max(const T& i, const T& j) {
+  const T r = i > j ? i : j;
+  COMET_ASSERT(std::max(i, j) == r);
+  return r;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Truncate to integer the quotient of integers.
 
-static int gm_max_i(const int i, const int j) {
-  return i > j ? i : j;
+template<typename T>
+T trunc(const T& i, const T& n) {
+  COMET_ASSERT(n > 0);
+  COMET_ASSERT(i+1 >= 1);
+  const T r = i / n;
+  COMET_ASSERT(i >= r*n);
+  COMET_ASSERT(i < r*n + n);
+  return r;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Integer floor of quotient of integers.
 
-static size_t gm_max_i8(const size_t i, const size_t j) {
-  return i > j ? i : j;
+template<typename T>
+T floor(const T& i, const T& n) {
+  COMET_STATIC_ASSERT(std::is_signed<T>::value);
+  COMET_ASSERT(n > 0);
+  const T r = i >= 0 ? i / n : (i + 1 - n) / n;
+  COMET_ASSERT(i >= r*n);
+  COMET_ASSERT(i < r*n + n);
+  return r;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Integer ceiling of quotient of integers.
 
-static int gm_floor_i(const int i, const int j) {
-  COMET_ASSERT(j > 0);
-
-  return i >= 0 ? i / j : (i - j + 1) / j;
+template<typename T>
+T ceil(const T& i, const T& n) {
+  COMET_ASSERT(n > 0);
+  const T r = i > 0 ? (i + n - 1) / n : i / n;
+  // WARNING: may fail if unsigned type.
+  COMET_ASSERT(i + n > r*n && i <= r*n);
+  return r;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Mathematical modulus if int value.
 
-static size_t gm_floor_i8(const size_t i, const size_t j) {
-  COMET_ASSERT(i + 1 >= 1);
-  COMET_ASSERT(j + 1 > 1);
-
-  return i / j;
+template<typename T>
+T mod_i(const T& i, const T& n) {
+  COMET_STATIC_ASSERT((std::is_same<T,int>::value));
+  COMET_ASSERT(n > 0);
+  const T r = i - n * floor(i, n);
+  COMET_ASSERT(r >= 0 && r < n);
+  COMET_ASSERT((r-i) % n == 0);
+  return r;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Upper bound of random numbers from generator.
 
-static int gm_ceil_i(const int i, const int j) {
-  COMET_ASSERT(j > 0);
-
-  return -gm_floor_i(-i, j);
-}
-
-//-----------------------------------------------------------------------------
-
-static size_t gm_ceil_i8(const size_t i, const size_t j) {
-  COMET_ASSERT(i + 1 >= 1);
-  COMET_ASSERT(j + 1 > 1);
-
-  return (i + j - 1) / j;
-}
-
-//-----------------------------------------------------------------------------
-
-static int gm_mod_i(const int i, const int j) {
-  COMET_ASSERT(j > 0);
-
-  return i - j * gm_floor_i(i, j);
-}
-
-//-----------------------------------------------------------------------------
-
-static size_t gm_randomize_max() {
+static size_t randomize_max() {
   const size_t im = 714025;
-
   return im;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Random number genrator.
 
-static size_t gm_randomize(size_t i) {
+static size_t randomize(size_t i) {
   const size_t im = 714025;
   const size_t ia = 4096;
   const size_t ic = 150889;
-
   return (i * ia + ic) % im;
 }
+
+//-----------------------------------------------------------------------------
+
+
+
+
+
+} // namespace utils
 
 //-----------------------------------------------------------------------------
 

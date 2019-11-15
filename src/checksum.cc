@@ -357,9 +357,9 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         }
         uid = uid * metrics.data_type_num_values + i_value;
         // Randomize this id
-        const UI64_t rand1 = gm_randomize(uid + 956158765);
-        const UI64_t rand2 = gm_randomize(uid + 842467637);
-        UI64_t rand_value = rand1 + gm_randomize_max() * rand2;
+        const UI64_t rand1 = utils::randomize(uid + 956158765);
+        const UI64_t rand2 = utils::randomize(uid + 842467637);
+        UI64_t rand_value = rand1 + utils::randomize_max() * rand2;
         // Truncate to 2*w bits.
         rand_value &= lohimask;
         // Multiply the two values.

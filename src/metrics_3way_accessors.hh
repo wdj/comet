@@ -191,7 +191,7 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
   // Guarantee not to shift bits off the top.
   const int shift_limit = 128 - lnum; // always >= 0, < 128
 
-  const int shift_left = gm_min_i8(shift, shift_limit); // >= 0, < 128
+  const int shift_left = utils::min(shift, shift_limit); // >= 0, < 128
 
   const int shift_right = shift - shift_left; // >= 0, < 128
 

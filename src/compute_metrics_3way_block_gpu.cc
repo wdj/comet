@@ -739,8 +739,8 @@ void gm_compute_3way_nums_gpu_start_(
     vars = vars_next;
 
     vars_next.step_num = step_num + 1;
-    vars_next.step_2way = gm_mod_i(vars_next.step_num, num_step_2way);
-    vars_next.J = J_min + gm_floor_i(vars_next.step_num, num_step_2way);
+    vars_next.step_2way = utils::mod_i(vars_next.step_num, num_step_2way);
+    vars_next.J = J_min + utils::trunc(vars_next.step_num, num_step_2way);
     vars_next.I_min = 0;
     vars_next.I_max = si->is_part1 ? vars_next.J : nvl;
     const int vars_next_I_max_dim = gm_gemm_size_required(vars_next.I_max, env);
@@ -751,7 +751,7 @@ void gm_compute_3way_nums_gpu_start_(
     vars_next.is_compute_step = vars_next.step_num >= 0 &&
                                 vars_next.step_num < num_step;
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
-    vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
+    vars_next.index_01 = utils::mod_i(vars_next.step_num, 2);
     if (vars_next.I_max <= nvl) {
       COMET_INSIST(vars_next_I_max_dim <= nvl &&
                "Block size rounding-up error.");

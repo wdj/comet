@@ -38,7 +38,7 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
   const size_t lcm = (! need_divisible_by_6) ? factor_4 :
                      factor_4 % 2 == 0 ? 3 * factor_4 : 6 * factor_4;
 
-  return gm_ceil_i8(num_vector_active_local, lcm)*lcm;
+  return utils::ceil(num_vector_active_local, lcm)*lcm;
 }
 
 //-----------------------------------------------------------------------------
@@ -94,9 +94,9 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     // Pad up as needed, require every proc has same number
     const int num_proc = env->num_proc_vector();
     const int proc_num = env->proc_num_vector();
-    //dm->num_vector_local = gm_ceil_i8(dm->num_vector_active, num_proc);
+    //dm->num_vector_local = utils::ceil(dm->num_vector_active, (size_t)num_proc);
     dm->num_vector_local = gm_num_vector_local_required(
-      gm_ceil_i8(dm->num_vector_active, env->num_proc_vector()), env);
+      utils::ceil(dm->num_vector_active, (size_t)env->num_proc_vector()), env);
     dm->num_vector = dm->num_vector_local * num_proc;
     // Lower procs fully packed with active values
     // Upper procs fully inactive
@@ -148,7 +148,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     // Pad up as needed so that every proc has same number
     const int num_proc = env->num_proc_field();
     const int proc_num = env->proc_num_field();
-    dm->num_field_local = gm_ceil_i8(dm->num_field_active, num_proc);
+    dm->num_field_local = utils::ceil(dm->num_field_active, (size_t)num_proc);
     dm->num_field = dm->num_field_local * num_proc;
     // Lower procs fully packed with active values
     // Upper procs fully inactive
@@ -230,8 +230,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   //--------------------
 
   dm->num_packedfield_local =
-      gm_ceil_i8(dm->num_field_local * dm->num_bits_per_field,
-                 dm->num_bits_per_packedfield);
+      utils::ceil(dm->num_field_local * dm->num_bits_per_field,
+                  (size_t)dm->num_bits_per_packedfield);
 
   //--------------------
   // Number of non-active fields on proc.

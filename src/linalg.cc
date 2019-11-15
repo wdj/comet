@@ -844,18 +844,18 @@ void gm_linalg_gemm_magma_start(size_t m,
   COMET_INSIST(max_rows_per_block != 0 && "Error in gemm block calculation.");
   COMET_INSIST(max_cols_per_block != 0 && "Error in gemm block calculation.");
 
-  const size_t cols_per_block_A = gm_min_i8(cols_A, max_cols_per_block);
-  const size_t cols_per_block_B = gm_min_i8(cols_B, max_cols_per_block);
+  const size_t cols_per_block_A = utils::min(cols_A, max_cols_per_block);
+  const size_t cols_per_block_B = utils::min(cols_B, max_cols_per_block);
 
-  const size_t rows_per_block = gm_min_i8(rows, max_rows_per_block);
+  const size_t rows_per_block = utils::min(rows, max_rows_per_block);
 
   for (size_t row_base=0; row_base<rows; row_base+=rows_per_block) {
     const size_t rows_remaining = rows - row_base;
-    const size_t rows_this = gm_min_i8(rows_remaining, rows_per_block);
+    const size_t rows_this = utils::min(rows_remaining, rows_per_block);
 
     for (size_t col_A_base=0; col_A_base<cols_A; col_A_base+=cols_per_block_A) {
       const size_t cols_A_remaining = cols_A - col_A_base;
-      const size_t cols_A_this = gm_min_i8(cols_A_remaining, cols_per_block_A);
+      const size_t cols_A_this = utils::min(cols_A_remaining, cols_per_block_A);
 
       void* A_this = (char*)A + (row_base + ldda*col_A_base)*elt_size;
 
@@ -863,7 +863,7 @@ void gm_linalg_gemm_magma_start(size_t m,
            col_B_base+=cols_per_block_B) {
 
         const size_t cols_B_remaining = cols_B - col_B_base;
-        const size_t cols_B_this = gm_min_i8(cols_B_remaining,
+        const size_t cols_B_this = utils::min(cols_B_remaining,
                                              cols_per_block_B);
 
         void* B_this = (char*)B + (row_base + ldda*col_B_base)*elt_size;

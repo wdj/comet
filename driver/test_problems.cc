@@ -49,7 +49,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
             vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
         // By construction, active vectors are packed for lower procs.
-        const size_t vector_capped = gm_min_i8(vector, nva);
+        const size_t vector_capped = utils::min(vector, nva);
         int fl = 0;
         for (fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -61,25 +61,25 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
           const size_t uid = field + nfa * vector_capped;
           /*---Generate large random number---*/
           size_t rand1 = uid;
-          rand1 = gm_randomize(rand1);
-          rand1 = gm_randomize(rand1);
+          rand1 = utils::randomize(rand1);
+          rand1 = utils::randomize(rand1);
           size_t rand2 = uid;
-          rand2 = gm_randomize(rand2);
-          rand2 = gm_randomize(rand2);
-          rand2 = gm_randomize(rand2);
-          const size_t rand_max = gm_randomize_max();
+          rand2 = utils::randomize(rand2);
+          rand2 = utils::randomize(rand2);
+          rand2 = utils::randomize(rand2);
+          const size_t rand_max = utils::randomize_max();
           size_t rand_value = rand1 + rand_max * rand2;
           /*---Reduce so that after summing num_field times the integer
                still exactly representable by floating point type---*/
           const size_t rand_max2 = rand_max * rand_max;
           const int log2_num_summands_3way_numer = 2;
-          const int shift_amount1 = gm_max_i8(0,
+          const int shift_amount1 = utils::max(0,
              gm_log2(log2_num_summands_3way_numer * rand_max2 * nfa)
              - mantissa_digits<GMFloat>() + 1);
           // Account for cast to float in magma Volta version.
-          const int shift_amount2 = gm_max_i8(0,
+          const int shift_amount2 = utils::max(0,
                              gm_log2(rand_max2) - mantissa_digits<float>() + 1);
-          const int shift_amount = gm_max_i8(shift_amount1, shift_amount2);
+          const int shift_amount = utils::max(shift_amount1, shift_amount2);
           //const int shift_amount = gm_log2(log2_num_summands_3way_numer*
           //                                 rand_max2*nfa)
           //                         - mant_dig;
@@ -107,12 +107,12 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = gm_min_i8(vector, nva);
+        const size_t vector_capped = utils::min(vector, nva);
 
         // XXX
         /*---Fill pad vectors with copies of the last vector---*/
         // const int nval = vectors->dm->num_vector_active_local;
-        // const size_t vector_capped = gm_min_i8(vl, nval) +
+        // const size_t vector_capped = utils::min(vl, nval) +
         //   nval * (size_t)env->proc_num_vector();
 
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
@@ -125,10 +125,10 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
           const size_t uid = field + vectors->num_field_active * vector_capped;
           size_t index = uid;
           /*---Randomize---*/
-          index = gm_randomize(index);
-          index = gm_randomize(index);
+          index = utils::randomize(index);
+          index = utils::randomize(index);
           /*---Calculate random number between 0 and 3---*/
-          const float float_rand_value = index / (float)gm_randomize_max();
+          const float float_rand_value = index / (float)utils::randomize_max();
           /*---Create 2-bit value - make extra sure less than 4---*/
           GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
           /*---Store---*/
@@ -227,7 +227,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   const size_t value_min = 1;
   //const size_t value_max = (nva+value_min) < value_limit ?
   //                         (nva+value_min) : value_limit;
-  const size_t value_max = gm_min_i8(value_min+nva, value_limit);
+  const size_t value_max = utils::min(value_min+nva, value_limit);
 
   // The elements of a single permuted vector are partitioned into
   // "groups", with all elements in a group contiguous and having
@@ -239,7 +239,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
 
   const size_t num_group = 1 << NUM_SHUFFLE;
   //const size_t group_size_max = (nfa+num_group-1) / num_group;
-  const size_t group_size_max = gm_ceil_i8(nfa, num_group);
+  const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
 
   switch (env->data_type_vectors()) {
     /*--------------------*/
@@ -250,7 +250,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = gm_min_i8(vector, nva-1);
+        const size_t vector_capped = utils::min(vector, nva-1);
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
               vectors->num_field_local * (size_t)env->proc_num_field();
@@ -293,7 +293,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
-        const size_t vector_capped = gm_min_i8(vector, nva-1);
+        const size_t vector_capped = utils::min(vector, nva-1);
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
               vectors->num_field_local * (size_t)env->proc_num_field();
@@ -380,11 +380,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   const size_t value_min = 1;
   //const size_t value_max = (nva+value_min) < value_limit ?
   //                         (nva+value_min) : value_limit;
-  const size_t value_max = gm_min_i8(value_min+nva, value_limit);
+  const size_t value_max = utils::min(value_min+nva, value_limit);
 
   const size_t num_group = 1 << NUM_SHUFFLE;
   //const size_t group_size_max = (nfa+num_group-1) / num_group;
-  const size_t group_size_max = gm_ceil_i8(nfa, num_group);
+  const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
 
   size_t num_incorrect = 0;
   const size_t max_to_print = 10;
@@ -427,7 +427,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           for (size_t g=0; g<num_group; ++g) {
 
             const size_t pf_min = g * group_size_max;
-            const size_t pf_max = gm_min_i8((g+1) * group_size_max, nfa);
+            const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
             const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
             const size_t pvi = perm(g, vi, nva);
@@ -437,9 +437,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                                                (value_min+nva);
             const size_t value_j = value_min + ( pvj * value_max ) /
                                                (value_min+nva);
-            float_n += gm_min_i8(value_i, value_j) * gs_this;
+            float_n += utils::min(value_i, value_j) * gs_this;
             float_d += (value_i + value_j) * gs_this;
-            n += gm_min_i8(value_i, value_j) * gs_this;
+            n += utils::min(value_i, value_j) * gs_this;
             d += (value_i + value_j) * gs_this;
 
           } //---g
@@ -487,7 +487,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           for (size_t g=0; g<num_group; ++g) {
 
             const size_t pf_min = g * group_size_max;
-            const size_t pf_max = gm_min_i8((g+1) * group_size_max, nfa);
+            const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
             const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
             const size_t pvi = perm(g, vi, nva);
@@ -501,11 +501,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             const size_t value_k = value_min + ( pvk * value_max ) /
                                                (nva+value_min);
 
-            float_n += gm_min_i8(value_i, value_j) * gs_this;
-            float_n += gm_min_i8(value_i, value_k) * gs_this;
-            float_n += gm_min_i8(value_j, value_k) * gs_this;
+            float_n += utils::min(value_i, value_j) * gs_this;
+            float_n += utils::min(value_i, value_k) * gs_this;
+            float_n += utils::min(value_j, value_k) * gs_this;
 
-            float_n -= gm_min_i8(value_i, gm_min_i8(value_j, value_k)) * gs_this;
+            float_n -= utils::min(value_i, utils::min(value_j, value_k)) * gs_this;
 
             float_d += (value_i + value_j + value_k) * gs_this;
 
@@ -562,7 +562,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             for (size_t g=0; g<num_group; ++g) {
 
               const size_t pf_min = g * group_size_max;
-              const size_t pf_max = gm_min_i8((g+1) * group_size_max, nfa);
+              const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
               const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
               const size_t pvi = perm(g, vi, nva);
@@ -713,7 +713,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               for (size_t g=0; g<num_group; ++g) {
 
                 const size_t pf_min = g * group_size_max;
-                const size_t pf_max = gm_min_i8((g+1) * group_size_max, nfa);
+                const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
                 const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
                 const size_t pvi = perm(g, vi, nva);

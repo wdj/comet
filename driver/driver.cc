@@ -371,7 +371,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   } else {
     /*---Pad up so that every proc has same number of vectors---*/
     do_.num_vector_local = gm_num_vector_local_required(
-      gm_ceil_i8(do_.num_vector_active, env->num_proc_vector()), env);
+      utils::ceil(do_.num_vector_active, (size_t)env->num_proc_vector()), env);
     do_.num_vector = do_.num_vector_local *
       (size_t)env->num_proc_vector();
   }
@@ -381,8 +381,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_field_active = do_.num_field;
   } else {
     /*---Pad up so that every proc has same number of fields---*/
-    do_.num_field_local = gm_ceil_i8(
-        do_.num_field_active, env->num_proc_field());
+    do_.num_field_local = utils::ceil(
+        do_.num_field_active, (size_t)env->num_proc_field());
     do_.num_field = do_.num_field_local * (size_t) env->num_proc_field();
   }
 

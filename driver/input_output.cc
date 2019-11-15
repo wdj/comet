@@ -61,7 +61,7 @@ void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
 
     const size_t v = vl + vectors->num_vector_local * proc_num_v;
     // Fill the pad vectors with copies of the last vector
-    const size_t v_file = gm_min_i8(v, nva-1);
+    const size_t v_file = utils::min(v, nva-1);
     // Offset into file to first byte to read
     const size_t addr_min_file = f_min * sizeof(inval_t) +
       bytes_per_vector_file * v_file;
@@ -113,7 +113,7 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
   // The storage format assumes each vector padded to a whole number of bytes.
 
   const size_t bytes_per_vector_file
-    = gm_ceil_i8(vectors->num_field_active, fields_per_byte);
+    = utils::ceil(vectors->num_field_active, (size_t)fields_per_byte);
 
   const int npvfl = vectors->num_packedval_field_local;
   const size_t nfal = vectors->dm->num_field_active_local;
@@ -134,16 +134,16 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
     const size_t v = vl + vectors->num_vector_local * proc_num_v;
 
     // Fill the pad vectors with copies of the last vector
-    const size_t v_file = gm_min_i8(v, nva-1);
+    const size_t v_file = utils::min(v, nva-1);
 
     // Byte in file where this vector starts
     const size_t v_base = bytes_per_vector_file * v_file;
 
     // Offset into file to first byte to read
-    const size_t addr_min_file = gm_floor_i8(f_min, fields_per_byte) + v_base;
+    const size_t addr_min_file = utils::trunc(f_min, (size_t)fields_per_byte) + v_base;
 
     // Offset into file to (1 plus) last byte to read
-    const size_t addr_max_file = gm_ceil_i8(f_max, fields_per_byte) + v_base;
+    const size_t addr_max_file = utils::ceil(f_max, (size_t)fields_per_byte) + v_base;
 
     // total num bytes to read
     const size_t invals_to_read = addr_max_file - addr_min_file;
@@ -163,7 +163,7 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
     // Initialize elements buffer to store into vectors struct
     GMBits2x64 outval = GMBits2x64_null();
 
-    const size_t invals_to_read_1 = gm_min_i8(invals_to_read,
+    const size_t invals_to_read_1 = utils::min(invals_to_read,
       npvfl*bytes_per_packedval);
 
     for (size_t i = 0; i < invals_to_read_1; ++i) {
@@ -290,9 +290,9 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
           const size_t offset_min = pfl * bytes_per_packedval;
 
           const size_t byte_max =
-            gm_ceil_i8(vectors->dm->num_field_active_local, fields_per_byte);
+            utils::ceil(vectors->dm->num_field_active_local, (size_t)fields_per_byte);
 
-          const size_t offset_max = gm_min_i8((pfl+1) * bytes_per_packedval,
+          const size_t offset_max = utils::min((pfl+1) * bytes_per_packedval,
                                               byte_max);
 
           // Loop over bytes to output
@@ -368,8 +368,8 @@ void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
   // Process num_buf_ind index values at a time
   for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
        ind_base += num_buf_ind) {
-    const size_t ind_max = gm_min_i8(metrics->num_elts_local,
-                                     ind_base + num_buf_ind);
+    const size_t ind_max = utils::min(metrics->num_elts_local,
+                                      ind_base + num_buf_ind);
 
     if (env->metric_type() == MetricType::CCC) {
 
@@ -534,7 +534,7 @@ void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
   // Process num_buf_ind index values at a time
   for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
        ind_base += num_buf_ind) {
-    const size_t ind_max = gm_min_i8(metrics->num_elts_local,
+    const size_t ind_max = utils::min(metrics->num_elts_local,
                                      ind_base + num_buf_ind);
     // Fill buffer
 #pragma omp parallel for schedule(dynamic,1000)

@@ -295,13 +295,13 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
   for (int section_step=0; section_step<num_section_steps_2; ++section_step) {
     for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
 
-      const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
+      const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
 
       //TODO: can possibly simplify this - mod by num_proc_i instead
 
-      const int proc_send_j = gm_mod_i(proc_num_rv - j_i_offset*num_proc_r,
+      const int proc_send_j = utils::mod_i(proc_num_rv - j_i_offset*num_proc_r,
                                        num_proc_rv);
-      const int proc_recv_j = gm_mod_i(proc_num_rv + j_i_offset*num_proc_r,
+      const int proc_recv_j = utils::mod_i(proc_num_rv + j_i_offset*num_proc_r,
                                        num_proc_rv);
 
       if (gm_proc_r_active(section_block_num, env)) {
@@ -377,20 +377,20 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
   const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
   for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
     for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
-      const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
+      const int k_block = utils::mod_i(i_block + k_i_offset, num_block);
 
-      const int proc_send_k = gm_mod_i(proc_num_rv - k_i_offset*num_proc_r,
+      const int proc_send_k = utils::mod_i(proc_num_rv - k_i_offset*num_proc_r,
                                        num_proc_rv);
-      const int proc_recv_k = gm_mod_i(proc_num_rv + k_i_offset*num_proc_r,
+      const int proc_recv_k = utils::mod_i(proc_num_rv + k_i_offset*num_proc_r,
                                        num_proc_rv);
 
       for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
 
-        const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
+        const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
 
-        const int proc_send_j = gm_mod_i(proc_num_rv-j_i_offset*num_proc_r,
+        const int proc_send_j = utils::mod_i(proc_num_rv-j_i_offset*num_proc_r,
                                          num_proc_rv);
-        const int proc_recv_j = gm_mod_i(proc_num_rv+j_i_offset*num_proc_r,
+        const int proc_recv_j = utils::mod_i(proc_num_rv+j_i_offset*num_proc_r,
                                          num_proc_rv);
         if (j_block == k_block) {
           /*---NOTE: this condition occurs on all procs at exactly the same

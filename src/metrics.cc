@@ -244,9 +244,9 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     int block_num_part3 = 0;
     bool is_phase_block_start_set = false;
     for (int k_i_offset=1; k_i_offset<num_block; ++k_i_offset) {
-      const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
+      const int k_block = utils::mod_i(i_block + k_i_offset, num_block);
       for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
-        const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
+        const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
         if (j_block == k_block) {
           continue;
         }
@@ -524,7 +524,7 @@ void GMMetrics_create(GMMetrics* metrics,
     const int num_section_steps_2 = gm_num_section_steps(env, 2);
     for (int section_step=0; section_step<num_section_steps_2; ++section_step){
       for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
-        const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
+        const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
         if (gm_is_section_block_in_phase(env, section_block_num)) {
           if (gm_proc_r_active(section_block_num, env)) {
             const int section_num = section_step;
@@ -563,9 +563,9 @@ void GMMetrics_create(GMMetrics* metrics,
     const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
     for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
       for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
-        const int k_block = gm_mod_i(i_block + k_i_offset, num_block);
+        const int k_block = utils::mod_i(i_block + k_i_offset, num_block);
         for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
-          const int j_block = gm_mod_i(i_block + j_i_offset, num_block);
+          const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
           if (j_block == k_block) {
             continue;
           }
