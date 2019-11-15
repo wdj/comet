@@ -333,16 +333,16 @@ static void gm_tc_buf_write_(
   bool is_duo,
   GMEnv* env) {
 
-  GMInsist(env && vi);
-  GMInsist(I_max_dim >= 0 && I_max_dim <= nvl);
-  GMInsist(I_max >= 0 && I_max <= I_max_dim);
-  GMInsist(nvl >= 0);
-  GMInsist(npvfl >= 0);
-  GMInsist(tc_bufs.tc_buf_left);
-  GMInsist(tc_bufs.tc_buf_right);
-  GMInsist(npvfl >= 0);
-  GMInsist(npvfl_thisstep >= 0 && npvfl_thisstep <= npvfl);
-  GMInsist(pvfl_min >= 0 && pvfl_min + npvfl_thisstep <= npvfl);
+  COMET_INSIST(env && vi);
+  COMET_INSIST(I_max_dim >= 0 && I_max_dim <= nvl);
+  COMET_INSIST(I_max >= 0 && I_max <= I_max_dim);
+  COMET_INSIST(nvl >= 0);
+  COMET_INSIST(npvfl >= 0);
+  COMET_INSIST(tc_bufs.tc_buf_left);
+  COMET_INSIST(tc_bufs.tc_buf_right);
+  COMET_INSIST(npvfl >= 0);
+  COMET_INSIST(npvfl_thisstep >= 0 && npvfl_thisstep <= npvfl);
+  COMET_INSIST(pvfl_min >= 0 && pvfl_min + npvfl_thisstep <= npvfl);
 
   // num_vector-related dimensions.
 
@@ -354,7 +354,7 @@ static void gm_tc_buf_write_(
   // num_vector_active_local may be strictly less than num_vector_local;
   // doesn't matter: just compute on fake values that will later be ignored.
 
-  GMInsist(nvle % 2 == 0 && nvl % 2 == 0 &&
+  COMET_INSIST(nvle % 2 == 0 && nvl % 2 == 0 &&
            "tc method here requires num_vector_local multiple of 2.");
 
   // num_field-related dimensions.
@@ -382,7 +382,7 @@ static void gm_tc_buf_write_(
   const int vi32_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
   GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
                                       (GemmIn_t*)tc_bufs.tc_buf_left;
-  GMInsist(nvleX2 * (size_t)(2*nflD2_thisstep) *
+  COMET_INSIST(nvleX2 * (size_t)(2*nflD2_thisstep) *
            sizeof(typename TCSelector<TC_METHOD>::GemmIn_t)
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
@@ -462,7 +462,7 @@ static void gm_tc_solve_accelblasgemmex_(
   TCBufs& tc_bufs,
   GMEnv* env) {
 
-  GMInsist(env && dA && dB && dC);
+  COMET_INSIST(env && dA && dB && dC);
 
   // See https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
   // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
@@ -472,11 +472,11 @@ static void gm_tc_solve_accelblasgemmex_(
   // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
 
   // nfl is derived from padded-up npvfl, so always ok.
-  GMInsist(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
+  COMET_INSIST(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
   // since I_max_dim % 4 == 0; see gm_gemm_divisibility_required()
-  GMInsist(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
+  COMET_INSIST(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
   // since nvl % 4 == 0; see gm_gemm_divisibility_required()
-  GMInsist(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
+  COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
   // Make BLAS call.
 
@@ -534,16 +534,16 @@ static void gm_tc_solve_accelblasgemmex_(
     } else if (status == CUBLAS_STATUS_EXECUTION_FAILED) {
       printf("Error: CUBLAS_STATUS_EXECUTION_FAILED\n");
     }
-    GMInsist(status == CUBLAS_STATUS_SUCCESS &&
+    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
              "Failure in call to cublasGemmEx.");
 #  else
-    GMInsist(status == rocblas_status_success &&
+    COMET_INSIST(status == rocblas_status_success &&
              "Failure in call to rocblas_gemm_ex.");
 #  endif
 
 #else // USE_ACCEL
 
-    GMInsist(false && "Failure to call GEMM function.");
+    COMET_INSIST(false && "Failure to call GEMM function.");
 
 #endif // USE_ACCEL
 
@@ -553,7 +553,7 @@ static void gm_tc_solve_accelblasgemmex_(
 
 #ifdef USE_CPUBLAS
 
-    GMInsist(env->tc_eff() == TC::FP32);
+    COMET_INSIST(env->tc_eff() == TC::FP32);
 
     const float alpha = 1;
     const float beta = is_first ? 0 : 1;
@@ -569,7 +569,7 @@ static void gm_tc_solve_accelblasgemmex_(
 
 #else // USE_CPUBLAS
 
-    GMInsist(false && "Failure to call GEMM function.");
+    COMET_INSIST(false && "Failure to call GEMM function.");
 
 #endif // USE_CPUBLAS
 
@@ -593,12 +593,12 @@ static void gm_tc_solve_(
   TCBufs& tc_bufs,
   GMEnv* env) {
 
-  GMInsist(env && dA && dB && dC);
-  GMInsist(nvll >= 0);
-  GMInsist(nvl >= 0);
-  GMInsist(nvll <= nvl);
-  GMInsist(npvfl_thisstep >= 0);
-  GMInsist(env->tc_eff() != TC::NO);
+  COMET_INSIST(env && dA && dB && dC);
+  COMET_INSIST(nvll >= 0);
+  COMET_INSIST(nvl >= 0);
+  COMET_INSIST(nvll <= nvl);
+  COMET_INSIST(npvfl_thisstep >= 0);
+  COMET_INSIST(env->tc_eff() != TC::NO);
 
   const int nfl_thisstep = npvfl_thisstep * 64;
 
@@ -789,13 +789,13 @@ static void gm_tc_repair_metrics_(
   TCBufs& tc_bufs,
   GMEnv* env) {
 
-  GMInsist(env && vo);
-  GMInsist(nvll >= 0);
-  GMInsist(nvl >= 0);
-  GMInsist(nvll <= nvl);
+  COMET_INSIST(env && vo);
+  COMET_INSIST(nvll >= 0);
+  COMET_INSIST(nvl >= 0);
+  COMET_INSIST(nvll <= nvl);
 
   // always true, because of gm_gemm_divisibility_required()
-  GMInsist(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
+  COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
   const int nvllD2 = nvll / 2;
 
   const int threadblocksize = 256;
@@ -881,20 +881,20 @@ static void gm_tc_gemm_start_impl_(
   TCBufs& tc_bufs,
   GMEnv* env) {
 
-  GMInsist(ldda == k && lddb == k); // For our purposes, always true
+  COMET_INSIST(ldda == k && lddb == k); // For our purposes, always true
 
   const int nvl = n;
   const int npvfl = k;
   const int I_max = m;
   const int I_max_dim = lddc;
-  GMInsist(I_max <= I_max_dim);
-  GMInsist(I_max_dim <= nvl);
+  COMET_INSIST(I_max <= I_max_dim);
+  COMET_INSIST(I_max_dim <= nvl);
   // nvll is the effective nvl (column dim) for left matrix
   // only really need to compute up to I_max, but need to compute to I_max_dim
   // to satisfy divisibility requirements.
   // Note nvl is always the column dim for the right matrix.
   const int nvll = I_max_dim;
-  GMInsist((size_t)nvll == gm_gemm_size_required(nvll, env));
+  COMET_INSIST((size_t)nvll == gm_gemm_size_required(nvll, env));
 
   const int num_steps = env->num_tc_steps();
 
@@ -937,7 +937,7 @@ static void gm_tc_gemm_start_impl_(
 /// \brief Divisibility requirement for GEMM.
 
 size_t gm_gemm_divisibility_required(GMEnv* const env) {
-  GMInsist(env);
+  COMET_INSIST(env);
 
   const bool need_divisible_by_4 = env->tc_eff() != TC::NO;
 
@@ -948,7 +948,7 @@ size_t gm_gemm_divisibility_required(GMEnv* const env) {
 /// \brief Size requirement for GEMM.
 
 size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
-  GMInsist(env);
+  COMET_INSIST(env);
 
   const size_t factor = gm_gemm_divisibility_required(env);
 
@@ -964,16 +964,16 @@ void gm_tc_gemm_start(int m, int n, int k,
                       void* dC, int lddc,
                       TCBufs& tc_bufs,
                       GMEnv* env) {
-  GMInsist(dA && dB && dC && env);
-  GMInsist(m >= 0 && n >= 0 && k >= 0);
-  GMInsist(ldda >= 0 && lddb >= 0 && lddc >= 0);
-  GMInsist(k <= ldda);
-  GMInsist(k <= lddb);
-  GMInsist(m <= lddc);
-  GMInsist(env->tc_eff() != TC::NO);
-  GMInsist(env->is_metric_type_bitwise());
+  COMET_INSIST(dA && dB && dC && env);
+  COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
+  COMET_INSIST(ldda >= 0 && lddb >= 0 && lddc >= 0);
+  COMET_INSIST(k <= ldda);
+  COMET_INSIST(k <= lddb);
+  COMET_INSIST(m <= lddc);
+  COMET_INSIST(env->tc_eff() != TC::NO);
+  COMET_INSIST(env->is_metric_type_bitwise());
 
-  GMInsist(tc_bufs.tc_buf_left);
+  COMET_INSIST(tc_bufs.tc_buf_left);
 
   // Select required template function instance.
 
@@ -995,7 +995,7 @@ void gm_tc_gemm_start(int m, int n, int k,
     } break;
     // --------------
     default:
-      GMInsist(false && "Invalid tc type.");
+      COMET_INSIST(false && "Invalid tc type.");
   } // switch
 }
 
@@ -1007,11 +1007,11 @@ void gm_tc_bufs_malloc(int num_vector_local,
                        int num_packedval_field_local,
                        TCBufs& tc_bufs,
                        GMEnv* env) {
-  GMInsist(env);
-  GMInsist(num_vector_local >= 0);
-  GMInsist(num_packedval_field_local >= 0);
-  GMInsist(!tc_bufs.tc_buf_left);
-  GMInsist(!tc_bufs.tc_buf_right);
+  COMET_INSIST(env);
+  COMET_INSIST(num_vector_local >= 0);
+  COMET_INSIST(num_packedval_field_local >= 0);
+  COMET_INSIST(!tc_bufs.tc_buf_left);
+  COMET_INSIST(!tc_bufs.tc_buf_right);
 
   if (!env->is_metric_type_bitwise() || env->tc_eff() == TC::NO)
     return;
@@ -1030,7 +1030,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
      env->tc_eff() == TC::FP32 ?
        sizeof(typename TCSelector<TC::FP32>::GemmIn_t) :
      0;
-  GMInsist(TC::is_valid(env->tc_eff())); // this code must be updated if new method
+  COMET_INSIST(TC::is_valid(env->tc_eff())); // this code must be updated if new method
 
   const size_t nvlX2 = nvl * 2;
 
@@ -1061,27 +1061,27 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
 #if defined USE_CUDA
     cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
-    GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
+    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
 
     status = cublasSetStream(tc_bufs.accelblas_handle, env->stream_compute());
-    GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetStream.");
+    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetStream.");
 
     status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
-    GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetMathMode.");
+    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetMathMode.");
 #elif defined USE_HIP
     //rocbas_status_ status = rocblas_create_handle(&tc_bufs.accelblas_handle);
     int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
-    GMInsist(status == rocblas_status_success &&
+    COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_create_handle.");
 
     status = rocblas_set_stream(tc_bufs.accelblas_handle, env->stream_compute());
-    GMInsist(status == rocblas_status_success &&
+    COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_set_stream.");
 
     //FIX - will this be needed?
     //  status = cublasSetMathMode(tc_bufs.accelblas_handle,
     //                             CUBLAS_TENSOR_OP_MATH);
-    //  GMInsist(status == CUBLAS_STATUS_SUCCESS &&
+    //  COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
     //           "Error in cublasSetMathMode.");
 #endif
 
@@ -1090,11 +1090,11 @@ void gm_tc_bufs_malloc(int num_vector_local,
     // Allocate buffers.
 
     tc_bufs.tc_buf_left = malloc(tc_bufs.tc_buf_size);
-    GMInsist(tc_bufs.tc_buf_left);
+    COMET_INSIST(tc_bufs.tc_buf_left);
     env->cpu_mem_local_inc(tc_bufs.tc_buf_size);
 
     tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
-    GMInsist(tc_bufs.tc_buf_right);
+    COMET_INSIST(tc_bufs.tc_buf_right);
     env->cpu_mem_local_inc(tc_bufs.tc_buf_size);
 //memset((void*)tc_bufs.tc_buf_left, 0, tc_bufs.tc_buf_size);
 //memset((void*)tc_bufs.tc_buf_right, 0, tc_bufs.tc_buf_size);
@@ -1106,8 +1106,8 @@ void gm_tc_bufs_malloc(int num_vector_local,
 /// \brief Terminate TCBufs object by deallocating memory etc.
 
 void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
-  GMInsist(env);
-  GMInsist((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
+  COMET_INSIST(env);
+  COMET_INSIST((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
 
   if (!tc_bufs.tc_buf_left) {
     return;
@@ -1139,11 +1139,11 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 
 #if defined USE_CUDA
     cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
-    GMInsist(status == CUBLAS_STATUS_SUCCESS && "Error in cublasDestroy.");
+    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasDestroy.");
 #elif defined USE_HIP
     //rocblas_status status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
     int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
-    GMInsist(status == rocblas_status_success &&
+    COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_destroy_handle.");
 #endif
 

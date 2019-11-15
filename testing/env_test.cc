@@ -29,7 +29,7 @@ void EnvTest_general_() {
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
   const int num_proc = 20;
-  GMInsist(num_proc <= PROCS_MAX);
+  COMET_INSIST(num_proc <= PROCS_MAX);
 
   const char options_template[] = "--num_proc_vector %i --verbosity 0 "
                                   "--num_vector_local 3 --num_field 1 "

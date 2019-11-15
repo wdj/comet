@@ -28,9 +28,9 @@ void GMComputeMetrics3Way_create(
     GMComputeMetrics3Way* this_,
     GMDecompMgr* dm,
     GMEnv* env) {
-  GMInsist(this_ && dm && env);
+  COMET_INSIST(this_ && dm && env);
 
-  GMInsistInterface(env, env->compute_method() != MetricType::DUO
+  COMET_INSIST_INTERFACE(env, env->compute_method() != MetricType::DUO
                                && "3-way DUO method not supported.");
 
   //*this_ = {0};
@@ -41,7 +41,7 @@ void GMComputeMetrics3Way_create(
 void GMComputeMetrics3Way_destroy(
     GMComputeMetrics3Way* this_,
     GMEnv* env) {
-  GMInsist(this_ && env);
+  COMET_INSIST(this_ && env);
   
 }
 
@@ -51,8 +51,8 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
                                         GMMetrics* metrics,
                                         GMVectors* vectors,
                                         GMEnv* env) {
-  GMInsist(metrics && vectors && env);
-  GMInsist(! env->all2all());
+  COMET_INSIST(metrics && vectors && env);
+  COMET_INSIST(! env->all2all());
 
   /*---Denominator---*/
 
@@ -86,7 +86,7 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
   /*---Compute numerators---*/
 
   const int section_step = 0;
-  GMInsist(gm_num_section_steps(env, 1) == 1 &&
+  COMET_INSIST(gm_num_section_steps(env, 1) == 1 &&
            "not all2all case always has 1 section step.");
 
   GMComputeNumerators3Way gm_compute_numerators_3way = {};
@@ -120,8 +120,8 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
                                      GMMetrics* metrics,
                                      GMVectors* vectors,
                                      GMEnv* env) {
-  GMInsist(metrics && vectors && env);
-  GMInsist(env->all2all());
+  COMET_INSIST(metrics && vectors && env);
+  COMET_INSIST(env->all2all());
 
   /*---Initializations---*/
 
@@ -398,7 +398,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
                following communication will deadlock/mispair---*/
           continue;
         }
-        GMInsist((j_block == k_block) == (j_i_offset == k_i_offset) &&
+        COMET_INSIST((j_block == k_block) == (j_i_offset == k_i_offset) &&
                   "Error in block indexing for communication.");
         if (gm_proc_r_active(section_block_num, env)) {
 

@@ -48,9 +48,9 @@ void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env);
 
 template<typename T>
 static T& GMMirroredBuf_elt(GMMirroredBuf* p, int i0, int i1) {
-  GMAssert(p);
-  GMAssert(i0 >= 0 && (size_t)i0 < p->dim0);
-  GMAssert(i1 >= 0 && (size_t)i1 < p->dim1);
+  COMET_ASSERT(p);
+  COMET_ASSERT(i0 >= 0 && (size_t)i0 < p->dim0);
+  COMET_ASSERT(i1 >= 0 && (size_t)i1 < p->dim1);
 
   return ((T*)(p->h))[i0 + p->dim0 * i1];
 }
@@ -60,9 +60,9 @@ static T& GMMirroredBuf_elt(GMMirroredBuf* p, int i0, int i1) {
 
 template<typename T>
 static T GMMirroredBuf_elt_const(const GMMirroredBuf* p, int i0, int i1) {
-  GMAssert(p);
-  GMAssert(i0 >= 0 && (size_t)i0 < p->dim0);
-  GMAssert(i1 >= 0 && (size_t)i1 < p->dim1);
+  COMET_ASSERT(p);
+  COMET_ASSERT(i0 >= 0 && (size_t)i0 < p->dim0);
+  COMET_ASSERT(i1 >= 0 && (size_t)i1 < p->dim1);
 
   return ((T*)(p->h))[i0 + p->dim0 * i1];
 }

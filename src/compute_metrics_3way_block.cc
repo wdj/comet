@@ -29,8 +29,8 @@ namespace comet {
 
 void GMComputeNumerators3Way_create(GMComputeNumerators3Way* this_,
                                     int nvl, int npvfl, GMEnv* env) {
-  GMInsist(this_ && env);
-  GMInsist(nvl >= 0 && npvfl >= 0);
+  COMET_INSIST(this_ && env);
+  COMET_INSIST(nvl >= 0 && npvfl >= 0);
 
   this_->matM_ij_buf = GMMirroredBuf_null();
   this_->matM_jk_buf = GMMirroredBuf_null();
@@ -62,7 +62,7 @@ void GMComputeNumerators3Way_create(GMComputeNumerators3Way* this_,
 
 void GMComputeNumerators3Way_destroy(GMComputeNumerators3Way* this_,
                                      GMEnv* env) {
-  GMInsist(this_ && env);
+  COMET_INSIST(this_ && env);
 
   if (env->is_using_linalg()) {
     for (int i=0; i<2; ++i) {
@@ -99,17 +99,17 @@ void GMComputeNumerators3Way_start(
     const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
-  GMInsist(this_ && metrics && env);
-  GMInsist(vectors_i && vectors_j && vectors_k);
-  GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(! (env->proc_num_vector() == j_block &&
+  COMET_INSIST(this_ && metrics && env);
+  COMET_INSIST(vectors_i && vectors_j && vectors_k);
+  COMET_INSIST(vectors_i_buf && vectors_j_buf && vectors_k_buf);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(k_block >= 0 && k_block < env->num_block_vector());
+  COMET_INSIST(! (env->proc_num_vector() == j_block &&
               env->proc_num_vector() != k_block));
-  GMInsist(! (env->proc_num_vector() == k_block &&
+  COMET_INSIST(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
-  GMInsist(env->num_way() == NUM_WAY::_3);
-  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
+  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*----------------------------------------*/
   if (env->is_using_linalg()) {
@@ -140,7 +140,7 @@ void GMComputeNumerators3Way_start(
             section_step, env);
       } break;
       default:
-        GMInsistInterface(env, false && "Selected metric_type unimplemented.");
+        COMET_INSIST_INTERFACE(env, false && "Selected metric_type unimplemented.");
     } /*---case---*/
     /*----------------------------------------*/
   } /*---if---*/

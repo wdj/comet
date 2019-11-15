@@ -24,7 +24,7 @@ namespace comet {
 /*---NOTE: the following does not specialize based on part1/2/3---*/
 
 static int gm_num_section_steps(const GMEnv* const env, int part_num) {
-  GMAssert(env && part_num >= 1 && part_num <= 3);
+  COMET_ASSERT(env && part_num >= 1 && part_num <= 3);
   // Number of section steps to be executed for a given block.
 
   const bool collapse = ! env->all2all() || env->num_proc_repl() == 1;
@@ -34,7 +34,7 @@ static int gm_num_section_steps(const GMEnv* const env, int part_num) {
 //-----------------------------------------------------------------------------
 
 static int gm_num_sections(const GMEnv* const env, int part_num) {
-  GMAssert(env && part_num >= 1 && part_num <= 3);
+  COMET_ASSERT(env && part_num >= 1 && part_num <= 3);
   // Number of sections the block is divided into.
 
   return part_num == 3 ? 6 : gm_num_section_steps(env, part_num);
@@ -43,7 +43,7 @@ static int gm_num_sections(const GMEnv* const env, int part_num) {
 //-----------------------------------------------------------------------------
 
 static int gm_num_section_blocks(const GMEnv* const env) {
-  GMAssert(env);
+  COMET_ASSERT(env);
   // Total section steps across all blocks, phases.
 
   const int npv = env->num_proc_vector();
@@ -55,7 +55,7 @@ static int gm_num_section_blocks(const GMEnv* const env) {
 //-----------------------------------------------------------------------------
 
 static int gm_section_block_phase_min(const GMEnv* const env) {
-  GMAssert(env);
+  COMET_ASSERT(env);
 
   return (gm_num_section_blocks(env)*env->phase_num()) / env->num_phase();
 }
@@ -63,7 +63,7 @@ static int gm_section_block_phase_min(const GMEnv* const env) {
 //-----------------------------------------------------------------------------
 
 static int gm_section_block_phase_max(const GMEnv* const env) {
-  GMAssert(env);
+  COMET_ASSERT(env);
 
   return (gm_num_section_blocks(env)*(env->phase_num()+1)) / env->num_phase();
 }
@@ -73,8 +73,8 @@ static int gm_section_block_phase_max(const GMEnv* const env) {
 
 static bool gm_is_section_block_in_phase(const GMEnv* const env,
                                         int section_block) {
-  GMAssert(env);
-  GMAssert(section_block >= 0 && section_block < gm_num_section_blocks(env));
+  COMET_ASSERT(env);
+  COMET_ASSERT(section_block >= 0 && section_block < gm_num_section_blocks(env));
 
   return section_block >= gm_section_block_phase_min(env) &&
          section_block < gm_section_block_phase_max(env);
@@ -120,14 +120,14 @@ static int gm_section_num_part3(int i_block, int j_block, int k_block) {
 //-----------------------------------------------------------------------------
 
 static int gm_J_lo(int section_num, int nvl, int part_num, GMEnv* env) {
-  GMAssert(env);
-  GMAssert(section_num >= 0 && section_num < 6);
-  GMAssert(nvl >= 0);
-  GMAssert(part_num >= 1 && part_num <= 3);
+  COMET_ASSERT(env);
+  COMET_ASSERT(section_num >= 0 && section_num < 6);
+  COMET_ASSERT(nvl >= 0);
+  COMET_ASSERT(part_num >= 1 && part_num <= 3);
   const int num_sections = gm_num_sections(env, part_num);
-  GMAssert(section_num >= 0 && section_num <= num_sections);
-  GMAssert(env->num_stage() > 0);
-  GMAssert(env->stage_num() >= 0 && env->stage_num() < env->num_stage());
+  COMET_ASSERT(section_num >= 0 && section_num <= num_sections);
+  COMET_ASSERT(env->num_stage() > 0);
+  COMET_ASSERT(env->stage_num() >= 0 && env->stage_num() < env->num_stage());
 
   const int result = ((env->stage_num() + env->num_stage() * section_num)*nvl) /
                      (num_sections * env->num_stage());
@@ -138,14 +138,14 @@ static int gm_J_lo(int section_num, int nvl, int part_num, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 static int gm_J_hi(int section_num, int nvl, int part_num, GMEnv* env) {
-  GMAssert(env);
-  GMAssert(section_num >= 0 && section_num < 6);
-  GMAssert(nvl >= 0);
-  GMAssert(part_num >= 1 && part_num <= 3);
+  COMET_ASSERT(env);
+  COMET_ASSERT(section_num >= 0 && section_num < 6);
+  COMET_ASSERT(nvl >= 0);
+  COMET_ASSERT(part_num >= 1 && part_num <= 3);
   const int num_sections = gm_num_sections(env, part_num);
-  GMAssert(section_num >= 0 && section_num <= num_sections);
-  GMAssert(env->num_stage() > 0);
-  GMAssert(env->stage_num() >= 0 && env->stage_num() < env->num_stage());
+  COMET_ASSERT(section_num >= 0 && section_num <= num_sections);
+  COMET_ASSERT(env->num_stage() > 0);
+  COMET_ASSERT(env->stage_num() >= 0 && env->stage_num() < env->num_stage());
 
   const int result = ((env->stage_num() + 1 + env->num_stage() * section_num)*nvl) /
                      (num_sections * env->num_stage());
@@ -187,11 +187,11 @@ static void GMSectionInfo_create(
   int section_step,
   int num_vector_local,
   GMEnv* env) {
-  GMInsist(si && env);
-  GMInsist(i_block >= 0 && i_block < env->num_block_vector());
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(num_vector_local >= 0);
+  COMET_INSIST(si && env);
+  COMET_INSIST(i_block >= 0 && i_block < env->num_block_vector());
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(k_block >= 0 && k_block < env->num_block_vector());
+  COMET_INSIST(num_vector_local >= 0);
 
   si->num_vector_local = num_vector_local;
 
@@ -203,8 +203,8 @@ static void GMSectionInfo_create(
                  si->is_part2 ? 2 : 3;
 
   const int num_section_steps = gm_num_section_steps(env, si->part_num);
-  GMInsist(section_step>=0);
-  GMInsist(section_step<num_section_steps);
+  COMET_INSIST(section_step>=0);
+  COMET_INSIST(section_step<num_section_steps);
 
   si->section_axis =
     ! si->is_part3 ? 1 /*---j axis---*/ :
@@ -257,8 +257,8 @@ static int GMSectionInfo_k_min(
   GMSectionInfo* si,
   int j,
   GMEnv* env) {
-  GMInsist(si && env);
-  GMAssert(j >= 0 && j < si->num_vector_local);
+  COMET_INSIST(si && env);
+  COMET_ASSERT(j >= 0 && j < si->num_vector_local);
 
   return si->is_part3 ? si->k_lb : j + 1;
 }
@@ -269,8 +269,8 @@ static int GMSectionInfo_i_max(
   GMSectionInfo* si,
   int j,
   GMEnv* env) {
-  GMInsist(si && env);
-  GMAssert(j >= 0 && j < si->num_vector_local);
+  COMET_INSIST(si && env);
+  COMET_ASSERT(j >= 0 && j < si->num_vector_local);
 
   return si->is_part1 ? j : si->i_ub;
 }
@@ -299,12 +299,12 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
                                            int j,
                                            int k,
                                            GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(env->num_way() == NUM_WAY::_3);
-  GMAssert(i >= 0 && i < metrics->num_vector_local);
-  GMAssert(j >= 0 && j < metrics->num_vector_local);
-  GMAssert(k >= 0 && k < metrics->num_vector_local);
-  GMAssert(i < j && j < k);
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+  COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics->num_vector_local);
+  COMET_ASSERT(k >= 0 && k < metrics->num_vector_local);
+  COMET_ASSERT(i < j && j < k);
 
   const int nvl = metrics->num_vector_local;
 
@@ -314,15 +314,15 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
                         gm_trap_size(j, nvl);
   /* clang-format on */
 
-  GMAssert(index >= 0);
-  GMAssert(index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < (int64_t)metrics->num_elts_local);
 
-  GMAssert(i + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
+  COMET_ASSERT(i + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
-  GMAssert(j + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
+  COMET_ASSERT(j + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
            (metrics->coords_global_from_index[index] / metrics->num_vector) %
                metrics->num_vector);
-  GMAssert(k + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
+  COMET_ASSERT(k + metrics->num_vector_local * (size_t)env->proc_num_vector() ==
            metrics->coords_global_from_index[index] /
                (metrics->num_vector * (size_t)metrics->num_vector));
 
@@ -343,7 +343,7 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
 
   const int num_section_steps = gm_num_section_steps(env, 1);
   const int section_num = (j * num_section_steps) / nvl;
-  GMAssert(metrics->section_num_valid_part1_[section_num]);
+  COMET_ASSERT(metrics->section_num_valid_part1_[section_num]);
 
   const int64_t elts_offset = metrics->index_offset_section_part1_[section_num];
 
@@ -354,8 +354,8 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                         gm_trap_size(j, nvl);
   /* clang-format on */
 
-  GMAssert(index >= 0);
-  GMAssert(index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < (int64_t)metrics->num_elts_local);
 
   return index;
   //return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
@@ -382,7 +382,7 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
 
   const int num_section_steps = gm_num_section_steps(env, 2);
   const int section_num = (j * num_section_steps) / nvl;
-  GMAssert(metrics->section_num_valid_part2_[section_num]);
+  COMET_ASSERT(metrics->section_num_valid_part2_[section_num]);
 
   const int64_t elts_offset = metrics->index_offset_section_part2_[section_num];
 
@@ -408,8 +408,8 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
                         ));
  /* clang-format on */
 
-  GMAssert(index >= 0);
-  GMAssert(index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < (int64_t)metrics->num_elts_local);
 
   return index;
 }
@@ -459,8 +459,8 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
         )));
   /* clang-format on */
 
-  GMAssert(index >= 0);
-  GMAssert(index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < (int64_t)metrics->num_elts_local);
 
   return index;
 }
@@ -474,15 +474,15 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
                                                    int j_block,
                                                    int k_block,
                                                    GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(env->num_way() == NUM_WAY::_3);
-  GMAssert(env->all2all());
-  GMAssert(i >= 0 && j >= 0 && k >= 0);
-  GMAssert(j_block >= 0 && j_block < env->num_block_vector());
-  GMAssert(k_block >= 0 && k_block < env->num_block_vector());
-  GMAssert(! (env->proc_num_vector() == j_block &&
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env->all2all());
+  COMET_ASSERT(i >= 0 && j >= 0 && k >= 0);
+  COMET_ASSERT(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_ASSERT(k_block >= 0 && k_block < env->num_block_vector());
+  COMET_ASSERT(! (env->proc_num_vector() == j_block &&
               env->proc_num_vector() != k_block));
-  GMAssert(! (env->proc_num_vector() == k_block &&
+  COMET_ASSERT(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
   /*---WARNING: these conditions are not exhaustive---*/
 
@@ -497,19 +497,19 @@ static size_t GMMetrics_index_from_coord_all2all_3(GMMetrics* metrics,
     GMMetrics_helper3way_part3_(metrics, i, j, k,
                                 i_block, j_block, k_block, env);
 
-  GMAssert(index >= 0);
-  GMAssert(index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < (int64_t)metrics->num_elts_local);
 
-  GMAssert(metrics->coords_global_from_index[index] %
+  COMET_ASSERT(metrics->coords_global_from_index[index] %
              (metrics->num_vector_local * (size_t)env->num_block_vector()) ==
            i + i_block * (size_t)metrics->num_vector_local);
 
-  GMAssert((metrics->coords_global_from_index[index] /
+  COMET_ASSERT((metrics->coords_global_from_index[index] /
             (metrics->num_vector_local * (size_t)env->num_block_vector())) %
                (metrics->num_vector_local * env->num_block_vector()) ==
            j + j_block * (size_t)metrics->num_vector_local);
 
-  GMAssert((metrics->coords_global_from_index[index] /
+  COMET_ASSERT((metrics->coords_global_from_index[index] /
             (metrics->num_vector_local * (size_t)env->num_block_vector())) /
                (metrics->num_vector_local * env->num_block_vector()) ==
            k + k_block * (size_t)metrics->num_vector_local);
@@ -592,8 +592,8 @@ static size_t GMMetrics_helper3way_part3_permuted_(
 
   /* clang-format on */
 
-  GMAssert(index >= 0);
-  GMAssert(index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < (int64_t)metrics->num_elts_local);
 
   return index;
 }
@@ -608,15 +608,15 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
     int j_block,
     int k_block,
     GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(env->num_way() == NUM_WAY::_3);
-  GMAssert(env->all2all());
-  GMAssert(I >= 0 && J >= 0 && K >= 0);
-  GMAssert(j_block >= 0 && j_block < env->num_block_vector());
-  GMAssert(k_block >= 0 && k_block < env->num_block_vector());
-  GMAssert(! (env->proc_num_vector() == j_block &&
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env->all2all());
+  COMET_ASSERT(I >= 0 && J >= 0 && K >= 0);
+  COMET_ASSERT(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_ASSERT(k_block >= 0 && k_block < env->num_block_vector());
+  COMET_ASSERT(! (env->proc_num_vector() == j_block &&
               env->proc_num_vector() != k_block));
-  GMAssert(! (env->proc_num_vector() == k_block &&
+  COMET_ASSERT(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
   /*---WARNING: these conditions are not exhaustive---*/
 
@@ -631,10 +631,10 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
     GMMetrics_helper3way_part3_permuted_(metrics, I, J, K,
                                          i_block, j_block, k_block, env);
 
-  GMAssert(index >= 0);
-  GMAssert(index < metrics->num_elts_local);
+  COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < metrics->num_elts_local);
 
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
 
   int section_step = 0;
 
@@ -678,14 +678,14 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
 
   GMSectionInfo_destroy(si, env);
 
-  GMAssert(metrics->coords_global_from_index[index] % metrics->num_vector ==
+  COMET_ASSERT(metrics->coords_global_from_index[index] % metrics->num_vector ==
            i + i_block * (size_t)metrics->num_vector_local);
 
-  GMAssert((metrics->coords_global_from_index[index] / metrics->num_vector) %
+  COMET_ASSERT((metrics->coords_global_from_index[index] / metrics->num_vector) %
                metrics->num_vector ==
            j + j_block * (size_t)metrics->num_vector_local);
 
-  GMAssert((metrics->coords_global_from_index[index] / metrics->num_vector) /
+  COMET_ASSERT((metrics->coords_global_from_index[index] / metrics->num_vector) /
                metrics->num_vector ==
            k + k_block * (size_t)metrics->num_vector_local);
 #endif
@@ -713,15 +713,15 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_cache(
     int k_block,
     GMIndexCache* index_cache,
     GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(env->num_way() == NUM_WAY::_3);
-  GMAssert(env->all2all());
-  GMAssert(I >= 0 && J >= 0 && K >= 0);
-  GMAssert(j_block >= 0 && j_block < env->num_block_vector());
-  GMAssert(k_block >= 0 && k_block < env->num_block_vector());
-  GMAssert(! (env->proc_num_vector() == j_block &&
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env->all2all());
+  COMET_ASSERT(I >= 0 && J >= 0 && K >= 0);
+  COMET_ASSERT(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_ASSERT(k_block >= 0 && k_block < env->num_block_vector());
+  COMET_ASSERT(! (env->proc_num_vector() == j_block &&
               env->proc_num_vector() != k_block));
-  GMAssert(! (env->proc_num_vector() == k_block &&
+  COMET_ASSERT(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
   /*---WARNING: these conditions are not exhaustive---*/
 
@@ -748,14 +748,14 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_cache(
 static int GMMetrics_coord0_global_from_index_3(GMMetrics* metrics,
                                                 size_t index,
                                                 GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(index >= 0 && index < metrics->num_elts_local);
-  GMAssert(env->num_way() == NUM_WAY::_3);
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
 
   const size_t i64 = metrics->coords_global_from_index[index] %
                      metrics->num_vector;
   const int i = (int)i64;
-  GMAssert((size_t)i == i64);
+  COMET_ASSERT((size_t)i == i64);
 
   return i;
 }
@@ -765,15 +765,15 @@ static int GMMetrics_coord0_global_from_index_3(GMMetrics* metrics,
 static int GMMetrics_coord1_global_from_index_3(GMMetrics* metrics,
                                                 size_t index,
                                                 GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(index >= 0 && index < metrics->num_elts_local);
-  GMAssert(env->num_way() == NUM_WAY::_3);
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
 
   const size_t j64 =
       (metrics->coords_global_from_index[index] / metrics->num_vector) %
       metrics->num_vector;
   const int j = (int)j64;
-  GMAssert((size_t)j == j64);
+  COMET_ASSERT((size_t)j == j64);
 
   return j;
 }
@@ -783,14 +783,14 @@ static int GMMetrics_coord1_global_from_index_3(GMMetrics* metrics,
 static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
                                                 size_t index,
                                                 GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(index >= 0 && index < metrics->num_elts_local);
-  GMAssert(env->num_way() == NUM_WAY::_3);
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
 
   const size_t k64 = metrics->coords_global_from_index[index] /
                      (metrics->num_vector * (size_t)metrics->num_vector);
   const int k = (int)k64;
-  GMAssert((size_t)k == k64);
+  COMET_ASSERT((size_t)k == k64);
 
   return k;
 }

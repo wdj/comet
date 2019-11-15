@@ -32,14 +32,14 @@ namespace comet {
 
 void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
                                  GMEnv* env) {
-  GMInsist(vectors && do_ && env && do_->input_file_path);
+  COMET_INSIST(vectors && do_ && env && do_->input_file_path);
 
   if (! env->is_proc_active()) {
     return;
   }
 
   FILE* input_file = fopen(do_->input_file_path, "r");
-  GMInsist(NULL != input_file && "Unable to open file.");
+  COMET_INSIST(NULL != input_file && "Unable to open file.");
 
   typedef GMFloat inval_t;
 
@@ -67,18 +67,18 @@ void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
       bytes_per_vector_file * v_file;
 
     int fseek_success = fseek(input_file, addr_min_file, SEEK_SET);
-    GMInsist(0 == fseek_success && "File seek failure.");
+    COMET_INSIST(0 == fseek_success && "File seek failure.");
 
     // First location in memory to store into
     inval_t* const addr_min_mem = GMVectors_float_ptr(vectors, fl_min, vl, env);
     // NOTE: the following call is ok since has no side effects
-    GMInsist((fl_min+1 >= vectors->num_field_local ||
+    COMET_INSIST((fl_min+1 >= vectors->num_field_local ||
         GMVectors_float_ptr(vectors, fl_min+1, vl, env) == addr_min_mem + 1)
         && "Vector layout is incompatible with operation.");
 
       const size_t num_read = fread(addr_min_mem, sizeof(inval_t),
                                     invals_to_read, input_file);
-      GMInsist(invals_to_read == num_read && "File read failure.");
+      COMET_INSIST(invals_to_read == num_read && "File read failure.");
 
   } //---for vl
 
@@ -92,14 +92,14 @@ void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
 
 void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
                                  GMEnv* env) {
-  GMInsist(vectors && do_ && env && do_->input_file_path);
+  COMET_INSIST(vectors && do_ && env && do_->input_file_path);
 
   if (! env->is_proc_active()) {
     return;
   }
 
   FILE* input_file = fopen(do_->input_file_path, "r");
-  GMInsist(NULL != input_file && "Unable to open file.");
+  COMET_INSIST(NULL != input_file && "Unable to open file.");
 
   typedef unsigned char inval_t;
 
@@ -151,14 +151,14 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
     const int f_offset = f_min % fields_per_byte;
 
     // the num bytes read could be at most one additional byte, if straddle
-    GMInsist(invals_to_read <= npvfl*bytes_per_packedval + (f_offset ? 1 : 0));
+    COMET_INSIST(invals_to_read <= npvfl*bytes_per_packedval + (f_offset ? 1 : 0));
 
     int fseek_success = fseek(input_file, addr_min_file, SEEK_SET);
-    GMInsist(0 == fseek_success && "File seek failure.");
+    COMET_INSIST(0 == fseek_success && "File seek failure.");
 
     const size_t num_read = fread(buf, sizeof(inval_t),
                                   invals_to_read, input_file);
-    GMInsist(invals_to_read == num_read && "File read failure.");
+    COMET_INSIST(invals_to_read == num_read && "File read failure.");
 
     // Initialize elements buffer to store into vectors struct
     GMBits2x64 outval = GMBits2x64_null();
@@ -195,7 +195,7 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
 //-----------------------------------------------------------------------------
 
 void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
-  GMInsist(vectors && do_ && env && do_->input_file_path);
+  COMET_INSIST(vectors && do_ && env && do_->input_file_path);
 
   switch (env->data_type_vectors()) {
     /*--------------------*/
@@ -215,7 +215,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false && "Invalid data type.");
+      COMET_INSIST(false && "Invalid data type.");
   } /*---switch---*/
 }
 
@@ -223,17 +223,17 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 
 void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path, 
                            GMEnv* env) {
-  GMInsist(vectors && vectors_file_path && env);
+  COMET_INSIST(vectors && vectors_file_path && env);
 
   if (! env->is_proc_active()) {
     return;
   }
 
-  GMInsistInterface(env, env->num_proc() == 1 &&
+  COMET_INSIST_INTERFACE(env, env->num_proc() == 1 &&
                     "Only single proc case supported.");
 
   FILE* vectors_file = fopen(vectors_file_path, "w");
-  GMInsist(NULL != vectors_file && "Unable to open file.");
+  COMET_INSIST(NULL != vectors_file && "Unable to open file.");
 
   switch (env->data_type_vectors()) {
     /*--------------------*/
@@ -258,7 +258,7 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
         }
       }
 
-      GMInsist(num_written_attempted_total == num_written_total &&
+      COMET_INSIST(num_written_attempted_total == num_written_total &&
                "File write failure.");
 
     } break;
@@ -318,14 +318,14 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
         } // pfl
       } // vl
 
-      GMInsist(num_written_attempted_total == num_written_total &&
+      COMET_INSIST(num_written_attempted_total == num_written_total &&
                "File write failure.");
 
     } break;
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false && "Invalid data type.");
+      COMET_INSIST(false && "Invalid data type.");
   } /*---switch---*/
 
   fclose(vectors_file);
@@ -336,10 +336,10 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 
 void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
                      double threshold, size_t& num_written, GMEnv* env) {
-  GMInsist(metrics && file && env);
-  GMInsist(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-  GMInsist(env->num_way() == NUM_WAY::_2);
-  GMInsist(file != stdout);
+  COMET_INSIST(metrics && file && env);
+  COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(file != stdout);
 
   MetricWriter writer(file, metrics, env);
 
@@ -500,11 +500,11 @@ void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
 
 void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
                      double threshold, size_t& num_written, GMEnv* env) {
-  GMInsist(metrics && file && env);
-  GMInsist(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
-  GMInsist(env->num_way() == NUM_WAY::_3);
-  GMInsist(file != stdout);
-  GMInsist(env->metric_type() == MetricType::CCC);
+  COMET_INSIST(metrics && file && env);
+  COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
+  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(file != stdout);
+  COMET_INSIST(env->metric_type() == MetricType::CCC);
 
   MetricWriter writer(file, metrics, env);
 
@@ -609,7 +609,7 @@ void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
 
 void output_metrics_(GMMetrics* metrics, FILE* file,
                      double threshold, size_t& num_written, GMEnv* env) {
-  GMInsist(metrics && file && env);
+  COMET_INSIST(metrics && file && env);
 
   if (! env->is_proc_active()) {
     return;
@@ -711,7 +711,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
     /*--------------------*/
     case GM_DATA_TYPE_TALLY2X2: {
     /*--------------------*/
-      GMInsist(env->num_way() == NUM_WAY::_2);
+      COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
       if (file != stdout) {
 
@@ -790,7 +790,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
 
       } else /*---stdout---*/ {
 
-        GMInsist(env->metric_type() == MetricType::CCC);
+        COMET_INSIST(env->metric_type() == MetricType::CCC);
 
         MetricWriter writer(file, metrics, env);
 
@@ -855,7 +855,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
     } break;
     /*--------------------*/
     default:
-      GMInsist(false && "Invalid data type.");
+      COMET_INSIST(false && "Invalid data type.");
   } /*---switch---*/
 }
 
@@ -869,7 +869,7 @@ MetricWriter::MetricWriter(FILE* file, GMMetrics* metrics, GMEnv* env) :
   num_written_total_(0) {
 
   if (stdout != file_) {
-    GMInsistInterface(env, metrics->num_vector_active ==
+    COMET_INSIST_INTERFACE(env, metrics->num_vector_active ==
                   (uint32_t)metrics->num_vector_active &&
                   "Too many vectors for output format.");
   }
@@ -897,7 +897,7 @@ MetricWriter::write(size_t coord0, size_t coord1, GMFloat value) {
 //printf("%i %i %f\n", (int)outc0, (int)outc1, (double)outv);
 
   num_written_total_ += success ? 1 : 0;
-  GMInsist(success && "File write failure.");
+  COMET_INSIST(success && "File write failure.");
   }
 
 //-----------------------------------------------------------------------------
@@ -926,7 +926,7 @@ MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
   success = success && num_written == 1;
 
   num_written_total_ += success ? 1 : 0;
-  GMInsist(success && "File write failure.");
+  COMET_INSIST(success && "File write failure.");
 }
 
 //-----------------------------------------------------------------------------
@@ -935,8 +935,8 @@ MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
 void
 MetricWriter::write(size_t coord0, size_t coord1, int i0, int i1,
                      GMFloat value) {
-  GMAssert(i0 >=0 && i0 < 2);
-  GMAssert(i1 >=0 && i1 < 2);
+  COMET_ASSERT(i0 >=0 && i0 < 2);
+  COMET_ASSERT(i1 >=0 && i1 < 2);
 
   bool success = true;
 
@@ -953,7 +953,7 @@ MetricWriter::write(size_t coord0, size_t coord1, int i0, int i1,
   success = success && num_written == 1;
 
   num_written_total_ += success ? 1 : 0;
-  GMInsist(success && "File write failure.");
+  COMET_INSIST(success && "File write failure.");
 }
 
 //-----------------------------------------------------------------------------
@@ -962,9 +962,9 @@ MetricWriter::write(size_t coord0, size_t coord1, int i0, int i1,
 void
 MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
               int i0, int i1, int i2, GMFloat value) {
-  GMAssert(i0 >=0 && i0 < 2);
-  GMAssert(i1 >=0 && i1 < 2);
-  GMAssert(i2 >=0 && i2 < 2);
+  COMET_ASSERT(i0 >=0 && i0 < 2);
+  COMET_ASSERT(i1 >=0 && i1 < 2);
+  COMET_ASSERT(i2 >=0 && i2 < 2);
 
   bool success = true;
 
@@ -985,7 +985,7 @@ MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
   success = success && num_written == 1;
 
   num_written_total_ += success ? 1 : 0;
-  GMInsist(success && "File write failure.");
+  COMET_INSIST(success && "File write failure.");
 }
 
 //=============================================================================
@@ -1024,7 +1024,7 @@ FILE* gm_metrics_file_open(char* metrics_file_path_stub, GMEnv* env) {
 MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   : file_(NULL)
   , num_written_(0) {
-  GMInsist(do_ && env);
+  COMET_INSIST(do_ && env);
 
   if (! env->is_proc_active()) {
     return;
@@ -1060,13 +1060,13 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   /*---Do open---*/
 
   file_ = fopen(path, "w");
-  GMInsist(NULL != file_ && "Unable to open file.");
+  COMET_INSIST(NULL != file_ && "Unable to open file.");
   free(path);
 #endif
 
   if (do_->metrics_file_path_stub) {
     file_ = gm_metrics_file_open(do_->metrics_file_path_stub, env);
-    GMInsist(NULL != file_ && "Unable to open file.");
+    COMET_INSIST(NULL != file_ && "Unable to open file.");
   }
 }
 

@@ -35,7 +35,7 @@ GMVectors GMVectors_null() {
 /*---Set unused (pad) vector entries to zero---*/
 
 void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
-  GMInsist(vectors && env);
+  COMET_INSIST(vectors && env);
 
   /*---Ensure final pad words/bits of each vector are set to zero so that
        word-wise summations of bits aren't corrupted with bad trailing data---*/
@@ -73,7 +73,7 @@ void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
 
             GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
             const int shift_dist = 64 - 2*(nfal-fl);
-            GMAssert(shift_dist >= 0 && shift_dist < 64);
+            COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
             val.data[0] &= allbits >> shift_dist;
             val.data[1] = 0;
             GMVectors_bits2x64_set(vectors, pfl, vl, val, env);
@@ -82,7 +82,7 @@ void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
 
             GMBits2x64 val = GMVectors_bits2x64_get(vectors, pfl, vl, env);
             const int shift_dist = 64 - 2*(nfal-fl-32);
-            GMAssert(shift_dist >= 0 && shift_dist < 64);
+            COMET_ASSERT(shift_dist >= 0 && shift_dist < 64);
             val.data[1] &= allbits >> shift_dist;
             GMVectors_bits2x64_set(vectors, pfl, vl, val, env);
 
@@ -91,7 +91,7 @@ void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
       }
     } break;
     default:
-      GMInsist(false && "Invalid vectors data_type_id.");
+      COMET_INSIST(false && "Invalid vectors data_type_id.");
   } /*---switch---*/
 }
 
@@ -102,7 +102,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
                            int data_type_id,
                            GMDecompMgr* dm,
                            GMEnv* env) {
-  GMInsist(vectors && dm && env);
+  COMET_INSIST(vectors && dm && env);
 
   vectors->data_type_id = data_type_id;
   vectors->dm = dm;
@@ -156,7 +156,7 @@ void GMVectors_create(GMVectors* vectors,
                       int data_type_id,
                       GMDecompMgr* dm,
                       GMEnv* env) {
-  GMInsist(vectors && dm && env);
+  COMET_INSIST(vectors && dm && env);
 
   *vectors = GMVectors_null();
 
@@ -175,7 +175,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
                                int data_type_id,
                                GMDecompMgr* dm,
                                GMEnv* env) {
-  GMInsist(vectors && dm && env);
+  COMET_INSIST(vectors && dm && env);
 
   *vectors = GMVectors_null();
 
@@ -192,8 +192,8 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 /*---Vectors pseudo-destructor---*/
 
 void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
-  GMInsist(vectors && env);
-  GMInsist(vectors->data || ! env->is_proc_active());
+  COMET_INSIST(vectors && env);
+  COMET_INSIST(vectors->data || ! env->is_proc_active());
 
   if (! env->is_proc_active()) {
     return;
@@ -215,7 +215,7 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
 void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
                        GMVectors* vectors,
                        GMEnv* env) {
-  GMInsist(vectors && vectors_buf && env);
+  COMET_INSIST(vectors && vectors_buf && env);
 
   if (!env->is_using_linalg())
     return;
@@ -257,7 +257,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
       }
     } break;
     default:
-      GMInsistInterface(env, false && "Unimplemented metric_type.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented metric_type.");
   } /*---case---*/
 }
 
@@ -265,7 +265,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
 // Print entries of vectors
 
 void GMVectors_print(GMVectors* vectors, GMEnv* env) {
-  GMInsist(vectors && env);
+  COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {
     return;
@@ -303,7 +303,7 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false && "Invalid data_type_vectors.");
+      COMET_INSIST(false && "Invalid data_type_vectors.");
   } /*---switch---*/
 }
 
@@ -311,7 +311,7 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
 // hecksum of entries.
 
 size_t GMVectors_cksum(GMVectors* vectors, GMEnv* env) {
-  GMInsist(vectors && env);
+  COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {
     return 0;

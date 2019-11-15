@@ -139,7 +139,7 @@ void Env::create_impl_(MPI_Comm base_comm, int argc,
   parse_args_(argc, argv);
 
   if (make_comms) {
-    GMInsistInterface(this, can_run() &&
+    COMET_INSIST_INTERFACE(this, can_run() &&
                       "Invalid problem for this system and build.");
   }
 }
@@ -253,7 +253,7 @@ void Env::parse_args_(int argc, char** argv) {
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for metric_type.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for metric_type.");
       if (strcmp(argv[i], "czekanowski") == 0) {
         metric_type_ = MetricType::CZEK;
       } else if (strcmp(argv[i], "ccc") == 0) {
@@ -261,16 +261,16 @@ void Env::parse_args_(int argc, char** argv) {
       } else if (strcmp(argv[i], "duo") == 0) {
         metric_type_ = MetricType::DUO;
       } else {
-        GMInsistInterface(env, false && "Invalid setting for metric_type.");
+        COMET_INSIST_INTERFACE(env, false && "Invalid setting for metric_type.");
       }
       //--------------------
     } else if (strcmp(argv[i], "--num_way") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for num_way.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_way.");
       errno = 0;
       const long num_way = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, 0 == errno && (num_way == NUM_WAY::_2 ||
+      COMET_INSIST_INTERFACE(env, 0 == errno && (num_way == NUM_WAY::_2 ||
                                             num_way == NUM_WAY::_3)
                                && "Invalid setting for num_way.");
       num_way_ = num_way;
@@ -279,19 +279,19 @@ void Env::parse_args_(int argc, char** argv) {
     } else if (strcmp(argv[i], "--all2all") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for all2all.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for all2all.");
       if (strcmp(argv[i], "yes") == 0) {
         all2all_ = true;
       } else if (strcmp(argv[i], "no") == 0) {
         all2all_ = false;
       } else {
-        GMInsistInterface(env, false && "Invalid setting for all2all.");
+        COMET_INSIST_INTERFACE(env, false && "Invalid setting for all2all.");
       }
       //--------------------
     } else if (strcmp(argv[i], "--compute_method") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for compute_method.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for compute_method.");
       if (strcmp(argv[i], "CPU") == 0) {
         compute_method_ =  ComputeMethod::CPU;
       } else if (strcmp(argv[i], "GPU") == 0) {
@@ -299,16 +299,16 @@ void Env::parse_args_(int argc, char** argv) {
       } else if (strcmp(argv[i], "REF") == 0) {
         compute_method_ =  ComputeMethod::REF;
       } else {
-        GMInsistInterface(env, false && "Invalid setting for compute_method.");
+        COMET_INSIST_INTERFACE(env, false && "Invalid setting for compute_method.");
       }
       //--------------------
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
       //--------------------
       ++i;
       errno = 0;
-      GMInsistInterface(env, i < argc && "Missing value for num_proc_vector.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_proc_vector.");
       long num_proc_vector = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, 0 == errno
+      COMET_INSIST_INTERFACE(env, 0 == errno
                     && (long)(int)num_proc_vector == num_proc_vector
                     && "Invalid setting for num_proc_vector.");
       set_num_proc_(num_proc_vector, num_proc_repl_, num_proc_field_);
@@ -317,9 +317,9 @@ void Env::parse_args_(int argc, char** argv) {
       //--------------------
       ++i;
       errno = 0;
-      GMInsistInterface(env, i < argc && "Missing value for num_proc_field.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_proc_field.");
       long num_proc_field = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, 0 == errno
+      COMET_INSIST_INTERFACE(env, 0 == errno
                     && (long)(int)num_proc_field == num_proc_field
                     && "Invalid setting for num_proc_field.");
       set_num_proc_(num_proc_vector_, num_proc_repl_, num_proc_field);
@@ -328,9 +328,9 @@ void Env::parse_args_(int argc, char** argv) {
       //--------------------
       ++i;
       errno = 0;
-      GMInsistInterface(env, i < argc && "Missing value for num_proc_repl.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_proc_repl.");
       long num_proc_repl = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, 0 == errno
+      COMET_INSIST_INTERFACE(env, 0 == errno
                     && (long)(int)num_proc_repl == num_proc_repl
                     && "Invalid setting for num_proc_repl.");
       set_num_proc_(num_proc_vector_, num_proc_repl, num_proc_field_);
@@ -338,52 +338,52 @@ void Env::parse_args_(int argc, char** argv) {
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for ccc_param.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for ccc_param.");
       errno = 0;
       const double ccc_param = strtod(argv[i], NULL);
-      GMInsistInterface(env, 0 == errno && ccc_param >= 0
+      COMET_INSIST_INTERFACE(env, 0 == errno && ccc_param >= 0
                                && "Invalid setting for ccc_param.");
       env->ccc_param_set_(ccc_param);
       //--------------------
     } else if (strcmp(argv[i], "--ccc_multiplier") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for ccc_multiplier.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for ccc_multiplier.");
       errno = 0;
       const double ccc_multiplier = strtod(argv[i], NULL);
-      GMInsistInterface(env, 0 == errno && ccc_multiplier >= 0
+      COMET_INSIST_INTERFACE(env, 0 == errno && ccc_multiplier >= 0
                                && "Invalid setting for ccc_multiplier.");
       ccc_multiplier_set_(ccc_multiplier);
       //--------------------
     } else if (strcmp(argv[i], "--duo_multiplier") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for duo_multiplier.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for duo_multiplier.");
       errno = 0;
       const double duo_multiplier = strtod(argv[i], NULL);
-      GMInsistInterface(env, 0 == errno && duo_multiplier >= 0
+      COMET_INSIST_INTERFACE(env, 0 == errno && duo_multiplier >= 0
                                && "Invalid setting for duo_multiplier.");
       duo_multiplier_set_(duo_multiplier);
       //--------------------
     } else if (strcmp(argv[i], "--sparse") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for sparse.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for sparse.");
       if (strcmp(argv[i], "yes") == 0) {
         sparse_ = true;
       } else if (strcmp(argv[i], "no") == 0) {
         sparse_ = false;
       } else {
-        GMInsistInterface(env, false && "Invalid setting for sparse.");
+        COMET_INSIST_INTERFACE(env, false && "Invalid setting for sparse.");
       }
       //--------------------
     } else if (strcmp(argv[i], "--tc") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for tc.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for tc.");
       errno = 0;
       const long tc = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, 0 == errno
+      COMET_INSIST_INTERFACE(env, 0 == errno
                     && (long)(int)tc == tc
                     && TC::is_valid(tc)
                     && "Invalid setting for tc.");
@@ -392,10 +392,10 @@ void Env::parse_args_(int argc, char** argv) {
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
       //--------------------
       ++i;
-      GMInsistInterface(env, i < argc && "Missing value for num_tc_steps.");
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_tc_steps.");
       errno = 0;
       const long num_tc_steps = strtol(argv[i], NULL, 10);
-      GMInsistInterface(env, 0 == errno
+      COMET_INSIST_INTERFACE(env, 0 == errno
                     && (long)(int)num_tc_steps == num_tc_steps
                     && num_tc_steps >= 1
                     && "Invalid setting for tc.");
@@ -444,7 +444,7 @@ int Env::data_type_vectors() const {
     case MetricType::DUO:
       return GM_DATA_TYPE_BITS2;
   }
-  GMInsist(false && "Invalid metric_type.");
+  COMET_INSIST(false && "Invalid metric_type.");
   return 0;
 }
 
@@ -462,7 +462,7 @@ int Env::data_type_metrics() const {
     case MetricType::DUO:
       return GM_DATA_TYPE_TALLY2X2; // 2-way only for now
   }
-  GMInsist(false && "Invalid metric_type.");
+  COMET_INSIST(false && "Invalid metric_type.");
   return 0;
 }
 
@@ -471,7 +471,7 @@ int Env::data_type_metrics() const {
 
 bool Env::can_run(int tc) const {
 
-  GMInsist(TC::AUTO != tc);
+  COMET_INSIST(TC::AUTO != tc);
 
   bool result = true;
 
@@ -529,7 +529,7 @@ int Env::tc_eff() const {
       return tc;
   }
 
-  GMInsist(false && "Suitable tc setting not found for this platform / build.");
+  COMET_INSIST(false && "Suitable tc setting not found for this platform / build.");
   return 0;
 }
 
@@ -546,7 +546,7 @@ MPI_Datatype Env::metrics_mpi_type() const {
     return MPI_DOUBLE_COMPLEX;
   }
 
-  GMInsist(false && "Invalid metric_type.");
+  COMET_INSIST(false && "Invalid metric_type.");
   return MPI_DOUBLE_COMPLEX; // Should never get here.
 }
 
@@ -569,7 +569,7 @@ void Env::accel_sync_() const {
 # elif defined USE_HIP
     hipDeviceSynchronize();
 #endif
-  GMInsist(System::accel_last_call_succeeded() &&
+  COMET_INSIST(System::accel_last_call_succeeded() &&
            "Failure in call to device synchronize.");
 }
 
@@ -608,7 +608,7 @@ void Env::gpu_mem_local_inc(size_t n) {
 /// \brief Decrement byte count of per-rank CPU memory used.
 
 void Env::cpu_mem_local_dec(size_t n) {
-  GMInsist(n <= cpu_mem_local_);
+  COMET_INSIST(n <= cpu_mem_local_);
   cpu_mem_local_ -= n;
 }
 
@@ -616,7 +616,7 @@ void Env::cpu_mem_local_dec(size_t n) {
 /// \brief Decrement byte count of per-rank GPU memory used.
 
 void Env::gpu_mem_local_dec(size_t n) {
-  GMInsist(n <= gpu_mem_local_);
+  COMET_INSIST(n <= gpu_mem_local_);
   gpu_mem_local_ -= n;
 }
 
@@ -726,7 +726,7 @@ void Env::streams_initialize_() {
 #   else
       if (stream) {}
 #   endif
-    GMInsist(System::accel_last_call_succeeded() &&
+    COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to stream create.");
   }
 
@@ -750,7 +750,7 @@ void Env::streams_terminate_() {
 #   else
       if (stream) {}
 #   endif
-    GMInsist(System::accel_last_call_succeeded() &&
+    COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to stream destroy.");
   }
 
@@ -789,14 +789,14 @@ void Env::stream_synchronize(Stream_t stream) const {
   if (compute_method() != ComputeMethod::GPU)
     return;
 
-  GMInsist(are_streams_initialized_);
+  COMET_INSIST(are_streams_initialized_);
 
 # if defined USE_CUDA
     cudaStreamSynchronize(stream);
 # elif defined USE_HIP
     hipStreamSynchronize(stream);
 # endif
-  GMInsist(System::accel_last_call_succeeded() &&
+  COMET_INSIST(System::accel_last_call_succeeded() &&
            "Failure in call to stream synchronize.");
 }
 
@@ -808,18 +808,18 @@ void Env::stream_synchronize(Stream_t stream) const {
 
 void Env::set_num_proc_(int num_proc_vector,
                       int num_proc_repl, int num_proc_field) {
-  GMInsist(num_proc_vector > 0);
-  GMInsist(num_proc_repl > 0);
-  GMInsist(num_proc_field > 0);
+  COMET_INSIST(num_proc_vector > 0);
+  COMET_INSIST(num_proc_repl > 0);
+  COMET_INSIST(num_proc_field > 0);
 
   if (!BuildHas::MPI) {
-    GMInsist(num_proc_vector == 1);
-    GMInsist(num_proc_repl == 1);
-    GMInsist(num_proc_field == 1);
+    COMET_INSIST(num_proc_vector == 1);
+    COMET_INSIST(num_proc_repl == 1);
+    COMET_INSIST(num_proc_field == 1);
   }
 
-  GMInsist(num_proc_base_);
-  //GMInsist(proc_num_base_ is initialized);
+  COMET_INSIST(num_proc_base_);
+  //COMET_INSIST(proc_num_base_ is initialized);
 
   // Set proc counts
 
@@ -830,7 +830,7 @@ void Env::set_num_proc_(int num_proc_vector,
   num_proc_repl_vector_ = num_proc_repl_ * num_proc_vector_;
 
   num_proc_ = num_proc_repl_vector_ * num_proc_field;
-  GMInsist(num_proc_ <= num_proc_base_ &&
+  COMET_INSIST(num_proc_ <= num_proc_base_ &&
            "Number of procs requested exceeds number available.");
 
   // Set proc nums
@@ -888,9 +888,9 @@ void Env::set_num_proc_(int num_proc_vector,
 // Memory, arrays and floating point
 
 void* gm_malloc(size_t n, GMEnv* env) {
-  GMInsist(env);
+  COMET_INSIST(env);
   void* p = malloc(n);
-  GMInsist(p &&
+  COMET_INSIST(p &&
            "Invalid pointer from malloc, possibly due to insufficient memory.");
   env->cpu_mem_local_inc(n);
   return p;
@@ -899,7 +899,7 @@ void* gm_malloc(size_t n, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void gm_free(void* p, size_t n, GMEnv* env) {
-  GMInsist(p && env);
+  COMET_INSIST(p && env);
   free(p);
   env->cpu_mem_local_dec(n);
 }
@@ -918,7 +918,7 @@ bool GMEnv_is_ppc64() {
 //-----------------------------------------------------------------------------
 
 GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
-  GMInsist(env);
+  COMET_INSIST(env);
   GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);
   GMFloat_fill_nan(p, n);
   return p;
@@ -927,16 +927,16 @@ GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void GMFloat_free(GMFloat* p, size_t n, GMEnv* env) {
-  GMInsist(p && env);
+  COMET_INSIST(p && env);
   gm_free(p, n * sizeof(GMFloat), env);
 }
 
 //-----------------------------------------------------------------------------
 
 void GMFloat_fill_nan(GMFloat* const a, size_t n) {
-  GMInsist(a);
-  GMInsist(n+1 >= 1);
-#ifdef GM_ASSERTIONS_ON
+  COMET_INSIST(a);
+  COMET_INSIST(n+1 >= 1);
+#ifdef COMET_ASSERTIONS_ON
   GMFloat value = sqrt(-1);
   size_t i = 0;
   for (i=0; i<n; ++i) {
@@ -948,9 +948,9 @@ void GMFloat_fill_nan(GMFloat* const a, size_t n) {
 //-----------------------------------------------------------------------------
 
 void GMFloat_check(GMFloat* const a, size_t n) {
-  GMInsist(a);
-  GMInsist(n+1 >= 1);
-#ifdef GM_ASSERTIONS_ON
+  COMET_INSIST(a);
+  COMET_INSIST(n+1 >= 1);
+#ifdef COMET_ASSERTIONS_ON
   bool no_nans_found = true;
   size_t i = 0;
   for (i=0; i<n; ++i) {
@@ -958,14 +958,14 @@ void GMFloat_check(GMFloat* const a, size_t n) {
       no_nans_found = false;
     }
   }
-  GMInsist(no_nans_found);
+  COMET_INSIST(no_nans_found);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 
 size_t gm_array_cksum(unsigned char* a, size_t n) {
-  GMInsist(a);
+  COMET_INSIST(a);
 
   size_t result = 0;
 

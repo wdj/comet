@@ -65,7 +65,7 @@ static bool use_mgemm5(GMEnv* env) {
 /*---Magma setup, teardown---*/
 
 void gm_linalg_initialize(GMEnv* env) {
-  GMInsist(env);
+  COMET_INSIST(env);
 
   // need magma blasSetKernelStream -- see
   // http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
@@ -75,51 +75,51 @@ void gm_linalg_initialize(GMEnv* env) {
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_init();
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in call to magma_minproduct_init.");
     magma_code = magma_minproductblasSetKernelStream(env->stream_compute());
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in call to magma_minproductblasSetKernelStream.");
 
   } else if (use_mgemm4(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_init();
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4_init.");
     magma_code = magma_mgemm4blasSetKernelStream(env->stream_compute());
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4blasSetKernelStream.");
 
   } else if (use_mgemm2(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_init();
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2_init.");
     magma_code = magma_mgemm2blasSetKernelStream(env->stream_compute());
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2blasSetKernelStream.");
 
   } else if (use_mgemm3(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_init();
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3_init.");
     magma_code = magma_mgemm3blasSetKernelStream(env->stream_compute());
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3blasSetKernelStream.");
 
   } else if (use_mgemm5(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_init();
-    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
                    "Error in call to magma_mgemm5_init.");
     magma_code = magma_mgemm5blasSetKernelStream(env->stream_compute());
-    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
                    "Error in call to magma_mgemm5blasSetKernelStream.");
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 #endif // USE_MAGMA
@@ -128,7 +128,7 @@ void gm_linalg_initialize(GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void gm_linalg_finalize(GMEnv* env) {
-  GMInsist(env);
+  COMET_INSIST(env);
 
   // TODO: (maybe) reset kernel stream (probably not really needed)
 
@@ -136,36 +136,36 @@ void gm_linalg_finalize(GMEnv* env) {
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_finalize();
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in call to magma_minproduct_finalize.");
 
   } else if (use_mgemm4(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_finalize();
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
                    "Error in call to magma_mgemm4_finalize.");
 
   } else if (use_mgemm2(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_finalize();
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
                    "Error in call to magma_mgemm2_finalize.");
 
   } else if (use_mgemm3(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_finalize();
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
                    "Error in call to magma_mgemm3_finalize.");
 
   } else if (use_mgemm5(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_finalize();
-    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
                    "Error in call to magma_mgemm5_finalize.");
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 #endif // USE_MAGMA
@@ -175,8 +175,8 @@ void gm_linalg_finalize(GMEnv* env) {
 /*---Allocate/free host and device memory---*/
 
 void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
-  GMInsist(p && env);
-  GMInsist(dim0 + 1 >= 1 && dim1 + 1 >= 1);
+  COMET_INSIST(p && env);
+  COMET_INSIST(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
   *p = GMMirroredBuf_null();
 
@@ -197,12 +197,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&p->h, n);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in magma_minproduct_dmalloc_pinned,"
                    " possibly insufficient memory.");
     } else {
       magma_code = magma_minproduct_smalloc_pinned((float**)&p->h, n);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in magma_minproduct_smalloc_pinned,"
                    " possibly insufficient memory.");
     }
@@ -211,12 +211,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     if (is_compute_method_gpu) {
       if (GM_FP_PRECISION_DOUBLE) {
         magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
-        GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+        COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in magma_minproduct_dmalloc,"
                      " possibly insufficient memory.");
       } else {
         magma_code = magma_minproduct_smalloc((float**)&p->d, n);
-        GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+        COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                      "Error in call to magma_minproduct_smalloc,"
                      " possibly insufficient memory.");
       }
@@ -235,12 +235,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_mgemm4_int_t magma_code = 0;
 
     magma_code = magma_mgemm4_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
       "Error in magma_mgemm4_zmalloc_pinned, possibly insufficient memory.");
 
     if (is_compute_method_gpu) {
       magma_code = magma_mgemm4_zmalloc((Float_t**)&p->d, n);
-      GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
         "Error in magma_mgemm4_zmalloc, possibly insufficient memory.");
     }
     p->size = n * sizeof(Float_t);
@@ -256,12 +256,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_mgemm2_int_t magma_code = 0;
 
     magma_code = magma_mgemm2_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
       "Error in magma_mgemm2_zmalloc_pinned, possibly insufficient memory.");
 
     if (is_compute_method_gpu) {
       magma_code = magma_mgemm2_zmalloc((Float_t**)&p->d, n);
-      GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
         "Error in magma_mgemm2_zmalloc, possibly insufficient memory.");
     }
     p->size = n * sizeof(Float_t);
@@ -277,12 +277,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_mgemm3_int_t magma_code = 0;
 
     magma_code = magma_mgemm3_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
       "Error in magma_mgemm3_zmalloc_pinned, possibly insufficient memory.");
 
     if (is_compute_method_gpu) {
       magma_code = magma_mgemm3_zmalloc((Float_t**)&p->d, n);
-      GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
         "Error in magma_mgemm3_zmalloc, possibly insufficient memory.");
     }
     p->size = n * sizeof(Float_t);
@@ -298,12 +298,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     magma_mgemm5_int_t magma_code = 0;
 
     magma_code = magma_mgemm5_zmalloc_pinned((Float_t**)&p->h, n);
-    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
       "Error in magma_mgemm5_zmalloc_pinned, possibly insufficient memory.");
 
     if (is_compute_method_gpu) {
       magma_code = magma_mgemm5_zmalloc((Float_t**)&p->d, n);
-      GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
         "Error in magma_mgemm5_zmalloc, possibly insufficient memory.");
     }
     p->size = n * sizeof(Float_t);
@@ -313,7 +313,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 
@@ -330,7 +330,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   }
 #else
   p->h = malloc(p->size);
-  GMInsist(!is_compute_method_gpu &&
+  COMET_INSIST(!is_compute_method_gpu &&
     "GPU requested but not supported for this build.");
 #endif
 
@@ -339,10 +339,10 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     env->gpu_mem_local_inc(p->size);
   }
 
-  GMInsist(p->h && "Invalid host pointer created in gm_linalg_malloc,"
+  COMET_INSIST(p->h && "Invalid host pointer created in gm_linalg_malloc,"
                    " possibly due to insufficient memory.");
   if (is_compute_method_gpu) {
-    GMInsist(p->d && "Invalid device pointer created in gm_linalg_malloc,"
+    COMET_INSIST(p->d && "Invalid device pointer created in gm_linalg_malloc,"
                      " possibly due to insufficient memory.");
   }
   p->is_alias = false;
@@ -351,9 +351,9 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
-  GMInsist(p && env);
+  COMET_INSIST(p && env);
 
-  GMInsist(! p->is_alias);
+  COMET_INSIST(! p->is_alias);
 
   const bool is_compute_method_gpu = env->compute_method() ==
                                      ComputeMethod::GPU;
@@ -364,61 +364,61 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
              "Error in magma_minproduct_free_pinned.");
     if (is_compute_method_gpu) {
       magma_code = magma_minproduct_free(p->d);
-      GMInsist(magma_code == MAGMA_minproduct_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
              "Error in magma_minproduct_free.");
     }
 
   } else if (use_mgemm4(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
              "Error in magma_mgemm4_free_pinned.");
     if (is_compute_method_gpu) {
       magma_code = magma_mgemm4_free(p->d);
-      GMInsist(magma_code == MAGMA_mgemm4_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
                "Error in magma_mgemm4_free.");
     }
 
   } else if (use_mgemm2(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
              "Error in magma_mgemm2_free_pinned.");
     if (is_compute_method_gpu) {
       magma_code = magma_mgemm2_free(p->d);
-      GMInsist(magma_code == MAGMA_mgemm2_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
                "Error in magma_mgemm2_free.");
     }
 
   } else if (use_mgemm3(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
              "Error in magma_mgemm3_free_pinned.");
     if (is_compute_method_gpu) {
       magma_code = magma_mgemm3_free(p->d);
-      GMInsist(magma_code == MAGMA_mgemm3_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
                "Error in magma_mgemm3_free.");
     }
 
   } else if (use_mgemm5(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_free_pinned(p->h);
-    GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
              "Error in magma_mgemm5_free_pinned.");
     if (is_compute_method_gpu) {
       magma_code = magma_mgemm5_free(p->d);
-      GMInsist(magma_code == MAGMA_mgemm5_SUCCESS &&
+      COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
                "Error in magma_mgemm5_free.");
     }
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 #elif defined USE_CUDA
@@ -433,7 +433,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   }
 #else
   free(p->h);
-  GMInsist(!is_compute_method_gpu &&
+  COMET_INSIST(!is_compute_method_gpu &&
     "GPU requested but not supported for this build.");
 #endif // USE_MAGMA
 
@@ -450,7 +450,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 
 void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
                                      GMEnv* env) {
-  GMInsist(matrix_buf && env);
+  COMET_INSIST(matrix_buf && env);
 
   if (env->compute_method() != ComputeMethod::GPU) {
 //    memset(matrix_buf->h, 0, matrix_buf->size);
@@ -513,7 +513,7 @@ void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 #elif defined USE_CUDA
@@ -536,8 +536,8 @@ void gm_linalg_gemm_magma_block_start(size_t m,
                                       size_t lddc,
                                       bool is_beta_one,
                                       GMEnv* env) {
-  GMInsist(A && B && C && env);
-  GMInsist(env->compute_method() == ComputeMethod::GPU);
+  COMET_INSIST(A && B && C && env);
+  COMET_INSIST(env->compute_method() == ComputeMethod::GPU);
 
 #ifdef USE_MAGMA
   {
@@ -553,7 +553,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     size_t sizeB = lddb * (Bn - 1) + Bm;
 
     size_t CUBLAS_MAX_1DBUF_SIZE = ((1 << 27) - 512);
-    GMInsist((! (sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
+    COMET_INSIST((! (sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
                  sizeB >= CUBLAS_MAX_1DBUF_SIZE )) &&
              "Error in MAGMA block sizes.");
   }
@@ -573,12 +573,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     const Int_t ldda_ = ldda;
     const Int_t lddb_ = lddb;
     const Int_t lddc_ = lddc;
-    GMInsist((size_t)m_ == m && "Integer overflow.");
-    GMInsist((size_t)n_ == n && "Integer overflow.");
-    GMInsist((size_t)k_ == k && "Integer overflow.");
-    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
-    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
-    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
+    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
+    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
+    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
+    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
+    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
 
     if (GM_FP_PRECISION_DOUBLE) {
       magma_minproductblas_dgemm(
@@ -595,7 +595,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
         beta,
         (double*)C,
         lddc_);
-      GMInsist(System::accel_last_call_succeeded() &&
+      COMET_INSIST(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_dgemm.");
     } else {
       magma_minproductblas_sgemm(
@@ -612,7 +612,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
         beta,
         (float*)C,
         lddc_);
-      GMInsist(System::accel_last_call_succeeded() &&
+      COMET_INSIST(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_sgemm.");
     }
 
@@ -635,12 +635,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     const Int_t ldda_ = ldda;
     const Int_t lddb_ = lddb;
     const Int_t lddc_ = lddc;
-    GMInsist((size_t)m_ == m && "Integer overflow.");
-    GMInsist((size_t)n_ == n && "Integer overflow.");
-    GMInsist((size_t)k_ == k && "Integer overflow.");
-    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
-    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
-    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
+    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
+    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
+    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
+    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
+    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
 
     magma_mgemm4blas_zgemm(
       Magma_mgemm4Trans,
@@ -656,7 +656,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       beta,
       (Float_t*)C,
       lddc_);
-    GMInsist(System::accel_last_call_succeeded() &&
+    COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm4blas_zgemm.");
 
   } else if (use_mgemm2(env)) { //--------------------
@@ -676,12 +676,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     const Int_t ldda_ = ldda;
     const Int_t lddb_ = lddb;
     const Int_t lddc_ = lddc;
-    GMInsist((size_t)m_ == m && "Integer overflow.");
-    GMInsist((size_t)n_ == n && "Integer overflow.");
-    GMInsist((size_t)k_ == k && "Integer overflow.");
-    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
-    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
-    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
+    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
+    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
+    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
+    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
+    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
 
     magma_mgemm2blas_zgemm(
       Magma_mgemm2Trans,
@@ -697,7 +697,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       beta,
       (Float_t*)C,
       lddc_);
-    GMInsist(System::accel_last_call_succeeded() &&
+    COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm2blas_zgemm.");
 
   } else if (use_mgemm3(env)) { //--------------------
@@ -717,12 +717,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     const Int_t ldda_ = ldda;
     const Int_t lddb_ = lddb;
     const Int_t lddc_ = lddc;
-    GMInsist((size_t)m_ == m && "Integer overflow.");
-    GMInsist((size_t)n_ == n && "Integer overflow.");
-    GMInsist((size_t)k_ == k && "Integer overflow.");
-    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
-    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
-    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
+    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
+    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
+    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
+    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
+    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
 
     magma_mgemm3blas_zgemm(
       Magma_mgemm3Trans,
@@ -738,7 +738,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       beta,
       (Float_t*)C,
       lddc_);
-    GMInsist(System::accel_last_call_succeeded() &&
+    COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm3blas_zgemm.");
 
   } else if (use_mgemm5(env)) { //--------------------
@@ -753,12 +753,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     const Int_t ldda_ = ldda;
     const Int_t lddb_ = lddb;
     const Int_t lddc_ = lddc;
-    GMInsist((size_t)m_ == m && "Integer overflow.");
-    GMInsist((size_t)n_ == n && "Integer overflow.");
-    GMInsist((size_t)k_ == k && "Integer overflow.");
-    GMInsist((size_t)ldda_ == ldda && "Integer overflow.");
-    GMInsist((size_t)lddb_ == lddb && "Integer overflow.");
-    GMInsist((size_t)lddc_ == lddc && "Integer overflow.");
+    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
+    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
+    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
+    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
+    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
+    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
 
     const Float_t zero = {0, 0};
     const Float_t one = {1, 0};
@@ -779,12 +779,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       beta,
       (Float_t*)C,
       lddc_);
-    GMInsist(System::accel_last_call_succeeded() &&
+    COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm5blas_zgemm.");
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 #endif // USE_MAGMA
@@ -803,8 +803,8 @@ void gm_linalg_gemm_magma_start(size_t m,
                                 size_t lddc,
                                 GMDecompMgr* dm,
                                 GMEnv* env) {
-  GMInsist(A && B && C && env);
-  GMInsist(env->compute_method() == ComputeMethod::GPU);
+  COMET_INSIST(A && B && C && env);
+  COMET_INSIST(env->compute_method() == ComputeMethod::GPU);
 
   // The purpose of this code is to workaround the magma size
   // limitation (for non CUBLAS failover) by doing gemm in blocks.
@@ -824,7 +824,7 @@ void gm_linalg_gemm_magma_start(size_t m,
     env->num_way() == NUM_WAY::_3) ? sizeof(magma_mgemm3DoubleComplex) :
    (env->metric_type() == MetricType::DUO) ?
                                          sizeof(magma_mgemm5DoubleComplex) : 0;
-  GMInsist(elt_size > 0 && "Error in gemm block calculation.");
+  COMET_INSIST(elt_size > 0 && "Error in gemm block calculation.");
 
   const size_t align_factor = 128 / elt_size;
   const size_t max_elts = (1 << 27) - 512;
@@ -841,8 +841,8 @@ void gm_linalg_gemm_magma_start(size_t m,
   const size_t max_cols_per_block = (max_cols_per_block_raw / align_factor)
                                                             * align_factor;
 
-  GMInsist(max_rows_per_block != 0 && "Error in gemm block calculation.");
-  GMInsist(max_cols_per_block != 0 && "Error in gemm block calculation.");
+  COMET_INSIST(max_rows_per_block != 0 && "Error in gemm block calculation.");
+  COMET_INSIST(max_cols_per_block != 0 && "Error in gemm block calculation.");
 
   const size_t cols_per_block_A = gm_min_i8(cols_A, max_cols_per_block);
   const size_t cols_per_block_B = gm_min_i8(cols_B, max_cols_per_block);
@@ -893,7 +893,7 @@ void gm_linalg_gemm_start(
   GMDecompMgr* dm,
   GMEnv* env) {
 
-  GMInsist(A && B && C && env);
+  COMET_INSIST(A && B && C && env);
 
   if (m==0 || n==0 || k==0) {
     return;
@@ -926,7 +926,7 @@ void gm_linalg_gemm_wait(
   GMDecompMgr* dm,
   GMEnv* env) {
 
-  GMInsist(A && B && C && env);
+  COMET_INSIST(A && B && C && env);
 
   if (m==0 || n==0 || k==0) {
     return;
@@ -948,7 +948,7 @@ void gm_linalg_gemm_wait(
 /*---Wait for any computation on the GPU to complete---*/
 
 void gm_compute_wait(GMEnv* env) {
-  GMInsist(env);
+  COMET_INSIST(env);
 
   env->stream_synchronize(env->stream_compute());
 }
@@ -957,7 +957,7 @@ void gm_compute_wait(GMEnv* env) {
 /*---Start/end transfer of generic matrix to GPU---*/
 
 void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
-  GMInsist(matrix_buf && env);
+  COMET_INSIST(matrix_buf && env);
 
   if (env->compute_method() != ComputeMethod::GPU) {
     return;
@@ -1040,7 +1040,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 
@@ -1057,7 +1057,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void gm_linalg_set_matrix_wait(GMEnv* env) {
-  GMInsist(env);
+  COMET_INSIST(env);
 
   env->stream_synchronize(env->stream_togpu());
 }
@@ -1067,7 +1067,7 @@ void gm_linalg_set_matrix_wait(GMEnv* env) {
 
 void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                 GMEnv* env) {
-  GMInsist(matrix_buf && env);
+  COMET_INSIST(matrix_buf && env);
 
   if (env->compute_method() != ComputeMethod::GPU) {
     return;
@@ -1150,7 +1150,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
   } else { //--------------------
 
-      GMInsistInterface(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
 
@@ -1167,7 +1167,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 //-----------------------------------------------------------------------------
 
 void gm_linalg_get_matrix_wait(GMEnv* env) {
-  GMInsist(env);
+  COMET_INSIST(env);
 
   env->stream_synchronize(env->stream_fromgpu());
 }

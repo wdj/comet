@@ -22,13 +22,13 @@
 ///        This should be used only for non-performance-sensitive
 ///        code locations -- e.g., not in a deep loop nest.
 
-#define GMInsist(condition) \
+#define COMET_INSIST(condition) \
   (void)((condition) || (comet::assert_(#condition, __FILE__, __LINE__), 0))
 
 //-----------------------------------------------------------------------------
 /// \brief Insist macro specifically for a user-caused error condition.
 
-#define GMInsistInterface(env, condition) \
+#define COMET_INSIST_INTERFACE(env, condition) \
   (void)((condition) || \
          (comet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
 
@@ -36,10 +36,19 @@
 /// \brief Assertion macro (for debug builds only).
 
 #ifndef NDEBUG
-#define GM_ASSERTIONS_ON
-#define GMAssert(condition) GMInsist(condition)
+#define COMET_ASSERTIONS_ON
+#define COMET_ASSERT(condition) COMET_INSIST(condition)
 #else
-#define GMAssert(condition)
+#define COMET_ASSERT(condition)
+#endif
+
+//-----------------------------------------------------------------------------
+/// \brief Static assert - use macro to ensure removal for release build.
+
+#ifndef NDEBUG
+#define COMET_STATIC_ASSERT(condition) static_assert(condition)
+#else
+#define COMET_STATIC_ASSERT(condition)
 #endif
 
 //=============================================================================
@@ -48,14 +57,14 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/// \brief Function to support the GMAssert, GMInsist macros.
+/// \brief Function to support the COMET_ASSERT, COMET_INSIST macros.
 
 //        Use trailing underscore to avoid collision with C assert macro.
 
 void assert_(const char* condition_string, const char* file, int line);
 
 //-----------------------------------------------------------------------------
-/// \brief Function to support the GMInsistInterface macro.
+/// \brief Function to support the COMET_INSIST_INTERFACE macro.
 
 void insist_interface(void const * const env,
                          const char* condition_string,

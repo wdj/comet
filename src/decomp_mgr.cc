@@ -25,7 +25,7 @@ namespace comet {
 
 size_t gm_num_vector_local_required(size_t num_vector_active_local,
                                     GMEnv* const env) {
-  GMInsist(env);
+  COMET_INSIST(env);
   // NOTE: this function should receive the same num_vector_active_local
   // and give the same result independent of MPI rank.
 
@@ -60,7 +60,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                         size_t num_vector_specifier,
                         int vectors_data_type_id,
                         GMEnv* env) {
-  GMInsist(dm && env);
+  COMET_INSIST(dm && env);
 
   if (! env->is_proc_active()) {
     *dm = GMDecompMgr_null();
@@ -77,7 +77,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector_local = num_vector_specifier;
     const size_t num_vector_local_required = gm_num_vector_local_required(
                                               dm->num_vector_local, env);
-    GMInsistInterface(env, dm->num_vector_local == num_vector_local_required &&
+    COMET_INSIST_INTERFACE(env, dm->num_vector_local == num_vector_local_required &&
          "Manual selection of nvl requires divisibility condition");
     // All vectors active on every proc.
     dm->num_vector_active_local = dm->num_vector_local;
@@ -116,21 +116,21 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 
   size_t sum = 0;
 
-  GMInsist(dm->num_vector_active >= 0 &&
+  COMET_INSIST(dm->num_vector_active >= 0 &&
            dm->num_vector_active <= dm->num_vector);
-  GMInsist(dm->num_vector_active_local >= 0 &&
+  COMET_INSIST(dm->num_vector_active_local >= 0 &&
            dm->num_vector_active_local <= dm->num_vector_local);
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_vector_local, &sum, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
-  GMInsist(sum == dm->num_vector_local * env->num_proc_repl_vector() &&
+  COMET_INSIST(sum == dm->num_vector_local * env->num_proc_repl_vector() &&
            "Every process must have the same number of vectors.");
-  GMInsist(sum == dm->num_vector * env->num_proc_repl() &&
+  COMET_INSIST(sum == dm->num_vector * env->num_proc_repl() &&
            "Error in local/global sizes computation.");
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_vector_active_local, &sum, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
-  GMInsist(sum == dm->num_vector_active * env->num_proc_repl() &&
+  COMET_INSIST(sum == dm->num_vector_active * env->num_proc_repl() &&
            "Error in local/global sizes computation.");
 
   //--------------------
@@ -170,20 +170,20 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   // Check the sizes
   //--------------------
 
-  GMInsist(dm->num_field_active >= 0 && dm->num_field_active <= dm->num_field);
-  GMInsist(dm->num_field_active_local >= 0 &&
+  COMET_INSIST(dm->num_field_active >= 0 && dm->num_field_active <= dm->num_field);
+  COMET_INSIST(dm->num_field_active_local >= 0 &&
            dm->num_field_active_local <= dm->num_field_local);
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_field_local, &sum, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_field()));
-  GMInsist(sum == dm->num_field_local * env->num_proc_field() &&
+  COMET_INSIST(sum == dm->num_field_local * env->num_proc_field() &&
            "Every process must have the same number of fields.");
-  GMInsist(sum == dm->num_field &&
+  COMET_INSIST(sum == dm->num_field &&
            "Error in local/global sizes computation.");
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&dm->num_field_active_local, &sum, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_field()));
-  GMInsist(sum == dm->num_field_active &&
+  COMET_INSIST(sum == dm->num_field_active &&
            "Error in local/global sizes computation.");
 
   //--------------------
@@ -209,17 +209,17 @@ void GMDecompMgr_create(GMDecompMgr* dm,
       const int table_entry_limit =
         env->metric_type() == MetricType::DUO ?
         1 : 1 << env->num_way();
-      GMInsistInterface(env,
+      COMET_INSIST_INTERFACE(env,
                ((uint64_t)(table_entry_limit * dm->num_field)) <
                        (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
                 && "Number of fields requested is too large for this metric");
     } break;
     //--------------------
     default:
-      GMInsist(false && "Invalid vectors_data_type_id.");
+      COMET_INSIST(false && "Invalid vectors_data_type_id.");
   } //---switch---
 
-  GMInsist(dm->num_bits_per_packedfield % bits_per_byte == 0 &&
+  COMET_INSIST(dm->num_bits_per_packedfield % bits_per_byte == 0 &&
            "Error in size computation.");
 
   dm->num_field_per_packedfield = dm->num_bits_per_packedfield /
@@ -254,7 +254,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 // (Pseudo) destructor
 
 void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env) {
-  GMInsist(dm && env);
+  COMET_INSIST(dm && env);
 
   if (! env->is_proc_active()) {
     return;

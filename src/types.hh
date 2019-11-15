@@ -57,17 +57,17 @@ typedef float GMFp32;
 typedef double GMFp64;
 
 static void gm_check_type_sizes() {
-  static_assert(sizeof(GMFp32) == 32/8);
-  static_assert(sizeof(GMFp64) == 64/8);
-  static_assert(sizeof(int) == 4);
-  static_assert(sizeof(size_t) == 8);
-//  static_assert(sizeof(GMUInt8) == 1);
-//  static_assert(sizeof(GMUInt16) == 2);
-//  static_assert(sizeof(GMUInt32) == 4);
-//  static_assert(sizeof(GMInt64) == 8);
-//  static_assert(sizeof(GMUInt64) == 8);
+  COMET_STATIC_ASSERT(sizeof(GMFp32) == 32/8);
+  COMET_STATIC_ASSERT(sizeof(GMFp64) == 64/8);
+  COMET_STATIC_ASSERT(sizeof(int) == 4);
+  COMET_STATIC_ASSERT(sizeof(size_t) == 8);
+//  COMET_STATIC_ASSERT(sizeof(GMUInt8) == 1);
+//  COMET_STATIC_ASSERT(sizeof(GMUInt16) == 2);
+//  COMET_STATIC_ASSERT(sizeof(GMUInt32) == 4);
+//  COMET_STATIC_ASSERT(sizeof(GMInt64) == 8);
+//  COMET_STATIC_ASSERT(sizeof(GMUInt64) == 8);
 #ifdef USE_INT128
-  static_assert(sizeof(GMUInt128) == 16);
+  COMET_STATIC_ASSERT(sizeof(GMUInt128) == 16);
 #endif
 }
 
@@ -133,12 +133,12 @@ enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
 // Return null value; also use static asserts to check sizes
 
 static GMBits2x64 GMBits2x64_null() {
-  static_assert(2 * GM_TALLY1_MAX_VALUE_BITS <= DBL_MANT_DIG);
-  static_assert(sizeof(GMBits2) * 8 >= GM_BITS2_MAX_VALUE_BITS);
-  static_assert(sizeof(GMBits1_2x64) == 8);
-  static_assert(sizeof(GMBits2x64) == 2 * sizeof(GMBits1_2x64));
-  static_assert(sizeof(GMBits2x64) == 16);
-  static_assert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); // for Magma
+  COMET_STATIC_ASSERT(2 * GM_TALLY1_MAX_VALUE_BITS <= DBL_MANT_DIG);
+  COMET_STATIC_ASSERT(sizeof(GMBits2) * 8 >= GM_BITS2_MAX_VALUE_BITS);
+  COMET_STATIC_ASSERT(sizeof(GMBits1_2x64) == 8);
+  COMET_STATIC_ASSERT(sizeof(GMBits2x64) == 2 * sizeof(GMBits1_2x64));
+  COMET_STATIC_ASSERT(sizeof(GMBits2x64) == 16);
+  COMET_STATIC_ASSERT(sizeof(GMTally2x2) == sizeof(GMBits2x64)); // for Magma
 
   GMBits2x64 value;
   value.data[0] = 0;
@@ -150,9 +150,9 @@ static GMBits2x64 GMBits2x64_null() {
 // Return null value; also use static asserts to check sizes
 
 static GMTally2x2 GMTally2x2_null() {
-  static_assert(sizeof(GMTally1) * 8 >= GM_TALLY1_MAX_VALUE_BITS);
-  static_assert(sizeof(GMTally2x2) == 16);
-  static_assert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); // for Magma
+  COMET_STATIC_ASSERT(sizeof(GMTally1) * 8 >= GM_TALLY1_MAX_VALUE_BITS);
+  COMET_STATIC_ASSERT(sizeof(GMTally2x2) == 16);
+  COMET_STATIC_ASSERT(sizeof(GMTally2x2) == sizeof(GMBits2x64)); // for Magma
 
   GMTally2x2 value;
   value.data[0] = 0;
@@ -163,7 +163,7 @@ static GMTally2x2 GMTally2x2_null() {
 //-----
 
 static GMTally4x2 GMTally4x2_null() {
-  static_assert(sizeof(GMTally4x2) == 32);
+  COMET_STATIC_ASSERT(sizeof(GMTally4x2) == 32);
 
   GMTally4x2 value;
   value.data[0] = 0;
@@ -179,21 +179,21 @@ static GMTally4x2 GMTally4x2_null() {
 static void GMTally1_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMFp64 v) {
-  GMAssert(val0);
-  GMAssert(val1);
+  COMET_ASSERT(val0);
+  COMET_ASSERT(val1);
   const uint64_t tally2 = (uint64_t)v;
-  GMAssert(v == (GMFp64)tally2);
+  COMET_ASSERT(v == (GMFp64)tally2);
   const GMTally1 v0 =
       tally2 & ((((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) - 1);
   const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
   *val0 = v0;
   *val1 = v1;
-  GMAssert(v ==
+  COMET_ASSERT(v ==
            (GMFp64)(v0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * v1));
-  //GMAssert(v0 >= 0);
-  //GMAssert(v1 >= 0);
-  GMAssert(v0 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
-  GMAssert(v1 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
+  //COMET_ASSERT(v0 >= 0);
+  //COMET_ASSERT(v1 >= 0);
+  COMET_ASSERT(v0 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
+  COMET_ASSERT(v1 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
 }
 
 //----------
@@ -202,9 +202,9 @@ static GMFp64 GMTally1_encode(GMTally1 val0, GMTally1 val1) {
   const uint64_t tally2 =
       val0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * val1;
   const GMFp64 result = (GMFp64)tally2;
-  GMAssert(val0 == (((uint64_t)result) &
+  COMET_ASSERT(val0 == (((uint64_t)result) &
                     ((((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) - 1)));
-  GMAssert(val1 == ((uint64_t)result) >> GM_TALLY1_MAX_VALUE_BITS);
+  COMET_ASSERT(val1 == ((uint64_t)result) >> GM_TALLY1_MAX_VALUE_BITS);
   return result;
 }
 
@@ -249,16 +249,16 @@ static void GMFloat3_decode(GMTally1* __restrict__ val0,
 // Get an entry: 2x2
 
 static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
-  GMAssert(i0 >= 0 && i0 < 2);
-  GMAssert(i1 >= 0 && i1 < 2);
+  COMET_ASSERT(i0 >= 0 && i0 < 2);
+  COMET_ASSERT(i1 >= 0 && i1 < 2);
 
   const uint64_t tally2 = tally2x2.data[i0];
 
   const GMTally1 result =
       i1 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
               : tally2 / (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
-  //GMAssert(result >= 0);
-  GMAssert(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
+  //COMET_ASSERT(result >= 0);
+  COMET_ASSERT(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
 
@@ -266,24 +266,24 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
 // Get an entry: 4x2
 
 static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
-  GMAssert(i0 >= 0 && i0 < 2);
-  GMAssert(i1 >= 0 && i1 < 2);
-  GMAssert(i2 >= 0 && i2 < 2);
+  COMET_ASSERT(i0 >= 0 && i0 < 2);
+  COMET_ASSERT(i1 >= 0 && i1 < 2);
+  COMET_ASSERT(i2 >= 0 && i2 < 2);
 
   const uint64_t tally2 = tally4x2.data[i1 + 2 * i0];
 
   const GMTally1 result =
       i2 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
               : tally2 / (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
-  //GMAssert(result >= 0);
-  GMAssert(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
+  //COMET_ASSERT(result >= 0);
+  COMET_ASSERT(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
   return result;
 }
 
 //=============================================================================
 
 template<typename T> int mantissa_digits() {
-  static_assert(std::numeric_limits<T>::radix == 2);
+  COMET_STATIC_ASSERT(std::numeric_limits<T>::radix == 2);
   return std::numeric_limits<T>::digits;
 }
 

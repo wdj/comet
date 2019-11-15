@@ -169,7 +169,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
           } break;
           // --------------
           default:
-          GMInsist(false && "Invalid metrics data type. metrics.data_type_id.");
+          COMET_INSIST(false && "Invalid metrics data type. metrics.data_type_id.");
         } // switch
         // value_max is the largest of the values at this index.
         value_max = value > value_max ? value : value_max;
@@ -196,7 +196,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
 void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
                        GMMetrics& metrics, GMEnv& env){
   // TODO: make this check unnecessary.
-  GMInsist(metrics.data || ! env.is_proc_active());
+  COMET_INSIST(metrics.data || ! env.is_proc_active());
 
   // TODO: make this unnecessary.
   if (! env.is_proc_active()) {
@@ -255,7 +255,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   typedef uint64_t UI64_t;
 
   const int w = 30; // 2*w is the integer size
-  GMInsist(64 - 2 * w >= 4); // fits into uint64, with some headroom
+  COMET_INSIST(64 - 2 * w >= 4); // fits into uint64, with some headroom
   const UI64_t one64 = 1; // the constant "1"
 
   const UI64_t lomask = (one64 << w) - 1; // masks for lo and hi parts of int
@@ -337,7 +337,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           } break;
           // --------------
           default:
-            GMInsist(false && "Invalid data type. metrics.data_type_id.");
+            COMET_INSIST(false && "Invalid data type. metrics.data_type_id.");
         } // switch
 
         // Convert to uint64.  Store only 2*w+1 bits, at most -
@@ -456,7 +456,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   double result_d = cksum.data_[0] / ((double)(one64 << (2 * w))) +
                     cksum.data_[1] +
                     cksum.data_[2] * ((double)(one64 << (2 * w)));
-  GMInsist(fabs(cksum.sum_d_ - result_d) <= cksum.sum_d_ * 1.e-10 &&
+  COMET_INSIST(fabs(cksum.sum_d_ - result_d) <= cksum.sum_d_ * 1.e-10 &&
            "Error in checksum calculation");
 } // Checksum::compute
 

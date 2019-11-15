@@ -39,8 +39,8 @@ GMVectorSums GMVectorSums_null(void) {
 void GMVectorSums_create(GMVectorSums* this_,
                          int num_vector_local,
                          GMEnv* env) {
-  GMInsist(this_ && env);
-  GMInsist(num_vector_local >= 0);
+  COMET_INSIST(this_ && env);
+  COMET_INSIST(num_vector_local >= 0);
 
   this_->size_ = num_vector_local;
   //this_->num_field_ = vectors->num_field;
@@ -78,7 +78,7 @@ void GMVectorSums_create(GMVectorSums* this_,
       }
     } break;
     default:
-      GMInsistInterface(env, false && "Unimplemented metric_type.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented metric_type.");
   } /*---case---*/
 }
 
@@ -86,7 +86,7 @@ void GMVectorSums_create(GMVectorSums* this_,
 /*---Pseudo-destructor---*/
 
 void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
-  GMInsist(this_ && env);
+  COMET_INSIST(this_ && env);
 
   GMFloat_free((GMFloat*)this_->sums, this_->size_, env);
   if (this_->sums_tmp_) {
@@ -108,7 +108,7 @@ void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env) {
 void GMVectorSums_compute_float_(GMVectorSums* this_,
                                  GMVectors* vectors,
                                  GMEnv* env) {
-  GMInsist(this_ && vectors && env);
+  COMET_INSIST(this_ && vectors && env);
 
   GMFloat* const __restrict__ sums = this_->sums;
   GMFloat* const __restrict__ sums_tmp = this_->sums_tmp_;
@@ -145,7 +145,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
 void GMVectorSums_compute_bits2_(GMVectorSums* this_,
                                  GMVectors* vectors,
                                  GMEnv* env) {
-  GMInsist(this_ && vectors && env);
+  COMET_INSIST(this_ && vectors && env);
 
   GMFloat* const __restrict__ sums = this_->sums;
   GMFloat* const __restrict__ sums_tmp = this_->sums_tmp_;
@@ -177,8 +177,8 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
             count++;
           }
         }
-        GMAssert(sum >= 0 && sum <= 2 * vectors->num_field);
-        GMAssert(count >= 0 && count <= vectors->num_field);
+        COMET_ASSERT(sum >= 0 && sum <= 2 * vectors->num_field);
+        COMET_ASSERT(count >= 0 && count <= vectors->num_field);
         sums_local[i] = sum;
         counts_local[i] = count;
       } else { // ! sparse
@@ -189,7 +189,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
           sum += count_2 ? ((value & 1) != 0) + ((value & 2) != 0)
                          : ((value & 1) != 0);
         }
-        GMAssert(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->num_field);
+        COMET_ASSERT(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->num_field);
         sums_local[i] = sum;
       } // if sparse
     } // for i
@@ -228,8 +228,8 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
         // Adjust for end pad
         count -= num_fields_pad;
         // Finish
-        GMAssert(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->dm->num_field_active_local);
-        GMAssert(count >= 0 && count <= vectors->dm->num_field_active_local);
+        COMET_ASSERT(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->dm->num_field_active_local);
+        COMET_ASSERT(count >= 0 && count <= vectors->dm->num_field_active_local);
         sums_local[i] = sum;
         counts_local[i] = count;
       } else { // ! sparse
@@ -243,7 +243,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
                          : (GMFloat)gm_popcount64(value.data[1] & oddbits);
           // NOTE: for this case pad entries are all zero so no effect on sum
         }
-        GMAssert(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->dm->num_field_active_local);
+        COMET_ASSERT(sum >= 0 && sum <= (count_2 ? 2 : 1) * vectors->dm->num_field_active_local);
         sums_local[i] = sum;
       } // if sparse
     } // for i
@@ -266,7 +266,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
 //-----------------------------------------------------------------------------
 
 void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
-  GMInsist(this_ && vectors && env);
+  COMET_INSIST(this_ && vectors && env);
 
   switch (env->metric_type()) {
     case MetricType::CZEK: {
@@ -279,15 +279,15 @@ void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env) {
       GMVectorSums_compute_bits2_(this_, vectors, env);
     } break;
     default:
-      GMInsistInterface(env, false && "Unimplemented metric_type.");
+      COMET_INSIST_INTERFACE(env, false && "Unimplemented metric_type.");
   } /*---case---*/
 }
 
 //-----------------------------------------------------------------------------
 
 GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env) {
-  GMAssert(this_ && env);
-  GMAssert(i >= 0 && (size_t)i < this_->size_);
+  COMET_ASSERT(this_ && env);
+  COMET_ASSERT(i >= 0 && (size_t)i < this_->size_);
 
   return this_->sums[i];
 }
@@ -295,9 +295,9 @@ GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env) {
-  GMAssert(this_ && env);
-  GMAssert(i >= 0 && (size_t)i < this_->size_);
-  GMAssert(env->sparse());
+  COMET_ASSERT(this_ && env);
+  COMET_ASSERT(i >= 0 && (size_t)i < this_->size_);
+  COMET_ASSERT(env->sparse());
 
   //return this_->counts ? this_->counts[i] : this_->num_field_;
   return this_->counts[i];

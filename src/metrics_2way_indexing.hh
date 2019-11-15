@@ -19,9 +19,9 @@ namespace comet {
 /*---Helper functions for 2-way case---*/
 
 static int gm_bdiag_computed_max_allphase(GMEnv* env) {
-  GMAssert(env);
-  GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(env->all2all());
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->all2all());
 
   /*---Max number of blocks of any block row computed on all phases---*/
   const int num_block = env->num_block_vector();
@@ -31,9 +31,9 @@ static int gm_bdiag_computed_max_allphase(GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 static int gm_bdiag_computed_min(GMEnv* env) {
-  GMAssert(env);
-  GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(env->all2all());
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->all2all());
 
   // First block diag computed for this phase (min across vec procs)
   const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
@@ -43,9 +43,9 @@ static int gm_bdiag_computed_min(GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 static int gm_bdiag_computed_max(GMEnv* env) {
-  GMAssert(env);
-  GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(env->all2all());
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->all2all());
 
   // 1 + last block diag computed for this phase (max across vec procs)
   const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
@@ -55,9 +55,9 @@ static int gm_bdiag_computed_max(GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 static int gm_block_computed_this_row_min(GMEnv* env) {
-  GMAssert(env);
-  GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(env->all2all());
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->all2all());
 
   return gm_bdiag_computed_min(env);
 }
@@ -65,9 +65,9 @@ static int gm_block_computed_this_row_min(GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 static int gm_block_computed_this_row_max(GMEnv* env) {
-  GMAssert(env);
-  GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(env->all2all());
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->all2all());
 
   const int num_block = env->num_block_vector();
   const int i_block = env->proc_num_vector();
@@ -79,23 +79,23 @@ static int gm_block_computed_this_row_max(GMEnv* env) {
 
   // 1 + last block diag computed for this phase, all repl procs (this vec proc)
   const int n = is_last_phase && is_row_short_by_1 ? diag_max - 1 : diag_max;
-  GMAssert(n >= 0);
-  GMAssert(n <= num_block);
+  COMET_ASSERT(n >= 0);
+  COMET_ASSERT(n <= num_block);
   return n;
 }
 
 //-----------------------------------------------------------------------------
 
 static int gm_blocks_computed_this_row(GMEnv* env) {
-  GMAssert(env);
-  GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(env->all2all());
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->all2all());
 
   // num block diags computed for this phase, all repl procs (this vec proc)
   const int n = gm_block_computed_this_row_max(env) -
                 gm_block_computed_this_row_min(env);
-  GMAssert(n >= 0);
-  GMAssert(n <= env->num_block_vector());
+  COMET_ASSERT(n >= 0);
+  COMET_ASSERT(n <= env->num_block_vector());
   return n;
 }
 
@@ -112,21 +112,21 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
                                            int i,
                                            int j,
                                            GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(! env->all2all());
-  GMAssert(i >= 0);
-  GMAssert(i < metrics->num_vector_local);
-  GMAssert(j >= 0);
-  GMAssert(j < metrics->num_vector_local);
-  GMAssert(i < j);
-  GMAssert(env->proc_num_repl() == 0);
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(! env->all2all());
+  COMET_ASSERT(i >= 0);
+  COMET_ASSERT(i < metrics->num_vector_local);
+  COMET_ASSERT(j >= 0);
+  COMET_ASSERT(j < metrics->num_vector_local);
+  COMET_ASSERT(i < j);
+  COMET_ASSERT(env->proc_num_repl() == 0);
 
   size_t index = gm_triang_(j) + i;
-  GMAssert(i + metrics->num_vector_local *
+  COMET_ASSERT(i + metrics->num_vector_local *
                (size_t)env->proc_num_vector() ==
            metrics->coords_global_from_index[index] % metrics->num_vector);
-  GMAssert(j + metrics->num_vector_local *
+  COMET_ASSERT(j + metrics->num_vector_local *
                (size_t)env->proc_num_vector() ==
            metrics->coords_global_from_index[index] / metrics->num_vector);
   return index;
@@ -139,7 +139,7 @@ static size_t GMMetrics_helper2way_maindiag_block_(GMMetrics* metrics,
                                                    int j,
                                                    int j_block,
                                                    GMEnv* env) {
-  GMAssert(j_block == env->proc_num_vector());
+  COMET_ASSERT(j_block == env->proc_num_vector());
 
   return gm_triang_(j) + i;
 }
@@ -151,7 +151,7 @@ static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
                                                   int j,
                                                   int j_block,
                                                   GMEnv* env) {
-  GMAssert(j_block != env->proc_num_vector());
+  COMET_ASSERT(j_block != env->proc_num_vector());
 
   const int num_block = env->num_block_vector();
 
@@ -174,17 +174,17 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
                                                    int j,
                                                    int j_block,
                                                    GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(env->num_way() == NUM_WAY::_2);
-  GMAssert(env->all2all());
-  GMAssert(i >= 0);
-  GMAssert(i < metrics->num_vector_local);
-  GMAssert(j >= 0);
-  GMAssert(j < metrics->num_vector_local);
-  GMAssert(j_block >= 0);
-  GMAssert(j_block < env->num_block_vector());
-  GMAssert(i < j || j_block != env->proc_num_vector());
-//  GMAssert(env->proc_num_repl() == 0 ||
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->all2all());
+  COMET_ASSERT(i >= 0);
+  COMET_ASSERT(i < metrics->num_vector_local);
+  COMET_ASSERT(j >= 0);
+  COMET_ASSERT(j < metrics->num_vector_local);
+  COMET_ASSERT(j_block >= 0);
+  COMET_ASSERT(j_block < env->num_block_vector());
+  COMET_ASSERT(i < j || j_block != env->proc_num_vector());
+//  COMET_ASSERT(env->proc_num_repl() == 0 ||
 //           j_block != env->proc_num_vector() // DEFUNCT
   /*---WARNING: these conditions on j_block are not exhaustive---*/
 
@@ -194,7 +194,7 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
            ? GMMetrics_helper2way_maindiag_block_(metrics, i, j, j_block, env)
            : GMMetrics_helper2way_offdiag_block_(metrics, i, j, j_block, env);
 
-  GMAssert(index >= 0 && index < metrics->num_elts_local);
+  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
   return index;
 }
 
@@ -205,15 +205,15 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
 static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
                                                 size_t index,
                                                 GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
-  GMAssert(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
 
   const size_t i64 = metrics->coords_global_from_index[index] %
                      metrics->num_vector;
   const int i = (int)i64;
-  GMAssert((size_t)i == i64);
+  COMET_ASSERT((size_t)i == i64);
 
   return i;
 }
@@ -223,14 +223,14 @@ static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
 static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
                                                 size_t index,
                                                 GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
-  GMAssert(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
   const size_t j64 = metrics->coords_global_from_index[index] /
                      metrics->num_vector;
   const int j = (int)j64;
-  GMAssert((size_t)j == j64);
+  COMET_ASSERT((size_t)j == j64);
 
   return j;
 }

@@ -36,15 +36,15 @@ void gm_compute_2way_proc_nums_czek_start_(
   bool do_compute_triang_only,
   GMEnv* env) {
 
-  GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(vectors_left && vectors_right && metrics && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   /*----------------------------------------*/
   if (env->compute_method() != ComputeMethod::GPU && env->all2all()) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -66,7 +66,7 @@ void gm_compute_2way_proc_nums_czek_start_(
   } else { // env->compute_method() != ComputeMethod::GPU
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -103,15 +103,15 @@ void gm_compute_2way_proc_nums_ccc_start_(
   bool do_compute_triang_only,
   GMEnv* env) {
 
-  GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(vectors_left && vectors_right && metrics && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   /*----------------------------------------*/
   if (env->compute_method() == ComputeMethod::REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -186,7 +186,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
   } else { // ComputeMethod::CPU && !env->is_using_linalg()
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
        "num_proc_field>1 for CPU compute_method for this case not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -301,12 +301,12 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
         // Adjust for pad
 
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
         GMTally2x2 sum_old = sum;
 #endif
         sum.data[0] -= float_pad_adjustment;
-#ifdef GM_ASSERTIONS_ON
-        GMAssert(GMTally2x2_get(sum_old, 0, 0) ==
+#ifdef COMET_ASSERTIONS_ON
+        COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
 #endif
 
@@ -339,15 +339,15 @@ void gm_compute_2way_proc_nums_duo_start_(
   bool do_compute_triang_only,
   GMEnv* env) {
 
-  GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(vectors_left && vectors_right && metrics && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   /*----------------------------------------*/
   if (env->compute_method() == ComputeMethod::REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -398,7 +398,7 @@ void gm_compute_2way_proc_nums_duo_start_(
   } else { // ComputeMethod::CPU && !env->is_using_linalg()
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
 
     /*---Perform pseudo GEMM---*/
@@ -482,12 +482,12 @@ void gm_compute_2way_proc_nums_duo_start_(
 
         // Adjust for pad
 
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
         GMTally2x2 sum_old = sum;
 #endif
         sum.data[0] -= float_pad_adjustment;
-#ifdef GM_ASSERTIONS_ON
-        GMAssert(GMTally2x2_get(sum_old, 0, 0) ==
+#ifdef COMET_ASSERTIONS_ON
+        COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
 #endif
 
@@ -523,9 +523,9 @@ void gm_compute_2way_proc_nums_start(
   bool do_compute_triang_only,
   GMEnv* env) {
 
-  GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(vectors_left && vectors_right && metrics && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   if (env->is_using_linalg()) {
 
@@ -568,7 +568,7 @@ void gm_compute_2way_proc_nums_start(
           env);
     } break;
     default:
-      GMInsistInterface(env, false && "Selected metric_type unimplemented.");
+      COMET_INSIST_INTERFACE(env, false && "Selected metric_type unimplemented.");
   } /*---case---*/
 }
 
@@ -586,9 +586,9 @@ void gm_compute_2way_proc_nums_wait(
   bool do_compute_triang_only,
   GMEnv* env) {
 
-  GMInsist(vectors_left && vectors_right && metrics && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(vectors_left && vectors_right && metrics && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   if (env->is_using_linalg()) {
 

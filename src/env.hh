@@ -34,7 +34,7 @@
 //=============================================================================
 
 #define COMET_MPI_SAFE_CALL(s) {int error_code = (s); \
-                                GMInsist(MPI_SUCCESS == error_code);}
+                                COMET_INSIST(MPI_SUCCESS == error_code);}
 
 namespace comet {
 
@@ -331,13 +331,13 @@ private:
                               ccc_param_default() == ccc_param_;
   }
   void ccc_multiplier_set_(double value) {
-    GMInsist(value >= 0);
+    COMET_INSIST(value >= 0);
     ccc_multiplier_ = value;
     are_ccc_params_default_ = ccc_multiplier_default() == ccc_multiplier_ &&
                               ccc_param_default() == ccc_param_;
   }
   void duo_multiplier_set_(double value) {
-    GMInsist(value >= 0);
+    COMET_INSIST(value >= 0);
     duo_multiplier_ = value;
   }
   int num_stage_;
@@ -436,7 +436,7 @@ static size_t gm_max_i8(const size_t i, const size_t j) {
 //-----------------------------------------------------------------------------
 
 static int gm_floor_i(const int i, const int j) {
-  GMAssert(j > 0);
+  COMET_ASSERT(j > 0);
 
   return i >= 0 ? i / j : (i - j + 1) / j;
 }
@@ -444,8 +444,8 @@ static int gm_floor_i(const int i, const int j) {
 //-----------------------------------------------------------------------------
 
 static size_t gm_floor_i8(const size_t i, const size_t j) {
-  GMAssert(i + 1 >= 1);
-  GMAssert(j + 1 > 1);
+  COMET_ASSERT(i + 1 >= 1);
+  COMET_ASSERT(j + 1 > 1);
 
   return i / j;
 }
@@ -453,7 +453,7 @@ static size_t gm_floor_i8(const size_t i, const size_t j) {
 //-----------------------------------------------------------------------------
 
 static int gm_ceil_i(const int i, const int j) {
-  GMAssert(j > 0);
+  COMET_ASSERT(j > 0);
 
   return -gm_floor_i(-i, j);
 }
@@ -461,8 +461,8 @@ static int gm_ceil_i(const int i, const int j) {
 //-----------------------------------------------------------------------------
 
 static size_t gm_ceil_i8(const size_t i, const size_t j) {
-  GMAssert(i + 1 >= 1);
-  GMAssert(j + 1 > 1);
+  COMET_ASSERT(i + 1 >= 1);
+  COMET_ASSERT(j + 1 > 1);
 
   return (i + j - 1) / j;
 }
@@ -470,7 +470,7 @@ static size_t gm_ceil_i8(const size_t i, const size_t j) {
 //-----------------------------------------------------------------------------
 
 static int gm_mod_i(const int i, const int j) {
-  GMAssert(j > 0);
+  COMET_ASSERT(j > 0);
 
   return i - j * gm_floor_i(i, j);
 }
@@ -514,8 +514,8 @@ static int gm_log2(size_t n) {
 //-----------------------------------------------------------------------------
 
 static size_t gm_nchoosek(int n, int k) {
-  GMAssert(n >= 0);
-  GMAssert(k >= 0 && k <= n);
+  COMET_ASSERT(n >= 0);
+  COMET_ASSERT(k >= 0 && k <= n);
   size_t numer = 1;
   size_t denom = 1;
   for (int i = 0; i < k; ++i) {
@@ -578,8 +578,8 @@ static void GMFloat_sort_3(GMFloat* const __restrict__ min,
       *min = *a;
     }
   }
-  GMAssert(*min <= *mid);
-  GMAssert(*mid <= *max);
+  COMET_ASSERT(*min <= *mid);
+  COMET_ASSERT(*mid <= *max);
 }
 
 //=============================================================================

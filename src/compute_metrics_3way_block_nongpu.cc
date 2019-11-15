@@ -45,18 +45,18 @@ void gm_compute_3way_nums_nongpu_czek_start_(
     const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
-  GMInsist(this_ && metrics && env);
-  GMInsist(vectors_i && vectors_j && vectors_k);
-  GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(! (env->proc_num_vector() == j_block &&
+  COMET_INSIST(this_ && metrics && env);
+  COMET_INSIST(vectors_i && vectors_j && vectors_k);
+  COMET_INSIST(vectors_i_buf && vectors_j_buf && vectors_k_buf);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(k_block >= 0 && k_block < env->num_block_vector());
+  COMET_INSIST(! (env->proc_num_vector() == j_block &&
               env->proc_num_vector() != k_block));
-  GMInsist(! (env->proc_num_vector() == k_block &&
+  COMET_INSIST(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
-  GMInsist(env->compute_method() != ComputeMethod::GPU);
-  GMInsist(env->num_way() == NUM_WAY::_3);
-  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
+  COMET_INSIST(env->compute_method() != ComputeMethod::GPU);
+  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 
@@ -77,10 +77,10 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   if (env->compute_method() != ComputeMethod::GPU && ! env->all2all()) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() && "num_proc_field>1 "
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() && "num_proc_field>1 "
       "for REF/CPU compute_method for this case not supported");
 
-    GMInsist(gm_num_section_steps(env, 1) == 1 &&
+    COMET_INSIST(gm_num_section_steps(env, 1) == 1 &&
              "not all2all case always has one section step.");
 
     /*---No off-proc all2all: compute tetrahedron of values---*/
@@ -123,7 +123,7 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   } else if (env->compute_method() != ComputeMethod::GPU) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() && "num_proc_field>1 "
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() && "num_proc_field>1 "
       "for REF/CPU compute_method for this case not supported");
 
     const bool no_perm = ! si->is_part3;
@@ -191,7 +191,7 @@ void gm_compute_3way_nums_nongpu_czek_start_(
   } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
     /*----------------------------------------*/
 
-    GMInsist(false && "Invalid compute_method.");
+    COMET_INSIST(false && "Invalid compute_method.");
 
   } /*---if GPU---*/
 
@@ -217,18 +217,18 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
-  GMInsist(this_ && metrics && env);
-  GMInsist(vectors_i && vectors_j && vectors_k);
-  GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(! (env->proc_num_vector() == j_block &&
+  COMET_INSIST(this_ && metrics && env);
+  COMET_INSIST(vectors_i && vectors_j && vectors_k);
+  COMET_INSIST(vectors_i_buf && vectors_j_buf && vectors_k_buf);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(k_block >= 0 && k_block < env->num_block_vector());
+  COMET_INSIST(! (env->proc_num_vector() == j_block &&
               env->proc_num_vector() != k_block));
-  GMInsist(! (env->proc_num_vector() == k_block &&
+  COMET_INSIST(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
-  GMInsist(!env->is_using_linalg());
-  GMInsist(env->num_way() == NUM_WAY::_3);
-  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
+  COMET_INSIST(!env->is_using_linalg());
+  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 
@@ -248,7 +248,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
   if (env->compute_method() == ComputeMethod::REF) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
 
     const int nfal = vectors_i->dm->num_field_active_local;
@@ -423,7 +423,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
              !env->is_using_linalg()) {
     /*----------------------------------------*/
 
-    GMInsistInterface(env, ! env->do_reduce() &&
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
 
     /* clang-format off */
@@ -676,12 +676,12 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
 
           // Adjust for pad
 
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
           GMTally4x2 sum_old = sum;
 #endif
           sum.data[0] -= float_pad_adjustment;
-#ifdef GM_ASSERTIONS_ON
-          GMAssert(GMTally4x2_get(sum_old, 0, 0, 0) ==
+#ifdef COMET_ASSERTIONS_ON
+          COMET_ASSERT(GMTally4x2_get(sum_old, 0, 0, 0) ==
                    GMTally4x2_get(sum, 0, 0, 0) + pad_adjustment);
 #endif
 
@@ -725,7 +725,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
     /*----------------------------------------*/
   } else /* if (env->is_using_linalg()) */ {
     /*----------------------------------------*/
-    GMInsist(false && "Invalid compute_method");
+    COMET_INSIST(false && "Invalid compute_method");
     /*----------------------------------------*/
   } /*---if---*/
   /*----------------------------------------*/

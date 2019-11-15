@@ -31,7 +31,7 @@ void GMComputeMetrics2Way_create(
     GMComputeMetrics2Way* this_,
     GMDecompMgr* dm,
     GMEnv* env) {
-  GMInsist(this_ && dm && env);
+  COMET_INSIST(this_ && dm && env);
 
   if (!(env->num_way() == 2 && env->all2all())) {
     return;
@@ -70,7 +70,7 @@ void GMComputeMetrics2Way_create(
 void GMComputeMetrics2Way_destroy(
     GMComputeMetrics2Way* this_,
     GMEnv* env) {
-  GMInsist(this_ && env);
+  COMET_INSIST(this_ && env);
 
   if (!(env->num_way() == 2 && env->all2all())) {
     return;
@@ -106,8 +106,8 @@ void gm_compute_metrics_2way_notall2all(
   GMVectors* vectors,
   GMEnv* env) {
 
-  GMInsist(metrics && vectors && env);
-  GMInsist(! env->all2all());
+  COMET_INSIST(metrics && vectors && env);
+  COMET_INSIST(! env->all2all());
 
   // Denominator
 
@@ -194,12 +194,12 @@ void gm_compute_metrics_2way_notall2all(
 //=============================================================================
 
 static void lock(bool& lock_val) {
-  GMInsist(! lock_val);
+  COMET_INSIST(! lock_val);
   lock_val = true;
 };
 
 static void unlock(bool& lock_val) {
-  GMInsist(lock_val);
+  COMET_INSIST(lock_val);
   lock_val = false;
 };
 
@@ -211,8 +211,8 @@ void gm_compute_metrics_2way_all2all(
   GMVectors* vectors,
   GMEnv* env) {
 
-  GMInsist(metrics && vectors && env);
-  GMInsist(env->all2all());
+  COMET_INSIST(metrics && vectors && env);
+  COMET_INSIST(env->all2all());
 
   // Initializations
 
@@ -400,7 +400,7 @@ void gm_compute_metrics_2way_all2all(
     if (vars_next.is_compute_step && ! comm_with_self) {
       const int mpi_tag = step_num + 1;
       // NOTE: the following order helps performance
-      GMInsist((!vars_next.is_right_aliased) &&
+      COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
       lock(lock_vectors_right_buf_h_next);
       mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
@@ -515,7 +515,7 @@ void gm_compute_metrics_2way_all2all(
 
     if (vars_next.is_compute_step && ! comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), env);
-      GMInsist((!vars_next.is_right_aliased) &&
+      COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
       unlock(lock_vectors_right_buf_h_next);
     }
@@ -601,14 +601,14 @@ void gm_compute_metrics_2way_all2all(
   // Terminations
 
   for (int i=0; i<2; ++i) {
-    GMInsist(!lock_vectors_01_buf_h[i]);
-    GMInsist(!lock_vectors_01_buf_d[i]);
-    GMInsist(!lock_metrics_buf_01_h[i]);
-    GMInsist(!lock_metrics_buf_01_d[i]);
+    COMET_INSIST(!lock_vectors_01_buf_h[i]);
+    COMET_INSIST(!lock_vectors_01_buf_d[i]);
+    COMET_INSIST(!lock_metrics_buf_01_h[i]);
+    COMET_INSIST(!lock_metrics_buf_01_d[i]);
   }
-  GMInsist(!lock_vectors_buf_h);
-  GMInsist(!lock_vectors_buf_d);
-  GMInsist(!lock_metrics_tmp_buf_h);
+  COMET_INSIST(!lock_vectors_buf_h);
+  COMET_INSIST(!lock_vectors_buf_d);
+  COMET_INSIST(!lock_metrics_tmp_buf_h);
 
   gm_linalg_finalize(env);
 }

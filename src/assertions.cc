@@ -33,13 +33,13 @@ static void make_test_harness_failure() {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Function to support the GMAssert, GMInsist macros.
+/// \brief Function to support the COMET_ASSERT, COMET_INSIST macros.
 
 void assert_(const char* condition_string, const char* file, int line) {
   fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Assertion error",
           condition_string, file, line);
   make_test_harness_failure();
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
   //raise(SIGUSR1);
   exit(EXIT_FAILURE);
 #else
@@ -48,7 +48,7 @@ void assert_(const char* condition_string, const char* file, int line) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Function to support the GMInsistInterface macro.
+/// \brief Function to support the COMET_INSIST_INTERFACE macro.
 
 void insist_interface(const void* const env,
                          const char* condition_string,

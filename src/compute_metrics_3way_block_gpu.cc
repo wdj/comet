@@ -169,7 +169,7 @@ void gm_compute_3way_nums_gpu_form_metrics_(
   const GMVectorSums* vector_sums_k,
   GMEnv* const env) {
 
-  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
+  COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
   const bool is_part3 = si->is_part3;
 
@@ -448,7 +448,7 @@ void gm_compute_3way_nums_gpu_form_metrics_(
     /*----------*/
   } else {
     /*----------*/
-    GMInsist(false);
+    COMET_INSIST(false);
     /*----------*/
   } /*---env->metric_type()---*/
   /*----------*/
@@ -457,12 +457,12 @@ void gm_compute_3way_nums_gpu_form_metrics_(
 //=============================================================================
 
 static void lock(bool& lock_val) {
-  GMInsist(! lock_val);
+  COMET_INSIST(! lock_val);
   lock_val = true;
 };
 
 static void unlock(bool& lock_val) {
-  GMInsist(lock_val);
+  COMET_INSIST(lock_val);
   lock_val = false;
 };
 
@@ -485,18 +485,18 @@ void gm_compute_3way_nums_gpu_start_(
     const GMVectorSums* vector_sums_k,
     int section_step,
     GMEnv* env) {
-  GMInsist(this_ && metrics && env);
-  GMInsist(vectors_i && vectors_j && vectors_k);
-  GMInsist(vectors_i_buf && vectors_j_buf && vectors_k_buf);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(k_block >= 0 && k_block < env->num_block_vector());
-  GMInsist(! (env->proc_num_vector() == j_block &&
+  COMET_INSIST(this_ && metrics && env);
+  COMET_INSIST(vectors_i && vectors_j && vectors_k);
+  COMET_INSIST(vectors_i_buf && vectors_j_buf && vectors_k_buf);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(k_block >= 0 && k_block < env->num_block_vector());
+  COMET_INSIST(! (env->proc_num_vector() == j_block &&
               env->proc_num_vector() != k_block));
-  GMInsist(! (env->proc_num_vector() == k_block &&
+  COMET_INSIST(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
-  GMInsist(env->is_using_linalg());
-  GMInsist(env->num_way() == NUM_WAY::_3);
-  GMInsist(vector_sums_i && vector_sums_j && vector_sums_k);
+  COMET_INSIST(env->is_using_linalg());
+  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
   /*---Initializations---*/
 
@@ -753,7 +753,7 @@ void gm_compute_3way_nums_gpu_start_(
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
     vars_next.index_01 = gm_mod_i(vars_next.step_num, 2);
     if (vars_next.I_max <= nvl) {
-      GMInsist(vars_next_I_max_dim <= nvl &&
+      COMET_INSIST(vars_next_I_max_dim <= nvl &&
                "Block size rounding-up error.");
       // Create buffer aliases with required shape.
       if (env->do_reduce()) {
@@ -919,12 +919,12 @@ void gm_compute_3way_nums_gpu_start_(
   // Terminations
 
   for (int i=0; i<2; ++i) {
-    GMInsist(!lock_tmp_buf_h[i]);
-    GMInsist(!lock_tmp_buf_d[i]);
-    GMInsist(!lock_matX_buf_h[i]);
-    GMInsist(!lock_matX_buf_d[i]);
-    GMInsist(!lock_matB_buf_h[i]);
-    GMInsist(!lock_matB_buf_d[i]);
+    COMET_INSIST(!lock_tmp_buf_h[i]);
+    COMET_INSIST(!lock_tmp_buf_d[i]);
+    COMET_INSIST(!lock_matX_buf_h[i]);
+    COMET_INSIST(!lock_matX_buf_d[i]);
+    COMET_INSIST(!lock_matB_buf_h[i]);
+    COMET_INSIST(!lock_matB_buf_d[i]);
   }
 
   GMSectionInfo_destroy(si, env);

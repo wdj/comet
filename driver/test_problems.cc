@@ -30,7 +30,7 @@ namespace comet {
 /*---Set the entries of the vectors---*/
 
 void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
-  GMInsist(vectors && env);
+  COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {
     return;
@@ -86,8 +86,8 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
           rand_value >>= shift_amount > 0 ? shift_amount : 0;
           /*---Store---*/
           GMFloat float_value = (GMFloat)rand_value;
-          GMInsist((size_t)float_value == rand_value);
-          GMInsist(float_value * vectors->num_field_active <
+          COMET_INSIST((size_t)float_value == rand_value);
+          COMET_INSIST(float_value * vectors->num_field_active <
                          ((size_t)1)<<mantissa_digits<GMFloat>());
           GMVectors_float_set(vectors, fl, vl, float_value, env);
         } /*---field_local---*/
@@ -144,16 +144,16 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false && "Invalid data type.");
+      COMET_INSIST(false && "Invalid data type.");
   } /*---switch---*/
 }
 
 //-----------------------------------------------------------------------------
 
 static size_t perm_shuffle(size_t key, size_t i, size_t n) {
-  GMAssert((key & (~(size_t)1)) == 0);
-  GMAssert(i>=0 && i<n);
-  GMAssert(n>=0);
+  COMET_ASSERT((key & (~(size_t)1)) == 0);
+  COMET_ASSERT(i>=0 && i<n);
+  COMET_ASSERT(n>=0);
 
   // For an integer between 0 and n-1, permute it to another such integer.
   // The permutation choice is specified by 1 bit.
@@ -162,7 +162,7 @@ static size_t perm_shuffle(size_t key, size_t i, size_t n) {
 
   const size_t nhalf = (n+1-key)/2;
   const size_t result = i < nhalf ? 2*i + key : 2*(i-nhalf) + 1 - key;
-  GMAssert(result>=0 && result<n);
+  COMET_ASSERT(result>=0 && result<n);
   return result;
 }
 
@@ -179,9 +179,9 @@ enum {NUM_SHUFFLE = 3};
 #endif
 
 static size_t perm(size_t key, size_t i, size_t n) {
-  GMAssert((key & (~(size_t)((1<<NUM_SHUFFLE)-1))) == 0);
-  GMAssert(i>=0 && i<n);
-  GMAssert(n>=0);
+  COMET_ASSERT((key & (~(size_t)((1<<NUM_SHUFFLE)-1))) == 0);
+  COMET_ASSERT(i>=0 && i<n);
+  COMET_ASSERT(n>=0);
 
   // For an integer between 0 and n-1, permute it to another such integer.
   // The permutation choice is specified by NUM_SHUFFLE bits.
@@ -192,7 +192,7 @@ static size_t perm(size_t key, size_t i, size_t n) {
     result = perm_shuffle(key_resid&1, result, n);
     key_resid >>= 1;
   }
-  GMAssert(result>=0 && result<n);
+  COMET_ASSERT(result>=0 && result<n);
   return result;
 }
 
@@ -203,7 +203,7 @@ static size_t perm(size_t key, size_t i, size_t n) {
 //-----------------------------------------------------------------------------
 
 void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
-  GMInsist(vectors && env);
+  COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {
     return;
@@ -262,7 +262,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
 
           const size_t pf = perm(0, f, nfa); // permuted field number
           const size_t g = pf / group_size_max; // group number
-          GMAssert(g>=0 && g<num_group);
+          COMET_ASSERT(g>=0 && g<num_group);
 
           const size_t pv = perm(g, v, nva); // permuted vector number
 
@@ -272,8 +272,8 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
           const GMFloat float_value = value;
 
           /*---Store---*/
-          GMInsist(float_value * nfa >= 1);
-          GMInsist(float_value * nfa < max_float);
+          COMET_INSIST(float_value * nfa >= 1);
+          COMET_INSIST(float_value * nfa < max_float);
           GMVectors_float_set(vectors, fl, vl, float_value, env);
 
         } /*---field_local---*/
@@ -307,7 +307,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
 
           const size_t pf = perm(0, f, nfa);
           const size_t g = pf / group_size_max;
-          GMAssert(g>=0 && g<num_group);
+          COMET_ASSERT(g>=0 && g<num_group);
 
           const size_t pv = perm(g, v, nva);
 
@@ -330,7 +330,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
     /*--------------------*/
     default:
     /*--------------------*/
-      GMInsist(false && "Invalid data type.");
+      COMET_INSIST(false && "Invalid data type.");
   } /*---switch---*/
 }
 
@@ -338,14 +338,14 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
 
 void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
                            GMEnv* env) {
-  GMInsist(vectors && env);
+  COMET_INSIST(vectors && env);
 
   if (problem_type == GM_PROBLEM_TYPE_RANDOM) {
     set_vectors_random_(vectors, verbosity, env);
   } else if (problem_type == GM_PROBLEM_TYPE_ANALYTIC) {
     set_vectors_analytic_(vectors, verbosity, env);
   } else {
-    GMInsist(false && "Invalid problem_type");
+    COMET_INSIST(false && "Invalid problem_type");
   }
 }
 
@@ -354,9 +354,9 @@ void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
 
 void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                              GMEnv* env) {
-  GMInsist(metrics && do_ && env);
-  GMInsist(GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type);
-  GMInsist(NULL == do_->input_file_path);
+  COMET_INSIST(metrics && do_ && env);
+  COMET_INSIST(GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type);
+  COMET_INSIST(NULL == do_->input_file_path);
 
   if (! env->is_proc_active()) {
     return;
@@ -444,8 +444,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
           } //---g
 
-          GMInsist(n == (size_t)float_n);
-          GMInsist(d == (size_t)float_d);
+          COMET_INSIST(n == (size_t)float_n);
+          COMET_INSIST(d == (size_t)float_d);
 
           const GMFloat multiplier = (GMFloat)2;
 
@@ -683,7 +683,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
-    GMInsist(env->metric_type() == MetricType::CCC);
+    COMET_INSIST(env->metric_type() == MetricType::CCC);
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =
@@ -824,7 +824,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     } break;
     /*--------------------*/
     default:
-      GMInsist(false && "Invalid data type.");
+      COMET_INSIST(false && "Invalid data type.");
   } /*---switch---*/
   do_->num_incorrect += num_incorrect;
   do_->max_incorrect_diff = max_incorrect_diff > do_->max_incorrect_diff ?
@@ -834,7 +834,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 //=============================================================================
 
 void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
-  GMInsist(metrics && do_ && env);
+  COMET_INSIST(metrics && do_ && env);
 
   if (NULL != do_->input_file_path) {
     return;

@@ -26,8 +26,8 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   int mpi_tag,
                                   GMEnv* env) {
-  GMInsist(vectors && env);
-  GMInsist(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
+  COMET_INSIST(vectors && env);
+  COMET_INSIST(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
 
   MPI_Request mpi_request;
 
@@ -44,8 +44,8 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   int proc_num,
                                   int mpi_tag,
                                   GMEnv* env) {
-  GMInsist(vectors && env);
-  GMInsist(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
+  COMET_INSIST(vectors && env);
+  COMET_INSIST(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
 
   MPI_Request mpi_request;
 
@@ -59,7 +59,7 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
 //-----------------------------------------------------------------------------
 
 void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMInsist(mpi_request && env);
+  COMET_INSIST(mpi_request && env);
 
   MPI_Status mpi_status;
 
@@ -69,7 +69,7 @@ void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMInsist(mpi_request && env);
+  COMET_INSIST(mpi_request && env);
 
   MPI_Status mpi_status;
 
@@ -83,8 +83,8 @@ void gm_reduce_metrics(GMMetrics* metrics,
                        GMMirroredBuf* metrics_buf_target,
                        GMMirroredBuf* metrics_buf_source,
                        GMEnv* env) {
-  GMInsist(metrics && env);
-  GMInsist(metrics_buf_target && metrics_buf_source);
+  COMET_INSIST(metrics && env);
+  COMET_INSIST(metrics_buf_target && metrics_buf_source);
 
   const int nvl = metrics->num_vector_local;
 
@@ -99,8 +99,8 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
                                     GMMirroredBuf* metrics_buf_target,
                                     GMMirroredBuf* metrics_buf_source,
                                     GMEnv* env) {
-  GMInsist(metrics && env);
-  GMInsist(metrics_buf_target && metrics_buf_source);
+  COMET_INSIST(metrics && env);
+  COMET_INSIST(metrics_buf_target && metrics_buf_source);
 
   const int nvl = metrics->num_vector_local;
 
@@ -115,7 +115,7 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
-  GMInsist(mpi_request && env);
+  COMET_INSIST(mpi_request && env);
 
   MPI_Status mpi_status;
 
@@ -127,7 +127,7 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
 
 void gm_set_vectors_start(GMVectors* vectors, GMMirroredBuf* vectors_buf,
                           GMEnv* env) {
-  GMInsist(vectors && vectors_buf && env);
+  COMET_INSIST(vectors && vectors_buf && env);
 
   gm_linalg_set_matrix_start(vectors_buf, env);
 }
@@ -135,7 +135,7 @@ void gm_set_vectors_start(GMVectors* vectors, GMMirroredBuf* vectors_buf,
 //-----------------------------------------------------------------------------
 
 void gm_set_vectors_wait(GMEnv* env) {
-  GMInsist(env);
+  COMET_INSIST(env);
 
   gm_linalg_set_matrix_wait(env);
 }
@@ -145,7 +145,7 @@ void gm_set_vectors_wait(GMEnv* env) {
 
 void gm_get_metrics_start(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                           GMEnv* env) {
-  GMInsist(metrics && metrics_buf && env);
+  COMET_INSIST(metrics && metrics_buf && env);
 
   gm_linalg_get_matrix_start(metrics_buf, env);
 }
@@ -154,7 +154,7 @@ void gm_get_metrics_start(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
 void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                          GMEnv* env) {
-  GMInsist(metrics && metrics_buf && env);
+  COMET_INSIST(metrics && metrics_buf && env);
 
   gm_linalg_get_matrix_wait(env);
 }

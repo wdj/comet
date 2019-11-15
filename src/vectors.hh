@@ -96,13 +96,13 @@ static GMFloat* GMVectors_float_ptr(GMVectors* const vectors,
                                    int field_local,
                                    int vector_local,
                                    GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(env);
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
+  COMET_ASSERT(vectors);
+  COMET_ASSERT(field_local >= 0);
+  COMET_ASSERT(field_local < vectors->num_field_local);
+  COMET_ASSERT(vector_local >= 0);
+  COMET_ASSERT(vector_local < vectors->num_vector_local);
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
 
   return ((GMFloat*)(vectors->data)) + (field_local +
                         vectors->num_field_local*(size_t)vector_local);
@@ -115,12 +115,12 @@ static void GMVectors_float_set(GMVectors* vectors,
                                 int vector_local,
                                 GMFloat value,
                                 GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
+  COMET_ASSERT(vectors);
+  COMET_ASSERT(field_local >= 0);
+  COMET_ASSERT(field_local < vectors->num_field_local);
+  COMET_ASSERT(vector_local >= 0);
+  COMET_ASSERT(vector_local < vectors->num_vector_local);
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
 
   *(GMVectors_float_ptr(vectors, field_local, vector_local, env)) = value;
 
@@ -133,11 +133,11 @@ static void GMVectors_float_set(GMVectors* vectors,
 static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
                                               size_t index,
                                               GMEnv* env) {
-  GMAssert(vectors);
-  //GMAssert(index >= 0);
-  GMAssert(index < vectors->num_vector_local*(size_t)vectors->num_field_local);
-  GMAssert(env);
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
+  COMET_ASSERT(vectors);
+  //COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < vectors->num_vector_local*(size_t)vectors->num_field_local);
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
 
   return ((GMFloat*)(vectors->data))[index];
 }
@@ -148,13 +148,13 @@ static GMFloat GMVectors_float_get(GMVectors* const vectors,
                                    int field_local,
                                    int vector_local,
                                    GMEnv* env) {
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(env);
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
+  COMET_ASSERT(vectors);
+  COMET_ASSERT(field_local >= 0);
+  COMET_ASSERT(field_local < vectors->num_field_local);
+  COMET_ASSERT(vector_local >= 0);
+  COMET_ASSERT(vector_local < vectors->num_vector_local);
+  COMET_ASSERT(env);
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
 
   return GMVectors_float_get_from_index(vectors,
     field_local + vectors->num_field_local*(size_t)vector_local, env);
@@ -168,12 +168,12 @@ static GMBits2 GMVectors_bits2_get(GMVectors* vectors,
                                    int vector_local,
                                    GMEnv* env) {
   /*---This function gets a single 2-bit value---*/
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(vectors);
+  COMET_ASSERT(field_local >= 0);
+  COMET_ASSERT(field_local < vectors->num_field_local);
+  COMET_ASSERT(vector_local >= 0);
+  COMET_ASSERT(vector_local < vectors->num_vector_local);
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
 
   /*---The field address is expressible as a tuple:
        which GMBits2x64 value,
@@ -206,13 +206,13 @@ static void GMVectors_bits2_set(GMVectors* vectors,
                                 GMBits2 value,
                                 GMEnv* env) {
   /*---This function sets a single 2-bit value---*/
-  GMAssert(vectors);
-  GMAssert(field_local >= 0);
-  GMAssert(field_local < vectors->num_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(value+1 >= 1 && value < (1 << GM_BITS2_MAX_VALUE_BITS));
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(vectors);
+  COMET_ASSERT(field_local >= 0);
+  COMET_ASSERT(field_local < vectors->num_field_local);
+  COMET_ASSERT(vector_local >= 0);
+  COMET_ASSERT(vector_local < vectors->num_vector_local);
+  COMET_ASSERT(value+1 >= 1 && value < (1 << GM_BITS2_MAX_VALUE_BITS));
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
 
   /*---The field address is expressible as a tuple:
        which GMBits2x64 value,
@@ -237,7 +237,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
   *address &= ~(((GMBits1_2x64)3) << (size0 * field_index0));
   *address |= ((GMBits1_2x64)value) << (size0 * field_index0);
 
-  GMAssert(value ==
+  COMET_ASSERT(value ==
            GMVectors_bits2_get(vectors, field_local, vector_local, env));
 }
 
@@ -248,12 +248,12 @@ static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
                                           int vector_local,
                                           GMEnv* env) {
   /*---This function accesses an entire packed value containing 2-bit values---*/
-  GMAssert(vectors);
-  GMAssert(packedval_field_local >= 0);
-  GMAssert(packedval_field_local < vectors->num_packedval_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(vectors);
+  COMET_ASSERT(packedval_field_local >= 0);
+  COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);
+  COMET_ASSERT(vector_local >= 0);
+  COMET_ASSERT(vector_local < vectors->num_vector_local);
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
 
   const size_t index = packedval_field_local +
     vectors->num_packedval_field_local*(size_t)vector_local;
@@ -269,12 +269,12 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
                                    GMBits2x64 value,
                                    GMEnv* env) {
   /*---This function sets an entire packed value containing 2-bit values---*/
-  GMAssert(vectors);
-  GMAssert(packedval_field_local >= 0);
-  GMAssert(packedval_field_local < vectors->num_packedval_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(vectors);
+  COMET_ASSERT(packedval_field_local >= 0);
+  COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);
+  COMET_ASSERT(vector_local >= 0);
+  COMET_ASSERT(vector_local < vectors->num_vector_local);
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
 
   const size_t index = packedval_field_local +
     vectors->num_packedval_field_local*(size_t)vector_local;
@@ -290,12 +290,12 @@ static GMBits2x64 GMVectors_bits2x64_get(GMVectors* vectors,
                                          int vector_local,
                                          GMEnv* env) {
   /*---This function gets an entire packed value containing 2-bit values---*/
-  GMAssert(vectors);
-  GMAssert(packedval_field_local >= 0);
-  GMAssert(packedval_field_local < vectors->num_packedval_field_local);
-  GMAssert(vector_local >= 0);
-  GMAssert(vector_local < vectors->num_vector_local);
-  GMAssert(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
+  COMET_ASSERT(vectors);
+  COMET_ASSERT(packedval_field_local >= 0);
+  COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);
+  COMET_ASSERT(vector_local >= 0);
+  COMET_ASSERT(vector_local < vectors->num_vector_local);
+  COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
 
   const size_t index = packedval_field_local +
     vectors->num_packedval_field_local*(size_t)vector_local;

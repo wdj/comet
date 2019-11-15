@@ -34,8 +34,8 @@ GMMirroredBuf GMMirroredBuf_null(void) {
 
 void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1, 
                           GMEnv* env) {
-  GMInsist(p && env);
-  GMInsist(dim0 + 1 >= 1 && dim1 + 1 >= 1);
+  COMET_INSIST(p && env);
+  COMET_INSIST(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
   gm_linalg_malloc(p, dim0, dim1, env);
   p->active = env->compute_method() == ComputeMethod::GPU ? p->d : p->h;
@@ -47,8 +47,8 @@ void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
 void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
                           GMEnv* env) {
 
-  GMInsist(p && p_old && env);
-  GMInsist(dim0 <= p_old->dim0);
+  COMET_INSIST(p && p_old && env);
+  COMET_INSIST(dim0 <= p_old->dim0);
 
   p->h = p_old->h;
   p->d = p_old->d;
@@ -63,7 +63,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
 /// \brief Mirrored buf pseudo-destructor
 
 void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env) {
-  GMInsist(p && env);
+  COMET_INSIST(p && env);
 
   if (! p->is_alias) {
     gm_linalg_free(p, env);

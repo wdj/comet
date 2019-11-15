@@ -115,7 +115,7 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 
   // Check computed element count.
 
-  GMInsist(metrics.num_elts_local == metrics.num_elts_local_computed &&
+  COMET_INSIST(metrics.num_elts_local == metrics.num_elts_local_computed &&
            "Failure to compute all requested metrics.");
 
   // Compute global counts of compares.

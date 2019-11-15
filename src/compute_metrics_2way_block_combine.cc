@@ -35,10 +35,10 @@ void gm_compute_2way_proc_combine_czek_(
    bool do_compute_triang_only,
    GMEnv* env) {
 
-  GMInsist(metrics && metrics_buf);
-  GMInsist(vector_sums_left && vector_sums_right && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(vector_sums_left && vector_sums_right && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   // NOTE: here and elsewhere, vector_sums_left and vector_sums_right
   // may sometimes be aliases.  Since they are read-only, there should
@@ -183,10 +183,10 @@ void gm_compute_2way_proc_combine_ccc_(
   bool do_compute_triang_only,
   GMEnv* env) {
 
-  GMInsist(metrics && metrics_buf);
-  GMInsist(vector_sums_left && vector_sums_right && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(vector_sums_left && vector_sums_right && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   const int nvl = metrics->num_vector_local;
   const GMVectorSums* vs_l = vector_sums_left;
@@ -226,7 +226,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)(metrics->num_field_active),
                        coords, env->proc_num());
-                GMInsist((! error1) && "Violation of algorithm computational invariant.");
+                COMET_INSIST((! error1) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
@@ -241,7 +241,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r11, (uint64_t)si1,
                        (uint64_t)r10 + (uint64_t)r11, (uint64_t)(2 * si1),
                        coords, env->proc_num());
-                GMInsist((! error2) && "Violation of algorithm computational invariant.");
+                COMET_INSIST((! error2) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
@@ -256,25 +256,25 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r11, (uint64_t)sj1,
                        (uint64_t)r01 + (uint64_t)r11, (uint64_t)(2 * sj1),
                        coords, env->proc_num());
-                GMInsist((! error3) && "Violation of algorithm computational invariant.");
+                COMET_INSIST((! error3) && "Violation of algorithm computational invariant.");
               }
             }
 #endif
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
             if (! env->sparse()) {
               // 4-sum check.
               const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
               const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-              GMAssert((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
+              COMET_ASSERT((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
                            (uint64_t)r11 ==
                        (uint64_t)(4 * metrics->num_field_active));
               // 2-sum checks.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-              GMAssert((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
-              GMAssert((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
+              COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
+              COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
             }
 #endif
           } /*---for i---*/
@@ -307,7 +307,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r00, (uint64_t)r01, (uint64_t)r10,
                        (uint64_t)r11, (uint64_t)(metrics->num_field_active),
                        coords, env->proc_num());
-                GMInsist((! error1) && "Violation of algorithm computational invariant.");
+                COMET_INSIST((! error1) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
@@ -322,7 +322,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r11, (uint64_t)si1,
                        (uint64_t)r10 + (uint64_t)r11, (uint64_t)(2 * si1),
                        coords, env->proc_num());
-                GMInsist((! error2) && "Violation of algorithm computational invariant.");
+                COMET_INSIST((! error2) && "Violation of algorithm computational invariant.");
               }
               // 2-sum check.
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
@@ -337,25 +337,25 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)r11, (uint64_t)sj1,
                        (uint64_t)r01 + (uint64_t)r11, (uint64_t)(2 * sj1),
                        coords, env->proc_num());
-                GMInsist((! error3) && "Violation of algorithm computational invariant.");
+                COMET_INSIST((! error3) && "Violation of algorithm computational invariant.");
               }
             }
 #endif
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
             if (! env->sparse()) {
               // 4-sum check.
               const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
               const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
               const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
               const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-              GMAssert((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
+              COMET_ASSERT((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
                            (uint64_t)r11 ==
                        (uint64_t)(4 * metrics->num_field_active));
               // 2-sum checks.
               const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
               const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-              GMAssert((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
-              GMAssert((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
+              COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
+              COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
             }
 #endif
           } /*---for i---*/
@@ -372,21 +372,21 @@ void gm_compute_2way_proc_combine_ccc_(
           const GMTally2x2 value =
               GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
           if (! env->sparse()) {
             // 4-sum check.
             const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
             const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
             const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
             const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
-            GMAssert((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
+            COMET_ASSERT((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
                          (uint64_t)r11 ==
                      (uint64_t)(4 * metrics->num_field_active));
             // 2-sum checks.
             const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
             const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-            GMAssert((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
-            GMAssert((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
+            COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
+            COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
           }
 #endif
         } /*---for i---*/
@@ -484,10 +484,10 @@ void gm_compute_2way_proc_combine_duo_(
   bool do_compute_triang_only,
   GMEnv* env) {
 
-  GMInsist(metrics && metrics_buf);
-  GMInsist(vector_sums_left && vector_sums_right && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(vector_sums_left && vector_sums_right && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   const int nvl = metrics->num_vector_local;
   const GMVectorSums* vs_l = vector_sums_left;
@@ -628,10 +628,10 @@ void gm_compute_2way_proc_combine(
   bool do_compute_triang_only,
   GMEnv* env) {
 
-  GMInsist(metrics && metrics_buf);
-  GMInsist(vector_sums_left && vector_sums_right && env);
-  GMInsist(j_block >= 0 && j_block < env->num_block_vector());
-  GMInsist(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(vector_sums_left && vector_sums_right && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   switch (env->metric_type()) {
     case MetricType::CZEK: {
@@ -650,7 +650,7 @@ void gm_compute_2way_proc_combine(
                                         j_block, do_compute_triang_only, env);
     } break;
     default:
-      GMInsistInterface(env, false && "Selected metric_type unimplemented.");
+      COMET_INSIST_INTERFACE(env, false && "Selected metric_type unimplemented.");
   } /*---case---*/
 }
 

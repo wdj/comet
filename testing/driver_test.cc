@@ -32,7 +32,7 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 
 bool can_run(const char* options) {
 
-  GMInsist(options);
+  COMET_INSIST(options);
 
   comet::Env env(options);
 
@@ -42,7 +42,7 @@ bool can_run(const char* options) {
 //=============================================================================
 
 bool compare_2runs(const char* options1, const char* options2) {
-  GMInsist(options1 && options2);
+  COMET_INSIST(options1 && options2);
 
   if (!(can_run(options1) && can_run(options2))) {
     return true;
@@ -78,7 +78,7 @@ bool compare_2runs(const char* options1, const char* options2) {
 bool compare_3runs(const char* options1,
                    const char* options2,
                    const char* options3) {
-  GMInsist(options1 && options2 && options3);
+  COMET_INSIST(options1 && options2 && options3);
 
   if (!(can_run(options1) && can_run(options2) && can_run(options3))) {
     return true;

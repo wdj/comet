@@ -158,10 +158,10 @@ GMMetrics GMMetrics_null() {
 
 void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
                                    GMEnv* env) {
-  GMInsist(metrics && env);
-  GMInsist(nvl >= 0);
-  GMInsist(env->num_block_vector() <= 2 || nvl % 6 == 0);
-  GMInsist(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(metrics && env);
+  COMET_INSIST(nvl >= 0);
+  COMET_INSIST(env->num_block_vector() <= 2 || nvl % 6 == 0);
+  COMET_INSIST(env->num_way() == NUM_WAY::_3);
 
   metrics->num_elts_local = 0;
 
@@ -178,7 +178,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     const int J_hi = gm_J_hi(section_num, nvl, 1, env);
     const int64_t trap_size_lo = gm_trap_size(J_lo, nvl);
     const int64_t trap_size_hi = gm_trap_size(J_hi, nvl);
-    GMInsist(trap_size_hi >= trap_size_lo && "Error in sizes calculation.");
+    COMET_INSIST(trap_size_hi >= trap_size_lo && "Error in sizes calculation.");
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part1_[section_num]
       = (int64_t)metrics->num_elts_local - trap_size_lo;
@@ -186,7 +186,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
       if (gm_proc_r_active(section_block_num, env)) {
         //---Elements in slice of trapezoid.
         const int64_t elts_local = trap_size_hi - trap_size_lo;
-        GMInsist(elts_local >= 0 && "Error in sizes calculation.");
+        COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
         metrics->num_elts_local += elts_local;
         metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
       } // if
@@ -224,7 +224,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
           //---Elements in slice of triang prism.
           const int64_t elts_local = (int64_t)nvl *
                                      (triang_size_hi - triang_size_lo);
-          GMInsist(elts_local >= 0 && "Error in sizes calculation.");
+          COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
           metrics->num_elts_local += elts_local;
           metrics->section_num_valid_part2_[section_num] = (elts_local != 0);
         } // if
@@ -263,7 +263,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
             //---Elements in slice of block/cube.
             const int64_t elts_local = (int64_t)nvl * (int64_t)nvl *
                                        (int64_t)(J_hi - J_lo);
-            GMInsist(elts_local >= 0 && "Error in sizes calculation.");
+            COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
             metrics->num_elts_local += elts_local;
           } // if
         } // if
@@ -282,7 +282,7 @@ void GMMetrics_create(GMMetrics* metrics,
                       GMDecompMgr* dm,
                       GMMetricsMem* metrics_mem,
                       GMEnv* env) {
-  GMInsist(metrics && dm && env);
+  COMET_INSIST(metrics && dm && env);
 
   *metrics = GMMetrics_null();
 
@@ -290,19 +290,19 @@ void GMMetrics_create(GMMetrics* metrics,
     return;
   }
 
-  GMInsistInterface(env, (env->metric_type() != MetricType::DUO ||
+  COMET_INSIST_INTERFACE(env, (env->metric_type() != MetricType::DUO ||
                           env->sparse()) && "DUO method requires sparse input.");
 
-  GMInsistInterface(env, (env->all2all() || env->num_proc_repl() == 1)
+  COMET_INSIST_INTERFACE(env, (env->all2all() || env->num_proc_repl() == 1)
           && "Multidim parallelism only available for all2all case");
 
   /*---The following less important cases are not yet tested---*/
 
-  GMInsistInterface(env, (env->all2all() ||
+  COMET_INSIST_INTERFACE(env, (env->all2all() ||
                     dm->num_field == dm->num_field_active)
                     && "This case currently not supported.");
 
-  GMInsistInterface(env, (env->compute_method() == ComputeMethod::GPU ||
+  COMET_INSIST_INTERFACE(env, (env->compute_method() == ComputeMethod::GPU ||
                     dm->num_field == dm->num_field_active)
                     && "This case currently not supported.");
 
@@ -333,7 +333,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const int num_block = env->num_block_vector();
 
-  GMInsistInterface(
+  COMET_INSIST_INTERFACE(
       env,
       metrics->num_vector_local >= env->num_way()
         && "Currently require number of vecs on a proc to be at least num-way");
@@ -347,11 +347,11 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute number of elements etc.---*/
 
-  GMInsistInterface(env, env->stage_num() >= 0
+  COMET_INSIST_INTERFACE(env, env->stage_num() >= 0
     && env->stage_num() < env->num_stage()
     && "Invalid stage number specified.");
 
-  GMInsistInterface(env, env->phase_num() >= 0 && env->phase_num() < env->num_phase()
+  COMET_INSIST_INTERFACE(env, env->phase_num() >= 0 && env->phase_num() < env->num_phase()
                     && "Invalid phase number specified.");
 
   GMMetrics_ccc_check_size_nofp_2(metrics, env);
@@ -363,10 +363,10 @@ void GMMetrics_create(GMMetrics* metrics,
   if (env->num_way() == NUM_WAY::_2 && env->all2all()) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_stage() == 1
+    COMET_INSIST_INTERFACE(env, env->num_stage() == 1
                       && "Staged computations not allowed for 2-way case.");
 
-    GMInsistInterface(env, env->num_phase() <= 1 + num_block / 2
+    COMET_INSIST_INTERFACE(env, env->num_phase() <= 1 + num_block / 2
                       && "num_phase must be at most 1 + num_proc_vector/2.");
 
     /*---Store the following in this block-row:
@@ -408,13 +408,13 @@ void GMMetrics_create(GMMetrics* metrics,
     /*---PART C.1: (triangle) i_block==j_block part---*/
     size_t index = 0;
     if (have_main_diag) {
-      GMAssert(env->proc_num_repl() == 0);
-      GMAssert(gm_proc_r_active(0, env));
+      COMET_ASSERT(env->proc_num_repl() == 0);
+      COMET_ASSERT(gm_proc_r_active(0, env));
       for (int j = 0; j < nvl; ++j) {
         const size_t j_global = j + nvl * i_block;
         for (int i = 0; i < j; ++i) {
           const size_t i_global = i + nvl * i_block;
-          GMAssert(GMMetrics_helper2way_maindiag_block_(metrics, i, j, i_block,
+          COMET_ASSERT(GMMetrics_helper2way_maindiag_block_(metrics, i, j, i_block,
                                                         env) == index);
           metrics->coords_global_from_index[index++] =
               i_global + metrics->num_vector * j_global;
@@ -441,7 +441,7 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t j_global = j_global_unwrapped % metrics->num_vector;
           const size_t i_global = i + nvl * i_block;
           const size_t index_this = index + i + j * (size_t)nvl;
-          GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+          COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
           metrics->coords_global_from_index[index_this] =
               i_global + metrics->num_vector * j_global;
         }
@@ -450,17 +450,17 @@ void GMMetrics_create(GMMetrics* metrics,
     } /*---for diag---*/
 
     /*---Final check---*/
-    GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (env->num_way() == NUM_WAY::_3 && env->all2all()) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_phase() <= gm_num_section_blocks(env)
+    COMET_INSIST_INTERFACE(env, env->num_phase() <= gm_num_section_blocks(env)
      && "num_phase must be at most (num_proc_vector+1)*(num_proc_vector+2)/2.");
 
     //---Make the following assumption to greatly simplify calculations.
-    GMInsistInterface(env, (num_block<=2 || metrics->num_vector_local % 6 == 0)
+    COMET_INSIST_INTERFACE(env, (num_block<=2 || metrics->num_vector_local % 6 == 0)
                       && "3-way all2all case requires num vectors per proc "
                         "divisible by 6.");
 
@@ -505,7 +505,7 @@ void GMMetrics_create(GMMetrics* metrics,
               const size_t k_global = k + nvl * k_block;
                 const size_t i_global = i + nvl * i_block;
                 const size_t index_this = index + i + j*(size_t)(k-(j+1));
-                GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+                COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
                 metrics->coords_global_from_index[index_this] =
                     i_global +
                   metrics->num_vector *
@@ -543,7 +543,7 @@ void GMMetrics_create(GMMetrics* metrics,
                   const size_t k_global = k + nvl * k_block;
                   const size_t i_global = i + nvl * i_block;
                   const size_t index_this = index + i + nvl*(size_t)(k-(j+1));
-                  GMAssert(index_this>=0 && index_this<metrics->num_elts_local);
+                  COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
                   metrics->coords_global_from_index[index_this] =
                       i_global +
                     metrics->num_vector *
@@ -605,11 +605,11 @@ void GMMetrics_create(GMMetrics* metrics,
                     const size_t j_global = j + nvl * j_block;
                     const size_t k_global = k + nvl * k_block;
                     const size_t i_global = i + nvl * i_block;
-                    GMAssert(i_global>=0 && metrics->num_vector-i_global>0);
-                    GMAssert(j_global>=0 && metrics->num_vector-j_global>0);
-                    GMAssert(k_global>=0 && metrics->num_vector-k_global>0);
+                    COMET_ASSERT(i_global>=0 && metrics->num_vector-i_global>0);
+                    COMET_ASSERT(j_global>=0 && metrics->num_vector-j_global>0);
+                    COMET_ASSERT(k_global>=0 && metrics->num_vector-k_global>0);
                     const size_t index_this = index + I + K * (size_t)nvl;
-                    GMAssert(index_this>=0 &&
+                    COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_elts_local);
                     metrics->coords_global_from_index[index_this] =
                         i_global +
@@ -626,16 +626,16 @@ void GMMetrics_create(GMMetrics* metrics,
       } // k_i_offset
     } // section_step
 
-    GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (env->num_way() == NUM_WAY::_2 && ! env->all2all()) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_stage() == 1 &&
+    COMET_INSIST_INTERFACE(env, env->num_stage() == 1 &&
                       "Staged computations not allowed for non-all2all case.");
 
-    GMInsistInterface(env, env->num_phase() == 1 &&
+    COMET_INSIST_INTERFACE(env, env->num_phase() == 1 &&
                       "Phased computations not allowed for non-all2all case.");
 
     metrics->num_elts_local = nchoosek;
@@ -653,16 +653,16 @@ void GMMetrics_create(GMMetrics* metrics,
             i_global + metrics->num_vector * j_global;
       }
     }
-    GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (env->num_way() == NUM_WAY::_3 && ! env->all2all()) {
   /*==================================================*/
 
-    GMInsistInterface(env, env->num_stage() == 1
+    COMET_INSIST_INTERFACE(env, env->num_stage() == 1
                       && "Staged computations not allowed for non-all2all case.");
 
-    GMInsistInterface(env, env->num_phase() == 1
+    COMET_INSIST_INTERFACE(env, env->num_phase() == 1
                       && "Phased computations not allowed for non-all2all case.");
 
     metrics->num_elts_local = nchoosek;
@@ -679,7 +679,7 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t k_global = k + nvl * k_block;
         for (int i = 0; i < j; ++i) {
           const size_t i_global = i + nvl * i_block;
-          GMAssert(index < metrics->num_elts_local);
+          COMET_ASSERT(index < metrics->num_elts_local);
           metrics->coords_global_from_index[index++] =
               i_global +
               metrics->num_vector *
@@ -687,12 +687,12 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
     }
-    GMInsist(index == metrics->num_elts_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else {
   /*==================================================*/
-    GMInsistInterface(env, 0 == 1 && "Invalid set of options");
+    COMET_INSIST_INTERFACE(env, 0 == 1 && "Invalid set of options");
     /*---LATER: generalize this to N-way---*/
   }
 
@@ -702,13 +702,13 @@ void GMMetrics_create(GMMetrics* metrics,
 
   if (env->num_way() == NUM_WAY::_2 &&
       env->num_phase() == 1 && env->all2all()) {
-    GMInsist(num_elts == (metrics->num_vector) * (size_t)
+    COMET_INSIST(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) / 2);
   }
 
   if (env->num_way() == NUM_WAY::_3 && env->num_stage() == 1 &&
       env->num_phase() == 1 && env->all2all()) {
-    GMInsist(num_elts == (metrics->num_vector) * (size_t)
+    COMET_INSIST(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) * (size_t)
                                (metrics->num_vector - 2) / 6);
   }
@@ -755,7 +755,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } break;
     /*----------*/
     default:
-      GMInsist(false && "Invalid data_type_id.");
+      COMET_INSIST(false && "Invalid data_type_id.");
   } /*---switch---*/
 }
 
@@ -763,8 +763,8 @@ void GMMetrics_create(GMMetrics* metrics,
 /*---Metrics pseudo-destructor---*/
 
 void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
-  GMInsist(metrics && env);
-  GMInsist(metrics->data || ! env->is_proc_active());
+  COMET_INSIST(metrics && env);
+  COMET_INSIST(metrics->data || ! env->is_proc_active());
 
   if (! env->is_proc_active()) {
     return;
@@ -789,9 +789,9 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       size_t index,
                                       int coord_num,
                                       GMEnv* env) {
-  GMAssert(metrics && env);
-  GMAssert(index+1 >= 1 && index < metrics->num_elts_local);
-  GMAssert(coord_num >= 0 && coord_num < env->num_way());
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(coord_num >= 0 && coord_num < env->num_way());
 
   size_t result64 = 0;
 
@@ -812,11 +812,11 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
       result64 = GMMetrics_coord2_global_from_index_3(metrics, index, env);
       break;
     default:
-      GMInsistInterface(env, false && "Invalid num_way or coord_num.");
+      COMET_INSIST_INTERFACE(env, false && "Invalid num_way or coord_num.");
   } /*---case---*/
 
   const int result = (int)result64;
-  GMAssert((size_t)result == result64);
+  COMET_ASSERT((size_t)result == result64);
 
   return result;
 }
@@ -825,7 +825,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 
 void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env) {
-  GMInsist(metrics && metrics_buf && env);
+  COMET_INSIST(metrics && metrics_buf && env);
 //printf("%i %i\n", (int)metrics_buf->dim0, (int)metrics_buf->dim1);
 
   if (!(env->is_metric_type_bitwise() && env->is_using_linalg()))
@@ -854,7 +854,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 printf("%i  %i %i %i %i\n", env->compute_method(), (int)mB00, (int)mB01, (int)mB10, (int)mB11);
 #endif
 
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
       const GMTally2x2 old = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
 #endif
 
@@ -863,9 +863,9 @@ printf("%i  %i %i %i %i\n", env->compute_method(), (int)mB00, (int)mB01, (int)mB
          -= float_pad_adjustment;
 //printf("2 %zu\n", (size_t)GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]);
 
-#ifdef GM_ASSERTIONS_ON
+#ifdef COMET_ASSERTIONS_ON
       const GMTally2x2 new_ = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
-      GMAssert(GMTally2x2_get(old, 0, 0) ==
+      COMET_ASSERT(GMTally2x2_get(old, 0, 0) ==
                GMTally2x2_get(new_, 0, 0) + pad_adjustment);
 #endif
 
