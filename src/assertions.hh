@@ -11,6 +11,8 @@
 #ifndef _gm_assertions_hh_
 #define _gm_assertions_hh_
 
+#include <type_traits>
+
 //=============================================================================
 // Macros.
 
@@ -38,22 +40,6 @@
 #define GMAssert(condition) GMInsist(condition)
 #else
 #define GMAssert(condition)
-#endif
-
-//-----------------------------------------------------------------------------
-/// \brief Static (i.e., compile time) assertion macro.
-
-// TODO: replace with C++11 equivalent.
-
-#ifndef NDEBUG
-// Fail compilation and (hopefully) give a filename/line number
-#define GMStaticAssert(condition) \
-  {                               \
-    int a[(condition) ? 1 : -1];  \
-    (void) a;                     \
-  }
-#else
-#define GMStaticAssert(condition)
 #endif
 
 //=============================================================================

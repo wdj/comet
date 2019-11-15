@@ -595,7 +595,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
         beta,
         (double*)C,
         lddc_);
-      GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+      GMInsist(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_dgemm.");
     } else {
       magma_minproductblas_sgemm(
@@ -612,7 +612,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
         beta,
         (float*)C,
         lddc_);
-      GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+      GMInsist(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_sgemm.");
     }
 
@@ -656,7 +656,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       beta,
       (Float_t*)C,
       lddc_);
-    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+    GMInsist(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm4blas_zgemm.");
 
   } else if (use_mgemm2(env)) { //--------------------
@@ -697,7 +697,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       beta,
       (Float_t*)C,
       lddc_);
-    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+    GMInsist(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm2blas_zgemm.");
 
   } else if (use_mgemm3(env)) { //--------------------
@@ -738,7 +738,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       beta,
       (Float_t*)C,
       lddc_);
-    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+    GMInsist(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm3blas_zgemm.");
 
   } else if (use_mgemm5(env)) { //--------------------
@@ -779,7 +779,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       beta,
       (Float_t*)C,
       lddc_);
-    GMInsist(GMEnv_accel_last_call_succeeded(env) &&
+    GMInsist(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm5blas_zgemm.");
 
   } else { //--------------------

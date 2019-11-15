@@ -185,7 +185,7 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
   // Bound on log2(numerator)
   const int lnum = 3+lm + 2+lm + 2+lm + 2+lm;
 
-  const int shift = gm_mant_dig<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
+  const int shift = mantissa_digits<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
                                                 // always >= 0, < 128
 
   // Guarantee not to shift bits off the top.
@@ -346,7 +346,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
     const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_3(metrics,
                                          index, i0, i1, i2, env);
 
-    const double eps = 1. / ( ((size_t)1) << (gm_mant_dig<GMFloat>() - 5) );
+    const double eps = 1. / ( ((size_t)1) << (mantissa_digits<GMFloat>() - 5) );
 
     const double diff = fabs(result_intcalc - result_floatcalc);
 

@@ -414,7 +414,7 @@ static void gm_tc_buf_write_(
       env->num_way(), env->sparse(), is_right, is_duo,
       nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
 
-    GMEnv_accel_last_call_succeeded(env);
+    System::accel_last_call_succeeded();
 
 #else // USE_ACCEL
 
@@ -547,7 +547,7 @@ static void gm_tc_solve_accelblasgemmex_(
 
 #endif // USE_ACCEL
 
-    GMEnv_accel_last_call_succeeded(env);
+    System::accel_last_call_succeeded();
 
   } else { // if (env->compute_method() != ComputeMethod::GPU) {
 
@@ -829,7 +829,7 @@ static void gm_tc_repair_metrics_(
 #  endif
         nvl, nvll, nvllD2, vo);
 
-    GMEnv_accel_last_call_succeeded(env);
+    System::accel_last_call_succeeded();
 
 #else // USE_ACCEL
 
@@ -1046,7 +1046,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 #elif defined USE_HIP
     hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #endif
-    GMEnv_accel_last_call_succeeded(env);
+    System::accel_last_call_succeeded();
     env->gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
 #if defined USE_CUDA
@@ -1054,7 +1054,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 #elif defined USE_HIP
     hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #endif
-    GMEnv_accel_last_call_succeeded(env);
+    System::accel_last_call_succeeded();
     env->gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
     // Set up accel blas handle.
@@ -1122,7 +1122,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 #elif defined USE_HIP
     hipFree(tc_bufs.tc_buf_left);
 #endif
-    GMEnv_accel_last_call_succeeded(env);
+    System::accel_last_call_succeeded();
     tc_bufs.tc_buf_left = NULL;
     env->gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
@@ -1131,7 +1131,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 #elif defined USE_HIP
     hipFree(tc_bufs.tc_buf_right);
 #endif
-    GMEnv_accel_last_call_succeeded(env);
+    System::accel_last_call_succeeded();
     tc_bufs.tc_buf_right = NULL;
     env->gpu_mem_local_dec(tc_bufs.tc_buf_size);
 

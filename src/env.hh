@@ -87,6 +87,7 @@ struct System {
   static bool is_proc_num_0() {return !proc_num();}
   static int compute_capability();
   static double time();
+  static bool accel_last_call_succeeded();
 };
 
 //-----------------------------------------------------------------------------
@@ -232,6 +233,7 @@ public:
   }
   int data_type_vectors() const;
   int data_type_metrics() const;
+  MPI_Datatype metrics_mpi_type() const;
 
   bool can_run(int tc) const;
   bool can_run() const {return can_run(tc_eff());};
@@ -594,16 +596,7 @@ void GMFloat_free(GMFloat* p, size_t n, GMEnv* env);
 void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);
 
-template<typename T> int gm_mant_dig();
-
-MPI_Datatype gm_mpi_type(const GMEnv* const env);
-
 size_t gm_array_cksum(unsigned char* a, size_t n);
-
-//=============================================================================
-// Misc.
-
-bool GMEnv_accel_last_call_succeeded(const GMEnv* const env);
 
 //=============================================================================
 

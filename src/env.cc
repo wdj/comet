@@ -84,6 +84,36 @@ int System::compute_capability() {
   return compute_capability;
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Accelerator did most recent call succeed.
+
+bool System::accel_last_call_succeeded() {
+
+#if defined USE_CUDA
+  // NOTE: this read of the last error is a destructive read.
+  cudaError_t error = cudaGetLastError();
+  const bool result = error == cudaSuccess;
+
+  if (!result) {
+    printf("CUDA error detected: %s\n", cudaGetErrorString(error));
+  }
+
+  return result;
+#elif defined USE_HIP
+  // NOTE: this read of the last error is (apparently) a destructive read.
+  hipError_t error = hipGetLastError();
+  const bool result = error == hipSuccess;
+
+  if (!result) {
+    printf("HIP error detected: %s\n", hipGetErrorString(error));
+  }
+
+  return result;
+#endif
+
+  return true;
+}
+
 //=============================================================================
 // Constructor/destructor
 
@@ -379,7 +409,7 @@ void Env::parse_args_(int argc, char** argv) {
 /// \brief Utility to parse a string to construct argc/argv.
 
 void Env::create_args(char* argstring, int* argc, char** argv) {
-  size_t len = strlen(argstring);
+  const size_t len = strlen(argstring);
 
   argv[0] = &argstring[0];
   *argc = 1;
@@ -436,6 +466,90 @@ int Env::data_type_metrics() const {
   return 0;
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Determine whether requested run possible on this hardware and build.
+
+bool Env::can_run(int tc) const {
+
+  GMInsist(TC::AUTO != tc);
+
+  bool result = true;
+
+  result = result && num_proc_ <= System::num_proc();
+
+  if (num_proc_ > 1) {
+    result = result && BuildHas::MPI;
+  }
+
+  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
+    result = result && (TC::NO == tc ||
+                        (TC::FP32 == tc && BuildHas::CPUBLAS));
+  }
+
+  if (compute_method_ == ComputeMethod::GPU) {
+    result = result && BuildHas::ACCEL && System::compute_capability() > 0;
+  }
+
+//TODO: adjust this for HIP case.
+  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
+      TC::FP16 == tc) {
+    result = result && BuildHas::CUDA && System::compute_capability() >= 700;
+  }
+
+//TODO: adjust this for HIP case.
+  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
+      TC::INT8 == tc) {
+    result = result && BuildHas::CUDA && System::compute_capability() >= 750;
+  }
+
+  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
+      TC::FP32 == tc) {
+    result = result && (BuildHas::CUDA || BuildHas::HIP);
+  }
+
+  if (compute_method_ == ComputeMethod::GPU && (!is_metric_type_bitwise()
+      || (is_metric_type_bitwise() && TC::NO == tc))) {
+    result = result && BuildHas::MAGMA;
+  }
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+// \brief Select best tc value if AUTO specified.
+
+int Env::tc_eff() const {
+
+  if (TC::AUTO != tc_)
+    return tc_;
+
+  // NOTE: order is important here: fastest first.
+  for (auto tc : {TC::INT8, TC::FP16, TC::FP32}) {
+    if (can_run(tc))
+      return tc;
+  }
+
+  GMInsist(false && "Suitable tc setting not found for this platform / build.");
+  return 0;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief MPI type to be used for metrics.
+
+MPI_Datatype Env::metrics_mpi_type() const {
+
+  if (metric_type() == MetricType::CZEK) {
+    return GM_MPI_FLOAT;
+  } else if (metric_type() == MetricType::CCC) {
+    return MPI_DOUBLE_COMPLEX;
+  } else if (metric_type() == MetricType::DUO) {
+    return MPI_DOUBLE_COMPLEX;
+  }
+
+  GMInsist(false && "Invalid metric_type.");
+  return MPI_DOUBLE_COMPLEX; // Should never get here.
+}
+
 //=============================================================================
 // Counters
 
@@ -455,7 +569,7 @@ void Env::accel_sync_() const {
 # elif defined USE_HIP
     hipDeviceSynchronize();
 #endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+  GMInsist(System::accel_last_call_succeeded() &&
            "Failure in call to device synchronize.");
 }
 
@@ -603,29 +717,18 @@ void Env::streams_initialize_() {
   if (compute_method() != ComputeMethod::GPU)
     return;
 
-# if defined USE_CUDA
-    cudaStreamCreate(&stream_compute_);
-# elif defined USE_HIP
-    hipStreamCreate(&stream_compute_);
-# endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream create.");
-
-# if defined USE_CUDA
-    cudaStreamCreate(&stream_togpu_);
-# elif defined USE_HIP
-    hipStreamCreate(&stream_togpu_);
-# endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream create.");
-
-# if defined USE_CUDA
-    cudaStreamCreate(&stream_fromgpu_);
-# elif defined USE_HIP
-    hipStreamCreate(&stream_fromgpu_);
-# endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream create.");
+  for (Stream_t* const stream : {&stream_compute_, &stream_togpu_,
+                                 &stream_fromgpu_}) {
+#   if defined USE_CUDA
+      cudaStreamCreate(stream);
+#   elif defined USE_HIP
+      hipStreamCreate(stream);
+#   else
+      if (stream) {}
+#   endif
+    GMInsist(System::accel_last_call_succeeded() &&
+             "Failure in call to stream create.");
+  }
 
   are_streams_initialized_ = true;
 }
@@ -638,29 +741,18 @@ void Env::streams_terminate_() {
   if (! are_streams_initialized_)
     return;
 
-# if defined USE_CUDA
-    cudaStreamDestroy(stream_compute_);
-# elif defined USE_HIP
-    hipStreamDestroy(stream_compute_);
-# endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream destroy.");
-
-# if defined USE_CUDA
-    cudaStreamDestroy(stream_togpu_);
-# elif defined USE_HIP
-    hipStreamDestroy(stream_togpu_);
-# endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream destroy.");
-
-# if defined USE_CUDA
-    cudaStreamDestroy(stream_fromgpu_);
-# elif defined USE_HIP
-    hipStreamDestroy(stream_fromgpu_);
-# endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
-           "Failure in call to stream destroy.");
+  for (const Stream_t stream : {stream_compute_, stream_togpu_,
+                                stream_fromgpu_}) {
+#   if defined USE_CUDA
+      cudaStreamDestroy(stream);
+#   elif defined USE_HIP
+      hipStreamDestroy(stream);
+#   else
+      if (stream) {}
+#   endif
+    GMInsist(System::accel_last_call_succeeded() &&
+             "Failure in call to stream destroy.");
+  }
 
   are_streams_initialized_ = false;
 }
@@ -704,7 +796,7 @@ void Env::stream_synchronize(Stream_t stream) const {
 # elif defined USE_HIP
     hipStreamSynchronize(stream);
 # endif
-  GMInsist(GMEnv_accel_last_call_succeeded(this) &&
+  GMInsist(System::accel_last_call_succeeded() &&
            "Failure in call to stream synchronize.");
 }
 
@@ -726,7 +818,7 @@ void Env::set_num_proc_(int num_proc_vector,
     GMInsist(num_proc_field == 1);
   }
 
-  GMInsist(num_proc_base_ != 0);
+  GMInsist(num_proc_base_);
   //GMInsist(proc_num_base_ is initialized);
 
   // Set proc counts
@@ -735,7 +827,7 @@ void Env::set_num_proc_(int num_proc_vector,
   num_proc_repl_ = num_proc_repl;
   num_proc_field_ = num_proc_field;
 
-  num_proc_repl_vector_ = num_proc_vector_ * num_proc_repl_;
+  num_proc_repl_vector_ = num_proc_repl_ * num_proc_vector_;
 
   num_proc_ = num_proc_repl_vector_ * num_proc_field;
   GMInsist(num_proc_ <= num_proc_base_ &&
@@ -746,6 +838,8 @@ void Env::set_num_proc_(int num_proc_vector,
   proc_num_ = proc_num_base_;
 
   is_proc_active_ = proc_num_ < num_proc_;
+
+  // Choose axis ordering for proc axes.
 
   enum {ORDER_FRV = 0,
         ORDER_RVF = 1,
@@ -870,34 +964,6 @@ void GMFloat_check(GMFloat* const a, size_t n) {
 
 //-----------------------------------------------------------------------------
 
-template<> int gm_mant_dig<float>() {
-  GMInsist(FLT_RADIX == 2);
-  return FLT_MANT_DIG;
-}
-
-template<> int gm_mant_dig<double>() {
-  GMInsist(FLT_RADIX == 2);
-  return DBL_MANT_DIG;
-}
-
-//-----------------------------------------------------------------------------
-
-MPI_Datatype gm_mpi_type(const GMEnv* const env) {
-  GMInsist(env);
-
-  /* clang-format off */
-  const MPI_Datatype mpi_type =
-    env->metric_type() == MetricType::CZEK ? GM_MPI_FLOAT :
-    env->metric_type() == MetricType::CCC ? MPI_DOUBLE_COMPLEX :
-    env->metric_type() == MetricType::DUO ? MPI_DOUBLE_COMPLEX :
-                                                0; // should never get here
-  /* clang-format on */
-
-  return mpi_type;
-}
-
-//-----------------------------------------------------------------------------
-
 size_t gm_array_cksum(unsigned char* a, size_t n) {
   GMInsist(a);
 
@@ -911,104 +977,6 @@ size_t gm_array_cksum(unsigned char* a, size_t n) {
   }
 
   return result;
-}
-
-//=============================================================================
-// Misc.
-
-bool GMEnv_accel_last_call_succeeded(const GMEnv* const env) {
-  GMInsist(env);
-
-#if defined USE_CUDA
-  // NOTE: this read of the last error is a destructive read.
-  cudaError_t error = cudaGetLastError();
-  const bool result = error == cudaSuccess;
-
-  if (!result) {
-    printf("CUDA error detected: %s\n", cudaGetErrorString(error));
-  }
-
-  return result;
-#elif defined USE_HIP
-  // NOTE: this read of the last error is (apparently) a destructive read.
-  hipError_t error = hipGetLastError();
-  const bool result = error == hipSuccess;
-
-  if (!result) {
-    printf("HIP error detected: %s\n", hipGetErrorString(error));
-  }
-
-  return result;
-#endif
-
-  return true;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Determine whether requested run possible on this hardware and build.
-
-bool Env::can_run(int tc) const {
-
-  GMInsist(TC::AUTO != tc);
-
-  bool result = true;
-
-  result = result && num_proc_ <= System::num_proc();
-
-  if (num_proc_ > 1) {
-    result = result && BuildHas::MPI;
-  }
-
-  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
-    result = result && (TC::NO == tc ||
-                        (TC::FP32 == tc && BuildHas::CPUBLAS));
-  }
-
-  if (compute_method_ == ComputeMethod::GPU) {
-    result = result && BuildHas::ACCEL && System::compute_capability() > 0;
-  }
-
-//TODO: adjust this for HIP case.
-  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::FP16 == tc) {
-    result = result && BuildHas::CUDA && System::compute_capability() >= 700;
-  }
-
-//TODO: adjust this for HIP case.
-  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::INT8 == tc) {
-    result = result && BuildHas::CUDA && System::compute_capability() >= 750;
-  }
-
-  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::FP32 == tc) {
-    result = result && (BuildHas::CUDA || BuildHas::HIP);
-  }
-
-  if (compute_method_ == ComputeMethod::GPU && (!is_metric_type_bitwise()
-      || (is_metric_type_bitwise() && TC::NO == tc))) {
-    result = result && BuildHas::MAGMA;
-  }
-
-  return result;
-}
-
-//-----------------------------------------------------------------------------
-// \brief Select best tc value if AUTO specified.
-
-int Env::tc_eff() const {
-
-  if (TC::AUTO != tc_)
-    return tc_;
-
-  // NOTE: order is important here: fastest first.
-  for (auto tc : {TC::INT8, TC::FP16, TC::FP32}) {
-    if (can_run(tc))
-      return tc;
-  }
-
-  GMInsist(false && "Suitable tc setting not found for this platform / build.");
-  return 0;
 }
 
 //=============================================================================

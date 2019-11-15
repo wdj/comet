@@ -13,6 +13,7 @@
 
 #include "cstdint"
 #include "cfloat"
+#include <limits>
 
 #include "assertions.hh"
 
@@ -56,17 +57,17 @@ typedef float GMFp32;
 typedef double GMFp64;
 
 static void gm_check_type_sizes() {
-  GMStaticAssert(sizeof(GMFp32) == 32/8);
-  GMStaticAssert(sizeof(GMFp64) == 64/8);
-  GMStaticAssert(sizeof(int) == 4);
-  GMStaticAssert(sizeof(size_t) == 8);
-//  GMStaticAssert(sizeof(GMUInt8) == 1);
-//  GMStaticAssert(sizeof(GMUInt16) == 2);
-//  GMStaticAssert(sizeof(GMUInt32) == 4);
-//  GMStaticAssert(sizeof(GMInt64) == 8);
-//  GMStaticAssert(sizeof(GMUInt64) == 8);
+  static_assert(sizeof(GMFp32) == 32/8);
+  static_assert(sizeof(GMFp64) == 64/8);
+  static_assert(sizeof(int) == 4);
+  static_assert(sizeof(size_t) == 8);
+//  static_assert(sizeof(GMUInt8) == 1);
+//  static_assert(sizeof(GMUInt16) == 2);
+//  static_assert(sizeof(GMUInt32) == 4);
+//  static_assert(sizeof(GMInt64) == 8);
+//  static_assert(sizeof(GMUInt64) == 8);
 #ifdef USE_INT128
-  GMStaticAssert(sizeof(GMUInt128) == 16);
+  static_assert(sizeof(GMUInt128) == 16);
 #endif
 }
 
@@ -132,12 +133,12 @@ enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
 // Return null value; also use static asserts to check sizes
 
 static GMBits2x64 GMBits2x64_null() {
-  GMStaticAssert(2 * GM_TALLY1_MAX_VALUE_BITS <= DBL_MANT_DIG);
-  GMStaticAssert(sizeof(GMBits2) * 8 >= GM_BITS2_MAX_VALUE_BITS);
-  GMStaticAssert(sizeof(GMBits1_2x64) == 8);
-  GMStaticAssert(sizeof(GMBits2x64) == 2 * sizeof(GMBits1_2x64));
-  GMStaticAssert(sizeof(GMBits2x64) == 16);
-  GMStaticAssert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); // for Magma
+  static_assert(2 * GM_TALLY1_MAX_VALUE_BITS <= DBL_MANT_DIG);
+  static_assert(sizeof(GMBits2) * 8 >= GM_BITS2_MAX_VALUE_BITS);
+  static_assert(sizeof(GMBits1_2x64) == 8);
+  static_assert(sizeof(GMBits2x64) == 2 * sizeof(GMBits1_2x64));
+  static_assert(sizeof(GMBits2x64) == 16);
+  static_assert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); // for Magma
 
   GMBits2x64 value;
   value.data[0] = 0;
@@ -149,9 +150,9 @@ static GMBits2x64 GMBits2x64_null() {
 // Return null value; also use static asserts to check sizes
 
 static GMTally2x2 GMTally2x2_null() {
-  GMStaticAssert(sizeof(GMTally1) * 8 >= GM_TALLY1_MAX_VALUE_BITS);
-  GMStaticAssert(sizeof(GMTally2x2) == 16);
-  GMStaticAssert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); // for Magma
+  static_assert(sizeof(GMTally1) * 8 >= GM_TALLY1_MAX_VALUE_BITS);
+  static_assert(sizeof(GMTally2x2) == 16);
+  static_assert(sizeof(GMTally2x2) == sizeof(GMBits2x64)); // for Magma
 
   GMTally2x2 value;
   value.data[0] = 0;
@@ -162,7 +163,7 @@ static GMTally2x2 GMTally2x2_null() {
 //-----
 
 static GMTally4x2 GMTally4x2_null() {
-  GMStaticAssert(sizeof(GMTally4x2) == 32);
+  static_assert(sizeof(GMTally4x2) == 32);
 
   GMTally4x2 value;
   value.data[0] = 0;
@@ -280,6 +281,11 @@ static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
 }
 
 //=============================================================================
+
+template<typename T> int mantissa_digits() {
+  static_assert(std::numeric_limits<T>::radix == 2);
+  return std::numeric_limits<T>::digits;
+}
 
 } // namespace comet
 

@@ -75,10 +75,10 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
           const int log2_num_summands_3way_numer = 2;
           const int shift_amount1 = gm_max_i8(0,
              gm_log2(log2_num_summands_3way_numer * rand_max2 * nfa)
-             - gm_mant_dig<GMFloat>() + 1);
+             - mantissa_digits<GMFloat>() + 1);
           // Account for cast to float in magma Volta version.
           const int shift_amount2 = gm_max_i8(0,
-                             gm_log2(rand_max2) - gm_mant_dig<float>() + 1);
+                             gm_log2(rand_max2) - mantissa_digits<float>() + 1);
           const int shift_amount = gm_max_i8(shift_amount1, shift_amount2);
           //const int shift_amount = gm_log2(log2_num_summands_3way_numer*
           //                                 rand_max2*nfa)
@@ -88,7 +88,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
           GMFloat float_value = (GMFloat)rand_value;
           GMInsist((size_t)float_value == rand_value);
           GMInsist(float_value * vectors->num_field_active <
-                         ((size_t)1)<<gm_mant_dig<GMFloat>());
+                         ((size_t)1)<<mantissa_digits<GMFloat>());
           GMVectors_float_set(vectors, fl, vl, float_value, env);
         } /*---field_local---*/
       }   /*---vector_local---*/
@@ -216,7 +216,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
   // Account for cast to float in magma Volta version.
   const size_t max_float = ((size_t)1) <<
     (env->data_type_vectors() == GM_DATA_TYPE_FLOAT ?
-     gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
+     mantissa_digits<float>() : mantissa_digits<GMFloat>());
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
     env->data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
@@ -369,7 +369,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   // Account for cast to float in magma Volta version.
   const size_t max_float = ((size_t)1) <<
     (env->data_type_vectors() == GM_DATA_TYPE_FLOAT ?
-     gm_mant_dig<float>() : gm_mant_dig<GMFloat>());
+     mantissa_digits<float>() : mantissa_digits<GMFloat>());
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
     env->data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :

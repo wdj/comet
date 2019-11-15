@@ -173,7 +173,7 @@ static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, GMEnv* env) {
   // Bound on log2(numerator)
   const int lnum = 2+lm + 2+lm + 2+lm; 
 
-  const int shift = gm_mant_dig<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
+  const int shift = mantissa_digits<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
 
   // To make this less restrictive, see 3-way counterpart code.
   GMInsistInterface(env, lnum + shift < 128 && "Number of fields too large.");
@@ -202,10 +202,10 @@ static GMFloat GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
 
   const GMUInt128 denom = 2 * cij * (GMUInt128)ci * (GMUInt128)cj;
 
-  const int shift = gm_mant_dig<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
+  const int shift = mantissa_digits<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
 
   // This should be an integer with no more than
-  // gm_mant_dig<GMFloat>() binary digits
+  // mantissa_digits<GMFloat>() binary digits
   const GMUInt128 int_ratio = (num << shift) / denom;
 
   // Convert to floting point and then adjust exponent.
@@ -359,7 +359,7 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_2(
     const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_2(metrics,
                                          index, i0, i1, env);
 
-    const double eps = 1. / ( ((size_t)1) << (gm_mant_dig<GMFloat>() - 5) );
+    const double eps = 1. / ( ((size_t)1) << (mantissa_digits<GMFloat>() - 5) );
 
     const double diff = fabs(result_intcalc - result_floatcalc);
 
