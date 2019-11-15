@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_metrics_2way_indexing_hh_
-#define _gm_metrics_2way_indexing_hh_
+#ifndef _comet_metrics_2way_indexing_hh_
+#define _comet_metrics_2way_indexing_hh_
 
 //=============================================================================
 
@@ -241,6 +241,6 @@ static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_metrics_2way_indexing_hh_
+#endif // _comet_metrics_2way_indexing_hh_
 
 //-----------------------------------------------------------------------------

@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_metrics_hh_
-#define _gm_compute_metrics_hh_
+#ifndef _comet_compute_metrics_hh_
+#define _comet_compute_metrics_hh_
 
 #include "env.hh"
 #include "vectors.hh"
@@ -62,6 +62,6 @@ private:
 
 } // namespace comet
 
-#endif // _gm_compute_metrics_hh_
+#endif // _comet_compute_metrics_hh_
 
 //-----------------------------------------------------------------------------

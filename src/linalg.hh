@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_linalg_hh_
-#define _gm_linalg_hh_
+#ifndef _comet_linalg_hh_
+#define _comet_linalg_hh_
 
 #include "env.hh"
 #include "decomp_mgr.hh"
@@ -80,6 +80,6 @@ void gm_linalg_get_matrix_wait(GMEnv* env);
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_linalg_hh_
+#endif // _comet_linalg_hh_
 
 //-----------------------------------------------------------------------------

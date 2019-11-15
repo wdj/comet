@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_metrics_2way_accessors_hh_
-#define _gm_metrics_2way_accessors_hh_
+#ifndef _comet_metrics_2way_accessors_hh_
+#define _comet_metrics_2way_accessors_hh_
 
 #include "metrics_2way_indexing.hh"
 
@@ -944,6 +944,6 @@ static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_metrics_2way_accessors_hh_
+#endif // _comet_metrics_2way_accessors_hh_
 
 //-----------------------------------------------------------------------------

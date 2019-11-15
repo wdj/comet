@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_checksum_hh_
-#define _gm_checksum_hh_
+#ifndef _comet_checksum_hh_
+#define _comet_checksum_hh_
 
 #include "env.hh"
 #include "metrics.hh"
@@ -125,6 +125,6 @@ private:
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_checksum_hh_
+#endif // _comet_checksum_hh_
 
 //-----------------------------------------------------------------------------

@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_assertions_hh_
-#define _gm_assertions_hh_
+#ifndef _comet_assertions_hh_
+#define _comet_assertions_hh_
 
 #include <type_traits>
 
@@ -77,6 +77,6 @@ void insist_interface(void const * const env,
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_assertions_hh_
+#endif // _comet_assertions_hh_
 
 //-----------------------------------------------------------------------------

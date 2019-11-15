@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_metrics_3way_hh_
-#define _gm_compute_metrics_3way_hh_
+#ifndef _comet_compute_metrics_3way_hh_
+#define _comet_compute_metrics_3way_hh_
 
 #include "env.hh"
 #include "decomp_mgr.hh"
@@ -54,6 +54,6 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_compute_metrics_3way_hh_
+#endif // _comet_compute_metrics_3way_hh_
 
 //-----------------------------------------------------------------------------

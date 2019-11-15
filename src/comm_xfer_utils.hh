@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_comm_xfer_utils_hh_
-#define _gm_comm_xfer_utils_hh_
+#ifndef _comet_comm_xfer_utils_hh_
+#define _comet_comm_xfer_utils_hh_
 
 #include "env.hh"
 #include "mirrored_buf.hh"
@@ -66,6 +66,6 @@ void gm_get_metrics_wait(GMMetrics* metrics,
 
 } // namespace comet
 
-#endif // _gm_comm_xfer_utils_hh_
+#endif // _comet_comm_xfer_utils_hh_
 
 //-----------------------------------------------------------------------------

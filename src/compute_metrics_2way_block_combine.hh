@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_metrics_2way_block_combine_hh_
-#define _gm_compute_metrics_2way_block_combine_hh_
+#ifndef _comet_compute_metrics_2way_block_combine_hh_
+#define _comet_compute_metrics_2way_block_combine_hh_
 
 #include "env.hh"
 #include "mirrored_buf.hh"
@@ -38,6 +38,6 @@ void gm_compute_2way_proc_combine(
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_compute_metrics_2way_block_combine_hh_
+#endif // _comet_compute_metrics_2way_block_combine_hh_
 
 //-----------------------------------------------------------------------------

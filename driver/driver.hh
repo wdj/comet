@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_driver_hh_
-#define _gm_driver_hh_
+#ifndef _comet_driver_hh_
+#define _comet_driver_hh_
 
 #include "env.hh"
 #include "checksum.hh"
@@ -74,6 +74,6 @@ void perform_run(comet::Checksum& cksum, const char* const options,
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_driver_hh_
+#endif // _comet_driver_hh_
 
 //-----------------------------------------------------------------------------

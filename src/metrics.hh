@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_metrics_hh_
-#define _gm_metrics_hh_
+#ifndef _comet_metrics_hh_
+#define _comet_metrics_hh_
 
 #include "cstddef"
 #include "cstdint"
@@ -157,6 +157,6 @@ static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
 #include "metrics_3way_indexing.hh"
 #include "metrics_3way_accessors.hh"
 
-#endif // _gm_metrics_hh_
+#endif // _comet_metrics_hh_
 
 //-----------------------------------------------------------------------------

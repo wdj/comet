@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_metrics_3way_block_hh_
-#define _gm_compute_metrics_3way_block_hh_
+#ifndef _comet_compute_metrics_3way_block_hh_
+#define _comet_compute_metrics_3way_block_hh_
 
 #include "env.hh"
 #include "mirrored_buf.hh"
@@ -67,6 +67,6 @@ void GMComputeNumerators3Way_start(
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_compute_metrics_3way_block_hh_
+#endif // _comet_compute_metrics_3way_block_hh_
 
 //-----------------------------------------------------------------------------

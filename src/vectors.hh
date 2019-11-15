@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_vectors_hh_
-#define _gm_vectors_hh_
+#ifndef _comet_vectors_hh_
+#define _comet_vectors_hh_
 
 #include "env.hh"
 #include "decomp_mgr.hh"
@@ -311,6 +311,6 @@ static GMBits2x64 GMVectors_bits2x64_get(GMVectors* vectors,
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_vectors_hh_
+#endif // _comet_vectors_hh_
 
 //-----------------------------------------------------------------------------

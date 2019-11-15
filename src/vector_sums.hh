@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_vector_sums_hh_
-#define _gm_vector_sums_hh_
+#ifndef _comet_vector_sums_hh_
+#define _comet_vector_sums_hh_
 
 #include "env.hh"
 #include "vectors.hh"
@@ -67,6 +67,6 @@ GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_vector_sums_hh_
+#endif // _comet_vector_sums_hh_
 
 //-----------------------------------------------------------------------------

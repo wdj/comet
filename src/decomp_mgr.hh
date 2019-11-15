@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_decomp_mgr_hh_
-#define _gm_decomp_mgr_hh_
+#ifndef _comet_decomp_mgr_hh_
+#define _comet_decomp_mgr_hh_
 
 #include "env.hh"
 #include "linalg_tc.hh"
@@ -75,6 +75,6 @@ void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env);
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_decomp_mgr_hh_
+#endif // _comet_decomp_mgr_hh_
 
 //-----------------------------------------------------------------------------

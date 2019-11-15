@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_test_problems_hh_
-#define _gm_test_problems_hh_
+#ifndef _comet_test_problems_hh_
+#define _comet_test_problems_hh_
 
 #include "env.hh"
 #include "vectors.hh"
@@ -37,6 +37,6 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_test_problems_hh_
+#endif // _comet_test_problems_hh_
 
 //-----------------------------------------------------------------------------

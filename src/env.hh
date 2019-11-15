@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_env_hh_
-#define _gm_env_hh_
+#ifndef _comet_env_hh_
+#define _comet_env_hh_
 
 #include "cstdint"
 #include "cstddef"
@@ -604,6 +604,6 @@ size_t gm_array_cksum(unsigned char* a, size_t n);
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_env_hh_
+#endif // _comet_env_hh_
 
 //-----------------------------------------------------------------------------

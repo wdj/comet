@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_mirrored_buf_hh_
-#define _gm_mirrored_buf_hh_
+#ifndef _comet_mirrored_buf_hh_
+#define _comet_mirrored_buf_hh_
 
 #include "env.hh"
 
@@ -73,6 +73,6 @@ static T GMMirroredBuf_elt_const(const GMMirroredBuf* p, int i0, int i1) {
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_mirrored_buf_hh_
+#endif // _comet_mirrored_buf_hh_
 
 //-----------------------------------------------------------------------------

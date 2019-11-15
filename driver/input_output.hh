@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_input_output_hh_
-#define _gm_input_output_hh_
+#ifndef _comet_input_output_hh_
+#define _comet_input_output_hh_
 
 #include "env.hh"
 #include "vectors.hh"
@@ -99,6 +99,6 @@ private:
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_input_output_hh_
+#endif // _comet_input_output_hh_
 
 //-----------------------------------------------------------------------------

@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_metrics_3way_accessors_hh_
-#define _gm_metrics_3way_accessors_hh_
+#ifndef _comet_metrics_3way_accessors_hh_
+#define _comet_metrics_3way_accessors_hh_
 
 #include "metrics_3way_indexing.hh"
 
@@ -1016,6 +1016,6 @@ static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted_cache(
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_metrics_3way_accessors_hh_
+#endif // _comet_metrics_3way_accessors_hh_
 
 //-----------------------------------------------------------------------------

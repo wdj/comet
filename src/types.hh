@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_types_hh_
-#define _gm_types_hh_
+#ifndef _comet_types_hh_
+#define _comet_types_hh_
 
 #include "cstdint"
 #include "cfloat"
@@ -291,6 +291,6 @@ template<typename T> int mantissa_digits() {
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_types_hh_
+#endif // _comet_types_hh_
 
 //-----------------------------------------------------------------------------

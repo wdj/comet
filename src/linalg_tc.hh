@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_linalg_tc_hh_
-#define _gm_linalg_tc_hh_
+#ifndef _comet_linalg_tc_hh_
+#define _comet_linalg_tc_hh_
 
 #if defined USE_CUDA
 #include "cublas_v2.h"
@@ -70,6 +70,6 @@ size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env);
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_linalg_tc_hh_
+#endif // _comet_linalg_tc_hh_
 
 //-----------------------------------------------------------------------------

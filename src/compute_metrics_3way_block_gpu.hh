@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _gm_compute_metrics_3way_block_gpu_hh_
-#define _gm_compute_metrics_3way_block_gpu_hh_
+#ifndef _comet_compute_metrics_3way_block_gpu_hh_
+#define _comet_compute_metrics_3way_block_gpu_hh_
 
 #include "env.hh"
 #include "mirrored_buf.hh"
@@ -79,6 +79,6 @@ void gm_compute_3way_nums_gpu_start_(
 
 //-----------------------------------------------------------------------------
 
-#endif // _gm_compute_metrics_3way_block_gpu_hh_
+#endif // _comet_compute_metrics_3way_block_gpu_hh_
 
 //-----------------------------------------------------------------------------
