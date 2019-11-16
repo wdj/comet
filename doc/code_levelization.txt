@@ -18,6 +18,8 @@ Code levelization: subpackage dependencies
           Fundamental scalar types for algorithms; associated functions
           [types to support single or double build]
           [types to support 2x2 or 2x2x2 table]
+    utils
+          Miscellaneous math utilities
     env
           Basic environment - settings, MPI communicators, etc.
           [control of MPI proc grid axis order: vector, field, repl]

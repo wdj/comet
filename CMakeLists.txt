@@ -48,6 +48,7 @@ SET(LIB_INCLUDES
   src/env.hh
   src/assertions.hh
   src/types.hh
+  src/utils.hh
   src/decomp_mgr.hh
   src/mirrored_buf.hh
   src/linalg.hh
