@@ -340,8 +340,8 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const int i_block = env->proc_num_vector();
 
-  const size_t nchoosek = gm_nchoosek(metrics->num_vector_local,
-                                      env->num_way());
+  const size_t nchoosek = utils::nchoosek(metrics->num_vector_local,
+                                          env->num_way());
   const int nvl = metrics->num_vector_local;
   const size_t nvlsq = nvl * (size_t)nvl;
 

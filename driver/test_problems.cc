@@ -74,13 +74,13 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
           const size_t rand_max2 = rand_max * rand_max;
           const int log2_num_summands_3way_numer = 2;
           const int shift_amount1 = utils::max(0,
-             gm_log2(log2_num_summands_3way_numer * rand_max2 * nfa)
+             utils::log2(log2_num_summands_3way_numer * rand_max2 * nfa)
              - mantissa_digits<GMFloat>() + 1);
           // Account for cast to float in magma Volta version.
           const int shift_amount2 = utils::max(0,
-                             gm_log2(rand_max2) - mantissa_digits<float>() + 1);
+                             utils::log2(rand_max2) - mantissa_digits<float>() + 1);
           const int shift_amount = utils::max(shift_amount1, shift_amount2);
-          //const int shift_amount = gm_log2(log2_num_summands_3way_numer*
+          //const int shift_amount = utils::log2(log2_num_summands_3way_numer*
           //                                 rand_max2*nfa)
           //                         - mant_dig;
           rand_value >>= shift_amount > 0 ? shift_amount : 0;

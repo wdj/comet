@@ -224,7 +224,8 @@ void gm_compute_3way_nums_gpu_form_metrics_(
         const GMFloat si = GMVectorSums_sum(vs_i, i, env);
         const GMFloat sj = GMVectorSums_sum(vs_i, j, env);
         const GMFloat sk = GMVectorSums_sum(vs_i, k, env);
-        GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
+        //GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
+        utils::sort_3(smin, smid, smax, si, sj, sk);
         const GMFloat denom = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
         GMMetrics_float_set_3(metrics, i, j, k, value, env);
@@ -257,7 +258,8 @@ void gm_compute_3way_nums_gpu_form_metrics_(
         const GMFloat sI = GMVectorSums_sum(vs_I, I, env);
         const GMFloat sJ = GMVectorSums_sum(vs_J, J, env);
         const GMFloat sK = GMVectorSums_sum(vs_K, K, env);
-        GMFloat_sort_3(&smin, &smid, &smax, &sI, &sJ, &sK);
+        //GMFloat_sort_3(&smin, &smid, &smax, &sI, &sJ, &sK);
+        utils::sort_3(smin, smid, smax, sI, sJ, sK);
         const GMFloat denom = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
         GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,

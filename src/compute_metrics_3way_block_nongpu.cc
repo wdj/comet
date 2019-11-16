@@ -99,7 +99,8 @@ void gm_compute_3way_nums_nongpu_czek_start_(
           const GMFloat si = GMVectorSums_sum(vs_i, i, env);
           const GMFloat sj = GMVectorSums_sum(vs_i, j, env);
           const GMFloat sk = GMVectorSums_sum(vs_i, k, env);
-          GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
+          //GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
+          utils::sort_3(smin, smid, smax, si, sj, sk);
           const GMFloat denom = smin + smid + smax;
           GMFloat numer = 0;
           for (int f = 0; f < nfl; ++f) {
@@ -164,7 +165,8 @@ void gm_compute_3way_nums_nongpu_czek_start_(
           const GMFloat si = GMVectorSums_sum(vs_i, i, env);
           const GMFloat sj = GMVectorSums_sum(vs_j, j, env);
           const GMFloat sk = GMVectorSums_sum(vs_k, k, env);
-          GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
+          //GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
+          utils::sort_3(smin, smid, smax, si, sj, sk);
           const GMFloat denom = smin + smid + smax;
           GMFloat numer = 0;
           for (int f = 0; f < nfl; ++f) {
@@ -536,133 +538,133 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
             const uint64_t nvk1_0 = ~ vk1       & v1mask;
             const uint64_t nvk1_1 = ~(vk1 >> 1) & v1mask;
 
-            const int r000 = gm_popcount64((nvi0_0 & nvj0_0 & nvk0_0) |
+            const int r000 = utils::popc64((nvi0_0 & nvj0_0 & nvk0_0) |
                                          ( (nvi0_0 & nvj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_0 & nvj0_1 & nvk0_0) |
+                             utils::popc64((nvi0_0 & nvj0_1 & nvk0_0) |
                                          ( (nvi0_0 & nvj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 & nvj0_0 & nvk0_0) |
+                             utils::popc64((nvi0_1 & nvj0_0 & nvk0_0) |
                                          ( (nvi0_1 & nvj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 & nvj0_1 & nvk0_0) |
+                             utils::popc64((nvi0_1 & nvj0_1 & nvk0_0) |
                                          ( (nvi0_1 & nvj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi1_0 & nvj1_0 & nvk1_0) |
+                             utils::popc64((nvi1_0 & nvj1_0 & nvk1_0) |
                                          ( (nvi1_0 & nvj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_0 & nvj1_1 & nvk1_0) |
+                             utils::popc64((nvi1_0 & nvj1_1 & nvk1_0) |
                                          ( (nvi1_0 & nvj1_1 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 & nvj1_0 & nvk1_0) |
+                             utils::popc64((nvi1_1 & nvj1_0 & nvk1_0) |
                                          ( (nvi1_1 & nvj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 & nvj1_1 & nvk1_0) |
+                             utils::popc64((nvi1_1 & nvj1_1 & nvk1_0) |
                                          ( (nvi1_1 & nvj1_1 & nvk1_1) << 1 ));
-            const int r001 = gm_popcount64((nvi0_0 & nvj0_0 &  vk0_0) |
+            const int r001 = utils::popc64((nvi0_0 & nvj0_0 &  vk0_0) |
                                          ( (nvi0_0 & nvj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_0 & nvj0_1 &  vk0_0) |
+                             utils::popc64((nvi0_0 & nvj0_1 &  vk0_0) |
                                          ( (nvi0_0 & nvj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 & nvj0_0 &  vk0_0) |
+                             utils::popc64((nvi0_1 & nvj0_0 &  vk0_0) |
                                          ( (nvi0_1 & nvj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 & nvj0_1 &  vk0_0) |
+                             utils::popc64((nvi0_1 & nvj0_1 &  vk0_0) |
                                          ( (nvi0_1 & nvj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi1_0 & nvj1_0 &  vk1_0) |
+                             utils::popc64((nvi1_0 & nvj1_0 &  vk1_0) |
                                          ( (nvi1_0 & nvj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_0 & nvj1_1 &  vk1_0) |
+                             utils::popc64((nvi1_0 & nvj1_1 &  vk1_0) |
                                          ( (nvi1_0 & nvj1_1 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 & nvj1_0 &  vk1_0) |
+                             utils::popc64((nvi1_1 & nvj1_0 &  vk1_0) |
                                          ( (nvi1_1 & nvj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 & nvj1_1 &  vk1_0) |
+                             utils::popc64((nvi1_1 & nvj1_1 &  vk1_0) |
                                          ( (nvi1_1 & nvj1_1 &  vk1_1) << 1 ));
-            const int r010 = gm_popcount64((nvi0_0 &  vj0_0 & nvk0_0) |
+            const int r010 = utils::popc64((nvi0_0 &  vj0_0 & nvk0_0) |
                                          ( (nvi0_0 &  vj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_0 &  vj0_1 & nvk0_0) |
+                             utils::popc64((nvi0_0 &  vj0_1 & nvk0_0) |
                                          ( (nvi0_0 &  vj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 &  vj0_0 & nvk0_0) |
+                             utils::popc64((nvi0_1 &  vj0_0 & nvk0_0) |
                                          ( (nvi0_1 &  vj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 &  vj0_1 & nvk0_0) |
+                             utils::popc64((nvi0_1 &  vj0_1 & nvk0_0) |
                                          ( (nvi0_1 &  vj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64((nvi1_0 &  vj1_0 & nvk1_0) |
+                             utils::popc64((nvi1_0 &  vj1_0 & nvk1_0) |
                                          ( (nvi1_0 &  vj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_0 &  vj1_1 & nvk1_0) |
+                             utils::popc64((nvi1_0 &  vj1_1 & nvk1_0) |
                                          ( (nvi1_0 &  vj1_1 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 &  vj1_0 & nvk1_0) |
+                             utils::popc64((nvi1_1 &  vj1_0 & nvk1_0) |
                                          ( (nvi1_1 &  vj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 &  vj1_1 & nvk1_0) |
+                             utils::popc64((nvi1_1 &  vj1_1 & nvk1_0) |
                                          ( (nvi1_1 &  vj1_1 & nvk1_1) << 1 ));
-            const int r011 = gm_popcount64((nvi0_0 &  vj0_0 &  vk0_0) |
+            const int r011 = utils::popc64((nvi0_0 &  vj0_0 &  vk0_0) |
                                          ( (nvi0_0 &  vj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_0 &  vj0_1 &  vk0_0) |
+                             utils::popc64((nvi0_0 &  vj0_1 &  vk0_0) |
                                          ( (nvi0_0 &  vj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 &  vj0_0 &  vk0_0) |
+                             utils::popc64((nvi0_1 &  vj0_0 &  vk0_0) |
                                          ( (nvi0_1 &  vj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi0_1 &  vj0_1 &  vk0_0) |
+                             utils::popc64((nvi0_1 &  vj0_1 &  vk0_0) |
                                          ( (nvi0_1 &  vj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64((nvi1_0 &  vj1_0 &  vk1_0) |
+                             utils::popc64((nvi1_0 &  vj1_0 &  vk1_0) |
                                          ( (nvi1_0 &  vj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_0 &  vj1_1 &  vk1_0) |
+                             utils::popc64((nvi1_0 &  vj1_1 &  vk1_0) |
                                          ( (nvi1_0 &  vj1_1 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 &  vj1_0 &  vk1_0) |
+                             utils::popc64((nvi1_1 &  vj1_0 &  vk1_0) |
                                          ( (nvi1_1 &  vj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64((nvi1_1 &  vj1_1 &  vk1_0) |
+                             utils::popc64((nvi1_1 &  vj1_1 &  vk1_0) |
                                          ( (nvi1_1 &  vj1_1 &  vk1_1) << 1 ));
-            const int r100 = gm_popcount64(( vi0_0 & nvj0_0 & nvk0_0) |
+            const int r100 = utils::popc64(( vi0_0 & nvj0_0 & nvk0_0) |
                                          ( ( vi0_0 & nvj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_0 & nvj0_1 & nvk0_0) |
+                             utils::popc64(( vi0_0 & nvj0_1 & nvk0_0) |
                                          ( ( vi0_0 & nvj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 & nvj0_0 & nvk0_0) |
+                             utils::popc64(( vi0_1 & nvj0_0 & nvk0_0) |
                                          ( ( vi0_1 & nvj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 & nvj0_1 & nvk0_0) |
+                             utils::popc64(( vi0_1 & nvj0_1 & nvk0_0) |
                                          ( ( vi0_1 & nvj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi1_0 & nvj1_0 & nvk1_0) |
+                             utils::popc64(( vi1_0 & nvj1_0 & nvk1_0) |
                                          ( ( vi1_0 & nvj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_0 & nvj1_1 & nvk1_0) |
+                             utils::popc64(( vi1_0 & nvj1_1 & nvk1_0) |
                                          ( ( vi1_0 & nvj1_1 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 & nvj1_0 & nvk1_0) |
+                             utils::popc64(( vi1_1 & nvj1_0 & nvk1_0) |
                                          ( ( vi1_1 & nvj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 & nvj1_1 & nvk1_0) |
+                             utils::popc64(( vi1_1 & nvj1_1 & nvk1_0) |
                                          ( ( vi1_1 & nvj1_1 & nvk1_1) << 1 ));
-            const int r101 = gm_popcount64(( vi0_0 & nvj0_0 &  vk0_0) |
+            const int r101 = utils::popc64(( vi0_0 & nvj0_0 &  vk0_0) |
                                          ( ( vi0_0 & nvj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_0 & nvj0_1 &  vk0_0) |
+                             utils::popc64(( vi0_0 & nvj0_1 &  vk0_0) |
                                          ( ( vi0_0 & nvj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 & nvj0_0 &  vk0_0) |
+                             utils::popc64(( vi0_1 & nvj0_0 &  vk0_0) |
                                          ( ( vi0_1 & nvj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 & nvj0_1 &  vk0_0) |
+                             utils::popc64(( vi0_1 & nvj0_1 &  vk0_0) |
                                          ( ( vi0_1 & nvj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi1_0 & nvj1_0 &  vk1_0) |
+                             utils::popc64(( vi1_0 & nvj1_0 &  vk1_0) |
                                          ( ( vi1_0 & nvj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_0 & nvj1_1 &  vk1_0) |
+                             utils::popc64(( vi1_0 & nvj1_1 &  vk1_0) |
                                          ( ( vi1_0 & nvj1_1 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 & nvj1_0 &  vk1_0) |
+                             utils::popc64(( vi1_1 & nvj1_0 &  vk1_0) |
                                          ( ( vi1_1 & nvj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 & nvj1_1 &  vk1_0) |
+                             utils::popc64(( vi1_1 & nvj1_1 &  vk1_0) |
                                          ( ( vi1_1 & nvj1_1 &  vk1_1) << 1 ));
-            const int r110 = gm_popcount64(( vi0_0 &  vj0_0 & nvk0_0) |
+            const int r110 = utils::popc64(( vi0_0 &  vj0_0 & nvk0_0) |
                                          ( ( vi0_0 &  vj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_0 &  vj0_1 & nvk0_0) |
+                             utils::popc64(( vi0_0 &  vj0_1 & nvk0_0) |
                                          ( ( vi0_0 &  vj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 &  vj0_0 & nvk0_0) |
+                             utils::popc64(( vi0_1 &  vj0_0 & nvk0_0) |
                                          ( ( vi0_1 &  vj0_0 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 &  vj0_1 & nvk0_0) |
+                             utils::popc64(( vi0_1 &  vj0_1 & nvk0_0) |
                                          ( ( vi0_1 &  vj0_1 & nvk0_1) << 1 )) +
-                             gm_popcount64(( vi1_0 &  vj1_0 & nvk1_0) |
+                             utils::popc64(( vi1_0 &  vj1_0 & nvk1_0) |
                                          ( ( vi1_0 &  vj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_0 &  vj1_1 & nvk1_0) |
+                             utils::popc64(( vi1_0 &  vj1_1 & nvk1_0) |
                                          ( ( vi1_0 &  vj1_1 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 &  vj1_0 & nvk1_0) |
+                             utils::popc64(( vi1_1 &  vj1_0 & nvk1_0) |
                                          ( ( vi1_1 &  vj1_0 & nvk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 &  vj1_1 & nvk1_0) |
+                             utils::popc64(( vi1_1 &  vj1_1 & nvk1_0) |
                                          ( ( vi1_1 &  vj1_1 & nvk1_1) << 1 ));
-            const int r111 = gm_popcount64(( vi0_0 &  vj0_0 &  vk0_0) |
+            const int r111 = utils::popc64(( vi0_0 &  vj0_0 &  vk0_0) |
                                          ( ( vi0_0 &  vj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_0 &  vj0_1 &  vk0_0) |
+                             utils::popc64(( vi0_0 &  vj0_1 &  vk0_0) |
                                          ( ( vi0_0 &  vj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 &  vj0_0 &  vk0_0) |
+                             utils::popc64(( vi0_1 &  vj0_0 &  vk0_0) |
                                          ( ( vi0_1 &  vj0_0 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi0_1 &  vj0_1 &  vk0_0) |
+                             utils::popc64(( vi0_1 &  vj0_1 &  vk0_0) |
                                          ( ( vi0_1 &  vj0_1 &  vk0_1) << 1 )) +
-                             gm_popcount64(( vi1_0 &  vj1_0 &  vk1_0) |
+                             utils::popc64(( vi1_0 &  vj1_0 &  vk1_0) |
                                          ( ( vi1_0 &  vj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_0 &  vj1_1 &  vk1_0) |
+                             utils::popc64(( vi1_0 &  vj1_1 &  vk1_0) |
                                          ( ( vi1_0 &  vj1_1 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 &  vj1_0 &  vk1_0) |
+                             utils::popc64(( vi1_1 &  vj1_0 &  vk1_0) |
                                          ( ( vi1_1 &  vj1_0 &  vk1_1) << 1 )) +
-                             gm_popcount64(( vi1_1 &  vj1_1 &  vk1_0) |
+                             utils::popc64(( vi1_1 &  vj1_1 &  vk1_0) |
                                          ( ( vi1_1 &  vj1_1 &  vk1_1) << 1 ));
 
             // Accumulate

@@ -145,7 +145,7 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
   }
 
   const size_t m = metrics->num_field_active;
-  const int lm = gm_log2(m);
+  const int lm = utils::log2(m);
 
   // Bound on log2(numerator)
   const int lnum = 3+lm + 2+lm + 2+lm + 2+lm;
@@ -180,7 +180,7 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
                                    * (GMUInt128)ck;
 
   const size_t m = metrics->num_field_active;
-  const int lm = gm_log2(m);
+  const int lm = utils::log2(m);
 
   // Bound on log2(numerator)
   const int lnum = 3+lm + 2+lm + 2+lm + 2+lm;

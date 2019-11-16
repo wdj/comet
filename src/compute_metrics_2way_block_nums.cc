@@ -259,37 +259,37 @@ void gm_compute_2way_proc_nums_ccc_start_(
           const uint64_t nvj1_0 = ~ vj1       & v1mask;
           const uint64_t nvj1_1 = ~(vj1 >> 1) & v1mask;
 
-          const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
+          const int r00 = utils::popc64((nvi0_0 & nvj0_0) |
                                       ( (nvi0_0 & nvj0_1) << 1 )) +
-                          gm_popcount64((nvi0_1 & nvj0_0) |
+                          utils::popc64((nvi0_1 & nvj0_0) |
                                       ( (nvi0_1 & nvj0_1) << 1 )) +
-                          gm_popcount64((nvi1_0 & nvj1_0) |
+                          utils::popc64((nvi1_0 & nvj1_0) |
                                       ( (nvi1_0 & nvj1_1) << 1 )) +
-                          gm_popcount64((nvi1_1 & nvj1_0) |
+                          utils::popc64((nvi1_1 & nvj1_0) |
                                       ( (nvi1_1 & nvj1_1) << 1 ));
-          const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
+          const int r01 = utils::popc64((nvi0_0 &  vj0_0) |
                                       ( (nvi0_0 &  vj0_1) << 1 )) +
-                          gm_popcount64((nvi0_1 &  vj0_0) |
+                          utils::popc64((nvi0_1 &  vj0_0) |
                                       ( (nvi0_1 &  vj0_1) << 1 )) +
-                          gm_popcount64((nvi1_0 &  vj1_0) |
+                          utils::popc64((nvi1_0 &  vj1_0) |
                                       ( (nvi1_0 &  vj1_1) << 1 )) +
-                          gm_popcount64((nvi1_1 &  vj1_0) |
+                          utils::popc64((nvi1_1 &  vj1_0) |
                                       ( (nvi1_1 &  vj1_1) << 1 ));
-          const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
+          const int r10 = utils::popc64(( vi0_0 & nvj0_0) |
                                       ( ( vi0_0 & nvj0_1) << 1 )) +
-                          gm_popcount64(( vi0_1 & nvj0_0) |
+                          utils::popc64(( vi0_1 & nvj0_0) |
                                       ( ( vi0_1 & nvj0_1) << 1 )) +
-                          gm_popcount64(( vi1_0 & nvj1_0) |
+                          utils::popc64(( vi1_0 & nvj1_0) |
                                       ( ( vi1_0 & nvj1_1) << 1 )) +
-                          gm_popcount64(( vi1_1 & nvj1_0) |
+                          utils::popc64(( vi1_1 & nvj1_0) |
                                       ( ( vi1_1 & nvj1_1) << 1 ));
-          const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
+          const int r11 = utils::popc64(( vi0_0 &  vj0_0) |
                                       ( ( vi0_0 &  vj0_1) << 1 )) +
-                          gm_popcount64(( vi0_1 &  vj0_0) |
+                          utils::popc64(( vi0_1 &  vj0_0) |
                                       ( ( vi0_1 &  vj0_1) << 1 )) +
-                          gm_popcount64(( vi1_0 &  vj1_0) |
+                          utils::popc64(( vi1_0 &  vj1_0) |
                                       ( ( vi1_0 &  vj1_1) << 1 )) +
-                          gm_popcount64(( vi1_1 &  vj1_0) |
+                          utils::popc64(( vi1_1 &  vj1_0) |
                                       ( ( vi1_1 &  vj1_1) << 1 ));
 
           // Accumulate
@@ -463,13 +463,13 @@ void gm_compute_2way_proc_nums_duo_start_(
           const uint64_t nvj0_0 = ~ vj0       & v0mask;
           const uint64_t nvj1_0 = ~ vj1       & v1mask;
 
-          const int r00 = gm_popcount64((nvi0_0 & nvj0_0) |
+          const int r00 = utils::popc64((nvi0_0 & nvj0_0) |
                                       ( (nvi1_0 & nvj1_0) << 1 ));
-          const int r01 = gm_popcount64((nvi0_0 &  vj0_0) |
+          const int r01 = utils::popc64((nvi0_0 &  vj0_0) |
                                       ( (nvi1_0 &  vj1_0) << 1 ));
-          const int r10 = gm_popcount64(( vi0_0 & nvj0_0) |
+          const int r10 = utils::popc64(( vi0_0 & nvj0_0) |
                                       ( ( vi1_0 & nvj1_0) << 1 ));
-          const int r11 = gm_popcount64(( vi0_0 &  vj0_0) |
+          const int r11 = utils::popc64(( vi0_0 &  vj0_0) |
                                       ( ( vi1_0 &  vj1_0) << 1 ));
 //printf("cpu %i\n", (int)r01);
 

@@ -508,34 +508,9 @@ static size_t randomize(size_t i) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief N choose K function.
 
-
-
-
-
-} // namespace utils
-
-//-----------------------------------------------------------------------------
-
-static int gm_log2(size_t n) {
-  if (n == 0) {
-    return 0;
-  }
- 
-  int result = 0; 
-  for (result = 0, n--; result <= 8 * (int)sizeof(size_t); ++result) {
-    if (n == 0) {
-      break;
-    }
-    n >>= 1;
-  }
-
-  return result;
-}
-
-//-----------------------------------------------------------------------------
-
-static size_t gm_nchoosek(int n, int k) {
+static size_t nchoosek(int n, int k) {
   COMET_ASSERT(n >= 0);
   COMET_ASSERT(k >= 0 && k <= n);
   size_t numer = 1;
@@ -548,8 +523,35 @@ static size_t gm_nchoosek(int n, int k) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Ceiling of log2 of an integer.
 
-static int gm_popcount64(uint64_t x) {
+static int log2(size_t n) {
+  COMET_STATIC_ASSERT(sizeof(n) == 8);
+  if (n <= 1) {
+    return 0;
+  }
+  size_t n_ = n - 1;
+ 
+  int r = 0; 
+  for (r = 0; r <= 8 * (int)sizeof(size_t); ++r) {
+    if (n_ == 0) {
+      break;
+    }
+    n_ >>= 1;
+  }
+
+  COMET_ASSERT(r >= 1);
+  COMET_ASSERT(r <= 62 && "Case unimplemented.");
+  COMET_ASSERT(n <= (size_t(1) << r));
+  COMET_ASSERT(!(n <= (size_t(1) << (r-1))));
+
+  return r;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Population count of 1-bits in 64-bit word.
+
+static int popc64(uint64_t x) {
   // Adapted from https://en.wikipedia.org/wiki/Hamming_weight
   const uint64_t m1 = 0x5555555555555555;
   const uint64_t m2 = 0x3333333333333333;
@@ -562,55 +564,56 @@ static int gm_popcount64(uint64_t x) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief
 
-static void GMFloat_sort_3(GMFloat* const __restrict__ min,
-                           GMFloat* const __restrict__ mid,
-                           GMFloat* const __restrict__ max,
-                           const GMFloat* const __restrict__ a,
-                           const GMFloat* const __restrict__ b,
-                           const GMFloat* const __restrict__ c) {
-  if (*a > *b) {
-    if (*a > *c) {
-      *max = *a;
-      if (*b > *c) {
-        *mid = *b;
-        *min = *c;
+template<typename T>
+static void sort_3(T& min_, T& mid_, T& max_,
+                   const T& a, const T& b, const T& c) {
+  if (a > b) {
+    if (a > c) {
+      max_ = a;
+      if (b > c) {
+        mid_ = b;
+        min_ = c;
       } else {
-        *mid = *c;
-        *min = *b;
+        mid_ = c;
+        min_ = b;
       }
     } else {
-      *mid = *a;
-      *max = *c;
-      *min = *b;
+      mid_ = a;
+      max_ = c;
+      min_ = b;
     }
   } else {
-    if (*b > *c) {
-      *max = *b;
-      if (*a > *c) {
-        *mid = *a;
-        *min = *c;
+    if (b > c) {
+      max_ = b;
+      if (a > c) {
+        mid_ = a;
+        min_ = c;
       } else {
-        *mid = *c;
-        *min = *a;
+        mid_ = c;
+        min_ = a;
       }
     } else {
-      *mid = *b;
-      *max = *c;
-      *min = *a;
+      mid_ = b;
+      max_ = c;
+      min_ = a;
     }
   }
-  COMET_ASSERT(*min <= *mid);
-  COMET_ASSERT(*mid <= *max);
+
+  COMET_ASSERT(min_ <= mid_);
+  COMET_ASSERT(mid_ <= max_);
 }
+
+//-----------------------------------------------------------------------------
+
+} // namespace utils
 
 //=============================================================================
 // Arrays and floating point
 
 void* gm_malloc(size_t n, GMEnv* env);
 void gm_free(void* p, size_t n, GMEnv* env);
-
-bool GMEnv_is_ppc64();
 
 GMFloat* GMFloat_malloc(size_t n, GMEnv* env);
 void GMFloat_free(GMFloat* p, size_t n, GMEnv* env);
