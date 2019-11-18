@@ -23,67 +23,66 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Constructor for ComputeMetrics3Way class.
 
-void GMComputeMetrics3Way_create(
-    GMComputeMetrics3Way* this_,
-    GMDecompMgr* dm,
-    GMEnv* env) {
-  COMET_INSIST(this_ && dm && env);
+ComputeMetrics3Way::ComputeMetrics3Way(GMDecompMgr& dm, GMEnv& env)
+  : env_(env) {
 
-  COMET_INSIST_INTERFACE(env, env->compute_method() != MetricType::DUO
-                               && "3-way DUO method not supported.");
-
-  //*this_ = {0};
-} 
-
-//-----------------------------------------------------------------------------
-  
-void GMComputeMetrics3Way_destroy(
-    GMComputeMetrics3Way* this_,
-    GMEnv* env) {
-  COMET_INSIST(this_ && env);
-  
+  COMET_INSIST_INTERFACE(&env_, env_.compute_method() != MetricType::DUO &&
+                                "3-way DUO method not supported.");
 }
 
-//=============================================================================
+//-----------------------------------------------------------------------------
+/// \brief Perform the 3-way metrics computation.
 
-void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
-                                        GMMetrics* metrics,
-                                        GMVectors* vectors,
-                                        GMEnv* env) {
-  COMET_INSIST(metrics && vectors && env);
-  COMET_INSIST(! env->all2all());
+void ComputeMetrics3Way::compute(GMMetrics& metrics, GMVectors& vectors) {
 
-  /*---Denominator---*/
+  if (!env_.all2all()) {
+    compute_notall2all_(metrics, vectors);
+  } else {
+    compute_all2all_(metrics, vectors);
+  }
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Perform the 3-way metrics computation, non-all2all case.
+
+void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
+                                             GMVectors& vectors) {
+  Env* const env = &env_;
+
+  //---------------
+  // Denominator
+  //---------------
 
   GMVectorSums vector_sums = GMVectorSums_null();
-  GMVectorSums_create(&vector_sums, vectors->num_vector_local, env);
-  GMVectorSums_compute(&vector_sums, vectors, env);
+  GMVectorSums_create(&vector_sums, vectors.num_vector_local, env);
+  GMVectorSums_compute(&vector_sums, &vectors, env);
 
-  /*---------------*/
-  /*---Numerator---*/
-  /*---------------*/
+  //---------------
+  // Numerator
+  //---------------
 
   gm_linalg_initialize(env);
 
-  const int nvl = vectors->num_vector_local;
-  const int npvfl = vectors->num_packedval_field_local;
+  const int nvl = vectors.num_vector_local;
+  const int npvfl = vectors.num_packedval_field_local;
 
-  /*---Allocate magma CPU memory for vectors and for result */
+  // Allocate magma CPU memory for vectors and for result
 
   GMMirroredBuf vectors_buf = GMMirroredBuf_null();
   GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
 
-  /*---Copy in vectors---*/
+  // Copy in vectors
 
-  gm_vectors_to_buf(&vectors_buf, vectors, env);
+  gm_vectors_to_buf(&vectors_buf, &vectors, env);
 
-  /*---Send vectors to GPU---*/
+  // Send vectors to GPU
 
-  gm_set_vectors_start(vectors, &vectors_buf, env);
+  gm_set_vectors_start(&vectors, &vectors_buf, env);
   gm_set_vectors_wait(env);
 
-  /*---Compute numerators---*/
+  // Compute numerators
 
   const int section_step = 0;
   COMET_INSIST(gm_num_section_steps(env, 1) == 1 &&
@@ -94,16 +93,16 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
 
   GMComputeNumerators3Way_start(
       &gm_compute_numerators_3way,
-      vectors, vectors, vectors, metrics, &vectors_buf, &vectors_buf,
+      &vectors, &vectors, &vectors, &metrics, &vectors_buf, &vectors_buf,
       &vectors_buf, env->proc_num_vector(), env->proc_num_vector(),
       &vector_sums, &vector_sums, &vector_sums,
       section_step, env);
 
   gm_compute_wait(env); // NOTE: not needed
 
-  /*---------------*/
-  /*---Free memory---*/
-  /*---------------*/
+  //---------------
+  // Free memory
+  //---------------
 
   GMComputeNumerators3Way_destroy(&gm_compute_numerators_3way, env);
 
@@ -114,21 +113,19 @@ void gm_compute_metrics_3way_notall2all(GMComputeMetrics3Way* this_,
   gm_linalg_finalize(env);
 }
 
-//=============================================================================
+//-----------------------------------------------------------------------------
+/// \brief Perform the 3-way metrics computation,  all2all case.
 
-void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
-                                     GMMetrics* metrics,
-                                     GMVectors* vectors,
-                                     GMEnv* env) {
-  COMET_INSIST(metrics && vectors && env);
-  COMET_INSIST(env->all2all());
+void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
+                                          GMVectors& vectors) {
+  Env* const env = &env_;
 
   /*---Initializations---*/
 
   gm_linalg_initialize(env);
 
-  const int nvl = metrics->num_vector_local;
-  const int npvfl = vectors->num_packedval_field_local;
+  const int nvl = metrics.num_vector_local;
+  const int npvfl = vectors.num_packedval_field_local;
 
   const int data_type = env->data_type_vectors();
 
@@ -151,9 +148,9 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
 
   GMVectorSums vector_sums_i_value = GMVectorSums_null();
   GMVectorSums* const vector_sums_i = &vector_sums_i_value;
-  GMVectorSums_create(vector_sums_i, vectors->num_vector_local, env);
+  GMVectorSums_create(vector_sums_i, vectors.num_vector_local, env);
 
-  GMVectors* vectors_i = vectors;
+  GMVectors* vectors_i = &vectors;
 
   GMMirroredBuf vectors_i_buf_value = GMMirroredBuf_null();
   GMMirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
@@ -165,13 +162,13 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
 
   GMVectorSums vector_sums_j_value = GMVectorSums_null();
   GMVectorSums* const vector_sums_j = &vector_sums_j_value;
-  GMVectorSums_create(vector_sums_j, vectors->num_vector_local, env);
+  GMVectorSums_create(vector_sums_j, vectors.num_vector_local, env);
 
   GMVectors vectors_j_value_0 = GMVectors_null();
   GMVectors vectors_j_value_1 = GMVectors_null();
   GMVectors* vectors_j[2] = {&vectors_j_value_0, &vectors_j_value_1};
-  GMVectors_create(vectors_j[0], data_type, vectors->dm, env);
-  GMVectors_create(vectors_j[1], data_type, vectors->dm, env);
+  GMVectors_create(vectors_j[0], data_type, vectors.dm, env);
+  GMVectors_create(vectors_j[1], data_type, vectors.dm, env);
 
   GMMirroredBuf vectors_j_buf_value = GMMirroredBuf_null();
   GMMirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
@@ -183,13 +180,13 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
 
   GMVectorSums vector_sums_k_value = GMVectorSums_null();
   GMVectorSums* const vector_sums_k = &vector_sums_k_value;
-  GMVectorSums_create(vector_sums_k, vectors->num_vector_local, env);
+  GMVectorSums_create(vector_sums_k, vectors.num_vector_local, env);
 
   GMVectors vectors_k_value_0 = GMVectors_null();
   GMVectors vectors_k_value_1 = GMVectors_null();
   GMVectors* vectors_k[2] = {&vectors_k_value_0, &vectors_k_value_1};
-  GMVectors_create(vectors_k[0], data_type, vectors->dm, env);
-  GMVectors_create(vectors_k[1], data_type, vectors->dm, env);
+  GMVectors_create(vectors_k[0], data_type, vectors.dm, env);
+  GMVectors_create(vectors_k[1], data_type, vectors.dm, env);
 
   GMMirroredBuf vectors_k_buf_value = GMMirroredBuf_null();
   GMMirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
@@ -256,7 +253,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
         /*---Compute numerators---*/
         GMComputeNumerators3Way_start(
           &gm_compute_numerators_3way,
-          vectors_i, vectors_j_prev, vectors_k_prev, metrics,
+          vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
           vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
           j_block_prev, k_block_prev,
           vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
@@ -320,7 +317,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
           /*---Compute numerators---*/
           GMComputeNumerators3Way_start(
             &gm_compute_numerators_3way,
-            vectors_i, vectors_j_prev, vectors_k_prev, metrics,
+            vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
             vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
             j_block_prev, k_block_prev,
             vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
@@ -429,7 +426,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
             /*---Compute numerators---*/
             GMComputeNumerators3Way_start(
               &gm_compute_numerators_3way,
-              vectors_i, vectors_j_prev, vectors_k_prev, metrics,
+              vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
               vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
               j_block_prev, k_block_prev,
               vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
@@ -503,7 +500,7 @@ void gm_compute_metrics_3way_all2all(GMComputeMetrics3Way* this_,
     /*---Compute numerators---*/
     GMComputeNumerators3Way_start(
       &gm_compute_numerators_3way,
-      vectors_i, vectors_j_prev, vectors_k_prev, metrics,
+      vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
       vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
       j_block_prev, k_block_prev,
       vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,

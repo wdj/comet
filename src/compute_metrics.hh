@@ -38,10 +38,11 @@ public:
 
 private:
 
-  GMComputeMetrics2Way compute_metrics_2way_;
-  GMComputeMetrics3Way compute_metrics_3way_;
-
   GMEnv& env_;
+
+  GMComputeMetrics2Way compute_metrics_2way_;
+  //ComputeMetrics2Way* compute_metrics_2way_;
+  ComputeMetrics3Way* compute_metrics_3way_;
 
   void compute_stats_(GMMetrics& metrics);
 
