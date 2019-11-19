@@ -2061,7 +2061,7 @@ void DriverTest_duo_() {
 //=============================================================================
 
 //FIX
-#if 0
+#if 1
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }

@@ -79,8 +79,7 @@ void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors) {
   //--------------------
 
   if (env_.num_way() == 2) {
- //   compute_metrics_2way_->compute(&metrics, &vectors);
-    compute_metrics_2way_->compute(&metrics, &vectors, &env_);
+    compute_metrics_2way_->compute(metrics, vectors);
   } else { // (env_.num_way() == 3)
     compute_metrics_3way_->compute(metrics, vectors);
   }

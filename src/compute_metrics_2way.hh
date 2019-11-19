@@ -29,64 +29,24 @@ class ComputeMetrics2Way {
 
 public:
 
-  ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
-    : env_(env)
-    , vector_sums_onproc{0}
-    , vector_sums_offproc{0}
-    , vectors_01{0}
-    , metrics_buf_01{0}
-    , vectors_buf{0}
-    , metrics_tmp_buf{0}
-  {
-    create(&dm, &env);
-  }
+  ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env);
+  ~ComputeMetrics2Way();
 
-  ~ComputeMetrics2Way() {
-    destroy(&env_);
-  }
-
-
-
-  void create(
-    GMDecompMgr* dm,
-    GMEnv* env);
-  
-  void destroy(
-    GMEnv* env);
-
-  void compute(
-    GMMetrics* metrics,
-    GMVectors* vectors,
-    GMEnv* env) {
-    if (!env->all2all()) {
-      compute_notall2all(metrics, vectors, env);
-    } else {
-      compute_all2all(metrics, vectors, env);
-    }
-  }
-
-  void compute_notall2all(
-    GMMetrics* metrics,
-    GMVectors* vectors,
-    GMEnv* env);
-
-  void compute_all2all(
-    GMMetrics* metrics,
-    GMVectors* vectors,
-    GMEnv* env);
-
+  void compute(GMMetrics& metrics, GMVectors& vectors);
 
 private:
 
   Env& env_;
 
-  GMVectorSums vector_sums_onproc;
-  GMVectorSums vector_sums_offproc;
-  GMVectors vectors_01[NUM_BUF];
-  GMMirroredBuf metrics_buf_01[NUM_BUF];
-  GMMirroredBuf vectors_buf;
-  GMMirroredBuf metrics_tmp_buf;
+  GMVectorSums vector_sums_onproc_;
+  GMVectorSums vector_sums_offproc_;
+  GMVectors vectors_01_[NUM_BUF];
+  GMMirroredBuf metrics_buf_01_[NUM_BUF];
+  GMMirroredBuf vectors_buf_;
+  GMMirroredBuf metrics_tmp_buf_;
 
+  void compute_notall2all_(GMMetrics& metrics, GMVectors& vectors);
+  void compute_all2all_(GMMetrics& metrics, GMVectors& vectors);
 
   void lock(bool& lock_val) {
     COMET_INSIST(! lock_val);

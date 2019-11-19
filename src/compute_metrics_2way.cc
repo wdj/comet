@@ -27,207 +27,193 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-void ComputeMetrics2Way::create(
-    GMDecompMgr* dm,
-    GMEnv* env) {
-  COMET_INSIST(dm && env);
+ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
+  : env_(env) 
+  , vector_sums_onproc_{0}
+  , vector_sums_offproc_{0}
+  , vectors_01_{0}
+  , metrics_buf_01_{0}
+  , vectors_buf_{0}
+  , metrics_tmp_buf_{0} {
 
-  if (!(env->num_way() == 2 && env->all2all())) {
+  COMET_INSIST(env_.is_proc_active());
+
+  if (!env_.all2all())
     return;
+
+  GMVectorSums_create(&vector_sums_onproc_, dm.num_vector_local, &env_);
+  GMVectorSums_create(&vector_sums_offproc_, dm.num_vector_local, &env_);
+
+  for (int i = 0; i < NUM_BUF; ++i) {
+    GMVectors_create_with_buf(&vectors_01_[i],
+                              env_.data_type_vectors(), &dm, &env_);
+    GMMirroredBuf_create(&metrics_buf_01_[i],
+                         dm.num_vector_local, dm.num_vector_local, &env_);
   }
 
-  if (! env->is_proc_active()) {
-    return;
-  }
+  GMMirroredBuf_create(&vectors_buf_, dm.num_packedfield_local,
+                       dm.num_vector_local, &env_);
 
-//  memset((void*)this, 0, sizeof(*this));
-
-  GMVectorSums_create(&this->vector_sums_onproc, dm->num_vector_local, env);
-  GMVectorSums_create(&this->vector_sums_offproc, dm->num_vector_local, env);
-
-  for (int i = 0; i < 2; ++i) {
-    GMVectors_create_with_buf(&this->vectors_01[i],
-                              env->data_type_vectors(), dm, env);
-  }
-
-  for (int i = 0; i < 2; ++i) {
-    GMMirroredBuf_create(&this->metrics_buf_01[i],
-                         dm->num_vector_local, dm->num_vector_local, env);
-  }
-
-  GMMirroredBuf_create(&this->vectors_buf, dm->num_packedfield_local,
-                       dm->num_vector_local, env);
-
-  if (env->do_reduce()) {
-    GMMirroredBuf_create(&this->metrics_tmp_buf,
-                         dm->num_vector_local, dm->num_vector_local, env);
+  if (env_.do_reduce()) {
+    GMMirroredBuf_create(&metrics_tmp_buf_,
+                         dm.num_vector_local, dm.num_vector_local, &env_);
   }
 }
 
 //-----------------------------------------------------------------------------
 
-void ComputeMetrics2Way::destroy(
-    GMEnv* env) {
-  COMET_INSIST(env);
+ComputeMetrics2Way::~ComputeMetrics2Way() {
 
-  if (!(env->num_way() == 2 && env->all2all())) {
+  COMET_INSIST(env_.is_proc_active());
+
+  if (!env_.all2all())
     return;
+
+  GMVectorSums_destroy(&vector_sums_onproc_, &env_);
+  GMVectorSums_destroy(&vector_sums_offproc_, &env_);
+
+  for (int i = 0; i < NUM_BUF; ++i) {
+    GMVectors_destroy(&vectors_01_[i], &env_);
+    GMMirroredBuf_destroy(&metrics_buf_01_[i], &env_);
   }
 
-  if (! env->is_proc_active()) {
-    return;
-  }
+  GMMirroredBuf_destroy(&vectors_buf_, &env_);
 
-  GMVectorSums_destroy(&this->vector_sums_onproc, env);
-  GMVectorSums_destroy(&this->vector_sums_offproc, env);
-
-  for (int i = 0; i < 2; ++i) {
-    GMVectors_destroy(&this->vectors_01[i], env);
-  }
-
-  for (int i = 0; i < 2; ++i) {
-    GMMirroredBuf_destroy(&this->metrics_buf_01[i], env);
-  }
-
-  GMMirroredBuf_destroy(&this->vectors_buf, env);
-
-  if (env->do_reduce()) {
-    GMMirroredBuf_destroy(&this->metrics_tmp_buf, env);
+  if (env_.do_reduce()) {
+    GMMirroredBuf_destroy(&metrics_tmp_buf_, &env_);
   }
 }
 
 
-//=============================================================================
+//-----------------------------------------------------------------------------
 
-void ComputeMetrics2Way::compute_notall2all(
-  GMMetrics* metrics,
-  GMVectors* vectors,
-  GMEnv* env) {
+void ComputeMetrics2Way::compute(GMMetrics& metrics, GMVectors& vectors) {
 
-  COMET_INSIST(metrics && vectors && env);
-  COMET_INSIST(! env->all2all());
+  COMET_INSIST(env_.is_proc_active());
+
+  if (!env_.all2all()) {
+    compute_notall2all_(metrics, vectors);
+  } else {
+    compute_all2all_(metrics, vectors);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void ComputeMetrics2Way::compute_notall2all_(
+  GMMetrics& metrics,
+  GMVectors& vectors) {
+
+  COMET_INSIST(!env_.all2all());
 
   // Denominator
 
   GMVectorSums vector_sums = GMVectorSums_null();
-  GMVectorSums_create(&vector_sums, vectors->num_vector_local, env);
+  GMVectorSums_create(&vector_sums, vectors.num_vector_local, &env_);
 
-  GMVectorSums_compute(&vector_sums, vectors, env);
+  GMVectorSums_compute(&vector_sums, &vectors, &env_);
 
   // Numerator
 
-  gm_linalg_initialize(env);
+  gm_linalg_initialize(&env_);
 
-  const int nvl = vectors->num_vector_local;
-  const int npvfl = vectors->num_packedval_field_local;
+  const int nvl = vectors.num_vector_local;
+  const int npvfl = vectors.num_packedval_field_local;
 
   // Allocate memory for vectors and for result 
 
   GMMirroredBuf vectors_buf = GMMirroredBuf_null();
-  GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
+  GMMirroredBuf_create(&vectors_buf, npvfl, nvl, &env_);
 
   GMMirroredBuf metrics_buf = GMMirroredBuf_null();
-  GMMirroredBuf_create(&metrics_buf, nvl, nvl, env);
+  GMMirroredBuf_create(&metrics_buf, nvl, nvl, &env_);
 
   GMMirroredBuf metrics_tmp_buf = GMMirroredBuf_null();
-  if (env->do_reduce()) {
-    GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, env);
+  if (env_.do_reduce()) {
+    GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, &env_);
   }
 
   GMMirroredBuf* metrics_buf_ptr =
-      env->do_reduce() ?  &metrics_tmp_buf : &metrics_buf;
+      env_.do_reduce() ?  &metrics_tmp_buf : &metrics_buf;
 
   // Copy in vectors
 
-  gm_vectors_to_buf(&vectors_buf, vectors, env);
+  gm_vectors_to_buf(&vectors_buf, &vectors, &env_);
 
   // Send vectors to GPU
 
-  gm_set_vectors_start(vectors, &vectors_buf, env);
-  gm_set_vectors_wait(env);
+  gm_set_vectors_start(&vectors, &vectors_buf, &env_);
+  gm_set_vectors_wait(&env_);
 
-  gm_compute_2way_proc_nums_start(vectors, vectors, metrics, &vectors_buf,
+  gm_compute_2way_proc_nums_start(&vectors, &vectors, &metrics, &vectors_buf,
                                   &vectors_buf, metrics_buf_ptr,
-                                  env->proc_num_vector(),
-                                  true, env);
+                                  env_.proc_num_vector(),
+                                  true, &env_);
 
   //gm_compute_wait(env);
-  gm_compute_2way_proc_nums_wait(vectors, vectors, metrics, &vectors_buf,
+  gm_compute_2way_proc_nums_wait(&vectors, &vectors, &metrics, &vectors_buf,
                                  &vectors_buf, metrics_buf_ptr,
-                                 env->proc_num_vector(),
-                                 true, env);
+                                 env_.proc_num_vector(),
+                                 true, &env_);
 
   // Copy result from GPU
 
-  gm_get_metrics_start(metrics, metrics_buf_ptr, env);
-  gm_get_metrics_wait(metrics, metrics_buf_ptr, env);
-  gm_metrics_pad_adjust(metrics, metrics_buf_ptr, env);
+  gm_get_metrics_start(&metrics, metrics_buf_ptr, &env_);
+  gm_get_metrics_wait(&metrics, metrics_buf_ptr, &env_);
+  gm_metrics_pad_adjust(&metrics, metrics_buf_ptr, &env_);
 
   // Do reduction across field procs if needed
 
-  if (env->do_reduce()) {
-    gm_reduce_metrics(metrics, &metrics_buf, metrics_buf_ptr, env);
-  }
+  if (env_.do_reduce())
+    gm_reduce_metrics(&metrics, &metrics_buf, metrics_buf_ptr, &env_);
 
   // Combine
 
-  gm_compute_2way_proc_combine(metrics, &metrics_buf,
+  gm_compute_2way_proc_combine(&metrics, &metrics_buf,
                                &vector_sums, &vector_sums,
-                               env->proc_num_vector(), true, env);
+                               env_.proc_num_vector(), true, &env_);
 
   // Terminations
 
-  GMVectorSums_destroy(&vector_sums, env);
+  GMVectorSums_destroy(&vector_sums, &env_);
 
-  GMMirroredBuf_destroy(&vectors_buf, env);
-  GMMirroredBuf_destroy(&metrics_buf, env);
+  GMMirroredBuf_destroy(&vectors_buf, &env_);
+  GMMirroredBuf_destroy(&metrics_buf, &env_);
 
-  if (env->do_reduce()) {
-    GMMirroredBuf_destroy(&metrics_tmp_buf, env);
-  }
+  if (env_.do_reduce())
+    GMMirroredBuf_destroy(&metrics_tmp_buf, &env_);
 
-  gm_linalg_finalize(env);
+  gm_linalg_finalize(&env_);
 }
 
 //=============================================================================
 
-void ComputeMetrics2Way::compute_all2all(
-  GMMetrics* metrics,
-  GMVectors* vectors,
-  GMEnv* env) {
+void ComputeMetrics2Way::compute_all2all_(
+  GMMetrics& metrics,
+  GMVectors& vectors) {
 
-  COMET_INSIST(metrics && vectors && env);
-  COMET_INSIST(env->all2all());
+  COMET_INSIST(env_.all2all());
 
   // Initializations
 
-  const int num_block = env->num_block_vector();
-  const int i_block = env->proc_num_vector();
+  const int num_block = env_.num_block_vector();
+  const int i_block = env_.proc_num_vector();
 
-  GMVectorSums vector_sums_onproc = this->vector_sums_onproc;
-  GMVectorSums vector_sums_offproc = this->vector_sums_offproc;
-
-  gm_linalg_initialize(env);
+  gm_linalg_initialize(&env_);
 
   // Create double buffer of vectors objects for send/recv
-
-  GMVectors* const & vectors_01 = this->vectors_01;
 
   // Allocate GPU buffers
   // To overlap transfers with compute, set up double buffers for the
   // vectors sent to the GPU and the metrics received from the GPU.
-
-  GMMirroredBuf* const & metrics_buf_01 = this->metrics_buf_01;
-  GMMirroredBuf& vectors_buf = this->vectors_buf;
-  GMMirroredBuf& metrics_tmp_buf = this->metrics_tmp_buf;
 
   // Result matrix is diagonal block and half the blocks to the right
   // (including wraparound to left side of matrix when appropriate).
   // For even number of vector blocks, block rows of lower half of matrix
   //  have one less block to make correct count.
 
-  const int num_proc_r = env->num_proc_repl();
-  const int proc_num_r = env->proc_num_repl();
+  const int num_proc_r = env_.num_proc_repl();
+  const int proc_num_r = env_.proc_num_repl();
 
   // Flatten the proc_vector and proc_repl indices into a single index.
 
@@ -264,9 +250,9 @@ void ComputeMetrics2Way::compute_all2all(
   // measured from (block) main diag.
   // For all repl procs.
 
-  const int j_i_offset_min = gm_bdiag_computed_min(env);
-  const int j_i_offset_max = gm_bdiag_computed_max(env);
-  const int j_i_offset_this_row_max = gm_block_computed_this_row_max(env);
+  const int j_i_offset_min = gm_bdiag_computed_min(&env_);
+  const int j_i_offset_max = gm_bdiag_computed_max(&env_);
+  const int j_i_offset_this_row_max = gm_block_computed_this_row_max(&env_);
 
   const int num_bdiag_computed = j_i_offset_max - j_i_offset_min;
 
@@ -333,17 +319,17 @@ void ComputeMetrics2Way::compute_all2all(
 
     vars_next.is_right_aliased = vars_next.is_main_diag;
 
-    GMVectors* vectors_left = vectors;
+    GMVectors* vectors_left = &vectors;
     vars_next.vectors_right = vars_next.is_right_aliased ?
-      vectors_left : &vectors_01[vars_next.index_01];
+      vectors_left : &vectors_01_[vars_next.index_01];
 
-    GMMirroredBuf* vectors_left_buf = &vectors_buf;
+    GMMirroredBuf* vectors_left_buf = &vectors_buf_;
     vars_next.vectors_right_buf = vars_next.is_right_aliased ?
-      vectors_left_buf : &vectors_01[vars_next.index_01].buf;
+      vectors_left_buf : &vectors_01_[vars_next.index_01].buf;
 
     // Pointer to metrics buffer
 
-    vars_next.metrics_buf = &metrics_buf_01[vars_next.index_01];
+    vars_next.metrics_buf = &metrics_buf_01_[vars_next.index_01];
 
     // Set up lock aliases
 
@@ -389,16 +375,16 @@ void ComputeMetrics2Way::compute_all2all(
                "Next step should always compute off-diag block.");
       lock(lock_vectors_right_buf_h_next);
       mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
-                                              proc_recv, mpi_tag, env);
+                                              proc_recv, mpi_tag, &env_);
       mpi_requests[0] = gm_send_vectors_start(vectors_left,
-                                              proc_send, mpi_tag, env);
+                                              proc_send, mpi_tag, &env_);
     }
 
     // Send right vectors to GPU end
 
     if (vars.is_compute_step && vars.do_compute_block &&
         ! vars.is_right_aliased) {
-      gm_set_vectors_wait(env);
+      gm_set_vectors_wait(&env_);
       unlock(lock_vectors_right_buf_h);
       unlock(lock_vectors_right_buf_d);
     }
@@ -407,12 +393,12 @@ void ComputeMetrics2Way::compute_all2all(
 
     if (vars_next.is_first_compute_step) {
       lock(lock_vectors_left_buf_h);
-      gm_vectors_to_buf(vectors_left_buf, vectors_left, env);
+      gm_vectors_to_buf(vectors_left_buf, vectors_left, &env_);
       lock(lock_vectors_left_buf_d);
-      gm_set_vectors_start(vectors_left, vectors_left_buf, env);
+      gm_set_vectors_start(vectors_left, vectors_left_buf, &env_);
       // TODO: examine whether overlap possible.
       // May not be possible for general repl and phase (??).
-      gm_set_vectors_wait(env);
+      gm_set_vectors_wait(&env_);
       unlock(lock_vectors_left_buf_h);
       unlock(lock_vectors_left_buf_d);
     }
@@ -426,49 +412,49 @@ void ComputeMetrics2Way::compute_all2all(
       }
       lock(lock_metrics_buf_ptr_d);
       gm_compute_2way_proc_nums_start(
-        vectors_left, vars.vectors_right, metrics,
+        vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
-        vars.j_block, vars.is_main_diag, env);
+        vars.j_block, vars.is_main_diag, &env_);
     }
 
     // GPU case: wait for prev step get metrics to complete, then combine.
     // Note this is hidden under GPU computation
 
-    if (env->is_using_linalg()) {
+    if (env_.is_using_linalg()) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
-        gm_get_metrics_wait(metrics, vars_prev.metrics_buf, env);
+        gm_get_metrics_wait(&metrics, vars_prev.metrics_buf, &env_);
         unlock(lock_metrics_buf_ptr_d_prev);
         unlock(lock_metrics_buf_ptr_h_prev);
         lock(lock_metrics_buf_ptr_h_prev);
-        gm_metrics_pad_adjust(metrics, vars_prev.metrics_buf, env);
+        gm_metrics_pad_adjust(&metrics, vars_prev.metrics_buf, &env_);
         unlock(lock_metrics_buf_ptr_h_prev);
 
-        GMVectorSums* vector_sums_left = &vector_sums_onproc;
+        GMVectorSums* vector_sums_left = &vector_sums_onproc_;
         GMVectorSums* vector_sums_right =
           vars_prev.is_main_diag
-          ? &vector_sums_onproc : &vector_sums_offproc;
+          ? &vector_sums_onproc_ : &vector_sums_offproc_;
 
         //TODO: remove need to allocate metrics_tmp_buf device array
         GMMirroredBuf* metrics_buf_prev_ptr =
-            env->do_reduce() ?  &metrics_tmp_buf : vars_prev.metrics_buf;
+            env_.do_reduce() ?  &metrics_tmp_buf_ : vars_prev.metrics_buf;
 
         lock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
 
-        if (env->do_reduce()) {
+        if (env_.do_reduce()) {
           lock(lock_metrics_tmp_buf_h);
-          gm_reduce_metrics(metrics, metrics_buf_prev_ptr,
-                            vars_prev.metrics_buf, env);
+          gm_reduce_metrics(&metrics, metrics_buf_prev_ptr,
+                            vars_prev.metrics_buf, &env_);
         }
 
         gm_compute_2way_proc_combine(
-          metrics, metrics_buf_prev_ptr,
+          &metrics, metrics_buf_prev_ptr,
           vector_sums_left, vector_sums_right,
           vars_prev.j_block,
-          vars_prev.is_main_diag, env);
+          vars_prev.is_main_diag, &env_);
 
         unlock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
 
-        if (env->do_reduce()) {
+        if (env_.do_reduce()) {
           unlock(lock_metrics_tmp_buf_h);
         }
       }
@@ -488,10 +474,10 @@ void ComputeMetrics2Way::compute_all2all(
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
-          GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
+          GMVectorSums_compute(&vector_sums_onproc_, vectors_left, &env_);
         }
         if (! vars.is_main_diag) {
-          GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
+          GMVectorSums_compute(&vector_sums_offproc_, vars.vectors_right, &env_);
         }
       }
     }
@@ -499,7 +485,7 @@ void ComputeMetrics2Way::compute_all2all(
     // Wait for recvs to complete
 
     if (vars_next.is_compute_step && ! comm_with_self) {
-      gm_recv_vectors_wait(&(mpi_requests[1]), env);
+      gm_recv_vectors_wait(&(mpi_requests[1]), &env_);
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
       unlock(lock_vectors_right_buf_h_next);
@@ -513,7 +499,7 @@ void ComputeMetrics2Way::compute_all2all(
       lock(lock_vectors_right_buf_h_next);
       lock(lock_vectors_right_buf_d_next);
       gm_set_vectors_start(vars_next.vectors_right,
-                           vars_next.vectors_right_buf, env);
+                           vars_next.vectors_right_buf, &env_);
     }
 
     // Wait for numerators computation to complete
@@ -521,9 +507,9 @@ void ComputeMetrics2Way::compute_all2all(
     if (vars.is_compute_step && vars.do_compute_block) {
       //gm_compute_wait(env);
       gm_compute_2way_proc_nums_wait(
-        vectors_left, vars.vectors_right, metrics,
+        vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
-        vars.j_block, vars.is_main_diag, env);
+        vars.j_block, vars.is_main_diag, &env_);
       unlock(lock_vectors_left_buf_d);
       if (! vars.is_right_aliased) {
         unlock(lock_vectors_right_buf_d);
@@ -536,7 +522,7 @@ void ComputeMetrics2Way::compute_all2all(
     if (vars.is_compute_step && vars.do_compute_block) {
       lock(lock_metrics_buf_ptr_h);
       lock(lock_metrics_buf_ptr_d);
-      gm_get_metrics_start(metrics, vars.metrics_buf, env);
+      gm_get_metrics_start(&metrics, vars.metrics_buf, &env_);
     }
 
     // Compute sums for denominators
@@ -545,30 +531,30 @@ void ComputeMetrics2Way::compute_all2all(
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
-          GMVectorSums_compute(&vector_sums_onproc, vectors_left, env);
+          GMVectorSums_compute(&vector_sums_onproc_, vectors_left, &env_);
         }
         if (! vars.is_main_diag) {
-          GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right, env);
+          GMVectorSums_compute(&vector_sums_offproc_, vars.vectors_right, &env_);
         }
       }
     }
 
     // CPU case: combine numerators, denominators to obtain final result
 
-    if (!env->is_using_linalg()) {
+    if (!env_.is_using_linalg()) {
       if (vars.is_compute_step && vars.do_compute_block) {
-        GMVectorSums* vector_sums_left = &vector_sums_onproc;
+        GMVectorSums* vector_sums_left = &vector_sums_onproc_;
         GMVectorSums* vector_sums_right =
             vars.is_main_diag
-            ? &vector_sums_onproc : &vector_sums_offproc;
-        gm_get_metrics_wait(metrics, vars.metrics_buf, env); // NO-OP
+            ? &vector_sums_onproc_ : &vector_sums_offproc_;
+        gm_get_metrics_wait(&metrics, vars.metrics_buf, &env_); // NO-OP
         unlock(lock_metrics_buf_ptr_d);
         unlock(lock_metrics_buf_ptr_h);
         lock(lock_metrics_buf_ptr_h);
         gm_compute_2way_proc_combine(
-          metrics, vars.metrics_buf, vector_sums_left,
+          &metrics, vars.metrics_buf, vector_sums_left,
           vector_sums_right, vars.j_block,
-          vars.is_main_diag, env);
+          vars.is_main_diag, &env_);
         unlock(lock_metrics_buf_ptr_h);
       }
     }
@@ -576,7 +562,7 @@ void ComputeMetrics2Way::compute_all2all(
     // Wait for sends to complete
 
     if (vars_next.is_compute_step && ! comm_with_self) {
-      gm_send_vectors_wait(&(mpi_requests[0]), env);
+      gm_send_vectors_wait(&(mpi_requests[0]), &env_);
     }
 
   //========================================
@@ -595,7 +581,7 @@ void ComputeMetrics2Way::compute_all2all(
   COMET_INSIST(!lock_vectors_buf_d);
   COMET_INSIST(!lock_metrics_tmp_buf_h);
 
-  gm_linalg_finalize(env);
+  gm_linalg_finalize(&env_);
 }
 
 //=============================================================================
