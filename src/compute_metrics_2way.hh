@@ -23,39 +23,82 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-typedef struct {
+class GMComputeMetrics2Way {
+
+  enum {NUM_BUF = 2};
+
+
+public:
+
+//  GMComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env);
+//  ~GMComputeMetrics2Way();
+
+
   GMVectorSums vector_sums_onproc;
   GMVectorSums vector_sums_offproc;
-  GMVectors vectors_01[2];
-  GMMirroredBuf metrics_buf_01[2];
+  GMVectors vectors_01[NUM_BUF];
+  GMMirroredBuf metrics_buf_01[NUM_BUF];
   GMMirroredBuf vectors_buf;
   GMMirroredBuf metrics_tmp_buf;
-} GMComputeMetrics2Way;
-    
+
+
+//  GMComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env) {
+//    create(&dm, &env);
+//  }
+
+
+
+  void create(
+    GMDecompMgr* dm,
+    GMEnv* env);
+  
+  void destroy(
+    GMEnv* env);
+
+
+  void compute(
+    GMMetrics* metrics,
+    GMVectors* vectors,
+    GMEnv* env) {
+    if (!env->all2all()) {
+      compute_notall2all(metrics, vectors, env);
+    } else {
+      compute_all2all(metrics, vectors, env);
+    }
+  }
+
+  void compute_notall2all(
+    GMMetrics* metrics,
+    GMVectors* vectors,
+    GMEnv* env);
+
+  void compute_all2all(
+    GMMetrics* metrics,
+    GMVectors* vectors,
+    GMEnv* env);
+
+
+private:
+
+  void lock(bool& lock_val) {
+    COMET_INSIST(! lock_val);
+    lock_val = true;
+  };
+
+  void unlock(bool& lock_val) {
+    COMET_INSIST(lock_val);
+    lock_val = false;
+  };
+
+  // Disallowed methods.
+
+//  GMComputeMetrics2Way(const GMComputeMetrics2Way&);
+//  void operator=(const GMComputeMetrics2Way&);
+
+};
+
 //=============================================================================
 
-void GMComputeMetrics2Way_create(
-  GMComputeMetrics2Way* this_,
-  GMDecompMgr* dm,
-  GMEnv* env);
-  
-void GMComputeMetrics2Way_destroy(
-  GMComputeMetrics2Way* this_,
-  GMEnv* env);
-
-//-----------------------------------------------------------------------------
-
-void gm_compute_metrics_2way_notall2all(
-  GMComputeMetrics2Way* this_,
-  GMMetrics* metrics,
-  GMVectors* vectors,
-  GMEnv* env);
-
-void gm_compute_metrics_2way_all2all(
-  GMComputeMetrics2Way* this_,
-  GMMetrics* metrics,
-  GMVectors* vectors,
-  GMEnv* env);
 
 //=============================================================================
 

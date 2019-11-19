@@ -2060,6 +2060,8 @@ void DriverTest_duo_() {
 
 //=============================================================================
 
+//FIX
+#if 0
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
@@ -2068,8 +2070,6 @@ TEST(DriverTest, duo) {
   DriverTest_duo_();
 }
 
-//FIX
-#if 1
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }

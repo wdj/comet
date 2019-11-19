@@ -101,7 +101,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   gm_compute_wait(env); // NOTE: not needed
 
   //---------------
-  // Free memory
+  // Terminations
   //---------------
 
   GMComputeNumerators3Way_destroy(&gm_compute_numerators_3way, env);

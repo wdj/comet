@@ -24,7 +24,7 @@ namespace comet {
 
 ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
   : env_(env)
-  //, compute_metrics_2way_(NULL)
+  , compute_metrics_2way_p_(&compute_metrics_2way_)
   , compute_metrics_3way_(NULL)
   , time_begin_tmp_(0) {
 
@@ -37,7 +37,9 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
 
   if (env_.num_way() == NUM_WAY::_2) {
     //compute_metrics_2way_ = new ComputeMetrics2Way(dm, env);
-    GMComputeMetrics2Way_create(&compute_metrics_2way_, &dm, &env_);
+    //GMComputeMetrics2Way_create(compute_metrics_2way_p_, &dm, &env_);
+    compute_metrics_2way_p_->create(&dm, &env_);
+    //compute_metrics_2way_p_ = new GMComputeMetrics2Way(dm, env_);
   } else {
     compute_metrics_3way_ = new ComputeMetrics3Way(dm, env);
     //GMComputeMetrics3Way_create(&compute_metrics_3way_, &dm, &env_);
@@ -64,7 +66,8 @@ ComputeMetrics::~ComputeMetrics() {
   delete compute_metrics_3way_;
 
   if (env_.num_way() == NUM_WAY::_2) {
-    GMComputeMetrics2Way_destroy(&compute_metrics_2way_, &env_);
+    //GMComputeMetrics2Way_destroy(compute_metrics_2way_p_, &env_);
+    compute_metrics_2way_p_->destroy(&env_);
   } else {
 //    GMComputeMetrics3Way_destroy(&compute_metrics_3way_, &env_);
   }
@@ -88,21 +91,9 @@ void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors) {
 
   if (env_.num_way() == 2) {
  //   compute_metrics_2way_->compute(&metrics, &vectors);
+    compute_metrics_2way_p_->compute(&metrics, &vectors, &env_);
   } else { // (env_.num_way() == 3)
     compute_metrics_3way_->compute(metrics, vectors);
-  }
-
-
-  if (env_.num_way() == 2 && ! env_.all2all()) {
-  
-    gm_compute_metrics_2way_notall2all(&compute_metrics_2way_,
-      &metrics, &vectors, &env_);
-
-  } else if (env_.num_way() == 2 && env_.all2all()) {
-
-    gm_compute_metrics_2way_all2all(&compute_metrics_2way_,
-      &metrics, &vectors, &env_);
-
   }
 
   //--------------------

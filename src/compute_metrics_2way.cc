@@ -27,11 +27,10 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-void GMComputeMetrics2Way_create(
-    GMComputeMetrics2Way* this_,
+void GMComputeMetrics2Way::create(
     GMDecompMgr* dm,
     GMEnv* env) {
-  COMET_INSIST(this_ && dm && env);
+  COMET_INSIST(dm && env);
 
   if (!(env->num_way() == 2 && env->all2all())) {
     return;
@@ -41,36 +40,35 @@ void GMComputeMetrics2Way_create(
     return;
   }
 
-  *this_ = {};
+  memset((void*)this, 0, sizeof(*this));
 
-  GMVectorSums_create(&this_->vector_sums_onproc, dm->num_vector_local, env);
-  GMVectorSums_create(&this_->vector_sums_offproc, dm->num_vector_local, env);
+  GMVectorSums_create(&this->vector_sums_onproc, dm->num_vector_local, env);
+  GMVectorSums_create(&this->vector_sums_offproc, dm->num_vector_local, env);
 
   for (int i = 0; i < 2; ++i) {
-    GMVectors_create_with_buf(&this_->vectors_01[i],
+    GMVectors_create_with_buf(&this->vectors_01[i],
                               env->data_type_vectors(), dm, env);
   }
 
   for (int i = 0; i < 2; ++i) {
-    GMMirroredBuf_create(&this_->metrics_buf_01[i],
+    GMMirroredBuf_create(&this->metrics_buf_01[i],
                          dm->num_vector_local, dm->num_vector_local, env);
   }
 
-  GMMirroredBuf_create(&this_->vectors_buf, dm->num_packedfield_local,
+  GMMirroredBuf_create(&this->vectors_buf, dm->num_packedfield_local,
                        dm->num_vector_local, env);
 
   if (env->do_reduce()) {
-    GMMirroredBuf_create(&this_->metrics_tmp_buf,
+    GMMirroredBuf_create(&this->metrics_tmp_buf,
                          dm->num_vector_local, dm->num_vector_local, env);
   }
 }
 
 //-----------------------------------------------------------------------------
 
-void GMComputeMetrics2Way_destroy(
-    GMComputeMetrics2Way* this_,
+void GMComputeMetrics2Way::destroy(
     GMEnv* env) {
-  COMET_INSIST(this_ && env);
+  COMET_INSIST(env);
 
   if (!(env->num_way() == 2 && env->all2all())) {
     return;
@@ -80,28 +78,28 @@ void GMComputeMetrics2Way_destroy(
     return;
   }
 
-  GMVectorSums_destroy(&this_->vector_sums_onproc, env);
-  GMVectorSums_destroy(&this_->vector_sums_offproc, env);
+  GMVectorSums_destroy(&this->vector_sums_onproc, env);
+  GMVectorSums_destroy(&this->vector_sums_offproc, env);
 
   for (int i = 0; i < 2; ++i) {
-    GMVectors_destroy(&this_->vectors_01[i], env);
+    GMVectors_destroy(&this->vectors_01[i], env);
   }
 
   for (int i = 0; i < 2; ++i) {
-    GMMirroredBuf_destroy(&this_->metrics_buf_01[i], env);
+    GMMirroredBuf_destroy(&this->metrics_buf_01[i], env);
   }
 
-  GMMirroredBuf_destroy(&this_->vectors_buf, env);
+  GMMirroredBuf_destroy(&this->vectors_buf, env);
 
   if (env->do_reduce()) {
-    GMMirroredBuf_destroy(&this_->metrics_tmp_buf, env);
+    GMMirroredBuf_destroy(&this->metrics_tmp_buf, env);
   }
 }
 
+
 //=============================================================================
 
-void gm_compute_metrics_2way_notall2all(
-  GMComputeMetrics2Way* this_,
+void GMComputeMetrics2Way::compute_notall2all(
   GMMetrics* metrics,
   GMVectors* vectors,
   GMEnv* env) {
@@ -193,20 +191,7 @@ void gm_compute_metrics_2way_notall2all(
 
 //=============================================================================
 
-static void lock(bool& lock_val) {
-  COMET_INSIST(! lock_val);
-  lock_val = true;
-};
-
-static void unlock(bool& lock_val) {
-  COMET_INSIST(lock_val);
-  lock_val = false;
-};
-
-//=============================================================================
-
-void gm_compute_metrics_2way_all2all(
-  GMComputeMetrics2Way* this_,
+void GMComputeMetrics2Way::compute_all2all(
   GMMetrics* metrics,
   GMVectors* vectors,
   GMEnv* env) {
@@ -219,22 +204,22 @@ void gm_compute_metrics_2way_all2all(
   const int num_block = env->num_block_vector();
   const int i_block = env->proc_num_vector();
 
-  GMVectorSums vector_sums_onproc = this_->vector_sums_onproc;
-  GMVectorSums vector_sums_offproc = this_->vector_sums_offproc;
+  GMVectorSums vector_sums_onproc = this->vector_sums_onproc;
+  GMVectorSums vector_sums_offproc = this->vector_sums_offproc;
 
   gm_linalg_initialize(env);
 
   // Create double buffer of vectors objects for send/recv
 
-  GMVectors* const & vectors_01 = this_->vectors_01;
+  GMVectors* const & vectors_01 = this->vectors_01;
 
   // Allocate GPU buffers
   // To overlap transfers with compute, set up double buffers for the
   // vectors sent to the GPU and the metrics received from the GPU.
 
-  GMMirroredBuf* const & metrics_buf_01 = this_->metrics_buf_01;
-  GMMirroredBuf& vectors_buf = this_->vectors_buf;
-  GMMirroredBuf& metrics_tmp_buf = this_->metrics_tmp_buf;
+  GMMirroredBuf* const & metrics_buf_01 = this->metrics_buf_01;
+  GMMirroredBuf& vectors_buf = this->vectors_buf;
+  GMMirroredBuf& metrics_tmp_buf = this->metrics_tmp_buf;
 
   // Result matrix is diagonal block and half the blocks to the right
   // (including wraparound to left side of matrix when appropriate).
