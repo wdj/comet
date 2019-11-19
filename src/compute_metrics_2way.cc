@@ -40,7 +40,7 @@ void ComputeMetrics2Way::create(
     return;
   }
 
-  memset((void*)this, 0, sizeof(*this));
+//  memset((void*)this, 0, sizeof(*this));
 
   GMVectorSums_create(&this->vector_sums_onproc, dm->num_vector_local, env);
   GMVectorSums_create(&this->vector_sums_offproc, dm->num_vector_local, env);

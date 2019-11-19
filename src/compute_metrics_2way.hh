@@ -30,8 +30,19 @@ class ComputeMetrics2Way {
 public:
 
   ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
-    : env_(env) {
+    : env_(env)
+    , vector_sums_onproc{0}
+    , vector_sums_offproc{0}
+    , vectors_01{0}
+    , metrics_buf_01{0}
+    , vectors_buf{0}
+    , metrics_tmp_buf{0}
+  {
     create(&dm, &env);
+  }
+
+  ~ComputeMetrics2Way() {
+    destroy(&env_);
   }
 
 

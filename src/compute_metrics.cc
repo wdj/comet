@@ -36,13 +36,9 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
   //--------------------
 
   if (env_.num_way() == NUM_WAY::_2) {
-    //compute_metrics_2way_ = new ComputeMetrics2Way(dm, env);
-    //ComputeMetrics2Way_create(compute_metrics_2way_, &dm, &env_);
-    //compute_metrics_2way_->create(&dm, &env_);
     compute_metrics_2way_ = new ComputeMetrics2Way(dm, env_);
   } else {
     compute_metrics_3way_ = new ComputeMetrics3Way(dm, env);
-    //ComputeMetrics3Way_create(&compute_metrics_3way_, &dm, &env_);
   }
 
   //--------------------
@@ -62,15 +58,8 @@ ComputeMetrics::~ComputeMetrics() {
 
   //--------------------
 
-//  delete compute_metrics_2way_;
+  delete compute_metrics_2way_;
   delete compute_metrics_3way_;
-
-  if (env_.num_way() == NUM_WAY::_2) {
-    //ComputeMetrics2Way_destroy(compute_metrics_2way_, &env_);
-    compute_metrics_2way_->destroy(&env_);
-  } else {
-//    ComputeMetrics3Way_destroy(&compute_metrics_3way_, &env_);
-  }
 
   //--------------------
 
