@@ -27,7 +27,7 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-void GMComputeMetrics2Way::create(
+void ComputeMetrics2Way::create(
     GMDecompMgr* dm,
     GMEnv* env) {
   COMET_INSIST(dm && env);
@@ -66,7 +66,7 @@ void GMComputeMetrics2Way::create(
 
 //-----------------------------------------------------------------------------
 
-void GMComputeMetrics2Way::destroy(
+void ComputeMetrics2Way::destroy(
     GMEnv* env) {
   COMET_INSIST(env);
 
@@ -99,7 +99,7 @@ void GMComputeMetrics2Way::destroy(
 
 //=============================================================================
 
-void GMComputeMetrics2Way::compute_notall2all(
+void ComputeMetrics2Way::compute_notall2all(
   GMMetrics* metrics,
   GMVectors* vectors,
   GMEnv* env) {
@@ -191,7 +191,7 @@ void GMComputeMetrics2Way::compute_notall2all(
 
 //=============================================================================
 
-void GMComputeMetrics2Way::compute_all2all(
+void ComputeMetrics2Way::compute_all2all(
   GMMetrics* metrics,
   GMVectors* vectors,
   GMEnv* env) {

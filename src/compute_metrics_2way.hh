@@ -23,28 +23,16 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-class GMComputeMetrics2Way {
+class ComputeMetrics2Way {
 
   enum {NUM_BUF = 2};
 
-
 public:
 
-//  GMComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env);
-//  ~GMComputeMetrics2Way();
-
-
-  GMVectorSums vector_sums_onproc;
-  GMVectorSums vector_sums_offproc;
-  GMVectors vectors_01[NUM_BUF];
-  GMMirroredBuf metrics_buf_01[NUM_BUF];
-  GMMirroredBuf vectors_buf;
-  GMMirroredBuf metrics_tmp_buf;
-
-
-//  GMComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env) {
-//    create(&dm, &env);
-//  }
+  ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
+    : env_(env) {
+    create(&dm, &env);
+  }
 
 
 
@@ -54,7 +42,6 @@ public:
   
   void destroy(
     GMEnv* env);
-
 
   void compute(
     GMMetrics* metrics,
@@ -80,6 +67,16 @@ public:
 
 private:
 
+  Env& env_;
+
+  GMVectorSums vector_sums_onproc;
+  GMVectorSums vector_sums_offproc;
+  GMVectors vectors_01[NUM_BUF];
+  GMMirroredBuf metrics_buf_01[NUM_BUF];
+  GMMirroredBuf vectors_buf;
+  GMMirroredBuf metrics_tmp_buf;
+
+
   void lock(bool& lock_val) {
     COMET_INSIST(! lock_val);
     lock_val = true;
@@ -92,8 +89,8 @@ private:
 
   // Disallowed methods.
 
-//  GMComputeMetrics2Way(const GMComputeMetrics2Way&);
-//  void operator=(const GMComputeMetrics2Way&);
+  ComputeMetrics2Way(const ComputeMetrics2Way&);
+  void operator=(const ComputeMetrics2Way&);
 
 };
 
