@@ -27,7 +27,7 @@ class ComputeMetrics3Way {
 public:
 
   ComputeMetrics3Way(GMDecompMgr& dm, GMEnv& env);
-  ~ComputeMetrics3Way() {}
+  ~ComputeMetrics3Way();
 
   void compute(GMMetrics& metrics, GMVectors& vectors);
 

@@ -27,15 +27,24 @@ namespace comet {
 
 ComputeMetrics3Way::ComputeMetrics3Way(GMDecompMgr& dm, GMEnv& env)
   : env_(env) {
+  COMET_INSIST(env_.is_proc_active());
 
   COMET_INSIST_INTERFACE(&env_, env_.compute_method() != MetricType::DUO &&
                                 "3-way DUO method not supported.");
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Destructor for ComputeMetrics3Way class.
+
+ComputeMetrics3Way::~ComputeMetrics3Way() {
+  COMET_INSIST(env_.is_proc_active());
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Perform the 3-way metrics computation.
 
 void ComputeMetrics3Way::compute(GMMetrics& metrics, GMVectors& vectors) {
+  COMET_INSIST(env_.is_proc_active());
 
   if (!env_.all2all()) {
     compute_notall2all_(metrics, vectors);

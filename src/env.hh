@@ -405,7 +405,7 @@ private:
   const char* description_;
 
   // Disallowed methods.
-  Env(  const Env&);
+  Env(const Env&);
   void operator=(const Env&);
 };
 

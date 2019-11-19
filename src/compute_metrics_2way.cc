@@ -26,6 +26,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Constructor for ComputeMetrics2Way class.
 
 ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
   : env_(env) 
@@ -35,39 +36,35 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
   , metrics_buf_01_{0}
   , vectors_buf_{0}
   , metrics_tmp_buf_{0} {
-
   COMET_INSIST(env_.is_proc_active());
 
-  if (!env_.all2all())
-    return;
+  if (!env_.all2all()) return;
 
   GMVectorSums_create(&vector_sums_onproc_, dm.num_vector_local, &env_);
   GMVectorSums_create(&vector_sums_offproc_, dm.num_vector_local, &env_);
 
   for (int i = 0; i < NUM_BUF; ++i) {
-    GMVectors_create_with_buf(&vectors_01_[i],
-                              env_.data_type_vectors(), &dm, &env_);
-    GMMirroredBuf_create(&metrics_buf_01_[i],
-                         dm.num_vector_local, dm.num_vector_local, &env_);
+    GMVectors_create_with_buf(&vectors_01_[i], env_.data_type_vectors(),
+      &dm, &env_);
+    GMMirroredBuf_create(&metrics_buf_01_[i], dm.num_vector_local,
+      dm.num_vector_local, &env_);
   }
 
   GMMirroredBuf_create(&vectors_buf_, dm.num_packedfield_local,
                        dm.num_vector_local, &env_);
 
-  if (env_.do_reduce()) {
-    GMMirroredBuf_create(&metrics_tmp_buf_,
-                         dm.num_vector_local, dm.num_vector_local, &env_);
-  }
+  if (env_.do_reduce())
+    GMMirroredBuf_create(&metrics_tmp_buf_, dm.num_vector_local,
+      dm.num_vector_local, &env_);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Destructor for ComputeMetrics2Way class.
 
 ComputeMetrics2Way::~ComputeMetrics2Way() {
-
   COMET_INSIST(env_.is_proc_active());
 
-  if (!env_.all2all())
-    return;
+  if (!env_.all2all()) return;
 
   GMVectorSums_destroy(&vector_sums_onproc_, &env_);
   GMVectorSums_destroy(&vector_sums_offproc_, &env_);
@@ -79,16 +76,14 @@ ComputeMetrics2Way::~ComputeMetrics2Way() {
 
   GMMirroredBuf_destroy(&vectors_buf_, &env_);
 
-  if (env_.do_reduce()) {
+  if (env_.do_reduce())
     GMMirroredBuf_destroy(&metrics_tmp_buf_, &env_);
-  }
 }
 
-
 //-----------------------------------------------------------------------------
+/// \brief Perform the 2-way metrics computation.
 
 void ComputeMetrics2Way::compute(GMMetrics& metrics, GMVectors& vectors) {
-
   COMET_INSIST(env_.is_proc_active());
 
   if (!env_.all2all()) {
@@ -99,21 +94,24 @@ void ComputeMetrics2Way::compute(GMMetrics& metrics, GMVectors& vectors) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Perform the 2-way metrics computation, non-all2all case.
 
-void ComputeMetrics2Way::compute_notall2all_(
-  GMMetrics& metrics,
-  GMVectors& vectors) {
-
+void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
+                                             GMVectors& vectors) {
   COMET_INSIST(!env_.all2all());
 
+  //---------------
   // Denominator
+  //---------------
 
   GMVectorSums vector_sums = GMVectorSums_null();
   GMVectorSums_create(&vector_sums, vectors.num_vector_local, &env_);
 
   GMVectorSums_compute(&vector_sums, &vectors, &env_);
 
+  //---------------
   // Numerator
+  //---------------
 
   gm_linalg_initialize(&env_);
 
@@ -129,9 +127,8 @@ void ComputeMetrics2Way::compute_notall2all_(
   GMMirroredBuf_create(&metrics_buf, nvl, nvl, &env_);
 
   GMMirroredBuf metrics_tmp_buf = GMMirroredBuf_null();
-  if (env_.do_reduce()) {
+  if (env_.do_reduce())
     GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, &env_);
-  }
 
   GMMirroredBuf* metrics_buf_ptr =
       env_.do_reduce() ?  &metrics_tmp_buf : &metrics_buf;
@@ -173,7 +170,9 @@ void ComputeMetrics2Way::compute_notall2all_(
                                &vector_sums, &vector_sums,
                                env_.proc_num_vector(), true, &env_);
 
+  //---------------
   // Terminations
+  //---------------
 
   GMVectorSums_destroy(&vector_sums, &env_);
 
@@ -187,11 +186,10 @@ void ComputeMetrics2Way::compute_notall2all_(
 }
 
 //=============================================================================
+/// \brief Perform the 2-way metrics computation, all2all case.
 
-void ComputeMetrics2Way::compute_all2all_(
-  GMMetrics& metrics,
-  GMVectors& vectors) {
-
+void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
+                                          GMVectors& vectors) {
   COMET_INSIST(env_.all2all());
 
   // Initializations
@@ -477,7 +475,8 @@ void ComputeMetrics2Way::compute_all2all_(
           GMVectorSums_compute(&vector_sums_onproc_, vectors_left, &env_);
         }
         if (! vars.is_main_diag) {
-          GMVectorSums_compute(&vector_sums_offproc_, vars.vectors_right, &env_);
+          GMVectorSums_compute(&vector_sums_offproc_, vars.vectors_right,
+                               &env_);
         }
       }
     }
@@ -534,7 +533,8 @@ void ComputeMetrics2Way::compute_all2all_(
           GMVectorSums_compute(&vector_sums_onproc_, vectors_left, &env_);
         }
         if (! vars.is_main_diag) {
-          GMVectorSums_compute(&vector_sums_offproc_, vars.vectors_right, &env_);
+          GMVectorSums_compute(&vector_sums_offproc_, vars.vectors_right,
+                               &env_);
         }
       }
     }
@@ -569,7 +569,9 @@ void ComputeMetrics2Way::compute_all2all_(
   } // step_num
   //========================================
 
+  //---------------
   // Terminations
+  //---------------
 
   for (int i=0; i<2; ++i) {
     COMET_INSIST(!lock_vectors_01_buf_h[i]);

@@ -28,17 +28,17 @@ class ComputeMetrics {
 
 public:
 
-  ComputeMetrics(GMDecompMgr& dm, GMEnv& env);
+  ComputeMetrics(GMDecompMgr& dm, Env& env);
   ~ComputeMetrics();
 
   void compute_metrics(GMMetrics& metrics, GMVectors& vectors);
 
   static void compute_metrics(GMMetrics& metrics, GMVectors& vectors,
-    GMEnv& env);
+    Env& env);
 
 private:
 
-  GMEnv& env_;
+  Env& env_;
 
   ComputeMetrics2Way* compute_metrics_2way_;
   ComputeMetrics3Way* compute_metrics_3way_;
@@ -47,9 +47,20 @@ private:
 
   bool can_run_() const {return env_.is_proc_active();}
 
-  double time_begin_tmp_;
-  void start_timer_() {time_begin_tmp_ = env_.synced_time();}
-  void stop_timer_() {env_.ctime_inc(env_.synced_time() - time_begin_tmp_);}
+  // Convenience class for timing code blocks.
+
+  class CodeBlockTimer {
+  public:
+    CodeBlockTimer(Env& env) : env_(env), time_begin_(0) {
+      time_begin_ = env_.synced_time();
+    }
+    ~CodeBlockTimer() {
+      env_.ctime_inc(env_.synced_time() - time_begin_);
+    }
+  private:
+    Env& env_;
+    double time_begin_;
+  };
 
   // Disallowed methods.
 
