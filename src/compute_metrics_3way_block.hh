@@ -22,6 +22,41 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Class for computing numerators for 3-way methods.
+
+class ComputeNumerators3Way {
+
+  enum {NUM_BUF = 2};
+
+public:
+
+  ComputeNumerators3Way(int nvl, int npvfl, Env& env);
+  ~ComputeNumerators3Way();
+
+  void compute(VData vdata_i, VData vdata_j, VData vdata_k,
+    GMMetrics* numerators, int j_block, int k_block, int section_step);
+
+private:
+
+  Env& env_;
+
+  GMMirroredBuf tmp_buf_[NUM_BUF];
+  GMMirroredBuf matM_ij_buf_;
+  GMMirroredBuf matM_jk_buf_;
+  GMMirroredBuf matM_kik_buf_;
+  GMMirroredBuf matX_buf_[NUM_BUF];
+  GMMirroredBuf matB_buf_[NUM_BUF];
+
+  // Disallowed methods.
+  ComputeNumerators3Way(const ComputeNumerators3Way&);
+  void operator=(const ComputeNumerators3Way&);
+};
+
+
+
+
+
+//-----------------------------------------------------------------------------
 
 typedef struct {
   GMMirroredBuf tmp_buf[2];
@@ -53,8 +88,8 @@ void GMComputeNumerators3Way_start(
     GMMirroredBuf* vectors_i_buf,
     GMMirroredBuf* vectors_j_buf,
     GMMirroredBuf* vectors_k_buf,
-    int j_proc,
-    int k_proc,
+    int j_block,
+    int k_block,
     const GMVectorSums* vector_sums_i,
     const GMVectorSums* vector_sums_j,
     const GMVectorSums* vector_sums_k,

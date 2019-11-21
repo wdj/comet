@@ -30,12 +30,12 @@ namespace comet {
 
 ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
   : env_(env) 
-  , vector_sums_onproc_{0}
-  , vector_sums_offproc_{0}
-  , vectors_01_{0}
-  , metrics_buf_01_{0}
-  , vectors_buf_{0}
-  , metrics_tmp_buf_{0} {
+  , vector_sums_onproc_{}
+  , vector_sums_offproc_{}
+  , vectors_01_{}
+  , metrics_buf_01_{}
+  , vectors_buf_{}
+  , metrics_tmp_buf_{} {
   COMET_INSIST(env_.is_proc_active());
 
   if (!env_.all2all()) return;
@@ -275,9 +275,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     int j_block;
   } LoopVars;
 
-  LoopVars vars = {0};
-  LoopVars vars_prev = {0};
-  LoopVars vars_next = {0};
+  LoopVars vars = {};
+  LoopVars vars_prev = {};
+  LoopVars vars_next = {};
 
   // Use locks to verify no race condition on a buffer.
   // Lock buffer when in use for read or write, unlock when done.

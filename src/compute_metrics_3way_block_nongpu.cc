@@ -141,7 +141,7 @@ void gm_compute_3way_nums_nongpu_czek_start_(
       const int K_min = si->is_part3 ? 0 : J + 1;
       const int K_max = nvl;
 
-      GMIndexCache index_cache = {0};
+      GMIndexCache index_cache = {};
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 
@@ -265,7 +265,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
       const int K_min = si->is_part3 ? 0 : J + 1;
       const int K_max = nvl;
 
-      GMIndexCache index_cache = {0};
+      GMIndexCache index_cache = {};
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 
@@ -444,7 +444,7 @@ void gm_compute_3way_nums_nongpu_ccc_start_(
       const int K_min = si->is_part3 ? 0 : J + 1;
       const int K_max = nvl;
 
-      GMIndexCache index_cache = {0};
+      GMIndexCache index_cache = {};
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 

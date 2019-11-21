@@ -239,7 +239,7 @@ void gm_compute_3way_nums_gpu_form_metrics_(
       env->all2all()) {
     /*----------*/
 
-    GMIndexCache index_cache = {0};
+    GMIndexCache index_cache = {};
     // don't use collapse because of overflow for large sizes
     //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
     #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
@@ -275,7 +275,7 @@ void gm_compute_3way_nums_gpu_form_metrics_(
 
     const bool all2all = env->all2all();
     const bool no_perm = ! (all2all && si->is_part3);
-    GMIndexCache index_cache = {0};
+    GMIndexCache index_cache = {};
 
     // don't use collapse because of overflow for large sizes
     //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
@@ -711,10 +711,10 @@ void gm_compute_3way_nums_gpu_start_(
     GMMirroredBuf tmp_buf;
   } LoopVars;
 
-  LoopVars vars = {0};
-  LoopVars vars_prev = {0};
-  LoopVars vars_prevprev = {0};
-  LoopVars vars_next = {0};
+  LoopVars vars = {};
+  LoopVars vars_prev = {};
+  LoopVars vars_prevprev = {};
+  LoopVars vars_next = {};
   vars.do_compute = false;
   vars_prev.do_compute = false;
   vars_prevprev.do_compute = false;

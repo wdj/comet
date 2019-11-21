@@ -19,7 +19,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Struct declaration---*/
+// Struct declaration
 
 typedef struct {
   GMFloat* __restrict__ sums;
@@ -31,35 +31,46 @@ typedef struct {
 } GMVectorSums;
 
 //=============================================================================
-/*---Null object---*/
+// Null object
 
 GMVectorSums GMVectorSums_null(void);
 
 //=============================================================================
-/*---Pseudo-constructor---*/
+// Pseudo-constructor
 
 void GMVectorSums_create(GMVectorSums* this_,
                          int num_vector_local,
                          GMEnv* env);
 
 //=============================================================================
-/*---Pseudo-destructor---*/
+// Pseudo-destructor
 
 void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env);
 
 //=============================================================================
-/*---Compute---*/
+// Compute
 
 void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env);
 
 //=============================================================================
-/*---Accessors---*/
+// Accessors
 
 GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env);
 
 GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
 
 //-----------------------------------------------------------------------------
+/// \brief Utility class for aggregating vector-related objects.
+
+struct VData {
+  GMVectors* vectors;
+  GMMirroredBuf* buf;
+  GMVectorSums* sums;
+
+  VData(GMVectors* vectors_in, GMMirroredBuf* buf_in,
+    GMVectorSums* sums_in = NULL)
+    : vectors(vectors_in), buf(buf_in), sums(sums_in) {}
+};
 
 //=============================================================================
 
