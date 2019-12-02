@@ -963,10 +963,10 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
     return;
   }
 
+#ifdef USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
-
-#ifndef USE_MAGMA
+#else
   size_t size_scalar = 0;
 #endif
 
@@ -1073,10 +1073,10 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
     return;
   }
 
+#ifdef USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
-
-#ifndef USE_MAGMA
+#else
   size_t size_scalar = 0;
 #endif
 

@@ -30,6 +30,7 @@ local COMET_PLATFORM=""
 [[ "$COMET_HOST" = "lyra" ]] && COMET_PLATFORM=LYRA # ORNL AMD GPU system
 [[ "$(uname -n)" = "hal9006" ]] && COMET_PLATFORM=AMDINTERNAL # AMD internal GPU system
 [[ "$COMET_HOST" = "wombat" ]] && COMET_PLATFORM=WOMBAT # ORNL HPE GPU system
+[[ "$(uname -s)" = "Darwin" ]] && COMET_PLATFORM=MACOS
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform." 1>&2
   exit 1
@@ -410,6 +411,28 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
   local COMET_CAN_USE_MPI=ON
+
+#----------------------------------------
+elif [ $COMET_PLATFORM = MACOS ] ; then
+#----------------------------------------
+
+  #---Compiler.
+
+  local USE_GCC=OFF
+  local COMET_C_COMPILER=$(which gcc) # presently unused
+  local COMET_CXX_COMPILER=$(which g++) # presently unused
+  local COMET_CXX_SERIAL_COMPILER=g++
+  local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++17"
+
+  local USE_OPENMP=ON
+
+  #---Libraries.
+
+  local USE_CUDA=OFF
+
+  local USE_MAGMA=OFF
+
+  local COMET_CAN_USE_MPI=OFF
 
 #----------------------------------------
 else

@@ -55,6 +55,7 @@ void handler(int sig) {
 // http://stackoverflow.com/questions/4636456/how-to-get-a-stack-trace-for-c-using-gcc-with-line-number-information
 // http://stackoverflow.com/questions/3151779/how-its-better-to-invoke-gdb-from-program-to-print-its-stacktrace
 
+#if 0
 void bt_sighandler(int sig, struct sigcontext ctx) {
 
   int proc_num = 0;
@@ -106,6 +107,7 @@ void install_handler() {
   sigaction(SIGUSR1, &sa, NULL);
   sigaction(SIGINT, &sa, NULL);
 }
+#endif
 
 //=============================================================================
 /*---Inform user of usage of command---*/

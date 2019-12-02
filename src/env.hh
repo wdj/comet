@@ -27,6 +27,9 @@
 #include "cuda_runtime.h"
 #elif defined USE_HIP
 #include "hip/hip_runtime.h"
+#else
+#define __host__
+#define __device__
 #endif
 
 #include "assertions.hh"
