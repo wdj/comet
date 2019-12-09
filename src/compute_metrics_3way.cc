@@ -97,6 +97,18 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   COMET_INSIST(gm_num_section_steps(env, 1) == 1 &&
            "not all2all case always has 1 section step.");
 
+  ComputeNumerators3Way compute_numerators_3way(nvl, npvfl, env_);
+
+  compute_numerators_3way.compute(
+    VData(&vectors, &vectors_buf, &vector_sums),
+    VData(&vectors, &vectors_buf, &vector_sums),
+    VData(&vectors, &vectors_buf, &vector_sums),
+    metrics, env_.proc_num_vector(), env_.proc_num_vector(), section_step);
+
+
+
+
+#if 0
   GMComputeNumerators3Way gm_compute_numerators_3way = {};
   GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
 
@@ -114,6 +126,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   //---------------
 
   GMComputeNumerators3Way_destroy(&gm_compute_numerators_3way, env);
+#endif
 
   GMVectorSums_destroy(&vector_sums, env);
 
@@ -221,8 +234,10 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   bool have_unprocessed_section_block = false;
 
-  GMComputeNumerators3Way gm_compute_numerators_3way = {};
-  GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
+  ComputeNumerators3Way compute_numerators_3way(nvl, npvfl, env_);
+
+//  GMComputeNumerators3Way gm_compute_numerators_3way = {};
+//  GMComputeNumerators3Way_create(&gm_compute_numerators_3way, nvl, npvfl, env);
 
   // Counter for quantum of work:
   //   for part 1 or part 2: 1/6 section of work needed for block
@@ -260,14 +275,19 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
       if (have_unprocessed_section_block) {
         /*---Compute numerators---*/
-        GMComputeNumerators3Way_start(
-          &gm_compute_numerators_3way,
-          vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
-          vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
-          j_block_prev, k_block_prev,
-          vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
-          section_step_prev, env);
-        gm_compute_wait(env); // NOTE: not needed
+        compute_numerators_3way.compute(
+          VData(vectors_i, vectors_i_buf, vector_sums_i),
+          VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
+          VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
+          metrics, j_block_prev, k_block_prev, section_step_prev);
+//        GMComputeNumerators3Way_start(
+//          &gm_compute_numerators_3way,
+//          vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
+//          vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
+//          j_block_prev, k_block_prev,
+//          vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
+//          section_step_prev, env);
+//        gm_compute_wait(env); // NOTE: not needed
         have_unprocessed_section_block = false;
       }
 
@@ -324,14 +344,19 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   
         if (have_unprocessed_section_block) {
           /*---Compute numerators---*/
-          GMComputeNumerators3Way_start(
-            &gm_compute_numerators_3way,
-            vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
-            vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
-            j_block_prev, k_block_prev,
-            vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
-            section_step_prev, env);
-          gm_compute_wait(env); // NOTE: not needed
+          compute_numerators_3way.compute(
+            VData(vectors_i, vectors_i_buf, vector_sums_i),
+            VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
+            VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
+            metrics, j_block_prev, k_block_prev, section_step_prev);
+//          GMComputeNumerators3Way_start(
+//            &gm_compute_numerators_3way,
+//            vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
+//            vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
+//            j_block_prev, k_block_prev,
+//            vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
+//            section_step_prev, env);
+//          gm_compute_wait(env); // NOTE: not needed
           have_unprocessed_section_block = false;
         }
 
@@ -433,14 +458,19 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
           if (have_unprocessed_section_block) {
             /*---Compute numerators---*/
-            GMComputeNumerators3Way_start(
-              &gm_compute_numerators_3way,
-              vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
-              vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
-              j_block_prev, k_block_prev,
-              vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
-              section_step_prev, env);
-            gm_compute_wait(env); // NOTE: not needed
+            compute_numerators_3way.compute(
+              VData(vectors_i, vectors_i_buf, vector_sums_i),
+              VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
+              VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
+              metrics, j_block_prev, k_block_prev, section_step_prev);
+//            GMComputeNumerators3Way_start(
+//              &gm_compute_numerators_3way,
+//              vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
+//              vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
+//              j_block_prev, k_block_prev,
+//              vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
+//              section_step_prev, env);
+//            gm_compute_wait(env); // NOTE: not needed
             have_unprocessed_section_block = false;
           }
 
@@ -507,14 +537,19 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   if (have_unprocessed_section_block) {
     /*---Compute numerators---*/
-    GMComputeNumerators3Way_start(
-      &gm_compute_numerators_3way,
-      vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
-      vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
-      j_block_prev, k_block_prev,
-      vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
-      section_step_prev, env);
-    gm_compute_wait(env); // NOTE: not needed
+    compute_numerators_3way.compute(
+      VData(vectors_i, vectors_i_buf, vector_sums_i),
+      VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
+      VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
+      metrics, j_block_prev, k_block_prev, section_step_prev);
+//    GMComputeNumerators3Way_start(
+//      &gm_compute_numerators_3way,
+//      vectors_i, vectors_j_prev, vectors_k_prev, &metrics,
+//      vectors_i_buf, vectors_j_buf_prev, vectors_k_buf_prev,
+//      j_block_prev, k_block_prev,
+//      vector_sums_i, vector_sums_j_prev, vector_sums_k_prev,
+//      section_step_prev, env);
+//    gm_compute_wait(env); // NOTE: not needed
     have_unprocessed_section_block = false;
   }
 
@@ -522,7 +557,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   /*---Free memory and finalize---*/
   /*------------------------*/
 
-  GMComputeNumerators3Way_destroy(&gm_compute_numerators_3way, env);
+//  GMComputeNumerators3Way_destroy(&gm_compute_numerators_3way, env);
 
   GMVectors_destroy(vectors_k[0], env);
   GMVectors_destroy(vectors_k[1], env);
