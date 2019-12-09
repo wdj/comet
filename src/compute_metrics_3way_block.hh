@@ -34,7 +34,7 @@ public:
   ~ComputeNumerators3Way();
 
   void compute(VData vdata_i, VData vdata_j, VData vdata_k,
-    GMMetrics* numerators, int j_block, int k_block, int section_step);
+    GMMetrics& numerators, int j_block, int k_block, int section_step);
 
 private:
 
@@ -47,10 +47,46 @@ private:
   GMMirroredBuf matX_buf_[NUM_BUF];
   GMMirroredBuf matB_buf_[NUM_BUF];
 
+  void compute_linalg_(VData vdata_i, VData vdata_j, VData vdata_k,
+    GMMetrics& numerators, int j_block, int k_block, int section_step);
+
+
+  void compute_linalg_matX_(VData vdata_i, VData vdata_j,
+    const GMMirroredBuf& matX_buf,
+    const int J, const int step_2way, const int I_min, const int I_max);
+
+  void compute_linalg_metrics_(
+    const GMMirroredBuf& matM_IJ_buf,
+    const GMMirroredBuf& matM_JK_buf,
+    const GMMirroredBuf& matM_KIK_buf,
+    const GMMirroredBuf& matB_buf,
+    GMMetrics& metrics,
+    const int nvl, const int J, const int step_2way,
+    const int I_min, const int I_max, const int K_min, const int K_max,
+    const int j_block, const int k_block,
+    const GMSectionInfo& si,
+    const GMVectorSums& vector_sums_i,
+    const GMVectorSums& vector_sums_j,
+    const GMVectorSums& vector_sums_k);
+
+
+  void compute_czek_(VData vdata_i, VData vdata_j, VData vdata_k,
+    GMMetrics& numerators, int j_block, int k_block, int section_step);
+
+  void compute_ccc_(VData vdata_i, VData vdata_j, VData vdata_k,
+    GMMetrics& numerators, int j_block, int k_block, int section_step);
+
   // Disallowed methods.
   ComputeNumerators3Way(const ComputeNumerators3Way&);
   void operator=(const ComputeNumerators3Way&);
 };
+
+//-----------------------------------------------------------------------------
+
+
+
+
+
 
 
 

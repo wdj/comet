@@ -79,7 +79,7 @@ ComputeNumerators3Way::~ComputeNumerators3Way() {
 
 void ComputeNumerators3Way::compute(
   VData vdata_i, VData vdata_j, VData vdata_k, 
-  GMMetrics* numerators, int j_block, int k_block, int section_step) {
+  GMMetrics& numerators, int j_block, int k_block, int section_step) {
   COMET_INSIST(j_block >= 0 && j_block < env_.num_block_vector());
   COMET_INSIST(k_block >= 0 && k_block < env_.num_block_vector());
   COMET_INSIST(! (env_.proc_num_vector() == j_block &&
@@ -89,42 +89,30 @@ void ComputeNumerators3Way::compute(
 
   if (env_.is_using_linalg()) {
 
-#if 0
-    gm_compute_3way_nums_gpu_start_(this_,
-                                    vectors_i, vectors_j, vectors_k,
-                                    metrics, vectors_i_buf, vectors_j_buf,
-                                    vectors_k_buf, j_block, k_block,
-                                    vector_sums_i, vector_sums_j,
-                                    vector_sums_k,
-                                    section_step, env);
-#endif
+    compute_linalg_(vdata_i, vdata_j, vdata_k, numerators, j_block, k_block,
+      section_step);
 
   } else if (env_.metric_type() == MetricType::CZEK)  {
 
-#if 0
-    gm_compute_3way_nums_nongpu_czek_start_(this_,
-      vectors_i, vectors_j, vectors_k, metrics, vectors_i_buf,
-      vectors_j_buf, vectors_k_buf, j_block, k_block,
-      vector_sums_i, vector_sums_j, vector_sums_k,
-      section_step, env);
-#endif
+    compute_czek_(vdata_i, vdata_j, vdata_k, numerators, j_block, k_block,
+      section_step);
 
   } else if (env_.metric_type() == MetricType::CCC)  {
 
-#if 0
-        gm_compute_3way_nums_nongpu_ccc_start_(this_,
-            vectors_i, vectors_j, vectors_k, metrics, vectors_i_buf,
-            vectors_j_buf, vectors_k_buf, j_block, k_block,
-            vector_sums_i, vector_sums_j, vector_sums_k,
-            section_step, env);
-#endif
+    compute_ccc_(vdata_i, vdata_j, vdata_k, numerators, j_block, k_block,
+      section_step);
 
   } else {
 
-    COMET_INSIST_INTERFACE(&env_, false && "Selected metric_type unimplemented.");
+    COMET_INSIST_INTERFACE(&env_, false &&
+      "Selected metric_type unimplemented.");
 
   }
 }
+
+//-----------------------------------------------------------------------------
+
+
 
 
 

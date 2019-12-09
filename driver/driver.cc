@@ -455,7 +455,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
       /*---Calculate metrics---*/
 
-      compute_metrics.compute_metrics(*metrics, *vectors);
+      compute_metrics.compute(*metrics, *vectors);
 
       num_elts_local_computed += metrics->num_elts_local_computed;
 

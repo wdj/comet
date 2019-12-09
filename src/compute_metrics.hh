@@ -31,9 +31,9 @@ public:
   ComputeMetrics(GMDecompMgr& dm, Env& env);
   ~ComputeMetrics();
 
-  void compute_metrics(GMMetrics& metrics, GMVectors& vectors);
+  void compute(GMMetrics& metrics, GMVectors& vectors);
 
-  static void compute_metrics(GMMetrics& metrics, GMVectors& vectors,
+  static void compute(GMMetrics& metrics, GMVectors& vectors,
     Env& env);
 
 private:

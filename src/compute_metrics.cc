@@ -56,7 +56,7 @@ ComputeMetrics::~ComputeMetrics() {
 //-----------------------------------------------------------------------------
 /// \brief Function to compute 2-way or 3-way metrics.
 
-void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors) {
+void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors) {
 
   if (! can_run_())
     return;
@@ -103,11 +103,11 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 //-----------------------------------------------------------------------------
 /// \brief Convenience function for constructor, compute, destructor.
 
-void ComputeMetrics::compute_metrics(GMMetrics& metrics, GMVectors& vectors,
+void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors,
   GMEnv& env) {
 
   ComputeMetrics compute_metrics(*vectors.dm, env);
-  compute_metrics.compute_metrics(metrics, vectors);
+  compute_metrics.compute(metrics, vectors);
 }
 
 //=============================================================================
