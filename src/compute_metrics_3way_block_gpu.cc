@@ -542,23 +542,21 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     gm_linalg_set_matrix_zero_start(matM_ij_buf_ptr, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_i_buf->active, npvfl,
-                         vectors_j_buf->active, npvfl,
-                         matM_ij_buf_ptr->active, nvl,
+                         vectors_i_buf, npvfl,
+                         vectors_j_buf, npvfl,
+                         matM_ij_buf_ptr, nvl,
                          vectors_i->dm, env);
     //gm_compute_wait(env);
     gm_linalg_gemm_wait(nvl, nvl, npvfl,
-                        vectors_i_buf->active, npvfl,
-                        vectors_j_buf->active, npvfl,
-                        matM_ij_buf_ptr->active, nvl,
+                        vectors_i_buf, npvfl,
+                        vectors_j_buf, npvfl,
+                        matM_ij_buf_ptr, nvl,
                         vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_ij_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_ij_buf_ptr, env);
 
-    if (env->do_reduce()) {
-      gm_reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env);
-    }
+    gm_reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env);
   }
 
   /*--------------------*/
@@ -577,23 +575,21 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     gm_linalg_set_matrix_zero_start(matM_jk_buf_ptr, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_j_buf->active, npvfl,
-                         vectors_k_buf->active, npvfl,
-                         matM_jk_buf_ptr->active, nvl,
+                         vectors_j_buf, npvfl,
+                         vectors_k_buf, npvfl,
+                         matM_jk_buf_ptr, nvl,
                          vectors_i->dm, env);
     //gm_compute_wait(env);
     gm_linalg_gemm_wait(nvl, nvl, npvfl,
-                        vectors_j_buf->active, npvfl,
-                        vectors_k_buf->active, npvfl,
-                        matM_jk_buf_ptr->active, nvl,
+                        vectors_j_buf, npvfl,
+                        vectors_k_buf, npvfl,
+                        matM_jk_buf_ptr, nvl,
                         vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_jk_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_jk_buf_ptr, env);
 
-    if (env->do_reduce()) {
-      gm_reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env);
-    }
+    gm_reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env);
   }
 
   /*--------------------*/
@@ -615,23 +611,21 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     gm_linalg_set_matrix_zero_start(matM_kik_buf_ptr, env);
 
     gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_k_buf->active, npvfl,
-                         vectors_i_buf->active, npvfl,
-                         matM_kik_buf_ptr->active, nvl,
+                         vectors_k_buf, npvfl,
+                         vectors_i_buf, npvfl,
+                         matM_kik_buf_ptr, nvl,
                          vectors_i->dm, env);
     //gm_compute_wait(env);
     gm_linalg_gemm_wait(nvl, nvl, npvfl,
-                        vectors_k_buf->active, npvfl,
-                        vectors_i_buf->active, npvfl,
-                        matM_kik_buf_ptr->active, nvl,
+                        vectors_k_buf, npvfl,
+                        vectors_i_buf, npvfl,
+                        matM_kik_buf_ptr, nvl,
                         vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_kik_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_kik_buf_ptr, env);
 
-    if (env->do_reduce()) {
-      gm_reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env);
-    }
+    gm_reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env);
   } /*---is_part3---*/
 
   /*----------------------------------------*/
@@ -698,7 +692,7 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
   const int num_step = J_count * num_step_2way;
   const int extra_step = 1;
 
-  MPI_Request mpi_requests[2] = {0, 0};
+  MPI_Request mpi_requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
   typedef struct {
     int step_num;
@@ -810,9 +804,9 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
       /*---Perform pseudo GEMM matB = matX^T PROD V - WAIT---*/
       //gm_compute_wait(env);
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
-                          matX_buf[vars_prev.index_01]->active, npvfl,
-                          vectors_K_buf->active, npvfl,
-                          matB_buf_ptr_prev->active, matB_buf_ptr_prev->dim0,
+                          matX_buf[vars_prev.index_01], npvfl,
+                          vectors_K_buf, npvfl,
+                          matB_buf_ptr_prev, matB_buf_ptr_prev->dim0,
                           vectors_i->dm, env);
       unlock(lock_matB_buf_ptr_d_prev);
       unlock(lock_matX_buf_d[vars_prev.index_01]);
@@ -857,9 +851,9 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
       gm_linalg_set_matrix_zero_start(matB_buf_ptr, env);
       /*---Perform pseudo GEMM matB = matX^T PROD V - START---*/
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
-                           matX_buf[vars.index_01]->active, npvfl,
-                           vectors_K_buf->active, npvfl,
-                           matB_buf_ptr->active, matB_buf_ptr->dim0,
+                           matX_buf[vars.index_01], npvfl,
+                           vectors_K_buf, npvfl,
+                           matB_buf_ptr, matB_buf_ptr->dim0,
                            vectors_i->dm, env);
                            //matB_buf_ptr->d, vars.I_max, env);
     }

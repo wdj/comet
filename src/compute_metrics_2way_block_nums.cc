@@ -539,9 +539,9 @@ void gm_compute_2way_proc_nums_start(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
       vectors_left->num_packedval_field_local,
-      vectors_left_buf->active, vectors_left->num_packedval_field_local,
-      vectors_right_buf->active, vectors_left->num_packedval_field_local,
-      metrics_buf->active, vectors_left->num_vector_local,
+      vectors_left_buf, vectors_left->num_packedval_field_local,
+      vectors_right_buf, vectors_left->num_packedval_field_local,
+      metrics_buf, vectors_left->num_vector_local,
       vectors_left->dm, env);
 
     return;
@@ -596,9 +596,9 @@ void gm_compute_2way_proc_nums_wait(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
       vectors_left->num_packedval_field_local,
-      vectors_left_buf->active, vectors_left->num_packedval_field_local,
-      vectors_right_buf->active, vectors_left->num_packedval_field_local,
-      metrics_buf->active, vectors_left->num_vector_local,
+      vectors_left_buf, vectors_left->num_packedval_field_local,
+      vectors_right_buf, vectors_left->num_packedval_field_local,
+      metrics_buf, vectors_left->num_vector_local,
       vectors_left->dm, env);
 
   } // if

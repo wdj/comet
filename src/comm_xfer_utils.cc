@@ -86,6 +86,9 @@ void gm_reduce_metrics(GMMetrics* metrics,
   COMET_INSIST(metrics && env);
   COMET_INSIST(metrics_buf_target && metrics_buf_source);
 
+  if (!env->do_reduce())
+    return;
+
   const int nvl = metrics->num_vector_local;
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(metrics_buf_source->h,
@@ -102,6 +105,9 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
   COMET_INSIST(metrics && env);
   COMET_INSIST(metrics_buf_target && metrics_buf_source);
 
+  if (!env->do_reduce())
+    return MPI_REQUEST_NULL;
+
   const int nvl = metrics->num_vector_local;
 
   MPI_Request mpi_request;
@@ -116,6 +122,9 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
 
 void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
   COMET_INSIST(mpi_request && env);
+
+  if (!env->do_reduce())
+    return;
 
   MPI_Status mpi_status;
 

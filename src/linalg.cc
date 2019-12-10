@@ -71,6 +71,9 @@ void gm_linalg_initialize(GMEnv* env) {
   // http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
   // page 14
 
+// TODO: non-GPU calls should nt need to init magma, should use
+// regular malloc instead of magma malloc.
+
 #ifdef USE_MAGMA
   if (use_minproduct(env)) { //--------------------
 
@@ -884,11 +887,11 @@ void gm_linalg_gemm_start(
   size_t m,
   size_t n,
   size_t k,
-  void* A,
+  GMMirroredBuf* A,
   size_t ldda,
-  void* B,
+  GMMirroredBuf* B,
   size_t lddb,
-  void* C,
+  GMMirroredBuf* C,
   size_t lddc,
   GMDecompMgr* dm,
   GMEnv* env) {
@@ -904,10 +907,10 @@ void gm_linalg_gemm_start(
 
   if (is_using_tc) {
     if (env->compute_method() == ComputeMethod::GPU) {
-      gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
+      gm_tc_gemm_start(m, n, k, A->active, ldda, B->active, lddb, C->active, lddc, dm->tc_bufs, env);
     }
   } else {
-    gm_linalg_gemm_magma_start(m, n, k, A, ldda, B, lddb, C, lddc, dm,  env);
+    gm_linalg_gemm_magma_start(m, n, k, A->active, ldda, B->active, lddb, C->active, lddc, dm,  env);
   }
 }
 
@@ -917,11 +920,11 @@ void gm_linalg_gemm_wait(
   size_t m,
   size_t n,
   size_t k,
-  void* A,
+  GMMirroredBuf* A,
   size_t ldda,
-  void* B,
+  GMMirroredBuf* B,
   size_t lddb,
-  void* C,
+  GMMirroredBuf* C,
   size_t lddc,
   GMDecompMgr* dm,
   GMEnv* env) {
@@ -937,7 +940,7 @@ void gm_linalg_gemm_wait(
 
   if (is_using_tc) {
     if (env->compute_method() != ComputeMethod::GPU) {
-      gm_tc_gemm_start(m, n, k, A, ldda, B, lddb, C, lddc, dm->tc_bufs, env);
+      gm_tc_gemm_start(m, n, k, A->active, ldda, B->active, lddb, C->active, lddc, dm->tc_bufs, env);
     }
   }
 

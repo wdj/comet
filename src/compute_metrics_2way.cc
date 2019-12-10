@@ -161,8 +161,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Do reduction across field procs if needed
 
-  if (env_.do_reduce())
-    gm_reduce_metrics(&metrics, &metrics_buf, metrics_buf_ptr, &env_);
+  gm_reduce_metrics(&metrics, &metrics_buf, metrics_buf_ptr, &env_);
 
   // Combine
 
@@ -218,7 +217,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   const int num_proc_rv = num_block * num_proc_r;
   const int proc_num_rv = proc_num_r + num_proc_r * i_block;
 
-  MPI_Request mpi_requests[2];
+  MPI_Request mpi_requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
   // Prepare for loop over blocks of result.
 
