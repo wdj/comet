@@ -81,57 +81,6 @@ private:
   void operator=(const ComputeNumerators3Way&);
 };
 
-//-----------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-//-----------------------------------------------------------------------------
-
-typedef struct {
-  GMMirroredBuf tmp_buf[2];
-  GMMirroredBuf matM_ij_buf;
-  GMMirroredBuf matM_jk_buf;
-  GMMirroredBuf matM_kik_buf;
-  GMMirroredBuf matX_buf[2];
-  GMMirroredBuf matB_buf[2];
-} GMComputeNumerators3Way;
-
-//=============================================================================
-
-void GMComputeNumerators3Way_create(
-    GMComputeNumerators3Way* this_,
-    int nvl,
-    int npvfl,
-    GMEnv* env);
-
-void GMComputeNumerators3Way_destroy(
-    GMComputeNumerators3Way* this_,
-    GMEnv* env);
-
-void GMComputeNumerators3Way_start(
-    GMComputeNumerators3Way* this_,
-    GMVectors* vectors_i,
-    GMVectors* vectors_j,
-    GMVectors* vectors_k,
-    GMMetrics* numerators,
-    GMMirroredBuf* vectors_i_buf,
-    GMMirroredBuf* vectors_j_buf,
-    GMMirroredBuf* vectors_k_buf,
-    int j_block,
-    int k_block,
-    const GMVectorSums* vector_sums_i,
-    const GMVectorSums* vector_sums_j,
-    const GMVectorSums* vector_sums_k,
-    int section_step,
-    GMEnv* env);
-
 //=============================================================================
 
 } // namespace comet

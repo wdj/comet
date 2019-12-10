@@ -64,8 +64,6 @@ SET(LIB_INCLUDES
   src/comm_xfer_utils.hh
   src/compute_metrics_2way_block_nums.hh
   src/compute_metrics_2way_block_combine.hh
-  src/compute_metrics_3way_block_nongpu.hh
-  src/compute_metrics_3way_block_gpu.hh
   src/compute_metrics_3way_block.hh
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh
