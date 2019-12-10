@@ -451,8 +451,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
-                                     GMEnv* env) {
+void gm_linalg_set_matrix_zero_start_(GMMirroredBuf* matrix_buf, GMEnv* env) {
   COMET_INSIST(matrix_buf && env);
 
   if (env->compute_method() != ComputeMethod::GPU) {
@@ -884,63 +883,41 @@ void gm_linalg_gemm_magma_start(size_t m,
 //-----------------------------------------------------------------------------
 
 void gm_linalg_gemm_start(
-  size_t m,
-  size_t n,
-  size_t k,
-  GMMirroredBuf* A,
-  size_t ldda,
-  GMMirroredBuf* B,
-  size_t lddb,
-  GMMirroredBuf* C,
-  size_t lddc,
-  GMDecompMgr* dm,
-  GMEnv* env) {
-
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  GMDecompMgr* dm, GMEnv* env) {
   COMET_INSIST(A && B && C && env);
 
-  if (m==0 || n==0 || k==0) {
+  if (m==0 || n==0 || k==0)
     return;
-  }
 
-  const bool is_using_tc = env->is_metric_type_bitwise() &&
-                           env->tc_eff() != TC::NO;
-
-  if (is_using_tc) {
+  if (env->is_using_tc()) {
     if (env->compute_method() == ComputeMethod::GPU) {
-      gm_tc_gemm_start(m, n, k, A->active, ldda, B->active, lddb, C->active, lddc, dm->tc_bufs, env);
+      gm_tc_gemm_start(m, n, k, A->active, A->dim0, B->active, B->dim0,
+        C->active, C->dim0, dm->tc_bufs, env);
     }
   } else {
-    gm_linalg_gemm_magma_start(m, n, k, A->active, ldda, B->active, lddb, C->active, lddc, dm,  env);
+    gm_linalg_set_matrix_zero_start_(C, env); // apparently needed by magma.
+    gm_linalg_gemm_magma_start(m, n, k, A->active, A->dim0, B->active, B->dim0,
+      C->active, C->dim0, dm,  env);
   }
 }
 
 //-----------------------------------------------------------------------------
 
 void gm_linalg_gemm_wait(
-  size_t m,
-  size_t n,
-  size_t k,
-  GMMirroredBuf* A,
-  size_t ldda,
-  GMMirroredBuf* B,
-  size_t lddb,
-  GMMirroredBuf* C,
-  size_t lddc,
-  GMDecompMgr* dm,
-  GMEnv* env) {
-
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  GMDecompMgr* dm, GMEnv* env) {
   COMET_INSIST(A && B && C && env);
 
-  if (m==0 || n==0 || k==0) {
+  if (m==0 || n==0 || k==0)
     return;
-  }
 
-  const bool is_using_tc = env->is_metric_type_bitwise() &&
-                           env->tc_eff() != TC::NO;
-
-  if (is_using_tc) {
+  if (env->is_using_tc()) {
     if (env->compute_method() != ComputeMethod::GPU) {
-      gm_tc_gemm_start(m, n, k, A->active, ldda, B->active, lddb, C->active, lddc, dm->tc_bufs, env);
+      gm_tc_gemm_start(m, n, k, A->active, A->dim0, B->active, B->dim0,
+        C->active, C->dim0, dm->tc_bufs, env);
     }
   }
 
@@ -948,12 +925,15 @@ void gm_linalg_gemm_wait(
 }
 
 //-----------------------------------------------------------------------------
-/*---Wait for any computation on the GPU to complete---*/
 
-void gm_compute_wait(GMEnv* env) {
-  COMET_INSIST(env);
+void gm_linalg_gemm(
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  GMDecompMgr* dm, GMEnv* env) {
+  COMET_INSIST(A && B && C && env);
 
-  env->stream_synchronize(env->stream_compute());
+  gm_linalg_gemm_start(m, n, k, A, B, C, dm, env);
+  gm_linalg_gemm_wait(m, n, k, A, B, C, dm, env);
 }
 
 //=============================================================================

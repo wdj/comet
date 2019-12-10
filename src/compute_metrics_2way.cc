@@ -147,7 +147,6 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
                                   env_.proc_num_vector(),
                                   true, &env_);
 
-  //gm_compute_wait(env);
   gm_compute_2way_proc_nums_wait(&vectors, &vectors, &metrics, &vectors_buf,
                                  &vectors_buf, metrics_buf_ptr,
                                  env_.proc_num_vector(),
@@ -503,7 +502,6 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // Wait for numerators computation to complete
 
     if (vars.is_compute_step && vars.do_compute_block) {
-      //gm_compute_wait(env);
       gm_compute_2way_proc_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,

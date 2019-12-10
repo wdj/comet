@@ -539,19 +539,11 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     GMMirroredBuf* matM_ij_buf_ptr =
        env->do_reduce() ? tmp_buf[0] : matM_ij_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_ij_buf_ptr, env);
+    //gm_linalg_set_matrix_zero_start(matM_ij_buf_ptr, env);
 
-    gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_i_buf, npvfl,
-                         vectors_j_buf, npvfl,
-                         matM_ij_buf_ptr, nvl,
-                         vectors_i->dm, env);
-    //gm_compute_wait(env);
-    gm_linalg_gemm_wait(nvl, nvl, npvfl,
-                        vectors_i_buf, npvfl,
-                        vectors_j_buf, npvfl,
-                        matM_ij_buf_ptr, nvl,
-                        vectors_i->dm, env);
+    gm_linalg_gemm(nvl, nvl, npvfl,
+                   vectors_i_buf, vectors_j_buf, matM_ij_buf_ptr,
+                   vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_ij_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_ij_buf_ptr, env);
@@ -572,19 +564,11 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     GMMirroredBuf* matM_jk_buf_ptr =
         env->do_reduce() ? tmp_buf[0] : matM_jk_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_jk_buf_ptr, env);
+    //gm_linalg_set_matrix_zero_start(matM_jk_buf_ptr, env);
 
-    gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_j_buf, npvfl,
-                         vectors_k_buf, npvfl,
-                         matM_jk_buf_ptr, nvl,
-                         vectors_i->dm, env);
-    //gm_compute_wait(env);
-    gm_linalg_gemm_wait(nvl, nvl, npvfl,
-                        vectors_j_buf, npvfl,
-                        vectors_k_buf, npvfl,
-                        matM_jk_buf_ptr, nvl,
-                        vectors_i->dm, env);
+    gm_linalg_gemm(nvl, nvl, npvfl,
+                   vectors_j_buf, vectors_k_buf, matM_jk_buf_ptr,
+                   vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_jk_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_jk_buf_ptr, env);
@@ -608,19 +592,11 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     GMMirroredBuf* matM_kik_buf_ptr =
         env->do_reduce() ? tmp_buf[0] : matM_kik_buf;
 
-    gm_linalg_set_matrix_zero_start(matM_kik_buf_ptr, env);
+    //gm_linalg_set_matrix_zero_start(matM_kik_buf_ptr, env);
 
-    gm_linalg_gemm_start(nvl, nvl, npvfl,
-                         vectors_k_buf, npvfl,
-                         vectors_i_buf, npvfl,
-                         matM_kik_buf_ptr, nvl,
-                         vectors_i->dm, env);
-    //gm_compute_wait(env);
-    gm_linalg_gemm_wait(nvl, nvl, npvfl,
-                        vectors_k_buf, npvfl,
-                        vectors_i_buf, npvfl,
-                        matM_kik_buf_ptr, nvl,
-                        vectors_i->dm, env);
+    gm_linalg_gemm(nvl, nvl, npvfl,
+                   vectors_k_buf, vectors_i_buf, matM_kik_buf_ptr,
+                   vectors_i->dm, env);
 
     gm_get_metrics_start(metrics, matM_kik_buf_ptr, env);
     gm_get_metrics_wait(metrics, matM_kik_buf_ptr, env);
@@ -802,11 +778,10 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
 
     if (vars_prev.do_compute) {
       /*---Perform pseudo GEMM matB = matX^T PROD V - WAIT---*/
-      //gm_compute_wait(env);
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
-                          matX_buf[vars_prev.index_01], npvfl,
-                          vectors_K_buf, npvfl,
-                          matB_buf_ptr_prev, matB_buf_ptr_prev->dim0,
+                          matX_buf[vars_prev.index_01],
+                          vectors_K_buf,
+                          matB_buf_ptr_prev,
                           vectors_i->dm, env);
       unlock(lock_matB_buf_ptr_d_prev);
       unlock(lock_matX_buf_d[vars_prev.index_01]);
@@ -848,12 +823,12 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
       /*---Initialize result matrix to zero (apparently magma requires)---*/
       lock(lock_matB_buf_ptr_d);
       lock(lock_matX_buf_d[vars.index_01]);
-      gm_linalg_set_matrix_zero_start(matB_buf_ptr, env);
+      //gm_linalg_set_matrix_zero_start(matB_buf_ptr, env);
       /*---Perform pseudo GEMM matB = matX^T PROD V - START---*/
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
-                           matX_buf[vars.index_01], npvfl,
-                           vectors_K_buf, npvfl,
-                           matB_buf_ptr, matB_buf_ptr->dim0,
+                           matX_buf[vars.index_01],
+                           vectors_K_buf,
+                           matB_buf_ptr,
                            vectors_i->dm, env);
                            //matB_buf_ptr->d, vars.I_max, env);
     }

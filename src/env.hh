@@ -237,9 +237,11 @@ public:
   bool is_metric_type_bitwise() const {
     return metric_type_==MetricType::CCC || metric_type_==MetricType::DUO;
   }
+  bool is_using_tc() const {return tc_eff() != TC::NO &&
+    is_metric_type_bitwise();
+  }
   bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
-    (ComputeMethod::CPU == compute_method_ && tc_eff() != TC::NO &&
-     is_metric_type_bitwise());
+    (ComputeMethod::CPU == compute_method_ && is_using_tc());
   }
   int data_type_vectors() const;
   int data_type_metrics() const;

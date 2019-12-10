@@ -31,38 +31,22 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env);
 
 void gm_linalg_free(GMMirroredBuf* p, GMEnv* env);
 
-void gm_linalg_set_matrix_zero_start(GMMirroredBuf* matrix_buf,
-                                     GMEnv* env);
-
 /*----------*/
 
 void gm_linalg_gemm_start(
-  size_t m,
-  size_t n,
-  size_t k,
-  GMMirroredBuf* A,
-  size_t ldda,
-  GMMirroredBuf* B,
-  size_t lddb,
-  GMMirroredBuf* C,
-  size_t lddc,
-  GMDecompMgr* dm,
-  GMEnv* env);
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  GMDecompMgr* dm, GMEnv* env);
 
 void gm_linalg_gemm_wait(
-  size_t m,
-  size_t n,
-  size_t k,
-  GMMirroredBuf* A,
-  size_t ldda,
-  GMMirroredBuf* B,
-  size_t lddb,
-  GMMirroredBuf* C,
-  size_t lddc,
-  GMDecompMgr* dm,
-  GMEnv* env);
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  GMDecompMgr* dm, GMEnv* env);
 
-void gm_compute_wait(GMEnv* env);
+void gm_linalg_gemm(
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  GMDecompMgr* dm, GMEnv* env);
 
 /*----------*/
 
