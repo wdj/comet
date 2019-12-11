@@ -19,6 +19,47 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
+class MirroredBuf {
+
+public:
+
+  MirroredBuf(size_t dim0, size_t dim1, Env& env);
+  MirroredBuf(MirroredBuf& b_old, size_t dim0, Env& env);
+
+  ~MirroredBuf();
+
+
+
+
+
+  void* __restrict__ h;
+  void* __restrict__ d;
+  void* __restrict__ active;
+  size_t dim0;
+  size_t dim1;
+  size_t size;
+  bool is_alias;
+
+private:
+
+  Env& env_;
+
+  //---Disallowed methods.
+
+  MirroredBuf(   const MirroredBuf&);
+  void operator=(const MirroredBuf&);
+};
+
+
+
+
+
+
+//-----------------------------------------------------------------------------
+
+#if 0
+typedef MirroredBuf GMMirroredBuf;
+#else
 typedef struct {
   void* __restrict__ h;
   void* __restrict__ d;
@@ -28,6 +69,7 @@ typedef struct {
   size_t dim1;
   bool is_alias;
 } GMMirroredBuf;
+#endif
 
 // TODO: is it appropriate to put copy to host / copy to device fns here
 

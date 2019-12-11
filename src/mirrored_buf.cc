@@ -17,6 +17,56 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
+MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, Env& env)
+  : h(NULL)
+  , d(NULL)
+  , active(NULL)
+  , dim0(dim0_)
+  , dim1(dim1_)
+  , size(dim0_ * dim1_)
+  , is_alias(false)
+  , env_(env) {
+
+#if 0
+  gm_linalg_malloc(this, dim0, dim1, &env_);
+#endif
+  active = env_.compute_method() == ComputeMethod::GPU ? d : h;
+}
+
+//-----------------------------------------------------------------------------
+
+MirroredBuf::MirroredBuf(MirroredBuf& b_old, size_t dim0_, Env& env)
+  : h(b_old.h)
+  , d(b_old.d)
+  , active(b_old.active)
+  , dim0(dim0_)
+  , dim1(b_old.dim1)
+  , size(b_old.size) //FIX
+  , is_alias(true)
+  , env_(env) {
+}
+
+//-----------------------------------------------------------------------------
+
+MirroredBuf::~MirroredBuf() {
+
+#if 0
+  if (!is_alias)
+    gm_linalg_free(this, &env_);
+#endif
+}
+
+//-----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+//-----------------------------------------------------------------------------
+
 GMMirroredBuf GMMirroredBuf_null(void) {
   GMMirroredBuf p;
   p.h = NULL;
