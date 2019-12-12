@@ -848,23 +848,23 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
 #if 0
         GMTally1 mB00, mB01;
-        GMTally1_decode(&mB00, &mB01, GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]);
+        GMTally1_decode(&mB00, &mB01, metrics_buf->elt<GMTally2x2>(i, j).data[0]);
         GMTally1 mB10, mB11;
-        GMTally1_decode(&mB10, &mB11, GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[1]);
+        GMTally1_decode(&mB10, &mB11, metrics_buf->elt<GMTally2x2>(i, j).data[1]);
 printf("%i  %i %i %i %i\n", env->compute_method(), (int)mB00, (int)mB01, (int)mB10, (int)mB11);
 #endif
 
 #ifdef COMET_ASSERTIONS_ON
-      const GMTally2x2 old = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+      const GMTally2x2 old = metrics_buf->elt_const<GMTally2x2>(i, j);
 #endif
 
-//printf("%i %zu\n", env->compute_method(), (size_t)GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]);
-      GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]
+//printf("%i %zu\n", env->compute_method(), (size_t)metrics_buf->elt<GMTally2x2>(i, j).data[0]);
+      metrics_buf->elt<GMTally2x2>(i, j).data[0]
          -= float_pad_adjustment;
-//printf("2 %zu\n", (size_t)GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j).data[0]);
+//printf("2 %zu\n", (size_t)metrics_buf->elt<GMTally2x2>(i, j).data[0]);
 
 #ifdef COMET_ASSERTIONS_ON
-      const GMTally2x2 new_ = GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+      const GMTally2x2 new_ = metrics_buf->elt_const<GMTally2x2>(i, j);
       COMET_ASSERT(GMTally2x2_get(old, 0, 0) ==
                GMTally2x2_get(new_, 0, 0) + pad_adjustment);
 #endif

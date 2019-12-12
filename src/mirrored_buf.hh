@@ -28,9 +28,27 @@ public:
 
   ~MirroredBuf();
 
+  /// \brief Mirrored buf element accessor.
+  template<typename T>
+  T& elt(int i0, int i1) {
+    COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
+    COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
+
+    return ((T*)(h))[i0 + dim0 * i1];
+  }
+
+  /// \brief Mirrored buf const element accessor.
+  template<typename T>
+  T elt_const(int i0, int i1) const {
+    COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
+    COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
+
+    return ((T*)(h))[i0 + dim0 * i1];
+  }
 
 
 
+  //---
 
   void* __restrict__ h;
   void* __restrict__ d;
@@ -68,6 +86,23 @@ typedef struct {
   size_t dim0;
   size_t dim1;
   bool is_alias;
+
+  template<typename T>
+  T& elt(int i0, int i1) {
+    COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
+    COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
+
+    return ((T*)(h))[i0 + dim0 * i1];
+  }
+
+  template<typename T>
+  T elt_const(int i0, int i1) const {
+    COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
+    COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
+
+    return ((T*)(h))[i0 + dim0 * i1];
+  }
+
 } GMMirroredBuf;
 #endif
 
@@ -84,30 +119,6 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
                           GMEnv* env);
 
 void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env);
-
-//-----------------------------------------------------------------------------
-/// \brief Mirrored buf element accessor.
-
-template<typename T>
-static T& GMMirroredBuf_elt(GMMirroredBuf* p, int i0, int i1) {
-  COMET_ASSERT(p);
-  COMET_ASSERT(i0 >= 0 && (size_t)i0 < p->dim0);
-  COMET_ASSERT(i1 >= 0 && (size_t)i1 < p->dim1);
-
-  return ((T*)(p->h))[i0 + p->dim0 * i1];
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Mirrored buf const element accessor.
-
-template<typename T>
-static T GMMirroredBuf_elt_const(const GMMirroredBuf* p, int i0, int i1) {
-  COMET_ASSERT(p);
-  COMET_ASSERT(i0 >= 0 && (size_t)i0 < p->dim0);
-  COMET_ASSERT(i1 >= 0 && (size_t)i1 < p->dim1);
-
-  return ((T*)(p->h))[i0 + p->dim0 * i1];
-}
 
 //=============================================================================
 

@@ -112,7 +112,7 @@ void gm_compute_2way_proc_combine_czek_(
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const GMFloat numer =
-            GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
+            metrics_buf->elt_const<GMFloat>(i, j);
           const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
@@ -132,7 +132,7 @@ void gm_compute_2way_proc_combine_czek_(
         for (int i = 0; i < nvl; ++i) {
           const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
           const GMFloat numer =
-            GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
+            metrics_buf->elt_const<GMFloat>(i, j);
           const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
@@ -153,7 +153,7 @@ void gm_compute_2way_proc_combine_czek_(
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer =
-          GMMirroredBuf_elt<GMFloat>(metrics_buf, i, j);
+          metrics_buf->elt_const<GMFloat>(i, j);
         const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
@@ -205,7 +205,7 @@ void gm_compute_2way_proc_combine_ccc_(
           const int i_max = j;
           for (int i = 0; i < i_max; ++i) {
             const GMTally2x2 value =
-              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+              metrics_buf->elt_const<GMTally2x2>(i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #if 1
             // ISSUE: this check may increase runtime nontrivially
@@ -286,7 +286,7 @@ void gm_compute_2way_proc_combine_ccc_(
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
             const GMTally2x2 value =
-              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+              metrics_buf->elt_const<GMTally2x2>(i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #if 1
             // ISSUE: this check may increase runtime nontrivially
@@ -370,7 +370,7 @@ void gm_compute_2way_proc_combine_ccc_(
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
           const GMTally2x2 value =
-              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+              metrics_buf->elt_const<GMTally2x2>(i, j);
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
 #ifdef COMET_ASSERTIONS_ON
           if (! env->sparse()) {
@@ -506,7 +506,7 @@ void gm_compute_2way_proc_combine_duo_(
           const int i_max = j;
           for (int i = 0; i < i_max; ++i) {
             const GMTally2x2 value =
-              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+              metrics_buf->elt_const<GMTally2x2>(i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
           } /*---for i---*/
         }   /*---for j---*/
@@ -517,7 +517,7 @@ void gm_compute_2way_proc_combine_duo_(
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
             const GMTally2x2 value =
-              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+              metrics_buf->elt_const<GMTally2x2>(i, j);
             GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
           } /*---for i---*/
         }   /*---for j---*/
@@ -531,7 +531,7 @@ void gm_compute_2way_proc_combine_duo_(
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
           const GMTally2x2 value =
-              GMMirroredBuf_elt<GMTally2x2>(metrics_buf, i, j);
+              metrics_buf->elt_const<GMTally2x2>(i, j);
           GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
         } /*---for i---*/
       }   /*---for j---*/

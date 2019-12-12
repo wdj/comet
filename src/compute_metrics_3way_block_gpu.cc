@@ -52,9 +52,9 @@ void gm_compute_3way_nums_gpu_form_matX_(
     for (int I = I_min; I < I_max; ++I) {
       /*---Operate on columns x_i and x_j elementwise---*/
       for (int f = 0; f < npvfl; ++f) {
-        const GMFloat a = GMMirroredBuf_elt_const<GMFloat>(vectors_I_buf, f, I);
-        const GMFloat b = GMMirroredBuf_elt_const<GMFloat>(vectors_J_buf, f, J);
-        GMMirroredBuf_elt<GMFloat>(matX_buf, f, I) = a < b ? a : b;
+        const GMFloat a = vectors_I_buf->elt_const<GMFloat>(f, I);
+        const GMFloat b = vectors_J_buf->elt_const<GMFloat>(f, J);
+        matX_buf->elt<GMFloat>(f, I) = a < b ? a : b;
       }  //---for f---//
     }    //---for I---//
     /*----------*/
@@ -72,10 +72,10 @@ void gm_compute_3way_nums_gpu_form_matX_(
         const bool sparse = env->sparse();
 
         for (int word = 0; word<2; ++word) {
-          const uint64_t vI = GMMirroredBuf_elt_const<GMBits2x64>(
-                                           vectors_I_buf, pvfl, I).data[word];
-          const uint64_t vJ = GMMirroredBuf_elt_const<GMBits2x64>(
-                                           vectors_J_buf, pvfl, J).data[word];
+          const uint64_t vI = vectors_I_buf->elt_const<GMBits2x64>(
+                                           pvfl, I).data[word];
+          const uint64_t vJ = vectors_J_buf->elt_const<GMBits2x64>(
+                                           pvfl, J).data[word];
 
           // Create word whose odd bits sample the lo (denoted here "..._0")
           // or hi ("..._1") bit of the seminibble.  Also create the
@@ -136,7 +136,7 @@ void gm_compute_3way_nums_gpu_form_matX_(
 
           // Store result
 
-          GMMirroredBuf_elt<GMBits2x64>(matX_buf, pvfl, I).data[word] = r;
+          matX_buf->elt<GMBits2x64>(pvfl, I).data[word] = r;
         } /*---word---*/
       }  //---for f---//
     }    //---for I---//
@@ -209,11 +209,11 @@ void gm_compute_3way_nums_gpu_form_metrics_(
     #pragma omp parallel for schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
-        const GMFloat min_IJ = GMMirroredBuf_elt_const<GMFloat>(matM_IJ_buf, I, J);;
-        const GMFloat min_JK = GMMirroredBuf_elt_const<GMFloat>(matM_JK_buf, J, K);;
-        const GMFloat min_KIK = GMMirroredBuf_elt_const<GMFloat>(matM_KIK_buf, K, I);;
+        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);;
+        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);;
+        const GMFloat min_KIK = matM_KIK_buf->elt_const<GMFloat>(K, I);;
         // sum of mins vectors i, j, and k is matB(k,i)
-        const GMFloat min_IJK = GMMirroredBuf_elt_const<GMFloat>(matB_buf, I, K);;
+        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);;
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         const int i = I;
         const int j = J;
@@ -244,13 +244,13 @@ void gm_compute_3way_nums_gpu_form_metrics_(
     #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
-        const GMFloat min_IJ = GMMirroredBuf_elt_const<GMFloat>(matM_IJ_buf, I, J);;
-        const GMFloat min_JK = GMMirroredBuf_elt_const<GMFloat>(matM_JK_buf, J, K);;
+        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);;
+        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);;
         const GMFloat min_KIK = is_part3 ?
-          GMMirroredBuf_elt_const<GMFloat>(matM_KIK_buf, K, I) :
-          GMMirroredBuf_elt_const<GMFloat>(matM_KIK_buf, I, K);
+          matM_KIK_buf->elt_const<GMFloat>(K, I) :
+          matM_KIK_buf->elt_const<GMFloat>(I, K);
         // sum of mins vectors i, j, and k is matB(k,i)
-        const GMFloat min_IJK = GMMirroredBuf_elt_const<GMFloat>(matB_buf, I, K);;
+        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);;
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         /*---Make arithmetic order-independent---*/
         GMFloat smin, smid, smax;
@@ -316,7 +316,7 @@ void gm_compute_3way_nums_gpu_form_metrics_(
         GMTally1 r110_permuted, r111_permuted;
         GMTally1_decode(&r110_permuted, &r111_permuted, numer.data[3]);
 
-        const GMTally2x2 mB = GMMirroredBuf_elt_const<GMTally2x2>(matB_buf, I, K);;
+        const GMTally2x2 mB = matB_buf->elt_const<GMTally2x2>(I, K);;
         GMTally1 mB00, mB01;
         GMTally1_decode(&mB00, &mB01, mB.data[0]);
         GMTally1 mB10, mB11;

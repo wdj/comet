@@ -229,7 +229,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
       #pragma omp parallel for schedule(dynamic,1000)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
-          GMMirroredBuf_elt<GMFloat>(vectors_buf, fl, i) =
+          vectors_buf->elt<GMFloat>(fl, i) =
             GMVectors_float_get(vectors, fl, i, env);
         }
       }
@@ -240,7 +240,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
       #pragma omp parallel for schedule(dynamic,1000)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
         for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
-          GMMirroredBuf_elt<GMBits2x64>(vectors_buf, fl, i) =
+          vectors_buf->elt<GMBits2x64>(fl, i) =
             GMVectors_bits2x64_get(vectors, fl, i, env);
         }
       }
@@ -251,7 +251,7 @@ void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
       #pragma omp parallel for schedule(dynamic,1000)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
         for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
-          GMMirroredBuf_elt<GMBits2x64>(vectors_buf, fl, i) =
+          vectors_buf->elt<GMBits2x64>(fl, i) =
             GMVectors_bits2x64_get(vectors, fl, i, env);
         }
       }
