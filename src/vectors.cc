@@ -132,12 +132,12 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   // Set up vector storage, mirrored buffer
 
-  vectors->buf = GMMirroredBuf_null();
+  vectors->buf = new GMMirroredBuf(*env);
 
   if (vectors->has_buf) {
-    GMMirroredBuf_create(&(vectors->buf),vectors->num_packedval_field_local,
+    GMMirroredBuf_create(vectors->buf,vectors->num_packedval_field_local,
                          vectors->num_vector_local, env);
-    vectors->data = vectors->buf.h; // alias vector storage to buf
+    vectors->data = vectors->buf->h; // alias vector storage to buf
   } else {
     vectors->data = gm_malloc(vectors->data_size, env);
   }
@@ -200,10 +200,12 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
   }
 
   if (vectors->has_buf) {
-    GMMirroredBuf_destroy(&vectors->buf, env);
+    GMMirroredBuf_destroy(vectors->buf, env);
   } else {
     gm_free(vectors->data, vectors->data_size, env);
   }
+
+  delete vectors->buf;
 
   *vectors = GMVectors_null();
 }

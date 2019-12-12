@@ -670,7 +670,7 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
 
   MPI_Request mpi_requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
-  typedef struct {
+  struct LoopVars {
     int step_num;
     int step_2way;
     int J;
@@ -684,12 +684,16 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     int index_01;
     GMMirroredBuf matB_buf;
     GMMirroredBuf tmp_buf;
-  } LoopVars;
+    LoopVars(Env& env) : matB_buf(env), tmp_buf(env) {}
+    void operator=(const LoopVars& v) {
+      memcpy(this, &v, sizeof(*this));
+    }
+  };
 
-  LoopVars vars = {};
-  LoopVars vars_prev = {};
-  LoopVars vars_prevprev = {};
-  LoopVars vars_next = {};
+  LoopVars vars(*env);
+  LoopVars vars_prev(*env);
+  LoopVars vars_prevprev(*env);
+  LoopVars vars_next(*env);
   vars.do_compute = false;
   vars_prev.do_compute = false;
   vars_prevprev.do_compute = false;

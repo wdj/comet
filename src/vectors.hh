@@ -41,7 +41,7 @@ typedef struct {
   void* __restrict__ data;
   size_t data_size;
   bool has_buf;
-  GMMirroredBuf buf;
+  GMMirroredBuf* buf;
   GMDecompMgr* dm;
 } GMVectors;
 

@@ -79,7 +79,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   // Allocate magma CPU memory for vectors and for result
 
-  GMMirroredBuf vectors_buf = GMMirroredBuf_null();
+  GMMirroredBuf vectors_buf(env_);
   GMMirroredBuf_create(&vectors_buf, npvfl, nvl, env);
 
   // Copy in vectors
@@ -159,7 +159,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   GMVectors* vectors_i = &vectors;
 
-  GMMirroredBuf vectors_i_buf_value = GMMirroredBuf_null();
+  GMMirroredBuf vectors_i_buf_value(env_);
   GMMirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
   GMMirroredBuf_create(vectors_i_buf, npvfl, nvl, env);
 
@@ -177,7 +177,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_create(vectors_j[0], data_type, vectors.dm, env);
   GMVectors_create(vectors_j[1], data_type, vectors.dm, env);
 
-  GMMirroredBuf vectors_j_buf_value = GMMirroredBuf_null();
+  GMMirroredBuf vectors_j_buf_value(env_);
   GMMirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
   GMMirroredBuf_create(vectors_j_buf, npvfl, nvl, env);
 
@@ -195,7 +195,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_create(vectors_k[0], data_type, vectors.dm, env);
   GMVectors_create(vectors_k[1], data_type, vectors.dm, env);
 
-  GMMirroredBuf vectors_k_buf_value = GMMirroredBuf_null();
+  GMMirroredBuf vectors_k_buf_value(env_);
   GMMirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
   GMMirroredBuf_create(vectors_k_buf, npvfl, nvl, env);
 

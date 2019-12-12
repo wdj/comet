@@ -27,12 +27,12 @@ namespace comet {
 
 ComputeNumerators3Way::ComputeNumerators3Way(int nvl, int npvfl, Env& env)
   : env_(env)
-  , tmp_buf_{}
-  , matM_ij_buf_{}
-  , matM_jk_buf_{}
-  , matM_kik_buf_{}
-  , matX_buf_{}
-  , matB_buf_{} {
+  , tmp_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
+  , matM_ij_buf_{GMMirroredBuf(env)}
+  , matM_jk_buf_{GMMirroredBuf(env)}
+  , matM_kik_buf_{GMMirroredBuf(env)}
+  , matX_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
+  , matB_buf_{GMMirroredBuf(env), GMMirroredBuf(env)} {
   COMET_INSIST(nvl >= 0 && npvfl >= 0);
 
   if (!env_.is_using_linalg())

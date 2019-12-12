@@ -33,9 +33,9 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
   , vector_sums_onproc_{}
   , vector_sums_offproc_{}
   , vectors_01_{}
-  , metrics_buf_01_{}
-  , vectors_buf_{}
-  , metrics_tmp_buf_{} {
+  , metrics_buf_01_{GMMirroredBuf(env), GMMirroredBuf(env)}
+  , vectors_buf_(env)
+  , metrics_tmp_buf_(env) {
   COMET_INSIST(env_.is_proc_active());
 
   if (!env_.all2all()) return;
@@ -120,13 +120,13 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Allocate memory for vectors and for result 
 
-  GMMirroredBuf vectors_buf = GMMirroredBuf_null();
+  GMMirroredBuf vectors_buf(env_);
   GMMirroredBuf_create(&vectors_buf, npvfl, nvl, &env_);
 
-  GMMirroredBuf metrics_buf = GMMirroredBuf_null();
+  GMMirroredBuf metrics_buf(env_);
   GMMirroredBuf_create(&metrics_buf, nvl, nvl, &env_);
 
-  GMMirroredBuf metrics_tmp_buf = GMMirroredBuf_null();
+  GMMirroredBuf metrics_tmp_buf(env_);
   if (env_.do_reduce())
     GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, &env_);
 
@@ -321,7 +321,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     GMMirroredBuf* vectors_left_buf = &vectors_buf_;
     vars_next.vectors_right_buf = vars_next.is_right_aliased ?
-      vectors_left_buf : &vectors_01_[vars_next.index_01].buf;
+      vectors_left_buf : vectors_01_[vars_next.index_01].buf;
 
     // Pointer to metrics buffer
 

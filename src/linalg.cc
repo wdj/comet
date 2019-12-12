@@ -181,7 +181,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
   COMET_INSIST(p && env);
   COMET_INSIST(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
-  *p = GMMirroredBuf_null();
+  //*p = GMMirroredBuf(*env);
 
   p->dim0 = dim0;
   p->dim1 = dim1;

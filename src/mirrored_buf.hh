@@ -19,27 +19,27 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-class MirroredBuf {
-
+class GMMirroredBuf {
 public:
 
-  MirroredBuf(size_t dim0, size_t dim1, Env& env);
-  MirroredBuf(MirroredBuf& b_old, size_t dim0, Env& env);
+  GMMirroredBuf(Env& env);
+  GMMirroredBuf(size_t dim0, size_t dim1, Env& env);
+  GMMirroredBuf(GMMirroredBuf& b_old, size_t dim0, Env& env);
 
-  ~MirroredBuf();
+  ~GMMirroredBuf();
 
-  /// \brief Mirrored buf element accessor.
   template<typename T>
   T& elt(int i0, int i1) {
+    COMET_ASSERT(is_allocated);
     COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
     COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
 
     return ((T*)(h))[i0 + dim0 * i1];
   }
 
-  /// \brief Mirrored buf const element accessor.
   template<typename T>
   T elt_const(int i0, int i1) const {
+    COMET_ASSERT(is_allocated);
     COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
     COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
 
@@ -47,8 +47,6 @@ public:
   }
 
 
-
-  //---
 
   void* __restrict__ h;
   void* __restrict__ d;
@@ -57,60 +55,18 @@ public:
   size_t dim1;
   size_t size;
   bool is_alias;
+  bool is_allocated;
 
 private:
 
   Env& env_;
-
-  //---Disallowed methods.
-
-  MirroredBuf(   const MirroredBuf&);
-  void operator=(const MirroredBuf&);
 };
 
-
-
-
-
+// TODO: put copy to host / copy to device fns here
 
 //-----------------------------------------------------------------------------
 
-#if 0
-typedef MirroredBuf GMMirroredBuf;
-#else
-typedef struct {
-  void* __restrict__ h;
-  void* __restrict__ d;
-  void* __restrict__ active;
-  size_t size;
-  size_t dim0;
-  size_t dim1;
-  bool is_alias;
-
-  template<typename T>
-  T& elt(int i0, int i1) {
-    COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
-    COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
-
-    return ((T*)(h))[i0 + dim0 * i1];
-  }
-
-  template<typename T>
-  T elt_const(int i0, int i1) const {
-    COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
-    COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
-
-    return ((T*)(h))[i0 + dim0 * i1];
-  }
-
-} GMMirroredBuf;
-#endif
-
-// TODO: is it appropriate to put copy to host / copy to device fns here
-
-//-----------------------------------------------------------------------------
-
-GMMirroredBuf GMMirroredBuf_null(void);
+//GMMirroredBuf GMMirroredBuf_null(void);
 
 void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
                           GMEnv* env);

@@ -17,7 +17,21 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, Env& env)
+GMMirroredBuf::GMMirroredBuf(Env& env)
+  : h(NULL)
+  , d(NULL)
+  , active(NULL)
+  , dim0(0)
+  , dim1(0)
+  , size(0)
+  , is_alias(false)
+  , is_allocated(false)
+  , env_(env) {
+  }
+
+//-----------------------------------------------------------------------------
+
+GMMirroredBuf::GMMirroredBuf(size_t dim0_, size_t dim1_, Env& env)
   : h(NULL)
   , d(NULL)
   , active(NULL)
@@ -25,58 +39,36 @@ MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, Env& env)
   , dim1(dim1_)
   , size(dim0_ * dim1_)
   , is_alias(false)
+  , is_allocated(false)
   , env_(env) {
 
-#if 0
   gm_linalg_malloc(this, dim0, dim1, &env_);
-#endif
   active = env_.compute_method() == ComputeMethod::GPU ? d : h;
+  is_allocated = true;
 }
 
 //-----------------------------------------------------------------------------
 
-MirroredBuf::MirroredBuf(MirroredBuf& b_old, size_t dim0_, Env& env)
+GMMirroredBuf::GMMirroredBuf(GMMirroredBuf& b_old, size_t dim0_, Env& env)
   : h(b_old.h)
   , d(b_old.d)
   , active(b_old.active)
   , dim0(dim0_)
   , dim1(b_old.dim1)
-  , size(b_old.size) //FIX
+  , size(b_old.size)
   , is_alias(true)
+  , is_allocated(false)
   , env_(env) {
+  COMET_INSIST(b_old.is_allocated);
+  is_allocated = true;
 }
 
 //-----------------------------------------------------------------------------
 
-MirroredBuf::~MirroredBuf() {
+GMMirroredBuf::~GMMirroredBuf() {
 
-#if 0
-  if (!is_alias)
+  if (is_allocated && !is_alias)
     gm_linalg_free(this, &env_);
-#endif
-}
-
-//-----------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-//-----------------------------------------------------------------------------
-
-GMMirroredBuf GMMirroredBuf_null(void) {
-  GMMirroredBuf p;
-  p.h = NULL;
-  p.d = NULL;
-  p.active = NULL;
-  p.size = 0;
-  p.dim0 = 0;
-  p.dim1 = 0;
-  p.is_alias = false;
-  return p;
 }
 
 //-----------------------------------------------------------------------------
@@ -89,6 +81,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
 
   gm_linalg_malloc(p, dim0, dim1, env);
   p->active = env->compute_method() == ComputeMethod::GPU ? p->d : p->h;
+  p->is_allocated = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -96,7 +89,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
 
 void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
                           GMEnv* env) {
-
+  COMET_INSIST(p->is_allocated);
   COMET_INSIST(p && p_old && env);
   COMET_INSIST(dim0 <= p_old->dim0);
 
@@ -107,6 +100,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
   p->dim1 = p_old->dim1;
   p->is_alias = true;
   p->active = p_old->active;
+  p->is_allocated = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -119,7 +113,7 @@ void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env) {
     gm_linalg_free(p, env);
   }
 
-  *p = GMMirroredBuf_null();
+  p->is_allocated = false;
 }
 
 //=============================================================================
