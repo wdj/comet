@@ -42,34 +42,76 @@ GMMirroredBuf::GMMirroredBuf(size_t dim0_, size_t dim1_, Env& env)
   , is_allocated(false)
   , env_(env) {
 
-  gm_linalg_malloc(this, dim0, dim1, &env_);
-  active = env_.compute_method() == ComputeMethod::GPU ? d : h;
-  is_allocated = true;
+  allocate(dim0_, dim1_);
 }
 
 //-----------------------------------------------------------------------------
 
-GMMirroredBuf::GMMirroredBuf(GMMirroredBuf& b_old, size_t dim0_, Env& env)
-  : h(b_old.h)
-  , d(b_old.d)
-  , active(b_old.active)
+GMMirroredBuf::GMMirroredBuf(GMMirroredBuf& buf, size_t dim0_, Env& env)
+  : h(buf.h)
+  , d(buf.d)
+  , active(buf.active)
   , dim0(dim0_)
-  , dim1(b_old.dim1)
-  , size(b_old.size)
+  , dim1(buf.dim1)
+  , size(buf.size)
   , is_alias(true)
-  , is_allocated(false)
+  , is_allocated(true)
   , env_(env) {
-  COMET_INSIST(b_old.is_allocated);
-  is_allocated = true;
+  COMET_INSIST(dim0_ <= buf.dim0);
+  COMET_INSIST(buf.is_allocated);
 }
 
 //-----------------------------------------------------------------------------
 
 GMMirroredBuf::~GMMirroredBuf() {
+  deallocate();
+}
+
+//-----------------------------------------------------------------------------
+
+void GMMirroredBuf::allocate(size_t dim0, size_t dim1) {
+  COMET_INSIST(is_alias || !is_allocated);
+
+  gm_linalg_malloc(this, dim0, dim1, &env_);
+  active = env_.compute_method() == ComputeMethod::GPU ? d : h;
+  is_alias = false;
+  is_allocated = true;
+}
+
+//-----------------------------------------------------------------------------
+
+void GMMirroredBuf::allocate(GMMirroredBuf& buf, size_t dim0_) {
+  COMET_INSIST(is_alias || !is_allocated);
+  COMET_INSIST(dim0_ <= buf.dim0);
+  COMET_INSIST(!buf.is_alias);
+  COMET_INSIST(buf.is_allocated);
+
+  h = buf.h;
+  d = buf.d;
+  active = buf.active;
+  dim0 = dim0_;
+  dim1 = buf.dim1;
+  size = buf.size;
+  is_alias = true;
+  is_allocated = true;
+}
+
+//-----------------------------------------------------------------------------
+
+void GMMirroredBuf::deallocate() {
 
   if (is_allocated && !is_alias)
     gm_linalg_free(this, &env_);
+
+  is_allocated = false;
 }
+
+//-----------------------------------------------------------------------------
+
+
+
+
+
 
 //-----------------------------------------------------------------------------
 /// \brief Mirrored buf pseudo-constructor: allocate CPU and GPU arrays.
@@ -89,9 +131,9 @@ void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
 
 void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
                           GMEnv* env) {
-  COMET_INSIST(p->is_allocated);
   COMET_INSIST(p && p_old && env);
   COMET_INSIST(dim0 <= p_old->dim0);
+  COMET_INSIST(p_old->is_allocated);
 
   p->h = p_old->h;
   p->d = p_old->d;

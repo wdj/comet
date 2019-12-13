@@ -24,9 +24,13 @@ public:
 
   GMMirroredBuf(Env& env);
   GMMirroredBuf(size_t dim0, size_t dim1, Env& env);
-  GMMirroredBuf(GMMirroredBuf& b_old, size_t dim0, Env& env);
+  GMMirroredBuf(GMMirroredBuf& buf, size_t dim0, Env& env);
 
   ~GMMirroredBuf();
+
+  void allocate(size_t dim0, size_t dim1);
+  void allocate(GMMirroredBuf& buf, size_t dim0);
+  void deallocate();
 
   template<typename T>
   T& elt(int i0, int i1) {
