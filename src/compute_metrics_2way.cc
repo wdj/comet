@@ -46,16 +46,13 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_create_with_buf(&vectors_01_[i], env_.data_type_vectors(),
       &dm, &env_);
-    GMMirroredBuf_create(&metrics_buf_01_[i], dm.num_vector_local,
-      dm.num_vector_local, &env_);
+    metrics_buf_01_[i].allocate(dm.num_vector_local, dm.num_vector_local);
   }
 
-  GMMirroredBuf_create(&vectors_buf_, dm.num_packedfield_local,
-                       dm.num_vector_local, &env_);
+  vectors_buf_.allocate(dm.num_packedfield_local, dm.num_vector_local);
 
   if (env_.do_reduce())
-    GMMirroredBuf_create(&metrics_tmp_buf_, dm.num_vector_local,
-      dm.num_vector_local, &env_);
+    metrics_tmp_buf_.allocate(dm.num_vector_local, dm.num_vector_local);
 }
 
 //-----------------------------------------------------------------------------
@@ -71,13 +68,7 @@ ComputeMetrics2Way::~ComputeMetrics2Way() {
 
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_destroy(&vectors_01_[i], &env_);
-    GMMirroredBuf_destroy(&metrics_buf_01_[i], &env_);
   }
-
-  GMMirroredBuf_destroy(&vectors_buf_, &env_);
-
-  if (env_.do_reduce())
-    GMMirroredBuf_destroy(&metrics_tmp_buf_, &env_);
 }
 
 //-----------------------------------------------------------------------------
@@ -115,20 +106,20 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   gm_linalg_initialize(&env_);
 
+  {
+
   const int nvl = vectors.num_vector_local;
   const int npvfl = vectors.num_packedval_field_local;
 
   // Allocate memory for vectors and for result 
 
-  GMMirroredBuf vectors_buf(env_);
-  GMMirroredBuf_create(&vectors_buf, npvfl, nvl, &env_);
+  GMMirroredBuf vectors_buf(npvfl, nvl, env_);
 
-  GMMirroredBuf metrics_buf(env_);
-  GMMirroredBuf_create(&metrics_buf, nvl, nvl, &env_);
+  GMMirroredBuf metrics_buf(nvl, nvl, env_);
 
   GMMirroredBuf metrics_tmp_buf(env_);
   if (env_.do_reduce())
-    GMMirroredBuf_create(&metrics_tmp_buf, nvl, nvl, &env_);
+    metrics_tmp_buf.allocate(nvl, nvl);
 
   GMMirroredBuf* metrics_buf_ptr =
       env_.do_reduce() ?  &metrics_tmp_buf : &metrics_buf;
@@ -174,11 +165,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   GMVectorSums_destroy(&vector_sums, &env_);
 
-  GMMirroredBuf_destroy(&vectors_buf, &env_);
-  GMMirroredBuf_destroy(&metrics_buf, &env_);
-
-  if (env_.do_reduce())
-    GMMirroredBuf_destroy(&metrics_tmp_buf, &env_);
+  }
 
   gm_linalg_finalize(&env_);
 }

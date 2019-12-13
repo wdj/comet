@@ -28,9 +28,9 @@ namespace comet {
 ComputeNumerators3Way::ComputeNumerators3Way(int nvl, int npvfl, Env& env)
   : env_(env)
   , tmp_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
-  , matM_ij_buf_{GMMirroredBuf(env)}
-  , matM_jk_buf_{GMMirroredBuf(env)}
-  , matM_kik_buf_{GMMirroredBuf(env)}
+  , matM_ij_buf_(env)//{GMMirroredBuf(env)}
+  , matM_jk_buf_(env)//{GMMirroredBuf(env)}
+  , matM_kik_buf_(env)//{GMMirroredBuf(env)}
   , matX_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
   , matB_buf_{GMMirroredBuf(env), GMMirroredBuf(env)} {
   COMET_INSIST(nvl >= 0 && npvfl >= 0);
@@ -40,15 +40,15 @@ ComputeNumerators3Way::ComputeNumerators3Way(int nvl, int npvfl, Env& env)
 
   for (int i=0; i<NUM_BUF; ++i) {
     if (env_.do_reduce()) {
-      GMMirroredBuf_create(&tmp_buf_[i], nvl, nvl, &env_);
+      tmp_buf_[i].allocate(nvl, nvl);
     }
-    GMMirroredBuf_create(&matX_buf_[i], npvfl, nvl, &env_);
-    GMMirroredBuf_create(&matB_buf_[i], nvl, nvl, &env_);
+    matX_buf_[i].allocate(npvfl, nvl);
+    matB_buf_[i].allocate(nvl, nvl);
   }
   if (env_.does_3way_need_2way()) {
-    GMMirroredBuf_create(&matM_ij_buf_, nvl, nvl, &env_);
-    GMMirroredBuf_create(&matM_jk_buf_, nvl, nvl, &env_);
-    GMMirroredBuf_create(&matM_kik_buf_, nvl, nvl, &env_);
+    matM_ij_buf_.allocate(nvl, nvl);
+    matM_jk_buf_.allocate(nvl, nvl);
+    matM_kik_buf_.allocate(nvl, nvl);
   }
 }
 
@@ -59,18 +59,6 @@ ComputeNumerators3Way::~ComputeNumerators3Way() {
   if (!env_.is_using_linalg())
     return;
 
-  for (int i=0; i<NUM_BUF; ++i) {
-    if (env_.do_reduce()) {
-      GMMirroredBuf_destroy(&tmp_buf_[i], &env_);
-    }
-    GMMirroredBuf_destroy(&matX_buf_[i], &env_);
-    GMMirroredBuf_destroy(&matB_buf_[i], &env_);
-  }
-  if (env_.does_3way_need_2way()) {
-    GMMirroredBuf_destroy(&matM_ij_buf_, &env_);
-    GMMirroredBuf_destroy(&matM_jk_buf_, &env_);
-    GMMirroredBuf_destroy(&matM_kik_buf_, &env_);
-  }
 }
 
 //-----------------------------------------------------------------------------

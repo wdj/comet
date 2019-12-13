@@ -738,13 +738,11 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
                "Block size rounding-up error.");
       // Create buffer aliases with required shape.
       if (env->do_reduce()) {
-        GMMirroredBuf_create(&vars_next.tmp_buf,
-                             tmp_buf[vars_next.index_01],
-                             vars_next_I_max_dim, env);
+        vars_next.tmp_buf.allocate(*tmp_buf[vars_next.index_01],
+                                   vars_next_I_max_dim);
       }
-      GMMirroredBuf_create(&(vars_next.matB_buf),
-                             matB_buf[vars_next.index_01],
-                             vars_next_I_max_dim, env);
+      vars_next.matB_buf.allocate(*matB_buf[vars_next.index_01],
+                                  vars_next_I_max_dim);
     }
 
     GMMirroredBuf* matB_buf_ptr_prev = env->do_reduce() ?  &vars_prev.tmp_buf :
