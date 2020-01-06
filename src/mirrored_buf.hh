@@ -50,7 +50,13 @@ public:
     return ((T*)(h))[i0 + dim0 * i1];
   }
 
+  void to_accel_start();
+  void to_accel_wait();
+  void to_accel();
 
+  void from_accel_start();
+  void from_accel_wait();
+  void from_accel();
 
   void* __restrict__ h;
   void* __restrict__ d;

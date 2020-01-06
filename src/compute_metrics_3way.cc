@@ -89,8 +89,9 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   // Send vectors to GPU
 
-  gm_set_vectors_start(&vectors, &vectors_buf, env);
-  gm_set_vectors_wait(env);
+  //gm_set_vectors_start(&vectors, &vectors_buf, env);
+  //gm_set_vectors_wait(env);
+  vectors_buf.to_accel();
 
   // Compute numerators
 
@@ -248,8 +249,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   gm_vectors_to_buf(vectors_i_buf, vectors_i, env);
 
   /*---Send vectors to GPU---*/
-  gm_set_vectors_start(vectors_i, vectors_i_buf, env);
-  gm_set_vectors_wait(env);
+  //gm_set_vectors_start(vectors_i, vectors_i_buf, env);
+  //gm_set_vectors_wait(env);
+  vectors_i_buf->to_accel();
 
   const int num_section_steps_1 = gm_num_section_steps(env, 1);
   for (int section_step=0; section_step<num_section_steps_1; ++section_step) {
@@ -335,13 +337,15 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
 
           /*---Send vectors to GPU start---*/
-          gm_set_vectors_start(vectors_j_this, vectors_j_buf, env);
+          //gm_set_vectors_start(vectors_j_this, vectors_j_buf, env);
+          vectors_j_buf->to_accel_start();
 
           /*---Denominator---*/
           GMVectorSums_compute(vector_sums_j, vectors_j_this, env);
 
           /*---Send vectors to GPU wait---*/
-          gm_set_vectors_wait(env);
+          //gm_set_vectors_wait(env);
+          vectors_j_buf->to_accel_wait();
 
           /*---Remember processing to do next time---*/
           vectors_j_prev = vectors_j_this;
@@ -443,13 +447,15 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
               gm_vectors_to_buf(vectors_k_buf, vectors_k_this, env);
 
               /*---Send vectors to GPU start---*/
-              gm_set_vectors_start(vectors_k_this, vectors_k_buf, env);
+              //gm_set_vectors_start(vectors_k_this, vectors_k_buf, env);
+              vectors_k_buf->to_accel_start();
 
               /*---Denominator---*/
               GMVectorSums_compute(vector_sums_k, vectors_k_this, env);
 
               /*---Send vectors to GPU wait---*/
-              gm_set_vectors_wait(env);
+              //gm_set_vectors_wait(env);
+              vectors_k_buf->to_accel_wait();
 
               /*---Remember processing to do next time---*/
               vectors_k_prev = vectors_k_this;
@@ -466,13 +472,15 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
             gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
 
             /*---Send vectors to GPU start---*/
-            gm_set_vectors_start(vectors_j_this, vectors_j_buf, env);
+            //gm_set_vectors_start(vectors_j_this, vectors_j_buf, env);
+            vectors_j_buf->to_accel_start();
 
             /*---Denominator---*/
             GMVectorSums_compute(vector_sums_j, vectors_j_this, env);
 
             /*---Send vectors to GPU wait---*/
-            gm_set_vectors_wait(env);
+            //gm_set_vectors_wait(env);
+            vectors_j_buf->to_accel_wait();
 
             /*---Remember processing to do next time---*/
             vectors_j_prev = vectors_j_this;

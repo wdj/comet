@@ -545,8 +545,9 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
                    vectors_i_buf, vectors_j_buf, matM_ij_buf_ptr,
                    vectors_i->dm, env);
 
-    gm_get_metrics_start(metrics, matM_ij_buf_ptr, env);
-    gm_get_metrics_wait(metrics, matM_ij_buf_ptr, env);
+    //gm_get_metrics_start(metrics, matM_ij_buf_ptr, env);
+    //gm_get_metrics_wait(metrics, matM_ij_buf_ptr, env);
+    matM_ij_buf_ptr->from_accel();
 
     gm_reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env);
   }
@@ -570,8 +571,9 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
                    vectors_j_buf, vectors_k_buf, matM_jk_buf_ptr,
                    vectors_i->dm, env);
 
-    gm_get_metrics_start(metrics, matM_jk_buf_ptr, env);
-    gm_get_metrics_wait(metrics, matM_jk_buf_ptr, env);
+    //gm_get_metrics_start(metrics, matM_jk_buf_ptr, env);
+    //gm_get_metrics_wait(metrics, matM_jk_buf_ptr, env);
+    matM_jk_buf_ptr->from_accel();
 
     gm_reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env);
   }
@@ -598,8 +600,9 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
                    vectors_k_buf, vectors_i_buf, matM_kik_buf_ptr,
                    vectors_i->dm, env);
 
-    gm_get_metrics_start(metrics, matM_kik_buf_ptr, env);
-    gm_get_metrics_wait(metrics, matM_kik_buf_ptr, env);
+    //gm_get_metrics_start(metrics, matM_kik_buf_ptr, env);
+    //gm_get_metrics_wait(metrics, matM_kik_buf_ptr, env);
+    matM_kik_buf_ptr->from_accel();
 
     gm_reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env);
   } /*---is_part3---*/
@@ -771,7 +774,8 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
 
     if (vars.do_compute) {
       /*---Send matrix matX to GPU - WAIT---*/
-      gm_linalg_set_matrix_wait(env);
+      //gm_linalg_set_matrix_wait(env);
+      matX_buf[vars.index_01]->to_accel_wait();
       unlock(lock_matX_buf_h[vars.index_01]);
       unlock(lock_matX_buf_d[vars.index_01]);
     }
@@ -807,7 +811,8 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
       /*---Send matrix matX to GPU - START---*/
       lock(lock_matX_buf_h[vars_next.index_01]);
       lock(lock_matX_buf_d[vars_next.index_01]);
-      gm_linalg_set_matrix_start(matX_buf[vars_next.index_01], env);
+      //gm_linalg_set_matrix_start(matX_buf[vars_next.index_01], env);
+      matX_buf[vars_next.index_01]->to_accel_start();
     }
 
     //==========
@@ -816,7 +821,8 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
       /*---Copy result matrix matB from GPU - START---*/
       lock(lock_matB_buf_ptr_d_prev);
       lock(lock_matB_buf_ptr_h_prev);
-      gm_linalg_get_matrix_start(matB_buf_ptr_prev, env);
+      //gm_linalg_get_matrix_start(matB_buf_ptr_prev, env);
+      matB_buf_ptr_prev->from_accel_start();
     }
 
     //==========
@@ -839,7 +845,8 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
 
     if (vars_prev.do_compute) {
       /*---Copy result matrix matB from GPU - WAIT---*/
-      gm_linalg_get_matrix_wait(env);
+      //gm_linalg_get_matrix_wait(env);
+      matB_buf_ptr_prev->from_accel_wait();
       if (vars_prev.step_2way == 0) {
         gm_metrics_pad_adjust(metrics, matB_buf_ptr_prev, env);
       }

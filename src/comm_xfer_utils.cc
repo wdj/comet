@@ -131,6 +131,7 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
   COMET_MPI_SAFE_CALL(MPI_Wait(mpi_request, &mpi_status));
 }
 
+#if 0
 //=============================================================================
 // Start/end transfer of vectors data to GPU
 
@@ -167,6 +168,7 @@ void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
   gm_linalg_get_matrix_wait(env);
 }
+#endif
 
 //=============================================================================
 

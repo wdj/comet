@@ -108,6 +108,47 @@ void GMMirroredBuf::deallocate() {
 
 //-----------------------------------------------------------------------------
 
+void GMMirroredBuf::to_accel_start() {
+  gm_linalg_set_matrix_start(this, &env_);
+}
+
+//-----------------------------------------------------------------------------
+
+void GMMirroredBuf::to_accel_wait() {
+  gm_linalg_set_matrix_wait(&env_);
+}
+
+//-----------------------------------------------------------------------------
+
+void GMMirroredBuf::to_accel() {
+  to_accel_start();
+  to_accel_wait();
+}
+
+//-----------------------------------------------------------------------------
+
+void GMMirroredBuf::from_accel_start() {
+  gm_linalg_get_matrix_start(this, &env_);
+}
+
+//-----------------------------------------------------------------------------
+
+void GMMirroredBuf::from_accel_wait() {
+  gm_linalg_get_matrix_wait(&env_);
+}
+
+//-----------------------------------------------------------------------------
+
+void GMMirroredBuf::from_accel() {
+  from_accel_start();
+  from_accel_wait();
+}
+
+//-----------------------------------------------------------------------------
+
+
+
+
 
 
 

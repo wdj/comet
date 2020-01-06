@@ -48,6 +48,7 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env);
 
 //--------------------
 
+#if 0
 void gm_set_vectors_start(GMVectors* vectors,
                           GMMirroredBuf* vectors_buf,
                           GMEnv* env);
@@ -61,6 +62,7 @@ void gm_get_metrics_start(GMMetrics* metrics,
 void gm_get_metrics_wait(GMMetrics* metrics,
                          GMMirroredBuf* metrics_buf,
                          GMEnv* env);
+#endif
 
 //=============================================================================
 

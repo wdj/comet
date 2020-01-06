@@ -130,8 +130,9 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Send vectors to GPU
 
-  gm_set_vectors_start(&vectors, &vectors_buf, &env_);
-  gm_set_vectors_wait(&env_);
+  //gm_set_vectors_start(&vectors, &vectors_buf, &env_);
+  //gm_set_vectors_wait(&env_);
+  vectors_buf.to_accel();
 
   gm_compute_2way_proc_nums_start(&vectors, &vectors, &metrics, &vectors_buf,
                                   &vectors_buf, metrics_buf_ptr,
@@ -145,8 +146,9 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Copy result from GPU
 
-  gm_get_metrics_start(&metrics, metrics_buf_ptr, &env_);
-  gm_get_metrics_wait(&metrics, metrics_buf_ptr, &env_);
+  //gm_get_metrics_start(&metrics, metrics_buf_ptr, &env_);
+  //gm_get_metrics_wait(&metrics, metrics_buf_ptr, &env_);
+  metrics_buf_ptr->from_accel();
   gm_metrics_pad_adjust(&metrics, metrics_buf_ptr, &env_);
 
   // Do reduction across field procs if needed
@@ -367,7 +369,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     if (vars.is_compute_step && vars.do_compute_block &&
         ! vars.is_right_aliased) {
-      gm_set_vectors_wait(&env_);
+      //gm_set_vectors_wait(&env_);
+      vars.vectors_right_buf->to_accel_wait();
       unlock(lock_vectors_right_buf_h);
       unlock(lock_vectors_right_buf_d);
     }
@@ -378,10 +381,12 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       lock(lock_vectors_left_buf_h);
       gm_vectors_to_buf(vectors_left_buf, vectors_left, &env_);
       lock(lock_vectors_left_buf_d);
-      gm_set_vectors_start(vectors_left, vectors_left_buf, &env_);
+      //gm_set_vectors_start(vectors_left, vectors_left_buf, &env_);
+      vectors_left_buf->to_accel_start();
       // TODO: examine whether overlap possible.
       // May not be possible for general repl and phase (??).
-      gm_set_vectors_wait(&env_);
+      //gm_set_vectors_wait(&env_);
+      vectors_left_buf->to_accel_wait();
       unlock(lock_vectors_left_buf_h);
       unlock(lock_vectors_left_buf_d);
     }
@@ -405,7 +410,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     if (env_.is_using_linalg()) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
-        gm_get_metrics_wait(&metrics, vars_prev.metrics_buf, &env_);
+        //gm_get_metrics_wait(&metrics, vars_prev.metrics_buf, &env_);
+        vars_prev.metrics_buf->from_accel_wait();
         unlock(lock_metrics_buf_ptr_d_prev);
         unlock(lock_metrics_buf_ptr_h_prev);
         lock(lock_metrics_buf_ptr_h_prev);
@@ -482,8 +488,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       // ISSUE: make sure not necessary if vars_next.is_right_aliased
       lock(lock_vectors_right_buf_h_next);
       lock(lock_vectors_right_buf_d_next);
-      gm_set_vectors_start(vars_next.vectors_right,
-                           vars_next.vectors_right_buf, &env_);
+      //gm_set_vectors_start(vars_next.vectors_right,
+      //                     vars_next.vectors_right_buf, &env_);
+      vars_next.vectors_right_buf->to_accel_start();
     }
 
     // Wait for numerators computation to complete
@@ -505,7 +512,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     if (vars.is_compute_step && vars.do_compute_block) {
       lock(lock_metrics_buf_ptr_h);
       lock(lock_metrics_buf_ptr_d);
-      gm_get_metrics_start(&metrics, vars.metrics_buf, &env_);
+      //gm_get_metrics_start(&metrics, vars.metrics_buf, &env_);
+      vars.metrics_buf->from_accel_start();
     }
 
     // Compute sums for denominators
@@ -531,7 +539,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         GMVectorSums* vector_sums_right =
             vars.is_main_diag
             ? &vector_sums_onproc_ : &vector_sums_offproc_;
-        gm_get_metrics_wait(&metrics, vars.metrics_buf, &env_); // NO-OP
+        //gm_get_metrics_wait(&metrics, vars.metrics_buf, &env_); // NO-OP
+        vars.metrics_buf->from_accel_wait(); // NO-OP
         unlock(lock_metrics_buf_ptr_d);
         unlock(lock_metrics_buf_ptr_h);
         lock(lock_metrics_buf_ptr_h);
