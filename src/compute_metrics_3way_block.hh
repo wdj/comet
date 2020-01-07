@@ -48,8 +48,7 @@ private:
   GMMirroredBuf matB_buf_[NUM_BUF];
 
   void compute_linalg_(VData vdata_i, VData vdata_j, VData vdata_k,
-    GMMetrics& numerators, int j_block, int k_block, int section_step);
-
+    GMMetrics& metrics, int j_block, int k_block, int section_step);
 
   void compute_linalg_matX_(VData vdata_i, VData vdata_j,
     const GMMirroredBuf& matX_buf,
@@ -69,12 +68,11 @@ private:
     const GMVectorSums& vector_sums_j,
     const GMVectorSums& vector_sums_k);
 
-
   void compute_czek_(VData vdata_i, VData vdata_j, VData vdata_k,
-    GMMetrics& numerators, int j_block, int k_block, int section_step);
+    GMMetrics& metrics, int j_block, int k_block, int section_step);
 
   void compute_ccc_(VData vdata_i, VData vdata_j, VData vdata_k,
-    GMMetrics& numerators, int j_block, int k_block, int section_step);
+    GMMetrics& metrics, int j_block, int k_block, int section_step);
 
   // Disallowed methods.
   ComputeMetrics3WayBlock(const ComputeMetrics3WayBlock&);
