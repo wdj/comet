@@ -110,6 +110,9 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
 
   const int nvl = metrics->num_vector_local;
 
+  metrics_buf_target->lock_h();
+  metrics_buf_source->lock_h();
+
   MPI_Request mpi_request;
   COMET_MPI_SAFE_CALL(MPI_Iallreduce(metrics_buf_source->h,
     metrics_buf_target->h, nvl * (size_t)nvl, env->metrics_mpi_type(), MPI_SUM,
@@ -120,7 +123,10 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
-void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
+void gm_reduce_metrics_wait(MPI_Request* mpi_request,
+                            GMMirroredBuf* metrics_buf_target,
+                            GMMirroredBuf* metrics_buf_source,
+                            GMEnv* env) {
   COMET_INSIST(mpi_request && env);
 
   if (!env->do_reduce())
@@ -129,46 +135,10 @@ void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env) {
   MPI_Status mpi_status;
 
   COMET_MPI_SAFE_CALL(MPI_Wait(mpi_request, &mpi_status));
+
+  metrics_buf_target->unlock_h();
+  metrics_buf_source->unlock_h();
 }
-
-#if 0
-//=============================================================================
-// Start/end transfer of vectors data to GPU
-
-void gm_set_vectors_start(GMVectors* vectors, GMMirroredBuf* vectors_buf,
-                          GMEnv* env) {
-  COMET_INSIST(vectors && vectors_buf && env);
-
-  gm_linalg_set_matrix_start(vectors_buf, env);
-}
-
-//-----------------------------------------------------------------------------
-
-void gm_set_vectors_wait(GMEnv* env) {
-  COMET_INSIST(env);
-
-  gm_linalg_set_matrix_wait(env);
-}
-
-//=============================================================================
-// Start/end transfer of metrics data from GPU
-
-void gm_get_metrics_start(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
-                          GMEnv* env) {
-  COMET_INSIST(metrics && metrics_buf && env);
-
-  gm_linalg_get_matrix_start(metrics_buf, env);
-}
-
-//-----------------------------------------------------------------------------
-
-void gm_get_metrics_wait(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
-                         GMEnv* env) {
-  COMET_INSIST(metrics && metrics_buf && env);
-
-  gm_linalg_get_matrix_wait(env);
-}
-#endif
 
 //=============================================================================
 

@@ -27,7 +27,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Compute 3-way numerators Czek cases that don't use linalg package.
 
-void ComputeNumerators3Way::compute_czek_(VData vdata_i, VData vdata_j,
+void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   VData vdata_k, GMMetrics& numerators,
   int j_block, int k_block, int section_step) {
 
@@ -205,7 +205,7 @@ void ComputeNumerators3Way::compute_czek_(VData vdata_i, VData vdata_j,
 //-----------------------------------------------------------------------------
 /// \brief Compute 3-way numerators CCC cases that don't use linalg package.
 
-void ComputeNumerators3Way::compute_ccc_(VData vdata_i, VData vdata_j,
+void ComputeMetrics3WayBlock::compute_ccc_(VData vdata_i, VData vdata_j,
   VData vdata_k, GMMetrics& numerators,
   int j_block, int k_block, int section_step) {
 

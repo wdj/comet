@@ -36,8 +36,8 @@ SET(LIB_SOURCES
   src/comm_xfer_utils.cc
   src/compute_metrics_2way_block_nums.cc
   src/compute_metrics_2way_block_combine.cc
-  src/compute_metrics_3way_block_nongpu.cc
-  src/compute_metrics_3way_block_gpu.cc
+  src/compute_metrics_3way_block_nonlinalg.cc
+  src/compute_metrics_3way_block_linalg.cc
   src/compute_metrics_3way_block.cc
   src/compute_metrics_2way.cc
   src/compute_metrics_3way.cc

@@ -67,9 +67,58 @@ public:
   bool is_alias;
   bool is_allocated;
 
+  void lock_h() {
+    COMET_INSIST(!is_locked_h_);
+    is_locked_h_ = true;
+  }
+
+  void lock_d() {
+    COMET_INSIST(!is_locked_d_);
+    is_locked_d_ = true;
+  }
+
+//  void lock_a() {
+//    if (env_.compute_method() == ComputeMethod::GPU) {
+//      lock_d();
+//    } else {
+//      lock_h();
+//    }
+//  }
+
+  void unlock_h() {
+    COMET_INSIST(is_locked_h_);
+    is_locked_h_ = false;
+  }
+
+  void unlock_d() {
+    COMET_INSIST(is_locked_d_);
+    is_locked_d_ = false;
+  }
+
+//  void unlock_a() {
+//    if (env_.compute_method() == ComputeMethod::GPU) {
+//      unlock_d();
+//    } else {
+//      unlock_h();
+//    }
+//  }
+
+  void lock() {
+    lock_h();
+    lock_d();
+  }
+
+  void unlock() {
+    unlock_h();
+    unlock_d();
+  }
+
 private:
 
   Env& env_;
+
+  bool is_locked_h_;
+  bool is_locked_d_;
 };
 
 // TODO: put copy to host / copy to device fns here

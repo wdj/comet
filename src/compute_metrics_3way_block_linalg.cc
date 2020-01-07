@@ -37,6 +37,8 @@ void gm_compute_3way_nums_gpu_form_matX_(
   const int I_max,
   GMEnv* const env) {
 
+  matX_buf->lock_h();
+
   /*--------------------*/
   /*---Populate leading columns of matX---*/
   /*--------------------*/
@@ -143,6 +145,8 @@ void gm_compute_3way_nums_gpu_form_matX_(
     /*----------*/
   } /*---env->metric_type()---*/
   /*----------*/
+
+  matX_buf->unlock_h();
 }
 
 //=============================================================================
@@ -169,6 +173,8 @@ void gm_compute_3way_nums_gpu_form_metrics_(
   GMEnv* const env) {
 
   COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
+
+  matB_buf->lock_h();
 
   const bool is_part3 = si->is_part3;
 
@@ -453,29 +459,19 @@ void gm_compute_3way_nums_gpu_form_metrics_(
     /*----------*/
   } /*---env->metric_type()---*/
   /*----------*/
+
+  matB_buf->unlock_h();
 }
 
 //=============================================================================
-
-static void lock(bool& lock_val) {
-  COMET_INSIST(! lock_val);
-  lock_val = true;
-};
-
-static void unlock(bool& lock_val) {
-  COMET_INSIST(lock_val);
-  lock_val = false;
-};
-
-//-----------------------------------------------------------------------------
 /// \brief Compute 3-way numerators for cases that use the linalg package.
 
-void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
+void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
   VData vdata_k, GMMetrics& numerators,
   int j_block, int k_block, int section_step) {
 
 
-  ComputeNumerators3Way* this_ = this;
+  ComputeMetrics3WayBlock* this_ = this;
 
   GMMetrics* metrics = &numerators;
   Env* env = &env_;
@@ -492,7 +488,7 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
 
 
 
-  COMET_INSIST(this_ && metrics && env);
+  COMET_INSIST(metrics && env);
   COMET_INSIST(vectors_i && vectors_j && vectors_k);
   COMET_INSIST(vectors_i_buf && vectors_j_buf && vectors_k_buf);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
@@ -529,8 +525,7 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
   /*---Compute i_block - j_block PROD---*/
   /*--------------------*/
 
-  GMMirroredBuf* tmp_buf[2] = {&this_->tmp_buf_[0],
-                               &this_->tmp_buf_[1]};
+  GMMirroredBuf* tmp_buf[NUM_BUF] = {&this_->tmp_buf_[0], &this_->tmp_buf_[1]};
 
   GMMirroredBuf* const matM_ij_buf = need_mat_ij ? &this_->matM_ij_buf_ :
                                                    NULL;
@@ -539,14 +534,10 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     GMMirroredBuf* matM_ij_buf_ptr =
        env->do_reduce() ? tmp_buf[0] : matM_ij_buf;
 
-    //gm_linalg_set_matrix_zero_start(matM_ij_buf_ptr, env);
-
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vectors_i_buf, vectors_j_buf, matM_ij_buf_ptr,
                    vectors_i->dm, env);
 
-    //gm_get_metrics_start(metrics, matM_ij_buf_ptr, env);
-    //gm_get_metrics_wait(metrics, matM_ij_buf_ptr, env);
     matM_ij_buf_ptr->from_accel();
 
     gm_reduce_metrics(metrics, matM_ij_buf, matM_ij_buf_ptr, env);
@@ -565,14 +556,10 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     GMMirroredBuf* matM_jk_buf_ptr =
         env->do_reduce() ? tmp_buf[0] : matM_jk_buf;
 
-    //gm_linalg_set_matrix_zero_start(matM_jk_buf_ptr, env);
-
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vectors_j_buf, vectors_k_buf, matM_jk_buf_ptr,
                    vectors_i->dm, env);
 
-    //gm_get_metrics_start(metrics, matM_jk_buf_ptr, env);
-    //gm_get_metrics_wait(metrics, matM_jk_buf_ptr, env);
     matM_jk_buf_ptr->from_accel();
 
     gm_reduce_metrics(metrics, matM_jk_buf, matM_jk_buf_ptr, env);
@@ -594,14 +581,10 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     GMMirroredBuf* matM_kik_buf_ptr =
         env->do_reduce() ? tmp_buf[0] : matM_kik_buf;
 
-    //gm_linalg_set_matrix_zero_start(matM_kik_buf_ptr, env);
-
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vectors_k_buf, vectors_i_buf, matM_kik_buf_ptr,
                    vectors_i->dm, env);
 
-    //gm_get_metrics_start(metrics, matM_kik_buf_ptr, env);
-    //gm_get_metrics_wait(metrics, matM_kik_buf_ptr, env);
     matM_kik_buf_ptr->from_accel();
 
     gm_reduce_metrics(metrics, matM_kik_buf, matM_kik_buf_ptr, env);
@@ -617,8 +600,10 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
   //   of vectors i and j.
   // B = X^T PROD V = three way PROD.
 
-  GMMirroredBuf* matX_buf[2] = {&this_->matX_buf_[0], &this_->matX_buf_[1]};
-  GMMirroredBuf* matB_buf[2] = {&this_->matB_buf_[0], &this_->matB_buf_[1]};
+  GMMirroredBuf* matX_buf[NUM_BUF] = {&this_->matX_buf_[0],
+                                      &this_->matX_buf_[1]};
+  GMMirroredBuf* matB_buf[NUM_BUF] = {&this_->matB_buf_[0],
+                                      &this_->matB_buf_[1]};
 
   /*---Set up pointers to permute the access of axes for Part 3---*/
   /*---We use capitals I, J, K here to denote the PERMUTED axes---*/
@@ -671,7 +656,7 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
   const int num_step = J_count * num_step_2way;
   const int extra_step = 1;
 
-  MPI_Request mpi_requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+  MPI_Request mpi_requests[NUM_BUF] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
   struct LoopVars {
     int step_num;
@@ -684,10 +669,16 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     bool empty;
     bool is_compute_step;
     bool do_compute;
+    bool do_reduce;
     int index_01;
     GMMirroredBuf matB_buf;
     GMMirroredBuf tmp_buf;
-    LoopVars(Env& env) : matB_buf(env), tmp_buf(env) {}
+    GMMirroredBuf* matB_buf_ptr() {return do_reduce ? &tmp_buf : &matB_buf;}
+    LoopVars(Env& env)
+      : do_compute(false)
+      , do_reduce(env.do_reduce())
+      , matB_buf(env)
+      , tmp_buf(env) {}
     void operator=(const LoopVars& v) {
       memcpy(this, &v, sizeof(*this));
     }
@@ -697,19 +688,6 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
   LoopVars vars_prev(*env);
   LoopVars vars_prevprev(*env);
   LoopVars vars_next(*env);
-  vars.do_compute = false;
-  vars_prev.do_compute = false;
-  vars_prevprev.do_compute = false;
-  vars_next.do_compute = false;
-
-  // Use locks to verify no race condition on a buffer.
-  // Lock buffer when in use for read or write, unlock when done.
-  bool lock_tmp_buf_h[2] = {false, false};
-  bool lock_tmp_buf_d[2] = {false, false};
-  bool lock_matX_buf_h[2] = {false, false};
-  bool lock_matX_buf_d[2] = {false, false};
-  bool lock_matB_buf_h[2] = {false, false};
-  bool lock_matB_buf_d[2] = {false, false};
 
   //========================================
   for (int step_num = 0-extra_step; step_num < num_step+extra_step*2;
@@ -735,7 +713,7 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
     vars_next.is_compute_step = vars_next.step_num >= 0 &&
                                 vars_next.step_num < num_step;
     vars_next.do_compute = vars_next.is_compute_step && ! vars_next.empty;
-    vars_next.index_01 = utils::mod_i(vars_next.step_num, 2);
+    vars_next.index_01 = utils::mod_i(vars_next.step_num, (int)NUM_BUF);
     if (vars_next.I_max <= nvl) {
       COMET_INSIST(vars_next_I_max_dim <= nvl &&
                "Block size rounding-up error.");
@@ -748,139 +726,84 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
                                   vars_next_I_max_dim);
     }
 
-    GMMirroredBuf* matB_buf_ptr_prev = env->do_reduce() ?  &vars_prev.tmp_buf :
-                                                         &vars_prev.matB_buf;
-    GMMirroredBuf* matB_buf_ptr = env->do_reduce() ? &vars.tmp_buf :
-                                                   &vars.matB_buf;
-
-    // Set up lock aliases
-
-    bool& lock_matB_buf_ptr_h_prevprev = env->do_reduce() ?
-                                   lock_tmp_buf_h[vars_prevprev.index_01] :
-                                   lock_matB_buf_h[vars_prevprev.index_01];
-    bool& lock_matB_buf_ptr_h_prev = env->do_reduce() ?
-                                   lock_tmp_buf_h[vars_prev.index_01] :
-                                   lock_matB_buf_h[vars_prev.index_01];
-    bool& lock_matB_buf_ptr_d_prev = env->do_reduce() ?
-                                   lock_tmp_buf_d[vars_prev.index_01] :
-                                   lock_matB_buf_d[vars_prev.index_01];
-    bool& lock_matB_buf_ptr_d = env->do_reduce() ?
-                                   lock_tmp_buf_d[vars.index_01] :
-                                   lock_matB_buf_d[vars.index_01];
-
     //TODO: fix locks to work properly for CPU case.
 
-    //==========
+    //========== Send matrix matX to GPU - WAIT
 
     if (vars.do_compute) {
-      /*---Send matrix matX to GPU - WAIT---*/
-      //gm_linalg_set_matrix_wait(env);
       matX_buf[vars.index_01]->to_accel_wait();
-      unlock(lock_matX_buf_h[vars.index_01]);
-      unlock(lock_matX_buf_d[vars.index_01]);
     }
 
-    //==========
+    //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
-      /*---Perform pseudo GEMM matB = matX^T PROD V - WAIT---*/
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
                           matX_buf[vars_prev.index_01],
                           vectors_K_buf,
-                          matB_buf_ptr_prev,
+                          vars_prev.matB_buf_ptr(),
                           vectors_i->dm, env);
-      unlock(lock_matB_buf_ptr_d_prev);
-      unlock(lock_matX_buf_d[vars_prev.index_01]);
     }
 
-    //==========
+    //========== Populate leading columns of matX
 
     if (vars_next.do_compute) {
-      /*---Populate leading columns of matX---*/
-      lock(lock_matX_buf_h[vars_next.index_01]);
       gm_compute_3way_nums_gpu_form_matX_(vectors_i,
           vectors_I_buf, vectors_J_buf, matX_buf[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
           vars_next.I_min, vars_next.I_max, env);
-      unlock(lock_matX_buf_h[vars_next.index_01]);
     }
 
-    //==========
+    //========== Send matrix matX to GPU - START
 
     if (vars_next.do_compute) {
-      /*---Send matrix matX to GPU - START---*/
-      lock(lock_matX_buf_h[vars_next.index_01]);
-      lock(lock_matX_buf_d[vars_next.index_01]);
-      //gm_linalg_set_matrix_start(matX_buf[vars_next.index_01], env);
       matX_buf[vars_next.index_01]->to_accel_start();
     }
 
-    //==========
+    //========== Copy result matrix matB from GPU - START
 
     if (vars_prev.do_compute) {
-      /*---Copy result matrix matB from GPU - START---*/
-      lock(lock_matB_buf_ptr_d_prev);
-      lock(lock_matB_buf_ptr_h_prev);
-      //gm_linalg_get_matrix_start(matB_buf_ptr_prev, env);
-      matB_buf_ptr_prev->from_accel_start();
+      vars_prev.matB_buf_ptr()->from_accel_start();
     }
 
-    //==========
+    //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
     if (vars.do_compute) {
-      /*---Initialize result matrix to zero (apparently magma requires)---*/
-      lock(lock_matB_buf_ptr_d);
-      lock(lock_matX_buf_d[vars.index_01]);
-      //gm_linalg_set_matrix_zero_start(matB_buf_ptr, env);
-      /*---Perform pseudo GEMM matB = matX^T PROD V - START---*/
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
                            matX_buf[vars.index_01],
                            vectors_K_buf,
-                           matB_buf_ptr,
+                           vars.matB_buf_ptr(),
                            vectors_i->dm, env);
-                           //matB_buf_ptr->d, vars.I_max, env);
     }
 
-    //==========
+    //========== Copy result matrix matB from GPU - WAIT
 
     if (vars_prev.do_compute) {
-      /*---Copy result matrix matB from GPU - WAIT---*/
-      //gm_linalg_get_matrix_wait(env);
-      matB_buf_ptr_prev->from_accel_wait();
+      vars_prev.matB_buf_ptr()->from_accel_wait();
       if (vars_prev.step_2way == 0) {
-        gm_metrics_pad_adjust(metrics, matB_buf_ptr_prev, env);
+        gm_metrics_pad_adjust(metrics, vars_prev.matB_buf_ptr(), env);
       }
-      unlock(lock_matB_buf_ptr_d_prev);
-      unlock(lock_matB_buf_ptr_h_prev);
     }
 
-    //==========
+    //========== Reduce along field procs - WAIT
 
     if (vars_prevprev.do_compute && env->do_reduce()) {
-      /*---Reduce along field procs - WAIT---*/
-      gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]), env); 
-      unlock(lock_matB_buf_ptr_h_prevprev);
-      unlock(lock_matB_buf_h[vars_prevprev.index_01]);
+      gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]),
+          &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), env);
     }
 
-    //==========
+    //========== Reduce along field procs - START
 
     if (vars_prev.do_compute && env->do_reduce()) {
-      /*---Reduce along field procs - START---*/
-      lock(lock_matB_buf_ptr_h_prev);
-      lock(lock_matB_buf_h[vars_prev.index_01]);
       mpi_requests[vars_prev.index_01] = gm_reduce_metrics_start(metrics,
-          &vars_prev.matB_buf, matB_buf_ptr_prev, env);
+          &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), env);
     }
 
-    //==========
+    //========== Compute numerators using ijk piece and (if needed) 2-way pieces
 
     //---NOTE: matB_buf[vars_prevprev.index_01]->d is locked now
     //---but matB_buf[vars_prevprev.index_01]->h is usable.
 
     if (vars_prevprev.do_compute) {
-      /*---Compute numerators using ijk piece and (if needed) 2-way pieces---*/
-      lock(lock_matB_buf_ptr_h_prevprev);
       gm_compute_3way_nums_gpu_form_metrics_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
           &vars_prevprev.matB_buf,
@@ -894,7 +817,6 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
           j_block, k_block, si,
           vector_sums_i, vector_sums_j, vector_sums_k,
           env);
-      unlock(lock_matB_buf_ptr_h_prevprev);
     }
 
   //========================================
@@ -902,15 +824,6 @@ void ComputeNumerators3Way::compute_linalg_(VData vdata_i, VData vdata_j,
   //========================================
 
   // Terminations
-
-  for (int i=0; i<2; ++i) {
-    COMET_INSIST(!lock_tmp_buf_h[i]);
-    COMET_INSIST(!lock_tmp_buf_d[i]);
-    COMET_INSIST(!lock_matX_buf_h[i]);
-    COMET_INSIST(!lock_matX_buf_d[i]);
-    COMET_INSIST(!lock_matB_buf_h[i]);
-    COMET_INSIST(!lock_matB_buf_d[i]);
-  }
 
   GMSectionInfo_destroy(si, env);
 }

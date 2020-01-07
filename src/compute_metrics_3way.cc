@@ -101,9 +101,9 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   {
 
-  ComputeNumerators3Way compute_numerators_3way(nvl, npvfl, env_);
+  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npvfl, env_);
 
-  compute_numerators_3way.compute(
+  compute_metrics_3way_block.compute(
     VData(&vectors, &vectors_buf, &vector_sums),
     VData(&vectors, &vectors_buf, &vector_sums),
     VData(&vectors, &vectors_buf, &vector_sums),
@@ -220,7 +220,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   bool have_unprocessed_section_block = false;
 
-  ComputeNumerators3Way compute_numerators_3way(nvl, npvfl, env_);
+  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npvfl, env_);
 
   // Counter for quantum of work:
   //   for part 1 or part 2: 1/6 section of work needed for block
@@ -259,7 +259,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
       if (have_unprocessed_section_block) {
         /*---Compute numerators---*/
-        compute_numerators_3way.compute(
+        compute_metrics_3way_block.compute(
           VData(vectors_i, vectors_i_buf, vector_sums_i),
           VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
           VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
@@ -320,7 +320,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   
         if (have_unprocessed_section_block) {
           /*---Compute numerators---*/
-          compute_numerators_3way.compute(
+          compute_metrics_3way_block.compute(
             VData(vectors_i, vectors_i_buf, vector_sums_i),
             VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
             VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
@@ -428,7 +428,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
           if (have_unprocessed_section_block) {
             /*---Compute numerators---*/
-            compute_numerators_3way.compute(
+            compute_metrics_3way_block.compute(
               VData(vectors_i, vectors_i_buf, vector_sums_i),
               VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
               VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
@@ -503,7 +503,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   if (have_unprocessed_section_block) {
     /*---Compute numerators---*/
-    compute_numerators_3way.compute(
+    compute_metrics_3way_block.compute(
       VData(vectors_i, vectors_i_buf, vector_sums_i),
       VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
       VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),

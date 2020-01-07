@@ -44,25 +44,10 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
                                     GMMirroredBuf* metrics_buf_source,
                                     GMEnv* env);
 
-void gm_reduce_metrics_wait(MPI_Request* mpi_request, GMEnv* env);
-
-//--------------------
-
-#if 0
-void gm_set_vectors_start(GMVectors* vectors,
-                          GMMirroredBuf* vectors_buf,
-                          GMEnv* env);
-
-void gm_set_vectors_wait(GMEnv* env);
-
-void gm_get_metrics_start(GMMetrics* metrics,
-                          GMMirroredBuf* metrics_buf,
-                          GMEnv* env);
-
-void gm_get_metrics_wait(GMMetrics* metrics,
-                         GMMirroredBuf* metrics_buf,
-                         GMEnv* env);
-#endif
+void gm_reduce_metrics_wait(MPI_Request* mpi_request,
+                            GMMirroredBuf* metrics_buf_target,
+                            GMMirroredBuf* metrics_buf_source,
+                            GMEnv* env);
 
 //=============================================================================
 

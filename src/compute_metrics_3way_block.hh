@@ -24,14 +24,14 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Class for computing numerators for 3-way methods.
 
-class ComputeNumerators3Way {
+class ComputeMetrics3WayBlock {
 
   enum {NUM_BUF = 2};
 
 public:
 
-  ComputeNumerators3Way(int nvl, int npvfl, Env& env);
-  ~ComputeNumerators3Way();
+  ComputeMetrics3WayBlock(int nvl, int npvfl, Env& env);
+  ~ComputeMetrics3WayBlock();
 
   void compute(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& numerators, int j_block, int k_block, int section_step);
@@ -77,8 +77,8 @@ private:
     GMMetrics& numerators, int j_block, int k_block, int section_step);
 
   // Disallowed methods.
-  ComputeNumerators3Way(const ComputeNumerators3Way&);
-  void operator=(const ComputeNumerators3Way&);
+  ComputeMetrics3WayBlock(const ComputeMetrics3WayBlock&);
+  void operator=(const ComputeMetrics3WayBlock&);
 };
 
 //=============================================================================

@@ -26,7 +26,9 @@ GMMirroredBuf::GMMirroredBuf(Env& env)
   , size(0)
   , is_alias(false)
   , is_allocated(false)
-  , env_(env) {
+  , env_(env)
+  , is_locked_h_(false)
+  , is_locked_d_(false) {
   }
 
 //-----------------------------------------------------------------------------
@@ -40,7 +42,9 @@ GMMirroredBuf::GMMirroredBuf(size_t dim0_, size_t dim1_, Env& env)
   , size(dim0_ * dim1_)
   , is_alias(false)
   , is_allocated(false)
-  , env_(env) {
+  , env_(env)
+  , is_locked_h_(false)
+  , is_locked_d_(false) {
 
   allocate(dim0_, dim1_);
 }
@@ -56,7 +60,9 @@ GMMirroredBuf::GMMirroredBuf(GMMirroredBuf& buf, size_t dim0_, Env& env)
   , size(buf.size)
   , is_alias(true)
   , is_allocated(true)
-  , env_(env) {
+  , env_(env)
+  , is_locked_h_(false)
+  , is_locked_d_(false) {
   COMET_INSIST(dim0_ <= buf.dim0);
   COMET_INSIST(buf.is_allocated);
 }
@@ -100,6 +106,8 @@ void GMMirroredBuf::allocate(GMMirroredBuf& buf, size_t dim0_) {
 
 void GMMirroredBuf::deallocate() {
 
+  COMET_INSIST(!is_locked_h_ && !is_locked_d_);
+
   if (is_allocated && !is_alias)
     gm_linalg_free(this, &env_);
 
@@ -109,6 +117,9 @@ void GMMirroredBuf::deallocate() {
 //-----------------------------------------------------------------------------
 
 void GMMirroredBuf::to_accel_start() {
+  if (env_.compute_method() == ComputeMethod::GPU) {
+    lock();
+  }
   gm_linalg_set_matrix_start(this, &env_);
 }
 
@@ -116,6 +127,9 @@ void GMMirroredBuf::to_accel_start() {
 
 void GMMirroredBuf::to_accel_wait() {
   gm_linalg_set_matrix_wait(&env_);
+  if (env_.compute_method() == ComputeMethod::GPU) {
+    unlock();
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -128,6 +142,9 @@ void GMMirroredBuf::to_accel() {
 //-----------------------------------------------------------------------------
 
 void GMMirroredBuf::from_accel_start() {
+  if (env_.compute_method() == ComputeMethod::GPU) {
+    lock();
+  }
   gm_linalg_get_matrix_start(this, &env_);
 }
 
@@ -135,6 +152,9 @@ void GMMirroredBuf::from_accel_start() {
 
 void GMMirroredBuf::from_accel_wait() {
   gm_linalg_get_matrix_wait(&env_);
+  if (env_.compute_method() == ComputeMethod::GPU) {
+    unlock();
+  }
 }
 
 //-----------------------------------------------------------------------------

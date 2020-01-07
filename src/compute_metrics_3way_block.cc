@@ -25,7 +25,7 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-ComputeNumerators3Way::ComputeNumerators3Way(int nvl, int npvfl, Env& env)
+ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, Env& env)
   : env_(env)
   , tmp_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
   , matM_ij_buf_(env)//{GMMirroredBuf(env)}
@@ -54,7 +54,7 @@ ComputeNumerators3Way::ComputeNumerators3Way(int nvl, int npvfl, Env& env)
 
 //-----------------------------------------------------------------------------
 
-ComputeNumerators3Way::~ComputeNumerators3Way() {
+ComputeMetrics3WayBlock::~ComputeMetrics3WayBlock() {
 
   if (!env_.is_using_linalg())
     return;
@@ -63,7 +63,7 @@ ComputeNumerators3Way::~ComputeNumerators3Way() {
 
 //-----------------------------------------------------------------------------
 
-void ComputeNumerators3Way::compute(
+void ComputeMetrics3WayBlock::compute(
   VData vdata_i, VData vdata_j, VData vdata_k, 
   GMMetrics& numerators, int j_block, int k_block, int section_step) {
   COMET_INSIST(j_block >= 0 && j_block < env_.num_block_vector());

@@ -891,6 +891,14 @@ void gm_linalg_gemm_start(
   if (m==0 || n==0 || k==0)
     return;
 
+  if (env->compute_method() == ComputeMethod::GPU) {
+    A->lock_d();
+    if (A != B) {
+      B->lock_d();
+    }
+    C->lock_d();
+  }
+
   if (env->is_using_tc()) {
     if (env->compute_method() == ComputeMethod::GPU) {
       gm_tc_gemm_start(m, n, k, A->active, A->dim0, B->active, B->dim0,
@@ -916,12 +924,30 @@ void gm_linalg_gemm_wait(
 
   if (env->is_using_tc()) {
     if (env->compute_method() != ComputeMethod::GPU) {
+      A->lock_h();
+      if (A != B) {
+        B->lock_h();
+      }
+      C->lock_h();
       gm_tc_gemm_start(m, n, k, A->active, A->dim0, B->active, B->dim0,
         C->active, C->dim0, dm->tc_bufs, env);
+      A->unlock_h();
+      if (A != B) {
+        B->unlock_h();
+      }
+      C->unlock_h();
     }
   }
 
   env->stream_synchronize(env->stream_compute());
+
+  if (env->compute_method() == ComputeMethod::GPU) {
+    A->unlock_d();
+    if (A != B) {
+      B->unlock_d();
+    }
+    C->unlock_d();
+  }
 }
 
 //-----------------------------------------------------------------------------
