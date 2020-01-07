@@ -2062,6 +2062,14 @@ void DriverTest_duo_() {
 
 //FIX
 #if 1
+TEST(DriverTest, ccc3_simple) {
+  DriverTest_ccc3_simple_();
+}
+
+TEST(DriverTest, ccc3_simple_sparse) {
+  DriverTest_ccc3_simple_sparse_();
+}
+
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
@@ -2076,14 +2084,6 @@ TEST(DriverTest, ccc2_simple) {
 
 TEST(DriverTest, ccc2_simple_sparse) {
   DriverTest_ccc2_simple_sparse_();
-}
-
-TEST(DriverTest, ccc3_simple) {
-  DriverTest_ccc3_simple_();
-}
-
-TEST(DriverTest, ccc3_simple_sparse) {
-  DriverTest_ccc3_simple_sparse_();
 }
 #endif
 

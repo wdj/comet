@@ -160,9 +160,9 @@ typedef struct {
   bool is_part1;
   bool is_part2;
   bool is_part3;
-  bool sax0;
-  bool sax1;
-  bool sax2;
+  bool sax0; // kij
+  bool sax1; // ijk
+  bool sax2; // jki
   int part_num;
   int section_axis;
   int section_num;
@@ -175,6 +175,43 @@ typedef struct {
   int J_lb;
   int J_ub;
   int num_vector_local;
+  bool no_perm() const {return !is_part3;}
+  template<typename T> T perm0(T v0, T v1, T v2) const {
+    return no_perm() ?   v0 :
+           sax1      ?   v0 :
+           sax0      ?   v2 :
+       /*  sax2      ?*/ v1;
+  }
+  template<typename T> T perm1(T v0, T v1, T v2) const {
+    return no_perm() ?   v1 :
+           sax1      ?   v1 :
+           sax0      ?   v0 :
+       /*  sax2      ?*/ v2;
+  }
+  template<typename T> T perm2(T v0, T v1, T v2) const {
+    return no_perm() ?   v2 :
+           sax1      ?   v2 :
+           sax0      ?   v1 :
+       /*  sax2      ?*/ v0;
+  }
+  template<typename T> T unperm0(T v0, T v1, T v2) const {
+    return no_perm() ?   v0 :
+           sax0      ?   v1 :
+           sax1      ?   v0 :
+       /*  sax2      ?*/ v2;
+  }
+  template<typename T> T unperm1(T v0, T v1, T v2) const {
+    return no_perm() ?   v1 :
+           sax0      ?   v2 :
+           sax1      ?   v1 :
+       /*  sax2      ?*/ v0;
+  }
+  template<typename T> T unperm2(T v0, T v1, T v2) const {
+    return no_perm() ?   v2 :
+           sax0      ?   v0 :
+           sax1      ?   v2 :
+       /*  sax2      ?*/ v1;
+  }
 } GMSectionInfo;
 
 //-----------------------------------------------------------------------------
@@ -655,26 +692,9 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted(
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  const bool is_part3 = si->is_part3;
-  const bool no_perm = ! is_part3;
-  const bool sax0 = si->section_axis == 0;
-  const bool sax1 = si->section_axis == 1;
-  //const bool sax2 = si->section_axis == 2;
-
-  /* clang-format off */
-  const int i = no_perm ? I :
-                sax0 ?    J :
-                sax1 ?    I :
-             /* sax2 ?*/  K;
-  const int j = no_perm ? J :
-                sax0 ?    K :
-                sax1 ?    J :
-             /* sax2 ?*/  I;
-  const int k = no_perm ? K :
-                sax0 ?    I :
-                sax1 ?    K :
-             /* sax2 ?*/  J;
-  /* clang-format on */
+  const int i = si->unperm0(I, J, K);
+  const int j = si->unperm1(I, J, K);
+  const int k = si->unperm2(I, J, K);
 
   GMSectionInfo_destroy(si, env);
 

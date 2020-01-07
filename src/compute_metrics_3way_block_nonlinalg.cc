@@ -128,14 +128,11 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() && "num_proc_field>1 "
       "for REF/CPU compute_method for this case not supported");
 
-    const bool no_perm = ! si->is_part3;
-
     /*---Compute tetrahedron, triang prism or block section---*/
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
     for (int J = J_lo; J < J_hi; ++J) {
-
 
       const int I_min = 0;
       const int I_max = si->is_part1 ? J : nvl;
@@ -146,21 +143,9 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 
-//TODO: make si member functions to handle this.
-          /* clang-format off */
-          const int i = no_perm  ?   I :
-                        si->sax0 ?   J :
-                        si->sax1 ?   I :
-                     /* si->sax2 ?*/ K;
-          const int j = no_perm  ?   J :
-                        si->sax0 ?   K :
-                        si->sax1 ?   J :
-                     /* si->sax2 ?*/ I;
-          const int k = no_perm  ?   K :
-                        si->sax0 ?   I :
-                        si->sax1 ?   K :
-                     /* si->sax2 ?*/ J;
-          /* clang-format on */
+          const int i = si->unperm0(I, J, K);
+          const int j = si->unperm1(I, J, K);
+          const int k = si->unperm2(I, J, K);
 
           /*---Make arithmetic order-independent---*/
           GMFloat smin, smid, smax;
@@ -260,7 +245,6 @@ void ComputeMetrics3WayBlock::compute_ccc_(VData vdata_i, VData vdata_j,
       "num_proc_field>1 for REF compute_method not supported");
 
     const int nfal = vectors_i->dm->num_field_active_local;
-    const bool no_perm = ! si->is_part3;
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
@@ -275,20 +259,9 @@ void ComputeMetrics3WayBlock::compute_ccc_(VData vdata_i, VData vdata_j,
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 
-          /* clang-format off */
-          const int i = no_perm  ?   I :
-                        si->sax0 ?   J :
-                        si->sax1 ?   I :
-                     /* si->sax2 ?*/ K;
-          const int j = no_perm  ?   J :
-                        si->sax0 ?   K :
-                        si->sax1 ?   J :
-                     /* si->sax2 ?*/ I;
-          const int k = no_perm  ?   K :
-                        si->sax0 ?   I :
-                        si->sax1 ?   K :
-                     /* si->sax2 ?*/ J;
-          /* clang-format on */
+          const int i = si->unperm0(I, J, K);
+          const int j = si->unperm1(I, J, K);
+          const int k = si->unperm2(I, J, K);
 
           GMTally4x2 sum = GMTally4x2_null();
           for (int f = 0; f < nfal; ++f) {
@@ -439,8 +412,6 @@ void ComputeMetrics3WayBlock::compute_ccc_(VData vdata_i, VData vdata_j,
     const int pad_adjustment = 8 * metrics->dm->num_pad_field_local;
     const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
-    const bool no_perm = ! si->is_part3;
-
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
     for (int J = J_lo; J < J_hi; ++J) {
@@ -454,20 +425,9 @@ void ComputeMetrics3WayBlock::compute_ccc_(VData vdata_i, VData vdata_j,
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 
-          /* clang-format off */
-          const int i = no_perm  ?   I :
-                        si->sax0 ?   J :
-                        si->sax1 ?   I :
-                     /* si->sax2 ?*/ K;
-          const int j = no_perm  ?   J :
-                        si->sax0 ?   K :
-                        si->sax1 ?   J :
-                     /* si->sax2 ?*/ I;
-          const int k = no_perm  ?   K :
-                        si->sax0 ?   I :
-                        si->sax1 ?   K :
-                     /* si->sax2 ?*/ J;
-          /* clang-format on */
+          const int i = si->unperm0(I, J, K);
+          const int j = si->unperm1(I, J, K);
+          const int k = si->unperm2(I, J, K);
 
           GMTally4x2 sum = GMTally4x2_null();
           const int npvfl = vectors_i->num_packedval_field_local;
