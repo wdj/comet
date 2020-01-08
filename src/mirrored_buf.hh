@@ -121,8 +121,6 @@ private:
   bool is_locked_d_;
 };
 
-// TODO: put copy to host / copy to device fns here
-
 //-----------------------------------------------------------------------------
 
 //GMMirroredBuf GMMirroredBuf_null(void);

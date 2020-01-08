@@ -27,8 +27,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Create matrix X from a vectors object and a single vector column.
 
-void gm_compute_3way_nums_gpu_form_matX_(
-  const GMVectors* vectors_i,
+static void compute_metrics_3way_block_linalg_form_matX_(
   const GMMirroredBuf* vectors_I_buf,
   const GMMirroredBuf* vectors_J_buf,
   GMMirroredBuf* const matX_buf,
@@ -36,7 +35,8 @@ void gm_compute_3way_nums_gpu_form_matX_(
   const int step_2way,
   const int I_min,
   const int I_max,
-  GMEnv* const env) {
+  const int npvfl,
+  GMEnv& env) {
 
   matX_buf->lock_h();
 
@@ -44,9 +44,7 @@ void gm_compute_3way_nums_gpu_form_matX_(
   // Populate leading columns of matX.
   //--------------------
 
-  const int npvfl = vectors_i->num_packedval_field_local;
-
-  if (env->metric_type() == MetricType::CZEK) {
+  if (env.metric_type() == MetricType::CZEK) {
 
     // Don't use collapse because of overflow for large sizes
     //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
@@ -60,7 +58,10 @@ void gm_compute_3way_nums_gpu_form_matX_(
       }  //---for f---//
     }    //---for I---//
 
-  } else if (env->metric_type() == MetricType::CCC) {
+  } else if (env.metric_type() == MetricType::CCC) {
+
+//CHANGE: execute this only if ! env_.is_using_tc()
+//CHANGE: otherwise, somewhere, make (reuseable) mirrored buf for column J of vectors_J_buf
 
     for (int I = I_min; I < I_max; ++I) {
 
@@ -71,7 +72,7 @@ void gm_compute_3way_nums_gpu_form_matX_(
       // -Operate on columns v_i and v_j elementwise.
       for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
-        const bool sparse = env->sparse();
+        const bool sparse = env.sparse();
 
         for (int word = 0; word<2; ++word) {
           const uint64_t vI = vectors_I_buf->elt_const<GMBits2x64>(
@@ -147,7 +148,7 @@ void gm_compute_3way_nums_gpu_form_matX_(
 
     COMET_INSIST(false);
 
-  } // env->metric_type()
+  } // env.metric_type()
 
   matX_buf->unlock_h();
 }
@@ -155,34 +156,22 @@ void gm_compute_3way_nums_gpu_form_matX_(
 //-----------------------------------------------------------------------------
 /// \brief Set metrics numerators and denominators using GEMM results.
 
-void gm_compute_3way_nums_gpu_form_metrics_(
+static void compute_metrics_3way_block_linalg_form_metrics_(
   GMMirroredBuf* const matM_IJ_buf,
   GMMirroredBuf* const matM_JK_buf,
   GMMirroredBuf* const matM_KIK_buf,
   GMMirroredBuf* const matB_buf,
   GMMetrics* metrics,
-  const int nvl,
-  const int J,
-  const int step_2way,
-  const int I_min,
-  const int I_max,
-  const int K_min,
-  const int K_max,
-  const int j_block,
-  const int k_block,
-  const GMSectionInfo* const si,
-  const GMVectorSums* vector_sums_i,
-  const GMVectorSums* vector_sums_j,
-  const GMVectorSums* vector_sums_k,
-  GMEnv* const env) {
+  int nvl, int J, int step_2way,
+  int I_min, int I_max, int K_min, int K_max,
+  int j_block, int k_block,
+  GMSectionInfo* const si,
+  GMVectorSums* vs_i, GMVectorSums* vs_j, GMVectorSums* vs_k,
+  GMEnv& env) {
 
-  COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
+  COMET_INSIST(vs_i && vs_j && vs_k);
 
   matB_buf->lock_h();
-
-  const GMVectorSums* const vs_i = vector_sums_i;
-  const GMVectorSums* const vs_j = vector_sums_j;
-  const GMVectorSums* const vs_k = vector_sums_k;
 
   const GMVectorSums* const vs_I = si->perm0(vs_i, vs_j, vs_k);
   const GMVectorSums* const vs_J = si->perm1(vs_i, vs_j, vs_k);
@@ -195,7 +184,7 @@ void gm_compute_3way_nums_gpu_form_metrics_(
   // Compute numerators using ijk piece and (if needed) 2-way pieces.
   //--------------------
 
-  if (env->metric_type() == MetricType::CZEK && !env->all2all()) {
+  if (env.metric_type() == MetricType::CZEK && !env.all2all()) {
 
     // don't use collapse because of overflow for large sizes
     //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
@@ -213,19 +202,19 @@ void gm_compute_3way_nums_gpu_form_metrics_(
         const int k = K;
         // Make arithmetic order-independent.
         GMFloat smin, smid, smax;
-        const GMFloat si = GMVectorSums_sum(vs_i, i, env);
-        const GMFloat sj = GMVectorSums_sum(vs_i, j, env);
-        const GMFloat sk = GMVectorSums_sum(vs_i, k, env);
+        const GMFloat si = GMVectorSums_sum(vs_i, i, &env);
+        const GMFloat sj = GMVectorSums_sum(vs_i, j, &env);
+        const GMFloat sk = GMVectorSums_sum(vs_i, k, &env);
         utils::sort_3(smin, smid, smax, si, sj, sk);
         const GMFloat denom = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
-        GMMetrics_float_set_3(metrics, i, j, k, value, env);
+        GMMetrics_float_set_3(metrics, i, j, k, value, &env);
       } // K
     }   // I
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
                                         (K_max - K_min);
 
-  } else if (env->metric_type() == MetricType::CZEK && env->all2all()) {
+  } else if (env.metric_type() == MetricType::CZEK && env.all2all()) {
 
     GMIndexCache index_cache = {};
     // don't use collapse because of overflow for large sizes
@@ -243,20 +232,20 @@ void gm_compute_3way_nums_gpu_form_metrics_(
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         // Make arithmetic order-independent.
         GMFloat smin, smid, smax;
-        const GMFloat sI = GMVectorSums_sum(vs_I, I, env);
-        const GMFloat sJ = GMVectorSums_sum(vs_J, J, env);
-        const GMFloat sK = GMVectorSums_sum(vs_K, K, env);
+        const GMFloat sI = GMVectorSums_sum(vs_I, I, &env);
+        const GMFloat sJ = GMVectorSums_sum(vs_J, J, &env);
+        const GMFloat sK = GMVectorSums_sum(vs_K, K, &env);
         utils::sort_3(smin, smid, smax, sI, sJ, sK);
         const GMFloat denom = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
         GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
-            j_block, k_block, value, &index_cache, env);
+            j_block, k_block, value, &index_cache, &env);
       } // K
     }   // I
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
                                         (K_max - K_min);
 
-  } else if (env->metric_type() == MetricType::CCC) {
+  } else if (env.metric_type() == MetricType::CCC) {
 
     GMIndexCache index_cache = {};
 
@@ -280,18 +269,15 @@ void gm_compute_3way_nums_gpu_form_metrics_(
         // the 001 etc. entries of numer are unpermuted.
 
         GMTally4x2 numer = step_2way==0 ? GMTally4x2_null() :
-          env->all2all() ?
+          env.all2all() ?
           GMMetrics_tally4x2_get_all2all_3_permuted_cache(metrics, I, J, K,
-                                        j_block, k_block, &index_cache, env) :
-          GMMetrics_tally4x2_get_3(metrics, i, j, k, env);
+                                        j_block, k_block, &index_cache, &env) :
+          GMMetrics_tally4x2_get_3(metrics, i, j, k, &env);
 
-        GMTally1 r000, r001;
+        GMTally1 r000, r001, r010, r011, r100, r101, r110, r111;
         GMTally1_decode(&r000, &r001, numer.data[0]);
-        GMTally1 r010, r011;
         GMTally1_decode(&r010, &r011, numer.data[1]);
-        GMTally1 r100, r101;
         GMTally1_decode(&r100, &r101, numer.data[2]);
-        GMTally1 r110, r111;
         GMTally1_decode(&r110, &r111, numer.data[3]);
 
         // NOTE: matB is generated by a GEMM from permuted vectors objects,
@@ -299,8 +285,8 @@ void gm_compute_3way_nums_gpu_form_metrics_(
 
         const GMTally2x2 matB_permuted = matB_buf->elt_const<GMTally2x2>(I, K);;
         GMTally1 matB00_permuted, matB01_permuted;
-        GMTally1_decode(&matB00_permuted, &matB01_permuted, matB_permuted.data[0]);
         GMTally1 matB10_permuted, matB11_permuted;
+        GMTally1_decode(&matB00_permuted, &matB01_permuted, matB_permuted.data[0]);
         GMTally1_decode(&matB10_permuted, &matB11_permuted, matB_permuted.data[1]);
 
         int r000_permuted = r000;
@@ -348,36 +334,36 @@ void gm_compute_3way_nums_gpu_form_metrics_(
         numer.data[1] = GMTally1_encode(r010, r011);
         numer.data[2] = GMTally1_encode(r100, r101);
         numer.data[3] = GMTally1_encode(r110, r111);
-        if (env->all2all()) {
+        if (env.all2all()) {
           GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics, I, J, K,
-                                  j_block, k_block, numer, &index_cache, env);
+                                  j_block, k_block, numer, &index_cache, &env);
         } else {
-          GMMetrics_tally4x2_set_3(metrics, i, j, k, numer, env);
+          GMMetrics_tally4x2_set_3(metrics, i, j, k, numer, &env);
         }
 
         // Denominator.
 
         if (step_2way==2) {
-          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
-          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env); 
-          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env); 
+          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, &env);
+          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, &env); 
+          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, &env); 
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-          if (env->all2all()) {
+          if (env.all2all()) {
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
-              j_block, k_block, si1_sj1_sk1, &index_cache, env);
+              j_block, k_block, si1_sj1_sk1, &index_cache, &env);
           } else {
-            GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
+            GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, &env);
           }
-          if (env->sparse()) {
-            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_i, i, env);
-            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_j, j, env); 
-            const GMTally1 ck = (GMTally1)GMVectorSums_count(vs_k, k, env); 
+          if (env.sparse()) {
+            const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_i, i, &env);
+            const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_j, j, &env); 
+            const GMTally1 ck = (GMTally1)GMVectorSums_count(vs_k, k, &env); 
             const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
-            if (env->all2all()) {
+            if (env.all2all()) {
               GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
-                j_block, k_block, ci_cj_ck, &index_cache, env);
+                j_block, k_block, ci_cj_ck, &index_cache, &env);
             } else {
-              GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, env);
+              GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, &env);
             }
           } /*---if sparse---*/
 
@@ -393,16 +379,16 @@ void gm_compute_3way_nums_gpu_form_metrics_(
 
     COMET_INSIST(false);
 
-  } // env->metric_type()
+  } // env.metric_type()
 
   matB_buf->unlock_h();
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Compute 3-way numerators for cases that use the linalg package.
+/// \brief Compute 3-way metrics for cases that use the linalg package.
 
-void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
-  VData vdata_k, GMMetrics& metrics,
+void ComputeMetrics3WayBlock::compute_linalg_(
+  VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& metrics,
   int j_block, int k_block, int section_step) {
 
   COMET_INSIST(j_block >= 0 && j_block < env_.num_block_vector());
@@ -418,11 +404,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
 
   const int nvl = metrics.num_vector_local;
   const int npvfl = vdata_i.vectors->num_packedval_field_local;
-
   const int i_block = env_.proc_num_vector();
 
-  GMSectionInfo si_value;
-  GMSectionInfo* si = &si_value;
+  GMSectionInfo si_value, *si = &si_value;
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step, nvl, &env_);
 
   const bool need_mat_ij = env_.does_3way_need_2way();
@@ -437,13 +421,14 @@ void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
   // Compute i_block - j_block PROD.
   //--------------------
 
+//CHANGE: remove this?
   GMMirroredBuf* tmp_buf[NUM_BUF] = {&tmp_buf_[0], &tmp_buf_[1]};
 
   GMMirroredBuf* const matM_ij_buf = need_mat_ij ? &matM_ij_buf_ : NULL;
 
   if (need_mat_ij) {
-    GMMirroredBuf* matM_ij_buf_ptr =
-       env_.do_reduce() ? tmp_buf[0] : matM_ij_buf;
+    GMMirroredBuf* matM_ij_buf_ptr = env_.do_reduce()
+      ? tmp_buf[0] : matM_ij_buf;
 
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
@@ -460,12 +445,12 @@ void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
 
   // Need to compute only if not identical to already computed values.
 
-  GMMirroredBuf* const matM_jk_buf =
-      ! si->is_part1 ? &matM_jk_buf_ : matM_ij_buf;
+  GMMirroredBuf* const matM_jk_buf = ! si->is_part1
+    ? &matM_jk_buf_ : matM_ij_buf;
 
   if (need_mat_jk) {
-    GMMirroredBuf* matM_jk_buf_ptr =
-        env_.do_reduce() ? tmp_buf[0] : matM_jk_buf;
+    GMMirroredBuf* matM_jk_buf_ptr = env_.do_reduce()
+      ? tmp_buf[0] : matM_jk_buf;
 
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
@@ -511,8 +496,11 @@ void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
   //   of vectors i and j.
   // B = X^T PROD V = three way PROD.
 
+//CHANGE: these as class members, init in ctor?
   GMMirroredBuf* matX_buf[NUM_BUF] = {&matX_buf_[0], &matX_buf_[1]};
   GMMirroredBuf* matB_buf[NUM_BUF] = {&matB_buf_[0], &matB_buf_[1]};
+
+//CHANGE: vectors_J_col_buf[NUM_BUF], class member ...
 
   // Set up pointers to permute the access of axes for Part 3.
   // Use capitals I, J, K here to denote the PERMUTED axes.
@@ -624,20 +612,20 @@ void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
+//CHANGE: also pass vectors_I_buf, vectors_J_col_buf
+//CHANGE: pass in substep
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
-                          matX_buf[vars_prev.index_01],
-                          vectors_K_buf,
-                          vars_prev.matB_buf_ptr(),
-                          vdata_i.vectors->dm, &env_);
+          matX_buf[vars_prev.index_01], vectors_K_buf, vars_prev.matB_buf_ptr(),
+          vdata_i.vectors->dm, &env_);
     }
 
     //========== Populate leading columns of matX
 
     if (vars_next.do_compute) {
-      gm_compute_3way_nums_gpu_form_matX_(vdata_i.vectors,
+      compute_metrics_3way_block_linalg_form_matX_(
           vectors_I_buf, vectors_J_buf, matX_buf[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
-          vars_next.I_min, vars_next.I_max, &env_);
+          vars_next.I_min, vars_next.I_max, npvfl, env_);
     }
 
     //========== Send matrix matX to GPU - START
@@ -655,11 +643,11 @@ void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
     if (vars.do_compute) {
+//CHANGE: also pass vectors_I_buf, vectors_J_col_buf
+//CHANGE: pass in substep
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
-                           matX_buf[vars.index_01],
-                           vectors_K_buf,
-                           vars.matB_buf_ptr(),
-                           vdata_i.vectors->dm, &env_);
+          matX_buf[vars.index_01], vectors_K_buf, vars.matB_buf_ptr(),
+          vdata_i.vectors->dm, &env_);
     }
 
     //========== Copy result matrix matB from GPU - WAIT
@@ -691,19 +679,15 @@ void ComputeMetrics3WayBlock::compute_linalg_(VData vdata_i, VData vdata_j,
     //---but matB_buf[vars_prevprev.index_01]->h is usable.
 
     if (vars_prevprev.do_compute) {
-      gm_compute_3way_nums_gpu_form_metrics_(
+      compute_metrics_3way_block_linalg_form_metrics_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
           &vars_prevprev.matB_buf,
-          &metrics, nvl,
-          vars_prevprev.J,
-          vars_prevprev.step_2way,
-          vars_prevprev.I_min,
-          vars_prevprev.I_max,
-          vars_prevprev.K_min,
-          vars_prevprev.K_max,
+          &metrics, nvl, vars_prevprev.J, vars_prevprev.step_2way,
+          vars_prevprev.I_min, vars_prevprev.I_max,
+          vars_prevprev.K_min, vars_prevprev.K_max,
           j_block, k_block, si,
           vdata_i.sums, vdata_j.sums, vdata_k.sums,
-          &env_);
+          env_);
     }
 
   //========================================

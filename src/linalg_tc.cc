@@ -186,6 +186,8 @@ template<> struct TCSelector<TC::FP32> {
 //-----------------------------------------------------------------------------
 /// \brief Write individual elements to buf.
 
+//CHANGE: for non-kernel functions, struct to manage these variables
+
 template<typename GemmIn_t>
 __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   GemmIn_t* vo,
@@ -436,13 +438,6 @@ static void gm_tc_buf_write_(
 
       }
     }
-//printf("%i %i\n", (int)nflD2_thisstep, (int)nvleX2);
-
-//for (int i=0; i<32; ++i)
-//  printf("%i %zu\n", i, ( (((size_t*)vi32)[0]) >> (2*i) ) & (size_t)3);
-//for (int i=0; i<32; ++i)
-//  printf("%i %zu\n", i, ( (((size_t*)vi32)[1]) >> (2*i) ) & (size_t)3);
-
 
   } // if compute_method
 }
@@ -957,6 +952,12 @@ size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
 
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute CoMet metrics bitwise result.
+
+//CHANGE: revise dA etc. nomenclature since may be on host
+
+//CHANGE: pass in vectors_I, vectors_J_col pointers (allow both this and older option?)
+
+//CHANGE: ? eliminate ldda, lddb, since redundant with other vars.
 
 void gm_tc_gemm_start(int m, int n, int k,
                       void* dA, int ldda,
