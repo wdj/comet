@@ -451,13 +451,13 @@ static void gm_tc_solve_accelblasgemmex_(
   int m,
   int n,
   int k,
-  void* dA,
-  void* dB,
-  void* dC,
+  void* matA,
+  void* matB,
+  void* matC,
   TCBufs& tc_bufs,
   GMEnv* env) {
 
-  COMET_INSIST(env && dA && dB && dC);
+  COMET_INSIST(env && matA && matB && matC);
 
   // See https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
   // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
@@ -501,9 +501,9 @@ static void gm_tc_solve_accelblasgemmex_(
       , tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m
       , tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
       , (void*)&beta
-      , dC, TCSelector<TC_METHOD>::gemm_type_out(), m
+      , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
 #  ifdef USE_HIP
-      , dC, TCSelector<TC_METHOD>::gemm_type_out(), m
+      , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
 #  endif
       , TCSelector<TC_METHOD>::gemm_type_out()
 #  ifdef USE_CUDA
@@ -557,10 +557,10 @@ static void gm_tc_solve_accelblasgemmex_(
 
     cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
       m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
-      (float*)tc_bufs.tc_buf_right, n, beta, (float*)dC, m);
+      (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
 
 //for (int i=0; i< m*n; ++i)
-//  printf("%i %f\n", i, ((float*)dC)[i]);
+//  printf("%i %f\n", i, ((float*)matC)[i]);
 
 #else // USE_CPUBLAS
 
@@ -582,13 +582,13 @@ static void gm_tc_solve_(
   int nvll,
   int nvl,
   int npvfl_thisstep,
-  void* dA,
-  void* dB,
-  void* dC,
+  void* matA,
+  void* matB,
+  void* matC,
   TCBufs& tc_bufs,
   GMEnv* env) {
 
-  COMET_INSIST(env && dA && dB && dC);
+  COMET_INSIST(env && matA && matB && matC);
   COMET_INSIST(nvll >= 0);
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(nvll <= nvl);
@@ -602,7 +602,7 @@ static void gm_tc_solve_(
   const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
 
   gm_tc_solve_accelblasgemmex_<TC_METHOD>(is_first, m, n, k,
-                                          dA, dB, dC, tc_bufs, env);
+                                          matA, matB, matC, tc_bufs, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -870,9 +870,9 @@ static void gm_tc_repair_metrics_(
 template<int TC_METHOD>
 static void gm_tc_gemm_start_impl_(
   int m, int n, int k,
-  void* dA, int ldda,
-  void* dB, int lddb,
-  void* dC, int lddc,
+  void* matA, int ldda,
+  void* matB, int lddb,
+  void* matC, int lddc,
   TCBufs& tc_bufs,
   GMEnv* env) {
 
@@ -911,17 +911,17 @@ static void gm_tc_gemm_start_impl_(
     const bool right_matrix = true; // B
     const bool is_duo = env->metric_type() == MetricType::DUO;
     gm_tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_thisstep, pvfl_min, dA, tc_bufs, is_duo, env);
+                     npvfl_thisstep, pvfl_min, matA, tc_bufs, is_duo, env);
     gm_tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_thisstep, pvfl_min, dB, tc_bufs, is_duo, env);
+                     npvfl_thisstep, pvfl_min, matB, tc_bufs, is_duo, env);
 
     // Perform the GEMM for this pair of block rows; accumulate.
     gm_tc_solve_<TC_METHOD>(
-      pvfl_min==0, nvll, nvl, npvfl_thisstep, dA, dB, dC, tc_bufs, env);
+      pvfl_min==0, nvll, nvl, npvfl_thisstep, matA, matB, matC, tc_bufs, env);
   }
 
   // Revise the results of the GEMMs to be in the needed double complex format.
-  gm_tc_repair_metrics_<TC_METHOD>(nvll, nvl, dC, tc_bufs, env);
+  gm_tc_repair_metrics_<TC_METHOD>(nvll, nvl, matC, tc_bufs, env);
 }
 
 //=============================================================================
@@ -953,19 +953,17 @@ size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute CoMet metrics bitwise result.
 
-//CHANGE: revise dA etc. nomenclature since may be on host
-
 //CHANGE: pass in vectors_I, vectors_J_col pointers (allow both this and older option?)
 
 //CHANGE: ? eliminate ldda, lddb, since redundant with other vars.
 
 void gm_tc_gemm_start(int m, int n, int k,
-                      void* dA, int ldda,
-                      void* dB, int lddb,
-                      void* dC, int lddc,
+                      void* matA, int ldda,
+                      void* matB, int lddb,
+                      void* matC, int lddc,
                       TCBufs& tc_bufs,
                       GMEnv* env) {
-  COMET_INSIST(dA && dB && dC && env);
+  COMET_INSIST(matA && matB && matC && env);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
   COMET_INSIST(ldda >= 0 && lddb >= 0 && lddc >= 0);
   COMET_INSIST(k <= ldda);
@@ -982,17 +980,17 @@ void gm_tc_gemm_start(int m, int n, int k,
     // --------------
     case TC::INT8: {
       gm_tc_gemm_start_impl_<TC::INT8>(
-        m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
+        m, n, k, matA, ldda, matB, lddb, matC, lddc, tc_bufs,  env);
     } break;
     // --------------
     case TC::FP16: {
       gm_tc_gemm_start_impl_<TC::FP16>(
-        m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
+        m, n, k, matA, ldda, matB, lddb, matC, lddc, tc_bufs,  env);
     } break;
     // --------------
     case TC::FP32: {
       gm_tc_gemm_start_impl_<TC::FP32>(
-        m, n, k, dA, ldda, dB, lddb, dC, lddc, tc_bufs,  env);
+        m, n, k, matA, ldda, matB, lddb, matC, lddc, tc_bufs,  env);
     } break;
     // --------------
     default:

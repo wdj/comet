@@ -233,7 +233,6 @@ public:
   int phase_num() const {return phase_num_;}
   void phase_num(int value) {phase_num_ = value;}
 
-  bool does_3way_need_2way() const {return metric_type_ == MetricType::CZEK;}
   bool is_metric_type_bitwise() const {
     return metric_type_==MetricType::CCC || metric_type_==MetricType::DUO;
   }
@@ -243,9 +242,18 @@ public:
   bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
     (ComputeMethod::CPU == compute_method_ && is_using_tc());
   }
+  int num_step_2way_for_3way() const {
+    return is_metric_type_bitwise() && is_using_linalg() ? 3 : 1;
+  }
+  bool does_3way_need_2way() const {
+    return metric_type_ == MetricType::CZEK && is_using_linalg();
+  }
+
   int data_type_vectors() const;
   int data_type_metrics() const;
   MPI_Datatype metrics_mpi_type() const;
+  //bool form_matX_on_accel() const {return is_using_tc();}
+  bool form_matX_on_accel() const {return false;}
 
   bool can_run(int tc) const;
   bool can_run() const {return can_run(tc_eff());};

@@ -60,89 +60,102 @@ static void compute_metrics_3way_block_linalg_form_matX_(
 
   } else if (env.metric_type() == MetricType::CCC) {
 
-//CHANGE: execute this only if ! env_.is_using_tc()
-//CHANGE: otherwise, somewhere, make (reuseable) mirrored buf for column J of vectors_J_buf
+    if (env.form_matX_on_accel()) {
 
-    for (int I = I_min; I < I_max; ++I) {
+      for (int word = 0; word<2; ++word) {
+        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
-      // Mask for odd bits (starting at lowest-order bit: bit 0, bit 2, ...)
+            matX_buf->elt<GMBits2x64>(pvfl, 0).data[word] =
+              vectors_I_buf->elt_const<GMBits2x64>(pvfl, J).data[word];
 
-      const uint64_t oddbits = 0x5555555555555555;
+        }
+      }
 
-      // -Operate on columns v_i and v_j elementwise.
-      for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+    } else { // if (env.form_matX_on_accel())
 
-        const bool sparse = env.sparse();
 
-        for (int word = 0; word<2; ++word) {
-          const uint64_t vI = vectors_I_buf->elt_const<GMBits2x64>(
-                                           pvfl, I).data[word];
-          const uint64_t vJ = vectors_J_buf->elt_const<GMBits2x64>(
-                                           pvfl, J).data[word];
+      for (int I = I_min; I < I_max; ++I) {
 
-          // Create word whose odd bits sample the lo (denoted here "..._0")
-          // or hi ("..._1") bit of the seminibble.  Also create the
-          // complement thereof (denoted "n...").
+        // Mask for odd bits (starting at lowest-order bit: bit 0, bit 2, ...)
 
-          const uint64_t  vI_0 =   vI        & oddbits;
-          const uint64_t  vI_1 =  (vI >> 1)  & oddbits;
-          const uint64_t nvI_0 = ~ vI        & oddbits;
-          const uint64_t nvI_1 = ~(vI >> 1)  & oddbits;
+        const uint64_t oddbits = 0x5555555555555555;
 
-          const uint64_t  vJ_0 =   vJ        & oddbits;
-          const uint64_t  vJ_1 =  (vJ  >> 1) & oddbits;
+        // Operate on columns v_i and v_j elementwise.
+        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
-          // Create a mask whose odd bits denote whether each respective
-          // seminibble of vector I matches the case we are handling
-          // in this 2-way step (and the complement thereof).
-          // step 0: select (only) entries equal to 00
-          // step 1: select (only) entries equal to 01 or 10 (nonsparse case)
-          // step 1: select (only) entries equal to 01 (sparse case) (ignore 10)
-          // step 2: select (only) entries equal to 11
-          // Note here that 10 is in some situations used as a special marker
-          // meaning, ignore this seminiblle for the calculations.
+          const bool sparse = env.sparse();
 
-          const uint64_t  vI_mask =
-            step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
-            step_2way==1 && sparse ?
+          for (int word = 0; word<2; ++word) {
+            const uint64_t vI = vectors_I_buf->elt_const<GMBits2x64>(
+                                             pvfl, I).data[word];
+            const uint64_t vJ = vectors_J_buf->elt_const<GMBits2x64>(
+                                             pvfl, J).data[word];
+
+            // Create word whose odd bits sample the lo (denoted here "..._0")
+            // or hi ("..._1") bit of the seminibble.  Also create the
+            // complement thereof (denoted "n...").
+
+            const uint64_t  vI_0 =   vI        & oddbits;
+            const uint64_t  vI_1 =  (vI >> 1)  & oddbits;
+            const uint64_t nvI_0 = ~ vI        & oddbits;
+            const uint64_t nvI_1 = ~(vI >> 1)  & oddbits;
+
+            const uint64_t  vJ_0 =   vJ        & oddbits;
+            const uint64_t  vJ_1 =  (vJ  >> 1) & oddbits;
+
+            // Create a mask whose odd bits denote whether each respective
+            // seminibble of vector I matches the case we are handling
+            // in this 2-way step (and the complement thereof).
+            // step 0: select (only) entries equal to 00
+            // step 1: select (only) entries equal to 01 or 10 (nonsparse case)
+            // step 1: select (only) entries equal to 01 (sparse) (ignore 10)
+            // step 2: select (only) entries equal to 11
+            // Note here that 10 is in some situations used as a special marker
+            // meaning, ignore this seminiblle for the calculations.
+
+            const uint64_t  vI_mask =
+              step_2way==0 ?  nvI_0 & nvI_1  & oddbits : // 00
+              step_2way==1 && sparse ?
                            ( vI_0 & nvI_1) & oddbits : // 01
-            step_2way==1 ? ( vI_0 ^  vI_1) & oddbits : // 01, 10
-          /*step_2way==2*/   vI_0 &  vI_1  & oddbits;  // 11
+              step_2way==1 ? ( vI_0 ^  vI_1) & oddbits : // 01, 10
+            /*step_2way==2*/   vI_0 &  vI_1  & oddbits;  // 11
 
-          const uint64_t nvI_mask =
-            step_2way==0 ? ( vI_0 |  vI_1) & oddbits :
-            step_2way==1 && sparse ?
+            const uint64_t nvI_mask =
+              step_2way==0 ? ( vI_0 |  vI_1) & oddbits :
+              step_2way==1 && sparse ?
                            (nvI_0 |  vI_1) & oddbits :
-            step_2way==1 ? ( vI_0 ^ nvI_1) & oddbits :
-          /*step_2way==2*/ (nvI_0 | nvI_1) & oddbits;
+              step_2way==1 ? ( vI_0 ^ nvI_1) & oddbits :
+            /*step_2way==2*/ (nvI_0 | nvI_1) & oddbits;
 
-          // Construct the lo and hi bit of the result seminibble of matrix X.
-          // This is best understood by looking at the truth table (see paper).
-          // case vI_mask = 1: vJ = 00 => X = 00
-          // case vI_mask = 1: vJ = 01 => X = 01
-          // case vI_mask = 1: vJ = 10 => X = 01 (nonsparse case)
-          // case vI_mask = 1: vJ = 10 => X = 10 (sparse case)
-          // case vI_mask = 1: vJ = 11 => X = 11
-          // case vI_mask = 0: X = 10
-          // Thus for the nonsparse case:
-          //  - lo bit is 1 (11 or 01) if vJ is 01, 10 or 11 and vI is the
-          //    case being handled for this 2-way step.
-          //  - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
-          //    being handled for this 2-way step.
+            // Construct the lo and hi bit of the result seminibble of matrix X.
+            // This is best understood by looking at truth table (see paper).
+            // case vI_mask = 1: vJ = 00 => X = 00
+            // case vI_mask = 1: vJ = 01 => X = 01
+            // case vI_mask = 1: vJ = 10 => X = 01 (nonsparse case)
+            // case vI_mask = 1: vJ = 10 => X = 10 (sparse case)
+            // case vI_mask = 1: vJ = 11 => X = 11
+            // case vI_mask = 0: X = 10
+            // Thus for the nonsparse case:
+            //  - lo bit is 1 (11 or 01) if vJ is 01, 10 or 11 and vI is the
+            //    case being handled for this 2-way step.
+            //  - hi bit is 1 (10 or 11) if vJ is 11 or if vI is a case not
+            //    being handled for this 2-way step.
 
-          const uint64_t r_0 =  vI_mask & (sparse ? vJ_0 : vJ_0 | vJ_1);
-          const uint64_t r_1 = nvI_mask | (sparse ? vJ_1 : vJ_0 & vJ_1);
+            const uint64_t r_0 =  vI_mask & (sparse ? vJ_0 : vJ_0 | vJ_1);
+            const uint64_t r_1 = nvI_mask | (sparse ? vJ_1 : vJ_0 & vJ_1);
 
-          // Combine even and odd bits
+            // Combine even and odd bits
 
-          const uint64_t r = r_0 | (r_1 << 1);
+            const uint64_t r = r_0 | (r_1 << 1);
 
-          // Store result
+            // Store result
 
-          matX_buf->elt<GMBits2x64>(pvfl, I).data[word] = r;
-        } // word
-      }  // f
-    }    // I
+            matX_buf->elt<GMBits2x64>(pvfl, I).data[word] = r;
+          } // word
+        }  // f
+      }    // I
+
+    } // if (env.form_matX_on_accel())
 
   } else {
 
@@ -500,8 +513,6 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   GMMirroredBuf* matX_buf[NUM_BUF] = {&matX_buf_[0], &matX_buf_[1]};
   GMMirroredBuf* matB_buf[NUM_BUF] = {&matB_buf_[0], &matB_buf_[1]};
 
-//CHANGE: vectors_J_col_buf[NUM_BUF], class member ...
-
   // Set up pointers to permute the access of axes for Part 3.
   // Use capitals I, J, K here to denote the PERMUTED axes.
 
@@ -519,6 +530,10 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   GMMirroredBuf* const matM_KIK_buf =
                         si->perm2(matM_ij_buf, matM_jk_buf, matM_kik_buf);
 
+  if (env_.form_matX_on_accel()) {
+    vectors_I_buf->to_accel();
+  }
+
   //--------------------
   // Collapsed loops over J and over 2-way steps.
   //--------------------
@@ -527,7 +542,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const int J_max = si->J_ub;
   const int J_count = J_max - J_min;
 
-  const int num_step_2way = env_.metric_type()==MetricType::CCC ? 3 : 1;
+  const int num_step_2way = env_.num_step_2way_for_3way();
   const int num_step = J_count * num_step_2way;
   const int extra_step = 1;
 
@@ -612,10 +627,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
-//CHANGE: also pass vectors_I_buf, vectors_J_col_buf
-//CHANGE: pass in substep
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
-          matX_buf[vars_prev.index_01], vectors_K_buf, vars_prev.matB_buf_ptr(),
+          matX_buf[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
+          vars_prev.matB_buf_ptr(), vars_prev.step_2way,
           vdata_i.vectors->dm, &env_);
     }
 
@@ -643,10 +657,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
     if (vars.do_compute) {
-//CHANGE: also pass vectors_I_buf, vectors_J_col_buf
-//CHANGE: pass in substep
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
-          matX_buf[vars.index_01], vectors_K_buf, vars.matB_buf_ptr(),
+          matX_buf[vars.index_01], vectors_I_buf, vectors_K_buf,
+          vars.matB_buf_ptr(), vars.step_2way,
           vdata_i.vectors->dm, &env_);
     }
 

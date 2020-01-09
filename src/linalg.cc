@@ -882,18 +882,20 @@ void gm_linalg_gemm_magma_start(size_t m,
 
 //-----------------------------------------------------------------------------
 
+// CHANGE: A/A1/A2, B const, here and below
+
 void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
-  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
-  GMDecompMgr* dm, GMEnv* env) {
-  COMET_INSIST(A && B && C && env);
+  GMMirroredBuf* A1, GMMirroredBuf* A2, GMMirroredBuf* B, GMMirroredBuf* C,
+  int step_2way, GMDecompMgr* dm, GMEnv* env) {
+  COMET_INSIST(A1 && A2 && B && C && env);
 
   if (m==0 || n==0 || k==0)
     return;
 
   if (env->compute_method() == ComputeMethod::GPU) {
-    A->lock_d();
-    if (A != B) {
+    A1->lock_d();
+    if (A1 != B) {
       B->lock_d();
     }
     C->lock_d();
@@ -901,13 +903,13 @@ void gm_linalg_gemm_start(
 
   if (env->is_using_tc()) {
     if (env->compute_method() == ComputeMethod::GPU) {
-      gm_tc_gemm_start(m, n, k, A->active, A->dim0, B->active, B->dim0,
+      gm_tc_gemm_start(m, n, k, A1->active, A1->dim0, B->active, B->dim0,
         C->active, C->dim0, dm->tc_bufs, env);
     }
   } else {
     gm_linalg_set_matrix_zero_start_(C, env); // apparently needed by magma.
-    gm_linalg_gemm_magma_start(m, n, k, A->active, A->dim0, B->active, B->dim0,
-      C->active, C->dim0, dm,  env);
+    gm_linalg_gemm_magma_start(m, n, k, A1->active, A1->dim0,
+      B->active, B->dim0, C->active, C->dim0, dm,  env);
   }
 }
 
@@ -915,24 +917,24 @@ void gm_linalg_gemm_start(
 
 void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
-  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
-  GMDecompMgr* dm, GMEnv* env) {
-  COMET_INSIST(A && B && C && env);
+  GMMirroredBuf* A1, GMMirroredBuf* A2, GMMirroredBuf* B, GMMirroredBuf* C,
+  int step_2way, GMDecompMgr* dm, GMEnv* env) {
+  COMET_INSIST(A1 && A2 && B && C && env);
 
   if (m==0 || n==0 || k==0)
     return;
 
   if (env->is_using_tc()) {
     if (env->compute_method() != ComputeMethod::GPU) {
-      A->lock_h();
-      if (A != B) {
+      A1->lock_h();
+      if (A1 != B) {
         B->lock_h();
       }
       C->lock_h();
-      gm_tc_gemm_start(m, n, k, A->active, A->dim0, B->active, B->dim0,
+      gm_tc_gemm_start(m, n, k, A1->active, A1->dim0, B->active, B->dim0,
         C->active, C->dim0, dm->tc_bufs, env);
-      A->unlock_h();
-      if (A != B) {
+      A1->unlock_h();
+      if (A1 != B) {
         B->unlock_h();
       }
       C->unlock_h();
@@ -942,12 +944,32 @@ void gm_linalg_gemm_wait(
   env->stream_synchronize(env->stream_compute());
 
   if (env->compute_method() == ComputeMethod::GPU) {
-    A->unlock_d();
-    if (A != B) {
+    A1->unlock_d();
+    if (A1 != B) {
       B->unlock_d();
     }
     C->unlock_d();
   }
+}
+
+//-----------------------------------------------------------------------------
+
+void gm_linalg_gemm_start(
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  GMDecompMgr* dm, GMEnv* env) {
+
+  gm_linalg_gemm_start(m, n, k, A, A, B, C, 0, dm, env);
+}
+
+//-----------------------------------------------------------------------------
+
+void gm_linalg_gemm_wait(
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  GMDecompMgr* dm, GMEnv* env) {
+
+  gm_linalg_gemm_wait(m, n, k, A, A, B, C, 0, dm, env);
 }
 
 //-----------------------------------------------------------------------------

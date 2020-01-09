@@ -35,6 +35,16 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env);
 
 void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
+  GMMirroredBuf* A1, GMMirroredBuf* A2, GMMirroredBuf* B, GMMirroredBuf* C,
+  int step_2way, GMDecompMgr* dm, GMEnv* env);
+
+void gm_linalg_gemm_wait(
+  size_t m, size_t n, size_t k,
+  GMMirroredBuf* A1, GMMirroredBuf* A2, GMMirroredBuf* B, GMMirroredBuf* C,
+  int step_2way, GMDecompMgr* dm, GMEnv* env);
+
+void gm_linalg_gemm_start(
+  size_t m, size_t n, size_t k,
   GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
   GMDecompMgr* dm, GMEnv* env);
 

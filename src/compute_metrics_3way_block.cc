@@ -42,7 +42,8 @@ ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, Env& env)
     if (env_.do_reduce()) {
       tmp_buf_[i].allocate(nvl, nvl);
     }
-    matX_buf_[i].allocate(npvfl, nvl);
+    const int matX_buf_cols = env_.form_matX_on_accel() ? 1 : nvl;
+    matX_buf_[i].allocate(npvfl, matX_buf_cols);
     matB_buf_[i].allocate(nvl, nvl);
   }
   if (env_.does_3way_need_2way()) {
