@@ -31,7 +31,7 @@ ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, Env& env)
   , matM_ij_buf_(env)//{GMMirroredBuf(env)}
   , matM_jk_buf_(env)//{GMMirroredBuf(env)}
   , matM_kik_buf_(env)//{GMMirroredBuf(env)}
-  , matX_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
+  , matXitem_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
   , matB_buf_{GMMirroredBuf(env), GMMirroredBuf(env)} {
   COMET_INSIST(nvl >= 0 && npvfl >= 0);
 
@@ -42,8 +42,8 @@ ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, Env& env)
     if (env_.do_reduce()) {
       tmp_buf_[i].allocate(nvl, nvl);
     }
-    const int matX_buf_cols = env_.form_matX_on_accel() ? 1 : nvl;
-    matX_buf_[i].allocate(npvfl, matX_buf_cols);
+    const int matXitem_buf_num_cols = env_.form_matX_on_accel() ? 1 : nvl;
+    matXitem_buf_[i].allocate(npvfl, matXitem_buf_num_cols);
     matB_buf_[i].allocate(nvl, nvl);
   }
   if (env_.does_3way_need_2way()) {

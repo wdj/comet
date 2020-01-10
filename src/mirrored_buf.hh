@@ -67,48 +67,32 @@ public:
   bool is_alias;
   bool is_allocated;
 
-  void lock_h() {
+  void lock_h() const {
     COMET_INSIST(!is_locked_h_);
     is_locked_h_ = true;
   }
 
-  void lock_d() {
+  void lock_d() const {
     COMET_INSIST(!is_locked_d_);
     is_locked_d_ = true;
   }
 
-//  void lock_a() {
-//    if (env_.compute_method() == ComputeMethod::GPU) {
-//      lock_d();
-//    } else {
-//      lock_h();
-//    }
-//  }
-
-  void unlock_h() {
+  void unlock_h() const {
     COMET_INSIST(is_locked_h_);
     is_locked_h_ = false;
   }
 
-  void unlock_d() {
+  void unlock_d() const {
     COMET_INSIST(is_locked_d_);
     is_locked_d_ = false;
   }
 
-//  void unlock_a() {
-//    if (env_.compute_method() == ComputeMethod::GPU) {
-//      unlock_d();
-//    } else {
-//      unlock_h();
-//    }
-//  }
-
-  void lock() {
+  void lock() const {
     lock_h();
     lock_d();
   }
 
-  void unlock() {
+  void unlock() const {
     unlock_h();
     unlock_d();
   }
@@ -117,8 +101,8 @@ private:
 
   Env& env_;
 
-  bool is_locked_h_;
-  bool is_locked_d_;
+  mutable bool is_locked_h_;
+  mutable bool is_locked_d_;
 };
 
 //-----------------------------------------------------------------------------

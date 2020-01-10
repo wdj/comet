@@ -27,10 +27,10 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Create matrix X from a vectors object and a single vector column.
 
-static void compute_metrics_3way_block_linalg_form_matX_(
+static void compute_metrics_3way_block_linalg_form_matXitem_(
   const GMMirroredBuf* vectors_I_buf,
   const GMMirroredBuf* vectors_J_buf,
-  GMMirroredBuf* const matX_buf,
+  GMMirroredBuf* const matXitem_buf,
   const int J,
   const int step_2way,
   const int I_min,
@@ -38,13 +38,11 @@ static void compute_metrics_3way_block_linalg_form_matX_(
   const int npvfl,
   GMEnv& env) {
 
-  matX_buf->lock_h();
-
-  //--------------------
-  // Populate leading columns of matX.
-  //--------------------
+  matXitem_buf->lock_h();
 
   if (env.metric_type() == MetricType::CZEK) {
+
+    // Populate leading columns of matX.
 
     // Don't use collapse because of overflow for large sizes
     //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
@@ -54,18 +52,20 @@ static void compute_metrics_3way_block_linalg_form_matX_(
       for (int f = 0; f < npvfl; ++f) {
         const GMFloat a = vectors_I_buf->elt_const<GMFloat>(f, I);
         const GMFloat b = vectors_J_buf->elt_const<GMFloat>(f, J);
-        matX_buf->elt<GMFloat>(f, I) = a < b ? a : b;
+        matXitem_buf->elt<GMFloat>(f, I) = a < b ? a : b;
       }  //---for f---//
     }    //---for I---//
 
   } else if (env.metric_type() == MetricType::CCC) {
+
+    // Extract column J of vectors_I, later use to form matX.
 
     if (env.form_matX_on_accel()) {
 
       for (int word = 0; word<2; ++word) {
         for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
-            matX_buf->elt<GMBits2x64>(pvfl, 0).data[word] =
+            matXitem_buf->elt<GMBits2x64>(pvfl, 0).data[word] =
               vectors_I_buf->elt_const<GMBits2x64>(pvfl, J).data[word];
 
         }
@@ -73,6 +73,7 @@ static void compute_metrics_3way_block_linalg_form_matX_(
 
     } else { // if (env.form_matX_on_accel())
 
+      // Populate leading columns of matX.
 
       for (int I = I_min; I < I_max; ++I) {
 
@@ -150,7 +151,7 @@ static void compute_metrics_3way_block_linalg_form_matX_(
 
             // Store result
 
-            matX_buf->elt<GMBits2x64>(pvfl, I).data[word] = r;
+            matXitem_buf->elt<GMBits2x64>(pvfl, I).data[word] = r;
           } // word
         }  // f
       }    // I
@@ -163,7 +164,7 @@ static void compute_metrics_3way_block_linalg_form_matX_(
 
   } // env.metric_type()
 
-  matX_buf->unlock_h();
+  matXitem_buf->unlock_h();
 }
 
 //-----------------------------------------------------------------------------
@@ -510,7 +511,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // B = X^T PROD V = three way PROD.
 
 //CHANGE: these as class members, init in ctor?
-  GMMirroredBuf* matX_buf[NUM_BUF] = {&matX_buf_[0], &matX_buf_[1]};
+  GMMirroredBuf* matXitem_buf[NUM_BUF] = {&matXitem_buf_[0], &matXitem_buf_[1]};
   GMMirroredBuf* matB_buf[NUM_BUF] = {&matB_buf_[0], &matB_buf_[1]};
 
   // Set up pointers to permute the access of axes for Part 3.
@@ -618,34 +619,34 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     //TODO: fix locks to work properly for CPU case.
 
-    //========== Send matrix matX to GPU - WAIT
+    //========== Send matrix matXitem to GPU - WAIT
 
     if (vars.do_compute) {
-      matX_buf[vars.index_01]->to_accel_wait();
+      matXitem_buf[vars.index_01]->to_accel_wait();
     }
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
-          matX_buf[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
+          matXitem_buf[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
           vars_prev.matB_buf_ptr(), vars_prev.step_2way,
           vdata_i.vectors->dm, &env_);
     }
 
-    //========== Populate leading columns of matX
+    //========== Calculate matXitem
 
     if (vars_next.do_compute) {
-      compute_metrics_3way_block_linalg_form_matX_(
-          vectors_I_buf, vectors_J_buf, matX_buf[vars_next.index_01],
+      compute_metrics_3way_block_linalg_form_matXitem_(
+          vectors_I_buf, vectors_J_buf, matXitem_buf[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
           vars_next.I_min, vars_next.I_max, npvfl, env_);
     }
 
-    //========== Send matrix matX to GPU - START
+    //========== Send matrix matXitem to GPU - START
 
     if (vars_next.do_compute) {
-      matX_buf[vars_next.index_01]->to_accel_start();
+      matXitem_buf[vars_next.index_01]->to_accel_start();
     }
 
     //========== Copy result matrix matB from GPU - START
@@ -658,7 +659,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     if (vars.do_compute) {
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
-          matX_buf[vars.index_01], vectors_I_buf, vectors_K_buf,
+          matXitem_buf[vars.index_01], vectors_I_buf, vectors_K_buf,
           vars.matB_buf_ptr(), vars.step_2way,
           vdata_i.vectors->dm, &env_);
     }

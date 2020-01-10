@@ -191,7 +191,7 @@ template<> struct TCSelector<TC::FP32> {
 template<typename GemmIn_t>
 __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   GemmIn_t* vo,
-  uint32_t* vi32,
+  const uint32_t* vi32,
   int vi32_dim0,
   int num_way,
   bool is_sparse,
@@ -288,7 +288,7 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
 template<typename GemmIn_t>
 __global__ static void gm_tc_buf_write_kernel_(
   GemmIn_t* vo,
-  uint32_t* vi32,
+  const uint32_t* vi32,
   int vi32_dim0,
   int num_way,
   bool is_sparse,
@@ -330,7 +330,7 @@ static void gm_tc_buf_write_(
   int npvfl,
   int npvfl_thisstep,
   int pvfl_min,
-  void* vi,
+  const void* vi,
   TCBufs& tc_bufs,
   bool is_duo,
   GMEnv* env) {
@@ -451,8 +451,8 @@ static void gm_tc_solve_accelblasgemmex_(
   int m,
   int n,
   int k,
-  void* matA,
-  void* matB,
+  const void* matA,
+  const void* matB,
   void* matC,
   TCBufs& tc_bufs,
   GMEnv* env) {
@@ -582,8 +582,8 @@ static void gm_tc_solve_(
   int nvll,
   int nvl,
   int npvfl_thisstep,
-  void* matA,
-  void* matB,
+  const void* matA,
+  const void* matB,
   void* matC,
   TCBufs& tc_bufs,
   GMEnv* env) {
@@ -870,8 +870,8 @@ static void gm_tc_repair_metrics_(
 template<int TC_METHOD>
 static void gm_tc_gemm_start_impl_(
   int m, int n, int k,
-  void* matA, int ldda,
-  void* matB, int lddb,
+  const void* matA, int ldda,
+  const void* matB, int lddb,
   void* matC, int lddc,
   TCBufs& tc_bufs,
   GMEnv* env) {
@@ -958,8 +958,8 @@ size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
 //CHANGE: ? eliminate ldda, lddb, since redundant with other vars.
 
 void gm_tc_gemm_start(int m, int n, int k,
-                      void* matA, int ldda,
-                      void* matB, int lddb,
+                      const void* matA, int ldda,
+                      const void* matB, int lddb,
                       void* matC, int lddc,
                       TCBufs& tc_bufs,
                       GMEnv* env) {

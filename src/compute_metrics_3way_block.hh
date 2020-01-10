@@ -44,15 +44,15 @@ private:
   GMMirroredBuf matM_ij_buf_;
   GMMirroredBuf matM_jk_buf_;
   GMMirroredBuf matM_kik_buf_;
-  GMMirroredBuf matX_buf_[NUM_BUF];
+  GMMirroredBuf matXitem_buf_[NUM_BUF];
   GMMirroredBuf matB_buf_[NUM_BUF];
 
   void compute_linalg_(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& metrics, int j_block, int k_block, int section_step);
 
-  void compute_linalg_matX_(VData vdata_i, VData vdata_j,
-    const GMMirroredBuf& matX_buf,
-    const int J, const int step_2way, const int I_min, const int I_max);
+//  void compute_linalg_matXitem_(VData vdata_i, VData vdata_j,
+//    const GMMirroredBuf& matXitem_buf,
+//    const int J, const int step_2way, const int I_min, const int I_max);
 
   void compute_linalg_metrics_(
     const GMMirroredBuf& matM_IJ_buf,

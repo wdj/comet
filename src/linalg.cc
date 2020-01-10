@@ -530,15 +530,15 @@ void gm_linalg_set_matrix_zero_start_(GMMirroredBuf* matrix_buf, GMEnv* env) {
 void gm_linalg_gemm_magma_block_start(size_t m,
                                       size_t n,
                                       size_t k,
-                                      void* A,
+                                      const void* matA,
                                       size_t ldda,
-                                      void* B,
+                                      const void* matB,
                                       size_t lddb,
-                                      void* C,
+                                      void* matC,
                                       size_t lddc,
                                       bool is_beta_one,
                                       GMEnv* env) {
-  COMET_INSIST(A && B && C && env);
+  COMET_INSIST(matA && matB && matC && env);
   COMET_INSIST(env->compute_method() == ComputeMethod::GPU);
 
 #ifdef USE_MAGMA
@@ -590,12 +590,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
         n_,
         k_,
         alpha,
-        (double*)A,
+        (double*)matA,
         ldda_,
-        (double*)B,
+        (double*)matB,
         lddb_,
         beta,
-        (double*)C,
+        (double*)matC,
         lddc_);
       COMET_INSIST(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_dgemm.");
@@ -607,12 +607,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
         n_,
         k_,
         alpha,
-        (float*)A,
+        (float*)matA,
         ldda_,
-        (float*)B,
+        (float*)matB,
         lddb_,
         beta,
-        (float*)C,
+        (float*)matC,
         lddc_);
       COMET_INSIST(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_sgemm.");
@@ -651,12 +651,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       n_,
       k_,
       alpha,
-      (Float_t*)A,
+      (Float_t*)matA,
       ldda_,
-      (Float_t*)B,
+      (Float_t*)matB,
       lddb_,
       beta,
-      (Float_t*)C,
+      (Float_t*)matC,
       lddc_);
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm4blas_zgemm.");
@@ -692,12 +692,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       n_,
       k_,
       alpha,
-      (Float_t*)A,
+      (Float_t*)matA,
       ldda_,
-      (Float_t*)B,
+      (Float_t*)matB,
       lddb_,
       beta,
-      (Float_t*)C,
+      (Float_t*)matC,
       lddc_);
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm2blas_zgemm.");
@@ -733,12 +733,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       n_,
       k_,
       alpha,
-      (Float_t*)A,
+      (Float_t*)matA,
       ldda_,
-      (Float_t*)B,
+      (Float_t*)matB,
       lddb_,
       beta,
-      (Float_t*)C,
+      (Float_t*)matC,
       lddc_);
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm3blas_zgemm.");
@@ -774,12 +774,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       n_,
       k_,
       alpha,
-      (Float_t*)A,
+      (Float_t*)matA,
       ldda_,
-      (Float_t*)B,
+      (Float_t*)matB,
       lddb_,
       beta,
-      (Float_t*)C,
+      (Float_t*)matC,
       lddc_);
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm5blas_zgemm.");
@@ -797,15 +797,15 @@ void gm_linalg_gemm_magma_block_start(size_t m,
 void gm_linalg_gemm_magma_start(size_t m,
                                 size_t n,
                                 size_t k,
-                                void* A,
+                                const void* matA,
                                 size_t ldda,
-                                void* B,
+                                const void* matB,
                                 size_t lddb,
-                                void* C,
+                                void* matC,
                                 size_t lddc,
                                 GMDecompMgr* dm,
                                 GMEnv* env) {
-  COMET_INSIST(A && B && C && env);
+  COMET_INSIST(matA && matB && matC && env);
   COMET_INSIST(env->compute_method() == ComputeMethod::GPU);
 
   // The purpose of this code is to workaround the magma size
@@ -859,7 +859,7 @@ void gm_linalg_gemm_magma_start(size_t m,
       const size_t cols_A_remaining = cols_A - col_A_base;
       const size_t cols_A_this = utils::min(cols_A_remaining, cols_per_block_A);
 
-      void* A_this = (char*)A + (row_base + ldda*col_A_base)*elt_size;
+      void* A_this = (char*)matA + (row_base + ldda*col_A_base)*elt_size;
 
       for (size_t col_B_base=0; col_B_base<cols_B;
            col_B_base+=cols_per_block_B) {
@@ -868,9 +868,9 @@ void gm_linalg_gemm_magma_start(size_t m,
         const size_t cols_B_this = utils::min(cols_B_remaining,
                                              cols_per_block_B);
 
-        void* B_this = (char*)B + (row_base + ldda*col_B_base)*elt_size;
+        void* B_this = (char*)matB + (row_base + ldda*col_B_base)*elt_size;
 
-        void* C_this = (char*)C + (col_A_base + lddc*col_B_base)*elt_size;
+        void* C_this = (char*)matC + (col_A_base + lddc*col_B_base)*elt_size;
 
         gm_linalg_gemm_magma_block_start(cols_A_this, cols_B_this, rows_this,
           A_this, ldda, B_this, lddb, C_this, lddc, row_base > 0,  env);
@@ -882,34 +882,33 @@ void gm_linalg_gemm_magma_start(size_t m,
 
 //-----------------------------------------------------------------------------
 
-// CHANGE: A/A1/A2, B const, here and below
-
 void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
-  GMMirroredBuf* A1, GMMirroredBuf* A2, GMMirroredBuf* B, GMMirroredBuf* C,
+  const GMMirroredBuf* matA1, const GMMirroredBuf* matA2,
+  const GMMirroredBuf* matB, GMMirroredBuf* matC,
   int step_2way, GMDecompMgr* dm, GMEnv* env) {
-  COMET_INSIST(A1 && A2 && B && C && env);
+  COMET_INSIST(matA1 && matA2 && matB && matC && env);
 
   if (m==0 || n==0 || k==0)
     return;
 
   if (env->compute_method() == ComputeMethod::GPU) {
-    A1->lock_d();
-    if (A1 != B) {
-      B->lock_d();
+    matA1->lock_d();
+    if (matA1 != matB) {
+      matB->lock_d();
     }
-    C->lock_d();
+    matC->lock_d();
   }
 
   if (env->is_using_tc()) {
     if (env->compute_method() == ComputeMethod::GPU) {
-      gm_tc_gemm_start(m, n, k, A1->active, A1->dim0, B->active, B->dim0,
-        C->active, C->dim0, dm->tc_bufs, env);
+      gm_tc_gemm_start(m, n, k, matA1->active, matA1->dim0,
+        matB->active, matB->dim0, matC->active, matC->dim0, dm->tc_bufs, env);
     }
   } else {
-    gm_linalg_set_matrix_zero_start_(C, env); // apparently needed by magma.
-    gm_linalg_gemm_magma_start(m, n, k, A1->active, A1->dim0,
-      B->active, B->dim0, C->active, C->dim0, dm,  env);
+    gm_linalg_set_matrix_zero_start_(matC, env); // apparently needed by magma.
+    gm_linalg_gemm_magma_start(m, n, k, matA1->active, matA1->dim0,
+      matB->active, matB->dim0, matC->active, matC->dim0, dm,  env);
   }
 }
 
@@ -917,38 +916,39 @@ void gm_linalg_gemm_start(
 
 void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
-  GMMirroredBuf* A1, GMMirroredBuf* A2, GMMirroredBuf* B, GMMirroredBuf* C,
+  const GMMirroredBuf* matA1, const GMMirroredBuf* matA2,
+  const GMMirroredBuf* matB, GMMirroredBuf* matC,
   int step_2way, GMDecompMgr* dm, GMEnv* env) {
-  COMET_INSIST(A1 && A2 && B && C && env);
+  COMET_INSIST(matA1 && matA2 && matB && matC && env);
 
   if (m==0 || n==0 || k==0)
     return;
 
   if (env->is_using_tc()) {
     if (env->compute_method() != ComputeMethod::GPU) {
-      A1->lock_h();
-      if (A1 != B) {
-        B->lock_h();
+      matA1->lock_h();
+      if (matA1 != matB) {
+        matB->lock_h();
       }
-      C->lock_h();
-      gm_tc_gemm_start(m, n, k, A1->active, A1->dim0, B->active, B->dim0,
-        C->active, C->dim0, dm->tc_bufs, env);
-      A1->unlock_h();
-      if (A1 != B) {
-        B->unlock_h();
+      matC->lock_h();
+      gm_tc_gemm_start(m, n, k, matA1->active, matA1->dim0, matB->active,
+        matB->dim0, matC->active, matC->dim0, dm->tc_bufs, env);
+      matA1->unlock_h();
+      if (matA1 != matB) {
+        matB->unlock_h();
       }
-      C->unlock_h();
+      matC->unlock_h();
     }
   }
 
   env->stream_synchronize(env->stream_compute());
 
   if (env->compute_method() == ComputeMethod::GPU) {
-    A1->unlock_d();
-    if (A1 != B) {
-      B->unlock_d();
+    matA1->unlock_d();
+    if (matA1 != matB) {
+      matB->unlock_d();
     }
-    C->unlock_d();
+    matC->unlock_d();
   }
 }
 
@@ -956,32 +956,32 @@ void gm_linalg_gemm_wait(
 
 void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
-  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  const GMMirroredBuf* matA, const GMMirroredBuf* matB, GMMirroredBuf* matC,
   GMDecompMgr* dm, GMEnv* env) {
 
-  gm_linalg_gemm_start(m, n, k, A, A, B, C, 0, dm, env);
+  gm_linalg_gemm_start(m, n, k, matA, matA, matB, matC, 0, dm, env);
 }
 
 //-----------------------------------------------------------------------------
 
 void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
-  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  const GMMirroredBuf* matA, const GMMirroredBuf* matB, GMMirroredBuf* matC,
   GMDecompMgr* dm, GMEnv* env) {
 
-  gm_linalg_gemm_wait(m, n, k, A, A, B, C, 0, dm, env);
+  gm_linalg_gemm_wait(m, n, k, matA, matA, matB, matC, 0, dm, env);
 }
 
 //-----------------------------------------------------------------------------
 
 void gm_linalg_gemm(
   size_t m, size_t n, size_t k,
-  GMMirroredBuf* A, GMMirroredBuf* B, GMMirroredBuf* C,
+  const GMMirroredBuf* matA, const GMMirroredBuf* matB, GMMirroredBuf* matC,
   GMDecompMgr* dm, GMEnv* env) {
-  COMET_INSIST(A && B && C && env);
+  COMET_INSIST(matA && matB && matC && env);
 
-  gm_linalg_gemm_start(m, n, k, A, B, C, dm, env);
-  gm_linalg_gemm_wait(m, n, k, A, B, C, dm, env);
+  gm_linalg_gemm_start(m, n, k, matA, matB, matC, dm, env);
+  gm_linalg_gemm_wait(m, n, k, matA, matB, matC, dm, env);
 }
 
 //=============================================================================

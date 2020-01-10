@@ -46,9 +46,9 @@ struct TCBufs {
 //-----------------------------------------------------------------------------
 
 void gm_tc_gemm_start(int m, int n, int k,
-                      void* dA, int ldda,
-                      void* dB, int lddb,
-                      void* dC, int lddc,
+                      const void* matA, int ldda,
+                      const void* matB, int lddb,
+                      void* matC, int lddc,
                       TCBufs& tc_bufs,
                       GMEnv* env);
 
