@@ -180,7 +180,7 @@ template<> struct TCSelector<TC::FP32> {
 };
 
 //=============================================================================
-// FILE_LOCAL (STATIC) FUNCTIONS
+// TC_BUF_WRITE FILE-LOCAL (STATIC) FUNCTIONS
 //=============================================================================
 
 //-----------------------------------------------------------------------------
@@ -191,12 +191,15 @@ template<> struct TCSelector<TC::FP32> {
 template<typename GemmIn_t>
 __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   GemmIn_t* vo,
-  const uint32_t* vi32,
-  int vi32_dim0,
+  const uint32_t* vim,
+  const uint32_t* vic,
+  int vi_dim0,
   int num_way,
   bool is_sparse,
   bool is_right,
   bool is_duo,
+  bool form_matX_on_accel,
+  int step_2way,
   int nvlea,
   int nvle,
   int nvleD2,
@@ -211,22 +214,26 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
   const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
+  //COMET_ASSERT(i01 == 0 || i01 == 1);
   const int vl = vlX2 / 2;
 
   const int flD2 = flD2_min + flD2_thisstep;
 
   // Output array interpreted as having GemmIn_t scalars has nfl rows.
 
-  const uint32_t* const vi32_col = vi32 + vl * (size_t)vi32_dim0;
+  const uint32_t* const vim_col = vim + vl * (size_t)vi_dim0;
 
   // Pick up two consecutive field values:
   // first field seminibble0, second field seminibble1
   // Set to zero if outside of active range.
 
-  const int nibble = vl<nvlea ? (vi32_col[flD2/8] >> (4*(flD2%8))) & 15 : 0;
+  const int nibblem = vl<nvlea ? (vim_col[flD2/8] >> (4*(flD2%8))) & 15 : 0;
+  const int snm0 = nibblem & 3;
+  const int snm1 = (nibblem>>2) & 3;
 
-  const int seminibble0 = nibble & 3;
-  const int seminibble1 = (nibble>>2) & 3;
+  const int nibblec = vl<nvlea ? (vic[flD2/8] >> (4*(flD2%8))) & 15 : 0;
+  const int snc0 = nibblec & 3;
+  const int snc1 = (nibblec>>2) & 3;
 
   // Count number of 0 (or 1) bits in respective seminibble.
   // Determine whether to skip (1,0) null indicator value.
@@ -238,30 +245,64 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
   const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
 
+  // Possible seminibble bit patterns.
+
+  const int _00 = 0;
+  const int _01 = 1;
+  const int _10 = 2;
+  const int _11 = 3;
+
+  //COMET_ASSERT( ! (is_duo && !is_sparse) );
+
   const GemmIn_t out0 = is_duo ? (
-                          seminibble0 == 2         ? zero :
-                          (seminibble0 & 1) == i01 ? one :
-                                                     zero
-                        ) : (
-                          seminibble0 == 3*i01     ? two :
-                          seminibble0 == 3*(1-i01) ? zero :
-                                         !skip_10  ? one :
-                          seminibble0 == 1         ? one :
-                                                     zero
+                           snm0 == _10         ? zero :
+                          (snm0 & 1) == i01    ? one :
+                       /* (snm0 & 1) == 1-i01 */ zero
+                        ) : //====================
+                        num_way == 3 && ! is_right &&
+                        form_matX_on_accel /* && is_ccc */ ? (
+                          snm0 == _00 && step_2way != 0 ? zero :
+                          snm0 == _01 && step_2way != 1 ? zero :
+                          snm0 == _11 && step_2way != 2 ? zero :
+                          snm0 == _10 && skip_10        ? zero :
+                          snc0 == _11*i01               ? two :
+                          snc0 == _11*(1-i01)           ? zero :
+                                  !skip_10              ? one :
+                          snc0 == _01                   ? one :
+                       /* snc0 == _10 */                  zero
+                        ) : //====================
+                        /* is_ccc ... */ (
+                          snm0 == _11*i01      ? two :
+                          snm0 == _11*(1-i01)  ? zero :
+                                  !skip_10     ? one :
+                          snm0 == _01          ? one :
+                       /* snm0 == _10 */         zero
                         );
 
   const GemmIn_t out1 = is_duo ? (
-                          seminibble1 == 2         ? zero :
-                          (seminibble1 & 1) == i01 ? one :
-                                                     zero
-                        ) : (
-                          seminibble1 == 3*i01     ? two :
-                          seminibble1 == 3*(1-i01) ? zero :
-                                         !skip_10  ? one :
-                          seminibble1 == 1         ? one :
-                                                     zero
+                           snm1 == _10         ? zero :
+                          (snm1 & 1) == i01    ? one :
+                       /* (snm1 & 1) == 1-i01 */ zero
+                        ) : //====================
+                        num_way == 3 && ! is_right &&
+                        form_matX_on_accel /* && is_ccc */ ? (
+                          snm1 == _00 && step_2way != 0 ? zero :
+                          snm1 == _01 && step_2way != 1 ? zero :
+                          snm1 == _11 && step_2way != 2 ? zero :
+                          snm1 == _10 && skip_10        ? zero :
+                          snc1 == _11*i01               ? two :
+                          snc1 == _11*(1-i01)           ? zero :
+                                  !skip_10              ? one :
+                          snc1 == _01                   ? one :
+                       /* snc1 == _10 */                  zero
+                        ) : //====================
+                        /* is_ccc ... */ (
+                          snm1 == _11*i01      ? two :
+                          snm1 == _11*(1-i01)  ? zero :
+                                  !skip_10     ? one :
+                          snm1 == _01          ? one :
+                       /* snm1 == _10 */         zero
                         );
-//if (flD2_thisstep == 0) printf("%f %f\n", (float)out0, (float)out1);
 
   // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
@@ -288,12 +329,15 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
 template<typename GemmIn_t>
 __global__ static void gm_tc_buf_write_kernel_(
   GemmIn_t* vo,
-  const uint32_t* vi32,
-  int vi32_dim0,
+  const uint32_t* vim,
+  const uint32_t* vic,
+  int vi_dim0,
   int num_way,
   bool is_sparse,
   bool is_right,
   bool is_duo,
+  bool form_matX_on_accel,
+  int step_2way,
   int nvlea,
   int nvle,
   int nvleD2,
@@ -312,8 +356,8 @@ __global__ static void gm_tc_buf_write_kernel_(
     return;
   }
 
-  gm_tc_buf_write_kernel_elt_<GemmIn_t>(vo, vi32, vi32_dim0,
-    num_way, is_sparse, is_right, is_duo,
+  gm_tc_buf_write_kernel_elt_<GemmIn_t>(vo, vim, vic, vi_dim0,
+    num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
     nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
     vlX2, flD2_thisstep);
 }
@@ -323,26 +367,16 @@ __global__ static void gm_tc_buf_write_kernel_(
 
 template<int TC_METHOD>
 static void gm_tc_buf_write_(
-  bool is_right,
-  int I_max,
-  int I_max_dim,
-  int nvl,
-  int npvfl,
-  int npvfl_thisstep,
-  int pvfl_min,
-  const void* vi,
-  TCBufs& tc_bufs,
-  bool is_duo,
-  GMEnv* env) {
+  bool is_right, int I_max, int I_max_dim, int nvl,
+  int npvfl, int npvfl_thisstep, int pvfl_min,
+  const uint32_t* vi1, const uint32_t* vi2, TCBufs& tc_bufs, int step_2way,
+  GMEnv& env) {
 
-  COMET_INSIST(env && vi);
+  COMET_INSIST(vi1 && vi2);
   COMET_INSIST(I_max_dim >= 0 && I_max_dim <= nvl);
   COMET_INSIST(I_max >= 0 && I_max <= I_max_dim);
-  COMET_INSIST(nvl >= 0);
-  COMET_INSIST(npvfl >= 0);
-  COMET_INSIST(tc_bufs.tc_buf_left);
-  COMET_INSIST(tc_bufs.tc_buf_right);
-  COMET_INSIST(npvfl >= 0);
+  COMET_INSIST(nvl >= 0 && npvfl >= 0);
+  COMET_INSIST(tc_bufs.tc_buf_left && tc_bufs.tc_buf_right);
   COMET_INSIST(npvfl_thisstep >= 0 && npvfl_thisstep <= npvfl);
   COMET_INSIST(pvfl_min >= 0 && pvfl_min + npvfl_thisstep <= npvfl);
 
@@ -352,12 +386,12 @@ static void gm_tc_buf_write_(
   const int nvleD2 = nvle / 2;
   const int nvleX2 = nvle * 2;
   const int nvlea = is_right ? nvl : I_max; // num active nvle; others zeroed
-  // NOTE: we are ignoring the issue from decomp_mgr that
+  // NOTE: ignoring here the issue from decomp_mgr that
   // num_vector_active_local may be strictly less than num_vector_local;
   // doesn't matter: just compute on fake values that will later be ignored.
 
   COMET_INSIST(nvle % 2 == 0 && nvl % 2 == 0 &&
-           "tc method here requires num_vector_local multiple of 2.");
+               "tc method here requires num_vector_local multiple of 2.");
 
   // num_field-related dimensions.
 
@@ -369,19 +403,10 @@ static void gm_tc_buf_write_(
   const int flD2_min = fl_min / 2;
   // Remember: end padding is set to zero; will correct zero counts later.
 
-  // accelerator thread dims.
-
-  const int threadblocksize = 256;
-  const int blockdim_y = 32768;
-  const int num_threadblocks_0 = utils::ceil(nvleX2, threadblocksize);
-  const int num_threadblocks_1 = utils::min(nflD2_thisstep, blockdim_y);
-  const int num_threadblocks_2 = utils::ceil(nflD2_thisstep, blockdim_y);
-
   // Arrays.
 
   typedef typename TCSelector<TC_METHOD>::GemmIn_t GemmIn_t;
-  uint32_t* vi32 = (uint32_t*)vi;
-  const int vi32_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
+  const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
   GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
                                       (GemmIn_t*)tc_bufs.tc_buf_left;
   COMET_INSIST(nvleX2 * (size_t)(2*nflD2_thisstep) *
@@ -389,84 +414,87 @@ static void gm_tc_buf_write_(
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  const bool is_duo = env.metric_type() == MetricType::DUO;
+  const bool form_matX_on_accel = env.form_matX_on_accel();
+
+  const uint32_t* unused_col = form_matX_on_accel ? NULL : vi1; // dummy
+  const uint32_t* vim = form_matX_on_accel ? vi2 : vi1; // matrix
+  const uint32_t* vic = form_matX_on_accel ? vi1 : unused_col; // column
+
+  if (env.compute_method() == ComputeMethod::GPU) {
 
     // Kernel call.
 
-#ifdef USE_ACCEL
-#  ifdef USE_HIP
-    hipLaunchKernelGGL(
-#  endif
-    gm_tc_buf_write_kernel_<GemmIn_t>
-#  ifdef USE_CUDA
+#   ifdef USE_ACCEL
+
+      const int threadblocksize = 256;
+      const int blockdim_y = 32768;
+      const int num_threadblocks_0 = utils::ceil(nvleX2, threadblocksize);
+      const int num_threadblocks_1 = utils::min(nflD2_thisstep, blockdim_y);
+      const int num_threadblocks_2 = utils::ceil(nflD2_thisstep, blockdim_y);
+
+#     ifdef USE_HIP
+        hipLaunchKernelGGL(
+#     endif
+        gm_tc_buf_write_kernel_<GemmIn_t>
+#     ifdef USE_CUDA
         <<<
-#  else
+#     else
         ,
-#  endif
+#     endif
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
-        dim3(threadblocksize, 1, 1),
-        0,
-        env->stream_compute()
-#  ifdef USE_CUDA
+        dim3(threadblocksize, 1, 1), 0, env.stream_compute()
+#     ifdef USE_CUDA
         >>> (
-#  else
+#     else
         ,
-#  endif
-      tc_buf, vi32, vi32_dim0,
-      env->num_way(), env->sparse(), is_right, is_duo,
-      nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
+#     endif
+        tc_buf, vim, vic, vi_dim0, env.num_way(),
+        env.sparse(), is_right, is_duo, form_matX_on_accel, step_2way,
+        nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
 
-    System::accel_last_call_succeeded();
+      System::accel_last_call_succeeded();
 
-#else // USE_ACCEL
+#   endif // USE_ACCEL
 
-      int dummy = 0;
-      dummy += num_threadblocks_0 + num_threadblocks_1 + num_threadblocks_2;
-
-#endif // USE_ACCEL
-
-  } else { // if (env->compute_method() != ComputeMethod::GPU)
+  } else { // if (env.compute_method() != ComputeMethod::GPU)
 
     for (int flD2_thisstep=0; flD2_thisstep<nflD2_thisstep; ++flD2_thisstep) {
       for (int vlX2=0; vlX2<nvleX2; ++vlX2) {
 
         gm_tc_buf_write_kernel_elt_<GemmIn_t>(
-          tc_buf, vi32, vi32_dim0,
-          env->num_way(), env->sparse(), is_right, is_duo,
+          tc_buf, vim, vic, vi_dim0, env.num_way(),
+          env.sparse(), is_right, is_duo, form_matX_on_accel, step_2way,
           nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
           vlX2, flD2_thisstep);
 
       }
     }
 
-  } // if compute_method
+  } // if (env.compute_method() == ComputeMethod::GPU)
 }
+
+//=============================================================================
+// BLAS GEMM FILE-LOCAL (STATIC) FUNCTIONS
+//=============================================================================
 
 //-----------------------------------------------------------------------------
 /// \brief Call cublas to perform required GEMM.
 
 template<int TC_METHOD>
-static void gm_tc_solve_accelblasgemmex_(
-  bool is_first,
-  int m,
-  int n,
-  int k,
-  const void* matA,
-  const void* matB,
-  void* matC,
-  TCBufs& tc_bufs,
-  GMEnv* env) {
+static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
+  void* matC, TCBufs& tc_bufs, GMEnv& env) {
+  COMET_INSIST(matC);
+  COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
-  COMET_INSIST(env && matA && matB && matC);
-
-  // See https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
+  // NOTE: from https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
   // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
-  // and m is a multiple of 4"
+  //  and m is a multiple of 4"
   // "GEMMs that do not satisfy the above rules will fall back
-  // to a non-Tensor Core implementation"
+  //  to a non-Tensor Core implementation"
   // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
 
-  // nfl is derived from padded-up npvfl, so always ok.
+  // k (=nfl) is derived from padded-up npvfl (multiple of 64), so always ok.
   COMET_INSIST(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
   // since I_max_dim % 4 == 0; see gm_gemm_divisibility_required()
   COMET_INSIST(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
@@ -475,125 +503,115 @@ static void gm_tc_solve_accelblasgemmex_(
 
   // Make BLAS call.
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env.compute_method() == ComputeMethod::GPU) {
 
-#ifdef USE_ACCEL
+    // Make accelerator BLAS call.
 
-    const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
-    const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
+#   ifdef USE_ACCEL
 
-    // GPU BLAS call.
+      const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
+      const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
-#  ifdef USE_CUDA
-    const cublasStatus_t status = cublasGemmEx(
-#  else
-    //int status = rocblas_gemm_ex(
-    const rocblas_status status = rocblas_gemm_ex(
-#  endif
-      tc_bufs.accelblas_handle
-#  ifdef USE_CUDA
-      , CUBLAS_OP_N, CUBLAS_OP_T
-#  else
-      , rocblas_operation_none, rocblas_operation_transpose
-#  endif
-      , m, n, k
-      , (void*)&alpha
-      , tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m
-      , tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
-      , (void*)&beta
-      , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
-#  ifdef USE_HIP
-      , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
-#  endif
-      , TCSelector<TC_METHOD>::gemm_type_out()
-#  ifdef USE_CUDA
-      //, CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing, for cuda 9.1.85, transpose
-      //, CUBLAS_GEMM_DFALT_TENSOR_OP // good timing, for cuda 9.2.88, transpose
-      , CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing, for cuda 9.2.88, transpose
-#  else
-      , rocblas_gemm_algo_standard
-      , 0, 0  // solution_index, flags, workspace_size, workspace
-#  endif
-    );
-    // TODO: use CUDA 10 autotuning capability here (later).
+      // GPU BLAS call.
 
-#  ifdef USE_CUDA
-    if (status == CUBLAS_STATUS_NOT_INITIALIZED) {
-      printf("Error: CUBLAS_STATUS_NOT_INITIALIZED\n");
-    } else if (status == CUBLAS_STATUS_ARCH_MISMATCH) {
-      printf("Error: CUBLAS_STATUS_ARCH_MISMATCH\n");
-    } else if (status == CUBLAS_STATUS_NOT_SUPPORTED) {
-      printf("Error: CUBLAS_STATUS_NOT_SUPPORTED\n");
-    } else if (status == CUBLAS_STATUS_INVALID_VALUE) {
-      printf("Error: CUBLAS_STATUS_INVALID_VALUE\n");
-    } else if (status == CUBLAS_STATUS_EXECUTION_FAILED) {
-      printf("Error: CUBLAS_STATUS_EXECUTION_FAILED\n");
-    }
-    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
-             "Failure in call to cublasGemmEx.");
-#  else
-    COMET_INSIST(status == rocblas_status_success &&
-             "Failure in call to rocblas_gemm_ex.");
-#  endif
+#     ifdef USE_CUDA
+        const cublasStatus_t status = cublasGemmEx(
+#     else
+        //int status = rocblas_gemm_ex(
+        const rocblas_status status = rocblas_gemm_ex(
+#     endif
+        tc_bufs.accelblas_handle
+#     ifdef USE_CUDA
+        , CUBLAS_OP_N, CUBLAS_OP_T
+#     else
+        , rocblas_operation_none, rocblas_operation_transpose
+#     endif
+        , m, n, k
+        , (void*)&alpha
+        , tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m
+        , tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
+        , (void*)&beta
+        , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
+#     ifdef USE_HIP
+        , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
+#     endif
+        , TCSelector<TC_METHOD>::gemm_type_out()
+#     ifdef USE_CUDA
+        //, CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing for cuda 9.1.85 transpose
+        //, CUBLAS_GEMM_DFALT_TENSOR_OP // good timing for cuda 9.2.88 transpose
+        , CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing for cuda 9.2.88 transpose
+#     else
+        , rocblas_gemm_algo_standard
+        , 0, 0  // solution_index, flags, workspace_size, workspace
+#     endif
+      );
+      // TODO: use CUDA 10 autotuning capability here (later).
 
-#else // USE_ACCEL
+#     ifdef USE_CUDA
+        if (CUBLAS_STATUS_SUCCESS != status) {
+          // Decode error message.
+          printf("Error: %s\n", CUBLAS_STATUS_NOT_INITIALIZED == status ?
+                               "CUBLAS_STATUS_NOT_INITIALIZED" :
+                                CUBLAS_STATUS_ARCH_MISMATCH == status ?
+                               "CUBLAS_STATUS_ARCH_MISMATCH" :
+                                CUBLAS_STATUS_NOT_SUPPORTED == status ?
+                               "CUBLAS_STATUS_NOT_SUPPORTED" :
+                                CUBLAS_STATUS_INVALID_VALUE == status ?
+                               "CUBLAS_STATUS_INVALID_VALUE" :
+                                CUBLAS_STATUS_EXECUTION_FAILED == status ?
+                               "CUBLAS_STATUS_EXECUTION_FAILED" : "");
+        }
+        COMET_INSIST(CUBLAS_STATUS_SUCCESS == status &&
+                     "Failure in call to cublasGemmEx.");
+#     else
+        COMET_INSIST(status == rocblas_status_success &&
+                     "Failure in call to rocblas_gemm_ex.");
+#     endif
 
-    COMET_INSIST(false && "Failure to call GEMM function.");
+#   else // USE_ACCEL
 
-#endif // USE_ACCEL
+      COMET_INSIST(false && "Failure to call GEMM function.");
+
+#   endif // USE_ACCEL
 
     System::accel_last_call_succeeded();
 
-  } else { // if (env->compute_method() != ComputeMethod::GPU) {
+  } else { // if (env.compute_method() != ComputeMethod::GPU) {
 
-#ifdef USE_CPUBLAS
+#   ifdef USE_CPUBLAS
 
-    COMET_INSIST(env->tc_eff() == TC::FP32);
+      COMET_INSIST(env.tc_eff() == TC::FP32);
 
-    const float alpha = 1;
-    const float beta = is_first ? 0 : 1;
+      const float alpha = 1;
+      const float beta = is_first ? 0 : 1;
 
-    // CPU BLAS call.
+      // Make CPU BLAS call.
 
-    cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
-      m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
-      (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
+      cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
+        m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
+        (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
 
-//for (int i=0; i< m*n; ++i)
-//  printf("%i %f\n", i, ((float*)matC)[i]);
+#   else // USE_CPUBLAS
 
-#else // USE_CPUBLAS
+      COMET_INSIST(false && "Failure to call GEMM function.");
 
-    COMET_INSIST(false && "Failure to call GEMM function.");
-
-#endif // USE_CPUBLAS
+#   endif // USE_CPUBLAS
 
   } // if compute_method
 
-  env->ops_local_inc(2 * m * (double)n * (double)k);
+  env.ops_local_inc(2 * m * (double)n * (double)k);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Call to perform required GEMM.
 
 template<int TC_METHOD>
-static void gm_tc_solve_(
-  bool is_first,
-  int nvll,
-  int nvl,
-  int npvfl_thisstep,
-  const void* matA,
-  const void* matB,
-  void* matC,
-  TCBufs& tc_bufs,
-  GMEnv* env) {
-
-  COMET_INSIST(env && matA && matB && matC);
-  COMET_INSIST(nvll >= 0);
-  COMET_INSIST(nvl >= 0);
-  COMET_INSIST(nvll <= nvl);
+static void gm_tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
+                         void* matC, TCBufs& tc_bufs, GMEnv& env) {
+  COMET_INSIST(matC);
+  COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_INSIST(npvfl_thisstep >= 0);
-  COMET_INSIST(env->tc_eff() != TC::NO);
+  COMET_INSIST(env.tc_eff() != TC::NO);
 
   const int nfl_thisstep = npvfl_thisstep * 64;
 
@@ -601,9 +619,12 @@ static void gm_tc_solve_(
   const int n = 2 * nvl; // metrics array dim
   const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
 
-  gm_tc_solve_accelblasgemmex_<TC_METHOD>(is_first, m, n, k,
-                                          matA, matB, matC, tc_bufs, env);
+  gm_tc_solve_impl<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
 }
+
+//=============================================================================
+// REPAIR METRICS FILE-LOCAL (STATIC) FUNCTIONS
+//=============================================================================
 
 //-----------------------------------------------------------------------------
 /// \brief Swizzle individual elements in buf.
@@ -782,9 +803,9 @@ static void gm_tc_repair_metrics_(
   int nvl,
   void* vo,
   TCBufs& tc_bufs,
-  GMEnv* env) {
+  GMEnv& env) {
 
-  COMET_INSIST(env && vo);
+  COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0);
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(nvll <= nvl);
@@ -798,7 +819,7 @@ static void gm_tc_repair_metrics_(
 
   typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env.compute_method() == ComputeMethod::GPU) {
 
     // Kernel call.
 
@@ -816,7 +837,7 @@ static void gm_tc_repair_metrics_(
         dim3(vll2_threadblocks, nvl, 1),
         dim3(threadblocksize, 1, 1),
         0,
-        env->stream_compute()
+        env.stream_compute()
 #  ifdef USE_CUDA
         >>> (
 #  else
@@ -833,7 +854,7 @@ static void gm_tc_repair_metrics_(
 
 #endif // USE_ACCEL
 
-  } else { // if (env->compute_method() != ComputeMethod::GPU)
+  } else { // if (env.compute_method() != ComputeMethod::GPU)
 
 //    for (int thread_c=0; thread_c<nvllD2; ++thread_c) {
 //      for (int thread_r=0; thread_r<nvl; ++thread_r) {
@@ -848,6 +869,10 @@ static void gm_tc_repair_metrics_(
 
   } // if compute_method
 }
+
+//=============================================================================
+// TOP-LEVEL FILE-LOCAL (STATIC) FUNCTIONS
+//=============================================================================
 
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute bitwise result: implementation.
@@ -870,54 +895,50 @@ static void gm_tc_repair_metrics_(
 template<int TC_METHOD>
 static void gm_tc_gemm_start_impl_(
   int m, int n, int k,
-  const void* matA, int ldda,
-  const void* matB, int lddb,
-  void* matC, int lddc,
-  TCBufs& tc_bufs,
-  GMEnv* env) {
-
-  COMET_INSIST(ldda == k && lddb == k); // For our purposes, always true
+  const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
+  TCBufs& tc_bufs, int step_2way, GMEnv& env) {
 
   const int nvl = n;
   const int npvfl = k;
   const int I_max = m;
   const int I_max_dim = lddc;
-  COMET_INSIST(I_max <= I_max_dim);
-  COMET_INSIST(I_max_dim <= nvl);
-  // nvll is the effective nvl (column dim) for left matrix
-  // only really need to compute up to I_max, but need to compute to I_max_dim
-  // to satisfy divisibility requirements.
-  // Note nvl is always the column dim for the right matrix.
+  COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
+  // nvll is the effective nvl (column dim) for the left matrix
+  // We only really only need up to I_max, but must compute to I_max_dim
+  // to satisfy cublas divisibility requirements.
+  // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
   COMET_INSIST((size_t)nvll == gm_gemm_size_required(nvll, env));
 
-  const int num_steps = env->num_tc_steps();
+  const int num_tc_steps = env.num_tc_steps();
 
   // Loop over steps of algorithm.
-  for (int step_num = 0; step_num < num_steps; ++step_num) {
+  for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
 
     // Select the block row of the left and right matrices for this step.
-    const int pvfl_min = ((step_num+0) * npvfl) / num_steps;
-    const int pvfl_max = ((step_num+1) * npvfl) / num_steps;
+    const int pvfl_min = ((tc_step_num+0) * npvfl) / num_tc_steps;
+    const int pvfl_max = ((tc_step_num+1) * npvfl) / num_tc_steps;
     const int npvfl_thisstep = pvfl_max - pvfl_min;
 
-    if (npvfl_thisstep == 0) {  // empty block row
+    const bool is_empty_block_row = 0 == npvfl_thisstep;
+    if (is_empty_block_row)
       continue;
-    }
 
     // Convert the input matrices of packed bit values into matrices
-    // of values of a type suitable for the GEMM.
+    // of a type suitable for the GEMM.
     const bool left_matrix = false; // A
     const bool right_matrix = true; // B
-    const bool is_duo = env->metric_type() == MetricType::DUO;
     gm_tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_thisstep, pvfl_min, matA, tc_bufs, is_duo, env);
+      npvfl_thisstep, pvfl_min, (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs,
+      step_2way, env);
     gm_tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
-                     npvfl_thisstep, pvfl_min, matB, tc_bufs, is_duo, env);
+      npvfl_thisstep, pvfl_min, (uint32_t*)matB, (uint32_t*)matB, tc_bufs,
+      step_2way, env);
 
     // Perform the GEMM for this pair of block rows; accumulate.
-    gm_tc_solve_<TC_METHOD>(
-      pvfl_min==0, nvll, nvl, npvfl_thisstep, matA, matB, matC, tc_bufs, env);
+    const bool is_first = 0 == pvfl_min;
+    gm_tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
+      matC, tc_bufs, env);
   }
 
   // Revise the results of the GEMMs to be in the needed double complex format.
@@ -925,72 +946,47 @@ static void gm_tc_gemm_start_impl_(
 }
 
 //=============================================================================
-// "PUBLIC" FUNCTIONS
+// EXTERNALLY VISIBLE FUNCTIONS: GENERAL
 //=============================================================================
-
-//-----------------------------------------------------------------------------
-/// \brief Divisibility requirement for GEMM.
-
-size_t gm_gemm_divisibility_required(GMEnv* const env) {
-  COMET_INSIST(env);
-
-  const bool need_divisible_by_4 = env->tc_eff() != TC::NO;
-
-  return need_divisible_by_4 ? 4 : 1;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Size requirement for GEMM.
-
-size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env) {
-  COMET_INSIST(env);
-
-  const size_t factor = gm_gemm_divisibility_required(env);
-
-  return utils::ceil(size_requested, factor)*factor;
-}
 
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute CoMet metrics bitwise result.
 
 //CHANGE: pass in vectors_I, vectors_J_col pointers (allow both this and older option?)
 
-//CHANGE: ? eliminate ldda, lddb, since redundant with other vars.
-
-void gm_tc_gemm_start(int m, int n, int k,
-                      const void* matA, int ldda,
-                      const void* matB, int lddb,
-                      void* matC, int lddc,
-                      TCBufs& tc_bufs,
-                      GMEnv* env) {
-  COMET_INSIST(matA && matB && matC && env);
+void gm_tc_gemm_start(
+  int m, int n, int k,
+  const void* matA1, int ldda1, const void* matA2, int ldda2,
+  const void* matB, int lddb, void* matC, int lddc,
+  int step_2way, TCBufs& tc_bufs, GMEnv& env) {
+  COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
-  COMET_INSIST(ldda >= 0 && lddb >= 0 && lddc >= 0);
-  COMET_INSIST(k <= ldda);
-  COMET_INSIST(k <= lddb);
-  COMET_INSIST(m <= lddc);
-  COMET_INSIST(env->tc_eff() != TC::NO);
-  COMET_INSIST(env->is_metric_type_bitwise());
+  COMET_INSIST(ldda1 >= 0 && ldda2 >= 0 && lddb >= 0 && lddc >= 0);
+  COMET_INSIST(k <= ldda1 && k <= ldda2 && k <= lddb && m <= lddc);
+  COMET_INSIST(env.tc_eff() != TC::NO);
+  COMET_INSIST(env.is_metric_type_bitwise());
 
   COMET_INSIST(tc_bufs.tc_buf_left);
 
+  COMET_INSIST(ldda1 == k && ldda2 == k && lddb == k); // always true here
+
   // Select required template function instance.
 
-  switch (env->tc_eff()) {
+  switch (env.tc_eff()) {
     // --------------
     case TC::INT8: {
       gm_tc_gemm_start_impl_<TC::INT8>(
-        m, n, k, matA, ldda, matB, lddb, matC, lddc, tc_bufs,  env);
+        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
     } break;
     // --------------
     case TC::FP16: {
       gm_tc_gemm_start_impl_<TC::FP16>(
-        m, n, k, matA, ldda, matB, lddb, matC, lddc, tc_bufs,  env);
+        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
     } break;
     // --------------
     case TC::FP32: {
       gm_tc_gemm_start_impl_<TC::FP32>(
-        m, n, k, matA, ldda, matB, lddb, matC, lddc, tc_bufs,  env);
+        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
     } break;
     // --------------
     default:
@@ -999,44 +995,67 @@ void gm_tc_gemm_start(int m, int n, int k,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Divisibility requirement for GEMM.
+
+size_t gm_gemm_divisibility_required(const GMEnv& env) {
+
+  const bool need_divisible_by_4 = env.tc_eff() != TC::NO;
+
+  return need_divisible_by_4 ? 4 : 1;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM.
+
+size_t gm_gemm_size_required(size_t size_requested, const GMEnv& env) {
+
+  const size_t factor = gm_gemm_divisibility_required(env);
+
+  return utils::ceil(size_requested, factor)*factor;
+}
+
+//=============================================================================
+// EXTERNALLY VISIBLE FUNCTIONS: BUFFER MANAGEMENT
+//=============================================================================
+
+//-----------------------------------------------------------------------------
 /// \brief Initialize TCBufs object by allocating memory etc.
 
 void gm_tc_bufs_malloc(int num_vector_local,
                        int num_field_local,
                        int num_packedval_field_local,
                        TCBufs& tc_bufs,
-                       GMEnv* env) {
-  COMET_INSIST(env);
+                       GMEnv& env) {
   COMET_INSIST(num_vector_local >= 0);
   COMET_INSIST(num_packedval_field_local >= 0);
   COMET_INSIST(!tc_bufs.tc_buf_left);
   COMET_INSIST(!tc_bufs.tc_buf_right);
 
-  if (!env->is_metric_type_bitwise() || env->tc_eff() == TC::NO)
+  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO)
     return;
 
   // Calculate sizes.
 
   const size_t nvl = num_vector_local;
   const size_t npvfl = num_packedval_field_local;
-  const size_t npvfl_thisstep_max = utils::ceil(npvfl, (size_t)env->num_tc_steps());
+  const size_t npvfl_thisstep_max = utils::ceil(npvfl, (size_t)env.num_tc_steps());
 
   const int sizeof_gemm_in_t =
-     env->tc_eff() == TC::INT8 ?
+     env.tc_eff() == TC::INT8 ?
        sizeof(typename TCSelector<TC::INT8>::GemmIn_t) :
-     env->tc_eff() == TC::FP16 ?
+     env.tc_eff() == TC::FP16 ?
        sizeof(typename TCSelector<TC::FP16>::GemmIn_t) :
-     env->tc_eff() == TC::FP32 ?
+     env.tc_eff() == TC::FP32 ?
        sizeof(typename TCSelector<TC::FP32>::GemmIn_t) :
      0;
-  COMET_INSIST(TC::is_valid(env->tc_eff())); // this code must be updated if new method
+  COMET_INSIST(TC::is_valid(env.tc_eff())); // this code must be updated if new method
 
   const size_t nvlX2 = nvl * 2;
 
   tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64) * sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env.compute_method() == ComputeMethod::GPU) {
 
     // Allocate buffers.
 
@@ -1046,7 +1065,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #endif
     System::accel_last_call_succeeded();
-    env->gpu_mem_local_inc(tc_bufs.tc_buf_size);
+    env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
 #if defined USE_CUDA
     cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
@@ -1054,7 +1073,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #endif
     System::accel_last_call_succeeded();
-    env->gpu_mem_local_inc(tc_bufs.tc_buf_size);
+    env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
     // Set up accel blas handle.
 
@@ -1062,7 +1081,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
 
-    status = cublasSetStream(tc_bufs.accelblas_handle, env->stream_compute());
+    status = cublasSetStream(tc_bufs.accelblas_handle, env.stream_compute());
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetStream.");
 
     status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
@@ -1073,7 +1092,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
     COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_create_handle.");
 
-    status = rocblas_set_stream(tc_bufs.accelblas_handle, env->stream_compute());
+    status = rocblas_set_stream(tc_bufs.accelblas_handle, env.stream_compute());
     COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_set_stream.");
 
@@ -1090,11 +1109,11 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
     tc_bufs.tc_buf_left = malloc(tc_bufs.tc_buf_size);
     COMET_INSIST(tc_bufs.tc_buf_left);
-    env->cpu_mem_local_inc(tc_bufs.tc_buf_size);
+    env.cpu_mem_local_inc(tc_bufs.tc_buf_size);
 
     tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
     COMET_INSIST(tc_bufs.tc_buf_right);
-    env->cpu_mem_local_inc(tc_bufs.tc_buf_size);
+    env.cpu_mem_local_inc(tc_bufs.tc_buf_size);
 //memset((void*)tc_bufs.tc_buf_left, 0, tc_bufs.tc_buf_size);
 //memset((void*)tc_bufs.tc_buf_right, 0, tc_bufs.tc_buf_size);
 
@@ -1104,15 +1123,14 @@ void gm_tc_bufs_malloc(int num_vector_local,
 //-----------------------------------------------------------------------------
 /// \brief Terminate TCBufs object by deallocating memory etc.
 
-void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
-  COMET_INSIST(env);
+void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv& env) {
   COMET_INSIST((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
 
   if (!tc_bufs.tc_buf_left) {
     return;
   }
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env.compute_method() == ComputeMethod::GPU) {
 
     // Free buffers.
 
@@ -1123,7 +1141,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 #endif
     System::accel_last_call_succeeded();
     tc_bufs.tc_buf_left = NULL;
-    env->gpu_mem_local_dec(tc_bufs.tc_buf_size);
+    env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
 #if defined USE_CUDA
     cudaFree(tc_bufs.tc_buf_right);
@@ -1132,7 +1150,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 #endif
     System::accel_last_call_succeeded();
     tc_bufs.tc_buf_right = NULL;
-    env->gpu_mem_local_dec(tc_bufs.tc_buf_size);
+    env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
     // Free accel blas handle.
 
@@ -1152,11 +1170,11 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv* env) {
 
     free(tc_bufs.tc_buf_left);
     tc_bufs.tc_buf_left = NULL;
-    env->cpu_mem_local_dec(tc_bufs.tc_buf_size);
+    env.cpu_mem_local_dec(tc_bufs.tc_buf_size);
 
     free(tc_bufs.tc_buf_right);
     tc_bufs.tc_buf_right = NULL;
-    env->cpu_mem_local_dec(tc_bufs.tc_buf_size);
+    env.cpu_mem_local_dec(tc_bufs.tc_buf_size);
 
   } // compute_method
 }

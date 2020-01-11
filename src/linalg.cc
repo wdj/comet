@@ -894,7 +894,7 @@ void gm_linalg_gemm_start(
 
   if (env->compute_method() == ComputeMethod::GPU) {
     matA1->lock_d();
-    if (matA1 != matB) {
+    if (matB != matA1) {
       matB->lock_d();
     }
     matC->lock_d();
@@ -902,8 +902,10 @@ void gm_linalg_gemm_start(
 
   if (env->is_using_tc()) {
     if (env->compute_method() == ComputeMethod::GPU) {
-      gm_tc_gemm_start(m, n, k, matA1->active, matA1->dim0,
-        matB->active, matB->dim0, matC->active, matC->dim0, dm->tc_bufs, env);
+      gm_tc_gemm_start(m, n, k,
+        matA1->active, matA1->dim0, matA2->active, matA2->dim0,
+        matB->active, matB->dim0, matC->active, matC->dim0,
+        step_2way, dm->tc_bufs, *env);
     }
   } else {
     gm_linalg_set_matrix_zero_start_(matC, env); // apparently needed by magma.
@@ -927,14 +929,22 @@ void gm_linalg_gemm_wait(
   if (env->is_using_tc()) {
     if (env->compute_method() != ComputeMethod::GPU) {
       matA1->lock_h();
-      if (matA1 != matB) {
+      if (matA2 != matA1 && matA2 != matB) {
+        matA2->lock_h();
+      }
+      if (matB != matA1) {
         matB->lock_h();
       }
       matC->lock_h();
-      gm_tc_gemm_start(m, n, k, matA1->active, matA1->dim0, matB->active,
-        matB->dim0, matC->active, matC->dim0, dm->tc_bufs, env);
+      gm_tc_gemm_start(m, n, k,
+        matA1->active, matA1->dim0, matA2->active, matA2->dim0,
+        matB->active, matB->dim0, matC->active, matC->dim0,
+        step_2way, dm->tc_bufs, *env);
       matA1->unlock_h();
-      if (matA1 != matB) {
+      if (matA2 != matA1 && matA2 != matB) {
+        matA2->unlock_h();
+      }
+      if (matB != matA1) {
         matB->unlock_h();
       }
       matC->unlock_h();
@@ -945,7 +955,7 @@ void gm_linalg_gemm_wait(
 
   if (env->compute_method() == ComputeMethod::GPU) {
     matA1->unlock_d();
-    if (matA1 != matB) {
+    if (matB != matA1) {
       matB->unlock_d();
     }
     matC->unlock_d();

@@ -45,24 +45,23 @@ struct TCBufs {
 
 //-----------------------------------------------------------------------------
 
-void gm_tc_gemm_start(int m, int n, int k,
-                      const void* matA, int ldda,
-                      const void* matB, int lddb,
-                      void* matC, int lddc,
-                      TCBufs& tc_bufs,
-                      GMEnv* env);
+void gm_tc_gemm_start(
+  int m, int n, int k,
+  const void* matA1, int ldda1, const void* matA2, int ldda2,
+  const void* matB, int lddb, void* matC, int lddc,
+  int step_2way, TCBufs& tc_bufs, GMEnv& env);
 
 void gm_tc_bufs_malloc(int num_vector_local,
                        int num_field_local,
                        int num_packedval_field_local,
                        TCBufs& tc_bufs,
-                       GMEnv* env);
+                       GMEnv& env);
 
 void gm_tc_bufs_free(TCBufs& tc_bufs,
-                     GMEnv* env);
+                     GMEnv& env);
 
-size_t gm_gemm_divisibility_required(GMEnv* const env);
-size_t gm_gemm_size_required(size_t size_requested, GMEnv* const env);
+size_t gm_gemm_divisibility_required(const GMEnv& env);
+size_t gm_gemm_size_required(size_t size_requested, const GMEnv& env);
 
 //=============================================================================
 
