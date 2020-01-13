@@ -252,8 +252,8 @@ public:
   int data_type_vectors() const;
   int data_type_metrics() const;
   MPI_Datatype metrics_mpi_type() const;
-  //bool form_matX_on_accel() const {return is_using_tc();}
-  bool form_matX_on_accel() const {return false;}
+  bool form_matX_on_accel() const {return is_using_tc();}
+  //bool form_matX_on_accel() const {return false;}
 
   bool can_run(int tc) const;
   bool can_run() const {return can_run(tc_eff());};

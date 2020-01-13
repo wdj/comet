@@ -28,8 +28,8 @@ namespace comet {
 /// \brief Create matrix X from a vectors object and a single vector column.
 
 static void compute_metrics_3way_block_linalg_form_matXitem_(
-  const GMMirroredBuf* vectors_I_buf,
-  const GMMirroredBuf* vectors_J_buf,
+  const GMMirroredBuf* const vectors_I_buf,
+  const GMMirroredBuf* const vectors_J_buf,
   GMMirroredBuf* const matXitem_buf,
   const int J,
   const int step_2way,
@@ -66,7 +66,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
         for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
             matXitem_buf->elt<GMBits2x64>(pvfl, 0).data[word] =
-              vectors_I_buf->elt_const<GMBits2x64>(pvfl, J).data[word];
+              vectors_J_buf->elt_const<GMBits2x64>(pvfl, J).data[word];
 
         }
       }

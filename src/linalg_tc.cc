@@ -238,7 +238,8 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   // Count number of 0 (or 1) bits in respective seminibble.
   // Determine whether to skip (1,0) null indicator value.
 
-  const bool skip_10 = is_sparse || (num_way == 3 && ! is_right);
+  const bool is_left = ! is_right;
+  const bool skip_10 = is_sparse || (num_way == 3 && is_left);
 
   // Possible counts, represented in target type.
   const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
@@ -259,17 +260,18 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
                           (snm0 & 1) == i01    ? one :
                        /* (snm0 & 1) == 1-i01 */ zero
                         ) : //====================
-                        num_way == 3 && ! is_right &&
+                        num_way == 3 && is_left &&
                         form_matX_on_accel /* && is_ccc */ ? (
+                          snm0 == _10 && is_sparse      ? zero :
                           snm0 == _00 && step_2way != 0 ? zero :
                           snm0 == _01 && step_2way != 1 ? zero :
+                          snm0 == _10 && step_2way != 1 ? zero :
                           snm0 == _11 && step_2way != 2 ? zero :
-                          snm0 == _10 && skip_10        ? zero :
                           snc0 == _11*i01               ? two :
                           snc0 == _11*(1-i01)           ? zero :
-                                  !skip_10              ? one :
                           snc0 == _01                   ? one :
-                       /* snc0 == _10 */                  zero
+                                  is_sparse             ? zero :
+                       /* snc0 == _10 */                  one
                         ) : //====================
                         /* is_ccc ... */ (
                           snm0 == _11*i01      ? two :
@@ -284,17 +286,18 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
                           (snm1 & 1) == i01    ? one :
                        /* (snm1 & 1) == 1-i01 */ zero
                         ) : //====================
-                        num_way == 3 && ! is_right &&
+                        num_way == 3 && is_left &&
                         form_matX_on_accel /* && is_ccc */ ? (
+                          snm1 == _10 && is_sparse      ? zero :
                           snm1 == _00 && step_2way != 0 ? zero :
                           snm1 == _01 && step_2way != 1 ? zero :
+                          snm1 == _10 && step_2way != 1 ? zero :
                           snm1 == _11 && step_2way != 2 ? zero :
-                          snm1 == _10 && skip_10        ? zero :
                           snc1 == _11*i01               ? two :
                           snc1 == _11*(1-i01)           ? zero :
-                                  !skip_10              ? one :
                           snc1 == _01                   ? one :
-                       /* snc1 == _10 */                  zero
+                                  is_sparse             ? zero :
+                       /* snc1 == _10 */                  one
                         ) : //====================
                         /* is_ccc ... */ (
                           snm1 == _11*i01      ? two :
