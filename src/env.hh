@@ -22,14 +22,12 @@
 
 #include "mpi.h"
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
 #include "cuda.h"
 #include "cuda_runtime.h"
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
 #include "hip/hip_runtime.h"
 #else
-#define __host__
-#define __device__
 #endif
 
 #include "assertions.hh"
@@ -47,37 +45,37 @@ namespace comet {
 // Build options enums
 
 struct BuildHas {
-# ifdef USE_MPI
+# ifdef COMET_USE_MPI
     enum {MPI = true};
 # else
     enum {MPI = false};
 # endif
 
-# ifdef USE_CUDA
+# ifdef COMET_USE_CUDA
     enum {CUDA = true};
 # else
     enum {CUDA = false};
 # endif
 
-# ifdef USE_HIP
+# ifdef COMET_USE_HIP
     enum {HIP = true};
 # else
     enum {HIP = false};
 # endif
 
-# ifdef USE_ACCEL
+# ifdef COMET_USE_ACCEL
     enum {ACCEL = true};
 # else
     enum {ACCEL = false};
 # endif
 
-# ifdef USE_MAGMA
+# ifdef COMET_USE_MAGMA
     enum {MAGMA = true};
 # else
     enum {MAGMA = false};
 # endif
 
-# ifdef USE_CPUBLAS
+# ifdef COMET_USE_CPUBLAS
     enum {CPUBLAS = true};
 # else
     enum {CPUBLAS = false};
@@ -311,9 +309,9 @@ public:
   //----------------------------------------
   // Accelerator streams
 
-# if defined USE_CUDA
+# if defined COMET_USE_CUDA
     typedef cudaStream_t Stream_t;
-# elif defined USE_HIP
+# elif defined COMET_USE_HIP
     typedef hipStream_t Stream_t;
 # else
     typedef int Stream_t;

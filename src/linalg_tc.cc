@@ -10,21 +10,22 @@
 
 #include "cstdint"
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
 #  include "cublas_v2.h"
 #  include "cuda_fp16.h"
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
 #  include "hip/hip_runtime_api.h"
 #  include "hip/hip_runtime.h"
 #  include "rocblas.h"
 #else
+#  define __host__
 #  define __device__
 #  define __global__
 #endif
 
-#if defined USE_CPUBLAS
+#if defined COMET_USE_CPUBLAS
 #include BLAS_H
-#endif // USE_CPUBLAS
+#endif // COMET_USE_CPUBLAS
 
 #include "env.hh"
 #include "linalg_tc.hh"
@@ -40,7 +41,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Abstracted thread indexing/dimensions functions.
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
 __device__ static int threadIdx_x_() { return threadIdx.x; }
 
 __device__ static int blockIdx_x_() { return blockIdx.x; }
@@ -50,7 +51,7 @@ __device__ static int blockIdx_z_() { return blockIdx.z; }
 __device__ static int blockDim_x_() { return blockDim.x; }
 
 __device__ static int gridDim_y_() { return gridDim.y; }
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
 __device__ static int threadIdx_x_() { return hipThreadIdx_x; }
 
 __device__ static int blockIdx_x_() { return hipBlockIdx_x; }
@@ -119,11 +120,11 @@ template<> struct TCSelector<TC::INT8> {
   // types.
   typedef int8_t GemmIn_t;
   typedef int32_t GemmOut_t;
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
   // type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
    return rocblas_datatype_u8_r;
@@ -141,11 +142,11 @@ template<> struct TCSelector<TC::FP16> {
   // types.
   typedef uint16_t GemmIn_t;
   typedef GMFp32 GemmOut_t;
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
   // type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
     return rocblas_datatype_f16_r;
@@ -163,11 +164,11 @@ template<> struct TCSelector<TC::FP32> {
   // types.
   typedef GMFp32 GemmIn_t;
   typedef GMFp32 GemmOut_t;
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
   // type selector parameters.
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_32F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
     return rocblas_datatype_f32_r;
@@ -428,7 +429,7 @@ static void gm_tc_buf_write_(
 
     // Kernel call.
 
-#   ifdef USE_ACCEL
+#   ifdef COMET_USE_ACCEL
 
       const int threadblocksize = 256;
       const int blockdim_y = 32768;
@@ -436,18 +437,18 @@ static void gm_tc_buf_write_(
       const int num_threadblocks_1 = utils::min(nflD2_thisstep, blockdim_y);
       const int num_threadblocks_2 = utils::ceil(nflD2_thisstep, blockdim_y);
 
-#     ifdef USE_HIP
+#     ifdef COMET_USE_HIP
         hipLaunchKernelGGL(
 #     endif
         gm_tc_buf_write_kernel_<GemmIn_t>
-#     ifdef USE_CUDA
+#     ifdef COMET_USE_CUDA
         <<<
 #     else
         ,
 #     endif
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute()
-#     ifdef USE_CUDA
+#     ifdef COMET_USE_CUDA
         >>> (
 #     else
         ,
@@ -458,7 +459,7 @@ static void gm_tc_buf_write_(
 
       System::accel_last_call_succeeded();
 
-#   endif // USE_ACCEL
+#   endif // COMET_USE_ACCEL
 
   } else { // if (env.compute_method() != ComputeMethod::GPU)
 
@@ -510,21 +511,21 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
 
     // Make accelerator BLAS call.
 
-#   ifdef USE_ACCEL
+#   ifdef COMET_USE_ACCEL
 
       const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
       const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
       // GPU BLAS call.
 
-#     ifdef USE_CUDA
+#     ifdef COMET_USE_CUDA
         const cublasStatus_t status = cublasGemmEx(
 #     else
         //int status = rocblas_gemm_ex(
         const rocblas_status status = rocblas_gemm_ex(
 #     endif
         tc_bufs.accelblas_handle
-#     ifdef USE_CUDA
+#     ifdef COMET_USE_CUDA
         , CUBLAS_OP_N, CUBLAS_OP_T
 #     else
         , rocblas_operation_none, rocblas_operation_transpose
@@ -535,11 +536,11 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
         , tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
         , (void*)&beta
         , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
-#     ifdef USE_HIP
+#     ifdef COMET_USE_HIP
         , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
 #     endif
         , TCSelector<TC_METHOD>::gemm_type_out()
-#     ifdef USE_CUDA
+#     ifdef COMET_USE_CUDA
         //, CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing for cuda 9.1.85 transpose
         //, CUBLAS_GEMM_DFALT_TENSOR_OP // good timing for cuda 9.2.88 transpose
         , CUBLAS_GEMM_ALGO4_TENSOR_OP // best timing for cuda 9.2.88 transpose
@@ -550,7 +551,7 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
       );
       // TODO: use CUDA 10 autotuning capability here (later).
 
-#     ifdef USE_CUDA
+#     ifdef COMET_USE_CUDA
         if (CUBLAS_STATUS_SUCCESS != status) {
           // Decode error message.
           printf("Error: %s\n", CUBLAS_STATUS_NOT_INITIALIZED == status ?
@@ -571,17 +572,17 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
                      "Failure in call to rocblas_gemm_ex.");
 #     endif
 
-#   else // USE_ACCEL
+#   else // COMET_USE_ACCEL
 
       COMET_INSIST(false && "Failure to call GEMM function.");
 
-#   endif // USE_ACCEL
+#   endif // COMET_USE_ACCEL
 
     System::accel_last_call_succeeded();
 
   } else { // if (env.compute_method() != ComputeMethod::GPU) {
 
-#   ifdef USE_CPUBLAS
+#   ifdef COMET_USE_CPUBLAS
 
       COMET_INSIST(env.tc_eff() == TC::FP32);
 
@@ -594,11 +595,11 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
         m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
         (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
 
-#   else // USE_CPUBLAS
+#   else // COMET_USE_CPUBLAS
 
       COMET_INSIST(false && "Failure to call GEMM function.");
 
-#   endif // USE_CPUBLAS
+#   endif // COMET_USE_CPUBLAS
 
   } // if compute_method
 
@@ -826,13 +827,13 @@ static void gm_tc_repair_metrics_(
 
     // Kernel call.
 
-#ifdef USE_ACCEL
+#ifdef COMET_USE_ACCEL
 
-#  ifdef USE_HIP
+#  ifdef COMET_USE_HIP
     hipLaunchKernelGGL(
 #  endif
     gm_tc_repair_metrics_kernel_<GemmOut_t>
-#  ifdef USE_CUDA
+#  ifdef COMET_USE_CUDA
         <<<
 #  else
         ,
@@ -841,7 +842,7 @@ static void gm_tc_repair_metrics_(
         dim3(threadblocksize, 1, 1),
         0,
         env.stream_compute()
-#  ifdef USE_CUDA
+#  ifdef COMET_USE_CUDA
         >>> (
 #  else
         ,
@@ -850,12 +851,12 @@ static void gm_tc_repair_metrics_(
 
     System::accel_last_call_succeeded();
 
-#else // USE_ACCEL
+#else // COMET_USE_ACCEL
 
   int dummy = 0;
   dummy += vll2_threadblocks + threadblocksize;
 
-#endif // USE_ACCEL
+#endif // COMET_USE_ACCEL
 
   } else { // if (env.compute_method() != ComputeMethod::GPU)
 
@@ -1062,17 +1063,17 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
     // Allocate buffers.
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
     cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
     hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #endif
     System::accel_last_call_succeeded();
     env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
     cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
     hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #endif
     System::accel_last_call_succeeded();
@@ -1080,7 +1081,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
     // Set up accel blas handle.
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
     cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
 
@@ -1089,7 +1090,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 
     status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetMathMode.");
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
     //rocbas_status_ status = rocblas_create_handle(&tc_bufs.accelblas_handle);
     int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
     COMET_INSIST(status == rocblas_status_success &&
@@ -1137,18 +1138,18 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv& env) {
 
     // Free buffers.
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
     cudaFree(tc_bufs.tc_buf_left);
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
     hipFree(tc_bufs.tc_buf_left);
 #endif
     System::accel_last_call_succeeded();
     tc_bufs.tc_buf_left = NULL;
     env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
     cudaFree(tc_bufs.tc_buf_right);
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
     hipFree(tc_bufs.tc_buf_right);
 #endif
     System::accel_last_call_succeeded();
@@ -1157,10 +1158,10 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv& env) {
 
     // Free accel blas handle.
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
     cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasDestroy.");
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
     //rocblas_status status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
     int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
     COMET_INSIST(status == rocblas_status_success &&

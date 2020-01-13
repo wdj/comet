@@ -138,7 +138,7 @@ static GMFloat GMMetrics_ccc_value_3(GMMetrics* metrics,
 static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
   COMET_INSIST(metrics && env);
 
-#ifdef USE_INT128
+#ifdef COMET_USE_INT128
   if (env->metric_type() != MetricType::CCC || 
       env->num_way() != NUM_WAY::_3 || ! env->are_ccc_params_default()) {
     return;
@@ -156,7 +156,7 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-#ifdef USE_INT128
+#ifdef COMET_USE_INT128
 
 //-----------------------------------------------------------------------------
 
@@ -341,7 +341,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(GMMetrics* metrics,
 
   } /*---if sparse---*/
 
-#ifdef USE_INT128
+#ifdef COMET_USE_INT128
   if (env->are_ccc_params_default()) {
     const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_3(metrics,
                                          index, i0, i1, i2, env);

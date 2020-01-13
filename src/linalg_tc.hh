@@ -11,9 +11,9 @@
 #ifndef _comet_linalg_tc_hh_
 #define _comet_linalg_tc_hh_
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
 #include "cublas_v2.h"
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
 #include "rocblas.h"
 #endif
 
@@ -25,10 +25,10 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
 //typedef cublasStatus_t accelblasStatus_t;
 typedef cublasHandle_t accelblasHandle_t;
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
 //typedef rocblas_status accelblasStatus_t;
 typedef rocblas_handle accelblasHandle_t;
 #else

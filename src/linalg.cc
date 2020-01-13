@@ -8,7 +8,7 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
 #include "magma_minproduct.h"
 #include "magma_minproduct_lapack.h"
 #include "magma_mgemm2.h"
@@ -19,9 +19,9 @@
 #include "magma_mgemm4_lapack.h"
 #include "magma_mgemm5.h"
 #include "magma_mgemm5_lapack.h"
-#elif defined USE_CUDA
+#elif defined COMET_USE_CUDA
   #include "cublas_v2.h"
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   #include "hip/hip_runtime_api.h"
   #include "hip/hip_runtime.h"
 #endif
@@ -74,7 +74,7 @@ void gm_linalg_initialize(GMEnv* env) {
 // TODO: non-GPU calls should nt need to init magma, should use
 // regular malloc instead of magma malloc.
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_init();
@@ -125,7 +125,7 @@ void gm_linalg_initialize(GMEnv* env) {
       COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -135,7 +135,7 @@ void gm_linalg_finalize(GMEnv* env) {
 
   // TODO: (maybe) reset kernel stream (probably not really needed)
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_finalize();
@@ -171,7 +171,7 @@ void gm_linalg_finalize(GMEnv* env) {
       COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 }
 
 //=============================================================================
@@ -193,12 +193,12 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   if (use_minproduct(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef GMFloat Float_t;
 
     magma_minproduct_int_t magma_code = 0;
 
-    if (GM_FP_PRECISION_DOUBLE) {
+    if (FP_PRECISION_DOUBLE) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&p->h, n);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in magma_minproduct_dmalloc_pinned,"
@@ -212,7 +212,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     GMFloat_fill_nan((GMFloat*)p->h, n);
 
     if (is_compute_method_gpu) {
-      if (GM_FP_PRECISION_DOUBLE) {
+      if (FP_PRECISION_DOUBLE) {
         magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
         COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in magma_minproduct_dmalloc,"
@@ -232,7 +232,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   } else if (use_mgemm4(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm4DoubleComplex Float_t;
 
     magma_mgemm4_int_t magma_code = 0;
@@ -253,7 +253,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   } else if (use_mgemm2(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm2DoubleComplex Float_t;
 
     magma_mgemm2_int_t magma_code = 0;
@@ -274,7 +274,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   } else if (use_mgemm3(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm3DoubleComplex Float_t;
 
     magma_mgemm3_int_t magma_code = 0;
@@ -295,7 +295,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   } else if (use_mgemm5(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm5DoubleComplex Float_t;
 
     magma_mgemm5_int_t magma_code = 0;
@@ -320,13 +320,13 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   } // if //--------------------
 
-#if defined USE_MAGMA
-#elif defined USE_CUDA
+#if defined COMET_USE_MAGMA
+#elif defined COMET_USE_CUDA
   cudaMallocHost((void**)&p->h, p->size);
   if (is_compute_method_gpu) {
     cudaMalloc((void**)&p->d, p->size);
   }
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   hipHostMalloc((void**)&p->h, p->size);
   if (is_compute_method_gpu) {
     hipMalloc((void**)&p->d, p->size);
@@ -363,7 +363,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 
   const size_t size = p->size;
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   if (use_minproduct(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
@@ -424,12 +424,12 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
       COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#elif defined USE_CUDA
+#elif defined COMET_USE_CUDA
   cudaFreeHost(p->h);
   if (is_compute_method_gpu) {
     cudaFree(p->d);
   }
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   hipHostFree(p->h);
   if (is_compute_method_gpu) {
     hipFree(p->d);
@@ -438,7 +438,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   free(p->h);
   COMET_INSIST(!is_compute_method_gpu &&
     "GPU requested but not supported for this build.");
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   p->h = NULL;
   p->d = NULL;
@@ -459,7 +459,7 @@ void gm_linalg_set_matrix_zero_start_(GMMirroredBuf* matrix_buf, GMEnv* env) {
     return;
   }
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
 
@@ -467,7 +467,7 @@ void gm_linalg_set_matrix_zero_start_(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
   if (use_minproduct(env)) { //--------------------
 
-    if (GM_FP_PRECISION_DOUBLE) {
+    if (FP_PRECISION_DOUBLE) {
       magma_minproductblas_dlaset
         (Magma_minproductFull, mat_dim1, mat_dim2, (double)0, (double)0,
          (double*)matrix_buf->d, mat_dim1);
@@ -518,11 +518,11 @@ void gm_linalg_set_matrix_zero_start_(GMMirroredBuf* matrix_buf, GMEnv* env) {
       COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#elif defined USE_CUDA
+#elif defined COMET_USE_CUDA
   cudaMemset(matrix_buf->d, 0, matrix_buf->size);
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   hipMemset(matrix_buf->d, 0, matrix_buf->size);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -541,7 +541,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
   COMET_INSIST(matA && matB && matC && env);
   COMET_INSIST(env->compute_method() == ComputeMethod::GPU);
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   {
     // Ensure Magmablas function doesn't internally failover to CUBLAS call.
     int TransA = 1;
@@ -582,7 +582,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
     COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
 
-    if (GM_FP_PRECISION_DOUBLE) {
+    if (FP_PRECISION_DOUBLE) {
       magma_minproductblas_dgemm(
         Magma_minproductTrans,
         Magma_minproductNoTrans,
@@ -789,7 +789,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
       COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
 
   } // if //--------------------
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -811,7 +811,7 @@ void gm_linalg_gemm_magma_start(size_t m,
   // The purpose of this code is to workaround the magma size
   // limitation (for non CUBLAS failover) by doing gemm in blocks.
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   const size_t rows = k;
   const size_t cols_A = m;
   const size_t cols_B = n;
@@ -877,7 +877,7 @@ void gm_linalg_gemm_magma_start(size_t m,
       }
     }
   }
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
@@ -1004,7 +1004,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
     return;
   }
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
 #else
@@ -1017,8 +1017,8 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
   if (use_minproduct(env)) { //--------------------
 
-#ifdef USE_MAGMA
-    if (GM_FP_PRECISION_DOUBLE) {
+#ifdef COMET_USE_MAGMA
+    if (FP_PRECISION_DOUBLE) {
       magma_minproduct_dsetmatrix_async(
         mat_dim1, mat_dim2, (double*)matrix_buf->h, mat_dim1,
         (double*)matrix_buf->d, mat_dim1, env->stream_togpu());
@@ -1029,11 +1029,11 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
     }
 #else
     size_scalar = sizeof(GMFloat);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else if (use_mgemm4(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm4DoubleComplex Float_t;
 
     magma_mgemm4_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
@@ -1041,11 +1041,11 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
                                   env->stream_togpu());
 #else
     size_scalar = 2 * sizeof(double);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else if (use_mgemm2(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm2DoubleComplex Float_t;
 
     magma_mgemm2_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
@@ -1053,11 +1053,11 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
                                   env->stream_togpu());
 #else
     size_scalar = 2 * sizeof(double);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else if (use_mgemm3(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm3DoubleComplex Float_t;
 
     magma_mgemm3_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
@@ -1065,11 +1065,11 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
                                   env->stream_togpu());
 #else
     size_scalar = 2 * sizeof(double);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else if (use_mgemm5(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm5DoubleComplex Float_t;
 
     magma_mgemm5_zsetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->h,
@@ -1077,7 +1077,7 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
                                   env->stream_togpu());
 #else
     size_scalar = 2 * sizeof(double);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else { //--------------------
 
@@ -1085,11 +1085,11 @@ void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
 
   } // if //--------------------
 
-#if defined USE_MAGMA
-#elif defined USE_CUDA
+#if defined COMET_USE_MAGMA
+#elif defined COMET_USE_CUDA
     cudaMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*size_scalar,
                cudaMemcpyHostToDevice, env->stream_togpu());
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
     hipMemcpyAsync(matrix_buf->d, matrix_buf->h, mat_dim1*mat_dim2*size_scalar,
               hipMemcpyHostToDevice, env->stream_togpu());
 #endif
@@ -1114,7 +1114,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
     return;
   }
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   const size_t mat_dim1 = matrix_buf->dim0;
   const size_t mat_dim2 = matrix_buf->dim1;
 #else
@@ -1127,8 +1127,8 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
   if (use_minproduct(env)) { //--------------------
 
-#ifdef USE_MAGMA
-    if (GM_FP_PRECISION_DOUBLE) {
+#ifdef COMET_USE_MAGMA
+    if (FP_PRECISION_DOUBLE) {
       magma_minproduct_dgetmatrix_async(
         mat_dim1, mat_dim2, (double*)matrix_buf->d, mat_dim1,
         (double*)matrix_buf->h, mat_dim1, env->stream_fromgpu());
@@ -1139,11 +1139,11 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
     }
 #else
     size_scalar = sizeof(GMFloat);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else if (use_mgemm4(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm4DoubleComplex Float_t;
 
     magma_mgemm4_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
@@ -1151,11 +1151,11 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                   env->stream_fromgpu());
 #else
     size_scalar = 2 * sizeof(double);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else if (use_mgemm2(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm2DoubleComplex Float_t;
 
     magma_mgemm2_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
@@ -1163,11 +1163,11 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                   env->stream_fromgpu());
 #else
     size_scalar = 2 * sizeof(double);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else if (use_mgemm3(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm3DoubleComplex Float_t;
 
     magma_mgemm3_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
@@ -1175,11 +1175,11 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                   env->stream_fromgpu());
 #else
     size_scalar = 2 * sizeof(double);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else if (use_mgemm5(env)) { //--------------------
 
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
     typedef magma_mgemm5DoubleComplex Float_t;
 
     magma_mgemm5_zgetmatrix_async(mat_dim1, mat_dim2, (Float_t*)matrix_buf->d,
@@ -1187,7 +1187,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                   env->stream_fromgpu());
 #else
     size_scalar = 2 * sizeof(double);
-#endif // USE_MAGMA
+#endif // COMET_USE_MAGMA
 
   } else { //--------------------
 
@@ -1195,11 +1195,11 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
 
   } // if //--------------------
 
-#if defined USE_MAGMA
-#elif defined USE_CUDA
+#if defined COMET_USE_MAGMA
+#elif defined COMET_USE_CUDA
     cudaMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*size_scalar,
                cudaMemcpyDeviceToHost, env->stream_fromgpu());
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
     hipMemcpyAsync(matrix_buf->h, matrix_buf->d, mat_dim1*mat_dim2*size_scalar,
               hipMemcpyDeviceToHost, env->stream_fromgpu());
 #endif

@@ -47,7 +47,7 @@ enum {
 //typedef signed long long int GMInt64;
 //typedef unsigned long long int GMUInt64;
 
-#ifdef USE_INT128
+#ifdef COMET_USE_INT128
 typedef unsigned __int128 GMUInt128;
 #endif
 
@@ -66,7 +66,7 @@ static void gm_check_type_sizes() {
 //  COMET_STATIC_ASSERT(sizeof(GMUInt32) == 4);
 //  COMET_STATIC_ASSERT(sizeof(GMInt64) == 8);
 //  COMET_STATIC_ASSERT(sizeof(GMUInt64) == 8);
-#ifdef USE_INT128
+#ifdef COMET_USE_INT128
   COMET_STATIC_ASSERT(sizeof(GMUInt128) == 16);
 #endif
 }
@@ -76,20 +76,20 @@ static void gm_check_type_sizes() {
 
 //---TODO: revise nomenclature to be different from "GMFloat2" ...
 
-#ifdef FP_PRECISION_SINGLE
+#ifdef COMET_FP_PRECISION_SINGLE
   typedef float GMFloat;
-  #define GM_MPI_FLOAT MPI_FLOAT
-  enum { GM_FP_PRECISION_DOUBLE = false };
-#ifdef FP_PRECISION_DOUBLE
-#error Cannot set both FP_PRECISION_SINGLE and FP_PRECISION_DOUBLE.
+  #define COMET_MPI_FLOAT MPI_FLOAT
+  enum { FP_PRECISION_DOUBLE = false };
+#ifdef COMET_FP_PRECISION_DOUBLE
+#error Cannot set both COMET_FP_PRECISION_SINGLE and COMET_FP_PRECISION_DOUBLE.
 #endif
 #else
-#ifdef FP_PRECISION_DOUBLE
+#ifdef COMET_FP_PRECISION_DOUBLE
   typedef double GMFloat;
-  #define GM_MPI_FLOAT MPI_DOUBLE
-  enum { GM_FP_PRECISION_DOUBLE = true };
+  #define COMET_MPI_FLOAT MPI_DOUBLE
+  enum { FP_PRECISION_DOUBLE = true };
 #else
-#error Must set FP_PRECISION_SINGLE or FP_PRECISION_DOUBLE.
+#error Must set COMET_FP_PRECISION_SINGLE or COMET_FP_PRECISION_DOUBLE.
 #endif
 #endif
 

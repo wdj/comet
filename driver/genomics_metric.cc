@@ -459,7 +459,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   // Run single node case on every node
 
   const char* options_template =
-    metric_type == MetricType::CZEK && GM_FP_PRECISION_DOUBLE ?
+    metric_type == MetricType::CZEK && FP_PRECISION_DOUBLE ?
     "--num_field 25000 --num_vector_local 13000 "
     "--metric_type czekanowski --all2all yes --compute_method GPU "
     "--num_proc_vector %i --num_proc_field 1 "
@@ -574,7 +574,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 void perform_run_preflight(int argc, char** argv) {
 
 // TODO: make this better.
-#ifdef USE_MAGMA
+#ifdef COMET_USE_MAGMA
   Env env(MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
   if (env.compute_method() == ComputeMethod::GPU) {

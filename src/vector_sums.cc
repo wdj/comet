@@ -133,7 +133,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
 
   if (num_proc > 1) {
     COMET_MPI_SAFE_CALL(MPI_Allreduce(sums_local, sums,
-      vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
+      vectors->num_vector_local, COMET_MPI_FLOAT, MPI_SUM, env->comm_field()));
   }
 
   env->ops_local_inc(2 * vectors->num_vector_local *
@@ -255,10 +255,10 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
 
   if (num_proc > 1) {
     COMET_MPI_SAFE_CALL(MPI_Allreduce(sums_local, sums,
-      vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
+      vectors->num_vector_local, COMET_MPI_FLOAT, MPI_SUM, env->comm_field()));
     if (env->sparse()) {
       COMET_MPI_SAFE_CALL(MPI_Allreduce(counts_local, counts,
-        vectors->num_vector_local, GM_MPI_FLOAT, MPI_SUM, env->comm_field()));
+        vectors->num_vector_local, COMET_MPI_FLOAT, MPI_SUM, env->comm_field()));
     } /*---if sparse---*/
   }
 }

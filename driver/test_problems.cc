@@ -396,7 +396,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
 //      if (gm_gpu_compute_capability() == 700 &&
 //          env->compute_method() == ComputeMethod::GPU &&
-//          GM_FP_PRECISION_DOUBLE) {
+//          FP_PRECISION_DOUBLE) {
 //        // For this case modified MAGMA code casts down to single.
 //        break;
 //      }
@@ -653,7 +653,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             GMFloat value_expected = value_expected_floatcalc;
 
 #if 0
-//#ifdef USE_INT128
+//#ifdef COMET_USE_INT128
             if (env->are_ccc_params_default()) {
             if (!(0 == ci || 0 == cj || 0 == cij)) {
               value_expected = GMMetrics_ccc_value_nofp_2(metrics,
@@ -795,7 +795,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               GMFloat value_expected = value_expected_floatcalc;
 
 #if 0
-//#ifdef USE_INT128
+//#ifdef COMET_USE_INT128
               if (env->are_ccc_params_default()) {
               if (!(0 == ci || 0 == cj || 0 == ck || 0 == cijk)) {
                 value_expected = GMMetrics_ccc_value_nofp_3(metrics,

@@ -20,7 +20,7 @@
 
 #include "mpi.h"
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
 #include "cuda.h"
 #endif
 
@@ -67,13 +67,13 @@ int System::proc_num() {
 /// \brief Accelerator compute capability.
 
 int System::compute_capability() {
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
   cudaDeviceProp deviceProp;
   // Assume only one GPU per rank.
   cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
   const int compute_capability = error != cudaSuccess ? 0 :
     deviceProp.major * 100 + deviceProp.minor;
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   hipDeviceProp_t deviceProp;
   hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
 //FIX this
@@ -89,7 +89,7 @@ int System::compute_capability() {
 
 bool System::accel_last_call_succeeded() {
 
-#if defined USE_CUDA
+#if defined COMET_USE_CUDA
   // NOTE: this read of the last error is a destructive read.
   cudaError_t error = cudaGetLastError();
   const bool result = error == cudaSuccess;
@@ -99,7 +99,7 @@ bool System::accel_last_call_succeeded() {
   }
 
   return result;
-#elif defined USE_HIP
+#elif defined COMET_USE_HIP
   // NOTE: this read of the last error is (apparently) a destructive read.
   hipError_t error = hipGetLastError();
   const bool result = error == hipSuccess;
@@ -539,7 +539,7 @@ int Env::tc_eff() const {
 MPI_Datatype Env::metrics_mpi_type() const {
 
   if (metric_type() == MetricType::CZEK) {
-    return GM_MPI_FLOAT;
+    return COMET_MPI_FLOAT;
   } else if (metric_type() == MetricType::CCC) {
     return MPI_DOUBLE_COMPLEX;
   } else if (metric_type() == MetricType::DUO) {
@@ -564,9 +564,9 @@ void Env::accel_sync_() const {
   if (compute_method() != ComputeMethod::GPU)
     return;
 
-# if defined USE_CUDA
+# if defined COMET_USE_CUDA
     cudaDeviceSynchronize();
-# elif defined USE_HIP
+# elif defined COMET_USE_HIP
     hipDeviceSynchronize();
 #endif
   COMET_INSIST(System::accel_last_call_succeeded() &&
@@ -719,9 +719,9 @@ void Env::streams_initialize_() {
 
   for (Stream_t* const stream : {&stream_compute_, &stream_togpu_,
                                  &stream_fromgpu_}) {
-#   if defined USE_CUDA
+#   if defined COMET_USE_CUDA
       cudaStreamCreate(stream);
-#   elif defined USE_HIP
+#   elif defined COMET_USE_HIP
       hipStreamCreate(stream);
 #   else
       if (stream) {}
@@ -743,9 +743,9 @@ void Env::streams_terminate_() {
 
   for (const Stream_t stream : {stream_compute_, stream_togpu_,
                                 stream_fromgpu_}) {
-#   if defined USE_CUDA
+#   if defined COMET_USE_CUDA
       cudaStreamDestroy(stream);
-#   elif defined USE_HIP
+#   elif defined COMET_USE_HIP
       hipStreamDestroy(stream);
 #   else
       if (stream) {}
@@ -791,9 +791,9 @@ void Env::stream_synchronize(Stream_t stream) const {
 
   COMET_INSIST(are_streams_initialized_);
 
-# if defined USE_CUDA
+# if defined COMET_USE_CUDA
     cudaStreamSynchronize(stream);
-# elif defined USE_HIP
+# elif defined COMET_USE_HIP
     hipStreamSynchronize(stream);
 # endif
   COMET_INSIST(System::accel_last_call_succeeded() &&
