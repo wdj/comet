@@ -185,6 +185,9 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
 
   COMET_INSIST(vs_i && vs_j && vs_k);
 
+  COMET_ASSERT( ! (env.is_bitwise_3way_2step() && !env.form_matX_on_accel()) &&
+               "Not allowed.");
+
   matB_buf->lock_h();
 
   const GMVectorSums* const vs_I = si->perm0(vs_i, vs_j, vs_k);
@@ -314,26 +317,44 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
 
         // Add contribution from this sub-step.
 
-        if (step_2way==0) {
-          r000_permuted += 2 * matB00_permuted;
-          r001_permuted += 2 * matB01_permuted;
-          r010_permuted += 2 * matB10_permuted;
-          r011_permuted += 2 * matB11_permuted;
-        } else if (step_2way==1) {
-          r000_permuted += matB00_permuted;
-          r001_permuted += matB01_permuted;
-          r010_permuted += matB10_permuted;
-          r011_permuted += matB11_permuted;
-          r100_permuted += matB00_permuted;
-          r101_permuted += matB01_permuted;
-          r110_permuted += matB10_permuted;
-          r111_permuted += matB11_permuted;
-        } else /*---step_2way==2---*/ {
-          r100_permuted += 2 * matB00_permuted;
-          r101_permuted += 2 * matB01_permuted;
-          r110_permuted += 2 * matB10_permuted;
-          r111_permuted += 2 * matB11_permuted;
-        }
+        if (env.is_bitwise_3way_2step()) {
+
+          if (step_2way==0) {
+            r000_permuted += matB00_permuted;
+            r001_permuted += matB01_permuted;
+            r010_permuted += matB10_permuted;
+            r011_permuted += matB11_permuted;
+          } else /*---step_2way==1---*/ {
+            r100_permuted += matB00_permuted;
+            r101_permuted += matB01_permuted;
+            r110_permuted += matB10_permuted;
+            r111_permuted += matB11_permuted;
+          }
+
+        } else { // if (env.is_bitwise_3way_2step())
+
+          if (step_2way==0) {
+            r000_permuted += 2 * matB00_permuted;
+            r001_permuted += 2 * matB01_permuted;
+            r010_permuted += 2 * matB10_permuted;
+            r011_permuted += 2 * matB11_permuted;
+          } else if (step_2way==1) {
+            r000_permuted += matB00_permuted;
+            r001_permuted += matB01_permuted;
+            r010_permuted += matB10_permuted;
+            r011_permuted += matB11_permuted;
+            r100_permuted += matB00_permuted;
+            r101_permuted += matB01_permuted;
+            r110_permuted += matB10_permuted;
+            r111_permuted += matB11_permuted;
+          } else /*---step_2way==2---*/ {
+            r100_permuted += 2 * matB00_permuted;
+            r101_permuted += 2 * matB01_permuted;
+            r110_permuted += 2 * matB10_permuted;
+            r111_permuted += 2 * matB11_permuted;
+          }
+
+        } // if (env.is_bitwise_3way_2step())
 
         r000 = r000_permuted;
         r100 = si->unperm0(r100_permuted, r010_permuted, r001_permuted);
@@ -384,16 +405,16 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
         }
       } // K
     }   // I
-    if (step_2way == 2) {
+    if (step_2way == env.num_step_2way_for_3way() - 1) {
       metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
                                           (K_max - K_min);
     }
 
-  } else {
+  } else { // if (env.metric_type() ...
 
     COMET_INSIST(false);
 
-  } // env.metric_type()
+  } // if (env.metric_type() ...
 
   matB_buf->unlock_h();
 }

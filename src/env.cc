@@ -475,6 +475,10 @@ bool Env::can_run(int tc) const {
 
   bool result = true;
 
+  if (compute_method_ == ComputeMethod::REF) {
+    result = result && TC::NO == tc;
+  }
+
   result = result && num_proc_ <= System::num_proc();
 
   if (num_proc_ > 1) {

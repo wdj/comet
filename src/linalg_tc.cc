@@ -90,9 +90,11 @@ template<> struct TCBufTypes<uint16_t> {
   static __host__ __device__ uint16_t zero() {return (uint16_t)0x0000;}
   static __host__ __device__ uint16_t one() {return (uint16_t)0x3c00;}
   static __host__ __device__ uint16_t two() {return (uint16_t)0x4000;}
+  static __host__ __device__ uint16_t four() {return (uint16_t)0x4400;}
                                         // = *(uint16_t*)&__float2half(0.);
                                         // = *(uint16_t*)&__float2half(1.);
                                         // = *(uint16_t*)&__float2half(2.);
+                                        // = *(uint16_t*)&__float2half(4.);
 };
 
 //----------
@@ -101,6 +103,7 @@ template<> struct TCBufTypes<int8_t> {
   static __host__ __device__ int8_t zero() {return (int8_t)0;}
   static __host__ __device__ int8_t one() {return (int8_t)1;}
   static __host__ __device__ int8_t two() {return (int8_t)2;}
+  static __host__ __device__ int8_t four() {return (int8_t)4;}
 };
 
 //----------
@@ -109,6 +112,7 @@ template<> struct TCBufTypes<GMFp32> {
   static __host__ __device__ GMFp32 zero() {return (GMFp32)0;}
   static __host__ __device__ GMFp32 one() {return (GMFp32)1;}
   static __host__ __device__ GMFp32 two() {return (GMFp32)2;}
+  static __host__ __device__ GMFp32 four() {return (GMFp32)4;}
 };
 
 //-----------------------------------------------------------------------------
@@ -185,6 +189,13 @@ template<> struct TCSelector<TC::FP32> {
 //=============================================================================
 
 //-----------------------------------------------------------------------------
+/// \brief Is a nonnegative integer a power of 2.
+
+__host__ __device__ static bool is_po2(int x) {
+  return x && (!(x&(x-1))); 
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Write individual elements to buf.
 
 //CHANGE: for non-kernel functions, struct to manage these variables
@@ -201,6 +212,7 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   bool is_duo,
   bool form_matX_on_accel,
   int step_2way,
+  bool is_bitwise_3way_2step,
   int nvlea,
   int nvle,
   int nvleD2,
@@ -246,6 +258,7 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
   const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
   const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
+  const GemmIn_t four  = TCBufTypes<GemmIn_t>::four();
 
   // Possible seminibble bit patterns.
 
@@ -255,13 +268,25 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   const int _11 = 3;
 
   //COMET_ASSERT( ! (is_duo && !is_sparse) );
+  //COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) );
 
   const GemmIn_t out0 = is_duo ? (
                            snm0 == _10         ? zero :
                           (snm0 & 1) == i01    ? one :
                        /* (snm0 & 1) == 1-i01 */ zero
                         ) : //====================
-                        num_way == 3 && is_left &&
+                        3 == num_way && is_left &&
+                        is_bitwise_3way_2step /* && is_ccc */ ? (
+                          snm0 == _10 && is_sparse               ? zero :
+                          snc0 == _10 && is_sparse               ? zero :
+                          snm0 == _11*(1-step_2way)              ? zero :
+                          snc0 == _11*(1-i01)                    ? zero :
+                          is_po2(snm0) && is_po2(snc0)           ? one :
+                          is_po2(snm0) && snc0 == _11*i01        ? two :
+                          is_po2(snc0) && snm0 == _11*step_2way  ? two :
+                        /* snm0*(3-snm0) + (snc0)*(3-snc0) == 0 */ four
+                        ) : //====================
+                        3 == num_way && is_left &&
                         form_matX_on_accel /* && is_ccc */ ? (
                           snm0 == _10 && is_sparse      ? zero :
                           snm0 == _00 && step_2way != 0 ? zero :
@@ -287,7 +312,18 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
                           (snm1 & 1) == i01    ? one :
                        /* (snm1 & 1) == 1-i01 */ zero
                         ) : //====================
-                        num_way == 3 && is_left &&
+                        3 == num_way && is_left &&
+                        is_bitwise_3way_2step /* && is_ccc */ ? (
+                          snm1 == _10 && is_sparse               ? zero :
+                          snc1 == _10 && is_sparse               ? zero :
+                          snm1 == _11*(1-step_2way)              ? zero :
+                          snc1 == _11*(1-i01)                    ? zero :
+                          is_po2(snm1) && is_po2(snc1)           ? one :
+                          is_po2(snm1) && snc1 == _11*i01        ? two :
+                          is_po2(snc1) && snm1 == _11*step_2way  ? two :
+                        /* snm1*(3-snm1) + (snc1)*(3-snc1) == 0 */ four
+                        ) : //====================
+                        3 == num_way && is_left &&
                         form_matX_on_accel /* && is_ccc */ ? (
                           snm1 == _10 && is_sparse      ? zero :
                           snm1 == _00 && step_2way != 0 ? zero :
@@ -342,6 +378,7 @@ __global__ static void gm_tc_buf_write_kernel_(
   bool is_duo,
   bool form_matX_on_accel,
   int step_2way,
+  bool is_bitwise_3way_2step,
   int nvlea,
   int nvle,
   int nvleD2,
@@ -362,6 +399,7 @@ __global__ static void gm_tc_buf_write_kernel_(
 
   gm_tc_buf_write_kernel_elt_<GemmIn_t>(vo, vim, vic, vi_dim0,
     num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
+    is_bitwise_3way_2step,
     nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
     vlX2, flD2_thisstep);
 }
@@ -420,6 +458,7 @@ static void gm_tc_buf_write_(
 
   const bool is_duo = env.metric_type() == MetricType::DUO;
   const bool form_matX_on_accel = env.form_matX_on_accel();
+  const bool is_bitwise_3way_2step = env.is_bitwise_3way_2step();
 
   const uint32_t* unused_col = form_matX_on_accel ? NULL : vi1; // dummy
   const uint32_t* vim = form_matX_on_accel ? vi2 : vi1; // matrix
@@ -453,8 +492,8 @@ static void gm_tc_buf_write_(
 #     else
         ,
 #     endif
-        tc_buf, vim, vic, vi_dim0, env.num_way(),
-        env.sparse(), is_right, is_duo, form_matX_on_accel, step_2way,
+        tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
+        is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
         nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
 
       System::accel_last_call_succeeded();
@@ -467,8 +506,8 @@ static void gm_tc_buf_write_(
       for (int vlX2=0; vlX2<nvleX2; ++vlX2) {
 
         gm_tc_buf_write_kernel_elt_<GemmIn_t>(
-          tc_buf, vim, vic, vi_dim0, env.num_way(),
-          env.sparse(), is_right, is_duo, form_matX_on_accel, step_2way,
+          tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
+          is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
           nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
           vlX2, flD2_thisstep);
 

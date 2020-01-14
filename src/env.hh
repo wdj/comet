@@ -234,14 +234,18 @@ public:
   bool is_metric_type_bitwise() const {
     return metric_type_==MetricType::CCC || metric_type_==MetricType::DUO;
   }
-  bool is_using_tc() const {return tc_eff() != TC::NO &&
-    is_metric_type_bitwise();
+  bool is_using_tc() const {
+    //COMET_INSIST(is_using_linalg());
+    return tc_eff() != TC::NO && is_metric_type_bitwise();
   }
   bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
     (ComputeMethod::CPU == compute_method_ && is_using_tc());
   }
+  //bool is_bitwise_3way_2step() const {return is_using_tc();}
+  bool is_bitwise_3way_2step() const {return false;}
   int num_step_2way_for_3way() const {
-    return is_metric_type_bitwise() && is_using_linalg() ? 3 : 1;
+    return is_metric_type_bitwise() && is_using_linalg() ?
+           (is_bitwise_3way_2step() ? 2 : 3) : 1;
   }
   bool does_3way_need_2way() const {
     return metric_type_ == MetricType::CZEK && is_using_linalg();
