@@ -824,7 +824,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
-                           GMEnv* env) {
+                           GMEnv* env, int weight) {
   COMET_INSIST(metrics && metrics_buf && env);
 //printf("%i %i\n", (int)metrics_buf->dim0, (int)metrics_buf->dim1);
 
@@ -835,7 +835,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
 
   const bool count_2 = env->metric_type() == MetricType::CCC;
 
-  const int pad_adjustment = (count_2 ? 4 : 1) *
+  const int pad_adjustment = (count_2 ? 4 : 1) * weight *
     metrics->dm->num_pad_field_local;
 
   const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);

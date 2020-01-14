@@ -44,8 +44,21 @@ function main
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
+  if [ -z "${1:-}" ] ; then
+    local DIRS="$(ls -d build_*_$COMET_PLATFORM_STUB)"
+  else
+    # Build only versions needed for debugging work.
+    if [ $COMET_CAN_USE_MPI = ON ] ; then
+      local DIRS="build_test_$COMET_PLATFORM_STUB \
+                  build_single_test_$COMET_PLATFORM_STUB"
+    else
+      local DIRS="build_test_nompi_$COMET_PLATFORM_STUB \
+                  build_single_test_nompi_$COMET_PLATFORM_STUB"
+    fi
+  fi
+
   local DIR
-  for DIR in build_*_$COMET_PLATFORM_STUB ; do
+  for DIR in $DIRS ; do
     pushd $DIR
     $SCRIPT_DIR/make.sh 2>&1 | tee out_make.txt
     local MYSTATUS=$?

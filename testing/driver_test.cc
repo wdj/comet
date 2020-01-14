@@ -1457,7 +1457,8 @@ void DriverTest_tc_() {
 
     char options_template[] =
         "--metric_type %s "
-        "--num_proc_vector %i --num_field 100 --num_vector %i "
+//        "--num_proc_vector %i --num_field 100 --num_vector %i "
+        "--num_proc_vector %i --num_field 1 --num_vector %i "
         "--compute_method %s --sparse %s "
         "--problem_type random --verbosity %i --tc %i --num_way %i "
         "--num_tc_steps %i --all2all yes" ;
@@ -1471,8 +1472,8 @@ void DriverTest_tc_() {
     //for (int gpu=0; gpu<=0; ++gpu) {
     for (int num_tc_steps=1; num_tc_steps<=3; ++num_tc_steps) {
     //for (int num_tc_steps=1; num_tc_steps<=1; ++num_tc_steps) {
-    for (int nv=3; nv<=10; ++nv) {
-    //for (int nv=10; nv<=10; ++nv) {
+    for (int nv=10; nv<=10; ++nv) {
+    //for (int nv=3; nv<=10; ++nv) {
     for (int num_way=2; num_way<=3; ++num_way) {
     //for (int num_way=3; num_way<=3; ++num_way) {
       if (is_duo && 3 == num_way) continue;
@@ -1480,7 +1481,7 @@ void DriverTest_tc_() {
     //for (int sparse=0; sparse<=0; ++sparse) {
       if (is_duo && 0 == sparse) continue;
     for (int tc=1; tc<comet::TC::NUM; ++tc) {
-    //for (int tc=3; tc<=3; ++tc) {
+    //for (int tc=4; tc<=4; ++tc) {
       if (nv/num_proc_vector < num_way) continue;
 
       sprintf(options1, options_template, is_duo ? "duo" : "ccc",

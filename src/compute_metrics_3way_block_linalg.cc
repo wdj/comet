@@ -378,7 +378,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
 
         // Denominator.
 
-        if (step_2way==2) {
+        if (step_2way == env.num_step_2way_for_3way() - 1) {
           const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, &env);
           const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, &env); 
           const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, &env); 
@@ -690,7 +690,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_prev.do_compute) {
       vars_prev.matB_buf_ptr()->from_accel_wait();
       if (vars_prev.step_2way == 0) {
-        gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_);
+        gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_,
+        env_.is_bitwise_3way_2step() ? 2 : 1);
       }
     }
 

@@ -189,7 +189,7 @@ template<> struct TCSelector<TC::FP32> {
 //=============================================================================
 
 //-----------------------------------------------------------------------------
-/// \brief Is a nonnegative integer a power of 2.
+/// \brief Helper function: is a nonnegative integer a power of 2.
 
 __host__ __device__ static bool is_po2(int x) {
   return x && (!(x&(x-1))); 
@@ -197,8 +197,38 @@ __host__ __device__ static bool is_po2(int x) {
 
 //-----------------------------------------------------------------------------
 /// \brief Write individual elements to buf.
-
-//CHANGE: for non-kernel functions, struct to manage these variables
+///
+/// Description of is_bitwise_3way_2step option:
+///
+/// For this method two passes are made (instead of three), each of which
+/// calculates exactly 4 of the required 8 metrics values.
+/// The main idea is this: the left matrix entries are calculated as
+/// the combined number of paths through corresponding elements of the I
+/// and J matrices.  For the first pass (step_2way == 0), paths 0-0 and
+/// 0-1 (corresponding to I-J element values) are counted; for the second
+/// pass, paths 1-0 and 1-1.
+/// Below is a tabular representation of the values for the non-sparse case.
+/// The 10 cases are omtted here because they are the same as the 01 cases.
+///
+/// step_2way      ->   0    0    1    1
+/// i01            ->   0    1    0    1
+/// output         ->  0-0  0-1  1-0  1-1
+/// --------------------------------------
+///  m (=I)   c (=J)
+///  |        |
+///  v        v
+///  00       00        4    0    0    0
+///  00       01        2    2    0    0
+///  00       01        2    2    0    0
+/// --------------------------------------
+///  01       00        2    0    2    0
+///  01       01        1    1    1    1
+///  01       01        0    2    0    2
+/// --------------------------------------
+///  11       00        0    0    4    0
+///  11       01        0    0    2    2
+///  11       01        0    0    0    4
+///
 
 template<typename GemmIn_t>
 __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
@@ -250,11 +280,13 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
 
   // Count number of 0 (or 1) bits in respective seminibble.
   // Determine whether to skip (1,0) null indicator value.
+  // NOTE: does not work for all cases.
 
   const bool is_left = ! is_right;
   const bool skip_10 = is_sparse || (num_way == 3 && is_left);
 
   // Possible counts, represented in target type.
+
   const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
   const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
   const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
@@ -512,6 +544,7 @@ static void gm_tc_buf_write_(
           vlX2, flD2_thisstep);
 
       }
+//printf("========================== %i\n", flD2_thisstep);
     }
 
   } // if (env.compute_method() == ComputeMethod::GPU)
@@ -994,8 +1027,6 @@ static void gm_tc_gemm_start_impl_(
 
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute CoMet metrics bitwise result.
-
-//CHANGE: pass in vectors_I, vectors_J_col pointers (allow both this and older option?)
 
 void gm_tc_gemm_start(
   int m, int n, int k,

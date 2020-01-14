@@ -241,8 +241,8 @@ public:
   bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
     (ComputeMethod::CPU == compute_method_ && is_using_tc());
   }
-  //bool is_bitwise_3way_2step() const {return is_using_tc();}
-  bool is_bitwise_3way_2step() const {return false;}
+  bool is_bitwise_3way_2step() const {return is_using_tc();}
+  //bool is_bitwise_3way_2step() const {return false;}
   int num_step_2way_for_3way() const {
     return is_metric_type_bitwise() && is_using_linalg() ?
            (is_bitwise_3way_2step() ? 2 : 3) : 1;
