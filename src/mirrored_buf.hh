@@ -23,11 +23,13 @@ class GMMirroredBuf {
 public:
 
   GMMirroredBuf(Env& env);
+  GMMirroredBuf(size_t dim0, size_t dim1, int elt_size, Env& env);
   GMMirroredBuf(size_t dim0, size_t dim1, Env& env);
   GMMirroredBuf(GMMirroredBuf& buf, size_t dim0, Env& env);
 
   ~GMMirroredBuf();
 
+  void allocate(size_t dim0, size_t dim1, int elt_size);
   void allocate(size_t dim0, size_t dim1);
   void allocate(GMMirroredBuf& buf, size_t dim0);
   void deallocate();
@@ -105,20 +107,6 @@ private:
   mutable bool is_locked_d_;
   const bool use_linalg_;
 };
-
-//-----------------------------------------------------------------------------
-
-#if 0
-//GMMirroredBuf GMMirroredBuf_null(void);
-
-void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
-                          GMEnv* env);
-
-void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
-                          GMEnv* env);
-
-void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env);
-#endif
 
 //=============================================================================
 

@@ -32,16 +32,39 @@ public:
 
   void compute(const GMVectors& vectors);
 
+  Float_t sum_const(size_t i) const {
+    COMET_ASSERT(i < sums_.dim0); // && i >= 0
+    return ((Float_t*)sums_.h)[i];
+  }
+
+  Float_t count_const(size_t i) const {
+    COMET_ASSERT(i < counts_.dim0); // && i >= 0
+    return ((Float_t*)counts_.h)[i];
+  }
+
 private:
 
   Env& env_;
 
-  const size_t num_vector_local_;
+  const int num_vector_local_;
 
   GMMirroredBuf sums_;
   GMMirroredBuf sums_tmp_;
   GMMirroredBuf counts_;
   GMMirroredBuf counts_tmp_;
+
+  void compute_float(const GMVectors& vectors);
+  void compute_bits2(const GMVectors& vectors);
+
+  Float_t& sum(size_t i) {
+    COMET_ASSERT(i < sums_.dim0); // && i >= 0
+    return (((Float_t*)sums_.h)[i]);
+  }
+
+  Float_t& count(size_t i) {
+    COMET_ASSERT(i < counts_.dim0); // && i >= 0
+    return (((Float_t*)counts_.h)[i]);
+  }
 
   // Disallowed methods.
 

@@ -29,29 +29,46 @@ VectorSums::VectorSums(size_t num_vector_local, Env& env)
   , counts_(env)
   , counts_tmp_(env) {
 
-  //FIX -- doesn't work
-
-  sums_.allocate(num_vector_local, 1);
+  sums_.allocate(num_vector_local, 1, sizeof(Float_t));
   if (env_.num_proc() > 1)
-    sums_tmp_.allocate(num_vector_local, 1);
+    sums_tmp_.allocate(num_vector_local, 1, sizeof(Float_t));
 
   if (env_.sparse() && env_.is_metric_type_bitwise()) {
-    counts_.allocate(num_vector_local, 1);
+    counts_.allocate(num_vector_local, 1, sizeof(Float_t));
     if (env_.num_proc() > 1)
-      counts_tmp_.allocate(num_vector_local, 1);
+      counts_tmp_.allocate(num_vector_local, 1, sizeof(Float_t));
   }
 }
 
 //-----------------------------------------------------------------------------
 
 VectorSums::~VectorSums() {
+}
+
+//-----------------------------------------------------------------------------
+
+void VectorSums::compute(const GMVectors& vectors) {
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
+
+  if (env_.is_metric_type_bitwise()) {
+    compute_bits2(vectors);
+  } else {
+    compute_float(vectors);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void VectorSums::compute_float(const GMVectors& vectors) {
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
 
 
 }
 
 //-----------------------------------------------------------------------------
 
-void VectorSums::compute(const GMVectors& vectors) {
+void VectorSums::compute_bits2(const GMVectors& vectors) {
+  COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
 
 
 }
