@@ -12,11 +12,51 @@
 #define _comet_vector_sums_hh_
 
 #include "env.hh"
+#include "mirrored_buf.hh"
 #include "vectors.hh"
 
 //=============================================================================
 
 namespace comet {
+
+//-----------------------------------------------------------------------------
+
+class VectorSums {
+
+  typedef GMFloat Float_t;
+
+public:
+
+  VectorSums(size_t num_vector_local, Env& env_);
+  ~VectorSums();
+
+  void compute(const GMVectors& vectors);
+
+private:
+
+  Env& env_;
+
+  const size_t num_vector_local_;
+
+  GMMirroredBuf sums_;
+  GMMirroredBuf sums_tmp_;
+  GMMirroredBuf counts_;
+  GMMirroredBuf counts_tmp_;
+
+  // Disallowed methods.
+
+  VectorSums(  const VectorSums&);
+  void operator=(const VectorSums&);
+
+}; // VectorSums
+
+//-----------------------------------------------------------------------------
+
+
+
+
+
+
 
 //-----------------------------------------------------------------------------
 // Struct declaration
@@ -59,8 +99,14 @@ GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env);
 
 GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
 
+
+
+
+
 //-----------------------------------------------------------------------------
 /// \brief Utility class for aggregating vector-related objects.
+
+// TODO: put in separate file.
 
 struct VData {
   GMVectors* vectors;

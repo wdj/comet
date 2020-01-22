@@ -490,28 +490,25 @@ bool Env::can_run(int tc) const {
                         (TC::FP32 == tc && BuildHas::CPUBLAS));
   }
 
-  if (compute_method_ == ComputeMethod::GPU) {
+  if (is_compute_method_gpu()) {
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
   }
 
 //TODO: adjust this for HIP case.
-  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::FP16 == tc) {
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc) {
     result = result && BuildHas::CUDA && System::compute_capability() >= 700;
   }
 
 //TODO: adjust this for HIP case.
-  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::INT8 == tc) {
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc) {
     result = result && BuildHas::CUDA && System::compute_capability() >= 750;
   }
 
-  if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::GPU &&
-      TC::FP32 == tc) {
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc) {
     result = result && (BuildHas::CUDA || BuildHas::HIP);
   }
 
-  if (compute_method_ == ComputeMethod::GPU && (!is_metric_type_bitwise()
+  if (is_compute_method_gpu() && (!is_metric_type_bitwise()
       || (is_metric_type_bitwise() && TC::NO == tc))) {
     result = result && BuildHas::MAGMA;
   }
@@ -565,7 +562,7 @@ void Env::accel_sync_() const {
   if (! is_proc_active())
     return;
 
-  if (compute_method() != ComputeMethod::GPU)
+  if (!is_compute_method_gpu())
     return;
 
 # if defined COMET_USE_CUDA
@@ -718,7 +715,7 @@ void Env::streams_initialize_() {
   if (are_streams_initialized_)
     return;
 
-  if (compute_method() != ComputeMethod::GPU)
+  if (!is_compute_method_gpu())
     return;
 
   for (Stream_t* const stream : {&stream_compute_, &stream_togpu_,
@@ -790,7 +787,7 @@ Env::Stream_t Env::stream_fromgpu() {
 
 void Env::stream_synchronize(Stream_t stream) const {
 
-  if (compute_method() != ComputeMethod::GPU)
+  if (!is_compute_method_gpu())
     return;
 
   COMET_INSIST(are_streams_initialized_);

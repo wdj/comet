@@ -103,10 +103,12 @@ private:
 
   mutable bool is_locked_h_;
   mutable bool is_locked_d_;
+  const bool use_linalg_;
 };
 
 //-----------------------------------------------------------------------------
 
+#if 0
 //GMMirroredBuf GMMirroredBuf_null(void);
 
 void GMMirroredBuf_create(GMMirroredBuf* p, size_t dim0, size_t dim1,
@@ -116,6 +118,7 @@ void GMMirroredBuf_create(GMMirroredBuf* p, GMMirroredBuf* p_old, size_t dim0,
                           GMEnv* env);
 
 void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env);
+#endif
 
 //=============================================================================
 

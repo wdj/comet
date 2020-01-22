@@ -39,9 +39,10 @@ void gm_compute_2way_proc_nums_czek_start_(
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(!env->is_using_linalg());
 
   /*----------------------------------------*/
-  if (env->compute_method() != ComputeMethod::GPU && env->all2all()) {
+  if (env->all2all()) {
     /*----------------------------------------*/
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
@@ -63,7 +64,7 @@ void gm_compute_2way_proc_nums_czek_start_(
     }   /*---for j---*/
 
     /*----------------------------------------*/
-  } else { // env->compute_method() != ComputeMethod::GPU
+  } else {
     /*----------------------------------------*/
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&

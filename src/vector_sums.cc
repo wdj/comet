@@ -20,6 +20,48 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+
+VectorSums::VectorSums(size_t num_vector_local, Env& env)
+  : env_(env)
+  , num_vector_local_(num_vector_local)
+  , sums_(env)
+  , sums_tmp_(env)
+  , counts_(env)
+  , counts_tmp_(env) {
+
+  //FIX -- doesn't work
+
+  sums_.allocate(num_vector_local, 1);
+  if (env_.num_proc() > 1)
+    sums_tmp_.allocate(num_vector_local, 1);
+
+  if (env_.sparse() && env_.is_metric_type_bitwise()) {
+    counts_.allocate(num_vector_local, 1);
+    if (env_.num_proc() > 1)
+      counts_tmp_.allocate(num_vector_local, 1);
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+VectorSums::~VectorSums() {
+
+
+}
+
+//-----------------------------------------------------------------------------
+
+void VectorSums::compute(const GMVectors& vectors) {
+
+
+}
+
+//-----------------------------------------------------------------------------
+
+
+
+
+//-----------------------------------------------------------------------------
 /*---Null object---*/
 
 GMVectorSums GMVectorSums_null(void) {

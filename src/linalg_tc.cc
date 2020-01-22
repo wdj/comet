@@ -496,7 +496,7 @@ static void gm_tc_buf_write_(
   const uint32_t* vim = form_matX_on_accel ? vi2 : vi1; // matrix
   const uint32_t* vic = form_matX_on_accel ? vi1 : unused_col; // column
 
-  if (env.compute_method() == ComputeMethod::GPU) {
+  if (env.is_compute_method_gpu()) {
 
     // Kernel call.
 
@@ -532,7 +532,7 @@ static void gm_tc_buf_write_(
 
 #   endif // COMET_USE_ACCEL
 
-  } else { // if (env.compute_method() != ComputeMethod::GPU)
+  } else { // (!env.is_compute_method_gpu())
 
     for (int flD2_thisstep=0; flD2_thisstep<nflD2_thisstep; ++flD2_thisstep) {
       for (int vlX2=0; vlX2<nvleX2; ++vlX2) {
@@ -547,7 +547,7 @@ static void gm_tc_buf_write_(
 //printf("========================== %i\n", flD2_thisstep);
     }
 
-  } // if (env.compute_method() == ComputeMethod::GPU)
+  } // if (env.is_compute_method_gpu())
 }
 
 //=============================================================================
@@ -579,7 +579,7 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
 
   // Make BLAS call.
 
-  if (env.compute_method() == ComputeMethod::GPU) {
+  if (env.is_compute_method_gpu()) {
 
     // Make accelerator BLAS call.
 
@@ -652,7 +652,7 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
 
     System::accel_last_call_succeeded();
 
-  } else { // if (env.compute_method() != ComputeMethod::GPU) {
+  } else { // (!env.is_compute_method_gpu()) {
 
 #   ifdef COMET_USE_CPUBLAS
 
@@ -895,7 +895,7 @@ static void gm_tc_repair_metrics_(
 
   typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
 
-  if (env.compute_method() == ComputeMethod::GPU) {
+  if (env.is_compute_method_gpu()) {
 
     // Kernel call.
 
@@ -930,7 +930,7 @@ static void gm_tc_repair_metrics_(
 
 #endif // COMET_USE_ACCEL
 
-  } else { // if (env.compute_method() != ComputeMethod::GPU)
+  } else { // (!env.is_compute_method_gpu())
 
 //    for (int thread_c=0; thread_c<nvllD2; ++thread_c) {
 //      for (int thread_r=0; thread_r<nvl; ++thread_r) {
@@ -1129,7 +1129,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
   tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64) * sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 
-  if (env.compute_method() == ComputeMethod::GPU) {
+  if (env.is_compute_method_gpu()) {
 
     // Allocate buffers.
 
@@ -1204,7 +1204,7 @@ void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv& env) {
     return;
   }
 
-  if (env.compute_method() == ComputeMethod::GPU) {
+  if (env.is_compute_method_gpu()) {
 
     // Free buffers.
 

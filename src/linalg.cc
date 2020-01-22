@@ -188,9 +188,6 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   const size_t n = dim0 * dim1;
 
-  const bool is_compute_method_gpu = env->compute_method() ==
-                                     ComputeMethod::GPU;
-
   if (use_minproduct(env)) { //--------------------
 
 #ifdef COMET_USE_MAGMA
@@ -211,7 +208,7 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     }
     GMFloat_fill_nan((GMFloat*)p->h, n);
 
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       if (FP_PRECISION_DOUBLE) {
         magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
         COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
@@ -226,8 +223,8 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     }
     // TODO: ? fill GPU memory with NaNs
     p->size = n * sizeof(Float_t);
-#else
-    p->size = n * sizeof(GMFloat);
+//#else
+//    p->size = n * sizeof(GMFloat);
 #endif
 
   } else if (use_mgemm4(env)) { //--------------------
@@ -241,14 +238,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
       "Error in magma_mgemm4_zmalloc_pinned, possibly insufficient memory.");
 
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_mgemm4_zmalloc((Float_t**)&p->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
         "Error in magma_mgemm4_zmalloc, possibly insufficient memory.");
     }
     p->size = n * sizeof(Float_t);
-#else
-    p->size = n * 2 * sizeof(double);
+//#else
+//    p->size = n * 2 * sizeof(double);
 #endif
 
   } else if (use_mgemm2(env)) { //--------------------
@@ -262,14 +259,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
       "Error in magma_mgemm2_zmalloc_pinned, possibly insufficient memory.");
 
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_mgemm2_zmalloc((Float_t**)&p->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
         "Error in magma_mgemm2_zmalloc, possibly insufficient memory.");
     }
     p->size = n * sizeof(Float_t);
-#else
-    p->size = n * 2 * sizeof(double);
+//#else
+//    p->size = n * 2 * sizeof(double);
 #endif
 
   } else if (use_mgemm3(env)) { //--------------------
@@ -283,14 +280,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
       "Error in magma_mgemm3_zmalloc_pinned, possibly insufficient memory.");
 
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_mgemm3_zmalloc((Float_t**)&p->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
         "Error in magma_mgemm3_zmalloc, possibly insufficient memory.");
     }
     p->size = n * sizeof(Float_t);
-#else
-    p->size = n * 2 * sizeof(double);
+//#else
+//    p->size = n * 2 * sizeof(double);
 #endif
 
   } else if (use_mgemm5(env)) { //--------------------
@@ -304,14 +301,14 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
       "Error in magma_mgemm5_zmalloc_pinned, possibly insufficient memory.");
 
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_mgemm5_zmalloc((Float_t**)&p->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
         "Error in magma_mgemm5_zmalloc, possibly insufficient memory.");
     }
     p->size = n * sizeof(Float_t);
-#else
-    p->size = n * 2 * sizeof(double);
+//#else
+//    p->size = n * 2 * sizeof(double);
 #endif
 
   } else { //--------------------
@@ -320,34 +317,32 @@ void gm_linalg_malloc(GMMirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
   } // if //--------------------
 
-#if defined COMET_USE_MAGMA
-#elif defined COMET_USE_CUDA
-  cudaMallocHost((void**)&p->h, p->size);
-  if (is_compute_method_gpu) {
-    cudaMalloc((void**)&p->d, p->size);
-  }
-#elif defined COMET_USE_HIP
-  hipHostMalloc((void**)&p->h, p->size);
-  if (is_compute_method_gpu) {
-    hipMalloc((void**)&p->d, p->size);
-  }
-#else
-  p->h = malloc(p->size);
-  COMET_INSIST(!is_compute_method_gpu &&
-    "GPU requested but not supported for this build.");
-#endif
+//#if defined COMET_USE_MAGMA
+//#elif defined COMET_USE_CUDA
+//  cudaMallocHost((void**)&p->h, p->size);
+//  if (env->is_compute_method_gpu()) {
+//    cudaMalloc((void**)&p->d, p->size);
+//  }
+//#elif defined COMET_USE_HIP
+//  hipHostMalloc((void**)&p->h, p->size);
+//  if (env->is_compute_method_gpu()) {
+//    hipMalloc((void**)&p->d, p->size);
+//  }
+//#else
+//  p->h = malloc(p->size);
+//  COMET_INSIST(!env->is_compute_method_gpu() &&
+//    "GPU requested but not supported for this build.");
+//#endif
 
   env->cpu_mem_local_inc(p->size);
-  if (is_compute_method_gpu) {
+  if (env->is_compute_method_gpu())
     env->gpu_mem_local_inc(p->size);
-  }
 
-  COMET_INSIST(p->h && "Invalid host pointer created in gm_linalg_malloc,"
-                   " possibly due to insufficient memory.");
-  if (is_compute_method_gpu) {
-    COMET_INSIST(p->d && "Invalid device pointer created in gm_linalg_malloc,"
-                     " possibly due to insufficient memory.");
-  }
+  COMET_INSIST(p->h &&
+    "Invalid host pointer created, possibly due to insufficient memory.");
+  COMET_INSIST((p->d || !env->is_compute_method_gpu()) &&
+    "Invalid device pointer created, possibly due to insufficient memory.");
+
   p->is_alias = false;
 }
 
@@ -358,9 +353,6 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 
   COMET_INSIST(! p->is_alias);
 
-  const bool is_compute_method_gpu = env->compute_method() ==
-                                     ComputeMethod::GPU;
-
   const size_t size = p->size;
 
 #ifdef COMET_USE_MAGMA
@@ -369,7 +361,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
     COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
              "Error in magma_minproduct_free_pinned.");
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_minproduct_free(p->d);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
              "Error in magma_minproduct_free.");
@@ -380,7 +372,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(p->h);
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
              "Error in magma_mgemm4_free_pinned.");
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_mgemm4_free(p->d);
       COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
                "Error in magma_mgemm4_free.");
@@ -391,7 +383,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(p->h);
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
              "Error in magma_mgemm2_free_pinned.");
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_mgemm2_free(p->d);
       COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
                "Error in magma_mgemm2_free.");
@@ -402,7 +394,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(p->h);
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
              "Error in magma_mgemm3_free_pinned.");
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_mgemm3_free(p->d);
       COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
                "Error in magma_mgemm3_free.");
@@ -413,7 +405,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
     magma_mgemm5_int_t magma_code = magma_mgemm5_free_pinned(p->h);
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
              "Error in magma_mgemm5_free_pinned.");
-    if (is_compute_method_gpu) {
+    if (env->is_compute_method_gpu()) {
       magma_code = magma_mgemm5_free(p->d);
       COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
                "Error in magma_mgemm5_free.");
@@ -426,17 +418,17 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   } // if //--------------------
 #elif defined COMET_USE_CUDA
   cudaFreeHost(p->h);
-  if (is_compute_method_gpu) {
+  if (env->is_compute_method_gpu()) {
     cudaFree(p->d);
   }
 #elif defined COMET_USE_HIP
   hipHostFree(p->h);
-  if (is_compute_method_gpu) {
+  if (env->is_compute_method_gpu()) {
     hipFree(p->d);
   }
 #else
   free(p->h);
-  COMET_INSIST(!is_compute_method_gpu &&
+  COMET_INSIST(!env->is_compute_method_gpu() &&
     "GPU requested but not supported for this build.");
 #endif // COMET_USE_MAGMA
 
@@ -444,7 +436,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
   p->d = NULL;
 
   env->cpu_mem_local_dec(size);
-  if (is_compute_method_gpu) {
+  if (env->is_compute_method_gpu()) {
     env->gpu_mem_local_dec(size);
   }
 }
@@ -454,7 +446,7 @@ void gm_linalg_free(GMMirroredBuf* p, GMEnv* env) {
 void gm_linalg_set_matrix_zero_start_(GMMirroredBuf* matrix_buf, GMEnv* env) {
   COMET_INSIST(matrix_buf && env);
 
-  if (env->compute_method() != ComputeMethod::GPU) {
+  if (!env->is_compute_method_gpu()) {
 //    memset(matrix_buf->h, 0, matrix_buf->size);
     return;
   }
@@ -539,7 +531,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
                                       bool is_beta_one,
                                       GMEnv* env) {
   COMET_INSIST(matA && matB && matC && env);
-  COMET_INSIST(env->compute_method() == ComputeMethod::GPU);
+  COMET_INSIST(env->is_compute_method_gpu());
 
 #ifdef COMET_USE_MAGMA
   {
@@ -806,7 +798,7 @@ void gm_linalg_gemm_magma_start(size_t m,
                                 GMDecompMgr* dm,
                                 GMEnv* env) {
   COMET_INSIST(matA && matB && matC && env);
-  COMET_INSIST(env->compute_method() == ComputeMethod::GPU);
+  COMET_INSIST(env->is_compute_method_gpu());
 
   // The purpose of this code is to workaround the magma size
   // limitation (for non CUBLAS failover) by doing gemm in blocks.
@@ -892,7 +884,7 @@ void gm_linalg_gemm_start(
   if (m==0 || n==0 || k==0)
     return;
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env->is_compute_method_gpu()) {
     matA1->lock_d();
     if (matB != matA1) {
       matB->lock_d();
@@ -901,7 +893,7 @@ void gm_linalg_gemm_start(
   }
 
   if (env->is_using_tc()) {
-    if (env->compute_method() == ComputeMethod::GPU) {
+    if (env->is_compute_method_gpu()) {
       gm_tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
@@ -927,7 +919,7 @@ void gm_linalg_gemm_wait(
     return;
 
   if (env->is_using_tc()) {
-    if (env->compute_method() != ComputeMethod::GPU) {
+    if (!env->is_compute_method_gpu()) {
       matA1->lock_h();
       if (matA2 != matA1 && matA2 != matB) {
         matA2->lock_h();
@@ -953,7 +945,7 @@ void gm_linalg_gemm_wait(
 
   env->stream_synchronize(env->stream_compute());
 
-  if (env->compute_method() == ComputeMethod::GPU) {
+  if (env->is_compute_method_gpu()) {
     matA1->unlock_d();
     if (matB != matA1) {
       matB->unlock_d();
@@ -1000,7 +992,7 @@ void gm_linalg_gemm(
 void gm_linalg_set_matrix_start(GMMirroredBuf* matrix_buf, GMEnv* env) {
   COMET_INSIST(matrix_buf && env);
 
-  if (env->compute_method() != ComputeMethod::GPU) {
+  if (!env->is_compute_method_gpu()) {
     return;
   }
 
@@ -1110,7 +1102,7 @@ void gm_linalg_get_matrix_start(GMMirroredBuf* matrix_buf,
                                 GMEnv* env) {
   COMET_INSIST(matrix_buf && env);
 
-  if (env->compute_method() != ComputeMethod::GPU) {
+  if (!env->is_compute_method_gpu()) {
     return;
   }
 

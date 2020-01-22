@@ -55,7 +55,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
               env->proc_num_vector() != k_block));
   COMET_INSIST(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
-  COMET_INSIST(env->compute_method() != ComputeMethod::GPU);
+  COMET_INSIST(!env->is_compute_method_gpu());
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
   COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
@@ -75,7 +75,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   const GMVectorSums* const vs_k = vector_sums_k;
 
   /*----------------------------------------*/
-  if (env->compute_method() != ComputeMethod::GPU && ! env->all2all()) {
+  if (!env->is_compute_method_gpu() && !env->all2all()) {
     /*----------------------------------------*/
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() && "num_proc_field>1 "
@@ -122,7 +122,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
     }
 
     /*----------------------------------------*/
-  } else if (env->compute_method() != ComputeMethod::GPU) {
+  } else if (!env->is_compute_method_gpu()) {
     /*----------------------------------------*/
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() && "num_proc_field>1 "
@@ -177,7 +177,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
     } //---J
 
     /*----------------------------------------*/
-  } else /* if (env->compute_method() == ComputeMethod::GPU) */ {
+  } else /* if (env->is_compute_method_gpu()) */ {
     /*----------------------------------------*/
 
     COMET_INSIST(false && "Invalid compute_method.");

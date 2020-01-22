@@ -231,8 +231,11 @@ public:
   int phase_num() const {return phase_num_;}
   void phase_num(int value) {phase_num_ = value;}
 
+  bool is_compute_method_gpu() const {
+    return ComputeMethod::GPU == compute_method_;
+  }
   bool is_metric_type_bitwise() const {
-    return metric_type_==MetricType::CCC || metric_type_==MetricType::DUO;
+    return metric_type_ == MetricType::CCC || metric_type_ == MetricType::DUO;
   }
   bool is_using_tc() const {
     //COMET_INSIST(is_using_linalg());
@@ -253,6 +256,10 @@ public:
 
   int data_type_vectors() const;
   int data_type_metrics() const;
+  int matrix_buf_elt_size() const {return metric_type_ == MetricType::CZEK ?
+    sizeof(GMFloat) : 2*sizeof(double); // ISSUE: move this elsewhere?
+  }
+
   MPI_Datatype metrics_mpi_type() const;
   bool form_matX_on_accel() const {return is_using_tc();}
   //bool form_matX_on_accel() const {return false;}

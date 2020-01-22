@@ -57,7 +57,7 @@ void gm_compute_2way_proc_combine_czek_(
   ---*/
 
   /*----------------------------------------*/
-  if (env->compute_method() != ComputeMethod::GPU && env->all2all()) {
+  if (!env->is_compute_method_gpu() && env->all2all()) {
     /*----------------------------------------*/
 
     for (int j = 0; j < nvl; ++j) {
@@ -84,7 +84,7 @@ void gm_compute_2way_proc_combine_czek_(
          * zero---*/
 
     /*----------------------------------------*/
-  } else if (env->compute_method() != ComputeMethod::GPU) {
+  } else if (!env->is_compute_method_gpu()) {
     /*----------------------------------------*/
 
     for (int j = 0; j < nvl; ++j) {

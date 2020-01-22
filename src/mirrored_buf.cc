@@ -28,7 +28,8 @@ GMMirroredBuf::GMMirroredBuf(Env& env)
   , is_allocated(false)
   , env_(env)
   , is_locked_h_(false)
-  , is_locked_d_(false) {
+  , is_locked_d_(false)
+  , use_linalg_(BuildHas::MAGMA) {
   }
 
 //-----------------------------------------------------------------------------
@@ -44,7 +45,8 @@ GMMirroredBuf::GMMirroredBuf(size_t dim0_, size_t dim1_, Env& env)
   , is_allocated(false)
   , env_(env)
   , is_locked_h_(false)
-  , is_locked_d_(false) {
+  , is_locked_d_(false)
+  , use_linalg_(BuildHas::MAGMA) {
 
   allocate(dim0_, dim1_);
 }
@@ -62,7 +64,8 @@ GMMirroredBuf::GMMirroredBuf(GMMirroredBuf& buf, size_t dim0_, Env& env)
   , is_allocated(true)
   , env_(env)
   , is_locked_h_(false)
-  , is_locked_d_(false) {
+  , is_locked_d_(false)
+  , use_linalg_(BuildHas::MAGMA) {
   COMET_INSIST(dim0_ <= buf.dim0);
   COMET_INSIST(buf.is_allocated);
 }
@@ -78,8 +81,41 @@ GMMirroredBuf::~GMMirroredBuf() {
 void GMMirroredBuf::allocate(size_t dim0, size_t dim1) {
   COMET_INSIST(is_alias || !is_allocated);
 
-  gm_linalg_malloc(this, dim0, dim1, &env_);
-  active = env_.compute_method() == ComputeMethod::GPU ? d : h;
+  if (use_linalg_) {
+
+    gm_linalg_malloc(this, dim0, dim1, &env_);
+
+  } else {
+
+    this->dim0 = dim0;
+    this->dim1 = dim1;
+    size = dim0 * dim1 * env_.matrix_buf_elt_size();
+#   if defined COMET_USE_CUDA
+      cudaMallocHost((void**)&h, size);
+      if (env_.is_compute_method_gpu())
+        cudaMalloc((void**)&d, size);
+#   elif defined COMET_USE_HIP
+      hipHostMalloc((void**)&h, size);
+      if (env_.is_compute_method_gpu())
+        hipMalloc((void**)&d, size);
+#   else
+      h = malloc(size);
+      COMET_INSIST(!env_.is_compute_method_gpu() &&
+        "GPU not supported for this build.");
+#   endif
+
+    env_.cpu_mem_local_inc(size);
+    if (env_.is_compute_method_gpu())
+      env_.gpu_mem_local_inc(size);
+
+    COMET_INSIST(h &&
+      "Invalid host pointer created, possibly due to insufficient memory.");
+    COMET_INSIST((d || !env_.is_compute_method_gpu()) &&
+      "Invalid device pointer created, possibly due to insufficient memory.");
+
+  } // if (use_linalg_)
+
+  active = env_.is_compute_method_gpu() ? d : h;
   is_alias = false;
   is_allocated = true;
 }
@@ -117,9 +153,8 @@ void GMMirroredBuf::deallocate() {
 //-----------------------------------------------------------------------------
 
 void GMMirroredBuf::to_accel_start() {
-  if (env_.compute_method() == ComputeMethod::GPU) {
+  if (env_.is_compute_method_gpu())
     lock();
-  }
   gm_linalg_set_matrix_start(this, &env_);
 }
 
@@ -127,9 +162,8 @@ void GMMirroredBuf::to_accel_start() {
 
 void GMMirroredBuf::to_accel_wait() {
   gm_linalg_set_matrix_wait(&env_);
-  if (env_.compute_method() == ComputeMethod::GPU) {
+  if (env_.is_compute_method_gpu())
     unlock();
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -142,9 +176,8 @@ void GMMirroredBuf::to_accel() {
 //-----------------------------------------------------------------------------
 
 void GMMirroredBuf::from_accel_start() {
-  if (env_.compute_method() == ComputeMethod::GPU) {
+  if (env_.is_compute_method_gpu())
     lock();
-  }
   gm_linalg_get_matrix_start(this, &env_);
 }
 
@@ -152,9 +185,8 @@ void GMMirroredBuf::from_accel_start() {
 
 void GMMirroredBuf::from_accel_wait() {
   gm_linalg_get_matrix_wait(&env_);
-  if (env_.compute_method() == ComputeMethod::GPU) {
+  if (env_.is_compute_method_gpu())
     unlock();
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -173,7 +205,7 @@ void GMMirroredBuf::from_accel() {
 
 
 
-
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Mirrored buf pseudo-constructor: allocate CPU and GPU arrays.
 
@@ -218,6 +250,7 @@ void GMMirroredBuf_destroy(GMMirroredBuf* p, GMEnv* env) {
 
   p->is_allocated = false;
 }
+#endif
 
 //=============================================================================
 

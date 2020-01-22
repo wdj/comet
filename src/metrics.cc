@@ -302,7 +302,7 @@ void GMMetrics_create(GMMetrics* metrics,
                     dm->num_field == dm->num_field_active)
                     && "This case currently not supported.");
 
-  COMET_INSIST_INTERFACE(env, (env->compute_method() == ComputeMethod::GPU ||
+  COMET_INSIST_INTERFACE(env, (env->is_compute_method_gpu() ||
                     dm->num_field == dm->num_field_active)
                     && "This case currently not supported.");
 
