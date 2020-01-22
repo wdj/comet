@@ -130,7 +130,7 @@ static void GMVectors_float_set(GMVectors* vectors,
 
 //-----------------------------------------------------------------------------
 
-static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
+static GMFloat GMVectors_float_get_from_index(const GMVectors* const vectors,
                                               size_t index,
                                               GMEnv* env) {
   COMET_ASSERT(vectors);
@@ -144,7 +144,7 @@ static GMFloat GMVectors_float_get_from_index(GMVectors* const vectors,
 
 //-----------------------------------------------------------------------------
 
-static GMFloat GMVectors_float_get(GMVectors* const vectors,
+static GMFloat GMVectors_float_get(const GMVectors* const vectors,
                                    int field_local,
                                    int vector_local,
                                    GMEnv* env) {
@@ -163,7 +163,7 @@ static GMFloat GMVectors_float_get(GMVectors* const vectors,
 //=============================================================================
 /*---Accessors: Bits2, Bits2x64---*/
 
-static GMBits2 GMVectors_bits2_get(GMVectors* vectors,
+static GMBits2 GMVectors_bits2_get(const GMVectors* vectors,
                                    int field_local,
                                    int vector_local,
                                    GMEnv* env) {
@@ -285,7 +285,7 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
 
 //-----------------------------------------------------------------------------
 
-static GMBits2x64 GMVectors_bits2x64_get(GMVectors* vectors,
+static GMBits2x64 GMVectors_bits2x64_get(const GMVectors* vectors,
                                          int packedval_field_local,
                                          int vector_local,
                                          GMEnv* env) {
