@@ -113,7 +113,7 @@ void VectorSums::compute_bits2(const GMVectors& vectors) {
       Float_t sum = 0;
       if (env_.sparse()) {
         Float_t count = 0;
-        for (int f = 0; f < vectors.dm->num_field_active_local; ++f) {
+        for (int f = 0; f < (int)vectors.dm->num_field_active_local; ++f) {
           // Slow way: sum each seminibble individually
           const GMBits2 v = GMVectors_bits2_get(&vectors, f, i, &env_);
           if (GM_2BIT_UNKNOWN != v){
