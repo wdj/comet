@@ -188,9 +188,9 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Compute 3-way numerators CCC cases that don't use linalg package.
+/// \brief Compute 3-way numerators CCC/DUO cases that don't use linalg package.
 
-void ComputeMetrics3WayBlock::compute_ccc_(VData vdata_i, VData vdata_j,
+void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   VData vdata_k, GMMetrics& numerators,
   int j_block, int k_block, int section_step) {
 
@@ -278,87 +278,111 @@ void ComputeMetrics3WayBlock::compute_ccc_(VData vdata_i, VData vdata_j,
 
             if ( ! unknown_i && ! unknown_j  && ! unknown_k ) {
 
-              /* clang-format off */
-              const int r000 =
-                ((!(vi & 1)) && (!(vj & 1)) && (!(vk & 1))) +
-                ((!(vi & 1)) && (!(vj & 1)) && (!(vk & 2))) +
-                ((!(vi & 1)) && (!(vj & 2)) && (!(vk & 1))) +
-                ((!(vi & 1)) && (!(vj & 2)) && (!(vk & 2))) +
-                ((!(vi & 2)) && (!(vj & 1)) && (!(vk & 1))) +
-                ((!(vi & 2)) && (!(vj & 1)) && (!(vk & 2))) +
-                ((!(vi & 2)) && (!(vj & 2)) && (!(vk & 1))) +
-                ((!(vi & 2)) && (!(vj & 2)) && (!(vk & 2)));
-              const int r001 =
-                ((!(vi & 1)) && (!(vj & 1)) && ( (vk & 1))) +
-                ((!(vi & 1)) && (!(vj & 1)) && ( (vk & 2))) +
-                ((!(vi & 1)) && (!(vj & 2)) && ( (vk & 1))) +
-                ((!(vi & 1)) && (!(vj & 2)) && ( (vk & 2))) +
-                ((!(vi & 2)) && (!(vj & 1)) && ( (vk & 1))) +
-                ((!(vi & 2)) && (!(vj & 1)) && ( (vk & 2))) +
-                ((!(vi & 2)) && (!(vj & 2)) && ( (vk & 1))) +
-                ((!(vi & 2)) && (!(vj & 2)) && ( (vk & 2)));
-              const int r010 =
-                ((!(vi & 1)) && ( (vj & 1)) && (!(vk & 1))) +
-                ((!(vi & 1)) && ( (vj & 1)) && (!(vk & 2))) +
-                ((!(vi & 1)) && ( (vj & 2)) && (!(vk & 1))) +
-                ((!(vi & 1)) && ( (vj & 2)) && (!(vk & 2))) +
-                ((!(vi & 2)) && ( (vj & 1)) && (!(vk & 1))) +
-                ((!(vi & 2)) && ( (vj & 1)) && (!(vk & 2))) +
-                ((!(vi & 2)) && ( (vj & 2)) && (!(vk & 1))) +
-                ((!(vi & 2)) && ( (vj & 2)) && (!(vk & 2)));
-              const int r011 =
-                ((!(vi & 1)) && ( (vj & 1)) && ( (vk & 1))) +
-                ((!(vi & 1)) && ( (vj & 1)) && ( (vk & 2))) +
-                ((!(vi & 1)) && ( (vj & 2)) && ( (vk & 1))) +
-                ((!(vi & 1)) && ( (vj & 2)) && ( (vk & 2))) +
-                ((!(vi & 2)) && ( (vj & 1)) && ( (vk & 1))) +
-                ((!(vi & 2)) && ( (vj & 1)) && ( (vk & 2))) +
-                ((!(vi & 2)) && ( (vj & 2)) && ( (vk & 1))) +
-                ((!(vi & 2)) && ( (vj & 2)) && ( (vk & 2)));
-              const int r100 =
-                (( (vi & 1)) && (!(vj & 1)) && (!(vk & 1))) +
-                (( (vi & 1)) && (!(vj & 1)) && (!(vk & 2))) +
-                (( (vi & 1)) && (!(vj & 2)) && (!(vk & 1))) +
-                (( (vi & 1)) && (!(vj & 2)) && (!(vk & 2))) +
-                (( (vi & 2)) && (!(vj & 1)) && (!(vk & 1))) +
-                (( (vi & 2)) && (!(vj & 1)) && (!(vk & 2))) +
-                (( (vi & 2)) && (!(vj & 2)) && (!(vk & 1))) +
-                (( (vi & 2)) && (!(vj & 2)) && (!(vk & 2)));
-              const int r101 =
-                (( (vi & 1)) && (!(vj & 1)) && ( (vk & 1))) +
-                (( (vi & 1)) && (!(vj & 1)) && ( (vk & 2))) +
-                (( (vi & 1)) && (!(vj & 2)) && ( (vk & 1))) +
-                (( (vi & 1)) && (!(vj & 2)) && ( (vk & 2))) +
-                (( (vi & 2)) && (!(vj & 1)) && ( (vk & 1))) +
-                (( (vi & 2)) && (!(vj & 1)) && ( (vk & 2))) +
-                (( (vi & 2)) && (!(vj & 2)) && ( (vk & 1))) +
-                (( (vi & 2)) && (!(vj & 2)) && ( (vk & 2)));
-              const int r110 =
-                (( (vi & 1)) && ( (vj & 1)) && (!(vk & 1))) +
-                (( (vi & 1)) && ( (vj & 1)) && (!(vk & 2))) +
-                (( (vi & 1)) && ( (vj & 2)) && (!(vk & 1))) +
-                (( (vi & 1)) && ( (vj & 2)) && (!(vk & 2))) +
-                (( (vi & 2)) && ( (vj & 1)) && (!(vk & 1))) +
-                (( (vi & 2)) && ( (vj & 1)) && (!(vk & 2))) +
-                (( (vi & 2)) && ( (vj & 2)) && (!(vk & 1))) +
-                (( (vi & 2)) && ( (vj & 2)) && (!(vk & 2)));
-              const int r111 =
-                (( (vi & 1)) && ( (vj & 1)) && ( (vk & 1))) +
-                (( (vi & 1)) && ( (vj & 1)) && ( (vk & 2))) +
-                (( (vi & 1)) && ( (vj & 2)) && ( (vk & 1))) +
-                (( (vi & 1)) && ( (vj & 2)) && ( (vk & 2))) +
-                (( (vi & 2)) && ( (vj & 1)) && ( (vk & 1))) +
-                (( (vi & 2)) && ( (vj & 1)) && ( (vk & 2))) +
-                (( (vi & 2)) && ( (vj & 2)) && ( (vk & 1))) +
-                (( (vi & 2)) && ( (vj & 2)) && ( (vk & 2)));
-              /* clang-format on */
+              if (env->metric_type() == MetricType::CCC) {
 
-              // Accumulate
+                /* clang-format off */
+                const int r000 =
+                  ((!(vi & 1)) && (!(vj & 1)) && (!(vk & 1))) +
+                  ((!(vi & 1)) && (!(vj & 1)) && (!(vk & 2))) +
+                  ((!(vi & 1)) && (!(vj & 2)) && (!(vk & 1))) +
+                  ((!(vi & 1)) && (!(vj & 2)) && (!(vk & 2))) +
+                  ((!(vi & 2)) && (!(vj & 1)) && (!(vk & 1))) +
+                  ((!(vi & 2)) && (!(vj & 1)) && (!(vk & 2))) +
+                  ((!(vi & 2)) && (!(vj & 2)) && (!(vk & 1))) +
+                  ((!(vi & 2)) && (!(vj & 2)) && (!(vk & 2)));
+                const int r001 =
+                  ((!(vi & 1)) && (!(vj & 1)) && ( (vk & 1))) +
+                  ((!(vi & 1)) && (!(vj & 1)) && ( (vk & 2))) +
+                  ((!(vi & 1)) && (!(vj & 2)) && ( (vk & 1))) +
+                  ((!(vi & 1)) && (!(vj & 2)) && ( (vk & 2))) +
+                  ((!(vi & 2)) && (!(vj & 1)) && ( (vk & 1))) +
+                  ((!(vi & 2)) && (!(vj & 1)) && ( (vk & 2))) +
+                  ((!(vi & 2)) && (!(vj & 2)) && ( (vk & 1))) +
+                  ((!(vi & 2)) && (!(vj & 2)) && ( (vk & 2)));
+                const int r010 =
+                  ((!(vi & 1)) && ( (vj & 1)) && (!(vk & 1))) +
+                  ((!(vi & 1)) && ( (vj & 1)) && (!(vk & 2))) +
+                  ((!(vi & 1)) && ( (vj & 2)) && (!(vk & 1))) +
+                  ((!(vi & 1)) && ( (vj & 2)) && (!(vk & 2))) +
+                  ((!(vi & 2)) && ( (vj & 1)) && (!(vk & 1))) +
+                  ((!(vi & 2)) && ( (vj & 1)) && (!(vk & 2))) +
+                  ((!(vi & 2)) && ( (vj & 2)) && (!(vk & 1))) +
+                  ((!(vi & 2)) && ( (vj & 2)) && (!(vk & 2)));
+                const int r011 =
+                  ((!(vi & 1)) && ( (vj & 1)) && ( (vk & 1))) +
+                  ((!(vi & 1)) && ( (vj & 1)) && ( (vk & 2))) +
+                  ((!(vi & 1)) && ( (vj & 2)) && ( (vk & 1))) +
+                  ((!(vi & 1)) && ( (vj & 2)) && ( (vk & 2))) +
+                  ((!(vi & 2)) && ( (vj & 1)) && ( (vk & 1))) +
+                  ((!(vi & 2)) && ( (vj & 1)) && ( (vk & 2))) +
+                  ((!(vi & 2)) && ( (vj & 2)) && ( (vk & 1))) +
+                  ((!(vi & 2)) && ( (vj & 2)) && ( (vk & 2)));
+                const int r100 =
+                  (( (vi & 1)) && (!(vj & 1)) && (!(vk & 1))) +
+                  (( (vi & 1)) && (!(vj & 1)) && (!(vk & 2))) +
+                  (( (vi & 1)) && (!(vj & 2)) && (!(vk & 1))) +
+                  (( (vi & 1)) && (!(vj & 2)) && (!(vk & 2))) +
+                  (( (vi & 2)) && (!(vj & 1)) && (!(vk & 1))) +
+                  (( (vi & 2)) && (!(vj & 1)) && (!(vk & 2))) +
+                  (( (vi & 2)) && (!(vj & 2)) && (!(vk & 1))) +
+                  (( (vi & 2)) && (!(vj & 2)) && (!(vk & 2)));
+                const int r101 =
+                  (( (vi & 1)) && (!(vj & 1)) && ( (vk & 1))) +
+                  (( (vi & 1)) && (!(vj & 1)) && ( (vk & 2))) +
+                  (( (vi & 1)) && (!(vj & 2)) && ( (vk & 1))) +
+                  (( (vi & 1)) && (!(vj & 2)) && ( (vk & 2))) +
+                  (( (vi & 2)) && (!(vj & 1)) && ( (vk & 1))) +
+                  (( (vi & 2)) && (!(vj & 1)) && ( (vk & 2))) +
+                  (( (vi & 2)) && (!(vj & 2)) && ( (vk & 1))) +
+                  (( (vi & 2)) && (!(vj & 2)) && ( (vk & 2)));
+                const int r110 =
+                  (( (vi & 1)) && ( (vj & 1)) && (!(vk & 1))) +
+                  (( (vi & 1)) && ( (vj & 1)) && (!(vk & 2))) +
+                  (( (vi & 1)) && ( (vj & 2)) && (!(vk & 1))) +
+                  (( (vi & 1)) && ( (vj & 2)) && (!(vk & 2))) +
+                  (( (vi & 2)) && ( (vj & 1)) && (!(vk & 1))) +
+                  (( (vi & 2)) && ( (vj & 1)) && (!(vk & 2))) +
+                  (( (vi & 2)) && ( (vj & 2)) && (!(vk & 1))) +
+                  (( (vi & 2)) && ( (vj & 2)) && (!(vk & 2)));
+                const int r111 =
+                  (( (vi & 1)) && ( (vj & 1)) && ( (vk & 1))) +
+                  (( (vi & 1)) && ( (vj & 1)) && ( (vk & 2))) +
+                  (( (vi & 1)) && ( (vj & 2)) && ( (vk & 1))) +
+                  (( (vi & 1)) && ( (vj & 2)) && ( (vk & 2))) +
+                  (( (vi & 2)) && ( (vj & 1)) && ( (vk & 1))) +
+                  (( (vi & 2)) && ( (vj & 1)) && ( (vk & 2))) +
+                  (( (vi & 2)) && ( (vj & 2)) && ( (vk & 1))) +
+                  (( (vi & 2)) && ( (vj & 2)) && ( (vk & 2)));
+                /* clang-format on */
 
-              sum.data[0] += GMTally1_encode(r000, r001);
-              sum.data[1] += GMTally1_encode(r010, r011);
-              sum.data[2] += GMTally1_encode(r100, r101);
-              sum.data[3] += GMTally1_encode(r110, r111);
+                // Accumulate
+
+                sum.data[0] += GMTally1_encode(r000, r001);
+                sum.data[1] += GMTally1_encode(r010, r011);
+                sum.data[2] += GMTally1_encode(r100, r101);
+                sum.data[3] += GMTally1_encode(r110, r111);
+
+              } else { // (env->metric_type() == MetricType::DUO)
+
+                /* clang-format off */
+                const int r000 = ((!(vi & 1)) && (!(vj & 1)) && (!(vk & 1)));
+                const int r001 = ((!(vi & 1)) && (!(vj & 1)) && ( (vk & 1)));
+                const int r010 = ((!(vi & 1)) && ( (vj & 1)) && (!(vk & 1)));
+                const int r011 = ((!(vi & 1)) && ( (vj & 1)) && ( (vk & 1)));
+                const int r100 = (( (vi & 1)) && (!(vj & 1)) && (!(vk & 1)));
+                const int r101 = (( (vi & 1)) && (!(vj & 1)) && ( (vk & 1)));
+                const int r110 = (( (vi & 1)) && ( (vj & 1)) && (!(vk & 1)));
+                const int r111 = (( (vi & 1)) && ( (vj & 1)) && ( (vk & 1)));
+                /* clang-format on */
+
+                // Accumulate
+
+                sum.data[0] += GMTally1_encode(r000, r001);
+                sum.data[1] += GMTally1_encode(r010, r011);
+                sum.data[2] += GMTally1_encode(r100, r101);
+                sum.data[3] += GMTally1_encode(r110, r111);
+
+              } // if (env->metric_type() == MetricType::CCC)
 
             } /*---if ! unknown---*/
           } /*---for f---*/
@@ -504,141 +528,171 @@ void ComputeMetrics3WayBlock::compute_ccc_(VData vdata_i, VData vdata_j,
             const uint64_t nvk1_0 = ~ vk1       & v1mask;
             const uint64_t nvk1_1 = ~(vk1 >> 1) & v1mask;
 
-            const int r000 = utils::popc64((nvi0_0 & nvj0_0 & nvk0_0) |
-                                         ( (nvi0_0 & nvj0_0 & nvk0_1) << 1 )) +
-                             utils::popc64((nvi0_0 & nvj0_1 & nvk0_0) |
-                                         ( (nvi0_0 & nvj0_1 & nvk0_1) << 1 )) +
-                             utils::popc64((nvi0_1 & nvj0_0 & nvk0_0) |
-                                         ( (nvi0_1 & nvj0_0 & nvk0_1) << 1 )) +
-                             utils::popc64((nvi0_1 & nvj0_1 & nvk0_0) |
-                                         ( (nvi0_1 & nvj0_1 & nvk0_1) << 1 )) +
-                             utils::popc64((nvi1_0 & nvj1_0 & nvk1_0) |
-                                         ( (nvi1_0 & nvj1_0 & nvk1_1) << 1 )) +
-                             utils::popc64((nvi1_0 & nvj1_1 & nvk1_0) |
-                                         ( (nvi1_0 & nvj1_1 & nvk1_1) << 1 )) +
-                             utils::popc64((nvi1_1 & nvj1_0 & nvk1_0) |
-                                         ( (nvi1_1 & nvj1_0 & nvk1_1) << 1 )) +
-                             utils::popc64((nvi1_1 & nvj1_1 & nvk1_0) |
-                                         ( (nvi1_1 & nvj1_1 & nvk1_1) << 1 ));
-            const int r001 = utils::popc64((nvi0_0 & nvj0_0 &  vk0_0) |
-                                         ( (nvi0_0 & nvj0_0 &  vk0_1) << 1 )) +
-                             utils::popc64((nvi0_0 & nvj0_1 &  vk0_0) |
-                                         ( (nvi0_0 & nvj0_1 &  vk0_1) << 1 )) +
-                             utils::popc64((nvi0_1 & nvj0_0 &  vk0_0) |
-                                         ( (nvi0_1 & nvj0_0 &  vk0_1) << 1 )) +
-                             utils::popc64((nvi0_1 & nvj0_1 &  vk0_0) |
-                                         ( (nvi0_1 & nvj0_1 &  vk0_1) << 1 )) +
-                             utils::popc64((nvi1_0 & nvj1_0 &  vk1_0) |
-                                         ( (nvi1_0 & nvj1_0 &  vk1_1) << 1 )) +
-                             utils::popc64((nvi1_0 & nvj1_1 &  vk1_0) |
-                                         ( (nvi1_0 & nvj1_1 &  vk1_1) << 1 )) +
-                             utils::popc64((nvi1_1 & nvj1_0 &  vk1_0) |
-                                         ( (nvi1_1 & nvj1_0 &  vk1_1) << 1 )) +
-                             utils::popc64((nvi1_1 & nvj1_1 &  vk1_0) |
-                                         ( (nvi1_1 & nvj1_1 &  vk1_1) << 1 ));
-            const int r010 = utils::popc64((nvi0_0 &  vj0_0 & nvk0_0) |
-                                         ( (nvi0_0 &  vj0_0 & nvk0_1) << 1 )) +
-                             utils::popc64((nvi0_0 &  vj0_1 & nvk0_0) |
-                                         ( (nvi0_0 &  vj0_1 & nvk0_1) << 1 )) +
-                             utils::popc64((nvi0_1 &  vj0_0 & nvk0_0) |
-                                         ( (nvi0_1 &  vj0_0 & nvk0_1) << 1 )) +
-                             utils::popc64((nvi0_1 &  vj0_1 & nvk0_0) |
-                                         ( (nvi0_1 &  vj0_1 & nvk0_1) << 1 )) +
-                             utils::popc64((nvi1_0 &  vj1_0 & nvk1_0) |
-                                         ( (nvi1_0 &  vj1_0 & nvk1_1) << 1 )) +
-                             utils::popc64((nvi1_0 &  vj1_1 & nvk1_0) |
-                                         ( (nvi1_0 &  vj1_1 & nvk1_1) << 1 )) +
-                             utils::popc64((nvi1_1 &  vj1_0 & nvk1_0) |
-                                         ( (nvi1_1 &  vj1_0 & nvk1_1) << 1 )) +
-                             utils::popc64((nvi1_1 &  vj1_1 & nvk1_0) |
-                                         ( (nvi1_1 &  vj1_1 & nvk1_1) << 1 ));
-            const int r011 = utils::popc64((nvi0_0 &  vj0_0 &  vk0_0) |
-                                         ( (nvi0_0 &  vj0_0 &  vk0_1) << 1 )) +
-                             utils::popc64((nvi0_0 &  vj0_1 &  vk0_0) |
-                                         ( (nvi0_0 &  vj0_1 &  vk0_1) << 1 )) +
-                             utils::popc64((nvi0_1 &  vj0_0 &  vk0_0) |
-                                         ( (nvi0_1 &  vj0_0 &  vk0_1) << 1 )) +
-                             utils::popc64((nvi0_1 &  vj0_1 &  vk0_0) |
-                                         ( (nvi0_1 &  vj0_1 &  vk0_1) << 1 )) +
-                             utils::popc64((nvi1_0 &  vj1_0 &  vk1_0) |
-                                         ( (nvi1_0 &  vj1_0 &  vk1_1) << 1 )) +
-                             utils::popc64((nvi1_0 &  vj1_1 &  vk1_0) |
-                                         ( (nvi1_0 &  vj1_1 &  vk1_1) << 1 )) +
-                             utils::popc64((nvi1_1 &  vj1_0 &  vk1_0) |
-                                         ( (nvi1_1 &  vj1_0 &  vk1_1) << 1 )) +
-                             utils::popc64((nvi1_1 &  vj1_1 &  vk1_0) |
-                                         ( (nvi1_1 &  vj1_1 &  vk1_1) << 1 ));
-            const int r100 = utils::popc64(( vi0_0 & nvj0_0 & nvk0_0) |
-                                         ( ( vi0_0 & nvj0_0 & nvk0_1) << 1 )) +
-                             utils::popc64(( vi0_0 & nvj0_1 & nvk0_0) |
-                                         ( ( vi0_0 & nvj0_1 & nvk0_1) << 1 )) +
-                             utils::popc64(( vi0_1 & nvj0_0 & nvk0_0) |
-                                         ( ( vi0_1 & nvj0_0 & nvk0_1) << 1 )) +
-                             utils::popc64(( vi0_1 & nvj0_1 & nvk0_0) |
-                                         ( ( vi0_1 & nvj0_1 & nvk0_1) << 1 )) +
-                             utils::popc64(( vi1_0 & nvj1_0 & nvk1_0) |
-                                         ( ( vi1_0 & nvj1_0 & nvk1_1) << 1 )) +
-                             utils::popc64(( vi1_0 & nvj1_1 & nvk1_0) |
-                                         ( ( vi1_0 & nvj1_1 & nvk1_1) << 1 )) +
-                             utils::popc64(( vi1_1 & nvj1_0 & nvk1_0) |
-                                         ( ( vi1_1 & nvj1_0 & nvk1_1) << 1 )) +
-                             utils::popc64(( vi1_1 & nvj1_1 & nvk1_0) |
-                                         ( ( vi1_1 & nvj1_1 & nvk1_1) << 1 ));
-            const int r101 = utils::popc64(( vi0_0 & nvj0_0 &  vk0_0) |
-                                         ( ( vi0_0 & nvj0_0 &  vk0_1) << 1 )) +
-                             utils::popc64(( vi0_0 & nvj0_1 &  vk0_0) |
-                                         ( ( vi0_0 & nvj0_1 &  vk0_1) << 1 )) +
-                             utils::popc64(( vi0_1 & nvj0_0 &  vk0_0) |
-                                         ( ( vi0_1 & nvj0_0 &  vk0_1) << 1 )) +
-                             utils::popc64(( vi0_1 & nvj0_1 &  vk0_0) |
-                                         ( ( vi0_1 & nvj0_1 &  vk0_1) << 1 )) +
-                             utils::popc64(( vi1_0 & nvj1_0 &  vk1_0) |
-                                         ( ( vi1_0 & nvj1_0 &  vk1_1) << 1 )) +
-                             utils::popc64(( vi1_0 & nvj1_1 &  vk1_0) |
-                                         ( ( vi1_0 & nvj1_1 &  vk1_1) << 1 )) +
-                             utils::popc64(( vi1_1 & nvj1_0 &  vk1_0) |
-                                         ( ( vi1_1 & nvj1_0 &  vk1_1) << 1 )) +
-                             utils::popc64(( vi1_1 & nvj1_1 &  vk1_0) |
-                                         ( ( vi1_1 & nvj1_1 &  vk1_1) << 1 ));
-            const int r110 = utils::popc64(( vi0_0 &  vj0_0 & nvk0_0) |
-                                         ( ( vi0_0 &  vj0_0 & nvk0_1) << 1 )) +
-                             utils::popc64(( vi0_0 &  vj0_1 & nvk0_0) |
-                                         ( ( vi0_0 &  vj0_1 & nvk0_1) << 1 )) +
-                             utils::popc64(( vi0_1 &  vj0_0 & nvk0_0) |
-                                         ( ( vi0_1 &  vj0_0 & nvk0_1) << 1 )) +
-                             utils::popc64(( vi0_1 &  vj0_1 & nvk0_0) |
-                                         ( ( vi0_1 &  vj0_1 & nvk0_1) << 1 )) +
-                             utils::popc64(( vi1_0 &  vj1_0 & nvk1_0) |
-                                         ( ( vi1_0 &  vj1_0 & nvk1_1) << 1 )) +
-                             utils::popc64(( vi1_0 &  vj1_1 & nvk1_0) |
-                                         ( ( vi1_0 &  vj1_1 & nvk1_1) << 1 )) +
-                             utils::popc64(( vi1_1 &  vj1_0 & nvk1_0) |
-                                         ( ( vi1_1 &  vj1_0 & nvk1_1) << 1 )) +
-                             utils::popc64(( vi1_1 &  vj1_1 & nvk1_0) |
-                                         ( ( vi1_1 &  vj1_1 & nvk1_1) << 1 ));
-            const int r111 = utils::popc64(( vi0_0 &  vj0_0 &  vk0_0) |
-                                         ( ( vi0_0 &  vj0_0 &  vk0_1) << 1 )) +
-                             utils::popc64(( vi0_0 &  vj0_1 &  vk0_0) |
-                                         ( ( vi0_0 &  vj0_1 &  vk0_1) << 1 )) +
-                             utils::popc64(( vi0_1 &  vj0_0 &  vk0_0) |
-                                         ( ( vi0_1 &  vj0_0 &  vk0_1) << 1 )) +
-                             utils::popc64(( vi0_1 &  vj0_1 &  vk0_0) |
-                                         ( ( vi0_1 &  vj0_1 &  vk0_1) << 1 )) +
-                             utils::popc64(( vi1_0 &  vj1_0 &  vk1_0) |
-                                         ( ( vi1_0 &  vj1_0 &  vk1_1) << 1 )) +
-                             utils::popc64(( vi1_0 &  vj1_1 &  vk1_0) |
-                                         ( ( vi1_0 &  vj1_1 &  vk1_1) << 1 )) +
-                             utils::popc64(( vi1_1 &  vj1_0 &  vk1_0) |
-                                         ( ( vi1_1 &  vj1_0 &  vk1_1) << 1 )) +
-                             utils::popc64(( vi1_1 &  vj1_1 &  vk1_0) |
-                                         ( ( vi1_1 &  vj1_1 &  vk1_1) << 1 ));
+            if (env->metric_type() == MetricType::CCC) {
 
-            // Accumulate
+              const int r000 = utils::popc64((nvi0_0 & nvj0_0 & nvk0_0) |
+                                           ( (nvi0_0 & nvj0_0 & nvk0_1) << 1 ))+
+                               utils::popc64((nvi0_0 & nvj0_1 & nvk0_0) |
+                                           ( (nvi0_0 & nvj0_1 & nvk0_1) << 1 ))+
+                               utils::popc64((nvi0_1 & nvj0_0 & nvk0_0) |
+                                           ( (nvi0_1 & nvj0_0 & nvk0_1) << 1 ))+
+                               utils::popc64((nvi0_1 & nvj0_1 & nvk0_0) |
+                                           ( (nvi0_1 & nvj0_1 & nvk0_1) << 1 ))+
+                               utils::popc64((nvi1_0 & nvj1_0 & nvk1_0) |
+                                           ( (nvi1_0 & nvj1_0 & nvk1_1) << 1 ))+
+                               utils::popc64((nvi1_0 & nvj1_1 & nvk1_0) |
+                                           ( (nvi1_0 & nvj1_1 & nvk1_1) << 1 ))+
+                               utils::popc64((nvi1_1 & nvj1_0 & nvk1_0) |
+                                           ( (nvi1_1 & nvj1_0 & nvk1_1) << 1 ))+
+                               utils::popc64((nvi1_1 & nvj1_1 & nvk1_0) |
+                                           ( (nvi1_1 & nvj1_1 & nvk1_1) << 1 ));
+              const int r001 = utils::popc64((nvi0_0 & nvj0_0 &  vk0_0) |
+                                           ( (nvi0_0 & nvj0_0 &  vk0_1) << 1 ))+
+                               utils::popc64((nvi0_0 & nvj0_1 &  vk0_0) |
+                                           ( (nvi0_0 & nvj0_1 &  vk0_1) << 1 ))+
+                               utils::popc64((nvi0_1 & nvj0_0 &  vk0_0) |
+                                           ( (nvi0_1 & nvj0_0 &  vk0_1) << 1 ))+
+                               utils::popc64((nvi0_1 & nvj0_1 &  vk0_0) |
+                                           ( (nvi0_1 & nvj0_1 &  vk0_1) << 1 ))+
+                               utils::popc64((nvi1_0 & nvj1_0 &  vk1_0) |
+                                           ( (nvi1_0 & nvj1_0 &  vk1_1) << 1 ))+
+                               utils::popc64((nvi1_0 & nvj1_1 &  vk1_0) |
+                                           ( (nvi1_0 & nvj1_1 &  vk1_1) << 1 ))+
+                               utils::popc64((nvi1_1 & nvj1_0 &  vk1_0) |
+                                           ( (nvi1_1 & nvj1_0 &  vk1_1) << 1 ))+
+                               utils::popc64((nvi1_1 & nvj1_1 &  vk1_0) |
+                                           ( (nvi1_1 & nvj1_1 &  vk1_1) << 1 ));
+              const int r010 = utils::popc64((nvi0_0 &  vj0_0 & nvk0_0) |
+                                           ( (nvi0_0 &  vj0_0 & nvk0_1) << 1 ))+
+                               utils::popc64((nvi0_0 &  vj0_1 & nvk0_0) |
+                                           ( (nvi0_0 &  vj0_1 & nvk0_1) << 1 ))+
+                               utils::popc64((nvi0_1 &  vj0_0 & nvk0_0) |
+                                           ( (nvi0_1 &  vj0_0 & nvk0_1) << 1 ))+
+                               utils::popc64((nvi0_1 &  vj0_1 & nvk0_0) |
+                                           ( (nvi0_1 &  vj0_1 & nvk0_1) << 1 ))+
+                               utils::popc64((nvi1_0 &  vj1_0 & nvk1_0) |
+                                           ( (nvi1_0 &  vj1_0 & nvk1_1) << 1 ))+
+                               utils::popc64((nvi1_0 &  vj1_1 & nvk1_0) |
+                                           ( (nvi1_0 &  vj1_1 & nvk1_1) << 1 ))+
+                               utils::popc64((nvi1_1 &  vj1_0 & nvk1_0) |
+                                           ( (nvi1_1 &  vj1_0 & nvk1_1) << 1 ))+
+                               utils::popc64((nvi1_1 &  vj1_1 & nvk1_0) |
+                                           ( (nvi1_1 &  vj1_1 & nvk1_1) << 1 ));
+              const int r011 = utils::popc64((nvi0_0 &  vj0_0 &  vk0_0) |
+                                           ( (nvi0_0 &  vj0_0 &  vk0_1) << 1 ))+
+                               utils::popc64((nvi0_0 &  vj0_1 &  vk0_0) |
+                                           ( (nvi0_0 &  vj0_1 &  vk0_1) << 1 ))+
+                               utils::popc64((nvi0_1 &  vj0_0 &  vk0_0) |
+                                           ( (nvi0_1 &  vj0_0 &  vk0_1) << 1 ))+
+                               utils::popc64((nvi0_1 &  vj0_1 &  vk0_0) |
+                                           ( (nvi0_1 &  vj0_1 &  vk0_1) << 1 ))+
+                               utils::popc64((nvi1_0 &  vj1_0 &  vk1_0) |
+                                           ( (nvi1_0 &  vj1_0 &  vk1_1) << 1 ))+
+                               utils::popc64((nvi1_0 &  vj1_1 &  vk1_0) |
+                                           ( (nvi1_0 &  vj1_1 &  vk1_1) << 1 ))+
+                               utils::popc64((nvi1_1 &  vj1_0 &  vk1_0) |
+                                           ( (nvi1_1 &  vj1_0 &  vk1_1) << 1 ))+
+                               utils::popc64((nvi1_1 &  vj1_1 &  vk1_0) |
+                                           ( (nvi1_1 &  vj1_1 &  vk1_1) << 1 ));
+              const int r100 = utils::popc64(( vi0_0 & nvj0_0 & nvk0_0) |
+                                           ( ( vi0_0 & nvj0_0 & nvk0_1) << 1 ))+
+                               utils::popc64(( vi0_0 & nvj0_1 & nvk0_0) |
+                                           ( ( vi0_0 & nvj0_1 & nvk0_1) << 1 ))+
+                               utils::popc64(( vi0_1 & nvj0_0 & nvk0_0) |
+                                           ( ( vi0_1 & nvj0_0 & nvk0_1) << 1 ))+
+                               utils::popc64(( vi0_1 & nvj0_1 & nvk0_0) |
+                                           ( ( vi0_1 & nvj0_1 & nvk0_1) << 1 ))+
+                               utils::popc64(( vi1_0 & nvj1_0 & nvk1_0) |
+                                           ( ( vi1_0 & nvj1_0 & nvk1_1) << 1 ))+
+                               utils::popc64(( vi1_0 & nvj1_1 & nvk1_0) |
+                                           ( ( vi1_0 & nvj1_1 & nvk1_1) << 1 ))+
+                               utils::popc64(( vi1_1 & nvj1_0 & nvk1_0) |
+                                           ( ( vi1_1 & nvj1_0 & nvk1_1) << 1 ))+
+                               utils::popc64(( vi1_1 & nvj1_1 & nvk1_0) |
+                                           ( ( vi1_1 & nvj1_1 & nvk1_1) << 1 ));
+              const int r101 = utils::popc64(( vi0_0 & nvj0_0 &  vk0_0) |
+                                           ( ( vi0_0 & nvj0_0 &  vk0_1) << 1 ))+
+                               utils::popc64(( vi0_0 & nvj0_1 &  vk0_0) |
+                                           ( ( vi0_0 & nvj0_1 &  vk0_1) << 1 ))+
+                               utils::popc64(( vi0_1 & nvj0_0 &  vk0_0) |
+                                           ( ( vi0_1 & nvj0_0 &  vk0_1) << 1 ))+
+                               utils::popc64(( vi0_1 & nvj0_1 &  vk0_0) |
+                                           ( ( vi0_1 & nvj0_1 &  vk0_1) << 1 ))+
+                               utils::popc64(( vi1_0 & nvj1_0 &  vk1_0) |
+                                           ( ( vi1_0 & nvj1_0 &  vk1_1) << 1 ))+
+                               utils::popc64(( vi1_0 & nvj1_1 &  vk1_0) |
+                                           ( ( vi1_0 & nvj1_1 &  vk1_1) << 1 ))+
+                               utils::popc64(( vi1_1 & nvj1_0 &  vk1_0) |
+                                           ( ( vi1_1 & nvj1_0 &  vk1_1) << 1 ))+
+                               utils::popc64(( vi1_1 & nvj1_1 &  vk1_0) |
+                                           ( ( vi1_1 & nvj1_1 &  vk1_1) << 1 ));
+              const int r110 = utils::popc64(( vi0_0 &  vj0_0 & nvk0_0) |
+                                           ( ( vi0_0 &  vj0_0 & nvk0_1) << 1 ))+
+                               utils::popc64(( vi0_0 &  vj0_1 & nvk0_0) |
+                                           ( ( vi0_0 &  vj0_1 & nvk0_1) << 1 ))+
+                               utils::popc64(( vi0_1 &  vj0_0 & nvk0_0) |
+                                           ( ( vi0_1 &  vj0_0 & nvk0_1) << 1 ))+
+                               utils::popc64(( vi0_1 &  vj0_1 & nvk0_0) |
+                                           ( ( vi0_1 &  vj0_1 & nvk0_1) << 1 ))+
+                               utils::popc64(( vi1_0 &  vj1_0 & nvk1_0) |
+                                           ( ( vi1_0 &  vj1_0 & nvk1_1) << 1 ))+
+                               utils::popc64(( vi1_0 &  vj1_1 & nvk1_0) |
+                                           ( ( vi1_0 &  vj1_1 & nvk1_1) << 1 ))+
+                               utils::popc64(( vi1_1 &  vj1_0 & nvk1_0) |
+                                           ( ( vi1_1 &  vj1_0 & nvk1_1) << 1 ))+
+                               utils::popc64(( vi1_1 &  vj1_1 & nvk1_0) |
+                                           ( ( vi1_1 &  vj1_1 & nvk1_1) << 1 ));
+              const int r111 = utils::popc64(( vi0_0 &  vj0_0 &  vk0_0) |
+                                           ( ( vi0_0 &  vj0_0 &  vk0_1) << 1 ))+
+                               utils::popc64(( vi0_0 &  vj0_1 &  vk0_0) |
+                                           ( ( vi0_0 &  vj0_1 &  vk0_1) << 1 ))+
+                               utils::popc64(( vi0_1 &  vj0_0 &  vk0_0) |
+                                           ( ( vi0_1 &  vj0_0 &  vk0_1) << 1 ))+
+                               utils::popc64(( vi0_1 &  vj0_1 &  vk0_0) |
+                                           ( ( vi0_1 &  vj0_1 &  vk0_1) << 1 ))+
+                               utils::popc64(( vi1_0 &  vj1_0 &  vk1_0) |
+                                           ( ( vi1_0 &  vj1_0 &  vk1_1) << 1 ))+
+                               utils::popc64(( vi1_0 &  vj1_1 &  vk1_0) |
+                                           ( ( vi1_0 &  vj1_1 &  vk1_1) << 1 ))+
+                               utils::popc64(( vi1_1 &  vj1_0 &  vk1_0) |
+                                           ( ( vi1_1 &  vj1_0 &  vk1_1) << 1 ))+
+                               utils::popc64(( vi1_1 &  vj1_1 &  vk1_0) |
+                                           ( ( vi1_1 &  vj1_1 &  vk1_1) << 1 ));
 
-            sum.data[0] += GMTally1_encode(r000, r001);
-            sum.data[1] += GMTally1_encode(r010, r011);
-            sum.data[2] += GMTally1_encode(r100, r101);
-            sum.data[3] += GMTally1_encode(r110, r111);
+              // Accumulate
+
+              sum.data[0] += GMTally1_encode(r000, r001);
+              sum.data[1] += GMTally1_encode(r010, r011);
+              sum.data[2] += GMTally1_encode(r100, r101);
+              sum.data[3] += GMTally1_encode(r110, r111);
+
+            } else { // (env->metric_type() == MetricType::DUO)
+
+              const int r000 = utils::popc64((nvi0_0 & nvj0_0 & nvk0_0) |
+                                           ( (nvi1_0 & nvj1_0 & nvk1_0) << 1 ));
+              const int r001 = utils::popc64((nvi0_0 & nvj0_0 &  vk0_0) |
+                                           ( (nvi1_0 & nvj1_0 &  vk1_0) << 1 ));
+              const int r010 = utils::popc64((nvi0_0 &  vj0_0 & nvk0_0) |
+                                           ( (nvi1_0 &  vj1_0 & nvk1_0) << 1 ));
+              const int r011 = utils::popc64((nvi0_0 &  vj0_0 &  vk0_0) |
+                                           ( (nvi1_0 &  vj1_0 &  vk1_0) << 1 ));
+              const int r100 = utils::popc64(( vi0_0 & nvj0_0 & nvk0_0) |
+                                           ( ( vi1_0 & nvj1_0 & nvk1_0) << 1 ));
+              const int r101 = utils::popc64(( vi0_0 & nvj0_0 &  vk0_0) |
+                                           ( ( vi1_0 & nvj1_0 &  vk1_0) << 1 ));
+              const int r110 = utils::popc64(( vi0_0 &  vj0_0 & nvk0_0) |
+                                           ( ( vi1_0 &  vj1_0 & nvk1_0) << 1 ));
+              const int r111 = utils::popc64(( vi0_0 &  vj0_0 &  vk0_0) |
+                                           ( ( vi1_0 &  vj1_0 &  vk1_0) << 1 ));
+
+              // Accumulate
+
+              sum.data[0] += GMTally1_encode(r000, r001);
+              sum.data[1] += GMTally1_encode(r010, r011);
+              sum.data[2] += GMTally1_encode(r100, r101);
+              sum.data[3] += GMTally1_encode(r110, r111);
+
+            } // if (env->metric_type() == MetricType::CCC)
 
           } // for pvfl
 

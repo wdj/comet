@@ -84,9 +84,9 @@ void ComputeMetrics3WayBlock::compute(
     compute_czek_(vdata_i, vdata_j, vdata_k, numerators, j_block, k_block,
       section_step);
 
-  } else if (env_.metric_type() == MetricType::CCC)  {
+  } else if (env_.is_metric_type_bitwise())  {
 
-    compute_ccc_(vdata_i, vdata_j, vdata_k, numerators, j_block, k_block,
+    compute_ccc_duo_(vdata_i, vdata_j, vdata_k, numerators, j_block, k_block,
       section_step);
 
   } else {

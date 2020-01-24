@@ -334,7 +334,8 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 //=============================================================================
 // Output results metrics to file: implementation
 
-void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
+template<int COUNTED_BITS_PER_ELT>
+void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
                      double threshold, size_t& num_written, GMEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
@@ -371,140 +372,97 @@ void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
     const size_t ind_max = utils::min(metrics->num_elts_local,
                                       ind_base + num_buf_ind);
 
-    if (env->metric_type() == MetricType::CCC) {
-
-      // Fill buffer
+    // Fill buffer
 #pragma omp parallel for schedule(dynamic,1000)
-      for (size_t index = ind_base; index < ind_max; ++index) {
-        // Do any of the values exceed the threshold
-        if (GMMetrics_ccc_get_from_index_2_threshold(
-               metrics, index, threshold_eff, env)) {
-          for (int i0 = 0; i0 < 2; ++i0) {
-            for (int i1 = 0; i1 < 2; ++i1) {
-              const GMFloat value =
-                GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env);
-              const bool pass_thresh = value>threshold_eff;
-              if (pass_thresh) {
-                const size_t coord0 =
-                  GMMetrics_coord_global_from_index(metrics, index, 0, env);
-                const size_t coord1 =
-                  GMMetrics_coord_global_from_index(metrics, index, 1, env);
-                const char do_out = coord0 < metrics->num_vector_active &&
-                                    coord1 < metrics->num_vector_active;
-                const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
-                do_out_buf[ind_buf] = do_out;
-                coord0_buf[ind_buf] = coord0;
-                coord1_buf[ind_buf] = coord1;
-                i01_buf[ind_buf] = i0 + 2*i1;
-                value_buf[ind_buf] = value;
-              } /*---if---*/
-            } /*---i1---*/
-          } /*---i0---*/
-        }
-      } /*---for index---*/
+    for (size_t index = ind_base; index < ind_max; ++index) {
+      // Do any of the values exceed the threshold
+      if (GMMetrics_ccc_duo_get_from_index_2_threshold<COUNTED_BITS_PER_ELT>(
+             metrics, index, threshold_eff, env)) {
+        for (int i0 = 0; i0 < 2; ++i0) {
+          for (int i1 = 0; i1 < 2; ++i1) {
+            const GMFloat value =
+              GMMetrics_ccc_duo_get_from_index_2<COUNTED_BITS_PER_ELT>(
+                metrics, index, i0, i1, env);
+            const bool pass_thresh = value>threshold_eff;
+            if (pass_thresh) {
+              const size_t coord0 =
+                GMMetrics_coord_global_from_index(metrics, index, 0, env);
+              const size_t coord1 =
+                GMMetrics_coord_global_from_index(metrics, index, 1, env);
+              const char do_out = coord0 < metrics->num_vector_active &&
+                                  coord1 < metrics->num_vector_active;
+              const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
+              do_out_buf[ind_buf] = do_out;
+              coord0_buf[ind_buf] = coord0;
+              coord1_buf[ind_buf] = coord1;
+              i01_buf[ind_buf] = i0 + 2*i1;
+              value_buf[ind_buf] = value;
+            } /*---if---*/
+          } /*---i1---*/
+        } /*---i0---*/
+      }
+    } /*---for index---*/
 
-      // Flush buffer
+    // Flush buffer
 
-      // Number of buffer entries to visit
-      const size_t ind_buf_max = 4 * (ind_max - ind_base);
-      // Use 4 byte integer ptr to check 4 chars at a time, for speed
-      typedef int multi_t;
-      //assert(sizeof(multi_t) == 4 * sizeof(char));
-      const multi_t* const do_out_ptr_max = (multi_t*)(do_out_buf + ind_buf_max);
-      multi_t* do_out_ptr = (multi_t*)do_out_buf;
-      for (; do_out_ptr < do_out_ptr_max;) {
-        // Do any of the 4 need to be output
-        if (*(do_out_ptr++)) {
-          for (int i=0; i<4; ++i) {
-            const size_t ind_buf = (do_out_ptr - (multi_t*)do_out_buf - 1)*4 + i;
-            if (do_out_buf[ind_buf]) {
-              const int i0 = i01_buf[ind_buf] % 2;
-              const int i1 = i01_buf[ind_buf] / 2;
-              const size_t coord0 = coord0_buf[ind_buf];
-              const size_t coord1 = coord1_buf[ind_buf];
-              writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
-              // Reset buffer entry to false
-              do_out_buf[ind_buf] = 0;
-            }
+    // Number of buffer entries to visit
+    const size_t ind_buf_max = 4 * (ind_max - ind_base);
+    // Use 4 byte integer ptr to check 4 chars at a time, for speed
+    typedef int multi_t;
+    //assert(sizeof(multi_t) == 4 * sizeof(char));
+    const multi_t* const do_out_ptr_max = (multi_t*)(do_out_buf + ind_buf_max);
+    multi_t* do_out_ptr = (multi_t*)do_out_buf;
+    for (; do_out_ptr < do_out_ptr_max;) {
+      // Do any of the 4 need to be output
+      if (*(do_out_ptr++)) {
+        for (int i=0; i<4; ++i) {
+          const size_t ind_buf = (do_out_ptr - (multi_t*)do_out_buf - 1)*4 + i;
+          if (do_out_buf[ind_buf]) {
+            const int i0 = i01_buf[ind_buf] % 2;
+            const int i1 = i01_buf[ind_buf] / 2;
+            const size_t coord0 = coord0_buf[ind_buf];
+            const size_t coord1 = coord1_buf[ind_buf];
+            writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
+            // Reset buffer entry to false
+            do_out_buf[ind_buf] = 0;
           }
         }
-      } /*---ind_buf---*/
-
-    } else { // DUO
-
-      // Fill buffer
-#pragma omp parallel for schedule(dynamic,1000)
-      for (size_t index = ind_base; index < ind_max; ++index) {
-        // Do any of the values exceed the threshold
-        if (GMMetrics_duo_get_from_index_2_threshold(
-               metrics, index, threshold_eff, env)) {
-          for (int i0 = 0; i0 < 2; ++i0) {
-            for (int i1 = 0; i1 < 2; ++i1) {
-              const GMFloat value =
-                GMMetrics_duo_get_from_index_2(metrics, index, i0, i1, env);
-              const bool pass_thresh = value>threshold_eff;
-              if (pass_thresh) {
-                const size_t coord0 =
-                  GMMetrics_coord_global_from_index(metrics, index, 0, env);
-                const size_t coord1 =
-                  GMMetrics_coord_global_from_index(metrics, index, 1, env);
-                const char do_out = coord0 < metrics->num_vector_active &&
-                                    coord1 < metrics->num_vector_active;
-                const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
-                do_out_buf[ind_buf] = do_out;
-                coord0_buf[ind_buf] = coord0;
-                coord1_buf[ind_buf] = coord1;
-                i01_buf[ind_buf] = i0 + 2*i1;
-                value_buf[ind_buf] = value;
-              } /*---if---*/
-            } /*---i1---*/
-          } /*---i0---*/
-        }
-      } /*---for index---*/
-
-      // Flush buffer
-
-      // Number of buffer entries to visit
-      const size_t ind_buf_max = 4 * (ind_max - ind_base);
-      // Use 4 byte integer ptr to check 4 chars at a time, for speed
-      typedef int multi_t;
-      //assert(sizeof(multi_t) == 4 * sizeof(char));
-      const multi_t* const do_out_ptr_max = (multi_t*)(do_out_buf + ind_buf_max);
-      multi_t* do_out_ptr = (multi_t*)do_out_buf;
-      for (; do_out_ptr < do_out_ptr_max;) {
-        // Do any of the 4 need to be output
-        if (*(do_out_ptr++)) {
-          for (int i=0; i<4; ++i) {
-            const size_t ind_buf = (do_out_ptr - (multi_t*)do_out_buf - 1)*4 + i;
-            if (do_out_buf[ind_buf]) {
-              const int i0 = i01_buf[ind_buf] % 2;
-              const int i1 = i01_buf[ind_buf] / 2;
-              const size_t coord0 = coord0_buf[ind_buf];
-              const size_t coord1 = coord1_buf[ind_buf];
-              writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
-              // Reset buffer entry to false
-              do_out_buf[ind_buf] = 0;
-            }
-          }
-        }
-      } /*---ind_buf---*/
-
-    } // metric_type
+      }
+    } /*---ind_buf---*/
 
   } /*---ind_base---*/
 
   num_written += writer.get_num_written();
 }
 
+//-----------------------------------------------------------------------------
+
+void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
+                     double threshold, size_t& num_written, GMEnv* env) {
+  COMET_INSIST(metrics && file && env);
+  COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
+  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(file != stdout);
+
+  if (env->metric_type() == MetricType::CCC) {
+    output_metrics_tally2x2_bin_impl_<2>(metrics, file, threshold,
+      num_written, env);
+  } else {
+    output_metrics_tally2x2_bin_impl_<1>(metrics, file, threshold,
+      num_written, env);
+  }
+}
+
 //=============================================================================
 
-void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
+template<int COUNTED_BITS_PER_ELT>
+void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
                      double threshold, size_t& num_written, GMEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
   COMET_INSIST(file != stdout);
-  COMET_INSIST(env->metric_type() == MetricType::CCC);
+  COMET_INSIST(env->is_metric_type_bitwise());
 
   MetricWriter writer(file, metrics, env);
 
@@ -540,13 +498,14 @@ void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Do any of the values exceed the threshold
-      if (GMMetrics_ccc_get_from_index_3_threshold(
+      if (GMMetrics_ccc_duo_get_from_index_3_threshold<COUNTED_BITS_PER_ELT>(
              metrics, index, threshold_eff, env)) {
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             for (int i2 = 0; i2 < 2; ++i2) {
               const GMFloat value =
-                GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env);
+                GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(
+                  metrics, index, i0, i1, i2, env);
               const bool pass_thresh = value>threshold_eff;
               if (pass_thresh) {
                 const size_t coord0 =
@@ -603,6 +562,24 @@ void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
   } /*---ind_base---*/
 
   num_written += writer.get_num_written();
+}
+
+//-----------------------------------------------------------------------------
+
+void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
+                     double threshold, size_t& num_written, GMEnv* env) {
+  COMET_INSIST(metrics && file && env);
+  COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
+  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(file != stdout);
+
+  if (env->metric_type() == MetricType::CCC) {
+    output_metrics_tally4x2_bin_impl_<2>(metrics, file, threshold,
+      num_written, env);
+  } else {
+    output_metrics_tally4x2_bin_impl_<1>(metrics, file, threshold,
+      num_written, env);
+  }
 }
 
 //=============================================================================

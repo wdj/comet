@@ -120,16 +120,16 @@ static GMFloat GMMetrics_ccc_duo_value_2_impl_(
 /// \brief Templatized access to CCC or DUO front multiplier.
 
 template<int COUNTED_BITS_PER_ELT>
-static GMFloat GMMetrics_ccc_duo_multiplier(GMEnv* env);
+static GMFloat GMMetrics_ccc_duo_multiplier_2(GMEnv* env);
 
 template<>
-GMFloat GMMetrics_ccc_duo_multiplier<2>(GMEnv* env) {
+GMFloat GMMetrics_ccc_duo_multiplier_2<2>(GMEnv* env) {
   COMET_ASSERT(env);
   return env->ccc_multiplier();
 }
 
 template<>
-GMFloat GMMetrics_ccc_duo_multiplier<1>(GMEnv* env) {
+GMFloat GMMetrics_ccc_duo_multiplier_2<1>(GMEnv* env) {
   COMET_ASSERT(env);
   return env->duo_multiplier();
 }
@@ -151,7 +151,7 @@ static GMFloat GMMetrics_ccc_duo_value_2(
 
   return GMMetrics_ccc_duo_value_2_impl_<COUNTED_BITS_PER_ELT>(
     rij, si, sj, recip_ci, recip_cj, recip_sumcij,
-    GMMetrics_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env),
+    GMMetrics_ccc_duo_multiplier_2<COUNTED_BITS_PER_ELT>(env),
     env->ccc_param());
 }
 
@@ -433,7 +433,7 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     const GMFloat f_one = 1;
 
-    const GMFloat ccc_duo_multiplier = GMMetrics_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env);
+    const GMFloat ccc_duo_multiplier = GMMetrics_ccc_duo_multiplier_2<COUNTED_BITS_PER_ELT>(env);
     const GMFloat ccc_param = env->ccc_param();
 
     const GMTally2x2 t22 = GMMetrics_tally2x2_get_from_index(metrics, index, env);

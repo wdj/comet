@@ -683,7 +683,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_TALLY4X2: {
     /*--------------------*/
-    COMET_INSIST(env->metric_type() == MetricType::CCC);
+
+      const int cbpe = env->metric_type() == MetricType::CCC ? 2 : 1;
+
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_elts_local; ++index) {
         const size_t vi =
@@ -698,8 +700,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             for (int i2 = 0; i2 < 2; ++i2) {
-              const GMFloat value =
-               GMMetrics_ccc_get_from_index_3( metrics, index, i0, i1, i2, env);
+              const GMFloat value = cbpe == 2 ?
+                GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env) :
+                GMMetrics_duo_get_from_index_3(metrics, index, i0, i1, i2, env);
 
               GMTally1 rijk = 0;
               GMTally1 si = 0;
@@ -746,22 +749,29 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
                 if (! unknown_i) {
                   ci += gs_this;
-                  si += ((bval_i_0 == i0) + (bval_i_1 == i0)) * gs_this;
+                  si += cbpe == 2 ?
+                    ((bval_i_0 == i0) + (bval_i_1 == i0)) * gs_this :
+                    (bval_i_0 == i0) * gs_this;
                 }
 
                 if (! unknown_j) {
                   cj += gs_this;
-                  sj += ((bval_j_0 == i1) + (bval_j_1 == i1)) * gs_this;
+                  sj += cbpe == 2 ?
+                    ((bval_j_0 == i1) + (bval_j_1 == i1)) * gs_this :
+                    (bval_j_0 == i1) * gs_this;
                 }
 
                 if (! unknown_k) {
                   ck += gs_this;
-                  sk += ((bval_k_0 == i2) + (bval_k_1 == i2)) * gs_this;
+                  sk += cbpe == 2 ?
+                    ((bval_k_0 == i2) + (bval_k_1 == i2)) * gs_this :
+                    (bval_k_0 == i2) * gs_this;
                 }
 
                 if (! unknown_ijk) {
-                  cijk += 8 * gs_this;
-                  rijk += (((bval_i_0==i0) && (bval_j_0==i1) && (bval_k_0==i2))+
+                  cijk += cbpe * cbpe * cbpe * gs_this;
+                  rijk += cbpe == 2 ?
+                          (((bval_i_0==i0) && (bval_j_0==i1) && (bval_k_0==i2))+
                            ((bval_i_1==i0) && (bval_j_0==i1) && (bval_k_0==i2))+
                            ((bval_i_0==i0) && (bval_j_1==i1) && (bval_k_0==i2))+
                            ((bval_i_1==i0) && (bval_j_1==i1) && (bval_k_0==i2))+
@@ -769,7 +779,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                            ((bval_i_1==i0) && (bval_j_0==i1) && (bval_k_1==i2))+
                            ((bval_i_0==i0) && (bval_j_1==i1) && (bval_k_1==i2))+
                            ((bval_i_1==i0) && (bval_j_1==i1) && (bval_k_1==i2)))
-                          * gs_this;
+                         * gs_this :
+                         ((bval_i_0 == i0) && (bval_j_0 == i1) &&
+                          (bval_k_0 == i2)) * gs_this;
                 }
               } //---g
 
@@ -787,9 +799,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 const GMFloat recip_sumcijk = env->sparse() ? f_one/cijk :
                                                (f_one / 8) * metrics->recip_m;
   
-                value_expected_floatcalc =
-                  GMMetrics_ccc_value_3(metrics, rijk, si, sj, sk, recip_ci,
-                                        recip_cj, recip_ck, recip_sumcijk, env);
+                value_expected_floatcalc = cbpe == 2 ?
+                  GMMetrics_ccc_duo_value_3<2>(metrics, rijk, si, sj, sk,
+                            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) :
+                  GMMetrics_ccc_duo_value_3<1>(metrics, rijk, si, sj, sk,
+                            recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
               }
 
               GMFloat value_expected = value_expected_floatcalc;

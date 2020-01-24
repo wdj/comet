@@ -207,28 +207,44 @@ __host__ __device__ static bool is_po2(int x) {
 /// and J matrices.  For the first pass (step_2way == 0), paths 0-0 and
 /// 0-1 (corresponding to I-J element values) are counted; for the second
 /// pass, paths 1-0 and 1-1.
-/// Below is a tabular representation of the values for the non-sparse case.
-/// The 10 cases are omtted here because they are the same as the 01 cases.
+/// Below is a tabular representation of the values for the non-sparse CCC case.
+/// The "10" cases are omtted here because they are the same as the "01" cases.
+/// The 3-way CCC sparse case is easliy adapted from this.
 ///
-/// step_2way      ->   0    0    1    1
-/// i01            ->   0    1    0    1
-/// output         ->  0-0  0-1  1-0  1-1
+/// step_2way ------>   0    0    1    1
+/// i01       ------>   0    1    0    1
+/// output    ------>  0-0  0-1  1-0  1-1
 /// --------------------------------------
 ///  m (=I)   c (=J)
 ///  |        |
 ///  v        v
 ///  00       00        4    0    0    0
 ///  00       01        2    2    0    0
-///  00       01        2    2    0    0
+///  00       11        2    2    0    0
 /// --------------------------------------
 ///  01       00        2    0    2    0
 ///  01       01        1    1    1    1
-///  01       01        0    2    0    2
+///  01       11        0    2    0    2
 /// --------------------------------------
 ///  11       00        0    0    4    0
 ///  11       01        0    0    2    2
-///  11       01        0    0    0    4
+///  11       11        0    0    0    4
 ///
+/// The 3-way non-sparse DUO method is similar, but we only
+/// look at 1 bit of each seminibble, not 2:
+///
+/// step_2way ------>   0    0    1    1
+/// i01       ------>   0    1    0    1
+/// output    ------>  0-0  0-1  1-0  1-1
+/// --------------------------------------
+///  m (=I)   c (=J)
+///  |        |
+///  v        v
+///  *0       *0        1    0    0    0
+///  *0       *1        0    1    0    0
+/// --------------------------------------
+///  *1       *0        0    0    1    0
+///  *1       *1        0    0    0    1
 
 template<typename GemmIn_t>
 __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
@@ -299,10 +315,18 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   const int _10 = 2;
   const int _11 = 3;
 
+  // Unimplemented cases:
   //COMET_ASSERT( ! (is_duo && !is_sparse) );
+  //COMET_ASSERT( ! (is_duo && !is_bitwise_3way_2step) );
   //COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) );
 
-  const GemmIn_t out0 = is_duo ? (
+  const GemmIn_t out0 = 3 == num_way && is_left && is_duo ? (
+                          snm0 == _10                      ? zero :
+                          snc0 == _10                      ? zero :
+                          snm0 == step_2way && snc0 == i01 ? one :
+                                                             zero
+                        ) : //====================
+                        is_duo ? (
                            snm0 == _10         ? zero :
                           (snm0 & 1) == i01    ? one :
                        /* (snm0 & 1) == 1-i01 */ zero
@@ -339,7 +363,13 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
                        /* snm0 == _10 */         zero
                         );
 
-  const GemmIn_t out1 = is_duo ? (
+  const GemmIn_t out1 = 3 == num_way && is_left && is_duo ? (
+                          snm1 == _10                      ? zero :
+                          snc1 == _10                      ? zero :
+                          snm1 == step_2way && snc1 == i01 ? one :
+                                                             zero
+                        ) : //====================
+                        is_duo ? (
                            snm1 == _10         ? zero :
                           (snm1 & 1) == i01    ? one :
                        /* (snm1 & 1) == 1-i01 */ zero

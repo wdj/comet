@@ -117,12 +117,20 @@ num_proc=$(( $num_proc_vector * $num_proc_field * $num_proc_repl ))
 [[ -z "${problem_type:-}" ]] && problem_type=random # alt. problem_type=analytic
 [[ -z "${debug:-}" ]] && debug=0
 [[ -z "${num_tc_steps:-}" ]] && num_tc_steps=4
+#[[ -z "${num_tc_steps:-}" ]] && num_tc_steps=2
+#[[ -z "${num_tc_steps:-}" ]] && num_tc_steps=5
 
 #------------------------------------------------------------------------------
 # Problem sizes
 
 if [ "$metric_type" != czekanowski ] ; then
   num_field_local=$(( 100000 * $num_tc_steps ))
+  #num_field_local=$(( 98304 * $num_tc_steps ))
+  #num_field_local=$(( 2 * 98304 * $num_tc_steps ))
+  #num_field_local=$(( 200000 * $num_tc_steps ))
+  #num_field_local=$(( 2 * 100352 * $num_tc_steps ))
+  #num_field_local=$(( 5 * 16384 * $num_tc_steps ))
+  #num_field_local=$(( 98304 * $num_tc_steps ))
   num_vector_local=$(( 992 * 6 ))
   num_stage=$(( 992 / 4 ))
 elif [ "$single" = 1 ] ; then

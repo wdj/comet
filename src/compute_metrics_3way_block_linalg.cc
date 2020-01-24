@@ -56,7 +56,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
       }  //---for f---//
     }    //---for I---//
 
-  } else if (env.metric_type() == MetricType::CCC) {
+  } else if (env.is_metric_type_bitwise()) {
 
     // Extract column J of vectors_I, later use to form matX.
 
@@ -72,6 +72,9 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
       }
 
     } else { // if (env.form_matX_on_accel())
+
+      COMET_INSIST(env.metric_type() == MetricType::CCC &&
+                   "Case currently unimplemented.");
 
       // Populate leading columns of matX.
 
@@ -186,7 +189,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
   COMET_INSIST(vs_i && vs_j && vs_k);
 
   COMET_ASSERT( ! (env.is_bitwise_3way_2step() && !env.form_matX_on_accel()) &&
-               "Not allowed.");
+               "Case currently unimplemented.");
 
   matB_buf->lock_h();
 
@@ -262,7 +265,11 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
                                         (K_max - K_min);
 
-  } else if (env.metric_type() == MetricType::CCC) {
+  } else if (env.is_metric_type_bitwise()) {
+
+    COMET_INSIST((env.metric_type() == MetricType::CCC ||
+                  env.is_bitwise_3way_2step()) &&
+                 "Case currently unimplemented.");
 
     GMIndexCache index_cache = {};
 

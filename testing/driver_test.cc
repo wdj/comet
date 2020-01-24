@@ -822,6 +822,9 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
     const double r2_10 = 4;
     const double r2_11 = 0;
 
+    //const double r3_*** = 0;
+    //const double r4_*** = 0;
+
     const double r_00 = r0_00 + r1_00 + r2_00;
     const double r_01 = r0_01 + r1_01 + r2_01;
     const double r_10 = r0_10 + r1_10 + r2_10;
@@ -1370,6 +1373,12 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     const double r5_110 = 0;
     const double r5_111 = 0;
 
+    //const double r3_*** = 0;
+    //const double r6_*** = 0;
+    //const double r7_*** = 0;
+    //const double r8_*** = 0;
+    //const double r9_*** = 0;
+
     const double r_000 = r0_000 + r1_000 + r2_000 + r4_000 + r5_000;
     const double r_001 = r0_001 + r1_001 + r2_001 + r4_001 + r5_001;
     const double r_010 = r0_010 + r1_010 + r2_010 + r4_010 + r5_010;
@@ -1446,6 +1455,266 @@ void DriverTest_ccc3_simple_sparse_() {
   DriverTest_ccc3_simple_sparse_compute_method(comet::ComputeMethod::REF);
   DriverTest_ccc3_simple_sparse_compute_method(comet::ComputeMethod::CPU);
   DriverTest_ccc3_simple_sparse_compute_method(comet::ComputeMethod::GPU);
+}
+
+//=============================================================================
+
+void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
+
+  using namespace comet;
+
+  const int num_field = 10;
+  const int num_vector_local = 3;
+
+  std:: string options = " --num_way " + std::to_string(3);
+  options += " --metric_type " + std::string(MetricType::str(MetricType::DUO));
+  options += " --all2all yes";
+  options += " --sparse yes";
+  options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
+  if (ComputeMethod::GPU == compute_method) {
+    options += " --tc " + std::to_string(4);
+  }
+  options += " --num_proc_vector " + std::to_string(1);
+  Env env_value(MPI_COMM_WORLD, options.c_str());
+  Env* env = &env_value;
+
+  if (ComputeMethod::GPU == compute_method && env->tc_eff() == TC::NO) {
+    // DUO 3-way GPU requires tc.
+    return;
+  }
+
+  GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
+  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+                     env->data_type_vectors(), env);
+
+  GMVectors vectors_value = GMVectors_null();
+  GMVectors* vectors = &vectors_value;
+  GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+
+  if (env->is_proc_active()) {
+    const int UN = 2 * 1 + 1 * 0;
+    {
+      const int _A = 0;
+      const int _T = 1;
+      int f = 0;
+      const int i = 0;
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+    }
+    {
+      const int _A = 0;
+      const int _T = 1;
+      int f = 0;
+      const int i = 1;
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+    }
+    {
+      const int _A = 0;
+      const int _T = 1;
+      int f = 0;
+      const int i = 2;
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, _T, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, _A, env);
+      GMVectors_bits2_set(vectors, f++, i, UN, env);
+    }
+  }
+
+  GMMetrics metrics_value = GMMetrics_null();
+  GMMetrics* metrics = &metrics_value;
+  GMMetricsMem metrics_mem(env);
+  GMMetrics_create(metrics, env->data_type_metrics(), dm,
+                   &metrics_mem, env);
+
+  ComputeMetrics::compute(*metrics, *vectors, *env);
+
+  if (env->is_proc_active()) {
+    const double result000 =
+        GMMetrics_duo_get_from_index_3(metrics, 0, 0, 0, 0, env);
+    const double result001 =
+        GMMetrics_duo_get_from_index_3(metrics, 0, 0, 0, 1, env);
+    const double result010 =
+        GMMetrics_duo_get_from_index_3(metrics, 0, 0, 1, 0, env);
+    const double result011 =
+        GMMetrics_duo_get_from_index_3(metrics, 0, 0, 1, 1, env);
+    const double result100 =
+        GMMetrics_duo_get_from_index_3(metrics, 0, 1, 0, 0, env);
+    const double result101 =
+        GMMetrics_duo_get_from_index_3(metrics, 0, 1, 0, 1, env);
+    const double result110 =
+        GMMetrics_duo_get_from_index_3(metrics, 0, 1, 1, 0, env);
+    const double result111 =
+        GMMetrics_duo_get_from_index_3(metrics, 0, 1, 1, 1, env);
+
+    printf("A A A  %.8f\n", result000);
+    printf("A A T  %.5f\n", result001);
+    printf("A T A  %.8f\n", result010);
+    printf("A T T  %.8f\n", result011);
+    printf("T A A  %.8f\n", result100);
+    printf("T A T  %.8f\n", result101);
+    printf("T T A  %.8f\n", result110);
+    printf("T T T  %.8f\n", result111);
+    printf("\n");
+
+    const double s0_0 = 3;
+    const double s0_1 = 4;
+    const double c0 = s0_0 + s0_1;
+
+    const double s1_0 = 4;
+    const double s1_1 = 4;
+    const double c1 = s1_0 + s1_1;
+
+    const double s2_0 = 6;
+    const double s2_1 = 2;
+    const double c2 = s2_0 + s2_1;
+
+    const double f0_0 = s0_0 / c0;
+    const double f0_1 = s0_1 / c0;
+    const double f1_0 = s1_0 / c1;
+    const double f1_1 = s1_1 / c1;
+    const double f2_0 = s2_0 / c2;
+    const double f2_1 = s2_1 / c2;
+
+    const double r0_000 = 0;
+    const double r0_001 = 0;
+    const double r0_010 = 1;
+    const double r0_011 = 0;
+    const double r0_100 = 0;
+    const double r0_101 = 0;
+    const double r0_110 = 0;
+    const double r0_111 = 0;
+
+    const double r1_000 = 0;
+    const double r1_001 = 0;
+    const double r1_010 = 0;
+    const double r1_011 = 0;
+    const double r1_100 = 1;
+    const double r1_101 = 0;
+    const double r1_110 = 0;
+    const double r1_111 = 0;
+
+    const double r2_000 = 0;
+    const double r2_001 = 0;
+    const double r2_010 = 0;
+    const double r2_011 = 0;
+    const double r2_100 = 1;
+    const double r2_101 = 0;
+    const double r2_110 = 0;
+    const double r2_111 = 0;
+
+    const double r4_000 = 0;
+    const double r4_001 = 0;
+    const double r4_010 = 0;
+    const double r4_011 = 0;
+    const double r4_100 = 0;
+    const double r4_101 = 0;
+    const double r4_110 = 0;
+    const double r4_111 = 1;
+
+    const double r5_000 = 0;
+    const double r5_001 = 0;
+    const double r5_010 = 0;
+    const double r5_011 = 0;
+    const double r5_100 = 1;
+    const double r5_101 = 0;
+    const double r5_110 = 0;
+    const double r5_111 = 0;
+
+    //const double r3_*** = 0;
+    //const double r6_*** = 0;
+    //const double r7_*** = 0;
+    //const double r8_*** = 0;
+    //const double r9_*** = 0;
+
+    const double r_000 = r0_000 + r1_000 + r2_000 + r4_000 + r5_000;
+    const double r_001 = r0_001 + r1_001 + r2_001 + r4_001 + r5_001;
+    const double r_010 = r0_010 + r1_010 + r2_010 + r4_010 + r5_010;
+    const double r_011 = r0_011 + r1_011 + r2_011 + r4_011 + r5_011;
+    const double r_100 = r0_100 + r1_100 + r2_100 + r4_100 + r5_100;
+    const double r_101 = r0_101 + r1_101 + r2_101 + r4_101 + r5_101;
+    const double r_110 = r0_110 + r1_110 + r2_110 + r4_110 + r5_110;
+    const double r_111 = r0_111 + r1_111 + r2_111 + r4_111 + r5_111;
+
+    const double c = r_000 + r_001 + r_010 + r_011 +
+                     r_100 + r_101 + r_110 + r_111;
+
+    const double f_000 = r_000 / c;
+    const double f_001 = r_001 / c;
+    const double f_010 = r_010 / c;
+    const double f_011 = r_011 / c;
+    const double f_100 = r_100 / c;
+    const double f_101 = r_101 / c;
+    const double f_110 = r_110 / c;
+    const double f_111 = r_111 / c;
+
+    const double fm = 4;
+    const double cp = 2 / (double) 3;
+
+    const double ref000 = fm * f_000 * (1-cp*f0_0) * (1-cp*f1_0) * (1-cp*f2_0);
+    const double ref001 = fm * f_001 * (1-cp*f0_0) * (1-cp*f1_0) * (1-cp*f2_1);
+    const double ref010 = fm * f_010 * (1-cp*f0_0) * (1-cp*f1_1) * (1-cp*f2_0);
+    const double ref011 = fm * f_011 * (1-cp*f0_0) * (1-cp*f1_1) * (1-cp*f2_1);
+    const double ref100 = fm * f_100 * (1-cp*f0_1) * (1-cp*f1_0) * (1-cp*f2_0);
+    const double ref101 = fm * f_101 * (1-cp*f0_1) * (1-cp*f1_0) * (1-cp*f2_1);
+    const double ref110 = fm * f_110 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_0);
+    const double ref111 = fm * f_111 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_1);
+
+    printf("A A A  %.8f\n", ref000);
+    printf("A A T  %.5f\n", ref001);
+    printf("A T A  %.8f\n", ref010);
+    printf("A T T  %.8f\n", ref011);
+    printf("T A A  %.8f\n", ref100);
+    printf("T A T  %.8f\n", ref101);
+    printf("T T A  %.8f\n", ref110);
+    printf("T T T  %.8f\n", ref111);
+    printf("\n");
+
+    const double eps = 1.e-3;
+
+    EXPECT_EQ(true, fabs(result000 - ref000) < eps);
+    EXPECT_EQ(true, fabs(result001 - ref001) < eps);
+    EXPECT_EQ(true, fabs(result010 - ref010) < eps);
+    EXPECT_EQ(true, fabs(result011 - ref011) < eps);
+    EXPECT_EQ(true, fabs(result100 - ref100) < eps);
+    EXPECT_EQ(true, fabs(result101 - ref101) < eps);
+    EXPECT_EQ(true, fabs(result110 - ref110) < eps);
+    EXPECT_EQ(true, fabs(result111 - ref111) < eps);
+  }
+
+  GMMetrics_destroy(metrics, env);
+  GMVectors_destroy(vectors, env);
+  GMDecompMgr_destroy(dm, env);
+} // DriverTest_ccc3_simple_sparse_compute_method
+
+//=============================================================================
+
+void DriverTest_duo3_simple_sparse_() {
+  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::REF);
+  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::CPU);
+  DriverTest_duo3_simple_sparse_compute_method(comet::ComputeMethod::GPU);
 }
 
 //=============================================================================
@@ -2089,10 +2358,6 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
-TEST(DriverTest, tc) {
-  DriverTest_tc_();
-}
-
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();
 }
@@ -2101,16 +2366,8 @@ TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
 
-TEST(DriverTest, duo2_simple_sparse) {
-  DriverTest_duo2_simple_sparse_();
-}
-
-TEST(DriverTest, duo2) {
-  DriverTest_duo2_();
-}
-
-TEST(DriverTest, duo3) {
-  DriverTest_duo3_();
+TEST(DriverTest, duo3_simple_sparse) {
+//FIX  DriverTest_duo3_simple_sparse_();
 }
 
 TEST(DriverTest, ccc2_simple) {
@@ -2121,12 +2378,28 @@ TEST(DriverTest, ccc2_simple_sparse) {
   DriverTest_ccc2_simple_sparse_();
 }
 
+TEST(DriverTest, duo2_simple_sparse) {
+  DriverTest_duo2_simple_sparse_();
+}
+
+TEST(DriverTest, tc) {
+  DriverTest_tc_();
+}
+
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
 
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
+}
+
+TEST(DriverTest, duo2) {
+  DriverTest_duo2_();
+}
+
+TEST(DriverTest, duo3) {
+  DriverTest_duo3_();
 }
 
 TEST(DriverTest, czek) {
