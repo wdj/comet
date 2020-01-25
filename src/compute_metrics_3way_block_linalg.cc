@@ -698,7 +698,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
       vars_prev.matB_buf_ptr()->from_accel_wait();
       if (vars_prev.step_2way == 0) {
         gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_,
-        env_.is_bitwise_3way_2step() ? 2 : 1);
+          //CHECK
+          env_.is_bitwise_3way_2step() && env_.metric_type() == MetricType::CCC ? 2 : 1);
       }
     }
 

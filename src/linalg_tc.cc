@@ -321,10 +321,10 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   //COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) );
 
   const GemmIn_t out0 = 3 == num_way && is_left && is_duo ? (
-                          snm0 == _10                      ? zero :
-                          snc0 == _10                      ? zero :
-                          snm0 == step_2way && snc0 == i01 ? one :
-                                                             zero
+                          snm0 == _10                              ? zero :
+                          snc0 == _10                              ? zero :
+                          (snm0&1) == step_2way && (snc0&1) == i01 ? one :
+                                                                     zero
                         ) : //====================
                         is_duo ? (
                            snm0 == _10         ? zero :
@@ -364,10 +364,10 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
                         );
 
   const GemmIn_t out1 = 3 == num_way && is_left && is_duo ? (
-                          snm1 == _10                      ? zero :
-                          snc1 == _10                      ? zero :
-                          snm1 == step_2way && snc1 == i01 ? one :
-                                                             zero
+                          snm1 == _10                              ? zero :
+                          snc1 == _10                              ? zero :
+                          (snm1&1) == step_2way && (snc1&1) == i01 ? one :
+                                                                     zero
                         ) : //====================
                         is_duo ? (
                            snm1 == _10         ? zero :

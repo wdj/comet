@@ -41,6 +41,17 @@ bool can_run(const char* options) {
 
 //=============================================================================
 
+bool is_using_tc(const char* options) {
+
+  COMET_INSIST(options);
+
+  comet::Env env(options);
+
+  return env.is_using_tc();
+}
+
+//=============================================================================
+
 bool compare_2runs(const char* options1, const char* options2) {
   COMET_INSIST(options1 && options2);
 
@@ -131,6 +142,7 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   std:: string options = " --num_way " + std::to_string(num_way);
   options += " --metric_type " + std::string(MetricType::str(metric_type));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --verbosity 1";
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -615,6 +627,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   options += " --all2all no";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --verbosity 1";
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -723,6 +736,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --verbosity 1";
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -888,6 +902,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --verbosity 1";
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -1039,6 +1054,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   options += " --all2all yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --verbosity 1";
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -1198,6 +1214,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --verbosity 1";
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -1475,6 +1492,7 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
     options += " --tc " + std::to_string(4);
   }
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --verbosity 1";
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -1484,7 +1502,7 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   }
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+  GMDecompMgr_create(dm, true, false, num_field, num_vector_local,
                      env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
@@ -1726,8 +1744,8 @@ void DriverTest_tc_() {
 
     char options_template[] =
         "--metric_type %s "
-//        "--num_proc_vector %i --num_field 100 --num_vector %i "
-        "--num_proc_vector %i --num_field 1 --num_vector %i "
+        "--num_proc_vector %i --num_field 100 --num_vector %i "
+        //"--num_proc_vector %i --num_field 1 --num_vector %i "
         "--compute_method %s --sparse %s "
         "--problem_type random --verbosity %i --tc %i --num_way %i "
         "--num_tc_steps %i --all2all yes" ;
@@ -1736,18 +1754,17 @@ void DriverTest_tc_() {
     //const int num_proc_vector = 1;
 
     for (int is_duo=0; is_duo<=1; ++is_duo) {
-    //for (int is_duo=0; is_duo<=0; ++is_duo) {
+    //for (int is_duo=1; is_duo<=1; ++is_duo) {
     for (int gpu=0; gpu<=1; ++gpu) {
     //for (int gpu=0; gpu<=0; ++gpu) {
     for (int num_tc_steps=1; num_tc_steps<=3; ++num_tc_steps) {
     //for (int num_tc_steps=1; num_tc_steps<=1; ++num_tc_steps) {
     for (int nv=10; nv<=10; ++nv) {
-    //for (int nv=3; nv<=10; ++nv) {
+    //for (int nv=3; nv<=3; ++nv) {
     for (int num_way=2; num_way<=3; ++num_way) {
     //for (int num_way=3; num_way<=3; ++num_way) {
-      if (is_duo && 3 == num_way) continue;
     for (int sparse=0; sparse<=1; ++sparse) {
-    //for (int sparse=0; sparse<=0; ++sparse) {
+    //for (int sparse=1; sparse<=1; ++sparse) {
       if (is_duo && 0 == sparse) continue;
     for (int tc=1; tc<comet::TC::NUM; ++tc) {
     //for (int tc=4; tc<=4; ++tc) {
@@ -1759,6 +1776,7 @@ void DriverTest_tc_() {
       sprintf(options2, options_template, is_duo ? "duo" : "ccc",
               num_proc_vector, nv, gpu ? "GPU" : "CPU",
               sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
+      if (is_duo && 3 == num_way && !is_using_tc(options2)) continue;
       EXPECT_EQ(true, compare_2runs(options1, options2));
     }
     }
@@ -2367,7 +2385,7 @@ TEST(DriverTest, ccc3_simple_sparse) {
 }
 
 TEST(DriverTest, duo3_simple_sparse) {
-//FIX  DriverTest_duo3_simple_sparse_();
+  DriverTest_duo3_simple_sparse_();
 }
 
 TEST(DriverTest, ccc2_simple) {

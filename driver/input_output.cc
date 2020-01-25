@@ -767,7 +767,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
 
       } else /*---stdout---*/ {
 
-        COMET_INSIST(env->metric_type() == MetricType::CCC);
+        COMET_INSIST(env->is_metric_type_bitwise());
 
         MetricWriter writer(file, metrics, env);
 

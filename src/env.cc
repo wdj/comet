@@ -460,7 +460,8 @@ int Env::data_type_metrics() const {
       return num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
                                       : GM_DATA_TYPE_TALLY4X2;
     case MetricType::DUO:
-      return GM_DATA_TYPE_TALLY2X2; // 2-way only for now
+      return num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
+                                      : GM_DATA_TYPE_TALLY4X2;
   }
   COMET_INSIST(false && "Invalid metric_type.");
   return 0;

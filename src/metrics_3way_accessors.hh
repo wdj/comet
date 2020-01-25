@@ -352,9 +352,9 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
     }
 
     /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
-    const GMTally1 si = i0 == 0 ? (2 * ci - si1) : si1;
-    const GMTally1 sj = i1 == 0 ? (2 * cj - sj1) : sj1;
-    const GMTally1 sk = i2 == 0 ? (2 * ck - sk1) : sk1;
+    const GMTally1 si = i0 == 0 ? (COUNTED_BITS_PER_ELT * ci - si1) : si1;
+    const GMTally1 sj = i1 == 0 ? (COUNTED_BITS_PER_ELT * cj - sj1) : sj1;
+    const GMTally1 sk = i2 == 0 ? (COUNTED_BITS_PER_ELT * ck - sk1) : sk1;
 
     // TODO: it may be possible to decrease the number of divides
     // here - see GMMetrics_ccc_get_from_index_2.
@@ -387,7 +387,8 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
   } /*---if sparse---*/
 
 #ifdef COMET_USE_INT128
-  if (env->are_ccc_params_default()) {
+  if (env->are_ccc_params_default() &&
+      env->metric_type() == MetricType::CCC) {
     const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_3(metrics,
                                          index, i0, i1, i2, env);
 

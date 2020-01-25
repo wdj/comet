@@ -433,7 +433,10 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
     /* clang-format off */
 
-    const int pad_adjustment = 8 * metrics->dm->num_pad_field_local;
+    const int cbpe = env->metric_type() == MetricType::CCC ? 2 : 1;
+
+    const int pad_adjustment = cbpe * cbpe * cbpe * metrics->dm->num_pad_field_local;
+
     const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     const int J_lo = si->J_lb;
