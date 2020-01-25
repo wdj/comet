@@ -28,7 +28,8 @@ class VectorSums {
 public:
 
   VectorSums(size_t num_vector_local, Env& env_);
-  ~VectorSums();
+  VectorSums(const GMVectors& vectors, Env& env);
+  ~VectorSums() {}
 
   void compute(const GMVectors& vectors);
 
@@ -65,6 +66,8 @@ private:
     COMET_ASSERT(i < counts_.dim0); // && i >= 0
     return (((Float_t*)counts_.h)[i]);
   }
+
+  void allocate_();
 
   // Disallowed methods.
 

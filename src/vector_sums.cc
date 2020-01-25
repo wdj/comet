@@ -29,20 +29,36 @@ VectorSums::VectorSums(size_t num_vector_local, Env& env)
   , counts_(env)
   , counts_tmp_(env) {
 
-  sums_.allocate(num_vector_local, 1, sizeof(Float_t));
-  if (env_.num_proc() > 1)
-    sums_tmp_.allocate(num_vector_local, 1, sizeof(Float_t));
-
-  if (env_.sparse() && env_.is_metric_type_bitwise()) {
-    counts_.allocate(num_vector_local, 1, sizeof(Float_t));
-    if (env_.num_proc() > 1)
-      counts_tmp_.allocate(num_vector_local, 1, sizeof(Float_t));
-  }
+  allocate_();
 }
 
 //-----------------------------------------------------------------------------
 
-VectorSums::~VectorSums() {
+VectorSums::VectorSums(const GMVectors& vectors, Env& env)
+  : env_(env)
+  , num_vector_local_(vectors.num_vector_local)
+  , sums_(env)
+  , sums_tmp_(env)
+  , counts_(env)
+  , counts_tmp_(env) {
+
+  allocate_();
+  compute(vectors);
+}
+
+//-----------------------------------------------------------------------------
+
+void VectorSums::allocate_() {
+
+  sums_.allocate(num_vector_local_, 1, sizeof(Float_t));
+  if (env_.num_proc() > 1)
+    sums_tmp_.allocate(num_vector_local_, 1, sizeof(Float_t));
+
+  if (env_.sparse() && env_.is_metric_type_bitwise()) {
+    counts_.allocate(num_vector_local_, 1, sizeof(Float_t));
+    if (env_.num_proc() > 1)
+      counts_tmp_.allocate(num_vector_local_, 1, sizeof(Float_t));
+  }
 }
 
 //-----------------------------------------------------------------------------
