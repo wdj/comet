@@ -26,8 +26,8 @@ namespace comet {
 void gm_compute_2way_proc_combine(
   GMMetrics* metrics,
   GMMirroredBuf* metrics_buf,
-  const GMVectorSums* vector_sums_left,
-  const GMVectorSums* vector_sums_right,
+  const VectorSums* const vector_sums_left,
+  const VectorSums* const vector_sums_right,
   int j_proc,
   bool do_compute_triang_only,
   GMEnv* env);

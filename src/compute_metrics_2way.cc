@@ -30,8 +30,8 @@ namespace comet {
 
 ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
   : env_(env) 
-  , vector_sums_onproc_{}
-  , vector_sums_offproc_{}
+//  , vector_sums_onproc_(dm.num_vector_local, env)
+//  , vector_sums_offproc_(env_.all2all() ? dm.num_vector_local : 0, env)
   , vectors_01_{}
   , metrics_buf_01_{GMMirroredBuf(env), GMMirroredBuf(env)}
   , vectors_buf_(env)
@@ -40,8 +40,8 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
 
   if (!env_.all2all()) return;
 
-  GMVectorSums_create(&vector_sums_onproc_, dm.num_vector_local, &env_);
-  GMVectorSums_create(&vector_sums_offproc_, dm.num_vector_local, &env_);
+  //GMVectorSums_create(&vector_sums_onproc_, dm.num_vector_local, &env_);
+  //GMVectorSums_create(&vector_sums_offproc_, dm.num_vector_local, &env_);
 
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_create_with_buf(&vectors_01_[i], env_.data_type_vectors(),
@@ -63,8 +63,8 @@ ComputeMetrics2Way::~ComputeMetrics2Way() {
 
   if (!env_.all2all()) return;
 
-  GMVectorSums_destroy(&vector_sums_onproc_, &env_);
-  GMVectorSums_destroy(&vector_sums_offproc_, &env_);
+  //GMVectorSums_destroy(&vector_sums_onproc_, &env_);
+  //GMVectorSums_destroy(&vector_sums_offproc_, &env_);
 
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_destroy(&vectors_01_[i], &env_);
@@ -95,10 +95,11 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   // Denominator
   //---------------
 
-  GMVectorSums vector_sums = GMVectorSums_null();
-  GMVectorSums_create(&vector_sums, vectors.num_vector_local, &env_);
+  VectorSums vector_sums(vectors, env_);
 
-  GMVectorSums_compute(&vector_sums, &vectors, &env_);
+  //GMVectorSums vector_sums = GMVectorSums_null();
+  //GMVectorSums_create(&vector_sums, vectors.num_vector_local, &env_);
+  //GMVectorSums_compute(&vector_sums, &vectors, &env_);
 
   //---------------
   // Numerator
@@ -165,7 +166,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   // Terminations
   //---------------
 
-  GMVectorSums_destroy(&vector_sums, &env_);
+  //GMVectorSums_destroy(&vector_sums, &env_);
 
   }
 
@@ -180,6 +181,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   COMET_INSIST(env_.all2all());
 
   // Initializations
+
+  VectorSums vector_sums_onproc(vectors.num_vector_local, env_);
+  VectorSums vector_sums_offproc(vectors.num_vector_local, env_);
 
   const int num_block = env_.num_block_vector();
   const int i_block = env_.proc_num_vector();
@@ -418,10 +422,10 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         gm_metrics_pad_adjust(&metrics, vars_prev.metrics_buf, &env_);
         unlock(lock_metrics_buf_ptr_h_prev);
 
-        GMVectorSums* vector_sums_left = &vector_sums_onproc_;
-        GMVectorSums* vector_sums_right =
+        VectorSums* vector_sums_left = &vector_sums_onproc;
+        VectorSums* vector_sums_right =
           vars_prev.is_main_diag
-          ? &vector_sums_onproc_ : &vector_sums_offproc_;
+          ? &vector_sums_onproc : &vector_sums_offproc;
 
         //TODO: remove need to allocate metrics_tmp_buf device array
         GMMirroredBuf* metrics_buf_prev_ptr =
@@ -463,11 +467,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
-          GMVectorSums_compute(&vector_sums_onproc_, vectors_left, &env_);
+          vector_sums_onproc.compute(*vectors_left);
+          //GMVectorSums_compute(&vector_sums_onproc, vectors_left, &env_);
         }
         if (! vars.is_main_diag) {
-          GMVectorSums_compute(&vector_sums_offproc_, vars.vectors_right,
-                               &env_);
+          vector_sums_offproc.compute(*vars.vectors_right);
+          //GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right,
+          //                     &env_);
         }
       }
     }
@@ -522,11 +528,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
-          GMVectorSums_compute(&vector_sums_onproc_, vectors_left, &env_);
+          vector_sums_onproc.compute(*vectors_left);
+          //GMVectorSums_compute(&vector_sums_onproc, vectors_left, &env_);
         }
         if (! vars.is_main_diag) {
-          GMVectorSums_compute(&vector_sums_offproc_, vars.vectors_right,
-                               &env_);
+          vector_sums_offproc.compute(*vars.vectors_right);
+          //GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right,
+          //                     &env_);
         }
       }
     }
@@ -535,10 +543,10 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     if (!env_.is_using_linalg()) {
       if (vars.is_compute_step && vars.do_compute_block) {
-        GMVectorSums* vector_sums_left = &vector_sums_onproc_;
-        GMVectorSums* vector_sums_right =
+        VectorSums* vector_sums_left = &vector_sums_onproc;
+        VectorSums* vector_sums_right =
             vars.is_main_diag
-            ? &vector_sums_onproc_ : &vector_sums_offproc_;
+            ? &vector_sums_onproc : &vector_sums_offproc;
         //gm_get_metrics_wait(&metrics, vars.metrics_buf, &env_); // NO-OP
         vars.metrics_buf->from_accel_wait(); // NO-OP
         unlock(lock_metrics_buf_ptr_d);

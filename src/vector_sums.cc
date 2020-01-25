@@ -10,6 +10,7 @@
 
 #include "cstdint"
 #include "cstdlib"
+#include <iostream> //FIX
 
 #include "env.hh"
 #include "vectors.hh"
@@ -50,13 +51,16 @@ VectorSums::VectorSums(const GMVectors& vectors, Env& env)
 
 void VectorSums::allocate_() {
 
+  if (!num_vector_local_)
+    return;
+
   sums_.allocate(num_vector_local_, 1, sizeof(Float_t));
-  if (env_.num_proc() > 1)
+  if (env_.do_reduce())
     sums_tmp_.allocate(num_vector_local_, 1, sizeof(Float_t));
 
   if (env_.sparse() && env_.is_metric_type_bitwise()) {
     counts_.allocate(num_vector_local_, 1, sizeof(Float_t));
-    if (env_.num_proc() > 1)
+    if (env_.do_reduce())
       counts_tmp_.allocate(num_vector_local_, 1, sizeof(Float_t));
   }
 }
@@ -79,7 +83,7 @@ void VectorSums::compute_float(const GMVectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
 
   auto sums_h_local = (Float_t* const __restrict__)(env_.do_reduce() ?
-       sums_.h : sums_tmp_.h);
+       sums_tmp_.h : sums_.h);
 
   // Sum up all values in each vector.
 
@@ -109,9 +113,9 @@ void VectorSums::compute_bits2(const GMVectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
 
   auto sums_h_local = (Float_t* const __restrict__)(env_.do_reduce() ?
-       sums_.h : sums_tmp_.h);
+       sums_tmp_.h : sums_.h);
   auto counts_h_local = (Float_t* const __restrict__)(env_.do_reduce() ?
-       counts_.h : counts_tmp_.h);
+       counts_tmp_.h : counts_.h);
 
   // Count number of 1-bits in each vector
 
@@ -165,6 +169,7 @@ void VectorSums::compute_bits2(const GMVectors& vectors) {
     const int num_fields_pad = vectors.dm->num_packedfield_local *
                                vectors.dm->num_field_per_packedfield -
                                vectors.dm->num_field_active_local;
+#   pragma omp parallel for schedule(dynamic,1000)
     for (int i = 0; i < num_vector_local_; ++i) {
       Float_t sum = 0;
       if (env_.sparse()) {
@@ -234,7 +239,7 @@ void VectorSums::compute_bits2(const GMVectors& vectors) {
 
 
 
-
+#if 0
 //-----------------------------------------------------------------------------
 /*---Null object---*/
 
@@ -334,7 +339,7 @@ void GMVectorSums_compute_float_(GMVectorSums* this_,
 
   /*---Sum up all values in each vector---*/
 
-  #pragma omp parallel for schedule(dynamic,1000)
+# pragma omp parallel for schedule(dynamic,1000)
   for (int i = 0; i < vectors->num_vector_local; ++i) {
     GMFloat sum = 0;
     //#pragma omp parallel for reduction(+:sum)
@@ -379,7 +384,7 @@ void GMVectorSums_compute_bits2_(GMVectorSums* this_,
   //----------
   if (env->compute_method() == ComputeMethod::REF) {
     //----------
-    #pragma omp parallel for schedule(dynamic,1000)
+#   pragma omp parallel for schedule(dynamic,1000)
     for (int i = 0; i < vectors->num_vector_local; ++i) {
       GMFloat sum = 0;
       if (env->sparse()) {
@@ -518,6 +523,7 @@ GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env) {
   //return this_->counts ? this_->counts[i] : this_->num_field_;
   return this_->counts[i];
 }
+#endif
 
 //=============================================================================
 

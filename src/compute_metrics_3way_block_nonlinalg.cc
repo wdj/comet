@@ -40,9 +40,9 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   GMMirroredBuf* vectors_i_buf = vdata_i.buf;
   GMMirroredBuf* vectors_j_buf = vdata_j.buf;
   GMMirroredBuf* vectors_k_buf = vdata_k.buf;
-  GMVectorSums* vector_sums_i = vdata_i.sums;
-  GMVectorSums* vector_sums_j = vdata_j.sums;
-  GMVectorSums* vector_sums_k = vdata_k.sums;
+  VectorSums* vector_sums_i = vdata_i.sums;
+  VectorSums* vector_sums_j = vdata_j.sums;
+  VectorSums* vector_sums_k = vdata_k.sums;
 
 
 
@@ -70,9 +70,9 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  const GMVectorSums* const vs_i = vector_sums_i;
-  const GMVectorSums* const vs_j = vector_sums_j;
-  const GMVectorSums* const vs_k = vector_sums_k;
+  const VectorSums* const vs_i = vector_sums_i;
+  const VectorSums* const vs_j = vector_sums_j;
+  const VectorSums* const vs_k = vector_sums_k;
 
   /*----------------------------------------*/
   if (!env->is_compute_method_gpu() && !env->all2all()) {
@@ -97,9 +97,12 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
         for (int i = 0; i < j; ++i) {
           /*---Make arithmetic order-independent---*/
           GMFloat smin, smid, smax;
-          const GMFloat si = GMVectorSums_sum(vs_i, i, env);
-          const GMFloat sj = GMVectorSums_sum(vs_i, j, env);
-          const GMFloat sk = GMVectorSums_sum(vs_i, k, env);
+          const GMFloat si = vs_i->sum(i);
+          const GMFloat sj = vs_i->sum(j);
+          const GMFloat sk = vs_i->sum(k);
+          //const GMFloat si = GMVectorSums_sum(vs_i, i, env);
+          //const GMFloat sj = GMVectorSums_sum(vs_i, j, env);
+          //const GMFloat sk = GMVectorSums_sum(vs_i, k, env);
           //GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
           utils::sort_3(smin, smid, smax, si, sj, sk);
           const GMFloat denom = smin + smid + smax;
@@ -149,9 +152,12 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
 
           /*---Make arithmetic order-independent---*/
           GMFloat smin, smid, smax;
-          const GMFloat si = GMVectorSums_sum(vs_i, i, env);
-          const GMFloat sj = GMVectorSums_sum(vs_j, j, env);
-          const GMFloat sk = GMVectorSums_sum(vs_k, k, env);
+          const GMFloat si = vs_i->sum(i);
+          const GMFloat sj = vs_j->sum(j);
+          const GMFloat sk = vs_k->sum(k);
+          //const GMFloat si = GMVectorSums_sum(vs_i, i, env);
+          //const GMFloat sj = GMVectorSums_sum(vs_j, j, env);
+          //const GMFloat sk = GMVectorSums_sum(vs_k, k, env);
           //GMFloat_sort_3(&smin, &smid, &smax, &si, &sj, &sk);
           utils::sort_3(smin, smid, smax, si, sj, sk);
           const GMFloat denom = smin + smid + smax;
@@ -203,9 +209,9 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   GMMirroredBuf* vectors_i_buf = vdata_i.buf;
   GMMirroredBuf* vectors_j_buf = vdata_j.buf;
   GMMirroredBuf* vectors_k_buf = vdata_k.buf;
-  GMVectorSums* vector_sums_i = vdata_i.sums;
-  GMVectorSums* vector_sums_j = vdata_j.sums;
-  GMVectorSums* vector_sums_k = vdata_k.sums;
+  VectorSums* vector_sums_i = vdata_i.sums;
+  VectorSums* vector_sums_j = vdata_j.sums;
+  VectorSums* vector_sums_k = vdata_k.sums;
 
 
 
@@ -233,9 +239,9 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
                        metrics->num_vector_local, env);
 
-  const GMVectorSums* const vs_i = vector_sums_i;
-  const GMVectorSums* const vs_j = vector_sums_j;
-  const GMVectorSums* const vs_k = vector_sums_k;
+  const VectorSums* const vs_i = vector_sums_i;
+  const VectorSums* const vs_j = vector_sums_j;
+  const VectorSums* const vs_k = vector_sums_k;
 
   /*----------------------------------------*/
   if (env->compute_method() == ComputeMethod::REF) {
@@ -389,9 +395,12 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
           // Get denom
 
-          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
-          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
-          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
+          const auto si1 = (GMTally1)vs_i->sum(i);
+          const auto sj1 = (GMTally1)vs_j->sum(j);
+          const auto sk1 = (GMTally1)vs_k->sum(k);
+          //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
+          //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
+          //const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
           if (env->all2all()) {
             GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics,
@@ -399,9 +408,12 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, si1_sj1_sk1, &index_cache, env);
             if (env->sparse()) {
-              const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
-              const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
-              const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
+              const auto ci1 = (GMTally1)vs_i->count(i);
+              const auto cj1 = (GMTally1)vs_j->count(j);
+              const auto ck1 = (GMTally1)vs_k->count(k);
+              //const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+              //const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
+              //const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
               const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
               GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, ci1_cj1_ck1, &index_cache, env);
@@ -410,9 +422,12 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
             GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
             if (env->sparse()) {
-              const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
-              const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
-              const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
+              const auto ci1 = (GMTally1)vs_i->count(i);
+              const auto cj1 = (GMTally1)vs_j->count(j);
+              const auto ck1 = (GMTally1)vs_k->count(k);
+              //const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+              //const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
+              //const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
               const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
               GMMetrics_float3_C_set_3(metrics, i, j, k, ci1_cj1_ck1, env);
 
@@ -712,9 +727,12 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
           // Get denom
 
-          const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
-          const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
-          const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
+          const auto si1 = (GMTally1)vs_i->sum(i);
+          const auto sj1 = (GMTally1)vs_j->sum(j);
+          const auto sk1 = (GMTally1)vs_k->sum(k);
+          //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, env);
+          //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, env);
+          //const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, env);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
           if (env->all2all()) {
             GMMetrics_tally4x2_set_all2all_3_permuted_cache(metrics,
@@ -722,9 +740,12 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, si1_sj1_sk1, &index_cache, env);
             if (env->sparse()) {
-              const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
-              const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
-              const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
+              const auto ci1 = (GMTally1)vs_i->count(i);
+              const auto cj1 = (GMTally1)vs_j->count(j);
+              const auto ck1 = (GMTally1)vs_k->count(k);
+              //const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+              //const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
+              //const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
               const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
               GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics,
                 I, J, K, j_block, k_block, ci1_cj1_ck1, &index_cache, env);
@@ -733,9 +754,12 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
             GMMetrics_tally4x2_set_3(metrics, i, j, k, sum, env);
             GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, env);
             if (env->sparse()) {
-              const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
-              const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
-              const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
+              const auto ci1 = (GMTally1)vs_i->count(i);
+              const auto cj1 = (GMTally1)vs_j->count(j);
+              const auto ck1 = (GMTally1)vs_k->count(k);
+              //const GMTally1 ci1 = (GMTally1)GMVectorSums_count(vs_i, i, env);
+              //const GMTally1 cj1 = (GMTally1)GMVectorSums_count(vs_j, j, env);
+              //const GMTally1 ck1 = (GMTally1)GMVectorSums_count(vs_k, k, env);
               const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
               GMMetrics_float3_C_set_3(metrics, i, j, k, ci1_cj1_ck1, env);
             } /*---if sparse---*/

@@ -682,10 +682,10 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
     const double result11 =
         GMMetrics_ccc_get_from_index_2(metrics, 0, 1, 1, env);
 
-    printf("G G  %.5f\n", result00);
-    printf("G A  %.5f\n", result01);
-    printf("T G  %.5f\n", result10);
-    printf("T A  %.5f\n", result11);
+    printf("COMPUTED: G G  %.5f\n", result00);
+    printf("COMPUTED: G A  %.5f\n", result01);
+    printf("COMPUTED: T G  %.5f\n", result10);
+    printf("COMPUTED: T A  %.5f\n", result11);
     printf("\n");
 
     const double ref00 = .196;
@@ -693,10 +693,10 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
     const double ref10 = .588;
     const double ref11 = .312;
 
-    printf("G G  %.5f\n", ref00);
-    printf("G A  %.5f\n", ref01);
-    printf("T G  %.5f\n", ref10);
-    printf("T A  %.5f\n", ref11);
+    printf("EXPECTED: G G  %.5f\n", ref00);
+    printf("EXPECTED: G A  %.5f\n", ref01);
+    printf("EXPECTED: T G  %.5f\n", ref10);
+    printf("EXPECTED: T A  %.5f\n", ref11);
     printf("\n");
 
     const double eps = 1.e-5;
@@ -800,10 +800,10 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
     const double result11 =
         GMMetrics_ccc_get_from_index_2(metrics, 0, 1, 1, env);
 
-    printf("G G  %.5f\n", result00);
-    printf("G A  %.5f\n", result01);
-    printf("T G  %.5f\n", result10);
-    printf("T A  %.5f\n", result11);
+    printf("COMPUTED: G G  %.5f\n", result00);
+    printf("COMPUTED: G A  %.5f\n", result01);
+    printf("COMPUTED: T G  %.5f\n", result10);
+    printf("COMPUTED: T A  %.5f\n", result11);
     printf("\n");
 
     const double s0_0 = 1;
@@ -859,10 +859,10 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
     const double ref10 = fm * f_10 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_0 );
     const double ref11 = fm * f_11 * ( 1 - cp * f0_1 ) * ( 1 - cp * f1_1 );
 
-    printf("G G  %.5f\n", ref00);
-    printf("G A  %.5f\n", ref01);
-    printf("T G  %.5f\n", ref10);
-    printf("T A  %.5f\n", ref11);
+    printf("EXPECTED: G G  %.5f\n", ref00);
+    printf("EXPECTED: G A  %.5f\n", ref01);
+    printf("EXPECTED: T G  %.5f\n", ref10);
+    printf("EXPECTED: T A  %.5f\n", ref11);
     printf("\n");
 
     const double eps = 1.e-5;
@@ -1143,14 +1143,14 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
     const double result111 =
         GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 1, 1, env);
 
-    printf("A A A  %.8f\n", result000);
-    printf("A A T  %.5f\n", result001);
-    printf("A T A  %.8f\n", result010);
-    printf("A T T  %.8f\n", result011);
-    printf("T A A  %.8f\n", result100);
-    printf("T A T  %.8f\n", result101);
-    printf("T T A  %.8f\n", result110);
-    printf("T T T  %.8f\n", result111);
+    printf("COMPUTED: A A A  %.8f\n", result000);
+    printf("COMPUTED: A A T  %.5f\n", result001);
+    printf("COMPUTED: A T A  %.8f\n", result010);
+    printf("COMPUTED: A T T  %.8f\n", result011);
+    printf("COMPUTED: T A A  %.8f\n", result100);
+    printf("COMPUTED: T A T  %.8f\n", result101);
+    printf("COMPUTED: T T A  %.8f\n", result110);
+    printf("COMPUTED: T T T  %.8f\n", result111);
     printf("\n");
 
     const double fm = 9 / (double) 2;
@@ -1163,14 +1163,14 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
     const double ref110 = fm * .008;
     const double ref111 = fm * .015;
 
-    printf("A A A  %.8f\n", ref000);
-    printf("A A T  %.5f\n", ref001);
-    printf("A T A  %.8f\n", ref010);
-    printf("A T T  %.8f\n", ref011);
-    printf("T A A  %.8f\n", ref100);
-    printf("T A T  %.8f\n", ref101);
-    printf("T T A  %.8f\n", ref110);
-    printf("T T T  %.8f\n", ref111);
+    printf("EXPECTED: A A A  %.8f\n", ref000);
+    printf("EXPECTED: A A T  %.5f\n", ref001);
+    printf("EXPECTED: A T A  %.8f\n", ref010);
+    printf("EXPECTED: A T T  %.8f\n", ref011);
+    printf("EXPECTED: T A A  %.8f\n", ref100);
+    printf("EXPECTED: T A T  %.8f\n", ref101);
+    printf("EXPECTED: T T A  %.8f\n", ref110);
+    printf("EXPECTED: T T T  %.8f\n", ref111);
     printf("\n");
 
     const double eps = 1.e-3;
@@ -1316,14 +1316,14 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     const double result111 =
         GMMetrics_ccc_get_from_index_3(metrics, 0, 1, 1, 1, env);
 
-    printf("A A A  %.8f\n", result000);
-    printf("A A T  %.5f\n", result001);
-    printf("A T A  %.8f\n", result010);
-    printf("A T T  %.8f\n", result011);
-    printf("T A A  %.8f\n", result100);
-    printf("T A T  %.8f\n", result101);
-    printf("T T A  %.8f\n", result110);
-    printf("T T T  %.8f\n", result111);
+    printf("COMPUTED: A A A  %.8f\n", result000);
+    printf("COMPUTED: A A T  %.5f\n", result001);
+    printf("COMPUTED: A T A  %.8f\n", result010);
+    printf("COMPUTED: A T T  %.8f\n", result011);
+    printf("COMPUTED: T A A  %.8f\n", result100);
+    printf("COMPUTED: T A T  %.8f\n", result101);
+    printf("COMPUTED: T T A  %.8f\n", result110);
+    printf("COMPUTED: T T T  %.8f\n", result111);
     printf("\n");
 
     const double s0_0 = 9;
@@ -1429,14 +1429,14 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
     const double ref110 = fm * f_110 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_0);
     const double ref111 = fm * f_111 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_1);
 
-    printf("A A A  %.8f\n", ref000);
-    printf("A A T  %.5f\n", ref001);
-    printf("A T A  %.8f\n", ref010);
-    printf("A T T  %.8f\n", ref011);
-    printf("T A A  %.8f\n", ref100);
-    printf("T A T  %.8f\n", ref101);
-    printf("T T A  %.8f\n", ref110);
-    printf("T T T  %.8f\n", ref111);
+    printf("EXPECTED: A A A  %.8f\n", ref000);
+    printf("EXPECTED: A A T  %.5f\n", ref001);
+    printf("EXPECTED: A T A  %.8f\n", ref010);
+    printf("EXPECTED: A T T  %.8f\n", ref011);
+    printf("EXPECTED: T A A  %.8f\n", ref100);
+    printf("EXPECTED: T A T  %.8f\n", ref101);
+    printf("EXPECTED: T T A  %.8f\n", ref110);
+    printf("EXPECTED: T T T  %.8f\n", ref111);
     printf("\n");
 
     //const double ref000 = .055;
@@ -1587,14 +1587,14 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
     const double result111 =
         GMMetrics_duo_get_from_index_3(metrics, 0, 1, 1, 1, env);
 
-    printf("A A A  %.8f\n", result000);
-    printf("A A T  %.5f\n", result001);
-    printf("A T A  %.8f\n", result010);
-    printf("A T T  %.8f\n", result011);
-    printf("T A A  %.8f\n", result100);
-    printf("T A T  %.8f\n", result101);
-    printf("T T A  %.8f\n", result110);
-    printf("T T T  %.8f\n", result111);
+    printf("COMPUTED: A A A  %.8f\n", result000);
+    printf("COMPUTED: A A T  %.5f\n", result001);
+    printf("COMPUTED: A T A  %.8f\n", result010);
+    printf("COMPUTED: A T T  %.8f\n", result011);
+    printf("COMPUTED: T A A  %.8f\n", result100);
+    printf("COMPUTED: T A T  %.8f\n", result101);
+    printf("COMPUTED: T T A  %.8f\n", result110);
+    printf("COMPUTED: T T T  %.8f\n", result111);
     printf("\n");
 
     const double s0_0 = 3;
@@ -1700,14 +1700,14 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
     const double ref110 = fm * f_110 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_0);
     const double ref111 = fm * f_111 * (1-cp*f0_1) * (1-cp*f1_1) * (1-cp*f2_1);
 
-    printf("A A A  %.8f\n", ref000);
-    printf("A A T  %.5f\n", ref001);
-    printf("A T A  %.8f\n", ref010);
-    printf("A T T  %.8f\n", ref011);
-    printf("T A A  %.8f\n", ref100);
-    printf("T A T  %.8f\n", ref101);
-    printf("T T A  %.8f\n", ref110);
-    printf("T T T  %.8f\n", ref111);
+    printf("EXPECTED: A A A  %.8f\n", ref000);
+    printf("EXPECTED: A A T  %.5f\n", ref001);
+    printf("EXPECTED: A T A  %.8f\n", ref010);
+    printf("EXPECTED: A T T  %.8f\n", ref011);
+    printf("EXPECTED: T A A  %.8f\n", ref100);
+    printf("EXPECTED: T A T  %.8f\n", ref101);
+    printf("EXPECTED: T T A  %.8f\n", ref110);
+    printf("EXPECTED: T T T  %.8f\n", ref111);
     printf("\n");
 
     const double eps = 1.e-3;

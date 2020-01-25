@@ -33,12 +33,12 @@ public:
 
   void compute(const GMVectors& vectors);
 
-  Float_t sum_const(size_t i) const {
+  Float_t sum(size_t i) const {
     COMET_ASSERT(i < sums_.dim0); // && i >= 0
     return ((Float_t*)sums_.h)[i];
   }
 
-  Float_t count_const(size_t i) const {
+  Float_t count(size_t i) const {
     COMET_ASSERT(i < counts_.dim0); // && i >= 0
     return ((Float_t*)counts_.h)[i];
   }
@@ -57,12 +57,12 @@ private:
   void compute_float(const GMVectors& vectors);
   void compute_bits2(const GMVectors& vectors);
 
-  Float_t& sum(size_t i) {
+  Float_t& sum_ref(size_t i) {
     COMET_ASSERT(i < sums_.dim0); // && i >= 0
     return (((Float_t*)sums_.h)[i]);
   }
 
-  Float_t& count(size_t i) {
+  Float_t& count_ref(size_t i) {
     COMET_ASSERT(i < counts_.dim0); // && i >= 0
     return (((Float_t*)counts_.h)[i]);
   }
@@ -83,7 +83,7 @@ private:
 
 
 
-
+#if 0
 //-----------------------------------------------------------------------------
 // Struct declaration
 
@@ -125,7 +125,7 @@ GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env);
 
 GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
 
-
+#endif
 
 
 
@@ -137,10 +137,10 @@ GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
 struct VData {
   GMVectors* vectors;
   GMMirroredBuf* buf;
-  GMVectorSums* sums;
+  VectorSums* sums;
 
   VData(GMVectors* vectors_in, GMMirroredBuf* buf_in,
-    GMVectorSums* sums_in = NULL)
+    VectorSums* sums_in = NULL)
     : vectors(vectors_in), buf(buf_in), sums(sums_in) {}
 };
 
