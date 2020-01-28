@@ -415,10 +415,8 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     const GMFloat f_one = 1;
 
-    const GMFloat ccc_duo_multiplier = env_ccc_duo_multiplier<CBPE>(*env);
-    const GMFloat ccc_param = env->ccc_param();
-
-    const GMTally2x2 t22 = GMMetrics_tally2x2_get_from_index(metrics, index, env);
+    const GMTally2x2 t22 = GMMetrics_tally2x2_get_from_index(metrics, index,
+                                                             env);
     const GMTally1 rij00 = GMTally2x2_get(t22, 0, 0);
     const GMTally1 rij01 = GMTally2x2_get(t22, 0, 1);
     const GMTally1 rij10 = GMTally2x2_get(t22, 1, 0);
@@ -426,12 +424,12 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     const GMFloat2 si1_sj1 =
       GMMetrics_float2_S_get_from_index(metrics, index, env);
-    GMTally1 si1, sj1;
+    GMTally1 si1 = 0, sj1 = 0;
     GMFloat2_decode(&si1, &sj1, si1_sj1);
 
     const GMFloat2 ci_cj =
       GMMetrics_float2_C_get_from_index(metrics, index, env);
-    GMTally1 ci, cj;
+    GMTally1 ci = 0, cj = 0;
     GMFloat2_decode(&ci, &cj, ci_cj);
 
     GMTally1 cij = rij00 + rij01 + rij10 + rij11;
@@ -439,23 +437,21 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
       return 0 > threshold;
     }
 
+    // Get number of 1 bits OR get number of 0 bits from number of 1 bits
+
+    const GMTally1 si0 = CBPE * ci - si1;
+    const GMTally1 sj0 = CBPE * cj - sj1;
+
     const GMFloat f_ci = (GMFloat) ci;
     const GMFloat f_cj = (GMFloat) cj;
     const GMFloat f_cij = (GMFloat) cij;
 
-    //const GMFloat f_cicj = f_ci < f_cj ? f_ci * f_cj : f_cj * f_ci;
     const GMFloat f_cicj = f_ci * f_cj;
 
     const GMFloat recip_2 = f_one / f_cicj;
 
     const GMFloat recip_ci = f_cj * recip_2;
     const GMFloat recip_cj = f_ci * recip_2;
-
-    // Get number of 1 bits (s*1) OR get number of 0 bits (s*0)
-    // from number of 1 bits
-
-    const GMTally1 si0 = CBPE * ci - si1;
-    const GMTally1 sj0 = CBPE * cj - sj1;
 
     const GMFloat fi0_2 = recip_ci * si0;
     const GMFloat fi1_2 = recip_ci * si1;
@@ -464,10 +460,13 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     // Do simple algebra on threshold inequality to get all constnts on RHS
 
+    const GMFloat ccc_duo_multiplier = env_ccc_duo_multiplier<CBPE>(*env);
+    const GMFloat ccc_param = env->ccc_param();
+
     const GMFloat threshold_multiplier =
              ((f_one*CBPE*CBPE) / ccc_duo_multiplier) * f_cij;
 
-    // Let a few extra values pass the thresold chek just to make sure
+    // Let a few extra values pass the thresold check just to make sure
     const GMFloat roundoff_fuzz = 1.e-5;
 
     const GMFloat f = threshold * threshold_multiplier * (f_one-roundoff_fuzz);
@@ -482,34 +481,40 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
                                 ((f_one*CBPE) - ccc_param * fj1_2);
 
     // Verify the algebra.
-    COMET_ASSERT(fabs(v00 - threshold_multiplier * GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index, 0, 0, env) )
+    COMET_ASSERT(fabs(v00 - threshold_multiplier *
+      GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index, 0, 0, env) )
              < roundoff_fuzz * threshold_multiplier);
-    COMET_ASSERT(fabs(v01 - threshold_multiplier * GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index, 0, 1, env) )
+    COMET_ASSERT(fabs(v01 - threshold_multiplier *
+      GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index, 0, 1, env) )
              < roundoff_fuzz * threshold_multiplier);
-    COMET_ASSERT(fabs(v10 - threshold_multiplier * GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index, 1, 0, env) )
+    COMET_ASSERT(fabs(v10 - threshold_multiplier *
+      GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index, 1, 0, env) )
              < roundoff_fuzz * threshold_multiplier);
-    COMET_ASSERT(fabs(v11 - threshold_multiplier * GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index, 1, 1, env) )
+    COMET_ASSERT(fabs(v11 - threshold_multiplier *
+      GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index, 1, 1, env) )
              < roundoff_fuzz * threshold_multiplier);
 
     return v00 > f || v01 > f || v10 > f || v11 > f;
 
-  } /*---if sparse---*/
+  } // if (env->sparse())
 
   // Non-sparse case (less well-optimized).
 
-  GMFloat v00, v01, v10, v11;
+  const GMFloat v00 = GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index,
+                                                               0, 0, env);
+  const GMFloat v01 = GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index,
+                                                               0, 1, env);
+  const GMFloat v10 = GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index,
+                                                               1, 0, env);
+  const GMFloat v11 = GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index,
+                                                               1, 1, env);
 
-  v00 = GMMetrics_ccc_get_from_index_2(metrics, index, 0, 0, env);
-  v01 = GMMetrics_ccc_get_from_index_2(metrics, index, 0, 1, env);
-  v10 = GMMetrics_ccc_get_from_index_2(metrics, index, 1, 0, env);
-  v11 = GMMetrics_ccc_get_from_index_2(metrics, index, 1, 1, env);
   return v00 > threshold || v01 > threshold ||
          v10 > threshold || v11 > threshold;
-
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Check if any CCC table value may exceed threshold.
+/// \brief Check if any 2-way CCC table value may exceed threshold.
 
 static bool GMMetrics_ccc_get_from_index_2_threshold(
   GMMetrics* metrics,
@@ -518,7 +523,7 @@ static bool GMMetrics_ccc_get_from_index_2_threshold(
   GMEnv* env) {
 
   COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
   enum { COUNTED_BITS_PER_ELT = 2 };
@@ -528,7 +533,7 @@ static bool GMMetrics_ccc_get_from_index_2_threshold(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Check if any DUO table value may exceed threshold.
+/// \brief Check if any 2-way DUO table value may exceed threshold.
 
 static bool GMMetrics_duo_get_from_index_2_threshold(
   GMMetrics* metrics,
@@ -537,10 +542,9 @@ static bool GMMetrics_duo_get_from_index_2_threshold(
   GMEnv* env) {
 
   COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
-  //enum { COUNTED_BITS_PER_ELT = 2 };
   enum { COUNTED_BITS_PER_ELT = 1 };
 
   return GMMetrics_ccc_duo_get_from_index_2_threshold<COUNTED_BITS_PER_ELT>(
@@ -548,242 +552,149 @@ static bool GMMetrics_duo_get_from_index_2_threshold(
 }
 
 //=============================================================================
-//=============================================================================
 /*---Accessors: value from (local) coord: set: 2-way---*/
 
-static void GMMetrics_float_set_2(GMMetrics* metrics,
-                                  int i,
-                                  int j,
-                                  GMFloat value,
-                                  GMEnv* env) {
-  COMET_ASSERT(metrics && env);
+template<typename T>
+static void GMMetrics_set_2(GMMetrics* metrics, void* p, int i, int j,
+  T value, GMEnv* env) {
+  COMET_ASSERT(metrics && p && env);
+  COMET_ASSERT(i >= 0 && i < j);
+  COMET_ASSERT(j >= 0 && j < metrics->num_vector_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-  COMET_ASSERT(! env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(i < j);
+  COMET_ASSERT(!env->all2all());
+
+  const size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  ((T*)p)[index] = value;
+}
+
+//-----------------------------------------------------------------------------
+
+static void GMMetrics_float_set_2(GMMetrics* metrics, int i, int j,
+  GMFloat value, GMEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
-  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
-  ((GMFloat*)(metrics->data))[index] = value;
+  GMMetrics_set_2<GMFloat>(metrics, metrics->data, i, j, value, env);
 }
 
 //-----------------------------------------------------------------------------
 
-static void GMMetrics_float2_S_set_2(GMMetrics* metrics,
-                                     int i,
-                                     int j,
-                                     GMFloat2 value,
-                                     GMEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-  COMET_ASSERT(! env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(i < j);
-  COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-  COMET_ASSERT(metrics->data_S);
-
-  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
-  ((GMFloat2*)(metrics->data_S))[index] = value;
-}
-
-//-----------------------------------------------------------------------------
-
-static void GMMetrics_float2_C_set_2(GMMetrics* metrics,
-                                     int i,
-                                     int j,
-                                     GMFloat2 value,
-                                     GMEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-  COMET_ASSERT(! env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(i < j);
-  COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-  COMET_ASSERT(metrics->data_C);
-
-  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
-  ((GMFloat2*)(metrics->data_C))[index] = value;
-}
-
-//-----------------------------------------------------------------------------
-
-static void GMMetrics_tally2x2_set_2(GMMetrics* metrics,
-                                     int i,
-                                     int j,
-                                     GMTally2x2 value,
-                                     GMEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-  COMET_ASSERT(! env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(i < j);
+static void GMMetrics_float2_S_set_2(GMMetrics* metrics, int i, int j,
+  GMFloat2 value, GMEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
-  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
-  ((GMTally2x2*)(metrics->data))[index] = value;
+  GMMetrics_set_2<GMFloat2>(metrics, metrics->data_S, i, j, value, env);
 }
 
 //-----------------------------------------------------------------------------
 
-static void GMMetrics_float_set_all2all_2(GMMetrics* metrics,
-                                          int i,
-                                          int j,
-                                          int j_block,
-                                          GMFloat value,
-                                          GMEnv* env) {
-  COMET_ASSERT(metrics && env);
+static void GMMetrics_float2_C_set_2(GMMetrics* metrics, int i, int j,
+  GMFloat2 value, GMEnv* env) {
+  COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
+
+  GMMetrics_set_2<GMFloat2>(metrics, metrics->data_C, i, j, value, env);
+}
+
+//-----------------------------------------------------------------------------
+
+static void GMMetrics_tally2x2_set_2(GMMetrics* metrics, int i, int j,
+  GMTally2x2 value, GMEnv* env) {
+  COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
+
+  GMMetrics_set_2<GMTally2x2>(metrics, metrics->data, i, j, value, env);
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+template<typename T>
+static void GMMetrics_set_all2all_2(GMMetrics* metrics, void* p, int i, int j,
+  int j_block, T value, GMEnv* env) {
+  COMET_ASSERT(metrics && p && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(j_block >= 0);
-  COMET_ASSERT(j_block < env->num_block_vector());
+  COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics->num_vector_local);
+  COMET_ASSERT(j_block >= 0 && j_block < env->num_block_vector());
   COMET_ASSERT(i < j || j_block != env->proc_num_vector());
+  // WARNING: these conditions on j_block are not exhaustive.
+
+  const size_t index = GMMetrics_index_from_coord_all2all_2(metrics, i, j,
+                                                            j_block, env);
+  ((T*)p)[index] = value;
+}
+
+//-----------------------------------------------------------------------------
+
+static void GMMetrics_float_set_all2all_2(GMMetrics* metrics, int i, int j,
+  int j_block, GMFloat value, GMEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
-  /*---WARNING: these conditions on j_block are not exhaustive---*/
 
-  size_t index =
-      GMMetrics_index_from_coord_all2all_2(metrics, i, j, j_block, env);
-  ((GMFloat*)(metrics->data))[index] = value;
+  GMMetrics_set_all2all_2<GMFloat>(metrics, metrics->data, i, j, j_block,
+    value, env);
 }
 
 //-----------------------------------------------------------------------------
 
-static void GMMetrics_float2_S_set_all2all_2(GMMetrics* metrics,
-                                             int i,
-                                             int j,
-                                             int j_block,
-                                             GMFloat2 value,
-                                             GMEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-  COMET_ASSERT(env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(j_block >= 0);
-  COMET_ASSERT(j_block < env->num_block_vector());
-  COMET_ASSERT(i < j || j_block != env->proc_num_vector());
+static void GMMetrics_float2_S_set_all2all_2(GMMetrics* metrics, int i, int j,
+  int j_block, GMFloat2 value, GMEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-  COMET_ASSERT(metrics->data_S);
-  /*---WARNING: these conditions on j_block are not exhaustive---*/
 
-  size_t index =
-      GMMetrics_index_from_coord_all2all_2(metrics, i, j, j_block, env);
-  ((GMFloat2*)(metrics->data_S))[index] = value;
+  GMMetrics_set_all2all_2<GMFloat2>(metrics, metrics->data_S, i, j, j_block,
+    value, env);
 }
 
 //-----------------------------------------------------------------------------
 
-static void GMMetrics_float2_C_set_all2all_2(GMMetrics* metrics,
-                                             int i,
-                                             int j,
-                                             int j_block,
-                                             GMFloat2 value,
-                                             GMEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-  COMET_ASSERT(env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(j_block >= 0);
-  COMET_ASSERT(j_block < env->num_block_vector());
-  COMET_ASSERT(i < j || j_block != env->proc_num_vector());
+static void GMMetrics_float2_C_set_all2all_2(GMMetrics* metrics, int i, int j,
+  int j_block, GMFloat2 value, GMEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-  COMET_ASSERT(metrics->data_C);
-  /*---WARNING: these conditions on j_block are not exhaustive---*/
 
-  size_t index =
-      GMMetrics_index_from_coord_all2all_2(metrics, i, j, j_block, env);
-  ((GMFloat2*)(metrics->data_C))[index] = value;
+  GMMetrics_set_all2all_2<GMFloat2>(metrics, metrics->data_C, i, j, j_block,
+    value, env);
 }
 
 //-----------------------------------------------------------------------------
 
-static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics,
-                                             int i,
-                                             int j,
-                                             int j_block,
-                                             GMTally2x2 value,
-                                             GMEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-  COMET_ASSERT(env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(j_block >= 0);
-  COMET_ASSERT(j_block < env->num_block_vector());
-  COMET_ASSERT(i < j || j_block != env->proc_num_vector());
+static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics, int i, int j,
+  int j_block, GMTally2x2 value, GMEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-  /*---WARNING: these conditions on j_block are not exhaustive---*/
 
-  size_t index =
-      GMMetrics_index_from_coord_all2all_2(metrics, i, j, j_block, env);
-  ((GMTally2x2*)(metrics->data))[index] = value;
+  GMMetrics_set_all2all_2<GMTally2x2>(metrics, metrics->data, i, j, j_block,
+    value, env);
 }
 
 //=============================================================================
 /*---Accessors: value from (local) coord: get: 2-way---*/
 
 static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
-                                     int i,
-                                     int j,
-                                     GMEnv* env) {
+  int i, int j, GMEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(! env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(i < j);
+  COMET_ASSERT(i >= 0 && i < j);
+  COMET_ASSERT(j >= 0 && j < metrics->num_vector_local);
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
-  size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  const size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
   return GMMetrics_float_get_from_index(metrics, index, env);
 }
 
 //-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
-                                             int i,
-                                             int j,
-                                             int j_block,
-                                             GMEnv* env) {
+  int i, int j, int j_block, GMEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(j_block >= 0);
-  COMET_ASSERT(j_block < env->num_block_vector());
+  COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics->num_vector_local);
+  COMET_ASSERT(j_block >= 0 && j_block < env->num_block_vector());
   COMET_ASSERT(i < j || j_block != env->proc_num_vector());
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
-  /*---WARNING: these conditions on j_block are not exhaustive---*/
+  /// WARNING: these conditions on j_block are not exhaustive.
 
-  size_t index =
-      GMMetrics_index_from_coord_all2all_2(metrics, i, j, j_block, env);
+  const size_t index = GMMetrics_index_from_coord_all2all_2(metrics, i, j,
+    j_block, env);
   return GMMetrics_float_get_from_index(metrics, index, env);
 }
 
