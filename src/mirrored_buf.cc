@@ -274,7 +274,7 @@ void GMMirroredBuf::from_accel_start() {
       cudaMemcpyAsync(h, d, size, cudaMemcpyDeviceToHost,
         env_.stream_fromgpu());
 #   elif defined COMET_USE_HIP
-      hipMemcpyAsync(h, d, size, cudaMemcpyDeviceToHost, env_.stream_fromgpu());
+      hipMemcpyAsync(h, d, size, hipMemcpyDeviceToHost, env_.stream_fromgpu());
 #   endif
 
   } // if (use_linalg_)

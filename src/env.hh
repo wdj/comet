@@ -26,7 +26,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #elif defined COMET_USE_HIP
-#include "hip/hip_runtime.h"
+#include "hip/hip_runtime_api.h"
 #else
 #endif
 

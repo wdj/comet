@@ -287,6 +287,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
 
   #---Modules etc.
 
+  module load cmake
   module load rocm
   module load hip
   #module load rocblas
