@@ -46,7 +46,7 @@
 /// \brief Static assert - use macro to ensure removal for release build.
 
 #ifndef NDEBUG
-#define COMET_STATIC_ASSERT(condition) static_assert(condition)
+#define COMET_STATIC_ASSERT(condition) static_assert(condition, "")
 #else
 #define COMET_STATIC_ASSERT(condition)
 #endif

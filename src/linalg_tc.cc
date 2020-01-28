@@ -15,6 +15,7 @@
 #  include "cuda_fp16.h"
 #elif defined COMET_USE_HIP
 #  include "hip/hip_runtime_api.h"
+#  pragma GCC diagnostic ignored "-Wc99-designator"
 #  include "hip/hip_runtime.h"
 #  include "rocblas.h"
 #else
