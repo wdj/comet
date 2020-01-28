@@ -54,17 +54,12 @@ private:
   GMMirroredBuf counts_;
   GMMirroredBuf counts_tmp_;
 
-  void compute_float(const GMVectors& vectors);
-  void compute_bits2(const GMVectors& vectors);
+  void compute_float_(const GMVectors& vectors);
+  void compute_bits2_(const GMVectors& vectors);
 
-  Float_t& sum_ref(size_t i) {
-    COMET_ASSERT(i < sums_.dim0); // && i >= 0
-    return (((Float_t*)sums_.h)[i]);
-  }
-
-  Float_t& count_ref(size_t i) {
-    COMET_ASSERT(i < counts_.dim0); // && i >= 0
-    return (((Float_t*)counts_.h)[i]);
+  Float_t& elt_ref_(GMMirroredBuf& b, size_t i) {
+    COMET_ASSERT(i < b.dim0); // && i >= 0
+    return (((Float_t*)b.h)[i]);
   }
 
   void allocate_();
@@ -75,59 +70,6 @@ private:
   void operator=(const VectorSums&);
 
 }; // VectorSums
-
-//-----------------------------------------------------------------------------
-
-
-
-
-
-
-#if 0
-//-----------------------------------------------------------------------------
-// Struct declaration
-
-typedef struct {
-  GMFloat* __restrict__ sums;
-  GMFloat* __restrict__ counts;
-  GMFloat* __restrict__ sums_tmp_;
-  GMFloat* __restrict__ counts_tmp_;
-  size_t size_;
-  size_t num_field_;
-} GMVectorSums;
-
-//=============================================================================
-// Null object
-
-GMVectorSums GMVectorSums_null(void);
-
-//=============================================================================
-// Pseudo-constructor
-
-void GMVectorSums_create(GMVectorSums* this_,
-                         int num_vector_local,
-                         GMEnv* env);
-
-//=============================================================================
-// Pseudo-destructor
-
-void GMVectorSums_destroy(GMVectorSums* this_, GMEnv* env);
-
-//=============================================================================
-// Compute
-
-void GMVectorSums_compute(GMVectorSums* this_, GMVectors* vectors, GMEnv* env);
-
-//=============================================================================
-// Accessors
-
-GMFloat GMVectorSums_sum(const GMVectorSums* this_, int i,  GMEnv* env);
-
-GMFloat GMVectorSums_count(const GMVectorSums* this_, int i,  GMEnv* env);
-
-#endif
-
-
 
 //-----------------------------------------------------------------------------
 /// \brief Utility class for aggregating vector-related objects.

@@ -66,10 +66,6 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   VectorSums vector_sums(vectors, env_);
 
-  //GMVectorSums vector_sums = GMVectorSums_null();
-  //GMVectorSums_create(&vector_sums, vectors.num_vector_local, env);
-  //GMVectorSums_compute(&vector_sums, &vectors, env);
-
   //---------------
   // Numerator
   //---------------
@@ -117,8 +113,6 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   }
 
-  //GMVectorSums_destroy(&vector_sums, env);
-
   }
 
   gm_linalg_finalize(env);
@@ -162,10 +156,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   VectorSums vector_sums_i_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_i = &vector_sums_i_value;
 
-  //GMVectorSums vector_sums_i_value = GMVectorSums_null();
-  //GMVectorSums* const vector_sums_i = &vector_sums_i_value;
-  //GMVectorSums_create(vector_sums_i, vectors.num_vector_local, env);
-
   GMVectors* const vectors_i = &vectors;
 
   GMMirroredBuf vectors_i_buf_value(npvfl, nvl, env_);
@@ -177,10 +167,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   VectorSums vector_sums_j_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_j = &vector_sums_j_value;
-
-  //GMVectorSums vector_sums_j_value = GMVectorSums_null();
-  //GMVectorSums* const vector_sums_j = &vector_sums_j_value;
-  //GMVectorSums_create(vector_sums_j, vectors.num_vector_local, env);
 
   GMVectors vectors_j_value_0 = GMVectors_null();
   GMVectors vectors_j_value_1 = GMVectors_null();
@@ -197,10 +183,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   VectorSums vector_sums_k_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_k = &vector_sums_k_value;
-
-  //GMVectorSums vector_sums_k_value = GMVectorSums_null();
-  //GMVectorSums* const vector_sums_k = &vector_sums_k_value;
-  //GMVectorSums_create(vector_sums_k, vectors.num_vector_local, env);
 
   GMVectors vectors_k_value_0 = GMVectors_null();
   GMVectors vectors_k_value_1 = GMVectors_null();
@@ -255,7 +237,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   /*---Denominator---*/
   vector_sums_i->compute(*vectors_i);
-  //GMVectorSums_compute(vector_sums_i, vectors_i, env);
 
   /*---Copy in vectors---*/
   gm_vectors_to_buf(vectors_i_buf, vectors_i, env);
@@ -354,7 +335,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
           /*---Denominator---*/
           vector_sums_j->compute(*vectors_j_this);
-          //GMVectorSums_compute(vector_sums_j, vectors_j_this, env);
 
           /*---Send vectors to GPU wait---*/
           //gm_set_vectors_wait(env);
@@ -465,7 +445,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
               /*---Denominator---*/
               vector_sums_k->compute(*vectors_k_this);
-              //GMVectorSums_compute(vector_sums_k, vectors_k_this, env);
 
               /*---Send vectors to GPU wait---*/
               //gm_set_vectors_wait(env);
@@ -491,7 +470,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
             /*---Denominator---*/
             vector_sums_j->compute(*vectors_j_this);
-            //GMVectorSums_compute(vector_sums_j, vectors_j_this, env);
 
             /*---Send vectors to GPU wait---*/
             //gm_set_vectors_wait(env);
@@ -534,10 +512,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_destroy(vectors_k[1], env);
   GMVectors_destroy(vectors_j[0], env);
   GMVectors_destroy(vectors_j[1], env);
-
-  //GMVectorSums_destroy(vector_sums_k, env);
-  //GMVectorSums_destroy(vector_sums_j, env);
-  //GMVectorSums_destroy(vector_sums_i, env);
 
   }
 

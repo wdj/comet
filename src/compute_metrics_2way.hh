@@ -38,8 +38,6 @@ private:
 
   Env& env_;
 
-  //GMVectorSums vector_sums_onproc_;
-  //GMVectorSums vector_sums_offproc_;
   GMVectors vectors_01_[NUM_BUF];
   GMMirroredBuf metrics_buf_01_[NUM_BUF];
   GMMirroredBuf vectors_buf_;

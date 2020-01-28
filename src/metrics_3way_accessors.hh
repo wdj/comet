@@ -60,9 +60,11 @@ static GMTally4x2 GMMetrics_tally4x2_get_from_index(GMMetrics* metrics,
 //=============================================================================
 /*---Accessors: value from (contig) index: derived---*/
 
+//-----------------------------------------------------------------------------
+/// \brief Formula for a single 3-way CCC or DUO result.
+
 template<int COUNTED_BITS_PER_ELT>
 static GMFloat GMMetrics_ccc_duo_value_3_impl_(
-  GMMetrics* metrics,
   const GMTally1 rijk,
   const GMTally1 si,
   const GMTally1 sj,
@@ -74,82 +76,25 @@ static GMFloat GMMetrics_ccc_duo_value_3_impl_(
   const GMFloat multiplier,
   const GMFloat param) {
 
-  COMET_ASSERT(metrics);
+  const GMFloat f_one = 1;
 
-  const GMFloat one = 1;
-
-  const GMFloat fi = (one / COUNTED_BITS_PER_ELT) * recip_ci * si;
-  const GMFloat fj = (one / COUNTED_BITS_PER_ELT) * recip_cj * sj;
-  const GMFloat fk = (one / COUNTED_BITS_PER_ELT) * recip_ck * sk;
+  const GMFloat fi = (f_one / COUNTED_BITS_PER_ELT) * recip_ci * si;
+  const GMFloat fj = (f_one / COUNTED_BITS_PER_ELT) * recip_cj * sj;
+  const GMFloat fk = (f_one / COUNTED_BITS_PER_ELT) * recip_ck * sk;
 
   const GMFloat fijk = recip_sumcijk * rijk;
 
   /*---Do the following to make floating point arithmetic order-independent---*/
-
-  GMFloat fmin = 0;
-  GMFloat fmid = 0;
-  GMFloat fmax = 0;
-
-  if (fi > fj) {
-    if (fi > fk) {
-      fmax = fi;
-      if (fj > fk) {
-        fmid = fj;
-        fmin = fk;
-      } else {
-        fmid = fk;
-        fmin = fj;
-      }
-    } else {
-      fmid = fi;
-      fmax = fk;
-      fmin = fj;
-    }
-  } else {
-    if (fj > fk) {
-      fmax = fj;
-      if (fi > fk) {
-        fmid = fi;
-        fmin = fk;
-      } else {
-        fmid = fk;
-        fmin = fi;
-      }
-    } else {
-      fmid = fj;
-      fmax = fk;
-      fmin = fi;
-    }
-  }
-
-  COMET_ASSERT(fmin <= fmid);
-  COMET_ASSERT(fmid <= fmax);
+  GMFloat fmin = 0, fmid = 0, fmax = 0;
+  utils::sort_3(fmin, fmid, fmax, fi, fj, fk);
 
   /* clang-format off */
-  const GMFloat result = multiplier * fijk * (one - param * fmin) *
-                                             (one - param * fmid) *
-                                             (one - param * fmax);
+  const GMFloat result = multiplier * fijk * (f_one - param * fmin) *
+                                             (f_one - param * fmid) *
+                                             (f_one - param * fmax);
   /* clang-format on */
 
   return result;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Templatized access to CCC or DUO front multiplier.
-
-template<int COUNTED_BITS_PER_ELT>
-static GMFloat GMMetrics_ccc_duo_multiplier_3(GMEnv* env);
-
-template<>
-GMFloat GMMetrics_ccc_duo_multiplier_3<2>(GMEnv* env) {
-  COMET_ASSERT(env);
-  return env->ccc_multiplier();
-}
-
-template<>
-GMFloat GMMetrics_ccc_duo_multiplier_3<1>(GMEnv* env) {
-  COMET_ASSERT(env);
-  return env->duo_multiplier();
 }
 
 //-----------------------------------------------------------------------------
@@ -169,18 +114,18 @@ static GMFloat GMMetrics_ccc_duo_value_3(
   GMEnv* env) {
   COMET_ASSERT(metrics && env);
 
-  return GMMetrics_ccc_duo_value_3_impl_<COUNTED_BITS_PER_ELT>(metrics,
+  return GMMetrics_ccc_duo_value_3_impl_<COUNTED_BITS_PER_ELT>(
     rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk,
-    GMMetrics_ccc_duo_multiplier_3<COUNTED_BITS_PER_ELT>(env),
+    env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
     env->ccc_param());
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Check to ensure 128 bits is enough to store 3-way CCC value.
 
 static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
   COMET_INSIST(metrics && env);
 
-#ifdef COMET_USE_INT128
   if (env->metric_type() != MetricType::CCC || 
       env->num_way() != NUM_WAY::_3 || ! env->are_ccc_params_default()) {
     return;
@@ -193,7 +138,6 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
   const int lnum = 3+lm + 2+lm + 2+lm + 2+lm;
 
   COMET_INSIST_INTERFACE(env, lnum < 128 && "Number of fields too large.");
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -201,6 +145,7 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
 #ifdef COMET_USE_INT128
 
 //-----------------------------------------------------------------------------
+/// \brief Formula for CCC 3-way metric using 128 bit integer arithmetic.
 
 static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
                                           const GMTally1 rijk,
@@ -245,6 +190,7 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Accessor for 3-way CCC metric computed with 128 bit int arithmetic.
 
 static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
                                                    size_t index,
@@ -253,7 +199,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
                                                    int i2,
                                                    GMEnv* env) {
   COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   COMET_ASSERT(i0 >= 0 && i0 < 2);
   COMET_ASSERT(i1 >= 0 && i1 < 2);
@@ -268,15 +214,14 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
   GMTally1 si1, sj1, sk1;
   GMFloat3_decode(&si1, &sj1, &sk1, si1_sj1_sk1);
 
-  GMTally1 ci, cj, ck, cijk;
+  GMTally1 ci = 0, cj = 0, ck = 0, cijk = 0;
 
   if (env->sparse()) {
     const GMFloat3 ci_cj_ck =
       GMMetrics_float3_C_get_from_index(metrics, index, env);
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
 
-    cijk =
-           GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
+    cijk = GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
            GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
            GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
            GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1);
@@ -305,6 +250,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
 #endif
 
 //-----------------------------------------------------------------------------
+/// \brief Templatized accessor for 3-way CCC or DUO result.
 
 template<int COUNTED_BITS_PER_ELT>
 static GMFloat GMMetrics_ccc_duo_get_from_index_3(
@@ -316,11 +262,13 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
   GMEnv* env) {
 
   COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(i0 >= 0 && i0 < 2);
   COMET_ASSERT(i1 >= 0 && i1 < 2);
   COMET_ASSERT(i2 >= 0 && i2 < 2);
+
+  enum {CBPE = COUNTED_BITS_PER_ELT};
 
   const GMFloat f_one = 1;
   const GMFloat recip_m = metrics->recip_m;
@@ -336,6 +284,7 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
   GMFloat result_floatcalc = 0;
 
   if (env->sparse()) {
+
     const GMFloat3 ci_cj_ck =
       GMMetrics_float3_C_get_from_index(metrics, index, env);
     GMTally1 ci, cj, ck;
@@ -346,15 +295,13 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
            GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
            GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
            GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1);
-
-    if (0 == ci || 0 == cj || 0 == ck || 0 == cijk) {
+    if (0 == ci || 0 == cj || 0 == ck || 0 == cijk)
       return (GMFloat)0;
-    }
 
-    /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
-    const GMTally1 si = i0 == 0 ? (COUNTED_BITS_PER_ELT * ci - si1) : si1;
-    const GMTally1 sj = i1 == 0 ? (COUNTED_BITS_PER_ELT * cj - sj1) : sj1;
-    const GMTally1 sk = i2 == 0 ? (COUNTED_BITS_PER_ELT * ck - sk1) : sk1;
+    // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
+    const GMTally1 si = i0 == 0 ? (CBPE * ci - si1) : si1;
+    const GMTally1 sj = i1 == 0 ? (CBPE * cj - sj1) : sj1;
+    const GMTally1 sk = i2 == 0 ? (CBPE * ck - sk1) : sk1;
 
     // TODO: it may be possible to decrease the number of divides
     // here - see GMMetrics_ccc_get_from_index_2.
@@ -370,25 +317,28 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
 
     result_floatcalc = GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics,
       rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
-  } else { /*---if sparse---*/
+
+  } else { // !env->sparse
 
     COMET_ASSERT(metrics->num_field_active > 0);
 
-    /*---Get number of 1 bits OR get number of 0 bits from number of 1 bits---*/
-    const GMTally1 si = i0 == 0 ? (2 * metrics->num_field_active - si1) : si1;
-    const GMTally1 sj = i1 == 0 ? (2 * metrics->num_field_active - sj1) : sj1;
-    const GMTally1 sk = i2 == 0 ? (2 * metrics->num_field_active - sk1) : sk1;
+    // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
+    const GMTally1 si =
+      i0 == 0 ? (CBPE * metrics->num_field_active - si1) : si1;
+    const GMTally1 sj =
+      i1 == 0 ? (CBPE * metrics->num_field_active - sj1) : sj1;
+    const GMTally1 sk =
+      i2 == 0 ? (CBPE * metrics->num_field_active - sk1) : sk1;
 
-    const GMFloat recip_sumcijk = (f_one / 8) * recip_m;
+    const GMFloat recip_sumcijk = (f_one / (CBPE*CBPE*CBPE)) * recip_m;
 
-    result_floatcalc = GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics,
+    result_floatcalc = GMMetrics_ccc_duo_value_3<CBPE>(metrics,
       rijk, si, sj, sk, recip_m, recip_m, recip_m, recip_sumcijk, env);
 
-  } /*---if sparse---*/
+  } // if (env->sparse())
 
 #ifdef COMET_USE_INT128
-  if (env->are_ccc_params_default() &&
-      env->metric_type() == MetricType::CCC) {
+  if (env->metric_type() == MetricType::CCC && env->are_ccc_params_default()) {
     const GMFloat result_intcalc = GMMetrics_ccc_get_from_index_nofp_3(metrics,
                                          index, i0, i1, i2, env);
 
@@ -401,20 +351,13 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
              (double)result_floatcalc, (double)result_intcalc);
       COMET_INSIST(diff < eps);
     }
-
-    //COMET_INSIST(diff < eps);
-
-    //return result_intcalc;
-    return result_floatcalc;
-  } else {
-    return result_floatcalc;
   }
-#else
-  return result_floatcalc;
 #endif
+  return result_floatcalc;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Accessor for 3-way CCC result.
 
 static GMFloat GMMetrics_ccc_get_from_index_3(
   GMMetrics* metrics,
@@ -426,7 +369,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(i0 >= 0 && i0 < 2);
   COMET_ASSERT(i1 >= 0 && i1 < 2);
   COMET_ASSERT(i2 >= 0 && i2 < 2);
@@ -438,6 +381,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Accessor for 3-way DUO result.
 
 static GMFloat GMMetrics_duo_get_from_index_3(
   GMMetrics* metrics,
@@ -449,7 +393,7 @@ static GMFloat GMMetrics_duo_get_from_index_3(
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(i0 >= 0 && i0 < 2);
   COMET_ASSERT(i1 >= 0 && i1 < 2);
   COMET_ASSERT(i2 >= 0 && i2 < 2);
@@ -461,6 +405,7 @@ static GMFloat GMMetrics_duo_get_from_index_3(
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Templatized Check if any table value may exceed threshold.
 
 template<int COUNTED_BITS_PER_ELT>
 static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
@@ -470,8 +415,10 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
   GMEnv* env) {
 
   COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+
+  enum {CBPE = COUNTED_BITS_PER_ELT};
 
   if (env->sparse()) {
 
@@ -517,46 +464,46 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
 
     const GMFloat recip_sumcijk = f_one / cijk;
 
-    COMET_ASSERT(GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk000, si0, sj0, sk0,
+    COMET_ASSERT(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk000, si0, sj0, sk0,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
-             GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(metrics, index, 0, 0, 0, env));
-    COMET_ASSERT(GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk001, si0, sj0, sk1,
+             GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 0, 0, 0, env));
+    COMET_ASSERT(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk001, si0, sj0, sk1,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
-             GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(metrics, index, 0, 0, 1, env));
-    COMET_ASSERT(GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk010, si0, sj1, sk0,
+             GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 0, 0, 1, env));
+    COMET_ASSERT(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk010, si0, sj1, sk0,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
-             GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(metrics, index, 0, 1, 0, env));
-    COMET_ASSERT(GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk011, si0, sj1, sk1,
+             GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 0, 1, 0, env));
+    COMET_ASSERT(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk011, si0, sj1, sk1,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
-             GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(metrics, index, 0, 1, 1, env));
-    COMET_ASSERT(GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk100, si1, sj0, sk0,
+             GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 0, 1, 1, env));
+    COMET_ASSERT(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk100, si1, sj0, sk0,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
-             GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(metrics, index, 1, 0, 0, env));
-    COMET_ASSERT(GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk101, si1, sj0, sk1,
+             GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 1, 0, 0, env));
+    COMET_ASSERT(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk101, si1, sj0, sk1,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
-             GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(metrics, index, 1, 0, 1, env));
-    COMET_ASSERT(GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk110, si1, sj1, sk0,
+             GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 1, 0, 1, env));
+    COMET_ASSERT(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk110, si1, sj1, sk0,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
-             GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(metrics, index, 1, 1, 0, env));
-    COMET_ASSERT(GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk111, si1, sj1, sk1,
+             GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 1, 1, 0, env));
+    COMET_ASSERT(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk111, si1, sj1, sk1,
                        recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
-             GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(metrics, index, 1, 1, 1, env));
+             GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 1, 1, 1, env));
 
-    return GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk000, si0, sj0, sk0,
+    return GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk000, si0, sj0, sk0,
                recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
-           GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk001, si0, sj0, sk1,
+           GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk001, si0, sj0, sk1,
                recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
-           GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk010, si0, sj1, sk0,
+           GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk010, si0, sj1, sk0,
                recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
-           GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk011, si0, sj1, sk1,
+           GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk011, si0, sj1, sk1,
                recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
-           GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk100, si1, sj0, sk0,
+           GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk100, si1, sj0, sk0,
                recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
-           GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk101, si1, sj0, sk1,
+           GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk101, si1, sj0, sk1,
                recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
-           GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk110, si1, sj1, sk0,
+           GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk110, si1, sj1, sk0,
                recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold ||
-           GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics, rijk111, si1, sj1, sk1,
+           GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk111, si1, sj1, sk1,
                recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold;
 
   } /*---if sparse---*/

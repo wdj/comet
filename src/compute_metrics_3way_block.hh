@@ -50,26 +50,6 @@ private:
   void compute_linalg_(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& metrics, int j_block, int k_block, int section_step);
 
-//  void compute_linalg_matXitem_(VData vdata_i, VData vdata_j,
-//    const GMMirroredBuf& matXitem_buf,
-//    const int J, const int step_2way, const int I_min, const int I_max);
-
-#if 0
-  void compute_linalg_metrics_(
-    const GMMirroredBuf& matM_IJ_buf,
-    const GMMirroredBuf& matM_JK_buf,
-    const GMMirroredBuf& matM_KIK_buf,
-    const GMMirroredBuf& matB_buf,
-    GMMetrics& metrics,
-    const int nvl, const int J, const int step_2way,
-    const int I_min, const int I_max, const int K_min, const int K_max,
-    const int j_block, const int k_block,
-    const GMSectionInfo& si,
-    const GMVectorSums& vector_sums_i,
-    const GMVectorSums& vector_sums_j,
-    const GMVectorSums& vector_sums_k);
-#endif
-
   void compute_czek_(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& metrics, int j_block, int k_block, int section_step);
 

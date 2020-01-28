@@ -225,9 +225,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
         const auto si = vs_i->sum(i);
         const auto sj = vs_i->sum(j);
         const auto sk = vs_i->sum(k);
-        //const GMFloat si = GMVectorSums_sum(vs_i, i, &env);
-        //const GMFloat sj = GMVectorSums_sum(vs_i, j, &env);
-        //const GMFloat sk = GMVectorSums_sum(vs_i, k, &env);
         utils::sort_3(smin, smid, smax, si, sj, sk);
         const GMFloat denom = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
@@ -258,9 +255,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
         const auto sI = vs_I->sum(I);
         const auto sJ = vs_J->sum(J);
         const auto sK = vs_K->sum(K);
-        //const GMFloat sI = GMVectorSums_sum(vs_I, I, &env);
-        //const GMFloat sJ = GMVectorSums_sum(vs_J, J, &env);
-        //const GMFloat sK = GMVectorSums_sum(vs_K, K, &env);
         utils::sort_3(smin, smid, smax, sI, sJ, sK);
         const GMFloat denom = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
@@ -395,9 +389,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
           const auto si1 = (GMTally1)vs_i->sum(i);
           const auto sj1 = (GMTally1)vs_j->sum(j);
           const auto sk1 = (GMTally1)vs_k->sum(k);
-          //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_i, i, &env);
-          //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_j, j, &env); 
-          //const GMTally1 sk1 = (GMTally1)GMVectorSums_sum(vs_k, k, &env); 
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
           if (env.all2all()) {
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
@@ -409,9 +400,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
             const auto ci = (GMTally1)vs_i->count(i);
             const auto cj = (GMTally1)vs_j->count(j);
             const auto ck = (GMTally1)vs_k->count(k);
-            //const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_i, i, &env);
-            //const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_j, j, &env); 
-            //const GMTally1 ck = (GMTally1)GMVectorSums_count(vs_k, k, &env); 
             const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
             if (env.all2all()) {
               GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,

@@ -813,7 +813,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
       break;
     default:
       COMET_INSIST_INTERFACE(env, false && "Invalid num_way or coord_num.");
-  } /*---case---*/
+  } // switch
 
   const int result = (int)result64;
   COMET_ASSERT((size_t)result == result64);
@@ -826,16 +826,17 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
                            GMEnv* env, int weight) {
   COMET_INSIST(metrics && metrics_buf && env);
-//printf("%i %i\n", (int)metrics_buf->dim0, (int)metrics_buf->dim1);
 
   if (!(env->is_metric_type_bitwise() && env->is_using_linalg()))
     return;
 
   // TODO: should more of this be owned by decomp_mgr
 
-  const bool count_2 = env->metric_type() == MetricType::CCC;
+  const int cbpe = env->counted_bits_per_elt();
 
-  const int pad_adjustment = (count_2 ? 4 : 1) * weight *
+  const bool is_cbpe_2 = 2 == cbpe;
+
+  const int pad_adjustment = (is_cbpe_2 ? 4 : 1) * weight *
     metrics->dm->num_pad_field_local;
 
   const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
@@ -846,22 +847,11 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
   for (size_t j = 0; j < metrics_buf->dim1; ++j) {
     for (size_t i = 0; i < metrics_buf->dim0; ++i) {
 
-#if 0
-        GMTally1 mB00, mB01;
-        GMTally1_decode(&mB00, &mB01, metrics_buf->elt<GMTally2x2>(i, j).data[0]);
-        GMTally1 mB10, mB11;
-        GMTally1_decode(&mB10, &mB11, metrics_buf->elt<GMTally2x2>(i, j).data[1]);
-printf("%i  %i %i %i %i\n", env->compute_method(), (int)mB00, (int)mB01, (int)mB10, (int)mB11);
-#endif
-
 #ifdef COMET_ASSERTIONS_ON
       const GMTally2x2 old = metrics_buf->elt_const<GMTally2x2>(i, j);
 #endif
 
-//printf("%i %zu\n", env->compute_method(), (size_t)metrics_buf->elt<GMTally2x2>(i, j).data[0]);
-      metrics_buf->elt<GMTally2x2>(i, j).data[0]
-         -= float_pad_adjustment;
-//printf("2 %zu\n", (size_t)metrics_buf->elt<GMTally2x2>(i, j).data[0]);
+      metrics_buf->elt<GMTally2x2>(i, j).data[0] -= float_pad_adjustment;
 
 #ifdef COMET_ASSERTIONS_ON
       const GMTally2x2 new_ = metrics_buf->elt_const<GMTally2x2>(i, j);

@@ -194,7 +194,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
     /* clang-format off */
 
-    const int cbpe = 2;
+    const int cbpe = env->counted_bits_per_elt();
 
     const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
     const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
@@ -406,7 +406,7 @@ void gm_compute_2way_proc_nums_duo_start_(
 
     /* clang-format off */
 
-    const int cbpe = 1;
+    const int cbpe = env->counted_bits_per_elt();
 
     const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
     const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);

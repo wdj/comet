@@ -62,13 +62,11 @@ void gm_compute_2way_proc_combine_czek_(
 
     for (int j = 0; j < nvl; ++j) {
       const GMFloat vs_j = vs_r->sum(j);
-      //const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
       const int i_max = do_compute_triang_only ? j : nvl;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer =
             GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
         const GMFloat vs_i = vs_l->sum(i);
-        //const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
@@ -91,12 +89,10 @@ void gm_compute_2way_proc_combine_czek_(
 
     for (int j = 0; j < nvl; ++j) {
       const GMFloat vs_j = vs_r->sum(j);
-      //const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer = GMMetrics_float_get_2(metrics, i, j, env);
         const GMFloat vs_i = vs_l->sum(i);
-        //const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denom = vs_i < vs_j ?  vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
@@ -113,13 +109,11 @@ void gm_compute_2way_proc_combine_czek_(
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMFloat vs_j = vs_r->sum(j);
-        //const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const GMFloat numer =
             metrics_buf->elt_const<GMFloat>(i, j);
           const GMFloat vs_i = vs_l->sum(i);
-          //const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
           const GMFloat value = (multiplier * numer) / denom;
@@ -137,11 +131,9 @@ void gm_compute_2way_proc_combine_czek_(
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
           const GMFloat vs_j = vs_r->sum(j);
-          //const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
           const GMFloat numer =
             metrics_buf->elt_const<GMFloat>(i, j);
           const GMFloat vs_i = vs_l->sum(i);
-          //const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
           const GMFloat value = (multiplier * numer) / denom;
@@ -158,13 +150,11 @@ void gm_compute_2way_proc_combine_czek_(
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMFloat vs_j = vs_r->sum(j);
-      //const GMFloat vs_j = GMVectorSums_sum(vs_r, j, env);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer =
           metrics_buf->elt_const<GMFloat>(i, j);
         const GMFloat vs_i = vs_l->sum(i);
-        //const GMFloat vs_i = GMVectorSums_sum(vs_l, i, env);
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
@@ -240,7 +230,6 @@ void gm_compute_2way_proc_combine_ccc_(
               }
               // 2-sum check.
               const GMTally1 si1 = vs_l->sum(i);
-              //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
               const bool error2 = (uint64_t)r10 + (uint64_t)r11 !=
                                   (uint64_t)(2 * si1);
               if (error2) {
@@ -256,7 +245,6 @@ void gm_compute_2way_proc_combine_ccc_(
               }
               // 2-sum check.
               const GMTally1 sj1 = vs_r->sum(j);
-              //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
               const bool error3 = (uint64_t)r01 + (uint64_t)r11 !=
                                   (uint64_t)(2 * sj1);
               if (error3) {
@@ -285,8 +273,6 @@ void gm_compute_2way_proc_combine_ccc_(
               // 2-sum checks.
               const GMTally1 si1 = vs_l->sum(i);
               const GMTally1 sj1 = vs_r->sum(j);
-              //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
-              //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
               COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
               COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
             }
@@ -325,7 +311,6 @@ void gm_compute_2way_proc_combine_ccc_(
               }
               // 2-sum check.
               const GMTally1 si1 = vs_l->sum(i);
-              //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
               const bool error2 = (uint64_t)r10 + (uint64_t)r11 !=
                                   (uint64_t)(2 * si1);
               if (error2) {
@@ -341,7 +326,6 @@ void gm_compute_2way_proc_combine_ccc_(
               }
               // 2-sum check.
               const GMTally1 sj1 = vs_r->sum(j);
-              //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
               const bool error3 = (uint64_t)r01 + (uint64_t)r11 !=
                                   (uint64_t)(2 * sj1);
               if (error3) {
@@ -370,8 +354,6 @@ void gm_compute_2way_proc_combine_ccc_(
               // 2-sum checks.
               const GMTally1 si1 = vs_l->sum(i);
               const GMTally1 sj1 = vs_r->sum(j);
-              //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
-              //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
               COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
               COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
             }
@@ -403,8 +385,6 @@ void gm_compute_2way_proc_combine_ccc_(
             // 2-sum checks.
             const GMTally1 si1 = vs_l->sum(i);
             const GMTally1 sj1 = vs_r->sum(j);
-            //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
-            //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
             COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 == (uint64_t)(2 * si1));
             COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
           }
@@ -426,18 +406,14 @@ void gm_compute_2way_proc_combine_ccc_(
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
-        //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const GMTally1 si1 = vs_l->sum(i);
-          //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
-            //const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
-            //const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
@@ -455,15 +431,11 @@ void gm_compute_2way_proc_combine_ccc_(
         for (int i = 0; i < nvl; ++i) {
           const GMTally1 si1 = vs_l->sum(i);
           const GMTally1 sj1 = vs_r->sum(j);
-          //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-          //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
-            //const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
-            //const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
@@ -478,18 +450,14 @@ void gm_compute_2way_proc_combine_ccc_(
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMTally1 sj1 = vs_r->sum(j);
-      //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
       const int i_max = do_compute_triang_only ? j : nvl;
       for (int i = 0; i < i_max; ++i) {
         const GMTally1 si1 = vs_l->sum(i);
-        //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
         GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
         if (env->sparse()) {
           const GMTally1 ci = vs_l->count(i);
           const GMTally1 cj = vs_r->count(j);
-          //const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
-          //const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
           const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
           GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
         } /*---if sparse---*/
@@ -582,18 +550,14 @@ void gm_compute_2way_proc_combine_duo_(
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
-        //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const GMTally1 si1 = vs_l->sum(i);
-          //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
-            //const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
-            //const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
@@ -611,15 +575,11 @@ void gm_compute_2way_proc_combine_duo_(
         for (int i = 0; i < nvl; ++i) {
           const GMTally1 si1 = vs_l->sum(i);
           const GMTally1 sj1 = vs_r->sum(j);
-          //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
-          //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
           GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
-            //const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
-            //const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
@@ -634,18 +594,14 @@ void gm_compute_2way_proc_combine_duo_(
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMTally1 sj1 = vs_r->sum(j);
-      //const GMTally1 sj1 = (GMTally1)GMVectorSums_sum(vs_r, j, env);
       const int i_max = do_compute_triang_only ? j : nvl;
       for (int i = 0; i < i_max; ++i) {
         const GMTally1 si1 = vs_l->sum(i);
-        //const GMTally1 si1 = (GMTally1)GMVectorSums_sum(vs_l, i, env);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
         GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
         if (env->sparse()) {
           const GMTally1 ci = vs_l->count(i);
           const GMTally1 cj = vs_r->count(j);
-          //const GMTally1 cj = (GMTally1)GMVectorSums_count(vs_r, j, env);
-          //const GMTally1 ci = (GMTally1)GMVectorSums_count(vs_l, i, env);
           const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
           GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
         } /*---if sparse---*/

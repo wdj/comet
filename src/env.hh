@@ -235,7 +235,7 @@ public:
     return ComputeMethod::GPU == compute_method_;
   }
   bool is_metric_type_bitwise() const {
-    return metric_type_ == MetricType::CCC || metric_type_ == MetricType::DUO;
+    return MetricType::CCC == metric_type_ || MetricType::DUO == metric_type_;
   }
   bool is_using_tc() const {
     //COMET_INSIST(is_using_linalg());
@@ -245,13 +245,16 @@ public:
     (ComputeMethod::CPU == compute_method_ && is_using_tc());
   }
   bool is_bitwise_3way_2step() const {return is_using_tc();}
-  //bool is_bitwise_3way_2step() const {return false;}
   int num_step_2way_for_3way() const {
     return is_metric_type_bitwise() && is_using_linalg() ?
            (is_bitwise_3way_2step() ? 2 : 3) : 1;
   }
   bool does_3way_need_2way() const {
     return metric_type_ == MetricType::CZEK && is_using_linalg();
+  }
+  int counted_bits_per_elt() const {
+    COMET_INSIST(is_metric_type_bitwise());
+    return MetricType::CCC == metric_type_ ? 2 : 1;
   }
 
   int data_type_vectors() const;
@@ -430,6 +433,25 @@ private:
   Env(const Env&);
   void operator=(const Env&);
 };
+
+//-----------------------------------------------------------------------------
+
+/// \brief Templatized access to CCC or DUO front multiplier.
+
+template<int COUNTED_BITS_PER_ELT>
+static GMFloat env_ccc_duo_multiplier(const Env& env);
+
+template<>
+GMFloat env_ccc_duo_multiplier<2>(const Env& env) {
+  return env.ccc_multiplier();
+}
+
+template<>
+GMFloat env_ccc_duo_multiplier<1>(const Env& env) {
+  return env.duo_multiplier();
+}
+
+
 
 //----------
 

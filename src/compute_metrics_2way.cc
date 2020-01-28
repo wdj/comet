@@ -40,9 +40,6 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
 
   if (!env_.all2all()) return;
 
-  //GMVectorSums_create(&vector_sums_onproc_, dm.num_vector_local, &env_);
-  //GMVectorSums_create(&vector_sums_offproc_, dm.num_vector_local, &env_);
-
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_create_with_buf(&vectors_01_[i], env_.data_type_vectors(),
       &dm, &env_);
@@ -62,9 +59,6 @@ ComputeMetrics2Way::~ComputeMetrics2Way() {
   COMET_INSIST(env_.is_proc_active());
 
   if (!env_.all2all()) return;
-
-  //GMVectorSums_destroy(&vector_sums_onproc_, &env_);
-  //GMVectorSums_destroy(&vector_sums_offproc_, &env_);
 
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_destroy(&vectors_01_[i], &env_);
@@ -96,10 +90,6 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   //---------------
 
   VectorSums vector_sums(vectors, env_);
-
-  //GMVectorSums vector_sums = GMVectorSums_null();
-  //GMVectorSums_create(&vector_sums, vectors.num_vector_local, &env_);
-  //GMVectorSums_compute(&vector_sums, &vectors, &env_);
 
   //---------------
   // Numerator
@@ -165,8 +155,6 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   //---------------
   // Terminations
   //---------------
-
-  //GMVectorSums_destroy(&vector_sums, &env_);
 
   }
 
@@ -468,12 +456,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
           vector_sums_onproc.compute(*vectors_left);
-          //GMVectorSums_compute(&vector_sums_onproc, vectors_left, &env_);
         }
         if (! vars.is_main_diag) {
           vector_sums_offproc.compute(*vars.vectors_right);
-          //GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right,
-          //                     &env_);
         }
       }
     }
@@ -529,12 +514,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
           vector_sums_onproc.compute(*vectors_left);
-          //GMVectorSums_compute(&vector_sums_onproc, vectors_left, &env_);
         }
         if (! vars.is_main_diag) {
           vector_sums_offproc.compute(*vars.vectors_right);
-          //GMVectorSums_compute(&vector_sums_offproc, vars.vectors_right,
-          //                     &env_);
         }
       }
     }
