@@ -47,8 +47,13 @@ function main
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  local DIRS="build_test_$COMET_PLATFORM_STUB"
-  DIRS+=" build_single_test_$COMET_PLATFORM_STUB"
+  if [ -d "build_test_$COMET_PLATFORM_STUB" ] ; then
+    local DIRS="build_test_$COMET_PLATFORM_STUB"
+    DIRS+=" build_single_test_$COMET_PLATFORM_STUB"
+  else
+    local DIRS="build_test_nompi_$COMET_PLATFORM_STUB"
+    DIRS+=" build_single_test_nompi_$COMET_PLATFORM_STUB"
+  fi
 
   # Do tests.
 

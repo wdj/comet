@@ -245,6 +245,10 @@ elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
 
   local COMET_CAN_USE_MPI=OFF
 
+  #---Testing.
+
+  local COMET_TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=1"
+
 #----------------------------------------
 elif [ $COMET_PLATFORM = EDISON ] ; then
 #----------------------------------------

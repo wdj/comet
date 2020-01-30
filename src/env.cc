@@ -480,10 +480,12 @@ bool Env::can_run(int tc) const {
     result = result && TC::NO == tc;
   }
 
-  result = result && num_proc_ <= System::num_proc();
+  if (make_comms_) {
+    result = result && num_proc_ <= System::num_proc();
 
-  if (num_proc_ > 1) {
-    result = result && BuildHas::MPI;
+    if (num_proc_ > 1) {
+      result = result && BuildHas::MPI;
+    }
   }
 
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
@@ -531,8 +533,9 @@ int Env::tc_eff() const {
       return tc;
   }
 
-  COMET_INSIST(false && "Suitable tc setting not found for this platform / build.");
-  return 0;
+//  COMET_INSIST(false && "Suitable tc setting not found for this platform / build.");
+//  return 0;
+    return TC::NO;
 }
 
 //-----------------------------------------------------------------------------
@@ -814,7 +817,7 @@ void Env::set_num_proc_(int num_proc_vector,
   COMET_INSIST(num_proc_repl > 0);
   COMET_INSIST(num_proc_field > 0);
 
-  if (!BuildHas::MPI) {
+  if (make_comms_ && !BuildHas::MPI) {
     COMET_INSIST(num_proc_vector == 1);
     COMET_INSIST(num_proc_repl == 1);
     COMET_INSIST(num_proc_field == 1);
@@ -832,8 +835,10 @@ void Env::set_num_proc_(int num_proc_vector,
   num_proc_repl_vector_ = num_proc_repl_ * num_proc_vector_;
 
   num_proc_ = num_proc_repl_vector_ * num_proc_field;
-  COMET_INSIST(num_proc_ <= num_proc_base_ &&
-           "Number of procs requested exceeds number available.");
+  if (make_comms_) {
+    COMET_INSIST(num_proc_ <= num_proc_base_ &&
+                 "Number of procs requested exceeds number available.");
+  }
 
   // Set proc nums
 

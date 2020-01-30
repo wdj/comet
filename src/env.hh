@@ -25,11 +25,11 @@
 #if defined COMET_USE_CUDA
 #  include "cuda.h"
 #  include "cuda_runtime.h"
-#  if !defined __CUDACC__
-#    define __host__
-#    define __device__
-#    define __global__
-#  endif
+//#  if !defined __CUDACC__
+//#    define __host__
+//#    define __device__
+//#    define __global__
+//#  endif
 #elif defined COMET_USE_HIP
 #  include "hip/hip_runtime_api.h"
 #else
@@ -52,7 +52,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Abstracted accelerator thread indexing/dimensions functions.
 
-#if defined COMET_USE_CUDA
+#if defined COMET_USE_CUDA && defined __CUDA_ARCH__
   __device__ static int threadIdx_x_() { return threadIdx.x; }
 
   __device__ static int blockIdx_x_() { return blockIdx.x; }

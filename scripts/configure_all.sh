@@ -153,6 +153,15 @@ function main
   fi
 
   #----------------------------------------------------------------------------
+  # Build: test / single precision / nompi case.
+
+  local DO_BUILD=ON # OFF
+  if [ $DO_BUILD = ON ] ; then
+    export BUILD_TYPE=Debug TESTING=ON USE_MPI=OFF FP_PRECISION=SINGLE
+    configure_1case
+  fi
+
+  #----------------------------------------------------------------------------
   # Build: release / double precision case.
 
   local DO_BUILD=ON # OFF
@@ -178,6 +187,15 @@ function main
   [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
   if [ $DO_BUILD = ON ] ; then
     export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=SINGLE 
+    configure_1case
+  fi
+
+  #----------------------------------------------------------------------------
+  # Build release / single precision / nompi case.
+
+  local DO_BUILD=ON # OFF
+  if [ $DO_BUILD = ON ] ; then
+    export BUILD_TYPE=Release TESTING=OFF USE_MPI=OFF FP_PRECISION=SINGLE 
     configure_1case
   fi
 } # main

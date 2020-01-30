@@ -34,9 +34,15 @@ bool can_run(const char* options) {
 
   COMET_INSIST(options);
 
+  comet::Env env_nocomms(options, PROCS_MAX, 0);
+
+  if (env_nocomms.num_proc() > 1 && ! comet::BuildHas::MPI)
+    return false;
+
   comet::Env env(options);
 
   return env.can_run();
+
 }
 
 //=============================================================================
@@ -2324,6 +2330,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
+return; //FIX
   //----------
   //---file output, 3-way
   //----------

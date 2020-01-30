@@ -1010,37 +1010,6 @@ MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
   verbosity_ = do_->verbosity;
   threshold_ = do_->threshold;
 
-#if 0
-  char* stub = do_->metrics_file_path_stub;
-  if (! (NULL != stub && env->is_proc_active() &&
-      env->proc_num_field() == 0) ) {
-    return;
-  }
-
-  // Form filename
-
-  size_t len = strlen(stub);
-  char* path = (char*)malloc((len+50) * sizeof(char));
-
-  int num_digits = 0;
-  for (int tmp = 1; ; tmp*=10, ++num_digits) {
-    if (tmp > env->num_proc()) {
-      break;
-    }
-  }
-
-  char format[100];
-  sprintf(format, "%s0%ii.bin", "%s_%", num_digits);
-
-  sprintf(path, format, stub, env->proc_num());
-
-  /*---Do open---*/
-
-  file_ = fopen(path, "w");
-  COMET_INSIST(NULL != file_ && "Unable to open file.");
-  free(path);
-#endif
-
   if (do_->metrics_file_path_stub) {
     file_ = gm_metrics_file_open(do_->metrics_file_path_stub, env);
     COMET_INSIST(NULL != file_ && "Unable to open file.");

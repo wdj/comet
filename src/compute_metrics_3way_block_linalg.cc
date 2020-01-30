@@ -598,26 +598,40 @@ void ComputeMetrics3WayBlock::compute_linalg_(
       , do_reduce(env.do_reduce())
       , matB_buf(env)
       , tmp_buf(env) {}
-    void operator=(const LoopVars& v) {
-      memcpy(this, &v, sizeof(*this));
-    }
+    //LoopVars& operator=(LoopVars&) = default;
+    //static void copy(LoopVars& w, const LoopVars* v) {
+//      memcpy(&w, &v, sizeof(LoopVars));
+//    }
   };
 
-  LoopVars vars(env_);
-  LoopVars vars_prev(env_);
-  LoopVars vars_prevprev(env_);
-  LoopVars vars_next(env_);
+  const int num_buf = 4;
+
+  std::vector<LoopVars> vars_buf;
+  for (int i=0; i<num_buf; ++i)
+    vars_buf.push_back(LoopVars(env_));
+
+  //LoopVars vars(env_);
+  //LoopVars vars_prev(env_);
+  //LoopVars vars_prevprev(env_);
+  //LoopVars vars_next(env_);
+
+  const int first_step = 0 - extra_step;
 
   //========================================
-  for (int step_num = 0-extra_step; step_num < num_step+extra_step*2;
+  for (int step_num = first_step; step_num < num_step+extra_step*2;
        ++step_num) {
   //========================================
 
     // Set per-step variables.
 
-    vars_prevprev = vars_prev;
-    vars_prev = vars;
-    vars = vars_next;
+    LoopVars& vars_prevprev = vars_buf[(step_num - first_step + 0) % num_buf];
+    LoopVars& vars_prev = vars_buf[(step_num - first_step + 1) % num_buf];
+    LoopVars& vars = vars_buf[(step_num - first_step + 2) % num_buf];
+    LoopVars& vars_next = vars_buf[(step_num - first_step + 3) % num_buf];
+
+    //vars_prevprev = vars_prev;
+    //vars_prev = vars;
+    //vars = vars_next;
 
     vars_next.step_num = step_num + 1;
     vars_next.step_2way = utils::mod_i(vars_next.step_num, num_step_2way);
