@@ -18,10 +18,10 @@
 #  pragma GCC diagnostic ignored "-Wc99-designator"
 #  include "hip/hip_runtime.h"
 #  include "rocblas.h"
-#else
-#  define __host__
-#  define __device__
-#  define __global__
+//#else
+//#  define __host__
+//#  define __device__
+//#  define __global__
 #endif
 
 #if defined COMET_USE_CPUBLAS
@@ -39,39 +39,42 @@ namespace comet {
 // HELPERS
 //=============================================================================
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Abstracted thread indexing/dimensions functions.
 
 #if defined COMET_USE_CUDA
-__device__ static int threadIdx_x_() { return threadIdx.x; }
+  __device__ static int threadIdx_x_() { return threadIdx.x; }
 
-__device__ static int blockIdx_x_() { return blockIdx.x; }
-__device__ static int blockIdx_y_() { return blockIdx.y; }
-__device__ static int blockIdx_z_() { return blockIdx.z; }
+  __device__ static int blockIdx_x_() { return blockIdx.x; }
+  __device__ static int blockIdx_y_() { return blockIdx.y; }
+  __device__ static int blockIdx_z_() { return blockIdx.z; }
 
-__device__ static int blockDim_x_() { return blockDim.x; }
+  __device__ static int blockDim_x_() { return blockDim.x; }
 
-__device__ static int gridDim_y_() { return gridDim.y; }
+  __device__ static int gridDim_y_() { return gridDim.y; }
 #elif defined COMET_USE_HIP
-__device__ static int threadIdx_x_() { return hipThreadIdx_x; }
+  __device__ static int threadIdx_x_() { return hipThreadIdx_x; }
 
-__device__ static int blockIdx_x_() { return hipBlockIdx_x; }
-__device__ static int blockIdx_y_() { return hipBlockIdx_y; }
-__device__ static int blockIdx_z_() { return hipBlockIdx_z; }
+  __device__ static int blockIdx_x_() { return hipBlockIdx_x; }
+  __device__ static int blockIdx_y_() { return hipBlockIdx_y; }
+  __device__ static int blockIdx_z_() { return hipBlockIdx_z; }
 
-__device__ static int blockDim_x_() { return hipBlockDim_x; }
+  __device__ static int blockDim_x_() { return hipBlockDim_x; }
 
-__device__ static int gridDim_y_() { return hipGridDim_y; }
+  __device__ static int gridDim_y_() { return hipGridDim_y; }
 #else
-__device__ static int threadIdx_x_() { return 0; }
+  __device__ static int threadIdx_x_() { return 0; }
 
-__device__ static int blockIdx_x_() { return 0; }
-__device__ static int blockIdx_y_() { return 0; }
-__device__ static int blockIdx_z_() { return 0; }
+  __device__ static int blockIdx_x_() { return 0; }
+  __device__ static int blockIdx_y_() { return 0; }
+  __device__ static int blockIdx_z_() { return 0; }
 
-__device__ static int blockDim_x_() { return 0; }
+  __device__ static int blockDim_x_() { return 0; }
 
-__device__ static int gridDim_y_() { return 0; }
+  __device__ static int gridDim_y_() { return 0; }
+#endif
+
 #endif
 
 //-----------------------------------------------------------------------------

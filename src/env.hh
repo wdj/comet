@@ -18,16 +18,24 @@
 #include "float.h"
 #include "algorithm"
 #include "vector"
-#include "cstdio"  //FIX
+//#include "cstdio"  // for printf debugging
 
 #include "mpi.h"
 
 #if defined COMET_USE_CUDA
-#include "cuda.h"
-#include "cuda_runtime.h"
+#  include "cuda.h"
+#  include "cuda_runtime.h"
+#  if !defined __CUDACC__
+#    define __host__
+#    define __device__
+#    define __global__
+#  endif
 #elif defined COMET_USE_HIP
-#include "hip/hip_runtime_api.h"
+#  include "hip/hip_runtime_api.h"
 #else
+#  define __host__
+#  define __device__
+#  define __global__
 #endif
 
 #include "assertions.hh"
@@ -42,7 +50,42 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-// Build options enums
+/// \brief Abstracted accelerator thread indexing/dimensions functions.
+
+#if defined COMET_USE_CUDA
+  __device__ static int threadIdx_x_() { return threadIdx.x; }
+
+  __device__ static int blockIdx_x_() { return blockIdx.x; }
+  __device__ static int blockIdx_y_() { return blockIdx.y; }
+  __device__ static int blockIdx_z_() { return blockIdx.z; }
+
+  __device__ static int blockDim_x_() { return blockDim.x; }
+
+  __device__ static int gridDim_y_() { return gridDim.y; }
+#elif defined COMET_USE_HIP
+  __device__ static int threadIdx_x_() { return hipThreadIdx_x; }
+
+  __device__ static int blockIdx_x_() { return hipBlockIdx_x; }
+  __device__ static int blockIdx_y_() { return hipBlockIdx_y; }
+  __device__ static int blockIdx_z_() { return hipBlockIdx_z; }
+
+  __device__ static int blockDim_x_() { return hipBlockDim_x; }
+
+  __device__ static int gridDim_y_() { return hipGridDim_y; }
+#else
+  __device__ static int threadIdx_x_() { return 0; }
+
+  __device__ static int blockIdx_x_() { return 0; }
+  __device__ static int blockIdx_y_() { return 0; }
+  __device__ static int blockIdx_z_() { return 0; }
+
+  __device__ static int blockDim_x_() { return 0; }
+
+  __device__ static int gridDim_y_() { return 0; }
+#endif
+
+//-----------------------------------------------------------------------------
+/// \brief Build options enums
 
 struct BuildHas {
 # ifdef COMET_USE_MPI
