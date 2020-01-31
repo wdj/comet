@@ -499,12 +499,14 @@ bool Env::can_run(int tc) const {
 
 //TODO: adjust this for HIP case.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc) {
-    result = result && BuildHas::CUDA && System::compute_capability() >= 700;
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
+                     || (BuildHas::HIP && System::compute_capability() >= 900));
   }
 
 //TODO: adjust this for HIP case.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc) {
-    result = result && BuildHas::CUDA && System::compute_capability() >= 750;
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
+                     || (BuildHas::HIP && System::compute_capability() >= 900));
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc) {

@@ -62,7 +62,7 @@ namespace comet {
   __device__ static int blockDim_x_() { return blockDim.x; }
 
   __device__ static int gridDim_y_() { return gridDim.y; }
-#elif defined COMET_USE_HIP
+#elif defined COMET_USE_HIP && __HIP__
   __device__ static int threadIdx_x_() { return hipThreadIdx_x; }
 
   __device__ static int blockIdx_x_() { return hipBlockIdx_x; }

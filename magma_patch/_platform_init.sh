@@ -292,6 +292,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   #---Modules etc.
 
   module load cmake
+  module load openmpi
   module load rocm
   module load hip
   #module load rocblas
@@ -305,13 +306,14 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
     local BLIS_PATH=$HOME/rocBLAS/extern/blis
   else
     export ROCBLAS_PATH=/opt/rocm/rocblas
+    #local BLIS_PATH=$HOME/rocblas_extern/blis
   fi
 
   #---Compiler.
 
   local USE_GCC=OFF
   local COMET_C_COMPILER=$(which gcc) # presently unused
-  local COMET_CXX_COMPILER=$(which g++) # presently unused
+  local COMET_CXX_COMPILER=hipcc
   local COMET_CXX_SERIAL_COMPILER=hipcc
 
   local USE_OPENMP=OFF
@@ -320,8 +322,11 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   local COMET_HIP_COMPILE_OPTS="-I$ROCBLAS_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
+  COMET_HIP_COMPILE_OPTS+=" -fno-gpu-rdc -Wno-unused-command-line-argument"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+
+# If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
 
   #---Libraries.
 
@@ -330,12 +335,27 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   if [ "${BLIS_PATH:-}" != "" ] ; then
     local USE_CPUBLAS=ON
     local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/zen"
-    COMET_CUDA_CMAKE_OPTS=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"blis.h\""'
+    #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
     local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/zen"
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
   fi
 
   local COMET_CAN_USE_MPI=OFF
+#  local COMET_CAN_USE_MPI=ON
+#  local COMET_MPI_COMPILE_OPTS="-I$OLCF_OPENMPI_ROOT/include"
+#  local COMET_MPI_LINK_OPTS="-L$OLCF_OPENMPI_ROOT/lib -Wl,-rpath,$OLCF_OPENMPI_ROOT/lib -lmpi"
+
+  #---Testing.
+
+  #XXX salloc -N2 -A stf006 $SHELL
+  #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
+  # salloc -N2 -A stf006 $SHELL
+  # salloc -N1 -A stf006 $SHELL
+
+  #local COMET_TEST_COMMAND="module load openmpi ; env OMP_NUM_THREADS=2 mpirun --npernode 48"
+  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2"
+  #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
+  #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
 
 #----------------------------------------
 elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then

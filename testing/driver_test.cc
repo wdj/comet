@@ -625,13 +625,14 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   using namespace comet;
 
   const int num_field = 5;
-  const int num_vector_local = 2;
+  const int num_vector = 2;
 
   std:: string options = " --num_way " + std::to_string(2);
   options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
   options += " --all2all no";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --tc 4";
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
@@ -639,7 +640,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+  GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
@@ -735,7 +736,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   using namespace comet;
 
   const int num_field = 5;
-  const int num_vector_local = 2;
+  const int num_vector = 2;
 
   std:: string options = " --num_way " + std::to_string(2);
   options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
@@ -743,6 +744,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --tc 4";
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
@@ -750,7 +752,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+  GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
@@ -903,7 +905,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   using namespace comet;
 
   const int num_field = 5;
-  const int num_vector_local = 2;
+  const int num_vector = 2;
 
   std:: string options = " --num_way " + std::to_string(2);
   options += " --metric_type " + std::string(MetricType::str(MetricType::DUO));
@@ -911,6 +913,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --tc 4";
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
@@ -918,7 +921,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+  GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
@@ -1058,13 +1061,14 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   using namespace comet;
 
   const int num_field = 10;
-  const int num_vector_local = 3;
+  const int num_vector = 3;
 
   std:: string options = " --num_way " + std::to_string(3);
   options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
   options += " --all2all yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --tc 4";
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
@@ -1072,7 +1076,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+  GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
@@ -1219,7 +1223,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   using namespace comet;
 
   const int num_field = 10;
-  const int num_vector_local = 3;
+  const int num_vector = 3;
 
   std:: string options = " --num_way " + std::to_string(3);
   options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
@@ -1227,6 +1231,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --tc 4";
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
@@ -1234,7 +1239,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   Env* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, true, num_field, num_vector_local,
+  GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();
@@ -1496,17 +1501,15 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   using namespace comet;
 
   const int num_field = 10;
-  const int num_vector_local = 3;
+  const int num_vector = 3;
 
   std:: string options = " --num_way " + std::to_string(3);
   options += " --metric_type " + std::string(MetricType::str(MetricType::DUO));
   options += " --all2all yes";
   options += " --sparse yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
-  if (ComputeMethod::GPU == compute_method) {
-    options += " --tc " + std::to_string(4);
-  }
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --tc 4";
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
@@ -1519,7 +1522,7 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   }
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
-  GMDecompMgr_create(dm, true, false, num_field, num_vector_local,
+  GMDecompMgr_create(dm, true, false, num_field, num_vector,
                      env->data_type_vectors(), env);
 
   GMVectors vectors_value = GMVectors_null();

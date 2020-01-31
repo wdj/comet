@@ -25,8 +25,12 @@
 #endif
 
 #if defined COMET_USE_CPUBLAS
+#if defined COMET_USE_HIP
+#include "blis.h"
+#else
 #include BLAS_H
-#endif // COMET_USE_CPUBLAS
+#endif
+#endif
 
 #include "env.hh"
 #include "linalg_tc.hh"
