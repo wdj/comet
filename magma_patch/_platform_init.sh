@@ -439,6 +439,10 @@ elif [ $COMET_PLATFORM = MACOS ] ; then
 
   local COMET_CAN_USE_MPI=OFF
 
+  #---Testing.
+
+  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+
 #----------------------------------------
 else
 #----------------------------------------

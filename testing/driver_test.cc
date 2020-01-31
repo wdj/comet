@@ -61,9 +61,8 @@ bool is_using_tc(const char* options) {
 bool compare_2runs(const char* options1, const char* options2) {
   COMET_INSIST(options1 && options2);
 
-  if (!(can_run(options1) && can_run(options2))) {
+  if (!(can_run(options1) && can_run(options2)))
     return true;
-  }
 
   /*---Do runs---*/
 
@@ -97,9 +96,8 @@ bool compare_3runs(const char* options1,
                    const char* options3) {
   COMET_INSIST(options1 && options2 && options3);
 
-  if (!(can_run(options1) && can_run(options2) && can_run(options3))) {
+  if (!(can_run(options1) && can_run(options2) && can_run(options3)))
     return true;
-  }
 
   /*---Do runs---*/
 
@@ -148,6 +146,7 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   std:: string options = " --num_way " + std::to_string(num_way);
   options += " --metric_type " + std::string(MetricType::str(metric_type));
   options += " --num_proc_vector " + std::to_string(1);
+  options += " --compute_method REF";
   options += " --verbosity 1";
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
@@ -634,6 +633,8 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
   options += " --verbosity 1";
+  if (!can_run(options.c_str()))
+    return;
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -743,6 +744,8 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
   options += " --verbosity 1";
+  if (!can_run(options.c_str()))
+    return;
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -909,6 +912,8 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
   options += " --verbosity 1";
+  if (!can_run(options.c_str()))
+    return;
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -1061,6 +1066,8 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
   options += " --verbosity 1";
+  if (!can_run(options.c_str()))
+    return;
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -1221,6 +1228,8 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
   options += " --num_proc_vector " + std::to_string(1);
   options += " --verbosity 1";
+  if (!can_run(options.c_str()))
+    return;
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -1499,6 +1508,8 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   }
   options += " --num_proc_vector " + std::to_string(1);
   options += " --verbosity 1";
+  if (!can_run(options.c_str()))
+    return;
   Env env_value(MPI_COMM_WORLD, options.c_str());
   Env* env = &env_value;
 
@@ -2015,8 +2026,10 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
 
   sprintf(options1, options_template_11a, metric_type, 1);
   sprintf(options2, options_template_11b, metric_type, 1, ((double)1) / ((double)2));
-  const int result11 = compare_2runs(options1, options2);
-  EXPECT_EQ(true, 0==proc_num ? ! result11 : true);
+  if (can_run(options1) && can_run(options2)) {
+    const int result11 = compare_2runs(options1, options2);
+    EXPECT_EQ(true, 0==proc_num ? ! result11 : true);
+  }
 
   //----------
   //---num_phase, 2-way
@@ -2330,7 +2343,6 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
 
-return; //FIX
   //----------
   //---file output, 3-way
   //----------
