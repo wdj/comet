@@ -56,7 +56,8 @@ function script_dir
 function get_modules_used_magma
 {
   if [ -n "${MODULEPATH:-}" ] ; then
-    if [ $(alias | awk '/^alias module=/ {print $0}' | wc -l) != 0 ] ; then
+    if [ $(alias | awk '/^alias module=/ {print $0}' | wc -l) != 0 -o \
+         $(set | awk '/^module / {print $0}' | wc -l) != 0 ] ; then
       (module -t list) 2>&1 | sort | awk '/gcc/ {print $0}' 
       (module -t list) 2>&1 | sort | awk '/cuda/ {print $0}' 
     fi

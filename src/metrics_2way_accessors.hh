@@ -11,6 +11,8 @@
 #ifndef _comet_metrics_2way_accessors_hh_
 #define _comet_metrics_2way_accessors_hh_
 
+#include "cstdio"
+
 #include "metrics_2way_indexing.hh"
 
 //=============================================================================

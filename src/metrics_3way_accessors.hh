@@ -290,6 +290,12 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
     GMTally1 ci, cj, ck;
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
 
+    // TODO: it may be possible to decrease the number of divides
+    // here - see GMMetrics_ccc_get_from_index_2.
+    const GMFloat recip_ci = f_one / ci;
+    const GMFloat recip_cj = f_one / cj;
+    const GMFloat recip_ck = f_one / ck;
+
     GMTally1 cijk =
            GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
            GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
@@ -303,17 +309,11 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
     const GMTally1 sj = i1 == 0 ? (CBPE * cj - sj1) : sj1;
     const GMTally1 sk = i2 == 0 ? (CBPE * ck - sk1) : sk1;
 
-    // TODO: it may be possible to decrease the number of divides
-    // here - see GMMetrics_ccc_get_from_index_2.
-    const GMFloat recip_ci = f_one / ci;
-    const GMFloat recip_cj = f_one / cj;
-    const GMFloat recip_ck = f_one / ck;
-
-    const GMFloat recip_sumcijk =
-      f_one / (GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
-               GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
-               GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
-               GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1));
+    const GMFloat recip_sumcijk = f_one / cijk;
+//      f_one / (GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
+//               GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
+//               GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
+//               GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1));
 
     result_floatcalc = GMMetrics_ccc_duo_value_3<COUNTED_BITS_PER_ELT>(metrics,
       rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);

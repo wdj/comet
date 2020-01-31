@@ -10,6 +10,7 @@
 
 #include "cstdlib"
 #include "cstdint"
+#include "cstdio"
 #include "string.h"
 
 #include "mpi.h"
