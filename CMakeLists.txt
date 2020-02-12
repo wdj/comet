@@ -153,8 +153,7 @@ if(TESTING)
     TARGET_LINK_LIBRARIES(${TEST_TARGET} ${CMAKE_EXE_LINKER_FLAGS})
 
     add_test(${TEST_TARGET} bash -c
-             "cd ${CMAKE_INSTALL_PREFIX}; \
-              ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
+             "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
   endforeach()
 else()
   set(UNUSED_NO_WARN_1, ${TEST_COMMAND}) # turn off unused var warning
