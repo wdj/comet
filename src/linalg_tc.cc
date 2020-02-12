@@ -9,6 +9,7 @@
 //-----------------------------------------------------------------------------
 
 #include "cstdint"
+#include "cstdio"
 
 #if defined COMET_USE_CUDA
 #  include "cublas_v2.h"

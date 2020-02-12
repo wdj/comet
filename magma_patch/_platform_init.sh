@@ -398,6 +398,7 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   #---Modules etc.
 
   module load openmpi
+  module load cuda
   (module list) 2>&1 | grep -v '^ *$'
 
   #---Compiler.
@@ -435,7 +436,13 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   local COMET_MAGMA_GPU_ARCH=70
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
-  local COMET_CAN_USE_MPI=ON
+  #local COMET_CAN_USE_MPI=ON
+  local COMET_CAN_USE_MPI=OFF
+
+  #---Testing.
+
+  #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=224"
+  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
 
 #----------------------------------------
 elif [ $COMET_PLATFORM = MACOS ] ; then

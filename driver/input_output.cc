@@ -354,21 +354,21 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
   // Each buffer entry contains: whether value is to be written,
   // coord0, coord1, i0, i1, and value
 
-  char do_out_buf[num_buf];
-  int coord0_buf[num_buf];
-  int coord1_buf[num_buf];
-  int i01_buf[num_buf];
-  GMFloat value_buf[num_buf];
+  auto do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
+  auto coord0_buf = (int*)malloc(num_buf*sizeof(*coord0_buf));
+  auto coord1_buf = (int*)malloc(num_buf*sizeof(*coord1_buf));
+  auto i01_buf = (int*)malloc(num_buf*sizeof(*i01_buf));
+  auto value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
 
-  for (int i=0; i<(int)num_buf; ++i) {
+  for (int i=0; i<(int)num_buf; ++i)
     do_out_buf[i] = 0;
-  }
 
   const GMFloat threshold_eff = threshold<0. ? -1e20 : threshold;
 
   // Process num_buf_ind index values at a time
   for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
        ind_base += num_buf_ind) {
+    // Largest index value to visit for this loop trip.
     const size_t ind_max = utils::min(metrics->num_elts_local,
                                       ind_base + num_buf_ind);
 
@@ -377,7 +377,7 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Do any of the values exceed the threshold
       if (GMMetrics_ccc_duo_get_from_index_2_threshold<COUNTED_BITS_PER_ELT>(
-             metrics, index, threshold_eff, env)) {
+            metrics, index, threshold_eff, env)) {
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             const GMFloat value =
@@ -392,6 +392,7 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
               const char do_out = coord0 < metrics->num_vector_active &&
                                   coord1 < metrics->num_vector_active;
               const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
+              COMET_ASSERT(ind_buf < num_buf);
               do_out_buf[ind_buf] = do_out;
               coord0_buf[ind_buf] = coord0;
               coord1_buf[ind_buf] = coord1;
@@ -401,7 +402,7 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
           } /*---i1---*/
         } /*---i0---*/
       }
-    } /*---for index---*/
+    } // pragma omp / for index
 
     // Flush buffer
 
@@ -417,6 +418,7 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
       if (*(do_out_ptr++)) {
         for (int i=0; i<4; ++i) {
           const size_t ind_buf = (do_out_ptr - (multi_t*)do_out_buf - 1)*4 + i;
+          COMET_ASSERT(ind_buf < num_buf);
           if (do_out_buf[ind_buf]) {
             const int i0 = i01_buf[ind_buf] % 2;
             const int i1 = i01_buf[ind_buf] / 2;
@@ -433,6 +435,12 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
   } /*---ind_base---*/
 
   num_written += writer.get_num_written();
+
+  free(do_out_buf);
+  free(coord0_buf);
+  free(coord1_buf);
+  free(i01_buf);
+  free(value_buf);
 }
 
 //-----------------------------------------------------------------------------
@@ -476,16 +484,15 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
   // Each buffer entry contains: whether value is to be written,
   // coord0, coord1, coord2, i0, i1, i2, and value
 
-  char do_out_buf[num_buf];
-  int coord0_buf[num_buf];
-  int coord1_buf[num_buf];
-  int coord2_buf[num_buf];
-  int i012_buf[num_buf];
-  GMFloat value_buf[num_buf];
+  auto do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
+  auto coord0_buf = (int*)malloc(num_buf*sizeof(*coord0_buf));
+  auto coord1_buf = (int*)malloc(num_buf*sizeof(*coord1_buf));
+  auto coord2_buf = (int*)malloc(num_buf*sizeof(*coord2_buf));
+  auto i012_buf = (int*)malloc(num_buf*sizeof(*i012_buf));
+  auto value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
 
-  for (int i=0; i<(int)num_buf; ++i) {
+  for (int i=0; i<(int)num_buf; ++i)
     do_out_buf[i] = 0;
-  }
 
   const GMFloat threshold_eff = threshold<0. ? -1e20 : threshold;
 
@@ -562,6 +569,13 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
   } /*---ind_base---*/
 
   num_written += writer.get_num_written();
+
+  free(do_out_buf);
+  free(coord0_buf);
+  free(coord1_buf);
+  free(coord2_buf);
+  free(i012_buf);
+  free(value_buf);
 }
 
 //-----------------------------------------------------------------------------
