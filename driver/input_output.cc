@@ -354,11 +354,11 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
   // Each buffer entry contains: whether value is to be written,
   // coord0, coord1, i0, i1, and value
 
-  auto do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
-  auto coord0_buf = (int*)malloc(num_buf*sizeof(*coord0_buf));
-  auto coord1_buf = (int*)malloc(num_buf*sizeof(*coord1_buf));
-  auto i01_buf = (int*)malloc(num_buf*sizeof(*i01_buf));
-  auto value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
+  char* const do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
+  int* const coord0_buf = (int*)malloc(num_buf*sizeof(*coord0_buf));
+  int* const coord1_buf = (int*)malloc(num_buf*sizeof(*coord1_buf));
+  int* const i01_buf = (int*)malloc(num_buf*sizeof(*i01_buf));
+  GMFloat* const value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
 
   for (int i=0; i<(int)num_buf; ++i)
     do_out_buf[i] = 0;
@@ -484,12 +484,12 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
   // Each buffer entry contains: whether value is to be written,
   // coord0, coord1, coord2, i0, i1, i2, and value
 
-  auto do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
-  auto coord0_buf = (int*)malloc(num_buf*sizeof(*coord0_buf));
-  auto coord1_buf = (int*)malloc(num_buf*sizeof(*coord1_buf));
-  auto coord2_buf = (int*)malloc(num_buf*sizeof(*coord2_buf));
-  auto i012_buf = (int*)malloc(num_buf*sizeof(*i012_buf));
-  auto value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
+  char* const do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
+  int* const coord0_buf = (int*)malloc(num_buf*sizeof(*coord0_buf));
+  int* const coord1_buf = (int*)malloc(num_buf*sizeof(*coord1_buf));
+  int* const coord2_buf = (int*)malloc(num_buf*sizeof(*coord2_buf));
+  int* const i012_buf = (int*)malloc(num_buf*sizeof(*i012_buf));
+  GMFloat* const value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
 
   for (int i=0; i<(int)num_buf; ++i)
     do_out_buf[i] = 0;
