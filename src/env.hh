@@ -32,6 +32,7 @@
 //#  endif
 #elif defined COMET_USE_HIP
 #  include "hip/hip_runtime_api.h"
+#  include "hip/hip_runtime.h"
 #else
 #  define __host__
 #  define __device__
@@ -62,7 +63,7 @@ namespace comet {
   __device__ static int blockDim_x_() { return blockDim.x; }
 
   __device__ static int gridDim_y_() { return gridDim.y; }
-#elif defined COMET_USE_HIP && __HIP__
+#elif defined COMET_USE_HIP && defined __HIPCC__
   __device__ static int threadIdx_x_() { return hipThreadIdx_x; }
 
   __device__ static int blockIdx_x_() { return hipBlockIdx_x; }

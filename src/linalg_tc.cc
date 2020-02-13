@@ -19,10 +19,6 @@
 //#  pragma GCC diagnostic ignored "-Wc99-designator"
 #  include "hip/hip_runtime.h"
 #  include "rocblas.h"
-//#else
-//#  define __host__
-//#  define __device__
-//#  define __global__
 #endif
 
 #if defined COMET_USE_CPUBLAS
@@ -43,44 +39,6 @@ namespace comet {
 //=============================================================================
 // HELPERS
 //=============================================================================
-
-#if 0
-//-----------------------------------------------------------------------------
-/// \brief Abstracted thread indexing/dimensions functions.
-
-#if defined COMET_USE_CUDA
-  __device__ static int threadIdx_x_() { return threadIdx.x; }
-
-  __device__ static int blockIdx_x_() { return blockIdx.x; }
-  __device__ static int blockIdx_y_() { return blockIdx.y; }
-  __device__ static int blockIdx_z_() { return blockIdx.z; }
-
-  __device__ static int blockDim_x_() { return blockDim.x; }
-
-  __device__ static int gridDim_y_() { return gridDim.y; }
-#elif defined COMET_USE_HIP
-  __device__ static int threadIdx_x_() { return hipThreadIdx_x; }
-
-  __device__ static int blockIdx_x_() { return hipBlockIdx_x; }
-  __device__ static int blockIdx_y_() { return hipBlockIdx_y; }
-  __device__ static int blockIdx_z_() { return hipBlockIdx_z; }
-
-  __device__ static int blockDim_x_() { return hipBlockDim_x; }
-
-  __device__ static int gridDim_y_() { return hipGridDim_y; }
-#else
-  __device__ static int threadIdx_x_() { return 0; }
-
-  __device__ static int blockIdx_x_() { return 0; }
-  __device__ static int blockIdx_y_() { return 0; }
-  __device__ static int blockIdx_z_() { return 0; }
-
-  __device__ static int blockDim_x_() { return 0; }
-
-  __device__ static int gridDim_y_() { return 0; }
-#endif
-
-#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Provide needed constants of GemmIn_t type.
@@ -929,9 +887,6 @@ static void gm_tc_repair_metrics_(
   COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
   const int nvllD2 = nvll / 2;
 
-  const int threadblocksize = 256;
-  const int vll2_threadblocks = utils::ceil(nvllD2, threadblocksize);
-
   typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
 
   if (env.is_compute_method_gpu()) {
@@ -939,6 +894,9 @@ static void gm_tc_repair_metrics_(
     // Kernel call.
 
 #ifdef COMET_USE_ACCEL
+
+    const int threadblocksize = 256;
+    const int vll2_threadblocks = utils::ceil(nvllD2, threadblocksize);
 
 #  ifdef COMET_USE_HIP
     hipLaunchKernelGGL(
@@ -961,11 +919,6 @@ static void gm_tc_repair_metrics_(
         nvl, nvll, nvllD2, vo);
 
     System::accel_last_call_succeeded();
-
-#else // COMET_USE_ACCEL
-
-  int dummy = 0;
-  dummy += vll2_threadblocks + threadblocksize;
 
 #endif // COMET_USE_ACCEL
 

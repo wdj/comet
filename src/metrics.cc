@@ -851,6 +851,13 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
       const GMTally2x2 old = metrics_buf->elt_const<GMTally2x2>(i, j);
 #endif
 
+//    printf("%zu %zu %zu %zu\n"
+//      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[0])) % (1<<GM_TALLY1_MAX_VALUE_BITS)
+//      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[0])) / (1<<GM_TALLY1_MAX_VALUE_BITS)
+//      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[1])) % (1<<GM_TALLY1_MAX_VALUE_BITS)
+//      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[1])) / (1<<GM_TALLY1_MAX_VALUE_BITS)
+//    );
+
       metrics_buf->elt<GMTally2x2>(i, j).data[0] -= float_pad_adjustment;
 
 #ifdef COMET_ASSERTIONS_ON
