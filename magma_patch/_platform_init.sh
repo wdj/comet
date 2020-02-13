@@ -307,7 +307,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
     local BLIS_PATH=$HOME/rocBLAS/extern/blis
   else
     export ROCBLAS_PATH=/opt/rocm/rocblas
-    #local BLIS_PATH=$HOME/rocblas_extern/blis
+    local BLIS_PATH=$HOME/rocblas_extern/blis
   fi
 
   #---Compiler.
@@ -336,10 +336,11 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
 
   if [ "${BLIS_PATH:-}" != "" ] ; then
     local USE_CPUBLAS=ON
-    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/zen"
+    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/generic"
     #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
-    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/zen"
-    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
+    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/generic"
+    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/generic -lblis"
+    # ./configure --disable-threading --enable-cblas generic
   fi
 
   local COMET_CAN_USE_MPI=OFF
