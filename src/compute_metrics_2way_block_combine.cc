@@ -28,7 +28,7 @@ namespace comet {
 
 void gm_compute_2way_proc_combine_czek_(
   GMMetrics* metrics,
-  GMMirroredBuf* metrics_buf,
+  MirroredBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
@@ -176,7 +176,7 @@ void gm_compute_2way_proc_combine_czek_(
 
 void gm_compute_2way_proc_combine_ccc_(
   GMMetrics* metrics,
-  GMMirroredBuf* metrics_buf,
+  MirroredBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
@@ -477,7 +477,7 @@ void gm_compute_2way_proc_combine_ccc_(
 
 void gm_compute_2way_proc_combine_duo_(
   GMMetrics* metrics,
-  GMMirroredBuf* metrics_buf,
+  MirroredBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
@@ -621,7 +621,7 @@ void gm_compute_2way_proc_combine_duo_(
 
 void gm_compute_2way_proc_combine(
   GMMetrics* metrics,
-  GMMirroredBuf* metrics_buf,
+  MirroredBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,

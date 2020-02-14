@@ -79,7 +79,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   // Allocate magma CPU memory for vectors and for result
 
-  GMMirroredBuf vectors_buf(npvfl, nvl, env_);
+  MirroredBuf vectors_buf(npvfl, nvl, env_);
 
   // Copy in vectors
 
@@ -158,8 +158,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   GMVectors* const vectors_i = &vectors;
 
-  GMMirroredBuf vectors_i_buf_value(npvfl, nvl, env_);
-  GMMirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
+  MirroredBuf vectors_i_buf_value(npvfl, nvl, env_);
+  MirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
 
   /*------------------------*/
   /*---Allocations: Part 2---*/
@@ -174,8 +174,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_create(vectors_j[0], data_type, vectors.dm, env);
   GMVectors_create(vectors_j[1], data_type, vectors.dm, env);
 
-  GMMirroredBuf vectors_j_buf_value(npvfl, nvl,env_);
-  GMMirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
+  MirroredBuf vectors_j_buf_value(npvfl, nvl,env_);
+  MirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
 
   /*------------------------*/
   /*---Allocations: Part 3---*/
@@ -190,8 +190,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_create(vectors_k[0], data_type, vectors.dm, env);
   GMVectors_create(vectors_k[1], data_type, vectors.dm, env);
 
-  GMMirroredBuf vectors_k_buf_value(npvfl, nvl,env_);
-  GMMirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
+  MirroredBuf vectors_k_buf_value(npvfl, nvl,env_);
+  MirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
 
   /*------------------------*/
   /*---Prepare to compute---*/
@@ -200,8 +200,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors* vectors_j_prev = NULL;
   GMVectors* vectors_k_prev = NULL;
 
-  GMMirroredBuf* vectors_j_buf_prev = NULL;
-  GMMirroredBuf* vectors_k_buf_prev = NULL;
+  MirroredBuf* vectors_j_buf_prev = NULL;
+  MirroredBuf* vectors_k_buf_prev = NULL;
 
   VectorSums* vector_sums_j_prev = NULL;
   VectorSums* vector_sums_k_prev = NULL;

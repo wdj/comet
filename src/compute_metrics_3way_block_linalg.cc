@@ -28,9 +28,9 @@ namespace comet {
 /// \brief Create matrix X from a vectors object and a single vector column.
 
 static void compute_metrics_3way_block_linalg_form_matXitem_(
-  const GMMirroredBuf* const vectors_I_buf,
-  const GMMirroredBuf* const vectors_J_buf,
-  GMMirroredBuf* const matXitem_buf,
+  const MirroredBuf* const vectors_I_buf,
+  const MirroredBuf* const vectors_J_buf,
+  MirroredBuf* const matXitem_buf,
   const int J,
   const int step_2way,
   const int I_min,
@@ -174,10 +174,10 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
 /// \brief Set metrics numerators and denominators using GEMM results.
 
 static void compute_metrics_3way_block_linalg_form_metrics_(
-  GMMirroredBuf* const matM_IJ_buf,
-  GMMirroredBuf* const matM_JK_buf,
-  GMMirroredBuf* const matM_KIK_buf,
-  GMMirroredBuf* const matB_buf,
+  MirroredBuf* const matM_IJ_buf,
+  MirroredBuf* const matM_JK_buf,
+  MirroredBuf* const matM_KIK_buf,
+  MirroredBuf* const matB_buf,
   GMMetrics* metrics,
   int nvl, int J, int step_2way,
   int I_min, int I_max, int K_min, int K_max,
@@ -464,12 +464,12 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   //--------------------
 
 //CHANGE: remove this?
-  GMMirroredBuf* tmp_buf[NUM_BUF] = {&tmp_buf_[0], &tmp_buf_[1]};
+  MirroredBuf* tmp_buf[NUM_BUF] = {&tmp_buf_[0], &tmp_buf_[1]};
 
-  GMMirroredBuf* const matM_ij_buf = need_mat_ij ? &matM_ij_buf_ : NULL;
+  MirroredBuf* const matM_ij_buf = need_mat_ij ? &matM_ij_buf_ : NULL;
 
   if (need_mat_ij) {
-    GMMirroredBuf* matM_ij_buf_ptr = env_.do_reduce()
+    MirroredBuf* matM_ij_buf_ptr = env_.do_reduce()
       ? tmp_buf[0] : matM_ij_buf;
 
     gm_linalg_gemm(nvl, nvl, npvfl,
@@ -487,11 +487,11 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   // Need to compute only if not identical to already computed values.
 
-  GMMirroredBuf* const matM_jk_buf = ! si->is_part1
+  MirroredBuf* const matM_jk_buf = ! si->is_part1
     ? &matM_jk_buf_ : matM_ij_buf;
 
   if (need_mat_jk) {
-    GMMirroredBuf* matM_jk_buf_ptr = env_.do_reduce()
+    MirroredBuf* matM_jk_buf_ptr = env_.do_reduce()
       ? tmp_buf[0] : matM_jk_buf;
 
     gm_linalg_gemm(nvl, nvl, npvfl,
@@ -512,11 +512,11 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // NOTE: for Part 3, this is indexed directly as (k,i).
   //  Otherwise, it is indexed through an alias as (i,k).
 
-  GMMirroredBuf* const matM_kik_buf = si->is_part3
+  MirroredBuf* const matM_kik_buf = si->is_part3
     ? &matM_kik_buf_ : matM_ij_buf;
 
   if (need_mat_kik) {
-    GMMirroredBuf* matM_kik_buf_ptr =
+    MirroredBuf* matM_kik_buf_ptr =
         env_.do_reduce() ? tmp_buf[0] : matM_kik_buf;
 
     gm_linalg_gemm(nvl, nvl, npvfl,
@@ -539,24 +539,24 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // B = X^T PROD V = three way PROD.
 
 //CHANGE: these as class members, init in ctor?
-  GMMirroredBuf* matXitem_buf[NUM_BUF] = {&matXitem_buf_[0], &matXitem_buf_[1]};
-  GMMirroredBuf* matB_buf[NUM_BUF] = {&matB_buf_[0], &matB_buf_[1]};
+  MirroredBuf* matXitem_buf[NUM_BUF] = {&matXitem_buf_[0], &matXitem_buf_[1]};
+  MirroredBuf* matB_buf[NUM_BUF] = {&matB_buf_[0], &matB_buf_[1]};
 
   // Set up pointers to permute the access of axes for Part 3.
   // Use capitals I, J, K here to denote the PERMUTED axes.
 
-  GMMirroredBuf* const vectors_I_buf =
+  MirroredBuf* const vectors_I_buf =
                         si->perm0(vdata_i.buf, vdata_j.buf, vdata_k.buf);
-  GMMirroredBuf* const vectors_J_buf =
+  MirroredBuf* const vectors_J_buf =
                         si->perm1(vdata_i.buf, vdata_j.buf, vdata_k.buf);
-  GMMirroredBuf* const vectors_K_buf =
+  MirroredBuf* const vectors_K_buf =
                         si->perm2(vdata_i.buf, vdata_j.buf, vdata_k.buf);
 
-  GMMirroredBuf* const matM_IJ_buf =
+  MirroredBuf* const matM_IJ_buf =
                         si->perm0(matM_ij_buf, matM_jk_buf, matM_kik_buf);
-  GMMirroredBuf* const matM_JK_buf =
+  MirroredBuf* const matM_JK_buf =
                         si->perm1(matM_ij_buf, matM_jk_buf, matM_kik_buf);
-  GMMirroredBuf* const matM_KIK_buf =
+  MirroredBuf* const matM_KIK_buf =
                         si->perm2(matM_ij_buf, matM_jk_buf, matM_kik_buf);
 
   if (env_.form_matX_on_accel()) {
@@ -590,9 +590,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     bool do_compute;
     bool do_reduce;
     int index_01;
-    GMMirroredBuf matB_buf;
-    GMMirroredBuf tmp_buf;
-    GMMirroredBuf* matB_buf_ptr() {return do_reduce ? &tmp_buf : &matB_buf;}
+    MirroredBuf matB_buf;
+    MirroredBuf tmp_buf;
+    MirroredBuf* matB_buf_ptr() {return do_reduce ? &tmp_buf : &matB_buf;}
     LoopVars(Env& env)
       : do_compute(false)
       , do_reduce(env.do_reduce())

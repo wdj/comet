@@ -133,7 +133,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   // Set up vector storage, mirrored buffer
 
-  vectors->buf = new GMMirroredBuf(*env);
+  vectors->buf = new MirroredBuf(*env);
 
   if (vectors->has_buf) {
     vectors->buf->allocate(vectors->num_packedval_field_local,
@@ -213,7 +213,7 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
 //=============================================================================
 // Copy vectors to mirrored buffer
 
-void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
+void gm_vectors_to_buf(MirroredBuf* vectors_buf,
                        GMVectors* vectors,
                        GMEnv* env) {
   COMET_INSIST(vectors && vectors_buf && env);

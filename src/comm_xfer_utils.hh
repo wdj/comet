@@ -35,18 +35,18 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env);
 //--------------------
 
 void gm_reduce_metrics(GMMetrics* metrics,
-                       GMMirroredBuf* metrics_buf_target,
-                       GMMirroredBuf* metrics_buf_source,
+                       MirroredBuf* metrics_buf_target,
+                       MirroredBuf* metrics_buf_source,
                        GMEnv* env);
 
 MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
-                                    GMMirroredBuf* metrics_buf_target,
-                                    GMMirroredBuf* metrics_buf_source,
+                                    MirroredBuf* metrics_buf_target,
+                                    MirroredBuf* metrics_buf_source,
                                     GMEnv* env);
 
 void gm_reduce_metrics_wait(MPI_Request* mpi_request,
-                            GMMirroredBuf* metrics_buf_target,
-                            GMMirroredBuf* metrics_buf_source,
+                            MirroredBuf* metrics_buf_target,
+                            MirroredBuf* metrics_buf_source,
                             GMEnv* env);
 
 //=============================================================================

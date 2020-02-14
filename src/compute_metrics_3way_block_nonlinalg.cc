@@ -36,9 +36,9 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   GMVectors* vectors_i = vdata_i.vectors;
   GMVectors* vectors_j = vdata_j.vectors;
   GMVectors* vectors_k = vdata_k.vectors;
-  GMMirroredBuf* vectors_i_buf = vdata_i.buf;
-  GMMirroredBuf* vectors_j_buf = vdata_j.buf;
-  GMMirroredBuf* vectors_k_buf = vdata_k.buf;
+  MirroredBuf* vectors_i_buf = vdata_i.buf;
+  MirroredBuf* vectors_j_buf = vdata_j.buf;
+  MirroredBuf* vectors_k_buf = vdata_k.buf;
   VectorSums* vector_sums_i = vdata_i.sums;
   VectorSums* vector_sums_j = vdata_j.sums;
   VectorSums* vector_sums_k = vdata_k.sums;
@@ -197,9 +197,9 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   GMVectors* vectors_i = vdata_i.vectors;
   GMVectors* vectors_j = vdata_j.vectors;
   GMVectors* vectors_k = vdata_k.vectors;
-  GMMirroredBuf* vectors_i_buf = vdata_i.buf;
-  GMMirroredBuf* vectors_j_buf = vdata_j.buf;
-  GMMirroredBuf* vectors_k_buf = vdata_k.buf;
+  MirroredBuf* vectors_i_buf = vdata_i.buf;
+  MirroredBuf* vectors_j_buf = vdata_j.buf;
+  MirroredBuf* vectors_k_buf = vdata_k.buf;
   VectorSums* vector_sums_i = vdata_i.sums;
   VectorSums* vector_sums_j = vdata_j.sums;
   VectorSums* vector_sums_k = vdata_k.sums;

@@ -17,7 +17,7 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-GMMirroredBuf::GMMirroredBuf(Env& env)
+MirroredBuf::MirroredBuf(Env& env)
   : h(NULL)
   , d(NULL)
   , active(NULL)
@@ -34,7 +34,7 @@ GMMirroredBuf::GMMirroredBuf(Env& env)
 
 //-----------------------------------------------------------------------------
 
-GMMirroredBuf::GMMirroredBuf(size_t dim0_, size_t dim1_, int elt_size, Env& env)
+MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, int elt_size, Env& env)
   : h(NULL)
   , d(NULL)
   , active(NULL)
@@ -52,7 +52,7 @@ GMMirroredBuf::GMMirroredBuf(size_t dim0_, size_t dim1_, int elt_size, Env& env)
 
 //-----------------------------------------------------------------------------
 
-GMMirroredBuf::GMMirroredBuf(size_t dim0_, size_t dim1_, Env& env)
+MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, Env& env)
   : h(NULL)
   , d(NULL)
   , active(NULL)
@@ -70,7 +70,7 @@ GMMirroredBuf::GMMirroredBuf(size_t dim0_, size_t dim1_, Env& env)
 
 //-----------------------------------------------------------------------------
 
-GMMirroredBuf::GMMirroredBuf(GMMirroredBuf& buf, size_t dim0_, Env& env)
+MirroredBuf::MirroredBuf(MirroredBuf& buf, size_t dim0_, Env& env)
   : h(buf.h)
   , d(buf.d)
   , active(buf.active)
@@ -89,13 +89,13 @@ GMMirroredBuf::GMMirroredBuf(GMMirroredBuf& buf, size_t dim0_, Env& env)
 
 //-----------------------------------------------------------------------------
 
-GMMirroredBuf::~GMMirroredBuf() {
+MirroredBuf::~MirroredBuf() {
   deallocate();
 }
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
+void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   COMET_INSIST(is_alias || !is_allocated);
 
   dim0 = dim0_;
@@ -131,7 +131,7 @@ void GMMirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::allocate(size_t dim0_, size_t dim1_) {
+void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
   COMET_INSIST(is_alias || !is_allocated);
 
   if (use_linalg_) {
@@ -144,14 +144,14 @@ void GMMirroredBuf::allocate(size_t dim0_, size_t dim1_) {
 
   } else {
 
-    GMMirroredBuf::allocate(dim0_, dim1_, env_.matrix_buf_elt_size());
+    MirroredBuf::allocate(dim0_, dim1_, env_.matrix_buf_elt_size());
 
   } // if (use_linalg_)
 }
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::allocate(GMMirroredBuf& buf, size_t dim0_) {
+void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
   COMET_INSIST(is_alias || !is_allocated);
   COMET_INSIST(dim0_ <= buf.dim0);
   COMET_INSIST(!buf.is_alias);
@@ -169,7 +169,7 @@ void GMMirroredBuf::allocate(GMMirroredBuf& buf, size_t dim0_) {
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::deallocate() {
+void MirroredBuf::deallocate() {
   COMET_INSIST(!is_locked_h_ && !is_locked_d_);
 
   if (is_allocated && !is_alias) {
@@ -211,7 +211,7 @@ void GMMirroredBuf::deallocate() {
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::to_accel_start() {
+void MirroredBuf::to_accel_start() {
 
   if (env_.is_compute_method_gpu())
     lock();
@@ -235,7 +235,7 @@ void GMMirroredBuf::to_accel_start() {
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::to_accel_wait() {
+void MirroredBuf::to_accel_wait() {
 
   if (use_linalg_)
     gm_linalg_set_matrix_wait(&env_);
@@ -250,14 +250,14 @@ void GMMirroredBuf::to_accel_wait() {
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::to_accel() {
+void MirroredBuf::to_accel() {
   to_accel_start();
   to_accel_wait();
 }
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::from_accel_start() {
+void MirroredBuf::from_accel_start() {
 
   if (env_.is_compute_method_gpu())
     lock();
@@ -282,7 +282,7 @@ void GMMirroredBuf::from_accel_start() {
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::from_accel_wait() {
+void MirroredBuf::from_accel_wait() {
 
   if (use_linalg_)
     gm_linalg_get_matrix_wait(&env_);
@@ -297,7 +297,7 @@ void GMMirroredBuf::from_accel_wait() {
 
 //-----------------------------------------------------------------------------
 
-void GMMirroredBuf::from_accel() {
+void MirroredBuf::from_accel() {
   from_accel_start();
   from_accel_wait();
 }

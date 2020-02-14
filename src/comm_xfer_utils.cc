@@ -80,8 +80,8 @@ void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env) {
 // MPI reduce operations
 
 void gm_reduce_metrics(GMMetrics* metrics,
-                       GMMirroredBuf* metrics_buf_target,
-                       GMMirroredBuf* metrics_buf_source,
+                       MirroredBuf* metrics_buf_target,
+                       MirroredBuf* metrics_buf_source,
                        GMEnv* env) {
   COMET_INSIST(metrics && env);
   COMET_INSIST(metrics_buf_target && metrics_buf_source);
@@ -99,8 +99,8 @@ void gm_reduce_metrics(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
-                                    GMMirroredBuf* metrics_buf_target,
-                                    GMMirroredBuf* metrics_buf_source,
+                                    MirroredBuf* metrics_buf_target,
+                                    MirroredBuf* metrics_buf_source,
                                     GMEnv* env) {
   COMET_INSIST(metrics && env);
   COMET_INSIST(metrics_buf_target && metrics_buf_source);
@@ -124,8 +124,8 @@ MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 void gm_reduce_metrics_wait(MPI_Request* mpi_request,
-                            GMMirroredBuf* metrics_buf_target,
-                            GMMirroredBuf* metrics_buf_source,
+                            MirroredBuf* metrics_buf_target,
+                            MirroredBuf* metrics_buf_source,
                             GMEnv* env) {
   COMET_INSIST(mpi_request && env);
 

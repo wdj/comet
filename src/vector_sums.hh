@@ -49,15 +49,15 @@ private:
 
   const int num_vector_local_;
 
-  GMMirroredBuf sums_;
-  GMMirroredBuf sums_tmp_;
-  GMMirroredBuf counts_;
-  GMMirroredBuf counts_tmp_;
+  MirroredBuf sums_;
+  MirroredBuf sums_tmp_;
+  MirroredBuf counts_;
+  MirroredBuf counts_tmp_;
 
   void compute_float_(const GMVectors& vectors);
   void compute_bits2_(const GMVectors& vectors);
 
-  Float_t& elt_ref_(GMMirroredBuf& b, size_t i) {
+  Float_t& elt_ref_(MirroredBuf& b, size_t i) {
     COMET_ASSERT(i < b.dim0); // && i >= 0
     return (((Float_t*)b.h)[i]);
   }
@@ -78,10 +78,10 @@ private:
 
 struct VData {
   GMVectors* vectors;
-  GMMirroredBuf* buf;
+  MirroredBuf* buf;
   VectorSums* sums;
 
-  VData(GMVectors* vectors_in, GMMirroredBuf* buf_in,
+  VData(GMVectors* vectors_in, MirroredBuf* buf_in,
     VectorSums* sums_in = NULL)
     : vectors(vectors_in), buf(buf_in), sums(sums_in) {}
 };

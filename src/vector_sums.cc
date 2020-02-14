@@ -81,7 +81,7 @@ void VectorSums::compute(const GMVectors& vectors) {
 void VectorSums::compute_float_(const GMVectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
 
-  GMMirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
+  MirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
 
   // Sum up all values in each vector.
 
@@ -110,8 +110,8 @@ void VectorSums::compute_float_(const GMVectors& vectors) {
 void VectorSums::compute_bits2_(const GMVectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
 
-  GMMirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
-  GMMirroredBuf& counts_local = env_.do_reduce() ? counts_tmp_ : counts_;
+  MirroredBuf& sums_local = env_.do_reduce() ? sums_tmp_ : sums_;
+  MirroredBuf& counts_local = env_.do_reduce() ? counts_tmp_ : counts_;
 
   // Count number of 1-bits in each vector
 

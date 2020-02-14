@@ -41,7 +41,7 @@ typedef struct {
   void* __restrict__ data;
   size_t data_size;
   bool has_buf;
-  GMMirroredBuf* buf;
+  MirroredBuf* buf;
   GMDecompMgr* dm;
 } GMVectors;
 
@@ -85,7 +85,7 @@ size_t GMVectors_cksum(GMVectors* vectors, GMEnv* env);
 //=============================================================================
 // Copy vectors to mirrored buffer
 
-void gm_vectors_to_buf(GMMirroredBuf* vectors_buf,
+void gm_vectors_to_buf(MirroredBuf* vectors_buf,
                        GMVectors* vectors,
                        GMEnv* env);
 

@@ -27,12 +27,12 @@ namespace comet {
 
 ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, Env& env)
   : env_(env)
-  , tmp_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
-  , matM_ij_buf_(env)//{GMMirroredBuf(env)}
-  , matM_jk_buf_(env)//{GMMirroredBuf(env)}
-  , matM_kik_buf_(env)//{GMMirroredBuf(env)}
-  , matXitem_buf_{GMMirroredBuf(env), GMMirroredBuf(env)}
-  , matB_buf_{GMMirroredBuf(env), GMMirroredBuf(env)} {
+  , tmp_buf_{MirroredBuf(env), MirroredBuf(env)}
+  , matM_ij_buf_(env)//{MirroredBuf(env)}
+  , matM_jk_buf_(env)//{MirroredBuf(env)}
+  , matM_kik_buf_(env)//{MirroredBuf(env)}
+  , matXitem_buf_{MirroredBuf(env), MirroredBuf(env)}
+  , matB_buf_{MirroredBuf(env), MirroredBuf(env)} {
   COMET_INSIST(nvl >= 0 && npvfl >= 0);
 
   if (!env_.is_using_linalg())

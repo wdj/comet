@@ -19,19 +19,19 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-class GMMirroredBuf {
+class MirroredBuf {
 public:
 
-  GMMirroredBuf(Env& env);
-  GMMirroredBuf(size_t dim0, size_t dim1, int elt_size, Env& env);
-  GMMirroredBuf(size_t dim0, size_t dim1, Env& env);
-  GMMirroredBuf(GMMirroredBuf& buf, size_t dim0, Env& env);
+  MirroredBuf(Env& env);
+  MirroredBuf(size_t dim0, size_t dim1, int elt_size, Env& env);
+  MirroredBuf(size_t dim0, size_t dim1, Env& env);
+  MirroredBuf(MirroredBuf& buf, size_t dim0, Env& env);
 
-  ~GMMirroredBuf();
+  ~MirroredBuf();
 
   void allocate(size_t dim0, size_t dim1, int elt_size);
   void allocate(size_t dim0, size_t dim1);
-  void allocate(GMMirroredBuf& buf, size_t dim0);
+  void allocate(MirroredBuf& buf, size_t dim0);
   void deallocate();
 
   template<typename T>

@@ -823,7 +823,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
-void gm_metrics_pad_adjust(GMMetrics* metrics, GMMirroredBuf* metrics_buf,
+void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
                            GMEnv* env, int weight) {
   COMET_INSIST(metrics && metrics_buf && env);
 

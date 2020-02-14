@@ -39,9 +39,9 @@ private:
   Env& env_;
 
   GMVectors vectors_01_[NUM_BUF];
-  GMMirroredBuf metrics_buf_01_[NUM_BUF];
-  GMMirroredBuf vectors_buf_;
-  GMMirroredBuf metrics_tmp_buf_;
+  MirroredBuf metrics_buf_01_[NUM_BUF];
+  MirroredBuf vectors_buf_;
+  MirroredBuf metrics_tmp_buf_;
 
   void compute_notall2all_(GMMetrics& metrics, GMVectors& vectors);
   void compute_all2all_(GMMetrics& metrics, GMVectors& vectors);

@@ -33,7 +33,7 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
 //  , vector_sums_onproc_(dm.num_vector_local, env)
 //  , vector_sums_offproc_(env_.all2all() ? dm.num_vector_local : 0, env)
   , vectors_01_{}
-  , metrics_buf_01_{GMMirroredBuf(env), GMMirroredBuf(env)}
+  , metrics_buf_01_{MirroredBuf(env), MirroredBuf(env)}
   , vectors_buf_(env)
   , metrics_tmp_buf_(env) {
   COMET_INSIST(env_.is_proc_active());
@@ -104,15 +104,15 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Allocate memory for vectors and for result 
 
-  GMMirroredBuf vectors_buf(npvfl, nvl, env_);
+  MirroredBuf vectors_buf(npvfl, nvl, env_);
 
-  GMMirroredBuf metrics_buf(nvl, nvl, env_);
+  MirroredBuf metrics_buf(nvl, nvl, env_);
 
-  GMMirroredBuf metrics_tmp_buf(env_);
+  MirroredBuf metrics_tmp_buf(env_);
   if (env_.do_reduce())
     metrics_tmp_buf.allocate(nvl, nvl);
 
-  GMMirroredBuf* metrics_buf_ptr =
+  MirroredBuf* metrics_buf_ptr =
       env_.do_reduce() ?  &metrics_tmp_buf : &metrics_buf;
 
   // Copy in vectors
@@ -241,8 +241,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
   typedef struct {
     GMVectors* vectors_right;
-    GMMirroredBuf* vectors_right_buf;
-    GMMirroredBuf* metrics_buf;
+    MirroredBuf* vectors_right_buf;
+    MirroredBuf* metrics_buf;
     bool is_compute_step;
     bool is_first_compute_step;
     bool do_compute_block;
@@ -300,7 +300,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     vars_next.vectors_right = vars_next.is_right_aliased ?
       vectors_left : &vectors_01_[vars_next.index_01];
 
-    GMMirroredBuf* vectors_left_buf = &vectors_buf_;
+    MirroredBuf* vectors_left_buf = &vectors_buf_;
     vars_next.vectors_right_buf = vars_next.is_right_aliased ?
       vectors_left_buf : vectors_01_[vars_next.index_01].buf;
 
@@ -416,7 +416,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
           ? &vector_sums_onproc : &vector_sums_offproc;
 
         //TODO: remove need to allocate metrics_tmp_buf device array
-        GMMirroredBuf* metrics_buf_prev_ptr =
+        MirroredBuf* metrics_buf_prev_ptr =
             env_.do_reduce() ?  &metrics_tmp_buf_ : vars_prev.metrics_buf;
 
         lock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
