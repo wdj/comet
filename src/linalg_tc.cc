@@ -943,6 +943,32 @@ static void gm_tc_repair_metrics_(
 //=============================================================================
 
 //-----------------------------------------------------------------------------
+/// \brief Set matrix to zero, possibly asynchronously.
+//
+// This is needed because GEMM functions with beta=0 can fail to initialize
+// C to zero if C is filled with trash (e.g. NaNs).
+
+template<int TC_METHOD>
+static void set_matrix_zero_start(void* matC, int lddc, int m, Env& env) {
+  COMET_INSIST(matC);
+
+  typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
+
+  const size_t size = lddc * (size_t)m * sizeof(GemmOut_t) * 4;
+
+  if (env.is_compute_method_gpu()) {
+#   ifdef COMET_USE_CUDA
+      cudaMemsetAsync(matC, 0, size, env.stream_compute());
+#   endif
+#   ifdef COMET_USE_HIP
+      hipMemsetAsync(matC, 0, size, env.stream_compute());
+#    endif
+  } else {
+    memset(matC, 0, size);
+  }
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute bitwise result: implementation.
 ///
 ///        This is the main function to perform the relevant
@@ -977,6 +1003,8 @@ static void gm_tc_gemm_start_impl_(
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
   COMET_INSIST((size_t)nvll == gm_gemm_size_required(nvll, env));
+
+  set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
 
   const int num_tc_steps = env.num_tc_steps();
 
