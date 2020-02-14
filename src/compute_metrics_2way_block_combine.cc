@@ -33,7 +33,7 @@ void gm_compute_2way_proc_combine_czek_(
   const VectorSums* const vector_sums_right,
   int j_block,
    bool do_compute_triang_only,
-   GMEnv* env) {
+   CEnv* env) {
 
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
@@ -181,7 +181,7 @@ void gm_compute_2way_proc_combine_ccc_(
   const VectorSums* const vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
@@ -482,7 +482,7 @@ void gm_compute_2way_proc_combine_duo_(
   const VectorSums* const vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
@@ -626,7 +626,7 @@ void gm_compute_2way_proc_combine(
   const VectorSums* const vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);

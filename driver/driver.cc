@@ -35,7 +35,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /*---Parse remaining unprocessed arguments---*/
 
-void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
+void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
   errno = 0;
   int i = 0;
   for (i = 1; i < argc; ++i) {
@@ -205,27 +205,27 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
       do_->threshold = threshold;
      /*----------*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--all2all") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--compute_method") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--ccc_multiplier") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--duo_multiplier") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--sparse") == 0) {
-      ++i; /*---processed elsewhere by GMEnv---*/
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--fastnodes") == 0) {
       /*---optionally processed by caller---*/
     } else if (strcmp(argv[i], "--tc") == 0) {
@@ -253,7 +253,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void set_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
+void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
   COMET_INSIST(vectors && do_ && env);
 
   if (do_->input_file_path != NULL) {
@@ -265,7 +265,7 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 //=============================================================================
 /*---Perform a single metrics computation run---*/
 
-void perform_run(const char* const options, MPI_Comm base_comm, GMEnv* env) {
+void perform_run(const char* const options, MPI_Comm base_comm, CEnv* env) {
   COMET_INSIST(options);
 
   comet::Checksum cksum;
@@ -276,7 +276,7 @@ void perform_run(const char* const options, MPI_Comm base_comm, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 void perform_run(comet::Checksum& cksum, const char* const options,
-                 MPI_Comm base_comm, GMEnv* env) {
+                 MPI_Comm base_comm, CEnv* env) {
   COMET_INSIST(options);
 
   /*---Convert options string to args---*/
@@ -286,7 +286,7 @@ void perform_run(comet::Checksum& cksum, const char* const options,
   char* argv[len+1];
   int argc = 0;
   strcpy(argstring, options);
-  Env::create_args(argstring, &argc, argv);
+  CEnv::create_args(argstring, &argc, argv);
 
   return perform_run(cksum, argc, argv, options, base_comm, env);
 }
@@ -294,7 +294,7 @@ void perform_run(comet::Checksum& cksum, const char* const options,
 //-----------------------------------------------------------------------------
 
 void perform_run(int argc, char** argv, const char* const description,
-                            MPI_Comm base_comm, GMEnv* env) {
+                            MPI_Comm base_comm, CEnv* env) {
 
   comet::Checksum cksum;
 
@@ -305,21 +305,21 @@ void perform_run(int argc, char** argv, const char* const description,
 
 void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
                  const char* const description,
-                 MPI_Comm base_comm, GMEnv* env_in) {
+                 MPI_Comm base_comm, CEnv* env_in) {
 
   /*---Initialize environment---*/
 
-  GMEnv* env_local = NULL;
+  CEnv* env_local = NULL;
 
   if (!env_in) {
-    env_local = new Env(base_comm, argc, argv, description);
+    env_local = new CEnv(base_comm, argc, argv, description);
     if (! env_local->is_proc_active()) {
       delete env_local;
       return;
     }
   }
 
-  GMEnv* const env = env_in ? env_in : env_local;
+  CEnv* const env = env_in ? env_in : env_local;
 
   double total_time_beg = env->synced_time();
 

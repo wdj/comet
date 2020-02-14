@@ -24,7 +24,7 @@ namespace comet {
 
 static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
                                               size_t index,
-                                              GMEnv* env) {
+                                              CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
@@ -36,7 +36,7 @@ static GMFloat GMMetrics_float_get_from_index(GMMetrics* metrics,
 
 static GMFloat2 GMMetrics_float2_S_get_from_index(GMMetrics* metrics,
                                                   size_t index,
-                                                  GMEnv* env) {
+                                                  CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
@@ -50,7 +50,7 @@ static GMFloat2 GMMetrics_float2_S_get_from_index(GMMetrics* metrics,
 
 static GMFloat2 GMMetrics_float2_C_get_from_index(GMMetrics* metrics,
                                                   size_t index,
-                                                  GMEnv* env) {
+                                                  CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
@@ -64,7 +64,7 @@ static GMFloat2 GMMetrics_float2_C_get_from_index(GMMetrics* metrics,
 
 static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
                                                     size_t index,
-                                                    GMEnv* env) {
+                                                    CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
@@ -77,7 +77,7 @@ static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
 
 static GMFloat GMMetrics_czek_get_from_index(GMMetrics* metrics,
                                              size_t index,
-                                             GMEnv* env) {
+                                             CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
 
@@ -129,7 +129,7 @@ static GMFloat GMMetrics_ccc_duo_value_2(
   const GMFloat recip_ci,
   const GMFloat recip_cj,
   const GMFloat recip_sumcij,
-  GMEnv* env) {
+  CEnv* env) {
   COMET_ASSERT(metrics && env);
 
   return GMMetrics_ccc_duo_value_2_impl_<COUNTED_BITS_PER_ELT>(
@@ -141,7 +141,7 @@ static GMFloat GMMetrics_ccc_duo_value_2(
 //-----------------------------------------------------------------------------
 /// \brief Check to ensure 128 bits is enough to store 2-way CCC value.
 
-static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, GMEnv* env) {
+static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
 
   if (env->metric_type() != MetricType::CCC ||
@@ -176,7 +176,7 @@ static GMFloat GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
                                           const GMTally1 ci,
                                           const GMTally1 cj,
                                           const GMTally1 cij,
-                                          GMEnv* env) {
+                                          CEnv* env) {
   COMET_ASSERT(metrics && env);
 
   const GMUInt128 num = rij * (GMUInt128)(3 * ci - 1 * si) *
@@ -205,7 +205,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
                                                    size_t index,
                                                    int i0,
                                                    int i1,
-                                                   GMEnv* env) {
+                                                   CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
@@ -260,7 +260,7 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_2(
   size_t index,
   int i0,
   int i1,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -361,7 +361,7 @@ static GMFloat GMMetrics_ccc_get_from_index_2(
   size_t index,
   int i0,
   int i1,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -383,7 +383,7 @@ static GMFloat GMMetrics_duo_get_from_index_2(
   size_t index,
   int i0,
   int i1,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -405,7 +405,7 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
   GMMetrics* metrics,
   const size_t index,
   GMFloat threshold,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -522,7 +522,7 @@ static bool GMMetrics_ccc_get_from_index_2_threshold(
   GMMetrics* metrics,
   const size_t index,
   GMFloat threshold,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -541,7 +541,7 @@ static bool GMMetrics_duo_get_from_index_2_threshold(
   GMMetrics* metrics,
   const size_t index,
   GMFloat threshold,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -558,7 +558,7 @@ static bool GMMetrics_duo_get_from_index_2_threshold(
 
 template<typename T>
 static void GMMetrics_set_2(GMMetrics* metrics, void* p, int i, int j,
-  T value, GMEnv* env) {
+  T value, CEnv* env) {
   COMET_ASSERT(metrics && p && env);
   COMET_ASSERT(i >= 0 && i < j);
   COMET_ASSERT(j >= 0 && j < metrics->num_vector_local);
@@ -572,7 +572,7 @@ static void GMMetrics_set_2(GMMetrics* metrics, void* p, int i, int j,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float_set_2(GMMetrics* metrics, int i, int j,
-  GMFloat value, GMEnv* env) {
+  GMFloat value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   GMMetrics_set_2<GMFloat>(metrics, metrics->data, i, j, value, env);
@@ -581,7 +581,7 @@ static void GMMetrics_float_set_2(GMMetrics* metrics, int i, int j,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float2_S_set_2(GMMetrics* metrics, int i, int j,
-  GMFloat2 value, GMEnv* env) {
+  GMFloat2 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
   GMMetrics_set_2<GMFloat2>(metrics, metrics->data_S, i, j, value, env);
@@ -590,7 +590,7 @@ static void GMMetrics_float2_S_set_2(GMMetrics* metrics, int i, int j,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float2_C_set_2(GMMetrics* metrics, int i, int j,
-  GMFloat2 value, GMEnv* env) {
+  GMFloat2 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
   GMMetrics_set_2<GMFloat2>(metrics, metrics->data_C, i, j, value, env);
@@ -599,7 +599,7 @@ static void GMMetrics_float2_C_set_2(GMMetrics* metrics, int i, int j,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_tally2x2_set_2(GMMetrics* metrics, int i, int j,
-  GMTally2x2 value, GMEnv* env) {
+  GMTally2x2 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
   GMMetrics_set_2<GMTally2x2>(metrics, metrics->data, i, j, value, env);
@@ -610,7 +610,7 @@ static void GMMetrics_tally2x2_set_2(GMMetrics* metrics, int i, int j,
 
 template<typename T>
 static void GMMetrics_set_all2all_2(GMMetrics* metrics, void* p, int i, int j,
-  int j_block, T value, GMEnv* env) {
+  int j_block, T value, CEnv* env) {
   COMET_ASSERT(metrics && p && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
@@ -628,7 +628,7 @@ static void GMMetrics_set_all2all_2(GMMetrics* metrics, void* p, int i, int j,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float_set_all2all_2(GMMetrics* metrics, int i, int j,
-  int j_block, GMFloat value, GMEnv* env) {
+  int j_block, GMFloat value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   GMMetrics_set_all2all_2<GMFloat>(metrics, metrics->data, i, j, j_block,
@@ -638,7 +638,7 @@ static void GMMetrics_float_set_all2all_2(GMMetrics* metrics, int i, int j,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float2_S_set_all2all_2(GMMetrics* metrics, int i, int j,
-  int j_block, GMFloat2 value, GMEnv* env) {
+  int j_block, GMFloat2 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
   GMMetrics_set_all2all_2<GMFloat2>(metrics, metrics->data_S, i, j, j_block,
@@ -648,7 +648,7 @@ static void GMMetrics_float2_S_set_all2all_2(GMMetrics* metrics, int i, int j,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float2_C_set_all2all_2(GMMetrics* metrics, int i, int j,
-  int j_block, GMFloat2 value, GMEnv* env) {
+  int j_block, GMFloat2 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
   GMMetrics_set_all2all_2<GMFloat2>(metrics, metrics->data_C, i, j, j_block,
@@ -658,7 +658,7 @@ static void GMMetrics_float2_C_set_all2all_2(GMMetrics* metrics, int i, int j,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics, int i, int j,
-  int j_block, GMTally2x2 value, GMEnv* env) {
+  int j_block, GMTally2x2 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
 
   GMMetrics_set_all2all_2<GMTally2x2>(metrics, metrics->data, i, j, j_block,
@@ -669,7 +669,7 @@ static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics, int i, int j,
 /*---Accessors: value from (local) coord: get: 2-way---*/
 
 static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
-  int i, int j, GMEnv* env) {
+  int i, int j, CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(! env->all2all());
@@ -684,7 +684,7 @@ static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
-  int i, int j, int j_block, GMEnv* env) {
+  int i, int j, int j_block, CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());

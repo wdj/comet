@@ -17,7 +17,7 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-MirroredBuf::MirroredBuf(Env& env)
+MirroredBuf::MirroredBuf(CEnv& env)
   : h(NULL)
   , d(NULL)
   , active(NULL)
@@ -34,7 +34,7 @@ MirroredBuf::MirroredBuf(Env& env)
 
 //-----------------------------------------------------------------------------
 
-MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, int elt_size, Env& env)
+MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, int elt_size, CEnv& env)
   : h(NULL)
   , d(NULL)
   , active(NULL)
@@ -52,7 +52,7 @@ MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, int elt_size, Env& env)
 
 //-----------------------------------------------------------------------------
 
-MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, Env& env)
+MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, CEnv& env)
   : h(NULL)
   , d(NULL)
   , active(NULL)
@@ -70,7 +70,7 @@ MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, Env& env)
 
 //-----------------------------------------------------------------------------
 
-MirroredBuf::MirroredBuf(MirroredBuf& buf, size_t dim0_, Env& env)
+MirroredBuf::MirroredBuf(MirroredBuf& buf, size_t dim0_, CEnv& env)
   : h(buf.h)
   , d(buf.d)
   , active(buf.active)

@@ -18,7 +18,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /*---Helper functions for 2-way case---*/
 
-static int gm_bdiag_computed_max_allphase(GMEnv* env) {
+static int gm_bdiag_computed_max_allphase(CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
@@ -30,7 +30,7 @@ static int gm_bdiag_computed_max_allphase(GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_bdiag_computed_min(GMEnv* env) {
+static int gm_bdiag_computed_min(CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
@@ -42,7 +42,7 @@ static int gm_bdiag_computed_min(GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_bdiag_computed_max(GMEnv* env) {
+static int gm_bdiag_computed_max(CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
@@ -54,7 +54,7 @@ static int gm_bdiag_computed_max(GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_block_computed_this_row_min(GMEnv* env) {
+static int gm_block_computed_this_row_min(CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
@@ -64,7 +64,7 @@ static int gm_block_computed_this_row_min(GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_block_computed_this_row_max(GMEnv* env) {
+static int gm_block_computed_this_row_max(CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
@@ -86,7 +86,7 @@ static int gm_block_computed_this_row_max(GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-static int gm_blocks_computed_this_row(GMEnv* env) {
+static int gm_blocks_computed_this_row(CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
@@ -111,7 +111,7 @@ static size_t gm_triang_(int i) {
 static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
                                            int i,
                                            int j,
-                                           GMEnv* env) {
+                                           CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(! env->all2all());
@@ -138,7 +138,7 @@ static size_t GMMetrics_helper2way_maindiag_block_(GMMetrics* metrics,
                                                    int i,
                                                    int j,
                                                    int j_block,
-                                                   GMEnv* env) {
+                                                   CEnv* env) {
   COMET_ASSERT(j_block == env->proc_num_vector());
 
   return gm_triang_(j) + i;
@@ -150,7 +150,7 @@ static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
                                                   int i,
                                                   int j,
                                                   int j_block,
-                                                  GMEnv* env) {
+                                                  CEnv* env) {
   COMET_ASSERT(j_block != env->proc_num_vector());
 
   const int num_block = env->num_block_vector();
@@ -173,7 +173,7 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
                                                    int i,
                                                    int j,
                                                    int j_block,
-                                                   GMEnv* env) {
+                                                   CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
@@ -204,7 +204,7 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
 
 static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
                                                 size_t index,
-                                                GMEnv* env) {
+                                                CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
@@ -222,7 +222,7 @@ static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
 
 static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
                                                 size_t index,
-                                                GMEnv* env) {
+                                                CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);

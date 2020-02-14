@@ -117,7 +117,7 @@ bool System::accel_last_call_succeeded() {
 //=============================================================================
 // Constructor/destructor
 
-void Env::create_impl_(MPI_Comm base_comm, int argc,
+void CEnv::create_impl_(MPI_Comm base_comm, int argc,
                        char** argv, const char* const description,
                        bool make_comms, int num_proc, int proc_num) {
   set_defaults_();
@@ -145,9 +145,9 @@ void Env::create_impl_(MPI_Comm base_comm, int argc,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Env constructor using argc/argv.
+/// \brief CEnv constructor using argc/argv.
 
-Env::Env(MPI_Comm base_comm,
+CEnv::CEnv(MPI_Comm base_comm,
         int argc,
         char** argv,
         const char* const description) {
@@ -161,9 +161,9 @@ Env::Env(MPI_Comm base_comm,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Env constructor using options c_string.
+/// \brief CEnv constructor using options c_string.
 
-Env::Env(MPI_Comm base_comm,
+CEnv::CEnv(MPI_Comm base_comm,
          const char* const options,
          const char* const description) {
 
@@ -174,7 +174,7 @@ Env::Env(MPI_Comm base_comm,
   char ** argv = (char**)malloc((len+1)*sizeof(char*));
   int argc = 0;
   strcpy(argstring, options);
-  Env::create_args(argstring, &argc, argv);
+  CEnv::create_args(argstring, &argc, argv);
 
   const int num_proc = 0;
   const int proc_num = 0;
@@ -188,9 +188,9 @@ Env::Env(MPI_Comm base_comm,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Env constructor using options c_string, don't alloc comms.
+/// \brief CEnv constructor using options c_string, don't alloc comms.
 
-Env::Env(const char* const options, int num_proc, int proc_num) {
+CEnv::CEnv(const char* const options, int num_proc, int proc_num) {
 
   // Convert options string to args
 
@@ -199,7 +199,7 @@ Env::Env(const char* const options, int num_proc, int proc_num) {
   char ** argv = (char**)malloc((len+1)*sizeof(char*));
   int argc = 0;
   strcpy(argstring, options);
-  Env::create_args(argstring, &argc, argv);
+  CEnv::create_args(argstring, &argc, argv);
   
   create_impl_(MPI_COMM_WORLD, argc, argv, NULL, false, num_proc, proc_num);
   
@@ -208,17 +208,17 @@ Env::Env(const char* const options, int num_proc, int proc_num) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Env destructor.
+/// \brief CEnv destructor.
 
-Env::~Env() {
+CEnv::~CEnv() {
   comms_terminate_();
   streams_terminate_();
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Set scalar entries of Env to default values.
+/// \brief Set scalar entries of CEnv to default values.
 
-void Env::set_defaults_() {
+void CEnv::set_defaults_() {
 
   // Set all to zero to start.
   memset((void*)this, 0, sizeof(*this));
@@ -232,20 +232,20 @@ void Env::set_defaults_() {
   stage_num_ = 0;
   num_phase_ = 1;
   phase_num_ = 0;
-  ccc_param_set_(Env::ccc_param_default());
-  ccc_multiplier_set_(Env::ccc_multiplier_default());
-  duo_multiplier_set_(Env::duo_multiplier_default());
+  ccc_param_set_(CEnv::ccc_param_default());
+  ccc_multiplier_set_(CEnv::ccc_multiplier_default());
+  duo_multiplier_set_(CEnv::duo_multiplier_default());
   sparse_ = false;
   tc_ = TC::NO;
   num_tc_steps_ = 1;
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Parse command line arguments, set Env accordingly.
+/// \brief Parse command line arguments, set CEnv accordingly.
 
-void Env::parse_args_(int argc, char** argv) {
+void CEnv::parse_args_(int argc, char** argv) {
 
-  Env* env = this;
+  CEnv* env = this;
 
   for (int i = 1; i < argc; ++i) {
     if (false) {
@@ -408,7 +408,7 @@ void Env::parse_args_(int argc, char** argv) {
 //-----------------------------------------------------------------------------
 /// \brief Utility to parse a string to construct argc/argv.
 
-void Env::create_args(char* argstring, int* argc, char** argv) {
+void CEnv::create_args(char* argstring, int* argc, char** argv) {
   const size_t len = strlen(argstring);
 
   argv[0] = &argstring[0];
@@ -434,7 +434,7 @@ void Env::create_args(char* argstring, int* argc, char** argv) {
 //-----------------------------------------------------------------------------
 /// \brief Indicate the scalar type to use for vectors entries.
 
-int Env::data_type_vectors() const {
+int CEnv::data_type_vectors() const {
 
   switch (metric_type()) {
     case MetricType::CZEK:
@@ -451,7 +451,7 @@ int Env::data_type_vectors() const {
 //-----------------------------------------------------------------------------
 /// \brief Indicate the scalar type to use for metrics entries.
 
-int Env::data_type_metrics() const {
+int CEnv::data_type_metrics() const {
 
   switch (metric_type()) {
     case MetricType::CZEK:
@@ -470,7 +470,7 @@ int Env::data_type_metrics() const {
 //-----------------------------------------------------------------------------
 /// \brief Determine whether requested run possible on this hardware and build.
 
-bool Env::can_run(int tc) const {
+bool CEnv::can_run(int tc) const {
 
   COMET_INSIST(TC::AUTO != tc);
 
@@ -524,7 +524,7 @@ bool Env::can_run(int tc) const {
 //-----------------------------------------------------------------------------
 // \brief Select best tc value if AUTO specified.
 
-int Env::tc_eff() const {
+int CEnv::tc_eff() const {
 
   if (TC::AUTO != tc_)
     return tc_;
@@ -543,7 +543,7 @@ int Env::tc_eff() const {
 //-----------------------------------------------------------------------------
 /// \brief MPI type to be used for metrics.
 
-MPI_Datatype Env::metrics_mpi_type() const {
+MPI_Datatype CEnv::metrics_mpi_type() const {
 
   if (metric_type() == MetricType::CZEK) {
     return COMET_MPI_FLOAT;
@@ -563,7 +563,7 @@ MPI_Datatype Env::metrics_mpi_type() const {
 //-----------------------------------------------------------------------------
 /// \brief Synchronize CPU to all GPU activity.
 
-void Env::accel_sync_() const {
+void CEnv::accel_sync_() const {
 
   if (! is_proc_active())
     return;
@@ -583,7 +583,7 @@ void Env::accel_sync_() const {
 //-----------------------------------------------------------------------------
 /// \brief Get system time, synced across all active processes and CPUs/GPUs.
 
-double Env::synced_time() {
+double CEnv::synced_time() {
 
   if (! is_proc_active())
     return 0;
@@ -598,7 +598,7 @@ double Env::synced_time() {
 //-----------------------------------------------------------------------------
 /// \brief Increment byte count of per-rank CPU memory used.
 
-void Env::cpu_mem_local_inc(size_t n) {
+void CEnv::cpu_mem_local_inc(size_t n) {
  cpu_mem_local_ += n;
  cpu_mem_max_local_ = utils::max(cpu_mem_max_local_, cpu_mem_local_);
 }
@@ -606,7 +606,7 @@ void Env::cpu_mem_local_inc(size_t n) {
 //-----------------------------------------------------------------------------
 /// \brief Increment byte count of per-rank GPU memory used.
 
-void Env::gpu_mem_local_inc(size_t n) {
+void CEnv::gpu_mem_local_inc(size_t n) {
  gpu_mem_local_ += n;
  gpu_mem_max_local_ = utils::max(gpu_mem_max_local_, gpu_mem_local_);
 }
@@ -614,7 +614,7 @@ void Env::gpu_mem_local_inc(size_t n) {
 //-----------------------------------------------------------------------------
 /// \brief Decrement byte count of per-rank CPU memory used.
 
-void Env::cpu_mem_local_dec(size_t n) {
+void CEnv::cpu_mem_local_dec(size_t n) {
   COMET_INSIST(n <= cpu_mem_local_);
   cpu_mem_local_ -= n;
 }
@@ -622,7 +622,7 @@ void Env::cpu_mem_local_dec(size_t n) {
 //-----------------------------------------------------------------------------
 /// \brief Decrement byte count of per-rank GPU memory used.
 
-void Env::gpu_mem_local_dec(size_t n) {
+void CEnv::gpu_mem_local_dec(size_t n) {
   COMET_INSIST(n <= gpu_mem_local_);
   gpu_mem_local_ -= n;
 }
@@ -630,7 +630,7 @@ void Env::gpu_mem_local_dec(size_t n) {
 //-----------------------------------------------------------------------------
 /// \brief Compute and return per-rank CPU memory (global) high water mark.
 
-size_t Env::cpu_mem_max() const {
+size_t CEnv::cpu_mem_max() const {
   size_t result = 0;
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&cpu_mem_max_local_, &result, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_MAX, comm()));
@@ -640,7 +640,7 @@ size_t Env::cpu_mem_max() const {
 //-----------------------------------------------------------------------------
 /// \brief Compute and return per-rank GPU memory (global) high water mark.
 
-size_t Env::gpu_mem_max() const {
+size_t CEnv::gpu_mem_max() const {
   size_t result = 0;
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&gpu_mem_max_local_, &result, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_MAX, comm()));
@@ -650,7 +650,7 @@ size_t Env::gpu_mem_max() const {
 //-----------------------------------------------------------------------------
 /// \brief Compute and return (global) number of operations performed.
 
-double Env::ops() const {
+double CEnv::ops() const {
   double result = 0;
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&ops_local_, &result, 1, MPI_DOUBLE,
     MPI_SUM, comm()));
@@ -663,7 +663,7 @@ double Env::ops() const {
 //-----------------------------------------------------------------------------
 /// \brief Allocate MPI communicators needed for computation.
 
-void Env::comms_initialize_() {
+void CEnv::comms_initialize_() {
 
   if (are_comms_initialized_)
     return;
@@ -696,7 +696,7 @@ void Env::comms_initialize_() {
 //-----------------------------------------------------------------------------
 /// \brief Dellocate previously allocated MPI communicators.
 
-void Env::comms_terminate_() {
+void CEnv::comms_terminate_() {
 
   if (! are_comms_initialized_)
     return;
@@ -716,7 +716,7 @@ void Env::comms_terminate_() {
 //-----------------------------------------------------------------------------
 /// \brief Allocated accelerator streams needed for computation.
 
-void Env::streams_initialize_() {
+void CEnv::streams_initialize_() {
 
   if (are_streams_initialized_)
     return;
@@ -743,7 +743,7 @@ void Env::streams_initialize_() {
 //-----------------------------------------------------------------------------
 /// \brief Dellocate previously allocated accelerator streams.
 
-void Env::streams_terminate_() {
+void CEnv::streams_terminate_() {
 
   if (! are_streams_initialized_)
     return;
@@ -767,7 +767,7 @@ void Env::streams_terminate_() {
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for kernel launches on accelerator.
 
-Env::Stream_t Env::stream_compute() {
+CEnv::Stream_t CEnv::stream_compute() {
   streams_initialize_(); // Lazy initialization.
   return stream_compute_;
 }
@@ -775,7 +775,7 @@ Env::Stream_t Env::stream_compute() {
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for transfers from CPU to GPU.
 
-Env::Stream_t Env::stream_togpu() {
+CEnv::Stream_t CEnv::stream_togpu() {
   streams_initialize_(); // Lazy initialization.
   return stream_togpu_;
 }
@@ -783,7 +783,7 @@ Env::Stream_t Env::stream_togpu() {
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for transfers to CPU from GPU.
 
-Env::Stream_t Env::stream_fromgpu() {
+CEnv::Stream_t CEnv::stream_fromgpu() {
   streams_initialize_(); // Lazy initialization.
   return stream_fromgpu_;
 }
@@ -791,7 +791,7 @@ Env::Stream_t Env::stream_fromgpu() {
 //-----------------------------------------------------------------------------
 /// \brief CPU wait for accelerator stream to complete queued work.
 
-void Env::stream_synchronize(Stream_t stream) const {
+void CEnv::stream_synchronize(Stream_t stream) const {
 
   if (!is_compute_method_gpu())
     return;
@@ -813,7 +813,7 @@ void Env::stream_synchronize(Stream_t stream) const {
 //-----------------------------------------------------------------------------
 /// \brief Set up proc counts and proc numbers.
 
-void Env::set_num_proc_(int num_proc_vector,
+void CEnv::set_num_proc_(int num_proc_vector,
                       int num_proc_repl, int num_proc_field) {
   COMET_INSIST(num_proc_vector > 0);
   COMET_INSIST(num_proc_repl > 0);
@@ -896,7 +896,7 @@ void Env::set_num_proc_(int num_proc_vector,
 //=============================================================================
 // Memory, arrays and floating point
 
-void* gm_malloc(size_t n, GMEnv* env) {
+void* gm_malloc(size_t n, CEnv* env) {
   COMET_INSIST(env);
   void* p = malloc(n);
   COMET_INSIST(p &&
@@ -907,7 +907,7 @@ void* gm_malloc(size_t n, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_free(void* p, size_t n, GMEnv* env) {
+void gm_free(void* p, size_t n, CEnv* env) {
   COMET_INSIST(p && env);
   free(p);
   env->cpu_mem_local_dec(n);
@@ -915,7 +915,7 @@ void gm_free(void* p, size_t n, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
+GMFloat* GMFloat_malloc(size_t n, CEnv* env) {
   COMET_INSIST(env);
   GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);
   GMFloat_fill_nan(p, n);
@@ -924,7 +924,7 @@ GMFloat* GMFloat_malloc(size_t n, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void GMFloat_free(GMFloat* p, size_t n, GMEnv* env) {
+void GMFloat_free(GMFloat* p, size_t n, CEnv* env) {
   COMET_INSIST(p && env);
   gm_free(p, n * sizeof(GMFloat), env);
 }

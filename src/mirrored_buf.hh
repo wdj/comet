@@ -22,10 +22,10 @@ namespace comet {
 class MirroredBuf {
 public:
 
-  MirroredBuf(Env& env);
-  MirroredBuf(size_t dim0, size_t dim1, int elt_size, Env& env);
-  MirroredBuf(size_t dim0, size_t dim1, Env& env);
-  MirroredBuf(MirroredBuf& buf, size_t dim0, Env& env);
+  MirroredBuf(CEnv& env);
+  MirroredBuf(size_t dim0, size_t dim1, int elt_size, CEnv& env);
+  MirroredBuf(size_t dim0, size_t dim1, CEnv& env);
+  MirroredBuf(MirroredBuf& buf, size_t dim0, CEnv& env);
 
   ~MirroredBuf();
 
@@ -101,7 +101,7 @@ public:
 
 private:
 
-  Env& env_;
+  CEnv& env_;
 
   mutable bool is_locked_h_;
   mutable bool is_locked_d_;

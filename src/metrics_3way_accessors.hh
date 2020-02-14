@@ -22,7 +22,7 @@ namespace comet {
 
 static GMFloat3 GMMetrics_float3_S_get_from_index(GMMetrics* metrics,
                                                   size_t index,
-                                                  GMEnv* env) {
+                                                  CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
@@ -36,7 +36,7 @@ static GMFloat3 GMMetrics_float3_S_get_from_index(GMMetrics* metrics,
 
 static GMFloat3 GMMetrics_float3_C_get_from_index(GMMetrics* metrics,
                                                   size_t index,
-                                                  GMEnv* env) {
+                                                  CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
@@ -50,7 +50,7 @@ static GMFloat3 GMMetrics_float3_C_get_from_index(GMMetrics* metrics,
 
 static GMTally4x2 GMMetrics_tally4x2_get_from_index(GMMetrics* metrics,
                                                     size_t index,
-                                                    GMEnv* env) {
+                                                    CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
 
@@ -111,7 +111,7 @@ static GMFloat GMMetrics_ccc_duo_value_3(
   const GMFloat recip_cj,
   const GMFloat recip_ck,
   const GMFloat recip_sumcijk,
-  GMEnv* env) {
+  CEnv* env) {
   COMET_ASSERT(metrics && env);
 
   return GMMetrics_ccc_duo_value_3_impl_<COUNTED_BITS_PER_ELT>(
@@ -123,7 +123,7 @@ static GMFloat GMMetrics_ccc_duo_value_3(
 //-----------------------------------------------------------------------------
 /// \brief Check to ensure 128 bits is enough to store 3-way CCC value.
 
-static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, GMEnv* env) {
+static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
 
   if (env->metric_type() != MetricType::CCC || 
@@ -156,7 +156,7 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
                                           const GMTally1 cj,
                                           const GMTally1 ck,
                                           const GMTally1 cijk,
-                                          GMEnv* env) {
+                                          CEnv* env) {
   COMET_ASSERT(metrics && env);
 
   const GMUInt128 num = rijk * (GMUInt128)(3 * ci - 1 * si) *
@@ -197,7 +197,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
                                                    int i0,
                                                    int i1,
                                                    int i2,
-                                                   GMEnv* env) {
+                                                   CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
@@ -259,7 +259,7 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_3(
   int i0,
   int i1,
   int i2,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -365,7 +365,7 @@ static GMFloat GMMetrics_ccc_get_from_index_3(
   int i0,
   int i1,
   int i2,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
@@ -389,7 +389,7 @@ static GMFloat GMMetrics_duo_get_from_index_3(
   int i0,
   int i1,
   int i2,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
@@ -412,7 +412,7 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
   GMMetrics* metrics,
   const size_t index,
   GMFloat threshold,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -538,7 +538,7 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
 /// \brief Check if any 3-way CCC table value may exceed threshold.
 
 static bool GMMetrics_ccc_get_from_index_3_threshold(
-  GMMetrics* metrics, const size_t index, GMFloat threshold, GMEnv* env) {
+  GMMetrics* metrics, const size_t index, GMFloat threshold, CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
@@ -553,7 +553,7 @@ static bool GMMetrics_ccc_get_from_index_3_threshold(
 /// \brief Check if any 3-way DUO table value may exceed threshold.
 
 static bool GMMetrics_duo_get_from_index_3_threshold(
-  GMMetrics* metrics, const size_t index, GMFloat threshold, GMEnv* env) {
+  GMMetrics* metrics, const size_t index, GMFloat threshold, CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
@@ -569,7 +569,7 @@ static bool GMMetrics_duo_get_from_index_3_threshold(
 
 template<typename T>
 static void GMMetrics_set_3(GMMetrics* metrics, void* p, int i, int j, int k,
-  T value, GMEnv* env) {    
+  T value, CEnv* env) {    
   COMET_ASSERT(metrics && p && env);
   COMET_ASSERT(i >= 0 && i < j);
   COMET_ASSERT(j >= 0 && j < k);
@@ -584,7 +584,7 @@ static void GMMetrics_set_3(GMMetrics* metrics, void* p, int i, int j, int k,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float_set_3(GMMetrics* metrics, int i, int j, int k,
-  GMFloat value, GMEnv* env) {
+  GMFloat value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   GMMetrics_set_3<GMFloat>(metrics, metrics->data, i, j, k, value, env);
@@ -593,7 +593,7 @@ static void GMMetrics_float_set_3(GMMetrics* metrics, int i, int j, int k,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_S_set_3(GMMetrics* metrics, int i, int j, int k,
-  GMFloat3 value, GMEnv* env) {
+  GMFloat3 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_3<GMFloat3>(metrics, metrics->data_S, i, j, k, value, env);
@@ -602,7 +602,7 @@ static void GMMetrics_float3_S_set_3(GMMetrics* metrics, int i, int j, int k,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_C_set_3(GMMetrics* metrics, int i, int j, int k,
-  GMFloat3 value, GMEnv* env) {
+  GMFloat3 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_3<GMFloat3>(metrics, metrics->data_C, i, j, k, value, env);
@@ -611,7 +611,7 @@ static void GMMetrics_float3_C_set_3(GMMetrics* metrics, int i, int j, int k,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_tally4x2_set_3(GMMetrics* metrics, int i, int j, int k,
-  GMTally4x2 value, GMEnv* env) {
+  GMTally4x2 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_3<GMTally4x2>(metrics, metrics->data, i, j, k, value, env);
@@ -622,7 +622,7 @@ static void GMMetrics_tally4x2_set_3(GMMetrics* metrics, int i, int j, int k,
 
 template<typename T>
 static void GMMetrics_set_all2all_3(GMMetrics* metrics, void* p,
-  int i, int j, int k, int j_block, int k_block, T value, GMEnv* env) {
+  int i, int j, int k, int j_block, int k_block, T value, CEnv* env) {
   COMET_ASSERT(metrics && p && env);
   COMET_ASSERT(env->all2all());
   COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);
@@ -641,7 +641,7 @@ static void GMMetrics_set_all2all_3(GMMetrics* metrics, void* p,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float_set_all2all_3(GMMetrics* metrics,
-  int i, int j, int k, int j_block, int k_block, GMFloat value, GMEnv* env) {
+  int i, int j, int k, int j_block, int k_block, GMFloat value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   GMMetrics_set_all2all_3<GMFloat>(metrics, metrics->data, i, j, k,
@@ -651,7 +651,7 @@ static void GMMetrics_float_set_all2all_3(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_S_set_all2all_3(GMMetrics* metrics,
-  int i, int j, int k, int j_block, int k_block, GMFloat3 value, GMEnv* env) {
+  int i, int j, int k, int j_block, int k_block, GMFloat3 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_all2all_3<GMFloat3>(metrics, metrics->data_S, i, j, k,
@@ -661,7 +661,7 @@ static void GMMetrics_float3_S_set_all2all_3(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_float3_C_set_all2all_3(GMMetrics* metrics,
-  int i, int j, int k, int j_block, int k_block, GMFloat3 value, GMEnv* env) {
+  int i, int j, int k, int j_block, int k_block, GMFloat3 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_all2all_3<GMFloat3>(metrics, metrics->data_C, i, j, k,
@@ -671,7 +671,7 @@ static void GMMetrics_float3_C_set_all2all_3(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
-  int i, int j, int k, int j_block, int k_block, GMTally4x2 value, GMEnv* env) {
+  int i, int j, int k, int j_block, int k_block, GMTally4x2 value, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_all2all_3<GMTally4x2>(metrics, metrics->data, i, j, k,
@@ -684,7 +684,7 @@ static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
 template<typename T>
 static void GMMetrics_set_all2all_3_permuted_cache(GMMetrics* metrics, void* p,
   int I, int J, int K, int j_block, int k_block, T value,
-  GMIndexCache* index_cache, GMEnv* env) {
+  GMIndexCache* index_cache, CEnv* env) {
   COMET_ASSERT(metrics && p && env);
   COMET_ASSERT(env->all2all());
   COMET_ASSERT(I >= 0 && I < metrics->num_vector_local);
@@ -704,7 +704,7 @@ static void GMMetrics_set_all2all_3_permuted_cache(GMMetrics* metrics, void* p,
 
 static void GMMetrics_float_set_all2all_3_permuted_cache(GMMetrics* metrics,
   int I, int J, int K, int j_block, int k_block, GMFloat value,
-  GMIndexCache* index_cache, GMEnv* env) {
+  GMIndexCache* index_cache, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   GMMetrics_set_all2all_3_permuted_cache<GMFloat>(metrics, metrics->data,
@@ -715,7 +715,7 @@ static void GMMetrics_float_set_all2all_3_permuted_cache(GMMetrics* metrics,
 
 static void GMMetrics_float3_S_set_all2all_3_permuted_cache(GMMetrics* metrics,
   int I, int J, int K, int j_block, int k_block, GMFloat3 value,
-  GMIndexCache* index_cache, GMEnv* env) {
+  GMIndexCache* index_cache, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_all2all_3_permuted_cache<GMFloat3>(metrics, metrics->data_S,
@@ -726,7 +726,7 @@ static void GMMetrics_float3_S_set_all2all_3_permuted_cache(GMMetrics* metrics,
 
 static void GMMetrics_float3_C_set_all2all_3_permuted_cache(GMMetrics* metrics,
   int I, int J, int K, int j_block, int k_block, GMFloat3 value,
-  GMIndexCache* index_cache, GMEnv* env) {
+  GMIndexCache* index_cache, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_all2all_3_permuted_cache<GMFloat3>(metrics, metrics->data_C,
@@ -737,7 +737,7 @@ static void GMMetrics_float3_C_set_all2all_3_permuted_cache(GMMetrics* metrics,
 
 static void GMMetrics_tally4x2_set_all2all_3_permuted_cache(GMMetrics* metrics,
   int I, int J, int K, int j_block, int k_block, GMTally4x2 value,
-  GMIndexCache* index_cache, GMEnv* env) {
+  GMIndexCache* index_cache, CEnv* env) {
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
 
   GMMetrics_set_all2all_3_permuted_cache<GMTally4x2>(metrics, metrics->data,
@@ -748,7 +748,7 @@ static void GMMetrics_tally4x2_set_all2all_3_permuted_cache(GMMetrics* metrics,
 /*---Accessors: value from (local) coord: get: 3-way---*/
 
 static GMFloat GMMetrics_float_get_3(GMMetrics* metrics,
-  int i, int j, int k, GMEnv* env) {
+  int i, int j, int k, CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(! env->all2all());
   COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);
@@ -765,7 +765,7 @@ static GMFloat GMMetrics_float_get_3(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 static GMTally4x2 GMMetrics_tally4x2_get_3(GMMetrics* metrics,
-  int i, int j, int k, GMEnv* env) {
+  int i, int j, int k, CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(! env->all2all());
   COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);
@@ -782,7 +782,7 @@ static GMTally4x2 GMMetrics_tally4x2_get_3(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 static GMTally4x2 GMMetrics_tally4x2_get_all2all_3( GMMetrics* metrics,
-  int i, int j, int k, int j_block, int k_block, GMEnv* env) {
+  int i, int j, int k, int j_block, int k_block, CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->all2all());
   COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);
@@ -803,7 +803,7 @@ static GMTally4x2 GMMetrics_tally4x2_get_all2all_3( GMMetrics* metrics,
 
 static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted_cache(
   GMMetrics* metrics, int I, int J, int K, int j_block, int k_block,
-  GMIndexCache* index_cache, GMEnv* env) {
+  GMIndexCache* index_cache, CEnv* env) {
   COMET_ASSERT(metrics && env && index_cache);
   COMET_ASSERT(env->all2all());
   COMET_ASSERT(I >= 0 && I < metrics->num_vector_local);

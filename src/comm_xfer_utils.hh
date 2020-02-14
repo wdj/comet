@@ -23,31 +23,31 @@ namespace comet {
 //-----------------------------------------------------------------------------
 
 MPI_Request gm_send_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
-                                  GMEnv* env);
+                                  CEnv* env);
 
 MPI_Request gm_recv_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
-                                  GMEnv* env);
+                                  CEnv* env);
 
-void gm_send_vectors_wait(MPI_Request* mpi_request, GMEnv* env);
+void gm_send_vectors_wait(MPI_Request* mpi_request, CEnv* env);
 
-void gm_recv_vectors_wait(MPI_Request* mpi_request, GMEnv* env);
+void gm_recv_vectors_wait(MPI_Request* mpi_request, CEnv* env);
 
 //--------------------
 
 void gm_reduce_metrics(GMMetrics* metrics,
                        MirroredBuf* metrics_buf_target,
                        MirroredBuf* metrics_buf_source,
-                       GMEnv* env);
+                       CEnv* env);
 
 MPI_Request gm_reduce_metrics_start(GMMetrics* metrics,
                                     MirroredBuf* metrics_buf_target,
                                     MirroredBuf* metrics_buf_source,
-                                    GMEnv* env);
+                                    CEnv* env);
 
 void gm_reduce_metrics_wait(MPI_Request* mpi_request,
                             MirroredBuf* metrics_buf_target,
                             MirroredBuf* metrics_buf_source,
-                            GMEnv* env);
+                            CEnv* env);
 
 //=============================================================================
 

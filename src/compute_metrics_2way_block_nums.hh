@@ -32,7 +32,7 @@ void gm_compute_2way_proc_nums_start(
   MirroredBuf* metrics_buf,
   int j_proc,
   bool compute_triang_only,
-  GMEnv* env);
+  CEnv* env);
 
 void gm_compute_2way_proc_nums_wait(
   GMVectors* vectors_left,
@@ -43,7 +43,7 @@ void gm_compute_2way_proc_nums_wait(
   MirroredBuf* metrics_buf,
   int j_proc,
   bool compute_triang_only,
-  GMEnv* env);
+  CEnv* env);
 
 //=============================================================================
 

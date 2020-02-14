@@ -24,7 +24,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 
 size_t gm_num_vector_local_required(size_t num_vector_active_local,
-                                    GMEnv* const env) {
+                                    CEnv* const env) {
   COMET_INSIST(env);
   // NOTE: this function should receive the same num_vector_active_local
   // and give the same result independent of MPI rank.
@@ -59,7 +59,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                         size_t num_field_specifier,
                         size_t num_vector_specifier,
                         int vectors_data_type_id,
-                        GMEnv* env) {
+                        CEnv* env) {
   COMET_INSIST(dm && env);
 
   if (! env->is_proc_active()) {
@@ -253,7 +253,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 //-----------------------------------------------------------------------------
 // (Pseudo) destructor
 
-void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env) {
+void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env) {
   COMET_INSIST(dm && env);
 
   if (! env->is_proc_active()) {

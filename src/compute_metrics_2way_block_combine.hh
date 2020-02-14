@@ -30,7 +30,7 @@ void gm_compute_2way_proc_combine(
   const VectorSums* const vector_sums_right,
   int j_proc,
   bool do_compute_triang_only,
-  GMEnv* env);
+  CEnv* env);
 
 //=============================================================================
 

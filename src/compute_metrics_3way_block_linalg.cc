@@ -36,7 +36,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
   const int I_min,
   const int I_max,
   const int npvfl,
-  GMEnv& env) {
+  CEnv& env) {
 
   matXitem_buf->lock_h();
 
@@ -184,7 +184,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
   int j_block, int k_block,
   GMSectionInfo* const si,
   VectorSums* vs_i, VectorSums* vs_j, VectorSums* vs_k,
-  GMEnv& env) {
+  CEnv& env) {
 
   COMET_INSIST(vs_i && vs_j && vs_k);
 
@@ -593,7 +593,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     MirroredBuf matB_buf;
     MirroredBuf tmp_buf;
     MirroredBuf* matB_buf_ptr() {return do_reduce ? &tmp_buf : &matB_buf;}
-    LoopVars(Env& env)
+    LoopVars(CEnv& env)
       : do_compute(false)
       , do_reduce(env.do_reduce())
       , matB_buf(env)

@@ -29,7 +29,7 @@ namespace comet {
 class GMMetricsMem {
 
 public:
-  GMMetricsMem(GMEnv* env);
+  GMMetricsMem(CEnv* env);
   ~GMMetricsMem();
 
   void* malloc_data(size_t data_size);
@@ -39,7 +39,7 @@ public:
 
 private:
 
-  GMEnv* env_;
+  CEnv* env_;
   void* __restrict__ data_;
   size_t data_size_;
   void* __restrict__ data_S_;
@@ -108,17 +108,17 @@ GMMetrics GMMetrics_null(void);
 /*---Metrics pseudo-constructor---*/
 
 void GMMetrics_create(GMMetrics* metrics, int data_type_id,
-                      GMDecompMgr* dm, GMMetricsMem* metrics_mem, GMEnv* env);
+                      GMDecompMgr* dm, GMMetricsMem* metrics_mem, CEnv* env);
 
 //-----------------------------------------------------------------------------
 
 void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
-                                   GMEnv* env);
+                                   CEnv* env);
 
 //=============================================================================
 /*---Metrics pseudo-destructor---*/
 
-void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env);
+void GMMetrics_destroy(GMMetrics* metrics, CEnv* env);
 
 //=============================================================================
 /*---Accessors: indexing: global coord from (contig) index: generic---*/
@@ -126,20 +126,20 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env);
 int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       size_t index,
                                       int coord_num,
-                                      GMEnv* env);
+                                      CEnv* env);
 
 //=============================================================================
 // Adjustment required to compensate for padding.
 
 void gm_metrics_pad_adjust(GMMetrics* metrics,
                            MirroredBuf* metrics_buf,
-                           GMEnv* env,
+                           CEnv* env,
                            int weight = 1);
 
 //=============================================================================
 /*---Helper: is this (section_)block_num to be processed by this proc_r---*/
 
-static bool gm_proc_r_active(int section_block_num, const GMEnv* const env) {
+static bool gm_proc_r_active(int section_block_num, const CEnv* const env) {
   COMET_ASSERT(env);
   COMET_ASSERT(section_block_num >= 0);
   return section_block_num % env->num_proc_repl()

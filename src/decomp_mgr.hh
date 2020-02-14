@@ -46,7 +46,7 @@ typedef struct {
 //-----------------------------------------------------------------------------
 
 size_t gm_num_vector_local_required(size_t num_vector_active,
-                                    GMEnv* const env);
+                                    CEnv* const env);
 
 //-----------------------------------------------------------------------------
 // Set to null
@@ -62,12 +62,12 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                         size_t num_field_specifier,
                         size_t num_vector_specifier,
                         int vectors_data_type_id,
-                        GMEnv* env);
+                        CEnv* env);
 
 //-----------------------------------------------------------------------------
 // (Pseudo) destructor
 
-void GMDecompMgr_destroy(GMDecompMgr* dm, GMEnv* env);
+void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env);
 
 //=============================================================================
 

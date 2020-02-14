@@ -35,7 +35,7 @@ GMVectors GMVectors_null() {
 //=============================================================================
 /*---Set unused (pad) vector entries to zero---*/
 
-void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
+void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   /*---Ensure final pad words/bits of each vector are set to zero so that
@@ -102,7 +102,7 @@ void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env) {
 void GMVectors_create_imp_(GMVectors* vectors,
                            int data_type_id,
                            GMDecompMgr* dm,
-                           GMEnv* env) {
+                           CEnv* env) {
   COMET_INSIST(vectors && dm && env);
 
   vectors->data_type_id = data_type_id;
@@ -156,7 +156,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
 void GMVectors_create(GMVectors* vectors,
                       int data_type_id,
                       GMDecompMgr* dm,
-                      GMEnv* env) {
+                      CEnv* env) {
   COMET_INSIST(vectors && dm && env);
 
   *vectors = GMVectors_null();
@@ -175,7 +175,7 @@ void GMVectors_create(GMVectors* vectors,
 void GMVectors_create_with_buf(GMVectors* vectors,
                                int data_type_id,
                                GMDecompMgr* dm,
-                               GMEnv* env) {
+                               CEnv* env) {
   COMET_INSIST(vectors && dm && env);
 
   *vectors = GMVectors_null();
@@ -192,7 +192,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 //=============================================================================
 /*---Vectors pseudo-destructor---*/
 
-void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
+void GMVectors_destroy(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
   COMET_INSIST(vectors->data || ! env->is_proc_active());
 
@@ -215,7 +215,7 @@ void GMVectors_destroy(GMVectors* vectors, GMEnv* env) {
 
 void gm_vectors_to_buf(MirroredBuf* vectors_buf,
                        GMVectors* vectors,
-                       GMEnv* env) {
+                       CEnv* env) {
   COMET_INSIST(vectors && vectors_buf && env);
 
   if (!env->is_using_linalg())
@@ -265,7 +265,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
 //=============================================================================
 // Print entries of vectors
 
-void GMVectors_print(GMVectors* vectors, GMEnv* env) {
+void GMVectors_print(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {
@@ -311,7 +311,7 @@ void GMVectors_print(GMVectors* vectors, GMEnv* env) {
 //=============================================================================
 // hecksum of entries.
 
-size_t GMVectors_cksum(GMVectors* vectors, GMEnv* env) {
+size_t GMVectors_cksum(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {

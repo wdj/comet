@@ -377,8 +377,8 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   // Create an env just to extract run options
 
-  Env env_val(MPI_COMM_WORLD, argc, (char**)argv);
-  GMEnv* env = &env_val;
+  CEnv env_val(MPI_COMM_WORLD, argc, (char**)argv);
+  CEnv* env = &env_val;
 
   const int num_rank_requested = env->num_proc();
 
@@ -494,7 +494,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
       max_time = penalty;
       continue;
     }
-    Env env(node_comm, options);
+    CEnv env(node_comm, options);
     double t1 = env.synced_time();
     perform_run(options, node_comm, &env);
     double t2 = env.synced_time();
@@ -575,7 +575,7 @@ void perform_run_preflight(int argc, char** argv) {
 
 // TODO: make this better.
 #ifdef COMET_USE_MAGMA
-  Env env(MPI_COMM_WORLD, argc, (char**)argv, NULL);
+  CEnv env(MPI_COMM_WORLD, argc, (char**)argv, NULL);
 
   if (env.compute_method() == ComputeMethod::GPU) {
 

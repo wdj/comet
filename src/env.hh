@@ -225,26 +225,29 @@ struct TC {
 
 //=============================================================================
 
-class Env {
+class CEnv {
 public:
+
+  // NOTE: calling this class "Env" seems to cause strange runtimer errors
+  // on Lyra.
 
   //----------------------------------------
   // Constructor/destructor
 
-  Env(MPI_Comm base_comm,
+  CEnv(MPI_Comm base_comm,
       int argc,
       char** argv,
       const char* const description = NULL);
 
-  Env(MPI_Comm base_comm,
+  CEnv(MPI_Comm base_comm,
       const char* const options,
       const char* const description = NULL);
 
-  Env(const char* const options,
+  CEnv(const char* const options,
       int num_proc = System::num_proc(),
       int proc_num = System::proc_num());
 
-  ~Env();
+  ~CEnv();
 
   static void create_args(char* argstring, int* argc, char** argv);
 
@@ -474,8 +477,8 @@ private:
   const char* description_;
 
   // Disallowed methods.
-  Env(const Env&);
-  void operator=(const Env&);
+  CEnv(const CEnv&);
+  void operator=(const CEnv&);
 };
 
 //-----------------------------------------------------------------------------
@@ -483,32 +486,26 @@ private:
 /// \brief Templatized access to CCC or DUO front multiplier.
 
 template<int COUNTED_BITS_PER_ELT>
-static GMFloat env_ccc_duo_multiplier(const Env& env);
+static GMFloat env_ccc_duo_multiplier(const CEnv& env);
 
 template<>
-GMFloat env_ccc_duo_multiplier<2>(const Env& env) {
+GMFloat env_ccc_duo_multiplier<2>(const CEnv& env) {
   return env.ccc_multiplier();
 }
 
 template<>
-GMFloat env_ccc_duo_multiplier<1>(const Env& env) {
+GMFloat env_ccc_duo_multiplier<1>(const CEnv& env) {
   return env.duo_multiplier();
 }
-
-
-
-//----------
-
-typedef Env GMEnv;
 
 //=============================================================================
 // Arrays and floating point
 
-void* gm_malloc(size_t n, GMEnv* env);
-void gm_free(void* p, size_t n, GMEnv* env);
+void* gm_malloc(size_t n, CEnv* env);
+void gm_free(void* p, size_t n, CEnv* env);
 
-GMFloat* GMFloat_malloc(size_t n, GMEnv* env);
-void GMFloat_free(GMFloat* p, size_t n, GMEnv* env);
+GMFloat* GMFloat_malloc(size_t n, CEnv* env);
+void GMFloat_free(GMFloat* p, size_t n, CEnv* env);
 
 void GMFloat_fill_nan(GMFloat* const a, size_t n);
 void GMFloat_check(GMFloat* const a, size_t n);

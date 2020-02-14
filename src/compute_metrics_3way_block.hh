@@ -30,7 +30,7 @@ class ComputeMetrics3WayBlock {
 
 public:
 
-  ComputeMetrics3WayBlock(int nvl, int npvfl, Env& env);
+  ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env);
   ~ComputeMetrics3WayBlock();
 
   void compute(VData vdata_i, VData vdata_j, VData vdata_k,
@@ -38,7 +38,7 @@ public:
 
 private:
 
-  Env& env_;
+  CEnv& env_;
 
   MirroredBuf tmp_buf_[NUM_BUF];
   MirroredBuf matM_ij_buf_;

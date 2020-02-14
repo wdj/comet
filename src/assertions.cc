@@ -54,7 +54,7 @@ void insist_interface(const void* const env,
                          const char* condition_string,
                          const char* file,
                          int line) {
-  if (((Env*)env)->proc_num() == 0) {
+  if (((CEnv*)env)->proc_num() == 0) {
     fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Interface error",
             condition_string, file, line);
   }

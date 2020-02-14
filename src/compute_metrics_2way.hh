@@ -29,14 +29,14 @@ class ComputeMetrics2Way {
 
 public:
 
-  ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env);
+  ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env);
   ~ComputeMetrics2Way();
 
   void compute(GMMetrics& metrics, GMVectors& vectors);
 
 private:
 
-  Env& env_;
+  CEnv& env_;
 
   GMVectors vectors_01_[NUM_BUF];
   MirroredBuf metrics_buf_01_[NUM_BUF];

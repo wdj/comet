@@ -66,13 +66,13 @@ public:
   //---------------------------------------------------------------------------
   /// \brief Print ckecksum to stdout.
 
-  void print(GMEnv& env);
+  void print(CEnv& env);
 
   //---------------------------------------------------------------------------
   /// \brief compute (global and local) checksum of metrics object.
 
   static void compute(Checksum& cksum, Checksum& cksum_local,
-                      GMMetrics& metrics, GMEnv& env);
+                      GMMetrics& metrics, CEnv& env);
   // TODO: try to make metrics, env const here.
 
 private:
@@ -108,7 +108,7 @@ private:
   //---------------------------------------------------------------------------
   /// \brief Checksum helper: return largest value in metrics object.
 
-  static double metrics_max_value(GMMetrics& metrics, GMEnv& env);
+  static double metrics_max_value(GMMetrics& metrics, CEnv& env);
   // TODO: try to make metrics, env const here.
 
   //---------------------------------------------------------------------------

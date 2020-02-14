@@ -24,12 +24,12 @@ namespace comet {
 //-----------------------------------------------------------------------------
 
 void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
-                           GMEnv* env);
+                           CEnv* env);
 
 static int problem_type_default() {return GM_PROBLEM_TYPE_ANALYTIC;}
 //static int problem_type_default() {return GM_PROBLEM_TYPE_RANDOM;}
 
-void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env);
+void check_metrics(GMMetrics* metrics, DriverOptions* do_, CEnv* env);
 
 //=============================================================================
 

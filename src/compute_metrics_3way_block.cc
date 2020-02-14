@@ -25,7 +25,7 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, Env& env)
+ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env)
   : env_(env)
   , tmp_buf_{MirroredBuf(env), MirroredBuf(env)}
   , matM_ij_buf_(env)//{MirroredBuf(env)}

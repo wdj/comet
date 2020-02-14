@@ -25,7 +25,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Constructor for ComputeMetrics3Way class.
 
-ComputeMetrics3Way::ComputeMetrics3Way(GMDecompMgr& dm, GMEnv& env)
+ComputeMetrics3Way::ComputeMetrics3Way(GMDecompMgr& dm, CEnv& env)
   : env_(env) {
   COMET_INSIST(env_.is_proc_active());
 
@@ -58,7 +58,7 @@ void ComputeMetrics3Way::compute(GMMetrics& metrics, GMVectors& vectors) {
 
 void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
                                              GMVectors& vectors) {
-  Env* const env = &env_;
+  CEnv* const env = &env_;
 
   //---------------
   // Denominator
@@ -123,7 +123,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
 void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
                                           GMVectors& vectors) {
-  Env* const env = &env_;
+  CEnv* const env = &env_;
 
   /*---Initializations---*/
 

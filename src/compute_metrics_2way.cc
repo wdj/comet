@@ -28,7 +28,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Constructor for ComputeMetrics2Way class.
 
-ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, GMEnv& env)
+ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   : env_(env) 
 //  , vector_sums_onproc_(dm.num_vector_local, env)
 //  , vector_sums_offproc_(env_.all2all() ? dm.num_vector_local : 0, env)
@@ -448,7 +448,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     // Compute sums for denominators
 
-    //const bool compute_sums_early = GMEnv_is_ppc64();
+    //const bool compute_sums_early = CEnv_is_ppc64();
     const bool compute_sums_early = true;
 
     if (compute_sums_early) { // put it here for speed on this arch

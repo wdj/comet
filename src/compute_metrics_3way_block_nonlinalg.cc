@@ -32,7 +32,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   int j_block, int k_block, int section_step) {
 
   GMMetrics* metrics = &numerators;
-  Env* env = &env_;
+  CEnv* env = &env_;
   GMVectors* vectors_i = vdata_i.vectors;
   GMVectors* vectors_j = vdata_j.vectors;
   GMVectors* vectors_k = vdata_k.vectors;
@@ -193,7 +193,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
 
   GMMetrics* metrics = &numerators;
-  Env* env = &env_;
+  CEnv* env = &env_;
   GMVectors* vectors_i = vdata_i.vectors;
   GMVectors* vectors_j = vdata_j.vectors;
   GMVectors* vectors_k = vdata_k.vectors;

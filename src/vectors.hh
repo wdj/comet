@@ -56,38 +56,38 @@ GMVectors GMVectors_null(void);
 void GMVectors_create(GMVectors* vectors,
                       int data_type_id,
                       GMDecompMgr* dm,
-                      GMEnv* env);
+                      CEnv* env);
 
 //-----------------------------------------------------------------------------
 
 void GMVectors_create_with_buf(GMVectors* vectors,
                                int data_type_id,
                                GMDecompMgr* dm,
-                               GMEnv* env);
+                               CEnv* env);
 
 //-----------------------------------------------------------------------------
 
-void GMVectors_initialize_pad(GMVectors* vectors, GMEnv* env);
+void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env);
 
 //=============================================================================
 /*---Vectors pseudo-destructor---*/
 
-void GMVectors_destroy(GMVectors* vectors, GMEnv* env);
+void GMVectors_destroy(GMVectors* vectors, CEnv* env);
 
 //=============================================================================
 
-void GMVectors_print(GMVectors* vectors, GMEnv* env);
+void GMVectors_print(GMVectors* vectors, CEnv* env);
 
 //=============================================================================
 
-size_t GMVectors_cksum(GMVectors* vectors, GMEnv* env);
+size_t GMVectors_cksum(GMVectors* vectors, CEnv* env);
 
 //=============================================================================
 // Copy vectors to mirrored buffer
 
 void gm_vectors_to_buf(MirroredBuf* vectors_buf,
                        GMVectors* vectors,
-                       GMEnv* env);
+                       CEnv* env);
 
 //=============================================================================
 /*---Accessors: Float---*/
@@ -95,7 +95,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
 static GMFloat* GMVectors_float_ptr(GMVectors* const vectors,
                                    int field_local,
                                    int vector_local,
-                                   GMEnv* env) {
+                                   CEnv* env) {
   COMET_ASSERT(vectors);
   COMET_ASSERT(field_local >= 0);
   COMET_ASSERT(field_local < vectors->num_field_local);
@@ -114,7 +114,7 @@ static void GMVectors_float_set(GMVectors* vectors,
                                 int field_local,
                                 int vector_local,
                                 GMFloat value,
-                                GMEnv* env) {
+                                CEnv* env) {
   COMET_ASSERT(vectors);
   COMET_ASSERT(field_local >= 0);
   COMET_ASSERT(field_local < vectors->num_field_local);
@@ -132,7 +132,7 @@ static void GMVectors_float_set(GMVectors* vectors,
 
 static GMFloat GMVectors_float_get_from_index(const GMVectors* const vectors,
                                               size_t index,
-                                              GMEnv* env) {
+                                              CEnv* env) {
   COMET_ASSERT(vectors);
   //COMET_ASSERT(index >= 0);
   COMET_ASSERT(index < vectors->num_vector_local*(size_t)vectors->num_field_local);
@@ -147,7 +147,7 @@ static GMFloat GMVectors_float_get_from_index(const GMVectors* const vectors,
 static GMFloat GMVectors_float_get(const GMVectors* const vectors,
                                    int field_local,
                                    int vector_local,
-                                   GMEnv* env) {
+                                   CEnv* env) {
   COMET_ASSERT(vectors);
   COMET_ASSERT(field_local >= 0);
   COMET_ASSERT(field_local < vectors->num_field_local);
@@ -166,7 +166,7 @@ static GMFloat GMVectors_float_get(const GMVectors* const vectors,
 static GMBits2 GMVectors_bits2_get(const GMVectors* vectors,
                                    int field_local,
                                    int vector_local,
-                                   GMEnv* env) {
+                                   CEnv* env) {
   /*---This function gets a single 2-bit value---*/
   COMET_ASSERT(vectors);
   COMET_ASSERT(field_local >= 0);
@@ -204,7 +204,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
                                 int field_local,
                                 int vector_local,
                                 GMBits2 value,
-                                GMEnv* env) {
+                                CEnv* env) {
   /*---This function sets a single 2-bit value---*/
   COMET_ASSERT(vectors);
   COMET_ASSERT(field_local >= 0);
@@ -246,7 +246,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
 static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
                                           int packedval_field_local,
                                           int vector_local,
-                                          GMEnv* env) {
+                                          CEnv* env) {
   /*---This function accesses an entire packed value containing 2-bit values---*/
   COMET_ASSERT(vectors);
   COMET_ASSERT(packedval_field_local >= 0);
@@ -267,7 +267,7 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
                                    int packedval_field_local,
                                    int vector_local,
                                    GMBits2x64 value,
-                                   GMEnv* env) {
+                                   CEnv* env) {
   /*---This function sets an entire packed value containing 2-bit values---*/
   COMET_ASSERT(vectors);
   COMET_ASSERT(packedval_field_local >= 0);
@@ -288,7 +288,7 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
 static GMBits2x64 GMVectors_bits2x64_get(const GMVectors* vectors,
                                          int packedval_field_local,
                                          int vector_local,
-                                         GMEnv* env) {
+                                         CEnv* env) {
   /*---This function gets an entire packed value containing 2-bit values---*/
   COMET_ASSERT(vectors);
   COMET_ASSERT(packedval_field_local >= 0);

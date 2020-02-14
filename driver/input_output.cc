@@ -31,7 +31,7 @@ namespace comet {
 // Input vectors from files
 
 void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
-                                 GMEnv* env) {
+                                 CEnv* env) {
   COMET_INSIST(vectors && do_ && env && do_->input_file_path);
 
   if (! env->is_proc_active()) {
@@ -91,7 +91,7 @@ void set_vectors_from_file_float(GMVectors* vectors, DriverOptions* do_,
 //-----------------------------------------------------------------------------
 
 void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
-                                 GMEnv* env) {
+                                 CEnv* env) {
   COMET_INSIST(vectors && do_ && env && do_->input_file_path);
 
   if (! env->is_proc_active()) {
@@ -194,7 +194,7 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
 
 //-----------------------------------------------------------------------------
 
-void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
+void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
   COMET_INSIST(vectors && do_ && env && do_->input_file_path);
 
   switch (env->data_type_vectors()) {
@@ -222,7 +222,7 @@ void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env) {
 //=============================================================================
 
 void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path, 
-                           GMEnv* env) {
+                           CEnv* env) {
   COMET_INSIST(vectors && vectors_file_path && env);
 
   if (! env->is_proc_active()) {
@@ -336,7 +336,7 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 
 template<int COUNTED_BITS_PER_ELT>
 void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, GMEnv* env) {
+                     double threshold, size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
@@ -446,7 +446,7 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
 //-----------------------------------------------------------------------------
 
 void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, GMEnv* env) {
+                     double threshold, size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
@@ -465,7 +465,7 @@ void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
 
 template<int COUNTED_BITS_PER_ELT>
 void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, GMEnv* env) {
+                     double threshold, size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
@@ -581,7 +581,7 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
 //-----------------------------------------------------------------------------
 
 void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, GMEnv* env) {
+                     double threshold, size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
@@ -599,7 +599,7 @@ void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
 //=============================================================================
 
 void output_metrics_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, GMEnv* env) {
+                     double threshold, size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
 
   if (! env->is_proc_active()) {
@@ -853,7 +853,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
 //=============================================================================
 // MetricWriter member definitions.
 
-MetricWriter::MetricWriter(FILE* file, GMMetrics* metrics, GMEnv* env) :
+MetricWriter::MetricWriter(FILE* file, GMMetrics* metrics, CEnv* env) :
   file_(file),
   data_type_(env->data_type_metrics()),
   num_way_(env->num_way()),
@@ -982,7 +982,7 @@ MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
 //=============================================================================
 // MetricsFile member definitions.
 
-FILE* gm_metrics_file_open(char* metrics_file_path_stub, GMEnv* env) {
+FILE* gm_metrics_file_open(char* metrics_file_path_stub, CEnv* env) {
 
   // Form filename
 
@@ -1012,7 +1012,7 @@ FILE* gm_metrics_file_open(char* metrics_file_path_stub, GMEnv* env) {
 //-----------------------------------------------------------------------------
 
 
-MetricsFile::MetricsFile(DriverOptions* do_, GMEnv* env)
+MetricsFile::MetricsFile(DriverOptions* do_, CEnv* env)
   : file_(NULL)
   , num_written_(0) {
   COMET_INSIST(do_ && env);
@@ -1040,7 +1040,7 @@ MetricsFile::~MetricsFile() {
 
 //-----------------------------------------------------------------------------
 
-void MetricsFile::write(GMMetrics* metrics, GMEnv* env) {
+void MetricsFile::write(GMMetrics* metrics, CEnv* env) {
 
   if (! env->is_proc_active()) {
     return;

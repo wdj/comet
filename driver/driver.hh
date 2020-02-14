@@ -19,7 +19,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Struct to hold driver options (options not in GMEnv)---*/
+/*---Struct to hold driver options (options not in CEnv)---*/
 
 typedef struct {
   int num_field_local;
@@ -53,20 +53,20 @@ enum {
 
 //=============================================================================
 
-//void finish_parsing(int argc, char** argv, DriverOptions* do_, GMEnv* env);
+//void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env);
 
 void perform_run(int argc, char** argv, const char* const description,
-                 MPI_Comm base_comm = MPI_COMM_WORLD, GMEnv* env = 0);
+                 MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
 
 void perform_run(const char* const options,
-                 MPI_Comm base_comm = MPI_COMM_WORLD, GMEnv* env = 0);
+                 MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
 
 void perform_run(comet::Checksum& cksum, int argc, char** argv,
                  const char* const description,
-                 MPI_Comm base_comm = MPI_COMM_WORLD, GMEnv* env = 0);
+                 MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
 
 void perform_run(comet::Checksum& cksum, const char* const options,
-                 MPI_Comm base_comm = MPI_COMM_WORLD, GMEnv* env = 0);
+                 MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
 
 //=============================================================================
 

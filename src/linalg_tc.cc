@@ -441,7 +441,7 @@ static void gm_tc_buf_write_(
   bool is_right, int I_max, int I_max_dim, int nvl,
   int npvfl, int npvfl_thisstep, int pvfl_min,
   const uint32_t* vi1, const uint32_t* vi2, TCBufs& tc_bufs, int step_2way,
-  GMEnv& env) {
+  CEnv& env) {
 
   COMET_INSIST(vi1 && vi2);
   COMET_INSIST(I_max_dim >= 0 && I_max_dim <= nvl);
@@ -556,7 +556,7 @@ static void gm_tc_buf_write_(
 
 template<int TC_METHOD>
 static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
-  void* matC, TCBufs& tc_bufs, GMEnv& env) {
+  void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
@@ -680,7 +680,7 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
 
 template<int TC_METHOD>
 static void gm_tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
-                         void* matC, TCBufs& tc_bufs, GMEnv& env) {
+                         void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_INSIST(npvfl_thisstep >= 0);
@@ -876,7 +876,7 @@ static void gm_tc_repair_metrics_(
   int nvl,
   void* vo,
   TCBufs& tc_bufs,
-  GMEnv& env) {
+  CEnv& env) {
 
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0);
@@ -949,7 +949,7 @@ static void gm_tc_repair_metrics_(
 // C to zero if C is filled with trash (e.g. NaNs).
 
 template<int TC_METHOD>
-static void set_matrix_zero_start(void* matC, int lddc, int m, Env& env) {
+static void set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
   COMET_INSIST(matC);
 
   typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
@@ -990,7 +990,7 @@ template<int TC_METHOD>
 static void gm_tc_gemm_start_impl_(
   int m, int n, int k,
   const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
-  TCBufs& tc_bufs, int step_2way, GMEnv& env) {
+  TCBufs& tc_bufs, int step_2way, CEnv& env) {
 
   const int nvl = n;
   const int npvfl = k;
@@ -1052,7 +1052,7 @@ void gm_tc_gemm_start(
   int m, int n, int k,
   const void* matA1, int ldda1, const void* matA2, int ldda2,
   const void* matB, int lddb, void* matC, int lddc,
-  int step_2way, TCBufs& tc_bufs, GMEnv& env) {
+  int step_2way, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
   COMET_INSIST(ldda1 >= 0 && ldda2 >= 0 && lddb >= 0 && lddc >= 0);
@@ -1091,7 +1091,7 @@ void gm_tc_gemm_start(
 //-----------------------------------------------------------------------------
 /// \brief Divisibility requirement for GEMM.
 
-size_t gm_gemm_divisibility_required(const GMEnv& env) {
+size_t gm_gemm_divisibility_required(const CEnv& env) {
 
   const bool need_divisible_by_4 = env.tc_eff() != TC::NO;
 
@@ -1101,7 +1101,7 @@ size_t gm_gemm_divisibility_required(const GMEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Size requirement for GEMM.
 
-size_t gm_gemm_size_required(size_t size_requested, const GMEnv& env) {
+size_t gm_gemm_size_required(size_t size_requested, const CEnv& env) {
 
   const size_t factor = gm_gemm_divisibility_required(env);
 
@@ -1119,7 +1119,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
                        int num_field_local,
                        int num_packedval_field_local,
                        TCBufs& tc_bufs,
-                       GMEnv& env) {
+                       CEnv& env) {
   COMET_INSIST(num_vector_local >= 0);
   COMET_INSIST(num_packedval_field_local >= 0);
   COMET_INSIST(!tc_bufs.tc_buf_left);
@@ -1217,7 +1217,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 //-----------------------------------------------------------------------------
 /// \brief Terminate TCBufs object by deallocating memory etc.
 
-void gm_tc_bufs_free(TCBufs& tc_bufs, GMEnv& env) {
+void gm_tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
 
   if (!tc_bufs.tc_buf_left) {

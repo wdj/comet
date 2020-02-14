@@ -27,8 +27,8 @@ class VectorSums {
 
 public:
 
-  VectorSums(size_t num_vector_local, Env& env_);
-  VectorSums(const GMVectors& vectors, Env& env);
+  VectorSums(size_t num_vector_local, CEnv& env_);
+  VectorSums(const GMVectors& vectors, CEnv& env);
   ~VectorSums() {}
 
   void compute(const GMVectors& vectors);
@@ -45,7 +45,7 @@ public:
 
 private:
 
-  Env& env_;
+  CEnv& env_;
 
   const int num_vector_local_;
 

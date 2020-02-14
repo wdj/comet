@@ -23,7 +23,7 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 
 //=============================================================================
 
-void EnvTest_general_() {
+void CEnvTest_general_() {
 
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
@@ -42,7 +42,7 @@ void EnvTest_general_() {
   char options[1024];
   sprintf(options, options_template, num_proc);
 
-  comet::Env env(options, num_proc, comm_rank);
+  comet::CEnv env(options, num_proc, comm_rank);
 
 
 
@@ -53,8 +53,8 @@ void EnvTest_general_() {
 
 //=============================================================================
 
-TEST(EnvTest, general) {
-  EnvTest_general_();
+TEST(CEnvTest, general) {
+  CEnvTest_general_();
 }
 
 //=============================================================================

@@ -28,17 +28,17 @@ class ComputeMetrics {
 
 public:
 
-  ComputeMetrics(GMDecompMgr& dm, Env& env);
+  ComputeMetrics(GMDecompMgr& dm, CEnv& env);
   ~ComputeMetrics();
 
   void compute(GMMetrics& metrics, GMVectors& vectors);
 
   static void compute(GMMetrics& metrics, GMVectors& vectors,
-    Env& env);
+    CEnv& env);
 
 private:
 
-  Env& env_;
+  CEnv& env_;
 
   ComputeMetrics2Way* compute_metrics_2way_;
   ComputeMetrics3Way* compute_metrics_3way_;
@@ -51,14 +51,14 @@ private:
 
   class CodeBlockTimer {
   public:
-    CodeBlockTimer(Env& env) : env_(env), time_begin_(0) {
+    CodeBlockTimer(CEnv& env) : env_(env), time_begin_(0) {
       time_begin_ = env_.synced_time();
     }
     ~CodeBlockTimer() {
       env_.ctime_inc(env_.synced_time() - time_begin_);
     }
   private:
-    Env& env_;
+    CEnv& env_;
     double time_begin_;
   };
 

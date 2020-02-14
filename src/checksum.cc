@@ -79,7 +79,7 @@ bool Checksum::is_equal(const Checksum& cksum2) const {
 //-----------------------------------------------------------------------------
 /// \brief Print ckecksum to stdout.
 
-void Checksum::print(GMEnv& env) {
+void Checksum::print(CEnv& env) {
 
   for (int i = 0; i < SIZE; ++i) {
     printf("%s%li", i == 0 ? "" : "-",
@@ -121,7 +121,7 @@ inline static size_t lshift(size_t a, int j) {
 ///        Note: this computes the max value on proc, not across procs,
 ///        so each proc's result in general can have a different value.
 
-double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
+double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
 
   double result = -DBL_MAX;
 
@@ -194,7 +194,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, GMEnv& env) {
 ///        of the calculation.
 
 void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
-                       GMMetrics& metrics, GMEnv& env){
+                       GMMetrics& metrics, CEnv& env){
   // TODO: make this check unnecessary.
   COMET_INSIST(metrics.data || ! env.is_proc_active());
 

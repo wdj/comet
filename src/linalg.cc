@@ -39,32 +39,32 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Helpers
 
-static bool use_minproduct(GMEnv* env) {
+static bool use_minproduct(CEnv* env) {
   return env->metric_type() == MetricType::CZEK;
 }
 
-static bool use_mgemm2(GMEnv* env) {
+static bool use_mgemm2(CEnv* env) {
   return env->metric_type() == MetricType::CCC &&
          env->num_way() == NUM_WAY::_2 && ! env->sparse();
 }
 
-static bool use_mgemm3(GMEnv* env) {
+static bool use_mgemm3(CEnv* env) {
   return env->metric_type() == MetricType::CCC &&
          env->num_way() == NUM_WAY::_3 && ! env->sparse();
 }
 
-static bool use_mgemm4(GMEnv* env) {
+static bool use_mgemm4(CEnv* env) {
   return env->metric_type() == MetricType::CCC && env->sparse();
 }
 
-static bool use_mgemm5(GMEnv* env) {
+static bool use_mgemm5(CEnv* env) {
   return env->metric_type() == MetricType::DUO;
 }
 
 //=============================================================================
 /*---Magma setup, teardown---*/
 
-void gm_linalg_initialize(GMEnv* env) {
+void gm_linalg_initialize(CEnv* env) {
   COMET_INSIST(env);
 
   // need magma blasSetKernelStream -- see
@@ -130,7 +130,7 @@ void gm_linalg_initialize(GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_finalize(GMEnv* env) {
+void gm_linalg_finalize(CEnv* env) {
   COMET_INSIST(env);
 
   // TODO: (maybe) reset kernel stream (probably not really needed)
@@ -177,7 +177,7 @@ void gm_linalg_finalize(GMEnv* env) {
 //=============================================================================
 /*---Allocate/free host and device memory---*/
 
-void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
+void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
   COMET_INSIST(p && env);
   COMET_INSIST(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
@@ -315,7 +315,7 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_free(MirroredBuf* p, GMEnv* env) {
+void gm_linalg_free(MirroredBuf* p, CEnv* env) {
   COMET_INSIST(p && env);
   COMET_INSIST(! p->is_alias);
 
@@ -397,7 +397,7 @@ void gm_linalg_free(MirroredBuf* p, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_set_matrix_zero_start_(MirroredBuf* matrix_buf, GMEnv* env) {
+void gm_linalg_set_matrix_zero_start_(MirroredBuf* matrix_buf, CEnv* env) {
   COMET_INSIST(matrix_buf && env);
 
   if (!env->is_compute_method_gpu()) {
@@ -491,7 +491,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
                                       void* matC,
                                       size_t lddc,
                                       bool is_beta_one,
-                                      GMEnv* env) {
+                                      CEnv* env) {
   COMET_INSIST(matA && matB && matC && env);
   COMET_INSIST(env->is_compute_method_gpu());
 
@@ -758,7 +758,7 @@ void gm_linalg_gemm_magma_start(size_t m,
                                 void* matC,
                                 size_t lddc,
                                 GMDecompMgr* dm,
-                                GMEnv* env) {
+                                CEnv* env) {
   COMET_INSIST(matA && matB && matC && env);
   COMET_INSIST(env->is_compute_method_gpu());
 
@@ -840,7 +840,7 @@ void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA1, const MirroredBuf* matA2,
   const MirroredBuf* matB, MirroredBuf* matC,
-  int step_2way, GMDecompMgr* dm, GMEnv* env) {
+  int step_2way, GMDecompMgr* dm, CEnv* env) {
   COMET_INSIST(matA1 && matA2 && matB && matC && env);
 
   if (m==0 || n==0 || k==0)
@@ -874,7 +874,7 @@ void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA1, const MirroredBuf* matA2,
   const MirroredBuf* matB, MirroredBuf* matC,
-  int step_2way, GMDecompMgr* dm, GMEnv* env) {
+  int step_2way, GMDecompMgr* dm, CEnv* env) {
   COMET_INSIST(matA1 && matA2 && matB && matC && env);
 
   if (m==0 || n==0 || k==0)
@@ -921,7 +921,7 @@ void gm_linalg_gemm_wait(
 void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
-  GMDecompMgr* dm, GMEnv* env) {
+  GMDecompMgr* dm, CEnv* env) {
 
   gm_linalg_gemm_start(m, n, k, matA, matA, matB, matC, 0, dm, env);
 }
@@ -931,7 +931,7 @@ void gm_linalg_gemm_start(
 void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
-  GMDecompMgr* dm, GMEnv* env) {
+  GMDecompMgr* dm, CEnv* env) {
 
   gm_linalg_gemm_wait(m, n, k, matA, matA, matB, matC, 0, dm, env);
 }
@@ -941,7 +941,7 @@ void gm_linalg_gemm_wait(
 void gm_linalg_gemm(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
-  GMDecompMgr* dm, GMEnv* env) {
+  GMDecompMgr* dm, CEnv* env) {
   COMET_INSIST(matA && matB && matC && env);
 
   gm_linalg_gemm_start(m, n, k, matA, matB, matC, dm, env);
@@ -951,7 +951,7 @@ void gm_linalg_gemm(
 //=============================================================================
 /*---Start/end transfer of generic matrix to GPU---*/
 
-void gm_linalg_set_matrix_start(MirroredBuf* p, GMEnv* env) {
+void gm_linalg_set_matrix_start(MirroredBuf* p, CEnv* env) {
   COMET_INSIST(p && env);
 
   if (!env->is_compute_method_gpu()) {
@@ -1023,7 +1023,7 @@ void gm_linalg_set_matrix_start(MirroredBuf* p, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_set_matrix_wait(GMEnv* env) {
+void gm_linalg_set_matrix_wait(CEnv* env) {
   COMET_INSIST(env);
 
   env->stream_synchronize(env->stream_togpu());
@@ -1032,7 +1032,7 @@ void gm_linalg_set_matrix_wait(GMEnv* env) {
 //=============================================================================
 /*---Start/end transfer of generic matrix from GPU---*/
 
-void gm_linalg_get_matrix_start(MirroredBuf* p, GMEnv* env) {
+void gm_linalg_get_matrix_start(MirroredBuf* p, CEnv* env) {
   COMET_INSIST(p && env);
 
   if (!env->is_compute_method_gpu()) {
@@ -1104,7 +1104,7 @@ void gm_linalg_get_matrix_start(MirroredBuf* p, GMEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_get_matrix_wait(GMEnv* env) {
+void gm_linalg_get_matrix_wait(CEnv* env) {
   COMET_INSIST(env);
 
   env->stream_synchronize(env->stream_fromgpu());

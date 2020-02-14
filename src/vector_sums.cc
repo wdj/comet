@@ -21,7 +21,7 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-VectorSums::VectorSums(size_t num_vector_local, Env& env)
+VectorSums::VectorSums(size_t num_vector_local, CEnv& env)
   : env_(env)
   , num_vector_local_(num_vector_local)
   , sums_(env)
@@ -34,7 +34,7 @@ VectorSums::VectorSums(size_t num_vector_local, Env& env)
 
 //-----------------------------------------------------------------------------
 
-VectorSums::VectorSums(const GMVectors& vectors, Env& env)
+VectorSums::VectorSums(const GMVectors& vectors, CEnv& env)
   : env_(env)
   , num_vector_local_(vectors.num_vector_local)
   , sums_(env)

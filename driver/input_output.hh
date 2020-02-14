@@ -23,20 +23,20 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, GMEnv* env);
+void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, CEnv* env);
 
 void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
-                           GMEnv* env);
+                           CEnv* env);
 
 //=============================================================================
 // Class to help output the result metrics values to file
 
-FILE* gm_metrics_file_open(char* metrics_file_path_stub, GMEnv* env);
+FILE* gm_metrics_file_open(char* metrics_file_path_stub, CEnv* env);
 
 class MetricWriter {
 public:
 
-  MetricWriter(FILE* file, GMMetrics* metrics, GMEnv* env);
+  MetricWriter(FILE* file, GMMetrics* metrics, CEnv* env);
 
   ~MetricWriter() {}
 
@@ -56,7 +56,7 @@ private:
   FILE* file_;
   const int data_type_;
   int num_way_;
-  GMEnv* env_;
+  CEnv* env_;
 
   size_t num_written_total_;
 
@@ -72,11 +72,11 @@ private:
 class MetricsFile {
 public:
 
-  MetricsFile(DriverOptions* do_, GMEnv* env);
+  MetricsFile(DriverOptions* do_, CEnv* env);
 
   ~MetricsFile();
 
-  void write(GMMetrics* metrics, GMEnv* env);
+  void write(GMMetrics* metrics, CEnv* env);
 
   size_t get_num_written() {return num_written_;}
 

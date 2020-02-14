@@ -34,12 +34,12 @@ bool can_run(const char* options) {
 
   COMET_INSIST(options);
 
-  comet::Env env_nocomms(options, PROCS_MAX, 0);
+  comet::CEnv env_nocomms(options, PROCS_MAX, 0);
 
   if (env_nocomms.num_proc() > 1 && ! comet::BuildHas::MPI)
     return false;
 
-  comet::Env env(options);
+  comet::CEnv env(options);
 
   return env.can_run();
 
@@ -51,7 +51,7 @@ bool is_using_tc(const char* options) {
 
   COMET_INSIST(options);
 
-  comet::Env env(options);
+  comet::CEnv env(options);
 
   return env.is_using_tc();
 }
@@ -148,8 +148,8 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   options += " --num_proc_vector " + std::to_string(1);
   options += " --compute_method REF";
   options += " --verbosity 1";
-  Env env_value(MPI_COMM_WORLD, options.c_str());
-  Env* env = &env_value;
+  CEnv env_value(MPI_COMM_WORLD, options.c_str());
+  CEnv* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, false, false, num_field, num_vector,
@@ -636,8 +636,8 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
-  Env env_value(MPI_COMM_WORLD, options.c_str());
-  Env* env = &env_value;
+  CEnv env_value(MPI_COMM_WORLD, options.c_str());
+  CEnv* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
@@ -718,7 +718,6 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  //GMEnv_destroy(env);
 } // DriverTest_ccc2_simple_compute_method
 
 //=============================================================================
@@ -748,8 +747,8 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
-  Env env_value(MPI_COMM_WORLD, options.c_str());
-  Env* env = &env_value;
+  CEnv env_value(MPI_COMM_WORLD, options.c_str());
+  CEnv* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
@@ -887,7 +886,6 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  //GMEnv_destroy(env);
 } // DriverTest_ccc2_simple_sparse_compute_method
 
 //=============================================================================
@@ -917,8 +915,8 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
-  Env env_value(MPI_COMM_WORLD, options.c_str());
-  Env* env = &env_value;
+  CEnv env_value(MPI_COMM_WORLD, options.c_str());
+  CEnv* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
@@ -1043,7 +1041,6 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  //GMEnv_destroy(env);
 } // DriverTest_duo2_simple_sparse_compute_method
 
 //=============================================================================
@@ -1072,8 +1069,8 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
-  Env env_value(MPI_COMM_WORLD, options.c_str());
-  Env* env = &env_value;
+  CEnv env_value(MPI_COMM_WORLD, options.c_str());
+  CEnv* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
@@ -1205,7 +1202,6 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  //GMEnv_destroy(env);
 } // DriverTest_ccc3_simple_compute_method
 
 //=============================================================================
@@ -1235,8 +1231,8 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
-  Env env_value(MPI_COMM_WORLD, options.c_str());
-  Env* env = &env_value;
+  CEnv env_value(MPI_COMM_WORLD, options.c_str());
+  CEnv* env = &env_value;
 
   GMDecompMgr dm_value = GMDecompMgr_null(), *dm = &dm_value;
   GMDecompMgr_create(dm, true, false, num_field, num_vector,
@@ -1483,7 +1479,6 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMMetrics_destroy(metrics, env);
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
-  //GMEnv_destroy(env);
 } // DriverTest_ccc3_simple_sparse_compute_method
 
 //=============================================================================
@@ -1513,8 +1508,8 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   options += " --verbosity 1";
   if (!can_run(options.c_str()))
     return;
-  Env env_value(MPI_COMM_WORLD, options.c_str());
-  Env* env = &env_value;
+  CEnv env_value(MPI_COMM_WORLD, options.c_str());
+  CEnv* env = &env_value;
 
   if (ComputeMethod::GPU == compute_method && env->tc_eff() == TC::NO) {
     // DUO 3-way GPU requires tc.

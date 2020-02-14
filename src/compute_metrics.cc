@@ -22,7 +22,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Constructor for ComputeMetrics class.
 
-ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, GMEnv& env)
+ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, CEnv& env)
   : env_(env)
   , compute_metrics_2way_(NULL)
   , compute_metrics_3way_(NULL) {
@@ -104,7 +104,7 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 /// \brief Convenience function for constructor, compute, destructor.
 
 void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors,
-  GMEnv& env) {
+  CEnv& env) {
 
   ComputeMetrics compute_metrics(*vectors.dm, env);
   compute_metrics.compute(metrics, vectors);

@@ -34,7 +34,7 @@ void gm_compute_2way_proc_nums_czek_start_(
   MirroredBuf* metrics_buf,
   int j_block,
   bool do_compute_triang_only,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
@@ -102,7 +102,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
   MirroredBuf* metrics_buf,
   int j_block,
   bool do_compute_triang_only,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
@@ -338,7 +338,7 @@ void gm_compute_2way_proc_nums_duo_start_(
   MirroredBuf* metrics_buf,
   int j_block,
   bool do_compute_triang_only,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
@@ -522,7 +522,7 @@ void gm_compute_2way_proc_nums_start(
   MirroredBuf* metrics_buf,
   int j_block,
   bool do_compute_triang_only,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
@@ -585,7 +585,7 @@ void gm_compute_2way_proc_nums_wait(
   MirroredBuf* metrics_buf,
   int j_block,
   bool do_compute_triang_only,
-  GMEnv* env) {
+  CEnv* env) {
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());

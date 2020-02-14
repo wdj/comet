@@ -26,7 +26,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /*---Helper class for memory---*/
 
-GMMetricsMem::GMMetricsMem(GMEnv* env) :
+GMMetricsMem::GMMetricsMem(CEnv* env) :
   env_(env),
   data_(0),
   data_size_(0),
@@ -157,7 +157,7 @@ GMMetrics GMMetrics_null() {
 //=============================================================================
 
 void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
-                                   GMEnv* env) {
+                                   CEnv* env) {
   COMET_INSIST(metrics && env);
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(env->num_block_vector() <= 2 || nvl % 6 == 0);
@@ -281,7 +281,7 @@ void GMMetrics_create(GMMetrics* metrics,
                       int data_type_id,
                       GMDecompMgr* dm,
                       GMMetricsMem* metrics_mem,
-                      GMEnv* env) {
+                      CEnv* env) {
   COMET_INSIST(metrics && dm && env);
 
   *metrics = GMMetrics_null();
@@ -762,7 +762,7 @@ void GMMetrics_create(GMMetrics* metrics,
 //=============================================================================
 /*---Metrics pseudo-destructor---*/
 
-void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
+void GMMetrics_destroy(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
   COMET_INSIST(metrics->data || ! env->is_proc_active());
 
@@ -788,7 +788,7 @@ void GMMetrics_destroy(GMMetrics* metrics, GMEnv* env) {
 int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       size_t index,
                                       int coord_num,
-                                      GMEnv* env) {
+                                      CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(coord_num >= 0 && coord_num < env->num_way());
@@ -824,7 +824,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
-                           GMEnv* env, int weight) {
+                           CEnv* env, int weight) {
   COMET_INSIST(metrics && metrics_buf && env);
 
   if (!(env->is_metric_type_bitwise() && env->is_using_linalg()))

@@ -29,7 +29,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /*---Set the entries of the vectors---*/
 
-void set_vectors_random_(GMVectors* vectors, int verbosity, GMEnv* env) {
+void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {
@@ -202,7 +202,7 @@ static size_t perm(size_t key, size_t i, size_t n) {
 
 //-----------------------------------------------------------------------------
 
-void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
+void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (! env->is_proc_active()) {
@@ -337,7 +337,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, GMEnv* env) {
 //=============================================================================
 
 void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
-                           GMEnv* env) {
+                           CEnv* env) {
   COMET_INSIST(vectors && env);
 
   if (problem_type == GM_PROBLEM_TYPE_RANDOM) {
@@ -353,7 +353,7 @@ void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
 /*---Check correctness of metrics, if possible---*/
 
 void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
-                             GMEnv* env) {
+                             CEnv* env) {
   COMET_INSIST(metrics && do_ && env);
   COMET_INSIST(GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type);
   COMET_INSIST(NULL == do_->input_file_path);
@@ -847,7 +847,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 //=============================================================================
 
-void check_metrics(GMMetrics* metrics, DriverOptions* do_, GMEnv* env) {
+void check_metrics(GMMetrics* metrics, DriverOptions* do_, CEnv* env) {
   COMET_INSIST(metrics && do_ && env);
 
   if (NULL != do_->input_file_path) {
