@@ -213,6 +213,8 @@ __host__ __device__ static bool is_po2(int x) {
 ///  *1       *0        0    0    1    0
 ///  *1       *1        0    0    0    1
 
+//-----------------------------------------------------------------------------
+
 template<typename GemmIn_t>
 __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   GemmIn_t* vo,
@@ -569,9 +571,9 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
 
   // k (=nfl) is derived from padded-up npvfl (multiple of 64), so always ok.
   COMET_INSIST(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
-  // since I_max_dim % 4 == 0; see gm_gemm_divisibility_required()
+  // since I_max_dim % 4 == 0; see tc_gemm_divisibility_required()
   COMET_INSIST(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
-  // since nvl % 4 == 0; see gm_gemm_divisibility_required()
+  // since nvl % 4 == 0; see tc_gemm_divisibility_required()
   COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
   // Make BLAS call.
@@ -883,7 +885,7 @@ static void gm_tc_repair_metrics_(
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(nvll <= nvl);
 
-  // always true, because of gm_gemm_divisibility_required()
+  // always true, because of tc_gemm_divisibility_required()
   COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
   const int nvllD2 = nvll / 2;
 
@@ -987,7 +989,7 @@ static void set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
 ///
 
 template<int TC_METHOD>
-static void gm_tc_gemm_start_impl_(
+static void tc_gemm_start_impl_(
   int m, int n, int k,
   const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
   TCBufs& tc_bufs, int step_2way, CEnv& env) {
@@ -1002,7 +1004,7 @@ static void gm_tc_gemm_start_impl_(
   // to satisfy cublas divisibility requirements.
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
-  COMET_INSIST((size_t)nvll == gm_gemm_size_required(nvll, env));
+  COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
 
   set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
 
@@ -1048,7 +1050,7 @@ static void gm_tc_gemm_start_impl_(
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute CoMet metrics bitwise result.
 
-void gm_tc_gemm_start(
+void tc_gemm_start(
   int m, int n, int k,
   const void* matA1, int ldda1, const void* matA2, int ldda2,
   const void* matB, int lddb, void* matC, int lddc,
@@ -1069,17 +1071,17 @@ void gm_tc_gemm_start(
   switch (env.tc_eff()) {
     // --------------
     case TC::INT8: {
-      gm_tc_gemm_start_impl_<TC::INT8>(
+      tc_gemm_start_impl_<TC::INT8>(
         m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
     } break;
     // --------------
     case TC::FP16: {
-      gm_tc_gemm_start_impl_<TC::FP16>(
+      tc_gemm_start_impl_<TC::FP16>(
         m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
     } break;
     // --------------
     case TC::FP32: {
-      gm_tc_gemm_start_impl_<TC::FP32>(
+      tc_gemm_start_impl_<TC::FP32>(
         m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
     } break;
     // --------------
@@ -1091,7 +1093,7 @@ void gm_tc_gemm_start(
 //-----------------------------------------------------------------------------
 /// \brief Divisibility requirement for GEMM.
 
-size_t gm_gemm_divisibility_required(const CEnv& env) {
+size_t tc_gemm_divisibility_required(const CEnv& env) {
 
   const bool need_divisible_by_4 = env.tc_eff() != TC::NO;
 
@@ -1101,9 +1103,9 @@ size_t gm_gemm_divisibility_required(const CEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Size requirement for GEMM.
 
-size_t gm_gemm_size_required(size_t size_requested, const CEnv& env) {
+size_t tc_gemm_size_required(size_t size_requested, const CEnv& env) {
 
-  const size_t factor = gm_gemm_divisibility_required(env);
+  const size_t factor = tc_gemm_divisibility_required(env);
 
   return utils::ceil(size_requested, factor)*factor;
 }
@@ -1115,11 +1117,11 @@ size_t gm_gemm_size_required(size_t size_requested, const CEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Initialize TCBufs object by allocating memory etc.
 
-void gm_tc_bufs_malloc(int num_vector_local,
-                       int num_field_local,
-                       int num_packedval_field_local,
-                       TCBufs& tc_bufs,
-                       CEnv& env) {
+void tc_bufs_malloc(int num_vector_local,
+                    int num_field_local,
+                    int num_packedval_field_local,
+                    TCBufs& tc_bufs,
+                    CEnv& env) {
   COMET_INSIST(num_vector_local >= 0);
   COMET_INSIST(num_packedval_field_local >= 0);
   COMET_INSIST(!tc_bufs.tc_buf_left);
@@ -1217,7 +1219,7 @@ void gm_tc_bufs_malloc(int num_vector_local,
 //-----------------------------------------------------------------------------
 /// \brief Terminate TCBufs object by deallocating memory etc.
 
-void gm_tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
+void tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
 
   if (!tc_bufs.tc_buf_left) {

@@ -856,7 +856,7 @@ void gm_linalg_gemm_start(
 
   if (env->is_using_tc()) {
     if (env->is_compute_method_gpu()) {
-      gm_tc_gemm_start(m, n, k,
+      tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
         step_2way, dm->tc_bufs, *env);
@@ -890,7 +890,7 @@ void gm_linalg_gemm_wait(
         matB->lock_h();
       }
       matC->lock_h();
-      gm_tc_gemm_start(m, n, k,
+      tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
         step_2way, dm->tc_bufs, *env);

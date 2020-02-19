@@ -29,7 +29,7 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
   // NOTE: this function should receive the same num_vector_active_local
   // and give the same result independent of MPI rank.
 
-  const size_t factor_4 = gm_gemm_divisibility_required(*env);
+  const size_t factor_4 = tc_gemm_divisibility_required(*env);
 
   const bool need_divisible_by_6 = env->num_way() == NUM_WAY::_3 &&
                                    env->all2all() &&
@@ -246,8 +246,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   // tc memory
   //--------------------
 
-  gm_tc_bufs_malloc(dm->num_vector_local, dm->num_field_local,
-                    dm->num_packedfield_local, dm->tc_bufs, *env);
+  tc_bufs_malloc(dm->num_vector_local, dm->num_field_local,
+                 dm->num_packedfield_local, dm->tc_bufs, *env);
 }
 
 //-----------------------------------------------------------------------------
@@ -264,7 +264,7 @@ void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env) {
   // tc memory
   //--------------------
 
-  gm_tc_bufs_free(dm->tc_bufs, *env);
+  tc_bufs_free(dm->tc_bufs, *env);
 }
 
 //=============================================================================
