@@ -484,8 +484,14 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   #local COMET_C_COMPILER=$(which gcc)
   #local COMET_CXX_COMPILER=$(which g++)
   #local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
-  local COMET_C_COMPILER=$(which mpicc)
-  local COMET_CXX_COMPILER=$(which mpiCC)
+  local USE_PGI=NO
+  if [ $USE_PGI = YES ] ; then
+    local COMET_C_COMPILER=$(which pgcc)
+    local COMET_CXX_COMPILER=$(which pgc++)
+  else
+    local COMET_C_COMPILER=$(which mpicc)
+    local COMET_CXX_COMPILER=$(which mpiCC)
+  fi
   local COMET_CXX_SERIAL_COMPILER=g++
   local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++11"
   COMET_EXTRA_COMPILE_OPTS+=" -I$(dirname $(which mpiCC))/../include"

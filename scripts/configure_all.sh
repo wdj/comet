@@ -45,44 +45,46 @@ function script_dir
 
 function configure_1case
 {
-    printf -- '-%.0s' {1..79}; echo ""
-    echo COMET_PLATFORM_STUB=$COMET_PLATFORM_STUB INSTALLS_DIR=$INSTALLS_DIR \
-      BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING USE_MPI=$USE_MPI \
-      FP_PRECISION=$FP_PRECISION
+  printf -- '-%.0s' {1..79}; echo ""
+  echo COMET_PLATFORM_STUB=$COMET_PLATFORM_STUB INSTALLS_DIR=$INSTALLS_DIR \
+    BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING USE_MPI=$USE_MPI \
+    FP_PRECISION=$FP_PRECISION
 
-    local BUILD_STUB=""
-    [[ $FP_PRECISION = SINGLE ]] && BUILD_STUB+="single_"
-    [[ $BUILD_TYPE = Debug ]] && BUILD_STUB+="test" || BUILD_STUB+="release"
-    [[ $USE_MPI = OFF ]] && BUILD_STUB+="_nompi"
+  local BUILD_STUB=""
+  [[ $FP_PRECISION = SINGLE ]] && BUILD_STUB+="single_"
+  [[ $BUILD_TYPE = Debug ]] && BUILD_STUB+="test" || BUILD_STUB+="release"
+  [[ $USE_MPI = OFF ]] && BUILD_STUB+="_nompi"
 
-    local BUILD_DIR=build_${BUILD_STUB}_$COMET_PLATFORM_STUB
-    echo "Creating $BUILD_DIR ..."
-    mkdir -p $BUILD_DIR
-    pushd $BUILD_DIR
-    rm -rf * # Clean out any previous build files
+  local BUILD_DIR=build_${BUILD_STUB}_$COMET_PLATFORM_STUB
+  echo "Creating $BUILD_DIR ..."
+  mkdir -p $BUILD_DIR
+  pushd $BUILD_DIR
+  rm -rf * # Clean out any previous build files
 
-    # Link to common MAGMA build if available.
-    local MAGMA_BUILD_DIR=../magma_build_$COMET_PLATFORM_STUB
-    if [ -e $MAGMA_BUILD_DIR ] ; then
-      ln -s $MAGMA_BUILD_DIR magma_patch
-    fi
+  # Link to common MAGMA build if available.
+  local MAGMA_BUILD_DIR=../magma_build_$COMET_PLATFORM_STUB
+  if [ -e $MAGMA_BUILD_DIR ] ; then
+    ln -s $MAGMA_BUILD_DIR magma_patch
+  fi
 
-    local INSTALL_DIR=$INSTALLS_DIR/install_${BUILD_STUB}_$COMET_PLATFORM_STUB
+  local INSTALL_DIR=$INSTALLS_DIR/install_${BUILD_STUB}_$COMET_PLATFORM_STUB
 
-    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
-        USE_MPI=$USE_MPI FP_PRECISION=$FP_PRECISION \
-        ../genomics_gpu/scripts/cmake.sh
+  env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
+      USE_MPI=$USE_MPI FP_PRECISION=$FP_PRECISION \
+      ../genomics_gpu/scripts/cmake.sh
 
-    # Move magma build to location for common use for different builds.
-    if [ -e magma_patch -a ! -e $MAGMA_BUILD_DIR ] ; then
-      mv magma_patch $MAGMA_BUILD_DIR # share common MAGMA build
-      ln -s          $MAGMA_BUILD_DIR magma_patch
-    fi
+  # Move magma build to location for common use for different builds.
+  if [ -e magma_patch -a ! -e $MAGMA_BUILD_DIR ] ; then
+    mv magma_patch $MAGMA_BUILD_DIR # share common MAGMA build
+    ln -s          $MAGMA_BUILD_DIR magma_patch
+  fi
 
-    popd
-    rm -f $(basename $INSTALL_DIR)
-    ln -s $INSTALL_DIR .
-    printf -- '-%.0s' {1..79}; echo ""
+  popd
+  rm -f $(basename $INSTALL_DIR)
+  ln -s $INSTALL_DIR .
+  printf -- '-%.0s' {1..79}; echo ""
+
+  #sleep 5
 } # configure_1case
 
 #==============================================================================
