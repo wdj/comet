@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   linalg_tc.cc
+ * \file   tc.cc
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  CUDA code, primarily for using tensor cores.
@@ -30,7 +30,7 @@
 #endif
 
 #include "env.hh"
-#include "linalg_tc.hh"
+#include "tc.hh"
 
 //=============================================================================
 

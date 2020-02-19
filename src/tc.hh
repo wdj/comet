@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   linalg_tc.hh
+ * \file   tc.hh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  CUDA code, primarily for using tensor cores.
@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _comet_linalg_tc_hh_
-#define _comet_linalg_tc_hh_
+#ifndef _comet_tc_hh_
+#define _comet_tc_hh_
 
 #if defined COMET_USE_CUDA
 #include "cublas_v2.h"
@@ -69,6 +69,6 @@ size_t tc_gemm_size_required(size_t size_requested, const CEnv& env);
 
 //-----------------------------------------------------------------------------
 
-#endif // _comet_linalg_tc_hh_
+#endif // _comet_tc_hh_
 
 //-----------------------------------------------------------------------------

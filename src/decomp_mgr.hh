@@ -12,7 +12,7 @@
 #define _comet_decomp_mgr_hh_
 
 #include "env.hh"
-#include "linalg_tc.hh"
+#include "tc.hh"
 
 //=============================================================================
 

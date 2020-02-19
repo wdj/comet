@@ -28,7 +28,7 @@
 
 #include "env.hh"
 #include "assertions.hh"
-#include "linalg_tc.hh"
+#include "tc.hh"
 #include "decomp_mgr.hh"
 #include "linalg.hh"
 
