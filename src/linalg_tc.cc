@@ -163,7 +163,7 @@ __host__ __device__ static bool is_po2(int x) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Write individual elements to buf.
+/// \brief Formula for element to write to buf.
 ///
 /// Description of is_bitwise_3way_2step option:
 ///
@@ -213,10 +213,96 @@ __host__ __device__ static bool is_po2(int x) {
 ///  *1       *0        0    0    1    0
 ///  *1       *1        0    0    0    1
 
+template<typename GemmIn_t>
+__host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
+  const int snm,
+  const int snc,
+  const int i01,
+  const int num_way,
+  const bool is_sparse,
+  const bool is_right,
+  const bool is_duo,
+  const bool form_matX_on_accel,
+  const int step_2way,
+  const bool is_bitwise_3way_2step) {
+
+  // Count number of 0 (or 1) bits in respective seminibble.
+  // Determine whether to skip (1,0) null indicator value.
+  // NOTE: does not work for all cases.
+
+  const bool is_left = ! is_right;
+  const bool skip_10 = is_sparse || (num_way == 3 && is_left);
+
+  // Possible counts, represented in target type.
+
+  const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
+  const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
+  const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
+  const GemmIn_t four = TCBufTypes<GemmIn_t>::four();
+
+  // Possible seminibble bit patterns.
+
+  const int _00 = 0;
+  const int _01 = 1;
+  const int _10 = 2;
+  const int _11 = 3;
+
+  // Unimplemented cases:
+  //COMET_ASSERT( ! (is_duo && !is_sparse) );
+  //COMET_ASSERT( ! (is_duo && !is_bitwise_3way_2step) );
+  //COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) );
+
+  const GemmIn_t out =  3 == num_way && is_left && is_duo ? (
+                          snm == _10                             ? zero :
+                          snc == _10                             ? zero :
+                          (snm&1) == step_2way && (snc&1) == i01 ? one :
+                                                                   zero
+                        ) : //====================
+                        is_duo ? (
+                           snm == _10         ? zero :
+                          (snm & 1) == i01    ? one :
+                       /* (snm & 1) == 1-i01 */ zero
+                        ) : //====================
+                        3 == num_way && is_left &&
+                        is_bitwise_3way_2step /* && is_ccc */ ? (
+                          snm == _10 && is_sparse              ? zero :
+                          snc == _10 && is_sparse              ? zero :
+                          snm == _11*(1-step_2way)             ? zero :
+                          snc == _11*(1-i01)                   ? zero :
+                          is_po2(snm) && is_po2(snc)           ? one :
+                          is_po2(snm) && snc == _11*i01        ? two :
+                          is_po2(snc) && snm == _11*step_2way  ? two :
+                        /* snm*(3-snm) + (snc)*(3-snc) == 0 */ four
+                        ) : //====================
+                        3 == num_way && is_left &&
+                        form_matX_on_accel /* && is_ccc */ ? (
+                          snm == _10 && is_sparse      ? zero :
+                          snm == _00 && step_2way != 0 ? zero :
+                          snm == _01 && step_2way != 1 ? zero :
+                          snm == _10 && step_2way != 1 ? zero :
+                          snm == _11 && step_2way != 2 ? zero :
+                          snc == _11*i01               ? two :
+                          snc == _11*(1-i01)           ? zero :
+                          snc == _01                   ? one :
+                                  is_sparse            ? zero :
+                       /* snc == _10 */                  one
+                        ) : //====================
+                        /* is_ccc ... */ (
+                          snm == _11*i01      ? two :
+                          snm == _11*(1-i01)  ? zero :
+                                  !skip_10    ? one :
+                          snm == _01          ? one :
+                       /* snm == _10 */         zero
+                        );
+  return out;
+}
+
 //-----------------------------------------------------------------------------
+/// \brief Write individual elements to buf.
+///
 
 template<typename GemmIn_t>
-__host__ __device__ static void gm_tc_buf_write_kernel_elt_(
+__host__ __device__ static void tc_buf_write_kernel_elt_(
   GemmIn_t* vo,
   const uint32_t* vim,
   const uint32_t* vic,
@@ -267,115 +353,14 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
   // Determine whether to skip (1,0) null indicator value.
   // NOTE: does not work for all cases.
 
-  const bool is_left = ! is_right;
-  const bool skip_10 = is_sparse || (num_way == 3 && is_left);
+  const GemmIn_t out0 = tc_buf_write_kernel_value_<GemmIn_t>(snm0, snc0, i01,
+    num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
+    is_bitwise_3way_2step);
 
-  // Possible counts, represented in target type.
+  const GemmIn_t out1 = tc_buf_write_kernel_value_<GemmIn_t>(snm1, snc1, i01,
+    num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
+    is_bitwise_3way_2step);
 
-  const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
-  const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
-  const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
-  const GemmIn_t four  = TCBufTypes<GemmIn_t>::four();
-
-  // Possible seminibble bit patterns.
-
-  const int _00 = 0;
-  const int _01 = 1;
-  const int _10 = 2;
-  const int _11 = 3;
-
-  // Unimplemented cases:
-  //COMET_ASSERT( ! (is_duo && !is_sparse) );
-  //COMET_ASSERT( ! (is_duo && !is_bitwise_3way_2step) );
-  //COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) );
-
-  const GemmIn_t out0 = 3 == num_way && is_left && is_duo ? (
-                          snm0 == _10                              ? zero :
-                          snc0 == _10                              ? zero :
-                          (snm0&1) == step_2way && (snc0&1) == i01 ? one :
-                                                                     zero
-                        ) : //====================
-                        is_duo ? (
-                           snm0 == _10         ? zero :
-                          (snm0 & 1) == i01    ? one :
-                       /* (snm0 & 1) == 1-i01 */ zero
-                        ) : //====================
-                        3 == num_way && is_left &&
-                        is_bitwise_3way_2step /* && is_ccc */ ? (
-                          snm0 == _10 && is_sparse               ? zero :
-                          snc0 == _10 && is_sparse               ? zero :
-                          snm0 == _11*(1-step_2way)              ? zero :
-                          snc0 == _11*(1-i01)                    ? zero :
-                          is_po2(snm0) && is_po2(snc0)           ? one :
-                          is_po2(snm0) && snc0 == _11*i01        ? two :
-                          is_po2(snc0) && snm0 == _11*step_2way  ? two :
-                        /* snm0*(3-snm0) + (snc0)*(3-snc0) == 0 */ four
-                        ) : //====================
-                        3 == num_way && is_left &&
-                        form_matX_on_accel /* && is_ccc */ ? (
-                          snm0 == _10 && is_sparse      ? zero :
-                          snm0 == _00 && step_2way != 0 ? zero :
-                          snm0 == _01 && step_2way != 1 ? zero :
-                          snm0 == _10 && step_2way != 1 ? zero :
-                          snm0 == _11 && step_2way != 2 ? zero :
-                          snc0 == _11*i01               ? two :
-                          snc0 == _11*(1-i01)           ? zero :
-                          snc0 == _01                   ? one :
-                                  is_sparse             ? zero :
-                       /* snc0 == _10 */                  one
-                        ) : //====================
-                        /* is_ccc ... */ (
-                          snm0 == _11*i01      ? two :
-                          snm0 == _11*(1-i01)  ? zero :
-                                  !skip_10     ? one :
-                          snm0 == _01          ? one :
-                       /* snm0 == _10 */         zero
-                        );
-
-  const GemmIn_t out1 = 3 == num_way && is_left && is_duo ? (
-                          snm1 == _10                              ? zero :
-                          snc1 == _10                              ? zero :
-                          (snm1&1) == step_2way && (snc1&1) == i01 ? one :
-                                                                     zero
-                        ) : //====================
-                        is_duo ? (
-                           snm1 == _10         ? zero :
-                          (snm1 & 1) == i01    ? one :
-                       /* (snm1 & 1) == 1-i01 */ zero
-                        ) : //====================
-                        3 == num_way && is_left &&
-                        is_bitwise_3way_2step /* && is_ccc */ ? (
-                          snm1 == _10 && is_sparse               ? zero :
-                          snc1 == _10 && is_sparse               ? zero :
-                          snm1 == _11*(1-step_2way)              ? zero :
-                          snc1 == _11*(1-i01)                    ? zero :
-                          is_po2(snm1) && is_po2(snc1)           ? one :
-                          is_po2(snm1) && snc1 == _11*i01        ? two :
-                          is_po2(snc1) && snm1 == _11*step_2way  ? two :
-                        /* snm1*(3-snm1) + (snc1)*(3-snc1) == 0 */ four
-                        ) : //====================
-                        3 == num_way && is_left &&
-                        form_matX_on_accel /* && is_ccc */ ? (
-                          snm1 == _10 && is_sparse      ? zero :
-                          snm1 == _00 && step_2way != 0 ? zero :
-                          snm1 == _01 && step_2way != 1 ? zero :
-                          snm1 == _10 && step_2way != 1 ? zero :
-                          snm1 == _11 && step_2way != 2 ? zero :
-                          snc1 == _11*i01               ? two :
-                          snc1 == _11*(1-i01)           ? zero :
-                          snc1 == _01                   ? one :
-                                  is_sparse             ? zero :
-                       /* snc1 == _10 */                  one
-                        ) : //====================
-                        /* is_ccc ... */ (
-                          snm1 == _11*i01      ? two :
-                          snm1 == _11*(1-i01)  ? zero :
-                                  !skip_10     ? one :
-                          snm1 == _01          ? one :
-                       /* snm1 == _10 */         zero
-                        );
-
-  // Always keep pair of cols together, corresponding to the two i01 values.
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make later swizzling of metrics array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
@@ -395,10 +380,10 @@ __host__ __device__ static void gm_tc_buf_write_kernel_elt_(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel to support gm_tc_buf_write_.
+/// \brief GPU kernel to support tc_buf_write_.
 
 template<typename GemmIn_t>
-__global__ static void gm_tc_buf_write_kernel_(
+__global__ static void tc_buf_write_kernel_(
   GemmIn_t* vo,
   const uint32_t* vim,
   const uint32_t* vic,
@@ -428,7 +413,7 @@ __global__ static void gm_tc_buf_write_kernel_(
     return;
   }
 
-  gm_tc_buf_write_kernel_elt_<GemmIn_t>(vo, vim, vic, vi_dim0,
+  tc_buf_write_kernel_elt_<GemmIn_t>(vo, vim, vic, vi_dim0,
     num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
     is_bitwise_3way_2step,
     nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
@@ -439,7 +424,7 @@ __global__ static void gm_tc_buf_write_kernel_(
 /// \brief Convert bitwise matrix to required format for GEMM.
 
 template<int TC_METHOD>
-static void gm_tc_buf_write_(
+static void tc_buf_write_(
   bool is_right, int I_max, int I_max_dim, int nvl,
   int npvfl, int npvfl_thisstep, int pvfl_min,
   const uint32_t* vi1, const uint32_t* vi2, TCBufs& tc_bufs, int step_2way,
@@ -510,7 +495,7 @@ static void gm_tc_buf_write_(
 #     ifdef COMET_USE_HIP
         hipLaunchKernelGGL(
 #     endif
-        gm_tc_buf_write_kernel_<GemmIn_t>
+        tc_buf_write_kernel_<GemmIn_t>
 #     ifdef COMET_USE_CUDA
         <<<
 #     else
@@ -536,7 +521,7 @@ static void gm_tc_buf_write_(
     for (int flD2_thisstep=0; flD2_thisstep<nflD2_thisstep; ++flD2_thisstep) {
       for (int vlX2=0; vlX2<nvleX2; ++vlX2) {
 
-        gm_tc_buf_write_kernel_elt_<GemmIn_t>(
+        tc_buf_write_kernel_elt_<GemmIn_t>(
           tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
           is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
           nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
@@ -557,7 +542,7 @@ static void gm_tc_buf_write_(
 /// \brief Call cublas to perform required GEMM.
 
 template<int TC_METHOD>
-static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
+static void tc_solve_impl(bool is_first, int m, int n, int k,
   void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
@@ -681,7 +666,7 @@ static void gm_tc_solve_impl(bool is_first, int m, int n, int k,
 /// \brief Call to perform required GEMM.
 
 template<int TC_METHOD>
-static void gm_tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
+static void tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
                          void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
@@ -694,7 +679,7 @@ static void gm_tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
   const int n = 2 * nvl; // metrics array dim
   const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
 
-  gm_tc_solve_impl<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
+  tc_solve_impl<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
 }
 
 //=============================================================================
@@ -705,7 +690,7 @@ static void gm_tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 /// \brief Swizzle individual elements in buf.
 
 template<typename GemmOut_t>
-__host__ __device__ static void gm_tc_repair_metrics_kernel_elt_(
+__host__ __device__ static void tc_repair_metrics_kernel_elt_(
   int nvl, int nvll, int nvllD2, void* vo,
   int thread_r, int thread_c) { 
 
@@ -787,7 +772,7 @@ __host__ __device__ static void gm_tc_repair_metrics_kernel_elt_(
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel to support gm_tc_repair_metrics_.
+/// \brief GPU kernel to support tc_repair_metrics_.
 ///
 ///        This function has two purposes:
 ///        1. Convert the 2X2 table from each pair of compared vectors
@@ -847,7 +832,7 @@ __host__ __device__ static void gm_tc_repair_metrics_kernel_elt_(
 ///        contiguous in memory.
 
 template<typename GemmOut_t>
-__global__ static void gm_tc_repair_metrics_kernel_(
+__global__ static void tc_repair_metrics_kernel_(
   int nvl, int nvll, int nvllD2, void* vo) { 
 
   // Row and column threads of metrics array.
@@ -858,7 +843,7 @@ __global__ static void gm_tc_repair_metrics_kernel_(
     return;
   }
 
-  gm_tc_repair_metrics_kernel_elt_<GemmOut_t>(
+  tc_repair_metrics_kernel_elt_<GemmOut_t>(
     nvl, nvll, nvllD2, vo,
     thread_r, thread_c);
 }
@@ -873,7 +858,7 @@ __global__ static void gm_tc_repair_metrics_kernel_(
 ///        This code does an in-place transformation from one to the other.
 
 template<int TC_METHOD>
-static void gm_tc_repair_metrics_(
+static void tc_repair_metrics_(
   int nvll,
   int nvl,
   void* vo,
@@ -903,7 +888,7 @@ static void gm_tc_repair_metrics_(
 #  ifdef COMET_USE_HIP
     hipLaunchKernelGGL(
 #  endif
-    gm_tc_repair_metrics_kernel_<GemmOut_t>
+    tc_repair_metrics_kernel_<GemmOut_t>
 #  ifdef COMET_USE_CUDA
         <<<
 #  else
@@ -931,7 +916,7 @@ static void gm_tc_repair_metrics_(
     for (int thread_c=0; thread_c<nvl; ++thread_c) {
       for (int thread_r=0; thread_r<nvllD2; ++thread_r) {
 
-        gm_tc_repair_metrics_kernel_elt_<GemmOut_t>(
+        tc_repair_metrics_kernel_elt_<GemmOut_t>(
           nvl, nvll, nvllD2, vo, thread_r, thread_c);
 
       }
@@ -1026,21 +1011,21 @@ static void tc_gemm_start_impl_(
     // of a type suitable for the GEMM.
     const bool left_matrix = false; // A
     const bool right_matrix = true; // B
-    gm_tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
+    tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs,
       step_2way, env);
-    gm_tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
+    tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, (uint32_t*)matB, (uint32_t*)matB, tc_bufs,
       step_2way, env);
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pvfl_min;
-    gm_tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
+    tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
       matC, tc_bufs, env);
   }
 
   // Revise the results of the GEMMs to be in the needed double complex format.
-  gm_tc_repair_metrics_<TC_METHOD>(nvll, nvl, matC, tc_bufs, env);
+  tc_repair_metrics_<TC_METHOD>(nvll, nvl, matC, tc_bufs, env);
 }
 
 //=============================================================================
