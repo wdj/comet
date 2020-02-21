@@ -2393,6 +2393,10 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
+TEST(DriverTest, tc) {
+  DriverTest_tc_();
+}
+
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();
 }
@@ -2415,10 +2419,6 @@ TEST(DriverTest, ccc2_simple_sparse) {
 
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
-}
-
-TEST(DriverTest, tc) {
-  DriverTest_tc_();
 }
 
 TEST(DriverTest, ccc2) {

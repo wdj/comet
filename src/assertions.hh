@@ -13,6 +13,16 @@
 
 #include <type_traits>
 
+#if defined COMET_USE_CUDA
+# ifdef __CUDA_ARCH__
+#   define COMET_DEVICE_COMPILE
+# endif
+#elif defined COMET_USE_HIP
+# ifdef __HIP_DEVICE_COMPILE__
+#   define COMET_DEVICE_COMPILE
+# endif
+#endif
+
 //=============================================================================
 // Macros.
 
@@ -22,15 +32,23 @@
 ///        This should be used only for non-performance-sensitive
 ///        code locations -- e.g., not in a deep loop nest.
 
+#ifndef COMET_DEVICE_COMPILE
 #define COMET_INSIST(condition) \
   (void)((condition) || (comet::assert_(#condition, __FILE__, __LINE__), 0))
+#else
+# define COMET_INSIST(condition)
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Insist macro specifically for a user-caused error condition.
 
-#define COMET_INSIST_INTERFACE(env, condition) \
-  (void)((condition) || \
-         (comet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
+#ifndef COMET_DEVICE_COMPILE
+# define COMET_INSIST_INTERFACE(env, condition) \
+    (void)((condition) || \
+           (comet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
+#else
+# define COMET_INSIST_INTERFACE(env, condition)
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Assertion macro (for debug builds only).

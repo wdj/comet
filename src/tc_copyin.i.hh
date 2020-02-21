@@ -112,9 +112,9 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
   const int _11 = 3;
 
   // Unimplemented cases:
-  //COMET_ASSERT( ! (is_duo && !is_sparse) );
-  //COMET_ASSERT( ! (is_duo && !is_bitwise_3way_2step) );
-  //COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) );
+  COMET_ASSERT( ! (is_duo && !is_sparse) );
+  COMET_ASSERT( ! (is_duo && !is_bitwise_3way_2step) );
+  COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) );
 
   const GemmIn_t out =  3 == num_way && is_left && is_duo ? (
                           snm == _10                             ? zero :
@@ -192,7 +192,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
   const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
-  //COMET_ASSERT(i01 == 0 || i01 == 1);
+  COMET_ASSERT(i01 == 0 || i01 == 1);
   const int vl = vlX2 / 2;
 
   const int flD2 = flD2_min + flD2_thisstep;
@@ -350,11 +350,34 @@ void tc_buf_write_(
 
 #   ifdef COMET_USE_ACCEL
 
+
+#ifdef COMET_USE_CUDA
+# define COMET_LAUNCH_KERNEL(name, \
+    numthreadblocks, threadblocksize, sharedmem, stream, ...) \
+    name <<< numthreadblocks, threadblocksize, sharedmem, stream >>> \
+      (__VA_ARGS__)
+#endif
+#ifdef COMET_USE_HIP
+# define COMET_LAUNCH_KERNEL(name, \
+    numthreadblocks, threadblocksize, sharedmem, stream, ...) \
+    hipLaunchKernelGGL(name, \
+      numthreadblocks, threadblocksize, sharedmem, stream, ___VA_ARGS__)
+#endif
+
       const int threadblocksize = 256;
       const int blockdim_y = 32768;
       const int num_threadblocks_0 = utils::ceil(nvleX2, threadblocksize);
       const int num_threadblocks_1 = utils::min(nflD2_thisstep, blockdim_y);
       const int num_threadblocks_2 = utils::ceil(nflD2_thisstep, blockdim_y);
+
+      COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<GemmIn_t>),
+        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
+        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+        tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
+        is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
+        nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
+
+#if 0
 
 #     ifdef COMET_USE_HIP
         hipLaunchKernelGGL(
@@ -375,6 +398,8 @@ void tc_buf_write_(
         tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
         is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
         nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
+
+#endif
 
       System::accel_last_call_succeeded();
 
