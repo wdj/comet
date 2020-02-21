@@ -361,7 +361,7 @@ void tc_buf_write_(
 # define COMET_LAUNCH_KERNEL(name, \
     numthreadblocks, threadblocksize, sharedmem, stream, ...) \
     hipLaunchKernelGGL(name, \
-      numthreadblocks, threadblocksize, sharedmem, stream, ___VA_ARGS__)
+      numthreadblocks, threadblocksize, sharedmem, stream, __VA_ARGS__)
 #endif
 
       const int threadblocksize = 256;

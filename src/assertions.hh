@@ -32,28 +32,20 @@
 ///        This should be used only for non-performance-sensitive
 ///        code locations -- e.g., not in a deep loop nest.
 
-#ifndef COMET_DEVICE_COMPILE
 #define COMET_INSIST(condition) \
   (void)((condition) || (comet::assert_(#condition, __FILE__, __LINE__), 0))
-#else
-# define COMET_INSIST(condition)
-#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Insist macro specifically for a user-caused error condition.
 
-#ifndef COMET_DEVICE_COMPILE
 # define COMET_INSIST_INTERFACE(env, condition) \
     (void)((condition) || \
            (comet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
-#else
-# define COMET_INSIST_INTERFACE(env, condition)
-#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Assertion macro (for debug builds only).
 
-#ifndef NDEBUG
+#if (! defined(NDEBUG)) && ! defined(COMET_DEVICE_COMPILE)
 #define COMET_ASSERTIONS_ON
 #define COMET_ASSERT(condition) COMET_INSIST(condition)
 #else
