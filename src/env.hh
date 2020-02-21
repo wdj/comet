@@ -31,7 +31,7 @@
 //#    define __global__
 //#  endif
 #elif defined COMET_USE_HIP
-#  include "hip/hip_runtime_api.h"
+//#  include "hip/hip_runtime_api.h"
 #  include "hip/hip_runtime.h"
 #else
 #  define __host__

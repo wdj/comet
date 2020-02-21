@@ -54,9 +54,9 @@ SET(LIB_INCLUDES
   src/linalg.hh
   src/tc.hh
   src/tc_helpers.i.hh
-  src/tc_copyin.i.hh
+  src/tc_in.i.hh
   src/tc_solve.i.hh
-  src/tc_copyout.i.hh
+  src/tc_out.i.hh
   src/metrics.hh
   src/metrics_2way_indexing.hh
   src/metrics_2way_accessors.hh
@@ -102,10 +102,6 @@ if(USE_CUDA)
   # NOTE: order of next lines matters.
   set_source_files_properties(src/tc.cc
                               PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-  #foreach(SRCFILE src/tc.cc src/tc_copyin.cc src/tc_solve.cc src/tc_copyout.cc)
-  #  set_source_files_properties(${SRCFILE}
-  #                              PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-  #endforeach()
   CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 elseif(USE_HIP) #=========================================
   if(NOT DEFINED HIP_PATH)

@@ -205,11 +205,19 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   // first field seminibble0, second field seminibble1
   // Set to zero if outside of active range.
 
-  const int nibblem = vl<nvlea ? (vim_col[flD2/8] >> (4*(flD2%8))) & 15 : 0;
+  enum {SNPW = 16}; // seminibbles per 32-bit word
+  enum {BPSN = 2}; // bits per seminibble
+  enum {SNPT = 2}; // seminibbles processed per thread
+  enum {C1 = SNPW/SNPT};
+  enum {C2 = SNPT*BPSN};
+
+  const int nibblem = vl<nvlea ? (vim_col[flD2/C1] >>
+    (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1) : 0;
   const int snm0 = nibblem & 3;
   const int snm1 = (nibblem>>2) & 3;
 
-  const int nibblec = vl<nvlea ? (vic[flD2/8] >> (4*(flD2%8))) & 15 : 0;
+  const int nibblec = vl<nvlea ? (vic    [flD2/C1] >>
+    (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1) : 0;
   const int snc0 = nibblec & 3;
   const int snc1 = (nibblec>>2) & 3;
 
@@ -234,8 +242,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   const int flD2_index = flD2_thisstep;
 
-  const int fl_index_0 = 0 + 2 * flD2_index;
-  const int fl_index_1 = 1 + 2 * flD2_index;
+  const int fl_index_0 = 0 + SNPT * flD2_index;
+  const int fl_index_1 = 1 + SNPT * flD2_index;
 
   const int vlX2_dim = nvleX2;
 
@@ -317,12 +325,14 @@ void tc_buf_write_(
 
   // num_field-related dimensions.
 
+  enum {SNPT = 2}; // seminibbles processed per thread
+
   const int nfl = npvfl * 64;
-  const int nflD2 = nfl / 2;
+  const int nflD2 = nfl / SNPT;
   const int nfl_thisstep = npvfl_thisstep * 64;
-  const int nflD2_thisstep = nfl_thisstep / 2;
+  const int nflD2_thisstep = nfl_thisstep / SNPT;
   const int fl_min = pvfl_min * 64;
-  const int flD2_min = fl_min / 2;
+  const int flD2_min = fl_min / SNPT;
   // Remember: end padding is set to zero; will correct zero counts later.
 
   // Arrays.
@@ -331,7 +341,7 @@ void tc_buf_write_(
   const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
   GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
                                       (GemmIn_t*)tc_bufs.tc_buf_left;
-  COMET_INSIST(nvleX2 * (size_t)(2*nflD2_thisstep) *
+  COMET_INSIST(nvleX2 * (size_t)(SNPT*nflD2_thisstep) *
            sizeof(typename TCSelector<TC_METHOD>::GemmIn_t)
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
@@ -365,6 +375,8 @@ void tc_buf_write_(
 #endif
 
       const int threadblocksize = 256;
+      COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+                   "Current HIP limitation.");
       const int blockdim_y = 32768;
       const int num_threadblocks_0 = utils::ceil(nvleX2, threadblocksize);
       const int num_threadblocks_1 = utils::min(nflD2_thisstep, blockdim_y);

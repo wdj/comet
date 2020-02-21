@@ -216,6 +216,8 @@ void tc_repair_metrics_(
 #ifdef COMET_USE_ACCEL
 
     const int threadblocksize = 256;
+    COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+                 "Current HIP limitation.");
     const int vll2_threadblocks = utils::ceil(nvllD2, threadblocksize);
 
 #  ifdef COMET_USE_HIP

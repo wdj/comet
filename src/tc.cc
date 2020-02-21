@@ -15,7 +15,7 @@
 #  include "cublas_v2.h"
 #  include "cuda_fp16.h"
 #elif defined COMET_USE_HIP
-#  include "hip/hip_runtime_api.h"
+//#  include "hip/hip_runtime_api.h"
 //#  pragma GCC diagnostic ignored "-Wc99-designator"
 #  include "hip/hip_runtime.h"
 #  include "rocblas.h"
@@ -32,9 +32,9 @@
 #include "env.hh"
 #include "tc.hh"
 #include "tc_helpers.i.hh"
-#include "tc_copyin.i.hh"
+#include "tc_in.i.hh"
 #include "tc_solve.i.hh"
-#include "tc_copyout.i.hh"
+#include "tc_out.i.hh"
 
 //=============================================================================
 
