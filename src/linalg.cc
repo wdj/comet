@@ -859,7 +859,7 @@ void gm_linalg_gemm_start(
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
-        step_2way, dm->tc_bufs, *env);
+        dm->num_field_active_local, step_2way, dm->tc_bufs, *env);
     }
   } else {
     gm_linalg_set_matrix_zero_start_(matC, env); // apparently needed by magma.
@@ -893,7 +893,7 @@ void gm_linalg_gemm_wait(
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
-        step_2way, dm->tc_bufs, *env);
+        dm->num_field_active_local, step_2way, dm->tc_bufs, *env);
       matA1->unlock_h();
       if (matA2 != matA1 && matA2 != matB) {
         matA2->unlock_h();

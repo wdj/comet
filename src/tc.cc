@@ -88,7 +88,7 @@ template<int TC_METHOD>
 static void tc_gemm_start_impl_(
   int m, int n, int k,
   const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
-  TCBufs& tc_bufs, int step_2way, CEnv& env) {
+  TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
   const int nvl = n;
   const int npvfl = k;
@@ -124,10 +124,10 @@ static void tc_gemm_start_impl_(
     const bool right_matrix = true; // B
     tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs,
-      step_2way, env);
+      nfal, step_2way, env);
     tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, (uint32_t*)matB, (uint32_t*)matB, tc_bufs,
-      step_2way, env);
+      nfal, step_2way, env);
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pvfl_min;
@@ -150,13 +150,14 @@ void tc_gemm_start(
   int m, int n, int k,
   const void* matA1, int ldda1, const void* matA2, int ldda2,
   const void* matB, int lddb, void* matC, int lddc,
-  int step_2way, TCBufs& tc_bufs, CEnv& env) {
+  int nfal, int step_2way, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
   COMET_INSIST(ldda1 >= 0 && ldda2 >= 0 && lddb >= 0 && lddc >= 0);
   COMET_INSIST(k <= ldda1 && k <= ldda2 && k <= lddb && m <= lddc);
   COMET_INSIST(env.tc_eff() != TC::NO);
   COMET_INSIST(env.is_metric_type_bitwise());
+  COMET_INSIST(nfal <= 64 * k);
 
   COMET_INSIST(tc_bufs.tc_buf_left);
 
@@ -168,17 +169,17 @@ void tc_gemm_start(
     // --------------
     case TC::INT8: {
       tc_gemm_start_impl_<TC::INT8>(
-        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
+        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, nfal, step_2way, env);
     } break;
     // --------------
     case TC::FP16: {
       tc_gemm_start_impl_<TC::FP16>(
-        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
+        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, nfal, step_2way, env);
     } break;
     // --------------
     case TC::FP32: {
       tc_gemm_start_impl_<TC::FP32>(
-        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, step_2way, env);
+        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, nfal, step_2way, env);
     } break;
     // --------------
     default:

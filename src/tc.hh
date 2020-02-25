@@ -49,7 +49,7 @@ void tc_gemm_start(
   int m, int n, int k,
   const void* matA1, int ldda1, const void* matA2, int ldda2,
   const void* matB, int lddb, void* matC, int lddc,
-  int step_2way, TCBufs& tc_bufs, CEnv& env);
+  int nfal, int step_2way, TCBufs& tc_bufs, CEnv& env);
 
 void tc_bufs_malloc(
   int num_vector_local,

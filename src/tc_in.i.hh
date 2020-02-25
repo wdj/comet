@@ -187,7 +187,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   int nflD2_thisstep,
   int flD2_min,
   int vlX2,
-  int flD2_thisstep) {
+  int flD2_thisstep,
+  int nfal) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
@@ -211,13 +212,20 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   enum {C1 = SNPW/SNPT};
   enum {C2 = SNPT*BPSN};
 
-  const int nibblem = vl<nvlea ? (vim_col[flD2/C1] >>
-    (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1) : 0;
+  const int flD2_index = flD2_thisstep;
+
+  const int fl_index_0 = 0 + SNPT * flD2_index;
+  const int fl_index_1 = 1 + SNPT * flD2_index;
+
+  const int nibblem = vl >= nvlea ? 0 :
+    // fl_index_0 >= nfal ? 0 :
+    (vim_col[flD2/C1] >> (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1);
   const int snm0 = nibblem & 3;
   const int snm1 = (nibblem>>2) & 3;
 
-  const int nibblec = vl<nvlea ? (vic    [flD2/C1] >>
-    (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1) : 0;
+  const int nibblec = vl >= nvlea ? 0 :
+    // fl_index_0 >= nfal ? 0 :
+    (vic    [flD2/C1] >> (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1);
   const int snc0 = nibblec & 3;
   const int snc1 = (nibblec>>2) & 3;
 
@@ -239,11 +247,6 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   const int vl_index = is_right ? vl : vl < nvleD2 ? 2*vl : 2*vl - nvle + 1;
   const int vlX2_index = i01 + 2*vl_index;
-
-  const int flD2_index = flD2_thisstep;
-
-  const int fl_index_0 = 0 + SNPT * flD2_index;
-  const int fl_index_1 = 1 + SNPT * flD2_index;
 
   const int vlX2_dim = nvleX2;
 
@@ -274,7 +277,8 @@ __global__ static void tc_buf_write_kernel_(
   int nfl,
   int nflD2,
   int nflD2_thisstep,
-  int flD2_min) {
+  int flD2_min,
+  int nfal) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
@@ -289,7 +293,7 @@ __global__ static void tc_buf_write_kernel_(
     num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
     is_bitwise_3way_2step,
     nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
-    vlX2, flD2_thisstep);
+    vlX2, flD2_thisstep, nfal);
 }
 
 //-----------------------------------------------------------------------------
@@ -299,8 +303,8 @@ template<int TC_METHOD>
 void tc_buf_write_(
   bool is_right, int I_max, int I_max_dim, int nvl,
   int npvfl, int npvfl_thisstep, int pvfl_min,
-  const uint32_t* vi1, const uint32_t* vi2, TCBufs& tc_bufs, int step_2way,
-  CEnv& env) {
+  const uint32_t* vi1, const uint32_t* vi2, TCBufs& tc_bufs,
+  int nfal, int step_2way, CEnv& env) {
 
   COMET_INSIST(vi1 && vi2);
   COMET_INSIST(I_max_dim >= 0 && I_max_dim <= nvl);
@@ -387,7 +391,8 @@ void tc_buf_write_(
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
         is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
-        nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
+        nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
+        nfal);
 
 #if 0
 
@@ -409,7 +414,8 @@ void tc_buf_write_(
 #     endif
         tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
         is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
-        nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min);
+        nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
+        nfal);
 
 #endif
 
@@ -426,7 +432,7 @@ void tc_buf_write_(
           tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
           is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
           nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
-          vlX2, flD2_thisstep);
+          vlX2, flD2_thisstep, nfal);
 
       }
 //printf("========================== %i\n", flD2_thisstep);
