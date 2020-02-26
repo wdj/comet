@@ -830,6 +830,9 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
   if (!(env->is_metric_type_bitwise() && env->is_using_linalg()))
     return;
 
+  if (env->is_using_tc())
+    return;
+
   // TODO: should more of this be owned by decomp_mgr
 
   const int cbpe = env->counted_bits_per_elt();

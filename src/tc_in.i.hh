@@ -217,14 +217,18 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   const int fl_index_0 = 0 + SNPT * flD2_index;
   const int fl_index_1 = 1 + SNPT * flD2_index;
 
-  const int nibblem = vl >= nvlea ? 0 :
-    // fl_index_0 >= nfal ? 0 :
+  const bool is_vector_inactive = vl >= nvlea;
+  const bool is_field_inactive_0 = SNPT * flD2_min + fl_index_0 >= nfal;
+  const bool is_field_inactive_1 = SNPT * flD2_min + fl_index_1 >= nfal;
+//if(vl==0)
+//printf("%i %i %i %i\n", fl_index_0, fl_index_1, nfal, nfl);
+
+  const int nibblem = is_vector_inactive ? 0 :
     (vim_col[flD2/C1] >> (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1);
   const int snm0 = nibblem & 3;
   const int snm1 = (nibblem>>2) & 3;
 
-  const int nibblec = vl >= nvlea ? 0 :
-    // fl_index_0 >= nfal ? 0 :
+  const int nibblec = is_vector_inactive ? 0 :
     (vic    [flD2/C1] >> (C2*(flD2%C1))) & ((((uint32_t)1)<<C2)-1);
   const int snc0 = nibblec & 3;
   const int snc1 = (nibblec>>2) & 3;
@@ -233,13 +237,15 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   // Determine whether to skip (1,0) null indicator value.
   // NOTE: does not work for all cases.
 
-  const GemmIn_t out0 = tc_buf_write_kernel_value_<GemmIn_t>(snm0, snc0, i01,
-    num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
-    is_bitwise_3way_2step);
+  const GemmIn_t out0 = is_field_inactive_0 ? 0 :
+    tc_buf_write_kernel_value_<GemmIn_t>(snm0, snc0, i01,
+      num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
+      is_bitwise_3way_2step);
 
-  const GemmIn_t out1 = tc_buf_write_kernel_value_<GemmIn_t>(snm1, snc1, i01,
-    num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
-    is_bitwise_3way_2step);
+  const GemmIn_t out1 = is_field_inactive_1 ? 0 :
+    tc_buf_write_kernel_value_<GemmIn_t>(snm1, snc1, i01,
+      num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
+      is_bitwise_3way_2step);
 
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make later swizzling of metrics array work:
