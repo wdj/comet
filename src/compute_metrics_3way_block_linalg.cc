@@ -58,7 +58,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
 
   } else if (env.is_metric_type_bitwise()) {
 
-    // Extract column J of vectors_I, later use to form matX.
+    // Extract column J of vectors_J, later use to form matX.
 
     if (env.form_matX_on_accel()) {
 
@@ -71,7 +71,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
         }
       }
 
-    } else { // if (env.form_matX_on_accel())
+    } else { // if (!env.form_matX_on_accel())
 
       COMET_INSIST(env.metric_type() == MetricType::CCC &&
                    "Case currently unimplemented.");
@@ -338,7 +338,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
             r111_permuted += matB11_permuted;
           }
 
-        } else { // if (env.is_bitwise_3way_2step())
+        } else { // if (!env.is_bitwise_3way_2step())
 
           if (step_2way==0) {
             r000_permuted += 2 * matB00_permuted;
@@ -628,10 +628,6 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     LoopVars& vars_prev = vars_buf[(step_num - first_step + 1) % num_buf];
     LoopVars& vars = vars_buf[(step_num - first_step + 2) % num_buf];
     LoopVars& vars_next = vars_buf[(step_num - first_step + 3) % num_buf];
-
-    //vars_prevprev = vars_prev;
-    //vars_prev = vars;
-    //vars = vars_next;
 
     vars_next.step_num = step_num + 1;
     vars_next.step_2way = utils::mod_i(vars_next.step_num, num_step_2way);

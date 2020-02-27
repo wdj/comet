@@ -95,7 +95,8 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
   // NOTE: does not work for all cases.
 
   const bool is_left = ! is_right;
-  const bool skip_10 = is_sparse || (num_way == 3 && is_left);
+  const bool num_way_3 = 3 == num_way;
+  const bool num_way_3_left = num_way_3 && is_left;
 
   // Possible counts, represented in target type.
 
@@ -110,54 +111,70 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
   const int _01 = 1;
   const int _10 = 2;
   const int _11 = 3;
+  const int _UNDEF = _10;
 
-  // Unimplemented cases:
-  COMET_ASSERT( ! (is_duo && !is_sparse) );
-  COMET_ASSERT( ! (is_duo && !is_bitwise_3way_2step) );
-  COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) );
+  // Test for unimplemented cases:
+  COMET_ASSERT( ! (is_duo && !is_sparse) &&
+                "DUO only implemented for sparse case");
+  COMET_ASSERT( ! (is_duo && !is_bitwise_3way_2step) &&
+                "DUO 3way only implemented for 2step case");
+  COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) &&
+               "3way 2step requires form_matX_on_accel");
 
-  const GemmIn_t out =  3 == num_way && is_left && is_duo ? (
-                          snm == _10                             ? zero :
-                          snc == _10                             ? zero :
-                          (snm&1) == step_2way && (snc&1) == i01 ? one :
-                                                                   zero
-                        ) : //====================
-                        is_duo ? (
-                           snm == _10         ? zero :
-                          (snm & 1) == i01    ? one :
-                       /* (snm & 1) == 1-i01 */ zero
-                        ) : //====================
-                        3 == num_way && is_left &&
-                        is_bitwise_3way_2step /* && is_ccc */ ? (
-                          snm == _10 && is_sparse              ? zero :
-                          snc == _10 && is_sparse              ? zero :
-                          snm == _11*(1-step_2way)             ? zero :
-                          snc == _11*(1-i01)                   ? zero :
-                          is_po2(snm) && is_po2(snc)           ? one :
-                          is_po2(snm) && snc == _11*i01        ? two :
-                          is_po2(snc) && snm == _11*step_2way  ? two :
-                        /* snm*(3-snm) + (snc)*(3-snc) == 0 */ four
-                        ) : //====================
-                        3 == num_way && is_left &&
-                        form_matX_on_accel /* && is_ccc */ ? (
-                          snm == _10 && is_sparse      ? zero :
-                          snm == _00 && step_2way != 0 ? zero :
-                          snm == _01 && step_2way != 1 ? zero :
-                          snm == _10 && step_2way != 1 ? zero :
-                          snm == _11 && step_2way != 2 ? zero :
-                          snc == _11*i01               ? two :
-                          snc == _11*(1-i01)           ? zero :
-                          snc == _01                   ? one :
-                                  is_sparse            ? zero :
-                       /* snc == _10 */                  one
-                        ) : //====================
-                        /* is_ccc ... */ (
-                          snm == _11*i01      ? two :
-                          snm == _11*(1-i01)  ? zero :
-                                  !skip_10    ? one :
-                          snm == _01          ? one :
-                       /* snm == _10 */         zero
-                        );
+  const GemmIn_t out =
+    is_duo && num_way_3_left ? (
+
+             // Form X: combine the column and matrix
+             snm == _UNDEF || snc == _UNDEF         ? zero :
+             (snm&1) == step_2way && (snc&1) == i01 ? one :
+                                                      zero
+
+    ) : is_duo /* && is_sparse */ ? (
+
+             // DUO: pick up low order bit (unless undefined)
+             snm == _UNDEF       ? zero :
+             (snm & 1) == i01    ? one :
+          /* (snm & 1) == 1-i01 */ zero
+
+    ) : num_way_3_left && is_bitwise_3way_2step
+        /* && is_ccc && form_matX_on_accel */ ? (
+
+             // Form X: combine the column and matrix
+             snm == _UNDEF && is_sparse           ? zero :
+             snc == _UNDEF && is_sparse           ? zero :
+             snm == _11*(1-step_2way)             ? zero :
+             snc == _11*(1-i01)                   ? zero :
+             is_po2(snm) && is_po2(snc)           ? one :
+             is_po2(snm) && snc == _11*i01        ? two :
+             is_po2(snc) && snm == _11*step_2way  ? two :
+          /* snm*(3-snm) + (snc)*(3-snc) == 0 */    four
+
+    ) : num_way_3_left && form_matX_on_accel
+        /* && is_ccc && !is_bitwise_3way_2step */ ? (
+
+             // Encode based on 2way step num
+             snm == _UNDEF && is_sparse   ? zero :
+             snm == _00 && step_2way != 0 ? zero :
+             snm == _01 && step_2way != 1 ? zero :
+             snm == _10 && step_2way != 1 ? zero :
+             snm == _11 && step_2way != 2 ? zero :
+             snc == _11*i01               ? two :
+             snc == _11*(1-i01)           ? zero :
+             snc == _01                   ? one :
+             is_sparse                    ? zero :
+          /* snc == _10 */                  one
+
+    ) : /* is_ccc ... */ (
+
+             snm == _11*i01                    ? two :
+             snm == _11*(1-i01)                ? zero :
+             snm == _01                        ? one :
+             snm == _UNDEF && is_sparse        ? zero :
+          /* snm == _UNDEF && num_way_3_left   ? zero :*/
+          /* snm == _10 && ... */                one
+
+    );
+
   return out;
 }
 
