@@ -195,25 +195,28 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   bool form_matX_on_accel,
   int step_2way,
   bool is_bitwise_3way_2step,
-  int nvlea,
+
   int nvle,
   int nvleD2,
-  int nvleX2,
+  int nvleX2_thread,
+  int nvlea,
+
   int nfl,
   int nflD2,
-  int nflD2_thisstep,
+  int nflD2_thread,
   int flD2_min,
-  int vlX2,
-  int flD2_thisstep,
-  int nfal) {
+  int nfal,
+
+  int vlX2_thread,
+  int flD2_thread) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
-  const int i01 = vlX2 % 2; // count either 0 bits or 1 bits.
+  const int i01 = vlX2_thread % 2; // count either 0 bits or 1 bits.
   COMET_ASSERT(i01 == 0 || i01 == 1);
-  const int vl = vlX2 / 2;
+  const int vl = vlX2_thread / 2;
 
-  const int flD2 = flD2_min + flD2_thisstep;
+  const int flD2 = flD2_min + flD2_thread;
 
   // Output array interpreted as having GemmIn_t scalars has nfl rows.
 
@@ -229,7 +232,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   enum {C1 = SNPW/SNPT};
   enum {C2 = SNPT*BPSN};
 
-  const int flD2_index = flD2_thisstep;
+  const int flD2_index = flD2_thread;
 
   const int fl_index_0 = 0 + SNPT * flD2_index;
   const int fl_index_1 = 1 + SNPT * flD2_index;
@@ -271,7 +274,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   const int vl_index = is_right ? vl : vl < nvleD2 ? 2*vl : 2*vl - nvle + 1;
   const int vlX2_index = i01 + 2*vl_index;
 
-  const int vlX2_dim = nvleX2;
+  const int vlX2_dim = nvleX2_thread;
 
   vo[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
   vo[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;
@@ -293,30 +296,32 @@ __global__ static void tc_buf_write_kernel_(
   bool form_matX_on_accel,
   int step_2way,
   bool is_bitwise_3way_2step,
-  int nvlea,
+
   int nvle,
   int nvleD2,
-  int nvleX2,
+  int nvleX2_thread,
+  int nvlea,
+
   int nfl,
   int nflD2,
-  int nflD2_thisstep,
+  int nflD2_thread,
   int flD2_min,
   int nfal) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
-  const int vlX2 = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int flD2_thisstep = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+  const int vlX2_thread = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int flD2_thread = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
 
-  if (vlX2 >= nvleX2 || flD2_thisstep >= nflD2_thisstep) {
+  if (vlX2_thread >= nvleX2_thread || flD2_thread >= nflD2_thread) {
     return;
   }
 
   tc_buf_write_kernel_elt_<GemmIn_t>(vo, vim, vic, vi_dim0,
     num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
     is_bitwise_3way_2step,
-    nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
-    vlX2, flD2_thisstep, nfal);
+    nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflD2, nflD2_thread, flD2_min, nfal,
+    vlX2_thread, flD2_thread);
 }
 
 //-----------------------------------------------------------------------------
@@ -325,9 +330,9 @@ __global__ static void tc_buf_write_kernel_(
 template<int TC_METHOD>
 void tc_buf_write_(
   bool is_right, int I_max, int I_max_dim, int nvl,
-  int npvfl, int npvfl_thisstep, int pvfl_min,
+  int npvfl, int npvfl_thisstep, int pvfl_min, int nfal,
   const uint32_t* vi1, const uint32_t* vi2, TCBufs& tc_bufs,
-  int nfal, int step_2way, CEnv& env) {
+  int step_2way, CEnv& env) {
 
   COMET_INSIST(vi1 && vi2);
   COMET_INSIST(I_max_dim >= 0 && I_max_dim <= nvl);
@@ -381,6 +386,9 @@ void tc_buf_write_(
   const uint32_t* vim = form_matX_on_accel ? vi2 : vi1; // matrix
   const uint32_t* vic = form_matX_on_accel ? vi1 : unused_col; // column
 
+  const int nvleX2_thread = nvleX2;
+  const int nflD2_thread = nflD2_thisstep;
+
   if (env.is_compute_method_gpu()) {
 
     // Kernel call.
@@ -405,17 +413,17 @@ void tc_buf_write_(
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
                    "Current HIP limitation.");
       const int blockdim_y = 32768;
-      const int num_threadblocks_0 = utils::ceil(nvleX2, threadblocksize);
-      const int num_threadblocks_1 = utils::min(nflD2_thisstep, blockdim_y);
-      const int num_threadblocks_2 = utils::ceil(nflD2_thisstep, blockdim_y);
+      const int num_threadblocks_0 = utils::ceil(nvleX2_thread, threadblocksize);
+      const int num_threadblocks_1 = utils::min(nflD2_thread, blockdim_y);
+      const int num_threadblocks_2 = utils::ceil(nflD2_thread, blockdim_y);
 
       COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<GemmIn_t>),
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
         is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
-        nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
-        nfal);
+        nvle, nvleD2, nvleX2_thread, nvlea,
+        nfl, nflD2, nflD2_thread, flD2_min, nfal);
 
 #if 0
 
@@ -437,7 +445,7 @@ void tc_buf_write_(
 #     endif
         tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
         is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
-        nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
+        nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflD2, nflD2_thread, flD2_min,
         nfal);
 
 #endif
@@ -448,17 +456,17 @@ void tc_buf_write_(
 
   } else { // (!env.is_compute_method_gpu())
 
-    for (int flD2_thisstep=0; flD2_thisstep<nflD2_thisstep; ++flD2_thisstep) {
-      for (int vlX2=0; vlX2<nvleX2; ++vlX2) {
+    for (int flD2_thread=0; flD2_thread<nflD2_thread; ++flD2_thread) {
+      for (int vlX2_thread=0; vlX2_thread<nvleX2_thread; ++vlX2_thread) {
 
         tc_buf_write_kernel_elt_<GemmIn_t>(
           tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
           is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
-          nvlea, nvle, nvleD2, nvleX2, nfl, nflD2, nflD2_thisstep, flD2_min,
-          vlX2, flD2_thisstep, nfal);
+          nvle, nvleD2, nvleX2_thread, nvlea,
+          nfl, nflD2, nflD2_thread, flD2_min, nfal,
+          vlX2_thread, flD2_thread);
 
       }
-//printf("========================== %i\n", flD2_thisstep);
     }
 
   } // if (env.is_compute_method_gpu())
