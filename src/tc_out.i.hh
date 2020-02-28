@@ -53,6 +53,7 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t f12 = fvo[fcr_offset1+2];
   const GemmOut_t f13 = fvo[fcr_offset1+3];
 //printf("%f %f %f %f %f %f %f %f\n", (float)f00, (float)f01, (float)f02, (float)f03, (float)f10, (float)f11, (float)f12, (float)f13);
+//printf("%i %i %i %i %i %i %i %i\n", (int)f00, (int)f01, (int)f02, (int)f03, (int)f10, (int)f11, (int)f12, (int)f13);
 
   // Apply the permutation:
 

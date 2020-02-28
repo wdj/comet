@@ -52,6 +52,8 @@ public:
     return ((T*)(h))[i0 + dim0 * i1];
   }
 
+  void set_zero_h();
+
   void to_accel_start();
   void to_accel_wait();
   void to_accel();

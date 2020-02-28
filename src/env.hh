@@ -304,19 +304,12 @@ public:
     COMET_INSIST(is_metric_type_bitwise());
     return MetricType::CCC == metric_type_ ? 2 : 1;
   }
-
-
-
   bool threshold_on_accel() const {
-    return true; //FIX
+    return true;
   }
-
   bool is_vectors_halved() const {
     return 3 == num_way() && is_using_tc() && threshold_on_accel();
   }
-
-
-
 
   int data_type_vectors() const;
   int data_type_metrics() const;

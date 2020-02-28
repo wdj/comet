@@ -169,6 +169,16 @@ void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
 
 //-----------------------------------------------------------------------------
 
+void MirroredBuf::set_zero_h() {
+  COMET_INSIST(is_allocated);
+
+  for (size_t i=0; i<size; ++i) {
+    ((char*)h)[i] = 0;
+  }
+}
+
+//-----------------------------------------------------------------------------
+
 void MirroredBuf::deallocate() {
   COMET_INSIST(!is_locked_h_ && !is_locked_d_);
 
