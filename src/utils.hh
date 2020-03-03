@@ -19,6 +19,7 @@
 #include "algorithm"
 #include "vector"
 
+#include "env.hh"
 #include "assertions.hh"
 #include "types.hh"
 
@@ -176,8 +177,8 @@ static int popc64(uint64_t x) {
 /// \brief Fast sort of 3 values.
 
 template<typename T>
-static void sort_3(T& min_, T& mid_, T& max_,
-                   const T& a, const T& b, const T& c) {
+static __host__ __device__ void sort_3(T& min_, T& mid_, T& max_,
+                                       const T& a, const T& b, const T& c) {
   if (a > b) {
     if (a > c) {
       max_ = a;

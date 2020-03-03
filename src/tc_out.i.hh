@@ -20,12 +20,29 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Encode two metrics values into a double.
+
+template<typename GemmOut_t>
+__host__ __device__ static double tc_metrics_encode_(
+  GemmOut_t f0, GemmOut_t f1) {
+
+  // Use "shifter" to move a value to the upper half of the mantissa.
+
+  const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
+
+  // Pack two 26-bit integers into mantissa of double.
+
+  const double result = (double)f0 + (double)f1 * shifter;
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Swizzle individual elements in buf.
 
 template<typename GemmOut_t>
 __host__ __device__ static void tc_repair_metrics_kernel_elt_(
-  int nvl, int nvll, int nvllD2, void* vo,
-  int thread_r, int thread_c) { 
+  int nvl, int nvll, int nvllD2, void* vo, int thread_r, int thread_c) { 
 
   // Considered as an array of floats, array is 2*nvl rows X 2*nvl cols.
   // Each thread manipulates a block of 4 rows and 2 cols.
@@ -36,75 +53,77 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
 
   // ISSUE: does the compiler need to / understand that the pointers are aliased
 
-  const size_t fcr_offset0 = 4*thread_r + thread_c * (size_t)(4*nvll);
-  const size_t fcr_offset1 = 4*thread_r + thread_c * (size_t)(4*nvll) + 2*nvll;
+  const size_t ivo_offset0 = 4*thread_r + thread_c * (size_t)(4*nvll);
+  const size_t ivo_offset1 = 4*thread_r + thread_c * (size_t)(4*nvll) + 2*nvll;
 
   // Read the 8 values.
 
-  GemmOut_t* const fvo = (GemmOut_t*)vo;
+  GemmOut_t* const ivo = (GemmOut_t*)vo;
 
-  const GemmOut_t f00 = fvo[fcr_offset0+0];
-  const GemmOut_t f01 = fvo[fcr_offset0+1];
-  const GemmOut_t f02 = fvo[fcr_offset0+2];
-  const GemmOut_t f03 = fvo[fcr_offset0+3];
+  const GemmOut_t i00 = ivo[ivo_offset0+0];
+  const GemmOut_t i01 = ivo[ivo_offset0+1];
+  const GemmOut_t i02 = ivo[ivo_offset0+2];
+  const GemmOut_t i03 = ivo[ivo_offset0+3];
 
-  const GemmOut_t f10 = fvo[fcr_offset1+0];
-  const GemmOut_t f11 = fvo[fcr_offset1+1];
-  const GemmOut_t f12 = fvo[fcr_offset1+2];
-  const GemmOut_t f13 = fvo[fcr_offset1+3];
-//printf("%f %f %f %f %f %f %f %f\n", (float)f00, (float)f01, (float)f02, (float)f03, (float)f10, (float)f11, (float)f12, (float)f13);
-//printf("%i %i %i %i %i %i %i %i\n", (int)f00, (int)f01, (int)f02, (int)f03, (int)f10, (int)f11, (int)f12, (int)f13);
+  const GemmOut_t i10 = ivo[ivo_offset1+0];
+  const GemmOut_t i11 = ivo[ivo_offset1+1];
+  const GemmOut_t i12 = ivo[ivo_offset1+2];
+  const GemmOut_t i13 = ivo[ivo_offset1+3];
+//printf("%f %f %f %f %f %f %f %f\n", (float)i00, (float)i01, (float)i02, (float)i03, (float)i10, (float)i11, (float)i12, (float)i13);
+//printf("%i %i %i %i %i %i %i %i\n", (int)i00, (int)i01, (int)i02, (int)i03, (int)i10, (int)i11, (int)i12, (int)i13);
 
   // Apply the permutation:
 
-  // [ f00  f10 ]  ->  [ f00  f02 ]
-  // [ f01  f11 ]  ->  [ f01  f03 ]
-  // [ f02  f12 ]  ->  [ f10  f12 ]
-  // [ f03  f13 ]  ->  [ f11  f13 ]
+  // [ i00  i10 ]  ->  [ i00  i02 ]
+  // [ i01  i11 ]  ->  [ i01  i03 ]
+  // [ i02  i12 ]  ->  [ i10  i12 ]
+  // [ i03  i13 ]  ->  [ i11  i13 ]
 
-  const GemmOut_t f00p = f00;
-  const GemmOut_t f01p = f01;
+  const GemmOut_t i00p = i00;
+  const GemmOut_t i01p = i01;
 
-  const GemmOut_t f02p = f10;
-  const GemmOut_t f03p = f11;
+  const GemmOut_t i02p = i10;
+  const GemmOut_t i03p = i11;
 
-  const GemmOut_t f10p = f02;
-  const GemmOut_t f11p = f03;
+  const GemmOut_t i10p = i02;
+  const GemmOut_t i11p = i03;
 
-  const GemmOut_t f12p = f12;
-  const GemmOut_t f13p = f13;
+  const GemmOut_t i12p = i12;
+  const GemmOut_t i13p = i13;
 
-  // Use "shifter" to move a value to the upper half of the mantissa.
+//  // Use "shifter" to move a value to the upper half of the mantissa.
+//
+//  const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
+//
+//  // Pack two 26-bit integers into mantissa of double.
+//
+//  const double o00 = (double)i00p + (double)i02p * shifter;
+//  const double o01 = (double)i01p + (double)i03p * shifter;
+//
+//  const double o10 = (double)i10p + (double)i12p * shifter;
+//  const double o11 = (double)i11p + (double)i13p * shifter;
 
-  const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
+  const double o00 = tc_metrics_encode_(i00p, i02p);
+  const double o01 = tc_metrics_encode_(i01p, i03p);
 
-  // Pack two 26-bit integers into mantissa of double.
-
-  const double d00 = (double)f00p + (double)f02p * shifter;
-  const double d01 = (double)f01p + (double)f03p * shifter;
-
-  const double d10 = (double)f10p + (double)f12p * shifter;
-  const double d11 = (double)f11p + (double)f13p * shifter;
+  const double o10 = tc_metrics_encode_(i10p, i12p);
+  const double o11 = tc_metrics_encode_(i11p, i13p);
 
   // Overwrite block with the new values.
   // All is isolated to a single thread, should be thread safe.
 
-  const size_t dc_offset0 = thread_c * (size_t)(2*nvll);
-  const size_t dc_offset1 = thread_c * (size_t)(2*nvll) + nvll;
+  const size_t o_offset0 = 2 * thread_r + thread_c * (size_t)(2*nvll);
+  const size_t o_offset1 = 2 * thread_r + thread_c * (size_t)(2*nvll) + nvll;
 
-  const size_t dcr_offset0 = dc_offset0 + 2*thread_r;
-  const size_t dcr_offset1 = dc_offset1 + 2*thread_r;
+  double* const ovo = (double*)vo;
 
-  double* const dvo = (double*)vo;
+  ovo[o_offset0+0] = o00;
+  ovo[o_offset0+1] = o01;
 
-  dvo[dcr_offset0+0] = d00;
-  dvo[dcr_offset0+1] = d01;
-
-  dvo[dcr_offset1+0] = d10;
-  dvo[dcr_offset1+1] = d11;
+  ovo[o_offset1+0] = o10;
+  ovo[o_offset1+1] = o11;
 }
 
-//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support tc_repair_metrics_.
 ///

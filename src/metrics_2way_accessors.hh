@@ -14,6 +14,7 @@
 #include "cstdio"
 
 #include "metrics_2way_indexing.hh"
+#include "formulas.hh"
 
 //=============================================================================
 
@@ -84,6 +85,7 @@ static GMFloat GMMetrics_czek_get_from_index(GMMetrics* metrics,
   return GMMetrics_float_get_from_index(metrics, index, env);
 }
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Formula for a single 2-way CCC or DUO result.
 
@@ -116,6 +118,7 @@ static GMFloat GMMetrics_ccc_duo_value_2_impl_(
 
   return result;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Templatized access to the CCC or DUO formula.
@@ -132,7 +135,12 @@ static GMFloat GMMetrics_ccc_duo_value_2(
   CEnv* env) {
   COMET_ASSERT(metrics && env);
 
-  return GMMetrics_ccc_duo_value_2_impl_<COUNTED_BITS_PER_ELT>(
+//  return GMMetrics_ccc_duo_value_2_impl_<COUNTED_BITS_PER_ELT>(
+//    rij, si, sj, recip_ci, recip_cj, recip_sumcij,
+//    env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
+//    env->ccc_param());
+
+  return ccc_duo_value_2<GMFloat, COUNTED_BITS_PER_ELT>(
     rij, si, sj, recip_ci, recip_cj, recip_sumcij,
     env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
     env->ccc_param());

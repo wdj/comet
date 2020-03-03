@@ -194,6 +194,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       } else {
         COMET_INSIST_INTERFACE(env, false && "Invalid setting for problem_type.");
       }
+#if 0
     /*----------*/
     } else if (strcmp(argv[i], "--threshold") == 0) {
     /*----------*/
@@ -203,7 +204,10 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       const double threshold = strtod(argv[i], NULL);
       COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
       do_->threshold = threshold;
+#endif
      /*----------*/
+    } else if (strcmp(argv[i], "--threshold") == 0) {
+      ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--metric_type") == 0) {
       ++i; /*---processed elsewhere by CEnv---*/
     } else if (strcmp(argv[i], "--num_way") == 0) {
@@ -340,7 +344,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
   //do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
   do_.problem_type = problem_type_default();
-  do_.threshold = -1.;
+  //do_.threshold = -1.;
   do_.checksum = true;
   do_.num_incorrect = 0;
   do_.max_incorrect_diff = 0.;

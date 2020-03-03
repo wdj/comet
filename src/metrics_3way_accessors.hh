@@ -12,6 +12,7 @@
 #define _comet_metrics_3way_accessors_hh_
 
 #include "metrics_3way_indexing.hh"
+#include "formulas.hh"
 
 //=============================================================================
 
@@ -60,6 +61,7 @@ static GMTally4x2 GMMetrics_tally4x2_get_from_index(GMMetrics* metrics,
 //=============================================================================
 /*---Accessors: value from (contig) index: derived---*/
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Formula for a single 3-way CCC or DUO result.
 
@@ -96,6 +98,7 @@ static GMFloat GMMetrics_ccc_duo_value_3_impl_(
 
   return result;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Templatized access to the CCC or DUO formula.
@@ -114,7 +117,12 @@ static GMFloat GMMetrics_ccc_duo_value_3(
   CEnv* env) {
   COMET_ASSERT(metrics && env);
 
-  return GMMetrics_ccc_duo_value_3_impl_<COUNTED_BITS_PER_ELT>(
+//  return GMMetrics_ccc_duo_value_3_impl_<COUNTED_BITS_PER_ELT>(
+//    rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk,
+//    env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
+//    env->ccc_param());
+
+  return ccc_duo_value_3<GMFloat, COUNTED_BITS_PER_ELT>(
     rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk,
     env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
     env->ccc_param());

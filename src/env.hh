@@ -18,6 +18,7 @@
 #include "float.h"
 #include "algorithm"
 #include "vector"
+#include "limits"
 //#include "cstdio"  // for printf debugging
 
 #include "mpi.h"
@@ -262,6 +263,10 @@ public:
   int tc() const {return tc_;};
   int tc_eff() const;
   int num_tc_steps() const {return num_tc_steps_;};
+  double threshold() const {return threshold_;}
+  bool is_threshold() const {return threshold_ >= 0;}
+  double threshold_eff() const {return is_threshold() ? threshold_ :
+    std::numeric_limits<double>::lowest();}
   static double ccc_multiplier_default() {return ((double) 9) / ((double) 2);}
   static double duo_multiplier_default() {return (double) 4; }
   static double ccc_param_default() {return ((double) 2) / ((double) 3);}
@@ -407,6 +412,7 @@ private:
   bool sparse_;
   int tc_;
   int num_tc_steps_;
+  double threshold_;
   double ccc_param_;
   double ccc_multiplier_;
   double duo_multiplier_;

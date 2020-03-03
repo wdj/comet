@@ -42,7 +42,7 @@ typedef struct {
   int problem_type;
   size_t num_incorrect;
   double max_incorrect_diff;
-  double threshold;
+  //double threshold;
   bool checksum;
 } DriverOptions;
 

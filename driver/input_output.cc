@@ -1022,7 +1022,8 @@ MetricsFile::MetricsFile(DriverOptions* do_, CEnv* env)
   }
 
   verbosity_ = do_->verbosity;
-  threshold_ = do_->threshold;
+  //threshold_ = do_->threshold;
+  threshold_ = env->threshold();
 
   if (do_->metrics_file_path_stub) {
     file_ = gm_metrics_file_open(do_->metrics_file_path_stub, env);

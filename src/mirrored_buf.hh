@@ -62,6 +62,7 @@ public:
   void from_accel_wait();
   void from_accel();
 
+  // TODO: make private; ? change active to a
   void* __restrict__ h;
   void* __restrict__ d;
   void* __restrict__ active;

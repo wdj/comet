@@ -13,6 +13,7 @@
 #include "cstddef"
 #include "cstring"
 #include "math.h"
+#include "limits"
 
 #include "errno.h"
 #include "sys/time.h"
@@ -238,6 +239,7 @@ void CEnv::set_defaults_() {
   sparse_ = false;
   tc_ = TC::NO;
   num_tc_steps_ = 1;
+  threshold_ = std::numeric_limits<double>::lowest();
 }
 
 //-----------------------------------------------------------------------------
@@ -400,6 +402,15 @@ void CEnv::parse_args_(int argc, char** argv) {
                     && num_tc_steps >= 1
                     && "Invalid setting for tc.");
       num_tc_steps_ = num_tc_steps;
+      //--------------------
+    } else if (strcmp(argv[i], "--threshold") == 0) {
+      //--------------------
+      ++i;
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for threshold.");
+      errno = 0;
+      const double threshold = strtod(argv[i], NULL);
+      COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
+      threshold_ = threshold;
       //--------------------
     } // if/else
   }   // for i
