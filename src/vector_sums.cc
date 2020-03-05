@@ -69,11 +69,20 @@ void VectorSums::allocate_() {
 void VectorSums::compute(const GMVectors& vectors) {
   COMET_INSIST(num_vector_local_ == vectors.num_vector_local);
 
+  // Compute the vector sums.
+
   if (env_.is_metric_type_bitwise()) {
     compute_bits2_(vectors);
   } else {
     compute_float_(vectors);
   }
+
+  // Put on accelerator in case needed later.
+
+  sums_.to_accel();
+
+  if (env_.sparse() && env_.is_metric_type_bitwise())
+    counts_.to_accel();
 }
 
 //-----------------------------------------------------------------------------

@@ -49,6 +49,26 @@
 #define COMET_MPI_SAFE_CALL(s) {int error_code = (s); \
                                 COMET_INSIST(MPI_SUCCESS == error_code);}
 
+//-----------------------------------------------------------------------------
+
+#if defined(COMET_USE_CUDA)
+# define COMET_LAUNCH_KERNEL(name, \
+    numthreadblocks, threadblocksize, sharedmem, stream, ...) \
+    name <<< numthreadblocks, threadblocksize, sharedmem, stream >>> \
+      (__VA_ARGS__)
+#elif defined(COMET_USE_HIP)
+# define COMET_LAUNCH_KERNEL(name, \
+    numthreadblocks, threadblocksize, sharedmem, stream, ...) \
+    hipLaunchKernelGGL(name, \
+      numthreadblocks, threadblocksize, sharedmem, stream, __VA_ARGS__)
+#else
+# define COMET_LAUNCH_KERNEL(name, \
+    numthreadblocks, threadblocksize, sharedmem, stream, ...) \
+    (COMET_STATIC_ASSERT(false && Attempt to launch kernel for non-accelerator build.));
+#endif
+
+//-----------------------------------------------------------------------------
+
 namespace comet {
 
 //-----------------------------------------------------------------------------

@@ -135,8 +135,8 @@ static void tc_gemm_start_impl_(
       matC, tc_bufs, env);
   }
 
-  // Revise the results of the GEMMs to be in the needed double complex format.
-  tc_repair_metrics_<TC_METHOD>(nvll, nvl, matC, tc_bufs, env);
+  // Postprocess GEMM results.
+  tc_out_<TC_METHOD>(nvll, nvl, matC, env);
 }
 
 //=============================================================================

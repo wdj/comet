@@ -211,17 +211,9 @@ __global__ static void tc_repair_metrics_kernel_(
 ///        This code does an in-place transformation from one to the other.
 
 template<int TC_METHOD>
-void tc_repair_metrics_(
-  int nvll,
-  int nvl,
-  void* vo,
-  TCBufs& tc_bufs,
-  CEnv& env) {
-
+void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
   COMET_INSIST(vo);
-  COMET_INSIST(nvll >= 0);
-  COMET_INSIST(nvl >= 0);
-  COMET_INSIST(nvll <= nvl);
+  COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
   // always true, because of tc_gemm_divisibility_required()
   COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
@@ -233,13 +225,19 @@ void tc_repair_metrics_(
 
     // Kernel call.
 
-#ifdef COMET_USE_ACCEL
+#   ifdef COMET_USE_ACCEL
 
-    const int threadblocksize = 256;
-    COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
-                 "Current HIP limitation.");
-    const int vll2_threadblocks = utils::ceil(nvllD2, threadblocksize);
+      const int threadblocksize = 256;
+      COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+                   "Current HIP limitation.");
+      const int vll2_threadblocks = utils::ceil(nvllD2, threadblocksize);
 
+      COMET_LAUNCH_KERNEL((tc_repair_metrics_kernel_<GemmOut_t>),
+        dim3(vll2_threadblocks, nvl, 1),
+        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+        nvl, nvll, nvllD2, vo);
+
+#if 0
 #  ifdef COMET_USE_HIP
     hipLaunchKernelGGL(
 #  endif
@@ -259,25 +257,36 @@ void tc_repair_metrics_(
         ,
 #  endif
         nvl, nvll, nvllD2, vo);
+#endif
 
-    System::accel_last_call_succeeded();
+      System::accel_last_call_succeeded();
 
-#endif // COMET_USE_ACCEL
+#   endif // COMET_USE_ACCEL
 
   } else { // (!env.is_compute_method_gpu())
 
-//    for (int thread_c=0; thread_c<nvllD2; ++thread_c) {
-//      for (int thread_r=0; thread_r<nvl; ++thread_r) {
     for (int thread_c=0; thread_c<nvl; ++thread_c) {
       for (int thread_r=0; thread_r<nvllD2; ++thread_r) {
-
         tc_repair_metrics_kernel_elt_<GemmOut_t>(
           nvl, nvll, nvllD2, vo, thread_r, thread_c);
-
       }
     }
 
   } // if compute_method
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Postprocess metrics computed by GEMMs.
+
+template<int TC_METHOD>
+void tc_out_( int nvll, int nvl, void* vo, CEnv& env) {
+  COMET_INSIST(vo);
+  COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
+
+  tc_repair_metrics_<TC_METHOD>(nvll, nvl, vo, env);
+
+
+
 }
 
 //=============================================================================

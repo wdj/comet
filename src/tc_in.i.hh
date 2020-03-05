@@ -407,7 +407,7 @@ void tc_buf_write_(
 
 #   ifdef COMET_USE_ACCEL
 
-
+#if 0
 #ifdef COMET_USE_CUDA
 # define COMET_LAUNCH_KERNEL(name, \
     numthreadblocks, threadblocksize, sharedmem, stream, ...) \
@@ -419,6 +419,7 @@ void tc_buf_write_(
     numthreadblocks, threadblocksize, sharedmem, stream, ...) \
     hipLaunchKernelGGL(name, \
       numthreadblocks, threadblocksize, sharedmem, stream, __VA_ARGS__)
+#endif
 #endif
 
       const int threadblocksize = 256;
@@ -439,7 +440,6 @@ void tc_buf_write_(
         nfl, nflD2, nflD2_thread, flD2_min, nfal);
 
 #if 0
-
 #     ifdef COMET_USE_HIP
         hipLaunchKernelGGL(
 #     endif
@@ -460,7 +460,6 @@ void tc_buf_write_(
         is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
         nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflD2, nflD2_thread, flD2_min,
         nfal);
-
 #endif
 
       System::accel_last_call_succeeded();
