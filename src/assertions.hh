@@ -33,32 +33,33 @@
 ///        code locations -- e.g., not in a deep loop nest.
 
 #define COMET_INSIST(condition) \
-  (void)((condition) || (comet::assert_(#condition, __FILE__, __LINE__), 0))
+    (void)((condition) || \
+      (comet::insist(#condition, __FILE__, __LINE__, true), 0))
 
 //-----------------------------------------------------------------------------
 /// \brief Insist macro specifically for a user-caused error condition.
 
 # define COMET_INSIST_INTERFACE(env, condition) \
     (void)((condition) || \
-           (comet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
+      (comet::insist_interface(env, #condition, __FILE__, __LINE__), 0))
 
 //-----------------------------------------------------------------------------
 /// \brief Assertion macro (for debug builds only).
 
-#if (! defined(NDEBUG)) && ! defined(COMET_DEVICE_COMPILE)
-#define COMET_ASSERTIONS_ON
-#define COMET_ASSERT(condition) COMET_INSIST(condition)
+#ifndef NDEBUG
+# define COMET_ASSERTIONS_ON
+# define COMET_ASSERT(condition) COMET_INSIST(condition)
 #else
-#define COMET_ASSERT(condition)
+# define COMET_ASSERT(condition)
 #endif
 
 //-----------------------------------------------------------------------------
 /// \brief Static assert - use macro to ensure removal for release build.
 
 #ifndef NDEBUG
-#define COMET_STATIC_ASSERT(condition) static_assert(condition, "")
+# define COMET_STATIC_ASSERT(condition) static_assert(condition, "")
 #else
-#define COMET_STATIC_ASSERT(condition)
+# define COMET_STATIC_ASSERT(condition)
 #endif
 
 //=============================================================================
@@ -71,19 +72,30 @@ namespace comet {
 
 //        Use trailing underscore to avoid collision with C assert macro.
 
-void assert_(const char* condition_string, const char* file, int line);
+__host__ __device__
+static void insist(const char* condition_string, const char* file, int line,
+                   bool do_print);
 
 //-----------------------------------------------------------------------------
 /// \brief Function to support the COMET_INSIST_INTERFACE macro.
 
 void insist_interface(void const * const env,
-                         const char* condition_string,
-                         const char* file,
-                         int line);
+                      const char* condition_string,
+                      const char* file,
+                      int line);
+
+//-----------------------------------------------------------------------------
+/// \brief For a test build, cause test harness to throw an error.
+
+void trigger_test_harness_failure();
 
 //=============================================================================
 
 } // namespace comet
+
+//-----------------------------------------------------------------------------
+
+#include "assertions.i.hh"
 
 //-----------------------------------------------------------------------------
 

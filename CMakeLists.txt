@@ -44,9 +44,14 @@ SET(LIB_SOURCES
   src/compute_metrics.cc
   )
 
+SET(ACCEL_SOURCES
+  src/tc.cc
+  )
+
 SET(LIB_INCLUDES
   src/env.hh
   src/assertions.hh
+  src/assertions.i.hh
   src/types.hh
   src/utils.hh
   src/formulas.hh
@@ -101,8 +106,14 @@ if(USE_CUDA)
   #       cmake-cuda-compile-cpp-files-in-cuda-mode-x-cu
   # Interpret cc file as cu file.
   # NOTE: order of next lines matters.
-  set_source_files_properties(src/tc.cc
-                              PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+#  set_source_files_properties(src/tc.cc
+#                              PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+#  set_source_files_properties(src/assertions.cc
+#                              PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+  foreach(ACCEL_SOURCE ${ACCEL_SOURCES})
+    set_source_files_properties(${ACCEL_SOURCE}
+                                PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+  endforeach()
   CUDA_ADD_LIBRARY(genomics_metrics STATIC ${LIB_SOURCES} ${CUDA_SOURCES})
 elseif(USE_HIP) #=========================================
   if(NOT DEFINED HIP_PATH)
