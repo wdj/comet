@@ -62,6 +62,7 @@ static void insist(const char* condition_string, const char* file, int line,
       asm("trap;");
 #   else
       // CUDA kernel assertion.
+      // NOTE: standard assert in cuda is no-op if NDEBUG defined
       assert(false);
 #   endif
 # elif __HIP_DEVICE_COMPILE__
