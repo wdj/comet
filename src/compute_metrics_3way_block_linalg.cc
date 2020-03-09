@@ -513,6 +513,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const bool need_mat_jk = env_.does_3way_need_2way() && ! si->is_part1;
   const bool need_mat_kik = env_.does_3way_need_2way() && si->is_part3;
 
+  GMDecompMgr* const dm = vdata_i.vectors->dm;
+
   //----------------------------------------
   // First get the required 2-way ij, jk, ik metrics.
   //----------------------------------------
@@ -532,7 +534,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
-                   vdata_i.vectors->dm, &env_);
+                   vdata_i.sums->sums(), vdata_j.sums->sums(),
+                   vdata_i.sums->counts(), vdata_j.sums->counts(),
+                   dm, &env_);
 
     matM_ij_buf_ptr->from_accel();
 
@@ -554,7 +558,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
-                   vdata_i.vectors->dm, &env_);
+                   vdata_j.sums->sums(), vdata_k.sums->sums(),
+                   vdata_j.sums->counts(), vdata_k.sums->counts(),
+                   dm, &env_);
 
     matM_jk_buf_ptr->from_accel();
 
@@ -579,7 +585,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
-                   vdata_i.vectors->dm, &env_);
+                   vdata_k.sums->sums(), vdata_i.sums->sums(),
+                   vdata_k.sums->counts(), vdata_i.sums->counts(),
+                   dm, &env_);
 
     matM_kik_buf_ptr->from_accel();
 
@@ -602,6 +610,13 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   // Set up pointers to permute the access of axes for Part 3.
   // Use capitals I, J, K here to denote the PERMUTED axes.
+
+  VectorSums* const vsums_I =
+                        si->perm0(vdata_i.sums, vdata_j.sums, vdata_k.sums);
+  VectorSums* const vsums_J =
+                        si->perm1(vdata_i.sums, vdata_j.sums, vdata_k.sums);
+  VectorSums* const vsums_K =
+                        si->perm2(vdata_i.sums, vdata_j.sums, vdata_k.sums);
 
   MirroredBuf* const vectors_I_buf =
                         si->perm0(vdata_i.buf, vdata_j.buf, vdata_k.buf);
@@ -727,8 +742,10 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_prev.do_compute) {
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
           matXitem_buf[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
-          vars_prev.matB_buf_ptr(), vars_prev.step_2way,
-          vdata_i.vectors->dm, &env_);
+          vars_prev.matB_buf_ptr(),
+          vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
+          vsums_I->counts(), vsums_J->counts(), vsums_K->counts(), vars_prev.J,
+          vars_prev.step_2way, dm, &env_);
     }
 
     //========== Calculate matXitem
@@ -757,8 +774,10 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars.do_compute) {
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
           matXitem_buf[vars.index_01], vectors_I_buf, vectors_K_buf,
-          vars.matB_buf_ptr(), vars.step_2way,
-          vdata_i.vectors->dm, &env_);
+          vars.matB_buf_ptr(),
+          vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
+          vsums_I->counts(), vsums_J->counts(), vsums_K->counts(), vars_prev.J,
+          vars.step_2way, dm, &env_);
     }
 
     //========== Copy result matrix matB from GPU - WAIT

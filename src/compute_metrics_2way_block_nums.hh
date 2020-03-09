@@ -30,6 +30,8 @@ void gm_compute_2way_proc_nums_start(
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,
   MirroredBuf* metrics_buf,
+  VectorSums* vector_sums_left,
+  VectorSums* vector_sums_right,
   int j_proc,
   bool compute_triang_only,
   CEnv* env);
@@ -41,6 +43,8 @@ void gm_compute_2way_proc_nums_wait(
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,
   MirroredBuf* metrics_buf,
+  VectorSums* vector_sums_left,
+  VectorSums* vector_sums_right,
   int j_proc,
   bool compute_triang_only,
   CEnv* env);

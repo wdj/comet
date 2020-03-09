@@ -276,17 +276,72 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Perform thresholding of metrics if requested.
+
+template<int TC_METHOD>
+void tc_threshold_(int nvll, int nvl, void* vo,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
+  CEnv& env) {
+  COMET_INSIST(vo);
+  COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
+
+  if (!env.threshold_tc() || !env.is_threshold())
+    return;
+
+  COMET_INSIST(env.sparse() && "Case not supported.");
+  COMET_INSIST((env.is_vectors_halved() || ! 3 == env.num_way()) &&
+    "Case not supported.");
+  COMET_INSIST(env.is_bitwise_3way_2step() && "Case not supported.");
+
+  COMET_INSIST_INTERFACE(&env, env.num_proc_field() == 1 &&
+    "Thresholding on accelerator currently requires num_proc_field = 1.");
+
+#if xxx
+NEED:
+
+  const int cbpe = env->counted_bits_per_elt();
+
+  // make kernel templatized on CBPE
+  // template specialization on num_way
+
+  const double param = env.ccc_param();
+  const double multiplier = env.metric_type() == MetricType::CCC ?
+    env.ccc_multiplier() : env.duo_multiplier();
+
+  // 2way: i -> I, j -> K (???)
+
+  // how will we properly check this?
+
+
+
+
+
+
+
+
+#endif
+
+
+}
+
+
+
+//-----------------------------------------------------------------------------
 /// \brief Postprocess metrics computed by GEMMs.
 
 template<int TC_METHOD>
-void tc_out_( int nvll, int nvl, void* vo, CEnv& env) {
+void tc_out_( int nvll, int nvl, void* vo,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
+  CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
   tc_repair_metrics_<TC_METHOD>(nvll, nvl, vo, env);
 
-
-
+  tc_threshold_<TC_METHOD>(nvll, nvl, vo,
+    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, env);
 }
 
 //=============================================================================

@@ -37,27 +37,37 @@ void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA1, const MirroredBuf* matA2,
   const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
+  MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
   int step_2way, GMDecompMgr* dm, CEnv* env);
 
 void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA1, const MirroredBuf* matA2,
   const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
+  MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
   int step_2way, GMDecompMgr* dm, CEnv* env);
 
 void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J,
+  MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr* dm, CEnv* env);
 
 void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J,
+  MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr* dm, CEnv* env);
 
 void gm_linalg_gemm(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J,
+  MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr* dm, CEnv* env);
 
 /*----------*/

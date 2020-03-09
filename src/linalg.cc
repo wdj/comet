@@ -840,8 +840,11 @@ void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA1, const MirroredBuf* matA2,
   const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
+  MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
   int step_2way, GMDecompMgr* dm, CEnv* env) {
   COMET_INSIST(matA1 && matA2 && matB && matC && env);
+  COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
   if (m==0 || n==0 || k==0)
     return;
@@ -859,6 +862,9 @@ void gm_linalg_gemm_start(
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
+//        0,0,0,0,0,0,0,
+        (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
+        (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
         dm->num_field_active_local, step_2way, dm->tc_bufs, *env);
     }
   } else {
@@ -874,8 +880,11 @@ void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA1, const MirroredBuf* matA2,
   const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
+  MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
   int step_2way, GMDecompMgr* dm, CEnv* env) {
   COMET_INSIST(matA1 && matA2 && matB && matC && env);
+  COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
   if (m==0 || n==0 || k==0)
     return;
@@ -893,6 +902,9 @@ void gm_linalg_gemm_wait(
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
+//        0,0,0,0,0,0,0,
+        (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
+        (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
         dm->num_field_active_local, step_2way, dm->tc_bufs, *env);
       matA1->unlock_h();
       if (matA2 != matA1 && matA2 != matB) {
@@ -921,9 +933,12 @@ void gm_linalg_gemm_wait(
 void gm_linalg_gemm_start(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J,
+  MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr* dm, CEnv* env) {
 
-  gm_linalg_gemm_start(m, n, k, matA, matA, matB, matC, 0, dm, env);
+  gm_linalg_gemm_start(m, n, k, matA, matA, matB, matC,
+    sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -931,9 +946,12 @@ void gm_linalg_gemm_start(
 void gm_linalg_gemm_wait(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J,
+  MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr* dm, CEnv* env) {
 
-  gm_linalg_gemm_wait(m, n, k, matA, matA, matB, matC, 0, dm, env);
+  gm_linalg_gemm_wait(m, n, k, matA, matA, matB, matC,
+    sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -941,11 +959,15 @@ void gm_linalg_gemm_wait(
 void gm_linalg_gemm(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
+  MirroredBuf* sums_I, MirroredBuf* sums_J,
+  MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr* dm, CEnv* env) {
   COMET_INSIST(matA && matB && matC && env);
 
-  gm_linalg_gemm_start(m, n, k, matA, matB, matC, dm, env);
-  gm_linalg_gemm_wait(m, n, k, matA, matB, matC, dm, env);
+  gm_linalg_gemm_start(m, n, k, matA, matB, matC,
+    sums_I, sums_J, counts_I, counts_J, dm, env);
+  gm_linalg_gemm_wait(m, n, k, matA, matB, matC,
+    sums_I, sums_J, counts_I, counts_J, dm, env);
 }
 
 //=============================================================================

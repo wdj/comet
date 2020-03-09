@@ -88,6 +88,8 @@ template<int TC_METHOD>
 static void tc_gemm_start_impl_(
   int m, int n, int k,
   const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
   const int nvl = n;
@@ -136,7 +138,9 @@ static void tc_gemm_start_impl_(
   }
 
   // Postprocess GEMM results.
-  tc_out_<TC_METHOD>(nvll, nvl, matC, env);
+  tc_out_<TC_METHOD>(nvll, nvl, matC,
+    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+    env);
 }
 
 //=============================================================================
@@ -150,6 +154,8 @@ void tc_gemm_start(
   int m, int n, int k,
   const void* matA1, int ldda1, const void* matA2, int ldda2,
   const void* matB, int lddb, void* matC, int lddc,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int nfal, int step_2way, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
@@ -169,17 +175,23 @@ void tc_gemm_start(
     // --------------
     case TC::INT8: {
       tc_gemm_start_impl_<TC::INT8>(
-        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, nfal, step_2way, env);
+        m, n, k, matA1, matA2, matB, matC, lddc,
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+        tc_bufs, nfal, step_2way, env);
     } break;
     // --------------
     case TC::FP16: {
       tc_gemm_start_impl_<TC::FP16>(
-        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, nfal, step_2way, env);
+        m, n, k, matA1, matA2, matB, matC, lddc,
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+        tc_bufs, nfal, step_2way, env);
     } break;
     // --------------
     case TC::FP32: {
       tc_gemm_start_impl_<TC::FP32>(
-        m, n, k, matA1, matA2, matB, matC, lddc, tc_bufs, nfal, step_2way, env);
+        m, n, k, matA1, matA2, matB, matC, lddc,
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+        tc_bufs, nfal, step_2way, env);
     } break;
     // --------------
     default:

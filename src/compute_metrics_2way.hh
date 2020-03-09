@@ -42,6 +42,10 @@ private:
   MirroredBuf metrics_buf_01_[NUM_BUF];
   MirroredBuf vectors_buf_;
   MirroredBuf metrics_tmp_buf_;
+  VectorSums vector_sums_onproc_;
+  VectorSums vector_sums_offproc_0_;
+  VectorSums vector_sums_offproc_1_;
+  VectorSums* vector_sums_offproc_01_[NUM_BUF];
 
   void compute_notall2all_(GMMetrics& metrics, GMVectors& vectors);
   void compute_all2all_(GMMetrics& metrics, GMVectors& vectors);

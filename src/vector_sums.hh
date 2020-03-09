@@ -43,6 +43,9 @@ public:
     return ((Float_t*)counts_.h)[i];
   }
 
+  MirroredBuf* sums() {return &sums_;}
+  MirroredBuf* counts() {return &counts_;}
+
 private:
 
   CEnv& env_;

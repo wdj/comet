@@ -329,11 +329,12 @@ public:
     COMET_INSIST(is_metric_type_bitwise());
     return MetricType::CCC == metric_type_ ? 2 : 1;
   }
-  bool threshold_on_accel() const {
-    return true;
+  bool threshold_tc() const {
+    //return false;
+    return is_using_tc() && sparse() && num_proc_field() == 1;
   }
   bool is_vectors_halved() const {
-    return 3 == num_way() && is_using_tc() && threshold_on_accel();
+    return 3 == num_way() && is_using_tc() && threshold_tc();
   }
 
   int data_type_vectors() const;

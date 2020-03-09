@@ -520,6 +520,8 @@ void gm_compute_2way_proc_nums_start(
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,
   MirroredBuf* metrics_buf,
+  VectorSums* vector_sums_left,
+  VectorSums* vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
   CEnv* env) {
@@ -543,6 +545,8 @@ void gm_compute_2way_proc_nums_start(
       vectors_left_buf,
       vectors_right_buf,
       metrics_buf,
+      vector_sums_left->sums(), vector_sums_right->sums(),
+      vector_sums_left->counts(), vector_sums_right->counts(),
       vectors_left->dm, env);
 
     return;
@@ -583,6 +587,8 @@ void gm_compute_2way_proc_nums_wait(
   MirroredBuf* vectors_left_buf,
   MirroredBuf* vectors_right_buf,
   MirroredBuf* metrics_buf,
+  VectorSums* vector_sums_left,
+  VectorSums* vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
   CEnv* env) {
@@ -600,6 +606,8 @@ void gm_compute_2way_proc_nums_wait(
       vectors_left_buf,
       vectors_right_buf,
       metrics_buf,
+      vector_sums_left->sums(), vector_sums_right->sums(),
+      vector_sums_left->counts(), vector_sums_right->counts(),
       vectors_left->dm, env);
 
   } // if

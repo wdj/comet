@@ -223,6 +223,7 @@ void MirroredBuf::deallocate() {
 
 void MirroredBuf::to_accel_start() {
 
+//FIX ...
   if (env_.is_compute_method_gpu())
     lock();
   else
