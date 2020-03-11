@@ -108,7 +108,7 @@ private:
 
   mutable bool is_locked_h_;
   mutable bool is_locked_d_;
-  const bool use_linalg_;
+  bool use_linalg_;
 
   // Disallowed methods.
 

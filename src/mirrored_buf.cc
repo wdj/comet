@@ -29,7 +29,7 @@ MirroredBuf::MirroredBuf(CEnv& env)
   , env_(env)
   , is_locked_h_(false)
   , is_locked_d_(false)
-  , use_linalg_(BuildHas::MAGMA) {
+  , use_linalg_(false) {
   }
 
 //-----------------------------------------------------------------------------
@@ -64,7 +64,7 @@ MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, CEnv& env)
   , env_(env)
   , is_locked_h_(false)
   , is_locked_d_(false)
-  , use_linalg_(BuildHas::MAGMA) {
+  , use_linalg_(false) {
   allocate(dim0_, dim1_);
 }
 
@@ -82,7 +82,8 @@ MirroredBuf::MirroredBuf(MirroredBuf& buf, size_t dim0_, CEnv& env)
   , env_(env)
   , is_locked_h_(false)
   , is_locked_d_(false)
-  , use_linalg_(BuildHas::MAGMA) {
+  //, use_linalg_(BuildHas::MAGMA) {
+  , use_linalg_(false) {
   COMET_INSIST(dim0_ <= buf.dim0);
   COMET_INSIST(buf.is_allocated);
 }
@@ -97,6 +98,8 @@ MirroredBuf::~MirroredBuf() {
 
 void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   COMET_INSIST(is_alias || !is_allocated);
+
+  use_linalg_ = false;
 
   dim0 = dim0_;
   dim1 = dim1_;
@@ -127,12 +130,15 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   active = env_.is_compute_method_gpu() ? d : h;
   is_alias = false;
   is_allocated = true;
+//printf("%zu %zu alloc1\n", (size_t)(h), (size_t)(d)); //FIX
 }
 
 //-----------------------------------------------------------------------------
 
 void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
   COMET_INSIST(is_alias || !is_allocated);
+
+  use_linalg_ = BuildHas::MAGMA;
 
   if (use_linalg_) {
 
@@ -157,6 +163,7 @@ void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
   COMET_INSIST(!buf.is_alias);
   COMET_INSIST(buf.is_allocated);
 
+  use_linalg_ = buf.use_linalg_;
   h = buf.h;
   d = buf.d;
   active = buf.active;
@@ -217,30 +224,27 @@ void MirroredBuf::deallocate() {
     is_allocated = false;
 
   } // if
+
+  use_linalg_ = false;
 }
 
 //-----------------------------------------------------------------------------
 
 void MirroredBuf::to_accel_start() {
 
-//FIX ...
-  if (env_.is_compute_method_gpu())
-    lock();
-  else
+  if (!env_.is_compute_method_gpu())
     return;
 
+  lock();
+
   if (use_linalg_) {
-
     gm_linalg_set_matrix_start(this, &env_);
-
   } else {
-
 #   if defined COMET_USE_CUDA
       cudaMemcpyAsync(d, h, size, cudaMemcpyHostToDevice, env_.stream_togpu());
 #   elif defined COMET_USE_HIP
       hipMemcpyAsync(d, h, size, hipMemcpyHostToDevice, env_.stream_togpu());
 #   endif
-
   } // if (use_linalg_)
 }
 
@@ -248,15 +252,15 @@ void MirroredBuf::to_accel_start() {
 
 void MirroredBuf::to_accel_wait() {
 
+  if (!env_.is_compute_method_gpu())
+    return;
+
   if (use_linalg_)
     gm_linalg_set_matrix_wait(&env_);
   else
     env_.stream_synchronize(env_.stream_togpu());
 
-  if (env_.is_compute_method_gpu())
-    unlock();
-  else
-    return;
+  unlock();
 }
 
 //-----------------------------------------------------------------------------
@@ -270,24 +274,20 @@ void MirroredBuf::to_accel() {
 
 void MirroredBuf::from_accel_start() {
 
-  if (env_.is_compute_method_gpu())
-    lock();
-  else
+  if (!env_.is_compute_method_gpu())
     return;
 
+  lock();
+
   if (use_linalg_) {
-
     gm_linalg_get_matrix_start(this, &env_);
-
   } else {
-
 #   if defined COMET_USE_CUDA
       cudaMemcpyAsync(h, d, size, cudaMemcpyDeviceToHost,
         env_.stream_fromgpu());
 #   elif defined COMET_USE_HIP
       hipMemcpyAsync(h, d, size, hipMemcpyDeviceToHost, env_.stream_fromgpu());
 #   endif
-
   } // if (use_linalg_)
 }
 
@@ -295,15 +295,15 @@ void MirroredBuf::from_accel_start() {
 
 void MirroredBuf::from_accel_wait() {
 
+  if (!env_.is_compute_method_gpu())
+    return;
+
   if (use_linalg_)
     gm_linalg_get_matrix_wait(&env_);
   else
     env_.stream_synchronize(env_.stream_fromgpu());
 
-  if (env_.is_compute_method_gpu())
-    unlock();
-  else
-    return;
+  unlock();
 }
 
 //-----------------------------------------------------------------------------
