@@ -412,7 +412,6 @@ template<int COUNTED_BITS_PER_ELT>
 static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
   GMMetrics* metrics,
   const size_t index,
-  GMFloat threshold,
   CEnv* env) {
 
   COMET_ASSERT(metrics && env);
@@ -420,6 +419,8 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
+
+  const double threshold_eff = env->threshold_eff();
 
   if (env->sparse()) {
 
@@ -444,7 +445,7 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     GMTally1 cij = rij00 + rij01 + rij10 + rij11;
     if (ci == 0 || cj == 0 || cij == 0) {
-      return 0 > threshold;
+      return 0 > threshold_eff;
     }
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits
@@ -479,7 +480,7 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
     // Let a few extra values pass the thresold check just to make sure
     const GMFloat roundoff_fuzz = 1.e-5;
 
-    const GMFloat f = threshold * threshold_multiplier * (f_one-roundoff_fuzz);
+    const GMFloat f = threshold_eff * threshold_multiplier * (f_one-roundoff_fuzz);
 
     const GMFloat v00 = rij00 * ((f_one*CBPE) - ccc_param * fi0_2) *
                                 ((f_one*CBPE) - ccc_param * fj0_2);
@@ -519,8 +520,8 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
   const GMFloat v11 = GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index,
                                                                1, 1, env);
 
-  return v00 > threshold || v01 > threshold ||
-         v10 > threshold || v11 > threshold;
+  return v00 > threshold_eff || v01 > threshold_eff ||
+         v10 > threshold_eff || v11 > threshold_eff;
 }
 
 //-----------------------------------------------------------------------------
@@ -529,7 +530,6 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 static bool GMMetrics_ccc_get_from_index_2_threshold(
   GMMetrics* metrics,
   const size_t index,
-  GMFloat threshold,
   CEnv* env) {
 
   COMET_ASSERT(metrics && env);
@@ -539,7 +539,7 @@ static bool GMMetrics_ccc_get_from_index_2_threshold(
   enum { COUNTED_BITS_PER_ELT = 2 };
 
   return GMMetrics_ccc_duo_get_from_index_2_threshold<COUNTED_BITS_PER_ELT>(
-    metrics, index, threshold, env);
+    metrics, index, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -548,7 +548,6 @@ static bool GMMetrics_ccc_get_from_index_2_threshold(
 static bool GMMetrics_duo_get_from_index_2_threshold(
   GMMetrics* metrics,
   const size_t index,
-  GMFloat threshold,
   CEnv* env) {
 
   COMET_ASSERT(metrics && env);
@@ -558,7 +557,7 @@ static bool GMMetrics_duo_get_from_index_2_threshold(
   enum { COUNTED_BITS_PER_ELT = 1 };
 
   return GMMetrics_ccc_duo_get_from_index_2_threshold<COUNTED_BITS_PER_ELT>(
-    metrics, index, threshold, env);
+    metrics, index, env);
 }
 
 //=============================================================================

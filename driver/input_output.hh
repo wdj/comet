@@ -84,7 +84,6 @@ private:
 
   FILE* file_;
   int verbosity_;
-  double threshold_;
   size_t num_written_;
 
   //---Disallowed methods.

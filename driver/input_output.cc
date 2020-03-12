@@ -336,7 +336,7 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 
 template<int COUNTED_BITS_PER_ELT>
 void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, CEnv* env) {
+                                       size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
@@ -363,7 +363,7 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
   for (int i=0; i<(int)num_buf; ++i)
     do_out_buf[i] = 0;
 
-  const GMFloat threshold_eff = threshold<0. ? -1e20 : threshold;
+  const double threshold_eff = env->threshold_eff();
 
   // Process num_buf_ind index values at a time
   for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
@@ -377,7 +377,7 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Do any of the values exceed the threshold
       if (GMMetrics_ccc_duo_get_from_index_2_threshold<COUNTED_BITS_PER_ELT>(
-            metrics, index, threshold_eff, env)) {
+            metrics, index, env)) {
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             const GMFloat value =
@@ -446,17 +446,17 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
 //-----------------------------------------------------------------------------
 
 void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, CEnv* env) {
+                                  size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
   COMET_INSIST(file != stdout);
 
   if (env->metric_type() == MetricType::CCC) {
-    output_metrics_tally2x2_bin_impl_<2>(metrics, file, threshold,
+    output_metrics_tally2x2_bin_impl_<2>(metrics, file,
       num_written, env);
   } else {
-    output_metrics_tally2x2_bin_impl_<1>(metrics, file, threshold,
+    output_metrics_tally2x2_bin_impl_<1>(metrics, file,
       num_written, env);
   }
 }
@@ -465,7 +465,7 @@ void output_metrics_tally2x2_bin_(GMMetrics* metrics, FILE* file,
 
 template<int COUNTED_BITS_PER_ELT>
 void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, CEnv* env) {
+                                       size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
@@ -494,7 +494,7 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
   for (int i=0; i<(int)num_buf; ++i)
     do_out_buf[i] = 0;
 
-  const GMFloat threshold_eff = threshold<0. ? -1e20 : threshold;
+  const double threshold_eff = env->threshold_eff();
 
   // Process num_buf_ind index values at a time
   for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
@@ -506,7 +506,7 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Do any of the values exceed the threshold
       if (GMMetrics_ccc_duo_get_from_index_3_threshold<COUNTED_BITS_PER_ELT>(
-             metrics, index, threshold_eff, env)) {
+             metrics, index, env)) {
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             for (int i2 = 0; i2 < 2; ++i2) {
@@ -581,17 +581,17 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
 //-----------------------------------------------------------------------------
 
 void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, CEnv* env) {
+                                  size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
   COMET_INSIST(file != stdout);
 
   if (env->metric_type() == MetricType::CCC) {
-    output_metrics_tally4x2_bin_impl_<2>(metrics, file, threshold,
+    output_metrics_tally4x2_bin_impl_<2>(metrics, file,
       num_written, env);
   } else {
-    output_metrics_tally4x2_bin_impl_<1>(metrics, file, threshold,
+    output_metrics_tally4x2_bin_impl_<1>(metrics, file,
       num_written, env);
   }
 }
@@ -599,7 +599,7 @@ void output_metrics_tally4x2_bin_(GMMetrics* metrics, FILE* file,
 //=============================================================================
 
 void output_metrics_(GMMetrics* metrics, FILE* file,
-                     double threshold, size_t& num_written, CEnv* env) {
+                     size_t& num_written, CEnv* env) {
   COMET_INSIST(metrics && file && env);
 
   if (! env->is_proc_active()) {
@@ -610,6 +610,8 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
   if (env->proc_num_field() != 0) {
     return;
   }
+
+  const double threshold_eff = env->threshold_eff();
 
   switch (env->data_type_metrics()) {
     /*--------------------*/
@@ -633,7 +635,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
           }
           const GMFloat value
             = GMMetrics_czek_get_from_index(metrics, index, env);
-          if (!(threshold < 0. || value > threshold)) {
+          if (!(value > threshold_eff)) {
             continue;
           }
           /*---Output the value---*/
@@ -675,7 +677,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
           }
           const GMFloat value
             = GMMetrics_czek_get_from_index(metrics, index, env);
-          if (!(threshold < 0. || value > threshold)) {
+          if (!(value > threshold_eff)) {
             continue;
           }
           /*---Output the value---*/
@@ -706,8 +708,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
 
       if (file != stdout) {
 
-        output_metrics_tally2x2_bin_(metrics, file, threshold,
-                                     num_written, env);
+        output_metrics_tally2x2_bin_(metrics, file, num_written, env);
 
       } else /*---stdout---*/ {
         MetricWriter writer(file, metrics, env);
@@ -730,7 +731,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
               const GMFloat value = env->metric_type() == MetricType::CCC ?
                 GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env) :
                 GMMetrics_duo_get_from_index_2(metrics, index, i0, i1, env);
-              if (!(threshold < 0. || value > threshold)) {
+              if (!(value > threshold_eff)) {
                 continue;
               }
 
@@ -776,8 +777,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
 
       if (file != stdout) {
 
-        output_metrics_tally4x2_bin_(metrics, file, threshold,
-                                     num_written, env);
+        output_metrics_tally4x2_bin_(metrics, file, num_written, env);
 
       } else /*---stdout---*/ {
 
@@ -804,7 +804,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
                 const GMFloat value
                   = GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2,
                                                 env);
-                if (!(threshold < 0. || value > threshold)) {
+                if (!(value > threshold_eff)) {
                   continue;
                 }
 
@@ -1022,8 +1022,6 @@ MetricsFile::MetricsFile(DriverOptions* do_, CEnv* env)
   }
 
   verbosity_ = do_->verbosity;
-  //threshold_ = do_->threshold;
-  threshold_ = env->threshold();
 
   if (do_->metrics_file_path_stub) {
     file_ = gm_metrics_file_open(do_->metrics_file_path_stub, env);
@@ -1050,14 +1048,13 @@ void MetricsFile::write(GMMetrics* metrics, CEnv* env) {
   // Output to file
 
   if (file_) {
-    output_metrics_(metrics, file_, threshold_, num_written_, env);
+    output_metrics_(metrics, file_, num_written_, env);
   }
 
   // Output to stdout if requested
 
   if (verbosity_ > 1) {
-    double threshold = verbosity_ > 2 ? -1. : threshold_;
-    output_metrics_(metrics, stdout, threshold, num_written_, env);
+    output_metrics_(metrics, stdout, num_written_, env);
   }
 }
 
