@@ -192,9 +192,8 @@ __global__ static void tc_repair_metrics_kernel_(
   const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const int thread_c = blockIdx_y_();
 
-  if (thread_r >= nvllD2 || thread_c >= nvl) {
+  if (thread_r >= nvllD2 || thread_c >= nvl)
     return;
-  }
 
   tc_repair_metrics_kernel_elt_<GemmOut_t>(
     nvl, nvll, nvllD2, vo,
@@ -275,6 +274,133 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
   } // if compute_method
 }
 
+//=============================================================================
+/// \brief Threshold individual elements in buf.
+
+template<int COUNTED_BITS_PER_ELT>
+__host__ __device__ void tc_threshold_3way_kernel_elt_(
+  int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
+  int step_2way, double param, double multiplier,
+  double threshold_eff, int thread_r, int thread_c) {
+
+  COMET_ASSERT(vo);
+  COMET_ASSERT(nvll*2 == nvllX2);
+  COMET_ASSERT(nvll/2 == nvllD2);
+  COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
+  COMET_ASSERT(thread_r >= 0 && thread_r < nvllX2);
+  COMET_ASSERT(thread_c >= 0 && thread_c < nvl);
+
+#if xxx
+
+  enum {CBPE = COUNTED_BITS_PER_ELT};
+
+  // Indexing.
+
+  const int indM_c = thread_c;
+  COMET_ASSERT(indM_c >= 0 && indM_c < nvl);
+
+  const int K = thread_c;
+  COMET_ASSERT(K >= 0 && K < nvl);
+
+  const int indT_J = thread_r % 2;
+  COMET_ASSERT(indT_J >= 0 && indT_J < 2);
+
+  const int indM_r = thread_r / 2;
+  COMET_ASSERT(indM_r >= 0 && indM_r < nvll);
+  
+  const int I = indM_r % nvllD2 + step_2way * nvllD2;
+  COMET_ASSERT(I >= 0 && I < nvll);
+
+  const int indT_I = indM_r / (nvllD2)
+  COMET_ASSERT(indT_I >= 0 && indT_I < 2);
+
+  //const int indT_K = 
+
+  // Values for formula.
+
+  const GMTally1 cI = (GMTally1)counts_I[I];
+  const GMTally1 cJ = (GMTally1)counts_J[J];
+  const GMTally1 cK = (GMTally1)counts_K[K];
+
+  const double d1 = 1;
+
+  const double recip_cI = d1 / cI;
+  const double recip_cJ = d1 / cJ;
+  const double recip_cK = d1 / cK;
+
+  const GMTally1 sI1 = (GMTally1)sums_I[I];
+  const GMTally1 sJ1 = (GMTally1)sums_J[J];
+  const GMTally1 sK1 = (GMTally1)sums_K[K];
+
+  const GMTally1 sI = indT_I == 0 ? CBPE * cI - sI1 : sI1;
+  const GMTally1 sJ = indT_J == 0 ? CBPE * cJ - sJ1 : sJ1;
+
+  double* const dvo = (double*)vo;
+
+  indvo = fixme; // FIX
+
+  for (indT_K = 0; indT_K < 2; ++indT_K) {
+
+    const GMTally1 sK = indT_K == 0 ? CBPE * cK - sK1 : sK1;
+
+    // TODO: sort sI, sJ, sK
+    // CHECK single vs double, < vs <=, etc.
+
+    const int indT_I_other = 1 - indT_I;
+    const int indT_J_other = 1 - indT_J;
+    const int indT_K_other = 1 - indT_K;
+
+    const GMTally1 cijk = ; //FIX
+
+    const GMTally1 cijk = ; //FIX
+
+    const double recip_sumcijk = d1 / cijk;
+
+    const double rijk = ; // FIX
+
+    const double vnew = ccc_duo_value_3<double, CBPE>(
+      rijk, si, sj, sk, recip_ci, recip_cj, recip_ck,
+      recip_sumcijk, multiplier, param);
+
+    if (vnew <= threshold_eff) {
+
+      //FIX
+
+    }
+
+    dvo[indvo] = ; //FIX
+
+
+  } // indT_K
+
+#endif
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GPU kernel to support tc_threshold_.
+
+template<int COUNTED_BITS_PER_ELT>
+__global__ void tc_threshold_3way_kernel_(
+  int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
+  int step_2way, double param, double multiplier, double threshold_eff) {
+
+  // Row and column threads of metrics array.
+  const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int thread_c = blockIdx_y_();
+
+  if (thread_r >= nvllX2 || thread_c >= nvl)
+    return;
+
+  tc_threshold_3way_kernel_elt_<COUNTED_BITS_PER_ELT>(
+    nvll, nvllX2, nvllD2, nvl, vo,
+    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+    step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
+}
+
 //-----------------------------------------------------------------------------
 /// \brief Perform thresholding of metrics if requested.
 
@@ -282,7 +408,7 @@ template<int TC_METHOD>
 void tc_threshold_(int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  CEnv& env) {
+  int step_2way, CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
@@ -297,35 +423,102 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   COMET_INSIST_INTERFACE(&env, env.num_proc_field() == 1 &&
     "Thresholding on accelerator currently requires num_proc_field = 1.");
 
-#if xxx
-NEED:
+  const int nvllX2 = nvll * 2;
+  const int nvllD2 = nvll / 2;
 
-  const int cbpe = env->counted_bits_per_elt();
+  const int cbpe = env.counted_bits_per_elt();
 
   // make kernel templatized on CBPE
   // template specialization on num_way
+  // 2way: i -> I, j -> K (???)
+  // how will we properly check this?
 
   const double param = env.ccc_param();
   const double multiplier = env.metric_type() == MetricType::CCC ?
     env.ccc_multiplier() : env.duo_multiplier();
+  const double threshold_eff = env.threshold_eff();
 
-  // 2way: i -> I, j -> K (???)
+  if (env.is_compute_method_gpu()) {
 
-  // how will we properly check this?
+    // Kernel call.
 
+#   ifdef COMET_USE_ACCEL
 
+      const int threadblocksize = 256;
+      COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+                   "Current HIP limitation.");
+      const int vll_threadblocks = utils::ceil(nvllX2, threadblocksize);
 
+      if (2 == env.num_way()) {
 
+        // =============== TODO ===========================================
 
+      } else if (1 == cbpe) { // && (3 == env.num_way())
 
+        enum {CBPE = 1};
 
+        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE>),
+          dim3(vll_threadblocks, nvl, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvllX2, nvllD2, nvl, vo,
+          sums_I, sums_J, sums_K,
+          counts_I, counts_J, counts_K, J,
+          step_2way, param, multiplier, threshold_eff);
 
-#endif
+      } else { // if (2 == cbpe && 3 == env.num_way())
 
+        enum {CBPE = 2};
 
+        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE>),
+          dim3(vll_threadblocks, nvl, 1),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          nvll, nvllX2, nvllD2, nvl, vo,
+          sums_I, sums_J, sums_K,
+          counts_I, counts_J, counts_K, J,
+          step_2way, param, multiplier, threshold_eff);
+
+      } // if cbpe, env.num_way()
+
+      System::accel_last_call_succeeded();
+
+#   endif // COMET_USE_ACCEL
+
+  } else { // (!env.is_compute_method_gpu())
+
+    if (2 == env.num_way()) {
+
+      // =============== TODO ===========================================
+
+    } else if (1 == cbpe) { // && (3 == env.num_way())
+
+      enum {CBPE = 1};
+
+      for (int thread_c=0; thread_c<nvl; ++thread_c) {
+        for (int thread_r=0; thread_r<nvllX2; ++thread_r) {
+          tc_threshold_3way_kernel_elt_<CBPE>(
+            nvll, nvllX2, nvllD2, nvl, vo,
+            sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+            step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
+        } // for
+      } // for
+
+    } else { // if (2 == cbpe && 3 == env.num_way())
+
+      enum {CBPE = 2};
+
+      for (int thread_c=0; thread_c<nvl; ++thread_c) {
+        for (int thread_r=0; thread_r<nvllX2; ++thread_r) {
+          tc_threshold_3way_kernel_elt_<CBPE>(
+            nvll, nvllX2, nvllD2, nvl, vo,
+            sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+            step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
+        } // for
+      } // for
+
+    } // if cbpe, env.num_way()
+
+  } // if compute_method
 }
-
-
 
 //-----------------------------------------------------------------------------
 /// \brief Postprocess metrics computed by GEMMs.
@@ -334,6 +527,7 @@ template<int TC_METHOD>
 void tc_out_( int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
+  int step_2way,
   CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
@@ -341,7 +535,7 @@ void tc_out_( int nvll, int nvl, void* vo,
   tc_repair_metrics_<TC_METHOD>(nvll, nvl, vo, env);
 
   tc_threshold_<TC_METHOD>(nvll, nvl, vo,
-    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, env);
+    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
 }
 
 //=============================================================================

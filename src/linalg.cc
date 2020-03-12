@@ -976,9 +976,8 @@ void gm_linalg_gemm(
 void gm_linalg_set_matrix_start(MirroredBuf* p, CEnv* env) {
   COMET_INSIST(p && env);
 
-  if (!env->is_compute_method_gpu()) {
+  if (!env->is_compute_method_gpu())
     return;
-  }
 
   /*---Send vectors to GPU---*/
 

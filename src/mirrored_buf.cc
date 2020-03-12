@@ -130,7 +130,6 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   active = env_.is_compute_method_gpu() ? d : h;
   is_alias = false;
   is_allocated = true;
-//printf("%zu %zu alloc1\n", (size_t)(h), (size_t)(d)); //FIX
 }
 
 //-----------------------------------------------------------------------------
