@@ -445,7 +445,7 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     GMTally1 cij = rij00 + rij01 + rij10 + rij11;
     if (ci == 0 || cj == 0 || cij == 0) {
-      return 0 > threshold_eff;
+      return env->pass_threshold(0);
     }
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits
@@ -520,8 +520,8 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
   const GMFloat v11 = GMMetrics_ccc_duo_get_from_index_2<CBPE>(metrics, index,
                                                                1, 1, env);
 
-  return v00 > threshold_eff || v01 > threshold_eff ||
-         v10 > threshold_eff || v11 > threshold_eff;
+  return env->pass_threshold(v00) || env->pass_threshold(v01) ||
+         env->pass_threshold(v10) || env->pass_threshold(v11);
 }
 
 //-----------------------------------------------------------------------------

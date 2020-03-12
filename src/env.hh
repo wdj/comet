@@ -284,9 +284,26 @@ public:
   int tc_eff() const;
   int num_tc_steps() const {return num_tc_steps_;};
   double threshold() const {return threshold_;}
-  bool is_threshold() const {return threshold_ >= 0;}
-  double threshold_eff() const {return is_threshold() ? threshold_ :
-    std::numeric_limits<double>::lowest();}
+
+  static bool is_threshold(double t) {return t >= 0;}
+  bool is_threshold() const {return CEnv::is_threshold(threshold_);}
+
+  static double threshold_eff(double t) {
+    return is_threshold(t) ? t : std::numeric_limits<double>::lowest();}
+  double threshold_eff() const {return CEnv::threshold_eff(threshold_);}
+
+  template<typename T>
+  static __host__ __device__
+  bool pass_threshold(T value, double threshold_eff) {
+   return value > threshold_eff;
+ }
+
+  template<typename T>
+  bool pass_threshold(T value) {
+   //return CEnv::pass_threshold(value, threshold_eff());
+   return CEnv::pass_threshold(value, threshold_eff_cache_);
+ }
+
   static double ccc_multiplier_default() {return ((double) 9) / ((double) 2);}
   static double duo_multiplier_default() {return (double) 4; }
   static double ccc_param_default() {return ((double) 2) / ((double) 3);}
@@ -434,6 +451,7 @@ private:
   int tc_;
   int num_tc_steps_;
   double threshold_;
+  double threshold_eff_cache_;
   double ccc_param_;
   double ccc_multiplier_;
   double duo_multiplier_;

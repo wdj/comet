@@ -177,6 +177,7 @@ static GMTally4x2 GMTally4x2_null() {
 //-----------------------------------------------------------------------------
 // Encode/decode between float and pair of tally values
 
+__host__ __device__
 static void GMTally1_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMFp64 v) {
@@ -199,6 +200,28 @@ static void GMTally1_decode(GMTally1* __restrict__ val0,
 
 //----------
 
+__host__ __device__
+static void GMTally1_decode(GMTally1& val0,
+                            GMTally1& val1,
+                            GMFp64 v) {
+  const uint64_t tally2 = (uint64_t)v;
+  COMET_ASSERT(v == (GMFp64)tally2);
+  const GMTally1 v0 =
+      tally2 & ((((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) - 1);
+  const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
+  val0 = v0;
+  val1 = v1;
+  COMET_ASSERT(v ==
+           (GMFp64)(v0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * v1));
+  //COMET_ASSERT(v0 >= 0);
+  //COMET_ASSERT(v1 >= 0);
+  COMET_ASSERT(v0 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
+  COMET_ASSERT(v1 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
+}
+
+//----------
+
+__host__ __device__
 static GMFp64 GMTally1_encode(GMTally1 val0, GMTally1 val1) {
   const uint64_t tally2 =
       val0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * val1;

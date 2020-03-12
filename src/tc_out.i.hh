@@ -11,6 +11,8 @@
 #ifndef _comet_tc_copyout_i_hh_
 #define _comet_tc_copyout_i_hh_
 
+#include "formulas.hh"
+
 //#include "env.hh"
 //#include "tc.hh"
 //#include "tc_int.hh"
@@ -292,14 +294,22 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   COMET_ASSERT(thread_r >= 0 && thread_r < nvllX2);
   COMET_ASSERT(thread_c >= 0 && thread_c < nvl);
 
-#if xxx
+  // NOTE: each thread here two values, these encoded into one double.
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
   // Indexing.
 
-  const int indM_c = thread_c;
-  COMET_ASSERT(indM_c >= 0 && indM_c < nvl);
+  // indM_r, indM_c - row and column of incoming matrix
+  //    note each matrix element is composed of 2 doubles (4 table entries)
+  //    the matrix is stored column major
+  //    recall the matrix is "halved": the lower and upper half pertain
+  //      to different table entries for the same (I,J,K) coordinate
+  // I, J, K - (permuted) coordinate of element in the 3D block
+  // indT_I, indT_J, indT_K - indices into the 2x2x2 table at each coord
+
+//  const int indM_c = thread_c;
+//  COMET_ASSERT(indM_c >= 0 && indM_c < nvl);
 
   const int K = thread_c;
   COMET_ASSERT(K >= 0 && K < nvl);
@@ -312,13 +322,13 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   
   const int I = indM_r % nvllD2 + step_2way * nvllD2;
   COMET_ASSERT(I >= 0 && I < nvll);
+  COMET_ASSERT(I/nvllD2 == step_2way);
 
-  const int indT_I = indM_r / (nvllD2)
+  const int indT_I = indM_r / nvllD2;
   COMET_ASSERT(indT_I >= 0 && indT_I < 2);
+  COMET_ASSERT(indT_J + 2*(indM_r%nvllD2 + nvllD2*indT_I) == thread_r);
 
-  //const int indT_K = 
-
-  // Values for formula.
+  // Values to be plugged into CCC/DUO formula.
 
   const GMTally1 cI = (GMTally1)counts_I[I];
   const GMTally1 cJ = (GMTally1)counts_J[J];
@@ -339,43 +349,58 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 
   double* const dvo = (double*)vo;
 
-  indvo = fixme; // FIX
+  // Get all 8 table values for this (I, J, K) coord.
 
-  for (indT_K = 0; indT_K < 2; ++indT_K) {
+  const double dvo00 =
+    dvo[0 + 2*(indM_r % nvllD2 + nvllD2 * 0) + nvllX2 * (size_t)thread_c];
+
+  const double dvo01 =
+    dvo[0 + 2*(indM_r % nvllD2 + nvllD2 * 1) + nvllX2 * (size_t)thread_c];
+
+  const double dvo10 =
+    dvo[1 + 2*(indM_r % nvllD2 + nvllD2 * 0) + nvllX2 * (size_t)thread_c];
+
+  const double dvo11 =
+    dvo[1 + 2*(indM_r % nvllD2 + nvllD2 * 1) + nvllX2 * (size_t)thread_c];
+
+  GMTally1 values00[2], values01[2], values10[2], values11[2];
+  GMTally1_decode(values00[0], values00[1], dvo00);
+  GMTally1_decode(values01[0], values01[1], dvo01);
+  GMTally1_decode(values10[0], values10[1], dvo10);
+  GMTally1_decode(values11[0], values11[1], dvo11);
+
+  const GMTally1 cijk = values00[0] + values00[1] + values01[0] + values01[1] +
+                        values10[0] + values10[1] + values11[0] + values11[1];
+
+  const double recip_sumcijk = d1 / cijk;
+
+  double& dvo_this = dvo[thread_r + nvllX2 * (size_t)thread_c];
+
+  GMTally1 values_this[2];
+  GMTally1_decode(values_this[0], values_this[1], dvo_this);
+
+  // Loop over 2 table values stored in this double.
+
+  for (int indT_K = 0; indT_K < 2; ++indT_K) {
 
     const GMTally1 sK = indT_K == 0 ? CBPE * cK - sK1 : sK1;
 
-    // TODO: sort sI, sJ, sK
-    // CHECK single vs double, < vs <=, etc.
+    const double rijk = values_this[indT_K];
 
-    const int indT_I_other = 1 - indT_I;
-    const int indT_J_other = 1 - indT_J;
-    const int indT_K_other = 1 - indT_K;
-
-    const GMTally1 cijk = ; //FIX
-
-    const GMTally1 cijk = ; //FIX
-
-    const double recip_sumcijk = d1 / cijk;
-
-    const double rijk = ; // FIX
-
-    const double vnew = ccc_duo_value_3<double, CBPE>(
-      rijk, si, sj, sk, recip_ci, recip_cj, recip_ck,
+    const double ccc_duo_value = ccc_duo_value_3<double, CBPE>(
+      rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
       recip_sumcijk, multiplier, param);
 
-    if (vnew <= threshold_eff) {
+    const bool pass_threshold = CEnv::pass_threshold(ccc_duo_value,
+                                                     threshold_eff);
 
-      //FIX
-
-    }
-
-    dvo[indvo] = ; //FIX
-
+if (false) // FIX
+    if (!pass_threshold)
+      values_this[indT_K] = 0;
 
   } // indT_K
 
-#endif
+  dvo_this = GMTally1_encode(values_this[0], values_this[1]);
 }
 
 //-----------------------------------------------------------------------------

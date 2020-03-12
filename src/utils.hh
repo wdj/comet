@@ -214,13 +214,13 @@ static __host__ __device__ void sort_3(T& min_, T& mid_, T& max_,
   COMET_ASSERT(min_ <= mid_);
   COMET_ASSERT(mid_ <= max_);
 
-#ifdef COMET_ASSERTIONS_ON
+#if defined(COMET_ASSERTIONS_ON) && !defined(COMET_DEVICE_COMPILE)
   std::vector<T> v{a, b, c};
   std::sort(v.begin(), v.end());
   COMET_ASSERT(min_ == v[0]);
   COMET_ASSERT(mid_ == v[1]);
   COMET_ASSERT(max_ == v[2]);
-#endif // COMET_ASSERTIONS_ON
+#endif
 }
 
 //-----------------------------------------------------------------------------

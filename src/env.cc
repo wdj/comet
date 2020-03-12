@@ -239,7 +239,8 @@ void CEnv::set_defaults_() {
   sparse_ = false;
   tc_ = TC::NO;
   num_tc_steps_ = 1;
-  threshold_ = std::numeric_limits<double>::lowest();
+  threshold_ = CEnv::threshold_eff(-1);
+  threshold_eff_cache_ = threshold_;
 }
 
 //-----------------------------------------------------------------------------
@@ -411,6 +412,7 @@ void CEnv::parse_args_(int argc, char** argv) {
       const double threshold = strtod(argv[i], NULL);
       COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
       threshold_ = threshold;
+      threshold_eff_cache_ = CEnv::threshold_eff(threshold_);
       //--------------------
     } // if/else
   }   // for i

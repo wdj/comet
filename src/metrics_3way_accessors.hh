@@ -427,7 +427,6 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
-  const double threshold_eff = env->threshold_eff();
 
   if (env->sparse()) {
 
@@ -457,7 +456,7 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
     GMTally1 cijk = rijk000 + rijk001 + rijk010 + rijk011 +
                     rijk100 + rijk101 + rijk110 + rijk111;
     if (ci == 0 || cj == 0 || ck == 0 || cijk == 0) {
-      return 0 > threshold_eff;
+      return env->pass_threshold(0);
     }
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits
@@ -499,22 +498,22 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
       si1, sj1, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env) ==
       GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index, 1, 1, 1, env));
 
-    return GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk000, si0, sj0, sk0,
-            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold_eff ||
-          GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk001, si0, sj0, sk1,
-            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold_eff ||
-          GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk010, si0, sj1, sk0,
-            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold_eff ||
-          GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk011, si0, sj1, sk1,
-            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold_eff ||
-          GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk100, si1, sj0, sk0,
-            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold_eff ||
-          GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk101, si1, sj0, sk1,
-            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold_eff ||
-          GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk110, si1, sj1, sk0,
-            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold_eff ||
-          GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk111, si1, sj1, sk1,
-            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) > threshold_eff;
+    return env->pass_threshold(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk000,
+            si0, sj0, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
+          env->pass_threshold(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk001,
+            si0, sj0, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
+          env->pass_threshold(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk010,
+            si0, sj1, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
+          env->pass_threshold(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk011,
+            si0, sj1, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
+          env->pass_threshold(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk100,
+            si1, sj0, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
+          env->pass_threshold(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk101,
+            si1, sj0, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
+          env->pass_threshold(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk110,
+            si1, sj1, sk0, recip_ci, recip_cj, recip_ck, recip_sumcijk, env)) ||
+          env->pass_threshold(GMMetrics_ccc_duo_value_3<CBPE>(metrics, rijk111,
+            si1, sj1, sk1, recip_ci, recip_cj, recip_ck, recip_sumcijk, env));
 
   } // if (env->sparse())
 
@@ -537,10 +536,10 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
   const GMFloat v111 = GMMetrics_ccc_duo_get_from_index_3<CBPE>(metrics, index,
                                                                 1, 1, 1, env);
 
-  return v000 > threshold_eff || v001 > threshold_eff ||
-         v010 > threshold_eff || v011 > threshold_eff ||
-         v100 > threshold_eff || v101 > threshold_eff ||
-         v110 > threshold_eff || v111 > threshold_eff;
+  return env->pass_threshold(v000) || env->pass_threshold(v001) ||
+         env->pass_threshold(v010) || env->pass_threshold(v011) ||
+         env->pass_threshold(v100) || env->pass_threshold(v101) ||
+         env->pass_threshold(v110) || env->pass_threshold(v111);
 }
 
 //-----------------------------------------------------------------------------

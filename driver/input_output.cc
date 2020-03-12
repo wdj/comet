@@ -363,8 +363,6 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
   for (int i=0; i<(int)num_buf; ++i)
     do_out_buf[i] = 0;
 
-  const double threshold_eff = env->threshold_eff();
-
   // Process num_buf_ind index values at a time
   for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
        ind_base += num_buf_ind) {
@@ -383,8 +381,7 @@ void output_metrics_tally2x2_bin_impl_(GMMetrics* metrics, FILE* file,
             const GMFloat value =
               GMMetrics_ccc_duo_get_from_index_2<COUNTED_BITS_PER_ELT>(
                 metrics, index, i0, i1, env);
-            const bool pass_thresh = value>threshold_eff;
-            if (pass_thresh) {
+            if (env->pass_threshold(value)) {
               const size_t coord0 =
                 GMMetrics_coord_global_from_index(metrics, index, 0, env);
               const size_t coord1 =
@@ -494,8 +491,6 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
   for (int i=0; i<(int)num_buf; ++i)
     do_out_buf[i] = 0;
 
-  const double threshold_eff = env->threshold_eff();
-
   // Process num_buf_ind index values at a time
   for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
        ind_base += num_buf_ind) {
@@ -513,8 +508,7 @@ void output_metrics_tally4x2_bin_impl_(GMMetrics* metrics, FILE* file,
               const GMFloat value =
                 GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(
                   metrics, index, i0, i1, i2, env);
-              const bool pass_thresh = value>threshold_eff;
-              if (pass_thresh) {
+              if (env->pass_threshold(value)) {
                 const size_t coord0 =
                   GMMetrics_coord_global_from_index(metrics, index, 0, env);
                 const size_t coord1 =
@@ -611,8 +605,6 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
     return;
   }
 
-  const double threshold_eff = env->threshold_eff();
-
   switch (env->data_type_metrics()) {
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
@@ -635,7 +627,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
           }
           const GMFloat value
             = GMMetrics_czek_get_from_index(metrics, index, env);
-          if (!(value > threshold_eff)) {
+          if (!env->pass_threshold(value)) {
             continue;
           }
           /*---Output the value---*/
@@ -677,7 +669,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
           }
           const GMFloat value
             = GMMetrics_czek_get_from_index(metrics, index, env);
-          if (!(value > threshold_eff)) {
+          if (!env->pass_threshold(value)) {
             continue;
           }
           /*---Output the value---*/
@@ -731,7 +723,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
               const GMFloat value = env->metric_type() == MetricType::CCC ?
                 GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env) :
                 GMMetrics_duo_get_from_index_2(metrics, index, i0, i1, env);
-              if (!(value > threshold_eff)) {
+              if (!env->pass_threshold(value)) {
                 continue;
               }
 
@@ -804,7 +796,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
                 const GMFloat value
                   = GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2,
                                                 env);
-                if (!(value > threshold_eff)) {
+                if (!env->pass_threshold(value)) {
                   continue;
                 }
 
