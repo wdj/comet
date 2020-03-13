@@ -75,6 +75,15 @@ public:
                       GMMetrics& metrics, CEnv& env);
   // TODO: try to make metrics, env const here.
 
+  //---------------------------------------------------------------------------
+  /// \brief Get metrics element.
+
+  static double metrics_elt(
+    GMMetrics& metrics,
+    size_t index,
+    int i_value,
+    CEnv& env);
+
 private:
 
   //---------------------------------------------------------------------------

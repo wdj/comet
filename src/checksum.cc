@@ -116,6 +116,86 @@ inline static size_t lshift(size_t a, int j) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Get metrics element.
+///
+/// NOTE: this does not take into account whether elt is active.
+
+double Checksum::metrics_elt(
+  GMMetrics& metrics,
+  size_t index,
+  int i_value,
+  CEnv& env) { 
+  COMET_INSIST(index < metrics.num_elts_local); // && index >= 0
+  COMET_INSIST(i_value >= 0 && i_value < metrics.data_type_num_values);
+
+  // Obtain global coords of metrics elt
+  size_t coords[NUM_WAY::MAX];
+  int ind_coords[NUM_WAY::MAX]; // permutation index
+  for (int i = 0; i < NUM_WAY::MAX; ++i) {
+    coords[i] = 0;
+    ind_coords[i] = i;
+  }
+  for (int i = 0; i < env.num_way(); ++i) {
+    const size_t coord =
+      GMMetrics_coord_global_from_index(&metrics, index, i, &env);
+    coords[i] = coord;
+  }
+  // Reflect coords by symmetry to get uniform result -
+  //   sort into descending order
+  //
+  // The idea here is that, because the tensor has reflective
+  // symmetries, a different equivlent reflected tensor value may be
+  // computed based on the parallel decomposition.
+  // This permutation puts the indices into a uniform order
+  // so that this is not viewed as a difference in the results.
+  // Note also below we will permute i0 / i1 / i2 as needed.
+  makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
+  makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
+  makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
+
+  // Pick up value of this metrics elt
+  double value = 0;
+  switch (metrics.data_type_id) {
+    // --------------
+    case GM_DATA_TYPE_FLOAT: {
+      value = GMMetrics_czek_get_from_index(&metrics, index, &env);
+    } break;
+    // --------------
+    case GM_DATA_TYPE_TALLY2X2: {
+      const int i0_unpermuted = i_value / 2;
+      const int i1_unpermuted = i_value % 2;
+      const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
+      const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
+      value = env.metric_type() == MetricType::CCC ?
+        GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env) :
+        GMMetrics_duo_get_from_index_2(&metrics, index, i0, i1, &env);
+    } break;
+    // --------------
+    case GM_DATA_TYPE_TALLY4X2: {
+      const int i0_unpermuted = i_value / 4;
+      const int i1_unpermuted = (i_value / 2) % 2;
+      const int i2_unpermuted = i_value % 2;
+      const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
+                     ind_coords[1] == 0 ? i1_unpermuted :
+                                          i2_unpermuted;
+      const int i1 = ind_coords[0] == 1 ? i0_unpermuted :
+                     ind_coords[1] == 1 ? i1_unpermuted :
+                                          i2_unpermuted;
+      const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
+                     ind_coords[1] == 2 ? i1_unpermuted :
+                                          i2_unpermuted;
+      value =
+        GMMetrics_ccc_get_from_index_3(&metrics, index, i0, i1, i2, &env);
+    } break;
+    // --------------
+    default:
+      COMET_INSIST(false && "Invalid data type. metrics.data_type_id.");
+  } // switch
+
+  return env.pass_threshold(value) ? value : (double)0;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Checksum helper: return largest value in metrics object.
 ///
 ///        Note: this computes the max value on proc, not across procs,
@@ -133,6 +213,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
   // Loop over metrics indices to find max.
   #pragma omp parallel for reduction(max:result)
   for (size_t index = 0; index < metrics.num_elts_local; ++index) {
+
     // Determine whether this cell is active.
     bool is_active = true;
     for (int i = 0; i < env.num_way(); ++i) {
@@ -142,39 +223,15 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
     }
     double value_max = -DBL_MAX;
     if (is_active) {
-      // Loop over data values at this index
       for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
         // Pick up value of this metrics elt
-        double value = 0;
-        switch (metrics.data_type_id) {
-          // --------------
-          case GM_DATA_TYPE_FLOAT: {
-            value = GMMetrics_czek_get_from_index(&metrics, index, &env);
-          } break;
-          // --------------
-          case GM_DATA_TYPE_TALLY2X2: {
-            const int i0 = i_value / 2;
-            const int i1 = i_value % 2;
-            value = env.metric_type() == MetricType::CCC ?
-              GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env) :
-              GMMetrics_duo_get_from_index_2(&metrics, index, i0, i1, &env);
-          } break;
-          // --------------
-          case GM_DATA_TYPE_TALLY4X2: {
-            const int i0 = i_value / 4;
-            const int i1 = (i_value / 2) % 2;
-            const int i2 = i_value % 2;
-            value =
-              GMMetrics_ccc_get_from_index_3(&metrics, index, i0, i1, i2, &env);
-          } break;
-          // --------------
-          default:
-          COMET_INSIST(false && "Invalid metrics data type. metrics.data_type_id.");
-        } // switch
+        const double value = Checksum::metrics_elt(metrics, index, i_value,
+                                                   env);
         // value_max is the largest of the values at this index.
         value_max = value > value_max ? value : value_max;
       } // for i_value
     } // if is_active
+
     result = value_max > result ? value_max : result;
   } // for index
 
@@ -273,12 +330,11 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     for (size_t index = 0; index < metrics.num_elts_local; ++index) {
       // Loop over data values at this index
       for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
+
         // Obtain global coords of metrics elt
         size_t coords[NUM_WAY::MAX];
-        int ind_coords[NUM_WAY::MAX]; // permutation index
         for (int i = 0; i < NUM_WAY::MAX; ++i) {
           coords[i] = 0;
-          ind_coords[i] = i;
         }
         bool is_active = true;
         for (int i = 0; i < env.num_way(); ++i) {
@@ -288,57 +344,10 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           is_active = is_active && coord < metrics.num_vector_active;
           coords[i] = coord;
         }
-        // Reflect coords by symmetry to get uniform result -
-        //   sort into descending order
-        //
-        // The idea here is that, because the tensor has reflective
-        // symmetries, a different equivlent reflected tensor value may be
-        // computed based on the parallel decomposition.
-        // This permutation puts the indices into a uniform order
-        // so that this is not viewed as a difference in the results.
-        // Note also below we will permute i0 / i1 / i2 as needed.
-        makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
-        makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
-        makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
 
         // Pick up value of this metrics elt
-        double value = 0;
-        switch (metrics.data_type_id) {
-          // --------------
-          case GM_DATA_TYPE_FLOAT: {
-            value = GMMetrics_czek_get_from_index(&metrics, index, &env);
-          } break;
-          // --------------
-          case GM_DATA_TYPE_TALLY2X2: {
-            const int i0_unpermuted = i_value / 2;
-            const int i1_unpermuted = i_value % 2;
-            const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
-            const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
-            value = env.metric_type() == MetricType::CCC ?
-              GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env) :
-              GMMetrics_duo_get_from_index_2(&metrics, index, i0, i1, &env);
-          } break;
-          // --------------
-          case GM_DATA_TYPE_TALLY4X2: {
-            const int i0_unpermuted = i_value / 4;
-            const int i1_unpermuted = (i_value / 2) % 2;
-            const int i2_unpermuted = i_value % 2;
-            const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
-                           ind_coords[1] == 0 ? i1_unpermuted :
-                                                i2_unpermuted;
-            const int i1 = ind_coords[0] == 1 ? i0_unpermuted :
-                           ind_coords[1] == 1 ? i1_unpermuted :
-                                                i2_unpermuted;
-            const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
-                           ind_coords[1] == 2 ? i1_unpermuted :
-                                                i2_unpermuted;
-            value =
-              GMMetrics_ccc_get_from_index_3(&metrics, index, i0, i1, i2, &env);
-          } break;
-          // --------------
-          default:
-            COMET_INSIST(false && "Invalid data type. metrics.data_type_id.");
-        } // switch
+        const double value = Checksum::metrics_elt(metrics, index, i_value,
+                                                   env);
 
         // Convert to uint64.  Store only 2*w+1 bits, at most -
         // if (value / scaling) <= 1, which it should be if
