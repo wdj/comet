@@ -441,7 +441,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
     return;
 
   COMET_INSIST(env.sparse() && "Case not supported.");
-  COMET_INSIST((env.is_vectors_halved() || ! 3 == env.num_way()) &&
+  COMET_INSIST((env.is_vectors_halved() || ! (3 == env.num_way())) &&
     "Case not supported.");
   COMET_INSIST(env.is_bitwise_3way_2step() && "Case not supported.");
 
