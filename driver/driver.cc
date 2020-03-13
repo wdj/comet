@@ -307,7 +307,8 @@ void perform_run(int argc, char** argv, const char* const description,
 
 //-----------------------------------------------------------------------------
 
-void print_output(Checksum& cksum,
+void print_output(bool do_print,
+                  Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub,
                   size_t num_written,
@@ -318,6 +319,8 @@ void print_output(Checksum& cksum,
                   double outtime,
                   double tottime) {
 
+  const double ops = env.ops();
+
   if (cksum.computing_checksum()) {
     printf("metrics checksum ");
     cksum.print(env);
@@ -326,10 +329,10 @@ void print_output(Checksum& cksum,
 
   printf("ctime %.6f", env.ctime());
 
-  printf(" ops %e", env.ops());
+  printf(" ops %e", ops);
   if (env.ctime() > 0) {
-    printf(" ops_rate %e", env.ops() / env.ctime());
-    printf(" ops_rate/proc %e", env.ops() / (env.ctime() * env.num_proc()) );
+    printf(" ops_rate %e", ops / env.ctime());
+    printf(" ops_rate/proc %e", ops / (env.ctime() * env.num_proc()) );
   }
 
   printf(" vcmp %e", env.veccompares());
@@ -626,9 +629,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   /*---Output run information---*/
 
-  if (do_print)
-    print_output(cksum, *env, do_.metrics_file_path_stub, num_written,
-      vctime, mctime, cktime, intime, outtime, tottime);
+  print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
+    vctime, mctime, cktime, intime, outtime, tottime);
     
 #if 0
   const double ops = env->ops();

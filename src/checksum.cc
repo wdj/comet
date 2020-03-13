@@ -249,7 +249,6 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
 ///        Note that cksum and cksum_local are input/output
 ///        variables; they are added to for multiple stages or phases
 ///        of the calculation.
-
 void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
                        GMMetrics& metrics, CEnv& env){
   // TODO: make this check unnecessary.
@@ -333,6 +332,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
         // Obtain global coords of metrics elt
         size_t coords[NUM_WAY::MAX];
+        int ind_coords[NUM_WAY::MAX]; // permutation index
         for (int i = 0; i < NUM_WAY::MAX; ++i) {
           coords[i] = 0;
         }
@@ -343,11 +343,16 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           // Ignore padding vectors.
           is_active = is_active && coord < metrics.num_vector_active;
           coords[i] = coord;
+          ind_coords[i] = i;
         }
 
         // Pick up value of this metrics elt
         const double value = Checksum::metrics_elt(metrics, index, i_value,
                                                    env);
+
+        makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
+        makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
+        makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
 
         // Convert to uint64.  Store only 2*w+1 bits, at most -
         // if (value / scaling) <= 1, which it should be if

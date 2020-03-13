@@ -69,7 +69,8 @@ void perform_run(comet::Checksum& cksum, const char* const options,
                  MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
 
 
-void print_output(Checksum& cksum,
+void print_output(bool do_print,
+                  Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub = 0,
                   size_t num_written = 0,
