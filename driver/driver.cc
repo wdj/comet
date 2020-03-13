@@ -680,7 +680,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     printf(" cpumem %e", (double)cpu_mem_max);
     printf(" gpumem %e", (double)gpu_mem_max);
     //-----
-    printf(" tottime %.6f", total_time_end - total_time_beg);
+    printf(" tottime %.6f", tottime);
     //-----
     if (env->tc() != env->tc_eff()) {
       printf(" tc_eff %i", env->tc_eff());

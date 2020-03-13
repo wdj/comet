@@ -559,8 +559,8 @@ void tc_out_( int nvll, int nvl, void* vo,
 
   tc_repair_metrics_<TC_METHOD>(nvll, nvl, vo, env);
 
-  tc_threshold_<TC_METHOD>(nvll, nvl, vo,
-    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
+//FIX  tc_threshold_<TC_METHOD>(nvll, nvl, vo,
+//FIX    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
 }
 
 //=============================================================================

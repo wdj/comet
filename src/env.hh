@@ -348,7 +348,7 @@ public:
   }
   bool threshold_tc() const {
     //return false;
-    return is_using_tc() && sparse() && num_proc_field() == 1;
+    return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold();
   }
   bool is_vectors_halved() const {
     return 3 == num_way() && is_using_tc() && threshold_tc();
