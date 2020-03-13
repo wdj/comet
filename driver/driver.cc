@@ -307,6 +307,66 @@ void perform_run(int argc, char** argv, const char* const description,
 
 //-----------------------------------------------------------------------------
 
+void print_output(Checksum& cksum,
+                  CEnv& env,
+                  char* metrics_file_path_stub,
+                  size_t num_written,
+                  double vctime,
+                  double mctime,
+                  double cktime,
+                  double intime,
+                  double outtime,
+                  double tottime) {
+
+  if (cksum.computing_checksum()) {
+    printf("metrics checksum ");
+    cksum.print(env);
+    printf(" ");
+  }
+
+  printf("ctime %.6f", env.ctime());
+
+  printf(" ops %e", env.ops());
+  if (env.ctime() > 0) {
+    printf(" ops_rate %e", env.ops() / env.ctime());
+    printf(" ops_rate/proc %e", env.ops() / (env.ctime() * env.num_proc()) );
+  }
+
+  printf(" vcmp %e", env.veccompares());
+  if (metrics_file_path_stub) {
+    printf(" vcmpout %e", (double)num_written);
+  }
+
+  printf(" cmp %e", env.compares());
+  printf(" ecmp %e", env.eltcompares());
+  if (env.ctime() > 0) {
+    printf(" ecmp_rate %e", env.eltcompares() / env.ctime());
+    printf(" ecmp_rate/proc %e", env.eltcompares() /
+      (env.ctime() * env.num_proc()) );
+  }
+
+  printf(" vctime %.6f", vctime);
+  printf(" mctime %.6f", mctime);
+  if (cksum.computing_checksum()) {
+    printf(" cktime %.6f", cktime);
+  }
+  printf(" intime %.6f", intime);
+  printf(" outtime %.6f", outtime);
+
+  printf(" cpumem %e", (double)env.cpu_mem_max());
+  printf(" gpumem %e", (double)env.gpu_mem_max());
+
+  printf(" tottime %.6f", tottime);
+
+  if (env.tc() != env.tc_eff()) {
+    printf(" tc_eff %i", env.tc_eff());
+  }
+
+  printf("\n");
+}
+
+//-----------------------------------------------------------------------------
+
 void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
                  const char* const description,
                  MPI_Comm base_comm, CEnv* env_in) {
@@ -562,9 +622,15 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   }
 
   double total_time_end = env->synced_time();
+  double tottime = total_time_end - total_time_beg;
 
   /*---Output run information---*/
 
+  if (do_print)
+    print_output(cksum, *env, do_.metrics_file_path_stub, num_written,
+      vctime, mctime, cktime, intime, outtime, tottime);
+    
+#if 0
   const double ops = env->ops();
   const size_t cpu_mem_max = env->cpu_mem_max();
   const size_t gpu_mem_max = env->gpu_mem_max();
@@ -622,6 +688,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     //-----
     printf("\n");
   }
+#endif
 
   // Output a local checksum, for testing purposes.
 

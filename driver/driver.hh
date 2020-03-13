@@ -68,6 +68,18 @@ void perform_run(comet::Checksum& cksum, int argc, char** argv,
 void perform_run(comet::Checksum& cksum, const char* const options,
                  MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);
 
+
+void print_output(Checksum& cksum,
+                  CEnv& env,
+                  char* metrics_file_path_stub = 0,
+                  size_t num_written = 0,
+                  double vctime = 0,
+                  double mctime = 0,
+                  double cktime = 0,
+                  double intime = 0,
+                  double outtime = 0,
+                  double tottime = 0);
+
 //=============================================================================
 
 } // namespace comet

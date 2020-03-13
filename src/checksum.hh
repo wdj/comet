@@ -84,6 +84,11 @@ public:
     int i_value,
     CEnv& env);
 
+  //---------------------------------------------------------------------------
+  /// \brief Accessor: are we computing the checksum.
+
+  bool computing_checksum() const {return computing_checksum_;}
+
 private:
 
   //---------------------------------------------------------------------------
