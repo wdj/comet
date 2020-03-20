@@ -572,7 +572,7 @@ void DriverTest_czek_() {
       true,
       compare_2runs("--num_proc_vector 1 --num_field 30 --num_vector 3 "
                     "--verbosity 1 --all2all yes "
-                    "--compute_method GPU",
+                    "--compute_method REF --threshold .65",
                     "--num_proc_vector 1 --num_field 30 --num_vector 3 "
                     "--verbosity 1 --all2all yes "
                     "--compute_method GPU --threshold .65"));
@@ -2189,7 +2189,6 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
       sprintf(options2, options_template, metric_type, 1==sparse ? "yes" : "no",
               "--compute_method GPU "
               "--verbosity 1 "
-              "--threshold .5 "
               "--output_file_stub test_ccc_duo_2way");
       test_2runs(options1, options2);
     }
@@ -2204,6 +2203,8 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
 
   char options1[1024];
   char options2[1024];
+//FIX
+#if 1
   char options3[1024];
 
   //----------
@@ -2396,7 +2397,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
   if (!is_duo) {
     char options_template[] =
         "--metric_type %s "
-        "--num_proc_vector 1 --num_proc_vector 1 "
+        "--num_proc_vector 1 "
         "--num_field 7 --num_vector 18 "
         "--num_way 3 "
         "--all2all yes --sparse %s "
@@ -2408,10 +2409,34 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       sprintf(options2, options_template, metric_type, 1==sparse ? "yes" : "no",
               "--compute_method GPU "
               "--verbosity 1 "
-              "--threshold .1 "
               "--output_file_stub test_ccc_duo_3way");
       test_2runs(options1, options2);
     }
+  }
+#endif
+
+  //----------
+  //---threshold, 3-way
+  //----------
+
+  {
+    char options_template[] =
+        "--metric_type %s "
+        "--num_proc_vector 1 "
+        "--num_field 7 --num_vector 18 "
+//        "--num_field 2 --num_vector 3 "
+        "--num_way 3 "
+        "--all2all yes --sparse yes "
+        "--problem_type random %s";
+    sprintf(options1, options_template, metric_type,
+            "--compute_method REF "
+            "--verbosity 2 "
+            "--threshold .1 ");
+    sprintf(options2, options_template, metric_type,
+            "--compute_method GPU --tc 4 "
+            "--verbosity 2 "
+            "--threshold .1 ");
+    test_2runs(options1, options2);
   }
 } // DriverTest_ccc3_duo3_
 
@@ -2441,6 +2466,7 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
+#if 1
 TEST(DriverTest, tc) {
   DriverTest_tc_();
 }
@@ -2472,11 +2498,13 @@ TEST(DriverTest, duo2_simple_sparse) {
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
+#endif
 
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
 
+#if 1
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }
@@ -2488,6 +2516,7 @@ TEST(DriverTest, duo3) {
 TEST(DriverTest, czek) {
   DriverTest_czek_();
 }
+#endif
 
 //=============================================================================
 

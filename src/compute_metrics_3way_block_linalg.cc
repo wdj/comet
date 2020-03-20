@@ -189,7 +189,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
 
   COMET_INSIST(vs_i && vs_j && vs_k);
 
-  COMET_ASSERT( ! (env.is_bitwise_3way_2step() && !env.form_matX_on_accel()) &&
+  COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_on_accel()) &&
                "Case currently unimplemented.");
 
   matB_buf->lock_h();
@@ -272,17 +272,17 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
                   env.is_bitwise_3way_2step()) &&
                  "Case currently unimplemented.");
 
+    const int nvle = I_max_dim;
+    const int nvleD2 = nvle / 2;
+    const int is_halved = env.is_bitwise_3way_2step() &&
+                          env.is_vectors_halved();
+
     GMIndexCache index_cache = {};
 
     // don't use collapse because of overflow for large sizes
     //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
     #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
-
-      const int nvle = I_max_dim;
-      const int nvleD2 = nvle / 2;
-      const int is_halved = env.is_bitwise_3way_2step() &&
-                            env.is_vectors_halved();
 
       for (int I = I_min; I < I_max; ++I) {
         /*---For the permuted case,

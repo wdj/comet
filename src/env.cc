@@ -238,6 +238,7 @@ void CEnv::set_defaults_() {
   duo_multiplier_set_(CEnv::duo_multiplier_default());
   sparse_ = false;
   tc_ = TC::NO;
+  tc_eff_ = tc_eff_compute_();
   num_tc_steps_ = 1;
   threshold_ = CEnv::threshold_eff(-1);
   threshold_eff_cache_ = threshold_;
@@ -391,6 +392,7 @@ void CEnv::parse_args_(int argc, char** argv) {
                     && TC::is_valid(tc)
                     && "Invalid setting for tc.");
       tc_ = tc;
+      tc_eff_ = tc_eff_compute_();
       //--------------------
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
       //--------------------
@@ -537,7 +539,7 @@ bool CEnv::can_run(int tc) const {
 //-----------------------------------------------------------------------------
 // \brief Select best tc value if AUTO specified.
 
-int CEnv::tc_eff() const {
+int CEnv::tc_eff_compute_() const {
 
   if (TC::AUTO != tc_)
     return tc_;

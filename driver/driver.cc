@@ -320,6 +320,11 @@ void print_output(bool do_print,
                   double tottime) {
 
   const double ops = env.ops();
+  const size_t cpu_mem_max = env.cpu_mem_max();
+  const size_t gpu_mem_max = env.gpu_mem_max();
+
+  if (!do_print)
+    return;
 
   if (cksum.computing_checksum()) {
     printf("metrics checksum ");
@@ -347,6 +352,9 @@ void print_output(bool do_print,
     printf(" ecmp_rate/proc %e", env.eltcompares() /
       (env.ctime() * env.num_proc()) );
   }
+  if (cksum.computing_checksum()) {
+    printf(" ezero %.6f", cksum.num_zero());
+  }
 
   printf(" vctime %.6f", vctime);
   printf(" mctime %.6f", mctime);
@@ -356,8 +364,8 @@ void print_output(bool do_print,
   printf(" intime %.6f", intime);
   printf(" outtime %.6f", outtime);
 
-  printf(" cpumem %e", (double)env.cpu_mem_max());
-  printf(" gpumem %e", (double)env.gpu_mem_max());
+  printf(" cpumem %e", (double)cpu_mem_max);
+  printf(" gpumem %e", (double)gpu_mem_max);
 
   printf(" tottime %.6f", tottime);
 

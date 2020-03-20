@@ -281,7 +281,8 @@ public:
   int num_way() const {return num_way_;}
   bool sparse() const {return sparse_;}
   int tc() const {return tc_;};
-  int tc_eff() const;
+  int tc_eff() const {return tc_eff_;}
+  int tc_eff_compute_() const;
   int num_tc_steps() const {return num_tc_steps_;};
   double threshold() const {return threshold_;}
 
@@ -449,6 +450,7 @@ private:
   int num_way_;
   bool sparse_;
   int tc_;
+  int tc_eff_;
   int num_tc_steps_;
   double threshold_;
   double threshold_eff_cache_;

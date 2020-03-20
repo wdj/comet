@@ -89,6 +89,11 @@ public:
 
   bool computing_checksum() const {return computing_checksum_;}
 
+  //---------------------------------------------------------------------------
+  /// \brief Accessor: number of zero metric values.
+
+  double num_zero() const {return num_zero_;}
+
 private:
 
   //---------------------------------------------------------------------------
@@ -116,6 +121,7 @@ private:
   double value_max_;
   MultiprecInt sum_;
   double sum_d_;
+  double num_zero_;
   bool is_started_;
   bool computing_checksum_;
 

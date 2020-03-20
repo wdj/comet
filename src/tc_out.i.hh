@@ -379,6 +379,8 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   GMTally1 values_this[2];
   GMTally1_decode(values_this[0], values_this[1], dvo_this);
 
+//GMTally1 v0 = values_this[0];
+//GMTally1 v1 = values_this[1];
   // Loop over 2 table values stored in this double.
 
   for (int indT_K = 0; indT_K < 2; ++indT_K) {
@@ -394,12 +396,19 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
     const bool pass_threshold = CEnv::pass_threshold(ccc_duo_value,
                                                      threshold_eff);
 
-if (false) // FIX
     if (!pass_threshold)
       values_this[indT_K] = 0;
 
   } // indT_K
 
+//printf("%f %f\n", (double)values_this[0], (double)values_this[1]);
+//if(v0!=values_this[0] || v1!=values_this[1])
+//printf("%f %f   %f %f\n"
+//, (double)v0, (double)v1
+//, (double)values_this[0], (double)values_this[1]
+//);
+
+if (false) // FIX
   dvo_this = GMTally1_encode(values_this[0], values_this[1]);
 }
 
@@ -453,10 +462,8 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
   const int cbpe = env.counted_bits_per_elt();
 
-  // make kernel templatized on CBPE
-  // template specialization on num_way
+  // ? template specialization on num_way
   // 2way: i -> I, j -> K (???)
-  // how will we properly check this?
 
   const double param = env.ccc_param();
   const double multiplier = env.metric_type() == MetricType::CCC ?
@@ -546,7 +553,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Postprocess metrics computed by GEMMs.
+/// \brief Postprocess metrics values previously computed by GEMMs.
 
 template<int TC_METHOD>
 void tc_out_( int nvll, int nvl, void* vo,
@@ -557,10 +564,14 @@ void tc_out_( int nvll, int nvl, void* vo,
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
+  // Perform (1) swizzle and (2) reformatting to packed double format.
+
   tc_repair_metrics_<TC_METHOD>(nvll, nvl, vo, env);
 
-//FIX  tc_threshold_<TC_METHOD>(nvll, nvl, vo,
-//FIX    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
+  // Apply thresholding of smaller values to zero, if requested.
+
+  tc_threshold_<TC_METHOD>(nvll, nvl, vo,
+    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
 }
 
 //=============================================================================

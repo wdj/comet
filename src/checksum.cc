@@ -30,6 +30,7 @@ Checksum::Checksum(bool computing_checksum)
   : is_overflowed_(false)
   , value_max_(-DBL_MAX)
   , sum_d_(0)
+  , num_zero_(0)
   , is_started_(false)
   , computing_checksum_(computing_checksum) {
 
@@ -50,6 +51,7 @@ void Checksum::copy(const Checksum& cksum) {
   value_max_ = cksum.value_max_;
   sum_ = cksum.sum_;
   sum_d_ = cksum.sum_d_;
+  num_zero_ = cksum.num_zero_;
   is_started_ = cksum.is_started_;
   computing_checksum_ = cksum.computing_checksum_;
 }
@@ -192,7 +194,16 @@ double Checksum::metrics_elt(
       COMET_INSIST(false && "Invalid data type. metrics.data_type_id.");
   } // switch
 
-  return env.pass_threshold(value) ? value : (double)0;
+  // Apply the thresold if not doing in TC package and if value fails test.
+
+//FIX  const bool do_set_zero = !env.threshold_tc() && !env.pass_threshold(value);
+  const bool do_set_zero = !env.pass_threshold(value);
+
+  const double result = do_set_zero ? (double)0 : value;
+//printf("%f %f\n", value, result);
+  return result;
+  //return env.pass_threshold(value) ? value : (double)0;
+  //return value;
 }
 
 //-----------------------------------------------------------------------------
@@ -319,11 +330,13 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
   MultiprecInt sum_local; // = 0 // checksum valune on this proc
   double sum_d_local = 0; // floating point representation of the same, as check
+  double num_zero = 0;
 
   #pragma omp parallel
   {
     MultiprecInt sum_local_private; // = 0
     double sum_d_local_private = 0;
+    double num_zero_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
     for (size_t index = 0; index < metrics.num_elts_local; ++index) {
@@ -349,6 +362,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         // Pick up value of this metrics elt
         const double value = Checksum::metrics_elt(metrics, index, i_value,
                                                    env);
+        num_zero_private += (double)0 == value && is_active;
 
         makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
         makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
@@ -418,8 +432,13 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           sum_local.data_[0 + i] += sum_local_private.data_[0 + i]; // critical
           sum_local.data_[8 + i] += sum_local_private.data_[8 + i]; // reduction
         }
+        num_zero += num_zero_private;
     }
   } // omp parallel
+
+  cksum_local.num_zero_ += num_zero;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&cksum_local.num_zero_, &cksum.num_zero_,
+    1, MPI_DOUBLE, MPI_SUM, env.comm_repl_vector()));
 
   // Global sum of multiprecision int
 
