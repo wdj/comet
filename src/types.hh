@@ -105,6 +105,9 @@ struct MetricFormat {
 //=============================================================================
 // Types for CCC and DUO metrics
 
+// For Metrics: largest allowed size of a data value
+enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
+
 // For Vectors: single 2-bit value (seminibble):
 // use unsigned int as a container for a single item
 typedef unsigned int GMBits2;
@@ -144,48 +147,51 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
     const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
     val0 = v0;
     val1 = v1;
-    COMET_ASSERT(v == (Type)(v0 + v1 * shifter);
+    COMET_ASSERT(v == (Type)(v0 + v1 * shifter));
     //COMET_ASSERT(v0 >= 0 && v1 >= 0);
     COMET_ASSERT(v0 < shifter);
     COMET_ASSERT(v1 < shifter);
   }
 
-  static void encode(Type v,
-                     const GMTally1& __restrict__ val0,
-                     const GMTally1& __restrict__ val1) {
+  static void encode(Type& v,
+                     const GMTally1 __restrict__ val0,
+                     const GMTally1 __restrict__ val1) {
     const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
     const uint64_t tally2 = val0 + shifter * val1;
     v = (Type)tally2;
-    COMET_ASSERT(val0 == (((uint64_t)v) & (shifter - 1));
+    COMET_ASSERT(val0 == (((uint64_t)v) & (shifter - 1)));
     COMET_ASSERT(val1 == ((uint64_t)v) >> GM_TALLY1_MAX_VALUE_BITS);
   }
 
-  static void add(Type v,
-                  const GMTally1& __restrict__ val0,
-                  const GMTally1& __restrict__ val1) {
+  static void add(Type& v,
+                  const GMTally1 __restrict__ val0,
+                  const GMTally1 __restrict__ val1) {
     const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
     const uint64_t tally2 = val0 + shifter * val1;
 #ifdef COMET_ASSERTIONS_ON
     const Type vold = v;
 #endif
     v += (Type)tally2;
-    COMET_ASSERT(val0 == (((uint64_t)(v-vold)) & (shifter - 1));
+    COMET_ASSERT(val0 == (((uint64_t)(v-vold)) & (shifter - 1)));
     COMET_ASSERT(val1 == ((uint64_t)(v-vold)) >> GM_TALLY1_MAX_VALUE_BITS);
   }
 
-  static void subtract(Type v,
-                       const GMTally1& __restrict__ val0,
-                       const GMTally1& __restrict__ val1) {
+  static void subtract(Type& v,
+                       const GMTally1 __restrict__ val0,
+                       const GMTally1 __restrict__ val1) {
     const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
     const uint64_t tally2 = val0 + shifter * val1;
 #ifdef COMET_ASSERTIONS_ON
     const Type vold = v;
 #endif
     v -= (Type)tally2;
-    COMET_ASSERT(val0 == (((uint64_t)(vold-v)) & (shifter - 1));
+    COMET_ASSERT(val0 == (((uint64_t)(vold-v)) & (shifter - 1)));
     COMET_ASSERT(val1 == ((uint64_t)(vold-v)) >> GM_TALLY1_MAX_VALUE_BITS);
   }
 };
+
+
+
 
 template<> struct MetricFormatType<MetricFormat::SINGLE> {
   typedef Single2 Type;
@@ -197,23 +203,23 @@ template<> struct MetricFormatType<MetricFormat::SINGLE> {
     val1 = v.data[1];
   }
 
-  static void encode(Type v,
-                     const GMTally1& __restrict__ val0,
-                     const GMTally1& __restrict__ val1) {
+  static void encode(Type& v,
+                     const GMTally1 __restrict__ val0,
+                     const GMTally1 __restrict__ val1) {
     v.data[0] = val0;
     v.data[1] = val1;
   }
 
-  static void add(Type v,
-                  const GMTally1& __restrict__ val0,
-                  const GMTally1& __restrict__ val1) {
+  static void add(Type& v,
+                  const GMTally1 __restrict__ val0,
+                  const GMTally1 __restrict__ val1) {
     v.data[0] += val0;
     v.data[1] += val1;
   }
 
-  static void subtract(Type v,
-                       const GMTally1& __restrict__ val0,
-                       const GMTally1& __restrict__ val1) {
+  static void subtract(Type& v,
+                       const GMTally1 __restrict__ val0,
+                       const GMTally1 __restrict__ val1) {
     v.data[0] -= val0;
     v.data[1] -= val1;
   }
@@ -239,9 +245,6 @@ template<int METRIC_FORMAT> struct Tally4x2 {
 // use 25 bits of each 52-bit mantissa to store a result
 typedef struct { PackedDouble data[2]; } GMTally2x2;
 typedef struct { PackedDouble data[4]; } GMTally4x2;
-
-// For Metrics: largest allowed size of a data value
-enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 
 // For Metrics: for packing of multipliers
 typedef PackedDouble GMFloat2;
