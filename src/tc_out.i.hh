@@ -364,10 +364,10 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
     dvo[1 + 2*(indM_r % nvllD2 + nvllD2 * 1) + nvllX2 * (size_t)thread_c];
 
   GMTally1 values00[2], values01[2], values10[2], values11[2];
-  GMTally1_decode(values00[0], values00[1], dvo00);
-  GMTally1_decode(values01[0], values01[1], dvo01);
-  GMTally1_decode(values10[0], values10[1], dvo10);
-  GMTally1_decode(values11[0], values11[1], dvo11);
+  PackedDouble_decode(values00[0], values00[1], dvo00);
+  PackedDouble_decode(values01[0], values01[1], dvo01);
+  PackedDouble_decode(values10[0], values10[1], dvo10);
+  PackedDouble_decode(values11[0], values11[1], dvo11);
 
   const GMTally1 cijk = values00[0] + values00[1] + values01[0] + values01[1] +
                         values10[0] + values10[1] + values11[0] + values11[1];
@@ -377,7 +377,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   double& dvo_this = dvo[thread_r + nvllX2 * (size_t)thread_c];
 
   GMTally1 values_this[2];
-  GMTally1_decode(values_this[0], values_this[1], dvo_this);
+  PackedDouble_decode(values_this[0], values_this[1], dvo_this);
 
 //GMTally1 v0 = values_this[0];
 //GMTally1 v1 = values_this[1];

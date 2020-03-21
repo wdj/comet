@@ -2430,11 +2430,11 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
         "--problem_type random %s";
     sprintf(options1, options_template, metric_type,
             "--compute_method REF "
-            "--verbosity 2 "
+            "--verbosity 1 "
             "--threshold .1 ");
     sprintf(options2, options_template, metric_type,
             "--compute_method GPU --tc 4 "
-            "--verbosity 2 "
+            "--verbosity 1 "
             "--threshold .1 ");
     test_2runs(options1, options2);
   }

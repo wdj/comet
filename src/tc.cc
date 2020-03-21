@@ -137,6 +137,8 @@ static void tc_gemm_start_impl_(
       matC, tc_bufs, env);
   }
 
+// TODO: select metric format here.
+
   // Postprocess GEMM results.
   tc_out_<TC_METHOD>(nvll, nvl, matC,
     sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,

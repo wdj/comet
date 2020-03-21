@@ -285,6 +285,19 @@ public:
   int tc_eff_compute_() const;
   int num_tc_steps() const {return num_tc_steps_;};
   double threshold() const {return threshold_;}
+  double ccc_multiplier() const {return ccc_multiplier_;}
+  double duo_multiplier() const {return duo_multiplier_;}
+  double ccc_param() const {return ccc_param_;}
+  int num_stage() const {return num_stage_;}
+  void num_stage(int value) {num_stage_ = value;}
+  int stage_num() const {return stage_num_;}
+  void stage_num(int value) {stage_num_ = value;}
+  int num_phase() const {return num_phase_;}
+  void num_phase(int value) {num_phase_ = value;}
+  int phase_num() const {return phase_num_;}
+  void phase_num(int value) {phase_num_ = value;}
+
+  // CoMet Settings: threshold.
 
   static bool is_threshold(double t) {return t >= 0;}
   bool is_threshold() const {return CEnv::is_threshold(threshold_);}
@@ -305,21 +318,14 @@ public:
    return CEnv::pass_threshold(value, threshold_eff_cache_);
  }
 
+  // CoMet Settings: multiplier/param.
+
   static double ccc_multiplier_default() {return ((double) 9) / ((double) 2);}
   static double duo_multiplier_default() {return (double) 4; }
   static double ccc_param_default() {return ((double) 2) / ((double) 3);}
-  double ccc_param() const {return ccc_param_;}
-  double ccc_multiplier() const {return ccc_multiplier_;}
-  double duo_multiplier() const {return duo_multiplier_;}
   bool are_ccc_params_default() const {return are_ccc_params_default_;}
-  int num_stage() const {return num_stage_;}
-  void num_stage(int value) {num_stage_ = value;}
-  int stage_num() const {return stage_num_;}
-  void stage_num(int value) {stage_num_ = value;}
-  int num_phase() const {return num_phase_;}
-  void num_phase(int value) {num_phase_ = value;}
-  int phase_num() const {return phase_num_;}
-  void phase_num(int value) {phase_num_ = value;}
+
+  // CoMet Settings: derived settings.
 
   bool is_compute_method_gpu() const {
     return ComputeMethod::GPU == compute_method_;
@@ -327,32 +333,40 @@ public:
   bool is_metric_type_bitwise() const {
     return MetricType::CCC == metric_type_ || MetricType::DUO == metric_type_;
   }
+  // Do we use TC package.
   bool is_using_tc() const {
     //COMET_INSIST(is_using_linalg());
     return tc_eff() != TC::NO && is_metric_type_bitwise();
   }
+  // Do we use MAGMA or TC.
   bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
     (ComputeMethod::CPU == compute_method_ && is_using_tc());
   }
+  bool form_matX_on_accel() const {return is_using_tc();}
   bool is_bitwise_3way_2step() const {return is_using_tc();}
-  //bool is_bitwise_3way_2step() const {return false;}
   int num_step_2way_for_3way() const {
-    return is_metric_type_bitwise() && is_using_linalg() ?
-           (is_bitwise_3way_2step() ? 2 : 3) : 1;
+    return !(is_metric_type_bitwise() && is_using_linalg()) ? 1 :
+           is_bitwise_3way_2step() ? 2 : 3;
   }
   bool does_3way_need_2way() const {
     return metric_type_ == MetricType::CZEK && is_using_linalg();
   }
+  // CCC vs. DUO.
   int counted_bits_per_elt() const {
     COMET_INSIST(is_metric_type_bitwise());
     return MetricType::CCC == metric_type_ ? 2 : 1;
   }
+  // Do we do thresholding in TC package.
   bool threshold_tc() const {
     //return false;
     return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold();
   }
+  // Are 3-way metrics computed half block-plane at a time.
   bool is_vectors_halved() const {
-    return 3 == num_way() && is_using_tc() && threshold_tc();
+    return 3 == num_way() && threshold_tc();
+  }
+  int metric_format() const {
+    return threshold_tc() ? MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;
   }
 
   int data_type_vectors() const;
@@ -362,9 +376,8 @@ public:
   }
 
   MPI_Datatype metrics_mpi_type() const;
-  bool form_matX_on_accel() const {return is_using_tc();}
-  //bool form_matX_on_accel() const {return false;}
 
+  // Is it possible to do run with this tc option on this platform / build.
   bool can_run(int tc) const;
   bool can_run() const {return can_run(tc_eff());};
 

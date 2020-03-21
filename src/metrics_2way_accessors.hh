@@ -227,14 +227,14 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
   const GMFloat2 si1_sj1 =
       GMMetrics_float2_S_get_from_index(metrics, index, env);
   GMTally1 si1, sj1;
-  GMFloat2_decode(&si1, &sj1, si1_sj1);
+  GMFloat2_decode(si1, sj1, si1_sj1);
 
   GMTally1 ci = 0, cj = 0, cij = 0;
 
   if (env->sparse()) {
     const GMFloat2 ci_cj =
       GMMetrics_float2_C_get_from_index(metrics, index, env);
-    GMFloat2_decode(&ci, &cj, ci_cj);
+    GMFloat2_decode(ci, cj, ci_cj);
 
     cij = GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
           GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1);
@@ -287,7 +287,7 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_2(
   const GMFloat2 si1_sj1 =
       GMMetrics_float2_S_get_from_index(metrics, index, env);
   GMTally1 si1, sj1;
-  GMFloat2_decode(&si1, &sj1, si1_sj1);
+  GMFloat2_decode(si1, sj1, si1_sj1);
 
   GMFloat result_floatcalc = 0;
 
@@ -296,7 +296,7 @@ static GMFloat GMMetrics_ccc_duo_get_from_index_2(
     const GMFloat2 ci_cj =
       GMMetrics_float2_C_get_from_index(metrics, index, env);
     GMTally1 ci, cj;
-    GMFloat2_decode(&ci, &cj, ci_cj);
+    GMFloat2_decode(ci, cj, ci_cj);
 
     GMTally1 cij = GMTally2x2_get(t22, 0, 0) + GMTally2x2_get(t22, 0, 1) +
                    GMTally2x2_get(t22, 1, 0) + GMTally2x2_get(t22, 1, 1);
@@ -436,12 +436,12 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
     const GMFloat2 si1_sj1 =
       GMMetrics_float2_S_get_from_index(metrics, index, env);
     GMTally1 si1 = 0, sj1 = 0;
-    GMFloat2_decode(&si1, &sj1, si1_sj1);
+    GMFloat2_decode(si1, sj1, si1_sj1);
 
     const GMFloat2 ci_cj =
       GMMetrics_float2_C_get_from_index(metrics, index, env);
     GMTally1 ci = 0, cj = 0;
-    GMFloat2_decode(&ci, &cj, ci_cj);
+    GMFloat2_decode(ci, cj, ci_cj);
 
     GMTally1 cij = rij00 + rij01 + rij10 + rij11;
     if (ci == 0 || cj == 0 || cij == 0) {

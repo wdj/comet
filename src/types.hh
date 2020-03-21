@@ -94,6 +94,14 @@ static void gm_check_type_sizes() {
 #endif
 #endif
 
+//-----------------------------------------------------------------------------
+/// \brief Helper class for metric element storage format.
+
+struct MetricFormat {
+  enum {PACKED_DOUBLE = 0,
+        SINGLE = 1};
+};
+
 //=============================================================================
 // Types for CCC and DUO metrics
 
@@ -108,20 +116,136 @@ typedef struct { GMBits1_2x64 data[2]; } GMBits2x64;
 // For Vectors: largest allowed size of a data value
 enum { GM_BITS2_MAX_VALUE_BITS = 2 };
 
-// For metrics: single integer to store a tally result
+// For Metrics: single integer to store a tally result
 typedef unsigned int GMTally1;
+
+// For Metrics: double used to store two metric numerator values.
+typedef GMFp64 PackedDouble;
+
+
+
+// TODO
+
+typedef struct { GMFp32 data[2]; } Single2;
+
+
+template<int METRIC_FORMAT> struct MetricFormatType;
+
+template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
+  typedef PackedDouble Type;
+
+  static void decode(GMTally1& __restrict__ val0,
+                     GMTally1& __restrict__ val1,
+                     const Type v) {
+    const uint64_t tally2 = (uint64_t)v;
+    COMET_ASSERT(v == (Type)tally2);
+    const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
+    const GMTally1 v0 = tally2 & (shifter - 1);
+    const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
+    val0 = v0;
+    val1 = v1;
+    COMET_ASSERT(v == (Type)(v0 + v1 * shifter);
+    //COMET_ASSERT(v0 >= 0 && v1 >= 0);
+    COMET_ASSERT(v0 < shifter);
+    COMET_ASSERT(v1 < shifter);
+  }
+
+  static void encode(Type v,
+                     const GMTally1& __restrict__ val0,
+                     const GMTally1& __restrict__ val1) {
+    const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
+    const uint64_t tally2 = val0 + shifter * val1;
+    v = (Type)tally2;
+    COMET_ASSERT(val0 == (((uint64_t)v) & (shifter - 1));
+    COMET_ASSERT(val1 == ((uint64_t)v) >> GM_TALLY1_MAX_VALUE_BITS);
+  }
+
+  static void add(Type v,
+                  const GMTally1& __restrict__ val0,
+                  const GMTally1& __restrict__ val1) {
+    const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
+    const uint64_t tally2 = val0 + shifter * val1;
+#ifdef COMET_ASSERTIONS_ON
+    const Type vold = v;
+#endif
+    v += (Type)tally2;
+    COMET_ASSERT(val0 == (((uint64_t)(v-vold)) & (shifter - 1));
+    COMET_ASSERT(val1 == ((uint64_t)(v-vold)) >> GM_TALLY1_MAX_VALUE_BITS);
+  }
+
+  static void subtract(Type v,
+                       const GMTally1& __restrict__ val0,
+                       const GMTally1& __restrict__ val1) {
+    const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
+    const uint64_t tally2 = val0 + shifter * val1;
+#ifdef COMET_ASSERTIONS_ON
+    const Type vold = v;
+#endif
+    v -= (Type)tally2;
+    COMET_ASSERT(val0 == (((uint64_t)(vold-v)) & (shifter - 1));
+    COMET_ASSERT(val1 == ((uint64_t)(vold-v)) >> GM_TALLY1_MAX_VALUE_BITS);
+  }
+};
+
+template<> struct MetricFormatType<MetricFormat::SINGLE> {
+  typedef Single2 Type;
+
+  static void decode(GMTally1& __restrict__ val0,
+                     GMTally1& __restrict__ val1,
+                     const Type v) {
+    val0 = v.data[0];
+    val1 = v.data[1];
+  }
+
+  static void encode(Type v,
+                     const GMTally1& __restrict__ val0,
+                     const GMTally1& __restrict__ val1) {
+    v.data[0] = val0;
+    v.data[1] = val1;
+  }
+
+  static void add(Type v,
+                  const GMTally1& __restrict__ val0,
+                  const GMTally1& __restrict__ val1) {
+    v.data[0] += val0;
+    v.data[1] += val1;
+  }
+
+  static void subtract(Type v,
+                       const GMTally1& __restrict__ val0,
+                       const GMTally1& __restrict__ val1) {
+    v.data[0] -= val0;
+    v.data[1] -= val1;
+  }
+};
+
+
+
+
+
+template<int METRIC_FORMAT> struct Tally2x2 {
+  MetricFormatType<METRIC_FORMAT> data[2];
+};
+
+template<int METRIC_FORMAT> struct Tally4x2 {
+  MetricFormatType<METRIC_FORMAT> data[4];
+};
+
+
+
+
 
 // For Metrics: 2 (4) doubles to store 4 (8) packed tally results:
 // use 25 bits of each 52-bit mantissa to store a result
-typedef struct { GMFp64 data[2]; } GMTally2x2;
-typedef struct { GMFp64 data[4]; } GMTally4x2;
+typedef struct { PackedDouble data[2]; } GMTally2x2;
+typedef struct { PackedDouble data[4]; } GMTally4x2;
 
 // For Metrics: largest allowed size of a data value
 enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 
 // For Metrics: for packing of multipliers
-typedef GMFp64 GMFloat2;
-typedef struct { GMFp64 data[2]; } GMFloat3;
+typedef PackedDouble GMFloat2;
+typedef struct { PackedDouble data[2]; } GMFloat3;
 
 // Marker value for a missing or unknown 2-bit entry for sparse case
 
@@ -177,33 +301,14 @@ static GMTally4x2 GMTally4x2_null() {
 //-----------------------------------------------------------------------------
 // Encode/decode between float and pair of tally values
 
-__host__ __device__
-static void GMTally1_decode(GMTally1* __restrict__ val0,
-                            GMTally1* __restrict__ val1,
-                            GMFp64 v) {
-  COMET_ASSERT(val0);
-  COMET_ASSERT(val1);
-  const uint64_t tally2 = (uint64_t)v;
-  COMET_ASSERT(v == (GMFp64)tally2);
-  const GMTally1 v0 =
-      tally2 & ((((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) - 1);
-  const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
-  *val0 = v0;
-  *val1 = v1;
-  COMET_ASSERT(v ==
-           (GMFp64)(v0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * v1));
-  //COMET_ASSERT(v0 >= 0);
-  //COMET_ASSERT(v1 >= 0);
-  COMET_ASSERT(v0 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
-  COMET_ASSERT(v1 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
-}
+// TODO: template this on metric format.
 
-//----------
+// TODO: change order of args?
 
 __host__ __device__
-static void GMTally1_decode(GMTally1& val0,
-                            GMTally1& val1,
-                            GMFp64 v) {
+static void PackedDouble_decode(GMTally1& __restrict__ val0,
+                                GMTally1& __restrict__ val1,
+                                const PackedDouble v) {
   const uint64_t tally2 = (uint64_t)v;
   COMET_ASSERT(v == (GMFp64)tally2);
   const GMTally1 v0 =
@@ -252,10 +357,10 @@ static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
 //-----------------------------------------------------------------------------
 // Decode for multipliers/sums
 
-static void GMFloat2_decode(GMTally1* __restrict__ val0,
-                            GMTally1* __restrict__ val1,
-                            GMFloat2 v) {
-  GMTally1_decode(val0, val1, v);
+static void GMFloat2_decode(GMTally1& __restrict__ val0,
+                            GMTally1& __restrict__ val1,
+                            const GMFloat2 v) {
+  PackedDouble_decode(val0, val1, v);
 }
 
 //----------
@@ -264,9 +369,9 @@ static void GMFloat3_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMTally1* __restrict__ val2,
                             GMFloat3 v) {
-  GMTally1_decode(val0, val1, v.data[0]);
+  PackedDouble_decode(*val0, *val1, v.data[0]);
   GMTally1 dummy;
-  GMTally1_decode(val2, &dummy, v.data[1]);
+  PackedDouble_decode(*val2, dummy, v.data[1]);
 }
 
 //-----------------------------------------------------------------------------
