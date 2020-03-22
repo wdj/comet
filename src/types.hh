@@ -137,6 +137,7 @@ template<int METRIC_FORMAT> struct MetricFormatType;
 template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
   typedef PackedDouble Type;
 
+  __host__ __device__
   static void decode(GMTally1& __restrict__ val0,
                      GMTally1& __restrict__ val1,
                      const Type v) {
@@ -153,6 +154,7 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
     COMET_ASSERT(v1 < shifter);
   }
 
+  __host__ __device__
   static void encode(Type& v,
                      const GMTally1 __restrict__ val0,
                      const GMTally1 __restrict__ val1) {
@@ -163,6 +165,7 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
     COMET_ASSERT(val1 == ((uint64_t)v) >> GM_TALLY1_MAX_VALUE_BITS);
   }
 
+  __host__ __device__
   static void add(Type& v,
                   const GMTally1 __restrict__ val0,
                   const GMTally1 __restrict__ val1) {
@@ -176,6 +179,7 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
     COMET_ASSERT(val1 == ((uint64_t)(v-vold)) >> GM_TALLY1_MAX_VALUE_BITS);
   }
 
+  __host__ __device__
   static void subtract(Type& v,
                        const GMTally1 __restrict__ val0,
                        const GMTally1 __restrict__ val1) {
@@ -196,6 +200,7 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
 template<> struct MetricFormatType<MetricFormat::SINGLE> {
   typedef Single2 Type;
 
+  __host__ __device__
   static void decode(GMTally1& __restrict__ val0,
                      GMTally1& __restrict__ val1,
                      const Type v) {
@@ -203,6 +208,7 @@ template<> struct MetricFormatType<MetricFormat::SINGLE> {
     val1 = v.data[1];
   }
 
+  __host__ __device__
   static void encode(Type& v,
                      const GMTally1 __restrict__ val0,
                      const GMTally1 __restrict__ val1) {
@@ -210,6 +216,7 @@ template<> struct MetricFormatType<MetricFormat::SINGLE> {
     v.data[1] = val1;
   }
 
+  __host__ __device__
   static void add(Type& v,
                   const GMTally1 __restrict__ val0,
                   const GMTally1 __restrict__ val1) {
@@ -217,6 +224,7 @@ template<> struct MetricFormatType<MetricFormat::SINGLE> {
     v.data[1] += val1;
   }
 
+  __host__ __device__
   static void subtract(Type& v,
                        const GMTally1 __restrict__ val0,
                        const GMTally1 __restrict__ val1) {
@@ -304,31 +312,7 @@ static GMTally4x2 GMTally4x2_null() {
 //-----------------------------------------------------------------------------
 // Encode/decode between float and pair of tally values
 
-// TODO: template this on metric format.
-
-// TODO: change order of args?
-
-__host__ __device__
-static void PackedDouble_decode(GMTally1& __restrict__ val0,
-                                GMTally1& __restrict__ val1,
-                                const PackedDouble v) {
-  const uint64_t tally2 = (uint64_t)v;
-  COMET_ASSERT(v == (GMFp64)tally2);
-  const GMTally1 v0 =
-      tally2 & ((((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) - 1);
-  const GMTally1 v1 = tally2 >> GM_TALLY1_MAX_VALUE_BITS;
-  val0 = v0;
-  val1 = v1;
-  COMET_ASSERT(v ==
-           (GMFp64)(v0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * v1));
-  //COMET_ASSERT(v0 >= 0);
-  //COMET_ASSERT(v1 >= 0);
-  COMET_ASSERT(v0 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
-  COMET_ASSERT(v1 < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
-}
-
-//----------
-
+#if 0
 __host__ __device__
 static GMFp64 GMTally1_encode(GMTally1 val0, GMTally1 val1) {
   const uint64_t tally2 =
@@ -339,12 +323,16 @@ static GMFp64 GMTally1_encode(GMTally1 val0, GMTally1 val1) {
   COMET_ASSERT(val1 == ((uint64_t)result) >> GM_TALLY1_MAX_VALUE_BITS);
   return result;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Encode for multipliers/sums
 
 static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
-  return GMTally1_encode(val0, val1);
+  PackedDouble result = 0;
+  MetricFormatType<MetricFormat::PACKED_DOUBLE>::encode(result, val0, val1);
+  return result;
+  //return GMTally1_encode(val0, val1);
 }
 
 //----------
@@ -352,8 +340,10 @@ static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
 static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
   GMFloat3 result; // here we should set = null to be super cautious
   const GMTally1 dummy = 0;
-  result.data[0] = GMTally1_encode(val0, val1);
-  result.data[1] = GMTally1_encode(val2, dummy);
+  //result.data[0] = GMTally1_encode(val0, val1);
+  //result.data[1] = GMTally1_encode(val2, dummy);
+  MetricFormatType<MetricFormat::PACKED_DOUBLE>::encode(result.data[0], val0, val1);
+  MetricFormatType<MetricFormat::PACKED_DOUBLE>::encode(result.data[1], val2, dummy);
   return result;
 }
 
@@ -363,7 +353,7 @@ static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
 static void GMFloat2_decode(GMTally1& __restrict__ val0,
                             GMTally1& __restrict__ val1,
                             const GMFloat2 v) {
-  PackedDouble_decode(val0, val1, v);
+  MetricFormatType<MetricFormat::PACKED_DOUBLE>::decode(val0, val1, v);
 }
 
 //----------
@@ -372,9 +362,9 @@ static void GMFloat3_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMTally1* __restrict__ val2,
                             GMFloat3 v) {
-  PackedDouble_decode(*val0, *val1, v.data[0]);
+  MetricFormatType<MetricFormat::PACKED_DOUBLE>::decode(*val0, *val1, v.data[0]);
   GMTally1 dummy;
-  PackedDouble_decode(*val2, dummy, v.data[1]);
+  MetricFormatType<MetricFormat::PACKED_DOUBLE>::decode(*val2, dummy, v.data[1]);
 }
 
 //-----------------------------------------------------------------------------

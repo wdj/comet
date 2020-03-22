@@ -833,6 +833,8 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
   if (env->is_using_tc())
     return;
 
+  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+
   // TODO: should more of this be owned by decomp_mgr
 
   const int cbpe = env->counted_bits_per_elt();
@@ -842,7 +844,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
   const int pad_adjustment = (is_cbpe_2 ? 4 : 1) * weight *
     metrics->dm->num_pad_field_local;
 
-  const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
+//  const double float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
   // don't use collapse because of overflow for large sizes
   //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
@@ -851,7 +853,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
     for (size_t i = 0; i < metrics_buf->dim0; ++i) {
 
 #ifdef COMET_ASSERTIONS_ON
-      const GMTally2x2 old = metrics_buf->elt_const<GMTally2x2>(i, j);
+      const GMTally2x2 vold = metrics_buf->elt_const<GMTally2x2>(i, j);
 #endif
 
 //    printf("%zu %zu %zu %zu\n"
@@ -861,12 +863,14 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
 //      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[1])) / (1<<GM_TALLY1_MAX_VALUE_BITS)
 //    );
 
-      metrics_buf->elt<GMTally2x2>(i, j).data[0] -= float_pad_adjustment;
+      MF::subtract(metrics_buf->elt<GMTally2x2>(i, j).data[0], pad_adjustment, 0);
+
+//      metrics_buf->elt<GMTally2x2>(i, j).data[0] -= float_pad_adjustment;
 
 #ifdef COMET_ASSERTIONS_ON
-      const GMTally2x2 new_ = metrics_buf->elt_const<GMTally2x2>(i, j);
-      COMET_ASSERT(GMTally2x2_get(old, 0, 0) ==
-               GMTally2x2_get(new_, 0, 0) + pad_adjustment);
+      const GMTally2x2 vnew = metrics_buf->elt_const<GMTally2x2>(i, j);
+      COMET_ASSERT(GMTally2x2_get(vold, 0, 0) ==
+               GMTally2x2_get(vnew, 0, 0) + pad_adjustment);
 #endif
 
     } // for j

@@ -46,6 +46,8 @@ template<typename GemmOut_t>
 __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   int nvl, int nvll, int nvllD2, void* vo, int thread_r, int thread_c) { 
 
+  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+
   // Considered as an array of floats, array is 2*nvl rows X 2*nvl cols.
   // Each thread manipulates a block of 4 rows and 2 cols.
   // Thus the dimensions of the metrics array in blocks is nvllD2 X nvl.
@@ -105,11 +107,11 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
 //  const double o10 = (double)i10p + (double)i12p * shifter;
 //  const double o11 = (double)i11p + (double)i13p * shifter;
 
-  const double o00 = tc_metrics_encode_(i00p, i02p);
-  const double o01 = tc_metrics_encode_(i01p, i03p);
-
-  const double o10 = tc_metrics_encode_(i10p, i12p);
-  const double o11 = tc_metrics_encode_(i11p, i13p);
+  double o00 = 0, o01 = 0, o10 = 0, o11 = 0;
+  MF::encode(o00, i00p, i02p);
+  MF::encode(o01, i01p, i03p);
+  MF::encode(o10, i10p, i12p);
+  MF::encode(o11, i11p, i13p);
 
   // Overwrite block with the new values.
   // All is isolated to a single thread, should be thread safe.
@@ -298,6 +300,8 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
+  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+
   // Indexing.
 
   // indM_r, indM_c - row and column of incoming matrix
@@ -364,10 +368,10 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
     dvo[1 + 2*(indM_r % nvllD2 + nvllD2 * 1) + nvllX2 * (size_t)thread_c];
 
   GMTally1 values00[2], values01[2], values10[2], values11[2];
-  PackedDouble_decode(values00[0], values00[1], dvo00);
-  PackedDouble_decode(values01[0], values01[1], dvo01);
-  PackedDouble_decode(values10[0], values10[1], dvo10);
-  PackedDouble_decode(values11[0], values11[1], dvo11);
+  MF::decode(values00[0], values00[1], dvo00);
+  MF::decode(values01[0], values01[1], dvo01);
+  MF::decode(values10[0], values10[1], dvo10);
+  MF::decode(values11[0], values11[1], dvo11);
 
   const GMTally1 cijk = values00[0] + values00[1] + values01[0] + values01[1] +
                         values10[0] + values10[1] + values11[0] + values11[1];
@@ -377,7 +381,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   double& dvo_this = dvo[thread_r + nvllX2 * (size_t)thread_c];
 
   GMTally1 values_this[2];
-  PackedDouble_decode(values_this[0], values_this[1], dvo_this);
+  MF::decode(values_this[0], values_this[1], dvo_this);
 
 //GMTally1 v0 = values_this[0];
 //GMTally1 v1 = values_this[1];
@@ -409,7 +413,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 //);
 
 if (false) // FIX
-  dvo_this = GMTally1_encode(values_this[0], values_this[1]);
+  MF::encode(dvo_this, values_this[0], values_this[1]);
 }
 
 //-----------------------------------------------------------------------------

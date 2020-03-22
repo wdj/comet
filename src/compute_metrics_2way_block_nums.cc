@@ -108,6 +108,8 @@ void gm_compute_2way_proc_nums_ccc_start_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
+  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+
   /*----------------------------------------*/
   if (env->compute_method() == ComputeMethod::REF) {
     /*----------------------------------------*/
@@ -170,8 +172,11 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
             // Accumulate
 
-            sum.data[0] += GMTally1_encode(r00, r01);
-            sum.data[1] += GMTally1_encode(r10, r11);
+            MF::add(sum.data[0], r00, r01);
+            MF::add(sum.data[1], r10, r11);
+
+            //sum.data[0] += GMTally1_encode(r00, r01);
+            //sum.data[1] += GMTally1_encode(r10, r11);
 
           } /*---if ! unknown---*/
         } /*---for f---*/
@@ -197,7 +202,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
     const int cbpe = env->counted_bits_per_elt();
 
     const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
-    const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
+    //const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max =
@@ -295,8 +300,11 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
           // Accumulate
 
-          sum.data[0] += GMTally1_encode(r00, r01);
-          sum.data[1] += GMTally1_encode(r10, r11);
+          MF::add(sum.data[0], r00, r01);
+          MF::add(sum.data[1], r10, r11);
+
+          //sum.data[0] += GMTally1_encode(r00, r01);
+          //sum.data[1] += GMTally1_encode(r10, r11);
 
         } /*---for pvfl---*/
 
@@ -305,7 +313,8 @@ void gm_compute_2way_proc_nums_ccc_start_(
 #ifdef COMET_ASSERTIONS_ON
         GMTally2x2 sum_old = sum;
 #endif
-        sum.data[0] -= float_pad_adjustment;
+        MF::subtract(sum.data[0], pad_adjustment, 0);
+        //sum.data[0] -= float_pad_adjustment;
 #ifdef COMET_ASSERTIONS_ON
         COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
@@ -343,6 +352,8 @@ void gm_compute_2way_proc_nums_duo_start_(
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
+
+  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
 
   /*----------------------------------------*/
   if (env->compute_method() == ComputeMethod::REF) {
@@ -382,8 +393,11 @@ void gm_compute_2way_proc_nums_duo_start_(
 
             // Accumulate
 
-            sum.data[0] += GMTally1_encode(r00, r01);
-            sum.data[1] += GMTally1_encode(r10, r11);
+            MF::add(sum.data[0], r00, r01);
+            MF::add(sum.data[1], r10, r11);
+
+            //sum.data[0] += GMTally1_encode(r00, r01);
+            //sum.data[1] += GMTally1_encode(r10, r11);
 
           } /*---if ! unknown---*/
         } /*---for f---*/
@@ -409,7 +423,7 @@ void gm_compute_2way_proc_nums_duo_start_(
     const int cbpe = env->counted_bits_per_elt();
 
     const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
-    const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
+    //const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max =
@@ -476,8 +490,11 @@ void gm_compute_2way_proc_nums_duo_start_(
 
           // Accumulate
 
-          sum.data[0] += GMTally1_encode(r00, r01);
-          sum.data[1] += GMTally1_encode(r10, r11);
+          MF::add(sum.data[0], r00, r01);
+          MF::add(sum.data[1], r10, r11);
+
+          //sum.data[0] += GMTally1_encode(r00, r01);
+          //sum.data[1] += GMTally1_encode(r10, r11);
 
         } /*---for pvfl---*/
 
@@ -486,7 +503,8 @@ void gm_compute_2way_proc_nums_duo_start_(
 #ifdef COMET_ASSERTIONS_ON
         GMTally2x2 sum_old = sum;
 #endif
-        sum.data[0] -= float_pad_adjustment;
+        MF::subtract(sum.data[0], pad_adjustment, 0);
+        //sum.data[0] -= float_pad_adjustment;
 #ifdef COMET_ASSERTIONS_ON
         COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);

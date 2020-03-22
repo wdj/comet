@@ -220,6 +220,8 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
   COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
+  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+
   /*---Initializations---*/
 
   const int nvl = metrics->num_vector_local;
@@ -354,10 +356,15 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
                 // Accumulate
 
-                sum.data[0] += GMTally1_encode(r000, r001);
-                sum.data[1] += GMTally1_encode(r010, r011);
-                sum.data[2] += GMTally1_encode(r100, r101);
-                sum.data[3] += GMTally1_encode(r110, r111);
+                MF::add(sum.data[0], r000, r001);
+                MF::add(sum.data[1], r010, r011);
+                MF::add(sum.data[2], r100, r101);
+                MF::add(sum.data[3], r110, r111);
+
+                //sum.data[0] += GMTally1_encode(r000, r001);
+                //sum.data[1] += GMTally1_encode(r010, r011);
+                //sum.data[2] += GMTally1_encode(r100, r101);
+                //sum.data[3] += GMTally1_encode(r110, r111);
 
               } else { // (env->metric_type() == MetricType::DUO)
 
@@ -374,10 +381,15 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
                 // Accumulate
 
-                sum.data[0] += GMTally1_encode(r000, r001);
-                sum.data[1] += GMTally1_encode(r010, r011);
-                sum.data[2] += GMTally1_encode(r100, r101);
-                sum.data[3] += GMTally1_encode(r110, r111);
+                MF::add(sum.data[0], r000, r001);
+                MF::add(sum.data[1], r010, r011);
+                MF::add(sum.data[2], r100, r101);
+                MF::add(sum.data[3], r110, r111);
+
+                //sum.data[0] += GMTally1_encode(r000, r001);
+                //sum.data[1] += GMTally1_encode(r010, r011);
+                //sum.data[2] += GMTally1_encode(r100, r101);
+                //sum.data[3] += GMTally1_encode(r110, r111);
 
               } // if (env->metric_type() == MetricType::CCC)
 
@@ -434,7 +446,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
     const int pad_adjustment = cbpe * cbpe * cbpe * metrics->dm->num_pad_field_local;
 
-    const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
+    //const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
@@ -661,10 +673,15 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
               // Accumulate
 
-              sum.data[0] += GMTally1_encode(r000, r001);
-              sum.data[1] += GMTally1_encode(r010, r011);
-              sum.data[2] += GMTally1_encode(r100, r101);
-              sum.data[3] += GMTally1_encode(r110, r111);
+              MF::add(sum.data[0], r000, r001);
+              MF::add(sum.data[1], r010, r011);
+              MF::add(sum.data[2], r100, r101);
+              MF::add(sum.data[3], r110, r111);
+
+              //sum.data[0] += GMTally1_encode(r000, r001);
+              //sum.data[1] += GMTally1_encode(r010, r011);
+              //sum.data[2] += GMTally1_encode(r100, r101);
+              //sum.data[3] += GMTally1_encode(r110, r111);
 
             } else { // (env->metric_type() == MetricType::DUO)
 
@@ -687,10 +704,15 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
               // Accumulate
 
-              sum.data[0] += GMTally1_encode(r000, r001);
-              sum.data[1] += GMTally1_encode(r010, r011);
-              sum.data[2] += GMTally1_encode(r100, r101);
-              sum.data[3] += GMTally1_encode(r110, r111);
+              MF::add(sum.data[0], r000, r001);
+              MF::add(sum.data[1], r010, r011);
+              MF::add(sum.data[2], r100, r101);
+              MF::add(sum.data[3], r110, r111);
+
+              //sum.data[0] += GMTally1_encode(r000, r001);
+              //sum.data[1] += GMTally1_encode(r010, r011);
+              //sum.data[2] += GMTally1_encode(r100, r101);
+              //sum.data[3] += GMTally1_encode(r110, r111);
 
             } // if (env->metric_type() == MetricType::CCC)
 
@@ -701,7 +723,8 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 #ifdef COMET_ASSERTIONS_ON
           GMTally4x2 sum_old = sum;
 #endif
-          sum.data[0] -= float_pad_adjustment;
+          MF::subtract(sum.data[0], pad_adjustment, 0);
+          //sum.data[0] -= float_pad_adjustment;
 #ifdef COMET_ASSERTIONS_ON
           COMET_ASSERT(GMTally4x2_get(sum_old, 0, 0, 0) ==
                    GMTally4x2_get(sum, 0, 0, 0) + pad_adjustment);
