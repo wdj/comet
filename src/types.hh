@@ -125,21 +125,37 @@ typedef unsigned int GMTally1;
 // For Metrics: double used to store two metric numerator values.
 typedef GMFp64 PackedDouble;
 
-
-
-// TODO
+// For Metrics: two floats used to store two metric numerator values.
 
 typedef struct { GMFp32 data[2]; } Single2;
 
+// For Metrics: 2 (4) doubles to store 4 (8) packed tally results:
+// use 25 bits of each 52-bit mantissa to store a result
+typedef struct { PackedDouble data[2]; } GMTally2x2;
+typedef struct { PackedDouble data[4]; } GMTally4x2;
+
+// For Metrics: for packing of multipliers
+typedef PackedDouble GMFloat2;
+typedef struct { PackedDouble data[2]; } GMFloat3;
+
+// Marker value for a missing or unknown 2-bit entry for sparse case
+
+enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
+
+//=============================================================================
+// Templatized types for CCC and DUO metrics
 
 template<int METRIC_FORMAT> struct MetricFormatType;
 
+//-----------------------------------------------------------------------------
+
 template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
   typedef PackedDouble Type;
+  typedef GMTally1 TypeIn;
 
   __host__ __device__
-  static void decode(GMTally1& __restrict__ val0,
-                     GMTally1& __restrict__ val1,
+  static void decode(TypeIn& __restrict__ val0,
+                     TypeIn& __restrict__ val1,
                      const Type v) {
     const uint64_t tally2 = (uint64_t)v;
     COMET_ASSERT(v == (Type)tally2);
@@ -156,8 +172,8 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
 
   __host__ __device__
   static void encode(Type& v,
-                     const GMTally1 __restrict__ val0,
-                     const GMTally1 __restrict__ val1) {
+                     const TypeIn& __restrict__ val0,
+                     const TypeIn& __restrict__ val1) {
     const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
     const uint64_t tally2 = val0 + shifter * val1;
     v = (Type)tally2;
@@ -167,8 +183,8 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
 
   __host__ __device__
   static void add(Type& v,
-                  const GMTally1 __restrict__ val0,
-                  const GMTally1 __restrict__ val1) {
+                  const TypeIn& __restrict__ val0,
+                  const TypeIn& __restrict__ val1) {
     const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
     const uint64_t tally2 = val0 + shifter * val1;
 #ifdef COMET_ASSERTIONS_ON
@@ -181,8 +197,8 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
 
   __host__ __device__
   static void subtract(Type& v,
-                       const GMTally1 __restrict__ val0,
-                       const GMTally1 __restrict__ val1) {
+                       const TypeIn& __restrict__ val0,
+                       const TypeIn& __restrict__ val1) {
     const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
     const uint64_t tally2 = val0 + shifter * val1;
 #ifdef COMET_ASSERTIONS_ON
@@ -192,17 +208,22 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
     COMET_ASSERT(val0 == (((uint64_t)(vold-v)) & (shifter - 1)));
     COMET_ASSERT(val1 == ((uint64_t)(vold-v)) >> GM_TALLY1_MAX_VALUE_BITS);
   }
+
+  __host__ __device__
+  static Type null() {
+    return 0;
+  }
 };
 
-
-
+//-----------------------------------------------------------------------------
 
 template<> struct MetricFormatType<MetricFormat::SINGLE> {
   typedef Single2 Type;
+  typedef float TypeIn;
 
   __host__ __device__
-  static void decode(GMTally1& __restrict__ val0,
-                     GMTally1& __restrict__ val1,
+  static void decode(TypeIn& __restrict__ val0,
+                     TypeIn& __restrict__ val1,
                      const Type v) {
     val0 = v.data[0];
     val1 = v.data[1];
@@ -210,57 +231,67 @@ template<> struct MetricFormatType<MetricFormat::SINGLE> {
 
   __host__ __device__
   static void encode(Type& v,
-                     const GMTally1 __restrict__ val0,
-                     const GMTally1 __restrict__ val1) {
+                     const TypeIn& __restrict__ val0,
+                     const TypeIn& __restrict__ val1) {
     v.data[0] = val0;
     v.data[1] = val1;
   }
 
   __host__ __device__
   static void add(Type& v,
-                  const GMTally1 __restrict__ val0,
-                  const GMTally1 __restrict__ val1) {
+                  const TypeIn& __restrict__ val0,
+                  const TypeIn& __restrict__ val1) {
     v.data[0] += val0;
     v.data[1] += val1;
   }
 
   __host__ __device__
   static void subtract(Type& v,
-                       const GMTally1 __restrict__ val0,
-                       const GMTally1 __restrict__ val1) {
+                       const TypeIn& __restrict__ val0,
+                       const TypeIn& __restrict__ val1) {
     v.data[0] -= val0;
     v.data[1] -= val1;
   }
+
+  __host__ __device__
+  static Type null() {
+    return {0, 0};
+  }
 };
 
-
-
-
+//-----------------------------------------------------------------------------
 
 template<int METRIC_FORMAT> struct Tally2x2 {
-  MetricFormatType<METRIC_FORMAT> data[2];
+  typedef MetricFormatType<METRIC_FORMAT> MFT;
+  typedef typename MFT::Type Type;
+  Type data[2];
+  typedef Tally2x2<METRIC_FORMAT> This;
+
+  __host__ __device__ 
+  static This null() {
+    This result;
+    result.data[0] = MFT::null();
+    result.data[1] = MFT::null();
+    return result;
+  }
 };
 
 template<int METRIC_FORMAT> struct Tally4x2 {
-  MetricFormatType<METRIC_FORMAT> data[4];
+  typedef MetricFormatType<METRIC_FORMAT> MFT;
+  typedef typename MFT::Type Type;
+  Type data[4];
+  typedef Tally4x2<METRIC_FORMAT> This;
+
+  __host__ __device__ 
+  static This null() {
+    This result;
+    result.data[0] = MFT::null();
+    result.data[1] = MFT::null();
+    result.data[2] = MFT::null();
+    result.data[3] = MFT::null();
+    return result;
+  }
 };
-
-
-
-
-
-// For Metrics: 2 (4) doubles to store 4 (8) packed tally results:
-// use 25 bits of each 52-bit mantissa to store a result
-typedef struct { PackedDouble data[2]; } GMTally2x2;
-typedef struct { PackedDouble data[4]; } GMTally4x2;
-
-// For Metrics: for packing of multipliers
-typedef PackedDouble GMFloat2;
-typedef struct { PackedDouble data[2]; } GMFloat3;
-
-// Marker value for a missing or unknown 2-bit entry for sparse case
-
-enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
 
 //=============================================================================
 // Types for CCC and DUO metrics: functions

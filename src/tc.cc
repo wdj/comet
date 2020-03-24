@@ -135,14 +135,25 @@ static void tc_gemm_start_impl_(
     const bool is_first = 0 == pvfl_min;
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
       matC, tc_bufs, env);
-  }
-
-// TODO: select metric format here.
+  } // for
 
   // Postprocess GEMM results.
-  tc_out_<TC_METHOD>(nvll, nvl, matC,
-    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-    step_2way, env);
+
+  if (env.metric_format() == MetricFormat::PACKED_DOUBLE) {
+
+    tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
+
+  } else if (env.metric_format() == MetricFormat::SINGLE) {
+
+    tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
+
+  } else {
+
+    COMET_INSIST(false && "Invalid metric format.");
+
+  }
 }
 
 //=============================================================================

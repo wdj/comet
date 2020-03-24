@@ -368,6 +368,38 @@ static size_t GMMetrics_index_from_coord_3(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
+static size_t Metrics_index(GMMetrics& metrics, int i, int j, int k, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(i >= 0 && i < metrics.num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics.num_vector_local);
+  COMET_ASSERT(k >= 0 && k < metrics.num_vector_local);
+  COMET_ASSERT(i < j && j < k);
+
+  const int nvl = metrics.num_vector_local;
+
+  /* clang-format off */
+  const int64_t index = i +
+                        (k-j-1)*(size_t)j +
+                        gm_trap_size(j, nvl);
+  /* clang-format on */
+
+  COMET_ASSERT(index >= 0);
+  COMET_ASSERT(index < (int64_t)metrics.num_elts_local);
+
+  COMET_ASSERT(i + metrics.num_vector_local * (size_t)env.proc_num_vector() ==
+           metrics.coords_global_from_index[index] % metrics.num_vector);
+  COMET_ASSERT(j + metrics.num_vector_local * (size_t)env.proc_num_vector() ==
+           (metrics.coords_global_from_index[index] / metrics.num_vector) %
+               metrics.num_vector);
+  COMET_ASSERT(k + metrics.num_vector_local * (size_t)env.proc_num_vector() ==
+           metrics.coords_global_from_index[index] /
+               (metrics.num_vector * (size_t)metrics.num_vector));
+
+  return index;
+}
+
+//-----------------------------------------------------------------------------
+
 static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                                           int i,
                                           int j,
@@ -762,6 +794,40 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_cache(
 
   return index;
 }
+
+//-----------------------------------------------------------------------------
+
+static size_t Metrics_index( GMMetrics& metrics, int I, int J, int K,
+    int j_block, int k_block, GMIndexCache& index_cache, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(I >= 0 && J >= 0 && K >= 0);
+  COMET_ASSERT(j_block >= 0 && j_block < env.num_block_vector());
+  COMET_ASSERT(k_block >= 0 && k_block < env.num_block_vector());
+  COMET_ASSERT(! (env.proc_num_vector() == j_block &&
+                  env.proc_num_vector() != k_block));
+  COMET_ASSERT(! (env.proc_num_vector() == k_block &&
+                  env.proc_num_vector() != j_block));
+  // WARNING: these conditions are not exhaustive.
+
+  if (index_cache.is_initialized && K == index_cache.K) {
+      const size_t index = index_cache.index + (I-index_cache.I);
+      index_cache.index = index;
+      index_cache.I = I;
+      return index;
+  }
+
+  //TODO: fix this
+  const size_t index = GMMetrics_index_from_coord_all2all_3_permuted(
+    &metrics, I, J, K, j_block, k_block, &env);
+
+  index_cache.I = I;
+  index_cache.K = K;
+  index_cache.index = index;
+  index_cache.is_initialized = true;
+
+  return index;
+}
+
 //=============================================================================
 /*---Accessors: indexing: global coord from (contig) index: 3-way---*/
 

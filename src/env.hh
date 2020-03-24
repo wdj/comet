@@ -358,8 +358,9 @@ public:
   }
   // Do we do thresholding in TC package.
   bool threshold_tc() const {
-    //return false;
-    return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold();
+    return false; //FIX
+    //return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold();
+    //return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold() && num_way() == NUM_WAY::_3;
   }
   // Are 3-way metrics computed half block-plane at a time.
   bool is_vectors_halved() const {

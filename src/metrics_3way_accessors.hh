@@ -58,47 +58,17 @@ static GMTally4x2 GMMetrics_tally4x2_get_from_index(GMMetrics* metrics,
   return ((GMTally4x2*)(metrics->data))[index];
 }
 
+//-----------------------------------------------------------------------------
+
+template<typename T>
+static T Metrics_get(GMMetrics& metrics, size_t index, CEnv& env) {
+  COMET_ASSERT(index+1 >= 1 && index < metrics.num_elts_local);
+
+  return ((T*)(metrics.data))[index];
+}
+
 //=============================================================================
 /*---Accessors: value from (contig) index: derived---*/
-
-#if 0
-//-----------------------------------------------------------------------------
-/// \brief Formula for a single 3-way CCC or DUO result.
-
-template<int COUNTED_BITS_PER_ELT>
-static GMFloat GMMetrics_ccc_duo_value_3_impl_(
-  const GMTally1 rijk,
-  const GMTally1 si,
-  const GMTally1 sj,
-  const GMTally1 sk,
-  const GMFloat recip_ci,
-  const GMFloat recip_cj,
-  const GMFloat recip_ck,
-  const GMFloat recip_sumcijk,
-  const GMFloat multiplier,
-  const GMFloat param) {
-
-  const GMFloat f_one = 1;
-
-  const GMFloat fi = (f_one / COUNTED_BITS_PER_ELT) * recip_ci * si;
-  const GMFloat fj = (f_one / COUNTED_BITS_PER_ELT) * recip_cj * sj;
-  const GMFloat fk = (f_one / COUNTED_BITS_PER_ELT) * recip_ck * sk;
-
-  const GMFloat fijk = recip_sumcijk * rijk;
-
-  /*---Do the following to make floating point arithmetic order-independent---*/
-  GMFloat fmin = 0, fmid = 0, fmax = 0;
-  utils::sort_3(fmin, fmid, fmax, fi, fj, fk);
-
-  /* clang-format off */
-  const GMFloat result = multiplier * fijk * (f_one - param * fmin) *
-                                             (f_one - param * fmid) *
-                                             (f_one - param * fmax);
-  /* clang-format on */
-
-  return result;
-}
-#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Templatized access to the CCC or DUO formula.
@@ -626,6 +596,16 @@ static void GMMetrics_tally4x2_set_3(GMMetrics* metrics, int i, int j, int k,
 }
 
 //-----------------------------------------------------------------------------
+
+template<int MF>
+static void Metrics_set(
+  GMMetrics& metrics, int i, int j, int k, Tally4x2<MF> value, CEnv& env) {
+
+  const size_t index = Metrics_index(metrics, i, j, k, env);
+  ((Tally4x2<MF>*)(metrics.data))[index] = value;
+}
+
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
 template<typename T>
@@ -752,6 +732,18 @@ static void GMMetrics_tally4x2_set_all2all_3_permuted_cache(GMMetrics* metrics,
     I, J, K, j_block, k_block, value, index_cache, env);
 }
 
+//-----------------------------------------------------------------------------
+
+template<int MF>
+static void Metrics_set(
+  GMMetrics& metrics, int I, int J, int K, int j_block, int k_block,
+  Tally4x2<MF> value, GMIndexCache& index_cache, CEnv& env) {
+
+  const size_t index = Metrics_index(
+    metrics, I, J, K, j_block, k_block, index_cache, env);
+  ((Tally4x2<MF>*)(metrics.data))[index] = value;
+}
+
 //=============================================================================
 /*---Accessors: value from (local) coord: get: 3-way---*/
 
@@ -826,6 +818,28 @@ static GMTally4x2 GMMetrics_tally4x2_get_all2all_3_permuted_cache(
   const size_t index = GMMetrics_index_from_coord_all2all_3_permuted_cache(
     metrics, I, J, K, j_block, k_block, index_cache, env);
   return GMMetrics_tally4x2_get_from_index(metrics, index, env);
+}
+
+//-----------------------------------------------------------------------------
+
+template<int MF>
+static Tally4x2<MF> Metrics_get(GMMetrics& metrics,
+  int i, int j, int k, CEnv& env) {
+
+  const size_t index = Metrics_index(metrics, i, j, k, env);
+  return Metrics_get<Tally4x2<MF>>(metrics, index, env);
+}
+
+//-----------------------------------------------------------------------------
+
+template<int MF>
+static Tally4x2<MF> Metrics_get(
+  GMMetrics& metrics, int I, int J, int K, int j_block, int k_block,
+  GMIndexCache& index_cache, CEnv& env) {
+
+  const size_t index = Metrics_index(
+    metrics, I, J, K, j_block, k_block, index_cache, env);
+  return Metrics_get<Tally4x2<MF>>(metrics, index, env);
 }
 
 //=============================================================================
