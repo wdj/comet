@@ -701,8 +701,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           for (int i1 = 0; i1 < 2; ++i1) {
             for (int i2 = 0; i2 < 2; ++i2) {
               const GMFloat value = cbpe == 2 ?
-                GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2, env) :
-                GMMetrics_duo_get_from_index_3(metrics, index, i0, i1, i2, env);
+                GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, index, i0, i1, i2, env) :
+                GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, index, i0, i1, i2, env);
 
               GMTally1 rijk = 0;
               GMTally1 si = 0;
@@ -799,11 +799,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 const GMFloat recip_sumcijk = env->sparse() ? f_one/cijk :
                                                (f_one / 8) * metrics->recip_m;
   
-                value_expected_floatcalc = cbpe == 2 ?
-                  GMMetrics_ccc_duo_value_3<2>(metrics, rijk, si, sj, sk,
-                            recip_ci, recip_cj, recip_ck, recip_sumcijk, env) :
-                  GMMetrics_ccc_duo_value_3<1>(metrics, rijk, si, sj, sk,
-                            recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
+                value_expected_floatcalc = cbpe == CBPE::CCC ?
+                  Metrics_ccc_duo_value<CBPE::CCC>(*metrics, rijk, si, sj, sk,
+                           recip_ci, recip_cj, recip_ck, recip_sumcijk, *env) :
+                  Metrics_ccc_duo_value<CBPE::DUO>(*metrics, rijk, si, sj, sk,
+                           recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
               }
 
               GMFloat value_expected = value_expected_floatcalc;

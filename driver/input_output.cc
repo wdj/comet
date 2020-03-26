@@ -794,8 +794,7 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
             for (int i1 = 0; i1 < 2; ++i1) {
               for (int i2 = 0; i2 < 2; ++i2) {
                 const GMFloat value
-                  = GMMetrics_ccc_get_from_index_3(metrics, index, i0, i1, i2,
-                                                env);
+                  = GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, index, i0, i1, i2, env);
                 if (!env->pass_threshold(value)) {
                   continue;
                 }

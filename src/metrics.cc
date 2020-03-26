@@ -63,9 +63,8 @@ GMMetricsMem::~GMMetricsMem() {
 
 void* GMMetricsMem::malloc_data(size_t data_size) {
 
-  if (! env_->is_proc_active()) {
+  if (! env_->is_proc_active())
     return NULL;
-  }
 
   if (!data_ || data_size > data_size_) {
     if (data_) {
@@ -82,9 +81,11 @@ void* GMMetricsMem::malloc_data(size_t data_size) {
 
 void* GMMetricsMem::malloc_data_S(size_t data_S_size) {
 
-  if (! env_->is_proc_active()) {
+  if (! env_->is_proc_active())
     return NULL;
-  }
+
+  if (env_->threshold_tc())
+    return NULL;
 
   if (!data_S_ || data_S_size > data_S_size_) {
     if (data_S_) {
@@ -101,9 +102,11 @@ void* GMMetricsMem::malloc_data_S(size_t data_S_size) {
 
 void* GMMetricsMem::malloc_data_C(size_t data_C_size) {
 
-  if (! env_->is_proc_active()) {
+  if (! env_->is_proc_active())
     return NULL;
-  }
+
+  if (env_->threshold_tc())
+    return NULL;
 
   if (!data_C_ || data_C_size > data_C_size_) {
     if (data_C_) {

@@ -184,6 +184,14 @@ struct MetricType {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Helper class to denote counted bits per element for metric type.
+
+struct CBPE {
+  enum {DUO = 1,
+        CCC = 2};
+};
+
+//-----------------------------------------------------------------------------
 /// \brief Helper class for compute method values.
 
 struct ComputeMethod {
@@ -358,17 +366,17 @@ public:
   }
   // Do we do thresholding in TC package.
   bool threshold_tc() const {
-    return false; //FIX
     //return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold();
-    //return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold() && num_way() == NUM_WAY::_3;
+    return is_using_tc() && sparse() && num_proc_field() == 1 && num_way() == NUM_WAY::_3; //FIX
   }
   // Are 3-way metrics computed half block-plane at a time.
   bool is_vectors_halved() const {
-    return 3 == num_way() && threshold_tc();
+    return NUM_WAY::_3 == num_way() && threshold_tc() &&
+          is_bitwise_3way_2step();
   }
-  int metric_format() const {
-    return threshold_tc() ? MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;
-  }
+//  int metric_format() const {
+//    return threshold_tc() ? MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;
+//  }
 
   int data_type_vectors() const;
   int data_type_metrics() const;

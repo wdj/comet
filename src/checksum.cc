@@ -186,8 +186,10 @@ double Checksum::metrics_elt(
       const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
                      ind_coords[1] == 2 ? i1_unpermuted :
                                           i2_unpermuted;
-      value =
-        GMMetrics_ccc_get_from_index_3(&metrics, index, i0, i1, i2, &env);
+      value = env.metric_type() == MetricType::CCC ?
+        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(&metrics, index, i0, i1, i2, &env) :
+        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(&metrics, index, i0, i1, i2, &env);
+      value = (double)(float)value; // CHECK
     } break;
     // --------------
     default:
@@ -196,8 +198,8 @@ double Checksum::metrics_elt(
 
   // Apply the thresold if not doing in TC package and if value fails test.
 
-//FIX  const bool do_set_zero = !env.threshold_tc() && !env.pass_threshold(value);
-  const bool do_set_zero = !env.pass_threshold(value);
+  const bool do_set_zero = !env.threshold_tc() && !env.pass_threshold(value);
+//  const bool do_set_zero = !env.pass_threshold(value);
 
   const double result = do_set_zero ? (double)0 : value;
 //printf("%f %f\n", value, result);

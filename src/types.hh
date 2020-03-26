@@ -264,6 +264,7 @@ template<> struct MetricFormatType<MetricFormat::SINGLE> {
 template<int METRIC_FORMAT> struct Tally2x2 {
   typedef MetricFormatType<METRIC_FORMAT> MFT;
   typedef typename MFT::Type Type;
+  typedef typename MFT::TypeIn TypeIn;
   Type data[2];
   typedef Tally2x2<METRIC_FORMAT> This;
 
@@ -279,6 +280,7 @@ template<int METRIC_FORMAT> struct Tally2x2 {
 template<int METRIC_FORMAT> struct Tally4x2 {
   typedef MetricFormatType<METRIC_FORMAT> MFT;
   typedef typename MFT::Type Type;
+  typedef typename MFT::TypeIn TypeIn;
   Type data[4];
   typedef Tally4x2<METRIC_FORMAT> This;
 
@@ -290,6 +292,14 @@ template<int METRIC_FORMAT> struct Tally4x2 {
     result.data[2] = MFT::null();
     result.data[3] = MFT::null();
     return result;
+  }
+
+  __host__ __device__ 
+  static TypeIn get(const This& value, int i0, int i1, int i2) {
+    const Type data = value.data[i1 + 2*i0];
+    TypeIn results[2];
+    MFT::decode(results[0], results[1], data);
+    return results[i2];
   }
 };
 

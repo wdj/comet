@@ -57,7 +57,7 @@ static __host__ __device__ FLOAT ccc_duo_value_2(
 /// \brief Formula for a single 3-way CCC or DUO result.
 
 template<typename FLOAT, int COUNTED_BITS_PER_ELT>
-static __host__ __device__ FLOAT ccc_duo_value_3(
+static __host__ __device__ FLOAT ccc_duo_value(
   const GMTally1 rijk,
   const GMTally1 si,
   const GMTally1 sj,
