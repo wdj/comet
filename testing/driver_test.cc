@@ -690,13 +690,13 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result00 =
-        GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 0, env);
     const double result01 =
-        GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 1, env);
     const double result10 =
-        GMMetrics_ccc_get_from_index_2(metrics, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 0, env);
     const double result11 =
-        GMMetrics_ccc_get_from_index_2(metrics, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 1, env);
 
     printf("COMPUTED: G G  %.5f\n", result00);
     printf("COMPUTED: G A  %.5f\n", result01);
@@ -818,13 +818,13 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result00 =
-        GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 0, env);
     const double result01 =
-        GMMetrics_ccc_get_from_index_2(metrics, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 1, env);
     const double result10 =
-        GMMetrics_ccc_get_from_index_2(metrics, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 0, env);
     const double result11 =
-        GMMetrics_ccc_get_from_index_2(metrics, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 1, env);
 
     printf("COMPUTED: G G  %.5f\n", result00);
     printf("COMPUTED: G A  %.5f\n", result01);
@@ -987,13 +987,13 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result00 =
-        GMMetrics_duo_get_from_index_2(metrics, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 0, 0, env);
     const double result01 =
-        GMMetrics_duo_get_from_index_2(metrics, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 0, 1, env);
     const double result10 =
-        GMMetrics_duo_get_from_index_2(metrics, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 1, 0, env);
     const double result11 =
-        GMMetrics_duo_get_from_index_2(metrics, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 1, 1, env);
 
     printf("COMPUTED: MIN MIN  %.5f\n", result00);
     printf("COMPUTED: MIN MAX  %.5f\n", result01);
@@ -1857,11 +1857,13 @@ void DriverTest_tc_() {
 //=============================================================================
 
 void DriverTest_ccc2_duo2_(const char* const metric_type) {
-  const bool is_duo = 'd' == metric_type[0];
-
   char options1[1024];
   char options2[1024];
+//FIX
+#if 0
   char options3[1024];
+
+  const bool is_duo = 'd' == metric_type[0];
 
   //----------
   //---2-way, all2all no
@@ -2195,7 +2197,32 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
       test_2runs(options1, options2);
     }
   }
+#endif
 
+  //----------
+  //---threshold, 2-way
+  //----------
+
+  {
+    char options_template[] =
+        "--metric_type %s "
+        "--num_proc_vector 1 "
+        "--num_field 7 --num_vector 18 "
+        "--num_way 2 "
+        "--all2all yes --sparse yes "
+        "--problem_type random "
+        "--threshold %f "
+        "--compute_method %s --tc 4 "
+        "--verbosity 1 ";
+    for (double threshold : {.1, 0.}) {
+    for (const char* compute_method : {"CPU", "GPU"}) {
+      sprintf(options1, options_template, metric_type, threshold, "REF");
+      sprintf(options2, options_template, metric_type, threshold,
+              compute_method);
+      test_2runs(options1, options2);
+    }
+    }
+  }
 } // DriverTest_ccc2_duo2_
 
 //=============================================================================
@@ -2396,7 +2423,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
   //---file output, 3-way
   //----------
 
-  if (!is_duo) {
+  {
     char options_template[] =
         "--metric_type %s "
         "--num_proc_vector 1 "
@@ -2428,16 +2455,18 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
         "--num_field 7 --num_vector 18 "
         "--num_way 3 "
         "--all2all yes --sparse yes "
-        "--problem_type random %s";
-    sprintf(options1, options_template, metric_type,
-            "--compute_method REF "
-            "--verbosity 1 "
-            "--threshold .1 ");
-    sprintf(options2, options_template, metric_type,
-            "--compute_method GPU --tc 4 "
-            "--verbosity 1 "
-            "--threshold .1 ");
-    test_2runs(options1, options2);
+        "--problem_type random "
+        "--threshold %f "
+        "--compute_method %s --tc 4 "
+        "--verbosity 1 ";
+    for (double threshold : {.1, 0.}) {
+    for (const char* compute_method : {"CPU", "GPU"}) {
+      sprintf(options1, options_template, metric_type, threshold, "REF");
+      sprintf(options2, options_template, metric_type, threshold,
+              compute_method);
+      test_2runs(options1, options2);
+    }
+    }
   }
 } // DriverTest_ccc3_duo3_
 
@@ -2495,12 +2524,12 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
+#endif
+//FIX
 
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
-#endif
-//FIX
 
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();

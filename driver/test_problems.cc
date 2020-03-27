@@ -410,8 +410,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           if (vi >= nva || vj >= nva) {
             continue;
           }
-          const GMFloat value
-            = GMMetrics_czek_get_from_index(metrics, index, env);
+          const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
 
           GMFloat float_n = 0;
           GMFloat float_d = 0;
@@ -478,8 +477,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           if (vi >= nva || vj >= nva || vk >= nva) {
             continue;
           }
-          const GMFloat value
-            = GMMetrics_czek_get_from_index(metrics, index, env);
+          const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
 
           GMFloat float_n = 0;
           GMFloat float_d = 0;
@@ -548,9 +546,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         }
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
-            const GMFloat value = cbpe == 2 ?
-                GMMetrics_ccc_get_from_index_2(metrics, index, i0, i1, env) :
-                GMMetrics_duo_get_from_index_2(metrics, index, i0, i1, env);
+            const GMFloat value = cbpe == CBPE::CCC ?
+                GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, index, i0, i1, env) :
+                GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, index, i0, i1, env);
 
             GMTally1 rij = 0;
             GMTally1 si = 0;
@@ -644,9 +642,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               //                               (f_one / 4) * metrics->recip_m;
 
               value_expected_floatcalc = cbpe == 2 ?
-                GMMetrics_ccc_duo_value_2<2>(metrics, rij, si, sj,
+                GMMetrics_ccc_duo_value<CBPE::CCC>(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env) :
-                GMMetrics_ccc_duo_value_2<1>(metrics, rij, si, sj,
+                GMMetrics_ccc_duo_value<CBPE::DUO>(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env);
             }
 
@@ -700,7 +698,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             for (int i2 = 0; i2 < 2; ++i2) {
-              const GMFloat value = cbpe == 2 ?
+              const GMFloat value = cbpe == CBPE::CCC ?
                 GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, index, i0, i1, i2, env) :
                 GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, index, i0, i1, i2, env);
 

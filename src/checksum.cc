@@ -160,7 +160,7 @@ double Checksum::metrics_elt(
   switch (metrics.data_type_id) {
     // --------------
     case GM_DATA_TYPE_FLOAT: {
-      value = GMMetrics_czek_get_from_index(&metrics, index, &env);
+      value = Metrics_get<GMFloat>(metrics, index, env);
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
@@ -169,8 +169,8 @@ double Checksum::metrics_elt(
       const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
       const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
       value = env.metric_type() == MetricType::CCC ?
-        GMMetrics_ccc_get_from_index_2(&metrics, index, i0, i1, &env) :
-        GMMetrics_duo_get_from_index_2(&metrics, index, i0, i1, &env);
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(&metrics, index, i0, i1, &env) :
+        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(&metrics, index, i0, i1, &env);
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {

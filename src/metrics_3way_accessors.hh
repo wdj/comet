@@ -19,7 +19,9 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Accessors: value from (contig) index: basic---*/
+// Accessors: value from (contig) index: basic
+
+// TODO: consolidate these accessors.
 
 static GMFloat3 GMMetrics_float3_S_get_from_index(GMMetrics* metrics,
                                                   size_t index,
@@ -58,17 +60,8 @@ static GMTally4x2 GMMetrics_tally4x2_get_from_index(GMMetrics* metrics,
   return ((GMTally4x2*)(metrics->data))[index];
 }
 
-//-----------------------------------------------------------------------------
-
-template<typename T>
-static T Metrics_get(GMMetrics& metrics, size_t index, CEnv& env) {
-  COMET_ASSERT(index+1 >= 1 && index < metrics.num_elts_local);
-
-  return ((T*)(metrics.data))[index];
-}
-
 //=============================================================================
-/*---Accessors: value from (contig) index: derived---*/
+// Accessors: value from (contig) index: derived
 
 //-----------------------------------------------------------------------------
 /// \brief Templatized access to the CCC or DUO formula.
@@ -99,9 +92,8 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
 
   if (env->metric_type() != MetricType::CCC || 
-      env->num_way() != NUM_WAY::_3 || ! env->are_ccc_params_default()) {
+      env->num_way() != NUM_WAY::_3 || ! env->are_ccc_params_default())
     return;
-  }
 
   const size_t m = metrics->num_field_active;
   const int lm = utils::log2(m);
@@ -178,8 +170,8 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
   COMET_ASSERT(i2 >= 0 && i2 < 2);
   COMET_ASSERT(env->are_ccc_params_default());
 
-  const GMTally4x2 t42 = GMMetrics_tally4x2_get_from_index(metrics, index, env);
-  const GMTally1 rijk = GMTally4x2_get(t42, i0, i1, i2);
+  const GMTally4x2 ttable = GMMetrics_tally4x2_get_from_index(metrics, index, env);
+  const GMTally1 rijk = GMTally4x2_get(ttable, i0, i1, i2);
 
   const GMFloat3 si1_sj1_sk1 =
       GMMetrics_float3_S_get_from_index(metrics, index, env);
@@ -193,10 +185,10 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
       GMMetrics_float3_C_get_from_index(metrics, index, env);
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
 
-    cijk = GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
-           GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
-           GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
-           GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1);
+    cijk = GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
+           GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
+           GMTally4x2_get(ttable, 1, 0, 0) + GMTally4x2_get(ttable, 1, 0, 1) +
+           GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1);
 
     if (0 == ci || 0 == cj || 0 == ck || 0 == cijk) {
       return (GMFloat)0;
@@ -245,9 +237,9 @@ static double GMMetrics_ccc_duo_get_from_index_3(
   typedef double Float_t;
 
   if (env->threshold_tc()) {
-    typedef Tally4x2<MetricFormat::SINGLE> Tally_t;
-    const auto t42 = Metrics_get<Tally_t>(*metrics, index, *env);
-    Tally_t::TypeIn result = Tally_t::get(t42, i0, i1, i2);
+    typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
+    const auto table = Metrics_get<TTable_t>(*metrics, index, *env);
+    TTable_t::TypeIn result = TTable_t::get(table, i0, i1, i2);
     return result;
   }
 
@@ -256,8 +248,8 @@ static double GMMetrics_ccc_duo_get_from_index_3(
   const Float_t f_one = 1;
   const Float_t recip_m = metrics->recip_m;
 
-  const GMTally4x2 t42 = GMMetrics_tally4x2_get_from_index(metrics, index, env);
-  const GMTally1 rijk = GMTally4x2_get(t42, i0, i1, i2);
+  const GMTally4x2 ttable = GMMetrics_tally4x2_get_from_index(metrics, index, env);
+  const GMTally1 rijk = GMTally4x2_get(ttable, i0, i1, i2);
 
   const GMFloat3 si1_sj1_sk1 =
       GMMetrics_float3_S_get_from_index(metrics, index, env);
@@ -280,10 +272,10 @@ static double GMMetrics_ccc_duo_get_from_index_3(
     const Float_t recip_ck = f_one / ck;
 
     GMTally1 cijk =
-           GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
-           GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
-           GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
-           GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1);
+           GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
+           GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
+           GMTally4x2_get(ttable, 1, 0, 0) + GMTally4x2_get(ttable, 1, 0, 1) +
+           GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1);
     if (0 == ci || 0 == cj || 0 == ck || 0 == cijk)
       return (Float_t)0;
 
@@ -293,10 +285,10 @@ static double GMMetrics_ccc_duo_get_from_index_3(
     const GMTally1 sk = i2 == 0 ? (CBPE * ck - sk1) : sk1;
 
     const Float_t recip_sumcijk = f_one / cijk;
-//      f_one / (GMTally4x2_get(t42, 0, 0, 0) + GMTally4x2_get(t42, 0, 0, 1) +
-//               GMTally4x2_get(t42, 0, 1, 0) + GMTally4x2_get(t42, 0, 1, 1) +
-//               GMTally4x2_get(t42, 1, 0, 0) + GMTally4x2_get(t42, 1, 0, 1) +
-//               GMTally4x2_get(t42, 1, 1, 0) + GMTally4x2_get(t42, 1, 1, 1));
+//      f_one / (GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
+//               GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
+//               GMTally4x2_get(ttable, 1, 0, 0) + GMTally4x2_get(ttable, 1, 0, 1) +
+//               GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1));
 
     result_floatcalc = Metrics_ccc_duo_value<CBPE>(*metrics,
       rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
@@ -325,7 +317,7 @@ static double GMMetrics_ccc_duo_get_from_index_3(
     const Float_t result_intcalc = GMMetrics_ccc_get_from_index_nofp_3(metrics,
                                          index, i0, i1, i2, env);
 
-    // TODO: make this better
+    // TODO: CHECK floating point type here
     const double eps = 1. / ( ((size_t)1) << (mantissa_digits<GMFloat>() - 5) );
 
     const double diff = fabs(result_intcalc - result_floatcalc);
@@ -356,12 +348,12 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
   typedef double Float_t;
 
   if (env->threshold_tc()) {
-    typedef Tally4x2<MetricFormat::SINGLE> Tally_t;
-    const auto t42 = Metrics_get<Tally_t>(*metrics, index, *env);
+    typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
+    const auto ttable = Metrics_get<TTable_t>(*metrics, index, *env);
     for (int i0 = 0; i0 < 2; ++i0) {
       for (int i1 = 0; i1 < 2; ++i1) {
         for (int i2 = 0; i2 < 2; ++i2) {
-          if (Tally_t::get(t42, i0, i1, i2) != (Tally_t::TypeIn)0)
+          if (TTable_t::get(ttable, i0, i1, i2) != (TTable_t::TypeIn)0)
             return true;
         }
       }
@@ -375,16 +367,16 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
 
     const Float_t f_one = 1;
 
-    const GMTally4x2 t42 = GMMetrics_tally4x2_get_from_index(metrics, index,
+    const GMTally4x2 ttable = GMMetrics_tally4x2_get_from_index(metrics, index,
                                                              env);
-    const GMTally1 rijk000 = GMTally4x2_get(t42, 0, 0, 0);
-    const GMTally1 rijk001 = GMTally4x2_get(t42, 0, 0, 1);
-    const GMTally1 rijk010 = GMTally4x2_get(t42, 0, 1, 0);
-    const GMTally1 rijk011 = GMTally4x2_get(t42, 0, 1, 1);
-    const GMTally1 rijk100 = GMTally4x2_get(t42, 1, 0, 0);
-    const GMTally1 rijk101 = GMTally4x2_get(t42, 1, 0, 1);
-    const GMTally1 rijk110 = GMTally4x2_get(t42, 1, 1, 0);
-    const GMTally1 rijk111 = GMTally4x2_get(t42, 1, 1, 1);
+    const GMTally1 rijk000 = GMTally4x2_get(ttable, 0, 0, 0);
+    const GMTally1 rijk001 = GMTally4x2_get(ttable, 0, 0, 1);
+    const GMTally1 rijk010 = GMTally4x2_get(ttable, 0, 1, 0);
+    const GMTally1 rijk011 = GMTally4x2_get(ttable, 0, 1, 1);
+    const GMTally1 rijk100 = GMTally4x2_get(ttable, 1, 0, 0);
+    const GMTally1 rijk101 = GMTally4x2_get(ttable, 1, 0, 1);
+    const GMTally1 rijk110 = GMTally4x2_get(ttable, 1, 1, 0);
+    const GMTally1 rijk111 = GMTally4x2_get(ttable, 1, 1, 1);
 
     const GMFloat3 si1_sj1_sk1 =
         GMMetrics_float3_S_get_from_index(metrics, index, env);
@@ -485,36 +477,8 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
          env->pass_threshold(v110) || env->pass_threshold(v111);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //=============================================================================
-/*---Accessors: value from (local) coord: set: 3-way---*/
+// Accessors: value from (local) coord: set: 3-way.
 
 template<typename T>
 static void GMMetrics_set_3(GMMetrics* metrics, void* p, int i, int j, int k,
@@ -716,7 +680,7 @@ static void Metrics_set(
 }
 
 //=============================================================================
-/*---Accessors: value from (local) coord: get: 3-way---*/
+// Accessors: value from (local) coord: get: 3-way.
 
 template<int MF>
 static Tally4x2<MF> Metrics_get(GMMetrics& metrics,
