@@ -374,9 +374,6 @@ public:
     return NUM_WAY::_3 == num_way() && threshold_tc() &&
           is_bitwise_3way_2step();
   }
-//  int metric_format() const {
-//    return threshold_tc() ? MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;
-//  }
 
   int data_type_vectors() const;
   int data_type_metrics() const;

@@ -787,16 +787,16 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
               GMFloat value_expected_floatcalc = 0;
               if (!(ci == 0 || cj == 0 || ck == 0 || cijk == 0)) {
-                const GMFloat f_one = 1;
+                const double f_one = 1;
   
-                const GMFloat recip_ci = env->sparse() ? f_one/ci
-                                                     : metrics->recip_m;
-                const GMFloat recip_cj = env->sparse() ? f_one/cj
-                                                     : metrics->recip_m;
-                const GMFloat recip_ck = env->sparse() ? f_one/ck
-                                                     : metrics->recip_m;
+                const double recip_ci = env->sparse() ? f_one/ci
+                                                      : metrics->recip_m;
+                const double recip_cj = env->sparse() ? f_one/cj
+                                                      : metrics->recip_m;
+                const double recip_ck = env->sparse() ? f_one/ck
+                                                      : metrics->recip_m;
   
-                const GMFloat recip_sumcijk = env->sparse() ? f_one/cijk :
+                const double recip_sumcijk = env->sparse() ? f_one/cijk :
                                                (f_one / 8) * metrics->recip_m;
   
                 value_expected_floatcalc = cbpe == CBPE::CCC ?

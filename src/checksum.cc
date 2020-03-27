@@ -189,7 +189,7 @@ double Checksum::metrics_elt(
       value = env.metric_type() == MetricType::CCC ?
         GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(&metrics, index, i0, i1, i2, &env) :
         GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(&metrics, index, i0, i1, i2, &env);
-      value = (double)(float)value; // CHECK
+      value = (double)(float)value; // ensure result independent of threshold_tc // CHECK
     } break;
     // --------------
     default:
@@ -201,11 +201,8 @@ double Checksum::metrics_elt(
   const bool do_set_zero = !env.threshold_tc() && !env.pass_threshold(value);
 //  const bool do_set_zero = !env.pass_threshold(value);
 
-  const double result = do_set_zero ? (double)0 : value;
-//printf("%f %f\n", value, result);
+  const double result = do_set_zero ? 0e0 : value;
   return result;
-  //return env.pass_threshold(value) ? value : (double)0;
-  //return value;
 }
 
 //-----------------------------------------------------------------------------

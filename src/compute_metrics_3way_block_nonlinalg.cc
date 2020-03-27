@@ -220,7 +220,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
   COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
-  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+  typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
   /*---Initializations---*/
 
@@ -356,10 +356,10 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
                 // Accumulate
 
-                MF::add(sum.data[0], r000, r001);
-                MF::add(sum.data[1], r010, r011);
-                MF::add(sum.data[2], r100, r101);
-                MF::add(sum.data[3], r110, r111);
+                MFT::add(sum.data[0], r000, r001);
+                MFT::add(sum.data[1], r010, r011);
+                MFT::add(sum.data[2], r100, r101);
+                MFT::add(sum.data[3], r110, r111);
 
                 //sum.data[0] += GMTally1_encode(r000, r001);
                 //sum.data[1] += GMTally1_encode(r010, r011);
@@ -381,10 +381,10 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
                 // Accumulate
 
-                MF::add(sum.data[0], r000, r001);
-                MF::add(sum.data[1], r010, r011);
-                MF::add(sum.data[2], r100, r101);
-                MF::add(sum.data[3], r110, r111);
+                MFT::add(sum.data[0], r000, r001);
+                MFT::add(sum.data[1], r010, r011);
+                MFT::add(sum.data[2], r100, r101);
+                MFT::add(sum.data[3], r110, r111);
 
                 //sum.data[0] += GMTally1_encode(r000, r001);
                 //sum.data[1] += GMTally1_encode(r010, r011);
@@ -673,10 +673,10 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
               // Accumulate
 
-              MF::add(sum.data[0], r000, r001);
-              MF::add(sum.data[1], r010, r011);
-              MF::add(sum.data[2], r100, r101);
-              MF::add(sum.data[3], r110, r111);
+              MFT::add(sum.data[0], r000, r001);
+              MFT::add(sum.data[1], r010, r011);
+              MFT::add(sum.data[2], r100, r101);
+              MFT::add(sum.data[3], r110, r111);
 
               //sum.data[0] += GMTally1_encode(r000, r001);
               //sum.data[1] += GMTally1_encode(r010, r011);
@@ -704,10 +704,10 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
               // Accumulate
 
-              MF::add(sum.data[0], r000, r001);
-              MF::add(sum.data[1], r010, r011);
-              MF::add(sum.data[2], r100, r101);
-              MF::add(sum.data[3], r110, r111);
+              MFT::add(sum.data[0], r000, r001);
+              MFT::add(sum.data[1], r010, r011);
+              MFT::add(sum.data[2], r100, r101);
+              MFT::add(sum.data[3], r110, r111);
 
               //sum.data[0] += GMTally1_encode(r000, r001);
               //sum.data[1] += GMTally1_encode(r010, r011);
@@ -723,7 +723,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 #ifdef COMET_ASSERTIONS_ON
           GMTally4x2 sum_old = sum;
 #endif
-          MF::subtract(sum.data[0], pad_adjustment, 0);
+          MFT::subtract(sum.data[0], pad_adjustment, 0);
           //sum.data[0] -= float_pad_adjustment;
 #ifdef COMET_ASSERTIONS_ON
           COMET_ASSERT(GMTally4x2_get(sum_old, 0, 0, 0) ==

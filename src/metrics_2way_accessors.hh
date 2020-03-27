@@ -140,7 +140,7 @@ static GMFloat GMMetrics_ccc_duo_value_2(
 //    env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
 //    env->ccc_param());
 
-  return ccc_duo_value_2<GMFloat, COUNTED_BITS_PER_ELT>(
+  return ccc_duo_value<GMFloat, COUNTED_BITS_PER_ELT>(
     rij, si, sj, recip_ci, recip_cj, recip_sumcij,
     env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
     env->ccc_param());

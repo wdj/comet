@@ -836,7 +836,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
   if (env->is_using_tc())
     return;
 
-  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+  typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
   // TODO: should more of this be owned by decomp_mgr
 
@@ -866,7 +866,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
 //      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[1])) / (1<<GM_TALLY1_MAX_VALUE_BITS)
 //    );
 
-      MF::subtract(metrics_buf->elt<GMTally2x2>(i, j).data[0], pad_adjustment, 0);
+      MFT::subtract(metrics_buf->elt<GMTally2x2>(i, j).data[0], pad_adjustment, 0);
 
 //      metrics_buf->elt<GMTally2x2>(i, j).data[0] -= float_pad_adjustment;
 

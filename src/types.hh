@@ -145,11 +145,11 @@ enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
 //=============================================================================
 // Templatized types for CCC and DUO metrics
 
-template<int METRIC_FORMAT> struct MetricFormatType;
+template<int METRIC_FORMAT> struct MetricFormatTraits;
 
 //-----------------------------------------------------------------------------
 
-template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
+template<> struct MetricFormatTraits<MetricFormat::PACKED_DOUBLE> {
   typedef PackedDouble Type;
   typedef GMTally1 TypeIn;
 
@@ -217,7 +217,7 @@ template<> struct MetricFormatType<MetricFormat::PACKED_DOUBLE> {
 
 //-----------------------------------------------------------------------------
 
-template<> struct MetricFormatType<MetricFormat::SINGLE> {
+template<> struct MetricFormatTraits<MetricFormat::SINGLE> {
   typedef Single2 Type;
   typedef float TypeIn;
 
@@ -262,10 +262,11 @@ template<> struct MetricFormatType<MetricFormat::SINGLE> {
 //-----------------------------------------------------------------------------
 
 template<int METRIC_FORMAT> struct Tally2x2 {
-  typedef MetricFormatType<METRIC_FORMAT> MFT;
+  typedef MetricFormatTraits<METRIC_FORMAT> MFT;
   typedef typename MFT::Type Type;
   typedef typename MFT::TypeIn TypeIn;
-  Type data[2];
+  enum {NUM = 2};
+  Type data[NUM];
   typedef Tally2x2<METRIC_FORMAT> This;
 
   __host__ __device__ 
@@ -278,10 +279,11 @@ template<int METRIC_FORMAT> struct Tally2x2 {
 };
 
 template<int METRIC_FORMAT> struct Tally4x2 {
-  typedef MetricFormatType<METRIC_FORMAT> MFT;
+  typedef MetricFormatTraits<METRIC_FORMAT> MFT;
   typedef typename MFT::Type Type;
   typedef typename MFT::TypeIn TypeIn;
-  Type data[4];
+  enum {NUM = 4};
+  Type data[NUM];
   typedef Tally4x2<METRIC_FORMAT> This;
 
   __host__ __device__ 
@@ -371,7 +373,7 @@ static GMFp64 GMTally1_encode(GMTally1 val0, GMTally1 val1) {
 
 static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
   PackedDouble result = 0;
-  MetricFormatType<MetricFormat::PACKED_DOUBLE>::encode(result, val0, val1);
+  MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result, val0, val1);
   return result;
   //return GMTally1_encode(val0, val1);
 }
@@ -383,8 +385,8 @@ static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
   const GMTally1 dummy = 0;
   //result.data[0] = GMTally1_encode(val0, val1);
   //result.data[1] = GMTally1_encode(val2, dummy);
-  MetricFormatType<MetricFormat::PACKED_DOUBLE>::encode(result.data[0], val0, val1);
-  MetricFormatType<MetricFormat::PACKED_DOUBLE>::encode(result.data[1], val2, dummy);
+  MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result.data[0], val0, val1);
+  MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result.data[1], val2, dummy);
   return result;
 }
 
@@ -394,7 +396,7 @@ static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
 static void GMFloat2_decode(GMTally1& __restrict__ val0,
                             GMTally1& __restrict__ val1,
                             const GMFloat2 v) {
-  MetricFormatType<MetricFormat::PACKED_DOUBLE>::decode(val0, val1, v);
+  MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::decode(val0, val1, v);
 }
 
 //----------
@@ -403,9 +405,9 @@ static void GMFloat3_decode(GMTally1* __restrict__ val0,
                             GMTally1* __restrict__ val1,
                             GMTally1* __restrict__ val2,
                             GMFloat3 v) {
-  MetricFormatType<MetricFormat::PACKED_DOUBLE>::decode(*val0, *val1, v.data[0]);
+  MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::decode(*val0, *val1, v.data[0]);
   GMTally1 dummy;
-  MetricFormatType<MetricFormat::PACKED_DOUBLE>::decode(*val2, dummy, v.data[1]);
+  MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::decode(*val2, dummy, v.data[1]);
 }
 
 //-----------------------------------------------------------------------------

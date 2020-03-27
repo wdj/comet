@@ -24,7 +24,7 @@ namespace comet {
 /// \brief Formula for a single 2-way CCC or DUO result.
 
 template<typename FLOAT, int COUNTED_BITS_PER_ELT>
-static __host__ __device__ FLOAT ccc_duo_value_2(
+static __host__ __device__ FLOAT ccc_duo_value(
   const GMTally1 rij,
   const GMTally1 si,
   const GMTally1 sj,
@@ -77,7 +77,7 @@ static __host__ __device__ FLOAT ccc_duo_value(
 
   const FLOAT fijk = recip_sumcijk * rijk;
 
-  /*---Do the following to make floating point arithmetic order-independent---*/
+  // Do the following to make floating point arithmetic order-independent.
   FLOAT fmin = 0, fmid = 0, fmax = 0;
   utils::sort_3(fmin, fmid, fmax, fi, fj, fk);
 

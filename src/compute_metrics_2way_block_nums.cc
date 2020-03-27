@@ -108,7 +108,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
-  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+  typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
   /*----------------------------------------*/
   if (env->compute_method() == ComputeMethod::REF) {
@@ -172,8 +172,8 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
             // Accumulate
 
-            MF::add(sum.data[0], r00, r01);
-            MF::add(sum.data[1], r10, r11);
+            MFT::add(sum.data[0], r00, r01);
+            MFT::add(sum.data[1], r10, r11);
 
             //sum.data[0] += GMTally1_encode(r00, r01);
             //sum.data[1] += GMTally1_encode(r10, r11);
@@ -300,8 +300,8 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
           // Accumulate
 
-          MF::add(sum.data[0], r00, r01);
-          MF::add(sum.data[1], r10, r11);
+          MFT::add(sum.data[0], r00, r01);
+          MFT::add(sum.data[1], r10, r11);
 
           //sum.data[0] += GMTally1_encode(r00, r01);
           //sum.data[1] += GMTally1_encode(r10, r11);
@@ -313,7 +313,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
 #ifdef COMET_ASSERTIONS_ON
         GMTally2x2 sum_old = sum;
 #endif
-        MF::subtract(sum.data[0], pad_adjustment, 0);
+        MFT::subtract(sum.data[0], pad_adjustment, 0);
         //sum.data[0] -= float_pad_adjustment;
 #ifdef COMET_ASSERTIONS_ON
         COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==
@@ -353,7 +353,7 @@ void gm_compute_2way_proc_nums_duo_start_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
-  typedef MetricFormatType<MetricFormat::PACKED_DOUBLE> MF;
+  typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
   /*----------------------------------------*/
   if (env->compute_method() == ComputeMethod::REF) {
@@ -393,8 +393,8 @@ void gm_compute_2way_proc_nums_duo_start_(
 
             // Accumulate
 
-            MF::add(sum.data[0], r00, r01);
-            MF::add(sum.data[1], r10, r11);
+            MFT::add(sum.data[0], r00, r01);
+            MFT::add(sum.data[1], r10, r11);
 
             //sum.data[0] += GMTally1_encode(r00, r01);
             //sum.data[1] += GMTally1_encode(r10, r11);
@@ -490,8 +490,8 @@ void gm_compute_2way_proc_nums_duo_start_(
 
           // Accumulate
 
-          MF::add(sum.data[0], r00, r01);
-          MF::add(sum.data[1], r10, r11);
+          MFT::add(sum.data[0], r00, r01);
+          MFT::add(sum.data[1], r10, r11);
 
           //sum.data[0] += GMTally1_encode(r00, r01);
           //sum.data[1] += GMTally1_encode(r10, r11);
@@ -503,7 +503,7 @@ void gm_compute_2way_proc_nums_duo_start_(
 #ifdef COMET_ASSERTIONS_ON
         GMTally2x2 sum_old = sum;
 #endif
-        MF::subtract(sum.data[0], pad_adjustment, 0);
+        MFT::subtract(sum.data[0], pad_adjustment, 0);
         //sum.data[0] -= float_pad_adjustment;
 #ifdef COMET_ASSERTIONS_ON
         COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==

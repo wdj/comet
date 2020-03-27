@@ -2201,13 +2201,13 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
 //=============================================================================
 
 void DriverTest_ccc3_duo3_(const char* const metric_type) {
-  const bool is_duo = 'd' == metric_type[0];
-
   char options1[1024];
   char options2[1024];
 //FIX
-#if 1
+#if 0
   char options3[1024];
+
+  const bool is_duo = 'd' == metric_type[0];
 
   //----------
   //---3-way, all2all no
@@ -2426,7 +2426,6 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
         "--metric_type %s "
         "--num_proc_vector 1 "
         "--num_field 7 --num_vector 18 "
-//        "--num_field 2 --num_vector 3 "
         "--num_way 3 "
         "--all2all yes --sparse yes "
         "--problem_type random %s";
@@ -2468,7 +2467,6 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
-//FIX
 #if 0
 TEST(DriverTest, tc) {
   DriverTest_tc_();
@@ -2477,7 +2475,6 @@ TEST(DriverTest, tc) {
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();
 }
-#endif
 
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
@@ -2499,16 +2496,18 @@ TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
 
-//FIX
-#if 0
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
+#endif
+//FIX
 
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
 
+//FIX
+#if 0
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }
