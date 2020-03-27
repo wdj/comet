@@ -236,12 +236,13 @@ function main
 
   local CMAKE_CXX_FLAGS="-DCOMET_FP_PRECISION_$FP_PRECISION -DADD_"
   CMAKE_CXX_FLAGS+=" -g" # for stack trace
-  CMAKE_CXX_FLAGS+=" -Wall -Wno-unused-function -Werror -fmax-errors=5"
+  CMAKE_CXX_FLAGS+=" -Wall -Wno-unused-function -Werror"
   CMAKE_CXX_FLAGS+=" -fno-associative-math"
   CMAKE_CXX_FLAGS+=" -Wno-error=unknown-pragmas"
   CMAKE_CXX_FLAGS+=" -DTEST_PROCS_MAX=$COMET_TEST_PROCS_MAX"
   if [ $USE_GCC = ON ] ; then
       CMAKE_CXX_FLAGS+=" -rdynamic" # for stack trace
+      CMAKE_CXX_FLAGS+=" -fmax-errors=5"
   fi
 
   [[ ${USE_OPENMP:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_OPENMP"
