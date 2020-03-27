@@ -148,6 +148,7 @@ enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
 template<int METRIC_FORMAT> struct MetricFormatTraits;
 
 //-----------------------------------------------------------------------------
+/// \brief Metric format traits for packed double case.
 
 template<> struct MetricFormatTraits<MetricFormat::PACKED_DOUBLE> {
   typedef PackedDouble Type;
@@ -216,6 +217,7 @@ template<> struct MetricFormatTraits<MetricFormat::PACKED_DOUBLE> {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Metric format traits for FP32 case.
 
 template<> struct MetricFormatTraits<MetricFormat::SINGLE> {
   typedef Single2 Type;
@@ -260,6 +262,7 @@ template<> struct MetricFormatTraits<MetricFormat::SINGLE> {
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Tally table struct to support 2-way bitwise methods.
 
 template<int METRIC_FORMAT> struct Tally2x2 {
   typedef MetricFormatTraits<METRIC_FORMAT> MFT;
@@ -285,6 +288,9 @@ template<int METRIC_FORMAT> struct Tally2x2 {
     return results[i1];
   }
 };
+
+//-----------------------------------------------------------------------------
+/// \brief Tally table struct to support 3-way bitwise methods.
 
 template<int METRIC_FORMAT> struct Tally4x2 {
   typedef MetricFormatTraits<METRIC_FORMAT> MFT;
@@ -359,22 +365,6 @@ static GMTally4x2 GMTally4x2_null() {
   value.data[3] = 0;
   return value;
 }
-
-//-----------------------------------------------------------------------------
-// Encode/decode between float and pair of tally values
-
-#if 0
-__host__ __device__
-static GMFp64 GMTally1_encode(GMTally1 val0, GMTally1 val1) {
-  const uint64_t tally2 =
-      val0 + (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) * val1;
-  const GMFp64 result = (GMFp64)tally2;
-  COMET_ASSERT(val0 == (((uint64_t)result) &
-                    ((((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS) - 1)));
-  COMET_ASSERT(val1 == ((uint64_t)result) >> GM_TALLY1_MAX_VALUE_BITS);
-  return result;
-}
-#endif
 
 //-----------------------------------------------------------------------------
 // Encode for multipliers/sums

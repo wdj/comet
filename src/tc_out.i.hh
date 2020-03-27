@@ -240,7 +240,7 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 }
 
 //=============================================================================
-/// \brief Threshold individual elements in buf, 2-way case.
+/// \brief Do thresholding of metrics: individual elements, 2-way case.
 
 template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
 __host__ __device__ void tc_threshold_2way_kernel_elt_(
@@ -248,11 +248,11 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier,
   double threshold_eff, int thread_r, int thread_c) {
-
-  COMET_ASSERT(vo);
+  COMET_INSIST(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_ASSERT(thread_r >= 0 && thread_r < nvll);
   COMET_ASSERT(thread_c >= 0 && thread_c < nvl);
+  COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
@@ -270,6 +270,8 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
   // I, J - coordinate of element in the 2D plane.
   // indT_I, indT_J - indices into the 2x2 table at each coord
 
+  // TODO: use MirroredBuf class for indexing.
+
   // Calculate cijk.
 
   const int mftype_per_tallytable = Tally2x2<METRIC_FORMAT>::NUM;
@@ -285,7 +287,6 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
     MFT::decode(values_this[0], values_this[1], dvo_this);
 
     cij += (GMTally1)values_this[0] + (GMTally1)values_this[1];
-
   }
 
   const double recip_sumcij = 1e0 / cij;
@@ -296,7 +297,7 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
   const int J = thread_c;
   COMET_ASSERT(J >= 0 && J < nvl);
 
-  // Values to be plugged into CCC/DUO formula.
+  // (more) values to be plugged into CCC/DUO formula.
 
   const GMTally1 cI = (GMTally1)counts_I[I];
   const GMTally1 cJ = (GMTally1)counts_J[J];
@@ -327,10 +328,8 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
       const MFTypeIn rij = values_this[indT_J];
 
       const double metric_value =
-        0 == cI ? 0e0 :
-        0 == cJ ? 0e0 :
-        0 == cij ? 0e0 :
-        ccc_duo_value<double, CBPE>(
+        0 == cI || 0 == cJ || 0 == cij ? 0e0 :
+        ccc_duo_value<CBPE, double>(
           (GMTally1)rij, sI, sJ, recip_cI, recip_cJ,
           recip_sumcij, multiplier, param);
 
@@ -339,15 +338,14 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 
       values_this[indT_J] = pass_threshold ? (MFTypeIn)metric_value :
                                              (MFTypeIn)0;
-    } // indT_K
+    } // indT_J
 
     MFT::encode(dvo_this, values_this[0], values_this[1]);
-
   } // indT_I
 }
 
 //=============================================================================
-/// \brief Threshold individual elements in buf, 3-way case.
+/// \brief Do thresholding of metrics: individual elements, 3-way case.
 
 template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
 __host__ __device__ void tc_threshold_3way_kernel_elt_(
@@ -356,13 +354,14 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int step_2way, double param, double multiplier,
   double threshold_eff, int thread_r, int thread_c) {
-
-  COMET_ASSERT(vo);
+  COMET_INSIST(vo);
+  COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(nvll*2 == nvllX2);
   COMET_ASSERT(nvll/2 == nvllD2);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_ASSERT(thread_r >= 0 && thread_r < nvllD2);
   COMET_ASSERT(thread_c >= 0 && thread_c < nvl);
+  COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
@@ -400,7 +399,6 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
       MFT::decode(values_this[0], values_this[1], dvo_this);
 
       cijk += (GMTally1)values_this[0] + (GMTally1)values_this[1];
-
     }
   }
 
@@ -413,7 +411,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   const int K = thread_c;
   COMET_ASSERT(K >= 0 && K < nvl);
 
-  // Values to be plugged into CCC/DUO formula.
+  // (more) values to be plugged into CCC/DUO formula.
 
   const GMTally1 cI = (GMTally1)counts_I[I];
   const GMTally1 cJ = (GMTally1)counts_J[J];
@@ -430,9 +428,11 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   // Loops to update all 8 table values.
 
   for (int indT_I = 0; indT_I < 2; ++indT_I) {
+
+    const GMTally1 sI = indT_I == 0 ? CBPE * cI - sI1 : sI1;
+
     for (int indT_J = 0; indT_J < 2; ++indT_J) {
 
-      const GMTally1 sI = indT_I == 0 ? CBPE * cI - sI1 : sI1;
       const GMTally1 sJ = indT_J == 0 ? CBPE * cJ - sJ1 : sJ1;
 
       MFType& dvo_this = dvo[indT_J + mftype_per_tallytable * (
@@ -450,11 +450,8 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
         const MFTypeIn rijk = values_this[indT_K];
 
         const double metric_value =
-          0 == cI ? 0e0 :
-          0 == cJ ? 0e0 :
-          0 == cK ? 0e0 :
-          0 == cijk ? 0e0 :
-          ccc_duo_value<double, CBPE>(
+          0 == cI || 0 == cJ || 0 == cK || 0 == cijk ? 0e0 :
+          ccc_duo_value<CBPE, double>(
             (GMTally1)rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
             recip_sumcijk, multiplier, param);
 
@@ -466,22 +463,22 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
       } // indT_K
 
       MFT::encode(dvo_this, values_this[0], values_this[1]);
-
     } // indT_J
-
   } // indT_I
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel to support tc_threshold_, 2-way case.
+/// \brief Do thresholding of metrics: GPU kernel, 2-way case.
 
 template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
 __global__ void tc_threshold_2way_kernel_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier, double threshold_eff) {
+  COMET_INSIST(vo && sums_I && sums_J && counts_I && counts_J);
+  COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
 
-  // Row and column threads of metrics array.
+  // Row and column threads for metrics matrix.
   const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const int thread_c = blockIdx_y_();
 
@@ -494,7 +491,7 @@ __global__ void tc_threshold_2way_kernel_(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel to support tc_threshold_, 3-way case.
+/// \brief Do thresholding of metrics: GPU kernel, 3-way case.
 
 template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
 __global__ void tc_threshold_3way_kernel_(
@@ -502,8 +499,11 @@ __global__ void tc_threshold_3way_kernel_(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int step_2way, double param, double multiplier, double threshold_eff) {
+  COMET_INSIST(vo);
+  COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
+  COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
 
-  // Row and column threads of metrics array.
+  // Row and column threads for metrics matrix.
   const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const int thread_c = blockIdx_y_();
 
@@ -517,7 +517,7 @@ __global__ void tc_threshold_3way_kernel_(
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Perform thresholding of metrics if requested.
+/// \brief Do thresholding of metrics if requested.
 
 template<int TC_METHOD, int METRIC_FORMAT>
 void tc_threshold_(int nvll, int nvl, void* vo,
@@ -525,6 +525,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int step_2way, CEnv& env) {
   COMET_INSIST(vo);
+  COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
 //FIX   if (!env.threshold_tc() || !env.is_threshold())
