@@ -60,7 +60,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
 
     // Extract column J of vectors_J, later use to form matX.
 
-    if (env.form_matX_on_accel()) {
+    if (env.form_matX_tc()) {
 
       for (int word = 0; word<2; ++word) {
         for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
@@ -71,10 +71,11 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
         }
       }
 
-    } else { // if (!env.form_matX_on_accel())
+    } else { // if (!env.form_matX_tc())
 
       COMET_INSIST(env.metric_type() == MetricType::CCC &&
                    "Case currently unimplemented.");
+      // TODO: implement DUO here.
 
       // Populate leading columns of matX.
 
@@ -159,7 +160,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
         }  // f
       }    // I
 
-    } // if (env.form_matX_on_accel())
+    } // if (env.form_matX_tc())
 
   } else {
 
@@ -190,7 +191,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
   COMET_INSIST(vs_i && vs_j && vs_k);
 
-  COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_on_accel()) &&
+  COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_tc()) &&
                "Case currently unimplemented.");
 
   matB_buf->lock_h();
@@ -683,7 +684,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   MirroredBuf* const matM_KIK_buf =
                         si->perm2(matM_ij_buf, matM_jk_buf, matM_kik_buf);
 
-  if (env_.form_matX_on_accel()) {
+  if (env_.form_matX_tc()) {
     vectors_I_buf->to_accel();
   }
 

@@ -38,6 +38,7 @@
 #  define __host__
 #  define __device__
 #  define __global__
+static void dim3(size_t dim0, size_t dim1, size_t dim2) {}
 #endif
 
 #include "assertions.hh"
@@ -187,7 +188,8 @@ struct MetricType {
 /// \brief Helper class to denote counted bits per element for metric type.
 
 struct CBPE {
-  enum {DUO = 1,
+  enum {NONE = -1,
+        DUO = 1,
         CCC = 2};
 };
 
@@ -328,9 +330,9 @@ public:
 
   // CoMet Settings: multiplier/param.
 
-  static double ccc_multiplier_default() {return ((double) 9) / ((double) 2);}
-  static double duo_multiplier_default() {return (double) 4; }
-  static double ccc_param_default() {return ((double) 2) / ((double) 3);}
+  static double ccc_multiplier_default() {return 9e0 / 2e0;}
+  static double duo_multiplier_default() {return 4e0; }
+  static double ccc_param_default() {return 2e0 / 3e0;}
   bool are_ccc_params_default() const {return are_ccc_params_default_;}
 
   // CoMet Settings: derived settings.
@@ -350,7 +352,7 @@ public:
   bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
     (ComputeMethod::CPU == compute_method_ && is_using_tc());
   }
-  bool form_matX_on_accel() const {return is_using_tc();}
+  bool form_matX_tc() const {return is_using_tc();}
   bool is_bitwise_3way_2step() const {return is_using_tc();}
   int num_step_2way_for_3way() const {
     return !(is_metric_type_bitwise() && is_using_linalg()) ? 1 :
@@ -364,10 +366,13 @@ public:
     COMET_INSIST(is_metric_type_bitwise());
     return MetricType::CCC == metric_type_ ? 2 : 1;
   }
+  double ccc_duo_multiplier() {
+    return counted_bits_per_elt() == CBPE::DUO ?
+      duo_multiplier() : ccc_multiplier();
+  }
   // Do we do thresholding in TC package.
   bool threshold_tc() const {
-    //return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold();
-    return is_using_tc() && sparse() && num_proc_field() == 1 && num_way() == NUM_WAY::_3; //FIX
+    return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold();
   }
   // Are 3-way metrics computed half block-plane at a time.
   bool is_vectors_halved() const {
@@ -377,8 +382,8 @@ public:
 
   int data_type_vectors() const;
   int data_type_metrics() const;
-  int matrix_buf_elt_size() const {return metric_type_ == MetricType::CZEK ?
-    sizeof(GMFloat) : 2*sizeof(double); // ISSUE: move this elsewhere?
+  int matrix_buf_elt_size() const {return MetricType::CZEK == metric_type_ ?
+    sizeof(GMFloat) : 2*sizeof(double);
   }
 
   MPI_Datatype metrics_mpi_type() const;
@@ -558,17 +563,23 @@ private:
 
 /// \brief Templatized access to CCC or DUO front multiplier.
 
-template<int COUNTED_BITS_PER_ELT>
-static GMFloat env_ccc_duo_multiplier(const CEnv& env);
+template<int COUNTED_BITS_PER_ELT = CBPE::NONE>
+static double env_ccc_duo_multiplier(const CEnv& env);
 
 template<>
-GMFloat env_ccc_duo_multiplier<2>(const CEnv& env) {
+double env_ccc_duo_multiplier<CBPE::CCC>(const CEnv& env) {
   return env.ccc_multiplier();
 }
 
 template<>
-GMFloat env_ccc_duo_multiplier<1>(const CEnv& env) {
+double env_ccc_duo_multiplier<CBPE::DUO>(const CEnv& env) {
   return env.duo_multiplier();
+}
+
+template<>
+double env_ccc_duo_multiplier<CBPE::NONE>(const CEnv& env) {
+  return env.counted_bits_per_elt() == CBPE::DUO ?
+    env.duo_multiplier() : env.ccc_multiplier();
 }
 
 //=============================================================================

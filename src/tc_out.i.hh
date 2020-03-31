@@ -211,8 +211,6 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 
     // Kernel call.
 
-#   ifdef COMET_USE_ACCEL
-
       const int threadblocksize = 256;
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
                    "Current HIP limitation.");
@@ -224,8 +222,6 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
         nvl, nvll, nvllD2, vo);
 
       System::accel_last_call_succeeded();
-
-#   endif // COMET_USE_ACCEL
 
   } else { // (!env.is_compute_method_gpu())
 
@@ -248,11 +244,11 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier,
   double threshold_eff, int thread_r, int thread_c) {
-  COMET_INSIST(vo && sums_I && sums_J && counts_I && counts_J);
+  COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_ASSERT(thread_r >= 0 && thread_r < nvll);
   COMET_ASSERT(thread_c >= 0 && thread_c < nvl);
-  COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
+  COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
@@ -279,9 +275,11 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
   GMTally1 cij = 0;
   for (int indT_I = 0; indT_I < 2; ++indT_I) {
 
-    const MFType dvo_this = dvo[indT_I + mftype_per_tallytable * (
-                                thread_r + nvl * (
-                                thread_c))];
+    const size_t index_this = indT_I + mftype_per_tallytable * (
+                              thread_r + nvll * (
+                              thread_c));
+
+    const MFType dvo_this = dvo[index_this];
 
     MFTypeIn values_this[2];
     MFT::decode(values_this[0], values_this[1], dvo_this);
@@ -314,9 +312,11 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 
     const GMTally1 sI = indT_I == 0 ? CBPE * cI - sI1 : sI1;
 
-    MFType& dvo_this = dvo[indT_I + mftype_per_tallytable * (
-                           thread_r + nvl * (
-                           thread_c))];
+    const size_t index_this = indT_I + mftype_per_tallytable * (
+                              thread_r + nvll * (
+                              thread_c));
+
+    MFType& dvo_this = dvo[index_this];
 
     MFTypeIn values_this[2];
     MFT::decode(values_this[0], values_this[1], dvo_this);
@@ -354,14 +354,14 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int step_2way, double param, double multiplier,
   double threshold_eff, int thread_r, int thread_c) {
-  COMET_INSIST(vo);
-  COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
+  COMET_ASSERT(vo);
+  COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(nvll*2 == nvllX2);
   COMET_ASSERT(nvll/2 == nvllD2);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_ASSERT(thread_r >= 0 && thread_r < nvllD2);
   COMET_ASSERT(thread_c >= 0 && thread_c < nvl);
-  COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
+  COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
@@ -475,8 +475,8 @@ __global__ void tc_threshold_2way_kernel_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
   double param, double multiplier, double threshold_eff) {
-  COMET_INSIST(vo && sums_I && sums_J && counts_I && counts_J);
-  COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
+  COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
+  COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
   // Row and column threads for metrics matrix.
   const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
@@ -499,9 +499,9 @@ __global__ void tc_threshold_3way_kernel_(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int step_2way, double param, double multiplier, double threshold_eff) {
-  COMET_INSIST(vo);
-  COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
-  COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
+  COMET_ASSERT(vo);
+  COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
+  COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
   // Row and column threads for metrics matrix.
   const int thread_r = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
@@ -528,19 +528,15 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   COMET_INSIST(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
-//FIX   if (!env.threshold_tc() || !env.is_threshold())
-   if (!env.threshold_tc())
-     return;
-
   COMET_INSIST(env.sparse() && "Case not supported.");
-  COMET_INSIST((env.is_vectors_halved() || ! (3 == env.num_way())) &&
+  COMET_INSIST((env.is_vectors_halved() ==
+                (NUM_WAY::_3 == env.num_way())) &&
     "Case not supported.");
   COMET_INSIST(env.is_bitwise_3way_2step() && "Case not supported.");
-
   COMET_INSIST_INTERFACE(&env, env.num_proc_field() == 1 &&
     "Thresholding on accelerator currently requires num_proc_field = 1.");
-
   COMET_INSIST(METRIC_FORMAT == MetricFormat::SINGLE);
+
   enum {MF = METRIC_FORMAT};
 
   const int nvllX2 = nvll * 2;
@@ -552,8 +548,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   // 2way: i -> I, j -> K (???)
 
   const double param = env.ccc_param();
-  const double multiplier = env.metric_type() == MetricType::CCC ?
-    env.ccc_multiplier() : env.duo_multiplier();
+  const double multiplier = env.ccc_duo_multiplier();
   const double threshold_eff = env.threshold_eff();
 
   const int num_threads_r = env.num_way() == NUM_WAY::_2 ? nvll : nvllD2;
@@ -563,8 +558,6 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
     // Kernel call.
 
-#   ifdef COMET_USE_ACCEL
-
       const int threadblocksize = 256;
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
                    "Current HIP limitation.");
@@ -572,7 +565,9 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
       if (CBPE::DUO == cbpe && NUM_WAY::_2 == env.num_way()) {
 
-        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE::DUO, MF>),
+        enum {CBPE = CBPE::DUO};
+
+        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF>),
           dim3(vll_threadblocks, num_threads_c, 1),
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
@@ -580,7 +575,9 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
       } else if (NUM_WAY::_2 == env.num_way()) { // && CBPE::CCC == cbpe
 
-        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE::DUO, MF>),
+        enum {CBPE = CBPE::CCC};
+
+        COMET_LAUNCH_KERNEL((tc_threshold_2way_kernel_<CBPE, MF>),
           dim3(vll_threadblocks, num_threads_c, 1),
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
@@ -588,7 +585,9 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
       } else if (CBPE::DUO == cbpe) { // && (3 == env.num_way())
 
-        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE::DUO, MF>),
+        enum {CBPE = CBPE::DUO};
+
+        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF>),
           dim3(vll_threadblocks, num_threads_c, 1),
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvllX2, nvllD2, nvl, vo,
@@ -597,7 +596,9 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
       } else { // if (CBPE::CCC == cbpe && NUM_WAY::_3 == env.num_way())
 
-        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE::CCC, MF>),
+        enum {CBPE = CBPE::CCC};
+
+        COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF>),
           dim3(vll_threadblocks, num_threads_c, 1),
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvllX2, nvllD2, nvl, vo,
@@ -608,15 +609,15 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
       System::accel_last_call_succeeded();
 
-#   endif // COMET_USE_ACCEL
-
   } else { // (!env.is_compute_method_gpu())
 
     if (CBPE::DUO == cbpe && NUM_WAY::_2 == env.num_way()) {
 
+      enum {CBPE = CBPE::DUO};
+
       for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
         for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_2way_kernel_elt_<CBPE::DUO, MF>(
+          tc_threshold_2way_kernel_elt_<CBPE, MF>(
             nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
             param, multiplier, threshold_eff, thread_r, thread_c);
         } // for
@@ -624,9 +625,11 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
     } else if (NUM_WAY::_2 == env.num_way()) { // && CBPE::CCC == cbpe
 
+      enum {CBPE = CBPE::CCC};
+
       for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
         for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_2way_kernel_elt_<CBPE::CCC, MF>(
+          tc_threshold_2way_kernel_elt_<CBPE, MF>(
             nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
             param, multiplier, threshold_eff, thread_r, thread_c);
         } // for
@@ -634,9 +637,11 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
     } else if (CBPE::DUO == cbpe) { // && (NUM_WAY::_3 == env.num_way())
 
+      enum {CBPE = CBPE::DUO};
+
       for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
         for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_3way_kernel_elt_<CBPE::DUO, MF>(
+          tc_threshold_3way_kernel_elt_<CBPE, MF>(
             nvll, nvllX2, nvllD2, nvl, vo,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
@@ -645,9 +650,11 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
     } else { // if (CBPE::CCC == cbpe && NUM_WAY::_3 == env.num_way())
 
+      enum {CBPE = CBPE::CCC};
+
       for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
         for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
-          tc_threshold_3way_kernel_elt_<CBPE::CCC, MF>(
+          tc_threshold_3way_kernel_elt_<CBPE, MF>(
             nvll, nvllX2, nvllD2, nvl, vo,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
@@ -677,8 +684,9 @@ void tc_out_( int nvll, int nvl, void* vo,
 
   // Apply thresholding of smaller values to zero, if requested.
 
-  tc_threshold_<TC_METHOD, METRIC_FORMAT>(nvll, nvl, vo,
-    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
+  if (env.threshold_tc())
+    tc_threshold_<TC_METHOD, METRIC_FORMAT>(nvll, nvl, vo,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
 }
 
 //=============================================================================

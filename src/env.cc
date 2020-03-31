@@ -512,6 +512,11 @@ bool CEnv::can_run(int tc) const {
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
   }
 
+  if (is_using_linalg() && !form_matX_tc() &&
+      metric_type() == MetricType::DUO) {
+    result = false; // currently unimplemented
+  }
+
 //TODO: adjust this for HIP case.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc) {
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
@@ -590,7 +595,7 @@ void CEnv::accel_sync_() const {
     cudaDeviceSynchronize();
 # elif defined COMET_USE_HIP
     hipDeviceSynchronize();
-#endif
+# endif
   COMET_INSIST(System::accel_last_call_succeeded() &&
            "Failure in call to device synchronize.");
 }
@@ -913,6 +918,8 @@ void CEnv::set_num_proc_(int num_proc_vector,
 
 void* gm_malloc(size_t n, CEnv* env) {
   COMET_INSIST(env);
+  COMET_INSIST(n+1 >= 1);
+
   void* p = malloc(n);
   COMET_INSIST(p &&
            "Invalid pointer from malloc, possibly due to insufficient memory.");
@@ -924,6 +931,8 @@ void* gm_malloc(size_t n, CEnv* env) {
 
 void gm_free(void* p, size_t n, CEnv* env) {
   COMET_INSIST(p && env);
+  COMET_INSIST(n+1 >= 1);
+
   free(p);
   env->cpu_mem_local_dec(n);
 }
@@ -932,6 +941,8 @@ void gm_free(void* p, size_t n, CEnv* env) {
 
 GMFloat* GMFloat_malloc(size_t n, CEnv* env) {
   COMET_INSIST(env);
+  COMET_INSIST(n+1 >= 1);
+
   GMFloat* p = (GMFloat*)gm_malloc(n * sizeof(GMFloat), env);
   GMFloat_fill_nan(p, n);
   return p;
@@ -941,6 +952,7 @@ GMFloat* GMFloat_malloc(size_t n, CEnv* env) {
 
 void GMFloat_free(GMFloat* p, size_t n, CEnv* env) {
   COMET_INSIST(p && env);
+
   gm_free(p, n * sizeof(GMFloat), env);
 }
 
@@ -949,13 +961,13 @@ void GMFloat_free(GMFloat* p, size_t n, CEnv* env) {
 void GMFloat_fill_nan(GMFloat* const a, size_t n) {
   COMET_INSIST(a);
   COMET_INSIST(n+1 >= 1);
-#ifdef COMET_ASSERTIONS_ON
-  GMFloat value = sqrt(-1);
-  size_t i = 0;
-  for (i=0; i<n; ++i) {
-    a[i] = value;
-  }
-#endif
+
+# ifdef COMET_ASSERTIONS_ON
+    GMFloat value = sqrt(-1);
+    for (size_t i=0; i<n; ++i) {
+      a[i] = value;
+    }
+# endif
 }
 
 //-----------------------------------------------------------------------------
@@ -963,28 +975,28 @@ void GMFloat_fill_nan(GMFloat* const a, size_t n) {
 void GMFloat_check(GMFloat* const a, size_t n) {
   COMET_INSIST(a);
   COMET_INSIST(n+1 >= 1);
-#ifdef COMET_ASSERTIONS_ON
-  bool no_nans_found = true;
-  size_t i = 0;
-  for (i=0; i<n; ++i) {
-    if (a[i] != a[i]) {
-      no_nans_found = false;
+
+# ifdef COMET_ASSERTIONS_ON
+    bool no_nans_found = true;
+    for (size_t i=0; i<n; ++i) {
+      if (a[i] != a[i]) {
+        no_nans_found = false;
+      }
     }
-  }
-  COMET_INSIST(no_nans_found);
-#endif
+    COMET_INSIST(no_nans_found);
+# endif
 }
 
 //-----------------------------------------------------------------------------
 
 size_t gm_array_cksum(unsigned char* a, size_t n) {
   COMET_INSIST(a);
+  COMET_INSIST(n+1 >= 1);
 
   size_t result = 0;
-
   const size_t mask = (((size_t)1) << 32) - 1;
 
-#pragma omp parallel for schedule(dynamic,1000) reduction(+:result)
+# pragma omp parallel for schedule(dynamic,1000) reduction(+:result)
   for (size_t i=0; i<n; ++i) {
     result += (a[i] * i) & mask;
   }

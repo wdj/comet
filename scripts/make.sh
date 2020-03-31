@@ -50,7 +50,7 @@ function main
     exit $?
   fi
 
-  #FIX time make install
+  time make install
   exit $?
 } # main
 

@@ -171,6 +171,7 @@ double Checksum::metrics_elt(
       value = env.metric_type() == MetricType::CCC ?
         GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(&metrics, index, i0, i1, &env) :
         GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(&metrics, index, i0, i1, &env);
+      value = (double)(float)value; // ensure result independent of threshold_tc // CHECK
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {

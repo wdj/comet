@@ -42,7 +42,7 @@ ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env)
     if (env_.do_reduce()) {
       tmp_buf_[i].allocate(nvl, nvl);
     }
-    const int matXitem_buf_num_cols = env_.form_matX_on_accel() ? 1 : nvl;
+    const int matXitem_buf_num_cols = env_.form_matX_tc() ? 1 : nvl;
     matXitem_buf_[i].allocate(npvfl, matXitem_buf_num_cols);
     matB_buf_[i].allocate(nvl, nvl);
     matB_buf_[i].set_zero_h(); // ensure determinism

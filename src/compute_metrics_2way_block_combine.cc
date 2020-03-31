@@ -403,6 +403,7 @@ void gm_compute_2way_proc_combine_ccc_(
     /*--------------------*/
 
     if (do_compute_triang_only) {
+      if (!env->threshold_tc()) {
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
@@ -419,11 +420,13 @@ void gm_compute_2way_proc_combine_ccc_(
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
+      } // if (!env->threshold_tc())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
         metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
     } else {
+      if (!env->threshold_tc()) {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
@@ -441,12 +444,14 @@ void gm_compute_2way_proc_combine_ccc_(
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
+      } // if (!env->threshold_tc())
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
    }
 
     /*--------------------*/
   } else /*---(! env->all2all())---*/ {
     /*--------------------*/
+    if (!env->threshold_tc()) {
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMTally1 sj1 = vs_r->sum(j);
@@ -463,6 +468,7 @@ void gm_compute_2way_proc_combine_ccc_(
         } /*---if sparse---*/
       } /*---for i---*/
     }   /*---for j---*/
+    } // if (!env->threshold_tc())
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
       metrics->num_elts_local_computed += i_max;
@@ -547,6 +553,7 @@ void gm_compute_2way_proc_combine_duo_(
     /*--------------------*/
 
     if (do_compute_triang_only) {
+      if (!env->threshold_tc()) {
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
@@ -563,11 +570,13 @@ void gm_compute_2way_proc_combine_duo_(
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
+      } // if (!env->threshold_tc())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
         metrics->num_elts_local_computed += i_max;
       }   /*---for j---*/
     } else {
+      if (!env->threshold_tc()) {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
@@ -585,12 +594,14 @@ void gm_compute_2way_proc_combine_duo_(
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
+      } // if (!env->threshold_tc())
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
    }
 
     /*--------------------*/
   } else /*---(! env->all2all())---*/ {
     /*--------------------*/
+    if (!env->threshold_tc()) {
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMTally1 sj1 = vs_r->sum(j);
@@ -607,6 +618,7 @@ void gm_compute_2way_proc_combine_duo_(
         } /*---if sparse---*/
       } /*---for i---*/
     }   /*---for j---*/
+    } // if (!env->threshold_tc())
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
       metrics->num_elts_local_computed += i_max;

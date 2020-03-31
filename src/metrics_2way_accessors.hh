@@ -90,8 +90,8 @@ static double GMMetrics_ccc_duo_value(
 
   return ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
     rij, si, sj, recip_ci, recip_cj, recip_sumcij,
-    env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
-    env->ccc_param());
+    (Float_t)env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
+    (Float_t)env->ccc_param());
 }
 
 //-----------------------------------------------------------------------------
@@ -388,8 +388,8 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     // Do simple algebra on threshold inequality to get all constnts on RHS
 
-    const Float_t ccc_duo_multiplier = env_ccc_duo_multiplier<CBPE>(*env);
-    const Float_t ccc_param = env->ccc_param();
+    const Float_t ccc_duo_multiplier = (Float_t)env_ccc_duo_multiplier<CBPE>(*env);
+    const Float_t ccc_param = (Float_t)env->ccc_param();
 
     const Float_t threshold_multiplier =
              ((f_one*CBPE*CBPE) / ccc_duo_multiplier) * f_cij;
@@ -499,7 +499,6 @@ static void GMMetrics_tally2x2_set_2(GMMetrics* metrics, int i, int j,
 template<typename T>
 static void GMMetrics_set_all2all_2(GMMetrics* metrics, void* p, int i, int j,
   int j_block, T value, CEnv* env) {
-  COMET_ASSERT(metrics && p && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
   COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);

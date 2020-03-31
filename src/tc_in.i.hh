@@ -88,7 +88,7 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
   const bool is_sparse,
   const bool is_right,
   const bool is_duo,
-  const bool form_matX_on_accel,
+  const bool form_matX_tc,
   const bool is_bitwise_3way_2step) {
 
   // Count number of 0 (or 1) bits in respective seminibble.
@@ -119,8 +119,8 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
                 "DUO only implemented for sparse case");
   COMET_ASSERT( ! (is_duo && !is_bitwise_3way_2step) &&
                 "DUO 3way only implemented for 2step case");
-  COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_on_accel) &&
-               "3way 2step requires form_matX_on_accel");
+  COMET_ASSERT( ! (is_bitwise_3way_2step && !form_matX_tc) &&
+               "3way 2step requires form_matX_tc");
 
   const GemmIn_t out =
     is_duo && num_way_3_left ? (
@@ -138,7 +138,7 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
           /* (snm & 1) == 1-i1 */ zero
 
     ) : num_way_3_left && is_bitwise_3way_2step
-        /* && is_ccc && form_matX_on_accel */ ? (
+        /* && is_ccc && form_matX_tc */ ? (
 
              // Form X: combine the column and matrix
              snm == _UNDEF && is_sparse          ? zero :
@@ -150,7 +150,7 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
              is_po2(snc) && snm == _11*i2        ? two :
           /* snm*(3-snm) + (snc)*(3-snc) == 0 */   four
 
-    ) : num_way_3_left && form_matX_on_accel
+    ) : num_way_3_left && form_matX_tc
         /* && is_ccc && !is_bitwise_3way_2step */ ? (
 
              // Encode based on 2way step num
@@ -193,7 +193,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   bool is_sparse,
   bool is_right,
   bool is_duo,
-  bool form_matX_on_accel,
+  bool form_matX_tc,
   int step_2way,
   bool is_bitwise_3way_2step,
   bool is_vectors_halved,
@@ -266,12 +266,12 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   const GemmIn_t out0 = is_field_inactive_0 ? 0 :
     tc_buf_write_kernel_value_<GemmIn_t>(snm0, snc0, i1, i2, step_2way,
-      num_way, is_sparse, is_right, is_duo, form_matX_on_accel,
+      num_way, is_sparse, is_right, is_duo, form_matX_tc,
       is_bitwise_3way_2step);
 
   const GemmIn_t out1 = is_field_inactive_1 ? 0 :
     tc_buf_write_kernel_value_<GemmIn_t>(snm1, snc1, i1, i2, step_2way,
-      num_way, is_sparse, is_right, is_duo, form_matX_on_accel,
+      num_way, is_sparse, is_right, is_duo, form_matX_tc,
       is_bitwise_3way_2step);
 
   // Right case: straight copy of cols to cols in sequence.
@@ -304,7 +304,7 @@ __global__ static void tc_buf_write_kernel_(
   bool is_sparse,
   bool is_right,
   bool is_duo,
-  bool form_matX_on_accel,
+  bool form_matX_tc,
   int step_2way,
   bool is_bitwise_3way_2step,
   bool is_vectors_halved,
@@ -330,7 +330,7 @@ __global__ static void tc_buf_write_kernel_(
   }
 
   tc_buf_write_kernel_elt_<GemmIn_t>(vo, vim, vic, vi_dim0,
-    num_way, is_sparse, is_right, is_duo, form_matX_on_accel, step_2way,
+    num_way, is_sparse, is_right, is_duo, form_matX_tc, step_2way,
     is_bitwise_3way_2step, is_vectors_halved,
     nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflD2, nflD2_thread, flD2_min, nfal,
     vlX2_thread, flD2_thread);
@@ -391,12 +391,12 @@ void tc_buf_write_(
            "Subscriptrange error on tc buf.");
 
   const bool is_duo = env.metric_type() == MetricType::DUO;
-  const bool form_matX_on_accel = env.form_matX_on_accel();
+  const bool form_matX_tc = env.form_matX_tc();
   const bool is_bitwise_3way_2step = env.is_bitwise_3way_2step();
 
-  const uint32_t* unused_col = form_matX_on_accel ? NULL : vi1; // dummy
-  const uint32_t* vim = form_matX_on_accel ? vi2 : vi1; // matrix
-  const uint32_t* vic = form_matX_on_accel ? vi1 : unused_col; // column
+  const uint32_t* unused_col = form_matX_tc ? NULL : vi1; // dummy
+  const uint32_t* vim = form_matX_tc ? vi2 : vi1; // matrix
+  const uint32_t* vic = form_matX_tc ? vi1 : unused_col; // column
 
   const int nvleX2_thread = nvleX2;
   const int nflD2_thread = nflD2_thisstep;
@@ -404,23 +404,6 @@ void tc_buf_write_(
   if (env.is_compute_method_gpu()) {
 
     // Kernel call.
-
-#   ifdef COMET_USE_ACCEL
-
-#if 0
-#ifdef COMET_USE_CUDA
-# define COMET_LAUNCH_KERNEL(name, \
-    numthreadblocks, threadblocksize, sharedmem, stream, ...) \
-    name <<< numthreadblocks, threadblocksize, sharedmem, stream >>> \
-      (__VA_ARGS__)
-#endif
-#ifdef COMET_USE_HIP
-# define COMET_LAUNCH_KERNEL(name, \
-    numthreadblocks, threadblocksize, sharedmem, stream, ...) \
-    hipLaunchKernelGGL(name, \
-      numthreadblocks, threadblocksize, sharedmem, stream, __VA_ARGS__)
-#endif
-#endif
 
       const int threadblocksize = 256;
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
@@ -434,37 +417,12 @@ void tc_buf_write_(
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
-        is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
+        is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
         env.is_vectors_halved(),
         nvle, nvleD2, nvleX2_thread, nvlea,
         nfl, nflD2, nflD2_thread, flD2_min, nfal);
 
-#if 0
-#     ifdef COMET_USE_HIP
-        hipLaunchKernelGGL(
-#     endif
-        tc_buf_write_kernel_<GemmIn_t>
-#     ifdef COMET_USE_CUDA
-        <<<
-#     else
-        ,
-#     endif
-        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
-        dim3(threadblocksize, 1, 1), 0, env.stream_compute()
-#     ifdef COMET_USE_CUDA
-        >>> (
-#     else
-        ,
-#     endif
-        tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
-        is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
-        nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflD2, nflD2_thread, flD2_min,
-        nfal);
-#endif
-
       System::accel_last_call_succeeded();
-
-#   endif // COMET_USE_ACCEL
 
   } else { // (!env.is_compute_method_gpu())
 
@@ -473,7 +431,7 @@ void tc_buf_write_(
 
         tc_buf_write_kernel_elt_<GemmIn_t>(
           tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
-          is_duo, form_matX_on_accel, step_2way, is_bitwise_3way_2step,
+          is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
           env.is_vectors_halved(),
           nvle, nvleD2, nvleX2_thread, nvlea,
           nfl, nflD2, nflD2_thread, flD2_min, nfal,
