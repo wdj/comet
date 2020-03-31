@@ -459,7 +459,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   // Run single node case on every node
 
   const char* options_template =
-    metric_type == MetricType::CZEK && FP_PRECISION_DOUBLE ?
+    metric_type == MetricType::CZEK && env->is_double_prec() ?
     "--num_field 25000 --num_vector_local 13000 "
     "--metric_type czekanowski --all2all yes --compute_method GPU "
     "--num_proc_vector %i --num_proc_field 1 "

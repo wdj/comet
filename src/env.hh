@@ -146,6 +146,12 @@ struct BuildHas {
 # else
     enum {CPUBLAS = false};
 # endif
+
+# ifdef COMET_FP_PRECISION_DOUBLE
+    enum {DOUBLE_PREC = true};
+# else
+    enum {DOUBLE_PREC = false};
+# endif
 };
 
 //-----------------------------------------------------------------------------
@@ -306,6 +312,8 @@ public:
   void num_phase(int value) {num_phase_ = value;}
   int phase_num() const {return phase_num_;}
   void phase_num(int value) {phase_num_ = value;}
+
+  bool is_double_prec() const {return BuildHas::DOUBLE_PREC;}
 
   // CoMet Settings: threshold.
 

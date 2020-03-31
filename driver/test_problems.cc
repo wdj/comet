@@ -396,7 +396,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
 //      if (gm_gpu_compute_capability() == 700 &&
 //          env->compute_method() == ComputeMethod::GPU &&
-//          FP_PRECISION_DOUBLE) {
+//          env->is_double_prec()) {
 //        // For this case modified MAGMA code casts down to single.
 //        break;
 //      }
@@ -614,37 +614,38 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
             GMFloat value_expected_floatcalc = 0;
             if (!(ci == 0 || cj == 0 || cij == 0)) {
-              const GMFloat f_one = 1;
+              // FIX typing here
+              const double f_one = 1;
 
-              const GMFloat f_ci = (GMFloat) ci;
-              const GMFloat f_cj = (GMFloat) cj;
+              const double f_ci = (double) ci;
+              const double f_cj = (double) cj;
 
-              const GMFloat f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
-              const GMFloat f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
+              const double f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
+              const double f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
 
-              const GMFloat f_cij = (GMFloat) cij;
-              const GMFloat recip_cicjcij = f_one /
+              const double f_cij = (double) cij;
+              const double recip_cicjcij = f_one /
                                             (f_cicj_min * f_cicj_max * f_cij);
 
-              const GMFloat recip_ci = env->sparse() ?
+              const double recip_ci = env->sparse() ?
                 f_cj * f_cij * recip_cicjcij : metrics->recip_m;
-              const GMFloat recip_cj = env->sparse() ?
+              const double recip_cj = env->sparse() ?
                 f_ci * f_cij * recip_cicjcij : metrics->recip_m;
 
-              const GMFloat recip_sumcij = env->sparse() ?
+              const double recip_sumcij = env->sparse() ?
                 f_cicj_min * f_cicj_max * recip_cicjcij :
                 (f_one / (cbpe * cbpe)) * metrics->recip_m;
 
-              //const GMFloat recip_ci = env->sparse() ? f_one/ci : metrics->recip_m;
-              //const GMFloat recip_cj = env->sparse() ? f_one/cj : metrics->recip_m;
+              //const double recip_ci = env->sparse() ? f_one/ci : metrics->recip_m;
+              //const double recip_cj = env->sparse() ? f_one/cj : metrics->recip_m;
 
-              //const GMFloat recip_sumcij = env->sparse() ? f_one/cij :
+              //const double recip_sumcij = env->sparse() ? f_one/cij :
               //                               (f_one / 4) * metrics->recip_m;
 
               value_expected_floatcalc = cbpe == 2 ?
-                GMMetrics_ccc_duo_value<CBPE::CCC, GMFloat>(metrics, rij, si, sj,
+                GMMetrics_ccc_duo_value<CBPE::CCC, double>(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env) :
-                GMMetrics_ccc_duo_value<CBPE::DUO, GMFloat>(metrics, rij, si, sj,
+                GMMetrics_ccc_duo_value<CBPE::DUO, double>(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env);
             }
 
@@ -785,6 +786,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
               GMFloat value_expected_floatcalc = 0;
               if (!(ci == 0 || cj == 0 || ck == 0 || cijk == 0)) {
+                // FIX typing here
                 const double f_one = 1;
   
                 const double recip_ci = env->sparse() ? f_one/ci
@@ -798,9 +800,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                                                (f_one / 8) * metrics->recip_m;
   
                 value_expected_floatcalc = cbpe == CBPE::CCC ?
-                  Metrics_ccc_duo_value<CBPE::CCC, GMFloat>(*metrics, rijk, si, sj, sk,
+                  Metrics_ccc_duo_value<CBPE::CCC, double>(*metrics, rijk, si, sj, sk,
                            recip_ci, recip_cj, recip_ck, recip_sumcijk, *env) :
-                  Metrics_ccc_duo_value<CBPE::DUO, GMFloat>(*metrics, rijk, si, sj, sk,
+                  Metrics_ccc_duo_value<CBPE::DUO, double>(*metrics, rijk, si, sj, sk,
                            recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
               }
 

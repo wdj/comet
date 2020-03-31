@@ -194,7 +194,7 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
 
     magma_minproduct_int_t magma_code = 0;
 
-    if (FP_PRECISION_DOUBLE) {
+    if (env->is_double_prec()) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&p->h, n);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in magma_minproduct_dmalloc_pinned,"
@@ -208,7 +208,7 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
     GMFloat_fill_nan((GMFloat*)p->h, n);
 
     if (env->is_compute_method_gpu()) {
-      if (FP_PRECISION_DOUBLE) {
+      if (env->is_double_prec()) {
         magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
         COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
                    "Error in magma_minproduct_dmalloc,"
@@ -414,7 +414,7 @@ void gm_linalg_set_matrix_zero_start_(MirroredBuf* matrix_buf, CEnv* env) {
 
   if (use_minproduct(env)) { //--------------------
 
-    if (FP_PRECISION_DOUBLE) {
+    if (env->is_double_prec()) {
       magma_minproductblas_dlaset
         (Magma_minproductFull, mat_dim1, mat_dim2, (double)0, (double)0,
          (double*)matrix_buf->d, mat_dim1);
@@ -536,7 +536,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
     COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
 
-    if (FP_PRECISION_DOUBLE) {
+    if (env->is_double_prec()) {
       magma_minproductblas_dgemm(
         Magma_minproductTrans,
         Magma_minproductNoTrans,
@@ -987,7 +987,7 @@ void gm_linalg_set_matrix_start(MirroredBuf* p, CEnv* env) {
 
   if (use_minproduct(env)) { //--------------------
 
-    if (FP_PRECISION_DOUBLE) {
+    if (env->is_double_prec()) {
       magma_minproduct_dsetmatrix_async(
         p->dim0, p->dim1, (double*)p->h, p->dim0,
         (double*)p->d, p->dim0, env->stream_togpu());
@@ -1068,7 +1068,7 @@ void gm_linalg_get_matrix_start(MirroredBuf* p, CEnv* env) {
 
   if (use_minproduct(env)) { //--------------------
 
-    if (FP_PRECISION_DOUBLE) {
+    if (env->is_double_prec()) {
       magma_minproduct_dgetmatrix_async(
         p->dim0, p->dim1, (double*)p->d, p->dim0,
         (double*)p->h, p->dim0, env->stream_fromgpu());

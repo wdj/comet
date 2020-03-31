@@ -77,21 +77,12 @@ static void gm_check_type_sizes() {
 
 //---TODO: revise nomenclature to be different from "GMFloat2" ...
 
-#ifdef COMET_FP_PRECISION_SINGLE
-  typedef float GMFloat;
-  #define COMET_MPI_FLOAT MPI_FLOAT
-  enum { FP_PRECISION_DOUBLE = false };
-#ifdef COMET_FP_PRECISION_DOUBLE
-#error Cannot set both COMET_FP_PRECISION_SINGLE and COMET_FP_PRECISION_DOUBLE.
-#endif
-#else
 #ifdef COMET_FP_PRECISION_DOUBLE
   typedef double GMFloat;
   #define COMET_MPI_FLOAT MPI_DOUBLE
-  enum { FP_PRECISION_DOUBLE = true };
 #else
-#error Must set COMET_FP_PRECISION_SINGLE or COMET_FP_PRECISION_DOUBLE.
-#endif
+  typedef float GMFloat;
+  #define COMET_MPI_FLOAT MPI_FLOAT
 #endif
 
 //-----------------------------------------------------------------------------
