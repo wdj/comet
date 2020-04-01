@@ -65,7 +65,9 @@ static void dim3(size_t dim0, size_t dim1, size_t dim2) {}
 #else
 # define COMET_LAUNCH_KERNEL(name, \
     numthreadblocks, threadblocksize, sharedmem, stream, ...) \
-    (COMET_STATIC_ASSERT(false && Attempt to launch kernel for non-accelerator build.));
+    {numthreadblocks;} \
+    {threadblocksize;} \
+    {COMET_INSIST(false && "Attempt to launch kernel for non-accelerator build.");};
 #endif
 
 //-----------------------------------------------------------------------------
