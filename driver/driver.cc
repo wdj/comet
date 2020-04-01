@@ -353,7 +353,12 @@ void print_output(bool do_print,
       (env.ctime() * env.num_proc()) );
   }
   if (cksum.computing_checksum()) {
-    printf(" ezero %.6f", cksum.num_zero());
+    printf(" me %.0f", cksum.num());
+    printf(" mezero %.0f", cksum.num_zero());
+    if (cksum.num() > 0) {
+      printf(" fracnonzero %.9f",
+        (cksum.num()-cksum.num_zero()) / cksum.num());
+    }
   }
 
   printf(" vctime %.6f", vctime);
@@ -372,6 +377,8 @@ void print_output(bool do_print,
   if (env.tc() != env.tc_eff()) {
     printf(" tc_eff %i", env.tc_eff());
   }
+
+  printf(" prec %s", env.is_double_prec() ? "double" : "single");
 
   printf("\n");
 }

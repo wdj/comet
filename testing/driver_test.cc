@@ -2523,17 +2523,17 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
-#endif
 
+#if 1
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
 
-#if 1
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }

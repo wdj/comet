@@ -30,6 +30,7 @@ Checksum::Checksum(bool computing_checksum)
   : is_overflowed_(false)
   , value_max_(-DBL_MAX)
   , sum_d_(0)
+  , num_(0)
   , num_zero_(0)
   , is_started_(false)
   , computing_checksum_(computing_checksum) {
@@ -51,6 +52,7 @@ void Checksum::copy(const Checksum& cksum) {
   value_max_ = cksum.value_max_;
   sum_ = cksum.sum_;
   sum_d_ = cksum.sum_d_;
+  num_ = cksum.num_;
   num_zero_ = cksum.num_zero_;
   is_started_ = cksum.is_started_;
   computing_checksum_ = cksum.computing_checksum_;
@@ -171,7 +173,9 @@ double Checksum::metrics_elt(
       value = env.metric_type() == MetricType::CCC ?
         GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(&metrics, index, i0, i1, &env) :
         GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(&metrics, index, i0, i1, &env);
-      value = (double)(float)value; // ensure result independent of threshold_tc // CHECK
+      if (!env.is_double_prec()) {
+        value = (double)(float)value; // ensure result independent of threshold_tc
+      }
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
@@ -190,7 +194,9 @@ double Checksum::metrics_elt(
       value = env.metric_type() == MetricType::CCC ?
         GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(&metrics, index, i0, i1, i2, &env) :
         GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(&metrics, index, i0, i1, i2, &env);
-      value = (double)(float)value; // ensure result independent of threshold_tc // CHECK
+      if (!env.is_double_prec()) {
+        value = (double)(float)value; // ensure result independent of threshold_tc
+      }
     } break;
     // --------------
     default:
@@ -330,12 +336,14 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
   MultiprecInt sum_local; // = 0 // checksum valune on this proc
   double sum_d_local = 0; // floating point representation of the same, as check
+  double num = 0;
   double num_zero = 0;
 
   #pragma omp parallel
   {
     MultiprecInt sum_local_private; // = 0
     double sum_d_local_private = 0;
+    double num_private = 0;
     double num_zero_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
@@ -362,6 +370,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         // Pick up value of this metrics elt
         const double value = Checksum::metrics_elt(metrics, index, i_value,
                                                    env);
+        num_private += true && is_active;
         num_zero_private += (double)0 == value && is_active;
 
         makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
@@ -432,10 +441,14 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           sum_local.data_[0 + i] += sum_local_private.data_[0 + i]; // critical
           sum_local.data_[8 + i] += sum_local_private.data_[8 + i]; // reduction
         }
+        num += num_private;
         num_zero += num_zero_private;
     }
   } // omp parallel
 
+  cksum_local.num_ += num;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&cksum_local.num_, &cksum.num_,
+    1, MPI_DOUBLE, MPI_SUM, env.comm_repl_vector()));
   cksum_local.num_zero_ += num_zero;
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&cksum_local.num_zero_, &cksum.num_zero_,
     1, MPI_DOUBLE, MPI_SUM, env.comm_repl_vector()));

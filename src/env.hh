@@ -356,10 +356,11 @@ public:
     //COMET_INSIST(is_using_linalg());
     return tc_eff() != TC::NO && is_metric_type_bitwise();
   }
-  // Do we use MAGMA or TC.
+  // Do we use either MAGMA or TC.
   bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
     (ComputeMethod::CPU == compute_method_ && is_using_tc());
   }
+  // Do we form the X matrix in the TC package.
   bool form_matX_tc() const {return is_using_tc();}
   bool is_bitwise_3way_2step() const {return is_using_tc();}
   int num_step_2way_for_3way() const {
@@ -378,9 +379,10 @@ public:
     return counted_bits_per_elt() == CBPE::DUO ?
       duo_multiplier() : ccc_multiplier();
   }
-  // Do we do thresholding in TC package.
+  // Do we do final metrics calc and thresholding in TC package.
   bool threshold_tc() const {
-    return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold();
+    return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold()
+      && !is_double_prec();
   }
   // Are 3-way metrics computed half block-plane at a time.
   bool is_vectors_halved() const {

@@ -635,7 +635,9 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
             fprintf(file,
               sizeof(GMFloat) == 8 ?
               "element (%li,%li): value: %.17e\n" :
-              "element (%li,%li): value: %.8e\n", coord0, coord1, value);
+              //"element (%li,%li): value: %.8e\n",
+              "element (%li,%li): value: %.17e\n",
+              coord0, coord1, value);
 
           } else {
 
@@ -676,7 +678,8 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
             fprintf(file,
               sizeof(GMFloat) == 8 ?
               "element (%li,%li,%li): value: %.17e\n" :
-              "element (%li,%li,%li): value: %.8e\n",
+              //"element (%li,%li,%li): value: %.8e\n",
+              "element (%li,%li,%li): value: %.17e\n",
               coord0, coord1, coord2, value);
 
           } else {
@@ -736,7 +739,9 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
                 fprintf(file,
                   sizeof(GMFloat) == 8 ?
                   " %i %i %.17e" :
-                  " %i %i %.8e", i0, i1, value);
+                  //" %i %i %.8e",
+                  " %i %i %.17e",
+                  i0, i1, value);
 
               } else {
 
@@ -809,7 +814,9 @@ void output_metrics_(GMMetrics* metrics, FILE* file,
                   fprintf(file,
                     sizeof(GMFloat) == 8 ?
                     " %i %i %i %.17e" :
-                    " %i %i %i %.8e", i0, i1, i2, value);
+                    //" %i %i %i %.8e",
+                    " %i %i %i %.17e",
+                    i0, i1, i2, value);
 
                 } else {
 
