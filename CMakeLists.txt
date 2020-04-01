@@ -84,6 +84,7 @@ SET(DRIVER_SOURCES
   driver/driver.cc
   driver/test_problems.cc
   driver/input_output.cc
+  driver/vectors_io.cc
   )
 
 SET(TEST_TARGETS

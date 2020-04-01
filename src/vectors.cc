@@ -115,9 +115,9 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   // Set element sizes
 
-  vectors->num_bits_per_val = dm->num_bits_per_field;
-  vectors->num_bits_per_packedval = dm->num_bits_per_packedfield;
-  vectors->num_val_per_packedval = dm->num_field_per_packedfield;
+  //vectors->num_bit_per_val = dm->num_bit_per_field;
+  //vectors->num_bit_per_packedval = dm->num_bit_per_packedfield;
+  //vectors->num_val_per_packedval = dm->num_field_per_packedfield;
 
   const int bits_per_byte = 8;
 
@@ -125,11 +125,12 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   vectors->num_packedval_field_local = dm->num_packedfield_local;
 
-  vectors->num_packedval_local =
+  vectors->num_packedfield_vector_local =
       vectors->num_packedval_field_local * dm->num_vector_local;
 
-  vectors->data_size = vectors->num_packedval_local *
-                       (vectors->num_bits_per_packedval / bits_per_byte);
+  vectors->data_size = vectors->num_packedfield_vector_local *
+                       (dm->num_bit_per_packedfield / bits_per_byte);
+                       //(vectors->num_bit_per_packedval / bits_per_byte);
 
   // Set up vector storage, mirrored buffer
 

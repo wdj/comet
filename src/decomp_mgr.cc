@@ -81,14 +81,10 @@ void GMDecompMgr_create(GMDecompMgr* dm,
          "Manual selection of nvl requires divisibility condition");
     // All vectors active on every proc.
     dm->num_vector_active_local = dm->num_vector_local;
-#if 0
-    dm->num_vector_active_local = num_vector_specifier;
-    dm->num_vector_local = gm_num_vector_local_required(
-                               dm->num_vector_active_local, env);
-#endif
     dm->num_vector_active = dm->num_vector_active_local *
                             env->num_proc_vector();
     dm->num_vector = dm->num_vector_local * env->num_proc_vector();
+    dm->vector_base = dm->num_vector_local * env->proc_num_vector();
   } else { // ! vectors_by_local
     dm->num_vector_active = num_vector_specifier;
     // Pad up as needed, require every proc has same number
@@ -108,6 +104,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector_active_local = nva <= nvl * proc_num ? 0 :
                                   nva >= nvl * (proc_num + 1) ? nvl :
                                   nva - nvl * proc_num;
+    dm->vector_base = nvl * proc_num <= nva ? nvl * proc_num : nva;
+    COMET_INSIST(nvl * proc_num == dm->vector_base || 0 == dm->num_vector_active_local);
   } // if vectors_by_local
 
   //--------------------
@@ -163,6 +161,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     // Pack in lower procs with no gaps to ensure indexing of actives works
     // right independent of decomposition
     dm->field_base = nfl * proc_num <= nfa ? nfl * proc_num : nfa;
+    COMET_INSIST(nfl * proc_num == dm->field_base || 0 == dm->num_field_active_local);
 
   } // if fields_by_local
 
@@ -195,13 +194,13 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   switch (vectors_data_type_id) {
     //--------------------
     case GM_DATA_TYPE_FLOAT: {
-      dm->num_bits_per_field = bits_per_byte * sizeof(GMFloat);
-      dm->num_bits_per_packedfield = bits_per_byte * sizeof(GMFloat);
+      dm->num_bit_per_field = bits_per_byte * sizeof(GMFloat);
+      dm->num_bit_per_packedfield = bits_per_byte * sizeof(GMFloat);
     } break;
     //--------------------
     case GM_DATA_TYPE_BITS2: {
-      dm->num_bits_per_field = GM_BITS2_MAX_VALUE_BITS;
-      dm->num_bits_per_packedfield = bits_per_byte * sizeof(GMBits2x64);
+      dm->num_bit_per_field = GM_BITS2_MAX_VALUE_BITS;
+      dm->num_bit_per_packedfield = bits_per_byte * sizeof(GMBits2x64);
       // By design can only store this number of fields for this metric
       // TODO: later may be able to permit higher via rounding -
       // have 2-way method on-proc be exact, then for 3-way combining
@@ -209,6 +208,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
       const int table_entry_limit =
         env->metric_type() == MetricType::DUO ?
         1 : 1 << env->num_way();
+//FIX
       COMET_INSIST_INTERFACE(env,
                ((uint64_t)(table_entry_limit * dm->num_field)) <
                        (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
@@ -219,19 +219,19 @@ void GMDecompMgr_create(GMDecompMgr* dm,
       COMET_INSIST(false && "Invalid vectors_data_type_id.");
   } //---switch---
 
-  COMET_INSIST(dm->num_bits_per_packedfield % bits_per_byte == 0 &&
+  COMET_INSIST(dm->num_bit_per_packedfield % bits_per_byte == 0 &&
            "Error in size computation.");
 
-  dm->num_field_per_packedfield = dm->num_bits_per_packedfield /
-                                  dm->num_bits_per_field;
+  dm->num_field_per_packedfield = dm->num_bit_per_packedfield /
+                                  dm->num_bit_per_field;
 
   //--------------------
   // Packedfield counts
   //--------------------
 
   dm->num_packedfield_local =
-      utils::ceil(dm->num_field_local * dm->num_bits_per_field,
-                  (size_t)dm->num_bits_per_packedfield);
+      utils::ceil(dm->num_field_local * dm->num_bit_per_field,
+                  (size_t)dm->num_bit_per_packedfield);
 
   //--------------------
   // Number of non-active fields on proc.

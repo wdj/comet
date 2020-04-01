@@ -37,17 +37,12 @@ class MetricWriter {
 public:
 
   MetricWriter(FILE* file, GMMetrics* metrics, CEnv* env);
-
   ~MetricWriter() {}
 
   size_t get_num_written() {return this->num_written_total_;}
-
   void write(size_t coord0, size_t coord1, GMFloat value);
-
   void write(size_t coord0, size_t coord1, size_t coord2, GMFloat value);
-
   void write(size_t coord0, size_t coord1, int i0, int i1, GMFloat value);
-
   void write(size_t coord0, size_t coord1, size_t coord2,
              int i0, int i1, int i2, GMFloat value);
 

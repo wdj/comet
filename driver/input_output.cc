@@ -27,6 +27,7 @@
 
 namespace comet {
 
+#if 0
 //-----------------------------------------------------------------------------
 // Input vectors from files
 
@@ -105,10 +106,10 @@ void set_vectors_from_file_bits2(GMVectors* vectors, DriverOptions* do_,
 
   const size_t proc_num_v = env->proc_num_vector();
 
-  const int bits_per_field = vectors->num_bits_per_val; // = 2
+  const int bits_per_field = vectors->num_bit_per_val; // = 2
   const int bits_per_byte = 8;
   const int fields_per_byte = bits_per_byte / bits_per_field;
-  const size_t bytes_per_packedval = vectors->num_bits_per_packedval /
+  const size_t bytes_per_packedval = vectors->num_bit_per_packedval /
                bits_per_byte;
   // The storage format assumes each vector padded to a whole number of bytes.
 
@@ -268,10 +269,10 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 
       typedef unsigned char outval_t;
 
-      const int bits_per_field = vectors->num_bits_per_val; // = 2
+      const int bits_per_field = vectors->num_bit_per_val; // = 2
       const int bits_per_byte = 8;
       const int fields_per_byte = bits_per_byte / bits_per_field;
-      const size_t bytes_per_packedval = vectors->num_bits_per_packedval /
+      const size_t bytes_per_packedval = vectors->num_bit_per_packedval /
                    bits_per_byte;
 
       const size_t nval = vectors->dm->num_vector_active_local;
@@ -330,6 +331,7 @@ void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
 
   fclose(vectors_file);
 }
+#endif
 
 //=============================================================================
 // Output results metrics to file: implementation

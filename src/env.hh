@@ -181,14 +181,16 @@ struct MetricType {
 
   static const char* str(int metric_type) {
     return metric_type == CZEK ? "czekanowski" :
-           metric_type == CCC ? "ccc" :
-           metric_type == DUO ? "duo" : "(invalid)";
+           metric_type == CCC  ? "ccc" :
+           metric_type == DUO  ? "duo" :
+                                 "(invalid)";
   }
 
   static int value(char* str) {
     return strcmp(str, "czekanowski") == 0 ? (int)CZEK :
-           strcmp(str, "ccc") == 0 ? (int)CCC :
-           strcmp(str, "duo") == 0 ? (int)DUO : (int)INVALID;
+           strcmp(str, "ccc") == 0         ? (int)CCC :
+           strcmp(str, "duo") == 0         ? (int)DUO :
+                                             (int)INVALID;
   }
 };
 

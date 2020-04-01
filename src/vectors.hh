@@ -30,11 +30,11 @@ typedef struct {
   int num_vector;
   int num_vector_local;
   /*---Stored sizes---*/
-  int num_bits_per_val;
-  int num_bits_per_packedval;
-  int num_val_per_packedval;
+  //int num_bit_per_val;
+  //int num_bit_per_packedval;
+  //int num_val_per_packedval;
   int num_packedval_field_local;
-  size_t num_packedval_local;
+  size_t num_packedfield_vector_local;
   /*---Other---*/
   int data_type_id;
   int pad1;

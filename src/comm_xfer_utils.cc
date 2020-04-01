@@ -32,8 +32,8 @@ MPI_Request gm_send_vectors_start(GMVectors* vectors,
   MPI_Request mpi_request;
 
   COMET_MPI_SAFE_CALL(MPI_Isend((void*)vectors->data,
-    vectors->num_packedval_local, env->metrics_mpi_type(), proc_num, mpi_tag
-  , env->comm_repl_vector(), &mpi_request));
+    vectors->num_packedfield_vector_local, env->metrics_mpi_type(), proc_num,
+    mpi_tag, env->comm_repl_vector(), &mpi_request));
 
   return mpi_request;
 }
@@ -50,8 +50,8 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
   MPI_Request mpi_request;
 
   COMET_MPI_SAFE_CALL(MPI_Irecv((void*)vectors->data,
-    vectors->num_packedval_local, env->metrics_mpi_type(), proc_num, mpi_tag,
-    env->comm_repl_vector(), &mpi_request));
+    vectors->num_packedfield_vector_local, env->metrics_mpi_type(), proc_num,
+    mpi_tag, env->comm_repl_vector(), &mpi_request));
 
   return mpi_request;
 }

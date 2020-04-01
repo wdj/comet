@@ -26,6 +26,7 @@
 
 #include "test_problems.hh"
 #include "input_output.hh"
+#include "vectors_io.hh"
 #include "driver.hh"
 
 //=============================================================================
@@ -261,7 +262,8 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
   COMET_INSIST(vectors && do_ && env);
 
   if (do_->input_file_path != NULL) {
-    set_vectors_from_file(vectors, do_, env);
+    VectorsIO::read(*vectors, do_->input_file_path, *env);
+    //set_vectors_from_file(vectors, do_, env);
   } else {
     set_vectors_synthetic(vectors, do_->problem_type, do_->verbosity, env);
   }
@@ -374,11 +376,11 @@ void print_output(bool do_print,
 
   printf(" tottime %.6f", tottime);
 
+  printf(" prec %s", env.is_double_prec() ? "double" : "single");
+
   if (env.tc() != env.tc_eff()) {
     printf(" tc_eff %i", env.tc_eff());
   }
-
-  printf(" prec %s", env.is_double_prec() ? "double" : "single");
 
   printf("\n");
 }

@@ -24,6 +24,7 @@
 
 #include "driver.hh"
 #include "input_output.hh"
+#include "vectors_io.hh"
 #include "test_problems.hh"
 
 enum {PROCS_MAX = TEST_PROCS_MAX};
@@ -159,7 +160,8 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
   set_vectors_synthetic(vectors, problem_type, verbosity, env);
 
-  write_vectors_to_file(vectors, file_path, env);
+  //write_vectors_to_file(vectors, file_path, env);
+  VectorsIO::write(*vectors, file_path, *env);
 
   GMVectors_destroy(vectors, env);
   GMDecompMgr_destroy(dm, env);
@@ -1854,6 +1856,48 @@ void DriverTest_tc_() {
 
 //=============================================================================
 
+void DriverTest_threshold_() {
+
+    char options1[1024];
+    char options2[1024];
+
+    const int num_proc_vector = 2;
+    //const int num_proc_vector = 1;
+
+    char options_template[] =
+        "--metric_type %s "
+        "--num_proc_vector %i "
+        "--num_field 71 --num_vector 17 "
+        "--num_way %i "
+        "--all2all yes --sparse yes "
+        "--problem_type random "
+        "--threshold %f "
+        "--tc %i "
+        "--compute_method %s "
+        "--verbosity 1 ";
+
+    typedef comet::ComputeMethod CM;
+    typedef comet::MetricType MT;
+    typedef comet::TC TC;
+
+    for (int num_way : {2, 3})
+    for (int metric_type : {MT::CCC, MT::DUO})
+    for (double threshold : {.65, 0.})
+    for (int compute_method : {CM::CPU, CM::GPU})
+    for (int tc=1; tc<comet::TC::NUM; ++tc) {
+      sprintf(options1, options_template, MT::str(metric_type),
+        num_proc_vector, num_way, threshold, TC::NO, CM::str(CM::REF));
+      sprintf(options2, options_template, MT::str(metric_type),
+        num_proc_vector, num_way, threshold, tc, CM::str(compute_method));
+      test_2runs(options1, options2);
+    } 
+} // DriverTest_tc_
+
+//=============================================================================
+
+
+
+
 //=============================================================================
 
 void DriverTest_ccc2_duo2_(const char* const metric_type) {
@@ -2144,10 +2188,14 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
       for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
 
-          const bool is_nearly_multiple_of_32 =
-            (num_field/num_proc_field+4) % 32 <= 8;
-          if (! is_nearly_multiple_of_32) {
-            continue;
+          const bool test_only_critical_values = false;
+
+          if (test_only_critical_values) {
+            const bool is_nearly_multiple_of_32 =
+              (num_field/num_proc_field+4) % 32 <= 8;
+            if (! is_nearly_multiple_of_32) {
+              continue;
+            }
           }
 
           char options1[1024];
@@ -2198,31 +2246,36 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   }
 #endif
 
+#if 0
   //----------
   //---threshold, 2-way
   //----------
 
   {
+    const int num_proc_vector = 2;
+
     char options_template[] =
         "--metric_type %s "
-        "--num_proc_vector 1 "
-        "--num_field 7 --num_vector 18 "
-        //"--num_field 1 --num_vector 2 "
+        "--num_proc_vector %i "
+        "--num_field 7 --num_vector 17 "
         "--num_way 2 "
         "--all2all yes --sparse yes "
         "--problem_type random "
         "--threshold %f "
-        "--compute_method %s --tc 4 "
+        "--tc %i "
+        "--compute_method %s "
         "--verbosity 1 ";
-    for (double threshold : {.1, 0.}) {
+    for (double threshold : {.1, 0.})
+    for (int tc=1; tc<comet::TC::NUM; ++tc)
     for (const char* compute_method : {"CPU", "GPU"}) {
-      sprintf(options1, options_template, metric_type, threshold, "REF");
-      sprintf(options2, options_template, metric_type, threshold,
-              compute_method);
+      sprintf(options1, options_template, metric_type, num_proc_vector,
+        threshold, tc, "REF");
+      sprintf(options2, options_template, metric_type, num_proc_vector,
+        threshold, tc, compute_method);
       test_2runs(options1, options2);
-    }
-    }
-  }
+    } 
+  } // threshold
+#endif
 } // DriverTest_ccc2_duo2_
 
 //=============================================================================
@@ -2443,30 +2496,36 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
   }
 #endif
 
+#if 0
   //----------
   //---threshold, 3-way
   //----------
 
   {
+    const int num_proc_vector = 2;
+
     char options_template[] =
         "--metric_type %s "
-        "--num_proc_vector 1 "
-        "--num_field 7 --num_vector 18 "
+        "--num_proc_vector %i "
+        "--num_field 7 --num_vector 17 "
         "--num_way 3 "
         "--all2all yes --sparse yes "
         "--problem_type random "
         "--threshold %f "
-        "--compute_method %s --tc 4 "
+        "--tc %i "
+        "--compute_method %s "
         "--verbosity 1 ";
-    for (double threshold : {.1, 0.}) {
+    for (double threshold : {.1, 0.})
+    for (int tc=1; tc<comet::TC::NUM; ++tc)
     for (const char* compute_method : {"CPU", "GPU"}) {
-      sprintf(options1, options_template, metric_type, threshold, "REF");
-      sprintf(options2, options_template, metric_type, threshold,
-              compute_method);
+      sprintf(options1, options_template, metric_type, num_proc_vector,
+        threshold, tc, "REF");
+      sprintf(options2, options_template, metric_type, num_proc_vector,
+        threshold, tc, compute_method);
       test_2runs(options1, options2);
-    }
-    }
-  }
+    } 
+  } // threshold
+#endif
 } // DriverTest_ccc3_duo3_
 
 //=============================================================================
@@ -2494,6 +2553,10 @@ void DriverTest_duo3_() {
 }
 
 //=============================================================================
+
+TEST(DriverTest, threshold) {
+  DriverTest_threshold_();
+}
 
 #if 1
 TEST(DriverTest, tc) {
@@ -2523,11 +2586,11 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
+#endif
 
 #if 1
 TEST(DriverTest, ccc3) {

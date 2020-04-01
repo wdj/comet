@@ -33,9 +33,10 @@ typedef struct {
   size_t num_vector_local;
   size_t num_vector_active;
   size_t num_vector_active_local;
+  size_t vector_base;
   // Packed field info
-  int num_bits_per_field;
-  int num_bits_per_packedfield;
+  int num_bit_per_field;
+  int num_bit_per_packedfield;
   int num_field_per_packedfield;
   int num_pad_field_local;
   size_t num_packedfield_local;
