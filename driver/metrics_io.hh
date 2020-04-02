@@ -33,7 +33,7 @@ public:
 
   size_t num_written() {return num_written_;}
 
-  static FILE* open(const char* path_stub, CEnv& env, const char* mode = "w");
+  static FILE* open(const char* path_stub, CEnv& env, const char* mode = "wb");
 
 private:
 

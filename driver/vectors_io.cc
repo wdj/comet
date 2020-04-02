@@ -35,7 +35,7 @@ void static VectorsIO_read_float(GMVectors& vectors, const char* path,
   if (! env.is_proc_active())
     return;
 
-  FILE* file = fopen(path, "r");
+  FILE* file = fopen(path, "rb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
   const size_t nva = vectors.dm->num_vector_active;
@@ -100,7 +100,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   if (0 == vectors.dm->num_field_active_local)
     return;
 
-  FILE* file = fopen(path, "r");
+  FILE* file = fopen(path, "rb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
   const size_t nva = vectors.dm->num_vector_active;
@@ -262,7 +262,7 @@ void static VectorsIO_write_float(GMVectors& vectors, const char* path,
   COMET_INSIST_INTERFACE(&env, env.num_proc() == 1 &&
     "Only single proc case currently implemented.");
 
-  FILE* file = fopen(path, "w");
+  FILE* file = fopen(path, "wb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
   const size_t nval = vectors.dm->num_vector_active_local;
@@ -303,7 +303,7 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
   COMET_INSIST_INTERFACE(&env, env.num_proc() == 1 &&
     "Only single proc case currently implemented.");
 
-  FILE* file = fopen(path, "w");
+  FILE* file = fopen(path, "wb");
   COMET_INSIST(NULL != file && "Unable to open file.");
 
   const size_t nval = vectors.dm->num_vector_active_local;

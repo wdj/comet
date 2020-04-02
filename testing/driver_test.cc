@@ -144,7 +144,7 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
 
   using namespace comet;
 
-  std:: string options = " --num_way " + std::to_string(num_way);
+  std::string options = " --num_way " + std::to_string(num_way);
   options += " --metric_type " + std::string(MetricType::str(metric_type));
   options += " --num_proc_vector " + std::to_string(1);
   options += " --compute_method REF";
@@ -604,7 +604,7 @@ void DriverTest_czek_() {
           char options_template[] =
                  "--num_vector %i --num_field %i "
                  "--num_proc_vector %i --num_proc_field %i "
-                 "--compute_method GPU --all2all yes %s --verbosity 1";
+                 "--compute_method CPU --all2all yes %s --verbosity 1";
 
           sprintf(options1, options_template,
                   num_vector, num_field, num_proc_vector, num_proc_field, "");
@@ -629,7 +629,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   const int num_field = 5;
   const int num_vector = 2;
 
-  std:: string options = " --num_way " + std::to_string(2);
+  std::string options = " --num_way " + std::to_string(2);
   options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
   options += " --all2all no";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
@@ -747,7 +747,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   const int num_field = 5;
   const int num_vector = 2;
 
-  std:: string options = " --num_way " + std::to_string(2);
+  std::string options = " --num_way " + std::to_string(2);
   options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
   options += " --all2all no";
   options += " --sparse yes";
@@ -923,7 +923,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   const int num_field = 5;
   const int num_vector = 2;
 
-  std:: string options = " --num_way " + std::to_string(2);
+  std::string options = " --num_way " + std::to_string(2);
   options += " --metric_type " + std::string(MetricType::str(MetricType::DUO));
   options += " --all2all no";
   options += " --sparse yes";
@@ -1086,7 +1086,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   const int num_field = 10;
   const int num_vector = 3;
 
-  std:: string options = " --num_way " + std::to_string(3);
+  std::string options = " --num_way " + std::to_string(3);
   options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
   options += " --all2all yes";
   options += " --compute_method " + std::string(ComputeMethod::str(compute_method));
@@ -1255,7 +1255,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   const int num_field = 10;
   const int num_vector = 3;
 
-  std:: string options = " --num_way " + std::to_string(3);
+  std::string options = " --num_way " + std::to_string(3);
   options += " --metric_type " + std::string(MetricType::str(MetricType::CCC));
   options += " --all2all yes";
   options += " --sparse yes";
@@ -1542,7 +1542,7 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   const int num_field = 10;
   const int num_vector = 3;
 
-  std:: string options = " --num_way " + std::to_string(3);
+  std::string options = " --num_way " + std::to_string(3);
   options += " --metric_type " + std::string(MetricType::str(MetricType::DUO));
   options += " --all2all yes";
   options += " --sparse yes";
@@ -2206,7 +2206,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
                  "--metric_type %s "
                  "--num_vector %i --num_field %i "
                  "--num_proc_vector %i --num_proc_field %i "
-                 "--compute_method GPU --all2all yes %s --verbosity 1";
+                 "--compute_method CPU --all2all yes %s --verbosity 1";
 
           sprintf(options1, options_template, metric_type,
                   num_vector, num_field, num_proc_vector, num_proc_field, "");
@@ -2244,37 +2244,6 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
       test_2runs(options1, options2);
     }
   }
-#endif
-
-#if 0
-  //----------
-  //---threshold, 2-way
-  //----------
-
-  {
-    const int num_proc_vector = 2;
-
-    char options_template[] =
-        "--metric_type %s "
-        "--num_proc_vector %i "
-        "--num_field 7 --num_vector 17 "
-        "--num_way 2 "
-        "--all2all yes --sparse yes "
-        "--problem_type random "
-        "--threshold %f "
-        "--tc %i "
-        "--compute_method %s "
-        "--verbosity 1 ";
-    for (double threshold : {.1, 0.})
-    for (int tc=1; tc<comet::TC::NUM; ++tc)
-    for (const char* compute_method : {"CPU", "GPU"}) {
-      sprintf(options1, options_template, metric_type, num_proc_vector,
-        threshold, tc, "REF");
-      sprintf(options2, options_template, metric_type, num_proc_vector,
-        threshold, tc, compute_method);
-      test_2runs(options1, options2);
-    } 
-  } // threshold
 #endif
 } // DriverTest_ccc2_duo2_
 
@@ -2494,37 +2463,6 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       test_2runs(options1, options2);
     }
   }
-#endif
-
-#if 0
-  //----------
-  //---threshold, 3-way
-  //----------
-
-  {
-    const int num_proc_vector = 2;
-
-    char options_template[] =
-        "--metric_type %s "
-        "--num_proc_vector %i "
-        "--num_field 7 --num_vector 17 "
-        "--num_way 3 "
-        "--all2all yes --sparse yes "
-        "--problem_type random "
-        "--threshold %f "
-        "--tc %i "
-        "--compute_method %s "
-        "--verbosity 1 ";
-    for (double threshold : {.1, 0.})
-    for (int tc=1; tc<comet::TC::NUM; ++tc)
-    for (const char* compute_method : {"CPU", "GPU"}) {
-      sprintf(options1, options_template, metric_type, num_proc_vector,
-        threshold, tc, "REF");
-      sprintf(options2, options_template, metric_type, num_proc_vector,
-        threshold, tc, compute_method);
-      test_2runs(options1, options2);
-    } 
-  } // threshold
 #endif
 } // DriverTest_ccc3_duo3_
 

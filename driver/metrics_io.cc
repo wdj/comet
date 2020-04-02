@@ -526,6 +526,38 @@ void MetricsIO::write(GMMetrics& metrics) {
     MetricsIO_write_(&metrics, stdout, num_written_, &env_);
 }
 
+
+
+#ifdef xxx
+
+//TODO:
+
+Metrics_IO: track:
+  - num_metrics_written, num_bytes_written
+  - file size in bytes, maybe metrics
+separate MetricsIO::path(...)
+maybe store path as class member
+Metric - value, i, j, k (global), i0, i1, i2
+MetricReader
+void MetricsIO::check_file(GMMetrics& metrics)
+  - reopen file
+  - set position to end minus last write
+    https://stackoverflow.com/questions/31538554/fstream-how-to-seekg-to-position-x-from-end
+  - loop to read each metric
+    - extract i, j, k, global
+    - find associated index - need to write code in metrics_?way_*.hh for this
+    - Metric get from index
+    - apply threshold ...
+    - compare values
+  - at end make sure file open correctly and fpos is at the end of the file
+    (? reopen in append mode)
+
+#endif
+
+// CHECK - FIX - open wb !!!
+// should be ok - https://stackoverflow.com/questions/4158556/why-doesnt-fwrite-write-a-binary-file-using-wb-in-c-on-mac-os-x
+
+
 //-----------------------------------------------------------------------------
 /// \brief Static function to open (one-per-rank set of) metrics files.
 
