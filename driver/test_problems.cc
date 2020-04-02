@@ -20,6 +20,7 @@
 #include "metrics.hh"
 
 #include "driver.hh"
+#include "vectors_io.hh"
 #include "test_problems.hh"
 
 //=============================================================================
@@ -95,7 +96,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
       /*---Print---*/
 //TODO: move this
       if (verbosity > 2) {
-        GMVectors_print(vectors, env);
+        VectorsIO::print(*vectors, *env);
       }
     } break;
     /*--------------------*/
@@ -138,7 +139,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
       /*---Print---*/
 //TODO: move this
       if (verbosity > 2) {
-        GMVectors_print(vectors, env);
+        VectorsIO::print(*vectors, *env);
       }
     } break;
     /*--------------------*/
@@ -281,7 +282,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
       /*---Print---*/
 //TODO: move this
       if (verbosity > 2) {
-        GMVectors_print(vectors, env);
+        VectorsIO::print(*vectors, *env);
       }
     } break;
     /*--------------------*/
@@ -323,7 +324,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
       }   /*---vector_local---*/
 //TODO: move this
       if (verbosity > 2) {
-        GMVectors_print(vectors, env);
+        VectorsIO::print(*vectors, *env);
       }
 //printf("%i %i %i %i\n", mycount[0], mycount[1], mycount[2], mycount[3]);
     } break;

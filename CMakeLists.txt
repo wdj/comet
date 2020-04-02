@@ -82,9 +82,9 @@ SET(LIB_INCLUDES
 
 SET(DRIVER_SOURCES
   driver/driver.cc
-  driver/test_problems.cc
-  driver/input_output.cc
   driver/vectors_io.cc
+  driver/metrics_io.cc
+  driver/test_problems.cc
   )
 
 SET(TEST_TARGETS

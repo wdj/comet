@@ -262,55 +262,8 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
       COMET_INSIST_INTERFACE(env, false && "Unimplemented metric_type.");
   } /*---case---*/
 }
-
 //=============================================================================
-// Print entries of vectors
-
-void GMVectors_print(GMVectors* vectors, CEnv* env) {
-  COMET_INSIST(vectors && env);
-
-  if (! env->is_proc_active()) {
-    return;
-  }
-
-  const int nval = vectors->dm->num_vector_active_local;
-  const int nfal = vectors->dm->num_field_active_local;
-  
-  switch (env->data_type_vectors()) {
-    /*--------------------*/
-    case GM_DATA_TYPE_FLOAT: {
-    /*--------------------*/
-      for (int vl = 0; vl < nval; ++vl) {
-        for (int fl = 0; fl < nfal; ++fl) {
-          const GMFloat float_value = GMVectors_float_get(vectors, fl, vl, env);
-            printf("vec_proc %i vec %i field_proc %i field %i value %e\n",
-                   env->proc_num_vector(), vl,
-                   env->proc_num_field(), fl, float_value);
-        } /*---fl---*/
-      }   /*---vl---*/
-    } break;       
-    /*--------------------*/
-    case GM_DATA_TYPE_BITS2: {
-    /*--------------------*/
-      for (int vl = 0; vl < nval; ++vl) {
-        for (int fl = 0; fl < nfal; ++fl) {
-          const GMBits2 value = GMVectors_bits2_get(vectors, fl, vl, env);
-            printf("vec_proc %i vec %i "
-                   "field_proc %i field %i value %.1i%.1i\n",
-                   env->proc_num_vector(), vl,
-                   env->proc_num_field(), fl, value / 2, value % 2);
-        } /*---fl---*/
-      }   /*---vl---*/
-    } break;
-    /*--------------------*/
-    default:
-    /*--------------------*/
-      COMET_INSIST(false && "Invalid data_type_vectors.");
-  } /*---switch---*/
-}
-
-//=============================================================================
-// hecksum of entries.
+// checksum of entries.
 
 size_t GMVectors_cksum(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);

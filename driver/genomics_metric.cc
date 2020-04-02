@@ -26,7 +26,7 @@
 #include "compute_metrics.hh"
 
 #include "driver.hh"
-#include "input_output.hh"
+#include "metrics_io.hh"
 
 //=============================================================================
 
@@ -399,7 +399,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   for (int i=1; i<argc; ++i) {
     if (strcmp(argv[i], "--output_file_stub") == 0) {
       if (i < argc-1) {
-        FILE* const outfile = gm_metrics_file_open(argv[i+1], env);
+        FILE* const outfile = MetricsIO::open(argv[i+1], *env);
         if (outfile) {
           fclose(outfile);
         } else {

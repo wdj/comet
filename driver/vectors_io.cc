@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   input_output.cc
+ * \file   vectors_io.cc
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  I/O functions used by driver.
+ * \brief  I/O utilities for vectors.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -380,6 +380,50 @@ void VectorsIO::write(GMVectors& vectors, const char* path, CEnv& env) {
     default:
       COMET_INSIST(false && "Invalid data type.");
   } // switch
+}
+
+//=============================================================================
+
+void VectorsIO::print(GMVectors& vectors, CEnv& env) {
+
+  if (! env.is_proc_active())
+    return;
+
+  const int nval = vectors.dm->num_vector_active_local;
+  const int nfal = vectors.dm->num_field_active_local;
+
+  switch (env.data_type_vectors()) {
+
+    case GM_DATA_TYPE_FLOAT: {
+
+      for (int vl = 0; vl < nval; ++vl) {
+        for (int fl = 0; fl < nfal; ++fl) {
+          const GMFloat value = GMVectors_float_get(&vectors, fl, vl, &env);
+            printf("vec_proc %i vec %i field_proc %i field %i value %.16e\n",
+                   env.proc_num_vector(), vl,
+                   env.proc_num_field(), fl, (double)value);
+        } // fl
+      } // vl
+    } break;
+
+    case GM_DATA_TYPE_BITS2: {
+
+      for (int vl = 0; vl < nval; ++vl) {
+        for (int fl = 0; fl < nfal; ++fl) {
+          const GMBits2 value = GMVectors_bits2_get(&vectors, fl, vl, &env);
+            printf("vec_proc %i vec %i "
+                   "field_proc %i field %i value %.1i%.1i\n",
+                   env.proc_num_vector(), vl,
+                   env.proc_num_field(), fl, value / 2, value % 2);
+        } /*---fl---*/
+      }   /*---vl---*/
+    } break;
+
+    default:
+
+      COMET_INSIST(false && "Invalid data_type_vectors.");
+
+  } /*---switch---*/
 }
 
 //=============================================================================

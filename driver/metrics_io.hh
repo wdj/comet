@@ -1,18 +1,17 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   input_output.hh
+ * \file   metrics_io.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  I/O functions used by driver, header.
+ * \brief  I/O utilities for metrics, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _comet_input_output_hh_
+#ifndef _comet_metrics_io_hh_
 #define _comet_input_output_hh_
 
 #include "env.hh"
-#include "vectors.hh"
 #include "metrics.hh"
 
 #include "driver.hh"
@@ -21,17 +20,36 @@
 
 namespace comet {
 
-//-----------------------------------------------------------------------------
+//=============================================================================
+// Class to write metrics.
 
-void set_vectors_from_file(GMVectors* vectors, DriverOptions* do_, CEnv* env);
+class MetricsIO {
+public:
 
-void write_vectors_to_file(GMVectors* vectors, const char* vectors_file_path,
-                           CEnv* env);
+  MetricsIO(const char* path_stub, int verbosity, CEnv& env);
+  ~MetricsIO();
+
+  void write(GMMetrics& metrics);
+
+  size_t num_written() {return num_written_;}
+
+  static FILE* open(const char* path_stub, CEnv& env, const char* mode = "w");
+
+private:
+
+  CEnv& env_;
+  FILE* file_;
+  int verbosity_;
+  size_t num_written_;
+
+  // Disallowed methods.
+
+  MetricsIO(   const MetricsIO&);
+  void operator=(const MetricsIO&);
+};
 
 //=============================================================================
-// Class to help output the result metrics values to file
-
-FILE* gm_metrics_file_open(char* metrics_file_path_stub, CEnv* env);
+// Helper class to output metrics values to file.
 
 class MetricWriter {
 public:
@@ -64,35 +82,10 @@ private:
 
 //=============================================================================
 
-class MetricsFile {
-public:
-
-  MetricsFile(DriverOptions* do_, CEnv* env);
-
-  ~MetricsFile();
-
-  void write(GMMetrics* metrics, CEnv* env);
-
-  size_t get_num_written() {return num_written_;}
-
-private:
-
-  FILE* file_;
-  int verbosity_;
-  size_t num_written_;
-
-  //---Disallowed methods.
-
-  MetricsFile(   const MetricsFile&);
-  void operator=(const MetricsFile&);
-};
-
-//=============================================================================
-
 } // namespace comet
 
 //-----------------------------------------------------------------------------
 
-#endif // _comet_input_output_hh_
+#endif // _comet_metrics_io_hh_
 
 //-----------------------------------------------------------------------------

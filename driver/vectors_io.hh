@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   input_output.hh
+ * \file   vectors_io.hh
  * \author Wayne Joubert
  * \date   Wed Sep 23 12:39:13 EDT 2015
- * \brief  I/O functions used by driver, header.
+ * \brief  I/O utilities for vectors, header.
  * \note   Copyright (C) 2015 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //-----------------------------------------------------------------------------
@@ -26,6 +26,7 @@ public:
 
   void static read(GMVectors& vectors, const char* path, CEnv& env);
   void static write(GMVectors& vectors, const char* path, CEnv& env);
+  void static print(GMVectors& vectors, CEnv& env);
 
 };
 

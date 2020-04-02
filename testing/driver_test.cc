@@ -23,8 +23,8 @@
 #include "compute_metrics.hh"
 
 #include "driver.hh"
-#include "input_output.hh"
 #include "vectors_io.hh"
+#include "metrics_io.hh"
 #include "test_problems.hh"
 
 enum {PROCS_MAX = TEST_PROCS_MAX};
@@ -2188,7 +2188,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
       for (int num_proc_vector=3; num_proc_vector<=3; ++num_proc_vector) {
         for (int num_proc_field=1; num_proc_field<=3; ++num_proc_field) {
 
-          const bool test_only_critical_values = false;
+          const bool test_only_critical_values = true;
 
           if (test_only_critical_values) {
             const bool is_nearly_multiple_of_32 =

@@ -76,10 +76,6 @@ void GMVectors_destroy(GMVectors* vectors, CEnv* env);
 
 //=============================================================================
 
-void GMVectors_print(GMVectors* vectors, CEnv* env);
-
-//=============================================================================
-
 size_t GMVectors_cksum(GMVectors* vectors, CEnv* env);
 
 //=============================================================================

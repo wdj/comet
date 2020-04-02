@@ -25,8 +25,8 @@
 #include "compute_metrics.hh"
 
 #include "test_problems.hh"
-#include "input_output.hh"
 #include "vectors_io.hh"
+#include "metrics_io.hh"
 #include "driver.hh"
 
 //=============================================================================
@@ -509,7 +509,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   {
   time_beg = env->synced_time();
-  MetricsFile metric_file(&do_, env);
+  MetricsIO metrics_io(do_.metrics_file_path_stub, do_.verbosity, *env);
   time_end = env->synced_time();
   outtime += time_end - time_beg;
 
@@ -546,7 +546,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       /*---Output results---*/
 
       time_beg = env->synced_time();
-      metric_file.write(metrics, env);
+      metrics_io.write(*metrics);
       time_end = env->synced_time();
       outtime += time_end - time_beg;
 
@@ -597,7 +597,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   mctime += time_end - time_beg;
   /*---Close output files---*/
 
-  num_local_written += metric_file.get_num_written();
+  num_local_written += metrics_io.num_written();
   time_beg = env->synced_time();
   }
   time_end = env->synced_time();
