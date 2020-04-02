@@ -9,7 +9,7 @@
 //-----------------------------------------------------------------------------
 
 #ifndef _comet_metrics_io_hh_
-#define _comet_input_output_hh_
+#define _comet_metrics_io_hh_
 
 #include "env.hh"
 #include "metrics.hh"
