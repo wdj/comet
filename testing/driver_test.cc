@@ -604,7 +604,7 @@ void DriverTest_czek_() {
           char options_template[] =
                  "--num_vector %i --num_field %i "
                  "--num_proc_vector %i --num_proc_field %i "
-                 "--compute_method CPU --all2all yes %s --verbosity 1";
+                 "--compute_method GPU --all2all yes %s --verbosity 1";
 
           sprintf(options1, options_template,
                   num_vector, num_field, num_proc_vector, num_proc_field, "");
@@ -2206,7 +2206,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
                  "--metric_type %s "
                  "--num_vector %i --num_field %i "
                  "--num_proc_vector %i --num_proc_field %i "
-                 "--compute_method CPU --all2all yes %s --verbosity 1";
+                 "--compute_method GPU --all2all yes %s --verbosity 1";
 
           sprintf(options1, options_template, metric_type,
                   num_vector, num_field, num_proc_vector, num_proc_field, "");
