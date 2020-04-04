@@ -268,21 +268,21 @@ void static VectorsIO_write_float(GMVectors& vectors, const char* path,
   const size_t nval = vectors.dm->num_vector_active_local;
   const size_t nfal = vectors.dm->num_field_active_local;
 
-  size_t num_written_total = 0;
-  const size_t num_written_attempted_total = nval * nfal;
+  size_t num_written = 0;
+  const size_t num_written_attempted = nval * nfal;
 
   for (size_t vl = 0 ; vl < nval; ++vl) {
     for (size_t fl = 0 ; fl < nfal; ++fl) {
 
       const IO_t outv = GMVectors_float_get(&vectors, fl, vl, &env);
       const size_t num_to_write = 1;
-      const size_t num_written = fwrite(&outv, sizeof(IO_t), num_to_write,
-                                        file);
-      num_written_total += num_written;
+      const size_t num_written_this = fwrite(&outv, sizeof(IO_t), num_to_write,
+                                             file);
+      num_written += num_written_this;
     }
   }
 
-  COMET_INSIST(num_written_attempted_total == num_written_total &&
+  COMET_INSIST(num_written_attempted == num_written &&
     "File write failure.");
 
   fclose(file);
@@ -316,8 +316,8 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
   const size_t f_per_byte = bit_per_byte / bit_per_f;
   const size_t byte_per_pf = bit_per_pf / bit_per_byte;
 
-  size_t num_written_total = 0;
-  size_t num_written_attempted_total = 0;
+  size_t num_written = 0;
+  size_t num_written_attempted = 0;
 
   for (size_t vl = 0 ; vl < nval; ++vl) {
     for (size_t pfl = 0 ; pfl < npfl; ++pfl) {
@@ -345,17 +345,17 @@ void static VectorsIO_write_bits2(GMVectors& vectors, const char* path,
 
         const size_t num_to_write = 1;
 
-        const size_t num_written = fwrite(&outval, sizeof(IO_t),
-                                          num_to_write, file);
+        const size_t num_written_this = fwrite(&outval, sizeof(IO_t),
+                                               num_to_write, file);
 
-        num_written_total += num_written;
-        num_written_attempted_total += num_to_write;
+        num_written += num_written_this;
+        num_written_attempted += num_to_write;
       }
 
     } // pfl
   } // vl
 
-  COMET_INSIST(num_written_attempted_total == num_written_total &&
+  COMET_INSIST(num_written_attempted == num_written &&
     "File write failure.");
 
   fclose(file);

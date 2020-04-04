@@ -154,6 +154,12 @@ struct BuildHas {
 # else
     enum {DOUBLE_PREC = false};
 # endif
+
+# ifdef COMET_BUILD_TYPE_DEBUG
+    enum {DEBUG = true};
+# else
+    enum {DEBUG = false};
+# endif
 };
 
 //-----------------------------------------------------------------------------

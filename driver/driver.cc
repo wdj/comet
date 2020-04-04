@@ -46,7 +46,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_field.");
       const long num_field = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, errno == 0 && num_field >= 0
+      COMET_INSIST_INTERFACE(env, 0 == errno && num_field >= 0
                     && "Invalid setting for num_field.");
       do_->num_field_active = num_field;
       do_->num_field_active_initialized = true;
@@ -69,7 +69,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_vector.");
       const long num_vector = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, errno == 0 && num_vector >= 0
+      COMET_INSIST_INTERFACE(env, 0 == errno && num_vector >= 0
                     && "Invalid setting for num_vector.");
       do_->num_vector_active = num_vector;
       do_->num_vector_active_initialized = true;
@@ -113,7 +113,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_stage.");
       const long num_stage = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, errno == 0 && num_stage >= 1
+      COMET_INSIST_INTERFACE(env, 0 == errno && num_stage >= 1
                     && (long)(int)num_stage == num_stage
                     && "Invalid setting for num_stage.");
       env->num_stage(num_stage);
@@ -125,7 +125,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for stage_min.");
       const long stage_min_0based = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, errno == 0 && stage_min_0based >= 0
+      COMET_INSIST_INTERFACE(env, 0 == errno && stage_min_0based >= 0
                     && (long)(int)stage_min_0based == stage_min_0based
                     && "Invalid setting for stage_min.");
       do_->stage_min_0based = stage_min_0based;
@@ -135,7 +135,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for stage_max.");
       const long stage_max_0based = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, errno == 0 && stage_max_0based < env->num_stage()
+      COMET_INSIST_INTERFACE(env, 0 == errno && stage_max_0based < env->num_stage()
                     && (long)(int)stage_max_0based == stage_max_0based
                     && "Invalid setting for stage_max.");
       do_->stage_max_0based = stage_max_0based;
@@ -145,7 +145,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_phase.");
       const long num_phase = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, errno == 0 && num_phase >= 1
+      COMET_INSIST_INTERFACE(env, 0 == errno && num_phase >= 1
                     && (long)(int)num_phase == num_phase
                     && "Invalid setting for num_phase.");
       env->num_phase(num_phase);
@@ -157,7 +157,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for phase_min.");
       const long phase_min_0based = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, errno == 0 && phase_min_0based >= 0
+      COMET_INSIST_INTERFACE(env, 0 == errno && phase_min_0based >= 0
                     && (long)(int)phase_min_0based == phase_min_0based
                     && "Invalid setting for phase_min.");
       do_->phase_min_0based = phase_min_0based;
@@ -167,7 +167,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for phase_max.");
       const long phase_max_0based = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, errno == 0 && phase_max_0based < env->num_phase()
+      COMET_INSIST_INTERFACE(env, 0 == errno && phase_max_0based < env->num_phase()
                     && (long)(int)phase_max_0based == phase_max_0based
                     && "Invalid setting for phase_max.");
       do_->phase_max_0based = phase_max_0based;
@@ -547,6 +547,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
       time_beg = env->synced_time();
       metrics_io.write(*metrics);
+      if (BuildHas::DEBUG) {
+        metrics_io.check_file(*metrics);
+      }
       time_end = env->synced_time();
       outtime += time_end - time_beg;
 
@@ -649,66 +652,6 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
     vctime, mctime, cktime, intime, outtime, tottime);
     
-#if 0
-  const double ops = env->ops();
-  const size_t cpu_mem_max = env->cpu_mem_max();
-  const size_t gpu_mem_max = env->gpu_mem_max();
-
-  if (do_print) {
-    //-----
-    if (do_.checksum) {
-      printf("metrics checksum ");
-      //GMChecksum_print(cksum, env);
-      cksum.print(*env);
-      printf(" ");
-    }
-    //-----
-    printf("ctime %.6f", env->ctime());
-    //-----
-    printf(" ops %e", ops);
-    if (env->ctime() > 0) {
-      printf(" ops_rate %e", ops / env->ctime());
-      printf(" ops_rate/proc %e", ops / (env->ctime()*env->num_proc()) );
-    }
-    //-----
-    printf(" vcmp %e", env->veccompares());
-    if (NULL != do_.metrics_file_path_stub) {
-      printf(" vcmpout %e", (double)num_written);
-    }
-    //-----
-    printf(" cmp %e", env->compares());
-    printf(" ecmp %e", env->eltcompares());
-    if (env->ctime() > 0) {
-      printf(" ecmp_rate %e", env->eltcompares() / env->ctime());
-      printf(" ecmp_rate/proc %e", env->eltcompares() /
-        (env->ctime()*env->num_proc()) );
-    }
-    //-----
-    printf(" vctime %.6f", vctime);
-    printf(" mctime %.6f", mctime);
-    if (do_.checksum) {
-      printf(" cktime %.6f", cktime);
-    }
-    //if (NULL != do_.input_file_path) {
-    printf(" intime %.6f", intime);
-    //}
-    //if (NULL != do_.metrics_file_path_stub) {
-    printf(" outtime %.6f", outtime);
-    //}
-    //-----
-    printf(" cpumem %e", (double)cpu_mem_max);
-    printf(" gpumem %e", (double)gpu_mem_max);
-    //-----
-    printf(" tottime %.6f", tottime);
-    //-----
-    if (env->tc() != env->tc_eff()) {
-      printf(" tc_eff %i", env->tc_eff());
-    }
-    //-----
-    printf("\n");
-  }
-#endif
-
   // Output a local checksum, for testing purposes.
 
   if (false) {

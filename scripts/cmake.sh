@@ -235,6 +235,9 @@ function main
   #---Compiler flags.
 
   local CMAKE_CXX_FLAGS="-DCOMET_FP_PRECISION_$FP_PRECISION -DADD_"
+  if [ "$BUILD_TYPE" = "Debug" ] ; then
+    CMAKE_CXX_FLAGS+=" -DCOMET_BUILD_TYPE_DEBUG"
+  fi
   CMAKE_CXX_FLAGS+=" -g" # for stack trace
   CMAKE_CXX_FLAGS+=" -Wall -Wno-unused-function -Werror"
   CMAKE_CXX_FLAGS+=" -fno-associative-math"

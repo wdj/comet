@@ -11,6 +11,7 @@
 #include "cstdio"
 #include "cstdint"
 #include "string.h"
+//#include "errno.h"
 
 #include "env.hh"
 #include "metrics.hh"
@@ -23,6 +24,84 @@
 namespace comet {
 
 //=============================================================================
+// MetricIO member definitions.
+
+//-----------------------------------------------------------------------------
+/// \brief Constructor for MetricIO class
+
+MetricIO::MetricIO(FILE* file, GMMetrics& metrics, CEnv& env)
+  : env_(env)
+  , file_(file)
+  , data_type_(env.data_type_metrics())
+  , num_way_(env.num_way())
+  , num_written_(0) {
+
+  if (stdout != file_)
+    COMET_INSIST_INTERFACE(&env, metrics.num_vector_active ==
+                  (uint32_t)metrics.num_vector_active &&
+                  "Too many vectors for output format.");
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Write a metric value: CZEK 2-way case.
+
+void MetricIO::write(size_t coord0, size_t coord1, GMFloat value) const {
+
+  bool success = true;
+  size_t bytes_written = 0;
+
+  success = success && write_<uint32_t>(coord0, bytes_written);
+  success = success && write_<uint32_t>(coord1, bytes_written);
+  success = success && write_<GMFp32>(value, bytes_written);
+
+  COMET_INSIST(success && "File write failure.");
+  num_written_++;
+  COMET_INSIST(num_bytes_written_per_metric() == bytes_written);
+  }
+
+//-----------------------------------------------------------------------------
+/// \brief Write a metric value: CZEK 3-way case.
+
+void MetricIO::write(size_t coord0, size_t coord1, size_t coord2,
+                         GMFloat value) const {
+
+  bool success = true;
+  size_t bytes_written = 0;
+
+  success = success && write_<uint32_t>(coord0, bytes_written);
+  success = success && write_<uint32_t>(coord1, bytes_written);
+  success = success && write_<uint32_t>(coord2, bytes_written);
+  success = success && write_<GMFp32>(value, bytes_written);
+
+  COMET_INSIST(success && "File write failure.");
+  num_written_++;
+  COMET_INSIST(num_bytes_written_per_metric() == bytes_written);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Write a metric value: CCC/DUO 2-way case.
+
+void MetricIO::write(size_t coord0, size_t coord1, int i0, int i1,
+                         GMFloat value) const {
+  COMET_ASSERT(i0 >= 0 && i0 < 2);
+  COMET_ASSERT(i1 >= 0 && i1 < 2);
+
+  write(i0 + 2 * coord0, i1 + 2 * coord1, value);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Write a metric value: CCC/DUO 3-way case.
+
+void MetricIO::write(size_t coord0, size_t coord1, size_t coord2,
+                         int i0, int i1, int i2, GMFloat value) const {
+  COMET_ASSERT(i0 >= 0 && i0 < 2);
+  COMET_ASSERT(i1 >= 0 && i1 < 2);
+  COMET_ASSERT(i2 >= 0 && i2 < 2);
+
+  write(i0 + 2 * coord0, i1 + 2 * coord1, i2 + 2 * coord2, value);
+}
+
+//=============================================================================
 // Helper functions for MetricsIO class.
 
 //-----------------------------------------------------------------------------
@@ -30,13 +109,13 @@ namespace comet {
 
 template<int COUNTED_BITS_PER_ELT>
 static void MetricsIO_write_tally2x2_bin_impl_(
-  GMMetrics* metrics, FILE* file, size_t& num_written, CEnv* env) {
+  GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
   COMET_INSIST(stdout != file);
 
-  MetricWriter writer(file, metrics, env);
+  MetricIO writer(file, *metrics, *env);
 
   //enum {vals_per_index = 4;}
 
@@ -125,7 +204,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
 
   } /*---ind_base---*/
 
-  num_written += writer.get_num_written();
+  num_written_ += writer.num_written();
 
   free(do_out_buf);
   free(coord0_buf);
@@ -138,7 +217,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
 /// \brief Write to file, GMTally2x2 case.
 
 static void MetricsIO_write_tally2x2_bin_(
-  GMMetrics* metrics, FILE* file, size_t& num_written, CEnv* env) {
+  GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
@@ -146,10 +225,10 @@ static void MetricsIO_write_tally2x2_bin_(
 
   if (env->metric_type() == MetricType::CCC)
     MetricsIO_write_tally2x2_bin_impl_<CBPE::CCC>(metrics, file,
-      num_written, env);
+      num_written_, env);
   else
     MetricsIO_write_tally2x2_bin_impl_<CBPE::DUO>(metrics, file,
-      num_written, env);
+      num_written_, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -157,14 +236,14 @@ static void MetricsIO_write_tally2x2_bin_(
 
 template<int COUNTED_BITS_PER_ELT>
 static void MetricsIO_write_tally4x2_bin_impl_(
-  GMMetrics* metrics, FILE* file, size_t& num_written, CEnv* env) {
+  GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
   COMET_INSIST(stdout != file);
   COMET_INSIST(env->is_metric_type_bitwise());
 
-  MetricWriter writer(file, metrics, env);
+  MetricIO writer(file, *metrics, *env);
 
   //enum {vals_per_index = 8;}
 
@@ -257,7 +336,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
     } /*---ind_buf---*/
   } /*---ind_base---*/
 
-  num_written += writer.get_num_written();
+  num_written_ += writer.num_written();
 
   free(do_out_buf);
   free(coord0_buf);
@@ -271,7 +350,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
 /// \brief Write to file, GMTally4x2 case.
 
 static void MetricsIO_write_tally4x2_bin_(
-  GMMetrics* metrics, FILE* file, size_t& num_written, CEnv* env) {
+  GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
@@ -279,17 +358,17 @@ static void MetricsIO_write_tally4x2_bin_(
 
   if (env->metric_type() == MetricType::CCC)
     MetricsIO_write_tally4x2_bin_impl_<CBPE::CCC>(metrics, file,
-      num_written, env);
+      num_written_, env);
   else
     MetricsIO_write_tally4x2_bin_impl_<CBPE::DUO>(metrics, file,
-      num_written, env);
+      num_written_, env);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Write to file or print the metrics.
 
 static void MetricsIO_write_(
-  GMMetrics* metrics, FILE* file, size_t& num_written, CEnv* env) {
+  GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
 
   if (! env->is_proc_active())
@@ -304,7 +383,7 @@ static void MetricsIO_write_(
       env->num_way() == NUM_WAY::_2) {
   //----------
 
-    MetricWriter writer(file, metrics, env);
+    MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_elts_local; ++index) {
       const size_t coord0 =
@@ -325,14 +404,14 @@ static void MetricsIO_write_(
         writer.write(coord0, coord1, value);
     } // for index
 
-    num_written += writer.get_num_written();
+    num_written_ += writer.num_written();
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_FLOAT &&
            env->num_way() == NUM_WAY::_3) {
   //----------
 
-    MetricWriter writer(file, metrics, env);
+    MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_elts_local; ++index) {
       const size_t coord0 =
@@ -356,7 +435,7 @@ static void MetricsIO_write_(
         writer.write(coord0, coord1, coord2, value);
     } // for index
 
-    num_written += writer.get_num_written();
+    num_written_ += writer.num_written();
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2 &&
@@ -365,7 +444,7 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NUM_WAY::_2);
     COMET_INSIST(env->is_metric_type_bitwise());
 
-    MetricsIO_write_tally2x2_bin_(metrics, file, num_written, env);
+    MetricsIO_write_tally2x2_bin_(metrics, file, num_written_, env);
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2) {
@@ -373,7 +452,7 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NUM_WAY::_2);
     COMET_INSIST(env->is_metric_type_bitwise());
 
-    MetricWriter writer(file, metrics, env);
+    MetricIO writer(file, *metrics, *env);
 
     size_t index = 0;
     for (index = 0; index < metrics->num_elts_local; ++index) {
@@ -408,7 +487,7 @@ static void MetricsIO_write_(
         fprintf(file, "\n");
     } // for index
 
-    num_written += writer.get_num_written();
+    num_written_ += writer.num_written();
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2 &&
@@ -417,7 +496,7 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NUM_WAY::_3);
     COMET_INSIST(env->is_metric_type_bitwise());
 
-    MetricsIO_write_tally4x2_bin_(metrics, file, num_written, env);
+    MetricsIO_write_tally4x2_bin_(metrics, file, num_written_, env);
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2) {
@@ -425,7 +504,7 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NUM_WAY::_3);
     COMET_INSIST(env->is_metric_type_bitwise());
 
-    MetricWriter writer(file, metrics, env);
+    MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_elts_local; ++index) {
       const size_t coord0 =
@@ -465,7 +544,7 @@ static void MetricsIO_write_(
         fprintf(file, "\n");
     } // for index
 
-    num_written += writer.get_num_written();
+    num_written_ += writer.num_written();
 
   //----------
   } else {
@@ -486,9 +565,11 @@ static void MetricsIO_write_(
 
 MetricsIO::MetricsIO(const char* path_stub, int verbosity, CEnv& env)
   : env_(env)
+  , path_stub_(path_stub ? path_stub : "")
   , file_(NULL)
   , verbosity_(verbosity)
-  , num_written_(0) {
+  , num_written_(0)
+  , num_written_last_write_(0) {
 
   if (! env_.is_proc_active())
     return;
@@ -517,8 +598,11 @@ void MetricsIO::write(GMMetrics& metrics) {
 
   // Output to file
 
-  if (file_)
+  if (file_) {
+    const size_t num_written_hold = num_written_;
     MetricsIO_write_(&metrics, file_, num_written_, &env_);
+    num_written_last_write_ = num_written_ - num_written_hold;
+  }
 
   // Output to stdout if requested
 
@@ -526,32 +610,74 @@ void MetricsIO::write(GMMetrics& metrics) {
     MetricsIO_write_(&metrics, stdout, num_written_, &env_);
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Check the metrics elements most recently written to the file.
 
+void MetricsIO::check_file(GMMetrics& metrics) {
+
+  if (! env_.is_proc_active())
+    return;
+
+  if (! file_)
+    return;
+
+  // CLose file.
+
+  fclose(file_);
+
+  // Reopen file for read.
+
+  MetricsIO::open(path_stub_.c_str(), env_, "rb");
+
+  // Set fpos to beginning of last metrics object write.
+
+  long offset = bytes_(num_written_ - num_written_last_write_);
+  int success = fseek(file_, offset, SEEK_SET);
+  COMET_INSIST(0 == success);
+
+  // Loop over metrics stored in file.
+
+  for (size_t i = 0; i < num_written_last_write_; ++i) {
+
+    if (env_.num_way() == NUM_WAY::_2) {
+      MetricIO::Metric<NUM_WAY::_2> metric;
+      MetricIO::read(metric, file_, env_);
+    } else {
+      MetricIO::Metric<NUM_WAY::_3> metric;
+      MetricIO::read(metric, file_, env_);
+    }
+
+// TODO !!!
+
+
+
+  } // i
+
+  // Close file.
+
+  fclose(file_);
+
+  // Reopen file for write.
+
+  MetricsIO::open(path_stub_.c_str(), env_, "ab");
+
+  // Set fpos to end of file.
+
+  offset = bytes_(num_written_);
+  success = fseek(file_, offset, SEEK_SET);
+  COMET_INSIST(0 == success);
+}
 
 #ifdef xxx
-
-//TODO:
-
 Metrics_IO: track:
-  - num_metrics_written, num_bytes_written
-  - file size in bytes, maybe metrics
-separate MetricsIO::path(...)
-maybe store path as class member
 Metric - value, i, j, k (global), i0, i1, i2
-MetricReader
 void MetricsIO::check_file(GMMetrics& metrics)
-  - reopen file
-  - set position to end minus last write
-    https://stackoverflow.com/questions/31538554/fstream-how-to-seekg-to-position-x-from-end
   - loop to read each metric
     - extract i, j, k, global
     - find associated index - need to write code in metrics_?way_*.hh for this
     - Metric get from index
     - apply threshold ...
     - compare values
-  - at end make sure file open correctly and fpos is at the end of the file
-    (? reopen in append mode)
-
 #endif
 
 // CHECK - FIX - open wb !!!
@@ -588,137 +714,6 @@ FILE* MetricsIO::open(const char* path_stub, CEnv& env, const char* mode) {
   free(path);
 
   return file;
-}
-
-//=============================================================================
-// MetricWriter member definitions.
-
-//-----------------------------------------------------------------------------
-/// \brief Constructor for MetricWriter class
-
-MetricWriter::MetricWriter(FILE* file, GMMetrics* metrics, CEnv* env) :
-  file_(file),
-  data_type_(env->data_type_metrics()),
-  num_way_(env->num_way()),
-  num_written_total_(0) {
-
-  if (stdout != file_)
-    COMET_INSIST_INTERFACE(env, metrics->num_vector_active ==
-                  (uint32_t)metrics->num_vector_active &&
-                  "Too many vectors for output format.");
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Write a metric value: CZEK 2-way case.
-
-void
-MetricWriter::write(size_t coord0, size_t coord1, GMFloat value) {
-
-  bool success = true;
-
-  const uint32_t outc0 = coord0;
-  size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-  success = success && num_written == 1;
-
-  const uint32_t outc1 = coord1;
-  num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-  success = success && num_written == 1;
-
-  const GMFp32 outv = value;
-  num_written = fwrite(&outv, sizeof(outv), 1, file_);
-  success = success && num_written == 1;
-//printf("%i %i %f\n", (int)outc0, (int)outc1, (double)outv);
-
-  num_written_total_ += success ? 1 : 0;
-  COMET_INSIST(success && "File write failure.");
-  }
-
-//-----------------------------------------------------------------------------
-/// \brief Write a metric value: CZEK 3-way case.
-
-void
-MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
-                     GMFloat value) {
-
-  bool success = true;
-
-  const uint32_t outc0 = coord0;
-  size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-  success = success && num_written == 1;
-
-  const uint32_t outc1 = coord1;
-  num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-  success = success && num_written == 1;
-
-  const uint32_t outc2 = coord2;
-  num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
-  success = success && num_written == 1;
-
-  const GMFp32 outv = value;
-  num_written = fwrite(&outv, sizeof(outv), 1, file_);
-  success = success && num_written == 1;
-
-  num_written_total_ += success ? 1 : 0;
-  COMET_INSIST(success && "File write failure.");
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Write a metric value: CCC/DUO 2-way case.
-
-void
-MetricWriter::write(size_t coord0, size_t coord1, int i0, int i1,
-                     GMFloat value) {
-  COMET_ASSERT(i0 >=0 && i0 < 2);
-  COMET_ASSERT(i1 >=0 && i1 < 2);
-
-  bool success = true;
-
-  const uint32_t outc0 = i0 + 2 * coord0;
-  size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-  success = success && num_written == 1;
-
-  const uint32_t outc1 = i1 + 2 * coord1;
-  num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-  success = success && num_written == 1;
-
-  const GMFp32 outv = value;
-  num_written = fwrite(&outv, sizeof(outv), 1, file_);
-  success = success && num_written == 1;
-
-  num_written_total_ += success ? 1 : 0;
-  COMET_INSIST(success && "File write failure.");
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Write a metric value: CCC/DUO 3-way case.
-
-void
-MetricWriter::write(size_t coord0, size_t coord1, size_t coord2,
-              int i0, int i1, int i2, GMFloat value) {
-  COMET_ASSERT(i0 >=0 && i0 < 2);
-  COMET_ASSERT(i1 >=0 && i1 < 2);
-  COMET_ASSERT(i2 >=0 && i2 < 2);
-
-  bool success = true;
-
-  const uint32_t outc0 = i0 + 2 * coord0;
-  size_t num_written = fwrite(&outc0, sizeof(outc0), 1, file_);
-  success = success && num_written == 1;
-
-  const uint32_t outc1 = i1 + 2 * coord1;
-  num_written = fwrite(&outc1, sizeof(outc1), 1, file_);
-  success = success && num_written == 1;
-
-  const uint32_t outc2 = i2 + 2 * coord2;
-  num_written = fwrite(&outc2, sizeof(outc2), 1, file_);
-  success = success && num_written == 1;
-
-  const GMFp32 outv = value;
-    num_written = fwrite(&outv, sizeof(outv), 1, file_);
-  success = success && num_written == 1;
-
-  num_written_total_ += success ? 1 : 0;
-  COMET_INSIST(success && "File write failure.");
 }
 
 //=============================================================================
