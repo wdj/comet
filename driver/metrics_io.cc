@@ -15,6 +15,7 @@
 
 #include "env.hh"
 #include "metrics.hh"
+#include "decomp_mgr.hh"
 
 #include "driver.hh"
 #include "metrics_io.hh"
@@ -637,21 +638,84 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   // Loop over metrics stored in file.
 
+  GMDecompMgr* const dm = metrics.dm;
+  size_t num_incorrect = 0;
+
   for (size_t i = 0; i < num_written_last_write_; ++i) {
 
     if (env_.num_way() == NUM_WAY::_2) {
+
       MetricIO::Metric<NUM_WAY::_2> metric;
       MetricIO::read(metric, file_, env_);
-    } else {
-      MetricIO::Metric<NUM_WAY::_3> metric;
-      MetricIO::read(metric, file_, env_);
-    }
+
+      if (env_.metric_type() == MetricType::CZEK) {
+
+        const size_t i_vag = metric.coord0();
+        const size_t j_vag = metric.coord1();
+        const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
+          dm, i_vag, &env_);
+        const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
+          dm, j_vag, &env_);
+        COMET_ASSERT(i >= 0 && i < dm->num_vector_active);
+        COMET_ASSERT(j >= 0 && j < dm->num_vector_active);
+
+        const int i_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+          dm, i_vag, &env_);
+        const int j_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+          dm, j_vag, &env_);
+        no_unused_variable_warning(i_proc);
+        COMET_ASSERT(env_.proc_num_vector() == i_proc);
+        COMET_ASSERT(j_proc >= 0 && j_proc < env_.num_proc_vector());
+
+        const MetricIO::Float_t metric_value = env_.all2all() ?
+          GMMetrics_float_get_all2all_2(&metrics, i, j, j_proc, &env_) :
+          GMMetrics_float_get_2(&metrics, i, j, &env_);
+
+        const bool is_incorrect = metric_value != metric.value;
+        num_incorrect += is_incorrect;
+
+        if (is_incorrect && num_incorrect < 10)
+          fprintf(stderr, "Incorrect metric value: "
+            "element %zu %zu actual %.17e expected %.17e\n",
+            i_vag, j_vag, (double)metric_value, (double)metric.value);
+
+      } else { // if (env_.is_metric_type_bitwise())
+      
 
 // TODO !!!
 
 
+      } //  if (env_.metric_type() == MetricType::CZEK)
+
+    } else { // if (env_.num_way() == NUM_WAY::_3)
+
+      MetricIO::Metric<NUM_WAY::_3> metric;
+      MetricIO::read(metric, file_, env_);
+
+      if (env_.metric_type() == MetricType::CZEK) {
+
+
+// TODO !!!
+
+// NOTE: need to count number of metrics that pass threshold, compare to file
+// NOTE: to cleanup, maybe move stuff to metrics_?way_*.hh
+// NOTE: check to see if i, j, k may be permuted in file.
+// NOTE: need more tests in tester: multi proc, phase, stage, all 4-6 methods.
+
+      } else { // if (env_.is_metric_type_bitwise())
+      
+
+// TODO !!!
+
+
+      } //  if (env_.metric_type() == MetricType::CZEK)
+
+    } // if (env_.num_way() == NUM_WAY::_2)
 
   } // i
+
+  COMET_INSIST(0 == num_incorrect &&
+    "Incorrect values detected in output file - partial list is displayed.");
 
   // Close file.
 
@@ -667,22 +731,6 @@ void MetricsIO::check_file(GMMetrics& metrics) {
   success = fseek(file_, offset, SEEK_SET);
   COMET_INSIST(0 == success);
 }
-
-#ifdef xxx
-Metrics_IO: track:
-Metric - value, i, j, k (global), i0, i1, i2
-void MetricsIO::check_file(GMMetrics& metrics)
-  - loop to read each metric
-    - extract i, j, k, global
-    - find associated index - need to write code in metrics_?way_*.hh for this
-    - Metric get from index
-    - apply threshold ...
-    - compare values
-#endif
-
-// CHECK - FIX - open wb !!!
-// should be ok - https://stackoverflow.com/questions/4158556/why-doesnt-fwrite-write-a-binary-file-using-wb-in-c-on-mac-os-x
-
 
 //-----------------------------------------------------------------------------
 /// \brief Static function to open (one-per-rank set of) metrics files.

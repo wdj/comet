@@ -28,10 +28,12 @@ namespace comet {
 class MetricIO {
 public:
 
+  typedef GMFp32 Float_t;
+
   template<int N>
   struct Metric {
     uint32_t coords[N];
-    GMFp32 value;
+    Float_t value;
     uint32_t coord0() const {return coords[0];}
     uint32_t coord1() const {return coords[1];}
     uint32_t coord2() const {return coords[N==3 ? 2 : 0];}

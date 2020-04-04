@@ -580,7 +580,12 @@ private:
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Null operation to avoid unused variable warning.
 
+template<typename T>
+static void no_unused_variable_warning(T& v) {}
+
+//-----------------------------------------------------------------------------
 /// \brief Templatized access to CCC or DUO front multiplier.
 
 template<int COUNTED_BITS_PER_ELT = CBPE::NONE>

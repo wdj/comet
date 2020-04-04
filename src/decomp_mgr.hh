@@ -70,6 +70,30 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 
 void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env);
 
+//-----------------------------------------------------------------------------
+// Accessor.
+
+static size_t GMDecompMgr_get_vector_local_from_vector_active(
+  GMDecompMgr* dm,
+  size_t vector_active,
+  CEnv* env) {
+  COMET_ASSERT(vector_active >= 0 && vector_active < dm->num_vector_active);
+
+  return vector_active % dm->num_vector_local;
+}
+
+//-----------------------------------------------------------------------------
+// Accessor.
+
+static size_t GMDecompMgr_get_proc_vector_from_vector_active(
+  GMDecompMgr* dm,
+  size_t vector_active,
+  CEnv* env) {
+  COMET_ASSERT(vector_active >= 0 && vector_active < dm->num_vector_active);
+
+  return vector_active / dm->num_vector_local;
+}
+
 //=============================================================================
 
 } // namespace comet
