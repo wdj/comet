@@ -326,7 +326,6 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
       if (verbosity > 2) {
         VectorsIO::print(*vectors, *env);
       }
-//printf("%i %i %i %i\n", mycount[0], mycount[1], mycount[2], mycount[3]);
     } break;
     /*--------------------*/
     default:
@@ -456,7 +455,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             const double diff = fabs(value - value_expected);
             max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
             if (num_incorrect < max_to_print) {
-              printf("Error: incorrect result detected.  coords %zu %zu  "
+              fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu  "
                      "expected %.20e  actual %.20e  diff %.20e\n", vi, vj,
                      (double)value_expected, (double)value,
                      (double)value-(double)value_expected);
@@ -519,7 +518,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
             const double diff = fabs(value - value_expected);
             max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
             if (num_incorrect < max_to_print) {
-              printf("Error: incorrect result detected.  coords %zu %zu %zu  "
+              fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu %zu  "
                      "expected %.20e  actual %.20e  diff %.20e\n", vi, vj, vk,
                      (double)value_expected, (double)value,
                      (double)value-(double)value_expected);
@@ -611,8 +610,6 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               }
             } //---g
 
-//printf("%i %i %i\n", (int) i0, (int)i1, (int)rij);
-
             GMFloat value_expected_floatcalc = 0;
             if (!(ci == 0 || cj == 0 || cij == 0)) {
               // FIX typing here
@@ -668,7 +665,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               max_incorrect_diff = diff > max_incorrect_diff ?
                                    diff : max_incorrect_diff;
               if (num_incorrect < max_to_print) {
-                printf("Error: incorrect result detected.  coords %zu %zu  "
+                fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu  "
                        "expected %.20e  actual %.20e  diff %.20e\n", vi, vj,
                        (double)value_expected, (double)value,
                        (double)value-(double)value_expected);
@@ -824,7 +821,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 const double diff = fabs(value - value_expected);
                 max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
                 if (num_incorrect < max_to_print) {
-                  printf("Error: incorrect result detected.  coords %zu %zu %zu  "
+                  fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu %zu  "
                          "expected %.20e  actual %.20e  diff %.20e\n", vi, vj, vk,
                          (double)value_expected, (double)value,
                          (double)value-(double)value_expected);

@@ -470,8 +470,6 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_field = do_.num_field_local * (size_t) env->num_proc_field();
   }
 
-//printf("%i %i %i %i\n", env->proc_num_base_, env->proc_num_, env->proc_num_repl_, env->proc_num_vector_i_);
-
   const bool do_print = env->is_proc_active() &&
      env->proc_num() == 0 && do_.verbosity > 0;
 
@@ -674,7 +672,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     int rank = 0;
     COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
-    printf("Error: incorrect results found.  num_incorrect  %zu  "
+    fprintf(stderr, "Error: incorrect results found.  num_incorrect  %zu  "
            "max_incorrect_diff  %e  hostname  %s  rank  %i\n",
            do_.num_incorrect, do_.max_incorrect_diff, hn, rank);
   }

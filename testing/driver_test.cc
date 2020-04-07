@@ -169,9 +169,8 @@ void create_vectors_file(const char* file_path, int num_field, int num_vector,
 
 //=============================================================================
 
-void DriverTest_czek_() {
-//FIX
-#if 0
+void DriverTest_czek2_() {
+#if 1
 
   //----------
   //---2-way, all2all no
@@ -273,6 +272,158 @@ void DriverTest_czek_() {
                     "--num_proc_vector 2 --num_field 100 --num_vector_local 24 "
                     "--compute_method GPU --all2all yes"));
 
+  //----------
+  //---num_proc_field
+  //----------
+
+  EXPECT_EQ(true, compare_2runs("--num_proc_vector 1 --num_proc_field "
+                                "1 --num_field 2 --num_vector_local 2 "
+                                "--compute_method CPU",
+                                "--num_proc_vector 1 --num_proc_field "
+                                "2 --num_field 2 --num_vector_local 2 "
+                                "--compute_method GPU"));
+
+  EXPECT_EQ(true, compare_2runs("--num_proc_vector 1 --num_proc_field "
+                                "1 --num_field 2 --num_vector_local 4 "
+                                "--compute_method CPU",
+                                "--num_proc_vector 2 --num_proc_field "
+                                "2 --num_field 2 --num_vector_local 2 "
+                                "--compute_method GPU --all2all yes"));
+
+  //----------
+  //---num_repl, 2-way
+  //----------
+
+  char options1[1024];
+  char options2[1024];
+
+  char options_template_1[] =
+      "--metric_type czekanowski "
+      "--num_field 4 --num_vector_local %i --compute_method %s --all2all yes "
+      "--num_proc_vector %i --num_proc_repl %i "
+      "--num_proc_field %i --num_way %i --num_stage %i";
+
+  for (int gpu=0; gpu<=1; ++gpu) {
+    for (int num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
+      for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
+        for (int num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+          const int num_proc_field = gpu ? 2 : 1;
+          if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
+            continue;
+          }
+          const int num_way = 2;
+          sprintf(options1, options_template_1,
+                  num_vector_local*num_proc_vector,
+                  "GPU", 1, 1,
+                  1, num_way, 1);
+          sprintf(options2, options_template_1, num_vector_local,
+                  gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
+                  num_proc_field, num_way, 1);
+          test_2runs(options1, options2);
+        }
+      }
+    }
+  }
+
+  //----------
+  //---num_phase, 2-way
+  //----------
+
+  for (int num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
+    for (int num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
+      for (int num_phase=2; num_phase<=8; ++num_phase) {
+        if (!(num_phase <= 1 + num_proc_vector/2)) {
+          continue;
+        }
+        char options_template[] =
+          "--metric_type czekanowski "
+          "--num_field 7 --num_vector 12 --compute_method GPU --all2all yes "
+          "--num_proc_vector %i --num_proc_repl %i --num_phase %i "
+          "--num_way 2";
+        sprintf(options1, options_template, num_proc_vector, num_proc_repl,
+                num_phase);
+        sprintf(options2, options_template, 1, 1, 1);
+        test_2runs(options1, options2);
+      }
+    }
+  }
+
+  //----------
+  //---file input
+  //----------
+
+  for (int num_vector = 13; num_vector <= 13; ++num_vector) {
+    for (int num_field = 1; num_field <= 10; ++num_field) {
+      create_vectors_file("czek_2way_in.bin", num_field, num_vector,
+                          comet::MetricType::CZEK, 2, comet::problem_type_default(), 1);
+      for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
+        for (int num_proc_field=1; num_proc_field<=5; ++num_proc_field) {
+
+          char options1[1024];
+          char options2[1024];
+
+          char options_template[] =
+                 "--num_vector %i --num_field %i "
+                 "--num_proc_vector %i --num_proc_field %i "
+                 "--compute_method GPU --all2all yes %s --verbosity 1";
+
+          sprintf(options1, options_template,
+                  num_vector, num_field, num_proc_vector, num_proc_field, "");
+
+          sprintf(options2, options_template,
+                  num_vector, num_field, num_proc_vector, num_proc_field,
+                  "--input_file czek_2way_in.bin");
+
+          test_2runs(options1, options2);
+        }
+      }
+    }
+  }
+#endif
+
+//  //----------
+//  //---file output, 2-way
+//  //----------
+//
+//  EXPECT_EQ(
+//      true,
+//      compare_2runs("--num_proc_field 1 --num_proc_vector 1 "
+//                    "--num_field 7 --num_vector 10 "
+//                    "--num_way 2 --metric_type czekanowski "
+//                    "--compute_method REF --all2all yes",
+//                    "--num_proc_field 1 --num_proc_vector 3 "
+//                    "--num_field 7 --num_vector 10 "
+//                    "--num_way 2 --metric_type czekanowski "
+//                    "--compute_method GPU --all2all yes "
+//                    "--verbosity 1 "
+//                    "--output_file_stub test_czek_2way"));
+
+  //----------
+  //---Misc options
+  //----------
+
+//  EXPECT_EQ(
+//      true,
+//      compare_2runs("--num_proc_vector 1 --num_field 30 --num_vector 3 "
+//                    "--verbosity 1 --all2all yes "
+//                    "--compute_method REF --threshold .65",
+//                    "--num_proc_vector 1 --num_field 30 --num_vector 3 "
+//                    "--verbosity 1 --all2all yes "
+//                    "--compute_method GPU --threshold .65"));
+
+  // TODO: set up better test
+  //EXPECT_EQ(
+  //    true,
+  //    compare_2runs("--num_proc_vector 1 --num_field 3 --num_vector 3 "
+  //                  "--compute_method GPU",
+  //                  "--num_proc_vector 1 --num_field 3 --num_vector 3 "
+  //                  "--compute_method GPU --checksum no"));
+} // DriverTest_czek2_
+
+//=============================================================================
+
+void DriverTest_czek3_() {
+#if 1
   //----------
   //---3-way, all2all no
   //----------
@@ -378,20 +529,6 @@ void DriverTest_czek_() {
   //----------
 
   EXPECT_EQ(true, compare_2runs("--num_proc_vector 1 --num_proc_field "
-                                "1 --num_field 2 --num_vector_local 2 "
-                                "--compute_method CPU",
-                                "--num_proc_vector 1 --num_proc_field "
-                                "2 --num_field 2 --num_vector_local 2 "
-                                "--compute_method GPU"));
-
-  EXPECT_EQ(true, compare_2runs("--num_proc_vector 1 --num_proc_field "
-                                "1 --num_field 2 --num_vector_local 4 "
-                                "--compute_method CPU",
-                                "--num_proc_vector 2 --num_proc_field "
-                                "2 --num_field 2 --num_vector_local 2 "
-                                "--compute_method GPU --all2all yes"));
-
-  EXPECT_EQ(true, compare_2runs("--num_proc_vector 1 --num_proc_field "
                                 "1 --num_field 2 --num_vector_local 3 "
                                 "--compute_method CPU --num_way 3",
                                 "--num_proc_vector 1 --num_proc_field "
@@ -407,7 +544,7 @@ void DriverTest_czek_() {
                           " --compute_method GPU --num_way 3 --all2all yes"));
 
   //----------
-  //---num_repl, 2-way
+  //---num_repl, num_stage, 3-way
   //----------
 
   char options1[1024];
@@ -418,32 +555,6 @@ void DriverTest_czek_() {
       "--num_field 4 --num_vector_local %i --compute_method %s --all2all yes "
       "--num_proc_vector %i --num_proc_repl %i "
       "--num_proc_field %i --num_way %i --num_stage %i";
-
-  for (int gpu=0; gpu<=1; ++gpu) {
-    for (int num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
-      for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-        for (int num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
-          const int num_proc_field = gpu ? 2 : 1;
-          if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
-            continue;
-          }
-          const int num_way = 2;
-          sprintf(options1, options_template_1,
-                  num_vector_local*num_proc_vector,
-                  "GPU", 1, 1,
-                  1, num_way, 1);
-          sprintf(options2, options_template_1, num_vector_local,
-                  gpu ? "GPU" : "CPU", num_proc_vector, num_proc_repl,
-                  num_proc_field, num_way, 1);
-          test_2runs(options1, options2);
-        }
-      }
-    }
-  }
-
-  //----------
-  //---num_repl, num_stage, 3-way
-  //----------
 
   for (int gpu=0; gpu<=1; ++gpu) {
     for (int num_vector_local=6; num_vector_local<=18; num_vector_local+=12) {
@@ -470,37 +581,14 @@ void DriverTest_czek_() {
   }
 
   //----------
-  //---num_phase, 2-way
+  //---num_repl, num_phase, 3-way
   //----------
-
-  for (int num_proc_vector=1; num_proc_vector<=8; ++num_proc_vector) {
-    for (int num_proc_repl=1; num_proc_repl<=8; ++num_proc_repl) {
-      for (int num_phase=2; num_phase<=8; ++num_phase) {
-        if (!(num_phase <= 1 + num_proc_vector/2)) {
-          continue;
-        }
-        char options_template[] =
-          "--metric_type czekanowski "
-          "--num_field 7 --num_vector 12 --compute_method GPU --all2all yes "
-          "--num_proc_vector %i --num_proc_repl %i --num_phase %i "
-          "--num_way 2";
-        sprintf(options1, options_template, num_proc_vector, num_proc_repl,
-                num_phase);
-        sprintf(options2, options_template, 1, 1, 1);
-        test_2runs(options1, options2);
-      }
-    }
-  }
 
   char options_template_2[] =
       "--metric_type czekanowski "
       "--num_field 4 --num_vector_local %i --compute_method %s --all2all yes "
       "--num_proc_vector %i --num_proc_repl %i "
       "--num_proc_field %i --num_way %i --num_phase %i";
-
-  //----------
-  //---num_repl, num_phase, 3-way
-  //----------
 
   for (int gpu=0; gpu<=1; ++gpu) {
     for (int num_vector_local=6; num_vector_local<=6; num_vector_local+=12) {
@@ -535,99 +623,24 @@ void DriverTest_czek_() {
   }
 #endif
 
-  //----------
-  //---file output, 2-way
-  //----------
+//  //----------
+//  //---file output, 3-way
+//  //----------
+//
+//  EXPECT_EQ(
+//      true,
+//      compare_2runs("--num_proc_field 1 --num_proc_vector 1 "
+//                    "--num_field 7 --num_vector 18 "
+//                    "--num_way 3 --metric_type czekanowski "
+//                    "--compute_method REF --all2all yes",
+//                    "--num_proc_field 1 --num_proc_vector 3 "
+//                    "--num_field 7 --num_vector 18 "
+//                    "--num_way 3 --metric_type czekanowski "
+//                    "--compute_method GPU --all2all yes "
+//                    "--verbosity 1 "
+//                    "--output_file_stub test_czek_3way"));
 
-  EXPECT_EQ(
-      true,
-      compare_2runs("--num_proc_field 1 --num_proc_vector 1 "
-                    "--num_field 7 --num_vector 10 "
-                    "--num_way 2 --metric_type czekanowski "
-                    "--compute_method REF --all2all yes",
-                    "--num_proc_field 1 --num_proc_vector 3 "
-                    "--num_field 7 --num_vector 10 "
-                    "--num_way 2 --metric_type czekanowski "
-                    "--compute_method GPU --all2all yes "
-                    "--verbosity 1 "
-                    "--output_file_stub test_czek_2way"));
-
-  //----------
-  //---file output, 3-way
-  //----------
-
-  EXPECT_EQ(
-      true,
-      compare_2runs("--num_proc_field 1 --num_proc_vector 1 "
-                    //FIX"--num_field 7 --num_vector 18 "
-                    "--num_field 1 --num_vector 18 "
-                    "--num_way 3 --metric_type czekanowski "
-                    "--compute_method REF --all2all yes",
-                    //FIX "--num_proc_field 1 --num_proc_vector 3 "
-                    "--num_proc_field 1 --num_proc_vector 3 "
-                    "--num_field 1 --num_vector 18 "
-                    //FIX"--num_field 7 --num_vector 18 "
-                    "--num_way 3 --metric_type czekanowski "
-                    "--compute_method GPU --all2all yes "
-                    "--verbosity 1 "
-                    "--output_file_stub test_czek_3way"));
-
-//FIX
-#if 0
-  //----------
-  //---Misc options
-  //----------
-
-  EXPECT_EQ(
-      true,
-      compare_2runs("--num_proc_vector 1 --num_field 30 --num_vector 3 "
-                    "--verbosity 1 --all2all yes "
-                    "--compute_method REF --threshold .65",
-                    "--num_proc_vector 1 --num_field 30 --num_vector 3 "
-                    "--verbosity 1 --all2all yes "
-                    "--compute_method GPU --threshold .65"));
-
-  // TODO: set up better test
-  //EXPECT_EQ(
-  //    true,
-  //    compare_2runs("--num_proc_vector 1 --num_field 3 --num_vector 3 "
-  //                  "--compute_method GPU",
-  //                  "--num_proc_vector 1 --num_field 3 --num_vector 3 "
-  //                  "--compute_method GPU --checksum no"));
-
-  //----------
-  //---file input
-  //----------
-
-  for (int num_vector = 13; num_vector <= 13; ++num_vector) {
-    for (int num_field = 1; num_field <= 10; ++num_field) {
-      create_vectors_file("czek_2way_in.bin", num_field, num_vector,
-                          comet::MetricType::CZEK, 2, comet::problem_type_default(), 1);
-      for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (int num_proc_field=1; num_proc_field<=5; ++num_proc_field) {
-
-          char options1[1024];
-          char options2[1024];
-
-          char options_template[] =
-                 "--num_vector %i --num_field %i "
-                 "--num_proc_vector %i --num_proc_field %i "
-                 "--compute_method GPU --all2all yes %s --verbosity 1";
-
-          sprintf(options1, options_template,
-                  num_vector, num_field, num_proc_vector, num_proc_field, "");
-
-          sprintf(options2, options_template,
-                  num_vector, num_field, num_proc_vector, num_proc_field,
-                  "--input_file czek_2way_in.bin");
-
-          test_2runs(options1, options2);
-        }
-      }
-    }
-  }
-#endif
-} // DriverTest_czek_
+} // DriverTest_czek3_
 
 //=============================================================================
 
@@ -1904,17 +1917,62 @@ void DriverTest_threshold_() {
 
 //=============================================================================
 
+void DriverTest_file_output_() {
 
+    char options1[1024];
+    char options2[1024];
 
+    const int num_proc_vector = 5;
+
+    char options_template[] =
+        "--metric_type %s "
+        "--num_proc_vector %i "
+        "--num_field 19 --num_vector 55 "
+        "--num_way %i "
+        "--all2all %s "
+        "--sparse yes "
+        "--problem_type random "
+        "--threshold .60 "
+        "--tc %i "
+        "--compute_method %s "
+        "--num_phase %i "
+        "--num_stage %i "
+        "--verbosity 1 "
+        "%s";
+
+    typedef comet::ComputeMethod CM;
+    typedef comet::MetricType MT;
+    typedef comet::TC TC;
+    typedef comet::NUM_WAY NUM_WAY;
+
+    for (int num_way : {2, 3})
+    for (int all2all : {1})
+    for (int metric_type : {MT::CZEK, MT::CCC, MT::DUO})
+    for (int compute_method : {CM::CPU, CM::GPU}) {
+      const int num_stage = NUM_WAY::_3 == num_way && all2all ? 2 : 1;
+      const int num_phase = all2all ? 2 : 1;
+
+      sprintf(options1, options_template,
+        MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
+        TC::NO, CM::str(CM::REF), num_phase, num_stage, "");
+
+      sprintf(options2, options_template,
+        MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
+        TC::AUTO, CM::str(compute_method), num_phase, num_stage,
+        "--output_file_stub DriverTest_file_output");
+
+      test_2runs(options1, options2);
+    } 
+} // DriverTest_file_output_
 
 //=============================================================================
 
 void DriverTest_ccc2_duo2_(const char* const metric_type) {
   char options1[1024];
   char options2[1024];
-#if 0
+#if 1
   char options3[1024];
-  const bool is_duo = 'd' == metric_type[0];
+  //const bool is_duo = 'd' == metric_type[0];
 
   //----------
   //---2-way, all2all no
@@ -2230,26 +2288,26 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   }
 #endif
 
-  //----------
-  //---file output, 2-way
-  //----------
-
-  {
-    char options_template[] =
-        "--num_proc_field 1 --num_proc_vector 1 "
-        "--num_field 7 --num_vector 100 "
-        "--num_way 2 --metric_type %s "
-        "--all2all yes --sparse yes "
-        "--problem_type random "
-        "--verbosity 1 "
-        "%s";
-      sprintf(options1, options_template, metric_type,
-              "--compute_method REF");
-      sprintf(options2, options_template, metric_type,
-              "--compute_method GPU --tc 4 "
-              "--output_file_stub test_ccc_duo_2way");
-      test_2runs(options1, options2);
-  }
+//  //----------
+//  //---file output, 2-way
+//  //----------
+//
+//  {
+//    char options_template[] =
+//        "--num_proc_field 1 --num_proc_vector 1 "
+//        "--num_field 7 --num_vector 100 "
+//        "--num_way 2 --metric_type %s "
+//        "--all2all yes --sparse yes "
+//        "--problem_type random "
+//        "--verbosity 1 "
+//        "%s";
+//      sprintf(options1, options_template, metric_type,
+//              "--compute_method REF");
+//      sprintf(options2, options_template, metric_type,
+//              "--compute_method GPU --tc 4 "
+//              "--output_file_stub test_ccc_duo_2way");
+//      test_2runs(options1, options2);
+//  }
 } // DriverTest_ccc2_duo2_
 
 //=============================================================================
@@ -2257,7 +2315,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
 void DriverTest_ccc3_duo3_(const char* const metric_type) {
   char options1[1024];
   char options2[1024];
-#if 0
+#if 1
   char options3[1024];
   const bool is_duo = 'd' == metric_type[0];
 
@@ -2445,26 +2503,26 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
   }
 #endif
 
-  //----------
-  //---file output, 3-way
-  //----------
-
-  {
-    char options_template[] =
-        "--num_proc_field 1 --num_proc_vector 1 "
-        "--num_field 7 --num_vector 18 "
-        "--num_way 3 --metric_type %s "
-        "--all2all yes --sparse yes "
-        "--problem_type random "
-        "--verbosity 1 "
-        "%s";
-      sprintf(options1, options_template, metric_type,
-              "--compute_method REF");
-      sprintf(options2, options_template, metric_type,
-              "--compute_method GPU --tc 4 "
-              "--output_file_stub test_ccc_duo_3way");
-      test_2runs(options1, options2);
-  }
+//  //----------
+//  //---file output, 3-way
+//  //----------
+//
+//  {
+//    char options_template[] =
+//        "--num_proc_field 1 --num_proc_vector 1 "
+//        "--num_field 7 --num_vector 18 "
+//        "--num_way 3 --metric_type %s "
+//        "--all2all yes --sparse yes "
+//        "--problem_type random "
+//        "--verbosity 1 "
+//        "%s";
+//      sprintf(options1, options_template, metric_type,
+//              "--compute_method REF");
+//      sprintf(options2, options_template, metric_type,
+//              "--compute_method GPU --tc 4 "
+//              "--output_file_stub test_ccc_duo_3way");
+//      test_2runs(options1, options2);
+//  }
 } // DriverTest_ccc3_duo3_
 
 //=============================================================================
@@ -2493,8 +2551,11 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
-//FIX
-#if 0
+TEST(DriverTest, file_output) {
+  DriverTest_file_output_();
+}
+
+#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
@@ -2528,8 +2589,13 @@ TEST(DriverTest, duo2_simple_sparse) {
 }
 #endif
 
-TEST(DriverTest, czek) {
-  DriverTest_czek_();
+#if 1
+TEST(DriverTest, czek2) {
+  DriverTest_czek2_();
+}
+
+TEST(DriverTest, czek3) {
+  DriverTest_czek3_();
 }
 
 TEST(DriverTest, ccc2) {
@@ -2547,7 +2613,6 @@ TEST(DriverTest, duo2) {
 TEST(DriverTest, duo3) {
   DriverTest_duo3_();
 }
-#if 0
 #endif
 
 //=============================================================================

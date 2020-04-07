@@ -86,6 +86,10 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector = dm->num_vector_local * env->num_proc_vector();
     dm->vector_base = dm->num_vector_local * env->proc_num_vector();
   } else { // ! vectors_by_local
+    COMET_INSIST_INTERFACE(env, (env->all2all() ||
+                                 env->num_proc_vector() == 1) &&
+      "Use of all2all = no option currently requires "
+      "num_vector_local, not num_vector.");
     dm->num_vector_active = num_vector_specifier;
     // Pad up as needed, require every proc has same number
     const int num_proc = env->num_proc_vector();

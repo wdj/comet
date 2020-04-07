@@ -304,7 +304,7 @@ static double GMMetrics_ccc_duo_get_from_index_2(
     const double diff = fabs(result_intcalc - result_floatcalc);
 
     if (!(diff < eps)) {
-      printf("Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
+      fprintf(stderr, "Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
              (double)result_floatcalc, (double)result_intcalc);
       COMET_INSIST(diff < eps);
     }

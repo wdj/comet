@@ -96,7 +96,7 @@ bool System::accel_last_call_succeeded() {
   const bool result = error == cudaSuccess;
 
   if (!result) {
-    printf("CUDA error detected: %s\n", cudaGetErrorString(error));
+    fprintf(stderr, "CUDA error detected: %s\n", cudaGetErrorString(error));
   }
 
   return result;
@@ -106,7 +106,7 @@ bool System::accel_last_call_succeeded() {
   const bool result = error == hipSuccess;
 
   if (!result) {
-    printf("HIP error detected: %s\n", hipGetErrorString(error));
+    fprintf(stderr, "HIP error detected: %s\n", hipGetErrorString(error));
   }
 
   return result;

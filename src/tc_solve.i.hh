@@ -91,16 +91,17 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 #     ifdef COMET_USE_CUDA
         if (CUBLAS_STATUS_SUCCESS != status) {
           // Decode error message.
-          printf("Error: %s\n", CUBLAS_STATUS_NOT_INITIALIZED == status ?
-                               "CUBLAS_STATUS_NOT_INITIALIZED" :
-                                CUBLAS_STATUS_ARCH_MISMATCH == status ?
-                               "CUBLAS_STATUS_ARCH_MISMATCH" :
-                                CUBLAS_STATUS_NOT_SUPPORTED == status ?
-                               "CUBLAS_STATUS_NOT_SUPPORTED" :
-                                CUBLAS_STATUS_INVALID_VALUE == status ?
-                               "CUBLAS_STATUS_INVALID_VALUE" :
-                                CUBLAS_STATUS_EXECUTION_FAILED == status ?
-                               "CUBLAS_STATUS_EXECUTION_FAILED" : "");
+          fprintf(stderr, "Error: %s\n",
+                   CUBLAS_STATUS_NOT_INITIALIZED == status ?
+                  "CUBLAS_STATUS_NOT_INITIALIZED" :
+                   CUBLAS_STATUS_ARCH_MISMATCH == status ?
+                  "CUBLAS_STATUS_ARCH_MISMATCH" :
+                   CUBLAS_STATUS_NOT_SUPPORTED == status ?
+                  "CUBLAS_STATUS_NOT_SUPPORTED" :
+                   CUBLAS_STATUS_INVALID_VALUE == status ?
+                  "CUBLAS_STATUS_INVALID_VALUE" :
+                   CUBLAS_STATUS_EXECUTION_FAILED == status ?
+                  "CUBLAS_STATUS_EXECUTION_FAILED" : "");
         }
         COMET_INSIST(CUBLAS_STATUS_SUCCESS == status &&
                      "Failure in call to cublasGemmEx.");
