@@ -34,16 +34,27 @@ public:
   struct Metric {
     uint32_t coords[N];
     Float_t value;
-    uint32_t coord0() const {return coords[0];}
-    uint32_t coord1() const {return coords[1];}
-    uint32_t coord2() const {return coords[N==3 ? 2 : 0];}
-    uint32_t coord0d() const {return coord0() / 2;}
-    uint32_t coord1d() const {return coord1() / 2;}
-    uint32_t coord2d() const {return coord2() / 2;}
-    int i0() const {return coord0() % 2;}
-    int i1() const {return coord1() % 2;}
-    int i2() const {return coord2() % 2;}
-  };
+    uint32_t coord0(const CEnv& env) const {
+      return env.is_metric_type_bitwise() ? coords[0] / 2 : coords[0];
+    }
+    uint32_t coord1(const CEnv& env) const {
+      return env.is_metric_type_bitwise() ? coords[1] / 2 : coords[1];
+    }
+    uint32_t coord2(const CEnv& env) const {
+      COMET_ASSERT(N >= 3);
+      return env.is_metric_type_bitwise() ? coords[2] / 2 : coords[2];
+    }
+    uint32_t i0(const CEnv& env) const {
+      return env.is_metric_type_bitwise() ? coords[0] % 2 : 0;
+    }
+    uint32_t i1(const CEnv& env) const {
+      return env.is_metric_type_bitwise() ? coords[1] % 2 : 0;
+    }
+    uint32_t i2(const CEnv& env) const {
+      COMET_ASSERT(N >= 3);
+      return env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
+    }
+  }; // Metric
 
   MetricIO(FILE* file, GMMetrics& metrics, CEnv& env);
   ~MetricIO() {}

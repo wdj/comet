@@ -690,6 +690,72 @@ static Tally4x2<MF> Metrics_get(
 }
 
 //=============================================================================
+// Accessors: value from index: get: 3-way.
+
+static GMFloat GMMetrics_get_3(GMMetrics& metrics,
+  size_t index, int i0, int i1, int i2, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(index >= 0 && index < metrics.num_elts_local);
+  COMET_ASSERT(i0 >= 0 && i0 < env.i012_max());
+  COMET_ASSERT(i1 >= 0 && i1 < env.i012_max());
+  COMET_ASSERT(i2 >= 0 && i2 < env.i012_max());
+
+  const GMFloat result =
+    env.metric_type() == MetricType::CZEK ?
+      Metrics_get<GMFloat>(metrics, index, env) :
+    env.metric_type() == MetricType::CCC ?
+      (GMFloat)GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(
+        &metrics, index, i0, i1, i2, &env) :
+  //env.metric_type() == MetricType::DUO ?
+      (GMFloat)GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(
+        &metrics, index, i0, i1, i2, &env);
+
+  return result;
+}
+
+//=============================================================================
+// Accessors: value from (global) coord: get: 3-way.
+
+static GMFloat GMMetrics_get_3(GMMetrics& metrics,
+  size_t ig, size_t jg, size_t kg, int i0, int i1, int i2, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(i0 >= 0 && i0 < env.i012_max());
+  COMET_ASSERT(i1 >= 0 && i1 < env.i012_max());
+  COMET_ASSERT(i2 >= 0 && i2 < env.i012_max());
+  // WARNING: these conditions are not exhaustive.
+
+  const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, ig, &env);
+  const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, jg, &env);
+  const size_t k = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, kg, &env);
+  COMET_ASSERT(i >= 0 && i < metrics.dm->num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics.dm->num_vector_local);
+  COMET_ASSERT(k >= 0 && k < metrics.dm->num_vector_local);
+
+  const int i_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, ig, &env);
+  const int j_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, jg, &env);
+  const int k_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, kg, &env);
+  no_unused_variable_warning(i_proc);
+  COMET_ASSERT(env.proc_num_vector() == i_proc);
+  COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
+  COMET_ASSERT(k_proc >= 0 && k_proc < env.num_proc_vector());
+
+  const size_t index = env.all2all() ?
+    GMMetrics_index_from_coord_all2all_3(&metrics,
+      i, j, k, j_proc, k_proc, &env) :
+    GMMetrics_index_from_coord_3(&metrics, i, j, k, &env);
+
+  const GMFloat result = GMMetrics_get_3(metrics, index, i0, i1, i2, env);
+
+  return result;
+}
+
+//=============================================================================
 
 } // namespace comet
 

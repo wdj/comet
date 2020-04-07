@@ -552,8 +552,6 @@ void DriverTest_czek_() {
                     "--verbosity 1 "
                     "--output_file_stub test_czek_2way"));
 
-//FIX
-#if 0
   //----------
   //---file output, 3-way
   //----------
@@ -561,16 +559,21 @@ void DriverTest_czek_() {
   EXPECT_EQ(
       true,
       compare_2runs("--num_proc_field 1 --num_proc_vector 1 "
-                    "--num_field 7 --num_vector 18 "
+                    //FIX"--num_field 7 --num_vector 18 "
+                    "--num_field 1 --num_vector 18 "
                     "--num_way 3 --metric_type czekanowski "
                     "--compute_method REF --all2all yes",
-                    "--num_proc_vector 1 --num_proc_vector 3 "
-                    "--num_field 7 --num_vector 18 "
+                    //FIX "--num_proc_field 1 --num_proc_vector 3 "
+                    "--num_proc_field 1 --num_proc_vector 3 "
+                    "--num_field 1 --num_vector 18 "
+                    //FIX"--num_field 7 --num_vector 18 "
                     "--num_way 3 --metric_type czekanowski "
                     "--compute_method GPU --all2all yes "
                     "--verbosity 1 "
                     "--output_file_stub test_czek_3way"));
 
+//FIX
+#if 0
   //----------
   //---Misc options
   //----------
@@ -1909,9 +1912,8 @@ void DriverTest_threshold_() {
 void DriverTest_ccc2_duo2_(const char* const metric_type) {
   char options1[1024];
   char options2[1024];
-#if 1
+#if 0
   char options3[1024];
-
   const bool is_duo = 'd' == metric_type[0];
 
   //----------
@@ -2226,6 +2228,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
       }
     }
   }
+#endif
 
   //----------
   //---file output, 2-way
@@ -2233,24 +2236,20 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
 
   {
     char options_template[] =
-        "--metric_type %s "
-        "--num_proc_vector 1 --num_proc_vector 1 "
+        "--num_proc_field 1 --num_proc_vector 1 "
         "--num_field 7 --num_vector 100 "
-        "--num_way 2 "
-        "--all2all yes --sparse %s "
-        "--problem_type random %s";
-    for (int sparse=0; sparse<2; ++sparse) {
-      if (is_duo && 0 == sparse) continue;
-      sprintf(options1, options_template, metric_type, 1==sparse ? "yes" : "no",
+        "--num_way 2 --metric_type %s "
+        "--all2all yes --sparse yes "
+        "--problem_type random "
+        "--verbosity 1 "
+        "%s";
+      sprintf(options1, options_template, metric_type,
               "--compute_method REF");
-      sprintf(options2, options_template, metric_type, 1==sparse ? "yes" : "no",
-              "--compute_method GPU "
-              "--verbosity 1 "
+      sprintf(options2, options_template, metric_type,
+              "--compute_method GPU --tc 4 "
               "--output_file_stub test_ccc_duo_2way");
       test_2runs(options1, options2);
-    }
   }
-#endif
 } // DriverTest_ccc2_duo2_
 
 //=============================================================================
@@ -2258,9 +2257,8 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
 void DriverTest_ccc3_duo3_(const char* const metric_type) {
   char options1[1024];
   char options2[1024];
-#if 1
+#if 0
   char options3[1024];
-
   const bool is_duo = 'd' == metric_type[0];
 
   //----------
@@ -2445,6 +2443,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
     sprintf(options3, options_template_4, metric_type, 1, 4, 100, 12, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
   }
+#endif
 
   //----------
   //---file output, 3-way
@@ -2452,24 +2451,20 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
 
   {
     char options_template[] =
-        "--metric_type %s "
-        "--num_proc_vector 1 "
+        "--num_proc_field 1 --num_proc_vector 1 "
         "--num_field 7 --num_vector 18 "
-        "--num_way 3 "
-        "--all2all yes --sparse %s "
-        "--problem_type random %s";
-    for (int sparse=0; sparse<2; ++sparse) {
-      if (is_duo && 0 == sparse) continue;
-      sprintf(options1, options_template, metric_type, 1==sparse ? "yes" : "no",
+        "--num_way 3 --metric_type %s "
+        "--all2all yes --sparse yes "
+        "--problem_type random "
+        "--verbosity 1 "
+        "%s";
+      sprintf(options1, options_template, metric_type,
               "--compute_method REF");
-      sprintf(options2, options_template, metric_type, 1==sparse ? "yes" : "no",
-              "--compute_method GPU "
-              "--verbosity 1 "
+      sprintf(options2, options_template, metric_type,
+              "--compute_method GPU --tc 4 "
               "--output_file_stub test_ccc_duo_3way");
       test_2runs(options1, options2);
-    }
   }
-#endif
 } // DriverTest_ccc3_duo3_
 
 //=============================================================================
@@ -2531,6 +2526,11 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
+#endif
+
+TEST(DriverTest, czek) {
+  DriverTest_czek_();
+}
 
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
@@ -2547,12 +2547,7 @@ TEST(DriverTest, duo2) {
 TEST(DriverTest, duo3) {
   DriverTest_duo3_();
 }
-#endif
-
-TEST(DriverTest, czek) {
-  DriverTest_czek_();
-}
-#if 1
+#if 0
 #endif
 
 //=============================================================================

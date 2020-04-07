@@ -361,6 +361,7 @@ public:
   bool is_metric_type_bitwise() const {
     return MetricType::CCC == metric_type_ || MetricType::DUO == metric_type_;
   }
+  int i012_max() const {return is_metric_type_bitwise() ? 2 : 1;}
   // Do we use TC package.
   bool is_using_tc() const {
     //COMET_INSIST(is_using_linalg());

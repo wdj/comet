@@ -516,7 +516,28 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
   const int J_lo = metrics->J_lo_part3_[section_num];
   const int J_wi = metrics->J_wi_part3_[section_num];
 
+  const int I = section_axis == 1 ? i :
+                section_axis == 0 ? k :
+                                    j;
+
+  const int J = section_axis == 1 ? j :
+                section_axis == 0 ? i :
+                                    k;
+
+  const int K = section_axis == 1 ? k :
+                section_axis == 0 ? j :
+                                    i;
+
   /* clang-format off */
+  const int64_t index = elts_offset +
+                        I + nvl * (
+                        K + nvl * (
+                        J - J_lo + J_wi * (
+                        (int64_t)blocks_offset
+                        )));
+  /* clang-format on */
+
+#if 0
   const int64_t index = elts_offset +
                         i - ( section_axis == 0 ? J_lo : 0 ) +
                             ( section_axis == 0 ? J_wi : nvl ) * (
@@ -526,7 +547,7 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
                             ( section_axis == 1 ? J_wi : nvl ) * (
                         (int64_t)blocks_offset
         )));
-  /* clang-format on */
+#endif
 
   COMET_ASSERT(index >= 0);
   COMET_ASSERT(index < (int64_t)metrics->num_elts_local);

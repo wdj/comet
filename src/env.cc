@@ -512,8 +512,7 @@ bool CEnv::can_run(int tc) const {
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
   }
 
-  if (is_using_linalg() && !form_matX_tc() &&
-      metric_type() == MetricType::DUO) {
+  if (is_using_linalg() && TC::NO == tc && metric_type() == MetricType::DUO) {
     result = false; // currently unimplemented
   }
 

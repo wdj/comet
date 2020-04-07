@@ -588,6 +588,64 @@ static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
 }
 
 //=============================================================================
+// Accessors: value from index: get: 2-way.
+
+static GMFloat GMMetrics_get_2(GMMetrics& metrics,
+  size_t index, int i0, int i1, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
+  COMET_ASSERT(index >= 0 && index < metrics.num_elts_local);
+  COMET_ASSERT(i0 >= 0 && i0 < env.i012_max());
+  COMET_ASSERT(i1 >= 0 && i1 < env.i012_max());
+
+  const GMFloat result =
+    env.metric_type() == MetricType::CZEK ?
+      Metrics_get<GMFloat>(metrics, index, env) :
+    env.metric_type() == MetricType::CCC ?
+      (GMFloat)GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(
+        &metrics, index, i0, i1, &env) :
+  //env.metric_type() == MetricType::DUO ?
+      (GMFloat)GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(
+        &metrics, index, i0, i1, &env);
+
+  return result;
+}
+
+//=============================================================================
+// Accessors: value from (global) coord: get: 2-way.
+
+static GMFloat GMMetrics_get_2(GMMetrics& metrics,
+  size_t ig, size_t jg, int i0, int i1, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
+  COMET_ASSERT(i0 >= 0 && i0 < env.i012_max());
+  COMET_ASSERT(i1 >= 0 && i1 < env.i012_max());
+
+  // WARNING: these conditions are not exhaustive.
+
+  const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, ig, &env);
+  const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
+    metrics.dm, jg, &env);
+  COMET_ASSERT(i >= 0 && i < metrics.dm->num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics.dm->num_vector_local);
+
+  const int i_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, ig, &env);
+  const int j_proc = GMDecompMgr_get_proc_vector_from_vector_active(
+    metrics.dm, jg, &env);
+  no_unused_variable_warning(i_proc);
+  COMET_ASSERT(env.proc_num_vector() == i_proc);
+  COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
+
+  const size_t index = env.all2all() ?
+    GMMetrics_index_from_coord_all2all_2(&metrics, i, j, j_proc, &env) :
+    GMMetrics_index_from_coord_2(&metrics, i, j, &env);
+
+  const GMFloat result = GMMetrics_get_2(metrics, index, i0, i1, env);
+
+  return result;
+}
+
+//=============================================================================
 
 } // namespace comet
 

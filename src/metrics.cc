@@ -614,6 +614,10 @@ void GMMetrics_create(GMMetrics* metrics,
                     const size_t index_this = index + I + K * (size_t)nvl;
                     COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_elts_local);
+
+                    COMET_ASSERT(GMMetrics_helper3way_part3_permuted_(metrics, I, J, K, i_block, j_block, k_block, env) == index_this);
+
+                    COMET_ASSERT(GMMetrics_helper3way_part3_(metrics, i, j, k, i_block, j_block, k_block, env) == index_this);
                     metrics->coords_global_from_index[index_this] =
                         i_global +
                         metrics->num_vector *
