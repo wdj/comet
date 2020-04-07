@@ -28,6 +28,8 @@ namespace comet {
 class MetricIO {
 public:
 
+  // NOTE: metrics always written in single precision; this could be changed.
+
   typedef GMFp32 Float_t;
 
   template<int N>

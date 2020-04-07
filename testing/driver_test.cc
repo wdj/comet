@@ -2551,11 +2551,11 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
+#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
 
-#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
@@ -2587,9 +2587,7 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
-#endif
 
-#if 1
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
@@ -2605,7 +2603,9 @@ TEST(DriverTest, ccc2) {
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
+#endif
 
+#if 1
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }

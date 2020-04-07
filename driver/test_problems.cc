@@ -641,9 +641,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               //                               (f_one / 4) * metrics->recip_m;
 
               value_expected_floatcalc = cbpe == 2 ?
-                GMMetrics_ccc_duo_value<CBPE::CCC, double>(metrics, rij, si, sj,
+                GMMetrics_ccc_duo_value<CBPE::CCC>(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env) :
-                GMMetrics_ccc_duo_value<CBPE::DUO, double>(metrics, rij, si, sj,
+                GMMetrics_ccc_duo_value<CBPE::DUO>(metrics, rij, si, sj,
                                     recip_ci, recip_cj, recip_sumcij, env);
             }
 
@@ -798,9 +798,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                                                (f_one / 8) * metrics->recip_m;
   
                 value_expected_floatcalc = cbpe == CBPE::CCC ?
-                  Metrics_ccc_duo_value<CBPE::CCC, double>(*metrics, rijk, si, sj, sk,
+                  Metrics_ccc_duo_value<CBPE::CCC>(*metrics, rijk, si, sj, sk,
                            recip_ci, recip_cj, recip_ck, recip_sumcijk, *env) :
-                  Metrics_ccc_duo_value<CBPE::DUO, double>(*metrics, rijk, si, sj, sk,
+                  Metrics_ccc_duo_value<CBPE::DUO>(*metrics, rijk, si, sj, sk,
                            recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
               }
 
