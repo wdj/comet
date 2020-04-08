@@ -20,7 +20,7 @@ MESSAGE("Compiler ID: ${CMAKE_C_COMPILER_ID}")
 SET(INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_SOURCE_DIR}/driver
-  )
+)
 
 SET(LIB_SOURCES
   src/env.cc
@@ -42,11 +42,11 @@ SET(LIB_SOURCES
   src/compute_metrics_2way.cc
   src/compute_metrics_3way.cc
   src/compute_metrics.cc
-  )
+)
 
 SET(ACCEL_SOURCES
   src/tc.cc
-  )
+)
 
 SET(LIB_INCLUDES
   src/env.hh
@@ -78,20 +78,21 @@ SET(LIB_INCLUDES
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh
   src/compute_metrics.cc
-  )
+)
 
 SET(DRIVER_SOURCES
   driver/driver.cc
   driver/vectors_io.cc
   driver/metrics_io.cc
   driver/test_problems.cc
-  )
+)
 
 SET(TEST_TARGETS
   env_test
   metrics_test
   driver_test
-  )
+  perf_test
+)
 
 #--------------------
 # Preliminaries.
@@ -169,11 +170,27 @@ if(TESTING)
     TARGET_LINK_LIBRARIES(${TEST_TARGET} genomics_metrics)
     TARGET_LINK_LIBRARIES(${TEST_TARGET} ${CMAKE_EXE_LINKER_FLAGS})
 
-    add_test(${TEST_TARGET} bash -c
-             "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
+    if("${TEST_TARGET}" STREQUAL "perf_test")
+      if(NOT "${TEST_COMMAND_PERF}" STREQUAL "")
+      if("${FP_PRECISION}" STREQUAL "DOUBLE")
+
+        add_test(${TEST_TARGET} bash -c
+          "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND_PERF} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
+
+      endif()
+      endif()
+    else()
+      add_test(${TEST_TARGET} bash -c
+        "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
+    endif()
+
   endforeach()
+
 else()
-  set(UNUSED_NO_WARN_1, ${TEST_COMMAND}) # turn off unused var warning
+  # turn off unused var warnings
+  set(UNUSED_NO_WARN_1, ${TEST_COMMAND})
+  set(UNUSED_NO_WARN_1, ${TEST_COMMAND_PERF})
+  set(UNUSED_NO_WARN_1, ${FP_PRECISION})
 endif() 
 
 MESSAGE("--------------------")

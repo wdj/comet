@@ -173,6 +173,11 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
 
   local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 jsrun --nrs 2 --rs_per_host 1"
   COMET_TEST_COMMAND+=" --cpu_per_rs 32 -g 6 --tasks_per_rs 32 -X 1"
+
+  local COMET_TEST_COMMAND_PERF="env OMP_NUM_THREADS=7 jsrun --nrs 12 "
+  COMET_TEST_COMMAND_PERF+="--bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 "
+  COMET_TEST_COMMAND_PERF+="--rs_per_host 6 --tasks_per_rs 1 -X 1"
+
   #COMET_TEST_COMMAND+=" -E LD_PRELOAD=${OLCF_SPECTRUM_MPI_ROOT}/lib/pami_451/libpami.so"
 
 #----------------------------------------

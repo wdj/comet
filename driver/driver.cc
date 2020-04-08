@@ -268,44 +268,6 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
     set_vectors_synthetic(vectors, do_->problem_type, do_->verbosity, env);
   }
 }
-//=============================================================================
-/*---Perform a single metrics computation run---*/
-
-void perform_run(const char* const options, MPI_Comm base_comm, CEnv* env) {
-  COMET_INSIST(options);
-
-  comet::Checksum cksum;
-
-  perform_run(cksum, options, base_comm, env);
-}
-
-//-----------------------------------------------------------------------------
-
-void perform_run(comet::Checksum& cksum, const char* const options,
-                 MPI_Comm base_comm, CEnv* env) {
-  COMET_INSIST(options);
-
-  /*---Convert options string to args---*/
-
-  size_t len = strlen(options);
-  char argstring[len+1];
-  char* argv[len+1];
-  int argc = 0;
-  strcpy(argstring, options);
-  CEnv::create_args(argstring, &argc, argv);
-
-  return perform_run(cksum, argc, argv, options, base_comm, env);
-}
-
-//-----------------------------------------------------------------------------
-
-void perform_run(int argc, char** argv, const char* const description,
-                            MPI_Comm base_comm, CEnv* env) {
-
-  comet::Checksum cksum;
-
-  perform_run(cksum, argc, argv, description, base_comm, env);
-}
 
 //-----------------------------------------------------------------------------
 
@@ -383,6 +345,45 @@ void print_output(bool do_print,
   }
 
   printf("\n");
+}
+
+//=============================================================================
+/*---Perform a single metrics computation run---*/
+
+void perform_run(const char* const options, MPI_Comm base_comm, CEnv* env) {
+  COMET_INSIST(options);
+
+  comet::Checksum cksum;
+
+  perform_run(cksum, options, base_comm, env);
+}
+
+//-----------------------------------------------------------------------------
+
+void perform_run(comet::Checksum& cksum, const char* const options,
+                 MPI_Comm base_comm, CEnv* env) {
+  COMET_INSIST(options);
+
+  /*---Convert options string to args---*/
+
+  size_t len = strlen(options);
+  char argstring[len+1];
+  char* argv[len+1];
+  int argc = 0;
+  strcpy(argstring, options);
+  CEnv::create_args(argstring, &argc, argv);
+
+  return perform_run(cksum, argc, argv, options, base_comm, env);
+}
+
+//-----------------------------------------------------------------------------
+
+void perform_run(int argc, char** argv, const char* const description,
+                            MPI_Comm base_comm, CEnv* env) {
+
+  comet::Checksum cksum;
+
+  perform_run(cksum, argc, argv, description, base_comm, env);
 }
 
 //-----------------------------------------------------------------------------

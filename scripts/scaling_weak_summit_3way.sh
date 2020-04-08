@@ -219,7 +219,7 @@ if [ $metric_type != czekanowski ] ; then
     --num_proc_repl $num_proc_repl \
     --num_phase $num_phase --phase_min $phase_min --phase_max $phase_max \
     --num_stage $num_stage --stage_min $(( $num_stage - 1 )) \
-    --threshold .7 \
+    --threshold .1 \
     --verbosity 1 $fastnodes_arg \
     --tc $tc --num_tc_steps $num_tc_steps "
 else
