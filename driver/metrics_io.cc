@@ -394,7 +394,8 @@ static void MetricsIO_write_(
       if (coord0 >= metrics->num_vector_active ||
           coord1 >= metrics->num_vector_active)
         continue;
-      const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
+      //const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
+      const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
       if (!env->pass_threshold(value))
         continue;
@@ -426,7 +427,8 @@ static void MetricsIO_write_(
           coord1 >= metrics->num_vector_active ||
           coord2 >= metrics->num_vector_active)
         continue;
-      const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
+      //const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
+      const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
       if (!env->pass_threshold(value))
         continue;
 

@@ -446,10 +446,10 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           MFT::encode(numer.data[3], r110, r111);
 
           if (env.all2all()) {
-            Metrics_set<MF>(*metrics, I, J, K,
+            Metrics_set_XXX<MF>(*metrics, I, J, K,
                             j_block, k_block, numer, index_cache, env);
           } else {
-            Metrics_set<MF>(*metrics, i, j, k, numer, env);
+            Metrics_set_XXX<MF>(*metrics, i, j, k, numer, env);
           }
 
         } // if (is_I_in_range)

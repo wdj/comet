@@ -162,7 +162,8 @@ double Checksum::metrics_elt(
   switch (metrics.data_type_id) {
     // --------------
     case GM_DATA_TYPE_FLOAT: {
-      value = Metrics_get<GMFloat>(metrics, index, env);
+      //value = Metrics_get<GMFloat>(metrics, index, env);
+      value = Metrics_elt_const<GMFloat>(metrics, index, env);
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {

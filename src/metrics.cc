@@ -725,37 +725,37 @@ void GMMetrics_create(GMMetrics* metrics,
   switch (data_type_id) {
     /*----------*/
     case GM_DATA_TYPE_FLOAT:
-      metrics->data_size = metrics->num_elts_local * sizeof(GMFloat);
-      //metrics->data = gm_malloc(metrics->data_size, env);
+      metrics->data_elt_size = sizeof(GMFloat);
+      metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->data_type_num_values = 1;
       break;
     /*----------*/
     case GM_DATA_TYPE_TALLY2X2: {
-      metrics->data_size = metrics->num_elts_local * sizeof(GMTally2x2);
-      //metrics->data = gm_malloc(metrics->data_size, env);
+      metrics->data_elt_size = sizeof(GMTally2x2);
+      metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
-      metrics->data_S_size = metrics->num_elts_local * sizeof(GMFloat2);
-      //metrics->data_S = gm_malloc(metrics->data_S_size, env);
+      metrics->data_S_elt_size = sizeof(GMFloat2);
+      metrics->data_S_size = metrics->num_elts_local * metrics->data_S_elt_size;
       metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
+      metrics->data_C_elt_size = sizeof(GMFloat2);
       if (env->sparse()) {
-        metrics->data_C_size = metrics->num_elts_local * sizeof(GMFloat2);
-        //metrics->data_C = gm_malloc(metrics->data_C_size, env);
+        metrics->data_C_size = metrics->num_elts_local * metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
       metrics->data_type_num_values = 4;
     } break;
     /*----------*/
     case GM_DATA_TYPE_TALLY4X2: {
-      metrics->data_size = metrics->num_elts_local * sizeof(GMTally4x2);
-      //metrics->data = gm_malloc(metrics->data_size, env);
+      metrics->data_elt_size = sizeof(GMTally4x2);
+      metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
-      metrics->data_S_size = metrics->num_elts_local * sizeof(GMFloat3);
-      //metrics->data_S = gm_malloc(metrics->data_S_size, env);
+      metrics->data_S_elt_size = sizeof(GMFloat3);
+      metrics->data_S_size = metrics->num_elts_local * metrics->data_S_elt_size;
       metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
+      metrics->data_C_elt_size = sizeof(GMFloat3);
       if (env->sparse()) {
-        metrics->data_C_size = metrics->num_elts_local * sizeof(GMFloat3);
-        //metrics->data_C = gm_malloc(metrics->data_C_size, env);
+        metrics->data_C_size = metrics->num_elts_local * metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
       metrics->data_type_num_values = 8;

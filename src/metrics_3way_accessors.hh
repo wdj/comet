@@ -230,7 +230,8 @@ static FloatResult_t GMMetrics_ccc_duo_get_from_index_3(
 
   if (env->threshold_tc()) {
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
-    const auto table = Metrics_get<TTable_t>(*metrics, index, *env);
+    //const auto table = Metrics_get<TTable_t>(*metrics, index, *env);
+    const auto table = Metrics_elt_const<TTable_t>(*metrics, index, *env);
     TTable_t::TypeIn result = TTable_t::get(table, i0, i1, i2);
     return (FloatResult_t)result;
   }
@@ -338,7 +339,8 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
 
   if (env->threshold_tc()) {
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
-    const auto ttable = Metrics_get<TTable_t>(*metrics, index, *env);
+    //const auto ttable = Metrics_get<TTable_t>(*metrics, index, *env);
+    const auto ttable = Metrics_elt_const<TTable_t>(*metrics, index, *env);
     for (int i0 = 0; i0 < 2; ++i0) {
       for (int i1 = 0; i1 < 2; ++i1) {
         for (int i2 = 0; i2 < 2; ++i2) {
@@ -481,7 +483,6 @@ static void GMMetrics_set_3(GMMetrics* metrics, void* p, int i, int j, int k,
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   COMET_ASSERT(!env->all2all());
 
-  //const size_t index = GMMetrics_index_from_coord_3(metrics, i, j, k, env);
   const size_t index = Metrics_index_3(*metrics, i, j, k, *env);
   ((T*)p)[index] = value;
 }
@@ -525,7 +526,7 @@ static void GMMetrics_tally4x2_set_3(GMMetrics* metrics, int i, int j, int k,
 //-----------------------------------------------------------------------------
 
 template<int MF>
-static void Metrics_set(
+static void Metrics_set_XXX(
   GMMetrics& metrics, int i, int j, int k, Tally4x2<MF> value, CEnv& env) {
 
   const size_t index = Metrics_index_3(metrics, i, j, k, env);
@@ -548,8 +549,6 @@ static void GMMetrics_set_all2all_3(GMMetrics* metrics, void* p,
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   // WARNING: these conditions are not exhaustive.
 
-  //const size_t index = GMMetrics_index_from_coord_all2all_3(metrics, i, j, k,
-  //  j_block, k_block, env);
   const size_t index = Metrics_index_3(*metrics, i, j, k, j_block, k_block,
     *env);
   ((T*)p)[index] = value;
@@ -612,8 +611,6 @@ static void GMMetrics_set_all2all_3_permuted_cache(GMMetrics* metrics, void* p,
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   // WARNING: these conditions are not exhaustive.
 
-  //const size_t index = GMMetrics_index_from_coord_all2all_3_permuted_cache(
-  //  metrics, I, J, K, j_block, k_block, index_cache, env);
   const size_t index = Metrics_index_3(
     *metrics, I, J, K, j_block, k_block, *index_cache, *env);
   ((T*)p)[index] = value;
@@ -666,7 +663,7 @@ static void GMMetrics_tally4x2_set_all2all_3_permuted_cache(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 
 template<int MF>
-static void Metrics_set(
+static void Metrics_set_XXX(
   GMMetrics& metrics, int I, int J, int K, int j_block, int k_block,
   Tally4x2<MF> value, GMIndexCache& index_cache, CEnv& env) {
 
@@ -683,7 +680,8 @@ static Tally4x2<MF> Metrics_get(GMMetrics& metrics,
   int i, int j, int k, CEnv& env) {
 
   const size_t index = Metrics_index_3(metrics, i, j, k, env);
-  return Metrics_get<Tally4x2<MF>>(metrics, index, env);
+  //return Metrics_get<Tally4x2<MF>>(metrics, index, env);
+  return Metrics_elt_const<Tally4x2<MF>>(metrics, index, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -695,7 +693,8 @@ static Tally4x2<MF> Metrics_get(
 
   const size_t index = Metrics_index_3(
     metrics, I, J, K, j_block, k_block, index_cache, env);
-  return Metrics_get<Tally4x2<MF>>(metrics, index, env);
+  //return Metrics_get<Tally4x2<MF>>(metrics, index, env);
+  return Metrics_elt_const<Tally4x2<MF>>(metrics, index, env);
 }
 
 //=============================================================================
@@ -711,7 +710,8 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 
   const GMFloat result =
     env.metric_type() == MetricType::CZEK ?
-      Metrics_get<GMFloat>(metrics, index, env) :
+      //Metrics_get<GMFloat>(metrics, index, env) :
+      Metrics_elt_const<GMFloat>(metrics, index, env) :
     env.metric_type() == MetricType::CCC ?
       (GMFloat)GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(
         &metrics, index, i0, i1, i2, &env) :
@@ -756,10 +756,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 
   const size_t index = env.all2all() ?
     Metrics_index_3(metrics, i, j, k, j_proc, k_proc, env) :
-    //GMMetrics_index_from_coord_all2all_3(&metrics,
-    //  i, j, k, j_proc, k_proc, &env) :
     Metrics_index_3(metrics, i, j, k, env);
-    //GMMetrics_index_from_coord_3(&metrics, i, j, k, &env);
 
   const GMFloat result = GMMetrics_get_3(metrics, index, i0, i1, i2, env);
 

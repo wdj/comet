@@ -410,7 +410,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           if (vi >= nva || vj >= nva) {
             continue;
           }
-          const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
+          //const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
+          const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
           GMFloat float_n = 0;
           GMFloat float_d = 0;
@@ -477,7 +478,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           if (vi >= nva || vj >= nva || vk >= nva) {
             continue;
           }
-          const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
+          //const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
+          const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
           GMFloat float_n = 0;
           GMFloat float_d = 0;

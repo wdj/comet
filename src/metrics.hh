@@ -95,6 +95,9 @@ typedef struct {
   size_t data_size;
   size_t data_S_size;
   size_t data_C_size;
+  size_t data_elt_size;
+  size_t data_S_elt_size;
+  size_t data_C_elt_size;
   size_t num_elts_local_computed;
   GMDecompMgr* dm;
 } GMMetrics;
@@ -144,6 +147,47 @@ static bool gm_proc_r_active(int section_block_num, const CEnv* const env) {
   COMET_ASSERT(section_block_num >= 0);
   return section_block_num % env->num_proc_repl()
          == env->proc_num_repl();
+}
+
+//=============================================================================
+
+struct MetricsArray {
+  enum {_ = 0,
+        S = 1,
+        C = 2};
+};
+
+template<int MA> struct MetricsArrayData;
+
+template<> struct MetricsArrayData<MetricsArray::_> {
+  static size_t elt_size(const GMMetrics& metrics) {return metrics.data_elt_size;}
+  static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data;}
+};
+
+template<> struct MetricsArrayData<MetricsArray::S> {
+  static size_t elt_size(const GMMetrics& metrics) {return metrics.data_S_elt_size;}
+  static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data_S;}
+};
+
+template<> struct MetricsArrayData<MetricsArray::C> {
+  static size_t elt_size(const GMMetrics& metrics) {return metrics.data_C_elt_size;}
+  static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data_C;}
+};
+
+template<typename T, int MA = MetricsArray::_>
+T Metrics_elt_const(const GMMetrics& metrics, size_t index, CEnv& env) {
+  COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
+  COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
+  COMET_ASSERT(index+1 >= 1 && index < metrics.num_elts_local);
+  return ((T*)MetricsArrayData<MA>::p(metrics))[index];
+}
+
+template<typename T, int MA = MetricsArray::_>
+T& Metrics_elt(GMMetrics& metrics, size_t index, CEnv& env) {
+  COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
+  COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
+  COMET_ASSERT(index+1 >= 1 && index < metrics.num_elts_local);
+  return ((T*)MetricsArrayData<MA>::p(metrics))[index];
 }
 
 //=============================================================================
