@@ -481,7 +481,8 @@ static void GMMetrics_set_3(GMMetrics* metrics, void* p, int i, int j, int k,
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   COMET_ASSERT(!env->all2all());
 
-  const size_t index = GMMetrics_index_from_coord_3(metrics, i, j, k, env);
+  //const size_t index = GMMetrics_index_from_coord_3(metrics, i, j, k, env);
+  const size_t index = Metrics_index_3(*metrics, i, j, k, *env);
   ((T*)p)[index] = value;
 }
 
@@ -527,7 +528,7 @@ template<int MF>
 static void Metrics_set(
   GMMetrics& metrics, int i, int j, int k, Tally4x2<MF> value, CEnv& env) {
 
-  const size_t index = Metrics_index(metrics, i, j, k, env);
+  const size_t index = Metrics_index_3(metrics, i, j, k, env);
   ((Tally4x2<MF>*)(metrics.data))[index] = value;
 }
 
@@ -609,8 +610,10 @@ static void GMMetrics_set_all2all_3_permuted_cache(GMMetrics* metrics, void* p,
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   // WARNING: these conditions are not exhaustive.
 
-  const size_t index = GMMetrics_index_from_coord_all2all_3_permuted_cache(
-    metrics, I, J, K, j_block, k_block, index_cache, env);
+  //const size_t index = GMMetrics_index_from_coord_all2all_3_permuted_cache(
+  //  metrics, I, J, K, j_block, k_block, index_cache, env);
+  const size_t index = Metrics_index_3(
+    *metrics, I, J, K, j_block, k_block, *index_cache, *env);
   ((T*)p)[index] = value;
 }
 
@@ -665,7 +668,7 @@ static void Metrics_set(
   GMMetrics& metrics, int I, int J, int K, int j_block, int k_block,
   Tally4x2<MF> value, GMIndexCache& index_cache, CEnv& env) {
 
-  const size_t index = Metrics_index(
+  const size_t index = Metrics_index_3(
     metrics, I, J, K, j_block, k_block, index_cache, env);
   ((Tally4x2<MF>*)(metrics.data))[index] = value;
 }
@@ -677,7 +680,7 @@ template<int MF>
 static Tally4x2<MF> Metrics_get(GMMetrics& metrics,
   int i, int j, int k, CEnv& env) {
 
-  const size_t index = Metrics_index(metrics, i, j, k, env);
+  const size_t index = Metrics_index_3(metrics, i, j, k, env);
   return Metrics_get<Tally4x2<MF>>(metrics, index, env);
 }
 
@@ -688,7 +691,7 @@ static Tally4x2<MF> Metrics_get(
   GMMetrics& metrics, int I, int J, int K, int j_block, int k_block,
   GMIndexCache& index_cache, CEnv& env) {
 
-  const size_t index = Metrics_index(
+  const size_t index = Metrics_index_3(
     metrics, I, J, K, j_block, k_block, index_cache, env);
   return Metrics_get<Tally4x2<MF>>(metrics, index, env);
 }
@@ -752,7 +755,8 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   const size_t index = env.all2all() ?
     GMMetrics_index_from_coord_all2all_3(&metrics,
       i, j, k, j_proc, k_proc, &env) :
-    GMMetrics_index_from_coord_3(&metrics, i, j, k, &env);
+    Metrics_index_3(metrics, i, j, k, env);
+    //GMMetrics_index_from_coord_3(&metrics, i, j, k, &env);
 
   const GMFloat result = GMMetrics_get_3(metrics, index, i0, i1, i2, env);
 

@@ -640,11 +640,18 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               //const double recip_sumcij = env->sparse() ? f_one/cij :
               //                               (f_one / 4) * metrics->recip_m;
 
+              //value_expected_floatcalc = cbpe == 2 ?
+              //  GMMetrics_ccc_duo_value<CBPE::CCC>(metrics, rij, si, sj,
+              //                      recip_ci, recip_cj, recip_sumcij, env) :
+              //  GMMetrics_ccc_duo_value<CBPE::DUO>(metrics, rij, si, sj,
+              //                      recip_ci, recip_cj, recip_sumcij, env);
               value_expected_floatcalc = cbpe == 2 ?
-                GMMetrics_ccc_duo_value<CBPE::CCC>(metrics, rij, si, sj,
-                                    recip_ci, recip_cj, recip_sumcij, env) :
-                GMMetrics_ccc_duo_value<CBPE::DUO>(metrics, rij, si, sj,
-                                    recip_ci, recip_cj, recip_sumcij, env);
+                ccc_duo_value<CBPE::CCC>(rij, si, sj,
+                    recip_ci, recip_cj, recip_sumcij,
+                    env_ccc_duo_multiplier<CBPE::CCC>(*env), env->ccc_param()) :
+                ccc_duo_value<CBPE::DUO>(rij, si, sj,
+                    recip_ci, recip_cj, recip_sumcij,
+                    env_ccc_duo_multiplier<CBPE::DUO>(*env), env->ccc_param());
             }
 
             GMFloat value_expected = value_expected_floatcalc;

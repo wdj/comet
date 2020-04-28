@@ -107,7 +107,7 @@ static size_t gm_triang_(int i) {
 }
 
 //-----------------------------------------------------------------------------
-
+#if 0
 static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
                                            int i,
                                            int j,
@@ -129,6 +129,27 @@ static size_t GMMetrics_index_from_coord_2(GMMetrics* metrics,
   COMET_ASSERT(j + metrics->num_vector_local *
                (size_t)env->proc_num_vector() ==
            metrics->coords_global_from_index[index] / metrics->num_vector);
+  return index;
+}
+
+//-----------------------------------------------------------------------------
+#endif
+
+static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env.proc_num_repl() == 0);
+  COMET_ASSERT(!env.all2all());
+  COMET_ASSERT(i >= 0 && i < metrics.num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics.num_vector_local);
+  COMET_ASSERT(i < j);
+
+  size_t index = gm_triang_(j) + i;
+  COMET_ASSERT(i + metrics.num_vector_local *
+               (size_t)env.proc_num_vector() ==
+           metrics.coords_global_from_index[index] % metrics.num_vector);
+  COMET_ASSERT(j + metrics.num_vector_local *
+               (size_t)env.proc_num_vector() ==
+           metrics.coords_global_from_index[index] / metrics.num_vector);
   return index;
 }
 
@@ -176,13 +197,11 @@ static size_t GMMetrics_index_from_coord_all2all_2(GMMetrics* metrics,
                                                    CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  //COMET_ASSERT(env->proc_num_repl() == 0);
   COMET_ASSERT(env->all2all());
-  COMET_ASSERT(i >= 0);
-  COMET_ASSERT(i < metrics->num_vector_local);
-  COMET_ASSERT(j >= 0);
-  COMET_ASSERT(j < metrics->num_vector_local);
-  COMET_ASSERT(j_block >= 0);
-  COMET_ASSERT(j_block < env->num_block_vector());
+  COMET_ASSERT(i >= 0 && i < metrics->num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics->num_vector_local);
+  COMET_ASSERT(j_block >= 0 && j_block < env->num_block_vector());
   COMET_ASSERT(i < j || j_block != env->proc_num_vector());
 //  COMET_ASSERT(env->proc_num_repl() == 0 ||
 //           j_block != env->proc_num_vector() // DEFUNCT

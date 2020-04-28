@@ -73,6 +73,7 @@ static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
 //=============================================================================
 // Accessors: value from (contig) index: derived
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief Templatized access to the CCC or DUO formula.
 
@@ -93,6 +94,7 @@ static double GMMetrics_ccc_duo_value(
     env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env),
     env->ccc_param());
 }
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Check to ensure 128 bits is enough to store 2-way CCC value.
@@ -275,8 +277,11 @@ static FloatResult_t GMMetrics_ccc_duo_get_from_index_2(
 
     const Float_t recip_sumcij = f_cicj_min * f_cicj_max * recip_cicjcij;
 
-    result_floatcalc = GMMetrics_ccc_duo_value<COUNTED_BITS_PER_ELT>(
-      metrics, rij, si, sj, recip_ci, recip_cj, recip_sumcij, env);
+    //result_floatcalc = GMMetrics_ccc_duo_value<COUNTED_BITS_PER_ELT>(
+    //  metrics, rij, si, sj, recip_ci, recip_cj, recip_sumcij, env);
+    result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
+      rij, si, sj, recip_ci, recip_cj, recip_sumcij, 
+      env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env), env->ccc_param());
 
   } else { // !env->sparse
 
@@ -290,8 +295,11 @@ static FloatResult_t GMMetrics_ccc_duo_get_from_index_2(
 
     const Float_t recip_sumcij = (f_one / (CBPE*CBPE)) * recip_m;
 
-    result_floatcalc = GMMetrics_ccc_duo_value<COUNTED_BITS_PER_ELT>(
-      metrics, rij, si, sj, recip_m, recip_m, recip_sumcij, env);
+    //result_floatcalc = GMMetrics_ccc_duo_value<COUNTED_BITS_PER_ELT>(
+    //  metrics, rij, si, sj, recip_m, recip_m, recip_sumcij, env);
+    result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
+      rij, si, sj, recip_m, recip_m, recip_sumcij, 
+      env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env), env->ccc_param());
 
   } // if (env->sparse())
 
@@ -457,7 +465,8 @@ static void GMMetrics_set_2(GMMetrics* metrics, void* p, int i, int j,
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(!env->all2all());
 
-  const size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  //const size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  const size_t index = Metrics_index_2(*metrics, i, j, *env);
   ((T*)p)[index] = value;
 }
 
@@ -568,7 +577,8 @@ static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
   COMET_ASSERT(j >= 0 && j < metrics->num_vector_local);
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
-  const size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  //const size_t index = GMMetrics_index_from_coord_2(metrics, i, j, env);
+  const size_t index = Metrics_index_2(*metrics, i, j, *env);
   return Metrics_get<GMFloat>(*metrics, index, *env);
 }
 
@@ -642,7 +652,8 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 
   const size_t index = env.all2all() ?
     GMMetrics_index_from_coord_all2all_2(&metrics, i, j, j_proc, &env) :
-    GMMetrics_index_from_coord_2(&metrics, i, j, &env);
+    Metrics_index_2(metrics, i, j, env);
+    //GMMetrics_index_from_coord_2(&metrics, i, j, &env);
 
   const GMFloat result = GMMetrics_get_2(metrics, index, i0, i1, env);
 
