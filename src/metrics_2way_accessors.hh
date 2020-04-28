@@ -520,8 +520,9 @@ static void GMMetrics_set_all2all_2(GMMetrics* metrics, void* p, int i, int j,
   COMET_ASSERT(i < j || j_block != env->proc_num_vector());
   // WARNING: these conditions on j_block are not exhaustive.
 
-  const size_t index = GMMetrics_index_from_coord_all2all_2(metrics, i, j,
-                                                            j_block, env);
+  //const size_t index = GMMetrics_index_from_coord_all2all_2(metrics, i, j,
+  //                                                          j_block, env);
+  const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
   ((T*)p)[index] = value;
 }
 
@@ -596,8 +597,9 @@ static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
   /// WARNING: these conditions on j_block are not exhaustive.
 
-  const size_t index = GMMetrics_index_from_coord_all2all_2(metrics, i, j,
-    j_block, env);
+  //const size_t index = GMMetrics_index_from_coord_all2all_2(metrics, i, j,
+  //  j_block, env);
+  const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
   return Metrics_get<GMFloat>(*metrics, index, *env);
 }
 
@@ -651,7 +653,8 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
   COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
 
   const size_t index = env.all2all() ?
-    GMMetrics_index_from_coord_all2all_2(&metrics, i, j, j_proc, &env) :
+    Metrics_index_2(metrics, i, j, j_proc, env) :
+    //GMMetrics_index_from_coord_all2all_2(&metrics, i, j, j_proc, &env) :
     Metrics_index_2(metrics, i, j, env);
     //GMMetrics_index_from_coord_2(&metrics, i, j, &env);
 
