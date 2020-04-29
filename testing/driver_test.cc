@@ -2575,11 +2575,13 @@ TEST(DriverTest, ccc3_simple_sparse) {
 TEST(DriverTest, duo3_simple_sparse) {
   DriverTest_duo3_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, ccc2_simple) {
   DriverTest_ccc2_simple_();
 }
 
+#if 1
 TEST(DriverTest, ccc2_simple_sparse) {
   DriverTest_ccc2_simple_sparse_();
 }
@@ -2599,13 +2601,11 @@ TEST(DriverTest, czek3) {
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
-#endif
 
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
 
-#if 1
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }

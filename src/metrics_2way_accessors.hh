@@ -444,6 +444,7 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
 
 
+#if 0
 template<typename T>
 static void GMMetrics_set_2(GMMetrics* metrics, void* p, int i, int j,
   T value, CEnv* env) {
@@ -493,10 +494,12 @@ static void GMMetrics_tally2x2_set_2(GMMetrics* metrics, int i, int j,
 
   GMMetrics_set_2<GMTally2x2>(metrics, metrics->data, i, j, value, env);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#if 0
 template<typename T>
 static void GMMetrics_set_all2all_2(GMMetrics* metrics, void* p, int i, int j,
   int j_block, T value, CEnv* env) {
@@ -551,11 +554,9 @@ static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics, int i, int j,
   GMMetrics_set_all2all_2<GMTally2x2>(metrics, metrics->data, i, j, j_block,
     value, env);
 }
+#endif
 
 //-----------------------------------------------------------------------------
-
-
-
 
 template<typename T, int MA = MetricsArray::_>
 static T& Metrics_elt_2(GMMetrics& metrics, int i, int j, int j_block,
@@ -569,10 +570,6 @@ static T& Metrics_elt_2(GMMetrics& metrics, int i, int j, int j_block,
 
   return Metrics_elt<T, MA>(metrics, index, env);
 }
-
-
-
-
 
 //=============================================================================
 // Accessors: value from (local) coord: get: 2-way.

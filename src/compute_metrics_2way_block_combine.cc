@@ -71,13 +71,8 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
-//const size_t index = GMMetrics_index_from_coord_all2all_2(metrics, i, j, j_block, env);
-//const size_t vi_ = GMMetrics_coord_global_from_index(metrics, index, 0, env);
-//const size_t vj_ = GMMetrics_coord_global_from_index(metrics, index, 1, env);
-//if (vi_==364001 && vj_==8714000) printf("===========================+++ %.15e %.15e %.20e\n", numer, denom, value);
-//if (denom != (GMFloat)(size_t)denom) printf("Bad d %zu %zu %.20e\n", vi_, vj_, denom);
-//if (numer != (GMFloat)(size_t)numer) printf("Bad n %zu %zu %.20e\n", vi_, vj_, numer);
+        Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
+        //GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
@@ -99,7 +94,8 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat denom = vs_i < vs_j ?  vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
-        GMMetrics_float_set_2(metrics, i, j, value, env);
+        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = value;
+        //GMMetrics_float_set_2(metrics, i, j, value, env);
       } /*---for i---*/
       metrics->num_elts_local_computed += i_max;
     }   /*---for j---*/
@@ -120,7 +116,8 @@ void gm_compute_2way_proc_combine_czek_(
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
           const GMFloat value = (multiplier * numer) / denom;
-          GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
+          Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
+          //GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
         } /*---for i---*/
       }   /*---for j---*/
       for (int j = 0; j < nvl; ++j) {
@@ -140,7 +137,8 @@ void gm_compute_2way_proc_combine_czek_(
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
           const GMFloat value = (multiplier * numer) / denom;
-          GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
+          Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
+          //GMMetrics_float_set_all2all_2(metrics, i, j, j_block, value, env);
         } /*---for i---*/
       }   /*---for j---*/
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
@@ -161,7 +159,8 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
-        GMMetrics_float_set_2(metrics, i, j, value, env);
+        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = value;
+        //GMMetrics_float_set_2(metrics, i, j, value, env);
       } /*---for i---*/
     }   /*---for j---*/
     for (int j = 0; j < nvl; ++j) {
@@ -209,7 +208,8 @@ void gm_compute_2way_proc_combine_ccc_(
           for (int i = 0; i < i_max; ++i) {
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
-            GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
+            Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            //GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #if 1
             // ISSUE: this check may increase runtime nontrivially
             if (! env->sparse()) {
@@ -290,7 +290,8 @@ void gm_compute_2way_proc_combine_ccc_(
           for (int i = 0; i < nvl; ++i) {
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
-            GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
+            Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            //GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
 #if 1
             // ISSUE: this check may increase runtime nontrivially
             if (! env->sparse()) {
@@ -374,7 +375,8 @@ void gm_compute_2way_proc_combine_ccc_(
         for (int i = 0; i < i_max; ++i) {
           const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
-          GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
+          Metrics_elt_2<GMTally2x2>(*metrics, i, j, env->proc_num_vector(), *env) = value;
+          //GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
 #ifdef COMET_ASSERTIONS_ON
           if (! env->sparse()) {
             // 4-sum check.
@@ -414,12 +416,14 @@ void gm_compute_2way_proc_combine_ccc_(
         for (int i = 0; i < i_max; ++i) {
           const GMTally1 si1 = vs_l->sum(i);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-          GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+          Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, j_block, *env) = si1_sj1;
+          //GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
+            Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
+            //GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
@@ -438,12 +442,14 @@ void gm_compute_2way_proc_combine_ccc_(
           const GMTally1 si1 = vs_l->sum(i);
           const GMTally1 sj1 = vs_r->sum(j);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-          GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+          Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, j_block, *env) = si1_sj1;
+          //GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
+            Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
+            //GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
@@ -462,12 +468,14 @@ void gm_compute_2way_proc_combine_ccc_(
       for (int i = 0; i < i_max; ++i) {
         const GMTally1 si1 = vs_l->sum(i);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-        GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
+        Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, env->proc_num_vector(), *env) = si1_sj1;
+        //GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
         if (env->sparse()) {
           const GMTally1 ci = vs_l->count(i);
           const GMTally1 cj = vs_r->count(j);
           const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-          GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
+          Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, env->proc_num_vector(), *env) = ci_cj;
+          //GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
         } /*---if sparse---*/
       } /*---for i---*/
     }   /*---for j---*/
@@ -516,7 +524,8 @@ void gm_compute_2way_proc_combine_duo_(
           for (int i = 0; i < i_max; ++i) {
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
-            GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
+            Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            //GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
           } /*---for i---*/
         }   /*---for j---*/
       } else {
@@ -527,7 +536,8 @@ void gm_compute_2way_proc_combine_duo_(
           for (int i = 0; i < nvl; ++i) {
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
-            GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
+            Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            //GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, value, env);
           } /*---for i---*/
         }   /*---for j---*/
      }
@@ -541,7 +551,8 @@ void gm_compute_2way_proc_combine_duo_(
         for (int i = 0; i < i_max; ++i) {
           const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
-          GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
+          Metrics_elt_2<GMTally2x2>(*metrics, i, j, env->proc_num_vector(), *env) = value;
+          //GMMetrics_tally2x2_set_2(metrics, i, j, value, env);
         } /*---for i---*/
       }   /*---for j---*/
       /*--------------------*/
@@ -564,12 +575,14 @@ void gm_compute_2way_proc_combine_duo_(
         for (int i = 0; i < i_max; ++i) {
           const GMTally1 si1 = vs_l->sum(i);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-          GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+          Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, j_block, *env) = si1_sj1;
+          //GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
+            Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
+            //GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
@@ -588,12 +601,14 @@ void gm_compute_2way_proc_combine_duo_(
           const GMTally1 si1 = vs_l->sum(i);
           const GMTally1 sj1 = vs_r->sum(j);
           const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-          GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
+          Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, j_block, *env) = si1_sj1;
+          //GMMetrics_float2_S_set_all2all_2(metrics, i, j, j_block, si1_sj1, env);
           if (env->sparse()) {
             const GMTally1 ci = vs_l->count(i);
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-            GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
+            Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
+            //GMMetrics_float2_C_set_all2all_2(metrics, i, j, j_block, ci_cj, env);
           } /*---if sparse---*/
         }   /*---for i---*/
       }   /*---for j---*/
@@ -612,12 +627,14 @@ void gm_compute_2way_proc_combine_duo_(
       for (int i = 0; i < i_max; ++i) {
         const GMTally1 si1 = vs_l->sum(i);
         const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-        GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
+        Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, env->proc_num_vector(), *env) = si1_sj1;
+        //GMMetrics_float2_S_set_2(metrics, i, j, si1_sj1, env);
         if (env->sparse()) {
           const GMTally1 ci = vs_l->count(i);
           const GMTally1 cj = vs_r->count(j);
           const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-          GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
+          Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, env->proc_num_vector(), *env) = ci_cj;
+          //GMMetrics_float2_C_set_2(metrics, i, j, ci_cj, env);
         } /*---if sparse---*/
       } /*---for i---*/
     }   /*---for j---*/

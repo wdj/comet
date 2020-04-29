@@ -59,7 +59,8 @@ void gm_compute_2way_proc_nums_czek_start_(
           const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
-        GMMetrics_float_set_all2all_2(metrics, i, j, j_block, metric, env);
+        Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = metric;
+        //GMMetrics_float_set_all2all_2(metrics, i, j, j_block, metric, env);
       } /*---for i---*/
     }   /*---for j---*/
 
@@ -81,7 +82,8 @@ void gm_compute_2way_proc_nums_czek_start_(
           const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
-        GMMetrics_float_set_2(metrics, i, j, metric, env);
+        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = metric;
+        //GMMetrics_float_set_2(metrics, i, j, metric, env);
       } /*---for i---*/
     }   /*---for j---*/
 
@@ -180,11 +182,13 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
           } /*---if ! unknown---*/
         } /*---for f---*/
-        if (env->all2all()) {
-          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
-        } else {
-          GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
-        }
+        const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
+        Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
+        //if (env->all2all()) {
+        //  GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
+        //} else {
+        //  GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
+        //}
       } /*---for j---*/
     }   /*---for i---*/
 
@@ -320,11 +324,13 @@ void gm_compute_2way_proc_nums_ccc_start_(
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
 #endif
 
-        if (env->all2all()) {
-          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
-        } else {
-          GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
-        }
+        const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
+        Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
+        //if (env->all2all()) {
+        //  GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
+        //} else {
+        //  GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
+        //}
       } /*---for j---*/
     }   /*---for i---*/
 
@@ -401,11 +407,13 @@ void gm_compute_2way_proc_nums_duo_start_(
 
           } /*---if ! unknown---*/
         } /*---for f---*/
-        if (env->all2all()) {
-          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
-        } else {
-          GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
-        }
+        const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
+        Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
+        //if (env->all2all()) {
+        //  GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
+        //} else {
+        //  GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
+        //}
       } /*---for j---*/
     }   /*---for i---*/
 
@@ -510,11 +518,13 @@ void gm_compute_2way_proc_nums_duo_start_(
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
 #endif
 
-        if (env->all2all()) {
-          GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
-        } else {
-          GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
-        }
+        const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
+        Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
+        //if (env->all2all()) {
+        //  GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
+        //} else {
+        //  GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
+        //}
       } /*---for j---*/
     }   /*---for i---*/
 
