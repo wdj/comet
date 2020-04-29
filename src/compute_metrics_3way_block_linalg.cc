@@ -231,7 +231,9 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
         utils::sort_3(smin, smid, smax, si, sj, sk);
         const GMFloat denom = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
-        GMMetrics_float_set_3(metrics, i, j, k, value, &env);
+        Metrics_elt_3<GMFloat>(*metrics, i, j, k,
+          env.proc_num_vector(), env.proc_num_vector(), env) = value;
+        //GMMetrics_float_set_3(metrics, i, j, k, value, &env);
       } // K
     }   // I
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
@@ -261,8 +263,10 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
         utils::sort_3(smin, smid, smax, sI, sJ, sK);
         const GMFloat denom = smin + smid + smax;
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
-        GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
-            j_block, k_block, value, &index_cache, &env);
+        Metrics_elt_3<GMFloat>(*metrics, I, J, K,
+          j_block, k_block, index_cache, env) = value;
+        //GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
+        //    j_block, k_block, value, &index_cache, &env);
       } // K
     }   // I
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
@@ -452,12 +456,15 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           MFT::encode(numer.data[2], r100, r101);
           MFT::encode(numer.data[3], r110, r111);
 
-          if (env.all2all()) {
-            Metrics_set_XXX<MF>(*metrics, I, J, K,
-                            j_block, k_block, numer, index_cache, env);
-          } else {
-            Metrics_set_XXX<MF>(*metrics, i, j, k, numer, env);
-          }
+          Metrics_elt_3<Tally4x2<MF>>(*metrics, I, J, K,
+            j_block_eff, k_block_eff, index_cache, env) = numer;
+
+          //if (env.all2all()) {
+          //  Metrics_set_XXX<MF>(*metrics, I, J, K,
+          //                  j_block, k_block, numer, index_cache, env);
+          //} else {
+          //  Metrics_set_XXX<MF>(*metrics, i, j, k, numer, env);
+          //}
 
         } // if (is_I_in_range)
 
@@ -470,6 +477,22 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           const auto sj1 = (GMTally1)vs_j->sum(j);
           const auto sk1 = (GMTally1)vs_k->sum(k);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
+
+          const int j_block_eff = env.all2all() ? j_block : env.proc_num_vector();
+          const int k_block_eff = env.all2all() ? k_block : env.proc_num_vector();
+          
+          Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
+            j_block_eff, k_block_eff, index_cache, env) = si1_sj1_sk1;
+          if (env.sparse()) {
+            const auto ci1 = (GMTally1)vs_i->count(i);
+            const auto cj1 = (GMTally1)vs_j->count(j);
+            const auto ck1 = (GMTally1)vs_k->count(k);
+            const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+            Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
+              j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
+          } // if sparse
+
+#if 0
           if (env.all2all()) {
             GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
               j_block, k_block, si1_sj1_sk1, &index_cache, &env);
@@ -488,6 +511,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
               GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, &env);
             }
           } /*---if sparse---*/
+#endif
 
         } // if
 

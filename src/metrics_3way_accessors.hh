@@ -497,6 +497,7 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
 
 
 
+#if 0
 template<typename T>
 static void GMMetrics_set_3(GMMetrics* metrics, void* p, int i, int j, int k,
   T value, CEnv* env) {    
@@ -556,10 +557,12 @@ static void Metrics_set_XXX(
   const size_t index = Metrics_index_3(metrics, i, j, k, env.proc_num_vector(), env.proc_num_vector(), env);
   ((Tally4x2<MF>*)(metrics.data))[index] = value;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#if 0
 template<typename T>
 static void GMMetrics_set_all2all_3(GMMetrics* metrics, void* p,
   int i, int j, int k, int j_block, int k_block, T value, CEnv* env) {
@@ -617,10 +620,12 @@ static void GMMetrics_tally4x2_set_all2all_3(GMMetrics* metrics,
   GMMetrics_set_all2all_3<GMTally4x2>(metrics, metrics->data, i, j, k,
     j_block, k_block, value, env);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#if 0
 template<typename T>
 static void GMMetrics_set_all2all_3_permuted_cache(GMMetrics* metrics, void* p,
   int I, int J, int K, int j_block, int k_block, T value,
@@ -695,14 +700,40 @@ static void Metrics_set_XXX(
     metrics, I, J, K, j_block, k_block, index_cache, env);
   ((Tally4x2<MF>*)(metrics.data))[index] = value;
 }
+#endif
 
+//-----------------------------------------------------------------------------
 
+template<typename T, int MA = MetricsArray::_>
+static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
+  int j_block, int k_block, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
+                                 env.proc_num_vector() == k_block));
+  // WARNING: these conditions are not exhaustive.
 
+  const size_t index = Metrics_index_3(metrics, i, j, k, j_block, k_block, env);
 
+  return Metrics_elt<T, MA>(metrics, index, env);
+}
 
+//-----------------------------------------------------------------------------
 
+template<typename T, int MA = MetricsArray::_>
+static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
+  int j_block, int k_block, GMIndexCache& index_cache, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
+                                 env.proc_num_vector() == k_block));
+  // WARNING: these conditions are not exhaustive.
 
+  const size_t index = Metrics_index_3(metrics, i, j, k, j_block, k_block,
+    index_cache, env);
 
+  return Metrics_elt<T, MA>(metrics, index, env);
+}
 
 //=============================================================================
 // Accessors: value from (local) coord: get: 3-way.
@@ -730,6 +761,9 @@ static Tally4x2<MF> Metrics_get(
   return Metrics_elt_const<Tally4x2<MF>>(metrics, index, env);
 }
 #endif
+
+
+
 
 //-----------------------------------------------------------------------------
 
