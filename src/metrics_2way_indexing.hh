@@ -108,6 +108,7 @@ static size_t gm_triang_(int i) {
 
 //-----------------------------------------------------------------------------
 
+#if 0
 static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_2);
   COMET_ASSERT(env.proc_num_repl() == 0);
@@ -125,6 +126,7 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, CEnv& env) {
            metrics.coords_global_from_index[index] / metrics.num_vector);
   return index;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -162,7 +164,30 @@ static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert element coordinates to index, 2-way case.
 
+static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
+  CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || env.proc_num_vector() == j_block);
+  COMET_ASSERT(i >= 0 && i < metrics.num_vector_local);
+  COMET_ASSERT(j >= 0 && j < metrics.num_vector_local);
+  COMET_ASSERT(j_block >= 0 && j_block < env.num_block_vector());
+  COMET_ASSERT(i < j || j_block != env.proc_num_vector());
+  // WARNING: these conditions on j_block are not exhaustive.
+
+  const int i_block = env.proc_num_vector();
+
+  size_t index = j_block == i_block
+           ? GMMetrics_helper2way_maindiag_block_(&metrics, i, j, j_block, &env)
+           : GMMetrics_helper2way_offdiag_block_(&metrics, i, j, j_block, &env);
+
+  COMET_ASSERT(index >= 0 && index < metrics.num_elts_local);
+  return index;
+}
+
+#if 0
 static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
   CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_2);
@@ -185,6 +210,7 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
   COMET_ASSERT(index >= 0 && index < metrics.num_elts_local);
   return index;
 }
+#endif
 
 //=============================================================================
 //=============================================================================

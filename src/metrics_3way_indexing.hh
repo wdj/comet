@@ -330,7 +330,7 @@ static size_t gm_triang_size(int j, int nvl) {
 }
 
 //-----------------------------------------------------------------------------
-
+#if 0
 static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
   COMET_ASSERT(!env.all2all());
@@ -362,6 +362,7 @@ static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k, CEnv& env
 }
 
 //-----------------------------------------------------------------------------
+#endif
 
 static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                                           int i,
@@ -520,7 +521,9 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
 static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
-  COMET_ASSERT(env.all2all());
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
+                                 env.proc_num_vector() == k_block));
   COMET_ASSERT(i >= 0 && j >= 0 && k >= 0);
   COMET_ASSERT(j_block >= 0 && j_block < env.num_block_vector());
   COMET_ASSERT(k_block >= 0 && k_block < env.num_block_vector());
@@ -544,16 +547,16 @@ static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k,
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
   COMET_ASSERT(metrics.coords_global_from_index[index] %
-             (metrics.num_vector_local * (size_t)env.num_block_vector()) ==
+               (metrics.num_vector_local * (size_t)env.num_block_vector()) ==
            i + i_block * (size_t)metrics.num_vector_local);
 
   COMET_ASSERT((metrics.coords_global_from_index[index] /
-            (metrics.num_vector_local * (size_t)env.num_block_vector())) %
+                (metrics.num_vector_local * (size_t)env.num_block_vector())) %
                (metrics.num_vector_local * env.num_block_vector()) ==
            j + j_block * (size_t)metrics.num_vector_local);
 
   COMET_ASSERT((metrics.coords_global_from_index[index] /
-            (metrics.num_vector_local * (size_t)env.num_block_vector())) /
+                (metrics.num_vector_local * (size_t)env.num_block_vector())) /
                (metrics.num_vector_local * env.num_block_vector()) ==
            k + k_block * (size_t)metrics.num_vector_local);
 
@@ -642,38 +645,33 @@ static size_t GMMetrics_helper3way_part3_permuted_(
 
 //-----------------------------------------------------------------------------
 
-static size_t GMMetrics_index_from_coord_all2all_3_permuted_(
-    GMMetrics* metrics,
-    int I,
-    int J,
-    int K,
-    int j_block,
-    int k_block,
-    CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
-  COMET_ASSERT(env->all2all());
+static size_t GMMetrics_index_from_coord_all2all_3_permuted_(GMMetrics& metrics,
+    int I, int J, int K, int j_block, int k_block, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
+                                 env.proc_num_vector() == k_block));
   COMET_ASSERT(I >= 0 && J >= 0 && K >= 0);
-  COMET_ASSERT(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_ASSERT(k_block >= 0 && k_block < env->num_block_vector());
-  COMET_ASSERT(! (env->proc_num_vector() == j_block &&
-              env->proc_num_vector() != k_block));
-  COMET_ASSERT(! (env->proc_num_vector() == k_block &&
-              env->proc_num_vector() != j_block));
-  /*---WARNING: these conditions are not exhaustive---*/
+  COMET_ASSERT(j_block >= 0 && j_block < env.num_block_vector());
+  COMET_ASSERT(k_block >= 0 && k_block < env.num_block_vector());
+  COMET_ASSERT(! (env.proc_num_vector() == j_block &&
+              env.proc_num_vector() != k_block));
+  COMET_ASSERT(! (env.proc_num_vector() == k_block &&
+              env.proc_num_vector() != j_block));
+  // WARNING: these conditions are not exhaustive.
 
-  const int i_block = env->proc_num_vector();
+  const int i_block = env.proc_num_vector();
 
   int64_t index = j_block == i_block && k_block == i_block ?
-    GMMetrics_helper3way_part1_permuted_(metrics, I, J, K,
-                                i_block, j_block, k_block, env) :
+    GMMetrics_helper3way_part1_permuted_(&metrics, I, J, K,
+                                i_block, j_block, k_block, &env) :
                  j_block == k_block ?
-    GMMetrics_helper3way_part2_permuted_(metrics, I, J, K,
-                                i_block, j_block, k_block, env) :
-    GMMetrics_helper3way_part3_permuted_(metrics, I, J, K,
-                                         i_block, j_block, k_block, env);
+    GMMetrics_helper3way_part2_permuted_(&metrics, I, J, K,
+                                i_block, j_block, k_block, &env) :
+    GMMetrics_helper3way_part3_permuted_(&metrics, I, J, K,
+                                         i_block, j_block, k_block, &env);
 
-  COMET_ASSERT(index >= 0 && index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
 #ifdef COMET_ASSERTIONS_ON
 
@@ -682,36 +680,35 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_(
   if (gm_is_part3(i_block, j_block, k_block)) {
     section_step = 0;
   } else if (gm_is_part1(i_block, j_block, k_block)) {
-    const int num_section_steps = gm_num_section_steps(env, 1);
-    const int section_num = (J * num_section_steps) / metrics->num_vector_local;
+    const int num_section_steps = gm_num_section_steps(&env, 1);
+    const int section_num = (J * num_section_steps) / metrics.num_vector_local;
     section_step = section_num;
   } else {
-    const int num_section_steps = gm_num_section_steps(env, 2);
-    const int section_num = (J * num_section_steps) / metrics->num_vector_local;
+    const int num_section_steps = gm_num_section_steps(&env, 2);
+    const int section_num = (J * num_section_steps) / metrics.num_vector_local;
     section_step = section_num;
   }
 
-  GMSectionInfo si_value_;
-  GMSectionInfo* si = &si_value_;
-  GMSectionInfo_create(si, i_block, j_block, k_block, section_step,
-                       metrics->num_vector_local, env);
+  GMSectionInfo si;
+  GMSectionInfo_create(&si, i_block, j_block, k_block, section_step,
+                       metrics.num_vector_local, &env);
 
-  const int i = si->unperm0(I, J, K);
-  const int j = si->unperm1(I, J, K);
-  const int k = si->unperm2(I, J, K);
+  const int i = si.unperm0(I, J, K);
+  const int j = si.unperm1(I, J, K);
+  const int k = si.unperm2(I, J, K);
 
-  GMSectionInfo_destroy(si, env);
+  GMSectionInfo_destroy(&si, &env);
 
-  COMET_ASSERT(metrics->coords_global_from_index[index] % metrics->num_vector ==
-           i + i_block * (size_t)metrics->num_vector_local);
+  COMET_ASSERT(metrics.coords_global_from_index[index] % metrics.num_vector ==
+           i + i_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((metrics->coords_global_from_index[index] / metrics->num_vector) %
-               metrics->num_vector ==
-           j + j_block * (size_t)metrics->num_vector_local);
+  COMET_ASSERT((metrics.coords_global_from_index[index] / metrics.num_vector) %
+               metrics.num_vector ==
+           j + j_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((metrics->coords_global_from_index[index] / metrics->num_vector) /
-               metrics->num_vector ==
-           k + k_block * (size_t)metrics->num_vector_local);
+  COMET_ASSERT((metrics.coords_global_from_index[index] / metrics.num_vector) /
+               metrics.num_vector ==
+           k + k_block * (size_t)metrics.num_vector_local);
 #endif
 
   return index;
@@ -731,6 +728,9 @@ typedef struct {
 static size_t Metrics_index_3( GMMetrics& metrics, int I, int J, int K,
     int j_block, int k_block, GMIndexCache& index_cache, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
+                                 env.proc_num_vector() == k_block));
   COMET_ASSERT(I >= 0 && J >= 0 && K >= 0);
   COMET_ASSERT(j_block >= 0 && j_block < env.num_block_vector());
   COMET_ASSERT(k_block >= 0 && k_block < env.num_block_vector());
@@ -747,9 +747,8 @@ static size_t Metrics_index_3( GMMetrics& metrics, int I, int J, int K,
       return index;
   }
 
-  //TODO: fix this
   const size_t index = GMMetrics_index_from_coord_all2all_3_permuted_(
-    &metrics, I, J, K, j_block, k_block, &env);
+    metrics, I, J, K, j_block, k_block, env);
 
   index_cache.I = I;
   index_cache.K = K;

@@ -499,7 +499,7 @@ static void GMMetrics_set_3(GMMetrics* metrics, void* p, int i, int j, int k,
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
   COMET_ASSERT(!env->all2all());
 
-  const size_t index = Metrics_index_3(*metrics, i, j, k, *env);
+  const size_t index = Metrics_index_3(*metrics, i, j, k, env->proc_num_vector(), env->proc_num_vector(), *env);
   ((T*)p)[index] = value;
 }
 
@@ -545,7 +545,7 @@ template<int MF>
 static void Metrics_set_XXX(
   GMMetrics& metrics, int i, int j, int k, Tally4x2<MF> value, CEnv& env) {
 
-  const size_t index = Metrics_index_3(metrics, i, j, k, env);
+  const size_t index = Metrics_index_3(metrics, i, j, k, env.proc_num_vector(), env.proc_num_vector(), env);
   ((Tally4x2<MF>*)(metrics.data))[index] = value;
 }
 
@@ -695,7 +695,7 @@ template<int MF>
 static Tally4x2<MF> Metrics_get(GMMetrics& metrics,
   int i, int j, int k, CEnv& env) {
 
-  const size_t index = Metrics_index_3(metrics, i, j, k, env);
+  const size_t index = Metrics_index_3(metrics, i, j, k, env.proc_num_vector(), env.proc_num_vector(), env);
   //return Metrics_get<Tally4x2<MF>>(metrics, index, env);
   return Metrics_elt_const<Tally4x2<MF>>(metrics, index, env);
 }
@@ -772,7 +772,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 
   const size_t index = env.all2all() ?
     Metrics_index_3(metrics, i, j, k, j_proc, k_proc, env) :
-    Metrics_index_3(metrics, i, j, k, env);
+    Metrics_index_3(metrics, i, j, k, env.proc_num_vector(), env.proc_num_vector(), env);
 
   const GMFloat result = GMMetrics_get_3(metrics, index, i0, i1, i2, env);
 
