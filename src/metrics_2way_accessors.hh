@@ -28,7 +28,6 @@ static T Metrics_get(GMMetrics& metrics, size_t index, CEnv& env) {
 
   return ((T*)(metrics.data))[index];
 }
-#endif
 
 //-----------------------------------------------------------------------------
 
@@ -58,19 +57,6 @@ static GMFloat2 GMMetrics_float2_C_get_from_index(GMMetrics* metrics,
   COMET_ASSERT(metrics->data_C);
 
   return ((GMFloat2*)(metrics->data_C))[index];
-}
-
-#if 0
-//-----------------------------------------------------------------------------
-
-static GMTally2x2 GMMetrics_tally2x2_get_from_index(GMMetrics* metrics,
-                                                    size_t index,
-                                                    CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
-  COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-
-  return ((GMTally2x2*)(metrics->data))[index];
 }
 #endif
 
@@ -155,16 +141,20 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
   const auto ttable = Metrics_elt_const<GMTally2x2>(*metrics, index, *env);
   const GMTally1 rij = GMTally2x2_get(ttable, i0, i1);
 
-  const GMFloat2 si1_sj1 =
-      GMMetrics_float2_S_get_from_index(metrics, index, env);
+  //const GMFloat2 si1_sj1 =
+  //    GMMetrics_float2_S_get_from_index(metrics, index, env);
+  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(*metrics,
+    index, *env);
   GMTally1 si1, sj1;
   GMFloat2_decode(si1, sj1, si1_sj1);
 
   GMTally1 ci = 0, cj = 0, cij = 0;
 
   if (env->sparse()) {
-    const GMFloat2 ci_cj =
-      GMMetrics_float2_C_get_from_index(metrics, index, env);
+    //const GMFloat2 ci_cj =
+    //  GMMetrics_float2_C_get_from_index(metrics, index, env);
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(*metrics,
+      index, *env);
     GMFloat2_decode(ci, cj, ci_cj);
 
     cij = GMTally2x2_get(ttable, 0, 0) + GMTally2x2_get(ttable, 0, 1) +
@@ -223,8 +213,10 @@ static FloatResult_t GMMetrics_ccc_duo_get_from_index_2(
   const auto ttable = Metrics_elt_const<GMTally2x2>(*metrics, index, *env);
   const GMTally1 rij = GMTally2x2_get(ttable, i0, i1);
 
-  const GMFloat2 si1_sj1 =
-      GMMetrics_float2_S_get_from_index(metrics, index, env);
+  //const GMFloat2 si1_sj1 =
+  //    GMMetrics_float2_S_get_from_index(metrics, index, env);
+  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(*metrics,
+    index, *env);
   GMTally1 si1, sj1;
   GMFloat2_decode(si1, sj1, si1_sj1);
 
@@ -232,8 +224,10 @@ static FloatResult_t GMMetrics_ccc_duo_get_from_index_2(
 
   if (env->sparse()) {
 
-    const GMFloat2 ci_cj =
-      GMMetrics_float2_C_get_from_index(metrics, index, env);
+    //const GMFloat2 ci_cj =
+    //  GMMetrics_float2_C_get_from_index(metrics, index, env);
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(*metrics,
+      index, *env);
     GMTally1 ci, cj;
     GMFloat2_decode(ci, cj, ci_cj);
 
@@ -344,13 +338,17 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
     const GMTally1 rij10 = GMTally2x2_get(ttable, 1, 0);
     const GMTally1 rij11 = GMTally2x2_get(ttable, 1, 1);
 
-    const GMFloat2 si1_sj1 =
-      GMMetrics_float2_S_get_from_index(metrics, index, env);
+    //const GMFloat2 si1_sj1 =
+    //  GMMetrics_float2_S_get_from_index(metrics, index, env);
+    const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(*metrics,
+      index, *env);
     GMTally1 si1 = 0, sj1 = 0;
     GMFloat2_decode(si1, sj1, si1_sj1);
 
-    const GMFloat2 ci_cj =
-      GMMetrics_float2_C_get_from_index(metrics, index, env);
+    //const GMFloat2 ci_cj =
+    //  GMMetrics_float2_C_get_from_index(metrics, index, env);
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(*metrics,
+      index, *env);
     GMTally1 ci = 0, cj = 0;
     GMFloat2_decode(ci, cj, ci_cj);
 
