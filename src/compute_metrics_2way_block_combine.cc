@@ -64,8 +64,9 @@ void gm_compute_2way_proc_combine_czek_(
       const GMFloat vs_j = vs_r->sum(j);
       const int i_max = do_compute_triang_only ? j : nvl;
       for (int i = 0; i < i_max; ++i) {
-        const GMFloat numer =
-            GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
+        const GMFloat numer = Metrics_elt_const_2<GMFloat>(*metrics,
+          i, j, j_block, *env);
+//            GMMetrics_float_get_all2all_2(metrics, i, j, j_block, env);
         const GMFloat vs_i = vs_l->sum(i);
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
@@ -91,7 +92,9 @@ void gm_compute_2way_proc_combine_czek_(
       const GMFloat vs_j = vs_r->sum(j);
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
-        const GMFloat numer = GMMetrics_float_get_2(metrics, i, j, env);
+        const GMFloat numer = Metrics_elt_const_2<GMFloat>(*metrics,
+          i, j, env->proc_num_vector(), *env);
+          // GMMetrics_float_get_2(metrics, i, j, env);
         const GMFloat vs_i = vs_l->sum(i);
         const GMFloat denom = vs_i < vs_j ?  vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;

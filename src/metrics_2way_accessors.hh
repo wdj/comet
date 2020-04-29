@@ -436,6 +436,14 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 //=============================================================================
 // Accessors: value from (local) coord: set: 2-way.
 
+
+
+
+
+
+
+
+
 template<typename T>
 static void GMMetrics_set_2(GMMetrics* metrics, void* p, int i, int j,
   T value, CEnv* env) {
@@ -544,9 +552,32 @@ static void GMMetrics_tally2x2_set_all2all_2(GMMetrics* metrics, int i, int j,
     value, env);
 }
 
+//-----------------------------------------------------------------------------
+
+
+
+
+template<typename T, int MA = MetricsArray::_>
+static T& Metrics_elt_2(GMMetrics& metrics, int i, int j, int j_block,
+  CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || env.proc_num_vector() == j_block);
+  // WARNING: these conditions are not exhaustive.
+
+  const size_t index = Metrics_index_2(metrics, i, j, j_block, env);
+
+  return Metrics_elt<T, MA>(metrics, index, env);
+}
+
+
+
+
+
 //=============================================================================
 // Accessors: value from (local) coord: get: 2-way.
 
+#if 0
 static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
   int i, int j, CEnv* env) {
   COMET_ASSERT(metrics && env);
@@ -557,7 +588,6 @@ static GMFloat GMMetrics_float_get_2(GMMetrics* metrics,
   COMET_ASSERT(env->data_type_metrics() == GM_DATA_TYPE_FLOAT);
 
   const size_t index = Metrics_index_2(*metrics, i, j, env->proc_num_vector(), *env);
-  //return Metrics_get<GMFloat>(*metrics, index, *env);
   return Metrics_elt_const<GMFloat>(*metrics, index, *env);
 }
 
@@ -576,8 +606,24 @@ static GMFloat GMMetrics_float_get_all2all_2(GMMetrics* metrics,
   /// WARNING: these conditions on j_block are not exhaustive.
 
   const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
-  //return Metrics_get<GMFloat>(*metrics, index, *env);
   return Metrics_elt_const<GMFloat>(*metrics, index, *env);
+}
+
+#endif
+
+//-----------------------------------------------------------------------------
+
+template<typename T>
+static T Metrics_elt_const_2(GMMetrics& metrics, int i, int j, int j_block,
+  CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || env.proc_num_vector() == j_block);
+  // WARNING: these conditions are not exhaustive.
+
+  const size_t index = Metrics_index_2(metrics, i, j, j_block, env);
+
+  return Metrics_elt_const<T>(metrics, index, env);
 }
 
 //=============================================================================
@@ -592,7 +638,6 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 
   const GMFloat result =
     env.metric_type() == MetricType::CZEK ?
-      //Metrics_get<GMFloat>(metrics, index, env) :
       Metrics_elt_const<GMFloat>(metrics, index, env) :
     env.metric_type() == MetricType::CCC ?
       (GMFloat)GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(
@@ -630,9 +675,9 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
   COMET_ASSERT(env.proc_num_vector() == i_proc);
   COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
 
-  const size_t index = env.all2all() ?
-    Metrics_index_2(metrics, i, j, j_proc, env) :
-    Metrics_index_2(metrics, i, j, env.proc_num_vector(), env);
+  const int j_proc_eff = env.all2all() ? j_proc : env.proc_num_vector();
+
+  const size_t index = Metrics_index_2(metrics, i, j, j_proc_eff, env);
 
   const GMFloat result = GMMetrics_get_2(metrics, index, i0, i1, env);
 

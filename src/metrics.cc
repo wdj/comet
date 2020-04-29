@@ -179,8 +179,8 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     const int section_num = section_step;
     const int J_lo = gm_J_lo(section_num, nvl, 1, env);
     const int J_hi = gm_J_hi(section_num, nvl, 1, env);
-    const int64_t trap_size_lo = gm_trap_size(J_lo, nvl);
-    const int64_t trap_size_hi = gm_trap_size(J_hi, nvl);
+    const int64_t trap_size_lo = trapezoid_size(J_lo, nvl);
+    const int64_t trap_size_hi = trapezoid_size(J_hi, nvl);
     COMET_INSIST(trap_size_hi >= trap_size_lo && "Error in sizes calculation.");
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part1_[section_num]
@@ -207,8 +207,8 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     const int section_num = section_step;
     const int J_lo = gm_J_lo(section_num, nvl, 2, env);
     const int J_hi = gm_J_hi(section_num, nvl, 2, env);
-    const int64_t triang_size_lo = gm_triang_size(J_lo, nvl);
-    const int64_t triang_size_hi = gm_triang_size(J_hi, nvl);
+    const int64_t triang_size_lo = triangle_size(J_lo, nvl);
+    const int64_t triang_size_hi = triangle_size(J_hi, nvl);
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part2_[section_num]
       = (int64_t)metrics->num_elts_local - (int64_t)nvl*(int64_t)triang_size_lo;

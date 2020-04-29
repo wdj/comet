@@ -2599,11 +2599,11 @@ TEST(DriverTest, czek3) {
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
+#endif
 
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
-#endif
 
 #if 1
 TEST(DriverTest, duo2) {

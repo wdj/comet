@@ -489,6 +489,14 @@ static bool GMMetrics_ccc_duo_get_from_index_3_threshold(
 //=============================================================================
 // Accessors: value from (local) coord: set: 3-way.
 
+
+
+
+
+
+
+
+
 template<typename T>
 static void GMMetrics_set_3(GMMetrics* metrics, void* p, int i, int j, int k,
   T value, CEnv* env) {    
@@ -688,9 +696,18 @@ static void Metrics_set_XXX(
   ((Tally4x2<MF>*)(metrics.data))[index] = value;
 }
 
+
+
+
+
+
+
+
+
 //=============================================================================
 // Accessors: value from (local) coord: get: 3-way.
 
+#if 0
 template<int MF>
 static Tally4x2<MF> Metrics_get(GMMetrics& metrics,
   int i, int j, int k, CEnv& env) {
@@ -711,6 +728,24 @@ static Tally4x2<MF> Metrics_get(
     metrics, I, J, K, j_block, k_block, index_cache, env);
   //return Metrics_get<Tally4x2<MF>>(metrics, index, env);
   return Metrics_elt_const<Tally4x2<MF>>(metrics, index, env);
+}
+#endif
+
+//-----------------------------------------------------------------------------
+
+template<typename T>
+static T Metrics_elt_const_3(GMMetrics& metrics, int i, int j, int k,
+  int j_block, int k_block, GMIndexCache& index_cache, CEnv& env) {
+  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
+  COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
+                                 env.proc_num_vector() == k_block));
+  // WARNING: these conditions are not exhaustive.
+
+  const size_t index = Metrics_index_3(metrics, i, j, k,
+    j_block, k_block, index_cache, env);
+
+  return Metrics_elt_const<T>(metrics, index, env);
 }
 
 //=============================================================================
@@ -770,9 +805,11 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
   COMET_ASSERT(k_proc >= 0 && k_proc < env.num_proc_vector());
 
-  const size_t index = env.all2all() ?
-    Metrics_index_3(metrics, i, j, k, j_proc, k_proc, env) :
-    Metrics_index_3(metrics, i, j, k, env.proc_num_vector(), env.proc_num_vector(), env);
+  const int j_proc_eff = env.all2all() ? j_proc : env.proc_num_vector();
+  const int k_proc_eff = env.all2all() ? k_proc : env.proc_num_vector();
+
+  const size_t index = Metrics_index_3(metrics, i, j, k, j_proc_eff,
+    k_proc_eff, env);
 
   const GMFloat result = GMMetrics_get_3(metrics, index, i0, i1, i2, env);
 

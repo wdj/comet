@@ -175,7 +175,7 @@ template<> struct MetricsArrayData<MetricsArray::C> {
 };
 
 template<typename T, int MA = MetricsArray::_>
-T Metrics_elt_const(const GMMetrics& metrics, size_t index, CEnv& env) {
+static T Metrics_elt_const(const GMMetrics& metrics, size_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
   COMET_ASSERT(index+1 >= 1 && index < metrics.num_elts_local);
@@ -183,7 +183,7 @@ T Metrics_elt_const(const GMMetrics& metrics, size_t index, CEnv& env) {
 }
 
 template<typename T, int MA = MetricsArray::_>
-T& Metrics_elt(GMMetrics& metrics, size_t index, CEnv& env) {
+static T& Metrics_elt(GMMetrics& metrics, size_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
   COMET_ASSERT(index+1 >= 1 && index < metrics.num_elts_local);

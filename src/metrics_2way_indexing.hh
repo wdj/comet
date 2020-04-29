@@ -100,53 +100,29 @@ static int gm_blocks_computed_this_row(CEnv* env) {
 }
 
 //=============================================================================
-/*---Accessors: indexing: (contig) index from coord, 2-way---*/
+// Accessors: indexing: (contig) index from coord, 2-way.
 
-static size_t gm_triang_(int i) {
+//-----------------------------------------------------------------------------
+/// \brief Number of elements in triangle.
+
+static size_t triangle_index(int i) {
   return (i * (size_t)(i-1)) >> 1;
 }
 
 //-----------------------------------------------------------------------------
 
-#if 0
-static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
-  COMET_ASSERT(env.proc_num_repl() == 0);
-  COMET_ASSERT(!env.all2all());
-  COMET_ASSERT(i >= 0 && i < metrics.num_vector_local);
-  COMET_ASSERT(j >= 0 && j < metrics.num_vector_local);
-  COMET_ASSERT(i < j);
-
-  size_t index = gm_triang_(j) + i;
-  COMET_ASSERT(i + metrics.num_vector_local *
-               (size_t)env.proc_num_vector() ==
-           metrics.coords_global_from_index[index] % metrics.num_vector);
-  COMET_ASSERT(j + metrics.num_vector_local *
-               (size_t)env.proc_num_vector() ==
-           metrics.coords_global_from_index[index] / metrics.num_vector);
-  return index;
-}
-#endif
-
-//-----------------------------------------------------------------------------
-
 static size_t GMMetrics_helper2way_maindiag_block_(GMMetrics* metrics,
-                                                   int i,
-                                                   int j,
-                                                   int j_block,
-                                                   CEnv* env) {
+  int i, int j, int j_block, CEnv* env) {
   COMET_ASSERT(j_block == env->proc_num_vector());
 
-  return gm_triang_(j) + i;
+  return triangle_index(j) + i;
 }
 
 //-----------------------------------------------------------------------------
 
 static size_t GMMetrics_helper2way_offdiag_block_(GMMetrics* metrics,
-                                                  int i,
-                                                  int j,
-                                                  int j_block,
-                                                  CEnv* env) {
+  int i, int j, int j_block, CEnv* env) {
+  COMET_ASSERT(env->all2all());
   COMET_ASSERT(j_block != env->proc_num_vector());
 
   const int num_block = env->num_block_vector();
@@ -179,42 +155,25 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
 
   const int i_block = env.proc_num_vector();
 
-  size_t index = j_block == i_block
+  const int64_t index = j_block == i_block
            ? GMMetrics_helper2way_maindiag_block_(&metrics, i, j, j_block, &env)
            : GMMetrics_helper2way_offdiag_block_(&metrics, i, j, j_block, &env);
 
-  COMET_ASSERT(index >= 0 && index < metrics.num_elts_local);
+  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
+
+  COMET_ASSERT(metrics.coords_global_from_index[index] %
+               (metrics.num_vector_local * (size_t)env.num_block_vector()) ==
+           i + i_block * (size_t)metrics.num_vector_local);
+
+  COMET_ASSERT(metrics.coords_global_from_index[index] /
+               (metrics.num_vector_local * (size_t)env.num_block_vector()) ==
+           j + j_block * (size_t)metrics.num_vector_local);
+
   return index;
 }
 
-#if 0
-static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
-  CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
-  //COMET_ASSERT(env.proc_num_repl() == 0);
-  COMET_ASSERT(env.all2all());
-  COMET_ASSERT(i >= 0 && i < metrics.num_vector_local);
-  COMET_ASSERT(j >= 0 && j < metrics.num_vector_local);
-  COMET_ASSERT(j_block >= 0 && j_block < env.num_block_vector());
-  COMET_ASSERT(i < j || j_block != env.proc_num_vector());
-//  COMET_ASSERT(env.proc_num_repl() == 0 ||
-//           j_block != env.proc_num_vector() // DEFUNCT
-  /*---WARNING: these conditions on j_block are not exhaustive---*/
-
-  const int i_block = env.proc_num_vector();
-
-  size_t index = j_block == i_block
-           ? GMMetrics_helper2way_maindiag_block_(&metrics, i, j, j_block, &env)
-           : GMMetrics_helper2way_offdiag_block_(&metrics, i, j, j_block, &env);
-
-  COMET_ASSERT(index >= 0 && index < metrics.num_elts_local);
-  return index;
-}
-#endif
-
 //=============================================================================
-//=============================================================================
-/*---Accessors: indexing: global coord from (contig) index: 2-way---*/
+// Accessors: indexing: global coord from (contig) index: 2-way.
 
 static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
                                                 size_t index,

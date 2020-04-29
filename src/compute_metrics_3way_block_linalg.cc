@@ -315,11 +315,18 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           // NOTE: numer is accessed through a permuted index, but
           // the 000, 001 etc. indices of numer are unpermuted.
 
-          Tally4x2<MF> numer = init_numer ? Tally4x2<MF>::null() :
-            env.all2all() ? 
-            Metrics_get<MF>(*metrics, I, J, K, j_block, k_block, index_cache,
-                            env) :
-            Metrics_get<MF>(*metrics, i, j, k, env);
+          const int j_block_eff = env.all2all() ? j_block : env.proc_num_vector();
+          const int k_block_eff = env.all2all() ? k_block : env.proc_num_vector();
+
+          auto numer = init_numer ? Tally4x2<MF>::null() :
+            Metrics_elt_const_3<Tally4x2<MF>>(*metrics, I, J, K,
+              j_block_eff, k_block_eff, index_cache, env);
+
+//          Tally4x2<MF> numer = init_numer ? Tally4x2<MF>::null() :
+//            env.all2all() ? 
+//            Metrics_get<MF>(*metrics, I, J, K, j_block, k_block, index_cache,
+//                            env) :
+//            Metrics_get<MF>(*metrics, i, j, k, env);
 
           MFTypeIn r000, r001, r010, r011, r100, r101, r110, r111;
           MFT::decode(r000, r001, numer.data[0]);
