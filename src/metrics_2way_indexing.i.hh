@@ -140,16 +140,14 @@ static size_t Metrics_index_2_part2(GMMetrics& metrics,
   COMET_ASSERT(j_block != env.proc_num_vector());
 
   const int num_block = env.num_block_vector();
-
   const int num_proc_r = env.num_proc_repl();
-
-  const int block_min = metrics.block_min;
+  const int block_min_part2_ = metrics.block_min_part2_;
 
   /* clang-format off */
-  return metrics.index_offset_0_ +
+  return metrics.index_offset_part2_ +
       i + metrics.num_vector_local * (size_t)(
       j + metrics.num_vector_local * (
-      ((j_block - block_min + num_block) % num_block) / num_proc_r ));
+      ((j_block - block_min_part2_ + num_block) % num_block) / num_proc_r ));
   /* clang-format on */
 }
 
@@ -175,15 +173,13 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
-  COMET_ASSERT(metrics.coords_global_from_index[index] %
-               (metrics.num_vector_local * (size_t)env.num_block_vector()) ==
+  COMET_ASSERT(metrics.coords_global_from_index[index] % metrics.num_vector ==
            i + i_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT(metrics.coords_global_from_index[index] /
-               (metrics.num_vector_local * (size_t)env.num_block_vector()) ==
+  COMET_ASSERT(metrics.coords_global_from_index[index] / metrics.num_vector ==
            j + j_block * (size_t)metrics.num_vector_local);
 
-  return index;
+  return (size_t)index;
 }
 
 //=============================================================================
@@ -197,12 +193,10 @@ static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
 
-  const size_t i64 = metrics->coords_global_from_index[index] %
-                     metrics->num_vector;
-  const int i = (int)i64;
-  COMET_ASSERT((size_t)i == i64);
+  const size_t i = metrics->coords_global_from_index[index] %
+                   metrics->num_vector;
 
-  return i;
+  return safe_cast<int>(i);
 }
 
 //-----------------------------------------------------------------------------
@@ -214,12 +208,10 @@ static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
-  const size_t j64 = metrics->coords_global_from_index[index] /
-                     metrics->num_vector;
-  const int j = (int)j64;
-  COMET_ASSERT((size_t)j == j64);
+  const size_t j = metrics->coords_global_from_index[index] /
+                   metrics->num_vector;
 
-  return j;
+  return safe_cast<int>(j);
 }
 
 //=============================================================================

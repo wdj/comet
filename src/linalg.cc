@@ -523,18 +523,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
 
     typedef magma_minproduct_int_t Int_t;
 
-    const Int_t m_ = m;
-    const Int_t n_ = n;
-    const Int_t k_ = k;
-    const Int_t ldda_ = ldda;
-    const Int_t lddb_ = lddb;
-    const Int_t lddc_ = lddc;
-    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
-    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
-    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
-    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
-    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
-    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
+    const Int_t m_ = safe_cast<Int_t>(m);
+    const Int_t n_ = safe_cast<Int_t>(n);
+    const Int_t k_ = safe_cast<Int_t>(k);
+    const Int_t ldda_ = safe_cast<Int_t>(ldda);
+    const Int_t lddb_ = safe_cast<Int_t>(lddb);
+    const Int_t lddc_ = safe_cast<Int_t>(lddc);
 
     if (env->is_double_prec()) {
       magma_minproductblas_dgemm(
@@ -585,18 +579,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
 
     typedef magma_mgemm4_int_t Int_t;
 
-    const Int_t m_ = m;
-    const Int_t n_ = n;
-    const Int_t k_ = k;
-    const Int_t ldda_ = ldda;
-    const Int_t lddb_ = lddb;
-    const Int_t lddc_ = lddc;
-    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
-    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
-    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
-    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
-    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
-    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
+    const Int_t m_ = safe_cast<Int_t>(m);
+    const Int_t n_ = safe_cast<Int_t>(n);
+    const Int_t k_ = safe_cast<Int_t>(k);
+    const Int_t ldda_ = safe_cast<Int_t>(ldda);
+    const Int_t lddb_ = safe_cast<Int_t>(lddb);
+    const Int_t lddc_ = safe_cast<Int_t>(lddc);
 
     magma_mgemm4blas_zgemm(
       Magma_mgemm4Trans,
@@ -626,18 +614,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
 
     typedef magma_mgemm2_int_t Int_t;
 
-    const Int_t m_ = m;
-    const Int_t n_ = n;
-    const Int_t k_ = k;
-    const Int_t ldda_ = ldda;
-    const Int_t lddb_ = lddb;
-    const Int_t lddc_ = lddc;
-    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
-    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
-    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
-    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
-    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
-    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
+    const Int_t m_ = safe_cast<Int_t>(m);
+    const Int_t n_ = safe_cast<Int_t>(n);
+    const Int_t k_ = safe_cast<Int_t>(k);
+    const Int_t ldda_ = safe_cast<Int_t>(ldda);
+    const Int_t lddb_ = safe_cast<Int_t>(lddb);
+    const Int_t lddc_ = safe_cast<Int_t>(lddc);
 
     magma_mgemm2blas_zgemm(
       Magma_mgemm2Trans,
@@ -667,18 +649,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
 
     typedef magma_mgemm3_int_t Int_t;
 
-    const Int_t m_ = m;
-    const Int_t n_ = n;
-    const Int_t k_ = k;
-    const Int_t ldda_ = ldda;
-    const Int_t lddb_ = lddb;
-    const Int_t lddc_ = lddc;
-    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
-    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
-    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
-    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
-    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
-    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
+    const Int_t m_ = safe_cast<Int_t>(m);
+    const Int_t n_ = safe_cast<Int_t>(n);
+    const Int_t k_ = safe_cast<Int_t>(k);
+    const Int_t ldda_ = safe_cast<Int_t>(ldda);
+    const Int_t lddb_ = safe_cast<Int_t>(lddb);
+    const Int_t lddc_ = safe_cast<Int_t>(lddc);
 
     magma_mgemm3blas_zgemm(
       Magma_mgemm3Trans,
@@ -703,18 +679,12 @@ void gm_linalg_gemm_magma_block_start(size_t m,
 
     typedef magma_mgemm5_int_t Int_t;
 
-    const Int_t m_ = m;
-    const Int_t n_ = n;
-    const Int_t k_ = k;
-    const Int_t ldda_ = ldda;
-    const Int_t lddb_ = lddb;
-    const Int_t lddc_ = lddc;
-    COMET_INSIST((size_t)m_ == m && "Integer overflow.");
-    COMET_INSIST((size_t)n_ == n && "Integer overflow.");
-    COMET_INSIST((size_t)k_ == k && "Integer overflow.");
-    COMET_INSIST((size_t)ldda_ == ldda && "Integer overflow.");
-    COMET_INSIST((size_t)lddb_ == lddb && "Integer overflow.");
-    COMET_INSIST((size_t)lddc_ == lddc && "Integer overflow.");
+    const Int_t m_ = safe_cast<Int_t>(m);
+    const Int_t n_ = safe_cast<Int_t>(n);
+    const Int_t k_ = safe_cast<Int_t>(k);
+    const Int_t ldda_ = safe_cast<Int_t>(ldda);
+    const Int_t lddb_ = safe_cast<Int_t>(lddb);
+    const Int_t lddc_ = safe_cast<Int_t>(lddc);
 
     const Float_t zero = {0, 0};
     const Float_t one = {1, 0};

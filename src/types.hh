@@ -441,6 +441,22 @@ template<typename T> int mantissa_digits() {
   return std::numeric_limits<T>::digits;
 }
 
+//=============================================================================
+/// \brief Safely cast arithmetic value to strictly lower type size.
+
+template<typename TO, typename TI>
+static TO safe_cast(const TI v) {
+#if ! defined(NDEBUG)
+  static_assert(sizeof(TO) < sizeof(TI), "");
+#endif
+  // ISSUE: this doesn't compile under CUDA:
+  // COMET_STATIC_ASSERT(sizeof(TO) < sizeof(TI)):
+  COMET_ASSERT((TI)(TO)v == v);
+  return (TO)v;
+}
+
+//-----------------------------------------------------------------------------
+
 } // namespace comet
 
 //-----------------------------------------------------------------------------

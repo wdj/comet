@@ -345,7 +345,7 @@ static size_t Metrics_index_3_part1(GMMetrics& metrics,
   const int num_section_steps = gm_num_section_steps(&env, 1);
   const int section_num = (j * num_section_steps) / nvl;
   // TODO: make this test work for !all2all case.
-  COMET_ASSERT(metrics.section_num_valid_part1_[section_num] || !env.all2all());
+  COMET_ASSERT(metrics.is_section_num_valid_part1_[section_num] || !env.all2all());
 
   const int64_t elts_offset = metrics.index_offset_section_part1_[section_num];
 
@@ -358,8 +358,7 @@ static size_t Metrics_index_3_part1(GMMetrics& metrics,
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
-  return index;
-  //return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
+  return (size_t)index;
 }
 
 //-----------------------------------------------------------------------------
@@ -379,20 +378,20 @@ static size_t Metrics_index_3_part2(GMMetrics& metrics,
 
   const int num_section_steps = gm_num_section_steps(&env, 2);
   const int section_num = (j * num_section_steps) / nvl;
-  COMET_ASSERT(metrics.section_num_valid_part2_[section_num]);
+  COMET_ASSERT(metrics.is_section_num_valid_part2_[section_num]);
 
   const int64_t elts_offset = metrics.index_offset_section_part2_[section_num];
 
   const int num_block = env.num_block_vector();
   const int j_i_offset = mod_fast(j_block - i_block, num_block);
   const int block_num_part2 = j_i_offset - 1
-      - metrics.phase_block_start_2_[section_num];
+      - metrics.phase_block_start_part2_[section_num];
 
   // Packing offset for multiple section blocks for this proc_r and section_num
   const int num_proc_r = env.num_proc_repl();
   const int blocks_offset = block_num_part2 / num_proc_r;
 
-  const size_t section_size = metrics.section_size_part2[section_num];
+  const size_t section_size = metrics.section_size_part2_[section_num];
 
   // Ordering: outer loop is section num, inner loop is block num.
 
@@ -407,7 +406,7 @@ static size_t Metrics_index_3_part2(GMMetrics& metrics,
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
-  return index;
+  return (size_t)index;
 }
 
 //-----------------------------------------------------------------------------
@@ -421,7 +420,7 @@ static size_t Metrics_index_3_part3(GMMetrics& metrics,
   //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
-  const int64_t elts_offset = metrics.index_offset_01_;
+  const int64_t elts_offset = metrics.index_offset_part3_;
 
   const int num_block = env.num_block_vector();
   const int j_i_offset = mod_fast(j_block - i_block, num_block);
@@ -429,7 +428,7 @@ static size_t Metrics_index_3_part3(GMMetrics& metrics,
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
     (j_i_offset - 1 - (j_i_offset > k_i_offset))
-    - metrics.phase_block_start_3_;
+    - metrics.phase_block_start_part3_;
 
   // Packing offset for multiple blocks for this proc_r
   const int num_proc_r = env.num_proc_repl();
@@ -474,7 +473,7 @@ static size_t Metrics_index_3_part3(GMMetrics& metrics,
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
-  return index;
+  return (size_t)index;
 }
 
 //-----------------------------------------------------------------------------
@@ -508,21 +507,18 @@ static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k,
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
-  COMET_ASSERT(metrics.coords_global_from_index[index] %
-               (metrics.num_vector_local * (size_t)env.num_block_vector()) ==
+  COMET_ASSERT(metrics.coords_global_from_index[index] % metrics.num_vector ==
            i + i_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((metrics.coords_global_from_index[index] /
-                (metrics.num_vector_local * (size_t)env.num_block_vector())) %
-               (metrics.num_vector_local * env.num_block_vector()) ==
+  COMET_ASSERT((metrics.coords_global_from_index[index] / metrics.num_vector) %
+               metrics.num_vector ==
            j + j_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((metrics.coords_global_from_index[index] /
-                (metrics.num_vector_local * (size_t)env.num_block_vector())) /
-               (metrics.num_vector_local * env.num_block_vector()) ==
+  COMET_ASSERT((metrics.coords_global_from_index[index] / metrics.num_vector) /
+               metrics.num_vector ==
            k + k_block * (size_t)metrics.num_vector_local);
 
-  return index;
+  return (size_t)index;
 }
 
 //-----------------------------------------------------------------------------
@@ -557,7 +553,7 @@ static size_t Metrics_index_3_part3_permuted(GMMetrics& metrics,
   //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
-  const int64_t elts_offset = metrics.index_offset_01_;
+  const int64_t elts_offset = metrics.index_offset_part3_;
 
   const int num_block = env.num_block_vector();
   const int j_i_offset = mod_fast(j_block - i_block, num_block);
@@ -565,7 +561,7 @@ static size_t Metrics_index_3_part3_permuted(GMMetrics& metrics,
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
     (j_i_offset - 1 - (j_i_offset > k_i_offset))
-    - metrics.phase_block_start_3_;
+    - metrics.phase_block_start_part3_;
 
   const int num_proc_r = env.num_proc_repl();
   const int blocks_offset = block_num_part3 / num_proc_r;
@@ -586,7 +582,7 @@ static size_t Metrics_index_3_part3_permuted(GMMetrics& metrics,
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
-  return index;
+  return (size_t)index;
 }
 
 //-----------------------------------------------------------------------------
@@ -658,18 +654,40 @@ static size_t Metrics_index_3_permuted_(GMMetrics& metrics,
            k + k_block * (size_t)metrics.num_vector_local);
 #endif
 
-  return index;
+  return (size_t)index;
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Helper struct to speed up index calculations.
 
-typedef struct {
-  bool is_initialized;
-  int I;
-  int K;
-  size_t index;
-} MetricsIndexCache;
+class MetricsIndexCache  {
+  bool is_initialized_;
+  int I_;
+  int K_;
+  size_t index_;
+public:
+  size_t index(GMMetrics& metrics, int I, int J, int K,
+               int j_block, int k_block, CEnv& env) {
+
+    const bool is_same_K_as_prev = (K == K_);
+
+    if (is_initialized_ && is_same_K_as_prev) {
+      // Fast calculation.
+      index_ += I - I_;
+      // Update the cache.
+      I_ = I;
+    } else {
+      // Slow calculation.
+      index_ = Metrics_index_3_permuted_(metrics, I, J, K, j_block, k_block,
+        env);
+      // Update the cache.
+      I_ = I;
+      K_ = K;
+      is_initialized_ = true;
+    }
+    return index_;
+  }
+};
 
 //-----------------------------------------------------------------------------
 /// \brief Convert elt coordinates to index, 3-way case, permuted/cached.
@@ -689,26 +707,7 @@ static size_t Metrics_index_3( GMMetrics& metrics, int I, int J, int K,
                   env.proc_num_vector() != j_block));
   // WARNING: these conditions are not exhaustive.
 
-  const bool is_same_K_as_prev = (K == index_cache.K);
-
-  if (index_cache.is_initialized && is_same_K_as_prev) {
-    // Fast calculation.
-    const size_t index = index_cache.index + (I-index_cache.I);
-    // Update the cache.
-    index_cache.index = index;
-    index_cache.I = I;
-  } else {
-    // Slow calculation.
-    const size_t index = Metrics_index_3_permuted_(metrics, I, J, K,
-      j_block, k_block, env);
-    // Update the cache.
-    index_cache.I = I;
-    index_cache.K = K;
-    index_cache.index = index;
-    index_cache.is_initialized = true;
-  }
-
-  return index_cache.index;
+  return index_cache.index(metrics, I, J, K, j_block, k_block, env);;
 }
 
 //=============================================================================
@@ -720,12 +719,10 @@ static int GMMetrics_coord0_global_from_index_3(GMMetrics* metrics,
   COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
 
-  const size_t i64 = metrics->coords_global_from_index[index] %
-                     metrics->num_vector;
-  const int i = (int)i64;
-  COMET_ASSERT((size_t)i == i64);
+  const size_t i = metrics->coords_global_from_index[index] %
+                   metrics->num_vector;
 
-  return i;
+  return safe_cast<int>(i);
 }
 
 //-----------------------------------------------------------------------------
@@ -736,13 +733,10 @@ static int GMMetrics_coord1_global_from_index_3(GMMetrics* metrics,
   COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
 
-  const size_t j64 =
-      (metrics->coords_global_from_index[index] / metrics->num_vector) %
-      metrics->num_vector;
-  const int j = (int)j64;
-  COMET_ASSERT((size_t)j == j64);
+  const size_t j = (metrics->coords_global_from_index[index] /
+                    metrics->num_vector) % metrics->num_vector;
 
-  return j;
+  return safe_cast<int>(j);
 }
 
 //-----------------------------------------------------------------------------
@@ -753,12 +747,10 @@ static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
   COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
 
-  const size_t k64 = metrics->coords_global_from_index[index] /
-                     (metrics->num_vector * (size_t)metrics->num_vector);
-  const int k = (int)k64;
-  COMET_ASSERT((size_t)k == k64);
+  const size_t k = (metrics->coords_global_from_index[index] /
+                    metrics->num_vector) / metrics->num_vector;
 
-  return k;
+  return safe_cast<int>(k);
 }
 
 //=============================================================================

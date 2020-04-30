@@ -58,37 +58,31 @@ private:
 //=============================================================================
 /// \brief Metrics struct declaration.
 
-typedef struct {
-  /*---Logical sizes---*/
+struct GMMetrics {
+  enum {NUM_SECTION_MAX = 6};
+  // Logical sizes.
   int num_field;
   int num_field_local;
   size_t num_field_active;
   int num_vector;
   int num_vector_local;
   size_t num_vector_active;
-  int nvl6;
-  int J_lo_part3_[6];
-  int J_wi_part3_[6];
-  int pad1;
+  int J_lo_part3_[NUM_SECTION_MAX];
+  int J_wi_part3_[NUM_SECTION_MAX];
   size_t num_elts_local;
-  /*---Helper values---*/
-  int64_t index_offset_0_;
-  int64_t index_offset_01_;
-  int64_t index_offset_section_part1_[6];
-  int64_t index_offset_section_part2_[6];
-  bool section_num_valid_part1_[6];
-  bool section_num_valid_part2_[6];
-  size_t section_size_part2[6];
-  size_t phase_block_start_2_[6];
-  size_t phase_block_start_3_;
-  GMFloat m;
-  GMFloat recip_m;
-  int block_min;
-  /*---map of (contig) index to linearized Cartesian coords---*/
-  size_t* coords_global_from_index;
-  /*---Other---*/
-  int data_type_id;
-  int data_type_num_values;
+  // Helper values.
+  double recip_m;
+  int64_t index_offset_part2_;
+  int64_t index_offset_part3_;
+  int64_t index_offset_section_part1_[NUM_SECTION_MAX];
+  int64_t index_offset_section_part2_[NUM_SECTION_MAX];
+  bool is_section_num_valid_part1_[NUM_SECTION_MAX];
+  bool is_section_num_valid_part2_[NUM_SECTION_MAX];
+  size_t section_size_part2_[NUM_SECTION_MAX];
+  int phase_block_start_part2_[NUM_SECTION_MAX];
+  int phase_block_start_part3_;
+  int block_min_part2_;
+  // Data arrays.
   void* __restrict__ data;
   void* __restrict__ data_S;
   void* __restrict__ data_C;
@@ -98,9 +92,15 @@ typedef struct {
   size_t data_elt_size;
   size_t data_S_elt_size;
   size_t data_C_elt_size;
+  // Map of (contig) index to linearized Cartesian coords.
+  size_t* coords_global_from_index;
+  // Counters.
   size_t num_elts_local_computed;
+  // Other.
+  int data_type_id;
+  int data_type_num_values;
   GMDecompMgr* dm;
-} GMMetrics;
+};
 
 //=============================================================================
 // Null object.

@@ -191,12 +191,12 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
         const int64_t elts_local = trap_size_hi - trap_size_lo;
         COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
         metrics->num_elts_local += elts_local;
-        metrics->section_num_valid_part1_[section_num] = (elts_local != 0);
+        metrics->is_section_num_valid_part1_[section_num] = (elts_local != 0);
       } // if
     } // if
     ++section_block_num;
   } // section_step
-  metrics->index_offset_0_ = metrics->num_elts_local;
+  metrics->index_offset_part2_ = metrics->num_elts_local;
 
   //---Compute size part 2: (triang prisms) i_block!=j_block==k_block part.
 
@@ -212,15 +212,14 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part2_[section_num]
       = (int64_t)metrics->num_elts_local - (int64_t)nvl*(int64_t)triang_size_lo;
-    metrics->section_size_part2[section_num] = triang_size_hi -
-                                               triang_size_lo;
+    metrics->section_size_part2_[section_num] = triang_size_hi - triang_size_lo;
     int block_num_part2 = 0;
     bool is_phase_block_start_set = false;
     //---Loop over blocks for part2.
     for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
       if (gm_is_section_block_in_phase(env, section_block_num)) {
         if (!is_phase_block_start_set) {
-          metrics->phase_block_start_2_[section_num] = block_num_part2;
+          metrics->phase_block_start_part2_[section_num] = block_num_part2;
           is_phase_block_start_set = true;
         }
         if (gm_proc_r_active(section_block_num, env)) {
@@ -229,14 +228,14 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
                                      (triang_size_hi - triang_size_lo);
           COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
           metrics->num_elts_local += elts_local;
-          metrics->section_num_valid_part2_[section_num] = (elts_local != 0);
+          metrics->is_section_num_valid_part2_[section_num] = (elts_local != 0);
         } // if
       } // if
       ++section_block_num;
       ++block_num_part2;
     }
   } // section_step
-  metrics->index_offset_01_ = metrics->num_elts_local;
+  metrics->index_offset_part3_ = metrics->num_elts_local;
 
   //---Compute size part 3: (block sections) i_block!=j_block!=k_block part.
 
@@ -259,7 +258,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
         const int J_hi = gm_J_hi(section_num, nvl, 3, env);
         if (gm_is_section_block_in_phase(env, section_block_num)) {
           if (!is_phase_block_start_set) {
-            metrics->phase_block_start_3_ = block_num_part3;
+            metrics->phase_block_start_part3_ = block_num_part3;
             is_phase_block_start_set = true;
           }
           if (gm_proc_r_active(section_block_num, env)) {
@@ -318,19 +317,18 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_vector_local = dm->num_vector_local;
   metrics->num_vector_active = dm->num_vector_active;
 
-  metrics->nvl6 = metrics->num_vector_local / 6;
-  metrics->index_offset_0_ = 0;
-  metrics->index_offset_01_ = 0;
-  metrics->recip_m = ((GMFloat)1) / metrics->num_field_active;
-  metrics->block_min = 0;
+  metrics->index_offset_part2_ = 0;
+  metrics->index_offset_part3_ = 0;
+  metrics->recip_m = 1. / metrics->num_field_active;
+  metrics->block_min_part2_ = 0;
   for (int i=0; i<6; ++i) {
     metrics->index_offset_section_part1_[i] = 0;
     metrics->index_offset_section_part2_[i] = 0;
-    metrics->section_num_valid_part1_[i] = false;
-    metrics->section_num_valid_part2_[i] = false;
-    metrics->phase_block_start_2_[i] = 0;
+    metrics->is_section_num_valid_part1_[i] = false;
+    metrics->is_section_num_valid_part2_[i] = false;
+    metrics->phase_block_start_part2_[i] = 0;
   }
-  metrics->phase_block_start_3_ = 0;
+  metrics->phase_block_start_part3_ = 0;
 
   metrics->num_vector = dm->num_vector;
 
@@ -350,12 +348,13 @@ void GMMetrics_create(GMMetrics* metrics,
 
   /*---Compute number of elements etc.---*/
 
-  COMET_INSIST_INTERFACE(env, env->stage_num() >= 0
-    && env->stage_num() < env->num_stage()
-    && "Invalid stage number specified.");
+  COMET_INSIST_INTERFACE(env, env->stage_num() >= 0 &&
+                              env->stage_num() < env->num_stage() &&
+                              "Invalid stage number specified.");
 
-  COMET_INSIST_INTERFACE(env, env->phase_num() >= 0 && env->phase_num() < env->num_phase()
-                    && "Invalid phase number specified.");
+  COMET_INSIST_INTERFACE(env, env->phase_num() >= 0 &&
+                              env->phase_num() < env->num_phase() &&
+                              "Invalid phase number specified.");
 
   GMMetrics_ccc_check_size_nofp_2(metrics, env);
   GMMetrics_ccc_check_size_nofp_3(metrics, env);
@@ -389,9 +388,9 @@ void GMMetrics_create(GMMetrics* metrics,
     const bool have_main_diag = proc_num_r == 0 &&
                                 gm_bdiag_computed_min(env) == 0;
     metrics->num_elts_local += have_main_diag ? nchoosek : 0;
-    metrics->index_offset_0_ = have_main_diag ? nchoosek - nvlsq : 0;
-    metrics->block_min = (i_block + gm_bdiag_computed_min(env)) % num_block;
-
+    metrics->index_offset_part2_ = have_main_diag ? nchoosek - nvlsq : 0;
+    metrics->block_min_part2_ = (i_block + gm_bdiag_computed_min(env)) %
+      num_block;
 
     /*---PART A.2: (wrapped rect) i_block!=j_block part---*/
     const int num_computed_blocks_this_row = gm_blocks_computed_this_row(env);
