@@ -82,24 +82,30 @@ static bool gm_is_section_block_in_phase(const CEnv* const env,
 
 //-----------------------------------------------------------------------------
 
-static bool gm_is_part1(int i_block, int j_block, int k_block) {
+static bool is_part1(int i_block, int j_block, int k_block) {
   return i_block == j_block && j_block == k_block;
 }
 
 //-----------------------------------------------------------------------------
 
-static bool gm_is_part3(int i_block, int j_block, int k_block) {
+static bool is_part2(int i_block, int j_block, int k_block) {
+  return j_block == k_block && !is_part1(i_block, j_block, k_block);
+}
+
+//-----------------------------------------------------------------------------
+
+static bool is_part3(int i_block, int j_block, int k_block) {
   return i_block != j_block && j_block != k_block && i_block != k_block;
 }
 
 //-----------------------------------------------------------------------------
 
 static int gm_section_axis_part3(int i_block, int j_block, int k_block) {
-  /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
+  // NOTE: this could possibly be implemented somewhat more efficiently.
   /* clang-format off */
-  return i_block < j_block && i_block < k_block ? 0 : /*---i axis---*/
-         j_block < i_block && j_block < k_block ? 1 : /*---j axis---*/
-                                                  2;  /*---k axis---*/
+  return i_block < j_block && i_block < k_block ? 0 : // i axis
+         j_block < i_block && j_block < k_block ? 1 : // j axis
+                                                  2;  // k axis
   /* clang-format on */
 }
 
@@ -232,9 +238,9 @@ static void GMSectionInfo_create(
 
   si->num_vector_local = num_vector_local;
 
-  si->is_part1 = gm_is_part1(i_block, j_block, k_block);
-  si->is_part3 = gm_is_part3(i_block, j_block, k_block);
-  si->is_part2 = ! si->is_part1 && ! si->is_part3;
+  si->is_part1 = is_part1(i_block, j_block, k_block);
+  si->is_part2 = is_part2(i_block, j_block, k_block);
+  si->is_part3 = is_part3(i_block, j_block, k_block);
 
   si->part_num = si->is_part1 ? 1 :
                  si->is_part2 ? 2 : 3;
@@ -316,31 +322,32 @@ static int GMSectionInfo_i_max(
 // Accessors: indexing: (contig) index from coord, 3-way.
 
 //-----------------------------------------------------------------------------
-/// \brief Number of elements in a part of a trapezoid, cut orthog to j axis.
+/// \brief Helper: number of elts in part of a trapezoid, cut orthog to j axis.
 
 static size_t trapezoid_size(int j, int nvl) {
   return ( j *(size_t) (j-1) *(size_t) (3*nvl-2*j-2) ) / 6;
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Number of elements in a part of a triangle, cut orthog to j axis.
+/// \brief Helper: number of elts in part of a triangle, cut orthog to j axis.
 
 static size_t triangle_size(int j, int nvl) {
   return triangle_index(nvl) - triangle_index(nvl-j);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert elt coords to index, 3-way case, main diag block.
 
-static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
-  int i, int j, int k, int i_block, int j_block, int k_block, CEnv* env) {
-  const int nvl = metrics->num_vector_local;
+static size_t Metrics_index_3_part1(GMMetrics& metrics,
+  int i, int j, int k, int i_block, int j_block, int k_block, CEnv& env) {
+  const int nvl = metrics.num_vector_local;
 
-  const int num_section_steps = gm_num_section_steps(env, 1);
+  const int num_section_steps = gm_num_section_steps(&env, 1);
   const int section_num = (j * num_section_steps) / nvl;
   // TODO: make this test work for !all2all case.
-  COMET_ASSERT(metrics->section_num_valid_part1_[section_num] || !env->all2all());
+  COMET_ASSERT(metrics.section_num_valid_part1_[section_num] || !env.all2all());
 
-  const int64_t elts_offset = metrics->index_offset_section_part1_[section_num];
+  const int64_t elts_offset = metrics.index_offset_section_part1_[section_num];
 
   /* clang-format off */
   const int64_t index = elts_offset +
@@ -349,7 +356,7 @@ static size_t GMMetrics_helper3way_part1_(GMMetrics* metrics,
                         trapezoid_size(j, nvl);
   /* clang-format on */
 
-  COMET_ASSERT(index >= 0 && index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
   return index;
   //return GMMetrics_index_from_coord_3(metrics, i, j, k, env);
@@ -363,28 +370,29 @@ static int mod_fast(int i, int n) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert elt coords to index, 3-way case, diag plane block.
 
-static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
-  int i, int j, int k, int i_block, int j_block, int k_block, CEnv* env) {
-  COMET_ASSERT(env->all2all());
-  const int nvl = metrics->num_vector_local;
+static size_t Metrics_index_3_part2(GMMetrics& metrics,
+  int i, int j, int k, int i_block, int j_block, int k_block, CEnv& env) {
+  COMET_ASSERT(env.all2all());
+  const int nvl = metrics.num_vector_local;
 
-  const int num_section_steps = gm_num_section_steps(env, 2);
+  const int num_section_steps = gm_num_section_steps(&env, 2);
   const int section_num = (j * num_section_steps) / nvl;
-  COMET_ASSERT(metrics->section_num_valid_part2_[section_num]);
+  COMET_ASSERT(metrics.section_num_valid_part2_[section_num]);
 
-  const int64_t elts_offset = metrics->index_offset_section_part2_[section_num];
+  const int64_t elts_offset = metrics.index_offset_section_part2_[section_num];
 
-  const int num_block = env->num_block_vector();
+  const int num_block = env.num_block_vector();
   const int j_i_offset = mod_fast(j_block - i_block, num_block);
   const int block_num_part2 = j_i_offset - 1
-      - metrics->phase_block_start_2_[section_num];
+      - metrics.phase_block_start_2_[section_num];
 
   // Packing offset for multiple section blocks for this proc_r and section_num
-  const int num_proc_r = env->num_proc_repl();
+  const int num_proc_r = env.num_proc_repl();
   const int blocks_offset = block_num_part2 / num_proc_r;
 
-  const size_t section_size = metrics->section_size_part2[section_num];
+  const size_t section_size = metrics.section_size_part2[section_num];
 
   // Ordering: outer loop is section num, inner loop is block num.
 
@@ -397,38 +405,39 @@ static size_t GMMetrics_helper3way_part2_(GMMetrics* metrics,
                         ));
  /* clang-format on */
 
-  COMET_ASSERT(index >= 0 && index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
   return index;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert elt coords to index, 3-way case, off-diag block.
 
-static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
-  int i, int j, int k, int i_block, int j_block, int k_block, CEnv* env) {
-  COMET_ASSERT(env->all2all());
-  const int nvl = metrics->num_vector_local;
+static size_t Metrics_index_3_part3(GMMetrics& metrics,
+  int i, int j, int k, int i_block, int j_block, int k_block, CEnv& env) {
+  COMET_ASSERT(env.all2all());
+  const int nvl = metrics.num_vector_local;
 
   //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
-  const int64_t elts_offset = metrics->index_offset_01_;
+  const int64_t elts_offset = metrics.index_offset_01_;
 
-  const int num_block = env->num_block_vector();
+  const int num_block = env.num_block_vector();
   const int j_i_offset = mod_fast(j_block - i_block, num_block);
   const int k_i_offset = mod_fast(k_block - i_block, num_block);
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
     (j_i_offset - 1 - (j_i_offset > k_i_offset))
-    - metrics->phase_block_start_3_;
+    - metrics.phase_block_start_3_;
 
   // Packing offset for multiple blocks for this proc_r
-  const int num_proc_r = env->num_proc_repl();
+  const int num_proc_r = env.num_proc_repl();
   const int blocks_offset = block_num_part3 / num_proc_r;
 
   const int section_axis = gm_section_axis_part3(i_block, j_block, k_block);
-  const int J_lo = metrics->J_lo_part3_[section_num];
-  const int J_wi = metrics->J_wi_part3_[section_num];
+  const int J_lo = metrics.J_lo_part3_[section_num];
+  const int J_wi = metrics.J_wi_part3_[section_num];
 
   const int I = section_axis == 1 ? i :
                 section_axis == 0 ? k :
@@ -463,7 +472,7 @@ static size_t GMMetrics_helper3way_part3_(GMMetrics* metrics,
         )));
 #endif
 
-  COMET_ASSERT(index >= 0 && index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
   return index;
 }
@@ -488,14 +497,14 @@ static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k,
 
   const int i_block = env.proc_num_vector();
 
-  const int64_t index = j_block == i_block && k_block == i_block ?
-    GMMetrics_helper3way_part1_(&metrics, i, j, k,
-                                i_block, j_block, k_block, &env) :
-                 j_block == k_block ?
-    GMMetrics_helper3way_part2_(&metrics, i, j, k,
-                                i_block, j_block, k_block, &env) :
-    GMMetrics_helper3way_part3_(&metrics, i, j, k,
-                                i_block, j_block, k_block, &env);
+  const int64_t index = is_part1(i_block, j_block, k_block) ?
+    Metrics_index_3_part1(metrics, i, j, k,
+                                i_block, j_block, k_block, env) :
+                        is_part2(i_block, j_block, k_block) ?
+    Metrics_index_3_part2(metrics, i, j, k,
+                                i_block, j_block, k_block, env) :
+    Metrics_index_3_part3(metrics, i, j, k,
+                                i_block, j_block, k_block, env);
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
@@ -517,49 +526,52 @@ static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert elt coords to index, 3-way case, main diag block, permuted.
 
-static size_t GMMetrics_helper3way_part1_permuted_(GMMetrics* metrics,
-    int I, int J, int K, int i_block, int j_block, int k_block, CEnv* env) {
+static size_t Metrics_index_3_part1_permuted(GMMetrics& metrics,
+    int I, int J, int K, int i_block, int j_block, int k_block, CEnv& env) {
 
-  return GMMetrics_helper3way_part1_(metrics, I, J, K,
-                                     i_block, j_block, k_block, env);
+  return Metrics_index_3_part1(metrics, I, J, K,
+                               i_block, j_block, k_block, env);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert elt coords to index, 3-way case, diag plane block, permuted.
 
-static size_t GMMetrics_helper3way_part2_permuted_(GMMetrics* metrics,
-    int I, int J, int K, int i_block, int j_block, int k_block, CEnv* env) {
-  COMET_ASSERT(env->all2all());
+static size_t Metrics_index_3_part2_permuted(GMMetrics& metrics,
+    int I, int J, int K, int i_block, int j_block, int k_block, CEnv& env) {
+  COMET_ASSERT(env.all2all());
 
-  return GMMetrics_helper3way_part2_(metrics, I, J, K,
-                                     i_block, j_block, k_block, env);
+  return Metrics_index_3_part2(metrics, I, J, K,
+                               i_block, j_block, k_block, env);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert elt coords to index, 3-way case, off-diag block, permuted.
 
-static size_t GMMetrics_helper3way_part3_permuted_(GMMetrics* metrics,
-    int I, int J, int K, int i_block, int j_block, int k_block, CEnv* env) {
-  COMET_ASSERT(env->all2all());
-  const int nvl = metrics->num_vector_local;
+static size_t Metrics_index_3_part3_permuted(GMMetrics& metrics,
+    int I, int J, int K, int i_block, int j_block, int k_block, CEnv& env) {
+  COMET_ASSERT(env.all2all());
+  const int nvl = metrics.num_vector_local;
 
   //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
-  const int64_t elts_offset = metrics->index_offset_01_;
+  const int64_t elts_offset = metrics.index_offset_01_;
 
-  const int num_block = env->num_block_vector();
+  const int num_block = env.num_block_vector();
   const int j_i_offset = mod_fast(j_block - i_block, num_block);
   const int k_i_offset = mod_fast(k_block - i_block, num_block);
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
     (j_i_offset - 1 - (j_i_offset > k_i_offset))
-    - metrics->phase_block_start_3_;
+    - metrics.phase_block_start_3_;
 
-  const int num_proc_r = env->num_proc_repl();
+  const int num_proc_r = env.num_proc_repl();
   const int blocks_offset = block_num_part3 / num_proc_r;
 
-  const int J_lo = metrics->J_lo_part3_[section_num];
-  const int J_wi = metrics->J_wi_part3_[section_num];
+  const int J_lo = metrics.J_lo_part3_[section_num];
+  const int J_wi = metrics.J_wi_part3_[section_num];
 
   /* clang-format off */
 
@@ -572,14 +584,15 @@ static size_t GMMetrics_helper3way_part3_permuted_(GMMetrics* metrics,
 
   /* clang-format on */
 
-  COMET_ASSERT(index >= 0 && index < (int64_t)metrics->num_elts_local);
+  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
   return index;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Convert elt coordinates to index, 3-way case, permuted.
 
-static size_t GMMetrics_index_from_coord_all2all_3_permuted_(GMMetrics& metrics,
+static size_t Metrics_index_3_permuted_(GMMetrics& metrics,
     int I, int J, int K, int j_block, int k_block, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
@@ -596,14 +609,14 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_(GMMetrics& metrics,
 
   const int i_block = env.proc_num_vector();
 
-  int64_t index = j_block == i_block && k_block == i_block ?
-    GMMetrics_helper3way_part1_permuted_(&metrics, I, J, K,
-                                i_block, j_block, k_block, &env) :
-                 j_block == k_block ?
-    GMMetrics_helper3way_part2_permuted_(&metrics, I, J, K,
-                                i_block, j_block, k_block, &env) :
-    GMMetrics_helper3way_part3_permuted_(&metrics, I, J, K,
-                                         i_block, j_block, k_block, &env);
+  int64_t index = is_part1(i_block, j_block, k_block) ?
+    Metrics_index_3_part1_permuted(metrics, I, J, K,
+                                   i_block, j_block, k_block, env) :
+                 is_part2(i_block, j_block, k_block) ?
+    Metrics_index_3_part2_permuted(metrics, I, J, K,
+                                   i_block, j_block, k_block, env) :
+    Metrics_index_3_part3_permuted(metrics, I, J, K,
+                                   i_block, j_block, k_block, env);
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
@@ -611,9 +624,9 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_(GMMetrics& metrics,
 
   int section_step = 0;
 
-  if (gm_is_part3(i_block, j_block, k_block)) {
+  if (is_part3(i_block, j_block, k_block)) {
     section_step = 0;
-  } else if (gm_is_part1(i_block, j_block, k_block)) {
+  } else if (is_part1(i_block, j_block, k_block)) {
     const int num_section_steps = gm_num_section_steps(&env, 1);
     const int section_num = (J * num_section_steps) / metrics.num_vector_local;
     section_step = section_num;
@@ -649,19 +662,20 @@ static size_t GMMetrics_index_from_coord_all2all_3_permuted_(GMMetrics& metrics,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Helper struct to speed up index calculations.
 
 typedef struct {
   bool is_initialized;
   int I;
   int K;
   size_t index;
-} GMIndexCache;
+} MetricsIndexCache;
 
 //-----------------------------------------------------------------------------
 /// \brief Convert elt coordinates to index, 3-way case, permuted/cached.
 
 static size_t Metrics_index_3( GMMetrics& metrics, int I, int J, int K,
-    int j_block, int k_block, GMIndexCache& index_cache, CEnv& env) {
+    int j_block, int k_block, MetricsIndexCache& index_cache, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
@@ -675,22 +689,26 @@ static size_t Metrics_index_3( GMMetrics& metrics, int I, int J, int K,
                   env.proc_num_vector() != j_block));
   // WARNING: these conditions are not exhaustive.
 
-  if (index_cache.is_initialized && K == index_cache.K) {
-      const size_t index = index_cache.index + (I-index_cache.I);
-      index_cache.index = index;
-      index_cache.I = I;
-      return index;
+  const bool is_same_K_as_prev = (K == index_cache.K);
+
+  if (index_cache.is_initialized && is_same_K_as_prev) {
+    // Fast calculation.
+    const size_t index = index_cache.index + (I-index_cache.I);
+    // Update the cache.
+    index_cache.index = index;
+    index_cache.I = I;
+  } else {
+    // Slow calculation.
+    const size_t index = Metrics_index_3_permuted_(metrics, I, J, K,
+      j_block, k_block, env);
+    // Update the cache.
+    index_cache.I = I;
+    index_cache.K = K;
+    index_cache.index = index;
+    index_cache.is_initialized = true;
   }
 
-  const size_t index = GMMetrics_index_from_coord_all2all_3_permuted_(
-    metrics, I, J, K, j_block, k_block, env);
-
-  index_cache.I = I;
-  index_cache.K = K;
-  index_cache.index = index;
-  index_cache.is_initialized = true;
-
-  return index;
+  return index_cache.index;
 }
 
 //=============================================================================

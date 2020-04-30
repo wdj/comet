@@ -214,11 +214,11 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
     #pragma omp parallel for schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
-        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);;
-        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);;
-        const GMFloat min_KIK = matM_KIK_buf->elt_const<GMFloat>(K, I);;
+        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);
+        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);
+        const GMFloat min_KIK = matM_KIK_buf->elt_const<GMFloat>(K, I);
         // sum of mins vectors i, j, and k is matB(k,i).
-        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);;
+        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         const int i = I;
         const int j = J;
@@ -241,19 +241,19 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
   } else if (env.metric_type() == MetricType::CZEK && env.all2all()) {
 
-    GMIndexCache index_cache = {};
+    MetricsIndexCache index_cache = {};
     // don't use collapse because of overflow for large sizes
     //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
     #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
     for (int K = K_min; K < K_max; ++K) {
       for (int I = I_min; I < I_max; ++I) {
-        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);;
-        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);;
+        const GMFloat min_IJ = matM_IJ_buf->elt_const<GMFloat>(I, J);
+        const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);
         const GMFloat min_KIK = si->is_part3 ?
           matM_KIK_buf->elt_const<GMFloat>(K, I) :
           matM_KIK_buf->elt_const<GMFloat>(I, K);
         // sum of mins vectors i, j, and k is matB(k,i).
-        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);;
+        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         // Make arithmetic order-independent.
         GMFloat smin, smid, smax;
@@ -286,7 +286,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
     const int nvleD2 = nvle / 2;
     const int is_halved = env.is_vectors_halved();
 
-    GMIndexCache index_cache = {};
+    MetricsIndexCache index_cache = {};
 
     // don't use collapse because of overflow for large sizes
     //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)

@@ -139,7 +139,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
       const int K_min = si->is_part3 ? 0 : J + 1;
       const int K_max = nvl;
 
-      GMIndexCache index_cache = {};
+      MetricsIndexCache index_cache = {};
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 
@@ -186,7 +186,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
 
   } /*---if GPU---*/
 
-  GMSectionInfo_destroy(si, env);;
+  GMSectionInfo_destroy(si, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -259,7 +259,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
       const int K_min = si->is_part3 ? 0 : J + 1;
       const int K_max = nvl;
 
-      GMIndexCache index_cache = {};
+      MetricsIndexCache index_cache = {};
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 
@@ -481,7 +481,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
       const int K_min = si->is_part3 ? 0 : J + 1;
       const int K_max = nvl;
 
-      GMIndexCache index_cache = {};
+      MetricsIndexCache index_cache = {};
       for (int K=K_min; K<K_max; ++K) {
         for (int I=I_min; I<I_max; ++I) {
 
@@ -818,7 +818,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   } /*---if---*/
   /*----------------------------------------*/
 
-  GMSectionInfo_destroy(si, env);;
+  GMSectionInfo_destroy(si, env);
 }
 
 //=============================================================================

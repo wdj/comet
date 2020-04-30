@@ -417,8 +417,8 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t j_global = j + nvl * i_block;
         for (int i = 0; i < j; ++i) {
           const size_t i_global = i + nvl * i_block;
-          COMET_ASSERT(GMMetrics_helper2way_maindiag_block_(metrics, i, j, i_block,
-                                                        env) == index);
+          COMET_ASSERT(Metrics_index_2_part1(*metrics, i, j, i_block, *env) ==
+                       index);
           metrics->coords_global_from_index[index++] =
               i_global + metrics->num_vector * j_global;
         }
@@ -615,9 +615,11 @@ void GMMetrics_create(GMMetrics* metrics,
                     COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_elts_local);
 
-                    COMET_ASSERT(GMMetrics_helper3way_part3_permuted_(metrics, I, J, K, i_block, j_block, k_block, env) == index_this);
+                    COMET_ASSERT(Metrics_index_3_part3_permuted(*metrics,
+                      I, J, K, i_block, j_block, k_block, *env) == index_this);
 
-                    COMET_ASSERT(GMMetrics_helper3way_part3_(metrics, i, j, k, i_block, j_block, k_block, env) == index_this);
+                    COMET_ASSERT(Metrics_index_3_part3(*metrics,
+                      i, j, k, i_block, j_block, k_block, *env) == index_this);
                     metrics->coords_global_from_index[index_this] =
                         i_global +
                         metrics->num_vector *

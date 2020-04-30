@@ -466,7 +466,7 @@ static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
 
 template<typename T, int MA = MetricsArray::_>
 static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
-  int j_block, int k_block, GMIndexCache& index_cache, CEnv& env) {
+  int j_block, int k_block, MetricsIndexCache& index_cache, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
@@ -486,7 +486,7 @@ static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
 
 template<typename T>
 static T Metrics_elt_const_3(GMMetrics& metrics, int i, int j, int k,
-  int j_block, int k_block, GMIndexCache& index_cache, CEnv& env) {
+  int j_block, int k_block, MetricsIndexCache& index_cache, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
