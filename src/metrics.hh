@@ -24,7 +24,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Helper class for memory---*/
+/// \brief Helper class for metrics memory.
 
 class GMMetricsMem {
 
@@ -56,7 +56,7 @@ private:
 };
 
 //=============================================================================
-/*---Struct declaration---*/
+/// \brief Metrics struct declaration.
 
 typedef struct {
   /*---Logical sizes---*/
@@ -103,12 +103,12 @@ typedef struct {
 } GMMetrics;
 
 //=============================================================================
-/*---Null object---*/
+// Null object.
 
 GMMetrics GMMetrics_null(void);
 
 //=============================================================================
-/*---Metrics pseudo-constructor---*/
+// Metrics pseudo-constructor.
 
 void GMMetrics_create(GMMetrics* metrics, int data_type_id,
                       GMDecompMgr* dm, GMMetricsMem* metrics_mem, CEnv* env);
@@ -119,12 +119,12 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
                                    CEnv* env);
 
 //=============================================================================
-/*---Metrics pseudo-destructor---*/
+// Metrics pseudo-destructor.
 
 void GMMetrics_destroy(GMMetrics* metrics, CEnv* env);
 
 //=============================================================================
-/*---Accessors: indexing: global coord from (contig) index: generic---*/
+// Accessors: indexing: global coord from (contig) index: generic.
 
 int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       size_t index,
@@ -140,7 +140,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics,
                            int weight = 1);
 
 //=============================================================================
-/*---Helper: is this (section_)block_num to be processed by this proc_r---*/
+// Helper: is this (section_)block_num to be processed by this proc_r.
 
 static bool gm_proc_r_active(int section_block_num, const CEnv* const env) {
   COMET_ASSERT(env);
@@ -195,12 +195,12 @@ static T& Metrics_elt(GMMetrics& metrics, size_t index, CEnv& env) {
 } // namespace comet
 
 //-----------------------------------------------------------------------------
-/*---Companion include files---*/
+// Implementation include files.
 
-#include "metrics_2way_indexing.hh"
-#include "metrics_2way_accessors.hh"
-#include "metrics_3way_indexing.hh"
-#include "metrics_3way_accessors.hh"
+#include "metrics_2way_indexing.i.hh"
+#include "metrics_2way_accessors.i.hh"
+#include "metrics_3way_indexing.i.hh"
+#include "metrics_3way_accessors.i.hh"
 
 #endif // _comet_metrics_hh_
 

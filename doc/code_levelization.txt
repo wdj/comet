@@ -27,6 +27,10 @@ Code levelization: subpackage dependencies
 
 
 2.  tc
+    tc_helpers
+    tc_in
+    tc_solve
+    tc_out
           CUDA code, primarily for using tensor cores
           [operations: alloc/free buffers, copy in, GEMM, adjust output]
           [A and B are decomposed into block rows to conserve memory]

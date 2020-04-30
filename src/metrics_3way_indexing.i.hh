@@ -8,8 +8,8 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _comet_metrics_3way_indexing_hh_
-#define _comet_metrics_3way_indexing_hh_
+#ifndef _comet_metrics_3way_indexing_i_hh_
+#define _comet_metrics_3way_indexing_i_hh_
 
 #include "cstdint"
 
@@ -749,6 +749,6 @@ static int GMMetrics_coord2_global_from_index_3(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
-#endif // _comet_metrics_3way_indexing_hh_
+#endif // _comet_metrics_3way_indexing_i_hh_
 
 //-----------------------------------------------------------------------------

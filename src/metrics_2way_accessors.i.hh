@@ -8,10 +8,10 @@
  */
 //-----------------------------------------------------------------------------
 
-#ifndef _comet_metrics_2way_accessors_hh_
-#define _comet_metrics_2way_accessors_hh_
+#ifndef _comet_metrics_2way_accessors_i_hh_
+#define _comet_metrics_2way_accessors_i_hh_
 
-#include "metrics_2way_indexing.hh"
+#include "metrics_2way_indexing.i.hh"
 #include "formulas.hh"
 
 //=============================================================================
@@ -487,6 +487,6 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
 
 //-----------------------------------------------------------------------------
 
-#endif // _comet_metrics_2way_accessors_hh_
+#endif // _comet_metrics_2way_accessors_i_hh_
 
 //-----------------------------------------------------------------------------

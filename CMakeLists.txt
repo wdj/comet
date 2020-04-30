@@ -64,10 +64,10 @@ SET(LIB_INCLUDES
   src/tc_solve.i.hh
   src/tc_out.i.hh
   src/metrics.hh
-  src/metrics_2way_indexing.hh
-  src/metrics_2way_accessors.hh
-  src/metrics_3way_indexing.hh
-  src/metrics_3way_accessors.hh
+  src/metrics_2way_indexing.i.hh
+  src/metrics_2way_accessors.i.hh
+  src/metrics_3way_indexing.i.hh
+  src/metrics_3way_accessors.i.hh
   src/checksum.hh
   src/vectors.hh
   src/vector_sums.hh
