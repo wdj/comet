@@ -714,13 +714,13 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result00 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 0, 0, env);
     const double result01 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 0, 1, env);
     const double result10 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 1, 0, env);
     const double result11 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 1, 1, env);
 
     printf("COMPUTED: G G  %.5f\n", result00);
     printf("COMPUTED: G A  %.5f\n", result01);
@@ -842,13 +842,13 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result00 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 0, 0, env);
     const double result01 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 0, 1, env);
     const double result10 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 1, 0, env);
     const double result11 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 1, 1, env);
 
     printf("COMPUTED: G G  %.5f\n", result00);
     printf("COMPUTED: G A  %.5f\n", result01);
@@ -1011,13 +1011,13 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result00 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 0, 0, env);
     const double result01 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 0, 1, env);
     const double result10 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 1, 0, env);
     const double result11 =
-        GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_2(metrics, 0, 1, 1, env);
 
     printf("COMPUTED: MIN MIN  %.5f\n", result00);
     printf("COMPUTED: MIN MAX  %.5f\n", result01);
@@ -1197,21 +1197,21 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result000 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 0, 0, env);
     const double result001 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 0, 1, env);
     const double result010 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 1, 0, env);
     const double result011 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 1, 1, env);
     const double result100 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 0, 0, env);
     const double result101 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 0, 1, env);
     const double result110 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 1, 0, env);
     const double result111 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 1, 1, env);
 
     printf("COMPUTED: A A A  %.8f\n", result000);
     printf("COMPUTED: A A T  %.5f\n", result001);
@@ -1380,21 +1380,21 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result000 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 0, 0, env);
     const double result001 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 0, 1, env);
     const double result010 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 1, 0, env);
     const double result011 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 1, 1, env);
     const double result100 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 0, 0, env);
     const double result101 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 0, 1, env);
     const double result110 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 1, 0, env);
     const double result111 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, 0, 1, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 1, 1, env);
 
     printf("COMPUTED: A A A  %.8f\n", result000);
     printf("COMPUTED: A A T  %.5f\n", result001);
@@ -1660,21 +1660,21 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
 
   if (env->is_proc_active()) {
     const double result000 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 0, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 0, 0, env);
     const double result001 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 0, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 0, 1, env);
     const double result010 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 0, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 1, 0, env);
     const double result011 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 0, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 0, 1, 1, env);
     const double result100 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 1, 0, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 0, 0, env);
     const double result101 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 1, 0, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 0, 1, env);
     const double result110 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 1, 1, 0, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 1, 0, env);
     const double result111 =
-        GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, 0, 1, 1, 1, env);
+        GMMetrics_ccc_duo_get_from_index_3(metrics, 0, 1, 1, 1, env);
 
     printf("COMPUTED: A A A  %.8f\n", result000);
     printf("COMPUTED: A A T  %.5f\n", result001);

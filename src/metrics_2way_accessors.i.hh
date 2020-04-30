@@ -139,10 +139,10 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
 #endif
 
 //-----------------------------------------------------------------------------
-/// \brief Templatized accessor for 2-way CCC or DUO result.
+/// \brief Templatized accessor for 2-way CCC or DUO result, implementation.
 
-template<int COUNTED_BITS_PER_ELT, typename FloatResult_t = GMFloat>
-static FloatResult_t GMMetrics_ccc_duo_get_from_index_2(
+template<int COUNTED_BITS_PER_ELT, typename FloatResult_t>
+static FloatResult_t GMMetrics_ccc_duo_get_from_index_2_impl(
   GMMetrics* metrics, size_t index, int i0, int i1, CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
@@ -253,6 +253,42 @@ static FloatResult_t GMMetrics_ccc_duo_get_from_index_2(
   }
 #endif
   return (FloatResult_t)result_floatcalc;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Helper class for ccc_duo_get_from_index_2 template specialization.
+
+// See https://stackoverflow.com/questions/12683165/partial-specialization-of-templates-with-integer-parameters
+
+template<int CBPE, typename FloatResult_t>
+struct MetricsIndexCCCDUO2Helper {
+  static FloatResult_t impl(
+  GMMetrics& metrics, size_t index, int i0, int i1, CEnv& env) {
+    return GMMetrics_ccc_duo_get_from_index_2_impl<
+      CBPE, FloatResult_t>(&metrics, index, i0, i1, &env);;
+  }
+};
+
+template<typename FloatResult_t>
+struct MetricsIndexCCCDUO2Helper<CBPE::NONE, FloatResult_t> {
+  static FloatResult_t impl(
+  GMMetrics& metrics, size_t index, int i0, int i1, CEnv& env) {
+    return env.counted_bits_per_elt() == CBPE::CCC ?
+      MetricsIndexCCCDUO2Helper<CBPE::CCC, FloatResult_t>::impl(
+        metrics, index, i0, i1, env) :
+      MetricsIndexCCCDUO2Helper<CBPE::DUO, FloatResult_t>::impl(
+        metrics, index, i0, i1, env);
+  }
+};
+
+//-----------------------------------------------------------------------------
+/// \brief Templatized accessor for 2-way CCC or DUO result.
+
+template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
+static FloatResult_t GMMetrics_ccc_duo_get_from_index_2(
+  GMMetrics* metrics, size_t index, int i0, int i1, CEnv* env) {
+    return MetricsIndexCCCDUO2Helper<CBPE, FloatResult_t>::impl(
+      *metrics, index, i0, i1, *env);
 }
 
 //-----------------------------------------------------------------------------

@@ -471,9 +471,11 @@ static void MetricsIO_write_(
       int num_out_this_line = 0;
       for (int i0 = 0; i0 < 2; ++i0) {
         for (int i1 = 0; i1 < 2; ++i1) {
-          const GMFloat value = env->metric_type() == MetricType::CCC ?
-            GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, index, i0, i1, env) :
-            GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, index, i0, i1, env);
+          const GMFloat value = GMMetrics_ccc_duo_get_from_index_2(metrics,
+            index, i0, i1, env);
+          //const GMFloat value = env->metric_type() == MetricType::CCC ?
+          //  GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, index, i0, i1, env) :
+          //  GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, index, i0, i1, env);
           if (!env->pass_threshold(value))
             continue;
 
@@ -526,9 +528,11 @@ static void MetricsIO_write_(
       for (int i0 = 0; i0 < 2; ++i0) {
         for (int i1 = 0; i1 < 2; ++i1) {
           for (int i2 = 0; i2 < 2; ++i2) {
-            const GMFloat value = env->metric_type() == MetricType::CCC ?
-              GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, index, i0, i1, i2, env) :
-              GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, index, i0, i1, i2, env);
+            const GMFloat value = GMMetrics_ccc_duo_get_from_index_3(metrics,
+              index, i0, i1, i2, env);
+            //const GMFloat value = env->metric_type() == MetricType::CCC ?
+            //  GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, index, i0, i1, i2, env) :
+            //  GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, index, i0, i1, i2, env);
             if (!env->pass_threshold(value))
               continue;
 
