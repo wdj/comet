@@ -127,7 +127,6 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
   const size_t f_max = f_min + nfal;
 
   // Buffer to capture read-in data that is possibly not correctly bit-aligned.
-  //const size_t buf_size = nfal * f_per_byte + 1;
   const size_t buf_size = byte_per_v_mem + 1;
   IO_t* const buf = (IO_t*)malloc(buf_size * sizeof(*buf));
   COMET_INSIST(sizeof(IO_t) == 1);

@@ -301,7 +301,6 @@ void tc_bufs_malloc(int num_vector_local,
     status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetMathMode.");
 #elif defined COMET_USE_HIP
-    //rocbas_status_ status = rocblas_create_handle(&tc_bufs.accelblas_handle);
     int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
     COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_create_handle.");
@@ -372,7 +371,6 @@ void tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
     cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasDestroy.");
 #elif defined COMET_USE_HIP
-    //rocblas_status status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
     int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
     COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_destroy_handle.");

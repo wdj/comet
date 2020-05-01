@@ -195,17 +195,6 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       } else {
         COMET_INSIST_INTERFACE(env, false && "Invalid setting for problem_type.");
       }
-#if 0
-    /*----------*/
-    } else if (strcmp(argv[i], "--threshold") == 0) {
-    /*----------*/
-      ++i;
-      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for threshold.");
-      errno = 0;
-      const double threshold = strtod(argv[i], NULL);
-      COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
-      do_->threshold = threshold;
-#endif
      /*----------*/
     } else if (strcmp(argv[i], "--threshold") == 0) {
       ++i; /*---processed elsewhere by CEnv---*/
@@ -263,7 +252,6 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
 
   if (do_->input_file_path != NULL) {
     VectorsIO::read(*vectors, do_->input_file_path, *env);
-    //set_vectors_from_file(vectors, do_, env);
   } else {
     set_vectors_synthetic(vectors, do_->problem_type, do_->verbosity, env);
   }
@@ -422,10 +410,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   do_.phase_max_0based = env->num_phase() - 1;
   do_.input_file_path = NULL;
   do_.metrics_file_path_stub = NULL;
-  //do_.problem_type = GM_PROBLEM_TYPE_RANDOM;
-  //do_.problem_type = GM_PROBLEM_TYPE_ANALYTIC;
   do_.problem_type = problem_type_default();
-  //do_.threshold = -1.;
   do_.checksum = true;
   do_.num_incorrect = 0;
   do_.max_incorrect_diff = 0.;

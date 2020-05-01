@@ -402,7 +402,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_global_from_index =
-        //(size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
         (size_t*)metrics_mem->malloc_coords_global_from_index(metrics->num_elts_local * sizeof(size_t));
 
     /*===PART C: SET INDEX===*/
@@ -476,7 +475,6 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART B: ALLOCATE INDEX===*/
 
     metrics->coords_global_from_index =
-        //(size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
         (size_t*)metrics_mem->malloc_coords_global_from_index(metrics->num_elts_local * sizeof(size_t));
 
     /*===PART C: SET INDEX===*/
@@ -648,7 +646,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
-        //(size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
         (size_t*)metrics_mem->malloc_coords_global_from_index(
                                     metrics->num_elts_local * sizeof(size_t));
     /*---Need store only strict upper triangular part of matrix---*/
@@ -675,7 +672,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
-        //(size_t*)gm_malloc(metrics->num_elts_local * sizeof(size_t), env);
         (size_t*)metrics_mem->malloc_coords_global_from_index(metrics->num_elts_local * sizeof(size_t));
     /*---Need store only strict interior of tetrahedron---*/
     size_t index = 0;
@@ -778,15 +774,6 @@ void GMMetrics_destroy(GMMetrics* metrics, CEnv* env) {
     return;
   }
 
-//  gm_free(metrics->coords_global_from_index,
-//          metrics->num_elts_local * sizeof(size_t), env);
-//  gm_free(metrics->data, metrics->data_size, env);
-//  if (metrics->data_S) {
-//    gm_free(metrics->data_S, metrics->data_S_size, env);
-//  }
-//  if (metrics->data_C) {
-//    gm_free(metrics->data_C, metrics->data_C_size, env);
-//  }
   *metrics = GMMetrics_null();
 }
 
@@ -852,8 +839,6 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
   const int pad_adjustment = (is_cbpe_2 ? 4 : 1) * weight *
     metrics->dm->num_pad_field_local;
 
-//  const double float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
-
   // don't use collapse because of overflow for large sizes
   //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
   #pragma omp parallel for schedule(dynamic,1000)
@@ -864,16 +849,7 @@ void gm_metrics_pad_adjust(GMMetrics* metrics, MirroredBuf* metrics_buf,
       const GMTally2x2 vold = metrics_buf->elt_const<GMTally2x2>(i, j);
 #endif
 
-//    printf("%zu %zu %zu %zu\n"
-//      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[0])) % (1<<GM_TALLY1_MAX_VALUE_BITS)
-//      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[0])) / (1<<GM_TALLY1_MAX_VALUE_BITS)
-//      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[1])) % (1<<GM_TALLY1_MAX_VALUE_BITS)
-//      , ((size_t)(metrics_buf->elt<GMTally2x2>(i, j).data[1])) / (1<<GM_TALLY1_MAX_VALUE_BITS)
-//    );
-
       MFT::subtract(metrics_buf->elt<GMTally2x2>(i, j).data[0], pad_adjustment, 0);
-
-//      metrics_buf->elt<GMTally2x2>(i, j).data[0] -= float_pad_adjustment;
 
 #ifdef COMET_ASSERTIONS_ON
       const GMTally2x2 vnew = metrics_buf->elt_const<GMTally2x2>(i, j);

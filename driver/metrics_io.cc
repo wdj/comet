@@ -118,8 +118,6 @@ static void MetricsIO_write_tally2x2_bin_impl_(
 
   MetricIO writer(file, *metrics, *env);
 
-  //enum {vals_per_index = 4;}
-
   // Number of index values values visited for one pass across buffer
   const size_t num_buf_ind = 1000 * 1000;
   // Number of (index, i0, i1) entries (potentially) stored in buffer
@@ -148,13 +146,13 @@ static void MetricsIO_write_tally2x2_bin_impl_(
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Do any of the values exceed the threshold
-      if (GMMetrics_ccc_duo_get_from_index_2_threshold<COUNTED_BITS_PER_ELT>(
-            metrics, index, env)) {
+      if (Metrics_ccc_duo_get_threshold_2<COUNTED_BITS_PER_ELT>(
+            *metrics, index, *env)) {
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             const GMFloat value =
-              GMMetrics_ccc_duo_get_from_index_2<COUNTED_BITS_PER_ELT>(
-                metrics, index, i0, i1, env);
+              Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
+               i0, i1, *env);
             if (env->pass_threshold(value)) {
               const size_t coord0 =
                 GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -246,8 +244,6 @@ static void MetricsIO_write_tally4x2_bin_impl_(
 
   MetricIO writer(file, *metrics, *env);
 
-  //enum {vals_per_index = 8;}
-
   // Number of index values values visited for one pass across buffer
   const size_t num_buf_ind = 1000 * 1000;
   // Number of (index, i0, i1) entries (potentially) stored in buffer
@@ -275,14 +271,14 @@ static void MetricsIO_write_tally4x2_bin_impl_(
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Do any of the values exceed the threshold
-      if (GMMetrics_ccc_duo_get_from_index_3_threshold<COUNTED_BITS_PER_ELT>(
-             metrics, index, env)) {
+      if (Metrics_ccc_duo_get_threshold_3<COUNTED_BITS_PER_ELT>(
+             *metrics, index, *env)) {
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             for (int i2 = 0; i2 < 2; ++i2) {
               const GMFloat value =
-                GMMetrics_ccc_duo_get_from_index_3<COUNTED_BITS_PER_ELT>(
-                  metrics, index, i0, i1, i2, env);
+                Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
+                  *metrics, index, i0, i1, i2, *env);
               if (env->pass_threshold(value)) {
                 const size_t coord0 =
                   GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -394,7 +390,6 @@ static void MetricsIO_write_(
       if (coord0 >= metrics->num_vector_active ||
           coord1 >= metrics->num_vector_active)
         continue;
-      //const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
       if (!env->pass_threshold(value))
@@ -427,7 +422,6 @@ static void MetricsIO_write_(
           coord1 >= metrics->num_vector_active ||
           coord2 >= metrics->num_vector_active)
         continue;
-      //const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
       if (!env->pass_threshold(value))
         continue;
@@ -471,11 +465,8 @@ static void MetricsIO_write_(
       int num_out_this_line = 0;
       for (int i0 = 0; i0 < 2; ++i0) {
         for (int i1 = 0; i1 < 2; ++i1) {
-          const GMFloat value = GMMetrics_ccc_duo_get_from_index_2(metrics,
-            index, i0, i1, env);
-          //const GMFloat value = env->metric_type() == MetricType::CCC ?
-          //  GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, index, i0, i1, env) :
-          //  GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, index, i0, i1, env);
+          const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
+            index, i0, i1, *env);
           if (!env->pass_threshold(value))
             continue;
 
@@ -528,11 +519,8 @@ static void MetricsIO_write_(
       for (int i0 = 0; i0 < 2; ++i0) {
         for (int i1 = 0; i1 < 2; ++i1) {
           for (int i2 = 0; i2 < 2; ++i2) {
-            const GMFloat value = GMMetrics_ccc_duo_get_from_index_3(metrics,
-              index, i0, i1, i2, env);
-            //const GMFloat value = env->metric_type() == MetricType::CCC ?
-            //  GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, index, i0, i1, i2, env) :
-            //  GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, index, i0, i1, i2, env);
+            const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
+              index, i0, i1, i2, *env);
             if (!env->pass_threshold(value))
               continue;
 

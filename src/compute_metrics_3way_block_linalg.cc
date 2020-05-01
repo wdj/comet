@@ -200,9 +200,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
   const VectorSums* const vs_J = si->perm1(vs_i, vs_j, vs_k);
   const VectorSums* const vs_K = si->perm2(vs_i, vs_j, vs_k);
 
-  //const size_t nvl64 = (size_t)nvl;
-  //const size_t I_max64 = (size_t)I_max;
-
   //--------------------
   // Compute numerators using ijk piece and (if needed) 2-way pieces.
   //--------------------
@@ -233,7 +230,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
         Metrics_elt_3<GMFloat>(*metrics, i, j, k,
           env.proc_num_vector(), env.proc_num_vector(), env) = value;
-        //GMMetrics_float_set_3(metrics, i, j, k, value, &env);
       } // K
     }   // I
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
@@ -265,8 +261,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
         const GMFloat value = ((GMFloat)1.5) * numer / denom;
         Metrics_elt_3<GMFloat>(*metrics, I, J, K,
           j_block, k_block, index_cache, env) = value;
-        //GMMetrics_float_set_all2all_3_permuted_cache(metrics, I, J, K,
-        //    j_block, k_block, value, &index_cache, &env);
       } // K
     }   // I
     metrics->num_elts_local_computed += (I_max - I_min) * (size_t)
@@ -325,12 +319,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           auto numer = init_numer ? Tally4x2<MF>::null() :
             Metrics_elt_const_3<Tally4x2<MF>>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, env);
-
-//          Tally4x2<MF> numer = init_numer ? Tally4x2<MF>::null() :
-//            env.all2all() ? 
-//            Metrics_get<MF>(*metrics, I, J, K, j_block, k_block, index_cache,
-//                            env) :
-//            Metrics_get<MF>(*metrics, i, j, k, env);
 
           MFTypeIn r000, r001, r010, r011, r100, r101, r110, r111;
           MFT::decode(r000, r001, numer.data[0]);
@@ -459,13 +447,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           Metrics_elt_3<Tally4x2<MF>>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, env) = numer;
 
-          //if (env.all2all()) {
-          //  Metrics_set_XXX<MF>(*metrics, I, J, K,
-          //                  j_block, k_block, numer, index_cache, env);
-          //} else {
-          //  Metrics_set_XXX<MF>(*metrics, i, j, k, numer, env);
-          //}
-
         } // if (is_I_in_range)
 
         // Denominator.
@@ -491,27 +472,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
             Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
           } // if sparse
-
-#if 0
-          if (env.all2all()) {
-            GMMetrics_float3_S_set_all2all_3_permuted_cache(metrics, I, J, K,
-              j_block, k_block, si1_sj1_sk1, &index_cache, &env);
-          } else {
-            GMMetrics_float3_S_set_3(metrics, i, j, k, si1_sj1_sk1, &env);
-          }
-          if (env.sparse()) {
-            const auto ci = (GMTally1)vs_i->count(i);
-            const auto cj = (GMTally1)vs_j->count(j);
-            const auto ck = (GMTally1)vs_k->count(k);
-            const GMFloat3 ci_cj_ck = GMFloat3_encode(ci, cj, ck);
-            if (env.all2all()) {
-              GMMetrics_float3_C_set_all2all_3_permuted_cache(metrics, I, J, K,
-                j_block, k_block, ci_cj_ck, &index_cache, &env);
-            } else {
-              GMMetrics_float3_C_set_3(metrics, i, j, k, ci_cj_ck, &env);
-            }
-          } /*---if sparse---*/
-#endif
 
         } // if
 

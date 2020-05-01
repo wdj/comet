@@ -113,12 +113,6 @@ void GMVectors_create_imp_(GMVectors* vectors,
   vectors->num_vector = dm->num_vector;
   vectors->num_vector_local = dm->num_vector_local;
 
-  // Set element sizes
-
-  //vectors->num_bit_per_val = dm->num_bit_per_field;
-  //vectors->num_bit_per_packedval = dm->num_bit_per_packedfield;
-  //vectors->num_val_per_packedval = dm->num_field_per_packedfield;
-
   const int bits_per_byte = 8;
 
   // Allocation size for vector storage
@@ -130,7 +124,6 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   vectors->data_size = vectors->num_packedfield_vector_local *
                        (dm->num_bit_per_packedfield / bits_per_byte);
-                       //(vectors->num_bit_per_packedval / bits_per_byte);
 
   // Set up vector storage, mirrored buffer
 
@@ -147,9 +140,6 @@ void GMVectors_create_imp_(GMVectors* vectors,
   // Set pad entries to zero
 
   GMVectors_initialize_pad(vectors, env);
-
-//  tc_bufs_malloc(env, vectors->num_vector_local,
-//                 vectors->num_packedval_field_local);
 }
 
 //-----------------------------------------------------------------------------

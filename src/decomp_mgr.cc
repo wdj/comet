@@ -67,8 +67,6 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     return;
   }
 
-  //const int vectors_data_type_id = env->data_type_vectors();
-
   //--------------------
   // Vector counts
   //--------------------

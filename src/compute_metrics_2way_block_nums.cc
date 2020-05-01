@@ -60,7 +60,6 @@ void gm_compute_2way_proc_nums_czek_start_(
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
         Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = metric;
-        //GMMetrics_float_set_all2all_2(metrics, i, j, j_block, metric, env);
       } /*---for i---*/
     }   /*---for j---*/
 
@@ -83,7 +82,6 @@ void gm_compute_2way_proc_nums_czek_start_(
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
         Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = metric;
-        //GMMetrics_float_set_2(metrics, i, j, metric, env);
       } /*---for i---*/
     }   /*---for j---*/
 
@@ -177,17 +175,10 @@ void gm_compute_2way_proc_nums_ccc_start_(
             MFT::add(sum.data[0], r00, r01);
             MFT::add(sum.data[1], r10, r11);
 
-            //sum.data[0] += GMTally1_encode(r00, r01);
-            //sum.data[1] += GMTally1_encode(r10, r11);
-
           } /*---if ! unknown---*/
         } /*---for f---*/
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
-        //if (env->all2all()) {
-        //  GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
-        //} else {
-        //  GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
         //}
       } /*---for j---*/
     }   /*---for i---*/
@@ -206,7 +197,6 @@ void gm_compute_2way_proc_nums_ccc_start_(
     const int cbpe = env->counted_bits_per_elt();
 
     const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
-    //const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max =
@@ -307,9 +297,6 @@ void gm_compute_2way_proc_nums_ccc_start_(
           MFT::add(sum.data[0], r00, r01);
           MFT::add(sum.data[1], r10, r11);
 
-          //sum.data[0] += GMTally1_encode(r00, r01);
-          //sum.data[1] += GMTally1_encode(r10, r11);
-
         } /*---for pvfl---*/
 
         // Adjust for pad
@@ -318,7 +305,6 @@ void gm_compute_2way_proc_nums_ccc_start_(
         GMTally2x2 sum_old = sum;
 #endif
         MFT::subtract(sum.data[0], pad_adjustment, 0);
-        //sum.data[0] -= float_pad_adjustment;
 #ifdef COMET_ASSERTIONS_ON
         COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
@@ -326,10 +312,6 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
-        //if (env->all2all()) {
-        //  GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
-        //} else {
-        //  GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
         //}
       } /*---for j---*/
     }   /*---for i---*/
@@ -402,18 +384,10 @@ void gm_compute_2way_proc_nums_duo_start_(
             MFT::add(sum.data[0], r00, r01);
             MFT::add(sum.data[1], r10, r11);
 
-            //sum.data[0] += GMTally1_encode(r00, r01);
-            //sum.data[1] += GMTally1_encode(r10, r11);
-
           } /*---if ! unknown---*/
         } /*---for f---*/
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
-        //if (env->all2all()) {
-        //  GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
-        //} else {
-        //  GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
-        //}
       } /*---for j---*/
     }   /*---for i---*/
 
@@ -431,7 +405,6 @@ void gm_compute_2way_proc_nums_duo_start_(
     const int cbpe = env->counted_bits_per_elt();
 
     const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
-    //const GMFloat float_pad_adjustment = GMTally1_encode(pad_adjustment, 0);
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max =
@@ -494,15 +467,11 @@ void gm_compute_2way_proc_nums_duo_start_(
                                       ( ( vi1_0 & nvj1_0) << 1 ));
           const int r11 = utils::popc64(( vi0_0 &  vj0_0) |
                                       ( ( vi1_0 &  vj1_0) << 1 ));
-//printf("cpu %i\n", (int)r01);
 
           // Accumulate
 
           MFT::add(sum.data[0], r00, r01);
           MFT::add(sum.data[1], r10, r11);
-
-          //sum.data[0] += GMTally1_encode(r00, r01);
-          //sum.data[1] += GMTally1_encode(r10, r11);
 
         } /*---for pvfl---*/
 
@@ -512,7 +481,6 @@ void gm_compute_2way_proc_nums_duo_start_(
         GMTally2x2 sum_old = sum;
 #endif
         MFT::subtract(sum.data[0], pad_adjustment, 0);
-        //sum.data[0] -= float_pad_adjustment;
 #ifdef COMET_ASSERTIONS_ON
         COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
@@ -520,11 +488,6 @@ void gm_compute_2way_proc_nums_duo_start_(
 
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
-        //if (env->all2all()) {
-        //  GMMetrics_tally2x2_set_all2all_2(metrics, i, j, j_block, sum, env);
-        //} else {
-        //  GMMetrics_tally2x2_set_2(metrics, i, j, sum, env);
-        //}
       } /*---for j---*/
     }   /*---for i---*/
 
@@ -559,10 +522,6 @@ void gm_compute_2way_proc_nums_start(
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
 
   if (env->is_using_linalg()) {
-
-    /*---Initialize result matrix to zero (apparently magma requires)---*/
-
-    //gm_linalg_set_matrix_zero_start(metrics_buf, env);
 
     /*---Perform pseudo GEMM---*/
 

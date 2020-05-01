@@ -41,13 +41,6 @@ enum {
 
 // Integer types
 
-//typedef unsigned char GMUInt8;
-//typedef unsigned short int GMUInt16;
-//typedef unsigned int GMUInt32;
-
-//typedef signed long long int GMInt64;
-//typedef unsigned long long int GMUInt64;
-
 #ifdef COMET_USE_INT128
 typedef unsigned __int128 GMUInt128;
 #endif
@@ -62,11 +55,6 @@ static void gm_check_type_sizes() {
   COMET_STATIC_ASSERT(sizeof(GMFp64) == 64/8);
   COMET_STATIC_ASSERT(sizeof(int) == 4);
   COMET_STATIC_ASSERT(sizeof(size_t) == 8);
-//  COMET_STATIC_ASSERT(sizeof(GMUInt8) == 1);
-//  COMET_STATIC_ASSERT(sizeof(GMUInt16) == 2);
-//  COMET_STATIC_ASSERT(sizeof(GMUInt32) == 4);
-//  COMET_STATIC_ASSERT(sizeof(GMInt64) == 8);
-//  COMET_STATIC_ASSERT(sizeof(GMUInt64) == 8);
 #ifdef COMET_USE_INT128
   COMET_STATIC_ASSERT(sizeof(GMUInt128) == 16);
 #endif
@@ -157,7 +145,6 @@ template<> struct MetricFormatTraits<MetricFormat::PACKED_DOUBLE> {
     val0 = v0;
     val1 = v1;
     COMET_ASSERT(v == (Type)(v0 + v1 * shifter));
-    //COMET_ASSERT(v0 >= 0 && v1 >= 0);
     COMET_ASSERT(v0 < shifter);
     COMET_ASSERT(v1 < shifter);
   }
@@ -364,7 +351,6 @@ static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
   PackedDouble result = 0;
   MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result, val0, val1);
   return result;
-  //return GMTally1_encode(val0, val1);
 }
 
 //----------
@@ -372,8 +358,6 @@ static GMFloat2 GMFloat2_encode(GMTally1 val0, GMTally1 val1) {
 static GMFloat3 GMFloat3_encode(GMTally1 val0, GMTally1 val1, GMTally1 val2) {
   GMFloat3 result; // here we should set = null to be super cautious
   const GMTally1 dummy = 0;
-  //result.data[0] = GMTally1_encode(val0, val1);
-  //result.data[1] = GMTally1_encode(val2, dummy);
   MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result.data[0], val0, val1);
   MetricFormatTraits<MetricFormat::PACKED_DOUBLE>::encode(result.data[1], val2, dummy);
   return result;

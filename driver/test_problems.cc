@@ -81,9 +81,6 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           const int shift_amount2 = utils::max(0,
                              utils::log2(rand_max2) - mantissa_digits<float>() + 1);
           const int shift_amount = utils::max(shift_amount1, shift_amount2);
-          //const int shift_amount = utils::log2(log2_num_summands_3way_numer*
-          //                                 rand_max2*nfa)
-          //                         - mant_dig;
           rand_value >>= shift_amount > 0 ? shift_amount : 0;
           /*---Store---*/
           GMFloat float_value = (GMFloat)rand_value;
@@ -109,12 +106,6 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
             vectors->num_vector_local * (size_t)env->proc_num_vector();
         /*---Fill pad vectors with copies of the last vector---*/
         const size_t vector_capped = utils::min(vector, nva);
-
-        // XXX
-        /*---Fill pad vectors with copies of the last vector---*/
-        // const int nval = vectors->dm->num_vector_active_local;
-        // const size_t vector_capped = utils::min(vl, nval) +
-        //   nval * (size_t)env->proc_num_vector();
 
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -226,8 +217,6 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
 
   const size_t value_min = 1;
-  //const size_t value_max = (nva+value_min) < value_limit ?
-  //                         (nva+value_min) : value_limit;
   const size_t value_max = utils::min(value_min+nva, value_limit);
 
   // The elements of a single permuted vector are partitioned into
@@ -239,7 +228,6 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
   // is the same across all elements of the group.
 
   const size_t num_group = 1 << NUM_SHUFFLE;
-  //const size_t group_size_max = (nfa+num_group-1) / num_group;
   const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
 
   switch (env->data_type_vectors()) {
@@ -315,7 +303,6 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           const size_t value = value_min + ( pv * value_max ) / (nva+value_min);
 
           const GMBits2 bval = ((size_t)3) & (value - value_min);
-//mycount[bval]++;
 
           /*---Store---*/
           GMVectors_bits2_set(vectors, fl, vl, bval, env);
@@ -378,12 +365,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
 
   const size_t value_min = 1;
-  //const size_t value_max = (nva+value_min) < value_limit ?
-  //                         (nva+value_min) : value_limit;
   const size_t value_max = utils::min(value_min+nva, value_limit);
 
   const size_t num_group = 1 << NUM_SHUFFLE;
-  //const size_t group_size_max = (nfa+num_group-1) / num_group;
   const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
 
   size_t num_incorrect = 0;
@@ -394,12 +378,6 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     /*--------------------*/
     case GM_DATA_TYPE_FLOAT: {
     /*--------------------*/
-//      if (gm_gpu_compute_capability() == 700 &&
-//          env->compute_method() == ComputeMethod::GPU &&
-//          env->is_double_prec()) {
-//        // For this case modified MAGMA code casts down to single.
-//        break;
-//      }
       if (env->num_way() == NUM_WAY::_2) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
@@ -410,7 +388,6 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           if (vi >= nva || vj >= nva) {
             continue;
           }
-          //const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
           const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
           GMFloat float_n = 0;
@@ -478,7 +455,6 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           if (vi >= nva || vj >= nva || vk >= nva) {
             continue;
           }
-          //const auto value = Metrics_get<GMFloat>(*metrics, index, *env);
           const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
           GMFloat float_n = 0;
@@ -548,11 +524,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         }
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
-            const GMFloat value = GMMetrics_ccc_duo_get_from_index_2(metrics,
-              index, i0, i1, env);
-            //const GMFloat value = cbpe == CBPE::CCC ?
-            //    GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(metrics, index, i0, i1, env) :
-            //    GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(metrics, index, i0, i1, env);
+            const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
+              index, i0, i1, *env);
 
             GMTally1 rij = 0;
             GMTally1 si = 0;
@@ -638,17 +611,6 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 f_cicj_min * f_cicj_max * recip_cicjcij :
                 (f_one / (cbpe * cbpe)) * metrics->recip_m;
 
-              //const double recip_ci = env->sparse() ? f_one/ci : metrics->recip_m;
-              //const double recip_cj = env->sparse() ? f_one/cj : metrics->recip_m;
-
-              //const double recip_sumcij = env->sparse() ? f_one/cij :
-              //                               (f_one / 4) * metrics->recip_m;
-
-              //value_expected_floatcalc = cbpe == 2 ?
-              //  GMMetrics_ccc_duo_value<CBPE::CCC>(metrics, rij, si, sj,
-              //                      recip_ci, recip_cj, recip_sumcij, env) :
-              //  GMMetrics_ccc_duo_value<CBPE::DUO>(metrics, rij, si, sj,
-              //                      recip_ci, recip_cj, recip_sumcij, env);
               value_expected_floatcalc = cbpe == 2 ?
                 ccc_duo_value<CBPE::CCC>(rij, si, sj,
                     recip_ci, recip_cj, recip_sumcij,
@@ -708,11 +670,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         for (int i0 = 0; i0 < 2; ++i0) {
           for (int i1 = 0; i1 < 2; ++i1) {
             for (int i2 = 0; i2 < 2; ++i2) {
-              const GMFloat value = GMMetrics_ccc_duo_get_from_index_3(metrics,
-                index, i0, i1, i2, env);
-              //const GMFloat value = cbpe == CBPE::CCC ?
-              //  GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(metrics, index, i0, i1, i2, env) :
-              //  GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(metrics, index, i0, i1, i2, env);
+              const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
+                index, i0, i1, i2, *env);
 
               GMTally1 rijk = 0;
               GMTally1 si = 0;

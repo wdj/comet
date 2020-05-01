@@ -162,7 +162,6 @@ double Checksum::metrics_elt(
   switch (metrics.data_type_id) {
     // --------------
     case GM_DATA_TYPE_FLOAT: {
-      //value = Metrics_get<GMFloat>(metrics, index, env);
       value = Metrics_elt_const<GMFloat>(metrics, index, env);
     } break;
     // --------------
@@ -171,10 +170,7 @@ double Checksum::metrics_elt(
       const int i1_unpermuted = i_value % 2;
       const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
       const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
-      value = GMMetrics_ccc_duo_get_from_index_2(&metrics, index, i0, i1, &env);
-      //value = env.metric_type() == MetricType::CCC ?
-      //  GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(&metrics, index, i0, i1, &env) :
-      //  GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(&metrics, index, i0, i1, &env);
+      value = Metrics_ccc_duo_get_2(metrics, index, i0, i1, env);
       if (!env.is_double_prec()) {
         value = (double)(float)value; // ensure result independent of threshold_tc
       }
@@ -193,11 +189,7 @@ double Checksum::metrics_elt(
       const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
                      ind_coords[1] == 2 ? i1_unpermuted :
                                           i2_unpermuted;
-      value = GMMetrics_ccc_duo_get_from_index_3(&metrics, index,
-        i0, i1, i2, &env);
-      //value = env.metric_type() == MetricType::CCC ?
-      //  GMMetrics_ccc_duo_get_from_index_3<CBPE::CCC>(&metrics, index, i0, i1, i2, &env) :
-      //  GMMetrics_ccc_duo_get_from_index_3<CBPE::DUO>(&metrics, index, i0, i1, i2, &env);
+      value = Metrics_ccc_duo_get_3(metrics, index, i0, i1, i2, env);
       if (!env.is_double_prec()) {
         value = (double)(float)value; // ensure result independent of threshold_tc
       }
@@ -210,7 +202,6 @@ double Checksum::metrics_elt(
   // Apply the thresold if not doing in TC package and if value fails test.
 
   const bool do_set_zero = !env.threshold_tc() && !env.pass_threshold(value);
-//  const bool do_set_zero = !env.pass_threshold(value);
 
   const double result = do_set_zero ? 0e0 : value;
   return result;

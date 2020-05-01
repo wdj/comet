@@ -412,19 +412,8 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
   // Initialize communicators.
 
-  //int num_proc = 0;
-  //MPI_Comm_size(MPI_COMM_WORLD, &num_proc);
-
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-
-    //char name[MPI_MAX_PROCESSOR_NAME];
-    //int len = 0;
-    //MPI_Get_processor_name(name, &len);
-    //const size_t len2 = 256;
-    //char name2[len2];
-    //gethostname(name2, len2);
-    //printf("%s %s %i\n", name, name2, rank);
 
   // Identify node
 
@@ -531,7 +520,6 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
     for (int i=0; i<num_node; ++i) {
       node_ranking[i] = pf_elt[i].node;
-      //printf("%i %i %f\n", i, pf_elt[i].node,  pf_elt[i].time);
     }
 
     free(pf_elt);
@@ -548,10 +536,6 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
       node_ranking_this = i;
     }
   }
-
-  //if (rank_in_node == 0) {
-  //  printf("%i %f\n", node_ranking_this, max_time);
-  //}
 
   const int proc_ranking_this = rank_in_node +
     max_ranks_in_node * node_ranking_this;
@@ -642,9 +626,6 @@ int main(int argc, char** argv) {
   }
 
   //install_handler();
-
-  //const bool use_fast_nodes = false;
-  //const bool use_fast_nodes = true;
 
   if (use_fast_nodes) { 
 

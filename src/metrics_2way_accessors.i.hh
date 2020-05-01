@@ -95,12 +95,9 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
   COMET_ASSERT(i1 >= 0 && i1 < 2);
   COMET_ASSERT(env->are_ccc_params_default());
 
-  //const GMTally2x2 ttable = GMMetrics_tally2x2_get_from_index(metrics, index, env);
   const auto ttable = Metrics_elt_const<GMTally2x2>(*metrics, index, *env);
   const GMTally1 rij = GMTally2x2_get(ttable, i0, i1);
 
-  //const GMFloat2 si1_sj1 =
-  //    GMMetrics_float2_S_get_from_index(metrics, index, env);
   const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(*metrics,
     index, *env);
   GMTally1 si1, sj1;
@@ -109,8 +106,6 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
   GMTally1 ci = 0, cj = 0, cij = 0;
 
   if (env->sparse()) {
-    //const GMFloat2 ci_cj =
-    //  GMMetrics_float2_C_get_from_index(metrics, index, env);
     const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(*metrics,
       index, *env);
     GMFloat2_decode(ci, cj, ci_cj);
@@ -142,20 +137,18 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
 /// \brief Templatized accessor for 2-way CCC or DUO result, implementation.
 
 template<int COUNTED_BITS_PER_ELT, typename FloatResult_t>
-static FloatResult_t GMMetrics_ccc_duo_get_from_index_2_impl(
-  GMMetrics* metrics, size_t index, int i0, int i1, CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-  COMET_ASSERT(env->is_metric_type_bitwise());
-  COMET_ASSERT(env->counted_bits_per_elt() == COUNTED_BITS_PER_ELT);
+static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
+  size_t index, int i0, int i1, CEnv& env) {
+  COMET_ASSERT(index < metrics.num_elts_local); // && index >= 0
+  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env.is_metric_type_bitwise());
+  COMET_ASSERT(env.counted_bits_per_elt() == COUNTED_BITS_PER_ELT);
   COMET_ASSERT(i0 >= 0 && i0 < 2);
   COMET_ASSERT(i1 >= 0 && i1 < 2);
 
-  if (env->threshold_tc()) {
+  if (env.threshold_tc()) {
     typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
-    //const auto ttable = Metrics_get<TTable_t>(*metrics, index, *env);
-    const auto ttable = Metrics_elt_const<TTable_t>(*metrics, index, *env);
+    const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
     TTable_t::TypeIn result = TTable_t::get(ttable, i0, i1);
     return (FloatResult_t)result;
   }
@@ -165,27 +158,22 @@ static FloatResult_t GMMetrics_ccc_duo_get_from_index_2_impl(
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
   const Float_t f_one = 1;
-  const Float_t recip_m = metrics->recip_m;
+  const Float_t recip_m = metrics.recip_m;
 
-  //const GMTally2x2 ttable = GMMetrics_tally2x2_get_from_index(metrics, index, env);
-  const auto ttable = Metrics_elt_const<GMTally2x2>(*metrics, index, *env);
+  const auto ttable = Metrics_elt_const<GMTally2x2>(metrics, index, env);
   const GMTally1 rij = GMTally2x2_get(ttable, i0, i1);
 
-  //const GMFloat2 si1_sj1 =
-  //    GMMetrics_float2_S_get_from_index(metrics, index, env);
-  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(*metrics,
-    index, *env);
+  const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(metrics,
+    index, env);
   GMTally1 si1, sj1;
   GMFloat2_decode(si1, sj1, si1_sj1);
 
   Float_t result_floatcalc = 0;
 
-  if (env->sparse()) {
+  if (env.sparse()) {
 
-    //const GMFloat2 ci_cj =
-    //  GMMetrics_float2_C_get_from_index(metrics, index, env);
-    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(*metrics,
-      index, *env);
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(metrics,
+      index, env);
     GMTally1 ci, cj;
     GMFloat2_decode(ci, cj, ci_cj);
 
@@ -215,30 +203,30 @@ static FloatResult_t GMMetrics_ccc_duo_get_from_index_2_impl(
 
     result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
       rij, si, sj, recip_ci, recip_cj, recip_sumcij, 
-      env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env), env->ccc_param());
+      env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
 
-  } else { // !env->sparse
+  } else { // !env.sparse
 
-    COMET_ASSERT(metrics->num_field_active > 0);
+    COMET_ASSERT(metrics.num_field_active > 0);
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
     const GMTally1 si =
-      i0 == 0 ? (CBPE * metrics->num_field_active - si1) : si1;
+      i0 == 0 ? (CBPE * metrics.num_field_active - si1) : si1;
     const GMTally1 sj =
-      i1 == 0 ? (CBPE * metrics->num_field_active - sj1) : sj1;
+      i1 == 0 ? (CBPE * metrics.num_field_active - sj1) : sj1;
 
     const Float_t recip_sumcij = (f_one / (CBPE*CBPE)) * recip_m;
 
     result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
       rij, si, sj, recip_m, recip_m, recip_sumcij, 
-      env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(*env), env->ccc_param());
+      env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
 
-  } // if (env->sparse())
+  } // if (env.sparse())
 
 #ifdef COMET_USE_INT128
-  if (env->metric_type() == MetricType::CCC && env->are_ccc_params_default()) {
-    const Float_t result_intcalc = GMMetrics_ccc_get_from_index_nofp_2(metrics,
-                                         index, i0, i1, env);
+  if (env.metric_type() == MetricType::CCC && env.are_ccc_params_default()) {
+    const Float_t result_intcalc = GMMetrics_ccc_get_from_index_nofp_2(&metrics,
+                                         index, i0, i1, &env);
 
     // TODO: CHECK floating point type here
     const double eps = 1. / ( ((size_t)1) << (mantissa_digits<FloatResult_t>() - 5) );
@@ -264,8 +252,8 @@ template<int CBPE, typename FloatResult_t>
 struct MetricsIndexCCCDUO2Helper {
   static FloatResult_t impl(
   GMMetrics& metrics, size_t index, int i0, int i1, CEnv& env) {
-    return GMMetrics_ccc_duo_get_from_index_2_impl<
-      CBPE, FloatResult_t>(&metrics, index, i0, i1, &env);;
+    return Metrics_ccc_duo_get_2_impl<
+      CBPE, FloatResult_t>(metrics, index, i0, i1, env);;
   }
 };
 
@@ -285,26 +273,24 @@ struct MetricsIndexCCCDUO2Helper<CBPE::NONE, FloatResult_t> {
 /// \brief Templatized accessor for 2-way CCC or DUO result.
 
 template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
-static FloatResult_t GMMetrics_ccc_duo_get_from_index_2(
-  GMMetrics* metrics, size_t index, int i0, int i1, CEnv* env) {
+static FloatResult_t Metrics_ccc_duo_get_2(
+  GMMetrics& metrics, size_t index, int i0, int i1, CEnv& env) {
     return MetricsIndexCCCDUO2Helper<CBPE, FloatResult_t>::impl(
-      *metrics, index, i0, i1, *env);
+      metrics, index, i0, i1, env);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Templatized Check if any table value may exceed threshold.
 
 template<int COUNTED_BITS_PER_ELT>
-static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
-  GMMetrics* metrics, const size_t index, CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+static bool Metrics_ccc_duo_get_threshold_2(GMMetrics& metrics,
+  const size_t index, CEnv& env) {
+  COMET_ASSERT(index < metrics.num_elts_local); // && index >= 0
+  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
 
-  if (env->threshold_tc()) {
+  if (env.threshold_tc()) {
     typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
-    //const auto ttable = Metrics_get<TTable_t>(*metrics, index, *env);
-    const auto ttable = Metrics_elt_const<TTable_t>(*metrics, index, *env);
+    const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
     for (int i0 = 0; i0 < 2; ++i0) {
       for (int i1 = 0; i1 < 2; ++i1) {
         if (TTable_t::get(ttable, i0, i1) != (TTable_t::TypeIn)0)
@@ -318,37 +304,31 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
   enum {CBPE = COUNTED_BITS_PER_ELT};
 
-  const Float_t threshold_eff = env->threshold_eff();
+  const Float_t threshold_eff = env.threshold_eff();
 
-  if (env->sparse()) {
+  if (env.sparse()) {
 
     const Float_t f_one = 1;
 
-    //const GMTally2x2 ttable = GMMetrics_tally2x2_get_from_index(metrics, index,
-    //                                                         env);
-    const auto ttable = Metrics_elt_const<GMTally2x2>(*metrics, index, *env);
+    const auto ttable = Metrics_elt_const<GMTally2x2>(metrics, index, env);
     const GMTally1 rij00 = GMTally2x2_get(ttable, 0, 0);
     const GMTally1 rij01 = GMTally2x2_get(ttable, 0, 1);
     const GMTally1 rij10 = GMTally2x2_get(ttable, 1, 0);
     const GMTally1 rij11 = GMTally2x2_get(ttable, 1, 1);
 
-    //const GMFloat2 si1_sj1 =
-    //  GMMetrics_float2_S_get_from_index(metrics, index, env);
-    const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(*metrics,
-      index, *env);
+    const auto si1_sj1 = Metrics_elt_const<GMFloat2, MetricsArray::S>(metrics,
+      index, env);
     GMTally1 si1 = 0, sj1 = 0;
     GMFloat2_decode(si1, sj1, si1_sj1);
 
-    //const GMFloat2 ci_cj =
-    //  GMMetrics_float2_C_get_from_index(metrics, index, env);
-    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(*metrics,
-      index, *env);
+    const auto ci_cj = Metrics_elt_const<GMFloat2, MetricsArray::C>(metrics,
+      index, env);
     GMTally1 ci = 0, cj = 0;
     GMFloat2_decode(ci, cj, ci_cj);
 
     GMTally1 cij = rij00 + rij01 + rij10 + rij11;
     if (ci == 0 || cj == 0 || cij == 0) {
-      return env->pass_threshold(0);
+      return env.pass_threshold(0);
     }
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits
@@ -374,8 +354,8 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     // Do simple algebra on threshold inequality to get all constnts on RHS
 
-    const Float_t ccc_duo_multiplier = (Float_t)env_ccc_duo_multiplier<CBPE>(*env);
-    const Float_t ccc_param = (Float_t)env->ccc_param();
+    const Float_t ccc_duo_multiplier = (Float_t)env_ccc_duo_multiplier<CBPE>(env);
+    const Float_t ccc_param = (Float_t)env.ccc_param();
 
     const Float_t threshold_multiplier =
              ((f_one*CBPE*CBPE) / ccc_duo_multiplier) * f_cij;
@@ -396,35 +376,35 @@ static bool GMMetrics_ccc_duo_get_from_index_2_threshold(
 
     // Verify the algebra.
     COMET_ASSERT(fabs(v00 - threshold_multiplier *
-      GMMetrics_ccc_duo_get_from_index_2<CBPE, Float_t>(metrics, index, 0, 0, env) )
+      Metrics_ccc_duo_get_2<CBPE, Float_t>(metrics, index, 0, 0, env) )
              < roundoff_fuzz * threshold_multiplier);
     COMET_ASSERT(fabs(v01 - threshold_multiplier *
-      GMMetrics_ccc_duo_get_from_index_2<CBPE, Float_t>(metrics, index, 0, 1, env) )
+      Metrics_ccc_duo_get_2<CBPE, Float_t>(metrics, index, 0, 1, env) )
              < roundoff_fuzz * threshold_multiplier);
     COMET_ASSERT(fabs(v10 - threshold_multiplier *
-      GMMetrics_ccc_duo_get_from_index_2<CBPE, Float_t>(metrics, index, 1, 0, env) )
+      Metrics_ccc_duo_get_2<CBPE, Float_t>(metrics, index, 1, 0, env) )
              < roundoff_fuzz * threshold_multiplier);
     COMET_ASSERT(fabs(v11 - threshold_multiplier *
-      GMMetrics_ccc_duo_get_from_index_2<CBPE, Float_t>(metrics, index, 1, 1, env) )
+      Metrics_ccc_duo_get_2<CBPE, Float_t>(metrics, index, 1, 1, env) )
              < roundoff_fuzz * threshold_multiplier);
 
     return v00 > f || v01 > f || v10 > f || v11 > f;
 
-  } // if (env->sparse())
+  } // if (env.sparse())
 
   // Non-sparse case (less well-optimized).
 
-  const Float_t v00 = GMMetrics_ccc_duo_get_from_index_2<CBPE, Float_t>(metrics, index,
-                                                               0, 0, env);
-  const Float_t v01 = GMMetrics_ccc_duo_get_from_index_2<CBPE, Float_t>(metrics, index,
-                                                               0, 1, env);
-  const Float_t v10 = GMMetrics_ccc_duo_get_from_index_2<CBPE, Float_t>(metrics, index,
-                                                               1, 0, env);
-  const Float_t v11 = GMMetrics_ccc_duo_get_from_index_2<CBPE, Float_t>(metrics, index,
-                                                               1, 1, env);
+  const Float_t v00 = Metrics_ccc_duo_get_2<CBPE, Float_t>(metrics, index,
+                                                           0, 0, env);
+  const Float_t v01 = Metrics_ccc_duo_get_2<CBPE, Float_t>(metrics, index,
+                                                           0, 1, env);
+  const Float_t v10 = Metrics_ccc_duo_get_2<CBPE, Float_t>(metrics, index,
+                                                           1, 0, env);
+  const Float_t v11 = Metrics_ccc_duo_get_2<CBPE, Float_t>(metrics, index,
+                                                           1, 1, env);
 
-  return env->pass_threshold(v00) || env->pass_threshold(v01) ||
-         env->pass_threshold(v10) || env->pass_threshold(v11);
+  return env.pass_threshold(v00) || env.pass_threshold(v01) ||
+         env.pass_threshold(v10) || env.pass_threshold(v11);
 }
 
 //=============================================================================
@@ -472,12 +452,7 @@ static GMFloat GMMetrics_get_2(GMMetrics& metrics,
   const GMFloat result =
     env.metric_type() == MetricType::CZEK ?
       Metrics_elt_const<GMFloat>(metrics, index, env) :
-    env.metric_type() == MetricType::CCC ?
-      (GMFloat)GMMetrics_ccc_duo_get_from_index_2<CBPE::CCC>(
-        &metrics, index, i0, i1, &env) :
-  //env.metric_type() == MetricType::DUO ?
-      (GMFloat)GMMetrics_ccc_duo_get_from_index_2<CBPE::DUO>(
-        &metrics, index, i0, i1, &env);
+      (GMFloat)Metrics_ccc_duo_get_2( metrics, index, i0, i1, env);
 
   return result;
 }

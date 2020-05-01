@@ -11,32 +11,6 @@
 #ifndef _comet_tc_int_hh_
 #define _comet_tc_int_hh_
 
-#if 0
-#include "cstdint"
-#include "cstdio"
-
-#if defined COMET_USE_CUDA
-#  include "cublas_v2.h"
-#  include "cuda_fp16.h"
-#elif defined COMET_USE_HIP
-#  include "hip/hip_runtime_api.h"
-//#  pragma GCC diagnostic ignored "-Wc99-designator"
-#  include "hip/hip_runtime.h"
-#  include "rocblas.h"
-#endif
-
-#if defined COMET_USE_CPUBLAS
-#if defined COMET_USE_HIP
-#include "blis.h"
-#else
-#include BLAS_H
-#endif
-#endif
-
-#include "env.hh"
-#include "tc.hh"
-#endif
-
 //=============================================================================
 
 namespace comet {
@@ -155,30 +129,6 @@ template<> struct TCSelector<TC::FP32> {
 #endif
   enum { COUNT = 1 };
 };
-
-#if 0
-//=============================================================================
-// Functions.
-
-template<int TC_METHOD>
-void tc_buf_write_(
-  bool is_right, int I_max, int I_max_dim, int nvl,
-  int npvfl, int npvfl_thisstep, int pvfl_min,
-  const uint32_t* vi1, const uint32_t* vi2, TCBufs& tc_bufs, int step_2way,
-  CEnv& env);
-
-template<int TC_METHOD>
-void tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
-               void* matC, TCBufs& tc_bufs, CEnv& env);
-
-template<int TC_METHOD>
-void tc_repair_metrics_(
-  int nvll,
-  int nvl,
-  void* vo,
-  TCBufs& tc_bufs,
-  CEnv& env);
-#endif
 
 //=============================================================================
 

@@ -56,8 +56,6 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t i11 = ivo[ivo_offset1+1];
   const GemmOut_t i12 = ivo[ivo_offset1+2];
   const GemmOut_t i13 = ivo[ivo_offset1+3];
-//printf("%f %f %f %f %f %f %f %f\n", (float)i00, (float)i01, (float)i02, (float)i03, (float)i10, (float)i11, (float)i12, (float)i13);
-//printf("%i %i %i %i %i %i %i %i\n", (int)i00, (int)i01, (int)i02, (int)i03, (int)i10, (int)i11, (int)i12, (int)i13);
 
   // Apply the permutation:
 
@@ -78,17 +76,7 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t i12p = i12;
   const GemmOut_t i13p = i13;
 
-//  // Use "shifter" to move a value to the upper half of the mantissa.
-//
-//  const double shifter = (((uint32_t)1) << GM_TALLY1_MAX_VALUE_BITS);
-//
-//  // Pack two 26-bit integers into mantissa of double.
-//
-//  const double o00 = (double)i00p + (double)i02p * shifter;
-//  const double o01 = (double)i01p + (double)i03p * shifter;
-//
-//  const double o10 = (double)i10p + (double)i12p * shifter;
-//  const double o11 = (double)i11p + (double)i13p * shifter;
+  // Pack two 26-bit integers into mantissa of double.
 
   MFType o00 = {}, o01 = {}, o10 = {}, o11 = {};
   MFT::encode(o00, i00p, i02p);

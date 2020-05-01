@@ -417,7 +417,6 @@ static size_t Metrics_index_3_part3(GMMetrics& metrics,
   COMET_ASSERT(env.all2all());
   const int nvl = metrics.num_vector_local;
 
-  //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
   const int64_t elts_offset = metrics.index_offset_part3_;
@@ -550,7 +549,6 @@ static size_t Metrics_index_3_part3_permuted(GMMetrics& metrics,
   COMET_ASSERT(env.all2all());
   const int nvl = metrics.num_vector_local;
 
-  //const int num_section_steps = 1;
   const int section_num = gm_section_num_part3(i_block, j_block, k_block);
 
   const int64_t elts_offset = metrics.index_offset_part3_;

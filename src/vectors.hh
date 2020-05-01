@@ -30,9 +30,6 @@ typedef struct {
   int num_vector;
   int num_vector_local;
   /*---Stored sizes---*/
-  //int num_bit_per_val;
-  //int num_bit_per_packedval;
-  //int num_val_per_packedval;
   int num_packedval_field_local;
   size_t num_packedfield_vector_local;
   /*---Other---*/
@@ -119,9 +116,6 @@ static void GMVectors_float_set(GMVectors* vectors,
   COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_FLOAT);
 
   *(GMVectors_float_ptr(vectors, field_local, vector_local, env)) = value;
-
-  //((GMFloat*)(vectors->data))[field_local +
-  //                      vectors->num_field_local*(size_t)vector_local] = value;
 }
 
 //-----------------------------------------------------------------------------
