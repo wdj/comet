@@ -11,6 +11,7 @@
 #include "env.hh"
 #include "linalg.hh"
 #include "mirrored_buf.hh"
+#include "magma_wrapper.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"

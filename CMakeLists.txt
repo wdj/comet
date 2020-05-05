@@ -27,6 +27,7 @@ SET(LIB_SOURCES
   src/assertions.cc
   src/decomp_mgr.cc
   src/mirrored_buf.cc
+  src/magma_wrapper.cc
   src/linalg.cc
   src/tc.cc
   src/metrics.cc
@@ -57,6 +58,7 @@ SET(LIB_INCLUDES
   src/formulas.hh
   src/decomp_mgr.hh
   src/mirrored_buf.hh
+  src/magma_wrapper.hh
   src/linalg.hh
   src/tc.hh
   src/tc_helpers.i.hh

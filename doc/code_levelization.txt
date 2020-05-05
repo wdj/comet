@@ -24,9 +24,19 @@ Code levelization: subpackage dependencies
           Basic environment - settings, MPI communicators, etc.
           [control of MPI proc grid axis order: vector, field, repl]
           [CoMet code proper does 1 phase/stage; driver loops to do multiple]
+    formulas
+          Basic formulas that define the metrics used.
 
 
-2.  tc
+2.  magma_wrapper
+          Interface to generalized linear algebra functions, e.g. MAGMA
+          [because of MAGMA limitations, tile the GEMM to smaller sizes]
+    mirrored_buf
+          Struct/code to manage dual CPU/GPU reflected arrays
+          [CPU/pinneed and GPU mem, same size; user chooses when to reflect]
+
+
+3.  tc
     tc_helpers
     tc_in
     tc_solve
@@ -37,18 +47,14 @@ Code levelization: subpackage dependencies
           [permutation is required to make each 2x2 table contig in memory]
 
 
-3.  decomp_mgr
+4.  decomp_mgr
           Define distribution of vectors to MPI ranks, padding needed, etc.
           [add padding vectors and fields to make same size per proc]
           [bitwise-field methods have notion of "packed field" (whole word)]
 
 
-4.  linalg
-          Interface to generalized linear algebra functions, e.g. MAGMA
-          [because of MAGMA limitations, tile the GEMM to smaller sizes]
-    mirrored_buf
-          Struct/code to manage dual CPU/GPU reflected arrays
-          [CPU/pinneed and GPU mem, same size; user chooses when to reflect]
+5.  linalg
+          Top level routines to perform actual or modified GEMMs.
 
 
 5a. vectors
@@ -144,7 +150,8 @@ Code levelization: subpackage dependencies
           Top-level function to calculate metrics
 
 
-10. input_output
+10. vectors_io
+    metrics_io
           Code to input vectors and write out metrics result
           [MetricsFile top-level class to write to metrics file]
           [MetricWriter helper class to write a single metric to metric file]
