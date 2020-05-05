@@ -566,14 +566,11 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // Compute i_block - j_block PROD.
   //--------------------
 
-//CHANGE: remove this?
-  MirroredBuf* tmp_buf[NUM_BUF] = {&tmp_buf_[0], &tmp_buf_[1]};
-
   MirroredBuf* const matM_ij_buf = need_mat_ij ? &matM_ij_buf_ : NULL;
 
   if (need_mat_ij) {
     MirroredBuf* matM_ij_buf_ptr = env_.do_reduce()
-      ? tmp_buf[0] : matM_ij_buf;
+      ? tmp_buf_[0] : matM_ij_buf;
 
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
@@ -597,7 +594,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   if (need_mat_jk) {
     MirroredBuf* matM_jk_buf_ptr = env_.do_reduce()
-      ? tmp_buf[0] : matM_jk_buf;
+      ? tmp_buf_[0] : matM_jk_buf;
 
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
@@ -624,7 +621,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   if (need_mat_kik) {
     MirroredBuf* matM_kik_buf_ptr =
-        env_.do_reduce() ? tmp_buf[0] : matM_kik_buf;
+        env_.do_reduce() ? tmp_buf_[0] : matM_kik_buf;
 
     gm_linalg_gemm(nvl, nvl, npvfl,
                    vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
@@ -647,9 +644,6 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   //   of vectors i and j.
   // B = X^T PROD V = three way PROD.
 
-//CHANGE: these as class members, init in ctor?
-  MirroredBuf* matXitem_buf[NUM_BUF] = {&matXitem_buf_[0], &matXitem_buf_[1]};
-  MirroredBuf* matB_buf[NUM_BUF] = {&matB_buf_[0], &matB_buf_[1]};
 
   // Set up pointers to permute the access of axes for Part 3.
   // Use capitals I, J, K here to denote the PERMUTED axes.
@@ -723,9 +717,16 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   const int num_buf = 4;
 
-  std::vector<LoopVars> vars_buf;
-  for (int i=0; i<num_buf; ++i)
-    vars_buf.push_back(LoopVars(env_));
+//  std::vector<LoopVars> vars_buf;
+//  for (int i=0; i<num_buf; ++i)
+//    vars_buf.push_back(LoopVars(env_));
+
+  LoopVars vars_buf0(env_);
+  LoopVars vars_buf1(env_);
+  LoopVars vars_buf2(env_);
+  LoopVars vars_buf3(env_);
+
+  LoopVars* const vars_buf[num_buf] = {&vars_buf0, &vars_buf1, &vars_buf2, &vars_buf3};
 
   const int first_step = 0 - extra_step;
 
@@ -736,10 +737,10 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     // Set per-step variables.
 
-    LoopVars& vars_prevprev = vars_buf[(step_num - first_step + 0) % num_buf];
-    LoopVars& vars_prev = vars_buf[(step_num - first_step + 1) % num_buf];
-    LoopVars& vars = vars_buf[(step_num - first_step + 2) % num_buf];
-    LoopVars& vars_next = vars_buf[(step_num - first_step + 3) % num_buf];
+    LoopVars& vars_prevprev = *vars_buf[(step_num - first_step + 0) % num_buf];
+    LoopVars& vars_prev = *vars_buf[(step_num - first_step + 1) % num_buf];
+    LoopVars& vars = *vars_buf[(step_num - first_step + 2) % num_buf];
+    LoopVars& vars_next = *vars_buf[(step_num - first_step + 3) % num_buf];
 
     vars_next.step_num = step_num + 1;
     vars_next.step_2way = utils::mod_i(vars_next.step_num, num_step_2way);
@@ -760,10 +761,10 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                "Block size rounding-up error.");
       // Create buffer aliases with required shape.
       if (env_.do_reduce()) {
-        vars_next.tmp_buf.allocate(*tmp_buf[vars_next.index_01],
+        vars_next.tmp_buf.allocate(*tmp_buf_[vars_next.index_01],
                                    vars_next.I_max_dim);
       }
-      vars_next.matB_buf.allocate(*matB_buf[vars_next.index_01],
+      vars_next.matB_buf.allocate(*matB_buf_[vars_next.index_01],
                                   vars_next.I_max_dim);
     }
 
@@ -772,14 +773,14 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Send matrix matXitem to GPU - WAIT
 
     if (vars.do_compute) {
-      matXitem_buf[vars.index_01]->to_accel_wait();
+      matXitem_buf_[vars.index_01]->to_accel_wait();
     }
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
-          matXitem_buf[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
+          matXitem_buf_[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
           vars_prev.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
@@ -790,7 +791,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     if (vars_next.do_compute) {
       compute_metrics_3way_block_linalg_form_matXitem_(
-          vectors_I_buf, vectors_J_buf, matXitem_buf[vars_next.index_01],
+          vectors_I_buf, vectors_J_buf, matXitem_buf_[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
           vars_next.I_min, vars_next.I_max, npvfl, env_);
     }
@@ -798,7 +799,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Send matrix matXitem to GPU - START
 
     if (vars_next.do_compute) {
-      matXitem_buf[vars_next.index_01]->to_accel_start();
+      matXitem_buf_[vars_next.index_01]->to_accel_start();
     }
 
     //========== Copy result matrix matB from GPU - START
@@ -811,7 +812,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     if (vars.do_compute) {
       gm_linalg_gemm_start(vars.I_max, nvl, npvfl,
-          matXitem_buf[vars.index_01], vectors_I_buf, vectors_K_buf,
+          matXitem_buf_[vars.index_01], vectors_I_buf, vectors_K_buf,
           vars.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),

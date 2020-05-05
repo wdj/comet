@@ -32,7 +32,9 @@ namespace comet {
 ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   : env_(env) 
   , vectors_01_{}
-  , metrics_buf_01_{MirroredBuf(env), MirroredBuf(env)}
+  , metrics_buf_0_(env)
+  , metrics_buf_1_(env)
+  , metrics_buf_01_{&metrics_buf_0_, &metrics_buf_1_}
   , vectors_buf_(env)
   , metrics_tmp_buf_(env)
   , vector_sums_onproc_(dm.num_vector_local, env)
@@ -46,7 +48,7 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_create_with_buf(&vectors_01_[i], env_.data_type_vectors(),
       &dm, &env_);
-    metrics_buf_01_[i].allocate(dm.num_vector_local, dm.num_vector_local);
+    metrics_buf_01_[i]->allocate(dm.num_vector_local, dm.num_vector_local);
   }
 
   vectors_buf_.allocate(dm.num_packedfield_local, dm.num_vector_local);
@@ -311,7 +313,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     // Pointer to metrics buffer
 
-    vars_next.metrics_buf = &metrics_buf_01_[vars_next.index_01];
+    vars_next.metrics_buf = metrics_buf_01_[vars_next.index_01];
 
     // Set up lock aliases
 

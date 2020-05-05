@@ -39,7 +39,9 @@ private:
   CEnv& env_;
 
   GMVectors vectors_01_[NUM_BUF];
-  MirroredBuf metrics_buf_01_[NUM_BUF];
+  MirroredBuf metrics_buf_0_;
+  MirroredBuf metrics_buf_1_;
+  MirroredBuf* metrics_buf_01_[NUM_BUF];
   MirroredBuf vectors_buf_;
   MirroredBuf metrics_tmp_buf_;
   VectorSums vector_sums_onproc_;

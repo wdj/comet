@@ -111,10 +111,8 @@ private:
   bool use_linalg_;
 
   // Disallowed methods.
-
-//FIX
-//  MirroredBuf(const MirroredBuf&);
-//  void operator=(const MirroredBuf&);
+  MirroredBuf(const MirroredBuf&);
+  void operator=(const MirroredBuf&);
 
 };
 

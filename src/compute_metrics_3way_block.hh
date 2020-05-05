@@ -40,12 +40,19 @@ private:
 
   CEnv& env_;
 
-  MirroredBuf tmp_buf_[NUM_BUF];
   MirroredBuf matM_ij_buf_;
   MirroredBuf matM_jk_buf_;
   MirroredBuf matM_kik_buf_;
-  MirroredBuf matXitem_buf_[NUM_BUF];
-  MirroredBuf matB_buf_[NUM_BUF];
+
+  MirroredBuf tmp_buf0_;
+  MirroredBuf tmp_buf1_;
+  MirroredBuf matXitem_buf0_;
+  MirroredBuf matXitem_buf1_;
+  MirroredBuf matB_buf0_;
+  MirroredBuf matB_buf1_;
+  MirroredBuf* tmp_buf_[NUM_BUF];
+  MirroredBuf* matXitem_buf_[NUM_BUF];
+  MirroredBuf* matB_buf_[NUM_BUF];
 
   void compute_linalg_(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& metrics, int j_block, int k_block, int section_step);

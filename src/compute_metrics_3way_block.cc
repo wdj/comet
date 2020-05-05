@@ -27,25 +27,32 @@ namespace comet {
 
 ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env)
   : env_(env)
-  , tmp_buf_{MirroredBuf(env), MirroredBuf(env)}
-  , matM_ij_buf_(env)//{MirroredBuf(env)}
-  , matM_jk_buf_(env)//{MirroredBuf(env)}
-  , matM_kik_buf_(env)//{MirroredBuf(env)}
-  , matXitem_buf_{MirroredBuf(env), MirroredBuf(env)}
-  , matB_buf_{MirroredBuf(env), MirroredBuf(env)} {
+  , matM_ij_buf_(env)
+  , matM_jk_buf_(env)
+  , matM_kik_buf_(env)
+  , tmp_buf0_(env)
+  , tmp_buf1_(env)
+  , matXitem_buf0_(env)
+  , matXitem_buf1_(env)
+  , matB_buf0_(env)
+  , matB_buf1_(env)
+  , tmp_buf_{&tmp_buf0_, &tmp_buf1_}
+  , matXitem_buf_{&matXitem_buf0_, &matXitem_buf1_}
+  , matB_buf_{&matB_buf0_, &matB_buf1_}
+
+ {
   COMET_INSIST(nvl >= 0 && npvfl >= 0);
 
   if (!env_.is_using_linalg())
     return;
 
   for (int i=0; i<NUM_BUF; ++i) {
-    if (env_.do_reduce()) {
-      tmp_buf_[i].allocate(nvl, nvl);
-    }
+    if (env_.do_reduce())
+      tmp_buf_[i]->allocate(nvl, nvl);
     const int matXitem_buf_num_cols = env_.form_matX_tc() ? 1 : nvl;
-    matXitem_buf_[i].allocate(npvfl, matXitem_buf_num_cols);
-    matB_buf_[i].allocate(nvl, nvl);
-    matB_buf_[i].set_zero_h(); // ensure determinism
+    matXitem_buf_[i]->allocate(npvfl, matXitem_buf_num_cols);
+    matB_buf_[i]->allocate(nvl, nvl);
+    matB_buf_[i]->set_zero_h(); // ensure determinism
   }
   if (env_.does_3way_need_2way()) {
     matM_ij_buf_.allocate(nvl, nvl);
