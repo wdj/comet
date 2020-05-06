@@ -725,7 +725,7 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->data_elt_size = sizeof(GMFloat);
       metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
-      metrics->data_type_num_values = 1;
+      metrics->num_values_per_metric = 1;
       break;
     /*----------*/
     case GM_DATA_TYPE_TALLY2X2: {
@@ -740,7 +740,7 @@ void GMMetrics_create(GMMetrics* metrics,
         metrics->data_C_size = metrics->num_elts_local * metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
-      metrics->data_type_num_values = 4;
+      metrics->num_values_per_metric = 4;
     } break;
     /*----------*/
     case GM_DATA_TYPE_TALLY4X2: {
@@ -755,7 +755,7 @@ void GMMetrics_create(GMMetrics* metrics,
         metrics->data_C_size = metrics->num_elts_local * metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
-      metrics->data_type_num_values = 8;
+      metrics->num_values_per_metric = 8;
     } break;
     /*----------*/
     default:

@@ -20,6 +20,10 @@ namespace comet {
 //-----------------------------------------------------------------------------
 
 class MirroredBuf {
+private:
+
+  CEnv& env_;
+
 public:
 
   MirroredBuf(CEnv& env);
@@ -68,9 +72,13 @@ public:
   void* __restrict__ active;
   size_t dim0;
   size_t dim1;
-  size_t size;
+  size_t num_elts_;
+  int elt_size_;
+  size_t size_;
   bool is_alias;
   bool is_allocated;
+
+  size_t num_elts() const {return num_elts_;}
 
   void lock_h() const {
     COMET_INSIST(!is_locked_h_);
@@ -104,8 +112,6 @@ public:
 
 private:
 
-  CEnv& env_;
-
   mutable bool is_locked_h_;
   mutable bool is_locked_d_;
   bool use_linalg_;
@@ -113,6 +119,9 @@ private:
   // Disallowed methods.
   MirroredBuf(const MirroredBuf&);
   void operator=(const MirroredBuf&);
+
+  friend void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env);
+  friend void gm_linalg_free(MirroredBuf* p, CEnv* env);
 
 };
 

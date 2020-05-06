@@ -26,11 +26,6 @@
 #if defined COMET_USE_CUDA
 #  include "cuda.h"
 #  include "cuda_runtime.h"
-//#  if !defined __CUDACC__
-//#    define __host__
-//#    define __device__
-//#    define __global__
-//#  endif
 #elif defined COMET_USE_HIP
 //#  include "hip/hip_runtime_api.h"
 #  include "hip/hip_runtime.h"
@@ -38,6 +33,7 @@
 #  define __host__
 #  define __device__
 #  define __global__
+#  define __forceinline__
 static void dim3(size_t dim0, size_t dim1, size_t dim2) {}
 #endif
 
@@ -400,6 +396,9 @@ public:
     return NUM_WAY::_3 == num_way() && threshold_tc() &&
           is_bitwise_3way_2step();
   }
+
+  int metric_format() const {return threshold_tc() ? MetricFormat::SINGLE :
+                                                     MetricFormat::PACKED_DOUBLE;}
 
   int data_type_vectors() const;
   int data_type_metrics() const;

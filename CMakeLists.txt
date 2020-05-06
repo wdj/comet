@@ -23,17 +23,18 @@ SET(INCLUDE_DIRS
 )
 
 SET(LIB_SOURCES
-  src/env.cc
   src/assertions.cc
-  src/decomp_mgr.cc
-  src/mirrored_buf.cc
+  src/env.cc
   src/magma_wrapper.cc
-  src/linalg.cc
+  src/mirrored_buf.cc
+  src/compressed_buf.cc
   src/tc.cc
-  src/metrics.cc
-  src/checksum.cc
+  src/decomp_mgr.cc
+  src/linalg.cc
   src/vectors.cc
+  src/metrics.cc
   src/vector_sums.cc
+  src/checksum.cc
   src/comm_xfer_utils.cc
   src/compute_metrics_2way_block_nums.cc
   src/compute_metrics_2way_block_combine.cc
@@ -47,32 +48,34 @@ SET(LIB_SOURCES
 
 SET(ACCEL_SOURCES
   src/tc.cc
+  src/compressed_buf.cc
 )
 
 SET(LIB_INCLUDES
-  src/env.hh
   src/assertions.hh
   src/assertions.i.hh
-  src/types.hh
   src/utils.hh
+  src/types.hh
+  src/env.hh
   src/formulas.hh
-  src/decomp_mgr.hh
-  src/mirrored_buf.hh
   src/magma_wrapper.hh
-  src/linalg.hh
+  src/mirrored_buf.hh
+  src/compressed_buf.hh
   src/tc.hh
   src/tc_helpers.i.hh
   src/tc_in.i.hh
   src/tc_solve.i.hh
   src/tc_out.i.hh
+  src/decomp_mgr.hh
+  src/linalg.hh
+  src/vectors.hh
   src/metrics.hh
   src/metrics_2way_indexing.i.hh
   src/metrics_2way_accessors.i.hh
   src/metrics_3way_indexing.i.hh
   src/metrics_3way_accessors.i.hh
-  src/checksum.hh
-  src/vectors.hh
   src/vector_sums.hh
+  src/checksum.hh
   src/comm_xfer_utils.hh
   src/compute_metrics_2way_block_nums.hh
   src/compute_metrics_2way_block_combine.hh

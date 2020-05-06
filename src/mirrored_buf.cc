@@ -16,34 +16,40 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief MirroredBuf contructor: create empty with no allocations.
 
 MirroredBuf::MirroredBuf(CEnv& env)
-  : h(NULL)
+  : env_(env)
+  , h(NULL)
   , d(NULL)
   , active(NULL)
   , dim0(0)
   , dim1(0)
-  , size(0)
+  , num_elts_(0)
+  , elt_size_(0)
+  , size_(0)
   , is_alias(false)
   , is_allocated(false)
-  , env_(env)
   , is_locked_h_(false)
   , is_locked_d_(false)
   , use_linalg_(false) {
   }
 
 //-----------------------------------------------------------------------------
+/// \brief MirroredBuf: constructor: specify elt size.
 
 MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, int elt_size, CEnv& env)
-  : h(NULL)
+  : env_(env)
+  , h(NULL)
   , d(NULL)
   , active(NULL)
   , dim0(dim0_)
   , dim1(dim1_)
-  , size(dim0_ * dim1_)
+  , num_elts_(dim0_ * dim1_)
+  , elt_size_(elt_size)
+  , size_(num_elts_ * elt_size_)
   , is_alias(false)
   , is_allocated(false)
-  , env_(env)
   , is_locked_h_(false)
   , is_locked_d_(false)
   , use_linalg_(false) {
@@ -51,17 +57,20 @@ MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, int elt_size, CEnv& env)
 }
 
 //-----------------------------------------------------------------------------
+/// \brief MirroredBuf: constructor: infer elt size from metric_type.
 
 MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, CEnv& env)
-  : h(NULL)
+  : env_(env)
+  , h(NULL)
   , d(NULL)
   , active(NULL)
   , dim0(dim0_)
   , dim1(dim1_)
-  , size(dim0_ * dim1_)
+  , num_elts_(dim0_ * dim1_)
+  , elt_size_(env_.matrix_buf_elt_size())
+  , size_(num_elts_ * elt_size_)
   , is_alias(false)
   , is_allocated(false)
-  , env_(env)
   , is_locked_h_(false)
   , is_locked_d_(false)
   , use_linalg_(false) {
@@ -69,17 +78,20 @@ MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, CEnv& env)
 }
 
 //-----------------------------------------------------------------------------
+/// \brief MirroredBuf: constructor: alias, with possible redimension.
 
 MirroredBuf::MirroredBuf(MirroredBuf& buf, size_t dim0_, CEnv& env)
-  : h(buf.h)
+  : env_(env)
+  , h(buf.h)
   , d(buf.d)
   , active(buf.active)
   , dim0(dim0_)
   , dim1(buf.dim1)
-  , size(buf.size)
+  , num_elts_(dim0 * dim1)
+  , elt_size_(buf.elt_size_)
+  , size_(buf.size_)
   , is_alias(true)
   , is_allocated(true)
-  , env_(env)
   , is_locked_h_(false)
   , is_locked_d_(false)
   //, use_linalg_(BuildHas::MAGMA) {
@@ -95,6 +107,7 @@ MirroredBuf::~MirroredBuf() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief MirroredBuf: allocate memory: specify elt size.
 
 void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   COMET_INSIST(is_alias || !is_allocated);
@@ -103,24 +116,26 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
 
   dim0 = dim0_;
   dim1 = dim1_;
-  size = dim0 * dim1 * elt_size;
+  num_elts_ = dim0 * dim1;
+  elt_size_ = elt_size;
+  size_ = num_elts_ * elt_size_;
 # if defined COMET_USE_CUDA
-    cudaMallocHost((void**)&h, size);
+    cudaMallocHost((void**)&h, size_);
     if (env_.is_compute_method_gpu())
-      cudaMalloc((void**)&d, size);
+      cudaMalloc((void**)&d, size_);
 # elif defined COMET_USE_HIP
-    hipHostMalloc((void**)&h, size);
+    hipHostMalloc((void**)&h, size_);
     if (env_.is_compute_method_gpu())
-      hipMalloc((void**)&d, size);
+      hipMalloc((void**)&d, size_);
 # else
-    h = malloc(size);
+    h = malloc(size_);
     COMET_INSIST(!env_.is_compute_method_gpu() &&
       "GPU not supported for this build.");
 # endif
 
-  env_.cpu_mem_local_inc(size);
+  env_.cpu_mem_local_inc(size_);
   if (env_.is_compute_method_gpu())
-    env_.gpu_mem_local_inc(size);
+    env_.gpu_mem_local_inc(size_);
 
   COMET_INSIST(h &&
     "Invalid host pointer created, possibly due to insufficient memory.");
@@ -133,9 +148,16 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief MirroredBuf: allocate memory: infer elt size from metric_type.
 
 void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
   COMET_INSIST(is_alias || !is_allocated);
+
+  dim0 = dim0_;
+  dim1 = dim1_;
+  num_elts_ = dim0 * dim1;
+  elt_size_ = env_.matrix_buf_elt_size();
+  size_ = num_elts_ * elt_size_;
 
   use_linalg_ = BuildHas::MAGMA;
 
@@ -143,18 +165,23 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
 
     gm_linalg_malloc(this, dim0_, dim1_, &env_);
 
+    env_.cpu_mem_local_inc(size_);
+    if (env_.is_compute_method_gpu())
+      env_.gpu_mem_local_inc(size_);
+
     active = env_.is_compute_method_gpu() ? d : h;
     is_alias = false;
     is_allocated = true;
 
   } else {
 
-    MirroredBuf::allocate(dim0_, dim1_, env_.matrix_buf_elt_size());
+    MirroredBuf::allocate(dim0_, dim1_, elt_size_);
 
   } // if (use_linalg_)
 }
 
 //-----------------------------------------------------------------------------
+/// \brief MirroredBuf: allocate memory: alias, with possible redimension.
 
 void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
   COMET_INSIST(is_alias || !is_allocated);
@@ -168,7 +195,9 @@ void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
   active = buf.active;
   dim0 = dim0_;
   dim1 = buf.dim1;
-  size = buf.size;
+  num_elts_ = dim0 * dim1;
+  elt_size_ = buf.elt_size_;
+  size_ = buf.size_;
   is_alias = true;
   is_allocated = true;
 }
@@ -178,9 +207,8 @@ void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
 void MirroredBuf::set_zero_h() {
   COMET_INSIST(is_allocated);
 
-  for (size_t i=0; i<size; ++i) {
+  for (size_t i=0; i<size_; ++i)
     ((char*)h)[i] = 0;
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -193,6 +221,10 @@ void MirroredBuf::deallocate() {
     if (use_linalg_) {
 
       gm_linalg_free(this, &env_);
+
+      env_.cpu_mem_local_dec(size_);
+      if (env_.is_compute_method_gpu())
+        env_.gpu_mem_local_dec(size_);
 
     } else {
 
@@ -210,14 +242,14 @@ void MirroredBuf::deallocate() {
           "GPU not supported for this build.");
 #     endif
 
-      env_.cpu_mem_local_dec(size);
+      env_.cpu_mem_local_dec(size_);
       if (env_.is_compute_method_gpu())
-        env_.gpu_mem_local_dec(size);
-
-      h = NULL;
-      d = NULL;
+        env_.gpu_mem_local_dec(size_);
 
     } // if (use_linalg_)
+
+    h = NULL;
+    d = NULL;
 
     active = NULL;
     is_allocated = false;
@@ -236,13 +268,15 @@ void MirroredBuf::to_accel_start() {
 
   lock();
 
+  const size_t size_eff = num_elts_ * elt_size_;
+
   if (use_linalg_) {
     gm_linalg_set_matrix_start(this, &env_);
   } else {
 #   if defined COMET_USE_CUDA
-      cudaMemcpyAsync(d, h, size, cudaMemcpyHostToDevice, env_.stream_togpu());
+      cudaMemcpyAsync(d, h, size_eff, cudaMemcpyHostToDevice, env_.stream_togpu());
 #   elif defined COMET_USE_HIP
-      hipMemcpyAsync(d, h, size, hipMemcpyHostToDevice, env_.stream_togpu());
+      hipMemcpyAsync(d, h, size_eff, hipMemcpyHostToDevice, env_.stream_togpu());
 #   endif
   } // if (use_linalg_)
 }
@@ -278,14 +312,16 @@ void MirroredBuf::from_accel_start() {
 
   lock();
 
+  const size_t size_eff = num_elts_ * elt_size_;
+
   if (use_linalg_) {
     gm_linalg_get_matrix_start(this, &env_);
   } else {
 #   if defined COMET_USE_CUDA
-      cudaMemcpyAsync(h, d, size, cudaMemcpyDeviceToHost,
+      cudaMemcpyAsync(h, d, size_eff, cudaMemcpyDeviceToHost,
         env_.stream_fromgpu());
 #   elif defined COMET_USE_HIP
-      hipMemcpyAsync(h, d, size, hipMemcpyDeviceToHost, env_.stream_fromgpu());
+      hipMemcpyAsync(h, d, size_eff, hipMemcpyDeviceToHost, env_.stream_fromgpu());
 #   endif
   } // if (use_linalg_)
 }

@@ -130,7 +130,7 @@ double Checksum::metrics_elt(
   int i_value,
   CEnv& env) { 
   COMET_INSIST(index < metrics.num_elts_local); // && index >= 0
-  COMET_INSIST(i_value >= 0 && i_value < metrics.data_type_num_values);
+  COMET_INSIST(i_value >= 0 && i_value < metrics.num_values_per_metric);
 
   // Obtain global coords of metrics elt
   size_t coords[NUM_WAY::MAX];
@@ -235,7 +235,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
     }
     double value_max = -DBL_MAX;
     if (is_active) {
-      for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
+      for (int i_value = 0; i_value < metrics.num_values_per_metric; ++i_value) {
         // Pick up value of this metrics elt
         const double value = Checksum::metrics_elt(metrics, index, i_value,
                                                    env);
@@ -344,7 +344,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     #pragma omp for collapse(2)
     for (size_t index = 0; index < metrics.num_elts_local; ++index) {
       // Loop over data values at this index
-      for (int i_value = 0; i_value < metrics.data_type_num_values; ++i_value) {
+      for (int i_value = 0; i_value < metrics.num_values_per_metric; ++i_value) {
 
         // Obtain global coords of metrics elt
         size_t coords[NUM_WAY::MAX];
@@ -387,7 +387,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         for (int i = 1; i < env.num_way(); ++i) {
           uid = uid * metrics.num_vector_active + coords[i];
         }
-        uid = uid * metrics.data_type_num_values + i_value;
+        uid = uid * metrics.num_values_per_metric + i_value;
         // Randomize this id
         const UI64_t rand1 = utils::randomize(uid + 956158765);
         const UI64_t rand2 = utils::randomize(uid + 842467637);

@@ -538,6 +538,10 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   const double param = env.ccc_param();
   const double multiplier = env.ccc_duo_multiplier();
   const double threshold_eff = env.threshold_eff();
+  COMET_INSIST_INTERFACE(&env, param <= 1 &&
+                         "CCC/DUO param value not allowed.");
+  COMET_INSIST_INTERFACE(&env, multiplier >= 0 &&
+                         "CCC/DUO multiplier value not allowed.");
 
   const int num_threads_r = env.num_way() == NUM_WAY::_2 ? nvll : nvllD2;
   const int num_threads_c = nvl;

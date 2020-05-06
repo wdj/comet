@@ -157,14 +157,14 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
 
 #ifdef COMET_USE_MAGMA
 
-  p->dim0 = dim0;
-  p->dim1 = dim1;
+  //p->dim0 = dim0;
+  //p->dim1 = dim1;
 
   const size_t n = dim0 * dim1;
 
   if (use_minproduct(env)) { //--------------------
 
-    typedef GMFloat Float_t;
+    //typedef GMFloat Float_t;
 
     magma_minproduct_int_t magma_code = 0;
 
@@ -195,7 +195,7 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
       }
     }
     // TODO: ? fill GPU memory with NaNs
-    p->size = n * sizeof(Float_t);
+    //p->size = n * sizeof(Float_t);
 
   } else if (use_mgemm4(env)) { //--------------------
 
@@ -212,7 +212,7 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
       COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
         "Error in magma_mgemm4_zmalloc, possibly insufficient memory.");
     }
-    p->size = n * sizeof(Float_t);
+    //p->size = n * sizeof(Float_t);
 
   } else if (use_mgemm2(env)) { //--------------------
 
@@ -229,7 +229,7 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
       COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
         "Error in magma_mgemm2_zmalloc, possibly insufficient memory.");
     }
-    p->size = n * sizeof(Float_t);
+    //p->size = n * sizeof(Float_t);
 
   } else if (use_mgemm3(env)) { //--------------------
 
@@ -246,7 +246,7 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
       COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
         "Error in magma_mgemm3_zmalloc, possibly insufficient memory.");
     }
-    p->size = n * sizeof(Float_t);
+    //p->size = n * sizeof(Float_t);
 
   } else if (use_mgemm5(env)) { //--------------------
 
@@ -263,7 +263,7 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
       COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
         "Error in magma_mgemm5_zmalloc, possibly insufficient memory.");
     }
-    p->size = n * sizeof(Float_t);
+    //p->size = n * sizeof(Float_t);
 
   } else { //--------------------
 
@@ -271,9 +271,9 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
 
   } // if //--------------------
 
-  env->cpu_mem_local_inc(p->size);
-  if (env->is_compute_method_gpu())
-    env->gpu_mem_local_inc(p->size);
+  //env->cpu_mem_local_inc(p->size);
+  //if (env->is_compute_method_gpu())
+  //  env->gpu_mem_local_inc(p->size);
 
   COMET_INSIST(p->h &&
     "Invalid host pointer created, possibly due to insufficient memory.");
@@ -355,12 +355,12 @@ void gm_linalg_free(MirroredBuf* p, CEnv* env) {
 
   } // if //--------------------
 
-  p->h = NULL;
-  p->d = NULL;
+  //p->h = NULL;
+  //p->d = NULL;
 
-  env->cpu_mem_local_dec(p->size);
-  if (env->is_compute_method_gpu())
-    env->gpu_mem_local_dec(p->size);
+  //env->cpu_mem_local_dec(p->size);
+  //if (env->is_compute_method_gpu())
+  //  env->gpu_mem_local_dec(p->size);
 
 #else
 

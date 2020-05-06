@@ -138,9 +138,9 @@ function main
   local BUILD_DIR=$PWD
 
   if [ $USE_MPI = OFF ] ; then
+    echo "Building mpi-stub ..."
     local C_COMPILER=$COMET_C_COMPILER
     local CXX_COMPILER=$COMET_CXX_SERIAL_COMPILER
-    echo "Building mpi-stub ..."
     ln -s ../genomics_gpu/tpls/mpi-stub.tar.gz
     rm -rf mpi-stub
     gunzip <mpi-stub.tar.gz | tar xf -
@@ -157,12 +157,11 @@ function main
   #----------------------------------------------------------------------------
   #---Create magma variants.
 
-
   if [ $USE_MAGMA = ON ] ; then
     local MAGMA_DIR=$BUILD_DIR/magma_patch
     if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
       rm -rf $MAGMA_DIR
-      echo "Copying magma ..."
+      echo "Copying MAGMA ..."
       cp -r $REPO_DIR/magma_patch $MAGMA_DIR
       # copy MAGMA source since link will be broken.
       rm $MAGMA_DIR//magma-*.tar.gz
@@ -178,6 +177,7 @@ function main
   #---Compile magma variants.
 
   if [ $USE_MAGMA = ON ] ; then
+    echo "Building MAGMA variants ..."
     local COMET_MAGMA_COMPILE_OPTS=""
     local COMET_MAGMA_LINK_OPTS=""
     local MAGMA_DIR=$BUILD_DIR/magma_patch
@@ -211,9 +211,22 @@ function main
   fi
 
   #----------------------------------------------------------------------------
+  #---Get NVIDIA CUB library.
+
+  if [ ${USE_CUDA:-OFF} = ON ] ; then
+    echo "Building CUB library ..."
+    CUB_VERSION=1.8.0
+    ln -s ../genomics_gpu/tpls/cub-${CUB_VERSION}.zip
+    rm -rf cub-${CUB_VERSION}
+    unzip -q cub-${CUB_VERSION}
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cub-${CUB_VERSION}/cub"
+  fi
+
+  #----------------------------------------------------------------------------
   #---Get unit test harness if needed.
 
   if [ $TESTING = ON ] ; then
+    echo "Building googletest ..."
     ln -s ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz
     # wget -O googletest-release-1.7.0.tar.gz \
     #   https://github.com/google/googletest/archive/release-1.7.0.tar.gz

@@ -98,7 +98,7 @@ struct GMMetrics {
   size_t num_elts_local_computed;
   // Other.
   int data_type_id;
-  int data_type_num_values;
+  int num_values_per_metric;
   GMDecompMgr* dm;
 };
 
