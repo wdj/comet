@@ -24,6 +24,8 @@ private:
 
   CEnv& env_;
 
+  typedef CEnv::Stream_t Stream_t;
+
 public:
 
   MirroredBuf(CEnv& env);
@@ -39,19 +41,19 @@ public:
   void deallocate();
 
   template<typename T>
-  T& elt(int i0, int i1) {
+  T& elt(size_t i0, size_t i1) {
     COMET_ASSERT(is_allocated);
-    COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
-    COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
+    COMET_ASSERT(i0+1 >= 0+1 && i0 < dim0);
+    COMET_ASSERT(i1+1 >= 0+1 && i1 < dim1);
 
     return ((T*)(h))[i0 + dim0 * i1];
   }
 
   template<typename T>
-  T elt_const(int i0, int i1) const {
+  T elt_const(size_t i0, size_t i1) const {
     COMET_ASSERT(is_allocated);
-    COMET_ASSERT(i0 >= 0 && (size_t)i0 < dim0);
-    COMET_ASSERT(i1 >= 0 && (size_t)i1 < dim1);
+    COMET_ASSERT(i0+1 >= 0+1 && i0 < dim0);
+    COMET_ASSERT(i1+1 >= 0+1 && i1 < dim1);
 
     return ((T*)(h))[i0 + dim0 * i1];
   }
@@ -61,6 +63,10 @@ public:
   void to_accel_start();
   void to_accel_wait();
   void to_accel();
+
+  void from_accel_start(Stream_t stream);
+  void from_accel_wait(Stream_t stream);
+  void from_accel(Stream_t stream);
 
   void from_accel_start();
   void from_accel_wait();
@@ -74,11 +80,12 @@ public:
   size_t dim1;
   size_t num_elts_;
   int elt_size_;
-  size_t size_;
+  size_t size_allocated_;
   bool is_alias;
   bool is_allocated;
 
   size_t num_elts() const {return num_elts_;}
+  size_t size() const {return num_elts_ * elt_size_;}
 
   void lock_h() const {
     COMET_INSIST(!is_locked_h_);

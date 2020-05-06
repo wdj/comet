@@ -27,7 +27,7 @@ MirroredBuf::MirroredBuf(CEnv& env)
   , dim1(0)
   , num_elts_(0)
   , elt_size_(0)
-  , size_(0)
+  , size_allocated_(0)
   , is_alias(false)
   , is_allocated(false)
   , is_locked_h_(false)
@@ -47,7 +47,7 @@ MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, int elt_size, CEnv& env)
   , dim1(dim1_)
   , num_elts_(dim0_ * dim1_)
   , elt_size_(elt_size)
-  , size_(num_elts_ * elt_size_)
+  , size_allocated_(num_elts_ * elt_size_)
   , is_alias(false)
   , is_allocated(false)
   , is_locked_h_(false)
@@ -68,7 +68,7 @@ MirroredBuf::MirroredBuf(size_t dim0_, size_t dim1_, CEnv& env)
   , dim1(dim1_)
   , num_elts_(dim0_ * dim1_)
   , elt_size_(env_.matrix_buf_elt_size())
-  , size_(num_elts_ * elt_size_)
+  , size_allocated_(num_elts_ * elt_size_)
   , is_alias(false)
   , is_allocated(false)
   , is_locked_h_(false)
@@ -89,7 +89,7 @@ MirroredBuf::MirroredBuf(MirroredBuf& buf, size_t dim0_, CEnv& env)
   , dim1(buf.dim1)
   , num_elts_(dim0 * dim1)
   , elt_size_(buf.elt_size_)
-  , size_(buf.size_)
+  , size_allocated_(buf.size_allocated_)
   , is_alias(true)
   , is_allocated(true)
   , is_locked_h_(false)
@@ -118,24 +118,24 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   dim1 = dim1_;
   num_elts_ = dim0 * dim1;
   elt_size_ = elt_size;
-  size_ = num_elts_ * elt_size_;
+  size_allocated_ = num_elts_ * elt_size_;
 # if defined COMET_USE_CUDA
-    cudaMallocHost((void**)&h, size_);
+    cudaMallocHost((void**)&h, size_allocated_);
     if (env_.is_compute_method_gpu())
-      cudaMalloc((void**)&d, size_);
+      cudaMalloc((void**)&d, size_allocated_);
 # elif defined COMET_USE_HIP
-    hipHostMalloc((void**)&h, size_);
+    hipHostMalloc((void**)&h, size_allocated_);
     if (env_.is_compute_method_gpu())
-      hipMalloc((void**)&d, size_);
+      hipMalloc((void**)&d, size_allocated_);
 # else
-    h = malloc(size_);
+    h = malloc(size_allocated_);
     COMET_INSIST(!env_.is_compute_method_gpu() &&
       "GPU not supported for this build.");
 # endif
 
-  env_.cpu_mem_local_inc(size_);
+  env_.cpu_mem_local_inc(size_allocated_);
   if (env_.is_compute_method_gpu())
-    env_.gpu_mem_local_inc(size_);
+    env_.gpu_mem_local_inc(size_allocated_);
 
   COMET_INSIST(h &&
     "Invalid host pointer created, possibly due to insufficient memory.");
@@ -157,7 +157,7 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
   dim1 = dim1_;
   num_elts_ = dim0 * dim1;
   elt_size_ = env_.matrix_buf_elt_size();
-  size_ = num_elts_ * elt_size_;
+  size_allocated_ = num_elts_ * elt_size_;
 
   use_linalg_ = BuildHas::MAGMA;
 
@@ -165,9 +165,9 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
 
     gm_linalg_malloc(this, dim0_, dim1_, &env_);
 
-    env_.cpu_mem_local_inc(size_);
+    env_.cpu_mem_local_inc(size_allocated_);
     if (env_.is_compute_method_gpu())
-      env_.gpu_mem_local_inc(size_);
+      env_.gpu_mem_local_inc(size_allocated_);
 
     active = env_.is_compute_method_gpu() ? d : h;
     is_alias = false;
@@ -197,7 +197,7 @@ void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
   dim1 = buf.dim1;
   num_elts_ = dim0 * dim1;
   elt_size_ = buf.elt_size_;
-  size_ = buf.size_;
+  size_allocated_ = buf.size_allocated_;
   is_alias = true;
   is_allocated = true;
 }
@@ -207,7 +207,7 @@ void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
 void MirroredBuf::set_zero_h() {
   COMET_INSIST(is_allocated);
 
-  for (size_t i=0; i<size_; ++i)
+  for (size_t i=0; i<size_allocated_; ++i)
     ((char*)h)[i] = 0;
 }
 
@@ -222,9 +222,9 @@ void MirroredBuf::deallocate() {
 
       gm_linalg_free(this, &env_);
 
-      env_.cpu_mem_local_dec(size_);
+      env_.cpu_mem_local_dec(size_allocated_);
       if (env_.is_compute_method_gpu())
-        env_.gpu_mem_local_dec(size_);
+        env_.gpu_mem_local_dec(size_allocated_);
 
     } else {
 
@@ -242,9 +242,9 @@ void MirroredBuf::deallocate() {
           "GPU not supported for this build.");
 #     endif
 
-      env_.cpu_mem_local_dec(size_);
+      env_.cpu_mem_local_dec(size_allocated_);
       if (env_.is_compute_method_gpu())
-        env_.gpu_mem_local_dec(size_);
+        env_.gpu_mem_local_dec(size_allocated_);
 
     } // if (use_linalg_)
 
@@ -268,7 +268,7 @@ void MirroredBuf::to_accel_start() {
 
   lock();
 
-  const size_t size_eff = num_elts_ * elt_size_;
+  const size_t size_eff = size();
 
   if (use_linalg_) {
     gm_linalg_set_matrix_start(this, &env_);
@@ -305,40 +305,62 @@ void MirroredBuf::to_accel() {
 
 //-----------------------------------------------------------------------------
 
-void MirroredBuf::from_accel_start() {
+void MirroredBuf::from_accel_start(Stream_t stream) {
 
   if (!env_.is_compute_method_gpu())
     return;
 
   lock();
 
-  const size_t size_eff = num_elts_ * elt_size_;
+  const size_t size_eff = size();
 
   if (use_linalg_) {
+    COMET_INSIST(env_.stream_fromgpu() == stream);
     gm_linalg_get_matrix_start(this, &env_);
   } else {
 #   if defined COMET_USE_CUDA
-      cudaMemcpyAsync(h, d, size_eff, cudaMemcpyDeviceToHost,
-        env_.stream_fromgpu());
+      cudaMemcpyAsync(h, d, size_eff, cudaMemcpyDeviceToHost, stream);
 #   elif defined COMET_USE_HIP
-      hipMemcpyAsync(h, d, size_eff, hipMemcpyDeviceToHost, env_.stream_fromgpu());
+      hipMemcpyAsync(h, d, size_eff, hipMemcpyDeviceToHost, stream);
 #   endif
   } // if (use_linalg_)
 }
 
 //-----------------------------------------------------------------------------
 
-void MirroredBuf::from_accel_wait() {
+void MirroredBuf::from_accel_wait(Stream_t stream) {
 
   if (!env_.is_compute_method_gpu())
     return;
 
-  if (use_linalg_)
+  if (use_linalg_) {
+    COMET_INSIST(env_.stream_fromgpu() == stream);
     gm_linalg_get_matrix_wait(&env_);
-  else
-    env_.stream_synchronize(env_.stream_fromgpu());
+  } else
+    env_.stream_synchronize(stream);
 
   unlock();
+}
+
+//-----------------------------------------------------------------------------
+
+void MirroredBuf::from_accel(Stream_t stream) {
+  from_accel_start(stream);
+  from_accel_wait(stream);
+}
+
+//-----------------------------------------------------------------------------
+
+void MirroredBuf::from_accel_start() {
+
+  from_accel_start(env_.stream_fromgpu());
+}
+
+//-----------------------------------------------------------------------------
+
+void MirroredBuf::from_accel_wait() {
+
+  from_accel_wait(env_.stream_fromgpu());
 }
 
 //-----------------------------------------------------------------------------

@@ -29,6 +29,8 @@ class CompressedBuf {
   typedef MetricFormatTraits<METRIC_FORMAT> MFT;
   typedef MFT::TypeIn MFTTypeIn;
 
+  typedef void Workspace_t;
+
 public:
 
   CompressedBuf(MirroredBuf& buf, CEnv& env);
@@ -63,16 +65,28 @@ private:
   MirroredBuf reduce_workspace_buf_;
   MirroredBuf rle_workspace_buf_;
 
-  size_t length_max_;
+  double compress_multiplier_() const {return .2;}
+
+  const size_t length_max_;
+  size_t num_nonzeros_approx_;
+  bool do_compress_;
+  size_t num_runs_;
 
   bool is_open_;
   size_t read_ptr_;
 
-  void compute_nonzeros_();
+  void compute_num_nonzeros_();
+  void compress();
 
   bool try_compress() const {return env_.threshold_tc() &&
                                     env_.is_compute_method_gpu();}
 
+  size_t length_() const {
+    // NOTE: this is dynamic since buf_ can change size if realloc/realias.
+    const size_t length = buf_.dim0 * buf_.dim1 * NUM_VALUES_PER_METRIC;
+    COMET_INSIST(length <= length_max_);
+    return length;
+ }
 
 
 
