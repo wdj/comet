@@ -268,15 +268,13 @@ void MirroredBuf::to_accel_start() {
 
   lock();
 
-  const size_t size_eff = size();
-
   if (use_linalg_) {
     gm_linalg_set_matrix_start(this, &env_);
   } else {
 #   if defined COMET_USE_CUDA
-      cudaMemcpyAsync(d, h, size_eff, cudaMemcpyHostToDevice, env_.stream_togpu());
+      cudaMemcpyAsync(d, h, size(), cudaMemcpyHostToDevice, env_.stream_togpu());
 #   elif defined COMET_USE_HIP
-      hipMemcpyAsync(d, h, size_eff, hipMemcpyHostToDevice, env_.stream_togpu());
+      hipMemcpyAsync(d, h, size(), hipMemcpyHostToDevice, env_.stream_togpu());
 #   endif
   } // if (use_linalg_)
 }
@@ -312,16 +310,14 @@ void MirroredBuf::from_accel_start(Stream_t stream) {
 
   lock();
 
-  const size_t size_eff = size();
-
   if (use_linalg_) {
     COMET_INSIST(env_.stream_fromgpu() == stream);
     gm_linalg_get_matrix_start(this, &env_);
   } else {
 #   if defined COMET_USE_CUDA
-      cudaMemcpyAsync(h, d, size_eff, cudaMemcpyDeviceToHost, stream);
+      cudaMemcpyAsync(h, d, size(), cudaMemcpyDeviceToHost, stream);
 #   elif defined COMET_USE_HIP
-      hipMemcpyAsync(h, d, size_eff, hipMemcpyDeviceToHost, stream);
+      hipMemcpyAsync(h, d, size(), hipMemcpyDeviceToHost, stream);
 #   endif
   } // if (use_linalg_)
 }

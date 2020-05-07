@@ -136,13 +136,13 @@ void CompressedBuf::compress() {
       keys_alias_buf_.from_accel(env_.stream_compute());
       lengths_alias_buf_.from_accel(env_.stream_compute());
 
-    } // if (do_compress)
 
 #   elif defined COMET_USE_HIP
 
   // TODO
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
+  } // if (do_compress)
 }
 
 //=============================================================================
