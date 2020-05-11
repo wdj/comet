@@ -397,8 +397,16 @@ public:
           is_bitwise_3way_2step();
   }
 
-  int metric_format() const {return threshold_tc() ? MetricFormat::SINGLE :
-                                                     MetricFormat::PACKED_DOUBLE;}
+  int metric_format() const {return threshold_tc() ?
+    MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
+
+//FIX
+//  int is_using_xor() const {return false;}
+  int is_using_xor() const {return MetricType::DUO == metric_type_ &&
+    NUM_WAY::_2 == num_way_ && ComputeMethod::CPU == compute_method_ &&
+    !is_using_linalg();}
+
+
 
   int data_type_vectors() const;
   int data_type_metrics() const;

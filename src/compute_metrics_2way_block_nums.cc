@@ -23,7 +23,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Start calculation of numerators, 2-way Czekanowski---*/
+// Start calculation of numerators, 2-way Czekanowski.
 
 void gm_compute_2way_proc_nums_czek_start_(
   GMVectors* vectors_left,
@@ -48,7 +48,7 @@ void gm_compute_2way_proc_nums_czek_start_(
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
 
-    /*---Perform pseudo GEMM---*/
+    // Perform pseudo GEMM.
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
@@ -59,6 +59,7 @@ void gm_compute_2way_proc_nums_czek_start_(
           const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
+        // Update metrics array.
         Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = metric;
       } /*---for i---*/
     }   /*---for j---*/
@@ -70,7 +71,7 @@ void gm_compute_2way_proc_nums_czek_start_(
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
 
-    /*---Perform pseudo GEMM---*/
+    // Perform pseudo GEMM.
 
     for (int j = 0; j < metrics->num_vector_local; ++j) {
       const int i_max = j;
@@ -81,6 +82,7 @@ void gm_compute_2way_proc_nums_czek_start_(
           const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
         } /*---for k---*/
+        // Update metrics array.
         Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = metric;
       } /*---for i---*/
     }   /*---for j---*/
@@ -117,7 +119,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
 
-    /*---Perform pseudo GEMM---*/
+    // Perform pseudo GEMM.
 
     const int nfal = vectors_left->dm->num_field_active_local;
 
@@ -177,6 +179,9 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
           } /*---if ! unknown---*/
         } /*---for f---*/
+
+        // Update metrics array.
+
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
         //}
@@ -190,7 +195,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
        "num_proc_field>1 for CPU compute_method for this case not supported");
 
-    /*---Perform pseudo GEMM---*/
+    // Perform pseudo GEMM.
 
     /* clang-format off */
 
@@ -207,7 +212,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
         const int npvfl = vectors_left->num_packedval_field_local;
         for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
-          /*---Extract input values to process---*/
+          // Extract input values to process.
 
           const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pvfl, i,
                                                        env);
@@ -218,7 +223,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
           const uint64_t vj0 = vj.data[0];
           const uint64_t vj1 = vj.data[1];
 
-          /*---Compute masks---*/
+          // Compute masks.
 
           const uint64_t oddbits = 0x5555555555555555;
 
@@ -237,7 +242,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
           const uint64_t v0mask = vi0mask & vj0mask;
           const uint64_t v1mask = vi1mask & vj1mask;
 
-          /*---Get even/odd bits for each seminibble, masked to active---*/
+          // Get even/odd bits for each seminibble, masked to active.
 
           const uint64_t vi0_0 =  vi0       & v0mask;
           const uint64_t vi0_1 = (vi0 >> 1) & v0mask;
@@ -248,7 +253,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
           const uint64_t vj1_0 =  vj1       & v1mask;
           const uint64_t vj1_1 = (vj1 >> 1) & v1mask;
 
-          /*---Get complements of even/odd bits for each seminibble; mask---*/
+          // Get complements of even/odd bits for each seminibble; mask.
 
           const uint64_t nvi0_0 = ~ vi0       & v0mask;
           const uint64_t nvi0_1 = ~(vi0 >> 1) & v0mask;
@@ -310,6 +315,8 @@ void gm_compute_2way_proc_nums_ccc_start_(
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
 #endif
 
+        // Update metrics array.
+
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
         //}
@@ -350,7 +357,7 @@ void gm_compute_2way_proc_nums_duo_start_(
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
 
-    /*---Perform pseudo GEMM---*/
+    // Perform pseudo GEMM.
 
     const int nfal = vectors_left->dm->num_field_active_local;
 
@@ -386,19 +393,22 @@ void gm_compute_2way_proc_nums_duo_start_(
 
           } /*---if ! unknown---*/
         } /*---for f---*/
+
+        // Update metrics array.
+
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
       } /*---for j---*/
     }   /*---for i---*/
 
     /*----------------------------------------*/
-  } else { // ComputeMethod::CPU && !env->is_using_linalg()
+  } else if (!env->is_using_xor()) { // ComputeMethod::CPU && !env->is_using_linalg()
     /*----------------------------------------*/
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
 
-    /*---Perform pseudo GEMM---*/
+    // Perform pseudo GEMM.
 
     /* clang-format off */
 
@@ -415,7 +425,7 @@ void gm_compute_2way_proc_nums_duo_start_(
         const int npvfl = vectors_left->num_packedval_field_local;
         for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
-          /*---Extract input values to process---*/
+          // Extract input values to process.
 
           const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pvfl, i,
                                                        env);
@@ -426,7 +436,7 @@ void gm_compute_2way_proc_nums_duo_start_(
           const uint64_t vj0 = vj.data[0];
           const uint64_t vj1 = vj.data[1];
 
-          /*---Compute masks---*/
+          // Compute masks.
 
           const uint64_t oddbits = 0x5555555555555555;
 
@@ -445,14 +455,14 @@ void gm_compute_2way_proc_nums_duo_start_(
           const uint64_t v0mask = vi0mask & vj0mask;
           const uint64_t v1mask = vi1mask & vj1mask;
 
-          /*---Get even/odd bits for each seminibble, masked to active---*/
+          // Get even/odd bits for each seminibble, masked to active.
 
           const uint64_t vi0_0 =  vi0       & v0mask;
           const uint64_t vi1_0 =  vi1       & v1mask;
           const uint64_t vj0_0 =  vj0       & v0mask;
           const uint64_t vj1_0 =  vj1       & v1mask;
 
-          /*---Get complements of even/odd bits for each seminibble; mask---*/
+          // Get complements of even/odd bits for each seminibble; mask.
 
           const uint64_t nvi0_0 = ~ vi0       & v0mask;
           const uint64_t nvi1_0 = ~ vi1       & v1mask;
@@ -485,6 +495,110 @@ void gm_compute_2way_proc_nums_duo_start_(
         COMET_ASSERT(GMTally2x2_get(sum_old, 0, 0) ==
                  GMTally2x2_get(sum, 0, 0) + pad_adjustment);
 #endif
+
+        // Update metrics array.
+
+        const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
+        Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
+      } /*---for j---*/
+    }   /*---for i---*/
+
+    /* clang-format on */
+
+    /*----------------------------------------*/
+  } else { // ComputeMethod::CPU && !env->is_using_linalg() && env->is_using_xor()
+    /*----------------------------------------*/
+
+    COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
+      "num_proc_field>1 for CPU compute_method for this case not supported");
+
+    // Perform pseudo GEMM.
+
+    /* clang-format off */
+
+    const int cbpe = env->counted_bits_per_elt();
+
+    const int pad_adjustment = cbpe * cbpe * metrics->dm->num_pad_field_local;
+
+    for (int j = 0; j < metrics->num_vector_local; ++j) {
+      const int i_max = do_compute_triang_only ? j : metrics->num_vector_local;
+      int i = 0;
+      for (i = 0; i < i_max; ++i) {
+        GMTally2x2 sum = GMTally2x2_null();
+        const int npvfl = vectors_left->num_packedval_field_local;
+        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+
+          // Extract input values to process.
+
+          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pvfl, i,
+                                                       env);
+          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pvfl, j,
+                                                       env);
+          const uint64_t vi0 = vi.data[0];
+          const uint64_t vi1 = vi.data[1];
+          const uint64_t vj0 = vj.data[0];
+          const uint64_t vj1 = vj.data[1];
+
+          // Compute masks to sample the single needed bit from each seminibble,
+          // and to ignore undefined entries.
+
+          const uint64_t oddbits = 0x5555555555555555;
+
+          const uint64_t vi0mask =
+                       env->sparse() ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits;
+
+          const uint64_t vi1mask =
+                       env->sparse() ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits;
+
+          const uint64_t vj0mask =
+                       env->sparse() ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits;
+
+          const uint64_t vj1mask =
+                       env->sparse() ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits;
+
+          // Extract elts that are a "1" bit (=01).
+
+          const uint64_t pvi0 =  vi0  & vi0mask;
+          const uint64_t pvi1 =  vi1  & vi1mask;
+          const uint64_t pvj0 =  vj0  & vj0mask;
+          const uint64_t pvj1 =  vj1  & vj1mask;
+
+          // Extract elts that are an "0" bit (=00).
+
+          const uint64_t nvi0 = ~vi0  & vi0mask;
+          const uint64_t nvi1 = ~vi1  & vi1mask;
+          const uint64_t nvj0 = ~vj0  & vj0mask;
+          const uint64_t nvj1 = ~vj1  & vj1mask;
+
+          // Combine lower, upper words - each only uses odd bits - make packed.
+
+          const uint64_t pvi = pvi0 | (pvi1 << 1);
+          const uint64_t pvj = pvj0 | (pvj1 << 1);
+          const uint64_t nvi = nvi0 | (nvi1 << 1);
+          const uint64_t nvj = nvj0 | (nvj1 << 1);
+
+          // Compute values using xor.
+          // NOTE: these will need adjustment later in the execution.
+
+          const int r00 = utils::popc64(nvi ^ nvj);
+          const int r01 = utils::popc64(nvi ^ pvj);
+          const int r10 = utils::popc64(pvi ^ nvj);
+          const int r11 = utils::popc64(pvi ^ pvj);
+
+          // Accumulate
+
+          MFT::add(sum.data[0], r00, r01);
+          MFT::add(sum.data[1], r10, r11);
+
+        } /*---for pvfl---*/
+
+        // Adjust for pad
+        // NOTE this works differently from other cases because of xor
+
+        MFT::subtract(sum.data[0], 0, pad_adjustment);
+        MFT::subtract(sum.data[1], pad_adjustment, 0);
+
+        // Update metrics array.
 
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
@@ -523,7 +637,7 @@ void gm_compute_2way_proc_nums_start(
 
   if (env->is_using_linalg()) {
 
-    /*---Perform pseudo GEMM---*/
+    // Perform pseudo GEMM.
 
     gm_linalg_gemm_start(
       vectors_left->num_vector_local,

@@ -176,15 +176,14 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
       index, env);
     GMTally1 ci, cj;
     GMFloat2_decode(ci, cj, ci_cj);
-
-    GMTally1 cij = GMTally2x2_get(ttable, 0, 0) + GMTally2x2_get(ttable, 0, 1) +
-                   GMTally2x2_get(ttable, 1, 0) + GMTally2x2_get(ttable, 1, 1);
-    if (0 == ci || 0 == cj || 0 == cij)
+    if (0 == ci || 0 == cj)
       return (FloatResult_t)0;
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
-    const GMTally1 si = i0 == 0 ? (CBPE * ci - si1) : si1;
-    const GMTally1 sj = i1 == 0 ? (CBPE * cj - sj1) : sj1;
+    const GMTally1 si0 = CBPE * ci - si1;
+    const GMTally1 sj0 = CBPE * cj - sj1;
+    const GMTally1 si = i0 == 0 ? si0 : si1;
+    const GMTally1 sj = i1 == 0 ? sj0 : sj1;
 
     // The following complex code is to reduce the number of divides.
     const Float_t f_ci = (Float_t) ci;
@@ -193,27 +192,72 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
     const Float_t f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
     const Float_t f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
 
-    const Float_t f_cij = (Float_t) cij;
-    const Float_t recip_cicjcij = f_one / (f_cicj_min * f_cicj_max * f_cij);
+    if (env.is_using_xor()) {
 
-    const Float_t recip_ci = f_cj * f_cij * recip_cicjcij;
-    const Float_t recip_cj = f_ci * f_cij * recip_cicjcij;
+      // Mke adjustment for xor gemm.
+      // See notes for 8x8 system solve to back out this result.
+      GMTally1 cij = (si1 + sj1 - GMTally2x2_get(ttable, 1, 1)) / 2 +
+                     (si1 + sj0 - GMTally2x2_get(ttable, 1, 0)) / 2 +
+                     (si0 + sj1 - GMTally2x2_get(ttable, 0, 1)) / 2 +
+                     (si0 + sj0 - GMTally2x2_get(ttable, 0, 0)) / 2;
+      if (0 == cij)
+        return (FloatResult_t)0;
 
-    const Float_t recip_sumcij = f_cicj_min * f_cicj_max * recip_cicjcij;
+      // The following complex code is to reduce the number of divides.
+      const Float_t f_cij = (Float_t) cij;
+      const Float_t recip_cicjcij = f_one / (f_cicj_min * f_cicj_max * f_cij);
 
-    result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
-      rij, si, sj, recip_ci, recip_cj, recip_sumcij, 
-      env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
+      const Float_t recip_ci = f_cj * f_cij * recip_cicjcij;
+      const Float_t recip_cj = f_ci * f_cij * recip_cicjcij;
+
+      const Float_t recip_sumcij = f_cicj_min * f_cicj_max * recip_cicjcij;
+
+      // Mke adjustment for xor gemm.
+      // See notes for 8x8 system solve to back out this result.
+      const GMTally1 rij_true = i0 &&  i1 ? (si1 + sj1 - rij) / 2 :
+                                i0 && !i1 ? (si1 + sj0 - rij) / 2 :
+                               !i0 &&  i1 ? (si0 + sj1 - rij) / 2 :
+                                            (si0 + sj0 - rij) / 2;
+
+      result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
+        rij_true, si, sj, recip_ci, recip_cj, recip_sumcij, 
+        env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
+
+    } else {
+
+      GMTally1 cij = GMTally2x2_get(ttable, 0, 0) +
+                     GMTally2x2_get(ttable, 0, 1) +
+                     GMTally2x2_get(ttable, 1, 0) +
+                     GMTally2x2_get(ttable, 1, 1);
+      if (0 == cij)
+        return (FloatResult_t)0;
+
+      // The following complex code is to reduce the number of divides.
+      const Float_t f_cij = (Float_t) cij;
+      const Float_t recip_cicjcij = f_one / (f_cicj_min * f_cicj_max * f_cij);
+
+      const Float_t recip_ci = f_cj * f_cij * recip_cicjcij;
+      const Float_t recip_cj = f_ci * f_cij * recip_cicjcij;
+
+      const Float_t recip_sumcij = f_cicj_min * f_cicj_max * recip_cicjcij;
+
+      const GMTally1 rij_true = rij;
+
+      result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
+        rij_true, si, sj, recip_ci, recip_cj, recip_sumcij, 
+        env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
+
+    }
 
   } else { // !env.sparse
 
     COMET_ASSERT(metrics.num_field_active > 0);
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
-    const GMTally1 si =
-      i0 == 0 ? (CBPE * metrics.num_field_active - si1) : si1;
-    const GMTally1 sj =
-      i1 == 0 ? (CBPE * metrics.num_field_active - sj1) : sj1;
+    const GMTally1 si0 = CBPE * metrics.num_field_active - si1;
+    const GMTally1 sj0 = CBPE * metrics.num_field_active - sj1;
+    const GMTally1 si = i0 == 0 ? si0 : si1;
+    const GMTally1 sj = i1 == 0 ? sj0 : sj1;
 
     const Float_t recip_sumcij = (f_one / (CBPE*CBPE)) * recip_m;
 
