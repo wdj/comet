@@ -23,10 +23,11 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Constructor for CompressedBuf class.
 
 CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
   : env_(env)
-  , buf_(buf)
+  , buf_(&buf)
   , num_nonzeros_buf_(env)
   , num_runs_buf_(env)
   , keys_buf_(env)
@@ -35,14 +36,15 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
   , lengths_alias_buf_(env)
   , reduce_workspace_buf_(env)
   , rle_workspace_buf_(env)
-  , length_max_(buf_.dim0 * buf_.dim1 * NUM_VALUES_PER_METRIC)
+  , length_max_(buf_->dim0 * buf_->dim1 * NUM_VALUES_PER_METRIC)
   , num_nonzeros_approx_(0)
   , do_compress_(false)
   , num_runs_(0)
-  , is_open_(false)
-  , read_ptr_(0) {
+  , state_(State::IDLE) {
+  //, is_open_(false)
+  //, read_ptr_(0) {
 
-  if (!try_compress())
+  if (!can_compress_())
     return;
 
   COMET_INSIST(env_.metric_format() == METRIC_FORMAT);
@@ -58,8 +60,20 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Replace the base underlying MirroredBuf object.
+
+void CompressedBuf::attach(MirroredBuf& buf) {
+  COMET_INSIST(State::IDLE == state_);
+
+  buf_ = &buf;
+  COMET_INSIST(length_() <= length_max_);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute number of nonzero MFTTypeIn values in buffer device mem.
 
 void CompressedBuf::compute_num_nonzeros_() {
+  COMET_INSIST(can_compress_());
 
 # if defined COMET_USE_CUDA
 
@@ -69,7 +83,7 @@ void CompressedBuf::compute_num_nonzeros_() {
     size_t temp_storage_bytes = 0;
 
     cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
-      temp_storage_bytes, (MFTTypeIn*)buf_.d, (MFTTypeIn*)num_nonzeros_buf_.d,
+      temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
       length_(), reduction_op, (MFTTypeIn)0, env_.stream_compute());
 
     if (temp_storage_bytes > reduce_workspace_buf_.size()) {
@@ -78,7 +92,7 @@ void CompressedBuf::compute_num_nonzeros_() {
     }
 
     cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
-      temp_storage_bytes, (MFTTypeIn*)buf_.d, (MFTTypeIn*)num_nonzeros_buf_.d,
+      temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
       length_(), reduction_op, (MFTTypeIn)0, env_.stream_compute());
 
     num_nonzeros_buf_.from_accel(env_.stream_compute());
@@ -95,10 +109,11 @@ void CompressedBuf::compute_num_nonzeros_() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Compress the underlying buffer if it meets conditions.
 
 void CompressedBuf::compress() {
 
-  if (!try_compress())
+  if (!can_compress_())
     return;
 
   compute_num_nonzeros_();
@@ -107,12 +122,14 @@ void CompressedBuf::compress() {
 
   if (do_compress_) {
 
+    COMET_INSIST(State::IDLE == state_);
+
 #   if defined COMET_USE_CUDA
       // see https://nvlabs.github.io/cub/structcub_1_1_device_run_length_encode.html
       size_t temp_storage_bytes = 0;
 
       cub::DeviceRunLengthEncode::Encode((Workspace_t*)rle_workspace_buf_.d,
-        temp_storage_bytes, (MFTTypeIn*)buf_.d, (MFTTypeIn*)keys_buf_.d,
+        temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
         (size_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
         env_.stream_compute());
 
@@ -122,7 +139,7 @@ void CompressedBuf::compress() {
       }
 
       cub::DeviceRunLengthEncode::Encode((Workspace_t*)rle_workspace_buf_.d,
-        temp_storage_bytes, (MFTTypeIn*)buf_.d, (MFTTypeIn*)keys_buf_.d,
+        temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
         (size_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
         env_.stream_compute());
 
@@ -133,16 +150,67 @@ void CompressedBuf::compress() {
       keys_alias_buf_.allocate(keys_buf_, num_runs_);
       lengths_alias_buf_.allocate(lengths_buf_, num_runs_);
 
-      keys_alias_buf_.from_accel(env_.stream_compute());
-      lengths_alias_buf_.from_accel(env_.stream_compute());
-
-
 #   elif defined COMET_USE_HIP
 
   // TODO
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
-  } // if (do_compress)
+
+    state_ = State::COMPRESSED;
+
+  } // if (do_compress_)
+}
+
+//-----------------------------------------------------------------------------
+
+void CompressedBuf::from_accel_start() {
+
+  if (do_compress_) {
+    COMET_INSIST(State::COMPRESSED == state_);
+    keys_alias_buf_.from_accel_start();
+    lengths_alias_buf_.from_accel_start();
+    state_ = State::TRANSFER_STARTED;
+  } else {
+    buf_->from_accel_start();
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void CompressedBuf::from_accel_wait() {
+
+  if (do_compress_) {
+    COMET_INSIST(State::TRANSFER_STARTED == state_);
+    keys_alias_buf_.from_accel_wait();
+    lengths_alias_buf_.from_accel_wait();
+    state_ = State::IDLE;
+  } else {
+    buf_->from_accel_wait();
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void CompressedBuf::lock_h() {
+
+  if (do_compress_) {
+    keys_alias_buf_.lock_h();
+    lengths_alias_buf_.lock_h();
+  } else {
+    buf_->lock_h();
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void CompressedBuf::unlock_h() {
+
+  if (do_compress_) {
+    keys_alias_buf_.unlock_h();
+    lengths_alias_buf_.unlock_h();
+  } else {
+    buf_->unlock_h();
+  }
 }
 
 //=============================================================================

@@ -14,6 +14,7 @@
 #include "env.hh"
 #include "linalg.hh"
 #include "mirrored_buf.hh"
+#include "compressed_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
@@ -179,7 +180,8 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
   MirroredBuf* const matM_IJ_buf,
   MirroredBuf* const matM_JK_buf,
   MirroredBuf* const matM_KIK_buf,
-  MirroredBuf* const matB_buf,
+  //MirroredBuf* const matB_buf,
+  CompressedBuf* const matB_buf,
   GMMetrics* metrics,
   int nvl, int J, int step_2way,
   int I_min, int I_max, int K_min, int K_max,
@@ -498,7 +500,8 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
   MirroredBuf* const matM_IJ_buf,
   MirroredBuf* const matM_JK_buf,
   MirroredBuf* const matM_KIK_buf,
-  MirroredBuf* const matB_buf,
+  //MirroredBuf* const matB_buf,
+  CompressedBuf* const matB_buf,
   GMMetrics* metrics,
   int nvl, int J, int step_2way,
   int I_min, int I_max, int K_min, int K_max,
@@ -728,6 +731,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   LoopVars* const vars_buf[num_buf] = {&vars_buf0, &vars_buf1, &vars_buf2, &vars_buf3};
 
+  CompressedBuf matB_buf_compressed(*matB_buf_[0], env_);
+
   const int first_step = 0 - extra_step;
 
   //========================================
@@ -781,10 +786,13 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_prev.do_compute) {
       gm_linalg_gemm_wait(vars_prev.I_max, nvl, npvfl,
           matXitem_buf_[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
+//c
           vars_prev.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
           vars_prev.J, vars_prev.step_2way, dm, &env_);
+      matB_buf_compressed.attach(*vars_prev.matB_buf_ptr());
+      matB_buf_compressed.compress();
     }
 
     //========== Calculate matXitem
@@ -805,7 +813,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Copy result matrix matB from GPU - START
 
     if (vars_prev.do_compute) {
-      vars_prev.matB_buf_ptr()->from_accel_start();
+//c
+      //vars_prev.matB_buf_ptr()->from_accel_start();
+      matB_buf_compressed.from_accel_start();
     }
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
@@ -822,7 +832,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Copy result matrix matB from GPU - WAIT
 
     if (vars_prev.do_compute) {
-      vars_prev.matB_buf_ptr()->from_accel_wait();
+//c
+      //vars_prev.matB_buf_ptr()->from_accel_wait();
+      matB_buf_compressed.from_accel_wait();
       if (vars_prev.step_2way == 0) {
         gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_,
           //CHECK
@@ -835,6 +847,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_prevprev.do_compute && env_.do_reduce()) {
       gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]),
           &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), &env_);
+      matB_buf_compressed.attach(vars_prevprev.matB_buf);
     }
 
     //========== Reduce along field procs - START
@@ -849,14 +862,18 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //---NOTE: matB_buf[vars_prevprev.index_01]->d is locked now
     //---but matB_buf[vars_prevprev.index_01]->h is usable.
 
-    if (vars_prevprev.do_compute) {
+    LoopVars& vars_tail = env_.do_reduce() ? vars_prevprev : vars_prev;
+
+    if (vars_tail.do_compute) {
       compute_metrics_3way_block_linalg_form_metrics_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
-          &vars_prevprev.matB_buf,
-          &metrics, nvl, vars_prevprev.J, vars_prevprev.step_2way,
-          vars_prevprev.I_min, vars_prevprev.I_max,
-          vars_prevprev.K_min, vars_prevprev.K_max,
-          vars_prevprev.I_max_dim,
+//c
+          &matB_buf_compressed,
+          //&vars_tail.matB_buf,
+          &metrics, nvl, vars_tail.J, vars_tail.step_2way,
+          vars_tail.I_min, vars_tail.I_max,
+          vars_tail.K_min, vars_tail.K_max,
+          vars_tail.I_max_dim,
           j_block, k_block, si,
           vdata_i.sums, vdata_j.sums, vdata_k.sums,
           env_);
