@@ -72,9 +72,9 @@ public:
 
 private:
 
-  MirroredBuf* buf_;
-
   CEnv& env_;
+
+  MirroredBuf* buf_;
 
   MirroredBuf num_nonzeros_buf_;
   MirroredBuf num_runs_buf_;
