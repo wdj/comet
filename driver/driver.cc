@@ -34,15 +34,15 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Parse remaining unprocessed arguments---*/
+// Parse remaining unprocessed arguments.
 
 void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
   errno = 0;
   int i = 0;
   for (i = 1; i < argc; ++i) {
-    /*----------*/
+    //----------
     if (strcmp(argv[i], "--num_field") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_field.");
       const long num_field = strtol(argv[i], NULL, 10);
@@ -51,9 +51,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       do_->num_field_active = num_field;
       do_->num_field_active_initialized = true;
       do_->num_field_local_initialized = false;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--num_field_local") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_field_local.");
       const long num_field_local = strtol(argv[i], NULL, 10);
@@ -63,9 +63,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       do_->num_field_local = num_field_local;
       do_->num_field_local_initialized = true;
       do_->num_field_active_initialized = false;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--num_vector") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_vector.");
       const long num_vector = strtol(argv[i], NULL, 10);
@@ -74,9 +74,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       do_->num_vector_active = num_vector;
       do_->num_vector_active_initialized = true;
       do_->num_vector_local_initialized = false;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--num_vector_local") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_vector_local.");
       const long num_vector_local = strtol(argv[i], NULL, 10);
@@ -86,18 +86,18 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       do_->num_vector_local = num_vector_local;
       do_->num_vector_local_initialized = true;
       do_->num_vector_active_initialized = false;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--verbosity") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for verbosity.");
       const long verbosity = strtol(argv[i], NULL, 10);
       COMET_INSIST_INTERFACE(env, 0 == errno && verbosity >= 0 &&
                     "Invalid setting for verbosity.");
       do_->verbosity = verbosity;
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--checksum") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for checksum.");
       if (strcmp(argv[i], "yes") == 0) {
@@ -107,9 +107,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       } else {
         COMET_INSIST_INTERFACE(env, false && "Invalid setting for checksum.");
       }
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--num_stage") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_stage.");
       const long num_stage = strtol(argv[i], NULL, 10);
@@ -119,9 +119,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       env->num_stage(num_stage);
       do_->stage_min_0based = 0;
       do_->stage_max_0based = env->num_stage() - 1;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--stage_min") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for stage_min.");
       const long stage_min_0based = strtol(argv[i], NULL, 10);
@@ -129,9 +129,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
                     && (long)(int)stage_min_0based == stage_min_0based
                     && "Invalid setting for stage_min.");
       do_->stage_min_0based = stage_min_0based;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--stage_max") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for stage_max.");
       const long stage_max_0based = strtol(argv[i], NULL, 10);
@@ -139,9 +139,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
                     && (long)(int)stage_max_0based == stage_max_0based
                     && "Invalid setting for stage_max.");
       do_->stage_max_0based = stage_max_0based;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--num_phase") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_phase.");
       const long num_phase = strtol(argv[i], NULL, 10);
@@ -151,9 +151,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       env->num_phase(num_phase);
       do_->phase_min_0based = 0;
       do_->phase_max_0based = env->num_phase() - 1;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--phase_min") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for phase_min.");
       const long phase_min_0based = strtol(argv[i], NULL, 10);
@@ -161,9 +161,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
                     && (long)(int)phase_min_0based == phase_min_0based
                     && "Invalid setting for phase_min.");
       do_->phase_min_0based = phase_min_0based;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--phase_max") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for phase_max.");
       const long phase_max_0based = strtol(argv[i], NULL, 10);
@@ -171,21 +171,21 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
                     && (long)(int)phase_max_0based == phase_max_0based
                     && "Invalid setting for phase_max.");
       do_->phase_max_0based = phase_max_0based;
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--input_file") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for input_file.");
       do_->input_file_path = argv[i];
-    /*----------*/
+    //----------
     } else if (strcmp(argv[i], "--output_file_stub") == 0) {
-    /*----------*/
+    //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for output_file_stub.");
       do_->metrics_file_path_stub = argv[i];
-      /*--------------------*/
+      //--------------------
     } else if (strcmp(argv[i], "--problem_type") == 0) {
-      /*--------------------*/
+      //--------------------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for problem_type.");
       if (strcmp(argv[i], "random") == 0) {
@@ -195,47 +195,47 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       } else {
         COMET_INSIST_INTERFACE(env, false && "Invalid setting for problem_type.");
       }
-     /*----------*/
+     //----------
     } else if (strcmp(argv[i], "--threshold") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--metric_type") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--num_way") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--all2all") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--compute_method") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--num_proc_vector") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--num_proc_field") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--num_proc_repl") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--ccc_multiplier") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--duo_multiplier") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--ccc_param") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--sparse") == 0) {
-      ++i; /*---processed elsewhere by CEnv---*/
+      ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--fastnodes") == 0) {
-      /*---optionally processed by caller---*/
+      // optionally processed by caller.
     } else if (strcmp(argv[i], "--tc") == 0) {
-      ++i; /*---optionally processed by caller---*/
+      ++i; // optionally processed by caller.
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
-      ++i; /*---optionally processed by caller---*/
+      ++i; // optionally processed by caller.
     } else {
-    /*----------*/
+    //----------
       if (env->proc_num() == 0) {
         fprintf(stderr, "Invalid argument \"%s\". ", argv[i]);
       }
       COMET_INSIST_INTERFACE(env, false && "Error: argument not recognized.");
-    /*----------*/
-    } /*---if/else---*/
+    //----------
+    } // if/else
 
-  } /*---for i---*/
+  } // for i
 
   COMET_INSIST_INTERFACE(env, (do_->num_field_local_initialized ||
                 do_->num_field_active_initialized)
@@ -336,7 +336,7 @@ void print_output(bool do_print,
 }
 
 //=============================================================================
-/*---Perform a single metrics computation run---*/
+// Perform a single metrics computation run.
 
 void perform_run(const char* const options, MPI_Comm base_comm, CEnv* env) {
   COMET_INSIST(options);
@@ -352,7 +352,7 @@ void perform_run(comet::Checksum& cksum, const char* const options,
                  MPI_Comm base_comm, CEnv* env) {
   COMET_INSIST(options);
 
-  /*---Convert options string to args---*/
+  // Convert options string to args.
 
   size_t len = strlen(options);
   char argstring[len+1];
@@ -380,7 +380,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
                  const char* const description,
                  MPI_Comm base_comm, CEnv* env_in) {
 
-  /*---Initialize environment---*/
+  // Initialize environment.
 
   CEnv* env_local = NULL;
 
@@ -396,7 +396,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   double total_time_beg = env->synced_time();
 
-  /*---Parse remaining unprocessed arguments---*/
+  // Parse remaining unprocessed arguments.
 
   DriverOptions do_ = {0};
   do_.num_field_local_initialized = false;
@@ -417,7 +417,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   finish_parsing(argc, argv, &do_, env);
 
-  /*---Set up parallel deomp for vectors, metrics---*/
+  // Set up parallel deomp for vectors, metrics.
 
   double vctime = 0;
   double time_beg = env->synced_time();
@@ -439,7 +439,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       (size_t)env->num_proc_vector();
     do_.num_vector_active = do_.num_vector;
   } else {
-    /*---Pad up so that every proc has same number of vectors---*/
+    // Pad up so that every proc has same number of vectors.
     do_.num_vector_local = gm_num_vector_local_required(
       utils::ceil(do_.num_vector_active, (size_t)env->num_proc_vector()), env);
     do_.num_vector = do_.num_vector_local *
@@ -450,7 +450,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_field = do_.num_field_local * (size_t) env->num_proc_field();
     do_.num_field_active = do_.num_field;
   } else {
-    /*---Pad up so that every proc has same number of fields---*/
+    // Pad up so that every proc has same number of fields.
     do_.num_field_local = utils::ceil(
         do_.num_field_active, (size_t)env->num_proc_field());
     do_.num_field = do_.num_field_local * (size_t) env->num_proc_field();
@@ -459,7 +459,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   const bool do_print = env->is_proc_active() &&
      env->proc_num() == 0 && do_.verbosity > 0;
 
-  /*---Allocate vectors---*/
+  // Allocate vectors.
 
   time_beg = env->synced_time();
   GMVectors vectors_value = GMVectors_null(), *vectors = &vectors_value;
@@ -467,7 +467,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   time_end = env->synced_time();
   vctime += time_end - time_beg;
 
-  /*---Set vectors---*/
+  // Set vectors.
 
   double intime = 0;
   time_beg = env->synced_time();
@@ -477,7 +477,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   time_end = env->synced_time();
   intime += time_end - time_beg;
 
-  /*---More initializations---*/
+  // More initializations.
 
   comet::Checksum cksum(do_.checksum);
   comet::Checksum cksum_local(do_.checksum);
@@ -489,7 +489,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   size_t num_elts_local_computed = 0;
   size_t num_local_written = 0;
 
-  /*---Open output files---*/
+  // Open output files.
 
   {
   time_beg = env->synced_time();
@@ -502,7 +502,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   ComputeMetrics compute_metrics(*dm, *env);
 
-  /*---Loops over phases, stages---*/
+  // Loops over phases, stages.
 
   for (int phase_num=do_.phase_min_0based; phase_num<=do_.phase_max_0based;
        ++phase_num) {
@@ -512,7 +512,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
          ++stage_num) {
       env->stage_num(stage_num);
 
-      /*---Set up metrics container for results---*/
+      // Set up metrics container for results.
 
       time_beg = env->synced_time();
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
@@ -521,13 +521,13 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       time_end = env->synced_time();
       mctime += time_end - time_beg;
 
-      /*---Calculate metrics---*/
+      // Calculate metrics.
 
       compute_metrics.compute(*metrics, *vectors);
 
       num_elts_local_computed += metrics->num_elts_local_computed;
 
-      /*---Output results---*/
+      // Output results.
 
       time_beg = env->synced_time();
       metrics_io.write(*metrics);
@@ -537,7 +537,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       time_end = env->synced_time();
       outtime += time_end - time_beg;
 
-      /*---Check correctness---*/
+      // Check correctness.
 
       if (do_.checksum) {
         time_beg = env->synced_time();
@@ -546,7 +546,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
         cktime += time_end - time_beg;
       }
 
-      /*---Compute checksum---*/
+      // Compute checksum.
 
       if (do_.checksum) {
         time_beg = env->synced_time();
@@ -576,13 +576,13 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   } // for phase
 
-  /*---Finalize metrics mem---*/
+  // Finalize metrics mem.
 
   time_beg = env->synced_time();
   }
   time_end = env->synced_time();
   mctime += time_end - time_beg;
-  /*---Close output files---*/
+  // Close output files.
 
   num_local_written += metrics_io.num_written();
   time_beg = env->synced_time();
@@ -590,7 +590,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   time_end = env->synced_time();
   outtime += time_end - time_beg;
 
-  /*---Deallocate vectors---*/
+  // Deallocate vectors.
 
   time_beg = env->synced_time();
   GMVectors_destroy(vectors, env);
@@ -598,7 +598,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   time_end = env->synced_time();
   vctime += time_end - time_beg;
 
-  /*---Perform some checks---*/
+  // Perform some checks.
 
   COMET_INSIST(env->cpu_mem_local() == 0);
   COMET_INSIST(env->gpu_mem_local() == 0);
@@ -631,7 +631,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   double total_time_end = env->synced_time();
   double tottime = total_time_end - total_time_beg;
 
-  /*---Output run information---*/
+  // Output run information.
 
   print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
     vctime, mctime, cktime, intime, outtime, tottime);
@@ -665,7 +665,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   COMET_INSIST(do_.num_incorrect == 0);
 
-  /*---Finalize---*/
+  // Finalize.
 
   if (env_local) {
     delete env_local;

@@ -24,7 +24,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Helper class for memory---*/
+// Helper class for memory.
 
 GMMetricsMem::GMMetricsMem(CEnv* env) :
   env_(env),
@@ -142,14 +142,14 @@ void* GMMetricsMem::malloc_coords_global_from_index(
 }
 
 //=============================================================================
-/*---Helper: round-robin-pack m values into n bins, return ith bin size---*/
+// Helper: round-robin-pack m values into n bins, return ith bin size.
 
 static int rr_pack_(int i, int n, int m) {
   return m/n + (i < m % n ? 1 : 0);
 }
 
 //=============================================================================
-/*---Null object---*/
+// Null object.
 
 GMMetrics GMMetrics_null() {
   GMMetrics result;
@@ -277,7 +277,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
 }
 
 //=============================================================================
-/*---Metrics pseudo-constructor---*/
+// Metrics pseudo-constructor.
 
 void GMMetrics_create(GMMetrics* metrics,
                       int data_type_id,
@@ -298,7 +298,7 @@ void GMMetrics_create(GMMetrics* metrics,
   COMET_INSIST_INTERFACE(env, (env->all2all() || env->num_proc_repl() == 1)
           && "Multidim parallelism only available for all2all case");
 
-  /*---The following less important cases are not yet tested---*/
+  // The following less important cases are not yet tested.
 
   COMET_INSIST_INTERFACE(env, (env->all2all() ||
                     dm->num_field == dm->num_field_active)
@@ -346,7 +346,7 @@ void GMMetrics_create(GMMetrics* metrics,
   const int nvl = metrics->num_vector_local;
   const size_t nvlsq = nvl * (size_t)nvl;
 
-  /*---Compute number of elements etc.---*/
+  // Compute number of elements etc..
 
   COMET_INSIST_INTERFACE(env, env->stage_num() >= 0 &&
                               env->stage_num() < env->num_stage() &&
@@ -384,7 +384,7 @@ void GMMetrics_create(GMMetrics* metrics,
     const int num_proc_r = env->num_proc_repl();
     metrics->num_elts_local = 0;
 
-    /*---PART A.1: (triangle) i_block==j_block part---*/
+    // PART A.1: (triangle) i_block==j_block part.
     const bool have_main_diag = proc_num_r == 0 &&
                                 gm_bdiag_computed_min(env) == 0;
     metrics->num_elts_local += have_main_diag ? nchoosek : 0;
@@ -392,7 +392,7 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->block_min_part2_ = (i_block + gm_bdiag_computed_min(env)) %
       num_block;
 
-    /*---PART A.2: (wrapped rect) i_block!=j_block part---*/
+    // PART A.2: (wrapped rect) i_block!=j_block part.
     const int num_computed_blocks_this_row = gm_blocks_computed_this_row(env);
     const int num_computed_blocks_this_proc = rr_pack_(proc_num_r, num_proc_r,
                                                num_computed_blocks_this_row);
@@ -406,7 +406,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*===PART C: SET INDEX===*/
 
-    /*---PART C.1: (triangle) i_block==j_block part---*/
+    // PART C.1: (triangle) i_block==j_block part.
     size_t index = 0;
     if (have_main_diag) {
       COMET_ASSERT(env->proc_num_repl() == 0);
@@ -423,7 +423,7 @@ void GMMetrics_create(GMMetrics* metrics,
       }
     }
 
-    /*---PART C.2: (wrapped rectangle) i_block!=j_block part---*/
+    // PART C.2: (wrapped rectangle) i_block!=j_block part.
 
     const int beg = gm_bdiag_computed_min(env);
     const int end = beg + num_computed_blocks_this_row;
@@ -448,9 +448,9 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
       index += nvlsq;
-    } /*---for diag---*/
+    } // for diag
 
-    /*---Final check---*/
+    // Final check.
     COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
 
   /*==================================================*/
@@ -469,7 +469,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     GMMetrics_3way_num_elts_local(metrics, nvl, env);
 
-    /*---Fused counter for section_num and block_num, same across all procs---*/
+    // Fused counter for section_num and block_num, same across all procs.
     int section_block_num = 0;
 
     /*===PART B: ALLOCATE INDEX===*/
@@ -482,7 +482,7 @@ void GMMetrics_create(GMMetrics* metrics,
     section_block_num = 0;
     size_t index = 0;
 
-    /*---Set index part 1: (tetrahedron) i_block==j_block==k_block part---*/
+    // Set index part 1: (tetrahedron) i_block==j_block==k_block part.
 
     const int num_section_steps_1 = gm_num_section_steps(env, 1);
     for (int section_step=0; section_step<num_section_steps_1; ++section_step){
@@ -519,7 +519,7 @@ void GMMetrics_create(GMMetrics* metrics,
       ++section_block_num;
     } // section_step
 
-    /*---Set index part 2: (triang prisms) i_block!=j_block==k_block part---*/
+    // Set index part 2: (triang prisms) i_block!=j_block==k_block part.
 
     const int num_section_steps_2 = gm_num_section_steps(env, 2);
     for (int section_step=0; section_step<num_section_steps_2; ++section_step){
@@ -558,7 +558,7 @@ void GMMetrics_create(GMMetrics* metrics,
       } // for j_i_offset
     } // section_step
 
-    /*---Set index part 3: (block sections) i_block!=j_block!=k_block part---*/
+    // Set index part 3: (block sections) i_block!=j_block!=k_block part.
 
     const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
     for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
@@ -648,7 +648,7 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->coords_global_from_index =
         (size_t*)metrics_mem->malloc_coords_global_from_index(
                                     metrics->num_elts_local * sizeof(size_t));
-    /*---Need store only strict upper triangular part of matrix---*/
+    // Need store only strict upper triangular part of matrix.
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
       const size_t j_global = j + nvl * i_block;
@@ -673,7 +673,7 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->num_elts_local = nchoosek;
     metrics->coords_global_from_index =
         (size_t*)metrics_mem->malloc_coords_global_from_index(metrics->num_elts_local * sizeof(size_t));
-    /*---Need store only strict interior of tetrahedron---*/
+    // Need store only strict interior of tetrahedron.
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
       const int j_block = i_block;
@@ -697,7 +697,7 @@ void GMMetrics_create(GMMetrics* metrics,
   } else {
   /*==================================================*/
     COMET_INSIST_INTERFACE(env, 0 == 1 && "Invalid set of options");
-    /*---LATER: generalize this to N-way---*/
+    // LATER: generalize this to N-way.
   }
 
   size_t num_elts = 0;
@@ -717,17 +717,17 @@ void GMMetrics_create(GMMetrics* metrics,
                                (metrics->num_vector - 2) / 6);
   }
 
-  /*---Allocations---*/
+  // Allocations.
 
   switch (data_type_id) {
-    /*----------*/
+    //----------
     case GM_DATA_TYPE_FLOAT:
       metrics->data_elt_size = sizeof(GMFloat);
       metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->num_values_per_metric = 1;
       break;
-    /*----------*/
+    //----------
     case GM_DATA_TYPE_TALLY2X2: {
       metrics->data_elt_size = sizeof(GMTally2x2);
       metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
@@ -742,7 +742,7 @@ void GMMetrics_create(GMMetrics* metrics,
       }
       metrics->num_values_per_metric = 4;
     } break;
-    /*----------*/
+    //----------
     case GM_DATA_TYPE_TALLY4X2: {
       metrics->data_elt_size = sizeof(GMTally4x2);
       metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
@@ -757,14 +757,14 @@ void GMMetrics_create(GMMetrics* metrics,
       }
       metrics->num_values_per_metric = 8;
     } break;
-    /*----------*/
+    //----------
     default:
       COMET_INSIST(false && "Invalid data_type_id.");
-  } /*---switch---*/
+  } // switch
 }
 
 //=============================================================================
-/*---Metrics pseudo-destructor---*/
+// Metrics pseudo-destructor.
 
 void GMMetrics_destroy(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
@@ -778,7 +778,7 @@ void GMMetrics_destroy(GMMetrics* metrics, CEnv* env) {
 }
 
 //=============================================================================
-/*---Accessors: indexing: global coord from (contig) index: generic---*/
+// Accessors: indexing: global coord from (contig) index: generic.
 
 int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       size_t index,

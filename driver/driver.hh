@@ -19,7 +19,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Struct to hold driver options (options not in CEnv)---*/
+// Struct to hold driver options (options not in CEnv).
 
 typedef struct {
   int num_field_local;

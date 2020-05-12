@@ -24,7 +24,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Combine nums and denoms on CPU to get final result, 2-way Czek---*/
+// Combine nums and denoms on CPU to get final result, 2-way Czek.
 
 void gm_compute_2way_proc_combine_czek_(
   GMMetrics* metrics,
@@ -56,9 +56,9 @@ void gm_compute_2way_proc_combine_czek_(
        For GPU case, directly access the metrics_buf holding the numerators.
   ---*/
 
-  /*----------------------------------------*/
+  // ----------------------------------
   if (!env->is_compute_method_gpu() && env->all2all()) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     for (int j = 0; j < nvl; ++j) {
       const GMFloat vs_j = vs_r->sum(j);
@@ -71,15 +71,15 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
         Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
-      } /*---for i---*/
+      } // for i
       metrics->num_elts_local_computed += i_max;
-    }   /*---for j---*/
+    }   // for j
         /*---TODO: here and elsewhere check for unlikely case denom is/nearly
          * zero---*/
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else if (!env->is_compute_method_gpu()) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     for (int j = 0; j < nvl; ++j) {
       const GMFloat vs_j = vs_r->sum(j);
@@ -92,13 +92,13 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
         Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = value;
-      } /*---for i---*/
+      } // for i
       metrics->num_elts_local_computed += i_max;
-    }   /*---for j---*/
+    }   // for j
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else if (env->all2all()) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     if (do_compute_triang_only) {
       #pragma omp parallel for schedule(dynamic,1000)
@@ -113,12 +113,12 @@ void gm_compute_2way_proc_combine_czek_(
           const GMFloat multiplier = (GMFloat)2;
           const GMFloat value = (multiplier * numer) / denom;
           Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
-        } /*---for i---*/
-      }   /*---for j---*/
+        } // for i
+      }   // for j
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
         metrics->num_elts_local_computed += i_max;
-      }   /*---for j---*/
+      }   // for j
     } else {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
@@ -133,14 +133,14 @@ void gm_compute_2way_proc_combine_czek_(
           const GMFloat multiplier = (GMFloat)2;
           const GMFloat value = (multiplier * numer) / denom;
           Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
-        } /*---for i---*/
-      }   /*---for j---*/
+        } // for i
+      }   // for j
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
     }
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
@@ -154,20 +154,20 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
         Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = value;
-      } /*---for i---*/
-    }   /*---for j---*/
+      } // for i
+    }   // for j
     for (int j = 0; j < nvl; ++j) {
       const int i_max = j;
       metrics->num_elts_local_computed += i_max;
-    }   /*---for j---*/
+    }   // for j
 
-    /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+    // ----------------------------------
+  } // if
+  // ----------------------------------
 }
 
 //=============================================================================
-/*---Combine nums and denoms on CPU to get final result, 2-way CCC---*/
+// Combine nums and denoms on CPU to get final result, 2-way CCC.
 
 void gm_compute_2way_proc_combine_ccc_(
   GMMetrics* metrics,
@@ -187,12 +187,12 @@ void gm_compute_2way_proc_combine_ccc_(
   const VectorSums* const vs_l = vector_sums_left;
   const VectorSums* const vs_r = vector_sums_right;
 
-  /*---Copy from metrics_buffer for GPU case; perform checks---*/
+  // Copy from metrics_buffer for GPU case; perform checks.
 
   if (env->is_using_linalg()) {
-    /*--------------------*/
+    // --------------
     if (env->all2all()) {
-      /*--------------------*/
+      // --------------
 
       if (do_compute_triang_only) {
         #pragma omp parallel for schedule(dynamic,1000)
@@ -269,8 +269,8 @@ void gm_compute_2way_proc_combine_ccc_(
               COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
             }
 #endif
-          } /*---for i---*/
-        }   /*---for j---*/
+          } // for i
+        }   // for j
       } else {
         // don't use collapse because of overflow for large sizes
         //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
@@ -347,13 +347,13 @@ void gm_compute_2way_proc_combine_ccc_(
               COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
             }
 #endif
-          } /*---for i---*/
-        }   /*---for j---*/
+          } // for i
+        }   // for j
      }
 
-      /*--------------------*/
-    } else /*---(! env->all2all())---*/ {
-      /*--------------------*/
+      // --------------
+    } else { // (! env->all2all())
+      // --------------
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
@@ -378,18 +378,18 @@ void gm_compute_2way_proc_combine_ccc_(
             COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 == (uint64_t)(2 * sj1));
           }
 #endif
-        } /*---for i---*/
-      }   /*---for j---*/
-      /*--------------------*/
-    } /*---if---*/
-    /*--------------------*/
+        } // for i
+      }   // for j
+      // --------------
+    } // if
+    // --------------
   }
 
-  /*---Compute multipliers---*/
+  // Compute multipliers.
 
-  /*--------------------*/
+  // --------------
   if (env->all2all()) {
-    /*--------------------*/
+    // --------------
 
     if (do_compute_triang_only) {
       if (!env->threshold_tc()) {
@@ -406,14 +406,14 @@ void gm_compute_2way_proc_combine_ccc_(
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
-          } /*---if sparse---*/
-        }   /*---for i---*/
-      }   /*---for j---*/
+          } // if sparse
+        }   // for i
+      }   // for j
       } // if (!env->threshold_tc())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
         metrics->num_elts_local_computed += i_max;
-      }   /*---for j---*/
+      }   // for j
     } else {
       if (!env->threshold_tc()) {
       // don't use collapse because of overflow for large sizes
@@ -430,16 +430,16 @@ void gm_compute_2way_proc_combine_ccc_(
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
-          } /*---if sparse---*/
-        }   /*---for i---*/
-      }   /*---for j---*/
+          } // if sparse
+        }   // for i
+      }   // for j
       } // if (!env->threshold_tc())
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
    }
 
-    /*--------------------*/
-  } else /*---(! env->all2all())---*/ {
-    /*--------------------*/
+    // --------------
+  } else { // (! env->all2all())
+    // --------------
     if (!env->threshold_tc()) {
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
@@ -454,21 +454,21 @@ void gm_compute_2way_proc_combine_ccc_(
           const GMTally1 cj = vs_r->count(j);
           const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
           Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, env->proc_num_vector(), *env) = ci_cj;
-        } /*---if sparse---*/
-      } /*---for i---*/
-    }   /*---for j---*/
+        } // if sparse
+      } // for i
+    }   // for j
     } // if (!env->threshold_tc())
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
       metrics->num_elts_local_computed += i_max;
-    }   /*---for j---*/
-    /*--------------------*/
-  } /*---if---*/
-  /*--------------------*/
+    }   // for j
+    // --------------
+  } // if
+  // --------------
 }
 
 //=============================================================================
-/*---Combine nums and denoms on CPU to get final result, 2-way DUO---*/
+// Combine nums and denoms on CPU to get final result, 2-way DUO.
 
 void gm_compute_2way_proc_combine_duo_(
   GMMetrics* metrics,
@@ -488,12 +488,12 @@ void gm_compute_2way_proc_combine_duo_(
   const VectorSums* const vs_l = vector_sums_left;
   const VectorSums* const vs_r = vector_sums_right;
 
-  /*---Copy from metrics_buffer for GPU case---*/
+  // Copy from metrics_buffer for GPU case.
 
   if (env->is_using_linalg()) {
-    /*--------------------*/
+    // --------------
     if (env->all2all()) {
-      /*--------------------*/
+      // --------------
 
       if (do_compute_triang_only) {
         #pragma omp parallel for schedule(dynamic,1000)
@@ -503,8 +503,8 @@ void gm_compute_2way_proc_combine_duo_(
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
             Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
-          } /*---for i---*/
-        }   /*---for j---*/
+          } // for i
+        }   // for j
       } else {
         // don't use collapse because of overflow for large sizes
         //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
@@ -514,13 +514,13 @@ void gm_compute_2way_proc_combine_duo_(
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
             Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
-          } /*---for i---*/
-        }   /*---for j---*/
+          } // for i
+        }   // for j
      }
 
-      /*--------------------*/
-    } else /*---(! env->all2all())---*/ {
-      /*--------------------*/
+      // --------------
+    } else { // (! env->all2all())
+      // --------------
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
@@ -528,18 +528,18 @@ void gm_compute_2way_proc_combine_duo_(
           const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
           Metrics_elt_2<GMTally2x2>(*metrics, i, j, env->proc_num_vector(), *env) = value;
-        } /*---for i---*/
-      }   /*---for j---*/
-      /*--------------------*/
-    } /*---if---*/
-    /*--------------------*/
+        } // for i
+      }   // for j
+      // --------------
+    } // if
+    // --------------
   }
 
-  /*---Compute multipliers---*/
+  // Compute multipliers.
 
-  /*--------------------*/
+  // --------------
   if (env->all2all()) {
-    /*--------------------*/
+    // --------------
 
     if (do_compute_triang_only) {
       if (!env->threshold_tc()) {
@@ -556,14 +556,14 @@ void gm_compute_2way_proc_combine_duo_(
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
-          } /*---if sparse---*/
-        }   /*---for i---*/
-      }   /*---for j---*/
+          } // if sparse
+        }   // for i
+      }   // for j
       } // if (!env->threshold_tc())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
         metrics->num_elts_local_computed += i_max;
-      }   /*---for j---*/
+      }   // for j
     } else {
       if (!env->threshold_tc()) {
       // don't use collapse because of overflow for large sizes
@@ -580,16 +580,16 @@ void gm_compute_2way_proc_combine_duo_(
             const GMTally1 cj = vs_r->count(j);
             const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
             Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
-          } /*---if sparse---*/
-        }   /*---for i---*/
-      }   /*---for j---*/
+          } // if sparse
+        }   // for i
+      }   // for j
       } // if (!env->threshold_tc())
       metrics->num_elts_local_computed += nvl * (size_t)nvl;
    }
 
-    /*--------------------*/
-  } else /*---(! env->all2all())---*/ {
-    /*--------------------*/
+    // --------------
+  } else { // (! env->all2all())
+    // --------------
     if (!env->threshold_tc()) {
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
@@ -604,21 +604,21 @@ void gm_compute_2way_proc_combine_duo_(
           const GMTally1 cj = vs_r->count(j);
           const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
           Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, env->proc_num_vector(), *env) = ci_cj;
-        } /*---if sparse---*/
-      } /*---for i---*/
-    }   /*---for j---*/
+        } // if sparse
+      } // for i
+    }   // for j
     } // if (!env->threshold_tc())
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
       metrics->num_elts_local_computed += i_max;
-    }   /*---for j---*/
-    /*--------------------*/
-  } /*---if---*/
-  /*--------------------*/
+    }   // for j
+    // --------------
+  } // if
+  // --------------
 }
 
 //=============================================================================
-/*---Combine nums and denoms on CPU to get final result, 2-way generic---*/
+// Combine nums and denoms on CPU to get final result, 2-way generic.
 
 void gm_compute_2way_proc_combine(
   GMMetrics* metrics,
@@ -652,7 +652,7 @@ void gm_compute_2way_proc_combine(
     } break;
     default:
       COMET_INSIST_INTERFACE(env, false && "Selected metric_type unimplemented.");
-  } /*---case---*/
+  } // case
 }
 
 //=============================================================================

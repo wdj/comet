@@ -24,7 +24,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Null object---*/
+// Null object.
 
 GMVectors GMVectors_null() {
   GMVectors result;
@@ -33,7 +33,7 @@ GMVectors GMVectors_null() {
 }
 
 //=============================================================================
-/*---Set unused (pad) vector entries to zero---*/
+// Set unused (pad) vector entries to zero.
 
 void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
@@ -93,11 +93,11 @@ void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env) {
     } break;
     default:
       COMET_INSIST(false && "Invalid vectors data_type_id.");
-  } /*---switch---*/
+  } // switch
 }
 
 //=============================================================================
-/*---Vectors pseudo-constructor---*/
+// Vectors pseudo-constructor.
 
 void GMVectors_create_imp_(GMVectors* vectors,
                            int data_type_id,
@@ -181,7 +181,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 }
 
 //=============================================================================
-/*---Vectors pseudo-destructor---*/
+// Vectors pseudo-destructor.
 
 void GMVectors_destroy(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
@@ -212,7 +212,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
   if (!env->is_using_linalg())
     return;
 
-  /*---Copy vectors into GPU buffers if needed---*/
+  // Copy vectors into GPU buffers if needed.
 
   switch (env->metric_type()) {
     case MetricType::CZEK: {
@@ -250,7 +250,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
     } break;
     default:
       COMET_INSIST_INTERFACE(env, false && "Unimplemented metric_type.");
-  } /*---case---*/
+  } // switch
 }
 //=============================================================================
 // checksum of entries.

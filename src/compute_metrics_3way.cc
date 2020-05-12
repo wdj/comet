@@ -124,7 +124,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
                                           GMVectors& vectors) {
   CEnv* const env = &env_;
 
-  /*---Initializations---*/
+  // Initializations.
 
   gm_linalg_initialize(env);
 
@@ -148,9 +148,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   const int proc_num_rv = proc_num_r + num_proc_r * i_block;
   const int num_proc_rv = num_block * num_proc_r;
 
-  /*------------------------*/
-  /*---Allocations: Part 1---*/
-  /*------------------------*/
+  // ------------------
+  // Allocations: Part 1.
+  // ------------------
 
   VectorSums vector_sums_i_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_i = &vector_sums_i_value;
@@ -160,9 +160,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   MirroredBuf vectors_i_buf_value(npvfl, nvl, env_);
   MirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
 
-  /*------------------------*/
-  /*---Allocations: Part 2---*/
-  /*------------------------*/
+  // ------------------
+  // Allocations: Part 2.
+  // ------------------
 
   VectorSums vector_sums_j_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_j = &vector_sums_j_value;
@@ -176,9 +176,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   MirroredBuf vectors_j_buf_value(npvfl, nvl,env_);
   MirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
 
-  /*------------------------*/
-  /*---Allocations: Part 3---*/
-  /*------------------------*/
+  // ------------------
+  // Allocations: Part 3.
+  // ------------------
 
   VectorSums vector_sums_k_value(vectors.num_vector_local, env_);
   VectorSums* const vector_sums_k = &vector_sums_k_value;
@@ -192,9 +192,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   MirroredBuf vectors_k_buf_value(npvfl, nvl,env_);
   MirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
 
-  /*------------------------*/
-  /*---Prepare to compute---*/
-  /*------------------------*/
+  // ------------------
+  // Prepare to compute.
+  // ------------------
 
   GMVectors* vectors_j_prev = NULL;
   GMVectors* vectors_k_prev = NULL;
@@ -230,17 +230,17 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // active step, but computation is lagged one loop cycle so as to
   // compute on data that is already communicated.
 
-  /*------------------------*/
-  /*---Part 1 Computation: tetrahedron---*/
-  /*------------------------*/
+  // ------------------
+  // Part 1 Computation: tetrahedron.
+  // ------------------
 
-  /*---Denominator---*/
+  // Denominator.
   vector_sums_i->compute(*vectors_i);
 
-  /*---Copy in vectors---*/
+  // Copy in vectors.
   gm_vectors_to_buf(vectors_i_buf, vectors_i, env);
 
-  /*---Send vectors to GPU---*/
+  // Send vectors to GPU.
   vectors_i_buf->to_accel();
 
   const int num_section_steps_1 = gm_num_section_steps(env, 1);
@@ -248,7 +248,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
     if (gm_proc_r_active(section_block_num, env)) {
 
       if (have_unprocessed_section_block) {
-        /*---Compute numerators---*/
+        // Compute numerators.
         compute_metrics_3way_block.compute(
           VData(vectors_i, vectors_i_buf, vector_sums_i),
           VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
@@ -258,7 +258,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
       }
 
       if (gm_is_section_block_in_phase(env, section_block_num)) {
-        /*---Remember processing to do next time---*/
+        // Remember processing to do next time.
         vectors_j_prev = vectors_i;
         vectors_k_prev = vectors_i;
         vectors_j_buf_prev = vectors_i_buf;
@@ -271,13 +271,13 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
         have_unprocessed_section_block = true;
       } // if
 
-    } /*---if (section_block_num ...)---*/
+    } // if (section_block_num ...)
     ++section_block_num;
-  } /*---section_step---*/
+  } // section_step
 
-  /*------------------------*/
-  /*---Part 2 Computation: triangular prisms---*/
-  /*------------------------*/
+  // ------------------
+  // Part 2 Computation: triangular prisms.
+  // ------------------
 
   GMVectors* vectors_j_this = 0;
   MPI_Request req_send_j;
@@ -299,7 +299,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
       if (gm_proc_r_active(section_block_num, env)) {
 
         if (gm_is_section_block_in_phase(env, section_block_num)) {
-          /*---Communicate vectors start---*/
+          // Communicate vectors start.
           vectors_j_this = vectors_j[index_j_comm];
           index_j_comm = 1 - index_j_comm; // toggle buffer num
           req_recv_j = gm_recv_vectors_start(vectors_j_this, proc_recv_j,
@@ -309,7 +309,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
         }
   
         if (have_unprocessed_section_block) {
-          /*---Compute numerators---*/
+          // Compute numerators.
           compute_metrics_3way_block.compute(
             VData(vectors_i, vectors_i_buf, vector_sums_i),
             VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
@@ -319,23 +319,23 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
         }
 
         if (gm_is_section_block_in_phase(env, section_block_num)) {
-          /*---Communicate vectors wait---*/
+          // Communicate vectors wait.
           gm_send_vectors_wait(&req_send_j, env);
           gm_recv_vectors_wait(&req_recv_j, env);
 
-          /*---Copy in vectors---*/
+          // Copy in vectors.
           gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
 
-          /*---Send vectors to GPU start---*/
+          // Send vectors to GPU start.
           vectors_j_buf->to_accel_start();
 
-          /*---Denominator---*/
+          // Denominator.
           vector_sums_j->compute(*vectors_j_this);
 
-          /*---Send vectors to GPU wait---*/
+          // Send vectors to GPU wait.
           vectors_j_buf->to_accel_wait();
 
-          /*---Remember processing to do next time---*/
+          // Remember processing to do next time.
           vectors_j_prev = vectors_j_this;
           vectors_k_prev = vectors_j_prev;
           vectors_j_buf_prev = vectors_j_buf;
@@ -348,14 +348,14 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           have_unprocessed_section_block = true;
         } // if
 
-      } /*---if (section_block_num ...)---*/
+      } // if (section_block_num ...)
       ++section_block_num;
-    } /*---j_i_offset---*/
-  } /*---section_step---*/
+    } // j_i_offset
+  } // section_step
 
-  /*------------------------*/
-  /*---Part 3 Computation: block sections---*/
-  /*------------------------*/
+  // ------------------
+  // Part 3 Computation: block sections.
+  // ------------------
 
   GMVectors* vectors_k_this = 0;
   MPI_Request req_send_k;
@@ -395,7 +395,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
           if (gm_is_section_block_in_phase(env, section_block_num)) {
             if (do_k_comm) {
-              /*---Communicate vectors start---*/
+              // Communicate vectors start.
               vectors_k_this = vectors_k[index_k_comm];
               index_k_comm = 1 - index_k_comm; // toggle buffer num
               // NOTE: in some cases may not need double buf, one may be enough
@@ -405,7 +405,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
                                        proc_send_k, 1+3*section_block_num, env);
             } // if do_k_comm
 
-            /*---Communicate vectors start---*/
+            // Communicate vectors start.
             vectors_j_this = vectors_j[index_j_comm];
             index_j_comm = 1 - index_j_comm; // toggle buffer num
             req_recv_j = gm_recv_vectors_start(vectors_j_this, proc_recv_j,
@@ -415,7 +415,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           } // if
 
           if (have_unprocessed_section_block) {
-            /*---Compute numerators---*/
+            // Compute numerators.
             compute_metrics_3way_block.compute(
               VData(vectors_i, vectors_i_buf, vector_sums_i),
               VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
@@ -426,47 +426,47 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
           if (gm_is_section_block_in_phase(env, section_block_num)) {
             if (do_k_comm) {
-              /*---Communicate vectors wait---*/
+              // Communicate vectors wait.
               gm_send_vectors_wait(&req_send_k, env);
               gm_recv_vectors_wait(&req_recv_k, env);
               k_block_currently_resident = k_block;
 
-              /*---Copy in vectors---*/
+              // Copy in vectors.
               gm_vectors_to_buf(vectors_k_buf, vectors_k_this, env);
 
-              /*---Send vectors to GPU start---*/
+              // Send vectors to GPU start.
               vectors_k_buf->to_accel_start();
 
-              /*---Denominator---*/
+              // Denominator.
               vector_sums_k->compute(*vectors_k_this);
 
-              /*---Send vectors to GPU wait---*/
+              // Send vectors to GPU wait.
               vectors_k_buf->to_accel_wait();
 
-              /*---Remember processing to do next time---*/
+              // Remember processing to do next time.
               vectors_k_prev = vectors_k_this;
               vectors_k_buf_prev = vectors_k_buf;
               vector_sums_k_prev = vector_sums_k;
               k_block_prev = k_block;
             } // if do_k_comm
 
-            /*---Communicate vectors wait---*/
+            // Communicate vectors wait.
             gm_send_vectors_wait(&req_send_j, env);
             gm_recv_vectors_wait(&req_recv_j, env);
 
-            /*---Copy in vectors---*/
+            // Copy in vectors.
             gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
 
-            /*---Send vectors to GPU start---*/
+            // Send vectors to GPU start.
             vectors_j_buf->to_accel_start();
 
-            /*---Denominator---*/
+            // Denominator.
             vector_sums_j->compute(*vectors_j_this);
 
-            /*---Send vectors to GPU wait---*/
+            // Send vectors to GPU wait.
             vectors_j_buf->to_accel_wait();
 
-            /*---Remember processing to do next time---*/
+            // Remember processing to do next time.
             vectors_j_prev = vectors_j_this;
             vectors_j_buf_prev = vectors_j_buf;
             vector_sums_j_prev = vector_sums_j;
@@ -475,18 +475,18 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
             have_unprocessed_section_block = true;
           } // if
 
-        } /*---if (section_block_num ...)---*/
+        } // if (section_block_num ...)
         ++section_block_num;
-      } /*---k_i_offset---*/
-    }   /*---j_i_offset---*/
-  } /*---section_step---*/
+      } // k_i_offset
+    }   // j_i_offset
+  } // section_step
 
-  /*------------------------*/
-  /*---Cleanup---*/
-  /*------------------------*/
+  // ------------------
+  // Cleanup.
+  // ------------------
 
   if (have_unprocessed_section_block) {
-    /*---Compute numerators---*/
+    // Compute numerators.
     compute_metrics_3way_block.compute(
       VData(vectors_i, vectors_i_buf, vector_sums_i),
       VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
@@ -495,9 +495,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
     have_unprocessed_section_block = false;
   }
 
-  /*------------------------*/
-  /*---Free memory and finalize---*/
-  /*------------------------*/
+  // ------------------
+  // Free memory and finalize.
+  // ------------------
 
   GMVectors_destroy(vectors_k[0], env);
   GMVectors_destroy(vectors_k[1], env);

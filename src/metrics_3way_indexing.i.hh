@@ -18,10 +18,10 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Helper functions for 3-way case---*/
+// Helper functions for 3-way case.
 
 //-----------------------------------------------------------------------------
-/*---NOTE: the following does not specialize based on part1/2/3---*/
+// NOTE: the following does not specialize based on part1/2/3.
 
 static int gm_num_section_steps(const CEnv* const env, int part_num) {
   COMET_ASSERT(env && part_num >= 1 && part_num <= 3);
@@ -112,7 +112,7 @@ static int gm_section_axis_part3(int i_block, int j_block, int k_block) {
 //-----------------------------------------------------------------------------
 
 static int gm_section_num_part3(int i_block, int j_block, int k_block) {
-  /*---NOTE: this could possibly be implemented somewhat more efficiently---*/
+  // NOTE: this could possibly be implemented somewhat more efficiently.
   /* clang-format off */
   return i_block < k_block && k_block < j_block ?    0 :
          i_block < j_block && j_block < k_block ?    1 :
@@ -160,7 +160,7 @@ static int gm_J_hi(int section_num, int nvl, int part_num, CEnv* env) {
 }
 
 //=============================================================================
-/*---GMSectionInfo---*/
+// GMSectionInfo.
 
 typedef struct {
   bool is_part1;
@@ -250,13 +250,13 @@ static void GMSectionInfo_create(
   COMET_INSIST(section_step<num_section_steps);
 
   si->section_axis =
-    ! si->is_part3 ? 1 /*---j axis---*/ :
+    ! si->is_part3 ? 1 : // j axis
     gm_section_axis_part3(i_block, j_block, k_block);
 
   si->section_num = ! si->is_part3 ? section_step :
                     gm_section_num_part3(i_block, j_block, k_block);
 
-  /*---Define bounding box containing region to be computed---*/
+  // Define bounding box containing region to be computed.
 
   si->J_lb = gm_J_lo(si->section_num, num_vector_local, si->part_num, env);
   si->J_ub = gm_J_hi(si->section_num, num_vector_local, si->part_num, env);

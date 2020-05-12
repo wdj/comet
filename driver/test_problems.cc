@@ -28,7 +28,7 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Set the entries of the vectors---*/
+// Set the entries of the vectors.
 
 void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
   COMET_INSIST(vectors && env);
@@ -41,14 +41,14 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
   const size_t nfa = vectors->dm->num_field_active;
 
   switch (env->data_type_vectors()) {
-    /*--------------------*/
+    //--------------------
     case GM_DATA_TYPE_FLOAT: {
-    /*--------------------*/
+    //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)env->proc_num_vector();
-        /*---Fill pad vectors with copies of the last vector---*/
+        // Fill pad vectors with copies of the last vector.
         // By construction, active vectors are packed for lower procs.
         const size_t vector_capped = utils::min(vector, nva);
         int fl = 0;
@@ -58,9 +58,9 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           if (field >= vectors->num_field_active) {
             continue; // These entries will be padded to zero elsewhere.
           }
-          /*---Compute element unique id---*/
+          // Compute element unique id.
           const size_t uid = field + nfa * vector_capped;
-          /*---Generate large random number---*/
+          // Generate large random number.
           size_t rand1 = uid;
           rand1 = utils::randomize(rand1);
           rand1 = utils::randomize(rand1);
@@ -82,29 +82,29 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
                              utils::log2(rand_max2) - mantissa_digits<float>() + 1);
           const int shift_amount = utils::max(shift_amount1, shift_amount2);
           rand_value >>= shift_amount > 0 ? shift_amount : 0;
-          /*---Store---*/
+          // Store.
           GMFloat float_value = (GMFloat)rand_value;
           COMET_INSIST((size_t)float_value == rand_value);
           COMET_INSIST(float_value * vectors->num_field_active <
                          ((size_t)1)<<mantissa_digits<GMFloat>());
           GMVectors_float_set(vectors, fl, vl, float_value, env);
-        } /*---field_local---*/
-      }   /*---vector_local---*/
-      /*---Print---*/
+        } // field_local
+      }   // vector_local
+      // Print.
 //TODO: move this
       if (verbosity > 2) {
         VectorsIO::print(*vectors, *env);
       }
     } break;
-    /*--------------------*/
+    //--------------------
     case GM_DATA_TYPE_BITS2: {
-    /*--------------------*/
+    //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
 
         size_t vector = vl +
             vectors->num_vector_local * (size_t)env->proc_num_vector();
-        /*---Fill pad vectors with copies of the last vector---*/
+        // Fill pad vectors with copies of the last vector.
         const size_t vector_capped = utils::min(vector, nva);
 
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
@@ -113,31 +113,31 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           if (field >= vectors->num_field_active) {
             continue; // These entries will be padded to zero elsewhere.
           }
-          /*---Compute element unique id---*/
+          // Compute element unique id.
           const size_t uid = field + vectors->num_field_active * vector_capped;
           size_t index = uid;
-          /*---Randomize---*/
+          // Randomize.
           index = utils::randomize(index);
           index = utils::randomize(index);
-          /*---Calculate random number between 0 and 3---*/
+          // Calculate random number between 0 and 3.
           const float float_rand_value = index / (float)utils::randomize_max();
-          /*---Create 2-bit value - make extra sure less than 4---*/
+          // Create 2-bit value - make extra sure less than 4.
           GMBits2 value = (int)((4. - 1e-5) * float_rand_value);
-          /*---Store---*/
+          // Store.
           GMVectors_bits2_set(vectors, fl, vl, value, env);
-        } /*---fl---*/
-      }   /*---vl---*/
-      /*---Print---*/
+        } // fl
+      }   // vl
+      // Print.
 //TODO: move this
       if (verbosity > 2) {
         VectorsIO::print(*vectors, *env);
       }
     } break;
-    /*--------------------*/
+    //--------------------
     default:
-    /*--------------------*/
+    //--------------------
       COMET_INSIST(false && "Invalid data type.");
-  } /*---switch---*/
+  } // switch
 }
 
 //-----------------------------------------------------------------------------
@@ -231,14 +231,14 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
   const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
 
   switch (env->data_type_vectors()) {
-    /*--------------------*/
+    //--------------------
     case GM_DATA_TYPE_FLOAT: {
-    /*--------------------*/
+    //--------------------
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)env->proc_num_vector();
-        /*---Fill pad vectors with copies of the last vector---*/
+        // Fill pad vectors with copies of the last vector.
         const size_t vector_capped = utils::min(vector, nva-1);
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -260,28 +260,28 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
 
           const GMFloat float_value = value;
 
-          /*---Store---*/
+          // Store.
           COMET_INSIST(float_value * nfa >= 1);
           COMET_INSIST(float_value * nfa < max_float);
           GMVectors_float_set(vectors, fl, vl, float_value, env);
 
-        } /*---field_local---*/
-      }   /*---vector_local---*/
-      /*---Print---*/
+        } // field_local
+      }   // vector_local
+      // Print.
 //TODO: move this
       if (verbosity > 2) {
         VectorsIO::print(*vectors, *env);
       }
     } break;
-    /*--------------------*/
+    //--------------------
     case GM_DATA_TYPE_BITS2: {
-    /*--------------------*/
+    //--------------------
 
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
             vectors->num_vector_local * (size_t)env->proc_num_vector();
-        /*---Fill pad vectors with copies of the last vector---*/
+        // Fill pad vectors with copies of the last vector.
         const size_t vector_capped = utils::min(vector, nva-1);
         for (int fl = 0; fl < vectors->num_field_local; ++fl) {
           size_t field = fl +
@@ -289,7 +289,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           if (field >= nfa) {
             continue; // These entries will be padded to zero elsewhere.
           }
-          /*---Create 2-bit value - make extra sure less than 4---*/
+          // Create 2-bit value - make extra sure less than 4.
 
           const size_t f = field;
           const size_t v = vector_capped;
@@ -304,21 +304,21 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
 
           const GMBits2 bval = ((size_t)3) & (value - value_min);
 
-          /*---Store---*/
+          // Store.
           GMVectors_bits2_set(vectors, fl, vl, bval, env);
 
-        } /*---field_local---*/
-      }   /*---vector_local---*/
+        } // field_local
+      }   // vector_local
 //TODO: move this
       if (verbosity > 2) {
         VectorsIO::print(*vectors, *env);
       }
     } break;
-    /*--------------------*/
+    //--------------------
     default:
-    /*--------------------*/
+    //--------------------
       COMET_INSIST(false && "Invalid data type.");
-  } /*---switch---*/
+  } // switch
 }
 
 //=============================================================================
@@ -337,7 +337,7 @@ void set_vectors_synthetic(GMVectors* vectors, int problem_type, int verbosity,
 }
 
 //=============================================================================
-/*---Check correctness of metrics, if possible---*/
+// Check correctness of metrics, if possible.
 
 void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                              CEnv* env) {
@@ -375,9 +375,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   double max_incorrect_diff = 0.;
 
   switch (env->data_type_metrics()) {
-    /*--------------------*/
+    //--------------------
     case GM_DATA_TYPE_FLOAT: {
-    /*--------------------*/
+    //--------------------
       if (env->num_way() == NUM_WAY::_2) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_elts_local; ++index) {
@@ -507,9 +507,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         } //---for index
       } //---if
     } break;
-    /*--------------------*/
+    //--------------------
     case GM_DATA_TYPE_TALLY2X2: {
-    /*--------------------*/
+    //--------------------
 
     const int cbpe = env->counted_bits_per_elt();
 
@@ -650,9 +650,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         } //---i
       } //---for index
     } break;
-    /*--------------------*/
+    //--------------------
     case GM_DATA_TYPE_TALLY4X2: {
-    /*--------------------*/
+    //--------------------
 
       const int cbpe = env->counted_bits_per_elt();
 
@@ -806,10 +806,10 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         } //---i
       } //---for index
     } break;
-    /*--------------------*/
+    //--------------------
     default:
       COMET_INSIST(false && "Invalid data type.");
-  } /*---switch---*/
+  } // switch
   do_->num_incorrect += num_incorrect;
   do_->max_incorrect_diff = max_incorrect_diff > do_->max_incorrect_diff ?
                             max_incorrect_diff : do_->max_incorrect_diff;

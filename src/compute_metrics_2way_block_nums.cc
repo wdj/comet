@@ -41,9 +41,9 @@ void gm_compute_2way_proc_nums_czek_start_(
   COMET_INSIST(env->num_way() == NUM_WAY::_2);
   COMET_INSIST(!env->is_using_linalg());
 
-  /*----------------------------------------*/
+  // ----------------------------------
   if (env->all2all()) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
@@ -58,15 +58,15 @@ void gm_compute_2way_proc_nums_czek_start_(
           const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
           const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
-        } /*---for k---*/
+        } // for k
         // Update metrics array.
         Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = metric;
-      } /*---for i---*/
-    }   /*---for j---*/
+      } // for i
+    }   // for j
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
@@ -81,15 +81,15 @@ void gm_compute_2way_proc_nums_czek_start_(
           const GMFloat value1 = GMVectors_float_get(vectors_left, f, i, env);
           const GMFloat value2 = GMVectors_float_get(vectors_right, f, j, env);
           metric += value1 < value2 ? value1 : value2;
-        } /*---for k---*/
+        } // for k
         // Update metrics array.
         Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = metric;
-      } /*---for i---*/
-    }   /*---for j---*/
+      } // for i
+    }   // for j
 
-    /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+    // ----------------------------------
+  } // if
+  // ----------------------------------
 }
 
 //=============================================================================
@@ -112,9 +112,9 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
   typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
-  /*----------------------------------------*/
+  // ----------------------------------
   if (env->compute_method() == ComputeMethod::REF) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
@@ -177,20 +177,20 @@ void gm_compute_2way_proc_nums_ccc_start_(
             MFT::add(sum.data[0], r00, r01);
             MFT::add(sum.data[1], r10, r11);
 
-          } /*---if ! unknown---*/
-        } /*---for f---*/
+          } // if ! unknown
+        } // for f
 
         // Update metrics array.
 
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
         //}
-      } /*---for j---*/
-    }   /*---for i---*/
+      } // for j
+    }   // for i
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else { // ComputeMethod::CPU && !env->is_using_linalg()
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
        "num_proc_field>1 for CPU compute_method for this case not supported");
@@ -302,7 +302,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
           MFT::add(sum.data[0], r00, r01);
           MFT::add(sum.data[1], r10, r11);
 
-        } /*---for pvfl---*/
+        } // for pvfl
 
         // Adjust for pad
 
@@ -320,14 +320,14 @@ void gm_compute_2way_proc_nums_ccc_start_(
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
         //}
-      } /*---for j---*/
-    }   /*---for i---*/
+      } // for j
+    }   // for i
 
     /* clang-format on */
 
-    /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+    // ----------------------------------
+  } // if
+  // ----------------------------------
 }
 
 //=============================================================================
@@ -350,9 +350,9 @@ void gm_compute_2way_proc_nums_duo_start_(
 
   typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
-  /*----------------------------------------*/
+  // ----------------------------------
   if (env->compute_method() == ComputeMethod::REF) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
@@ -391,19 +391,19 @@ void gm_compute_2way_proc_nums_duo_start_(
             MFT::add(sum.data[0], r00, r01);
             MFT::add(sum.data[1], r10, r11);
 
-          } /*---if ! unknown---*/
-        } /*---for f---*/
+          } // if ! unknown
+        } // for f
 
         // Update metrics array.
 
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
-      } /*---for j---*/
-    }   /*---for i---*/
+      } // for j
+    }   // for i
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else if (!env->is_using_xor()) { // ComputeMethod::CPU && !env->is_using_linalg()
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
@@ -483,7 +483,7 @@ void gm_compute_2way_proc_nums_duo_start_(
           MFT::add(sum.data[0], r00, r01);
           MFT::add(sum.data[1], r10, r11);
 
-        } /*---for pvfl---*/
+        } // for pvfl
 
         // Adjust for pad
 
@@ -500,14 +500,14 @@ void gm_compute_2way_proc_nums_duo_start_(
 
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
-      } /*---for j---*/
-    }   /*---for i---*/
+      } // for j
+    }   // for i
 
     /* clang-format on */
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else { // ComputeMethod::CPU && !env->is_using_linalg() && env->is_using_xor()
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
@@ -590,7 +590,7 @@ void gm_compute_2way_proc_nums_duo_start_(
           MFT::add(sum.data[0], r00, r01);
           MFT::add(sum.data[1], r10, r11);
 
-        } /*---for pvfl---*/
+        } // for pvfl
 
         // Adjust for pad
         // NOTE this works differently from other cases because of xor
@@ -602,14 +602,14 @@ void gm_compute_2way_proc_nums_duo_start_(
 
         const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
         Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block_eff, *env) = sum;
-      } /*---for j---*/
-    }   /*---for i---*/
+      } // for j
+    }   // for i
 
     /* clang-format on */
 
-    /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+    // ----------------------------------
+  } // if
+  // ----------------------------------
 }
 
 //=============================================================================
@@ -675,7 +675,7 @@ void gm_compute_2way_proc_nums_start(
     } break;
     default:
       COMET_INSIST_INTERFACE(env, false && "Selected metric_type unimplemented.");
-  } /*---case---*/
+  } // case
 }
 
 //=============================================================================

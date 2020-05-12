@@ -217,7 +217,7 @@ void VectorsIO_read_bits2(GMVectors& vectors, const char* path, CEnv& env) {
       }
     } // for i
 
-  } /*---vl---*/
+  } // vl
 
   // Ensure any end of vector pad set to zero
   GMVectors_initialize_pad(&vectors, &env);
@@ -414,15 +414,15 @@ void VectorsIO::print(GMVectors& vectors, CEnv& env) {
                    "field_proc %i field %i value %.1i%.1i\n",
                    env.proc_num_vector(), vl,
                    env.proc_num_field(), fl, value / 2, value % 2);
-        } /*---fl---*/
-      }   /*---vl---*/
+        } // fl
+      }   // vl
     } break;
 
     default:
 
       COMET_INSIST(false && "Invalid data_type_vectors.");
 
-  } /*---switch---*/
+  } // switch
 }
 
 //=============================================================================

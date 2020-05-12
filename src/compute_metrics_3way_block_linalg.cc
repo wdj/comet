@@ -423,7 +423,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
               r101_perm += matB01_perm;
               r110_perm += matB10_perm;
               r111_perm += matB11_perm;
-            } else /*---2 == step_2way---*/ {
+            } else { // 2 == step_2way
               r100_perm += 2 * matB00_perm;
               r101_perm += 2 * matB01_perm;
               r110_perm += 2 * matB10_perm;
@@ -635,7 +635,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     matM_kik_buf_ptr->from_accel();
 
     gm_reduce_metrics(&metrics, matM_kik_buf, matM_kik_buf_ptr, &env_);
-  } /*---is_part3---*/
+  } // is_part3
 
   //----------------------------------------
   // Now compute ijk piece, via an outer loop over j values.

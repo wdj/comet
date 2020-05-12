@@ -20,19 +20,19 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Struct declaration---*/
+// Struct declaration.
 
 typedef struct {
-  /*---Logical sizes---*/
+  // Logical sizes.
   int num_field;
   int num_field_local;
   size_t num_field_active;
   int num_vector;
   int num_vector_local;
-  /*---Stored sizes---*/
+  // Stored sizes.
   int num_packedval_field_local;
   size_t num_packedfield_vector_local;
-  /*---Other---*/
+  // Other.
   int data_type_id;
   int pad1;
   void* __restrict__ data;
@@ -43,12 +43,12 @@ typedef struct {
 } GMVectors;
 
 //=============================================================================
-/*---Null object---*/
+// Null object.
 
 GMVectors GMVectors_null(void);
 
 //=============================================================================
-/*---Vectors pseudo-constructor---*/
+// Vectors pseudo-constructor.
 
 void GMVectors_create(GMVectors* vectors,
                       int data_type_id,
@@ -67,7 +67,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env);
 
 //=============================================================================
-/*---Vectors pseudo-destructor---*/
+// Vectors pseudo-destructor.
 
 void GMVectors_destroy(GMVectors* vectors, CEnv* env);
 
@@ -83,7 +83,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
                        CEnv* env);
 
 //=============================================================================
-/*---Accessors: Float---*/
+// Accessors: Float.
 
 static GMFloat* GMVectors_float_ptr(GMVectors* const vectors,
                                    int field_local,
@@ -151,13 +151,13 @@ static GMFloat GMVectors_float_get(const GMVectors* const vectors,
 }
 
 //=============================================================================
-/*---Accessors: Bits2, Bits2x64---*/
+// Accessors: Bits2, Bits2x64.
 
 static GMBits2 GMVectors_bits2_get(const GMVectors* vectors,
                                    int field_local,
                                    int vector_local,
                                    CEnv* env) {
-  /*---This function gets a single 2-bit value---*/
+  // This function gets a single 2-bit value.
   COMET_ASSERT(vectors);
   COMET_ASSERT(field_local >= 0);
   COMET_ASSERT(field_local < vectors->num_field_local);
@@ -195,7 +195,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
                                 int vector_local,
                                 GMBits2 value,
                                 CEnv* env) {
-  /*---This function sets a single 2-bit value---*/
+  // This function sets a single 2-bit value.
   COMET_ASSERT(vectors);
   COMET_ASSERT(field_local >= 0);
   COMET_ASSERT(field_local < vectors->num_field_local);
@@ -237,7 +237,7 @@ static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
                                           int packedval_field_local,
                                           int vector_local,
                                           CEnv* env) {
-  /*---This function accesses an entire packed value containing 2-bit values---*/
+  // This function accesses an entire packed value containing 2-bit values.
   COMET_ASSERT(vectors);
   COMET_ASSERT(packedval_field_local >= 0);
   COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);
@@ -258,7 +258,7 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
                                    int vector_local,
                                    GMBits2x64 value,
                                    CEnv* env) {
-  /*---This function sets an entire packed value containing 2-bit values---*/
+  // This function sets an entire packed value containing 2-bit values.
   COMET_ASSERT(vectors);
   COMET_ASSERT(packedval_field_local >= 0);
   COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);
@@ -279,7 +279,7 @@ static GMBits2x64 GMVectors_bits2x64_get(const GMVectors* vectors,
                                          int packedval_field_local,
                                          int vector_local,
                                          CEnv* env) {
-  /*---This function gets an entire packed value containing 2-bit values---*/
+  // This function gets an entire packed value containing 2-bit values.
   COMET_ASSERT(vectors);
   COMET_ASSERT(packedval_field_local >= 0);
   COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);

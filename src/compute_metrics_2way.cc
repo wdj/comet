@@ -203,7 +203,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
   // Prepare for loop over blocks of result.
 
-  /*---Summary of the opertions in this loop:
+  /* Summary of the opertions in this loop:
 
     send VECTORS next step start
     recv VECTORS next step start
@@ -219,7 +219,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     combine this step (CPU case)
     send VECTORS next step wait
 
-  ---*/
+  */
 
   // Add extra step at begin/end to fill/drain pipeline.
 

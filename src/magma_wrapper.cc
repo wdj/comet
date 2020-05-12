@@ -36,7 +36,7 @@
 namespace comet {
 
 //=============================================================================
-/*---Magma setup, teardown---*/
+// Magma setup, teardown.
 
 void gm_linalg_initialize(CEnv* env) {
   COMET_INSIST(env);
@@ -149,7 +149,7 @@ void gm_linalg_finalize(CEnv* env) {
 }
 
 //=============================================================================
-/*---Allocate/free host and device memory---*/
+// Allocate/free host and device memory.
 
 void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
   COMET_INSIST(p && env);
@@ -721,7 +721,7 @@ void gm_linalg_gemm_magma_start(size_t m, size_t n, size_t k,
   const size_t align_factor = 128 / elt_size;
   const size_t max_elts = (1 << 27) - 512;
 
-  /*---TODO: can we improve aspect ratios of submatrices---*/
+  // TODO: can we improve aspect ratios of submatrices.
 //  const size_t max_rows_per_block_raw = (1 << 14);
 //  const size_t max_cols_per_block_raw = max_elts / max_rows_per_block_raw;
 
@@ -771,7 +771,7 @@ void gm_linalg_gemm_magma_start(size_t m, size_t n, size_t k,
 }
 
 //=============================================================================
-/*---Start/end transfer of generic matrix to GPU---*/
+// Start/end transfer of generic matrix to GPU.
 
 void gm_linalg_set_matrix_start(MirroredBuf* p, CEnv* env) {
   COMET_INSIST(p && env);
@@ -779,7 +779,7 @@ void gm_linalg_set_matrix_start(MirroredBuf* p, CEnv* env) {
   if (!env->is_compute_method_gpu())
     return;
 
-  /*---Send vectors to GPU---*/
+  // Send vectors to GPU.
 
   // ISSUE: these MAGMA routines don't return an error code.
 
@@ -851,7 +851,7 @@ void gm_linalg_set_matrix_wait(CEnv* env) {
 }
 
 //=============================================================================
-/*---Start/end transfer of generic matrix from GPU---*/
+// Start/end transfer of generic matrix from GPU.
 
 void gm_linalg_get_matrix_start(MirroredBuf* p, CEnv* env) {
   COMET_INSIST(p && env);
@@ -860,7 +860,7 @@ void gm_linalg_get_matrix_start(MirroredBuf* p, CEnv* env) {
     return;
   }
 
-  /*---Get vectors from GPU---*/
+  // Get vectors from GPU.
 
   // ISSUE: these MAGMA routines don't return an error code.
 

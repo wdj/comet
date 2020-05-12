@@ -167,9 +167,9 @@ static void MetricsIO_write_tally2x2_bin_impl_(
               coord1_buf[ind_buf] = coord1;
               i01_buf[ind_buf] = i0 + 2*i1;
               value_buf[ind_buf] = value;
-            } /*---if---*/
-          } /*---i1---*/
-        } /*---i0---*/
+            } // if
+          } // i1
+        } // i0
       }
     } // pragma omp / for index
 
@@ -199,9 +199,9 @@ static void MetricsIO_write_tally2x2_bin_impl_(
           }
         }
       }
-    } /*---ind_buf---*/
+    } // ind_buf
 
-  } /*---ind_base---*/
+  } // ind_base
 
   num_written_ += writer.num_written();
 
@@ -296,12 +296,12 @@ static void MetricsIO_write_tally4x2_bin_impl_(
                 coord2_buf[ind_buf] = coord2;
                 i012_buf[ind_buf] = i0 + 2*(i1 + 2*i2);
                 value_buf[ind_buf] = value;
-              } /*---if---*/
-            } /*---i2---*/
-          } /*---i1---*/
-        } /*---i0---*/
+              } // if
+            } // i2
+          } // i1
+        } // i0
       }
-    } /*---for index---*/
+    } // for index
 
     // Flush buffer
 
@@ -330,8 +330,8 @@ static void MetricsIO_write_tally4x2_bin_impl_(
           }
         }
       }
-    } /*---ind_buf---*/
-  } /*---ind_base---*/
+    } // ind_buf
+  } // ind_base
 
   num_written_ += writer.num_written();
 

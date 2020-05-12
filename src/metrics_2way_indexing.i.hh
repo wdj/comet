@@ -16,14 +16,14 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/*---Helper functions for 2-way case---*/
+// Helper functions for 2-way case.
 
 static int gm_bdiag_computed_max_allphase(CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(env->all2all());
 
-  /*---Max number of blocks of any block row computed on all phases---*/
+  // Max number of blocks of any block row computed on all phases.
   const int num_block = env->num_block_vector();
   return 1 + num_block / 2;
 }

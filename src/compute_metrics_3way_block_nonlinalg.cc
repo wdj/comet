@@ -56,7 +56,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
   COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
-  /*---Initializations---*/
+  // Initializations.
 
   const int nvl = metrics->num_vector_local;
   const int nfl = vectors_i->num_field_local;
@@ -71,9 +71,9 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   const VectorSums* const vs_j = vector_sums_j;
   const VectorSums* const vs_k = vector_sums_k;
 
-  /*----------------------------------------*/
+  // ----------------------------------
   if (!env->is_compute_method_gpu() && !env->all2all()) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() && "num_proc_field>1 "
       "for REF/CPU compute_method for this case not supported");
@@ -81,12 +81,12 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
     COMET_INSIST(gm_num_section_steps(env, 1) == 1 &&
              "not all2all case always has one section step.");
 
-    /*---No off-proc all2all: compute tetrahedron of values---*/
+    // No off-proc all2all: compute tetrahedron of values.
 
     for (int j = 0; j < nvl; ++j) {
       for (int k = j+1; k < nvl; ++k) {
         for (int i = 0; i < j; ++i) {
-          /*---Make arithmetic order-independent---*/
+          // Make arithmetic order-independent.
           GMFloat smin, smid, smax;
           const GMFloat si = vs_i->sum(i);
           const GMFloat sj = vs_i->sum(j);
@@ -103,7 +103,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
             numer += val1 < val3 ? val1 : val3;
             numer += val2 < val3 ? val2 : val3;
             numer -= min12 < val3 ? min12 : val3;
-          } /*---for f---*/
+          } // for f
           const GMFloat value = ((GMFloat)3) * numer / (((GMFloat)2) * denom);
 
           Metrics_elt_3<GMFloat>(*metrics, i, j, k,
@@ -113,14 +113,14 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
       }
     }
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else if (!env->is_compute_method_gpu()) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() && "num_proc_field>1 "
       "for REF/CPU compute_method for this case not supported");
 
-    /*---Compute tetrahedron, triang prism or block section---*/
+    // Compute tetrahedron, triang prism or block section.
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
@@ -139,7 +139,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
           const int j = si->unperm1(I, J, K);
           const int k = si->unperm2(I, J, K);
 
-          /*---Make arithmetic order-independent---*/
+          // Make arithmetic order-independent.
           GMFloat smin, smid, smax;
           const GMFloat si = vs_i->sum(i);
           const GMFloat sj = vs_j->sum(j);
@@ -156,7 +156,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
             const GMFloat min_jk = val2 < val3 ? val2 : val3;
             const GMFloat min_ijk = min_ij < val3 ? min_ij : val3;
             numer += min_ij + min_ik + min_jk - min_ijk;
-          } /*---for f---*/
+          } // for f
 
           const GMFloat value = ((GMFloat)3) * numer / (((GMFloat)2) * denom);
 
@@ -167,13 +167,13 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
       } //---K
     } //---J
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else /* if (env->is_compute_method_gpu()) */ {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST(false && "Invalid compute_method.");
 
-  } /*---if GPU---*/
+  } // if GPU
 
   GMSectionInfo_destroy(si, env);
 }
@@ -216,7 +216,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
   typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
-  /*---Initializations---*/
+  // Initializations.
 
   const int nvl = metrics->num_vector_local;
 
@@ -230,9 +230,9 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   const VectorSums* const vs_j = vector_sums_j;
   const VectorSums* const vs_k = vector_sums_k;
 
-  /*----------------------------------------*/
+  // ----------------------------------
   if (env->compute_method() == ComputeMethod::REF) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
@@ -377,8 +377,8 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
               } // if (env->metric_type() == MetricType::CCC)
 
-            } /*---if ! unknown---*/
-          } /*---for f---*/
+            } // if ! unknown
+          } // for f
 
           // Get denom
 
@@ -403,15 +403,15 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
               j_block_eff, k_block_eff, index_cache, *env) = ci1_cj1_ck1;
           } // if sparse
 
-        } /*---for I---*/
+        } // for I
         metrics->num_elts_local_computed += I_max - I_min;
-      } /*---for K---*/
-    } /*---for J---*/
+      } // for K
+    } // for J
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else if (env->compute_method() == ComputeMethod::CPU &&
              !env->is_using_linalg()) {
-    /*----------------------------------------*/
+    // ----------------------------------
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
@@ -443,7 +443,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
           const int npvfl = vectors_i->num_packedval_field_local;
           for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
 
-            /*---Extract input values to process---*/
+            // Extract input values to process.
 
             const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pvfl, i,
                                                          env);
@@ -459,7 +459,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
             const uint64_t vk0 = vk.data[0];
             const uint64_t vk1 = vk.data[1];
 
-            /*---Compute masks---*/
+            // Compute masks.
 
             const uint64_t oddbits = 0x5555555555555555;
 
@@ -484,7 +484,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
             const uint64_t v0mask = vi0mask & vj0mask & vk0mask;
             const uint64_t v1mask = vi1mask & vj1mask & vk1mask;
 
-            /*---Get even/odd bits for each seminibble, masked to active---*/
+            // Get even/odd bits for each seminibble, masked to active.
 
             const uint64_t vi0_0 =  vi0       & v0mask;
             const uint64_t vi0_1 = (vi0 >> 1) & v0mask;
@@ -499,7 +499,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
             const uint64_t vk1_0 =  vk1       & v1mask;
             const uint64_t vk1_1 = (vk1 >> 1) & v1mask;
 
-            /*---Get complements of even/odd bits for each seminibble; mask---*/
+            // Get complements of even/odd bits for each seminibble; mask.
 
             const uint64_t nvi0_0 = ~ vi0       & v0mask;
             const uint64_t nvi0_1 = ~(vi0 >> 1) & v0mask;
@@ -722,13 +722,13 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
     } //---J
     /* clang-format on */
 
-    /*----------------------------------------*/
+    // ----------------------------------
   } else /* if (env->is_using_linalg()) */ {
-    /*----------------------------------------*/
+    // ----------------------------------
     COMET_INSIST(false && "Invalid compute_method");
-    /*----------------------------------------*/
-  } /*---if---*/
-  /*----------------------------------------*/
+    // ----------------------------------
+  } // if
+  // ----------------------------------
 
   GMSectionInfo_destroy(si, env);
 }

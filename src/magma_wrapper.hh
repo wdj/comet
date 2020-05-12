@@ -49,13 +49,13 @@ void gm_linalg_initialize(CEnv* env);
 
 void gm_linalg_finalize(CEnv* env);
 
-/*----------*/
+//----------
 
 void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env);
 
 void gm_linalg_free(MirroredBuf* p, CEnv* env);
 
-/*----------*/
+//----------
 
 void gm_linalg_set_matrix_zero_start_(MirroredBuf* matrix_buf, CEnv* env);
 
@@ -63,7 +63,7 @@ void gm_linalg_gemm_magma_start(size_t m, size_t n, size_t k,
   const void* matA, size_t ldda, const void* matB, size_t lddb,
   void* matC, size_t lddc, CEnv* env);
 
-/*----------*/
+//----------
 
 void gm_linalg_set_matrix_start(MirroredBuf* matrix_buf, CEnv* env);
 

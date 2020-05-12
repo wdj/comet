@@ -110,7 +110,7 @@ void install_handler() {
 #endif
 
 //=============================================================================
-/*---Inform user of usage of command---*/
+// Inform user of usage of command.
 
 void usage() {
   /* clang-format off */
@@ -563,7 +563,7 @@ void perform_run_preflight(int argc, char** argv) {
 
   if (env.compute_method() == ComputeMethod::GPU) {
 
-    /*---Perform preliminary run on GPU since sometimes first use is slower---*/
+    // Perform preliminary run on GPU since sometimes first use is slower.
 
     int num_proc = 0;
     COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_proc));
@@ -599,7 +599,7 @@ int main(int argc, char** argv) {
 
   using namespace comet; 
 
-  /*---Initialize---*/
+  // Initialize.
 
   const double t1 = System::time();
 
@@ -637,13 +637,13 @@ int main(int argc, char** argv) {
 
     MPI_Comm fast_comm;
 
-    /*---Perform preflight warmup---*/
+    // Perform preflight warmup.
 
     perform_run_preflight(argc, argv);
 
     perform_run_preflight_2(argc, argv, &fast_comm);
 
-    /*---Perform actual run---*/
+    // Perform actual run.
 
     COMET_MPI_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD));
     if (rank == 0) {
@@ -656,11 +656,11 @@ int main(int argc, char** argv) {
 
   } else {
 
-    /*---Perform preflight warmup---*/
+    // Perform preflight warmup.
 
     perform_run_preflight(argc, argv);
 
-    /*---Perform actual run---*/
+    // Perform actual run.
 
     perform_run(argc, (char**)argv, NULL, MPI_COMM_WORLD);
 

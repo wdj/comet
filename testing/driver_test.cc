@@ -65,7 +65,7 @@ bool compare_2runs(const char* options1, const char* options2) {
   if (!(can_run(options1) && can_run(options2)))
     return true;
 
-  /*---Do runs---*/
+  // Do runs.
 
   const bool is_proc_num_0 = comet::System::is_proc_num_0();
 
@@ -83,7 +83,7 @@ bool compare_2runs(const char* options1, const char* options2) {
   comet::Checksum checksum2;
   comet::perform_run(checksum2, options2);
 
-  /*---Need test result only on proc 0---*/
+  // Need test result only on proc 0.
 
   const bool is_passed = is_proc_num_0 ? checksum1.is_equal(checksum2) : true;;
 
@@ -100,7 +100,7 @@ bool compare_3runs(const char* options1,
   if (!(can_run(options1) && can_run(options2) && can_run(options3)))
     return true;
 
-  /*---Do runs---*/
+  // Do runs.
 
   const bool is_proc_num_0 = comet::System::is_proc_num_0();
 
@@ -122,7 +122,7 @@ bool compare_3runs(const char* options1,
   comet::Checksum checksum3;
   comet::perform_run(checksum3, options3);
 
-  /*---Need test result only on proc 0---*/
+  // Need test result only on proc 0.
 
   const bool is_passed = is_proc_num_0 ?  checksum1.is_equal(checksum2) &&
                                           checksum1.is_equal(checksum3) : true;
