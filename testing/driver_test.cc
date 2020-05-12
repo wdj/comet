@@ -652,6 +652,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  GMVectors_initialize(vectors, env);
 
   if (env->is_proc_active()) {
     {
@@ -767,6 +768,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  GMVectors_initialize(vectors, env);
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -939,6 +941,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  GMVectors_initialize(vectors, env);
 
   if (env->is_proc_active()) {
     // entry choices, binary representation
@@ -1097,6 +1100,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  GMVectors_initialize(vectors, env);
 
   if (env->is_proc_active()) {
     {
@@ -1247,6 +1251,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   options += " --num_proc_vector " + std::to_string(1);
   options += " --tc 4";
   options += " --verbosity 1";
+  options += " --threshold .25"; //FIX
   if (!can_run(options.c_str()))
     return;
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
@@ -1259,6 +1264,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  GMVectors_initialize(vectors, env);
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -1542,6 +1548,7 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   GMVectors vectors_value = GMVectors_null();
   GMVectors* vectors = &vectors_value;
   GMVectors_create(vectors, env->data_type_vectors(), dm, env);
+  GMVectors_initialize(vectors, env);
 
   if (env->is_proc_active()) {
     const int UN = 2 * 1 + 1 * 0;
@@ -2449,7 +2456,8 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
-#if 1
+//FIX
+#if 0
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2465,11 +2473,13 @@ TEST(DriverTest, tc) {
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();
 }
+#endif
 
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
 
+#if 0
 TEST(DriverTest, duo3_simple_sparse) {
   DriverTest_duo3_simple_sparse_();
 }
@@ -2501,13 +2511,11 @@ TEST(DriverTest, ccc2) {
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
-#endif
 
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }
 
-#if 1
 TEST(DriverTest, duo3) {
   DriverTest_duo3_();
 }

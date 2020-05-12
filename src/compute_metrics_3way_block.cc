@@ -52,7 +52,11 @@ ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env)
     const int matXitem_buf_num_cols = env_.form_matX_tc() ? 1 : nvl;
     matXitem_buf_[i]->allocate(npvfl, matXitem_buf_num_cols);
     matB_buf_[i]->allocate(nvl, nvl);
-    matB_buf_[i]->set_zero_h(); // ensure determinism
+    // ensure determinism
+    matXitem_buf_[i]->set_zero_h();
+    matXitem_buf_[i]->to_accel();
+    matB_buf_[i]->set_zero_h();
+    matB_buf_[i]->to_accel();
   }
   if (env_.does_3way_need_2way()) {
     matM_ij_buf_.allocate(nvl, nvl);

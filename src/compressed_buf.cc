@@ -57,6 +57,8 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
 
   num_runs_buf_.allocate(1, 1, sizeof(size_t));
 
+  // Anticipate size.
+  reduce_workspace_buf_.allocate(1, 1, sizeof(char));
 }
 
 //-----------------------------------------------------------------------------
@@ -70,7 +72,7 @@ void CompressedBuf::attach(MirroredBuf& buf) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Compute number of nonzero MFTTypeIn values in buffer device mem.
+/// \brief Compute number of nonzero MFTTypeIn values in buffer device memory.
 
 void CompressedBuf::compute_num_nonzeros_() {
   COMET_INSIST(can_compress_());
@@ -82,24 +84,38 @@ void CompressedBuf::compute_num_nonzeros_() {
     ReductionOp reduction_op;
     size_t temp_storage_bytes = 0;
 
-    cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
+    // Get amount of temp storage needed.
+
+    const MFTTypeIn initial_value = ReductionOp::INITIAL_VALUE;
+
+    cub::DeviceReduce::Reduce(NULL,
       temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-      length_(), reduction_op, (MFTTypeIn)0, env_.stream_compute());
+      length_(), reduction_op, initial_value, env_.stream_compute());
+    num_nonzeros_buf_.from_accel(env_.stream_compute());
+
+    // Re/allocate temp storage.
 
     if (temp_storage_bytes > reduce_workspace_buf_.size()) {
       reduce_workspace_buf_.deallocate();
-      reduce_workspace_buf_.allocate(temp_storage_bytes, 1, sizeof(char));
+      // Allocate slightly extra to allow some future growth.
+      const double fuzz = 0;
+      const size_t alloc_size = temp_storage_bytes * (1+fuzz);
+      reduce_workspace_buf_.allocate(alloc_size, 1, sizeof(char));
     }
+
+    // Perform reduction.
 
     cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
       temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-      length_(), reduction_op, (MFTTypeIn)0, env_.stream_compute());
+      length_(), reduction_op, initial_value, env_.stream_compute());
+
+    // Retrieve count.
+    // NOTE: this value may be approximate, since reduction is over floats.
 
     num_nonzeros_buf_.from_accel(env_.stream_compute());
 
-    // NOTE: this may be approximate, since reduction is over floats.
     num_nonzeros_approx_ = (size_t)
-      -num_nonzeros_buf_.elt_const<MFTTypeIn>(0, 0);
+      -(num_nonzeros_buf_.elt_const<MFTTypeIn>(0, 0) - initial_value);
 
 # elif defined COMET_USE_HIP
 
@@ -118,34 +134,49 @@ void CompressedBuf::compress() {
 
   compute_num_nonzeros_();
 
-  do_compress_ = num_nonzeros_approx_ <= compress_multiplier_() * length_();
+  do_compress_ = num_nonzeros_approx_ <= compress_threshold_() * length_();
+//  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>> %f %f %i %i %i\n", (double)length_(), (double)num_nonzeros_approx_, do_compress_, (int)buf_->size(), (int)length_max_);
 
   if (do_compress_) {
 
     COMET_INSIST(State::IDLE == state_);
 
 #   if defined COMET_USE_CUDA
-      // see https://nvlabs.github.io/cub/structcub_1_1_device_run_length_encode.html
+      //https://nvlabs.github.io/cub/structcub_1_1_device_run_length_encode.html
       size_t temp_storage_bytes = 0;
 
-      cub::DeviceRunLengthEncode::Encode((Workspace_t*)rle_workspace_buf_.d,
+      // Get amount of temp storage needed.
+
+      cub::DeviceRunLengthEncode::Encode(NULL,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
         (size_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
         env_.stream_compute());
+      num_runs_buf_.from_accel(env_.stream_compute());
+
+      // Re/allocate temp storage.
 
       if (temp_storage_bytes > rle_workspace_buf_.size()) {
         rle_workspace_buf_.deallocate();
-        rle_workspace_buf_.allocate(temp_storage_bytes, 1, sizeof(char));
+        // Allocate slightly extra to allow some future growth.
+        const double fuzz = 0;
+        const size_t alloc_size = temp_storage_bytes * (1+fuzz);
+        rle_workspace_buf_.allocate(alloc_size, 1, sizeof(char));
       }
+
+      // Perform RLE.
 
       cub::DeviceRunLengthEncode::Encode((Workspace_t*)rle_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
         (size_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
         env_.stream_compute());
+
+      // Retrieve size.
 
       num_runs_buf_.from_accel(env_.stream_compute());
 
       num_runs_ = num_runs_buf_.elt_const<size_t>(0, 0);
+
+      // Create right-sized buf aliases to later capture run lengths/keys.
 
       keys_alias_buf_.allocate(keys_buf_, num_runs_);
       lengths_alias_buf_.allocate(lengths_buf_, num_runs_);
@@ -170,6 +201,9 @@ void CompressedBuf::from_accel_start() {
     keys_alias_buf_.from_accel_start();
     lengths_alias_buf_.from_accel_start();
     state_ = State::TRANSFER_STARTED;
+
+    buf_->from_accel_start(); //FIX
+
   } else {
     buf_->from_accel_start();
   }
@@ -183,7 +217,44 @@ void CompressedBuf::from_accel_wait() {
     COMET_INSIST(State::TRANSFER_STARTED == state_);
     keys_alias_buf_.from_accel_wait();
     lengths_alias_buf_.from_accel_wait();
+
+    // Eliminate all runs of zeros - unneeded.
+
+    int i_new = 0;
+    for (size_t i=0; i<num_runs_; ++i) {
+      const MFTTypeIn key = keys_alias_buf_.elt_const<MFTTypeIn>(i, 0);
+      if (0 == key)
+        continue;
+      const size_t length = lengths_alias_buf_.elt_const<size_t>(i, 0);
+      keys_alias_buf_.elt<MFTTypeIn>(i_new, 0) = key;
+      lengths_alias_buf_.elt<size_t>(i_new, 0) = length;
+      i_new++;
+    } // for i
+
+    num_runs_ = i_new;
+
+#if 1
+    for (size_t i=0; i<num_runs_; ++i) {
+      printf("%i %i %f\n", (int)i,
+        (int)lengths_alias_buf_.elt_const<size_t>(i, 0),
+        (double)keys_alias_buf_.elt_const<MFTTypeIn>(i, 0) ); 
+    }
+#endif
+
     state_ = State::IDLE;
+    is_reading_started_ = false;
+    ind_rle_ = 0;
+
+    buf_->from_accel_wait(); //FIX
+
+#if 1
+    for (size_t i=0; i<64; ++i) {
+      if ((double)(((MFTTypeIn*)(buf_->h))[i]))
+        printf("%i %f\n", (int)i,
+          (double)(((MFTTypeIn*)(buf_->h))[i]));
+    }
+#endif
+
   } else {
     buf_->from_accel_wait();
   }

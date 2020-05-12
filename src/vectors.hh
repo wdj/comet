@@ -64,6 +64,8 @@ void GMVectors_create_with_buf(GMVectors* vectors,
 
 //-----------------------------------------------------------------------------
 
+void GMVectors_initialize(GMVectors* vectors, CEnv* env);
+
 void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env);
 
 //=============================================================================

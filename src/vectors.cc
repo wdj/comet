@@ -33,7 +33,46 @@ GMVectors GMVectors_null() {
 }
 
 //=============================================================================
+// Set vector entries to zero.
+
+void GMVectors_initialize(GMVectors* vectors, CEnv* env) {
+  COMET_INSIST(vectors && env);
+
+  if (! env->is_proc_active()) {
+    return;
+  }
+
+  const size_t pfl_min = 0;
+  const size_t pfl_max = vectors->dm->num_packedfield_local;
+
+  switch (vectors->data_type_id) {
+    case GM_DATA_TYPE_FLOAT: {
+      GMFloat zero = 0;
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
+          GMVectors_float_set(vectors, pfl, vl, zero, env);
+        }
+      }
+    } break;
+    case GM_DATA_TYPE_BITS2: {
+      const GMBits2x64 zero = GMBits2x64_null();
+      for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
+        for (size_t pfl = pfl_min; pfl < pfl_max; ++pfl) {
+          GMVectors_bits2x64_set(vectors, pfl, vl, zero, env);
+        } // for pfl
+      }
+    } break;
+    default:
+      COMET_INSIST(false && "Invalid vectors data_type_id.");
+  } // switch
+}
+
+//=============================================================================
 // Set unused (pad) vector entries to zero.
+
+//TODO: initialize pad vectors as well as pad fields !!!
+
+// TODO: consider check to make sure user has set all vector entries (?).
 
 void GMVectors_initialize_pad(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);
