@@ -36,6 +36,7 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
   , lengths_alias_buf_(env)
   , reduce_workspace_buf_(env)
   , rle_workspace_buf_(env)
+    // NOTE: assume this is the largest size to ever be used.
   , length_max_(buf_->dim0 * buf_->dim1 * NUM_VALUES_PER_METRIC)
   , num_nonzeros_approx_(0)
   , do_compress_(false)
@@ -57,7 +58,7 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
 
   num_runs_buf_.allocate(1, 1, sizeof(size_t));
 
-  // Anticipate size.
+  // Anticipate size--usually seems to be = 1.
   reduce_workspace_buf_.allocate(1, 1, sizeof(char));
 }
 
@@ -135,7 +136,6 @@ void CompressedBuf::compress() {
   compute_num_nonzeros_();
 
   do_compress_ = num_nonzeros_approx_ <= compress_threshold_() * length_();
-//  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>> %f %f %i %i %i\n", (double)length_(), (double)num_nonzeros_approx_, do_compress_, (int)buf_->size(), (int)length_max_);
 
   if (do_compress_) {
 
@@ -201,8 +201,7 @@ void CompressedBuf::from_accel_start() {
     keys_alias_buf_.from_accel_start();
     lengths_alias_buf_.from_accel_start();
     state_ = State::TRANSFER_STARTED;
-
-    buf_->from_accel_start(); //FIX
+    //buf_->from_accel_start();
 
   } else {
     buf_->from_accel_start();
@@ -218,22 +217,7 @@ void CompressedBuf::from_accel_wait() {
     keys_alias_buf_.from_accel_wait();
     lengths_alias_buf_.from_accel_wait();
 
-    // Eliminate all runs of zeros - unneeded.
-
-    int i_new = 0;
-    for (size_t i=0; i<num_runs_; ++i) {
-      const MFTTypeIn key = keys_alias_buf_.elt_const<MFTTypeIn>(i, 0);
-      if (0 == key)
-        continue;
-      const size_t length = lengths_alias_buf_.elt_const<size_t>(i, 0);
-      keys_alias_buf_.elt<MFTTypeIn>(i_new, 0) = key;
-      lengths_alias_buf_.elt<size_t>(i_new, 0) = length;
-      i_new++;
-    } // for i
-
-    num_runs_ = i_new;
-
-#if 1
+#if 0
     for (size_t i=0; i<num_runs_; ++i) {
       printf("%i %i %f\n", (int)i,
         (int)lengths_alias_buf_.elt_const<size_t>(i, 0),
@@ -241,13 +225,12 @@ void CompressedBuf::from_accel_wait() {
     }
 #endif
 
+    reader_.init();
+
     state_ = State::IDLE;
-    is_reading_started_ = false;
-    ind_rle_ = 0;
+    //buf_->from_accel_wait();
 
-    buf_->from_accel_wait(); //FIX
-
-#if 1
+#if 0
     for (size_t i=0; i<64; ++i) {
       if ((double)(((MFTTypeIn*)(buf_->h))[i]))
         printf("%i %f\n", (int)i,
@@ -256,7 +239,9 @@ void CompressedBuf::from_accel_wait() {
 #endif
 
   } else {
+
     buf_->from_accel_wait();
+
   }
 }
 

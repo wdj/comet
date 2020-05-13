@@ -11,12 +11,29 @@
 #ifndef _comet_compressed_buf_hh_
 #define _comet_compressed_buf_hh_
 
+#include <type_traits>
+
 #include "env.hh"
 #include "mirrored_buf.hh"
 
 //=============================================================================
 
 namespace comet {
+
+//-----------------------------------------------------------------------------
+
+class CompressedBuf;
+
+template<typename T>
+struct CompressedBufHelper {
+  static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
+};
+
+template<>
+struct CompressedBufHelper<Tally2x2<MetricFormat::SINGLE>> {
+  typedef Tally2x2<MetricFormat::SINGLE> T;
+  static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
+};
 
 //-----------------------------------------------------------------------------
 
@@ -37,6 +54,21 @@ class CompressedBuf {
           TRANSFER_STARTED = 2};
   };
 
+  struct Reader {
+
+    bool is_reading_started;
+    size_t ind_prev;
+    size_t ind_runs;
+    size_t lengths_sum;
+
+    void init() {
+      is_reading_started = false;;
+      ind_prev = 0;
+      ind_runs = 0;
+      lengths_sum = 0;
+    }
+  };
+
 public:
 
   CompressedBuf(MirroredBuf& buf, CEnv& env);
@@ -47,48 +79,15 @@ public:
   void from_accel_wait();
 
   template<typename T>
-  T elt_const(size_t i0, size_t i1) const {
-    if (do_compress_) {
-      COMET_ASSERT(State::IDLE == state_);
-      COMET_ASSERT(i0 < buf_->dim0 && i1 < buf_->dim1);
-      const size_t i = i0 + buf_->dim0 * i1;
-      COMET_ASSERT(is_reading_started_ ? i > i_prev_ : 0 == i);
-
-printf("%i %i %i\n", (int)i, (int)i0, (int)i1); // FIX
-
-      is_reading_started_ = true;
-      i_prev_ = i;
-
-
-#if 0
-
-temporary 2x2 table; initialize to zero
-static assertion to check T is correct type
-loop over 4 table elements in proper order
-  map from i and table index to TypeIn index
-  march down rle from current location to get at or past sought entry, or to end
-  manage run lengths vs. start pointers (scan-sums)
-  is NOT an error if we skip something in the rle
-  if found nonzero, insert
-
-#endif
-
-
-      // TODO
-      // FIX
-      return buf_->elt_const<T>(i0, i1);
-      // FIX
-
-
-    } else {
-      return buf_->elt_const<T>(i0, i1);
-    }
+  T elt_const(size_t ind0, size_t ind1) const {
+    return CompressedBufHelper<T>::elt_const(ind0, ind1, this);
   }
 
-  static bool can_compress(CEnv& env) {return env.threshold_tc() &&
-                                              env.is_compute_method_gpu() &&
-                                              !env.do_reduce();}
-//FIX
+  static bool can_compress(CEnv& env) {return
+    env.threshold_tc() &&
+    env.num_way() == NUM_WAY::_3 && // TODO: implement for 2-way
+    env.is_compute_method_gpu() &&
+    !env.do_reduce();}
 //  static bool can_compress(CEnv& env) {return false;}
 
   void attach(MirroredBuf& buf);
@@ -122,9 +121,7 @@ private:
 
   int state_;
 
-  size_t mutable i_prev_;
-  bool mutable is_reading_started_;
-  size_t mutable ind_rle_;
+  mutable Reader reader_;
 
   //bool is_open_;
   //size_t read_ptr_;
@@ -141,6 +138,8 @@ private:
     COMET_INSIST(length <= length_max_);
     return length;
  }
+
+  template<typename> friend class CompressedBufHelper;
 
   // Disallowed methods.
   CompressedBuf(const CompressedBuf&);
@@ -167,6 +166,90 @@ public:
   };
 
 }; // CompressedBuf
+
+//-----------------------------------------------------------------------------
+
+template<typename T> T CompressedBufHelper<T>::
+elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
+  return cbuf->buf_->elt_const<T>(ind0, ind1);
+}
+
+inline Tally2x2<MetricFormat::SINGLE>
+CompressedBufHelper<Tally2x2<MetricFormat::SINGLE>>::
+elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
+  typedef Tally2x2<MetricFormat::SINGLE> T;
+  typedef CompressedBuf CBuf;
+  typedef CBuf::MFTTypeIn MFTTypeIn;
+  const MirroredBuf* buf_ = cbuf->buf_;
+  CompressedBuf::Reader& reader_ = cbuf->reader_;
+
+  if (cbuf->do_compress_) {
+
+    COMET_ASSERT(CBuf::State::IDLE == cbuf->state_);
+    COMET_ASSERT(ind0 < buf_->dim0 && ind1 < buf_->dim1);
+    const size_t ind = ind0 + buf_->dim0 * ind1;
+    COMET_ASSERT(ind > reader_.ind_prev || ! reader_.is_reading_started);
+
+    reader_.is_reading_started = true;
+    reader_.ind_prev = ind;
+
+    T result = T::null();
+
+#ifdef COMET_ASSERTIONS_ON
+    // number of TypeIn (float) entries of (uncompressed) buf.
+    const size_t dim_typein = 4 * buf_->dim0 * buf_->dim1;
+#endif
+
+    const size_t dim_runs = cbuf->num_runs_;
+    size_t& ind_runs = reader_.ind_runs;
+
+    // Loop to look for, pick up 4 table entries.
+
+    // NOTE: order of next 2 nested loops must match mem layout of Tally2x2,
+    // since that is the order of elts submiotted to the rle.
+
+    for (int i0=0; i0<2; ++i0) {
+      for (int i1=0; i1<2; ++i1) {
+
+        // index for typein value in (uncompressed) array.
+        const size_t ind_typein = i1 + 2 * ( i0 + 2 * ind );
+
+        COMET_ASSERT(ind_typein >= reader_.lengths_sum);
+        COMET_ASSERT(ind_typein < dim_typein);
+
+        // Loop over rle, starting at current location, to seek element.
+
+        for( ; ind_runs < dim_runs; ) {
+
+            const size_t length_run =
+              cbuf->lengths_alias_buf_.elt_const<size_t>(ind_runs, 0);
+            const size_t ind_typein_min = reader_.lengths_sum;
+            const size_t ind_typein_max = reader_.lengths_sum + length_run;
+
+            if (ind_typein >= ind_typein_min &&
+                ind_typein < ind_typein_max) {
+              const MFTTypeIn key_run =
+                cbuf->keys_alias_buf_.elt_const<MFTTypeIn>(ind_runs, 0);
+              T::set(result, i0, i1, key_run);
+              break;
+            }
+
+            ++ind_runs;
+            reader_.lengths_sum += length_run;
+
+        } // for
+
+      } // for i1
+    } // for i0
+
+    //COMET_ASSERT(buf_->elt_const<T>(ind0, ind1)==result);
+    //return buf_->elt_const<T>(ind0, ind1);
+    return result;
+
+  } else {
+    return buf_->elt_const<T>(ind0, ind1);
+  }
+}
 
 //=============================================================================
 

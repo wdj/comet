@@ -41,21 +41,21 @@ public:
   void deallocate();
 
   template<typename T>
-  T& elt(size_t i0, size_t i1) {
+  T& elt(size_t ind0, size_t ind1) {
     COMET_ASSERT(is_allocated);
-    COMET_ASSERT(i0+1 >= 0+1 && i0 < dim0);
-    COMET_ASSERT(i1+1 >= 0+1 && i1 < dim1);
+    COMET_ASSERT(ind0+1 >= 0+1 && ind0 < dim0);
+    COMET_ASSERT(ind1+1 >= 0+1 && ind1 < dim1);
 
-    return ((T*)(h))[i0 + dim0 * i1];
+    return ((T*)(h))[ind0 + dim0 * ind1];
   }
 
   template<typename T>
-  T elt_const(size_t i0, size_t i1) const {
+  T elt_const(size_t ind0, size_t ind1) const {
     COMET_ASSERT(is_allocated);
-    COMET_ASSERT(i0+1 >= 0+1 && i0 < dim0);
-    COMET_ASSERT(i1+1 >= 0+1 && i1 < dim1);
+    COMET_ASSERT(ind0+1 >= 0+1 && ind0 < dim0);
+    COMET_ASSERT(ind1+1 >= 0+1 && ind1 < dim1);
 
-    return ((T*)(h))[i0 + dim0 * i1];
+    return ((T*)(h))[ind0 + dim0 * ind1];
   }
 
   void set_zero_h();

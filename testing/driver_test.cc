@@ -1251,7 +1251,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   options += " --num_proc_vector " + std::to_string(1);
   options += " --tc 4";
   options += " --verbosity 1";
-  options += " --threshold .25"; //FIX
+  options += " --threshold .0025";
   if (!can_run(options.c_str()))
     return;
   CEnv env_value(MPI_COMM_WORLD, options.c_str());
@@ -1856,7 +1856,7 @@ void DriverTest_threshold_() {
 
     for (int num_way : {2, 3})
     for (int metric_type : {MT::CCC, MT::DUO})
-    for (double threshold : {.65, 0.})
+    for (double threshold : {.65, .25, 0.})
     for (int compute_method : {CM::CPU, CM::GPU})
     for (int tc=1; tc<comet::TC::NUM; ++tc) {
       sprintf(options1, options_template, MT::str(metric_type),
@@ -2456,14 +2456,13 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
-//FIX
-#if 0
-TEST(DriverTest, file_output) {
-  DriverTest_file_output_();
-}
-
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
+}
+
+#if 1
+TEST(DriverTest, file_output) {
+  DriverTest_file_output_();
 }
 
 TEST(DriverTest, tc) {
@@ -2479,7 +2478,7 @@ TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
 
-#if 0
+#if 1
 TEST(DriverTest, duo3_simple_sparse) {
   DriverTest_duo3_simple_sparse_();
 }

@@ -14,7 +14,6 @@
 #include "cstdint"
 #include "cfloat"
 #include <limits>
-//#include <cstdio> // FIX
 
 #include "assertions.hh"
 
@@ -264,6 +263,15 @@ template<int METRIC_FORMAT> struct Tally2x2 {
     TypeIn results[2];
     MFT::decode(results[0], results[1], data);
     return results[i1];
+  }
+
+  __host__ __device__ 
+  static void set(This_t& value, int i0, int i1, TypeIn v) {
+    Type& data = value.data[i0];
+    TypeIn results[2];
+    MFT::decode(results[0], results[1], data);
+    results[i1] = v;
+    MFT::encode(data, results[0], results[1]);
   }
 };
 
