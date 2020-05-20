@@ -522,10 +522,10 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         if (vi >= nva || vj >= nva) {
           continue;
         }
-        for (int i0 = 0; i0 < 2; ++i0) {
-          for (int i1 = 0; i1 < 2; ++i1) {
+        for (int iE = 0; iE < 2; ++iE) {
+          for (int jE = 0; jE < 2; ++jE) {
             const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
-              index, i0, i1, *env);
+              index, iE, jE, *env);
 
             GMTally1 rij = 0;
             GMTally1 si = 0;
@@ -563,26 +563,26 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               if (! unknown_i) {
                 ci += gs_this;
                 si += cbpe == 2 ?
-                  ((bval_i_0 == i0) + (bval_i_1 == i0)) * gs_this :
-                  (bval_i_0 == i0) * gs_this;
+                  ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
+                  (bval_i_0 == iE) * gs_this;
               }
 
               if (! unknown_j) {
                 cj += gs_this;
                 sj += cbpe == 2 ?
-                  ((bval_j_0 == i1) + (bval_j_1 == i1)) * gs_this :
-                  (bval_j_0 == i1) * gs_this;
+                  ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
+                  (bval_j_0 == jE) * gs_this;
               }
 
               if (! unknown_ij) {
                 cij += cbpe * cbpe * gs_this;
                 rij += cbpe == 2 ?
-                       (((bval_i_0 == i0) && (bval_j_0 == i1)) +
-                        ((bval_i_0 == i0) && (bval_j_1 == i1)) +
-                        ((bval_i_1 == i0) && (bval_j_0 == i1)) +
-                        ((bval_i_1 == i0) && (bval_j_1 == i1))) *
+                       (((bval_i_0 == iE) && (bval_j_0 == jE)) +
+                        ((bval_i_0 == iE) && (bval_j_1 == jE)) +
+                        ((bval_i_1 == iE) && (bval_j_0 == jE)) +
+                        ((bval_i_1 == iE) && (bval_j_1 == jE))) *
                        gs_this :
-                       ((bval_i_0 == i0) && (bval_j_0 == i1)) *
+                       ((bval_i_0 == iE) && (bval_j_0 == jE)) *
                        gs_this;
               }
             } //---g
@@ -667,11 +667,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
         if (vi >= nva || vj >= nva || vk >= nva) {
           continue;
         }
-        for (int i0 = 0; i0 < 2; ++i0) {
-          for (int i1 = 0; i1 < 2; ++i1) {
-            for (int i2 = 0; i2 < 2; ++i2) {
+        for (int iE = 0; iE < 2; ++iE) {
+          for (int jE = 0; jE < 2; ++jE) {
+            for (int kE = 0; kE < 2; ++kE) {
               const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
-                index, i0, i1, i2, *env);
+                index, iE, jE, kE, *env);
 
               GMTally1 rijk = 0;
               GMTally1 si = 0;
@@ -719,38 +719,38 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 if (! unknown_i) {
                   ci += gs_this;
                   si += cbpe == 2 ?
-                    ((bval_i_0 == i0) + (bval_i_1 == i0)) * gs_this :
-                    (bval_i_0 == i0) * gs_this;
+                    ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
+                    (bval_i_0 == iE) * gs_this;
                 }
 
                 if (! unknown_j) {
                   cj += gs_this;
                   sj += cbpe == 2 ?
-                    ((bval_j_0 == i1) + (bval_j_1 == i1)) * gs_this :
-                    (bval_j_0 == i1) * gs_this;
+                    ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
+                    (bval_j_0 == jE) * gs_this;
                 }
 
                 if (! unknown_k) {
                   ck += gs_this;
                   sk += cbpe == 2 ?
-                    ((bval_k_0 == i2) + (bval_k_1 == i2)) * gs_this :
-                    (bval_k_0 == i2) * gs_this;
+                    ((bval_k_0 == kE) + (bval_k_1 == kE)) * gs_this :
+                    (bval_k_0 == kE) * gs_this;
                 }
 
                 if (! unknown_ijk) {
                   cijk += cbpe * cbpe * cbpe * gs_this;
                   rijk += cbpe == 2 ?
-                          (((bval_i_0==i0) && (bval_j_0==i1) && (bval_k_0==i2))+
-                           ((bval_i_1==i0) && (bval_j_0==i1) && (bval_k_0==i2))+
-                           ((bval_i_0==i0) && (bval_j_1==i1) && (bval_k_0==i2))+
-                           ((bval_i_1==i0) && (bval_j_1==i1) && (bval_k_0==i2))+
-                           ((bval_i_0==i0) && (bval_j_0==i1) && (bval_k_1==i2))+
-                           ((bval_i_1==i0) && (bval_j_0==i1) && (bval_k_1==i2))+
-                           ((bval_i_0==i0) && (bval_j_1==i1) && (bval_k_1==i2))+
-                           ((bval_i_1==i0) && (bval_j_1==i1) && (bval_k_1==i2)))
+                          (((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
+                           ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
+                           ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
+                           ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
+                           ((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
+                           ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
+                           ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_1==kE))+
+                           ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_1==kE)))
                          * gs_this :
-                         ((bval_i_0 == i0) && (bval_j_0 == i1) &&
-                          (bval_k_0 == i2)) * gs_this;
+                         ((bval_i_0 == iE) && (bval_j_0 == jE) &&
+                          (bval_k_0 == kE)) * gs_this;
                 }
               } //---g
 

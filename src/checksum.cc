@@ -152,7 +152,7 @@ double Checksum::metrics_elt(
   // computed based on the parallel decomposition.
   // This permutation puts the indices into a uniform order
   // so that this is not viewed as a difference in the results.
-  // Note also below we will permute i0 / i1 / i2 as needed.
+  // Note also below we will permute iE / jE / kE as needed.
   makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
   makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
   makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
@@ -166,30 +166,30 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
-      const int i0_unpermuted = i_value / 2;
-      const int i1_unpermuted = i_value % 2;
-      const int i0 = ind_coords[0] == 0 ? i0_unpermuted : i1_unpermuted;
-      const int i1 = ind_coords[0] == 0 ? i1_unpermuted : i0_unpermuted;
-      value = Metrics_ccc_duo_get_2(metrics, index, i0, i1, env);
+      const int iE_unpermuted = i_value / 2;
+      const int jE_unpermuted = i_value % 2;
+      const int iE = ind_coords[0] == 0 ? iE_unpermuted : jE_unpermuted;
+      const int jE = ind_coords[0] == 0 ? jE_unpermuted : iE_unpermuted;
+      value = Metrics_ccc_duo_get_2(metrics, index, iE, jE, env);
       if (!env.is_double_prec()) {
         value = (double)(float)value; // ensure result independent of threshold_tc
       }
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
-      const int i0_unpermuted = i_value / 4;
-      const int i1_unpermuted = (i_value / 2) % 2;
-      const int i2_unpermuted = i_value % 2;
-      const int i0 = ind_coords[0] == 0 ? i0_unpermuted :
-                     ind_coords[1] == 0 ? i1_unpermuted :
-                                          i2_unpermuted;
-      const int i1 = ind_coords[0] == 1 ? i0_unpermuted :
-                     ind_coords[1] == 1 ? i1_unpermuted :
-                                          i2_unpermuted;
-      const int i2 = ind_coords[0] == 2 ? i0_unpermuted :
-                     ind_coords[1] == 2 ? i1_unpermuted :
-                                          i2_unpermuted;
-      value = Metrics_ccc_duo_get_3(metrics, index, i0, i1, i2, env);
+      const int iE_unpermuted = i_value / 4;
+      const int jE_unpermuted = (i_value / 2) % 2;
+      const int kE_unpermuted = i_value % 2;
+      const int iE = ind_coords[0] == 0 ? iE_unpermuted :
+                     ind_coords[1] == 0 ? jE_unpermuted :
+                                          kE_unpermuted;
+      const int jE = ind_coords[0] == 1 ? iE_unpermuted :
+                     ind_coords[1] == 1 ? jE_unpermuted :
+                                          kE_unpermuted;
+      const int kE = ind_coords[0] == 2 ? iE_unpermuted :
+                     ind_coords[1] == 2 ? jE_unpermuted :
+                                          kE_unpermuted;
+      value = Metrics_ccc_duo_get_3(metrics, index, iE, jE, kE, env);
       if (!env.is_double_prec()) {
         value = (double)(float)value; // ensure result independent of threshold_tc
       }

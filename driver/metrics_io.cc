@@ -82,24 +82,24 @@ void MetricIO::write(size_t iG, size_t jG, size_t kG,
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CCC/DUO 2-way case.
 
-void MetricIO::write(size_t iG, size_t jG, int i0, int i1,
+void MetricIO::write(size_t iG, size_t jG, int iE, int jE,
                          GMFloat value) const {
-  COMET_ASSERT(i0 >= 0 && i0 < 2);
-  COMET_ASSERT(i1 >= 0 && i1 < 2);
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
 
-  write(i0 + 2 * iG, i1 + 2 * jG, value);
+  write(iE + 2 * iG, jE + 2 * jG, value);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CCC/DUO 3-way case.
 
 void MetricIO::write(size_t iG, size_t jG, size_t kG,
-                         int i0, int i1, int i2, GMFloat value) const {
-  COMET_ASSERT(i0 >= 0 && i0 < 2);
-  COMET_ASSERT(i1 >= 0 && i1 < 2);
-  COMET_ASSERT(i2 >= 0 && i2 < 2);
+                         int iE, int jE, int kE, GMFloat value) const {
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
+  COMET_ASSERT(kE >= 0 && kE < 2);
 
-  write(i0 + 2 * iG, i1 + 2 * jG, i2 + 2 * kG, value);
+  write(iE + 2 * iG, jE + 2 * jG, kE + 2 * kG, value);
 }
 
 //=============================================================================
@@ -120,16 +120,16 @@ static void MetricsIO_write_tally2x2_bin_impl_(
 
   // Number of index values values visited for one pass across buffer
   const size_t num_buf_ind = 1000 * 1000;
-  // Number of (index, i0, i1) entries (potentially) stored in buffer
+  // Number of (index, iE, jE) entries (potentially) stored in buffer
   const size_t num_buf = 4 * num_buf_ind;
 
   // Each buffer entry contains: whether value is to be written,
-  // iG, jG, i0, i1, and value
+  // iG, jG, iE, jE, and value
 
   char* const do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
   int* const iG_buf = (int*)malloc(num_buf*sizeof(*iG_buf));
   int* const jG_buf = (int*)malloc(num_buf*sizeof(*jG_buf));
-  int* const i01_buf = (int*)malloc(num_buf*sizeof(*i01_buf));
+  int* const ijE_buf = (int*)malloc(num_buf*sizeof(*ijE_buf));
   GMFloat* const value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
 
   for (int i=0; i<(int)num_buf; ++i)
@@ -148,11 +148,11 @@ static void MetricsIO_write_tally2x2_bin_impl_(
       // Do any of the values exceed the threshold
       if (Metrics_ccc_duo_get_threshold_2<COUNTED_BITS_PER_ELT>(
             *metrics, index, *env)) {
-        for (int i0 = 0; i0 < 2; ++i0) {
-          for (int i1 = 0; i1 < 2; ++i1) {
+        for (int iE = 0; iE < 2; ++iE) {
+          for (int jE = 0; jE < 2; ++jE) {
             const GMFloat value =
               Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
-               i0, i1, *env);
+               iE, jE, *env);
             if (env->pass_threshold(value)) {
               const size_t iG =
                 GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -160,16 +160,16 @@ static void MetricsIO_write_tally2x2_bin_impl_(
                 GMMetrics_coord_global_from_index(metrics, index, 1, env);
               const char do_out = iG < metrics->num_vector_active &&
                                   jG < metrics->num_vector_active;
-              const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
+              const size_t ind_buf = jE + 2*(iE + 2*(index-ind_base));
               COMET_ASSERT(ind_buf < num_buf);
               do_out_buf[ind_buf] = do_out;
               iG_buf[ind_buf] = iG;
               jG_buf[ind_buf] = jG;
-              i01_buf[ind_buf] = i0 + 2*i1;
+              ijE_buf[ind_buf] = iE + 2*jE;
               value_buf[ind_buf] = value;
             } // if
-          } // i1
-        } // i0
+          } // jE
+        } // iE
       }
     } // pragma omp / for index
 
@@ -189,11 +189,11 @@ static void MetricsIO_write_tally2x2_bin_impl_(
           const size_t ind_buf = (do_out_ptr - (multi_t*)do_out_buf - 1)*4 + i;
           COMET_ASSERT(ind_buf < num_buf);
           if (do_out_buf[ind_buf]) {
-            const int i0 = i01_buf[ind_buf] % 2;
-            const int i1 = i01_buf[ind_buf] / 2;
+            const int iE = ijE_buf[ind_buf] % 2;
+            const int jE = ijE_buf[ind_buf] / 2;
             const size_t iG = iG_buf[ind_buf];
             const size_t jG = jG_buf[ind_buf];
-            writer.write(iG, jG, i0, i1, value_buf[ind_buf]);
+            writer.write(iG, jG, iE, jE, value_buf[ind_buf]);
             // Reset buffer entry to false
             do_out_buf[ind_buf] = 0;
           }
@@ -208,7 +208,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
   free(do_out_buf);
   free(iG_buf);
   free(jG_buf);
-  free(i01_buf);
+  free(ijE_buf);
   free(value_buf);
 }
 
@@ -246,17 +246,17 @@ static void MetricsIO_write_tally4x2_bin_impl_(
 
   // Number of index values values visited for one pass across buffer
   const size_t num_buf_ind = 1000 * 1000;
-  // Number of (index, i0, i1) entries (potentially) stored in buffer
+  // Number of (index, iE, jE) entries (potentially) stored in buffer
   const size_t num_buf = 8 * num_buf_ind;
 
   // Each buffer entry contains: whether value is to be written,
-  // iG, jG, kG, i0, i1, i2, and value
+  // iG, jG, kG, iE, jE, kE, and value
 
   char* const do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
   int* const iG_buf = (int*)malloc(num_buf*sizeof(*iG_buf));
   int* const jG_buf = (int*)malloc(num_buf*sizeof(*jG_buf));
   int* const kG_buf = (int*)malloc(num_buf*sizeof(*kG_buf));
-  int* const i012_buf = (int*)malloc(num_buf*sizeof(*i012_buf));
+  int* const ijkE_buf = (int*)malloc(num_buf*sizeof(*ijkE_buf));
   GMFloat* const value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
 
   for (int i=0; i<(int)num_buf; ++i)
@@ -273,12 +273,12 @@ static void MetricsIO_write_tally4x2_bin_impl_(
       // Do any of the values exceed the threshold
       if (Metrics_ccc_duo_get_threshold_3<COUNTED_BITS_PER_ELT>(
              *metrics, index, *env)) {
-        for (int i0 = 0; i0 < 2; ++i0) {
-          for (int i1 = 0; i1 < 2; ++i1) {
-            for (int i2 = 0; i2 < 2; ++i2) {
+        for (int iE = 0; iE < 2; ++iE) {
+          for (int jE = 0; jE < 2; ++jE) {
+            for (int kE = 0; kE < 2; ++kE) {
               const GMFloat value =
                 Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
-                  *metrics, index, i0, i1, i2, *env);
+                  *metrics, index, iE, jE, kE, *env);
               if (env->pass_threshold(value)) {
                 const size_t iG =
                   GMMetrics_coord_global_from_index(metrics, index, 0, env);
@@ -289,17 +289,17 @@ static void MetricsIO_write_tally4x2_bin_impl_(
                 const char do_out = iG < metrics->num_vector_active &&
                                     jG < metrics->num_vector_active &&
                                     kG < metrics->num_vector_active;
-                const size_t ind_buf = i1 + 2*(i0 + 2*(i2 +2*(index-ind_base)));
+                const size_t ind_buf = jE + 2*(iE + 2*(kE +2*(index-ind_base)));
                 do_out_buf[ind_buf] = do_out;
                 iG_buf[ind_buf] = iG;
                 jG_buf[ind_buf] = jG;
                 kG_buf[ind_buf] = kG;
-                i012_buf[ind_buf] = i0 + 2*(i1 + 2*i2);
+                ijkE_buf[ind_buf] = iE + 2*(jE + 2*kE);
                 value_buf[ind_buf] = value;
               } // if
-            } // i2
-          } // i1
-        } // i0
+            } // kE
+          } // jE
+        } // iE
       }
     } // for index
 
@@ -318,13 +318,13 @@ static void MetricsIO_write_tally4x2_bin_impl_(
         for (int i=0; i<8; ++i) {
           const size_t ind_buf = (do_out_ptr - (multi_t*)do_out_buf - 1)*8 + i;
           if (do_out_buf[ind_buf]) {
-            const int i0 = i012_buf[ind_buf] % 2;
-            const int i1 = (i012_buf[ind_buf] / 2) % 2;
-            const int i2 = i012_buf[ind_buf] / 4;
+            const int iE = ijkE_buf[ind_buf] % 2;
+            const int jE = (ijkE_buf[ind_buf] / 2) % 2;
+            const int kE = ijkE_buf[ind_buf] / 4;
             const size_t iG = iG_buf[ind_buf];
             const size_t jG = jG_buf[ind_buf];
             const size_t kG = kG_buf[ind_buf];
-            writer.write(iG, jG, kG, i0,i1,i2, value_buf[ind_buf]);
+            writer.write(iG, jG, kG, iE,jE,kE, value_buf[ind_buf]);
             // Reset buffer entry to false
             do_out_buf[ind_buf] = 0;
           }
@@ -339,7 +339,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
   free(iG_buf);
   free(jG_buf);
   free(kG_buf);
-  free(i012_buf);
+  free(ijkE_buf);
   free(value_buf);
 }
 
@@ -463,10 +463,10 @@ static void MetricsIO_write_(
           jG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
-      for (int i0 = 0; i0 < 2; ++i0) {
-        for (int i1 = 0; i1 < 2; ++i1) {
+      for (int iE = 0; iE < 2; ++iE) {
+        for (int jE = 0; jE < 2; ++jE) {
           const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
-            index, i0, i1, *env);
+            index, iE, jE, *env);
           if (!env->pass_threshold(value))
             continue;
 
@@ -475,12 +475,12 @@ static void MetricsIO_write_(
           if (num_out_this_line == 0)
             fprintf(file, "element (%li,%li): values:", iG, jG);
 
-          fprintf(file, " %i %i %.17e", i0, i1, value);
+          fprintf(file, " %i %i %.17e", iE, jE, value);
 
           num_out_this_line++;
 
-        } // i1
-      } // i0
+        } // jE
+      } // iE
       if (num_out_this_line > 0)
         fprintf(file, "\n");
     } // for index
@@ -516,11 +516,11 @@ static void MetricsIO_write_(
           kG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
-      for (int i0 = 0; i0 < 2; ++i0) {
-        for (int i1 = 0; i1 < 2; ++i1) {
-          for (int i2 = 0; i2 < 2; ++i2) {
+      for (int iE = 0; iE < 2; ++iE) {
+        for (int jE = 0; jE < 2; ++jE) {
+          for (int kE = 0; kE < 2; ++kE) {
             const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
-              index, i0, i1, i2, *env);
+              index, iE, jE, kE, *env);
             if (!env->pass_threshold(value))
               continue;
 
@@ -530,13 +530,13 @@ static void MetricsIO_write_(
               fprintf(file, "element (%li,%li,%li): values:",
                 iG, jG, kG);
 
-            fprintf(file, " %i %i %i %.17e", i0, i1, i2, value);
+            fprintf(file, " %i %i %i %.17e", iE, jE, kE, value);
 
             num_out_this_line++;
 
-          } // i2
-        } // i1
-      } // i0
+          } // kE
+        } // jE
+      } // iE
       if (num_out_this_line > 0)
         fprintf(file, "\n");
     } // for index
@@ -648,11 +648,11 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const size_t iG = metric.iG(env_);
       const size_t jG = metric.jG(env_);
 
-      const int i0 = metric.i0(env_);
-      const int i1 = metric.i1(env_);
+      const int iE = metric.iE(env_);
+      const int jE = metric.jE(env_);
 
       const MetricIO::Float_t metric_value =
-        (MetricIO::Float_t)GMMetrics_get_2(metrics, iG, jG, i0, i1, env_);
+        (MetricIO::Float_t)GMMetrics_get_2(metrics, iG, jG, iE, jE, env_);
 
       const bool is_correct = metric_value == metric.value &&
                               env_.pass_threshold(metric_value);
@@ -677,12 +677,12 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const size_t jG = metric.jG(env_);
       const size_t kG = metric.kG(env_);
 
-      const int i0 = metric.i0(env_);
-      const int i1 = metric.i1(env_);
-      const int i2 = metric.i2(env_);
+      const int iE = metric.iE(env_);
+      const int jE = metric.jE(env_);
+      const int kE = metric.kE(env_);
 
       const MetricIO::Float_t metric_value = (MetricIO::Float_t)
-        GMMetrics_get_3(metrics, iG, jG, kG, i0, i1, i2, env_);
+        GMMetrics_get_3(metrics, iG, jG, kG, iE, jE, kE, env_);
 
       const bool is_correct = metric_value == metric.value &&
                               env_.pass_threshold(metric_value);
@@ -715,10 +715,10 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active)
         continue;
-      for (int i0 = 0; i0 < env_.i012_max(); ++i0) {
-        for (int i1 = 0; i1 < env_.i012_max(); ++i1) {
+      for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
+        for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
           const MetricIO::Float_t metric_value =
-            (MetricIO::Float_t)GMMetrics_get_2(metrics, index, i0, i1, env_);
+            (MetricIO::Float_t)GMMetrics_get_2(metrics, index, iE, jE, env_);
           num_passed += env_.pass_threshold(metric_value);
         }
       }
@@ -737,11 +737,11 @@ void MetricsIO::check_file(GMMetrics& metrics) {
           jG >= metrics.num_vector_active ||
           kG >= metrics.num_vector_active)
         continue;
-      for (int i0 = 0; i0 < env_.i012_max(); ++i0) {
-        for (int i1 = 0; i1 < env_.i012_max(); ++i1) {
-          for (int i2 = 0; i2 < env_.i012_max(); ++i2) {
+      for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
+        for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
+          for (int kE = 0; kE < env_.ijkE_max(); ++kE) {
             const GMFloat metric_value =
-              GMMetrics_get_3(metrics, index, i0, i1, i2, env_);
+              GMMetrics_get_3(metrics, index, iE, jE, kE, env_);
             num_passed += env_.pass_threshold(metric_value);
           }
         }

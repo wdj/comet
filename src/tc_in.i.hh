@@ -35,15 +35,15 @@ __host__ __device__ static bool is_po2(int x) {
 /// calculates exactly 4 of the required 8 metrics values.
 /// The main idea is this: the left matrix entries are calculated as
 /// the combined number of paths through corresponding elements of the I
-/// and J matrices.  For the first pass (step_2way (= i2) == 0), paths 0-0 and
+/// and J matrices.  For the first pass (step_2way (= kE) == 0), paths 0-0 and
 /// 0-1 (corresponding to I-J element values) are counted; for the second
 /// pass, paths 1-0 and 1-1.
 /// Below is a tabular representation of the values for the non-sparse CCC case.
 /// The "10" cases are omtted here because they are the same as the "01" cases.
 /// The 3-way CCC sparse case is easliy adapted from this.
 ///
-/// i2        ------>   0    0    1    1
-/// i1        ------>   0    1    0    1
+/// kE        ------>   0    0    1    1
+/// jE        ------>   0    1    0    1
 /// output    ------>  0-0  0-1  1-0  1-1
 /// --------------------------------------
 ///  m (=I)   c (=J)
@@ -64,8 +64,8 @@ __host__ __device__ static bool is_po2(int x) {
 /// The 3-way non-sparse DUO method is similar, but we only
 /// look at 1 bit of each seminibble, not 2:
 ///
-/// i2        ------>   0    0    1    1
-/// i1        ------>   0    1    0    1
+/// kE        ------>   0    0    1    1
+/// jE        ------>   0    1    0    1
 /// output    ------>  0-0  0-1  1-0  1-1
 /// --------------------------------------
 ///  m (=I)   c (=J)
@@ -81,8 +81,8 @@ template<typename GemmIn_t>
 __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
   const int snm,
   const int snc,
-  const int i1,
-  const int i2,
+  const int jE,
+  const int kE,
   const int step_2way,
   const int num_way,
   const bool is_sparse,
@@ -127,15 +127,15 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
 
              // Form X: combine the column and matrix
              snm == _UNDEF || snc == _UNDEF ? zero :
-             (snm&1) == i2 && (snc&1) == i1 ? one :
+             (snm&1) == kE && (snc&1) == jE ? one :
                                               zero
 
     ) : is_duo /* && is_sparse */ ? (
 
              // DUO: pick up low order bit (unless undefined)
              snm == _UNDEF         ? zero :
-             (snm & 1) == i1    ? one :
-          /* (snm & 1) == 1-i1 */ zero
+             (snm & 1) == jE    ? one :
+          /* (snm & 1) == 1-jE */ zero
 
     ) : num_way_3_left && is_bitwise_3way_2step
         /* && is_ccc && form_matX_tc */ ? (
@@ -143,11 +143,11 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
              // Form X: combine the column and matrix
              snm == _UNDEF && is_sparse          ? zero :
              snc == _UNDEF && is_sparse          ? zero :
-             snm == _11*(1-i2)                   ? zero :
-             snc == _11*(1-i1)                   ? zero :
+             snm == _11*(1-kE)                   ? zero :
+             snc == _11*(1-jE)                   ? zero :
              is_po2(snm) && is_po2(snc)          ? one :
-             is_po2(snm) && snc == _11*i1        ? two :
-             is_po2(snc) && snm == _11*i2        ? two :
+             is_po2(snm) && snc == _11*jE        ? two :
+             is_po2(snc) && snm == _11*kE        ? two :
           /* snm*(3-snm) + (snc)*(3-snc) == 0 */   four
 
     ) : num_way_3_left && form_matX_tc
@@ -159,16 +159,16 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
              snm == _01 && step_2way != 1 ? zero :
              snm == _10 && step_2way != 1 ? zero :
              snm == _11 && step_2way != 2 ? zero :
-             snc == _11*i1                ? two :
-             snc == _11*(1-i1)            ? zero :
+             snc == _11*jE                ? two :
+             snc == _11*(1-jE)            ? zero :
              snc == _01                   ? one :
              is_sparse                    ? zero :
           /* snc == _10 */                  one
 
     ) : /* is_ccc ... */ (
 
-             snm == _11*i1                   ? two :
-             snm == _11*(1-i1)               ? zero :
+             snm == _11*jE                   ? two :
+             snm == _11*(1-jE)               ? zero :
              snm == _01                      ? one :
              snm == _UNDEF && is_sparse      ? zero :
           /* snm == _UNDEF && num_way_3_left ? zero :*/
@@ -214,14 +214,14 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
-  const int i1 = vlX2_thread % 2; // count either 0 or 1 bits.
+  const int jE = vlX2_thread % 2; // count either 0 or 1 bits.
   const int vl_thread = vlX2_thread / 2;
 
   const int vl = is_vectors_halved && !is_right ?
                  vl_thread % nvleD2 + step_2way * nvleD2 :
                  vl_thread;
 
-  const int i2 = is_vectors_halved && !is_right ?
+  const int kE = is_vectors_halved && !is_right ?
                  vl_thread / nvleD2 :
                  step_2way;
 
@@ -265,12 +265,12 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   // NOTE: does not work for all cases.
 
   const GemmIn_t out0 = is_field_inactive_0 ? 0 :
-    tc_buf_write_kernel_value_<GemmIn_t>(snm0, snc0, i1, i2, step_2way,
+    tc_buf_write_kernel_value_<GemmIn_t>(snm0, snc0, jE, kE, step_2way,
       num_way, is_sparse, is_right, is_duo, form_matX_tc,
       is_bitwise_3way_2step);
 
   const GemmIn_t out1 = is_field_inactive_1 ? 0 :
-    tc_buf_write_kernel_value_<GemmIn_t>(snm1, snc1, i1, i2, step_2way,
+    tc_buf_write_kernel_value_<GemmIn_t>(snm1, snc1, jE, kE, step_2way,
       num_way, is_sparse, is_right, is_duo, form_matX_tc,
       is_bitwise_3way_2step);
 
@@ -281,11 +281,11 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   const int vl_index = is_right           ?   vl_thread :
                        vl_thread < nvleD2 ? 2*vl_thread :
                                             2*vl_thread - nvle + 1;
-  const int vlX2_index = i1 + 2*vl_index;
+  const int vlX2_index = jE + 2*vl_index;
 
   const int vlX2_dim = nvleX2_thread;
 
-//if (!is_right && fl_index_0==0) printf("%i %i   %i      %i %i\n", vl, i1, (int)out0, snm0, snc0);
+//if (!is_right && fl_index_0==0) printf("%i %i   %i      %i %i\n", vl, jE, (int)out0, snm0, snc0);
 
   vo[vlX2_index + vlX2_dim * (size_t)fl_index_0] = out0;
   vo[vlX2_index + vlX2_dim * (size_t)fl_index_1] = out1;

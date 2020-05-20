@@ -258,19 +258,19 @@ template<int METRIC_FORMAT> struct Tally2x2 {
   }
 
   __host__ __device__ 
-  static TypeIn get(const This_t& value, int i0, int i1) {
-    const Type data = value.data[i0];
+  static TypeIn get(const This_t& value, int iE, int jE) {
+    const Type data = value.data[iE];
     TypeIn results[2];
     MFT::decode(results[0], results[1], data);
-    return results[i1];
+    return results[jE];
   }
 
   __host__ __device__ 
-  static void set(This_t& value, int i0, int i1, TypeIn v) {
-    Type& data = value.data[i0];
+  static void set(This_t& value, int iE, int jE, TypeIn v) {
+    Type& data = value.data[iE];
     TypeIn results[2];
     MFT::decode(results[0], results[1], data);
-    results[i1] = v;
+    results[jE] = v;
     MFT::encode(data, results[0], results[1]);
   }
 };
@@ -297,8 +297,8 @@ template<int METRIC_FORMAT> struct Tally4x2 {
   }
 
   __host__ __device__ 
-  static TypeIn get(const This_t& value, int i0, int i1, int i2) {
-    const Type data = value.data[i1 + 2*i0];
+  static TypeIn get(const This_t& value, int iE, int jE, int i2) {
+    const Type data = value.data[jE + 2*iE];
     TypeIn results[2];
     MFT::decode(results[0], results[1], data);
     return results[i2];
@@ -394,14 +394,14 @@ static void GMFloat3_decode(GMTally1* __restrict__ val0,
 //-----------------------------------------------------------------------------
 // Get an entry: 2x2
 
-static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
-  COMET_ASSERT(i0 >= 0 && i0 < 2);
-  COMET_ASSERT(i1 >= 0 && i1 < 2);
+static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int iE, int jE) {
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
 
-  const uint64_t tally2 = tally2x2.data[i0];
+  const uint64_t tally2 = tally2x2.data[iE];
 
   const GMTally1 result =
-      i1 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
+      jE == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
               : tally2 / (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
   //COMET_ASSERT(result >= 0);
   COMET_ASSERT(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));
@@ -411,12 +411,12 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int i0, int i1) {
 //-----------------------------------------------------------------------------
 // Get an entry: 4x2
 
-static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int i0, int i1, int i2) {
-  COMET_ASSERT(i0 >= 0 && i0 < 2);
-  COMET_ASSERT(i1 >= 0 && i1 < 2);
+static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int iE, int jE, int i2) {
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(i2 >= 0 && i2 < 2);
 
-  const uint64_t tally2 = tally4x2.data[i1 + 2 * i0];
+  const uint64_t tally2 = tally4x2.data[jE + 2 * iE];
 
   const GMTally1 result =
       i2 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)

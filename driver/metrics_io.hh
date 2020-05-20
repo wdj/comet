@@ -46,13 +46,13 @@ public:
       COMET_ASSERT(N >= 3);
       return env.is_metric_type_bitwise() ? coords[2] / 2 : coords[2];
     }
-    uint32_t i0(const CEnv& env) const {
+    uint32_t iE(const CEnv& env) const {
       return env.is_metric_type_bitwise() ? coords[0] % 2 : 0;
     }
-    uint32_t i1(const CEnv& env) const {
+    uint32_t jE(const CEnv& env) const {
       return env.is_metric_type_bitwise() ? coords[1] % 2 : 0;
     }
-    uint32_t i2(const CEnv& env) const {
+    uint32_t kE(const CEnv& env) const {
       COMET_ASSERT(N >= 3);
       return env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
     }
@@ -63,9 +63,9 @@ public:
 
   void write(size_t iG, size_t jG, GMFloat value) const;
   void write(size_t iG, size_t jG, size_t kG, GMFloat value) const;
-  void write(size_t iG, size_t jG, int i0, int i1, GMFloat value) const;
+  void write(size_t iG, size_t jG, int iE, int jE, GMFloat value) const;
   void write(size_t iG, size_t jG, size_t kG,
-             int i0, int i1, int i2, GMFloat value) const;
+             int iE, int jE, int kE, GMFloat value) const;
 
   size_t num_written() const {return num_written_;}
 

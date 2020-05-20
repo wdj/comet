@@ -215,11 +215,11 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
     // NOTE: order of next 2 nested loops must match mem layout of Tally2x2,
     // since that is the order of elts submitted to the rle.
 
-    for (int i0=0; i0<2; ++i0) {
-      for (int i1=0; i1<2; ++i1) {
+    for (int iE=0; iE<2; ++iE) {
+      for (int jE=0; jE<2; ++jE) {
 
         // index for typein value in (uncompressed) array.
-        const size_t ind_typein = i1 + 2 * ( i0 + 2 * ind );
+        const size_t ind_typein = jE + 2 * ( iE + 2 * ind );
 
         COMET_ASSERT(ind_typein >= reader_.lengths_sum);
         COMET_ASSERT(ind_typein < dim_typein);
@@ -237,7 +237,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
                 ind_typein < ind_typein_max) {
               const MFTTypeIn key_run =
                 cbuf->keys_alias_buf_.elt_const<MFTTypeIn>(ind_runs, 0);
-              T::set(result, i0, i1, key_run);
+              T::set(result, iE, jE, key_run);
               break;
             }
 
@@ -246,8 +246,8 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
 
         } // for
 
-      } // for i1
-    } // for i0
+      } // for jE
+    } // for iE
 
     //COMET_ASSERT(buf_->elt_const<T>(ind0, ind1)==result);
     //return buf_->elt_const<T>(ind0, ind1);

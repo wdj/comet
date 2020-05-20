@@ -116,20 +116,20 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
 
 static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
                                                    size_t index,
-                                                   int i0,
-                                                   int i1,
-                                                   int i2,
+                                                   int iE,
+                                                   int jE,
+                                                   int kE,
                                                    CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_3);
-  COMET_ASSERT(i0 >= 0 && i0 < 2);
-  COMET_ASSERT(i1 >= 0 && i1 < 2);
-  COMET_ASSERT(i2 >= 0 && i2 < 2);
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
+  COMET_ASSERT(kE >= 0 && kE < 2);
   COMET_ASSERT(env->are_ccc_params_default());
 
   const auto ttable = Metrics_elt_const<GMTally4x2>(*metrics, index, *env);
-  const GMTally1 rijk = GMTally4x2_get(ttable, i0, i1, i2);
+  const GMTally1 rijk = GMTally4x2_get(ttable, iE, jE, kE);
 
   const auto si1_sj1_sk1 = Metrics_elt_const<GMFloat3, MetricsArray::S>(*metrics,
     index, *env);
@@ -161,9 +161,9 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
     cijk = 8 * m;
   }
 
-  const GMTally1 si = i0 == 0 ? (2 * ci - si1) : si1;
-  const GMTally1 sj = i1 == 0 ? (2 * cj - sj1) : sj1;
-  const GMTally1 sk = i2 == 0 ? (2 * ck - sk1) : sk1;
+  const GMTally1 si = iE == 0 ? (2 * ci - si1) : si1;
+  const GMTally1 sj = jE == 0 ? (2 * cj - sj1) : sj1;
+  const GMTally1 sk = kE == 0 ? (2 * ck - sk1) : sk1;
 
   return GMMetrics_ccc_value_nofp_3(metrics, rijk, si, sj, sk, ci, cj, ck,
                                     cijk, env);
@@ -176,19 +176,19 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
 
 template<int COUNTED_BITS_PER_ELT, typename FloatResult_t>
 static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
-  size_t index, int i0, int i1, int i2, CEnv& env) {
+  size_t index, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(index < metrics.num_elts_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
   COMET_ASSERT(env.is_metric_type_bitwise());
   COMET_ASSERT(env.counted_bits_per_elt() == COUNTED_BITS_PER_ELT);
-  COMET_ASSERT(i0 >= 0 && i0 < 2);
-  COMET_ASSERT(i1 >= 0 && i1 < 2);
-  COMET_ASSERT(i2 >= 0 && i2 < 2);
+  COMET_ASSERT(iE >= 0 && iE < 2);
+  COMET_ASSERT(jE >= 0 && jE < 2);
+  COMET_ASSERT(kE >= 0 && kE < 2);
 
   if (env.threshold_tc()) {
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
     const auto table = Metrics_elt_const<TTable_t>(metrics, index, env);
-    TTable_t::TypeIn result = TTable_t::get(table, i0, i1, i2);
+    TTable_t::TypeIn result = TTable_t::get(table, iE, jE, kE);
     return (FloatResult_t)result;
   }
 
@@ -200,7 +200,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
   const Float_t recip_m = metrics.recip_m;
 
   const auto ttable = Metrics_elt_const<GMTally4x2>(metrics, index, env);
-  const GMTally1 rijk = GMTally4x2_get(ttable, i0, i1, i2);
+  const GMTally1 rijk = GMTally4x2_get(ttable, iE, jE, kE);
 
   const auto si1_sj1_sk1 = Metrics_elt_const<GMFloat3, MetricsArray::S>(metrics,
     index, env);
@@ -231,9 +231,9 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
       return (FloatResult_t)0;
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
-    const GMTally1 si = i0 == 0 ? (CBPE * ci - si1) : si1;
-    const GMTally1 sj = i1 == 0 ? (CBPE * cj - sj1) : sj1;
-    const GMTally1 sk = i2 == 0 ? (CBPE * ck - sk1) : sk1;
+    const GMTally1 si = iE == 0 ? (CBPE * ci - si1) : si1;
+    const GMTally1 sj = jE == 0 ? (CBPE * cj - sj1) : sj1;
+    const GMTally1 sk = kE == 0 ? (CBPE * ck - sk1) : sk1;
 
     const Float_t recip_sumcijk = f_one / cijk;
 
@@ -246,11 +246,11 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
     const GMTally1 si =
-      i0 == 0 ? (CBPE * metrics.num_field_active - si1) : si1;
+      iE == 0 ? (CBPE * metrics.num_field_active - si1) : si1;
     const GMTally1 sj =
-      i1 == 0 ? (CBPE * metrics.num_field_active - sj1) : sj1;
+      jE == 0 ? (CBPE * metrics.num_field_active - sj1) : sj1;
     const GMTally1 sk =
-      i2 == 0 ? (CBPE * metrics.num_field_active - sk1) : sk1;
+      kE == 0 ? (CBPE * metrics.num_field_active - sk1) : sk1;
 
     const Float_t recip_sumcijk = (f_one / (CBPE*CBPE*CBPE)) * recip_m;
 
@@ -262,7 +262,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 #ifdef COMET_USE_INT128
   if (env.metric_type() == MetricType::CCC && env.are_ccc_params_default()) {
     const Float_t result_intcalc = GMMetrics_ccc_get_from_index_nofp_3(&metrics,
-                                         index, i0, i1, i2, &env);
+                                         index, iE, jE, kE, &env);
 
     // TODO: CHECK floating point type here
     const double eps = 1. / ( ((size_t)1) << (mantissa_digits<FloatResult_t>() - 5) );
@@ -287,21 +287,21 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 template<int CBPE, typename FloatResult_t>
 struct MetricsIndexCCCDUO3Helper {
   static FloatResult_t impl(
-  GMMetrics& metrics, size_t index, int i0, int i1, int i2, CEnv& env) {
+  GMMetrics& metrics, size_t index, int iE, int jE, int kE, CEnv& env) {
     return Metrics_ccc_duo_get_3_impl<
-      CBPE, FloatResult_t>(metrics, index, i0, i1, i2, env);;
+      CBPE, FloatResult_t>(metrics, index, iE, jE, kE, env);;
   }
 };
 
 template<typename FloatResult_t>
 struct MetricsIndexCCCDUO3Helper<CBPE::NONE, FloatResult_t> {
   static FloatResult_t impl(
-  GMMetrics& metrics, size_t index, int i0, int i1, int i2, CEnv& env) {
+  GMMetrics& metrics, size_t index, int iE, int jE, int kE, CEnv& env) {
     return env.counted_bits_per_elt() == CBPE::CCC ?
       MetricsIndexCCCDUO3Helper<CBPE::CCC, FloatResult_t>::impl( 
-        metrics, index, i0, i1, i2, env) :
+        metrics, index, iE, jE, kE, env) :
       MetricsIndexCCCDUO3Helper<CBPE::DUO, FloatResult_t>::impl(
-        metrics, index, i0, i1, i2, env);
+        metrics, index, iE, jE, kE, env);
   }
 };
 
@@ -310,9 +310,9 @@ struct MetricsIndexCCCDUO3Helper<CBPE::NONE, FloatResult_t> {
 
 template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
 static FloatResult_t Metrics_ccc_duo_get_3(
-  GMMetrics& metrics, size_t index, int i0, int i1, int i2, CEnv& env) {
+  GMMetrics& metrics, size_t index, int iE, int jE, int kE, CEnv& env) {
     return MetricsIndexCCCDUO3Helper<CBPE, FloatResult_t>::impl( 
-      metrics, index, i0, i1, i2, env);
+      metrics, index, iE, jE, kE, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -327,10 +327,10 @@ static bool Metrics_ccc_duo_get_threshold_3(
   if (env.threshold_tc()) {
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
     const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
-    for (int i0 = 0; i0 < 2; ++i0) {
-      for (int i1 = 0; i1 < 2; ++i1) {
-        for (int i2 = 0; i2 < 2; ++i2) {
-          if (TTable_t::get(ttable, i0, i1, i2) != (TTable_t::TypeIn)0)
+    for (int iE = 0; iE < 2; ++iE) {
+      for (int jE = 0; jE < 2; ++jE) {
+        for (int kE = 0; kE < 2; ++kE) {
+          if (TTable_t::get(ttable, iE, jE, kE) != (TTable_t::TypeIn)0)
             return true;
         }
       }
@@ -515,18 +515,18 @@ static T Metrics_elt_const_3(GMMetrics& metrics, int i, int j, int k,
 // Accessors: value from index: get: 3-way.
 
 static GMFloat GMMetrics_get_3(GMMetrics& metrics,
-  size_t index, int i0, int i1, int i2, CEnv& env) {
+  size_t index, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
   COMET_ASSERT(index >= 0 && index < metrics.num_elts_local);
-  COMET_ASSERT(i0 >= 0 && i0 < env.i012_max());
-  COMET_ASSERT(i1 >= 0 && i1 < env.i012_max());
-  COMET_ASSERT(i2 >= 0 && i2 < env.i012_max());
+  COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
+  COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
+  COMET_ASSERT(kE >= 0 && kE < env.ijkE_max());
 
   const GMFloat result =
     env.metric_type() == MetricType::CZEK ?
       //Metrics_get<GMFloat>(metrics, index, env) :
       Metrics_elt_const<GMFloat>(metrics, index, env) :
-      (GMFloat)Metrics_ccc_duo_get_3(metrics, index, i0, i1, i2, env);
+      (GMFloat)Metrics_ccc_duo_get_3(metrics, index, iE, jE, kE, env);
 
   return result;
 }
@@ -535,11 +535,11 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 // Accessors: value from (global) coord: get: 3-way.
 
 static GMFloat GMMetrics_get_3(GMMetrics& metrics,
-  size_t iG, size_t jG, size_t kG, int i0, int i1, int i2, CEnv& env) {
+  size_t iG, size_t jG, size_t kG, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
-  COMET_ASSERT(i0 >= 0 && i0 < env.i012_max());
-  COMET_ASSERT(i1 >= 0 && i1 < env.i012_max());
-  COMET_ASSERT(i2 >= 0 && i2 < env.i012_max());
+  COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
+  COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
+  COMET_ASSERT(kE >= 0 && kE < env.ijkE_max());
   // WARNING: these conditions are not exhaustive.
 
   const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
@@ -569,7 +569,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   const size_t index = Metrics_index_3(metrics, i, j, k, j_block,
     k_block, env);
 
-  const GMFloat result = GMMetrics_get_3(metrics, index, i0, i1, i2, env);
+  const GMFloat result = GMMetrics_get_3(metrics, index, iE, jE, kE, env);
 
   return result;
 }
