@@ -412,13 +412,13 @@ void GMMetrics_create(GMMetrics* metrics,
       COMET_ASSERT(env->proc_num_repl() == 0);
       COMET_ASSERT(gm_proc_r_active(0, env));
       for (int j = 0; j < nvl; ++j) {
-        const size_t j_global = j + nvl * i_block;
+        const size_t jG = j + nvl * i_block;
         for (int i = 0; i < j; ++i) {
-          const size_t i_global = i + nvl * i_block;
+          const size_t iG = i + nvl * i_block;
           COMET_ASSERT(Metrics_index_2_part1(*metrics, i, j, i_block, *env) ==
                        index);
           metrics->coords_global_from_index[index++] =
-              i_global + metrics->num_vector * j_global;
+              iG + metrics->num_vector * jG;
         }
       }
     }
@@ -438,13 +438,13 @@ void GMMetrics_create(GMMetrics* metrics,
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
-        const size_t j_global_unwrapped = j + j_block_unwrapped * (size_t)nvl;
-        const size_t j_global = j_global_unwrapped % metrics->num_vector;
-          const size_t i_global = i + nvl * i_block;
+        const size_t jG_unwrapped = j + j_block_unwrapped * (size_t)nvl;
+        const size_t jG = jG_unwrapped % metrics->num_vector;
+          const size_t iG = i + nvl * i_block;
           const size_t index_this = index + i + j * (size_t)nvl;
           COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
           metrics->coords_global_from_index[index_this] =
-              i_global + metrics->num_vector * j_global;
+              iG + metrics->num_vector * jG;
         }
       }
       index += nvlsq;
@@ -495,21 +495,21 @@ void GMMetrics_create(GMMetrics* metrics,
           const int j_max = J_hi;
           for (int j = j_min; j < j_max; ++j) {
             const int j_block = i_block;
-            const size_t j_global = j + nvl * j_block;
+            const size_t jG = j + nvl * j_block;
             // don't use collapse because of overflow for large sizes
             //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
             #pragma omp parallel for schedule(dynamic,1000)
             for (int k = j+1; k < nvl; ++k) {
               for (int i = 0; i < j; ++i) {
               const int k_block = i_block;
-              const size_t k_global = k + nvl * k_block;
-                const size_t i_global = i + nvl * i_block;
+              const size_t kG = k + nvl * k_block;
+                const size_t iG = i + nvl * i_block;
                 const size_t index_this = index + i + j*(size_t)(k-(j+1));
                 COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
                 metrics->coords_global_from_index[index_this] =
-                    i_global +
+                    iG +
                   metrics->num_vector *
-                        (j_global + metrics->num_vector * (k_global));
+                        (jG + metrics->num_vector * (kG));
               }
             }
             index += j * (size_t)(nvl - (j+1));
@@ -533,21 +533,21 @@ void GMMetrics_create(GMMetrics* metrics,
             const int j_min = J_lo;
             const int j_max = J_hi;
             for (int j = j_min; j < j_max; ++j) {
-              const size_t j_global = j + nvl * j_block;
+              const size_t jG = j + nvl * j_block;
               // don't use collapse because of overflow for large sizes
               //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
               #pragma omp parallel for schedule(dynamic,1000)
               for (int k = j+1; k < nvl; ++k) {
                 for (int i = 0; i < nvl; ++i) {
                   const int k_block = j_block;
-                  const size_t k_global = k + nvl * k_block;
-                  const size_t i_global = i + nvl * i_block;
+                  const size_t kG = k + nvl * k_block;
+                  const size_t iG = i + nvl * i_block;
                   const size_t index_this = index + i + nvl*(size_t)(k-(j+1));
                   COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
                   metrics->coords_global_from_index[index_this] =
-                      i_global +
+                      iG +
                     metrics->num_vector *
-                          (j_global + metrics->num_vector * (k_global));
+                          (jG + metrics->num_vector * (kG));
                 } // for i
               } // for k
               index += nvl * (size_t)(nvl - (j+1));
@@ -602,12 +602,12 @@ void GMMetrics_create(GMMetrics* metrics,
                                /* sax2 ?*/ J;
                     /* clang-format on */
 
-                    const size_t j_global = j + nvl * j_block;
-                    const size_t k_global = k + nvl * k_block;
-                    const size_t i_global = i + nvl * i_block;
-                    COMET_ASSERT(i_global>=0 && metrics->num_vector-i_global>0);
-                    COMET_ASSERT(j_global>=0 && metrics->num_vector-j_global>0);
-                    COMET_ASSERT(k_global>=0 && metrics->num_vector-k_global>0);
+                    const size_t jG = j + nvl * j_block;
+                    const size_t kG = k + nvl * k_block;
+                    const size_t iG = i + nvl * i_block;
+                    COMET_ASSERT(iG>=0 && metrics->num_vector-iG>0);
+                    COMET_ASSERT(jG>=0 && metrics->num_vector-jG>0);
+                    COMET_ASSERT(kG>=0 && metrics->num_vector-kG>0);
                     const size_t index_this = index + I + K * (size_t)nvl;
                     COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_elts_local);
@@ -618,9 +618,9 @@ void GMMetrics_create(GMMetrics* metrics,
                     COMET_ASSERT(Metrics_index_3_part3(*metrics,
                       i, j, k, i_block, j_block, k_block, *env) == index_this);
                     metrics->coords_global_from_index[index_this] =
-                        i_global +
+                        iG +
                         metrics->num_vector *
-                            (j_global + metrics->num_vector * (k_global));
+                            (jG + metrics->num_vector * (kG));
                   } // for I
                 } // for K
                 index += nvl*(size_t)nvl;
@@ -651,11 +651,11 @@ void GMMetrics_create(GMMetrics* metrics,
     // Need store only strict upper triangular part of matrix.
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
-      const size_t j_global = j + nvl * i_block;
+      const size_t jG = j + nvl * i_block;
       for (int i = 0; i < j; ++i) {
-        const size_t i_global = i + nvl * i_block;
+        const size_t iG = i + nvl * i_block;
         metrics->coords_global_from_index[index++] =
-            i_global + metrics->num_vector * j_global;
+            iG + metrics->num_vector * jG;
       }
     }
     COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
@@ -677,17 +677,15 @@ void GMMetrics_create(GMMetrics* metrics,
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
       const int j_block = i_block;
-      const size_t j_global = j + nvl * j_block;
+      const size_t jG = j + nvl * j_block;
       for (int k = j+1; k < nvl; ++k) {
         const int k_block = i_block;
-        const size_t k_global = k + nvl * k_block;
+        const size_t kG = k + nvl * k_block;
         for (int i = 0; i < j; ++i) {
-          const size_t i_global = i + nvl * i_block;
+          const size_t iG = i + nvl * i_block;
           COMET_ASSERT(index < metrics->num_elts_local);
           metrics->coords_global_from_index[index++] =
-              i_global +
-              metrics->num_vector *
-                  (j_global + metrics->num_vector * (k_global));
+              iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
         }
       }
     }
@@ -792,19 +790,19 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
 
   switch (env->num_way() + 4 * coord_num) {
     case 2 + 4 * 0: /* 2-way, coord 0 */
-      result64 = GMMetrics_coord0_global_from_index_2(metrics, index, env);
+      result64 = GMMetrics_iG_from_index_2(metrics, index, env);
       break;
     case 2 + 4 * 1: /* 2-way, coord 1 */
-      result64 = GMMetrics_coord1_global_from_index_2(metrics, index, env);
+      result64 = GMMetrics_jG_from_index_2(metrics, index, env);
       break;
     case 3 + 4 * 0: /* 3-way, coord 0 */
-      result64 = GMMetrics_coord0_global_from_index_3(metrics, index, env);
+      result64 = GMMetrics_iG_from_index_3(metrics, index, env);
       break;
     case 3 + 4 * 1: /* 3-way, coord 1 */
-      result64 = GMMetrics_coord1_global_from_index_3(metrics, index, env);
+      result64 = GMMetrics_jG_from_index_3(metrics, index, env);
       break;
     case 3 + 4 * 2: /* 3-way, coord 2 */
-      result64 = GMMetrics_coord2_global_from_index_3(metrics, index, env);
+      result64 = GMMetrics_kG_from_index_3(metrics, index, env);
       break;
     default:
       COMET_INSIST_INTERFACE(env, false && "Invalid num_way or coord_num.");

@@ -46,13 +46,13 @@ MetricIO::MetricIO(FILE* file, GMMetrics& metrics, CEnv& env)
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CZEK 2-way case.
 
-void MetricIO::write(size_t coord0, size_t coord1, GMFloat value) const {
+void MetricIO::write(size_t iG, size_t jG, GMFloat value) const {
 
   bool success = true;
   size_t bytes_written = 0;
 
-  success = success && write_<uint32_t>(coord0, bytes_written);
-  success = success && write_<uint32_t>(coord1, bytes_written);
+  success = success && write_<uint32_t>(iG, bytes_written);
+  success = success && write_<uint32_t>(jG, bytes_written);
   success = success && write_<GMFp32>(value, bytes_written);
 
   COMET_INSIST(success && "File write failure.");
@@ -63,15 +63,15 @@ void MetricIO::write(size_t coord0, size_t coord1, GMFloat value) const {
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CZEK 3-way case.
 
-void MetricIO::write(size_t coord0, size_t coord1, size_t coord2,
+void MetricIO::write(size_t iG, size_t jG, size_t kG,
                          GMFloat value) const {
 
   bool success = true;
   size_t bytes_written = 0;
 
-  success = success && write_<uint32_t>(coord0, bytes_written);
-  success = success && write_<uint32_t>(coord1, bytes_written);
-  success = success && write_<uint32_t>(coord2, bytes_written);
+  success = success && write_<uint32_t>(iG, bytes_written);
+  success = success && write_<uint32_t>(jG, bytes_written);
+  success = success && write_<uint32_t>(kG, bytes_written);
   success = success && write_<GMFp32>(value, bytes_written);
 
   COMET_INSIST(success && "File write failure.");
@@ -82,24 +82,24 @@ void MetricIO::write(size_t coord0, size_t coord1, size_t coord2,
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CCC/DUO 2-way case.
 
-void MetricIO::write(size_t coord0, size_t coord1, int i0, int i1,
+void MetricIO::write(size_t iG, size_t jG, int i0, int i1,
                          GMFloat value) const {
   COMET_ASSERT(i0 >= 0 && i0 < 2);
   COMET_ASSERT(i1 >= 0 && i1 < 2);
 
-  write(i0 + 2 * coord0, i1 + 2 * coord1, value);
+  write(i0 + 2 * iG, i1 + 2 * jG, value);
 }
 
 //-----------------------------------------------------------------------------
 /// \brief Write a metric value: CCC/DUO 3-way case.
 
-void MetricIO::write(size_t coord0, size_t coord1, size_t coord2,
+void MetricIO::write(size_t iG, size_t jG, size_t kG,
                          int i0, int i1, int i2, GMFloat value) const {
   COMET_ASSERT(i0 >= 0 && i0 < 2);
   COMET_ASSERT(i1 >= 0 && i1 < 2);
   COMET_ASSERT(i2 >= 0 && i2 < 2);
 
-  write(i0 + 2 * coord0, i1 + 2 * coord1, i2 + 2 * coord2, value);
+  write(i0 + 2 * iG, i1 + 2 * jG, i2 + 2 * kG, value);
 }
 
 //=============================================================================
@@ -124,11 +124,11 @@ static void MetricsIO_write_tally2x2_bin_impl_(
   const size_t num_buf = 4 * num_buf_ind;
 
   // Each buffer entry contains: whether value is to be written,
-  // coord0, coord1, i0, i1, and value
+  // iG, jG, i0, i1, and value
 
   char* const do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
-  int* const coord0_buf = (int*)malloc(num_buf*sizeof(*coord0_buf));
-  int* const coord1_buf = (int*)malloc(num_buf*sizeof(*coord1_buf));
+  int* const iG_buf = (int*)malloc(num_buf*sizeof(*iG_buf));
+  int* const jG_buf = (int*)malloc(num_buf*sizeof(*jG_buf));
   int* const i01_buf = (int*)malloc(num_buf*sizeof(*i01_buf));
   GMFloat* const value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
 
@@ -154,17 +154,17 @@ static void MetricsIO_write_tally2x2_bin_impl_(
               Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
                i0, i1, *env);
             if (env->pass_threshold(value)) {
-              const size_t coord0 =
+              const size_t iG =
                 GMMetrics_coord_global_from_index(metrics, index, 0, env);
-              const size_t coord1 =
+              const size_t jG =
                 GMMetrics_coord_global_from_index(metrics, index, 1, env);
-              const char do_out = coord0 < metrics->num_vector_active &&
-                                  coord1 < metrics->num_vector_active;
+              const char do_out = iG < metrics->num_vector_active &&
+                                  jG < metrics->num_vector_active;
               const size_t ind_buf = i1 + 2*(i0 + 2*(index-ind_base));
               COMET_ASSERT(ind_buf < num_buf);
               do_out_buf[ind_buf] = do_out;
-              coord0_buf[ind_buf] = coord0;
-              coord1_buf[ind_buf] = coord1;
+              iG_buf[ind_buf] = iG;
+              jG_buf[ind_buf] = jG;
               i01_buf[ind_buf] = i0 + 2*i1;
               value_buf[ind_buf] = value;
             } // if
@@ -191,9 +191,9 @@ static void MetricsIO_write_tally2x2_bin_impl_(
           if (do_out_buf[ind_buf]) {
             const int i0 = i01_buf[ind_buf] % 2;
             const int i1 = i01_buf[ind_buf] / 2;
-            const size_t coord0 = coord0_buf[ind_buf];
-            const size_t coord1 = coord1_buf[ind_buf];
-            writer.write(coord0, coord1, i0, i1, value_buf[ind_buf]);
+            const size_t iG = iG_buf[ind_buf];
+            const size_t jG = jG_buf[ind_buf];
+            writer.write(iG, jG, i0, i1, value_buf[ind_buf]);
             // Reset buffer entry to false
             do_out_buf[ind_buf] = 0;
           }
@@ -206,8 +206,8 @@ static void MetricsIO_write_tally2x2_bin_impl_(
   num_written_ += writer.num_written();
 
   free(do_out_buf);
-  free(coord0_buf);
-  free(coord1_buf);
+  free(iG_buf);
+  free(jG_buf);
   free(i01_buf);
   free(value_buf);
 }
@@ -250,12 +250,12 @@ static void MetricsIO_write_tally4x2_bin_impl_(
   const size_t num_buf = 8 * num_buf_ind;
 
   // Each buffer entry contains: whether value is to be written,
-  // coord0, coord1, coord2, i0, i1, i2, and value
+  // iG, jG, kG, i0, i1, i2, and value
 
   char* const do_out_buf = (char*)malloc(num_buf*sizeof(*do_out_buf));
-  int* const coord0_buf = (int*)malloc(num_buf*sizeof(*coord0_buf));
-  int* const coord1_buf = (int*)malloc(num_buf*sizeof(*coord1_buf));
-  int* const coord2_buf = (int*)malloc(num_buf*sizeof(*coord2_buf));
+  int* const iG_buf = (int*)malloc(num_buf*sizeof(*iG_buf));
+  int* const jG_buf = (int*)malloc(num_buf*sizeof(*jG_buf));
+  int* const kG_buf = (int*)malloc(num_buf*sizeof(*kG_buf));
   int* const i012_buf = (int*)malloc(num_buf*sizeof(*i012_buf));
   GMFloat* const value_buf = (GMFloat*)malloc(num_buf*sizeof(*value_buf));
 
@@ -280,20 +280,20 @@ static void MetricsIO_write_tally4x2_bin_impl_(
                 Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
                   *metrics, index, i0, i1, i2, *env);
               if (env->pass_threshold(value)) {
-                const size_t coord0 =
+                const size_t iG =
                   GMMetrics_coord_global_from_index(metrics, index, 0, env);
-                const size_t coord1 =
+                const size_t jG =
                   GMMetrics_coord_global_from_index(metrics, index, 1, env);
-                const size_t coord2 =
+                const size_t kG =
                   GMMetrics_coord_global_from_index(metrics, index, 2, env);
-                const char do_out = coord0 < metrics->num_vector_active &&
-                                    coord1 < metrics->num_vector_active &&
-                                    coord2 < metrics->num_vector_active;
+                const char do_out = iG < metrics->num_vector_active &&
+                                    jG < metrics->num_vector_active &&
+                                    kG < metrics->num_vector_active;
                 const size_t ind_buf = i1 + 2*(i0 + 2*(i2 +2*(index-ind_base)));
                 do_out_buf[ind_buf] = do_out;
-                coord0_buf[ind_buf] = coord0;
-                coord1_buf[ind_buf] = coord1;
-                coord2_buf[ind_buf] = coord2;
+                iG_buf[ind_buf] = iG;
+                jG_buf[ind_buf] = jG;
+                kG_buf[ind_buf] = kG;
                 i012_buf[ind_buf] = i0 + 2*(i1 + 2*i2);
                 value_buf[ind_buf] = value;
               } // if
@@ -321,10 +321,10 @@ static void MetricsIO_write_tally4x2_bin_impl_(
             const int i0 = i012_buf[ind_buf] % 2;
             const int i1 = (i012_buf[ind_buf] / 2) % 2;
             const int i2 = i012_buf[ind_buf] / 4;
-            const size_t coord0 = coord0_buf[ind_buf];
-            const size_t coord1 = coord1_buf[ind_buf];
-            const size_t coord2 = coord2_buf[ind_buf];
-            writer.write(coord0, coord1, coord2, i0,i1,i2, value_buf[ind_buf]);
+            const size_t iG = iG_buf[ind_buf];
+            const size_t jG = jG_buf[ind_buf];
+            const size_t kG = kG_buf[ind_buf];
+            writer.write(iG, jG, kG, i0,i1,i2, value_buf[ind_buf]);
             // Reset buffer entry to false
             do_out_buf[ind_buf] = 0;
           }
@@ -336,9 +336,9 @@ static void MetricsIO_write_tally4x2_bin_impl_(
   num_written_ += writer.num_written();
 
   free(do_out_buf);
-  free(coord0_buf);
-  free(coord1_buf);
-  free(coord2_buf);
+  free(iG_buf);
+  free(jG_buf);
+  free(kG_buf);
   free(i012_buf);
   free(value_buf);
 }
@@ -383,12 +383,12 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_elts_local; ++index) {
-      const size_t coord0 =
+      const size_t iG =
         GMMetrics_coord_global_from_index(metrics, index, 0, env);
-      const size_t coord1 =
+      const size_t jG =
         GMMetrics_coord_global_from_index(metrics, index, 1, env);
-      if (coord0 >= metrics->num_vector_active ||
-          coord1 >= metrics->num_vector_active)
+      if (iG >= metrics->num_vector_active ||
+          jG >= metrics->num_vector_active)
         continue;
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
@@ -397,9 +397,9 @@ static void MetricsIO_write_(
       /// Output the value.
       if (stdout == file)
         fprintf(file, "element (%li,%li): value: %.17e\n",
-          coord0, coord1, value);
+          iG, jG, value);
       else
-        writer.write(coord0, coord1, value);
+        writer.write(iG, jG, value);
     } // for index
 
     num_written_ += writer.num_written();
@@ -412,15 +412,15 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_elts_local; ++index) {
-      const size_t coord0 =
+      const size_t iG =
         GMMetrics_coord_global_from_index(metrics, index, 0, env);
-      const size_t coord1 =
+      const size_t jG =
         GMMetrics_coord_global_from_index(metrics, index, 1, env);
-      const size_t coord2 =
+      const size_t kG =
         GMMetrics_coord_global_from_index(metrics, index, 2, env);
-      if (coord0 >= metrics->num_vector_active ||
-          coord1 >= metrics->num_vector_active ||
-          coord2 >= metrics->num_vector_active)
+      if (iG >= metrics->num_vector_active ||
+          jG >= metrics->num_vector_active ||
+          kG >= metrics->num_vector_active)
         continue;
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
       if (!env->pass_threshold(value))
@@ -429,9 +429,9 @@ static void MetricsIO_write_(
       // Output the value.
       if (stdout == file)
         fprintf(file, "element (%li,%li,%li): value: %.17e\n",
-          coord0, coord1, coord2, value);
+          iG, jG, kG, value);
       else
-        writer.write(coord0, coord1, coord2, value);
+        writer.write(iG, jG, kG, value);
     } // for index
 
     num_written_ += writer.num_written();
@@ -455,12 +455,12 @@ static void MetricsIO_write_(
 
     size_t index = 0;
     for (index = 0; index < metrics->num_elts_local; ++index) {
-      const size_t coord0 =
+      const size_t iG =
         GMMetrics_coord_global_from_index(metrics, index, 0, env);
-      const size_t coord1 =
+      const size_t jG =
         GMMetrics_coord_global_from_index(metrics, index, 1, env);
-      if (coord0 >= metrics->num_vector_active ||
-          coord1 >= metrics->num_vector_active)
+      if (iG >= metrics->num_vector_active ||
+          jG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
       for (int i0 = 0; i0 < 2; ++i0) {
@@ -473,7 +473,7 @@ static void MetricsIO_write_(
           // Output the value.
 
           if (num_out_this_line == 0)
-            fprintf(file, "element (%li,%li): values:", coord0, coord1);
+            fprintf(file, "element (%li,%li): values:", iG, jG);
 
           fprintf(file, " %i %i %.17e", i0, i1, value);
 
@@ -505,15 +505,15 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_elts_local; ++index) {
-      const size_t coord0 =
+      const size_t iG =
         GMMetrics_coord_global_from_index(metrics, index, 0, env);
-      const size_t coord1 =
+      const size_t jG =
         GMMetrics_coord_global_from_index(metrics, index, 1, env);
-      const size_t coord2 =
+      const size_t kG =
         GMMetrics_coord_global_from_index(metrics, index, 2, env);
-      if (coord0 >= metrics->num_vector_active ||
-          coord1 >= metrics->num_vector_active ||
-          coord2 >= metrics->num_vector_active)
+      if (iG >= metrics->num_vector_active ||
+          jG >= metrics->num_vector_active ||
+          kG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
       for (int i0 = 0; i0 < 2; ++i0) {
@@ -528,7 +528,7 @@ static void MetricsIO_write_(
 
             if (num_out_this_line == 0)
               fprintf(file, "element (%li,%li,%li): values:",
-                coord0, coord1, coord2);
+                iG, jG, kG);
 
             fprintf(file, " %i %i %i %.17e", i0, i1, i2, value);
 
@@ -645,14 +645,14 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       MetricIO::Metric<NUM_WAY::_2> metric;
       MetricIO::read(metric, file_, env_);
 
-      const size_t ig = metric.coord0(env_);
-      const size_t jg = metric.coord1(env_);
+      const size_t iG = metric.iG(env_);
+      const size_t jG = metric.jG(env_);
 
       const int i0 = metric.i0(env_);
       const int i1 = metric.i1(env_);
 
       const MetricIO::Float_t metric_value =
-        (MetricIO::Float_t)GMMetrics_get_2(metrics, ig, jg, i0, i1, env_);
+        (MetricIO::Float_t)GMMetrics_get_2(metrics, iG, jG, i0, i1, env_);
 
       const bool is_correct = metric_value == metric.value &&
                               env_.pass_threshold(metric_value);
@@ -661,11 +661,11 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       if (num_incorrect < 10 && !is_correct) {
         fprintf(stderr, "Incorrect metric value: "
           "element %zu %zu actual %.17e expected %.17e\n",
-          ig, jg, (double)metric_value, (double)metric.value);
+          iG, jG, (double)metric_value, (double)metric.value);
 
         fprintf(stderr, "Incorrect metric value: "
           "element %zu %zu actual %.17e expected %.17e\n",
-          ig, jg, (double)metric_value, (double)metric.value);
+          iG, jG, (double)metric_value, (double)metric.value);
       }
 
     } else { // if (env_.num_way() == NUM_WAY::_3)
@@ -673,16 +673,16 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       MetricIO::Metric<NUM_WAY::_3> metric;
       MetricIO::read(metric, file_, env_);
 
-      const size_t ig = metric.coord0(env_);
-      const size_t jg = metric.coord1(env_);
-      const size_t kg = metric.coord2(env_);
+      const size_t iG = metric.iG(env_);
+      const size_t jG = metric.jG(env_);
+      const size_t kG = metric.kG(env_);
 
       const int i0 = metric.i0(env_);
       const int i1 = metric.i1(env_);
       const int i2 = metric.i2(env_);
 
       const MetricIO::Float_t metric_value = (MetricIO::Float_t)
-        GMMetrics_get_3(metrics, ig, jg, kg, i0, i1, i2, env_);
+        GMMetrics_get_3(metrics, iG, jG, kG, i0, i1, i2, env_);
 
       const bool is_correct = metric_value == metric.value &&
                               env_.pass_threshold(metric_value);
@@ -691,7 +691,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       if (!is_correct && num_incorrect < 10) {
         fprintf(stderr, "Incorrect metric value: "
           "element %zu %zu %zu actual %.17e expected %.17e\n",
-          ig, jg, kg, (double)metric_value, (double)metric.value);
+          iG, jG, kG, (double)metric_value, (double)metric.value);
       }
 
     } // if (env_.num_way() == NUM_WAY::_2)
@@ -708,12 +708,12 @@ void MetricsIO::check_file(GMMetrics& metrics) {
   if (env_.num_way() == NUM_WAY::_2) {
 
     for (size_t index = 0; index <  metrics.num_elts_local; ++index) {
-      const size_t coord0 =
+      const size_t iG =
         GMMetrics_coord_global_from_index(&metrics, index, 0, &env_);
-      const size_t coord1 =
+      const size_t jG =
         GMMetrics_coord_global_from_index(&metrics, index, 1, &env_);
-      if (coord0 >= metrics.num_vector_active ||
-          coord1 >= metrics.num_vector_active)
+      if (iG >= metrics.num_vector_active ||
+          jG >= metrics.num_vector_active)
         continue;
       for (int i0 = 0; i0 < env_.i012_max(); ++i0) {
         for (int i1 = 0; i1 < env_.i012_max(); ++i1) {
@@ -727,15 +727,15 @@ void MetricsIO::check_file(GMMetrics& metrics) {
   } else { // if (env_.num_way() == NUM_WAY::_3)
 
     for (size_t index = 0; index <  metrics.num_elts_local; ++index) {
-      const size_t coord0 =
+      const size_t iG =
         GMMetrics_coord_global_from_index(&metrics, index, 0, &env_);
-      const size_t coord1 =
+      const size_t jG =
         GMMetrics_coord_global_from_index(&metrics, index, 1, &env_);
-      const size_t coord2 =
+      const size_t kG =
         GMMetrics_coord_global_from_index(&metrics, index, 2, &env_);
-      if (coord0 >= metrics.num_vector_active ||
-          coord1 >= metrics.num_vector_active ||
-          coord2 >= metrics.num_vector_active)
+      if (iG >= metrics.num_vector_active ||
+          jG >= metrics.num_vector_active ||
+          kG >= metrics.num_vector_active)
         continue;
       for (int i0 = 0; i0 < env_.i012_max(); ++i0) {
         for (int i1 = 0; i1 < env_.i012_max(); ++i1) {

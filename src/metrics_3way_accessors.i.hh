@@ -535,7 +535,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 // Accessors: value from (global) coord: get: 3-way.
 
 static GMFloat GMMetrics_get_3(GMMetrics& metrics,
-  size_t ig, size_t jg, size_t kg, int i0, int i1, int i2, CEnv& env) {
+  size_t iG, size_t jG, size_t kG, int i0, int i1, int i2, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_3);
   COMET_ASSERT(i0 >= 0 && i0 < env.i012_max());
   COMET_ASSERT(i1 >= 0 && i1 < env.i012_max());
@@ -543,31 +543,31 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   // WARNING: these conditions are not exhaustive.
 
   const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
-    metrics.dm, ig, &env);
+    metrics.dm, iG, &env);
   const size_t j = GMDecompMgr_get_vector_local_from_vector_active(
-    metrics.dm, jg, &env);
+    metrics.dm, jG, &env);
   const size_t k = GMDecompMgr_get_vector_local_from_vector_active(
-    metrics.dm, kg, &env);
+    metrics.dm, kG, &env);
   COMET_ASSERT(i >= 0 && i < metrics.dm->num_vector_local);
   COMET_ASSERT(j >= 0 && j < metrics.dm->num_vector_local);
   COMET_ASSERT(k >= 0 && k < metrics.dm->num_vector_local);
 
   const int i_proc = GMDecompMgr_get_proc_vector_from_vector_active(
-    metrics.dm, ig, &env);
+    metrics.dm, iG, &env);
   const int j_proc = GMDecompMgr_get_proc_vector_from_vector_active(
-    metrics.dm, jg, &env);
+    metrics.dm, jG, &env);
   const int k_proc = GMDecompMgr_get_proc_vector_from_vector_active(
-    metrics.dm, kg, &env);
+    metrics.dm, kG, &env);
   no_unused_variable_warning(i_proc);
   COMET_ASSERT(env.proc_num_vector() == i_proc);
   COMET_ASSERT(j_proc >= 0 && j_proc < env.num_proc_vector());
   COMET_ASSERT(k_proc >= 0 && k_proc < env.num_proc_vector());
 
-  const int j_proc_eff = env.all2all() ? j_proc : env.proc_num_vector();
-  const int k_proc_eff = env.all2all() ? k_proc : env.proc_num_vector();
+  const int j_block = env.all2all() ? j_proc : env.proc_num_vector();
+  const int k_block = env.all2all() ? k_proc : env.proc_num_vector();
 
-  const size_t index = Metrics_index_3(metrics, i, j, k, j_proc_eff,
-    k_proc_eff, env);
+  const size_t index = Metrics_index_3(metrics, i, j, k, j_block,
+    k_block, env);
 
   const GMFloat result = GMMetrics_get_3(metrics, index, i0, i1, i2, env);
 

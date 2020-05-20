@@ -185,9 +185,8 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
 //=============================================================================
 // Accessors: indexing: global coord from (contig) index: 2-way.
 
-static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
-                                                size_t index,
-                                                CEnv* env) {
+static int GMMetrics_iG_from_index_2(GMMetrics* metrics, size_t index,
+  CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
@@ -201,9 +200,8 @@ static int GMMetrics_coord0_global_from_index_2(GMMetrics* metrics,
 
 //-----------------------------------------------------------------------------
 
-static int GMMetrics_coord1_global_from_index_2(GMMetrics* metrics,
-                                                size_t index,
-                                                CEnv* env) {
+static int GMMetrics_jG_from_index_2(GMMetrics* metrics, size_t index,
+  CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
