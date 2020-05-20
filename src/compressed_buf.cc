@@ -54,7 +54,7 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
 
   keys_buf_.allocate(length_max_, 1, sizeof(MFTTypeIn));
 
-  lengths_buf_.allocate(length_max_, 1, sizeof(size_t));
+  lengths_buf_.allocate(length_max_, 1, sizeof(Lengths_t));
 
   num_runs_buf_.allocate(1, 1, sizeof(size_t));
 
@@ -135,7 +135,13 @@ void CompressedBuf::compress() {
 
   compute_num_nonzeros_();
 
-  do_compress_ = num_nonzeros_approx_ <= compress_threshold_() * length_();
+  const size_t num_runs_max = 2 * num_nonzeros_approx_;
+  const size_t estimated_storage_compressed = num_runs_max *
+    (sizeof(MFTTypeIn) + sizeof(Lengths_t));
+  const size_t storage_uncompressed = length_() * sizeof(MFTTypeIn);
+
+  do_compress_ = estimated_storage_compressed <
+    compression_factor_required_() * storage_uncompressed;
 
   if (do_compress_) {
 
@@ -149,7 +155,7 @@ void CompressedBuf::compress() {
 
       cub::DeviceRunLengthEncode::Encode(NULL,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
-        (size_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
+        (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
         env_.stream_compute());
       num_runs_buf_.from_accel(env_.stream_compute());
 
@@ -167,7 +173,7 @@ void CompressedBuf::compress() {
 
       cub::DeviceRunLengthEncode::Encode((Workspace_t*)rle_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
-        (size_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
+        (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
         env_.stream_compute());
 
       // Retrieve size.
@@ -193,6 +199,7 @@ void CompressedBuf::compress() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief CompressedBuf copy back from accel: start.
 
 void CompressedBuf::from_accel_start() {
 
@@ -209,6 +216,7 @@ void CompressedBuf::from_accel_start() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief CompressedBuf copy back from accel: wait.
 
 void CompressedBuf::from_accel_wait() {
 
@@ -246,6 +254,7 @@ void CompressedBuf::from_accel_wait() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief CompressedBuf lock buffer for exclusive use.
 
 void CompressedBuf::lock_h() {
 
@@ -258,6 +267,7 @@ void CompressedBuf::lock_h() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief CompressedBuf unlock buffer.
 
 void CompressedBuf::unlock_h() {
 

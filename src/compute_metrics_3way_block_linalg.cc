@@ -293,12 +293,12 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
       for (int half_num = 0; half_num < num_halves; ++half_num) {
 
-//        if (half_num > 0 && !is_halved)
-//          continue;
-
       // This "I" is the true I, the coordinate in the plane.
 
       for (int I = I_min; I < I_max; ++I) {
+
+
+
 
         const int i = si->unperm0(I, J, K);
         const int j = si->unperm1(I, J, K);
@@ -482,7 +482,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
               j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
           } // if sparse
 
-        } // if
+        } // if ((!env.threshold_tc()) && ...
 
       }   // I
       }

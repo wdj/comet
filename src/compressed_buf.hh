@@ -21,21 +21,24 @@
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Helper function for cartesian access to buffer elements.
 
+// Forward declaration.
 class CompressedBuf;
 
 template<typename T>
-struct CompressedBufHelper {
+struct CompressedBufAccessor_ {
   static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
 };
 
 template<>
-struct CompressedBufHelper<Tally2x2<MetricFormat::SINGLE>> {
+struct CompressedBufAccessor_<Tally2x2<MetricFormat::SINGLE>> {
   typedef Tally2x2<MetricFormat::SINGLE> T;
   static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
 };
 
 //-----------------------------------------------------------------------------
+/// \brief Mirrored cpu/accel buffer that allows for compression.
 
 class CompressedBuf {
 
@@ -48,11 +51,17 @@ class CompressedBuf {
 
   typedef void Workspace_t;
 
+  typedef size_t Lengths_t;
+
+  // Helper struct to ensure correct order of operations.
+
   struct State {
     enum {IDLE = 0,
           COMPRESSED = 1,
           TRANSFER_STARTED = 2};
   };
+
+  // Helper struct to keep track of sequential read state of buffer.
 
   struct Reader {
 
@@ -80,7 +89,7 @@ public:
 
   template<typename T>
   T elt_const(size_t ind0, size_t ind1) const {
-    return CompressedBufHelper<T>::elt_const(ind0, ind1, this);
+    return CompressedBufAccessor_<T>::elt_const(ind0, ind1, this);
   }
 
   static bool can_compress(CEnv& env) {return
@@ -112,7 +121,7 @@ private:
   MirroredBuf reduce_workspace_buf_;
   MirroredBuf rle_workspace_buf_;
 
-  double compress_threshold_() const {return .2;}
+  double compression_factor_required_() const {return 1.;}
 
   const size_t length_max_;
   size_t num_nonzeros_approx_;
@@ -122,9 +131,6 @@ private:
   int state_;
 
   mutable Reader reader_;
-
-  //bool is_open_;
-  //size_t read_ptr_;
 
   void compute_num_nonzeros_();
 
@@ -139,7 +145,7 @@ private:
     return length;
  }
 
-  template<typename> friend class CompressedBufHelper;
+  template<typename> friend class CompressedBufAccessor_;
 
   // Disallowed methods.
   CompressedBuf(const CompressedBuf&);
@@ -147,7 +153,7 @@ private:
 
 public:
 
-  // Internal class to support CUB reduction calls.
+  /// \brief Internal class to support CUB reduction calls.
 
   struct ReductionOp {
     enum {INITIAL_VALUE = -1};
@@ -168,14 +174,15 @@ public:
 }; // CompressedBuf
 
 //-----------------------------------------------------------------------------
+// Inlinable implementations.
 
-template<typename T> T CompressedBufHelper<T>::
+template<typename T> T CompressedBufAccessor_<T>::
 elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   return cbuf->buf_->elt_const<T>(ind0, ind1);
 }
 
 inline Tally2x2<MetricFormat::SINGLE>
-CompressedBufHelper<Tally2x2<MetricFormat::SINGLE>>::
+CompressedBufAccessor_<Tally2x2<MetricFormat::SINGLE>>::
 elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   typedef Tally2x2<MetricFormat::SINGLE> T;
   typedef CompressedBuf CBuf;
@@ -206,7 +213,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
     // Loop to look for, pick up 4 table entries.
 
     // NOTE: order of next 2 nested loops must match mem layout of Tally2x2,
-    // since that is the order of elts submiotted to the rle.
+    // since that is the order of elts submitted to the rle.
 
     for (int i0=0; i0<2; ++i0) {
       for (int i1=0; i1<2; ++i1) {
@@ -221,8 +228,8 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
 
         for( ; ind_runs < dim_runs; ) {
 
-            const size_t length_run =
-              cbuf->lengths_alias_buf_.elt_const<size_t>(ind_runs, 0);
+            const size_t length_run = cbuf->lengths_alias_buf_.
+              elt_const<CompressedBuf::Lengths_t>(ind_runs, 0);
             const size_t ind_typein_min = reader_.lengths_sum;
             const size_t ind_typein_max = reader_.lengths_sum + length_run;
 
