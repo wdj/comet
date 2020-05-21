@@ -105,7 +105,7 @@ static int gm_blocks_computed_this_row(CEnv* env) {
 static int GMMetrics_iG_from_index_2(GMMetrics* metrics, size_t index,
   CEnv* env) {
   COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index+1 >= 1 && index < metrics->num_metrics_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
 
@@ -120,7 +120,7 @@ static int GMMetrics_iG_from_index_2(GMMetrics* metrics, size_t index,
 static int GMMetrics_jG_from_index_2(GMMetrics* metrics, size_t index,
   CEnv* env) {
   COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index+1 >= 1 && index < metrics->num_metrics_local);
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
 
   const GMMetrics::Coords_t j = metrics->coords_values(index) /
@@ -201,7 +201,7 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
            ? Metrics_index_2_part1(metrics, i, j, j_block, env)
            : Metrics_index_2_part2(metrics, i, j, j_block, env);
 
-  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
+  COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_metrics_local);
 
   COMET_ASSERT((size_t)GMMetrics_iG_from_index_2(&metrics, index, &env) ==
            i + i_block * (size_t)metrics.num_vector_local);

@@ -129,7 +129,7 @@ double Checksum::metrics_elt(
   size_t index,
   int entry_num,
   CEnv& env) { 
-  COMET_INSIST(index < metrics.num_elts_local); // && index >= 0
+  COMET_INSIST(index < metrics.num_metrics_local); // && index >= 0
   COMET_INSIST(entry_num >= 0 && entry_num < metrics.num_entries_per_metric);
 
   // Obtain global coords of metrics elt
@@ -224,7 +224,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
 
   // Loop over metrics indices to find max.
   #pragma omp parallel for reduction(max:result)
-  for (size_t index = 0; index < metrics.num_elts_local; ++index) {
+  for (size_t index = 0; index < metrics.num_metrics_local; ++index) {
 
     // Determine whether this cell is active.
     bool is_active = true;
@@ -276,7 +276,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   // TODO: put this in metrics class - a heavyweight validity check function
   switch (metrics.data_type_id) {
     case GM_DATA_TYPE_FLOAT: {
-      GMFloat_check((GMFloat*)(metrics.data), metrics.num_elts_local);
+      GMFloat_check((GMFloat*)(metrics.data), metrics.num_metrics_local);
     } break;
   }
 
@@ -342,7 +342,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     double num_zero_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
-    for (size_t index = 0; index < metrics.num_elts_local; ++index) {
+    for (size_t index = 0; index < metrics.num_metrics_local; ++index) {
       // Loop over data values at this index
       for (int entry_num = 0; entry_num < metrics.num_entries_per_metric;
            ++entry_num) {

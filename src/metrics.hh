@@ -80,7 +80,7 @@ struct GMMetrics {
   size_t num_vector_active;
   int J_lo_part3_[NUM_SECTION_MAX];
   int J_wi_part3_[NUM_SECTION_MAX];
-  size_t num_elts_local;
+  size_t num_metrics_local;
   // Helper values.
   double recip_m;
   int64_t index_offset_part2_;
@@ -106,11 +106,11 @@ struct GMMetrics {
   // Map of (contig) index to linearized Cartesian coords.
   Coords_t* coords_values_;
   Coords_t coords_values(size_t index) const {
-    COMET_ASSERT(index+1 >= 1 && index < num_elts_local);
+    COMET_ASSERT(index+1 >= 1 && index < num_metrics_local);
     return coords_values_[index];
   }
   // Counters.
-  size_t num_elts_local_computed;
+  size_t num_metrics_local_computed;
   // Other.
   int data_type_id;
   int num_entries_per_metric;
@@ -133,8 +133,7 @@ void GMMetrics_create(GMMetrics* metrics, int data_type_id,
 
 //-----------------------------------------------------------------------------
 
-void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
-                                   CEnv* env);
+void GMMetrics_3way_num_metrics_local(GMMetrics* metrics, int nvl, CEnv* env);
 
 //=============================================================================
 // Metrics pseudo-destructor.
@@ -196,7 +195,7 @@ template<typename T, int MA = MetricsArray::_>
 static T Metrics_elt_const(const GMMetrics& metrics, size_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
-  COMET_ASSERT(index+1 >= 1 && index < metrics.num_elts_local);
+  COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
   return ((T*)MetricsArrayData<MA>::p(metrics))[index];
 }
 
@@ -204,7 +203,7 @@ template<typename T, int MA = MetricsArray::_>
 static T& Metrics_elt(GMMetrics& metrics, size_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
-  COMET_ASSERT(index+1 >= 1 && index < metrics.num_elts_local);
+  COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
   return ((T*)MetricsArrayData<MA>::p(metrics))[index];
 }
 

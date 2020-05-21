@@ -89,7 +89,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
                                                    int jE,
                                                    CEnv* env) {
   COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index < metrics->num_elts_local); // && index >= 0
+  COMET_ASSERT(index < metrics->num_metrics_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NUM_WAY::_2);
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
@@ -139,7 +139,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
 template<int COUNTED_BITS_PER_ELT, typename FloatResult_t>
 static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
   size_t index, int iE, int jE, CEnv& env) {
-  COMET_ASSERT(index < metrics.num_elts_local); // && index >= 0
+  COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NUM_WAY::_2);
   COMET_ASSERT(env.is_metric_type_bitwise());
   COMET_ASSERT(env.counted_bits_per_elt() == COUNTED_BITS_PER_ELT);
@@ -329,7 +329,7 @@ static FloatResult_t Metrics_ccc_duo_get_2(
 template<int COUNTED_BITS_PER_ELT>
 static bool Metrics_ccc_duo_get_threshold_2(GMMetrics& metrics,
   const size_t index, CEnv& env) {
-  COMET_ASSERT(index < metrics.num_elts_local); // && index >= 0
+  COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NUM_WAY::_2);
 
   if (env.threshold_tc()) {
@@ -489,7 +489,7 @@ static T Metrics_elt_const_2(GMMetrics& metrics, int i, int j, int j_block,
 static GMFloat GMMetrics_get_2(GMMetrics& metrics,
   size_t index, int iE, int jE, CEnv& env) {
   COMET_ASSERT(env.num_way() == NUM_WAY::_2);
-  COMET_ASSERT(index >= 0 && index < metrics.num_elts_local);
+  COMET_ASSERT(index >= 0 && index < metrics.num_metrics_local);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
 

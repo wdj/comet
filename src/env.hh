@@ -436,11 +436,11 @@ public:
   size_t gpu_mem_max() const;
   void ops_local_inc(double n) {ops_local_ += n;}
   double ops() const;
-  double compares() const {return compares_;}
-  double eltcompares() const {return eltcompares_;}
+  double metriccompares() const {return metriccompares_;}
+  double entrycompares() const {return entrycompares_;}
   double veccompares() const {return veccompares_;}
-  void compares_inc(double n) {compares_ += n;}
-  void eltcompares_inc(double n) {eltcompares_ += n;}
+  void metriccompares_inc(double n) {metriccompares_ += n;}
+  void entrycompares_inc(double n) {entrycompares_ += n;}
   void veccompares_inc(double n) {veccompares_ += n;}
 
   //----------------------------------------
@@ -538,8 +538,8 @@ private:
   size_t gpu_mem_local_;
   size_t cpu_mem_max_local_;
   size_t gpu_mem_max_local_;
-  double compares_;
-  double eltcompares_;
+  double metriccompares_;
+  double entrycompares_;
   double veccompares_;
 
   // MPI comms

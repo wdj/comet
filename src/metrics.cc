@@ -159,14 +159,14 @@ GMMetrics GMMetrics_null() {
 
 //=============================================================================
 
-void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
-                                   CEnv* env) {
+void GMMetrics_3way_num_metrics_local(GMMetrics* metrics, int nvl,
+                                      CEnv* env) {
   COMET_INSIST(metrics && env);
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(env->num_block_vector() <= 2 || nvl % 6 == 0);
   COMET_INSIST(env->num_way() == NUM_WAY::_3);
 
-  metrics->num_elts_local = 0;
+  metrics->num_metrics_local = 0;
 
   //---Fused counter for section_num and block_num, same across all procs.
   int section_block_num = 0;
@@ -184,19 +184,19 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     COMET_INSIST(trap_size_hi >= trap_size_lo && "Error in sizes calculation.");
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part1_[section_num]
-      = (int64_t)metrics->num_elts_local - trap_size_lo;
+      = (int64_t)metrics->num_metrics_local - trap_size_lo;
     if (gm_is_section_block_in_phase(env, section_block_num)) {
       if (gm_proc_r_active(section_block_num, env)) {
         //---Elements in slice of trapezoid.
         const int64_t elts_local = trap_size_hi - trap_size_lo;
         COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
-        metrics->num_elts_local += elts_local;
+        metrics->num_metrics_local += elts_local;
         metrics->is_section_num_valid_part1_[section_num] = (elts_local != 0);
       } // if
     } // if
     ++section_block_num;
   } // section_step
-  metrics->index_offset_part2_ = metrics->num_elts_local;
+  metrics->index_offset_part2_ = metrics->num_metrics_local;
 
   //---Compute size part 2: (triang prisms) i_block!=j_block==k_block part.
 
@@ -211,7 +211,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
     const int64_t triang_size_hi = triangle_size(J_hi, nvl);
     //---Absorb size_lo into offset for speed in indexing function.
     metrics->index_offset_section_part2_[section_num]
-      = (int64_t)metrics->num_elts_local - (int64_t)nvl*(int64_t)triang_size_lo;
+      = (int64_t)metrics->num_metrics_local - (int64_t)nvl*(int64_t)triang_size_lo;
     metrics->section_size_part2_[section_num] = triang_size_hi - triang_size_lo;
     int block_num_part2 = 0;
     bool is_phase_block_start_set = false;
@@ -227,7 +227,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
           const int64_t elts_local = (int64_t)nvl *
                                      (triang_size_hi - triang_size_lo);
           COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
-          metrics->num_elts_local += elts_local;
+          metrics->num_metrics_local += elts_local;
           metrics->is_section_num_valid_part2_[section_num] = (elts_local != 0);
         } // if
       } // if
@@ -235,7 +235,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
       ++block_num_part2;
     }
   } // section_step
-  metrics->index_offset_part3_ = metrics->num_elts_local;
+  metrics->index_offset_part3_ = metrics->num_metrics_local;
 
   //---Compute size part 3: (block sections) i_block!=j_block!=k_block part.
 
@@ -266,7 +266,7 @@ void GMMetrics_3way_num_elts_local(GMMetrics* metrics, int nvl,
             const int64_t elts_local = (int64_t)nvl * (int64_t)nvl *
                                        (int64_t)(J_hi - J_lo);
             COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
-            metrics->num_elts_local += elts_local;
+            metrics->num_metrics_local += elts_local;
           } // if
         } // if
         ++section_block_num;
@@ -361,7 +361,7 @@ void GMMetrics_create(GMMetrics* metrics,
   GMMetrics_ccc_check_size_nofp_2(metrics, env);
   GMMetrics_ccc_check_size_nofp_3(metrics, env);
 
-  metrics->num_elts_local_computed = 0;
+  metrics->num_metrics_local_computed = 0;
 
   /*==================================================*/
   if (env->num_way() == NUM_WAY::_2 && env->all2all()) {
@@ -384,12 +384,12 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART A: CALCULATE INDEX SIZE===*/
     const int proc_num_r = env->proc_num_repl();
     const int num_proc_r = env->num_proc_repl();
-    metrics->num_elts_local = 0;
+    metrics->num_metrics_local = 0;
 
     // PART A.1: (triangle) i_block==j_block part.
     const bool have_main_diag = proc_num_r == 0 &&
                                 gm_bdiag_computed_min(env) == 0;
-    metrics->num_elts_local += have_main_diag ? nchoosek : 0;
+    metrics->num_metrics_local += have_main_diag ? nchoosek : 0;
     metrics->index_offset_part2_ = have_main_diag ? nchoosek - nvlsq : 0;
     metrics->block_min_part2_ = (i_block + gm_bdiag_computed_min(env)) %
       num_block;
@@ -400,11 +400,11 @@ void GMMetrics_create(GMMetrics* metrics,
                                                num_computed_blocks_this_row);
     const int num_computed_offdiag_blocks_this_proc =
       num_computed_blocks_this_proc - (have_main_diag ? 1 : 0);
-    metrics->num_elts_local += num_computed_offdiag_blocks_this_proc * nvlsq;
+    metrics->num_metrics_local += num_computed_offdiag_blocks_this_proc * nvlsq;
 
     /*===PART B: ALLOCATE INDEX===*/
     metrics->coords_values_ = metrics_mem->malloc_coords_values(
-      metrics->num_elts_local * sizeof(Coords_t));
+      metrics->num_metrics_local * sizeof(Coords_t));
 
     /*===PART C: SET INDEX===*/
 
@@ -443,7 +443,7 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t jG = jG_unwrapped % metrics->num_vector;
           const size_t iG = i + nvl * i_block;
           const size_t index_this = index + i + j * (size_t)nvl;
-          COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
+          COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
           metrics->coords_values_[index_this] = iG + metrics->num_vector * jG;
         }
       }
@@ -451,7 +451,7 @@ void GMMetrics_create(GMMetrics* metrics,
     } // for diag
 
     // Final check.
-    COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (env->num_way() == NUM_WAY::_3 && env->all2all()) {
@@ -467,7 +467,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
     /*===PART A: CALCULATE INDEX SIZE===*/
 
-    GMMetrics_3way_num_elts_local(metrics, nvl, env);
+    GMMetrics_3way_num_metrics_local(metrics, nvl, env);
 
     // Fused counter for section_num and block_num, same across all procs.
     int section_block_num = 0;
@@ -475,7 +475,7 @@ void GMMetrics_create(GMMetrics* metrics,
     /*===PART B: ALLOCATE INDEX===*/
 
     metrics->coords_values_ = metrics_mem->malloc_coords_values(
-      metrics->num_elts_local * sizeof(Coords_t));
+      metrics->num_metrics_local * sizeof(Coords_t));
 
     /*===PART C: SET INDEX===*/
 
@@ -505,7 +505,7 @@ void GMMetrics_create(GMMetrics* metrics,
               const size_t kG = k + nvl * k_block;
                 const size_t iG = i + nvl * i_block;
                 const size_t index_this = index + i + j*(size_t)(k-(j+1));
-                COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
+                COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
                 metrics->coords_values_[index_this] =
                   iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
               }
@@ -541,7 +541,7 @@ void GMMetrics_create(GMMetrics* metrics,
                   const size_t kG = k + nvl * k_block;
                   const size_t iG = i + nvl * i_block;
                   const size_t index_this = index + i + nvl*(size_t)(k-(j+1));
-                  COMET_ASSERT(index_this>=0 && index_this<metrics->num_elts_local);
+                  COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
                   metrics->coords_values_[index_this] =
                     iG + metrics->num_vector * (
                     jG + metrics->num_vector * (kG));
@@ -607,7 +607,7 @@ void GMMetrics_create(GMMetrics* metrics,
                     COMET_ASSERT(kG>=0 && metrics->num_vector-kG>0);
                     const size_t index_this = index + I + K * (size_t)nvl;
                     COMET_ASSERT(index_this>=0 &&
-                             index_this<metrics->num_elts_local);
+                             index_this<metrics->num_metrics_local);
 
                     COMET_ASSERT(Metrics_index_3_part3_permuted(*metrics,
                       I, J, K, i_block, j_block, k_block, *env) == index_this);
@@ -628,7 +628,7 @@ void GMMetrics_create(GMMetrics* metrics,
       } // k_i_offset
     } // section_step
 
-    COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (env->num_way() == NUM_WAY::_2 && ! env->all2all()) {
@@ -640,9 +640,9 @@ void GMMetrics_create(GMMetrics* metrics,
     COMET_INSIST_INTERFACE(env, env->num_phase() == 1 &&
                       "Phased computations not allowed for non-all2all case.");
 
-    metrics->num_elts_local = nchoosek;
+    metrics->num_metrics_local = nchoosek;
     metrics->coords_values_ = metrics_mem->malloc_coords_values(
-      metrics->num_elts_local * sizeof(Coords_t));
+      metrics->num_metrics_local * sizeof(Coords_t));
     // Need store only strict upper triangular part of matrix.
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
@@ -652,7 +652,7 @@ void GMMetrics_create(GMMetrics* metrics,
         metrics->coords_values_[index++] = iG + metrics->num_vector * jG;
       }
     }
-    COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (env->num_way() == NUM_WAY::_3 && ! env->all2all()) {
@@ -664,9 +664,9 @@ void GMMetrics_create(GMMetrics* metrics,
     COMET_INSIST_INTERFACE(env, env->num_phase() == 1
                       && "Phased computations not allowed for non-all2all case.");
 
-    metrics->num_elts_local = nchoosek;
+    metrics->num_metrics_local = nchoosek;
     metrics->coords_values_ = metrics_mem->malloc_coords_values(
-      metrics->num_elts_local * sizeof(size_t));
+      metrics->num_metrics_local * sizeof(size_t));
     // Need store only strict interior of tetrahedron.
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
@@ -677,13 +677,13 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t kG = k + nvl * k_block;
         for (int i = 0; i < j; ++i) {
           const size_t iG = i + nvl * i_block;
-          COMET_ASSERT(index < metrics->num_elts_local);
+          COMET_ASSERT(index < metrics->num_metrics_local);
           metrics->coords_values_[index++] =
             iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
         }
       }
     }
-    COMET_INSIST(index == metrics->num_elts_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
 
   /*==================================================*/
   } else {
@@ -693,7 +693,7 @@ void GMMetrics_create(GMMetrics* metrics,
   }
 
   size_t num_elts = 0;
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics->num_elts_local, &num_elts, 1,
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics->num_metrics_local, &num_elts, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
   if (env->num_way() == NUM_WAY::_2 &&
@@ -715,21 +715,21 @@ void GMMetrics_create(GMMetrics* metrics,
     //----------
     case GM_DATA_TYPE_FLOAT:
       metrics->data_elt_size = sizeof(GMFloat);
-      metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
+      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->num_entries_per_metric = 1;
       break;
     //----------
     case GM_DATA_TYPE_TALLY2X2: {
       metrics->data_elt_size = sizeof(GMTally2x2);
-      metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
+      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->data_S_elt_size = sizeof(GMFloat2);
-      metrics->data_S_size = metrics->num_elts_local * metrics->data_S_elt_size;
+      metrics->data_S_size = metrics->num_metrics_local * metrics->data_S_elt_size;
       metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
       metrics->data_C_elt_size = sizeof(GMFloat2);
       if (env->sparse()) {
-        metrics->data_C_size = metrics->num_elts_local * metrics->data_C_elt_size;
+        metrics->data_C_size = metrics->num_metrics_local * metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
       metrics->num_entries_per_metric = 4;
@@ -737,14 +737,14 @@ void GMMetrics_create(GMMetrics* metrics,
     //----------
     case GM_DATA_TYPE_TALLY4X2: {
       metrics->data_elt_size = sizeof(GMTally4x2);
-      metrics->data_size = metrics->num_elts_local * metrics->data_elt_size;
+      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->data_S_elt_size = sizeof(GMFloat3);
-      metrics->data_S_size = metrics->num_elts_local * metrics->data_S_elt_size;
+      metrics->data_S_size = metrics->num_metrics_local * metrics->data_S_elt_size;
       metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
       metrics->data_C_elt_size = sizeof(GMFloat3);
       if (env->sparse()) {
-        metrics->data_C_size = metrics->num_elts_local * metrics->data_C_elt_size;
+        metrics->data_C_size = metrics->num_metrics_local * metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
       metrics->num_entries_per_metric = 8;
@@ -777,7 +777,7 @@ int GMMetrics_coord_global_from_index(GMMetrics* metrics,
                                       int coord_num,
                                       CEnv* env) {
   COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_elts_local);
+  COMET_ASSERT(index+1 >= 1 && index < metrics->num_metrics_local);
   COMET_ASSERT(coord_num >= 0 && coord_num < env->num_way());
 
   size_t result64 = 0;

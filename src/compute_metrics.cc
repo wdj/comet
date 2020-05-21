@@ -82,22 +82,22 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 
   // Check computed element count.
 
-  COMET_INSIST(metrics.num_elts_local == metrics.num_elts_local_computed &&
+  COMET_INSIST(metrics.num_metrics_local == metrics.num_metrics_local_computed &&
            "Failure to compute all requested metrics.");
 
   // Compute global counts of compares.
 
-  size_t metrics_num_elts = 0;
+  size_t num_metrics = 0;
 
   // NOTE: metrics elts have no field axis so just sum across repl/vector procs.
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics.num_elts_local, &metrics_num_elts,
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics.num_metrics_local, &num_metrics,
     1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_repl_vector()));
 
-  env_.compares_inc(metrics.num_field_active * metrics_num_elts *
+  env_.metriccompares_inc(metrics.num_field_active * num_metrics *
                     metrics.num_entries_per_metric);
-  env_.eltcompares_inc(metrics.num_field_active * metrics_num_elts);
-  env_.veccompares_inc(metrics_num_elts);
+  env_.entrycompares_inc(metrics.num_field_active * num_metrics);
+  env_.veccompares_inc(num_metrics);
 }
 
 //-----------------------------------------------------------------------------

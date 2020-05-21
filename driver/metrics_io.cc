@@ -136,10 +136,10 @@ static void MetricsIO_write_tally2x2_bin_impl_(
     do_out_buf[i] = 0;
 
   // Process num_buf_ind index values at a time
-  for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
+  for (size_t ind_base = 0; ind_base < metrics->num_metrics_local;
        ind_base += num_buf_ind) {
     // Largest index value to visit for this loop trip.
-    const size_t ind_max = utils::min(metrics->num_elts_local,
+    const size_t ind_max = utils::min(metrics->num_metrics_local,
                                       ind_base + num_buf_ind);
 
     // Fill buffer
@@ -263,9 +263,9 @@ static void MetricsIO_write_tally4x2_bin_impl_(
     do_out_buf[i] = 0;
 
   // Process num_buf_ind index values at a time
-  for (size_t ind_base = 0; ind_base < metrics->num_elts_local;
+  for (size_t ind_base = 0; ind_base < metrics->num_metrics_local;
        ind_base += num_buf_ind) {
-    const size_t ind_max = utils::min(metrics->num_elts_local,
+    const size_t ind_max = utils::min(metrics->num_metrics_local,
                                      ind_base + num_buf_ind);
     // Fill buffer
 #pragma omp parallel for schedule(dynamic,1000)
@@ -382,7 +382,7 @@ static void MetricsIO_write_(
 
     MetricIO writer(file, *metrics, *env);
 
-    for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+    for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
       const size_t iG =
         GMMetrics_coord_global_from_index(metrics, index, 0, env);
       const size_t jG =
@@ -411,7 +411,7 @@ static void MetricsIO_write_(
 
     MetricIO writer(file, *metrics, *env);
 
-    for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+    for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
       const size_t iG =
         GMMetrics_coord_global_from_index(metrics, index, 0, env);
       const size_t jG =
@@ -454,7 +454,7 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     size_t index = 0;
-    for (index = 0; index < metrics->num_elts_local; ++index) {
+    for (index = 0; index < metrics->num_metrics_local; ++index) {
       const size_t iG =
         GMMetrics_coord_global_from_index(metrics, index, 0, env);
       const size_t jG =
@@ -504,7 +504,7 @@ static void MetricsIO_write_(
 
     MetricIO writer(file, *metrics, *env);
 
-    for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+    for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
       const size_t iG =
         GMMetrics_coord_global_from_index(metrics, index, 0, env);
       const size_t jG =
@@ -707,7 +707,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   if (env_.num_way() == NUM_WAY::_2) {
 
-    for (size_t index = 0; index <  metrics.num_elts_local; ++index) {
+    for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
       const size_t iG =
         GMMetrics_coord_global_from_index(&metrics, index, 0, &env_);
       const size_t jG =
@@ -726,7 +726,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   } else { // if (env_.num_way() == NUM_WAY::_3)
 
-    for (size_t index = 0; index <  metrics.num_elts_local; ++index) {
+    for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
       const size_t iG =
         GMMetrics_coord_global_from_index(&metrics, index, 0, &env_);
       const size_t jG =

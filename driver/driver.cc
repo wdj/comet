@@ -297,11 +297,11 @@ void print_output(bool do_print,
     printf(" vcmpout %e", (double)num_written);
   }
 
-  printf(" cmp %e", env.compares());
-  printf(" ecmp %e", env.eltcompares());
+  printf(" cmp %e", env.metriccompares());
+  printf(" ecmp %e", env.entrycompares());
   if (env.ctime() > 0) {
-    printf(" ecmp_rate %e", env.eltcompares() / env.ctime());
-    printf(" ecmp_rate/proc %e", env.eltcompares() /
+    printf(" ecmp_rate %e", env.entrycompares() / env.ctime());
+    printf(" ecmp_rate/proc %e", env.entrycompares() /
       (env.ctime() * env.num_proc()) );
   }
   if (cksum.computing_checksum()) {
@@ -486,7 +486,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   double mctime = 0;
   double cktime = 0;
 
-  size_t num_elts_local_computed = 0;
+  size_t num_metrics_local_computed = 0;
   size_t num_local_written = 0;
 
   // Open output files.
@@ -525,7 +525,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
       compute_metrics.compute(*metrics, *vectors);
 
-      num_elts_local_computed += metrics->num_elts_local_computed;
+      num_metrics_local_computed += metrics->num_metrics_local_computed;
 
       // Output results.
 
@@ -605,9 +605,9 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   size_t num_written = 0;
   if (env->is_proc_active()) {
-    size_t num_elts_computed = 0;
-    COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_elts_local_computed,
-      &num_elts_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+    size_t num_metrics_computed = 0;
+    COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_metrics_local_computed,
+      &num_metrics_computed, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM,
       env->comm_repl_vector()));
 
     COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_local_written, &num_written, 1,
@@ -615,16 +615,16 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
     if (env->num_way() == NUM_WAY::_2 && env->all2all() &&
         do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase() - 1) {
-      COMET_INSIST(num_elts_computed == (do_.num_vector) * (size_t)
-                                          (do_.num_vector - 1) / 2);
+      COMET_INSIST(num_metrics_computed == (do_.num_vector) * (size_t)
+                                           (do_.num_vector - 1) / 2);
     }
 
     if (env->num_way() == NUM_WAY::_3 && env->all2all() &&
         do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase() - 1 &&
         do_.stage_min_0based==0 && do_.stage_max_0based==env->num_stage() - 1) {
-      COMET_INSIST(num_elts_computed == (do_.num_vector) * (size_t)
-                                          (do_.num_vector - 1) * (size_t)
-                                          (do_.num_vector - 2) / 6);
+      COMET_INSIST(num_metrics_computed == (do_.num_vector) * (size_t)
+                                           (do_.num_vector - 1) * (size_t)
+                                           (do_.num_vector - 2) / 6);
     }
   }
 

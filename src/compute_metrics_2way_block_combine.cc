@@ -72,7 +72,7 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat value = (multiplier * numer) / denom;
         Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
       } // for i
-      metrics->num_elts_local_computed += i_max;
+      metrics->num_metrics_local_computed += i_max;
     }   // for j
         /*---TODO: here and elsewhere check for unlikely case denom is/nearly
          * zero---*/
@@ -93,7 +93,7 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat value = (multiplier * numer) / denom;
         Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = value;
       } // for i
-      metrics->num_elts_local_computed += i_max;
+      metrics->num_metrics_local_computed += i_max;
     }   // for j
 
     // ----------------------------------
@@ -117,7 +117,7 @@ void gm_compute_2way_proc_combine_czek_(
       }   // for j
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
-        metrics->num_elts_local_computed += i_max;
+        metrics->num_metrics_local_computed += i_max;
       }   // for j
     } else {
       // don't use collapse because of overflow for large sizes
@@ -135,7 +135,7 @@ void gm_compute_2way_proc_combine_czek_(
           Metrics_elt_2<GMFloat>(*metrics, i, j, j_block, *env) = value;
         } // for i
       }   // for j
-      metrics->num_elts_local_computed += nvl * (size_t)nvl;
+      metrics->num_metrics_local_computed += nvl * (size_t)nvl;
     }
 
     // ----------------------------------
@@ -158,7 +158,7 @@ void gm_compute_2way_proc_combine_czek_(
     }   // for j
     for (int j = 0; j < nvl; ++j) {
       const int i_max = j;
-      metrics->num_elts_local_computed += i_max;
+      metrics->num_metrics_local_computed += i_max;
     }   // for j
 
     // ----------------------------------
@@ -429,7 +429,7 @@ void gm_compute_2way_proc_combine_ccc_(
       } // if (!env->threshold_tc())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
-        metrics->num_elts_local_computed += i_max;
+        metrics->num_metrics_local_computed += i_max;
       }   // for j
     } else {
       if (!env->threshold_tc()) {
@@ -451,7 +451,7 @@ void gm_compute_2way_proc_combine_ccc_(
         }   // for i
       }   // for j
       } // if (!env->threshold_tc())
-      metrics->num_elts_local_computed += nvl * (size_t)nvl;
+      metrics->num_metrics_local_computed += nvl * (size_t)nvl;
    }
 
     // --------------
@@ -477,7 +477,7 @@ void gm_compute_2way_proc_combine_ccc_(
     } // if (!env->threshold_tc())
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
-      metrics->num_elts_local_computed += i_max;
+      metrics->num_metrics_local_computed += i_max;
     }   // for j
     // --------------
   } // if
@@ -579,7 +579,7 @@ void gm_compute_2way_proc_combine_duo_(
       } // if (!env->threshold_tc())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
-        metrics->num_elts_local_computed += i_max;
+        metrics->num_metrics_local_computed += i_max;
       }   // for j
     } else {
       if (!env->threshold_tc()) {
@@ -601,7 +601,7 @@ void gm_compute_2way_proc_combine_duo_(
         }   // for i
       }   // for j
       } // if (!env->threshold_tc())
-      metrics->num_elts_local_computed += nvl * (size_t)nvl;
+      metrics->num_metrics_local_computed += nvl * (size_t)nvl;
    }
 
     // --------------
@@ -627,7 +627,7 @@ void gm_compute_2way_proc_combine_duo_(
     } // if (!env->threshold_tc())
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
-      metrics->num_elts_local_computed += i_max;
+      metrics->num_metrics_local_computed += i_max;
     }   // for j
     // --------------
   } // if

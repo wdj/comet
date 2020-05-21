@@ -380,7 +380,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     //--------------------
       if (env->num_way() == NUM_WAY::_2) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-        for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+        for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
           const size_t vi =
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
           const size_t vj =
@@ -445,7 +445,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
       } //---if
       if (env->num_way() == NUM_WAY::_3) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-        for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+        for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
           const size_t vi =
             GMMetrics_coord_global_from_index(metrics, index, 0, env);
           const size_t vj =
@@ -514,7 +514,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     const int cbpe = env->counted_bits_per_elt();
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-      for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+      for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
         const size_t vi =
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
         const size_t vj =
@@ -657,7 +657,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
       const int cbpe = env->counted_bits_per_elt();
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-      for (size_t index = 0; index < metrics->num_elts_local; ++index) {
+      for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
         const size_t vi =
           GMMetrics_coord_global_from_index(metrics, index, 0, env);
         const size_t vj =

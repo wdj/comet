@@ -24,7 +24,7 @@ enum {PROCS_MAX = TEST_PROCS_MAX};
 
 //=============================================================================
 
-void MetricsTest_3way_num_elts_local_() {
+void MetricsTest_3way_num_metrics_local_() {
 
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
@@ -35,10 +35,10 @@ void MetricsTest_3way_num_elts_local_() {
 
   const uint64_t num_vector = nvl * (uint64_t)num_proc_mock;
 
-  const uint64_t num_elts_local_expected = num_vector * (num_vector-1) *
-                                           (num_vector-2) / 6;
+  const uint64_t num_metrics_local_expected = num_vector * (num_vector-1) *
+                                              (num_vector-2) / 6;
 
-  size_t num_elts_local = 0;
+  size_t num_metrics_local = 0;
 
   const char options_template[] = "--num_proc_vector %i --verbosity 0 "
                                   "--num_vector_local %i --num_field 1 "
@@ -58,8 +58,8 @@ void MetricsTest_3way_num_elts_local_() {
         env.stage_num(stage_num);
 
         comet::GMMetrics metrics = comet::GMMetrics_null();
-        comet::GMMetrics_3way_num_elts_local(&metrics, nvl, &env);
-        num_elts_local += metrics.num_elts_local;
+        comet::GMMetrics_3way_num_metrics_local(&metrics, nvl, &env);
+        num_metrics_local += metrics.num_metrics_local;
 
       } // for
     } // for
@@ -67,13 +67,13 @@ void MetricsTest_3way_num_elts_local_() {
     printf("--------------------------------------- "
            "Metrics elements found %lu, expected %" PRIu64 "."
            " ---------------------------------------\n",
-           num_elts_local, num_elts_local_expected);
+           num_metrics_local, num_metrics_local_expected);
 
-    EXPECT_EQ(true, num_elts_local == num_elts_local_expected);
+    EXPECT_EQ(true, num_metrics_local == num_metrics_local_expected);
 
   } else {
 
-    num_elts_local = num_elts_local_expected;
+    num_metrics_local = num_metrics_local_expected;
 
   } // if comm_rank
 
@@ -81,8 +81,8 @@ void MetricsTest_3way_num_elts_local_() {
 
 //=============================================================================
 
-TEST(MetricsTest, 3way_num_elts_local) {
-  MetricsTest_3way_num_elts_local_();
+TEST(MetricsTest, 3way_num_metrics_local) {
+  MetricsTest_3way_num_metrics_local_();
 }
 
 //=============================================================================
