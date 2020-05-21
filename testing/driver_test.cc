@@ -1844,7 +1844,7 @@ void DriverTest_threshold_() {
         "--num_field 71 --num_vector 17 "
         "--num_way %i "
         "--all2all yes --sparse yes "
-        "--problem_type random "
+        "--problem_type analytic "
         "--threshold %f "
         "--tc %i "
         "--compute_method %s "

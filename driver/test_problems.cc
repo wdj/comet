@@ -510,15 +510,24 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-        const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
-        const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
-        if (vi >= nva || vj >= nva) {
+        const Coords_t coords = metrics->coords_value(index);
+        const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+        const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+        if (iG >= nva || jG >= nva)
           continue;
-        }
-        for (int iE = 0; iE < 2; ++iE) {
-          for (int jE = 0; jE < 2; ++jE) {
-            const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
-              index, iE, jE, *env);
+//        const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
+//        const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
+//        if (vi >= nva || vj >= nva) {
+//          continue;
+//        }
+        for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+             ++entry_num) {
+          const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
+          const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
+//        for (int iE = 0; iE < 2; ++iE) {
+//          for (int jE = 0; jE < 2; ++jE) {
+            const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
+              iE, jE, *env);
 
             GMTally1 rij = 0;
             GMTally1 si = 0;
@@ -533,12 +542,12 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
               const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-              const size_t pvi = perm(g, vi, nva);
-              const size_t pvj = perm(g, vj, nva);
+              const size_t piG = perm(g, iG, nva);
+              const size_t pjG = perm(g, jG, nva);
 
-              const size_t value_i = value_min + ( pvi * value_max ) /
+              const size_t value_i = value_min + ( piG * value_max ) /
                                                  (nva+value_min);
-              const size_t value_j = value_min + ( pvj * value_max ) /
+              const size_t value_j = value_min + ( pjG * value_max ) /
                                                  (nva+value_min);
 
               const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
@@ -549,25 +558,25 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               const int bval_j_0 = !!(bval_j&1);
               const int bval_j_1 = !!(bval_j&2);
 
-              const bool unknown_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
-              const bool unknown_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
-              const bool unknown_ij = unknown_i || unknown_j;
+              const bool unk_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
+              const bool unk_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
+              const bool unk_ij = unk_i || unk_j;
 
-              if (! unknown_i) {
+              if (! unk_i) {
                 ci += gs_this;
                 si += cbpe == 2 ?
                   ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
                   (bval_i_0 == iE) * gs_this;
               }
 
-              if (! unknown_j) {
+              if (! unk_j) {
                 cj += gs_this;
                 sj += cbpe == 2 ?
                   ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
                   (bval_j_0 == jE) * gs_this;
               }
 
-              if (! unknown_ij) {
+              if (! unk_ij) {
                 cij += cbpe * cbpe * gs_this;
                 rij += cbpe == 2 ?
                        (((bval_i_0 == iE) && (bval_j_0 == jE)) +
@@ -580,7 +589,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               }
             } //---g
 
-            GMFloat value_expected_floatcalc = 0;
+            double value_expected_floatcalc = 0;
             if (!(ci == 0 || cj == 0 || cij == 0)) {
               // FIX typing here
               const double f_one = 1;
@@ -604,7 +613,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 f_cicj_min * f_cicj_max * recip_cicjcij :
                 (f_one / (cbpe * cbpe)) * metrics->recip_m;
 
-              value_expected_floatcalc = cbpe == 2 ?
+              value_expected_floatcalc = cbpe == CBPE::CCC ?
                 ccc_duo_value<CBPE::CCC>(rij, si, sj,
                     recip_ci, recip_cj, recip_sumcij,
                     env_ccc_duo_multiplier<CBPE::CCC>(*env), env->ccc_param()) :
@@ -613,7 +622,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                     env_ccc_duo_multiplier<CBPE::DUO>(*env), env->ccc_param());
             }
 
-            GMFloat value_expected = value_expected_floatcalc;
+            const bool do_set_zero = env->threshold_tc() &&
+              !env->pass_threshold(value_expected_floatcalc);
+
+            GMFloat value_expected = do_set_zero ?
+              0e0 :value_expected_floatcalc;
 
 #if 0
 //#ifdef COMET_USE_INT128
@@ -632,16 +645,17 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                                    diff : max_incorrect_diff;
               if (num_incorrect < max_to_print) {
                 fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu  "
-                       "expected %.20e  actual %.20e  diff %.20e\n", vi, vj,
+                       "expected %.20e  actual %.20e  diff %.20e\n", iG, jG,
                        (double)value_expected, (double)value,
                        (double)value-(double)value_expected);
               }
             }
 
             num_incorrect += is_incorrect;
-          } //---j
-        } //---i
-      } //---for index
+//          } //---j
+//        } //---i
+        } // for entry_num
+      } // for index
     } break;
     //--------------------
     case GM_DATA_TYPE_TALLY4X2: {
@@ -651,15 +665,26 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-        const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
-        const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
-        const size_t vk = Metrics_coords_getG(*metrics, index, 2, *env);
-        if (vi >= nva || vj >= nva || vk >= nva) {
+        const Coords_t coords = metrics->coords_value(index);
+        const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+        const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+        const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
+        if (iG >= nva || jG >= nva || kG >= nva)
           continue;
-        }
-        for (int iE = 0; iE < 2; ++iE) {
-          for (int jE = 0; jE < 2; ++jE) {
-            for (int kE = 0; kE < 2; ++kE) {
+//        const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
+//        const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
+//        const size_t vk = Metrics_coords_getG(*metrics, index, 2, *env);
+//        if (vi >= nva || vj >= nva || vk >= nva) {
+//          continue;
+//        }
+        for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+             ++entry_num) {
+          const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
+          const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
+          const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
+//        for (int iE = 0; iE < 2; ++iE) {
+//          for (int jE = 0; jE < 2; ++jE) {
+//            for (int kE = 0; kE < 2; ++kE) {
               const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
                 index, iE, jE, kE, *env);
 
@@ -678,15 +703,15 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
                 const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-                const size_t pvi = perm(g, vi, nva);
-                const size_t pvj = perm(g, vj, nva);
-                const size_t pvk = perm(g, vk, nva);
+                const size_t piG = perm(g, iG, nva);
+                const size_t pjG = perm(g, jG, nva);
+                const size_t pkG = perm(g, kG, nva);
 
-                const size_t value_i = value_min + ( pvi * value_max ) /
+                const size_t value_i = value_min + ( piG * value_max ) /
                                                    (nva+value_min);
-                const size_t value_j = value_min + ( pvj * value_max ) /
+                const size_t value_j = value_min + ( pjG * value_max ) /
                                                    (nva+value_min);
-                const size_t value_k = value_min + ( pvk * value_max ) /
+                const size_t value_k = value_min + ( pkG * value_max ) /
                                                    (nva+value_min);
 
                 const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
@@ -701,33 +726,33 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 const int bval_k_1 = !!(bval_k&2);
 
 
-                const bool unknown_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
-                const bool unknown_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
-                const bool unknown_k = env->sparse() && bval_k == GM_2BIT_UNKNOWN;
-                const bool unknown_ijk = unknown_i || unknown_j || unknown_k;
+                const bool unk_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
+                const bool unk_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
+                const bool unk_k = env->sparse() && bval_k == GM_2BIT_UNKNOWN;
+                const bool unk_ijk = unk_i || unk_j || unk_k;
 
-                if (! unknown_i) {
+                if (! unk_i) {
                   ci += gs_this;
                   si += cbpe == 2 ?
                     ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
                     (bval_i_0 == iE) * gs_this;
                 }
 
-                if (! unknown_j) {
+                if (! unk_j) {
                   cj += gs_this;
                   sj += cbpe == 2 ?
                     ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
                     (bval_j_0 == jE) * gs_this;
                 }
 
-                if (! unknown_k) {
+                if (! unk_k) {
                   ck += gs_this;
                   sk += cbpe == 2 ?
                     ((bval_k_0 == kE) + (bval_k_1 == kE)) * gs_this :
                     (bval_k_0 == kE) * gs_this;
                 }
 
-                if (! unknown_ijk) {
+                if (! unk_ijk) {
                   cijk += cbpe * cbpe * cbpe * gs_this;
                   rijk += cbpe == 2 ?
                           (((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
@@ -744,7 +769,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 }
               } //---g
 
-              GMFloat value_expected_floatcalc = 0;
+              double value_expected_floatcalc = 0;
               if (!(ci == 0 || cj == 0 || ck == 0 || cijk == 0)) {
                 // FIX typing here
                 const double f_one = 1;
@@ -766,7 +791,11 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                            recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
               }
 
-              GMFloat value_expected = value_expected_floatcalc;
+            const bool do_set_zero = env->threshold_tc() &&
+              !env->pass_threshold(value_expected_floatcalc);
+
+            GMFloat value_expected = do_set_zero ?
+              0e0 :value_expected_floatcalc;
 
 #if 0
 //#ifdef COMET_USE_INT128
@@ -784,17 +813,18 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
                 if (num_incorrect < max_to_print) {
                   fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu %zu  "
-                         "expected %.20e  actual %.20e  diff %.20e\n", vi, vj, vk,
+                         "expected %.20e  actual %.20e  diff %.20e\n", iG, jG, kG,
                          (double)value_expected, (double)value,
                          (double)value-(double)value_expected);
                 }
               }
 
               num_incorrect += is_incorrect;
-            } //---k
-          } //---j
-        } //---i
-      } //---for index
+//            } //---k
+//          } //---j
+//        } //---i
+        } // for entry_num
+      } // for index
     } break;
     //--------------------
     default:

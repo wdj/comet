@@ -98,15 +98,26 @@ void Checksum::print(CEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Checksum helper function: perform one bubble sort step.
 
-inline static void makegreater(size_t& i, size_t& j, int& ind_i, int& ind_j) {
+template<typename T, typename TI>
+inline static void sort2(T& i, T& j, TI& ind_i, TI& ind_j) {
   if (i < j) {
-    const size_t tmp = i;
+    const T tmp = i;
     i = j;
     j = tmp;
-    const int tmp2 = ind_i;
+    const TI tmp2 = ind_i;
     ind_i = ind_j;
     ind_j = tmp2;
   }
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Checksum helper function: perform bubble sort on three elts.
+
+template<typename T, typename TI>
+inline static void sort3(T& i, T& j, T& k, TI& ind_i, TI& ind_j, TI& ind_k) {
+  sort2(j, k, ind_j, ind_k);
+  sort2(i, j, ind_i, ind_j);
+  sort2(j, k, ind_j, ind_k);
 }
 
 //-----------------------------------------------------------------------------
@@ -134,13 +145,12 @@ double Checksum::metrics_elt(
 
   // Obtain global coords of metrics elt
   Coords_t coords[NUM_WAY::MAX];
-  int ind_coords[NUM_WAY::MAX]; // permutation index
-  for (int i = 0; i < NUM_WAY::MAX; ++i) {
-    coords[i] = 0;
-    ind_coords[i] = i;
-  }
+  Coords_t coords_perm[NUM_WAY::MAX];
+  int iperm[NUM_WAY::MAX];
   for (int i = 0; i < env.num_way(); ++i) {
     coords[i] = Metrics_coords_getG(metrics, index, i, env);
+    coords_perm[i] = coords[i];
+    iperm[i] = i;
   }
   // Reflect coords by symmetry to get uniform result -
   //   sort into descending order
@@ -151,9 +161,12 @@ double Checksum::metrics_elt(
   // This permutation puts the indices into a uniform order
   // so that this is not viewed as a difference in the results.
   // Note also below we will permute iE / jE / kE as needed.
-  makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
-  makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
-  makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
+
+  if (env.num_way() == NUM_WAY::_2)
+    sort2(coords_perm[0], coords_perm[1], iperm[0], iperm[1]);
+  else
+    sort3(coords_perm[0], coords_perm[1], coords_perm[2],
+          iperm[0], iperm[1], iperm[2]);
 
   // Pick up value of this metrics elt
   double value = 0;
@@ -164,33 +177,36 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
-      const int iE_unpermuted = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
-      const int jE_unpermuted = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
-      const int iE = ind_coords[0] == 0 ? iE_unpermuted : jE_unpermuted;
-      const int jE = ind_coords[0] == 0 ? jE_unpermuted : iE_unpermuted;
-      value = Metrics_ccc_duo_get_2(metrics, index, iE, jE, env);
-      if (!env.is_double_prec()) {
-        value = (double)(float)value; // ensure result independent of threshold_tc
-      }
+      // TODO: check
+      const int iE = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
+      const int jE = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
+      const int iE_perm = iperm[0] == 0 ? iE : jE;
+      const int jE_perm = iperm[0] == 0 ? jE : iE;
+      value = Metrics_ccc_duo_get_2(metrics, index, iE_perm, jE_perm, env);
+      // ensure result independent of threshold_tc
+      if (!env.is_double_prec())
+        value = (double)(float)value;
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
-      const int iE_unpermuted = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
-      const int jE_unpermuted = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
-      const int kE_unpermuted = CoordsInfo::getkE(coords[2], entry_num, metrics, env);
-      const int iE = ind_coords[0] == 0 ? iE_unpermuted :
-                     ind_coords[1] == 0 ? jE_unpermuted :
-                                          kE_unpermuted;
-      const int jE = ind_coords[0] == 1 ? iE_unpermuted :
-                     ind_coords[1] == 1 ? jE_unpermuted :
-                                          kE_unpermuted;
-      const int kE = ind_coords[0] == 2 ? iE_unpermuted :
-                     ind_coords[1] == 2 ? jE_unpermuted :
-                                          kE_unpermuted;
-      value = Metrics_ccc_duo_get_3(metrics, index, iE, jE, kE, env);
-      if (!env.is_double_prec()) {
-        value = (double)(float)value; // ensure result independent of threshold_tc
-      }
+      // TODO: check
+      const int iE = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
+      const int jE = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
+      const int kE = CoordsInfo::getkE(coords[2], entry_num, metrics, env);
+      const int iE_perm = iperm[0] == 0 ? iE :
+                          iperm[1] == 0 ? jE :
+                                          kE;
+      const int jE_perm = iperm[0] == 1 ? iE :
+                          iperm[1] == 1 ? jE :
+                                          kE;
+      const int kE_perm = iperm[0] == 2 ? iE :
+                          iperm[1] == 2 ? jE :
+                                          kE;
+      value = Metrics_ccc_duo_get_3(metrics, index, iE_perm, jE_perm, kE_perm,
+                                    env);
+      // ensure result independent of threshold_tc
+      if (!env.is_double_prec())
+        value = (double)(float)value;
     } break;
     // --------------
     default:
@@ -232,7 +248,8 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
     }
     double value_max = -DBL_MAX;
     if (is_active) {
-      for (int entry_num = 0; entry_num < metrics.num_entries_per_metric; ++entry_num) {
+      for (int entry_num = 0; entry_num < metrics.num_entries_per_metric;
+           ++entry_num) {
         // Pick up value of this metrics elt
         const double value = Checksum::metrics_elt(metrics, index, entry_num,
                                                    env);
@@ -345,18 +362,15 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
            ++entry_num) {
 
         // Obtain global coords of metrics elt
-        Coords_t coords[NUM_WAY::MAX];
-        int ind_coords[NUM_WAY::MAX]; // permutation index
-        for (int i = 0; i < NUM_WAY::MAX; ++i) {
-          coords[i] = 0;
-        }
+        Coords_t coords_perm[NUM_WAY::MAX];
+        int iperm[NUM_WAY::MAX];
         bool is_active = true;
         for (int i = 0; i < env.num_way(); ++i) {
           const size_t coord = Metrics_coords_getG(metrics, index, i, env);
           // Ignore padding vectors.
           is_active = is_active && coord < metrics.num_vector_active;
-          coords[i] = coord;
-          ind_coords[i] = i;
+          coords_perm[i] = coord;
+          iperm[i] = i;
         }
 
         // Pick up value of this metrics elt
@@ -365,9 +379,12 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         num_private += true && is_active;
         num_zero_private += (double)0 == value && is_active;
 
-        makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
-        makegreater(coords[0], coords[1], ind_coords[0], ind_coords[1]);
-        makegreater(coords[1], coords[2], ind_coords[1], ind_coords[2]);
+        if (env.num_way() == NUM_WAY::_2)
+          sort2(coords_perm[0], coords_perm[1], iperm[0], iperm[1]);
+        else
+          sort3(coords_perm[0], coords_perm[1], coords_perm[2],
+                iperm[0], iperm[1], iperm[2]);
+
 
         // Convert to uint64.  Store only 2*w+1 bits, at most -
         // if (value / scaling) <= 1, which it should be if
@@ -380,9 +397,9 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         UI64_t ivalue = (UI64_t)( (value / scaling) * (one64 << (2 * w)) );
         // Construct an id that is a single number representing the coord
         // and value number.
-        UI64_t uid = coords[0];
+        UI64_t uid = coords_perm[0];
         for (int i = 1; i < env.num_way(); ++i) {
-          uid = uid * metrics.num_vector_active + coords[i];
+          uid = uid * metrics.num_vector_active + coords_perm[i];
         }
         uid = uid * metrics.num_entries_per_metric + entry_num;
         // Randomize this id

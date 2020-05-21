@@ -148,14 +148,21 @@ static void MetricsIO_write_tally2x2_bin_impl_(
       // Do any of the values exceed the threshold
       if (Metrics_ccc_duo_get_threshold_2<COUNTED_BITS_PER_ELT>(
             *metrics, index, *env)) {
-        for (int iE = 0; iE < 2; ++iE) {
-          for (int jE = 0; jE < 2; ++jE) {
+        const Coords_t coords = metrics->coords_value(index);
+        for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+             ++entry_num) {
+          const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
+          const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
+//        for (int iE = 0; iE < 2; ++iE) {
+//          for (int jE = 0; jE < 2; ++jE) {
             const GMFloat value =
               Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
                iE, jE, *env);
             if (env->pass_threshold(value)) {
-              const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-              const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
+              const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+              const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+//              const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+//              const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
               const char do_out = iG < metrics->num_vector_active &&
                                   jG < metrics->num_vector_active;
               const size_t ind_buf = jE + 2*(iE + 2*(index-ind_base));
@@ -166,9 +173,10 @@ static void MetricsIO_write_tally2x2_bin_impl_(
               ijE_buf[ind_buf] = iE + 2*jE;
               value_buf[ind_buf] = value;
             } // if
-          } // jE
-        } // iE
-      }
+//          } // jE
+//        } // iE
+        } // for entry_num
+      } // if
     } // pragma omp / for index
 
     // Flush buffer
@@ -271,19 +279,24 @@ static void MetricsIO_write_tally4x2_bin_impl_(
       // Do any of the values exceed the threshold
       if (Metrics_ccc_duo_get_threshold_3<COUNTED_BITS_PER_ELT>(
              *metrics, index, *env)) {
-        for (int iE = 0; iE < 2; ++iE) {
-          for (int jE = 0; jE < 2; ++jE) {
-            for (int kE = 0; kE < 2; ++kE) {
-              const GMFloat value =
-                Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
+        const Coords_t coords = metrics->coords_value(index);
+        for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+             ++entry_num) {
+          const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
+          const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
+          const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
+//        for (int iE = 0; iE < 2; ++iE) {
+//          for (int jE = 0; jE < 2; ++jE) {
+//            for (int kE = 0; kE < 2; ++kE) {
+              const GMFloat value = Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
                   *metrics, index, iE, jE, kE, *env);
               if (env->pass_threshold(value)) {
-                const size_t iG =
-                  Metrics_coords_getG(*metrics, index, 0, *env);
-                const size_t jG =
-                  Metrics_coords_getG(*metrics, index, 1, *env);
-                const size_t kG =
-                  Metrics_coords_getG(*metrics, index, 2, *env);
+//                const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+//                const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
+//                const size_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
+                const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+                const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+                const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
                 const char do_out = iG < metrics->num_vector_active &&
                                     jG < metrics->num_vector_active &&
                                     kG < metrics->num_vector_active;
@@ -295,11 +308,12 @@ static void MetricsIO_write_tally4x2_bin_impl_(
                 ijkE_buf[ind_buf] = iE + 2*(jE + 2*kE);
                 value_buf[ind_buf] = value;
               } // if
-            } // kE
-          } // jE
-        } // iE
-      }
-    } // for index
+//            } // kE
+//          } // jE
+//        } // iE
+        } // for entry_num
+      } // if
+    } // paragma opm / for index
 
     // Flush buffer
 
@@ -448,14 +462,21 @@ static void MetricsIO_write_(
 
     size_t index = 0;
     for (index = 0; index < metrics->num_metrics_local; ++index) {
-      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
+      const Coords_t coords = metrics->coords_value(index);
+      const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+      const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+//      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+//      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
-      for (int iE = 0; iE < 2; ++iE) {
-        for (int jE = 0; jE < 2; ++jE) {
+      for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+           ++entry_num) {
+        const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
+        const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
+//      for (int iE = 0; iE < 2; ++iE) {
+//        for (int jE = 0; jE < 2; ++jE) {
           const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
             index, iE, jE, *env);
           if (!env->pass_threshold(value))
@@ -470,8 +491,9 @@ static void MetricsIO_write_(
 
           num_out_this_line++;
 
-        } // jE
-      } // iE
+//        } // jE
+//      } // iE
+      } // for entry_num
       if (num_out_this_line > 0)
         fprintf(file, "\n");
     } // for index
@@ -496,17 +518,26 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
-      const size_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
+      const Coords_t coords = metrics->coords_value(index);
+      const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+      const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+      const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
+//      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+//      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
+//      const size_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active ||
           kG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
-      for (int iE = 0; iE < 2; ++iE) {
-        for (int jE = 0; jE < 2; ++jE) {
-          for (int kE = 0; kE < 2; ++kE) {
+      for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+           ++entry_num) {
+        const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
+        const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
+        const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
+//      for (int iE = 0; iE < 2; ++iE) {
+//        for (int jE = 0; jE < 2; ++jE) {
+//          for (int kE = 0; kE < 2; ++kE) {
             const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
               index, iE, jE, kE, *env);
             if (!env->pass_threshold(value))
@@ -522,9 +553,10 @@ static void MetricsIO_write_(
 
             num_out_this_line++;
 
-          } // kE
-        } // jE
-      } // iE
+//          } // kE
+//        } // jE
+//      } // iE
+      } // for entry_num
       if (num_out_this_line > 0)
         fprintf(file, "\n");
     } // for index
