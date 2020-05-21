@@ -154,10 +154,8 @@ static void MetricsIO_write_tally2x2_bin_impl_(
               Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
                iE, jE, *env);
             if (env->pass_threshold(value)) {
-              const size_t iG =
-                GMMetrics_coord_global_from_index(metrics, index, 0, env);
-              const size_t jG =
-                GMMetrics_coord_global_from_index(metrics, index, 1, env);
+              const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+              const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
               const char do_out = iG < metrics->num_vector_active &&
                                   jG < metrics->num_vector_active;
               const size_t ind_buf = jE + 2*(iE + 2*(index-ind_base));
@@ -281,11 +279,11 @@ static void MetricsIO_write_tally4x2_bin_impl_(
                   *metrics, index, iE, jE, kE, *env);
               if (env->pass_threshold(value)) {
                 const size_t iG =
-                  GMMetrics_coord_global_from_index(metrics, index, 0, env);
+                  Metrics_coords_getG(*metrics, index, 0, *env);
                 const size_t jG =
-                  GMMetrics_coord_global_from_index(metrics, index, 1, env);
+                  Metrics_coords_getG(*metrics, index, 1, *env);
                 const size_t kG =
-                  GMMetrics_coord_global_from_index(metrics, index, 2, env);
+                  Metrics_coords_getG(*metrics, index, 2, *env);
                 const char do_out = iG < metrics->num_vector_active &&
                                     jG < metrics->num_vector_active &&
                                     kG < metrics->num_vector_active;
@@ -383,10 +381,8 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-      const size_t iG =
-        GMMetrics_coord_global_from_index(metrics, index, 0, env);
-      const size_t jG =
-        GMMetrics_coord_global_from_index(metrics, index, 1, env);
+      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active)
         continue;
@@ -412,12 +408,9 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-      const size_t iG =
-        GMMetrics_coord_global_from_index(metrics, index, 0, env);
-      const size_t jG =
-        GMMetrics_coord_global_from_index(metrics, index, 1, env);
-      const size_t kG =
-        GMMetrics_coord_global_from_index(metrics, index, 2, env);
+      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
+      const size_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active ||
           kG >= metrics->num_vector_active)
@@ -455,10 +448,8 @@ static void MetricsIO_write_(
 
     size_t index = 0;
     for (index = 0; index < metrics->num_metrics_local; ++index) {
-      const size_t iG =
-        GMMetrics_coord_global_from_index(metrics, index, 0, env);
-      const size_t jG =
-        GMMetrics_coord_global_from_index(metrics, index, 1, env);
+      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active)
         continue;
@@ -505,12 +496,9 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-      const size_t iG =
-        GMMetrics_coord_global_from_index(metrics, index, 0, env);
-      const size_t jG =
-        GMMetrics_coord_global_from_index(metrics, index, 1, env);
-      const size_t kG =
-        GMMetrics_coord_global_from_index(metrics, index, 2, env);
+      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
+      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
+      const size_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active ||
           kG >= metrics->num_vector_active)
@@ -708,10 +696,8 @@ void MetricsIO::check_file(GMMetrics& metrics) {
   if (env_.num_way() == NUM_WAY::_2) {
 
     for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
-      const size_t iG =
-        GMMetrics_coord_global_from_index(&metrics, index, 0, &env_);
-      const size_t jG =
-        GMMetrics_coord_global_from_index(&metrics, index, 1, &env_);
+      const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
+      const size_t jG = Metrics_coords_getG(metrics, index, 1, env_);
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active)
         continue;
@@ -727,12 +713,9 @@ void MetricsIO::check_file(GMMetrics& metrics) {
   } else { // if (env_.num_way() == NUM_WAY::_3)
 
     for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
-      const size_t iG =
-        GMMetrics_coord_global_from_index(&metrics, index, 0, &env_);
-      const size_t jG =
-        GMMetrics_coord_global_from_index(&metrics, index, 1, &env_);
-      const size_t kG =
-        GMMetrics_coord_global_from_index(&metrics, index, 2, &env_);
+      const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
+      const size_t jG = Metrics_coords_getG(metrics, index, 1, env_);
+      const size_t kG = Metrics_coords_getG(metrics, index, 2, env_);
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active ||
           kG >= metrics.num_vector_active)

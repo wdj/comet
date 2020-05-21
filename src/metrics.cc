@@ -121,7 +121,7 @@ void* MetricsMem::malloc_data_C(size_t data_C_size) {
 
 //-----------------------------------------------------------------------------
 
-MetricsMem::Coords_t* MetricsMem::malloc_coords_values(
+Coords_t* MetricsMem::malloc_coords_values(
   size_t coords_values_size) {
 
   if (! env_->is_proc_active()) {
@@ -285,8 +285,6 @@ void GMMetrics_create(GMMetrics* metrics,
                       MetricsMem* metrics_mem,
                       CEnv* env) {
   COMET_INSIST(metrics && dm && env);
-
-  typedef GMMetrics::Coords_t Coords_t;
 
   *metrics = GMMetrics_null();
 
@@ -602,9 +600,9 @@ void GMMetrics_create(GMMetrics* metrics,
                     const size_t jG = j + nvl * j_block;
                     const size_t kG = k + nvl * k_block;
                     const size_t iG = i + nvl * i_block;
-                    COMET_ASSERT(iG>=0 && metrics->num_vector-iG>0);
-                    COMET_ASSERT(jG>=0 && metrics->num_vector-jG>0);
-                    COMET_ASSERT(kG>=0 && metrics->num_vector-kG>0);
+                    COMET_ASSERT(iG >= 0 && iG < metrics->num_vector);
+                    COMET_ASSERT(jG >= 0 && jG < metrics->num_vector);
+                    COMET_ASSERT(kG >= 0 && kG < metrics->num_vector);
                     const size_t index_this = index + I + K * (size_t)nvl;
                     COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_metrics_local);
@@ -772,38 +770,13 @@ void GMMetrics_destroy(GMMetrics* metrics, CEnv* env) {
 //=============================================================================
 // Accessors: indexing: global coord from (contig) index: generic.
 
-int GMMetrics_coord_global_from_index(GMMetrics* metrics,
-                                      size_t index,
-                                      int coord_num,
-                                      CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_metrics_local);
-  COMET_ASSERT(coord_num >= 0 && coord_num < env->num_way());
+size_t Metrics_coords_getG(GMMetrics& metrics, size_t index, int ijk,
+  CEnv& env) {
+  COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
+  COMET_ASSERT(ijk >= 0 && ijk < env.num_way());
 
-  size_t result64 = 0;
-
-  switch (env->num_way() + 4 * coord_num) {
-    case 2 + 4 * 0: /* 2-way, coord 0 */
-      result64 = GMMetrics_iG_from_index_2(metrics, index, env);
-      break;
-    case 2 + 4 * 1: /* 2-way, coord 1 */
-      result64 = GMMetrics_jG_from_index_2(metrics, index, env);
-      break;
-    case 3 + 4 * 0: /* 3-way, coord 0 */
-      result64 = GMMetrics_iG_from_index_3(metrics, index, env);
-      break;
-    case 3 + 4 * 1: /* 3-way, coord 1 */
-      result64 = GMMetrics_jG_from_index_3(metrics, index, env);
-      break;
-    case 3 + 4 * 2: /* 3-way, coord 2 */
-      result64 = GMMetrics_kG_from_index_3(metrics, index, env);
-      break;
-    default:
-      COMET_INSIST_INTERFACE(env, false && "Invalid num_way or coord_num.");
-  } // switch
-
-  const int result = (int)result64;
-  COMET_ASSERT((size_t)result == result64);
+  const size_t result = CoordsInfo::getG(metrics.coords_value(index), ijk,
+    metrics, env);
 
   return result;
 }

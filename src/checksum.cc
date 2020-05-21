@@ -133,16 +133,14 @@ double Checksum::metrics_elt(
   COMET_INSIST(entry_num >= 0 && entry_num < metrics.num_entries_per_metric);
 
   // Obtain global coords of metrics elt
-  size_t coords[NUM_WAY::MAX];
+  Coords_t coords[NUM_WAY::MAX];
   int ind_coords[NUM_WAY::MAX]; // permutation index
   for (int i = 0; i < NUM_WAY::MAX; ++i) {
     coords[i] = 0;
     ind_coords[i] = i;
   }
   for (int i = 0; i < env.num_way(); ++i) {
-    const size_t coord =
-      GMMetrics_coord_global_from_index(&metrics, index, i, &env);
-    coords[i] = coord;
+    coords[i] = Metrics_coords_getG(metrics, index, i, env);
   }
   // Reflect coords by symmetry to get uniform result -
   //   sort into descending order
@@ -166,8 +164,8 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
-      const int iE_unpermuted = entry_num / 2;
-      const int jE_unpermuted = entry_num % 2;
+      const int iE_unpermuted = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
+      const int jE_unpermuted = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
       const int iE = ind_coords[0] == 0 ? iE_unpermuted : jE_unpermuted;
       const int jE = ind_coords[0] == 0 ? jE_unpermuted : iE_unpermuted;
       value = Metrics_ccc_duo_get_2(metrics, index, iE, jE, env);
@@ -177,9 +175,9 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
-      const int iE_unpermuted = entry_num / 4;
-      const int jE_unpermuted = (entry_num / 2) % 2;
-      const int kE_unpermuted = entry_num % 2;
+      const int iE_unpermuted = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
+      const int jE_unpermuted = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
+      const int kE_unpermuted = CoordsInfo::getkE(coords[2], entry_num, metrics, env);
       const int iE = ind_coords[0] == 0 ? iE_unpermuted :
                      ind_coords[1] == 0 ? jE_unpermuted :
                                           kE_unpermuted;
@@ -229,8 +227,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
     // Determine whether this cell is active.
     bool is_active = true;
     for (int i = 0; i < env.num_way(); ++i) {
-      const size_t coord = GMMetrics_coord_global_from_index(&metrics, index,
-                                                             i, &env);
+      const Coords_t coord = Metrics_coords_getG(metrics, index, i, env);
       is_active = is_active && coord < metrics.num_vector_active;
     }
     double value_max = -DBL_MAX;
@@ -348,15 +345,14 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
            ++entry_num) {
 
         // Obtain global coords of metrics elt
-        size_t coords[NUM_WAY::MAX];
+        Coords_t coords[NUM_WAY::MAX];
         int ind_coords[NUM_WAY::MAX]; // permutation index
         for (int i = 0; i < NUM_WAY::MAX; ++i) {
           coords[i] = 0;
         }
         bool is_active = true;
         for (int i = 0; i < env.num_way(); ++i) {
-          const size_t coord =
-            GMMetrics_coord_global_from_index(&metrics, index, i, &env);
+          const size_t coord = Metrics_coords_getG(metrics, index, i, env);
           // Ignore padding vectors.
           is_active = is_active && coord < metrics.num_vector_active;
           coords[i] = coord;

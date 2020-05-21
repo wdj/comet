@@ -23,15 +23,15 @@
 
 namespace comet {
 
-// Forward declartion.
-struct GMMetrics;
+typedef size_t Coords_t;
 
 //-----------------------------------------------------------------------------
 /// \brief Helper class for metrics memory.
 
-class MetricsMem {
+// Forward declartion.
+struct GMMetrics;
 
-  typedef size_t Coords_t;
+class MetricsMem {
 
 public:
   MetricsMem(CEnv* env);
@@ -69,13 +69,11 @@ struct GMMetrics {
 
   enum {NUM_SECTION_MAX = 6};
 
-  typedef MetricsMem::Coords_t Coords_t;
-
   // Logical sizes.
   int num_field;
   int num_field_local;
   size_t num_field_active;
-  int num_vector;
+  size_t num_vector;
   int num_vector_local;
   size_t num_vector_active;
   int J_lo_part3_[NUM_SECTION_MAX];
@@ -105,7 +103,7 @@ struct GMMetrics {
   size_t data_C_elt_size;
   // Map of (contig) index to linearized Cartesian coords.
   Coords_t* coords_values_;
-  Coords_t coords_values(size_t index) const {
+  Coords_t coords_value(size_t index) const {
     COMET_ASSERT(index+1 >= 1 && index < num_metrics_local);
     return coords_values_[index];
   }
@@ -118,6 +116,69 @@ struct GMMetrics {
 
 private:
 
+};
+
+//=============================================================================
+
+struct CoordsInfo {
+
+  static size_t getiG(Coords_t coords, GMMetrics& metrics, CEnv& env) {
+    const size_t result = coords % metrics.num_vector;
+    return result;
+  }
+
+  static size_t getjG(Coords_t coords, GMMetrics& metrics, CEnv& env) {
+    const size_t result = (coords / metrics.num_vector) % metrics.num_vector;
+    return result;
+  }
+
+  static size_t getkG(Coords_t coords, GMMetrics& metrics, CEnv& env) {
+    COMET_ASSERT(env.num_way() >= NUM_WAY::_3);
+    const size_t result = coords / (metrics.num_vector * metrics.num_vector);
+    COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
+    return result;
+  }
+
+  static size_t getG(Coords_t coords, int ijk, GMMetrics& metrics, CEnv& env) {
+    COMET_ASSERT(ijk >= 0 && ijk < env.num_way());
+    return ijk==0 ? getiG(coords, metrics, env) :
+           ijk==1 ? getjG(coords, metrics, env) :
+                    getkG(coords, metrics, env);
+  }
+
+  static int getiE(Coords_t coords, int entry_num, GMMetrics& metrics,
+    CEnv& env) {
+    COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
+    // TODO: make this and the sequels more performant.
+    const size_t result = entry_num / (1 << (env.num_way()-1));
+    COMET_ASSERT(result >= 0 && result < 2);
+    return result;
+  }
+
+  static int getjE(Coords_t coords, int entry_num, GMMetrics& metrics,
+    CEnv& env) {
+    COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
+    const size_t result = (entry_num / (1 << (env.num_way()-2))) % 2;
+    COMET_ASSERT(result >= 0 && result < 2);
+    return result;
+  }
+
+  static int getkE(Coords_t coords, int entry_num, GMMetrics& metrics,
+    CEnv& env) {
+    COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
+    COMET_ASSERT(env.num_way() >= NUM_WAY::_3);
+    const size_t result = entry_num % 2;
+    COMET_ASSERT(result >= 0 && result < 2);
+    return result;
+  }
+
+  static int getE(Coords_t coords, int ijk, int entry_num, GMMetrics& metrics,
+    CEnv& env) {
+    COMET_ASSERT(ijk >= 0 && ijk < env.num_way());
+    return ijk==0 ? getiE(coords, entry_num, metrics, env) :
+           ijk==1 ? getjE(coords, entry_num, metrics, env) :
+                    getkE(coords, entry_num, metrics, env);
+  }
 };
 
 //=============================================================================
@@ -143,10 +204,8 @@ void GMMetrics_destroy(GMMetrics* metrics, CEnv* env);
 //=============================================================================
 // Accessors: indexing: global coord from (contig) index: generic.
 
-int GMMetrics_coord_global_from_index(GMMetrics* metrics,
-                                      size_t index,
-                                      int coord_num,
-                                      CEnv* env);
+size_t Metrics_coords_getG(GMMetrics& metrics, size_t index, int ijk,
+ CEnv& env);
 
 //=============================================================================
 // Adjustment required to compensate for padding.

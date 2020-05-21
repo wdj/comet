@@ -100,36 +100,6 @@ static int gm_blocks_computed_this_row(CEnv* env) {
 }
 
 //=============================================================================
-// Accessors: indexing: global coord from (contig) index: 2-way.
-
-static int GMMetrics_iG_from_index_2(GMMetrics* metrics, size_t index,
-  CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_metrics_local);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-
-
-  const GMMetrics::Coords_t i = metrics->coords_values(index) %
-                                metrics->num_vector;
-
-  return safe_cast<int>(i);
-}
-
-//-----------------------------------------------------------------------------
-
-static int GMMetrics_jG_from_index_2(GMMetrics* metrics, size_t index,
-  CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index+1 >= 1 && index < metrics->num_metrics_local);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
-
-  const GMMetrics::Coords_t j = metrics->coords_values(index) /
-                                metrics->num_vector;
-
-  return safe_cast<int>(j);
-}
-
-//=============================================================================
 // Accessors: indexing: (contig) index from coord, 2-way.
 
 //-----------------------------------------------------------------------------
@@ -203,10 +173,10 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_metrics_local);
 
-  COMET_ASSERT((size_t)GMMetrics_iG_from_index_2(&metrics, index, &env) ==
+  COMET_ASSERT(CoordsInfo::getiG(metrics.coords_value(index), metrics, env) ==
            i + i_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((size_t)GMMetrics_jG_from_index_2(&metrics, index, &env) ==
+  COMET_ASSERT(CoordsInfo::getjG(metrics.coords_value(index), metrics, env) ==
            j + j_block * (size_t)metrics.num_vector_local);
 
   return (size_t)index;

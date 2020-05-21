@@ -381,10 +381,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
       if (env->num_way() == NUM_WAY::_2) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-          const size_t vi =
-            GMMetrics_coord_global_from_index(metrics, index, 0, env);
-          const size_t vj =
-            GMMetrics_coord_global_from_index(metrics, index, 1, env);
+          const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
+          const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
           if (vi >= nva || vj >= nva) {
             continue;
           }
@@ -446,12 +444,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
       if (env->num_way() == NUM_WAY::_3) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-          const size_t vi =
-            GMMetrics_coord_global_from_index(metrics, index, 0, env);
-          const size_t vj =
-            GMMetrics_coord_global_from_index(metrics, index, 1, env);
-          const size_t vk =
-            GMMetrics_coord_global_from_index(metrics, index, 2, env);
+          const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
+          const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
+          const size_t vk = Metrics_coords_getG(*metrics, index, 2, *env);
           if (vi >= nva || vj >= nva || vk >= nva) {
             continue;
           }
@@ -515,10 +510,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-        const size_t vi =
-          GMMetrics_coord_global_from_index(metrics, index, 0, env);
-        const size_t vj =
-          GMMetrics_coord_global_from_index(metrics, index, 1, env);
+        const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
+        const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
         if (vi >= nva || vj >= nva) {
           continue;
         }
@@ -658,12 +651,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-        const size_t vi =
-          GMMetrics_coord_global_from_index(metrics, index, 0, env);
-        const size_t vj =
-          GMMetrics_coord_global_from_index(metrics, index, 1, env);
-        const size_t vk =
-          GMMetrics_coord_global_from_index(metrics, index, 2, env);
+        const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
+        const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
+        const size_t vk = Metrics_coords_getG(*metrics, index, 2, *env);
         if (vi >= nva || vj >= nva || vk >= nva) {
           continue;
         }
