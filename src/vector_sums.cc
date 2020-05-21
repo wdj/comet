@@ -210,7 +210,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
                             : utils::popc64(v.data[0] & oddbits);
           sum += is_cbpe_2 ? utils::popc64(v.data[1])
                             : utils::popc64(v.data[1] & oddbits);
-          // NOTE: for this case pad entries are all zero so no effect on sum
+          // NOTE: for this case pad entries of vec all zero so no effect on sum
         }
         COMET_ASSERT(sum >= 0 &&
                      sum <= cbpe * vectors.dm->num_field_active_local);

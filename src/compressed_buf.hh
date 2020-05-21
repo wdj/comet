@@ -203,7 +203,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
     T result = T::null();
 
 #ifdef COMET_ASSERTIONS_ON
-    // number of TypeIn (float) entries of (uncompressed) buf.
+    // number of TypeIn (float) elements of (uncompressed) buf.
     const size_t dim_typein = 4 * buf_->dim0 * buf_->dim1;
 #endif
 

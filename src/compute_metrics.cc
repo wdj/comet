@@ -95,7 +95,7 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
     1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_repl_vector()));
 
   env_.compares_inc(metrics.num_field_active * metrics_num_elts *
-                    metrics.num_values_per_metric);
+                    metrics.num_entries_per_metric);
   env_.eltcompares_inc(metrics.num_field_active * metrics_num_elts);
   env_.veccompares_inc(metrics_num_elts);
 }

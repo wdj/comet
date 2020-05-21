@@ -27,7 +27,7 @@ namespace comet {
 enum {
   GM_DATA_TYPE_FLOAT = 1,
   GM_DATA_TYPE_BITS1 = 2, // Not implemented
-  GM_DATA_TYPE_UINT64 = 3,  //---(design of this entry is not complete)
+  GM_DATA_TYPE_UINT64 = 3,  //---(design of this selection is not complete)
   GM_DATA_TYPE_BITS2 = 4,
   GM_DATA_TYPE_TALLY2X2 = 5,
   GM_DATA_TYPE_TALLY4X2 = 6
@@ -116,7 +116,7 @@ typedef struct { PackedDouble data[4]; } GMTally4x2;
 typedef PackedDouble GMFloat2;
 typedef struct { PackedDouble data[2]; } GMFloat3;
 
-// Marker value for a missing or unknown 2-bit entry for sparse case
+// Marker value for a missing or unknown 2-bit vector entry for sparse case
 
 enum { GM_2BIT_UNKNOWN = 2 * 1 + 1 * 0 };
 
@@ -392,7 +392,7 @@ static void GMFloat3_decode(GMTally1* __restrict__ val0,
 }
 
 //-----------------------------------------------------------------------------
-// Get an entry: 2x2
+// Get a table entry: 2x2
 
 static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int iE, int jE) {
   COMET_ASSERT(iE >= 0 && iE < 2);
@@ -409,7 +409,7 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int iE, int jE) {
 }
 
 //-----------------------------------------------------------------------------
-// Get an entry: 4x2
+// Get a table entry: 4x2
 
 static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int iE, int jE, int i2) {
   COMET_ASSERT(iE >= 0 && iE < 2);

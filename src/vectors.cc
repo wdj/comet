@@ -292,7 +292,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
   } // switch
 }
 //=============================================================================
-// checksum of entries.
+// checksum of vector entries.
 
 size_t GMVectors_cksum(GMVectors* vectors, CEnv* env) {
   COMET_INSIST(vectors && env);

@@ -56,7 +56,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           size_t field = fl +
               vectors->num_field_local * (size_t)env->proc_num_field();
           if (field >= vectors->num_field_active) {
-            continue; // These entries will be padded to zero elsewhere.
+            continue; // These vector entries will be padded to zero elsewhere.
           }
           // Compute element unique id.
           const size_t uid = field + nfa * vector_capped;
@@ -111,7 +111,7 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
           size_t field = fl +
               vectors->num_field_local * (size_t)env->proc_num_field();
           if (field >= vectors->num_field_active) {
-            continue; // These entries will be padded to zero elsewhere.
+            continue; // These vector entries will be padded to zero elsewhere.
           }
           // Compute element unique id.
           const size_t uid = field + vectors->num_field_active * vector_capped;
@@ -244,7 +244,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           size_t field = fl +
               vectors->num_field_local * (size_t)env->proc_num_field();
           if (field >= nfa) {
-            continue; // These entries will be padded to zero elsewhere.
+            continue; // These vector entries will be padded to zero elsewhere.
           }
           const size_t f = field; // field number
           const size_t v = vector_capped; // vector number
@@ -287,7 +287,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
           size_t field = fl +
               vectors->num_field_local * (size_t)env->proc_num_field();
           if (field >= nfa) {
-            continue; // These entries will be padded to zero elsewhere.
+            continue; // These vector entries will be padded to zero elsewhere.
           }
           // Create 2-bit value - make extra sure less than 4.
 

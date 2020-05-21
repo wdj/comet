@@ -217,7 +217,7 @@ CEnv::~CEnv() {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Set scalar entries of CEnv to default values.
+/// \brief Set scalar members of CEnv to default values.
 
 void CEnv::set_defaults_() {
 
@@ -447,7 +447,7 @@ void CEnv::create_args(char* argstring, int* argc, char** argv) {
 // CoMet settings
 
 //-----------------------------------------------------------------------------
-/// \brief Indicate the scalar type to use for vectors entries.
+/// \brief Indicate the scalar type to use for vectors elements.
 
 int CEnv::data_type_vectors() const {
 
@@ -464,7 +464,7 @@ int CEnv::data_type_vectors() const {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Indicate the scalar type to use for metrics entries.
+/// \brief Indicate the scalar type to use for metrics elements.
 
 int CEnv::data_type_metrics() const {
 

@@ -540,7 +540,7 @@ void gm_compute_2way_proc_nums_duo_start_(
           const uint64_t vj1 = vj.data[1];
 
           // Compute masks to sample the single needed bit from each seminibble,
-          // and to ignore undefined entries.
+          // and to ignore undefined vector entries.
 
           const uint64_t oddbits = 0x5555555555555555;
 

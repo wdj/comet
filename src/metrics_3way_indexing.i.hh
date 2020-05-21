@@ -319,6 +319,49 @@ static int GMSectionInfo_i_max(
 }
 
 //=============================================================================
+// Accessors: indexing: global coord from (contig) index: 3-way.
+
+static int GMMetrics_iG_from_index_3(GMMetrics* metrics, size_t index,
+  CEnv* env) {
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+
+  const GMMetrics::Coords_t i = metrics->coords_values(index) %
+                                metrics->num_vector;
+
+  return safe_cast<int>(i);
+}
+
+//-----------------------------------------------------------------------------
+
+static int GMMetrics_jG_from_index_3(GMMetrics* metrics, size_t index,
+  CEnv* env) {
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+
+  const GMMetrics::Coords_t j = (metrics->coords_values(index) /
+                                 metrics->num_vector) % metrics->num_vector;
+
+  return safe_cast<int>(j);
+}
+
+//-----------------------------------------------------------------------------
+
+static int GMMetrics_kG_from_index_3(GMMetrics* metrics, size_t index,
+  CEnv* env) {
+  COMET_ASSERT(metrics && env);
+  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
+  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+
+  const GMMetrics::Coords_t k = (metrics->coords_values(index) /
+                                 metrics->num_vector) / metrics->num_vector;
+
+  return safe_cast<int>(k);
+}
+
+//=============================================================================
 // Accessors: indexing: (contig) index from coord, 3-way.
 
 //-----------------------------------------------------------------------------
@@ -506,15 +549,13 @@ static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k,
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_elts_local);
 
-  COMET_ASSERT(metrics.coords_global_from_index[index] % metrics.num_vector ==
+  COMET_ASSERT((size_t)GMMetrics_iG_from_index_3(&metrics, index, &env) ==
            i + i_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((metrics.coords_global_from_index[index] / metrics.num_vector) %
-               metrics.num_vector ==
+  COMET_ASSERT((size_t)GMMetrics_jG_from_index_3(&metrics, index, &env) ==
            j + j_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((metrics.coords_global_from_index[index] / metrics.num_vector) /
-               metrics.num_vector ==
+  COMET_ASSERT((size_t)GMMetrics_kG_from_index_3(&metrics, index, &env) ==
            k + k_block * (size_t)metrics.num_vector_local);
 
   return (size_t)index;
@@ -640,15 +681,13 @@ static size_t Metrics_index_3_permuted_(GMMetrics& metrics,
 
   GMSectionInfo_destroy(&si, &env);
 
-  COMET_ASSERT(metrics.coords_global_from_index[index] % metrics.num_vector ==
+  COMET_ASSERT((size_t)GMMetrics_iG_from_index_3(&metrics, index, &env) ==
            i + i_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((metrics.coords_global_from_index[index] / metrics.num_vector) %
-               metrics.num_vector ==
+  COMET_ASSERT((size_t)GMMetrics_jG_from_index_3(&metrics, index, &env) ==
            j + j_block * (size_t)metrics.num_vector_local);
 
-  COMET_ASSERT((metrics.coords_global_from_index[index] / metrics.num_vector) /
-               metrics.num_vector ==
+  COMET_ASSERT((size_t)GMMetrics_kG_from_index_3(&metrics, index, &env) ==
            k + k_block * (size_t)metrics.num_vector_local);
 #endif
 
@@ -706,49 +745,6 @@ static size_t Metrics_index_3( GMMetrics& metrics, int I, int J, int K,
   // WARNING: these conditions are not exhaustive.
 
   return index_cache.index(metrics, I, J, K, j_block, k_block, env);;
-}
-
-//=============================================================================
-// Accessors: indexing: global coord from (contig) index: 3-way.
-
-static int GMMetrics_iG_from_index_3(GMMetrics* metrics, size_t index,
-  CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
-
-  const size_t i = metrics->coords_global_from_index[index] %
-                   metrics->num_vector;
-
-  return safe_cast<int>(i);
-}
-
-//-----------------------------------------------------------------------------
-
-static int GMMetrics_jG_from_index_3(GMMetrics* metrics, size_t index,
-  CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
-
-  const size_t j = (metrics->coords_global_from_index[index] /
-                    metrics->num_vector) % metrics->num_vector;
-
-  return safe_cast<int>(j);
-}
-
-//-----------------------------------------------------------------------------
-
-static int GMMetrics_kG_from_index_3(GMMetrics* metrics, size_t index,
-  CEnv* env) {
-  COMET_ASSERT(metrics && env);
-  COMET_ASSERT(index >= 0 && index < metrics->num_elts_local);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
-
-  const size_t k = (metrics->coords_global_from_index[index] /
-                    metrics->num_vector) / metrics->num_vector;
-
-  return safe_cast<int>(k);
 }
 
 //=============================================================================

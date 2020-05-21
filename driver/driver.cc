@@ -498,7 +498,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
   outtime += time_end - time_beg;
 
   {
-  GMMetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env);
 
   ComputeMetrics compute_metrics(*dm, *env);
 

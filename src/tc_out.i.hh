@@ -121,8 +121,8 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
 ///        The method can be explained as follows.
 ///        1. The input "left" and "right" matrices to the modified GEMM
 ///        can be thought of each as a group of column vectors.
-///        2. Each column (of 2-bit entries) is converted into two columns,
-///        with entries being the counts of 0 bits and 1 bits of the
+///        2. Each column (of 2-bit vector entries) is converted into two
+///        columns, with elements being the counts of 0 bits and 1 bits of the
 ///        original vectors.  Each pair of vectors is kept together
 ///        side-by-side in these new left and right matrices L and R.
 ///        3. The columns of L are permuted, to give L' = L P

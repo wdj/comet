@@ -127,10 +127,10 @@ inline static size_t lshift(size_t a, int j) {
 double Checksum::metrics_elt(
   GMMetrics& metrics,
   size_t index,
-  int i_value,
+  int entry_num,
   CEnv& env) { 
   COMET_INSIST(index < metrics.num_elts_local); // && index >= 0
-  COMET_INSIST(i_value >= 0 && i_value < metrics.num_values_per_metric);
+  COMET_INSIST(entry_num >= 0 && entry_num < metrics.num_entries_per_metric);
 
   // Obtain global coords of metrics elt
   size_t coords[NUM_WAY::MAX];
@@ -166,8 +166,8 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
-      const int iE_unpermuted = i_value / 2;
-      const int jE_unpermuted = i_value % 2;
+      const int iE_unpermuted = entry_num / 2;
+      const int jE_unpermuted = entry_num % 2;
       const int iE = ind_coords[0] == 0 ? iE_unpermuted : jE_unpermuted;
       const int jE = ind_coords[0] == 0 ? jE_unpermuted : iE_unpermuted;
       value = Metrics_ccc_duo_get_2(metrics, index, iE, jE, env);
@@ -177,9 +177,9 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
-      const int iE_unpermuted = i_value / 4;
-      const int jE_unpermuted = (i_value / 2) % 2;
-      const int kE_unpermuted = i_value % 2;
+      const int iE_unpermuted = entry_num / 4;
+      const int jE_unpermuted = (entry_num / 2) % 2;
+      const int kE_unpermuted = entry_num % 2;
       const int iE = ind_coords[0] == 0 ? iE_unpermuted :
                      ind_coords[1] == 0 ? jE_unpermuted :
                                           kE_unpermuted;
@@ -235,13 +235,13 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
     }
     double value_max = -DBL_MAX;
     if (is_active) {
-      for (int i_value = 0; i_value < metrics.num_values_per_metric; ++i_value) {
+      for (int entry_num = 0; entry_num < metrics.num_entries_per_metric; ++entry_num) {
         // Pick up value of this metrics elt
-        const double value = Checksum::metrics_elt(metrics, index, i_value,
+        const double value = Checksum::metrics_elt(metrics, index, entry_num,
                                                    env);
         // value_max is the largest of the values at this index.
         value_max = value > value_max ? value : value_max;
-      } // for i_value
+      } // for entry_num
     } // if is_active
 
     result = value_max > result ? value_max : result;
@@ -344,7 +344,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     #pragma omp for collapse(2)
     for (size_t index = 0; index < metrics.num_elts_local; ++index) {
       // Loop over data values at this index
-      for (int i_value = 0; i_value < metrics.num_values_per_metric; ++i_value) {
+      for (int entry_num = 0; entry_num < metrics.num_entries_per_metric;
+           ++entry_num) {
 
         // Obtain global coords of metrics elt
         size_t coords[NUM_WAY::MAX];
@@ -363,7 +364,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         }
 
         // Pick up value of this metrics elt
-        const double value = Checksum::metrics_elt(metrics, index, i_value,
+        const double value = Checksum::metrics_elt(metrics, index, entry_num,
                                                    env);
         num_private += true && is_active;
         num_zero_private += (double)0 == value && is_active;
@@ -387,7 +388,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         for (int i = 1; i < env.num_way(); ++i) {
           uid = uid * metrics.num_vector_active + coords[i];
         }
-        uid = uid * metrics.num_values_per_metric + i_value;
+        uid = uid * metrics.num_entries_per_metric + entry_num;
         // Randomize this id
         const UI64_t rand1 = utils::randomize(uid + 956158765);
         const UI64_t rand2 = utils::randomize(uid + 842467637);
@@ -425,7 +426,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
             sum_local_private.data_[8 + i] += value1; // (private) reduction
           }
         }
-      } // for i_value
+      } // for entry_num
     } // for index
     // omp for collapse
 

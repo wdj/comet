@@ -33,7 +33,7 @@ __host__ __device__ static bool is_po2(int x) {
 ///
 /// For this method two passes are made (instead of three), each of which
 /// calculates exactly 4 of the required 8 metrics values.
-/// The main idea is this: the left matrix entries are calculated as
+/// The main idea is this: the left matrix elements are calculated as
 /// the combined number of paths through corresponding elements of the I
 /// and J matrices.  For the first pass (step_2way (= kE) == 0), paths 0-0 and
 /// 0-1 (corresponding to I-J element values) are counted; for the second

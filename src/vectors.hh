@@ -169,7 +169,7 @@ static GMBits2 GMVectors_bits2_get(const GMVectors* vectors,
 
   /*---The field address is expressible as a tuple:
        which GMBits2x64 value,
-       which of the 2 (size2) data entries,
+       which of the 2 (size2) vector data entries,
        which of the 32 (size1) 2-bit (size0) fields in the data entry
   ---*/
 
@@ -208,7 +208,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
 
   /*---The field address is expressible as a tuple:
        which GMBits2x64 value,
-       which of the 2 (size2) data entries,
+       which of the 2 (size2) vector data entries,
        which of the 32 (size1) 2-bit (size0) fields in the data entry
   ---*/
 

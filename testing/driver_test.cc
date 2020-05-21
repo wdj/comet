@@ -681,7 +681,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env);
   GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
@@ -806,7 +806,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env);
   GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
@@ -944,7 +944,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   GMVectors_initialize(vectors, env);
 
   if (env->is_proc_active()) {
-    // entry choices, binary representation
+    // vector entry choices, binary representation
     const int MIN = 2 * (0) + 1 * (0);
     const int MAX = 2 * (1) + 1 * (1);
     const int UNK = 2 * (1) + 1 * (0);
@@ -972,7 +972,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env);
   GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
@@ -1155,7 +1155,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env);
   GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
@@ -1332,7 +1332,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env);
   GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 
@@ -1604,7 +1604,7 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
 
   GMMetrics metrics_value = GMMetrics_null();
   GMMetrics* metrics = &metrics_value;
-  GMMetricsMem metrics_mem(env);
+  MetricsMem metrics_mem(env);
   GMMetrics_create(metrics, env->data_type_metrics(), dm,
                    &metrics_mem, env);
 

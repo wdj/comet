@@ -23,19 +23,24 @@
 
 namespace comet {
 
+// Forward declartion.
+struct GMMetrics;
+
 //-----------------------------------------------------------------------------
 /// \brief Helper class for metrics memory.
 
-class GMMetricsMem {
+class MetricsMem {
+
+  typedef size_t Coords_t;
 
 public:
-  GMMetricsMem(CEnv* env);
-  ~GMMetricsMem();
+  MetricsMem(CEnv* env);
+  ~MetricsMem();
 
   void* malloc_data(size_t data_size);
   void* malloc_data_S(size_t data_size_S);
   void* malloc_data_C(size_t data_size_C);
-  void* malloc_coords_global_from_index(size_t coords_global_from_index_size);
+  Coords_t* malloc_coords_values(size_t coords_values_size);
 
 private:
 
@@ -46,20 +51,26 @@ private:
   size_t data_S_size_;
   void* __restrict__ data_C_;
   size_t data_C_size_;
-  void* coords_global_from_index_;
-  size_t coords_global_from_index_size_;
+  Coords_t* coords_values_;
+  size_t coords_values_size_;
+
+  friend GMMetrics;
 
   //---Disallowed methods.
 
-  GMMetricsMem(  const GMMetricsMem&);
-  void operator=(const GMMetricsMem&);
+  MetricsMem(  const MetricsMem&);
+  void operator=(const MetricsMem&);
 };
 
 //=============================================================================
 /// \brief Metrics struct declaration.
 
 struct GMMetrics {
+
   enum {NUM_SECTION_MAX = 6};
+
+  typedef MetricsMem::Coords_t Coords_t;
+
   // Logical sizes.
   int num_field;
   int num_field_local;
@@ -93,13 +104,20 @@ struct GMMetrics {
   size_t data_S_elt_size;
   size_t data_C_elt_size;
   // Map of (contig) index to linearized Cartesian coords.
-  size_t* coords_global_from_index;
+  Coords_t* coords_values_;
+  Coords_t coords_values(size_t index) const {
+    COMET_ASSERT(index+1 >= 1 && index < num_elts_local);
+    return coords_values_[index];
+  }
   // Counters.
   size_t num_elts_local_computed;
   // Other.
   int data_type_id;
-  int num_values_per_metric;
+  int num_entries_per_metric;
   GMDecompMgr* dm;
+
+private:
+
 };
 
 //=============================================================================
@@ -111,7 +129,7 @@ GMMetrics GMMetrics_null(void);
 // Metrics pseudo-constructor.
 
 void GMMetrics_create(GMMetrics* metrics, int data_type_id,
-                      GMDecompMgr* dm, GMMetricsMem* metrics_mem, CEnv* env);
+                      GMDecompMgr* dm, MetricsMem* metrics_mem, CEnv* env);
 
 //-----------------------------------------------------------------------------
 
