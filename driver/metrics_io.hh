@@ -115,6 +115,9 @@ private:
 // Class to write metrics.
 
 class MetricsIO {
+
+  typedef MetricIO::Float_t Float_t;
+
 public:
 
   MetricsIO(const char* path_stub, int verbosity, CEnv& env);

@@ -402,11 +402,13 @@ public:
   int metric_format() const {return threshold_tc() ?
     MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
 
-//FIX
 //  int is_using_xor() const {return false;}
   int is_using_xor() const {return MetricType::DUO == metric_type_ &&
     NumWay::_2 == num_way_ && ComputeMethod::CPU == compute_method_ &&
     !is_using_linalg();}
+
+//FIX
+  bool is_shrink() const {return false;}
 
 
 

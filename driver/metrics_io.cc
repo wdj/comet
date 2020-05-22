@@ -658,7 +658,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   size_t num_incorrect = 0;
 
-  for (size_t i = 0; i < num_written_last_write_; ++i) {
+  for (size_t index = 0; index < num_written_last_write_; ++index) {
 
     if (env_.num_way() == NumWay::_2) {
 
@@ -671,11 +671,21 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const int iE = metric.iE(env_);
       const int jE = metric.jE(env_);
 
-      const MetricIO::Float_t metric_value =
-        (MetricIO::Float_t)GMMetrics_get_2(metrics, iG, jG, iE, jE, env_);
+      const Float_t metric_value = env_.is_shrink() ?
+        (Float_t)GMMetrics_get_2(metrics, index, iE, jE, env_) :
+        (Float_t)GMMetrics_get_2(metrics, iG, jG, iE, jE, env_);
+
+      bool do_coords_match = true;
+      if (env_.is_shrink()) {
+        Coords_t coords = metrics.coords_value(index);
+        do_coords_match =
+          CoordsInfo::getiG(coords, metrics, env_) == iG &&
+          CoordsInfo::getjG(coords, metrics, env_) == jG;
+      }
 
       const bool is_correct = metric_value == metric.value &&
-                              env_.pass_threshold(metric_value);
+                              env_.pass_threshold(metric_value) &&
+                              do_coords_match;
       num_incorrect += !is_correct;
 
       if (num_incorrect < 10 && !is_correct) {
@@ -701,11 +711,22 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const int jE = metric.jE(env_);
       const int kE = metric.kE(env_);
 
-      const MetricIO::Float_t metric_value = (MetricIO::Float_t)
-        GMMetrics_get_3(metrics, iG, jG, kG, iE, jE, kE, env_);
+      const Float_t metric_value = env_.is_shrink() ?
+        (Float_t)GMMetrics_get_3(metrics, index, iE, jE, kE, env_) :
+        (Float_t)GMMetrics_get_3(metrics, iG, jG, kG, iE, jE, kE, env_);
+
+      bool do_coords_match = true;
+      if (env_.is_shrink()) {
+        Coords_t coords = metrics.coords_value(index);
+        do_coords_match =
+          CoordsInfo::getiG(coords, metrics, env_) == iG &&
+          CoordsInfo::getjG(coords, metrics, env_) == jG &&
+          CoordsInfo::getkG(coords, metrics, env_) == kG;
+      }
 
       const bool is_correct = metric_value == metric.value &&
-                              env_.pass_threshold(metric_value);
+                              env_.pass_threshold(metric_value) &&
+                              do_coords_match;
       num_incorrect += !is_correct;
 
       if (!is_correct && num_incorrect < 10) {
@@ -716,7 +737,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
     } // if (env_.num_way() == NumWay::_2)
 
-  } // i
+  } // index
 
   COMET_INSIST(0 == num_incorrect &&
     "Incorrect values detected in output file - partial list is displayed.");
