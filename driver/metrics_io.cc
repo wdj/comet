@@ -113,7 +113,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
   GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
   COMET_INSIST(stdout != file);
 
   MetricIO writer(file, *metrics, *env);
@@ -225,7 +225,7 @@ static void MetricsIO_write_tally2x2_bin_(
   GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2);
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
   COMET_INSIST(stdout != file);
 
   if (env->metric_type() == MetricType::CCC)
@@ -244,7 +244,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
   GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
-  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(env->num_way() == NumWay::_3);
   COMET_INSIST(stdout != file);
   COMET_INSIST(env->is_metric_type_bitwise());
 
@@ -362,7 +362,7 @@ static void MetricsIO_write_tally4x2_bin_(
   GMMetrics* metrics, FILE* file, size_t& num_written_, CEnv* env) {
   COMET_INSIST(metrics && file && env);
   COMET_INSIST(env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2);
-  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(env->num_way() == NumWay::_3);
   COMET_INSIST(stdout != file);
 
   if (env->metric_type() == MetricType::CCC)
@@ -389,7 +389,7 @@ static void MetricsIO_write_(
 
   //----------
   if (env->data_type_metrics() == GM_DATA_TYPE_FLOAT &&
-      env->num_way() == NUM_WAY::_2) {
+      env->num_way() == NumWay::_2) {
   //----------
 
     MetricIO writer(file, *metrics, *env);
@@ -416,7 +416,7 @@ static void MetricsIO_write_(
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_FLOAT &&
-           env->num_way() == NUM_WAY::_3) {
+           env->num_way() == NumWay::_3) {
   //----------
 
     MetricIO writer(file, *metrics, *env);
@@ -447,7 +447,7 @@ static void MetricsIO_write_(
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2 &&
              stdout != file) {
   //----------
-    COMET_INSIST(env->num_way() == NUM_WAY::_2);
+    COMET_INSIST(env->num_way() == NumWay::_2);
     COMET_INSIST(env->is_metric_type_bitwise());
 
     MetricsIO_write_tally2x2_bin_(metrics, file, num_written_, env);
@@ -455,7 +455,7 @@ static void MetricsIO_write_(
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2) {
   //----------
-    COMET_INSIST(env->num_way() == NUM_WAY::_2);
+    COMET_INSIST(env->num_way() == NumWay::_2);
     COMET_INSIST(env->is_metric_type_bitwise());
 
     MetricIO writer(file, *metrics, *env);
@@ -504,7 +504,7 @@ static void MetricsIO_write_(
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2 &&
              stdout != file) {
   //----------
-    COMET_INSIST(env->num_way() == NUM_WAY::_3);
+    COMET_INSIST(env->num_way() == NumWay::_3);
     COMET_INSIST(env->is_metric_type_bitwise());
 
     MetricsIO_write_tally4x2_bin_(metrics, file, num_written_, env);
@@ -512,7 +512,7 @@ static void MetricsIO_write_(
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2) {
   //----------
-    COMET_INSIST(env->num_way() == NUM_WAY::_3);
+    COMET_INSIST(env->num_way() == NumWay::_3);
     COMET_INSIST(env->is_metric_type_bitwise());
 
     MetricIO writer(file, *metrics, *env);
@@ -660,9 +660,9 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   for (size_t i = 0; i < num_written_last_write_; ++i) {
 
-    if (env_.num_way() == NUM_WAY::_2) {
+    if (env_.num_way() == NumWay::_2) {
 
-      MetricIO::Metric<NUM_WAY::_2> metric;
+      MetricIO::Metric<NumWay::_2> metric;
       MetricIO::read(metric, file_, env_);
 
       const size_t iG = metric.iG(env_);
@@ -688,9 +688,9 @@ void MetricsIO::check_file(GMMetrics& metrics) {
           iG, jG, (double)metric_value, (double)metric.value);
       }
 
-    } else { // if (env_.num_way() == NUM_WAY::_3)
+    } else { // if (env_.num_way() == NumWay::_3)
 
-      MetricIO::Metric<NUM_WAY::_3> metric;
+      MetricIO::Metric<NumWay::_3> metric;
       MetricIO::read(metric, file_, env_);
 
       const size_t iG = metric.iG(env_);
@@ -714,7 +714,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
           iG, jG, kG, (double)metric_value, (double)metric.value);
       }
 
-    } // if (env_.num_way() == NUM_WAY::_2)
+    } // if (env_.num_way() == NumWay::_2)
 
   } // i
 
@@ -725,7 +725,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   size_t num_passed = 0;
 
-  if (env_.num_way() == NUM_WAY::_2) {
+  if (env_.num_way() == NumWay::_2) {
 
     for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
       const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
@@ -742,7 +742,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       }
     }
 
-  } else { // if (env_.num_way() == NUM_WAY::_3)
+  } else { // if (env_.num_way() == NumWay::_3)
 
     for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
       const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
@@ -763,7 +763,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       }
     }
 
-  } // if (env_.num_way() == NUM_WAY::_2)
+  } // if (env_.num_way() == NumWay::_2)
 
   if (num_passed != num_written_last_write_)
     fprintf(stderr, "Incorrect number of metrics written: "

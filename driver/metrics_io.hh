@@ -71,11 +71,11 @@ public:
 
   static size_t num_bytes_written_per_metric(CEnv& env) {
     return env.metric_type() == MetricType::CZEK &&
-           env.num_way() == NUM_WAY::_2 ? 4 + 4 + 4 :
+           env.num_way() == NumWay::_2 ? 4 + 4 + 4 :
            env.metric_type() == MetricType::CZEK &&
-           env.num_way() == NUM_WAY::_3 ? 4 + 4 + 4 + 4 :
-           env.num_way() == NUM_WAY::_2 ? 4 + 4 + 4 :
-                                          4 + 4 + 4 + 4;
+           env.num_way() == NumWay::_3 ? 4 + 4 + 4 + 4 :
+           env.num_way() == NumWay::_2 ? 4 + 4 + 4 :
+                                         4 + 4 + 4 + 4;
   }
 
   size_t num_bytes_written_per_metric() const {

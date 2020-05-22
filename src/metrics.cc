@@ -164,7 +164,7 @@ void GMMetrics_3way_num_metrics_local(GMMetrics* metrics, int nvl,
   COMET_INSIST(metrics && env);
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(env->num_block_vector() <= 2 || nvl % 6 == 0);
-  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(env->num_way() == NumWay::_3);
 
   metrics->num_metrics_local = 0;
 
@@ -362,7 +362,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->num_metrics_local_computed = 0;
 
   /*==================================================*/
-  if (env->num_way() == NUM_WAY::_2 && env->all2all()) {
+  if (env->num_way() == NumWay::_2 && env->all2all()) {
   /*==================================================*/
 
     COMET_INSIST_INTERFACE(env, env->num_stage() == 1
@@ -452,7 +452,7 @@ void GMMetrics_create(GMMetrics* metrics,
     COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
 
   /*==================================================*/
-  } else if (env->num_way() == NUM_WAY::_3 && env->all2all()) {
+  } else if (env->num_way() == NumWay::_3 && env->all2all()) {
   /*==================================================*/
 
     COMET_INSIST_INTERFACE(env, env->num_phase() <= gm_num_section_blocks(env)
@@ -629,7 +629,7 @@ void GMMetrics_create(GMMetrics* metrics,
     COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
 
   /*==================================================*/
-  } else if (env->num_way() == NUM_WAY::_2 && ! env->all2all()) {
+  } else if (env->num_way() == NumWay::_2 && ! env->all2all()) {
   /*==================================================*/
 
     COMET_INSIST_INTERFACE(env, env->num_stage() == 1 &&
@@ -653,7 +653,7 @@ void GMMetrics_create(GMMetrics* metrics,
     COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
 
   /*==================================================*/
-  } else if (env->num_way() == NUM_WAY::_3 && ! env->all2all()) {
+  } else if (env->num_way() == NumWay::_3 && ! env->all2all()) {
   /*==================================================*/
 
     COMET_INSIST_INTERFACE(env, env->num_stage() == 1
@@ -694,13 +694,13 @@ void GMMetrics_create(GMMetrics* metrics,
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics->num_metrics_local, &num_elts, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
-  if (env->num_way() == NUM_WAY::_2 &&
+  if (env->num_way() == NumWay::_2 &&
       env->num_phase() == 1 && env->all2all()) {
     COMET_INSIST(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) / 2);
   }
 
-  if (env->num_way() == NUM_WAY::_3 && env->num_stage() == 1 &&
+  if (env->num_way() == NumWay::_3 && env->num_stage() == 1 &&
       env->num_phase() == 1 && env->all2all()) {
     COMET_INSIST(num_elts == (metrics->num_vector) * (size_t)
                                (metrics->num_vector - 1) * (size_t)

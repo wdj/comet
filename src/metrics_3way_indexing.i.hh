@@ -480,7 +480,7 @@ static size_t Metrics_index_3_part3(GMMetrics& metrics,
 
 static size_t Metrics_index_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
                                  env.proc_num_vector() == k_block));
@@ -586,7 +586,7 @@ static size_t Metrics_index_3_part3_permuted(GMMetrics& metrics,
 
 static size_t Metrics_index_3_permuted_(GMMetrics& metrics,
     int I, int J, int K, int j_block, int k_block, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
                                  env.proc_num_vector() == k_block));
@@ -689,7 +689,7 @@ public:
 
 static size_t Metrics_index_3( GMMetrics& metrics, int I, int J, int K,
     int j_block, int k_block, MetricsIndexCache& index_cache, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
                                  env.proc_num_vector() == k_block));

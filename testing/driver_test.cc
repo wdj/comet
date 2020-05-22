@@ -1895,13 +1895,13 @@ void DriverTest_file_output_() {
     typedef comet::ComputeMethod CM;
     typedef comet::MetricType MT;
     typedef comet::TC TC;
-    typedef comet::NUM_WAY NUM_WAY;
+    typedef comet::NumWay NumWay;
 
     for (int num_way : {2, 3})
     for (int all2all : {1})
     for (int metric_type : {MT::CZEK, MT::CCC, MT::DUO})
     for (int compute_method : {CM::CPU, CM::GPU}) {
-      const int num_stage = NUM_WAY::_3 == num_way && all2all ? 2 : 1;
+      const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
       const int num_phase = all2all ? 2 : 1;
 
       sprintf(options1, options_template,

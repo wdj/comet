@@ -711,9 +711,9 @@ void gm_linalg_gemm_magma_start(size_t m, size_t n, size_t k,
    (env->metric_type() == MetricType::CCC && env->sparse()) ?
                                          sizeof(magma_mgemm4DoubleComplex) :
    (env->metric_type() == MetricType::CCC &&
-    env->num_way() == NUM_WAY::_2) ? sizeof(magma_mgemm2DoubleComplex) :
+    env->num_way() == NumWay::_2) ? sizeof(magma_mgemm2DoubleComplex) :
    (env->metric_type() == MetricType::CCC &&
-    env->num_way() == NUM_WAY::_3) ? sizeof(magma_mgemm3DoubleComplex) :
+    env->num_way() == NumWay::_3) ? sizeof(magma_mgemm3DoubleComplex) :
    (env->metric_type() == MetricType::DUO) ?
                                          sizeof(magma_mgemm5DoubleComplex) : 0;
   COMET_INSIST(elt_size > 0 && "Error in gemm block calculation.");

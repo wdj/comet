@@ -199,11 +199,13 @@ struct MetricType {
 //-----------------------------------------------------------------------------
 /// \brief Helper class to denote counted bits per element for metric type.
 
-struct CBPE {
+struct CountedBitsPerElement {
   enum {NONE = -1,
         DUO = 1,
         CCC = 2};
 };
+
+typedef CountedBitsPerElement CBPE;
 
 //-----------------------------------------------------------------------------
 /// \brief Helper class for compute method values.
@@ -235,7 +237,7 @@ struct ComputeMethod {
 //-----------------------------------------------------------------------------
 /// \brief Helper class for num way values.
 
-struct NUM_WAY {
+struct NumWay {
   enum {_2 = 2,
         _3 = 3};
   enum {MAX = 3};
@@ -393,7 +395,7 @@ public:
   }
   // Are 3-way metrics computed half block-plane at a time.
   bool is_vectors_halved() const {
-    return NUM_WAY::_3 == num_way() && threshold_tc() &&
+    return NumWay::_3 == num_way() && threshold_tc() &&
           is_bitwise_3way_2step();
   }
 
@@ -403,7 +405,7 @@ public:
 //FIX
 //  int is_using_xor() const {return false;}
   int is_using_xor() const {return MetricType::DUO == metric_type_ &&
-    NUM_WAY::_2 == num_way_ && ComputeMethod::CPU == compute_method_ &&
+    NumWay::_2 == num_way_ && ComputeMethod::CPU == compute_method_ &&
     !is_using_linalg();}
 
 

@@ -552,7 +552,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   COMET_INSIST(! (env_.proc_num_vector() == k_block &&
               env_.proc_num_vector() != j_block));
   COMET_INSIST(env_.is_using_linalg());
-  COMET_INSIST(env_.num_way() == NUM_WAY::_3);
+  COMET_INSIST(env_.num_way() == NumWay::_3);
 
   // Initializations.
 

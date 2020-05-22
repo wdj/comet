@@ -212,7 +212,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
     env->data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
-    env->num_way() == NUM_WAY::_2 ? 2 : 4;
+    env->num_way() == NumWay::_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
 
@@ -360,7 +360,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   // Czek account for number of terms summed in denom or num
   const size_t overflow_limit =
     env->data_type_vectors() != GM_DATA_TYPE_FLOAT ? 1 :
-    env->num_way() == NUM_WAY::_2 ? 2 : 4;
+    env->num_way() == NumWay::_2 ? 2 : 4;
   // Sum nfa times down the vector, is it still exact.
   const size_t value_limit = (max_float - 1) / (overflow_limit * nfa);
 
@@ -378,7 +378,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     //--------------------
     case GM_DATA_TYPE_FLOAT: {
     //--------------------
-      if (env->num_way() == NUM_WAY::_2) {
+      if (env->num_way() == NumWay::_2) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
           const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
@@ -441,7 +441,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           num_incorrect += is_incorrect;
         } //---for index
       } //---if
-      if (env->num_way() == NUM_WAY::_3) {
+      if (env->num_way() == NumWay::_3) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
         for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
           const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);

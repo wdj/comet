@@ -226,7 +226,7 @@ void CEnv::set_defaults_() {
 
   // CoMet Settings
   metric_type_ = MetricType::CZEK;
-  num_way_ = NUM_WAY::_2;
+  num_way_ = NumWay::_2;
   all2all_ = false;
   compute_method_ = ComputeMethod::GPU;
   num_stage_ = 1;
@@ -274,8 +274,8 @@ void CEnv::parse_args_(int argc, char** argv) {
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for num_way.");
       errno = 0;
       const long num_way = strtol(argv[i], NULL, 10);
-      COMET_INSIST_INTERFACE(env, 0 == errno && (num_way == NUM_WAY::_2 ||
-                                            num_way == NUM_WAY::_3)
+      COMET_INSIST_INTERFACE(env, 0 == errno && (num_way == NumWay::_2 ||
+                                                 num_way == NumWay::_3)
                                && "Invalid setting for num_way.");
       num_way_ = num_way;
       set_num_proc_(num_proc_vector_, num_proc_repl_, num_proc_field_);
@@ -472,11 +472,11 @@ int CEnv::data_type_metrics() const {
     case MetricType::CZEK:
       return GM_DATA_TYPE_FLOAT;
     case MetricType::CCC:
-      return num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
-                                      : GM_DATA_TYPE_TALLY4X2;
+      return num_way() == NumWay::_2 ? GM_DATA_TYPE_TALLY2X2
+                                     : GM_DATA_TYPE_TALLY4X2;
     case MetricType::DUO:
-      return num_way() == NUM_WAY::_2 ? GM_DATA_TYPE_TALLY2X2
-                                      : GM_DATA_TYPE_TALLY4X2;
+      return num_way() == NumWay::_2 ? GM_DATA_TYPE_TALLY2X2
+                                     : GM_DATA_TYPE_TALLY4X2;
   }
   COMET_INSIST(false && "Invalid metric_type.");
   return 0;
@@ -512,7 +512,7 @@ bool CEnv::can_run(int tc) const {
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
   }
 
-  if (is_using_linalg() && TC::NO == tc && num_way() == NUM_WAY::_3 &&
+  if (is_using_linalg() && TC::NO == tc && num_way() == NumWay::_3 &&
       metric_type() == MetricType::DUO) {
     result = false; // currently unimplemented
   }

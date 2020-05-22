@@ -38,7 +38,7 @@ void gm_compute_2way_proc_nums_czek_start_(
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
   COMET_INSIST(!env->is_using_linalg());
 
   // ----------------------------------
@@ -108,7 +108,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
 
   typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
@@ -346,7 +346,7 @@ void gm_compute_2way_proc_nums_duo_start_(
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
 
   typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
@@ -633,7 +633,7 @@ void gm_compute_2way_proc_nums_start(
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
 
   if (env->is_using_linalg()) {
 
@@ -696,7 +696,7 @@ void gm_compute_2way_proc_nums_wait(
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
 
   if (env->is_using_linalg()) {
 

@@ -518,7 +518,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
   COMET_INSIST(env.sparse() && "Case not supported.");
   COMET_INSIST((env.is_vectors_halved() ==
-                (NUM_WAY::_3 == env.num_way())) &&
+                (NumWay::_3 == env.num_way())) &&
     "Case not supported.");
   COMET_INSIST(env.is_bitwise_3way_2step() && "Case not supported.");
   COMET_INSIST_INTERFACE(&env, env.num_proc_field() == 1 &&
@@ -543,7 +543,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   COMET_INSIST_INTERFACE(&env, multiplier >= 0 &&
                          "CCC/DUO multiplier value not allowed.");
 
-  const int num_threads_r = env.num_way() == NUM_WAY::_2 ? nvll : nvllD2;
+  const int num_threads_r = env.num_way() == NumWay::_2 ? nvll : nvllD2;
   const int num_threads_c = nvl;
 
   if (env.is_compute_method_gpu()) {
@@ -555,7 +555,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
                    "Current HIP limitation.");
       const int vll_threadblocks = utils::ceil(num_threads_r, threadblocksize);
 
-      if (CBPE::DUO == cbpe && NUM_WAY::_2 == env.num_way()) {
+      if (CBPE::DUO == cbpe && NumWay::_2 == env.num_way()) {
 
         enum {CBPE = CBPE::DUO};
 
@@ -565,7 +565,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
           nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
           param, multiplier, threshold_eff);
 
-      } else if (NUM_WAY::_2 == env.num_way()) { // && CBPE::CCC == cbpe
+      } else if (NumWay::_2 == env.num_way()) { // && CBPE::CCC == cbpe
 
         enum {CBPE = CBPE::CCC};
 
@@ -586,7 +586,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
           sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
           step_2way, param, multiplier, threshold_eff);
 
-      } else { // if (CBPE::CCC == cbpe && NUM_WAY::_3 == env.num_way())
+      } else { // if (CBPE::CCC == cbpe && NumWay::_3 == env.num_way())
 
         enum {CBPE = CBPE::CCC};
 
@@ -603,7 +603,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
   } else { // (!env.is_compute_method_gpu())
 
-    if (CBPE::DUO == cbpe && NUM_WAY::_2 == env.num_way()) {
+    if (CBPE::DUO == cbpe && NumWay::_2 == env.num_way()) {
 
       enum {CBPE = CBPE::DUO};
 
@@ -615,7 +615,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
         } // for
       } // for
 
-    } else if (NUM_WAY::_2 == env.num_way()) { // && CBPE::CCC == cbpe
+    } else if (NumWay::_2 == env.num_way()) { // && CBPE::CCC == cbpe
 
       enum {CBPE = CBPE::CCC};
 
@@ -627,7 +627,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
         } // for
       } // for
 
-    } else if (CBPE::DUO == cbpe) { // && (NUM_WAY::_3 == env.num_way())
+    } else if (CBPE::DUO == cbpe) { // && (NumWay::_3 == env.num_way())
 
       enum {CBPE = CBPE::DUO};
 
@@ -640,7 +640,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
         } // for
       } // for
 
-    } else { // if (CBPE::CCC == cbpe && NUM_WAY::_3 == env.num_way())
+    } else { // if (CBPE::CCC == cbpe && NumWay::_3 == env.num_way())
 
       enum {CBPE = CBPE::CCC};
 

@@ -31,7 +31,7 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
 
   const size_t factor_4 = tc_gemm_divisibility_required(*env);
 
-  const bool need_divisible_by_6 = env->num_way() == NUM_WAY::_3 &&
+  const bool need_divisible_by_6 = env->num_way() == NumWay::_3 &&
                                    env->all2all() &&
                                    env->num_proc_vector() > 2;
 

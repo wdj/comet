@@ -38,7 +38,7 @@ void gm_compute_2way_proc_combine_czek_(
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
 
   // NOTE: here and elsewhere, vector_sums_left and vector_sums_right
   // may sometimes be aliases.  Since they are read-only, there should
@@ -180,7 +180,7 @@ void gm_compute_2way_proc_combine_ccc_(
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
 
   const int nvl = metrics->num_vector_local;
   const VectorSums* const vs_l = vector_sums_left;
@@ -497,7 +497,7 @@ void gm_compute_2way_proc_combine_duo_(
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
 
   const int nvl = metrics->num_vector_local;
   const VectorSums* const vs_l = vector_sums_left;
@@ -647,7 +647,7 @@ void gm_compute_2way_proc_combine(
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NUM_WAY::_2);
+  COMET_INSIST(env->num_way() == NumWay::_2);
 
   switch (env->metric_type()) {
     case MetricType::CZEK: {

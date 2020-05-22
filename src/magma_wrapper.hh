@@ -27,12 +27,12 @@ static bool use_minproduct(CEnv* env) {
 
 static bool use_mgemm2(CEnv* env) {
   return env->metric_type() == MetricType::CCC &&
-         env->num_way() == NUM_WAY::_2 && ! env->sparse();
+         env->num_way() == NumWay::_2 && ! env->sparse();
 }
 
 static bool use_mgemm3(CEnv* env) {
   return env->metric_type() == MetricType::CCC &&
-         env->num_way() == NUM_WAY::_3 && ! env->sparse();
+         env->num_way() == NumWay::_3 && ! env->sparse();
 }
 
 static bool use_mgemm4(CEnv* env) {

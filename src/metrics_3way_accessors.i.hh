@@ -50,7 +50,7 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
 
   if (env->metric_type() != MetricType::CCC || 
-      env->num_way() != NUM_WAY::_3 || ! env->are_ccc_params_default())
+      env->num_way() != NumWay::_3 || ! env->are_ccc_params_default())
     return;
 
   const size_t m = metrics->num_field_active;
@@ -122,7 +122,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
                                                    CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_metrics_local); // && index >= 0
-  COMET_ASSERT(env->num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env->num_way() == NumWay::_3);
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(kE >= 0 && kE < 2);
@@ -178,7 +178,7 @@ template<int COUNTED_BITS_PER_ELT, typename FloatResult_t>
 static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
   size_t index, int iE, int jE, int kE, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.is_metric_type_bitwise());
   COMET_ASSERT(env.counted_bits_per_elt() == COUNTED_BITS_PER_ELT);
   COMET_ASSERT(iE >= 0 && iE < 2);
@@ -322,7 +322,7 @@ template<int COUNTED_BITS_PER_ELT>
 static bool Metrics_ccc_duo_get_threshold_3(
   GMMetrics& metrics, const size_t index, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
 
   if (env.threshold_tc()) {
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
@@ -463,7 +463,7 @@ static bool Metrics_ccc_duo_get_threshold_3(
 template<typename T, int MA = MetricsArray::_>
 static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
                                  env.proc_num_vector() == k_block));
@@ -479,7 +479,7 @@ static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
 template<typename T, int MA = MetricsArray::_>
 static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, MetricsIndexCache& index_cache, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
                                  env.proc_num_vector() == k_block));
@@ -499,7 +499,7 @@ static T& Metrics_elt_3(GMMetrics& metrics, int i, int j, int k,
 template<typename T>
 static T Metrics_elt_const_3(GMMetrics& metrics, int i, int j, int k,
   int j_block, int k_block, MetricsIndexCache& index_cache, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || (env.proc_num_vector() == j_block &&
                                  env.proc_num_vector() == k_block));
@@ -516,7 +516,7 @@ static T Metrics_elt_const_3(GMMetrics& metrics, int i, int j, int k,
 
 static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   size_t index, int iE, int jE, int kE, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(index >= 0 && index < metrics.num_metrics_local);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
@@ -536,7 +536,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
 
 static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   size_t iG, size_t jG, size_t kG, int iE, int jE, int kE, CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_3);
+  COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(iE >= 0 && iE < env.ijkE_max());
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
   COMET_ASSERT(kE >= 0 && kE < env.ijkE_max());

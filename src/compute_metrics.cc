@@ -32,7 +32,7 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, CEnv& env)
 
   CodeBlockTimer timer(env_);
 
-  if (env_.num_way() == NUM_WAY::_2) {
+  if (env_.num_way() == NumWay::_2) {
     compute_metrics_2way_ = new ComputeMetrics2Way(dm, env_);
   } else {
     compute_metrics_3way_ = new ComputeMetrics3Way(dm, env);
@@ -66,7 +66,7 @@ void ComputeMetrics::compute(GMMetrics& metrics, GMVectors& vectors) {
 
     if (env_.num_way() == 2) {
     compute_metrics_2way_->compute(metrics, vectors);
-    } else { // (env_.num_way() == NUM_WAY::_3)
+    } else { // (env_.num_way() == NumWay::_3)
       compute_metrics_3way_->compute(metrics, vectors);
     }
 

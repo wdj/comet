@@ -53,7 +53,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
   COMET_INSIST(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
   COMET_INSIST(!env->is_compute_method_gpu());
-  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(env->num_way() == NumWay::_3);
   COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
   // Initializations.
@@ -211,7 +211,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
   COMET_INSIST(! (env->proc_num_vector() == k_block &&
               env->proc_num_vector() != j_block));
   COMET_INSIST(!env->is_using_linalg());
-  COMET_INSIST(env->num_way() == NUM_WAY::_3);
+  COMET_INSIST(env->num_way() == NumWay::_3);
   COMET_INSIST(vector_sums_i && vector_sums_j && vector_sums_k);
 
   typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;

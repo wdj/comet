@@ -133,7 +133,7 @@ struct CoordsInfo {
   }
 
   static size_t getkG(Coords_t coords, GMMetrics& metrics, CEnv& env) {
-    COMET_ASSERT(env.num_way() >= NUM_WAY::_3);
+    COMET_ASSERT(env.num_way() >= NumWay::_3);
     const size_t result = coords / (metrics.num_vector * metrics.num_vector);
     COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
     return result;
@@ -166,7 +166,7 @@ struct CoordsInfo {
   static int getkE(Coords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
-    COMET_ASSERT(env.num_way() >= NUM_WAY::_3);
+    COMET_ASSERT(env.num_way() >= NumWay::_3);
     const size_t result = entry_num % 2;
     COMET_ASSERT(result >= 0 && result < 2);
     return result;

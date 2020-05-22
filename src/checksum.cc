@@ -144,9 +144,9 @@ double Checksum::metrics_elt(
   COMET_INSIST(entry_num >= 0 && entry_num < metrics.num_entries_per_metric);
 
   // Obtain global coords of metrics elt
-  Coords_t coords[NUM_WAY::MAX];
-  Coords_t coords_perm[NUM_WAY::MAX];
-  int iperm[NUM_WAY::MAX];
+  Coords_t coords[NumWay::MAX];
+  Coords_t coords_perm[NumWay::MAX];
+  int iperm[NumWay::MAX];
   for (int i = 0; i < env.num_way(); ++i) {
     coords[i] = Metrics_coords_getG(metrics, index, i, env);
     coords_perm[i] = coords[i];
@@ -162,7 +162,7 @@ double Checksum::metrics_elt(
   // so that this is not viewed as a difference in the results.
   // Note also below we will permute iE / jE / kE as needed.
 
-  if (env.num_way() == NUM_WAY::_2)
+  if (env.num_way() == NumWay::_2)
     sort2(coords_perm[0], coords_perm[1], iperm[0], iperm[1]);
   else
     sort3(coords_perm[0], coords_perm[1], coords_perm[2],
@@ -362,8 +362,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
            ++entry_num) {
 
         // Obtain global coords of metrics elt
-        Coords_t coords_perm[NUM_WAY::MAX];
-        int iperm[NUM_WAY::MAX];
+        Coords_t coords_perm[NumWay::MAX];
+        int iperm[NumWay::MAX];
         bool is_active = true;
         for (int i = 0; i < env.num_way(); ++i) {
           const size_t coord = Metrics_coords_getG(metrics, index, i, env);
@@ -379,7 +379,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         num_private += true && is_active;
         num_zero_private += (double)0 == value && is_active;
 
-        if (env.num_way() == NUM_WAY::_2)
+        if (env.num_way() == NumWay::_2)
           sort2(coords_perm[0], coords_perm[1], iperm[0], iperm[1]);
         else
           sort3(coords_perm[0], coords_perm[1], coords_perm[2],

@@ -20,7 +20,7 @@ namespace comet {
 
 static int gm_bdiag_computed_max_allphase(CEnv* env) {
   COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(env->all2all());
 
   // Max number of blocks of any block row computed on all phases.
@@ -32,7 +32,7 @@ static int gm_bdiag_computed_max_allphase(CEnv* env) {
 
 static int gm_bdiag_computed_min(CEnv* env) {
   COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(env->all2all());
 
   // First block diag computed for this phase (min across vec procs)
@@ -44,7 +44,7 @@ static int gm_bdiag_computed_min(CEnv* env) {
 
 static int gm_bdiag_computed_max(CEnv* env) {
   COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(env->all2all());
 
   // 1 + last block diag computed for this phase (max across vec procs)
@@ -56,7 +56,7 @@ static int gm_bdiag_computed_max(CEnv* env) {
 
 static int gm_block_computed_this_row_min(CEnv* env) {
   COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(env->all2all());
 
   return gm_bdiag_computed_min(env);
@@ -66,7 +66,7 @@ static int gm_block_computed_this_row_min(CEnv* env) {
 
 static int gm_block_computed_this_row_max(CEnv* env) {
   COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(env->all2all());
 
   const int num_block = env->num_block_vector();
@@ -88,7 +88,7 @@ static int gm_block_computed_this_row_max(CEnv* env) {
 
 static int gm_blocks_computed_this_row(CEnv* env) {
   COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(env->all2all());
 
   // num block diags computed for this phase, all repl procs (this vec proc)
@@ -156,7 +156,7 @@ static size_t Metrics_index_2_part2(GMMetrics& metrics,
 
 static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
   CEnv& env) {
-  COMET_ASSERT(env.num_way() == NUM_WAY::_2);
+  COMET_ASSERT(env.num_way() == NumWay::_2);
   COMET_ASSERT(env.proc_num_repl() == 0 || env.all2all());
   COMET_ASSERT(env.all2all() || env.proc_num_vector() == j_block);
   COMET_ASSERT(i >= 0 && i < metrics.num_vector_local);
