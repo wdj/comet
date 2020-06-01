@@ -145,7 +145,7 @@ private:
     return length;
  }
 
-  template<typename> friend class CompressedBufAccessor_;
+  template<typename> friend struct CompressedBufAccessor_;
 
   // Disallowed methods.
   CompressedBuf(const CompressedBuf&);
