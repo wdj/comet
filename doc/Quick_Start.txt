@@ -6,26 +6,17 @@ The following is run on the ORNL Summit system.
 
 --------------------
 
-# To build debug/test and release versions of the code:
+# To build all versions of the code:
 
-MY_PROJID=stf006  #---replace stf006 with your OLCF account id.
-cd $MEMBERWORK/$MY_PROJID
+export OLCF_PROJECT=stf006  #---replace stf006 with your OLCF account id.
+cd $MEMBERWORK/$OLCF_PROJECT
 mkdir comet_work
 cd comet_work
 module load git
-git clone https://code.ornl.gov/wjd/genomics_gpu.git
-
-mkdir build_test
-pushd build_test
-env BUILD_TYPE=Debug TESTING=ON ../genomics_gpu/scripts/cmake.sh
-../genomics_gpu/scripts/make.sh
-popd
-
-mkdir build_release
-cd build_release
-env BUILD_TYPE=Release ../genomics_gpu/scripts/cmake.sh
-../genomics_gpu/scripts/make.sh
-popd
+git clone https://github.com/wdj/comet.git
+# or git clone https://code.ornl.gov/wjd/genomics_gpu.git
+genomics_gpu/scripts/configure_all.sh
+genomics_gpu/scripts/make_all.sh
 
 --------------------------------------------------------------------------------
 

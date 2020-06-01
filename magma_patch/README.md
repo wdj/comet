@@ -18,6 +18,9 @@ for tag in minproduct tally2 tally3 tally4 ; do
   popd;
 done
 
+These operations are done automatically when the configure/make
+of CoMet is done.
+
 FOR DEVELOPERS:
 The adaptation of MAGMA is a two step process.
 First, running ./clone_magma.sh $tag creates a modified MAGMA version,
