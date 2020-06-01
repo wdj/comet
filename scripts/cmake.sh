@@ -159,13 +159,19 @@ function main
 
   if [ $USE_MAGMA = ON ] ; then
     local MAGMA_DIR=$BUILD_DIR/magma_patch
+    local MAGMA_VERSION=1.6.2
     if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
       rm -rf $MAGMA_DIR
       echo "Copying MAGMA ..."
       cp -r $REPO_DIR/magma_patch $MAGMA_DIR
       # copy MAGMA source since link will be broken.
-      rm $MAGMA_DIR//magma-*.tar.gz
-      cp $REPO_DIR/tpls/magma-*.tar.gz $MAGMA_DIR/
+      rm $MAGMA_DIR//magma-${MAGMA_VERSION}.tar.gz
+      if [ -e $REPO_DIR/tpls/magma-${MAGMA_VERSION}.tar.gz ] ; then
+        cp $REPO_DIR/tpls/magma-${MAGMA_VERSION}.tar.gz $MAGMA_DIR/
+      else
+        wget -O $MAGMA_DIR/magma-${MAGMA_VERSION}.tar.gz \
+          http://icl.utk.edu/projectsfiles/magma/downloads/magma-${MAGMA_VERSION}.tar.gz
+      fi
       pushd $MAGMA_DIR
       ./create_modified_magmas.sh
       popd
@@ -227,9 +233,12 @@ function main
 
   if [ $TESTING = ON ] ; then
     echo "Building googletest ..."
-    ln -s ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz
-    # wget -O googletest-release-1.7.0.tar.gz \
-    #   https://github.com/google/googletest/archive/release-1.7.0.tar.gz
+    if [ -e ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz ] ; then
+      ln -s ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz
+    else
+      wget -O googletest-release-1.7.0.tar.gz \
+        https://github.com/google/googletest/archive/release-1.7.0.tar.gz
+    fi
     gunzip <googletest-release-1.7.0.tar.gz | tar xf -
     local GTEST_DIR=$BUILD_DIR/googletest-release-1.7.0
     mkdir $GTEST_DIR/lib
