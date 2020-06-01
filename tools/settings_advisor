@@ -619,6 +619,8 @@ def main():
 if __name__ == '__main__':
 
     print('-' * 79)
+    print('NOTE: this tool is under construction;
+           it is recommended to use the settings spreasheet.')
     main()
     print('-' * 79)
 
