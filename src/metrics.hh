@@ -219,7 +219,7 @@ void GMMetrics_create(GMMetrics* metrics, int data_type_id,
 
 //-----------------------------------------------------------------------------
 
-void GMMetrics_3way_num_metrics_local(GMMetrics* metrics, int nvl, CEnv* env);
+void GMMetrics_set_num_metrics(GMMetrics& metrics, int nvl, CEnv& env);
 
 //=============================================================================
 // Metrics pseudo-destructor.

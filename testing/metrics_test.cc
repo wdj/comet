@@ -83,7 +83,7 @@ void MetricsTest_3way_num_metrics_local_() {
         env.stage_num(stage_num);
 
         comet::GMMetrics metrics = comet::GMMetrics_null();
-        comet::GMMetrics_3way_num_metrics_local(&metrics, nvl, &env);
+        comet::GMMetrics_set_num_metrics(metrics, nvl, env);
         num_metrics_local += metrics.num_metrics_local;
 
       } // for

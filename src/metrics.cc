@@ -184,90 +184,142 @@ GMMetrics GMMetrics_null() {
 
 //=============================================================================
 
-void GMMetrics_3way_num_metrics_local(GMMetrics* metrics, int nvl,
-                                      CEnv* env) {
-  COMET_INSIST(metrics && env);
+void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
   COMET_INSIST(nvl >= 0);
-  COMET_INSIST(env->num_block_vector() <= 2 || nvl % 6 == 0);
-  COMET_INSIST(env->num_way() == NumWay::_3);
+  COMET_INSIST(env.num_way() == NumWay::_2);
 
-  metrics->num_metrics_local = 0;
+  if (!env.all2all()) {
+    metrics.num_metrics_local = utils::nchoosek(nvl, env.num_way());
+    return;
+  }
+
+  metrics.num_metrics_local = 0;
+
+  const int i_block = env.proc_num_vector();
+
+  const size_t nchoosek = utils::nchoosek(nvl, env.num_way());
+
+  const size_t nvlsq = nvl * (size_t)nvl;
+
+  /*---Store the following in this block-row:
+      1) strict upper triangular part of main diagonal block
+      2) half of the off-diagonal blocks, as a "wrapped rectangle"
+    For num_proc_repl > 1, map these blocks, starting at the
+    main diagonal block, to procs in round-robin fashion.
+    For num_phase > 1, do all this only for a piece of the block row.
+  ---*/
+
+  /*===PART A: CALCULATE INDEX SIZE===*/
+  const int proc_num_r = env.proc_num_repl();
+  const int num_proc_r = env.num_proc_repl();
+  metrics.num_metrics_local = 0;
+
+  // PART A.1: (triangle) i_block==j_block part.
+  const bool have_main_diag = proc_num_r == 0 &&
+                              gm_bdiag_computed_min(&env) == 0;
+  metrics.num_metrics_local += have_main_diag ? nchoosek : 0;
+  metrics.index_offset_part2_ = have_main_diag ? nchoosek - nvlsq : 0;
+  metrics.block_min_part2_ = (i_block + gm_bdiag_computed_min(&env)) %
+    env.num_block_vector();
+
+  // PART A.2: (wrapped rect) i_block!=j_block part.
+  const int num_computed_blocks_this_row = gm_blocks_computed_this_row(&env);
+  const int num_computed_blocks_this_proc = rr_pack_(proc_num_r, num_proc_r,
+                                             num_computed_blocks_this_row);
+  const int num_computed_offdiag_blocks_this_proc =
+    num_computed_blocks_this_proc - (have_main_diag ? 1 : 0);
+  metrics.num_metrics_local += num_computed_offdiag_blocks_this_proc * nvlsq;
+}
+
+//=============================================================================
+
+void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
+  COMET_INSIST(nvl >= 0);
+  COMET_INSIST(env.num_block_vector() <= 2 || nvl % 6 == 0);
+  COMET_INSIST(env.num_way() == NumWay::_3);
+
+  if (!env.all2all()) {
+    metrics.num_metrics_local = utils::nchoosek(nvl, env.num_way());
+    return;
+  }
+
+  metrics.num_metrics_local = 0;
 
   //---Fused counter for section_num and block_num, same across all procs.
   int section_block_num = 0;
 
   //---Compute size part 1: (tetrahedron) i_block==j_block==k_block part.
 
-  const int num_section_steps_1 = gm_num_section_steps(env, 1);
+  const int num_section_steps_1 = gm_num_section_steps(&env, 1);
   for (int section_step=0; section_step<num_section_steps_1; ++section_step) {
     //---Get slice bounds.
     const int section_num = section_step;
-    const int J_lo = gm_J_lo(section_num, nvl, 1, env);
-    const int J_hi = gm_J_hi(section_num, nvl, 1, env);
+    const int J_lo = gm_J_lo(section_num, nvl, 1, &env);
+    const int J_hi = gm_J_hi(section_num, nvl, 1, &env);
     const int64_t trap_size_lo = trapezoid_size(J_lo, nvl);
     const int64_t trap_size_hi = trapezoid_size(J_hi, nvl);
     COMET_INSIST(trap_size_hi >= trap_size_lo && "Error in sizes calculation.");
     //---Absorb size_lo into offset for speed in indexing function.
-    metrics->index_offset_section_part1_[section_num]
-      = (int64_t)metrics->num_metrics_local - trap_size_lo;
-    if (gm_is_section_block_in_phase(env, section_block_num)) {
-      if (gm_proc_r_active(section_block_num, env)) {
+    metrics.index_offset_section_part1_[section_num]
+      = (int64_t)metrics.num_metrics_local - trap_size_lo;
+    if (gm_is_section_block_in_phase(&env, section_block_num)) {
+      if (gm_proc_r_active(section_block_num, &env)) {
         //---Elements in slice of trapezoid.
         const int64_t elts_local = trap_size_hi - trap_size_lo;
         COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
-        metrics->num_metrics_local += elts_local;
-        metrics->is_section_num_valid_part1_[section_num] = (elts_local != 0);
+        metrics.num_metrics_local += elts_local;
+        metrics.is_section_num_valid_part1_[section_num] = (elts_local != 0);
       } // if
     } // if
     ++section_block_num;
   } // section_step
-  metrics->index_offset_part2_ = metrics->num_metrics_local;
+  metrics.index_offset_part2_ = metrics.num_metrics_local;
 
   //---Compute size part 2: (triang prisms) i_block!=j_block==k_block part.
 
-  const int num_block = env->num_block_vector();
-  const int num_section_steps_2 = gm_num_section_steps(env, 2);
+  const int num_block = env.num_block_vector();
+  const int num_section_steps_2 = gm_num_section_steps(&env, 2);
   for (int section_step=0; section_step<num_section_steps_2; ++section_step) {
     //---Get slice bounds.
     const int section_num = section_step;
-    const int J_lo = gm_J_lo(section_num, nvl, 2, env);
-    const int J_hi = gm_J_hi(section_num, nvl, 2, env);
+    const int J_lo = gm_J_lo(section_num, nvl, 2, &env);
+    const int J_hi = gm_J_hi(section_num, nvl, 2, &env);
     const int64_t triang_size_lo = triangle_size(J_lo, nvl);
     const int64_t triang_size_hi = triangle_size(J_hi, nvl);
     //---Absorb size_lo into offset for speed in indexing function.
-    metrics->index_offset_section_part2_[section_num]
-      = (int64_t)metrics->num_metrics_local - (int64_t)nvl*(int64_t)triang_size_lo;
-    metrics->section_size_part2_[section_num] = triang_size_hi - triang_size_lo;
+    metrics.index_offset_section_part2_[section_num]
+      = (int64_t)metrics.num_metrics_local - (int64_t)nvl*(int64_t)triang_size_lo;
+    metrics.section_size_part2_[section_num] = triang_size_hi - triang_size_lo;
     int block_num_part2 = 0;
     bool is_phase_block_start_set = false;
     //---Loop over blocks for part2.
     for (int j_i_offset=1; j_i_offset<num_block; ++j_i_offset) {
-      if (gm_is_section_block_in_phase(env, section_block_num)) {
+      if (gm_is_section_block_in_phase(&env, section_block_num)) {
         if (!is_phase_block_start_set) {
-          metrics->phase_block_start_part2_[section_num] = block_num_part2;
+          metrics.phase_block_start_part2_[section_num] = block_num_part2;
           is_phase_block_start_set = true;
         }
-        if (gm_proc_r_active(section_block_num, env)) {
+        if (gm_proc_r_active(section_block_num, &env)) {
           //---Elements in slice of triang prism.
           const int64_t elts_local = (int64_t)nvl *
                                      (triang_size_hi - triang_size_lo);
           COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
-          metrics->num_metrics_local += elts_local;
-          metrics->is_section_num_valid_part2_[section_num] = (elts_local != 0);
+          metrics.num_metrics_local += elts_local;
+          metrics.is_section_num_valid_part2_[section_num] = (elts_local != 0);
         } // if
       } // if
       ++section_block_num;
       ++block_num_part2;
     }
   } // section_step
-  metrics->index_offset_part3_ = metrics->num_metrics_local;
+  metrics.index_offset_part3_ = metrics.num_metrics_local;
 
   //---Compute size part 3: (block sections) i_block!=j_block!=k_block part.
 
   //---Loop over block for part3.
-  const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
+  const int num_section_steps_3 = gm_num_section_steps(&env, 3); // = 1
   for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
-    const int i_block = env->proc_num_vector();
+    const int i_block = env.proc_num_vector();
     int block_num_part3 = 0;
     bool is_phase_block_start_set = false;
     for (int k_i_offset=1; k_i_offset<num_block; ++k_i_offset) {
@@ -279,19 +331,19 @@ void GMMetrics_3way_num_metrics_local(GMMetrics* metrics, int nvl,
         }
         //---Get slice bounds.
         const int section_num = gm_section_num_part3(i_block, j_block, k_block);
-        const int J_lo = gm_J_lo(section_num, nvl, 3, env);
-        const int J_hi = gm_J_hi(section_num, nvl, 3, env);
-        if (gm_is_section_block_in_phase(env, section_block_num)) {
+        const int J_lo = gm_J_lo(section_num, nvl, 3, &env);
+        const int J_hi = gm_J_hi(section_num, nvl, 3, &env);
+        if (gm_is_section_block_in_phase(&env, section_block_num)) {
           if (!is_phase_block_start_set) {
-            metrics->phase_block_start_part3_ = block_num_part3;
+            metrics.phase_block_start_part3_ = block_num_part3;
             is_phase_block_start_set = true;
           }
-          if (gm_proc_r_active(section_block_num, env)) {
+          if (gm_proc_r_active(section_block_num, &env)) {
             //---Elements in slice of block/cube.
             const int64_t elts_local = (int64_t)nvl * (int64_t)nvl *
                                        (int64_t)(J_hi - J_lo);
             COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
-            metrics->num_metrics_local += elts_local;
+            metrics.num_metrics_local += elts_local;
           } // if
         } // if
         ++section_block_num;
@@ -299,6 +351,17 @@ void GMMetrics_3way_num_metrics_local(GMMetrics* metrics, int nvl,
       }
     }
   } // section_step
+}
+
+//=============================================================================
+
+void GMMetrics_set_num_metrics(GMMetrics& metrics, int nvl, CEnv& env) {
+  COMET_INSIST(nvl >= 0);
+
+  if (env.num_way() == NumWay::_2)
+    GMMetrics_2way_set_num_metrics_(metrics, nvl, env);
+  else
+    GMMetrics_3way_set_num_metrics_(metrics, nvl, env);
 }
 
 //=============================================================================
@@ -311,19 +374,20 @@ void GMMetrics_create(GMMetrics* metrics,
                       CEnv* env) {
   COMET_INSIST(metrics && dm && env);
 
-  *metrics = GMMetrics_null();
-
-  if (! env->is_proc_active()) {
+  if (! env->is_proc_active())
     return;
-  }
+
+  //--------------------
+  // Perform checks.
+  //--------------------
 
   COMET_INSIST_INTERFACE(env, (env->metric_type() != MetricType::DUO ||
-                          env->sparse()) && "DUO method requires sparse input.");
+                         env->sparse()) && "DUO method requires sparse input.");
 
-  COMET_INSIST_INTERFACE(env, (env->all2all() || env->num_proc_repl() == 1)
-          && "Multidim parallelism only available for all2all case");
+  COMET_INSIST_INTERFACE(env, (env->all2all() || env->num_proc_repl() == 1) &&
+          "Multidim parallelism only available for all2all case");
 
-  // The following less important cases are not yet tested.
+  // (The following less important cases are not yet tested.)
 
   COMET_INSIST_INTERFACE(env, (env->all2all() ||
                     dm->num_field == dm->num_field_active)
@@ -332,6 +396,51 @@ void GMMetrics_create(GMMetrics* metrics,
   COMET_INSIST_INTERFACE(env, (env->is_compute_method_gpu() ||
                     dm->num_field == dm->num_field_active)
                     && "This case currently not supported.");
+
+  COMET_INSIST_INTERFACE(env, dm->num_vector_local >= (size_t)env->num_way()
+        && "Currently require number of vecs on a proc to be at least num-way");
+
+  COMET_INSIST_INTERFACE(env, env->stage_num() >= 0 &&
+                              env->stage_num() < env->num_stage() &&
+                              "Invalid stage number specified.");
+
+  COMET_INSIST_INTERFACE(env, env->phase_num() >= 0 &&
+                              env->phase_num() < env->num_phase() &&
+                              "Invalid phase number specified.");
+
+  GMMetrics_ccc_check_size_nofp_2(metrics, env);
+  GMMetrics_ccc_check_size_nofp_3(metrics, env);
+
+  COMET_INSIST_INTERFACE(env, (env->num_stage() == 1 ||
+                               env->num_way() != NumWay::_2) &&
+                    "Staged computations not allowed for 2-way case.");
+
+  COMET_INSIST_INTERFACE(env, (env->num_stage() == 1 || env->all2all()) &&
+                    "Staged computations not allowed for non-all2all case.");
+
+  COMET_INSIST_INTERFACE(env, (env->num_phase() == 1 || env->all2all()) &&
+                    "Phased computations not allowed for non-all2all case.");
+
+  if (env->num_way() == NumWay::_2)
+    COMET_INSIST_INTERFACE(env,
+      env->num_phase() <= 1 + env->num_block_vector() / 2 &&
+      "num_phase must be at most 1 + num_proc_vector/2.");
+
+  if (env->num_way() == NumWay::_3) {
+    COMET_INSIST_INTERFACE(env, env->num_phase() <= gm_num_section_blocks(env)
+     && "num_phase must be at most (num_proc_vector+1)*(num_proc_vector+2)/2.");
+
+    //---Make the following assumption to greatly simplify calculations.
+    COMET_INSIST_INTERFACE(env,
+      (env->num_block_vector()<3 || dm->num_vector_local % 6 == 0) &&
+      "3-way all2all case requires num vectors per proc divisible by 6.");
+  }
+
+  //--------------------
+  // Initializations.
+  //--------------------
+
+  *metrics = GMMetrics_null();
 
   metrics->dm = dm;
   metrics->data_type_id = data_type_id;
@@ -357,79 +466,41 @@ void GMMetrics_create(GMMetrics* metrics,
 
   metrics->num_vector = dm->num_vector;
 
-  const int num_block = env->num_block_vector();
+  metrics->num_metrics_local_computed = 0;
 
-  COMET_INSIST_INTERFACE(
-      env,
-      metrics->num_vector_local >= env->num_way()
-        && "Currently require number of vecs on a proc to be at least num-way");
+  //--------------------
+  // Calcuate number of metrics to be computed.
+  //--------------------
+
+  GMMetrics_set_num_metrics(*metrics, metrics->num_vector_local, *env);
+
+  //--------------------
+  // Allocate memory for coords.
+  //--------------------
+
+  metrics->coords_values_ = metrics_mem->malloc_coords_values(
+    metrics->num_metrics_local * sizeof(Coords_t));
+
+  //--------------------
+  // Set coords.
+  //--------------------
+
+  const int num_block = env->num_block_vector();
 
   const int i_block = env->proc_num_vector();
 
-  const size_t nchoosek = utils::nchoosek(metrics->num_vector_local,
-                                          env->num_way());
   const int nvl = metrics->num_vector_local;
   const size_t nvlsq = nvl * (size_t)nvl;
-
-  // Compute number of elements etc..
-
-  COMET_INSIST_INTERFACE(env, env->stage_num() >= 0 &&
-                              env->stage_num() < env->num_stage() &&
-                              "Invalid stage number specified.");
-
-  COMET_INSIST_INTERFACE(env, env->phase_num() >= 0 &&
-                              env->phase_num() < env->num_phase() &&
-                              "Invalid phase number specified.");
-
-  GMMetrics_ccc_check_size_nofp_2(metrics, env);
-  GMMetrics_ccc_check_size_nofp_3(metrics, env);
-
-  metrics->num_metrics_local_computed = 0;
 
   /*==================================================*/
   if (env->num_way() == NumWay::_2 && env->all2all()) {
   /*==================================================*/
 
-    COMET_INSIST_INTERFACE(env, env->num_stage() == 1
-                      && "Staged computations not allowed for 2-way case.");
-
-    COMET_INSIST_INTERFACE(env, env->num_phase() <= 1 + num_block / 2
-                      && "num_phase must be at most 1 + num_proc_vector/2.");
-
-    /*---Store the following in this block-row:
-        1) strict upper triangular part of main diagonal block
-        2) half of the off-diagonal blocks, as a "wrapped rectangle"
-      For num_proc_repl > 1, map these blocks, starting at the
-      main diagonal block, to procs in round-robin fashion.
-      For num_phase > 1, do all this only for a piece of the block row.
-    ---*/
-
-    /*===PART A: CALCULATE INDEX SIZE===*/
     const int proc_num_r = env->proc_num_repl();
-    const int num_proc_r = env->num_proc_repl();
-    metrics->num_metrics_local = 0;
-
-    // PART A.1: (triangle) i_block==j_block part.
     const bool have_main_diag = proc_num_r == 0 &&
                                 gm_bdiag_computed_min(env) == 0;
-    metrics->num_metrics_local += have_main_diag ? nchoosek : 0;
-    metrics->index_offset_part2_ = have_main_diag ? nchoosek - nvlsq : 0;
-    metrics->block_min_part2_ = (i_block + gm_bdiag_computed_min(env)) %
-      num_block;
 
-    // PART A.2: (wrapped rect) i_block!=j_block part.
     const int num_computed_blocks_this_row = gm_blocks_computed_this_row(env);
-    const int num_computed_blocks_this_proc = rr_pack_(proc_num_r, num_proc_r,
-                                               num_computed_blocks_this_row);
-    const int num_computed_offdiag_blocks_this_proc =
-      num_computed_blocks_this_proc - (have_main_diag ? 1 : 0);
-    metrics->num_metrics_local += num_computed_offdiag_blocks_this_proc * nvlsq;
-
-    /*===PART B: ALLOCATE INDEX===*/
-    metrics->coords_values_ = metrics_mem->malloc_coords_values(
-      metrics->num_metrics_local * sizeof(Coords_t));
-
-    /*===PART C: SET INDEX===*/
 
     // PART C.1: (triangle) i_block==j_block part.
     size_t index = 0;
@@ -474,33 +545,17 @@ void GMMetrics_create(GMMetrics* metrics,
     } // for diag
 
     // Final check.
-    COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_metrics_local &&
+                 "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (env->num_way() == NumWay::_3 && env->all2all()) {
   /*==================================================*/
 
-    COMET_INSIST_INTERFACE(env, env->num_phase() <= gm_num_section_blocks(env)
-     && "num_phase must be at most (num_proc_vector+1)*(num_proc_vector+2)/2.");
-
-    //---Make the following assumption to greatly simplify calculations.
-    COMET_INSIST_INTERFACE(env, (num_block<=2 || metrics->num_vector_local % 6 == 0)
-                      && "3-way all2all case requires num vectors per proc "
-                        "divisible by 6.");
-
-    /*===PART A: CALCULATE INDEX SIZE===*/
-
-    GMMetrics_3way_num_metrics_local(metrics, nvl, env);
+    /*===PART C: SET INDEX===*/
 
     // Fused counter for section_num and block_num, same across all procs.
     int section_block_num = 0;
-
-    /*===PART B: ALLOCATE INDEX===*/
-
-    metrics->coords_values_ = metrics_mem->malloc_coords_values(
-      metrics->num_metrics_local * sizeof(Coords_t));
-
-    /*===PART C: SET INDEX===*/
 
     section_block_num = 0;
     size_t index = 0;
@@ -528,7 +583,8 @@ void GMMetrics_create(GMMetrics* metrics,
               const size_t kG = k + nvl * k_block;
                 const size_t iG = i + nvl * i_block;
                 const size_t index_this = index + i + j*(size_t)(k-(j+1));
-                COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
+                COMET_ASSERT(index_this>=0 &&
+                             index_this<metrics->num_metrics_local);
                 metrics->coords_values_[index_this] =
                   iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
               }
@@ -564,7 +620,8 @@ void GMMetrics_create(GMMetrics* metrics,
                   const size_t kG = k + nvl * k_block;
                   const size_t iG = i + nvl * i_block;
                   const size_t index_this = index + i + nvl*(size_t)(k-(j+1));
-                  COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
+                  COMET_ASSERT(index_this>=0 &&
+                               index_this<metrics->num_metrics_local);
                   metrics->coords_values_[index_this] =
                     iG + metrics->num_vector * (
                     jG + metrics->num_vector * (kG));
@@ -651,21 +708,13 @@ void GMMetrics_create(GMMetrics* metrics,
       } // k_i_offset
     } // section_step
 
-    COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_metrics_local &&
+                 "Error in sizes calculation.");
 
   /*==================================================*/
   } else if (env->num_way() == NumWay::_2 && ! env->all2all()) {
   /*==================================================*/
 
-    COMET_INSIST_INTERFACE(env, env->num_stage() == 1 &&
-                      "Staged computations not allowed for non-all2all case.");
-
-    COMET_INSIST_INTERFACE(env, env->num_phase() == 1 &&
-                      "Phased computations not allowed for non-all2all case.");
-
-    metrics->num_metrics_local = nchoosek;
-    metrics->coords_values_ = metrics_mem->malloc_coords_values(
-      metrics->num_metrics_local * sizeof(Coords_t));
     // Need store only strict upper triangular part of matrix.
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
@@ -675,21 +724,13 @@ void GMMetrics_create(GMMetrics* metrics,
         metrics->coords_values_[index++] = iG + metrics->num_vector * jG;
       }
     }
-    COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_metrics_local &&
+                 "Error in sizes calculation.");
 
   /*==================================================*/
-  } else if (env->num_way() == NumWay::_3 && ! env->all2all()) {
+  } else { //  if (env->num_way() == NumWay::_3 && ! env->all2all())
   /*==================================================*/
 
-    COMET_INSIST_INTERFACE(env, env->num_stage() == 1
-                      && "Staged computations not allowed for non-all2all case.");
-
-    COMET_INSIST_INTERFACE(env, env->num_phase() == 1
-                      && "Phased computations not allowed for non-all2all case.");
-
-    metrics->num_metrics_local = nchoosek;
-    metrics->coords_values_ = metrics_mem->malloc_coords_values(
-      metrics->num_metrics_local * sizeof(size_t));
     // Need store only strict interior of tetrahedron.
     size_t index = 0;
     for (int j = 0; j < nvl; ++j) {
@@ -706,33 +747,29 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
     }
-    COMET_INSIST(index == metrics->num_metrics_local && "Error in sizes calculation.");
+    COMET_INSIST(index == metrics->num_metrics_local &&
+                 "Error in sizes calculation.");
 
-  /*==================================================*/
-  } else {
-  /*==================================================*/
-    COMET_INSIST_INTERFACE(env, 0 == 1 && "Invalid set of options");
-    // LATER: generalize this to N-way.
   }
+  
+  //--------------------
+  // Checks.
+  //--------------------
 
   size_t num_elts = 0;
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics->num_metrics_local, &num_elts, 1,
     MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
-  if (env->num_way() == NumWay::_2 &&
-      env->num_phase() == 1 && env->all2all()) {
-    COMET_INSIST(num_elts == (metrics->num_vector) * (size_t)
-                               (metrics->num_vector - 1) / 2);
-  }
+  if (env->num_stage() == 1 && env->num_phase() == 1 && env->all2all())
+    COMET_INSIST(utils::nchoosek(metrics->num_vector, env->num_way()) ==
+                 num_elts);
 
-  if (env->num_way() == NumWay::_3 && env->num_stage() == 1 &&
-      env->num_phase() == 1 && env->all2all()) {
-    COMET_INSIST(num_elts == (metrics->num_vector) * (size_t)
-                               (metrics->num_vector - 1) * (size_t)
-                               (metrics->num_vector - 2) / 6);
-  }
+  COMET_INSIST(env->all2all() ||
+    utils::nchoosek(metrics->num_vector_local, env->num_way()) == num_elts);
 
+  //--------------------
   // Allocations.
+  //--------------------
 
   switch (data_type_id) {
     //----------
@@ -748,11 +785,13 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->data_S_elt_size = sizeof(GMFloat2);
-      metrics->data_S_size = metrics->num_metrics_local * metrics->data_S_elt_size;
+      metrics->data_S_size = metrics->num_metrics_local *
+                             metrics->data_S_elt_size;
       metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
       metrics->data_C_elt_size = sizeof(GMFloat2);
       if (env->sparse()) {
-        metrics->data_C_size = metrics->num_metrics_local * metrics->data_C_elt_size;
+        metrics->data_C_size = metrics->num_metrics_local *
+                             metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
       metrics->num_entries_per_metric = 4;
@@ -763,11 +802,13 @@ void GMMetrics_create(GMMetrics* metrics,
       metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->data_S_elt_size = sizeof(GMFloat3);
-      metrics->data_S_size = metrics->num_metrics_local * metrics->data_S_elt_size;
+      metrics->data_S_size = metrics->num_metrics_local *
+                             metrics->data_S_elt_size;
       metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
       metrics->data_C_elt_size = sizeof(GMFloat3);
       if (env->sparse()) {
-        metrics->data_C_size = metrics->num_metrics_local * metrics->data_C_elt_size;
+        metrics->data_C_size = metrics->num_metrics_local *
+                             metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
       metrics->num_entries_per_metric = 8;
@@ -785,9 +826,8 @@ void GMMetrics_destroy(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
   COMET_INSIST(metrics->data || ! env->is_proc_active());
 
-  if (! env->is_proc_active()) {
+  if (! env->is_proc_active())
     return;
-  }
 
   *metrics = GMMetrics_null();
 }
