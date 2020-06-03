@@ -535,7 +535,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-        const Coords_t coords = metrics->coords_value(index);
+        const MetricItemCoords_t coords = metrics->coords_value(index);
         const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
         const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
         if (iG >= nva || jG >= nva)
@@ -690,7 +690,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-        const Coords_t coords = metrics->coords_value(index);
+        const MetricItemCoords_t coords = metrics->coords_value(index);
         const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
         const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
         const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);

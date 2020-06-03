@@ -48,8 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-typedef size_t Coords_t;
-
 //-----------------------------------------------------------------------------
 /// \brief Helper class for metrics memory.
 
@@ -65,7 +63,7 @@ public:
   void* malloc_data(size_t data_size);
   void* malloc_data_S(size_t data_size_S);
   void* malloc_data_C(size_t data_size_C);
-  Coords_t* malloc_coords_values(size_t coords_values_size);
+  MetricItemCoords_t* malloc_coords_values(size_t coords_values_size);
 
 private:
 
@@ -76,7 +74,7 @@ private:
   size_t data_S_size_;
   void* __restrict__ data_C_;
   size_t data_C_size_;
-  Coords_t* coords_values_;
+  MetricItemCoords_t* coords_values_;
   size_t coords_values_size_;
 
   friend GMMetrics;
@@ -127,8 +125,8 @@ struct GMMetrics {
   size_t data_S_elt_size;
   size_t data_C_elt_size;
   // Map of (contig) index to linearized Cartesian coords.
-  Coords_t* coords_values_;
-  Coords_t coords_value(size_t index) const {
+  MetricItemCoords_t* coords_values_;
+  MetricItemCoords_t coords_value(size_t index) const {
     COMET_ASSERT(index+1 >= 1 && index < num_metrics_local);
     return coords_values_[index];
   }
@@ -147,31 +145,35 @@ private:
 
 struct CoordsInfo {
 
-  static size_t getiG(Coords_t coords, GMMetrics& metrics, CEnv& env) {
+  static size_t getiG(MetricItemCoords_t coords, GMMetrics& metrics,
+    CEnv& env) {
     const size_t result = coords % metrics.num_vector;
     return result;
   }
 
-  static size_t getjG(Coords_t coords, GMMetrics& metrics, CEnv& env) {
+  static size_t getjG(MetricItemCoords_t coords, GMMetrics& metrics,
+    CEnv& env) {
     const size_t result = (coords / metrics.num_vector) % metrics.num_vector;
     return result;
   }
 
-  static size_t getkG(Coords_t coords, GMMetrics& metrics, CEnv& env) {
+  static size_t getkG(MetricItemCoords_t coords, GMMetrics& metrics,
+    CEnv& env) {
     COMET_ASSERT(env.num_way() >= NumWay::_3);
     const size_t result = coords / (metrics.num_vector * metrics.num_vector);
     COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
     return result;
   }
 
-  static size_t getG(Coords_t coords, int ijk, GMMetrics& metrics, CEnv& env) {
+  static size_t getG(MetricItemCoords_t coords, int ijk, GMMetrics& metrics,
+    CEnv& env) {
     COMET_ASSERT(ijk >= 0 && ijk < env.num_way());
     return ijk==0 ? getiG(coords, metrics, env) :
            ijk==1 ? getjG(coords, metrics, env) :
                     getkG(coords, metrics, env);
   }
 
-  static int getiE(Coords_t coords, int entry_num, GMMetrics& metrics,
+  static int getiE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
     // TODO: make this and the sequels more performant.
@@ -180,7 +182,7 @@ struct CoordsInfo {
     return result;
   }
 
-  static int getjE(Coords_t coords, int entry_num, GMMetrics& metrics,
+  static int getjE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
     const size_t result = (entry_num / (1 << (env.num_way()-2))) % 2;
@@ -188,7 +190,7 @@ struct CoordsInfo {
     return result;
   }
 
-  static int getkE(Coords_t coords, int entry_num, GMMetrics& metrics,
+  static int getkE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
     COMET_ASSERT(env.num_way() >= NumWay::_3);
@@ -197,8 +199,8 @@ struct CoordsInfo {
     return result;
   }
 
-  static int getE(Coords_t coords, int ijk, int entry_num, GMMetrics& metrics,
-    CEnv& env) {
+  static int getE(MetricItemCoords_t coords, int ijk, int entry_num,
+    GMMetrics& metrics, CEnv& env) {
     COMET_ASSERT(ijk >= 0 && ijk < env.num_way());
     return ijk==0 ? getiE(coords, entry_num, metrics, env) :
            ijk==1 ? getjE(coords, entry_num, metrics, env) :

@@ -219,6 +219,18 @@ struct MetricType {
            strcmp(str, "duo") == 0         ? (int)DUO :
                                              (int)INVALID;
   }
+
+#if 0
+  static size_t metric_size(int metric_type) {
+    COMET_INSIST(CZEK == metric_type || CCC == metric_type ||
+                 DUO == metric_type);
+    return   CZEK == metric_type    ? sizeof(GMFloat) :
+             CCC  == metric_type    ? sizeof(GMTally2x2)
+           /* DUO == metric_type */ : sizeof(GMTally4x2);
+  }
+
+  static size_t metric_item_coords_size() {return sizeof(MetricItemCoords_t);}
+#endif
 };
 
 //-----------------------------------------------------------------------------
@@ -334,6 +346,7 @@ public:
   int tc_eff_compute_() const;
   int num_tc_steps() const {return num_tc_steps_;};
   double threshold() const {return threshold_;}
+  double metrics_shrink() const {return metrics_shrink_;}
   double ccc_multiplier() const {return ccc_multiplier_;}
   double duo_multiplier() const {return duo_multiplier_;}
   double ccc_param() const {return ccc_param_;}
@@ -432,15 +445,30 @@ public:
     NumWay::_2 == num_way_ && ComputeMethod::CPU == compute_method_ &&
     !is_using_linalg();}
 
-//FIX
-  bool is_shrink() const {return false;}
+  int num_entries_per_metric() const {
+    return MetricType::CZEK == metric_type_ ? 1 : 1 << num_way_;
+  }
 
+  size_t metric_size() const {
+    return MetricType::CZEK == metric_type_ ? sizeof(GMFloat) :
+           NumWay::_2 == num_way_ ? sizeof(GMTally2x2) : sizeof(GMTally4x2);
+  }
 
+  bool is_shrink() const {
+return false; // FIX
+    const size_t storage_per_metric = metric_size() +
+      sizeof(MetricItemCoords_t);
+    const size_t storage_per_metric_shrink = metric_size() +
+      sizeof(MetricItemCoords_t) * num_entries_per_metric();
+    return threshold_tc() &&
+      NumWay::_3 == num_way() && // FIX - implement 2-way
+      storage_per_metric_shrink * metrics_shrink_ < storage_per_metric;
+  }
 
   int data_type_vectors() const;
   int data_type_metrics() const;
   int matrix_buf_elt_size() const {return MetricType::CZEK == metric_type_ ?
-    sizeof(GMFloat) : 2*sizeof(double);
+    sizeof(GMFloat) : sizeof(GMTally2x2);
   }
 
   MPI_Datatype metrics_mpi_type() const;
@@ -535,6 +563,7 @@ private:
   int num_tc_steps_;
   double threshold_;
   double threshold_eff_cache_;
+  double metrics_shrink_;
   double ccc_param_;
   double ccc_multiplier_;
   double duo_multiplier_;

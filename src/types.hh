@@ -85,6 +85,11 @@ static void gm_check_type_sizes() {
 }
 
 //=============================================================================
+// Type for storing coordinates of a metrics item.
+
+typedef size_t MetricItemCoords_t;
+
+//=============================================================================
 // Types (mainly) for Czekanowski metric
 
 //---TODO: revise nomenclature to be different from "GMFloat2" ...

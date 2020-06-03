@@ -82,6 +82,7 @@ void MetricIO::write(size_t iG, size_t jG, GMFloat value) const {
 
   COMET_INSIST(success && "File write failure.");
   num_written_++;
+printf("%i\n", (int)num_written_); //FIX
   COMET_INSIST(num_bytes_written_per_metric() == bytes_written);
   }
 
@@ -173,7 +174,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
       // Do any of the values exceed the threshold
       if (Metrics_ccc_duo_get_threshold_2<COUNTED_BITS_PER_ELT>(
             *metrics, index, *env)) {
-        const Coords_t coords = metrics->coords_value(index);
+        const MetricItemCoords_t coords = metrics->coords_value(index);
         for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
@@ -235,6 +236,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
   } // ind_base
 
   num_written_ += writer.num_written();
+printf("%i\n", (int)num_written_); //FIX
 
   free(do_out_buf);
   free(iG_buf);
@@ -304,7 +306,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
       // Do any of the values exceed the threshold
       if (Metrics_ccc_duo_get_threshold_3<COUNTED_BITS_PER_ELT>(
              *metrics, index, *env)) {
-        const Coords_t coords = metrics->coords_value(index);
+        const MetricItemCoords_t coords = metrics->coords_value(index);
         for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
@@ -371,6 +373,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
   } // ind_base
 
   num_written_ += writer.num_written();
+printf("%i\n", (int)num_written_); //FIX
 
   free(do_out_buf);
   free(iG_buf);
@@ -487,7 +490,7 @@ static void MetricsIO_write_(
 
     size_t index = 0;
     for (index = 0; index < metrics->num_metrics_local; ++index) {
-      const Coords_t coords = metrics->coords_value(index);
+      const MetricItemCoords_t coords = metrics->coords_value(index);
       const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
       const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
 //      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
@@ -524,6 +527,7 @@ static void MetricsIO_write_(
     } // for index
 
     num_written_ += writer.num_written();
+printf("%i\n", (int)num_written_); //FIX
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2 &&
@@ -543,7 +547,7 @@ static void MetricsIO_write_(
     MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
-      const Coords_t coords = metrics->coords_value(index);
+      const MetricItemCoords_t coords = metrics->coords_value(index);
       const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
       const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
       const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
@@ -587,6 +591,7 @@ static void MetricsIO_write_(
     } // for index
 
     num_written_ += writer.num_written();
+printf("%i\n", (int)num_written_); //FIX
 
   //----------
   } else {
@@ -644,6 +649,7 @@ void MetricsIO::write(GMMetrics& metrics) {
     const size_t num_written_hold = num_written_;
     MetricsIO_write_(&metrics, file_, num_written_, &env_);
     num_written_last_write_ = num_written_ - num_written_hold;
+printf("%i %i %i\n", (int)num_written_last_write_, (int)num_written_, (int)num_written_hold); /FIX
   }
 
   // Output to stdout if requested
@@ -702,7 +708,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
       bool do_coords_match = true;
       if (env_.is_shrink()) {
-        Coords_t coords = metrics.coords_value(index);
+        MetricItemCoords_t coords = metrics.coords_value(index);
         do_coords_match =
           CoordsInfo::getiG(coords, metrics, env_) == iG &&
           CoordsInfo::getjG(coords, metrics, env_) == jG;
@@ -742,7 +748,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
       bool do_coords_match = true;
       if (env_.is_shrink()) {
-        Coords_t coords = metrics.coords_value(index);
+        MetricItemCoords_t coords = metrics.coords_value(index);
         do_coords_match =
           CoordsInfo::getiG(coords, metrics, env_) == iG &&
           CoordsInfo::getjG(coords, metrics, env_) == jG &&

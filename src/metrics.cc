@@ -146,7 +146,7 @@ void* MetricsMem::malloc_data_C(size_t data_C_size) {
 
 //-----------------------------------------------------------------------------
 
-Coords_t* MetricsMem::malloc_coords_values(
+MetricItemCoords_t* MetricsMem::malloc_coords_values(
   size_t coords_values_size) {
 
   if (! env_->is_proc_active()) {
@@ -212,7 +212,6 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
   /*===PART A: CALCULATE INDEX SIZE===*/
   const int proc_num_r = env.proc_num_repl();
   const int num_proc_r = env.num_proc_repl();
-  metrics.num_metrics_local = 0;
 
   // PART A.1: (triangle) i_block==j_block part.
   const bool have_main_diag = proc_num_r == 0 &&
@@ -479,7 +478,7 @@ void GMMetrics_create(GMMetrics* metrics,
   //--------------------
 
   metrics->coords_values_ = metrics_mem->malloc_coords_values(
-    metrics->num_metrics_local * sizeof(Coords_t));
+    metrics->num_metrics_local * sizeof(MetricItemCoords_t));
 
   //--------------------
   // Set coords.
@@ -774,14 +773,15 @@ void GMMetrics_create(GMMetrics* metrics,
   switch (data_type_id) {
     //----------
     case GM_DATA_TYPE_FLOAT:
-      metrics->data_elt_size = sizeof(GMFloat);
+      //metrics->data_elt_size = sizeof(GMFloat);
+      metrics->data_elt_size = env->metric_size();
       metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
-      metrics->num_entries_per_metric = 1;
       break;
     //----------
     case GM_DATA_TYPE_TALLY2X2: {
-      metrics->data_elt_size = sizeof(GMTally2x2);
+      //metrics->data_elt_size = sizeof(GMTally2x2);
+      metrics->data_elt_size = env->metric_size();
       metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->data_S_elt_size = sizeof(GMFloat2);
@@ -794,11 +794,11 @@ void GMMetrics_create(GMMetrics* metrics,
                              metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
-      metrics->num_entries_per_metric = 4;
     } break;
     //----------
     case GM_DATA_TYPE_TALLY4X2: {
-      metrics->data_elt_size = sizeof(GMTally4x2);
+      //metrics->data_elt_size = sizeof(GMTally4x2);
+      metrics->data_elt_size = env->metric_size();
       metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
       metrics->data = metrics_mem->malloc_data(metrics->data_size);
       metrics->data_S_elt_size = sizeof(GMFloat3);
@@ -811,7 +811,6 @@ void GMMetrics_create(GMMetrics* metrics,
                              metrics->data_C_elt_size;
         metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
       }
-      metrics->num_entries_per_metric = 8;
     } break;
     //----------
     default:

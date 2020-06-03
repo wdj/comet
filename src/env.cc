@@ -267,6 +267,7 @@ void CEnv::set_defaults_() {
   num_tc_steps_ = 1;
   threshold_ = CEnv::threshold_eff(-1);
   threshold_eff_cache_ = threshold_;
+  metrics_shrink_ = 1.;
 }
 
 //-----------------------------------------------------------------------------

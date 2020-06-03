@@ -239,7 +239,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)(4 * metrics->num_field_active);
               if (error1) {
                 const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
-                const Coords_t coords = metrics->coords_value(index);
+                const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " m %" PRIu64
                         " coords %zu rank %i\n",
@@ -254,7 +254,7 @@ void gm_compute_2way_proc_combine_ccc_(
                                   (uint64_t)(2 * si1);
               if (error2) {
                 const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
-                const Coords_t coords = metrics->coords_value(index);
+                const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " si1 %" PRIu64
                         " actual %" PRIu64 " expected %" PRIu64
@@ -271,7 +271,7 @@ void gm_compute_2way_proc_combine_ccc_(
                                   (uint64_t)(2 * sj1);
               if (error3) {
                 const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
-                const Coords_t coords = metrics->coords_value(index);
+                const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " sj1 %" PRIu64
                         " actual %" PRIu64 " expected %" PRIu64
@@ -325,7 +325,7 @@ void gm_compute_2way_proc_combine_ccc_(
                        (uint64_t)(4 * metrics->num_field_active);
               if (error1) {
                 const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
-                const Coords_t coords = metrics->coords_value(index);
+                const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " m %" PRIu64
                         " coords %zu rank %i\n",
@@ -340,7 +340,7 @@ void gm_compute_2way_proc_combine_ccc_(
                                   (uint64_t)(2 * si1);
               if (error2) {
                 const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
-                const Coords_t coords = metrics->coords_value(index);
+                const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " si1 %" PRIu64
                         " actual %" PRIu64 " expected %" PRIu64
@@ -357,7 +357,7 @@ void gm_compute_2way_proc_combine_ccc_(
                                   (uint64_t)(2 * sj1);
               if (error3) {
                 const size_t index = Metrics_index_2(*metrics, i, j, j_block, *env);
-                const Coords_t coords = metrics->coords_value(index);
+                const MetricItemCoords_t coords = metrics->coords_value(index);
                 fprintf(stderr, "Error: r00 %" PRIu64 " r01 %" PRIu64
                         " r10 %" PRIu64 " r11 %" PRIu64 " sj1 %" PRIu64
                         " actual %" PRIu64 " expected %" PRIu64
