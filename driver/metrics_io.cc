@@ -82,7 +82,6 @@ void MetricIO::write(size_t iG, size_t jG, GMFloat value) const {
 
   COMET_INSIST(success && "File write failure.");
   num_written_++;
-printf("%i\n", (int)num_written_); //FIX
   COMET_INSIST(num_bytes_written_per_metric() == bytes_written);
   }
 
@@ -175,7 +174,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
       if (Metrics_ccc_duo_get_threshold_2<COUNTED_BITS_PER_ELT>(
             *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
-        for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+        for (int entry_num = 0; entry_num < env->num_entries_per_metric();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -236,7 +235,6 @@ static void MetricsIO_write_tally2x2_bin_impl_(
   } // ind_base
 
   num_written_ += writer.num_written();
-printf("%i\n", (int)num_written_); //FIX
 
   free(do_out_buf);
   free(iG_buf);
@@ -307,7 +305,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
       if (Metrics_ccc_duo_get_threshold_3<COUNTED_BITS_PER_ELT>(
              *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
-        for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+        for (int entry_num = 0; entry_num < env->num_entries_per_metric();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -373,7 +371,6 @@ static void MetricsIO_write_tally4x2_bin_impl_(
   } // ind_base
 
   num_written_ += writer.num_written();
-printf("%i\n", (int)num_written_); //FIX
 
   free(do_out_buf);
   free(iG_buf);
@@ -499,7 +496,7 @@ static void MetricsIO_write_(
           jG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
-      for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+      for (int entry_num = 0; entry_num < env->num_entries_per_metric();
            ++entry_num) {
         const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
         const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -527,7 +524,6 @@ static void MetricsIO_write_(
     } // for index
 
     num_written_ += writer.num_written();
-printf("%i\n", (int)num_written_); //FIX
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2 &&
@@ -559,7 +555,7 @@ printf("%i\n", (int)num_written_); //FIX
           kG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
-      for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+      for (int entry_num = 0; entry_num < env->num_entries_per_metric();
            ++entry_num) {
         const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
         const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -591,7 +587,6 @@ printf("%i\n", (int)num_written_); //FIX
     } // for index
 
     num_written_ += writer.num_written();
-printf("%i\n", (int)num_written_); //FIX
 
   //----------
   } else {
@@ -649,7 +644,6 @@ void MetricsIO::write(GMMetrics& metrics) {
     const size_t num_written_hold = num_written_;
     MetricsIO_write_(&metrics, file_, num_written_, &env_);
     num_written_last_write_ = num_written_ - num_written_hold;
-printf("%i %i %i\n", (int)num_written_last_write_, (int)num_written_, (int)num_written_hold); /FIX
   }
 
   // Output to stdout if requested

@@ -455,7 +455,6 @@ public:
   }
 
   bool is_shrink() const {
-return false; // FIX
     const size_t storage_per_metric = metric_size() +
       sizeof(MetricItemCoords_t);
     const size_t storage_per_metric_shrink = metric_size() +

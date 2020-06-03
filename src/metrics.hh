@@ -134,7 +134,6 @@ struct GMMetrics {
   size_t num_metrics_local_computed;
   // Other.
   int data_type_id;
-  int num_entries_per_metric;
   GMDecompMgr* dm;
 
 private:

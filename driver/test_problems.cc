@@ -545,7 +545,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 //        if (vi >= nva || vj >= nva) {
 //          continue;
 //        }
-        for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+        for (int entry_num = 0; entry_num < env->num_entries_per_metric();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -702,7 +702,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 //        if (vi >= nva || vj >= nva || vk >= nva) {
 //          continue;
 //        }
-        for (int entry_num = 0; entry_num < metrics->num_entries_per_metric;
+        for (int entry_num = 0; entry_num < env->num_entries_per_metric();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
