@@ -207,6 +207,8 @@ private:
 
 public:
 
+  size_t num_entries() const {return num_entries_;}
+
   /// \brief Internal class to support CUB reduction calls.
 
   struct ReductionOp {
