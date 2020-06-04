@@ -61,6 +61,7 @@ SET(LIB_INCLUDES
   src/magma_wrapper.hh
   src/mirrored_buf.hh
   src/compressed_buf.hh
+  src/compressed_buf.i.hh
   src/tc.hh
   src/tc_helpers.i.hh
   src/tc_in.i.hh

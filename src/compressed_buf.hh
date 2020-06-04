@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/// \brief Helper function for cartesian access to buffer elements.
+/// \brief Helper function for access to buffer elements.
 
 // Forward declaration.
 class CompressedBuf;
@@ -54,12 +54,21 @@ class CompressedBuf;
 template<typename T>
 struct CompressedBufAccessor_ {
   static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
+  static T elt_const(size_t ind_entry, const CompressedBuf* buf);
 };
 
 template<>
 struct CompressedBufAccessor_<Tally2x2<MetricFormat::SINGLE>> {
   typedef Tally2x2<MetricFormat::SINGLE> T;
   static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
+  static T elt_const(size_t ind_entry, const CompressedBuf* buf);
+};
+
+template<>
+struct CompressedBufAccessor_<Tally2x2<MetricFormat::SINGLE>::TypeIn> {
+  typedef Tally2x2<MetricFormat::SINGLE>::TypeIn T;
+  static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
+  static T elt_const(size_t ind_entry, const CompressedBuf* buf);
 };
 
 //-----------------------------------------------------------------------------
@@ -73,6 +82,7 @@ class CompressedBuf {
 
   typedef MetricFormatTraits<METRIC_FORMAT> MFT;
   typedef MFT::TypeIn MFTTypeIn;
+  typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
 
   typedef void Workspace_t;
 
@@ -91,15 +101,27 @@ class CompressedBuf {
   struct Reader {
 
     bool is_reading_started;
-    size_t ind_prev;
-    size_t ind_runs;
-    size_t lengths_sum;
+    size_t ind_runs_recent;
+    size_t ind_entry_recent;
+    size_t lengths_running_sum;
+    size_t ind_recent;
+    size_t ind0_recent;
+    size_t ind1_recent;
+    size_t ind_typein_recent;
+    size_t iE_recent;
+    size_t jE_recent;
 
     void init() {
       is_reading_started = false;;
-      ind_prev = 0;
-      ind_runs = 0;
-      lengths_sum = 0;
+      ind_runs_recent = 0;
+      ind_entry_recent = 0;
+      lengths_running_sum = 0;
+      ind_recent = 0;
+      ind0_recent = 0;
+      ind1_recent = 0;
+      ind_typein_recent = 0;
+      iE_recent = 0;
+      jE_recent = 0;
     }
   };
 
@@ -115,6 +137,11 @@ public:
   template<typename T>
   T elt_const(size_t ind0, size_t ind1) const {
     return CompressedBufAccessor_<T>::elt_const(ind0, ind1, this);
+  }
+
+  template<typename T>
+  T elt_const(size_t ind_entry) const {
+    return CompressedBufAccessor_<T>::elt_const(ind_entry, this);
   }
 
   static bool can_compress(CEnv& env) {return
@@ -154,6 +181,8 @@ private:
   size_t num_runs_;
 
   int state_;
+
+  size_t num_entries_;
 
   mutable Reader reader_;
 
@@ -198,96 +227,14 @@ public:
 
 }; // CompressedBuf
 
-//-----------------------------------------------------------------------------
-// Inlinable implementations.
-
-template<typename T> T CompressedBufAccessor_<T>::
-elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
-  return cbuf->buf_->elt_const<T>(ind0, ind1);
-}
-
-inline Tally2x2<MetricFormat::SINGLE>
-CompressedBufAccessor_<Tally2x2<MetricFormat::SINGLE>>::
-elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
-  typedef Tally2x2<MetricFormat::SINGLE> T;
-  typedef CompressedBuf CBuf;
-  typedef CBuf::MFTTypeIn MFTTypeIn;
-  const MirroredBuf* buf_ = cbuf->buf_;
-  CompressedBuf::Reader& reader_ = cbuf->reader_;
-
-  if (cbuf->do_compress_) {
-
-    COMET_ASSERT(CBuf::State::IDLE == cbuf->state_);
-    COMET_ASSERT(ind0 < buf_->dim0 && ind1 < buf_->dim1);
-    const size_t ind = ind0 + buf_->dim0 * ind1;
-    COMET_ASSERT(ind > reader_.ind_prev || ! reader_.is_reading_started);
-
-    reader_.is_reading_started = true;
-    reader_.ind_prev = ind;
-
-    T result = T::null();
-
-#ifdef COMET_ASSERTIONS_ON
-    // number of TypeIn (float) elements of (uncompressed) buf.
-    const size_t dim_typein = 4 * buf_->dim0 * buf_->dim1;
-#endif
-
-    const size_t dim_runs = cbuf->num_runs_;
-    size_t& ind_runs = reader_.ind_runs;
-
-    // Loop to look for, pick up 4 table entries.
-
-    // NOTE: order of next 2 nested loops must match mem layout of Tally2x2,
-    // since that is the order of elts submitted to the rle.
-
-    for (int iE=0; iE<2; ++iE) {
-      for (int jE=0; jE<2; ++jE) {
-
-        // index for typein value in (uncompressed) array.
-        const size_t ind_typein = jE + 2 * ( iE + 2 * ind );
-
-        COMET_ASSERT(ind_typein >= reader_.lengths_sum);
-        COMET_ASSERT(ind_typein < dim_typein);
-
-        // Loop over rle, starting at current location, to seek element.
-
-        for( ; ind_runs < dim_runs; ) {
-
-            const size_t length_run = cbuf->lengths_alias_buf_.
-              elt_const<CompressedBuf::Lengths_t>(ind_runs, 0);
-            const size_t ind_typein_min = reader_.lengths_sum;
-            const size_t ind_typein_max = reader_.lengths_sum + length_run;
-
-            if (ind_typein >= ind_typein_min &&
-                ind_typein < ind_typein_max) {
-              const MFTTypeIn key_run =
-                cbuf->keys_alias_buf_.elt_const<MFTTypeIn>(ind_runs, 0);
-              T::set(result, iE, jE, key_run);
-              break;
-            }
-
-            ++ind_runs;
-            reader_.lengths_sum += length_run;
-
-        } // for
-
-      } // for jE
-    } // for iE
-
-    //COMET_ASSERT(buf_->elt_const<T>(ind0, ind1)==result);
-    //return buf_->elt_const<T>(ind0, ind1);
-    return result;
-
-  } else {
-    return buf_->elt_const<T>(ind0, ind1);
-  }
-}
-
 //=============================================================================
 
 } // namespace comet
 
 //-----------------------------------------------------------------------------
+// Implementation include files.
+
+#include "compressed_buf.i.hh"
 
 #endif // _COMET_COMPRESSED_BUF_HH_
 

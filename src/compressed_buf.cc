@@ -95,6 +95,8 @@ void CompressedBuf::attach(MirroredBuf& buf) {
 
   buf_ = &buf;
   COMET_INSIST(length_() <= length_max_);
+
+  num_entries_ = length_();
 }
 
 //-----------------------------------------------------------------------------
@@ -257,6 +259,12 @@ void CompressedBuf::from_accel_wait() {
         (double)keys_alias_buf_.elt_const<MFTTypeIn>(i, 0) ); 
     }
 #endif
+
+    num_entries_ = 0;
+    for (size_t i = 0; i < num_runs_; ++i) {
+      if (keys_alias_buf_.elt_const<MFTTypeIn>(i, 0))
+        num_entries_ += lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
+    } // i
 
     reader_.init();
 
