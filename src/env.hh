@@ -487,10 +487,18 @@ public:
 
 
   size_t metric_item_size() const {
-    COMET_INSIST(is_metric_type_bitwise());
     COMET_INSIST(metric_size() % num_metric_items_per_metric() == 0);
     return metric_size() / num_metric_items_per_metric();
   }
+
+
+  size_t shrink(size_t v) const {
+    const double fuzz = 1.e-10;
+    return is_shrink() ? (size_t)((v / metrics_shrink_) * (1.+fuzz)) : v;
+  }
+
+
+
 
 
 

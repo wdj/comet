@@ -102,6 +102,8 @@ struct GMMetrics {
   int J_lo_part3_[NUM_SECTION_MAX];
   int J_wi_part3_[NUM_SECTION_MAX];
   size_t num_metrics_local;
+  size_t num_metric_items_local;
+  size_t num_metric_items_local_allocated;
   // Helper values.
   double recip_m;
   int64_t index_offset_part2_;
@@ -118,9 +120,9 @@ struct GMMetrics {
   void* __restrict__ data;
   void* __restrict__ data_S;
   void* __restrict__ data_C;
-  size_t data_size;
-  size_t data_S_size;
-  size_t data_C_size;
+//  size_t data_size;
+//  size_t data_S_size;
+//  size_t data_C_size;
   size_t data_elt_size;
   size_t data_S_elt_size;
   size_t data_C_elt_size;
@@ -132,7 +134,7 @@ struct GMMetrics {
     return data_coords_values_[index];
   }
   // Counters.
-  size_t num_metrics_local_computed;
+  size_t num_metric_items_local_computed;
   // Other.
   int data_type_id;
   GMDecompMgr* dm;
@@ -263,17 +265,23 @@ struct MetricsArray {
 template<int MA> struct MetricsArrayData;
 
 template<> struct MetricsArrayData<MetricsArray::_> {
-  static size_t elt_size(const GMMetrics& metrics) {return metrics.data_elt_size;}
+  static size_t elt_size(const GMMetrics& metrics) {
+   return metrics.data_elt_size;
+  }
   static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data;}
 };
 
 template<> struct MetricsArrayData<MetricsArray::S> {
-  static size_t elt_size(const GMMetrics& metrics) {return metrics.data_S_elt_size;}
+  static size_t elt_size(const GMMetrics& metrics) {
+    return metrics.data_S_elt_size;
+  }
   static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data_S;}
 };
 
 template<> struct MetricsArrayData<MetricsArray::C> {
-  static size_t elt_size(const GMMetrics& metrics) {return metrics.data_C_elt_size;}
+  static size_t elt_size(const GMMetrics& metrics) {
+    return metrics.data_C_elt_size;
+  }
   static void* __restrict__ p(const GMMetrics& metrics) {return metrics.data_C;}
 };
 

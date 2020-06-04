@@ -259,8 +259,8 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           env.proc_num_vector(), env.proc_num_vector(), env) = value;
       } // K
     }   // I
-    metrics->num_metrics_local_computed += (I_max - I_min) * (size_t)
-                                           (K_max - K_min);
+    metrics->num_metric_items_local_computed += (I_max - I_min) * (size_t)
+                                                (K_max - K_min);
 
   } else if (env.metric_type() == MetricType::CZEK && env.all2all()) {
 
@@ -290,8 +290,8 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
           j_block, k_block, index_cache, env) = value;
       } // K
     }   // I
-    metrics->num_metrics_local_computed += (I_max - I_min) * (size_t)
-                                           (K_max - K_min);
+    metrics->num_metric_items_local_computed += (I_max - I_min) * (size_t)
+                                                (K_max - K_min);
 
   } else if (env.is_metric_type_bitwise()) {
 
@@ -513,8 +513,8 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
       }
     } // K
     if (step_2way == env.num_step_2way_for_3way() - 1) {
-      metrics->num_metrics_local_computed += (I_max - I_min) * (size_t)
-                                             (K_max - K_min);
+      metrics->num_metric_items_local_computed += (I_max - I_min) * (size_t)
+                                                  (K_max - K_min);
     }
 
   } else { // if (env.metric_type() ...

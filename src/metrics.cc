@@ -457,7 +457,10 @@ void GMMetrics_create(GMMetrics* metrics,
 
   metrics->num_vector = dm->num_vector;
 
-  metrics->num_metrics_local_computed = 0;
+  metrics->num_metrics_local = 0;
+  metrics->num_metric_items_local = 0;
+  metrics->num_metric_items_local_allocated = 0;
+  metrics->num_metric_items_local_computed = 0;
 
   //--------------------
   // Calcuate number of metrics to be computed.
@@ -465,38 +468,55 @@ void GMMetrics_create(GMMetrics* metrics,
 
   GMMetrics_set_num_metrics(*metrics, metrics->num_vector_local, *env);
 
+  metrics->num_metric_items_local = metrics->num_metrics_local *
+                                    env->num_metric_items_per_metric();
+
   //--------------------
-  // Allocations.
+  // Allocations: data.
+  //--------------------
+
+  metrics->data_elt_size = env->metric_size();
+
+  metrics->num_metric_items_local_allocated =
+    env->shrink(metrics->num_metric_items_local);
+
+  const size_t data_size = metrics->num_metric_items_local_allocated *
+    env->metric_item_size();
+
+  //data_size = metrics->num_metrics_local * metrics->data_elt_size;
+
+  metrics->data = metrics_mem->malloc_data(data_size);
+
+  //--------------------
+  // Allocations: coords.
+  //--------------------
+
+  metrics->data_coords_values_ = metrics_mem->malloc_data_coords_values(
+    metrics->num_metric_items_local_allocated * sizeof(MetricItemCoords_t));
+
+  //--------------------
+  // Allocations: data_S, data_C
   //--------------------
 
   switch (data_type_id) {
     //----------
     case GM_DATA_TYPE_FLOAT:
-      metrics->data_elt_size = env->metric_size();
-
-      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
-      metrics->data = metrics_mem->malloc_data(metrics->data_size);
-
       break;
     //----------
     case GM_DATA_TYPE_TALLY2X2: {
-      metrics->data_elt_size = env->metric_size();
-
-      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
-      metrics->data = metrics_mem->malloc_data(metrics->data_size);
 
       if (!env->threshold_tc()) {
 
         metrics->data_S_elt_size = sizeof(GMFloat2);
-        metrics->data_S_size = metrics->num_metrics_local *
+        const size_t data_S_size = metrics->num_metrics_local *
                                metrics->data_S_elt_size;
-        metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
+        metrics->data_S = metrics_mem->malloc_data_S(data_S_size);
 
-        metrics->data_C_elt_size = sizeof(GMFloat2);
+         metrics->data_C_elt_size = sizeof(GMFloat2);
         if (env->sparse()) {
-          metrics->data_C_size = metrics->num_metrics_local *
-                               metrics->data_C_elt_size;
-          metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
+          const size_t data_C_size = metrics->num_metrics_local *
+                                    metrics->data_C_elt_size;
+          metrics->data_C = metrics_mem->malloc_data_C(data_C_size);
         }
 
       }
@@ -504,23 +524,19 @@ void GMMetrics_create(GMMetrics* metrics,
     } break;
     //----------
     case GM_DATA_TYPE_TALLY4X2: {
-      metrics->data_elt_size = env->metric_size();
-
-      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
-      metrics->data = metrics_mem->malloc_data(metrics->data_size);
 
       if (!env->threshold_tc()) {
 
         metrics->data_S_elt_size = sizeof(GMFloat3);
-        metrics->data_S_size = metrics->num_metrics_local *
-                               metrics->data_S_elt_size;
-        metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
+        const size_t data_S_size = metrics->num_metrics_local *
+                                   metrics->data_S_elt_size;
+        metrics->data_S = metrics_mem->malloc_data_S(data_S_size);
 
         metrics->data_C_elt_size = sizeof(GMFloat3);
         if (env->sparse()) {
-          metrics->data_C_size = metrics->num_metrics_local *
-                               metrics->data_C_elt_size;
-          metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
+          const size_t data_C_size = metrics->num_metrics_local *
+                                     metrics->data_C_elt_size;
+          metrics->data_C = metrics_mem->malloc_data_C(data_C_size);
         }
 
       }
@@ -530,12 +546,6 @@ void GMMetrics_create(GMMetrics* metrics,
     default:
       COMET_INSIST(false && "Invalid data_type_id.");
   } // switch
-  //--------------------
-  // Allocate memory for coords.
-  //--------------------
-
-  metrics->data_coords_values_ = metrics_mem->malloc_data_coords_values(
-    metrics->num_metrics_local * sizeof(MetricItemCoords_t));
 
   //--------------------
   // Set coords.
