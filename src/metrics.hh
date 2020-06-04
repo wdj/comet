@@ -63,19 +63,19 @@ public:
   void* malloc_data(size_t data_size);
   void* malloc_data_S(size_t data_size_S);
   void* malloc_data_C(size_t data_size_C);
-  MetricItemCoords_t* malloc_coords_values(size_t coords_values_size);
+  MetricItemCoords_t* malloc_data_coords_values(size_t data_coords_values_size);
 
 private:
 
   CEnv* env_;
   void* __restrict__ data_;
-  size_t data_size_;
   void* __restrict__ data_S_;
-  size_t data_S_size_;
   void* __restrict__ data_C_;
+  MetricItemCoords_t* __restrict__ data_coords_values_;
+  size_t data_size_;
+  size_t data_S_size_;
   size_t data_C_size_;
-  MetricItemCoords_t* coords_values_;
-  size_t coords_values_size_;
+  size_t data_coords_values_size_;
 
   friend GMMetrics;
 
@@ -125,10 +125,11 @@ struct GMMetrics {
   size_t data_S_elt_size;
   size_t data_C_elt_size;
   // Map of (contig) index to linearized Cartesian coords.
-  MetricItemCoords_t* coords_values_;
+  MetricItemCoords_t* __restrict__ data_coords_values_;
+  // Accessor.
   MetricItemCoords_t coords_value(size_t index) const {
     COMET_ASSERT(index+1 >= 1 && index < num_metrics_local);
-    return coords_values_[index];
+    return data_coords_values_[index];
   }
   // Counters.
   size_t num_metrics_local_computed;

@@ -53,35 +53,34 @@ namespace comet {
 
 MetricsMem::MetricsMem(CEnv* env) :
   env_(env),
-  data_(0),
+  data_(NULL),
+  data_S_(NULL),
+  data_C_(NULL),
+  data_coords_values_(NULL),
   data_size_(0),
-  data_S_(0),
   data_S_size_(0),
-  data_C_(0),
   data_C_size_(0),
-  coords_values_(0),
-  coords_values_size_(0) {
+  data_coords_values_size_(0) {
 }
 
 //-----------------------------------------------------------------------------
 
 MetricsMem::~MetricsMem() {
 
-  if (! env_->is_proc_active()) {
+  if (! env_->is_proc_active())
     return;
-  }
-  if (data_) {
+
+  if (data_)
     gm_free(data_, data_size_, env_);
-  }
-  if (data_S_) {
+
+  if (data_S_)
     gm_free(data_S_, data_S_size_, env_);
-  }
-  if (data_C_) {
+
+  if (data_C_)
     gm_free(data_C_, data_C_size_, env_);
-  }
-  if (coords_values_) {
-    gm_free(coords_values_, coords_values_size_, env_);
-  }
+
+  if (data_coords_values_)
+    gm_free(data_coords_values_, data_coords_values_size_, env_);
 }
 
 //-----------------------------------------------------------------------------
@@ -109,9 +108,6 @@ void* MetricsMem::malloc_data_S(size_t data_S_size) {
   if (! env_->is_proc_active())
     return NULL;
 
-  if (env_->threshold_tc())
-    return NULL;
-
   if (!data_S_ || data_S_size > data_S_size_) {
     if (data_S_) {
       gm_free(data_S_, data_S_size_, env_);
@@ -130,9 +126,6 @@ void* MetricsMem::malloc_data_C(size_t data_C_size) {
   if (! env_->is_proc_active())
     return NULL;
 
-  if (env_->threshold_tc())
-    return NULL;
-
   if (!data_C_ || data_C_size > data_C_size_) {
     if (data_C_) {
       gm_free(data_C_, data_C_size_, env_);
@@ -146,24 +139,23 @@ void* MetricsMem::malloc_data_C(size_t data_C_size) {
 
 //-----------------------------------------------------------------------------
 
-MetricItemCoords_t* MetricsMem::malloc_coords_values(
-  size_t coords_values_size) {
+MetricItemCoords_t* MetricsMem::malloc_data_coords_values(
+  size_t data_coords_values_size) {
 
-  if (! env_->is_proc_active()) {
+  if (! env_->is_proc_active())
     return NULL;
-  }
 
-  if (!coords_values_ ||
-      coords_values_size > coords_values_size_) {
-    if (coords_values_) {
-      gm_free(coords_values_, coords_values_size_, env_);
+  if (!data_coords_values_ ||
+      data_coords_values_size > data_coords_values_size_) {
+    if (data_coords_values_) {
+      gm_free(data_coords_values_, data_coords_values_size_, env_);
     }
-    coords_values_
-       = (size_t*)gm_malloc(coords_values_size, env_);
-    coords_values_size_ = coords_values_size;
+    data_coords_values_
+       = (size_t*)gm_malloc(data_coords_values_size, env_);
+    data_coords_values_size_ = data_coords_values_size;
   }
 
-  return coords_values_;
+  return data_coords_values_;
 }
 
 //=============================================================================
@@ -474,15 +466,85 @@ void GMMetrics_create(GMMetrics* metrics,
   GMMetrics_set_num_metrics(*metrics, metrics->num_vector_local, *env);
 
   //--------------------
+  // Allocations.
+  //--------------------
+
+  switch (data_type_id) {
+    //----------
+    case GM_DATA_TYPE_FLOAT:
+      metrics->data_elt_size = env->metric_size();
+
+      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
+      metrics->data = metrics_mem->malloc_data(metrics->data_size);
+
+      break;
+    //----------
+    case GM_DATA_TYPE_TALLY2X2: {
+      metrics->data_elt_size = env->metric_size();
+
+      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
+      metrics->data = metrics_mem->malloc_data(metrics->data_size);
+
+      if (!env->threshold_tc()) {
+
+        metrics->data_S_elt_size = sizeof(GMFloat2);
+        metrics->data_S_size = metrics->num_metrics_local *
+                               metrics->data_S_elt_size;
+        metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
+
+        metrics->data_C_elt_size = sizeof(GMFloat2);
+        if (env->sparse()) {
+          metrics->data_C_size = metrics->num_metrics_local *
+                               metrics->data_C_elt_size;
+          metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
+        }
+
+      }
+
+    } break;
+    //----------
+    case GM_DATA_TYPE_TALLY4X2: {
+      metrics->data_elt_size = env->metric_size();
+
+      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
+      metrics->data = metrics_mem->malloc_data(metrics->data_size);
+
+      if (!env->threshold_tc()) {
+
+        metrics->data_S_elt_size = sizeof(GMFloat3);
+        metrics->data_S_size = metrics->num_metrics_local *
+                               metrics->data_S_elt_size;
+        metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
+
+        metrics->data_C_elt_size = sizeof(GMFloat3);
+        if (env->sparse()) {
+          metrics->data_C_size = metrics->num_metrics_local *
+                               metrics->data_C_elt_size;
+          metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
+        }
+
+      }
+
+    } break;
+    //----------
+    default:
+      COMET_INSIST(false && "Invalid data_type_id.");
+  } // switch
+  //--------------------
   // Allocate memory for coords.
   //--------------------
 
-  metrics->coords_values_ = metrics_mem->malloc_coords_values(
+  metrics->data_coords_values_ = metrics_mem->malloc_data_coords_values(
     metrics->num_metrics_local * sizeof(MetricItemCoords_t));
 
   //--------------------
   // Set coords.
   //--------------------
+
+  if (env->is_shrink())
+    return;
+
+  // TODO: put the following in its own function.
 
   const int num_block = env->num_block_vector();
 
@@ -512,7 +574,7 @@ void GMMetrics_create(GMMetrics* metrics,
           const size_t iG = i + nvl * i_block;
           COMET_ASSERT(Metrics_index_2_part1(*metrics, i, j, i_block, *env) ==
                        index);
-          metrics->coords_values_[index++] = iG + metrics->num_vector * jG;
+          metrics->data_coords_values_[index++] = iG + metrics->num_vector * jG;
         }
       }
     }
@@ -537,7 +599,7 @@ void GMMetrics_create(GMMetrics* metrics,
           const size_t iG = i + nvl * i_block;
           const size_t index_this = index + i + j * (size_t)nvl;
           COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
-          metrics->coords_values_[index_this] = iG + metrics->num_vector * jG;
+          metrics->data_coords_values_[index_this] = iG + metrics->num_vector * jG;
         }
       }
       index += nvlsq;
@@ -584,7 +646,7 @@ void GMMetrics_create(GMMetrics* metrics,
                 const size_t index_this = index + i + j*(size_t)(k-(j+1));
                 COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_metrics_local);
-                metrics->coords_values_[index_this] =
+                metrics->data_coords_values_[index_this] =
                   iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
               }
             }
@@ -621,7 +683,7 @@ void GMMetrics_create(GMMetrics* metrics,
                   const size_t index_this = index + i + nvl*(size_t)(k-(j+1));
                   COMET_ASSERT(index_this>=0 &&
                                index_this<metrics->num_metrics_local);
-                  metrics->coords_values_[index_this] =
+                  metrics->data_coords_values_[index_this] =
                     iG + metrics->num_vector * (
                     jG + metrics->num_vector * (kG));
                 } // for i
@@ -693,7 +755,7 @@ void GMMetrics_create(GMMetrics* metrics,
 
                     COMET_ASSERT(Metrics_index_3_part3(*metrics,
                       i, j, k, i_block, j_block, k_block, *env) == index_this);
-                    metrics->coords_values_[index_this] =
+                    metrics->data_coords_values_[index_this] =
                       iG + metrics->num_vector * (
                       jG + metrics->num_vector * (kG));
                   } // for I
@@ -720,7 +782,7 @@ void GMMetrics_create(GMMetrics* metrics,
       const size_t jG = j + nvl * i_block;
       for (int i = 0; i < j; ++i) {
         const size_t iG = i + nvl * i_block;
-        metrics->coords_values_[index++] = iG + metrics->num_vector * jG;
+        metrics->data_coords_values_[index++] = iG + metrics->num_vector * jG;
       }
     }
     COMET_INSIST(index == metrics->num_metrics_local &&
@@ -741,7 +803,7 @@ void GMMetrics_create(GMMetrics* metrics,
         for (int i = 0; i < j; ++i) {
           const size_t iG = i + nvl * i_block;
           COMET_ASSERT(index < metrics->num_metrics_local);
-          metrics->coords_values_[index++] =
+          metrics->data_coords_values_[index++] =
             iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
         }
       }
@@ -765,57 +827,6 @@ void GMMetrics_create(GMMetrics* metrics,
 
   COMET_INSIST(env->all2all() ||
     utils::nchoosek(metrics->num_vector_local, env->num_way()) == num_elts);
-
-  //--------------------
-  // Allocations.
-  //--------------------
-
-  switch (data_type_id) {
-    //----------
-    case GM_DATA_TYPE_FLOAT:
-      //metrics->data_elt_size = sizeof(GMFloat);
-      metrics->data_elt_size = env->metric_size();
-      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
-      metrics->data = metrics_mem->malloc_data(metrics->data_size);
-      break;
-    //----------
-    case GM_DATA_TYPE_TALLY2X2: {
-      //metrics->data_elt_size = sizeof(GMTally2x2);
-      metrics->data_elt_size = env->metric_size();
-      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
-      metrics->data = metrics_mem->malloc_data(metrics->data_size);
-      metrics->data_S_elt_size = sizeof(GMFloat2);
-      metrics->data_S_size = metrics->num_metrics_local *
-                             metrics->data_S_elt_size;
-      metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
-      metrics->data_C_elt_size = sizeof(GMFloat2);
-      if (env->sparse()) {
-        metrics->data_C_size = metrics->num_metrics_local *
-                             metrics->data_C_elt_size;
-        metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
-      }
-    } break;
-    //----------
-    case GM_DATA_TYPE_TALLY4X2: {
-      //metrics->data_elt_size = sizeof(GMTally4x2);
-      metrics->data_elt_size = env->metric_size();
-      metrics->data_size = metrics->num_metrics_local * metrics->data_elt_size;
-      metrics->data = metrics_mem->malloc_data(metrics->data_size);
-      metrics->data_S_elt_size = sizeof(GMFloat3);
-      metrics->data_S_size = metrics->num_metrics_local *
-                             metrics->data_S_elt_size;
-      metrics->data_S = metrics_mem->malloc_data_S(metrics->data_S_size);
-      metrics->data_C_elt_size = sizeof(GMFloat3);
-      if (env->sparse()) {
-        metrics->data_C_size = metrics->num_metrics_local *
-                             metrics->data_C_elt_size;
-        metrics->data_C = metrics_mem->malloc_data_C(metrics->data_C_size);
-      }
-    } break;
-    //----------
-    default:
-      COMET_INSIST(false && "Invalid data_type_id.");
-  } // switch
 }
 
 //=============================================================================

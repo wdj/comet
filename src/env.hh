@@ -445,6 +445,8 @@ public:
     NumWay::_2 == num_way_ && ComputeMethod::CPU == compute_method_ &&
     !is_using_linalg();}
 
+  // Accessors pertinng to metric sizes.
+
   int num_entries_per_metric() const {
     return MetricType::CZEK == metric_type_ ? 1 : 1 << num_way_;
   }
@@ -463,6 +465,34 @@ public:
       NumWay::_3 == num_way() && // FIX - implement 2-way
       storage_per_metric_shrink * metrics_shrink_ < storage_per_metric;
   }
+
+
+
+  size_t metric_entry_size() const {
+    COMET_INSIST(metric_size() % num_entries_per_metric() == 0);
+    return metric_size() / num_entries_per_metric();
+  }
+
+
+
+
+
+  int num_entries_per_metric_item() const {
+    return is_shrink() ? 1 : num_entries_per_metric();
+  }
+
+  int num_metric_items_per_metric() const {
+    return is_shrink() ? num_entries_per_metric() : 1;
+  }
+
+
+  size_t metric_item_size() const {
+    COMET_INSIST(is_metric_type_bitwise());
+    COMET_INSIST(metric_size() % num_metric_items_per_metric() == 0);
+    return metric_size() / num_metric_items_per_metric();
+  }
+
+
 
   int data_type_vectors() const;
   int data_type_metrics() const;
