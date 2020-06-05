@@ -503,6 +503,10 @@ public:
    //return is_shrink() ? CoordsType::BY_ENTRY : CoordsType::BY_METRIC;
   }
 
+  bool coords_type_by_metric() const {
+   return CoordsType::BY_METRIC == coords_type_cache_;
+  }
+
   int data_type_vectors() const;
   int data_type_metrics() const;
   int matrix_buf_elt_size() const {return MetricType::CZEK == metric_type_ ?

@@ -147,26 +147,34 @@ private:
 };
 
 //=============================================================================
+/// \brief Class for manipulating MetricItemCoords_t values.
 
 struct CoordsInfo {
 
+// TODO: evaluate whether need to make these more performant.
+
+  // Get i/j/k G
+
   static size_t getiG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
-    const size_t result = coords % metrics.num_vector;
+    const size_t coord = coords % metrics.num_vector;
+    const size_t result = env.coords_type_by_metric() ? coord : coord / 2;
     return result;
   }
 
   static size_t getjG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
-    const size_t result = (coords / metrics.num_vector) % metrics.num_vector;
+    const size_t coord = (coords / metrics.num_vector) % metrics.num_vector;
+    const size_t result = env.coords_type_by_metric() ? coord : coord / 2;
     return result;
   }
 
   static size_t getkG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(env.num_way() >= NumWay::_3);
-    const size_t result = coords / (metrics.num_vector * metrics.num_vector);
-    COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
+    const size_t coord = coords / (metrics.num_vector * metrics.num_vector);
+    COMET_ASSERT(coord+1 >= 1 && coord < metrics.num_vector);
+    const size_t result = env.coords_type_by_metric() ? coord : coord / 2;
     return result;
   }
 
@@ -178,30 +186,55 @@ struct CoordsInfo {
                     getkG(coords, metrics, env);
   }
 
+  // Get i/j/k E
+
   static int getiE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
-    COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
-    // TODO: make this and the sequels more performant.
-    const size_t result = entry_num / (1 << (env.num_way()-1));
-    COMET_ASSERT(result >= 0 && result < 2);
-    return result;
+    COMET_ASSERT(entry_num >= 0 &&
+       entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
+    if (env.coords_type_by_metric()) {
+      const size_t result = entry_num / (1 << (env.num_way()-1));
+      COMET_ASSERT(result+1 >= 1 && result < 2);
+      return result;
+    } else {
+      const size_t coord = coords % metrics.num_vector;
+      const size_t result = coord % 2;
+      COMET_ASSERT(result+1 >= 1 && result < 2);
+      return result;
+    }
   }
 
   static int getjE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
-    COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
-    const size_t result = (entry_num / (1 << (env.num_way()-2))) % 2;
-    COMET_ASSERT(result >= 0 && result < 2);
-    return result;
+    COMET_ASSERT(entry_num >= 0 &&
+       entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
+    if (env.coords_type_by_metric()) {
+      const size_t result = (entry_num / (1 << (env.num_way()-2))) % 2;
+      COMET_ASSERT(result+1 >= 1 && result < 2);
+      return result;
+    } else {
+      const size_t coord = (coords / metrics.num_vector) % metrics.num_vector;
+      const size_t result = coord % 2;
+      COMET_ASSERT(result+1 >= 1 && result < 2);
+      return result;
+    }
   }
 
   static int getkE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
-    COMET_ASSERT(entry_num >= 0 && entry_num < (1 << env.num_way()));
+    COMET_ASSERT(entry_num >= 0 &&
+       entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
     COMET_ASSERT(env.num_way() >= NumWay::_3);
-    const size_t result = entry_num % 2;
-    COMET_ASSERT(result >= 0 && result < 2);
-    return result;
+    if (env.coords_type_by_metric()) {
+      const size_t result = entry_num % 2;
+      COMET_ASSERT(result+1 >= 1 && result < 2);
+      return result;
+    } else {
+      const size_t coord = coords / (metrics.num_vector * metrics.num_vector);
+      const size_t result = coord % 2;
+      COMET_ASSERT(result+1 >= 1 && result < 2);
+      return result;
+    }
   }
 
   static int getE(MetricItemCoords_t coords, int ijk, int entry_num,
@@ -211,6 +244,8 @@ struct CoordsInfo {
            ijk==1 ? getjE(coords, entry_num, metrics, env) :
                     getkE(coords, entry_num, metrics, env);
   }
+
+  // Set
 
   static MetricItemCoords_t set(size_t iG, size_t jG, GMMetrics& metrics,
     CEnv& env) {
