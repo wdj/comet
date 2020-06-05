@@ -107,25 +107,27 @@ class CompressedBuf {
   struct Reader {
 
     bool is_reading_started;
-    size_t ind_runs_recent;
+    size_t ind_run_recent;
+    size_t ind_in_run_recent;
     size_t ind_entry_recent;
     size_t lengths_running_sum;
+    size_t ind_typein_recent;
     size_t ind_recent;
     size_t ind0_recent;
     size_t ind1_recent;
-    size_t ind_typein_recent;
-    size_t iE_recent;
-    size_t jE_recent;
+    int iE_recent;
+    int jE_recent;
 
     void init() {
       is_reading_started = false;;
-      ind_runs_recent = 0;
+      ind_run_recent = 0; // where to look next
+      ind_in_run_recent = 0; // where to look next
       ind_entry_recent = 0;
       lengths_running_sum = 0;
+      ind_typein_recent = 0;
       ind_recent = 0;
       ind0_recent = 0;
       ind1_recent = 0;
-      ind_typein_recent = 0;
       iE_recent = 0;
       jE_recent = 0;
     }
@@ -140,16 +142,6 @@ public:
   void from_accel_start();
   void from_accel_wait();
 
-  template<typename T>
-  T elt_const(size_t ind0, size_t ind1) const {
-    return CompressedBufAccessor_<T>::elt_const(ind0, ind1, this);
-  }
-
-  template<typename T>
-  T elt_const(size_t ind_entry) const {
-    return CompressedBufAccessor_<T>::elt_const(ind_entry, this);
-  }
-
   static bool can_compress(CEnv& env) {return
     env.threshold_tc() &&
     env.num_way() == NumWay::_3 && // TODO: implement for 2-way
@@ -161,6 +153,24 @@ public:
 
   void lock_h();
   void unlock_h();
+
+  // For accessing entries.
+
+  template<typename T>
+  T elt_const(size_t ind0, size_t ind1) const {
+    return CompressedBufAccessor_<T>::elt_const(ind0, ind1, this);
+  }
+
+  template<typename T>
+  T elt_const(size_t ind_entry) const {
+    return CompressedBufAccessor_<T>::elt_const(ind_entry, this);
+  }
+
+  void elt_read_start() {reader_.init();}
+  size_t ind0_recent() const {return reader_.ind0_recent;}
+  size_t ind1_recent() const {return reader_.ind1_recent;}
+  int iE_recent() const {return reader_.iE_recent;}
+  int jE_recent() const {return reader_.jE_recent;}
 
 private:
 

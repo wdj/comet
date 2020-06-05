@@ -266,7 +266,7 @@ void CompressedBuf::from_accel_wait() {
         num_entries_ += lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
     } // i
 
-    reader_.init();
+    elt_read_start();
 
     state_ = State::IDLE;
     //buf_->from_accel_wait();

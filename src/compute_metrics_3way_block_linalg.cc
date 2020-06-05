@@ -295,13 +295,20 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
   } else if (env.is_metric_type_bitwise()) {
 
+    COMET_INSIST((env.metric_type() == MetricType::CCC ||
+                  env.is_bitwise_3way_2step()) &&
+                 "Case of DUO + 3-step algorithm currently unimplemented.");
+
     enum {MF = METRIC_FORMAT};
     typedef MetricFormatTraits<MF> MFT;
     typedef typename MFT::TypeIn MFTypeIn;
 
-    COMET_INSIST((env.metric_type() == MetricType::CCC ||
-                  env.is_bitwise_3way_2step()) &&
-                 "Case currently unimplemented.");
+
+
+
+
+
+
 
     const int nvle = I_max_dim;
     const int nvleD2 = nvle / 2;
@@ -321,9 +328,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
       // This "I" is the true I, the coordinate in the plane.
 
       for (int I = I_min; I < I_max; ++I) {
-
-
-
 
         const int i = si->unperm0(I, J, K);
         const int j = si->unperm1(I, J, K);
@@ -516,6 +520,14 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
       metrics->num_metric_items_local_computed += (I_max - I_min) * (size_t)
                                                   (K_max - K_min);
     }
+
+
+
+
+
+
+
+
 
   } else { // if (env.metric_type() ...
 

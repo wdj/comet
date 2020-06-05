@@ -93,7 +93,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   typedef CompressedBuf CBuf;
   typedef CBuf::MFTTypeIn MFTTypeIn; // = float
   const MirroredBuf* buf_ = cbuf->buf_;
-  CompressedBuf::Reader& reader_ = cbuf->reader_;
+  CBuf::Reader& reader_ = cbuf->reader_;
 
   // index into Tally2x2<MetricFormat::SINGLE> elt of (uncompresed) buf.
   const size_t ind = ind0 + buf_->dim0 * ind1;
@@ -121,11 +121,10 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   const size_t dim_typein = 4 * dim;
 #endif
 
-  // Access to runs in the rle.
-  const size_t dim_runs = cbuf->num_runs_;
-  size_t& ind_runs = reader_.ind_runs_recent;
+  // Index to run in the rle.
+  size_t& ind_run = reader_.ind_run_recent;
 
-  // Loop to look for, pick up 4 table entries if in the rle.
+  // Loop to look for and pick up 4 table entries, if they are in rle.
 
   // NOTE: order of next 2 nested loops must match mem layout of Tally2x2,
   // since that is the order of elts submitted to the rle.
@@ -141,11 +140,11 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
 
       // Loop over rle, starting at current location, to seek element.
 
-      for( ; ind_runs < dim_runs; ) {
+      for( ; ind_run <  cbuf->num_runs_; ) {
 
           // Get TypeIn (float) elt indices (uncompressed) covered by this run.
           const size_t length_run = cbuf->lengths_alias_buf_.
-            elt_const<CompressedBuf::Lengths_t>(ind_runs, 0);
+            elt_const<CBuf::Lengths_t>(ind_run, 0);
           const size_t ind_typein_min = reader_.lengths_running_sum;
           const size_t ind_typein_max = reader_.lengths_running_sum +
                                         length_run;
@@ -153,7 +152,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
           if (ind_typein >= ind_typein_min &&
               ind_typein < ind_typein_max) {
             const MFTTypeIn key_run =
-              cbuf->keys_alias_buf_.elt_const<MFTTypeIn>(ind_runs, 0);
+              cbuf->keys_alias_buf_.elt_const<MFTTypeIn>(ind_run, 0);
             T::set(result, iE, jE, key_run);
             reader_.ind_typein_recent = ind_typein;
             reader_.iE_recent = iE;
@@ -161,7 +160,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
             break;
           }
 
-          ++ind_runs;
+          ++ind_run;
           reader_.lengths_running_sum += length_run;
 
       } // for
@@ -207,53 +206,82 @@ elt_const(size_t ind_entry, const CompressedBuf* cbuf) {
 
   typedef CompressedBuf CBuf;
   typedef CBuf::TTable_t TTable_t;
-  typedef Tally2x2<MetricFormat::SINGLE>::TypeIn T; // = float
+  typedef Tally2x2<MetricFormat::SINGLE>::TypeIn TypeIn; // = float
   //typedef CBuf::MFTTypeIn MFTTypeIn; // = float
   const MirroredBuf* buf_ = cbuf->buf_;
-  CompressedBuf::Reader& reader_ = cbuf->reader_;
+  CBuf::Reader& reader_ = cbuf->reader_;
 
   // Record details of this call.
   reader_.is_reading_started = true;
   reader_.ind_entry_recent = ind_entry;
 
+  size_t& ind_typein = reader_.ind_typein_recent;
+  int& iE = reader_.iE_recent;
+  int& jE = reader_.jE_recent;
+  size_t& ind = reader_.ind_recent;
+  size_t& ind0 = reader_.ind0_recent;
+  size_t& ind1 = reader_.ind1_recent;
+
   // Trap simple case.
   if (!cbuf->do_compress_) {
-    const size_t ind_typein = ind_entry;
-    const int iE = ind_typein % 2;
-    const int jE = (ind_typein / 2) % 2;
-    const size_t ind = ind_typein / 4;
-    const size_t ind0 = ind % buf_->dim0;
-    const size_t ind1 = ind / buf_->dim0;
-    reader_.ind_typein_recent = ind_typein;
-    reader_.iE_recent = iE;
-    reader_.jE_recent = jE;
-    reader_.ind_recent = ind;
-    reader_.ind0_recent = ind0;
-    reader_.ind1_recent = ind1;
+    ind_typein = ind_entry;
+    iE = ind_typein % 2;
+    jE = (ind_typein / 2) % 2;
+    ind = ind_typein / 4;
+    ind0 = ind % buf_->dim0;
+    ind1 = ind / buf_->dim0;
     return TTable_t::get(buf_->elt_const<TTable_t>(ind0, ind1), iE, jE);
   }
 
+  size_t& lengths_running_sum = reader_.lengths_running_sum;
+  size_t& ind_run = reader_.ind_run_recent;
+  size_t& ind_in_run = reader_.ind_in_run_recent;
 
+  // Skip over run of zeros in rle, if present at current location.
 
+  TypeIn key_run = cbuf->keys_alias_buf_.elt_const<TypeIn>(ind_run, 0);
 
+  if (!key_run) {
+    const size_t length_run = cbuf->lengths_alias_buf_.
+      elt_const<CBuf::Lengths_t>(ind_run, 0);
+    lengths_running_sum += length_run;
+    ++ind_run;
+    COMET_ASSERT(ind_run < cbuf->num_runs_);
+    ind_in_run = 0;
+    // Now pointing to start of a run of a nonzero value.
+    // Select this value to return.
+    key_run = cbuf->keys_alias_buf_.elt_const<TypeIn>(ind_run, 0);
+    COMET_ASSERT(key_run);
+  }
 
-//TODO
+  // Increment to indicate to where to start looking on the next call.
 
+  const size_t length_run = cbuf->lengths_alias_buf_.
+    elt_const<CBuf::Lengths_t>(ind_run, 0);
+  COMET_ASSERT(ind_in_run < length_run);
 
-#if 0
+  ++ind_in_run;
 
+  if (ind_in_run == length_run) {
+    ++ind_run;
+    ind_in_run = 0;
+  }
 
+  // Get current (uncompressed) location.
 
-NOTE: need CompressedBuf elt_access_start
+  ind_typein = lengths_running_sum;
+  ++lengths_running_sum;
 
+  // Finish.
 
-#endif
+  iE = ind_typein % 2;
+  jE = (ind_typein / 2) % 2;
+  ind = ind_typein / 4;
+  ind0 = ind % buf_->dim0;
+  ind1 = ind / buf_->dim0;
 
-//FIX
-  return (T)0;
+  return key_run;
 }
-
-
 
 //=============================================================================
 
