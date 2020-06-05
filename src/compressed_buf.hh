@@ -52,6 +52,12 @@ namespace comet {
 class CompressedBuf;
 
 template<typename T>
+struct CompressedBufAccessorUnspecialized_ {
+  static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
+  //static T elt_const(size_t ind_entry, const CompressedBuf* buf);
+};
+
+template<typename T>
 struct CompressedBufAccessor_ {
   static T elt_const(size_t ind0, size_t ind1, const CompressedBuf* buf);
   static T elt_const(size_t ind_entry, const CompressedBuf* buf);
@@ -199,6 +205,7 @@ private:
     return length;
  }
 
+  template<typename> friend struct CompressedBufAccessorUnspecialized_;
   template<typename> friend struct CompressedBufAccessor_;
 
   // Disallowed methods.

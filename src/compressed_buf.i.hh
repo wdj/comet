@@ -46,22 +46,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/// \brief Cartesian elt access, general (uncompressed) case.
 
-template<typename T> T CompressedBufAccessor_<T>::
+template<typename T> T CompressedBufAccessorUnspecialized_<T>::
 elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   return cbuf->buf_->elt_const<T>(ind0, ind1);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Cartesian elt access, general (uncompressed) case.
+
+template<typename T> T CompressedBufAccessor_<T>::
+elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
+  return CompressedBufAccessorUnspecialized_<T>::elt_const(ind0, ind1, cbuf);
+  //return cbuf->buf_->elt_const<T>(ind0, ind1);
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Cartesian elt access, compressed case, single metric entry case.
+
+// NOTE: this needs to be here because Tally2x2<MetricFormat::SINGLE>::TypeIn
+// is float, which also is incidentally GMFloat for Czekanowski for
+// the single precision build, so that case comes here.
 
 inline Tally2x2<MetricFormat::SINGLE>::TypeIn
 CompressedBufAccessor_<Tally2x2<MetricFormat::SINGLE>::TypeIn>::
 elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
-  COMET_INSIST(false && "Case not supported.");
+  COMET_ASSERT(cbuf->env_.metric_type() == MetricType::CZEK);
   typedef Tally2x2<MetricFormat::SINGLE>::TypeIn T;
-  return (T)0;
+  return CompressedBufAccessorUnspecialized_<T>::elt_const(ind0, ind1, cbuf);
+  //return cbuf->buf_->elt_const<T>(ind0, ind1);
+  //COMET_INSIST(false && "Case not supported.");
+  //typedef Tally2x2<MetricFormat::SINGLE>::TypeIn T;
+  //return (T)0;
 }
 
 //-----------------------------------------------------------------------------
