@@ -268,6 +268,7 @@ void CEnv::set_defaults_() {
   threshold_ = CEnv::threshold_eff(-1);
   threshold_eff_cache_ = threshold_;
   metrics_shrink_ = 1.;
+  coords_type_cache_ = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -440,10 +441,14 @@ void CEnv::parse_args_(int argc, char** argv) {
       const double threshold = strtod(argv[i], NULL);
       COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
       threshold_ = threshold;
-      threshold_eff_cache_ = CEnv::threshold_eff(threshold_);
       //--------------------
     } // if/else
   }   // for i
+
+  // Finalize settings.
+
+  threshold_eff_cache_ = CEnv::threshold_eff(threshold_);
+  coords_type_cache_ = coords_type_compute_();
 }
 
 //-----------------------------------------------------------------------------

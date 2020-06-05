@@ -135,6 +135,9 @@ struct GMMetrics {
   }
   // Counters.
   size_t num_metric_items_local_computed;
+  void num_metric_items_local_computed_inc(size_t n) {
+    num_metric_items_local_computed += n;
+  }
   // Other.
   int data_type_id;
   GMDecompMgr* dm;
@@ -207,6 +210,25 @@ struct CoordsInfo {
     return ijk==0 ? getiE(coords, entry_num, metrics, env) :
            ijk==1 ? getjE(coords, entry_num, metrics, env) :
                     getkE(coords, entry_num, metrics, env);
+  }
+
+  static MetricItemCoords_t set(size_t iG, size_t jG, GMMetrics& metrics,
+    CEnv& env) {
+    COMET_ASSERT(env.coords_type() == CoordsType::BY_METRIC);
+    COMET_ASSERT(env.num_way() == NumWay::_2);
+    COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
+    COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
+    return iG + metrics.num_vector * (jG);
+  }
+
+  static MetricItemCoords_t set(size_t iG, size_t jG, size_t kG,
+    GMMetrics& metrics, CEnv& env) {
+    COMET_ASSERT(env.coords_type() == CoordsType::BY_METRIC);
+    COMET_ASSERT(env.num_way() == NumWay::_3);
+    COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
+    COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
+    COMET_ASSERT(kG+1 >= 1 && kG < metrics.num_vector);
+    return iG + metrics.num_vector * (jG + metrics.num_vector * (kG));
   }
 };
 

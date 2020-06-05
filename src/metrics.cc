@@ -584,7 +584,9 @@ void GMMetrics_create(GMMetrics* metrics,
           const size_t iG = i + nvl * i_block;
           COMET_ASSERT(Metrics_index_2_part1(*metrics, i, j, i_block, *env) ==
                        index);
-          metrics->data_coords_values_[index++] = iG + metrics->num_vector * jG;
+          //metrics->data_coords_values_[index++] = iG + metrics->num_vector * jG;
+          metrics->data_coords_values_[index++] =
+            CoordsInfo::set(iG, jG, *metrics, *env);
         }
       }
     }
@@ -609,7 +611,9 @@ void GMMetrics_create(GMMetrics* metrics,
           const size_t iG = i + nvl * i_block;
           const size_t index_this = index + i + j * (size_t)nvl;
           COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
-          metrics->data_coords_values_[index_this] = iG + metrics->num_vector * jG;
+          //metrics->data_coords_values_[index_this] = iG + metrics->num_vector * jG;
+          metrics->data_coords_values_[index_this] =
+            CoordsInfo::set(iG, jG, *metrics, *env);
         }
       }
       index += nvlsq;
@@ -657,7 +661,8 @@ void GMMetrics_create(GMMetrics* metrics,
                 COMET_ASSERT(index_this>=0 &&
                              index_this<metrics->num_metrics_local);
                 metrics->data_coords_values_[index_this] =
-                  iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
+                //  iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
+                  CoordsInfo::set(iG, jG, kG, *metrics, *env);
               }
             }
             index += j * (size_t)(nvl - (j+1));
@@ -694,8 +699,9 @@ void GMMetrics_create(GMMetrics* metrics,
                   COMET_ASSERT(index_this>=0 &&
                                index_this<metrics->num_metrics_local);
                   metrics->data_coords_values_[index_this] =
-                    iG + metrics->num_vector * (
-                    jG + metrics->num_vector * (kG));
+                  //  iG + metrics->num_vector * (
+                  //  jG + metrics->num_vector * (kG));
+                    CoordsInfo::set(iG, jG, kG, *metrics, *env);
                 } // for i
               } // for k
               index += nvl * (size_t)(nvl - (j+1));
@@ -766,8 +772,9 @@ void GMMetrics_create(GMMetrics* metrics,
                     COMET_ASSERT(Metrics_index_3_part3(*metrics,
                       i, j, k, i_block, j_block, k_block, *env) == index_this);
                     metrics->data_coords_values_[index_this] =
-                      iG + metrics->num_vector * (
-                      jG + metrics->num_vector * (kG));
+                    //  iG + metrics->num_vector * (
+                    //  jG + metrics->num_vector * (kG));
+                      CoordsInfo::set(iG, jG, kG, *metrics, *env);
                   } // for I
                 } // for K
                 index += nvl*(size_t)nvl;
@@ -792,7 +799,9 @@ void GMMetrics_create(GMMetrics* metrics,
       const size_t jG = j + nvl * i_block;
       for (int i = 0; i < j; ++i) {
         const size_t iG = i + nvl * i_block;
-        metrics->data_coords_values_[index++] = iG + metrics->num_vector * jG;
+        //metrics->data_coords_values_[index++] = iG + metrics->num_vector * jG;
+        metrics->data_coords_values_[index++] =
+          CoordsInfo::set(iG, jG, *metrics, *env);
       }
     }
     COMET_INSIST(index == metrics->num_metrics_local &&
@@ -814,7 +823,8 @@ void GMMetrics_create(GMMetrics* metrics,
           const size_t iG = i + nvl * i_block;
           COMET_ASSERT(index < metrics->num_metrics_local);
           metrics->data_coords_values_[index++] =
-            iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
+          //  iG + metrics->num_vector * (jG + metrics->num_vector * (kG));
+            CoordsInfo::set(iG, jG, kG, *metrics, *env);
         }
       }
     }

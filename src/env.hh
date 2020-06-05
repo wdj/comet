@@ -305,12 +305,21 @@ struct TC {
   }
 };
 
+//-----------------------------------------------------------------------------
+/// \brief Helper class to manage metric item coordinates types.
+
+struct CoordsType {
+  enum {BY_METRIC = 1,
+        BY_ENTRY = 2,
+  };
+};
+
 //=============================================================================
 
 class CEnv {
 public:
 
-  // NOTE: calling this class "Env" seems to cause strange runtimer errors
+  // NOTE: calling this class "Env" seems to cause strange runtime errors
   // on Lyra.
 
   //----------------------------------------
@@ -445,7 +454,7 @@ public:
     NumWay::_2 == num_way_ && ComputeMethod::CPU == compute_method_ &&
     !is_using_linalg();}
 
-  // Accessors pertinng to metric sizes.
+  // Accessors pertaining to metric sizes.
 
   int num_entries_per_metric() const {
     return MetricType::CZEK == metric_type_ ? 1 : 1 << num_way_;
@@ -466,41 +475,33 @@ public:
       storage_per_metric_shrink * metrics_shrink_ < storage_per_metric;
   }
 
+  //size_t metric_entry_size() const {
+  //  COMET_INSIST(metric_size() % num_entries_per_metric() == 0);
+  //  return metric_size() / num_entries_per_metric();
+  //}
 
-
-  size_t metric_entry_size() const {
-    COMET_INSIST(metric_size() % num_entries_per_metric() == 0);
-    return metric_size() / num_entries_per_metric();
-  }
-
-
-
-
-
-  int num_entries_per_metric_item() const {
-    return is_shrink() ? 1 : num_entries_per_metric();
-  }
+  //int num_entries_per_metric_item() const {
+  //  return is_shrink() ? 1 : num_entries_per_metric();
+  //}
 
   int num_metric_items_per_metric() const {
     return is_shrink() ? num_entries_per_metric() : 1;
   }
-
 
   size_t metric_item_size() const {
     COMET_INSIST(metric_size() % num_metric_items_per_metric() == 0);
     return metric_size() / num_metric_items_per_metric();
   }
 
-
   size_t shrink(size_t v) const {
     const double fuzz = 1.e-10;
     return is_shrink() ? (size_t)((v / metrics_shrink_) * (1.+fuzz)) : v;
   }
 
-
-
-
-
+  int coords_type() const {
+   return coords_type_cache_;
+   //return is_shrink() ? CoordsType::BY_ENTRY : CoordsType::BY_METRIC;
+  }
 
   int data_type_vectors() const;
   int data_type_metrics() const;
@@ -624,6 +625,11 @@ private:
   int stage_num_;
   int num_phase_;
   int phase_num_;
+
+  int coords_type_cache_;
+  int coords_type_compute_() const {
+   return is_shrink() ? CoordsType::BY_ENTRY : CoordsType::BY_METRIC;
+  }
 
   // Counters
   void accel_sync_() const;

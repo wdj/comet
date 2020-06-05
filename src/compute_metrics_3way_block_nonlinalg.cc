@@ -134,7 +134,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
           Metrics_elt_3<GMFloat>(*metrics, i, j, k,
             env->proc_num_vector(), env->proc_num_vector(), *env) = value;
         }
-        metrics->num_metric_items_local_computed += j;
+        metrics->num_metric_items_local_computed_inc(j);
       }
     }
 
@@ -188,7 +188,7 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
           Metrics_elt_3<GMFloat>(*metrics, I, J, K,
             j_block, k_block, index_cache, *env) = value;
         } //---I
-        metrics->num_metric_items_local_computed += I_max - I_min;
+        metrics->num_metric_items_local_computed_inc(I_max - I_min);
       } //---K
     } //---J
 
@@ -429,7 +429,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
           } // if sparse
 
         } // for I
-        metrics->num_metric_items_local_computed += I_max - I_min;
+        metrics->num_metric_items_local_computed_inc(I_max - I_min);
       } // for K
     } // for J
 
@@ -742,7 +742,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
           } // if sparse
 
         } //---I
-        metrics->num_metric_items_local_computed += I_max - I_min;
+        metrics->num_metric_items_local_computed_inc(I_max - I_min);
       } //---K
     } //---J
     /* clang-format on */
