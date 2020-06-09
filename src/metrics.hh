@@ -130,7 +130,7 @@ struct GMMetrics {
   MetricItemCoords_t* __restrict__ data_coords_values_;
   // Accessor.
   MetricItemCoords_t coords_value(size_t index) const {
-    COMET_ASSERT(index+1 >= 1 && index < num_metrics_local);
+    COMET_ASSERT(index+1 >= 1 && index < num_metric_items_local_allocated);
     return data_coords_values_[index];
   }
   // Counters.
@@ -153,29 +153,48 @@ struct CoordsInfo {
 
 // TODO: evaluate whether need to make these more performant.
 
-  // Get i/j/k G
+  //---------- Get i/j/k G
 
   static size_t getiG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
-    const size_t coord = coords % metrics.num_vector;
-    const size_t result = env.coords_type_by_metric() ? coord : coord / 2;
-    return result;
+    if (env.coords_type_by_metric()) {
+      const size_t result = coords % metrics.num_vector;
+      COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
+      return result;
+    } else {
+      const size_t result = (coords / 2) % metrics.num_vector;
+      COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
+      return result;
+    }
   }
 
   static size_t getjG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
-    const size_t coord = (coords / metrics.num_vector) % metrics.num_vector;
-    const size_t result = env.coords_type_by_metric() ? coord : coord / 2;
-    return result;
+    if (env.coords_type_by_metric()) {
+      const size_t result = (coords / metrics.num_vector) % metrics.num_vector;
+      COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
+      return result;
+    } else {
+      const size_t result = (coords / (2 * metrics.num_vector * 2)) %
+        metrics.num_vector;
+      COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
+      return result;
+    }
   }
 
   static size_t getkG(MetricItemCoords_t coords, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(env.num_way() >= NumWay::_3);
-    const size_t coord = coords / (metrics.num_vector * metrics.num_vector);
-    COMET_ASSERT(coord+1 >= 1 && coord < metrics.num_vector);
-    const size_t result = env.coords_type_by_metric() ? coord : coord / 2;
-    return result;
+    if (env.coords_type_by_metric()) {
+      const size_t result = coords / (metrics.num_vector * metrics.num_vector);
+      COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
+      return result;
+    } else {
+      const size_t result = coords /
+       (2 * metrics.num_vector * 2 * metrics.num_vector * 2);
+      COMET_ASSERT(result+1 >= 1 && result < metrics.num_vector);
+      return result;
+    }
   }
 
   static size_t getG(MetricItemCoords_t coords, int ijk, GMMetrics& metrics,
@@ -186,20 +205,19 @@ struct CoordsInfo {
                     getkG(coords, metrics, env);
   }
 
-  // Get i/j/k E
+  //---------- Get i/j/k E
 
   static int getiE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(entry_num >= 0 &&
        entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
     if (env.coords_type_by_metric()) {
-      const size_t result = entry_num / (1 << (env.num_way()-1));
-      COMET_ASSERT(result+1 >= 1 && result < 2);
+      const int result = entry_num / (1 << (env.num_way()-1));
+      COMET_ASSERT(result >= 0 && result < 2);
       return result;
     } else {
-      const size_t coord = coords % metrics.num_vector;
-      const size_t result = coord % 2;
-      COMET_ASSERT(result+1 >= 1 && result < 2);
+      const int result = coords % 2;
+      COMET_ASSERT(result >= 0 && result < 2);
       return result;
     }
   }
@@ -209,13 +227,12 @@ struct CoordsInfo {
     COMET_ASSERT(entry_num >= 0 &&
        entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
     if (env.coords_type_by_metric()) {
-      const size_t result = (entry_num / (1 << (env.num_way()-2))) % 2;
-      COMET_ASSERT(result+1 >= 1 && result < 2);
+      const int result = (entry_num / (1 << (env.num_way()-2))) % 2;
+      COMET_ASSERT(result >= 0 && result < 2);
       return result;
     } else {
-      const size_t coord = (coords / metrics.num_vector) % metrics.num_vector;
-      const size_t result = coord % 2;
-      COMET_ASSERT(result+1 >= 1 && result < 2);
+      const int result = (coords / (2 * metrics.num_vector)) % 2;
+      COMET_ASSERT(result >= 0 && result < 2);
       return result;
     }
   }
@@ -226,13 +243,13 @@ struct CoordsInfo {
        entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
     COMET_ASSERT(env.num_way() >= NumWay::_3);
     if (env.coords_type_by_metric()) {
-      const size_t result = entry_num % 2;
-      COMET_ASSERT(result+1 >= 1 && result < 2);
+      const int result = entry_num % 2;
+      COMET_ASSERT(result >= 0 && result < 2);
       return result;
     } else {
-      const size_t coord = coords / (metrics.num_vector * metrics.num_vector);
-      const size_t result = coord % 2;
-      COMET_ASSERT(result+1 >= 1 && result < 2);
+      const int result = (coords /
+        (2 * metrics.num_vector * 2 * metrics.num_vector)) % 2;
+      COMET_ASSERT(result >= 0 && result < 2);
       return result;
     }
   }
@@ -245,7 +262,7 @@ struct CoordsInfo {
                     getkE(coords, entry_num, metrics, env);
   }
 
-  // Set
+  //---------- Set
 
   static MetricItemCoords_t set(size_t iG, size_t jG, GMMetrics& metrics,
     CEnv& env) {
@@ -253,7 +270,20 @@ struct CoordsInfo {
     COMET_ASSERT(env.num_way() == NumWay::_2);
     COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
     COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
-    return iG + metrics.num_vector * (jG);
+    const size_t result = iG + metrics.num_vector * (jG);
+    return result;
+  }
+
+  static MetricItemCoords_t set(size_t iG, size_t jG,
+    int iE, int jE, GMMetrics& metrics, CEnv& env) {
+    COMET_ASSERT(env.coords_type() == CoordsType::BY_ENTRY);
+    COMET_ASSERT(env.num_way() == NumWay::_2);
+    COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
+    COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
+    COMET_ASSERT(iE >= 0 && iE < 2);
+    COMET_ASSERT(jE >= 0 && jE < 2);
+    const size_t result = iE + 2 * (iG + metrics.num_vector * (jE + 2 * (jG)));
+    return result;
   }
 
   static MetricItemCoords_t set(size_t iG, size_t jG, size_t kG,
@@ -263,7 +293,25 @@ struct CoordsInfo {
     COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
     COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
     COMET_ASSERT(kG+1 >= 1 && kG < metrics.num_vector);
-    return iG + metrics.num_vector * (jG + metrics.num_vector * (kG));
+    const size_t result = iG + metrics.num_vector * (
+                          jG + metrics.num_vector * (kG));
+    return result;
+  }
+
+  static MetricItemCoords_t set(size_t iG, size_t jG, size_t kG,
+    int iE, int jE, int kE, GMMetrics& metrics, CEnv& env) {
+    COMET_ASSERT(env.coords_type() == CoordsType::BY_ENTRY);
+    COMET_ASSERT(env.num_way() == NumWay::_3);
+    COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
+    COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
+    COMET_ASSERT(kG+1 >= 1 && kG < metrics.num_vector);
+    COMET_ASSERT(iE >= 0 && iE < 2);
+    COMET_ASSERT(jE >= 0 && jE < 2);
+    COMET_ASSERT(kE >= 0 && kE < 2);
+    const size_t result = iE + 2 * (iG + metrics.num_vector * (
+                          jE + 2 * (jG + metrics.num_vector * (
+                          kE + 2 * (kG)))));
+    return result;
   }
 };
 
@@ -346,7 +394,8 @@ template<typename T, int MA = MetricsArray::_>
 static T Metrics_elt_const(const GMMetrics& metrics, size_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
-  COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
+  //COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
+  COMET_ASSERT(index+1>=1 && index < metrics.num_metric_items_local_allocated);
   return ((T*)MetricsArrayData<MA>::p(metrics))[index];
 }
 
@@ -354,7 +403,8 @@ template<typename T, int MA = MetricsArray::_>
 static T& Metrics_elt(GMMetrics& metrics, size_t index, CEnv& env) {
   COMET_ASSERT(sizeof(T) == MetricsArrayData<MA>::elt_size(metrics));
   COMET_ASSERT(MetricsArrayData<MA>::p(metrics));
-  COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
+  //COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
+  COMET_ASSERT(index+1>=1 && index < metrics.num_metric_items_local_allocated);
   return ((T*)MetricsArrayData<MA>::p(metrics))[index];
 }
 

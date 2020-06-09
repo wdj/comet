@@ -480,9 +480,9 @@ public:
   //  return metric_size() / num_entries_per_metric();
   //}
 
-  //int num_entries_per_metric_item() const {
-  //  return is_shrink() ? 1 : num_entries_per_metric();
-  //}
+  int num_entries_per_metric_item() const {
+    return is_shrink() ? 1 : num_entries_per_metric();
+  }
 
   int num_metric_items_per_metric() const {
     return is_shrink() ? num_entries_per_metric() : 1;

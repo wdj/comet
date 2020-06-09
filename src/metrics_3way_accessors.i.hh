@@ -202,7 +202,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
 template<int COUNTED_BITS_PER_ELT, typename FloatResult_t>
 static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
   size_t index, int iE, int jE, int kE, CEnv& env) {
-  COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
+  COMET_ASSERT(index < metrics.num_metric_items_local_allocated); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);
   COMET_ASSERT(env.is_metric_type_bitwise());
   COMET_ASSERT(env.counted_bits_per_elt() == COUNTED_BITS_PER_ELT);
@@ -211,6 +211,10 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
   COMET_ASSERT(kE >= 0 && kE < 2);
 
   if (env.threshold_tc()) {
+//FIXFIX
+    if (env.is_shrink()) {
+      return (FloatResult_t)Metrics_elt_const<float>(metrics, index, env);
+    }
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
     const auto table = Metrics_elt_const<TTable_t>(metrics, index, env);
     TTable_t::TypeIn result = TTable_t::get(table, iE, jE, kE);
@@ -295,7 +299,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
     const double diff = fabs(result_intcalc - result_floatcalc);
 
     if (!(diff < eps)) {
-      printf("Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
+      fprintf(stderr, "Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
              (double)result_floatcalc, (double)result_intcalc);
       COMET_INSIST(diff < eps);
     }

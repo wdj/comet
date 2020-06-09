@@ -534,18 +534,14 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     const int cbpe = env->counted_bits_per_elt();
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-      for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
+      for (size_t index = 0; index < metrics->num_metric_items_local_computed;
+           ++index) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
         const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
         const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
         if (iG >= nva || jG >= nva)
           continue;
-//        const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
-//        const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
-//        if (vi >= nva || vj >= nva) {
-//          continue;
-//        }
-        for (int entry_num = 0; entry_num < env->num_entries_per_metric();
+        for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -669,8 +665,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
               max_incorrect_diff = diff > max_incorrect_diff ?
                                    diff : max_incorrect_diff;
               if (num_incorrect < max_to_print) {
-                fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu  "
-                       "expected %.20e  actual %.20e  diff %.20e\n", iG, jG,
+                fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu  %i %i  "
+                       "expected %.20e  actual %.20e  diff %.20e\n", iG, jG, iE, jE,
                        (double)value_expected, (double)value,
                        (double)value-(double)value_expected);
               }
@@ -689,20 +685,15 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
       const int cbpe = env->counted_bits_per_elt();
 
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
-      for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
+      for (size_t index = 0; index < metrics->num_metric_items_local_computed;
+           ++index) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
         const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
         const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
         const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
         if (iG >= nva || jG >= nva || kG >= nva)
           continue;
-//        const size_t vi = Metrics_coords_getG(*metrics, index, 0, *env);
-//        const size_t vj = Metrics_coords_getG(*metrics, index, 1, *env);
-//        const size_t vk = Metrics_coords_getG(*metrics, index, 2, *env);
-//        if (vi >= nva || vj >= nva || vk >= nva) {
-//          continue;
-//        }
-        for (int entry_num = 0; entry_num < env->num_entries_per_metric();
+        for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -837,8 +828,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
                 const double diff = fabs(value - value_expected);
                 max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
                 if (num_incorrect < max_to_print) {
-                  fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu %zu  "
-                         "expected %.20e  actual %.20e  diff %.20e\n", iG, jG, kG,
+                  fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu %zu  %i %i %i  "
+                         "expected %.20e  actual %.20e  diff %.20e\n", iG, jG, kG, iE, jE, kE,
                          (double)value_expected, (double)value,
                          (double)value-(double)value_expected);
                 }

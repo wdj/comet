@@ -230,6 +230,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
   //--------------------
   // Compute numerators using ijk piece and (if needed) 2-way pieces.
   //--------------------
+//if(env.proc_num_vector()==0) printf("Hey %i %i\n", J, step_2way);
 
   if (env.metric_type() == MetricType::CZEK && !env.all2all()) {
 
@@ -303,231 +304,301 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
     typedef MetricFormatTraits<MF> MFT;
     typedef typename MFT::TypeIn MFTypeIn;
 
-
-
-
-
-
-
-
     const int nvle = I_max_dim;
     const int nvleD2 = nvle / 2;
     const int is_halved = env.is_vectors_halved();
+    const int num_halves = is_halved ? 2 : 1;
 
-    MetricsIndexCache index_cache = {};
+    if (env.is_shrink()) {
 
-    // don't use collapse because of overflow for large sizes
-    //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
-    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
-    for (int K = K_min; K < K_max; ++K) {
+      // NOTE: this may be a slight overestimate of the amount of mem needed.
 
-      const int num_halves = is_halved ? 2 : 1;
+      COMET_INSIST(metrics->num_metric_items_local_computed +
+                   matB_buf->num_entries() <=
+                   metrics->num_metric_items_local_allocated &&
+                   "Insufficient metrics memory; "
+                   "please decrease metrics_shrink.");
 
-      for (int half_num = 0; half_num < num_halves; ++half_num) {
+      const int i_block = env.proc_num_vector();
 
-      // This "I" is the true I, the coordinate in the plane.
+      matB_buf->elt_read_start();
 
-      for (int I = I_min; I < I_max; ++I) {
+      for (size_t ind_entry = 0; ind_entry < matB_buf->num_entries();
+           ++ind_entry) {
 
-        const int i = si->unperm0(I, J, K);
-        const int j = si->unperm1(I, J, K);
-        const int k = si->unperm2(I, J, K);
+        const MFTypeIn metric_item = matB_buf->elt_const<MFTypeIn>(ind_entry);
 
-        // For halved case:
-        // first 2-way step: process lower half of I values;
-        // second: upper half.
+        const size_t index = metrics->num_metric_items_local_computed;
 
-        const bool is_I_in_range = !is_halved ? true :
-          I >= nvleD2 * step_2way && I < nvleD2 * (step_2way+1);
+        Metrics_elt<MFTypeIn>(*metrics, index, env) = metric_item;
 
-        // Numerator.
+        const size_t K = matB_buf->ind1_recent();
+        const size_t I_mapped = matB_buf->ind0_recent();
 
-        if (is_I_in_range) {
+        const int half_num = I_mapped / nvleD2;
 
-          // Do we initialize relevant metric value on this 2-way step.
+        //const size_t I = I_mapped % nvleD2;
+        const size_t I = I_mapped % nvleD2 + step_2way * nvleD2;
 
-          const bool init_numer = is_halved ? 0 == half_num : 0 == step_2way;
+        const bool is_in_range = I >= (size_t)I_min && I < (size_t)I_max &&
+                                 K >= (size_t)K_min && K < (size_t)K_max;
 
-          // NOTE: numer is accessed through a permuted index, but
-          // the 000, 001 etc. indices of numer are unpermuted.
+//if(I==1 && J==4 && K==6 && env.proc_num_vector()==0)
+//printf("%i %i %i   %i %i %i   %i %i   %f\n", (int)I, (int)J, (int)K,
+//       nvleD2, (int)I_mapped, (int)step_2way,
+//       (int)ind_entry, is_in_range,
+//       (double)metric_item);
 
-          const int j_block_eff = env.all2all() ? j_block : env.proc_num_vector();
-          const int k_block_eff = env.all2all() ? k_block : env.proc_num_vector();
+        if (!is_in_range)
+          continue;
 
-          auto numer = init_numer ? Tally4x2<MF>::null() :
-            Metrics_elt_const_3<Tally4x2<MF>>(*metrics, I, J, K,
-              j_block_eff, k_block_eff, index_cache, env);
+        const size_t i = si->unperm0(I, (size_t)J, K);
+        const size_t j = si->unperm1(I, (size_t)J, K);
+        const size_t k = si->unperm2(I, (size_t)J, K);
 
-          MFTypeIn r000, r001, r010, r011, r100, r101, r110, r111;
-          MFT::decode(r000, r001, numer.data[0]);
-          MFT::decode(r010, r011, numer.data[1]);
-          MFT::decode(r100, r101, numer.data[2]);
-          MFT::decode(r110, r111, numer.data[3]);
+        // TODO: accessor functions
+        const size_t iG = i + nvl * i_block;
+        const size_t jG = j + nvl * j_block;
+        const size_t kG = k + nvl * k_block;
 
-          MFTypeIn r000_perm = r000;
-          MFTypeIn r100_perm = si->perm0(r100, r010, r001);
-          MFTypeIn r010_perm = si->perm1(r100, r010, r001);
-          MFTypeIn r001_perm = si->perm2(r100, r010, r001);
-          MFTypeIn r011_perm = si->perm0(r011, r101, r110);
-          MFTypeIn r101_perm = si->perm1(r011, r101, r110);
-          MFTypeIn r110_perm = si->perm2(r011, r101, r110);
-          MFTypeIn r111_perm = r111;
+        const int IE = half_num;
+        const int JE = matB_buf->iE_recent();
+        const int KE = matB_buf->jE_recent();
 
-          // Add contribution from this 2-way step.
+//if(I==1 && J==4 && K==6 && env.proc_num_vector()==0)
+//printf("%i %i\n", (int)JE, (int)KE);
 
-          if (is_halved) {
+        const int iE = si->unperm0(IE, JE, KE);
+        const int jE = si->unperm1(IE, JE, KE);
+        const int kE = si->unperm2(IE, JE, KE);
 
-            // For halved case, get the the 2 I values in matB to process.
-            // For non-halved, just use I_mapped_lo (= I).
+        // TODO: accessor function
+        metrics->data_coords_values_[index] =
+          CoordsInfo::set(iG, jG, kG, iE, jE, kE, *metrics, env);
 
-            const int I_mapped_lo = I % nvleD2;
-            const int I_mapped_hi = I % nvleD2 + nvleD2;
+        metrics->num_metric_items_local_computed_inc(1);
 
-            // Add in lo part.
+//printf("%i  %i %i %i   %i %i %i  %f  %zu   %i %i %i %i\n", (int)ind_entry, (int)iG, (int)jG, (int)kG, iE, jE, kE, (double)metric_item, (size_t)CoordsInfo::set(iG, jG, kG, iE, jE, kE, *metrics, env), nvleD2, (int)I_mapped, (int)J, (int)step_2way);
 
-            if (0 == half_num) {
-              // NOTE: matB is generated by GEMM on permuted vectors objects,
-              // thus has permuted 001 etc. table entries.
+      } // for ind_entry
+
+    } else { // if (!env.is_shrink())
+
+      MetricsIndexCache index_cache = {};
+
+      // don't use collapse because of overflow for large sizes
+      //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
+      #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
+      for (int K = K_min; K < K_max; ++K) {
+
+        for (int half_num = 0; half_num < num_halves; ++half_num) {
+
+        // This "I" is the true I, the coordinate in the plane.
+
+        for (int I = I_min; I < I_max; ++I) {
+
+          const int i = si->unperm0(I, J, K);
+          const int j = si->unperm1(I, J, K);
+          const int k = si->unperm2(I, J, K);
+
+          // For halved case:
+          // first 2-way step: process lower half of I values;
+          // second: upper half.
+
+          const bool is_I_in_range = !is_halved ? true :
+            I >= nvleD2 * step_2way && I < nvleD2 * (step_2way+1);
+
+          // Numerator.
+
+          if (is_I_in_range) {
+
+            // Do we initialize relevant metric value on this 2-way step.
+
+            const bool init_numer = is_halved ? 0 == half_num : 0 == step_2way;
+
+            // NOTE: numer is accessed through a permuted index, but
+            // the 000, 001 etc. indices of numer are unpermuted.
+
+            const int j_block_eff = env.all2all() ? j_block : env.proc_num_vector();
+            const int k_block_eff = env.all2all() ? k_block : env.proc_num_vector();
+
+            auto numer = init_numer ? Tally4x2<MF>::null() :
+              Metrics_elt_const_3<Tally4x2<MF>>(*metrics, I, J, K,
+                j_block_eff, k_block_eff, index_cache, env);
+
+            MFTypeIn r000, r001, r010, r011, r100, r101, r110, r111;
+            MFT::decode(r000, r001, numer.data[0]);
+            MFT::decode(r010, r011, numer.data[1]);
+            MFT::decode(r100, r101, numer.data[2]);
+            MFT::decode(r110, r111, numer.data[3]);
+
+            MFTypeIn r000_perm = r000;
+            MFTypeIn r100_perm = si->perm0(r100, r010, r001);
+            MFTypeIn r010_perm = si->perm1(r100, r010, r001);
+            MFTypeIn r001_perm = si->perm2(r100, r010, r001);
+            MFTypeIn r011_perm = si->perm0(r011, r101, r110);
+            MFTypeIn r101_perm = si->perm1(r011, r101, r110);
+            MFTypeIn r110_perm = si->perm2(r011, r101, r110);
+            MFTypeIn r111_perm = r111;
+
+            // Add contribution from this 2-way step.
+
+            if (is_halved) {
+
+              // For halved case, get the the 2 I values in matB to process.
+              // For non-halved, just use I_mapped_lo (= I).
+
+              const int I_mapped_lo = I % nvleD2;
+              const int I_mapped_hi = I % nvleD2 + nvleD2;
+
+              // Add in lo part.
+
+              if (0 == half_num) {
+                // NOTE: matB is generated by GEMM on permuted vectors objects,
+                // thus has permuted 001 etc. table entries.
+
+                const auto matB_perm =
+                  matB_buf->elt_const<Tally2x2<MF>>(I_mapped_lo, K);
+                MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
+                MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
+                MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
+
+                r000_perm += matB00_perm;
+                r001_perm += matB01_perm;
+                r010_perm += matB10_perm;
+                r011_perm += matB11_perm;
+//if (K==K_min) printf("lo %i %i %i %i\n", I, I_mapped_lo, J, step_2way);
+//if(I==0 && J==1 && K==2 && env.proc_num_vector()==0)
+//printf("lo %i %i %i   %f %f %f %f\n", (int)I, (int)J, (int)K,
+//       (double)matB00_perm, (double)matB01_perm, (double)matB10_perm, (double)matB11_perm);
+              }
+
+              // Add in hi part.
+
+              if (1 == half_num) {
+                const Tally2x2<MF> matB_perm =
+                  matB_buf->elt_const<Tally2x2<MF>>(I_mapped_hi, K);
+
+                MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
+                MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
+                MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
+
+                r100_perm += matB00_perm;
+                r101_perm += matB01_perm;
+                r110_perm += matB10_perm;
+                r111_perm += matB11_perm;
+//if (K==K_min) printf("hi %i %i %i %i\n", I, I_mapped_hi, J, step_2way);
+//if(I==0 && J==1 && K==2 && env.proc_num_vector()==0)
+//printf("hi %i %i %i   %f %f %f %f\n", (int)I, (int)J, (int)K,
+//       (double)matB00_perm, (double)matB01_perm, (double)matB10_perm, (double)matB11_perm);
+              }
+
+            } else if (env.is_bitwise_3way_2step()) { // && ! is_halved
 
               const auto matB_perm =
-                matB_buf->elt_const<Tally2x2<MF>>(I_mapped_lo, K);
+                matB_buf->elt_const<Tally2x2<MF>>(I, K);
               MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
               MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
               MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
 
-              r000_perm += matB00_perm;
-              r001_perm += matB01_perm;
-              r010_perm += matB10_perm;
-              r011_perm += matB11_perm;
-            }
+              if (0 == step_2way) {
+                r000_perm += matB00_perm;
+                r001_perm += matB01_perm;
+                r010_perm += matB10_perm;
+                r011_perm += matB11_perm;
+              } else { // step_2way==1
+                r100_perm += matB00_perm;
+                r101_perm += matB01_perm;
+                r110_perm += matB10_perm;
+                r111_perm += matB11_perm;
+              }
 
-            // Add in hi part.
+            } else { // if (! env.is_bitwise_3way_2step() && ! is_halved)
 
-            if (1 == half_num) {
-              const Tally2x2<MF> matB_perm =
-                matB_buf->elt_const<Tally2x2<MF>>(I_mapped_hi, K);
-
+              const auto matB_perm =
+                matB_buf->elt_const<Tally2x2<MF>>(I, K);
               MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
               MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
               MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
 
-              r100_perm += matB00_perm;
-              r101_perm += matB01_perm;
-              r110_perm += matB10_perm;
-              r111_perm += matB11_perm;
-            }
+              if (0 == step_2way) {
+                r000_perm += 2 * matB00_perm;
+                r001_perm += 2 * matB01_perm;
+                r010_perm += 2 * matB10_perm;
+                r011_perm += 2 * matB11_perm;
+              } else if (1 == step_2way) {
+                r000_perm += matB00_perm;
+                r001_perm += matB01_perm;
+                r010_perm += matB10_perm;
+                r011_perm += matB11_perm;
+                r100_perm += matB00_perm;
+                r101_perm += matB01_perm;
+                r110_perm += matB10_perm;
+                r111_perm += matB11_perm;
+              } else { // 2 == step_2way
+                r100_perm += 2 * matB00_perm;
+                r101_perm += 2 * matB01_perm;
+                r110_perm += 2 * matB10_perm;
+                r111_perm += 2 * matB11_perm;
+              }
 
-          } else if (env.is_bitwise_3way_2step()) { // && ! is_halved
+            } // if (is_halved) ...
 
-            const auto matB_perm =
-              matB_buf->elt_const<Tally2x2<MF>>(I, K);
-            MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
-            MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
-            MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
+            r000 = r000_perm;
+            r100 = si->unperm0(r100_perm, r010_perm, r001_perm);
+            r010 = si->unperm1(r100_perm, r010_perm, r001_perm);
+            r001 = si->unperm2(r100_perm, r010_perm, r001_perm);
+            r011 = si->unperm0(r011_perm, r101_perm, r110_perm);
+            r101 = si->unperm1(r011_perm, r101_perm, r110_perm);
+            r110 = si->unperm2(r011_perm, r101_perm, r110_perm);
+            r111 = r111_perm;
 
-            if (0 == step_2way) {
-              r000_perm += matB00_perm;
-              r001_perm += matB01_perm;
-              r010_perm += matB10_perm;
-              r011_perm += matB11_perm;
-            } else { // step_2way==1
-              r100_perm += matB00_perm;
-              r101_perm += matB01_perm;
-              r110_perm += matB10_perm;
-              r111_perm += matB11_perm;
-            }
+            MFT::encode(numer.data[0], r000, r001);
+            MFT::encode(numer.data[1], r010, r011);
+            MFT::encode(numer.data[2], r100, r101);
+            MFT::encode(numer.data[3], r110, r111);
 
-          } else { // if (! env.is_bitwise_3way_2step() && ! is_halved)
+            Metrics_elt_3<Tally4x2<MF>>(*metrics, I, J, K,
+              j_block_eff, k_block_eff, index_cache, env) = numer;
+//printf("%i %i %i  %f %f %f %f %f %f %f %f\n", I, J, K, (double)r000, (double)r001, (double)r010, (double)r011, (double)r100, (double)r101, (double)r110, (double)r111);
 
-            const auto matB_perm =
-              matB_buf->elt_const<Tally2x2<MF>>(I, K);
-            MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
-            MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
-            MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
+          } // if (is_I_in_range)
 
-            if (0 == step_2way) {
-              r000_perm += 2 * matB00_perm;
-              r001_perm += 2 * matB01_perm;
-              r010_perm += 2 * matB10_perm;
-              r011_perm += 2 * matB11_perm;
-            } else if (1 == step_2way) {
-              r000_perm += matB00_perm;
-              r001_perm += matB01_perm;
-              r010_perm += matB10_perm;
-              r011_perm += matB11_perm;
-              r100_perm += matB00_perm;
-              r101_perm += matB01_perm;
-              r110_perm += matB10_perm;
-              r111_perm += matB11_perm;
-            } else { // 2 == step_2way
-              r100_perm += 2 * matB00_perm;
-              r101_perm += 2 * matB01_perm;
-              r110_perm += 2 * matB10_perm;
-              r111_perm += 2 * matB11_perm;
-            }
+          // Denominator.
 
-          } // if (is_halved) ...
+          if ((!env.threshold_tc()) &&
+              step_2way == env.num_step_2way_for_3way() - 1) {
 
-          r000 = r000_perm;
-          r100 = si->unperm0(r100_perm, r010_perm, r001_perm);
-          r010 = si->unperm1(r100_perm, r010_perm, r001_perm);
-          r001 = si->unperm2(r100_perm, r010_perm, r001_perm);
-          r011 = si->unperm0(r011_perm, r101_perm, r110_perm);
-          r101 = si->unperm1(r011_perm, r101_perm, r110_perm);
-          r110 = si->unperm2(r011_perm, r101_perm, r110_perm);
-          r111 = r111_perm;
+            const auto si1 = (GMTally1)vs_i->sum(i);
+            const auto sj1 = (GMTally1)vs_j->sum(j);
+            const auto sk1 = (GMTally1)vs_k->sum(k);
+            const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
 
-          MFT::encode(numer.data[0], r000, r001);
-          MFT::encode(numer.data[1], r010, r011);
-          MFT::encode(numer.data[2], r100, r101);
-          MFT::encode(numer.data[3], r110, r111);
+            const int j_block_eff = env.all2all() ? j_block : env.proc_num_vector();
+            const int k_block_eff = env.all2all() ? k_block : env.proc_num_vector();
+            
+            Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
+              j_block_eff, k_block_eff, index_cache, env) = si1_sj1_sk1;
+            if (env.sparse()) {
+              const auto ci1 = (GMTally1)vs_i->count(i);
+              const auto cj1 = (GMTally1)vs_j->count(j);
+              const auto ck1 = (GMTally1)vs_k->count(k);
+              const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
+              Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
+                j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
+            } // if sparse
 
-          Metrics_elt_3<Tally4x2<MF>>(*metrics, I, J, K,
-            j_block_eff, k_block_eff, index_cache, env) = numer;
+          } // if ((!env.threshold_tc()) && ...
 
-        } // if (is_I_in_range)
-
-        // Denominator.
-
-        if ((!env.threshold_tc()) &&
-            step_2way == env.num_step_2way_for_3way() - 1) {
-
-          const auto si1 = (GMTally1)vs_i->sum(i);
-          const auto sj1 = (GMTally1)vs_j->sum(j);
-          const auto sk1 = (GMTally1)vs_k->sum(k);
-          const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
-
-          const int j_block_eff = env.all2all() ? j_block : env.proc_num_vector();
-          const int k_block_eff = env.all2all() ? k_block : env.proc_num_vector();
-          
-          Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
-            j_block_eff, k_block_eff, index_cache, env) = si1_sj1_sk1;
-          if (env.sparse()) {
-            const auto ci1 = (GMTally1)vs_i->count(i);
-            const auto cj1 = (GMTally1)vs_j->count(j);
-            const auto ck1 = (GMTally1)vs_k->count(k);
-            const GMFloat3 ci1_cj1_ck1 = GMFloat3_encode(ci1, cj1, ck1);
-            Metrics_elt_3<GMFloat3, MetricsArray::C>(*metrics, I, J, K,
-              j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
-          } // if sparse
-
-        } // if ((!env.threshold_tc()) && ...
-
-      }   // I
+        } // I
+        } // for half_num
+      } // K
+      if (step_2way == env.num_step_2way_for_3way() - 1) {
+        metrics->num_metric_items_local_computed_inc((I_max - I_min) * (size_t)
+                                                     (K_max - K_min));
       }
-    } // K
-    if (step_2way == env.num_step_2way_for_3way() - 1) {
-      metrics->num_metric_items_local_computed_inc((I_max - I_min) * (size_t)
-                                                   (K_max - K_min));
-    }
 
-
-
-
-
-
-
-
+    } // if (env.is_shrink())
 
   } else { // if (env.metric_type() ...
 

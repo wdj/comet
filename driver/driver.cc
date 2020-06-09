@@ -638,7 +638,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_local_written, &num_written, 1,
       MPI_UNSIGNED_LONG_LONG, MPI_SUM, env->comm_repl_vector()));
 
-    if (env->num_way() == NumWay::_2 && env->all2all() &&
+    if (env->num_way() == NumWay::_2 && env->all2all() && !env->is_shrink() &&
         do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase() - 1) {
       COMET_INSIST(num_metric_items_computed ==
                    env->num_metric_items_per_metric() * (
@@ -646,7 +646,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
                    (do_.num_vector - 1) / 2 ) );
     }
 
-    if (env->num_way() == NumWay::_3 && env->all2all() &&
+    if (env->num_way() == NumWay::_3 && env->all2all() && !env->is_shrink() &&
         do_.phase_min_0based==0 && do_.phase_max_0based==env->num_phase() - 1 &&
         do_.stage_min_0based==0 && do_.stage_max_0based==env->num_stage() - 1) {
       COMET_INSIST(num_metric_items_computed ==

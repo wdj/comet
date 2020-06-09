@@ -409,15 +409,6 @@ void DriverTest_czek2_() {
   //---Misc options
   //----------
 
-//  EXPECT_EQ(
-//      true,
-//      compare_2runs("--num_proc_vector 1 --num_field 30 --num_vector 3 "
-//                    "--verbosity 1 --all2all yes "
-//                    "--compute_method REF --threshold .65",
-//                    "--num_proc_vector 1 --num_field 30 --num_vector 3 "
-//                    "--verbosity 1 --all2all yes "
-//                    "--compute_method GPU --threshold .65"));
-
   // TODO: set up better test
   //EXPECT_EQ(
   //    true,
@@ -1860,8 +1851,7 @@ void DriverTest_threshold_() {
     char options1[1024];
     char options2[1024];
 
-    const int num_proc_vector = 2;
-    //const int num_proc_vector = 1;
+    const int num_proc_vector = 3;
 
     char options_template[] =
         "--metric_type %s "
@@ -1880,10 +1870,15 @@ void DriverTest_threshold_() {
     typedef comet::TC TC;
 
     for (int num_way : {2, 3})
+    //for (int num_way : {3})
     for (int metric_type : {MT::CCC, MT::DUO})
-    for (double threshold : {.65, .25, 0.})
+    //for (int metric_type : {MT::CCC})
+    for (double threshold : {.65, .25, .001, 0.})
+    //for (double threshold : {.65})
     for (int compute_method : {CM::CPU, CM::GPU})
+    //for (int compute_method : {CM::GPU})
     for (int tc=1; tc<comet::TC::NUM; ++tc) {
+    //for (int tc=1; tc<2; ++tc) {
       sprintf(options1, options_template, MT::str(metric_type),
         num_proc_vector, num_way, threshold, TC::NO, CM::str(CM::REF));
       sprintf(options2, options_template, MT::str(metric_type),
@@ -2497,13 +2492,11 @@ TEST(DriverTest, tc) {
 TEST(DriverTest, ccc3_simple) {
   DriverTest_ccc3_simple_();
 }
-#endif
 
 TEST(DriverTest, ccc3_simple_sparse) {
   DriverTest_ccc3_simple_sparse_();
 }
 
-#if 1
 TEST(DriverTest, duo3_simple_sparse) {
   DriverTest_duo3_simple_sparse_();
 }

@@ -225,8 +225,8 @@ elt_const(size_t ind_entry, const CompressedBuf* cbuf) {
   // Trap simple case.
   if (!cbuf->do_compress_) {
     ind_typein = ind_entry;
-    iE = ind_typein % 2;
-    jE = (ind_typein / 2) % 2;
+    iE = (ind_typein / 2) % 2;
+    jE = ind_typein % 2;
     ind = ind_typein / 4;
     ind0 = ind % buf_->dim0;
     ind1 = ind / buf_->dim0;
@@ -246,6 +246,7 @@ elt_const(size_t ind_entry, const CompressedBuf* cbuf) {
       elt_const<CBuf::Lengths_t>(ind_run, 0);
     lengths_running_sum += length_run;
     ++ind_run;
+//printf("%f %i %i\n", (double) key_run, (int)length_run, (int)ind_run);
     COMET_ASSERT(ind_run < cbuf->num_runs_);
     ind_in_run = 0;
     // Now pointing to start of a run of a nonzero value.
@@ -274,11 +275,16 @@ elt_const(size_t ind_entry, const CompressedBuf* cbuf) {
 
   // Finish.
 
-  iE = ind_typein % 2;
-  jE = (ind_typein / 2) % 2;
+  iE = (ind_typein / 2) % 2;
+  jE = ind_typein % 2;
   ind = ind_typein / 4;
   ind0 = ind % buf_->dim0;
   ind1 = ind / buf_->dim0;
+
+//if (! TTable_t::get(buf_->elt_const<TTable_t>(ind0, ind1), iE, jE) == key_run)
+//printf("%i %i %i %i %i %i %i  %f  %f\n", (int)ind_entry, (int)ind_typein, iE, jE, (int)ind, (int)ind0, (int)ind1, (double)key_run, (double)TTable_t::get(buf_->elt_const<TTable_t>(ind0, ind1), iE, jE));
+
+  //COMET_INSIST(TTable_t::get(buf_->elt_const<TTable_t>(ind0, ind1), iE, jE) == key_run);
 
   return key_run;
 }

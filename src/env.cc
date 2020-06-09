@@ -268,6 +268,7 @@ void CEnv::set_defaults_() {
   threshold_ = CEnv::threshold_eff(-1);
   threshold_eff_cache_ = threshold_;
   metrics_shrink_ = 1.;
+  //metrics_shrink_ = .1; //FIX
   coords_type_cache_ = 0;
 }
 

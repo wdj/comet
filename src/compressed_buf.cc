@@ -62,11 +62,12 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
   , reduce_workspace_buf_(env)
   , rle_workspace_buf_(env)
     // NOTE: assume this is the largest size to ever be used.
-  , length_max_(buf_->dim0 * buf_->dim1 * NUM_VALUES_PER_METRIC)
+  , buf_length_max_(buf_->dim0 * buf_->dim1 * NUM_VALUES_PER_METRIC)
   , num_nonzeros_approx_(0)
   , do_compress_(false)
   , num_runs_(0)
-  , state_(State::IDLE) {
+  , state_(State::IDLE)
+  , num_entries_(buf_length_()) {
   //, is_open_(false)
   //, read_ptr_(0) {
 
@@ -77,9 +78,9 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
 
   num_nonzeros_buf_.allocate(1, 1, sizeof(MFTTypeIn));
 
-  keys_buf_.allocate(length_max_, 1, sizeof(MFTTypeIn));
+  keys_buf_.allocate(buf_length_max_, 1, sizeof(MFTTypeIn));
 
-  lengths_buf_.allocate(length_max_, 1, sizeof(Lengths_t));
+  lengths_buf_.allocate(buf_length_max_, 1, sizeof(Lengths_t));
 
   num_runs_buf_.allocate(1, 1, sizeof(size_t));
 
@@ -94,9 +95,9 @@ void CompressedBuf::attach(MirroredBuf& buf) {
   COMET_INSIST(State::IDLE == state_);
 
   buf_ = &buf;
-  COMET_INSIST(length_() <= length_max_);
+  COMET_INSIST(buf_length_() <= buf_length_max_);
 
-  num_entries_ = length_();
+  num_entries_ = buf_length_();
 }
 
 //-----------------------------------------------------------------------------
@@ -118,7 +119,7 @@ void CompressedBuf::compute_num_nonzeros_() {
 
     cub::DeviceReduce::Reduce(NULL,
       temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-      length_(), reduction_op, initial_value, env_.stream_compute());
+      buf_length_(), reduction_op, initial_value, env_.stream_compute());
     num_nonzeros_buf_.from_accel(env_.stream_compute());
 
     // Re/allocate temp storage.
@@ -135,7 +136,7 @@ void CompressedBuf::compute_num_nonzeros_() {
 
     cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
       temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-      length_(), reduction_op, initial_value, env_.stream_compute());
+      buf_length_(), reduction_op, initial_value, env_.stream_compute());
 
     // Retrieve count.
     // NOTE: this value may be approximate, since reduction is over floats.
@@ -165,7 +166,7 @@ void CompressedBuf::compress() {
   const size_t num_runs_max = 2 * num_nonzeros_approx_;
   const size_t estimated_storage_compressed = num_runs_max *
     (sizeof(MFTTypeIn) + sizeof(Lengths_t));
-  const size_t storage_uncompressed = length_() * sizeof(MFTTypeIn);
+  const size_t storage_uncompressed = buf_length_() * sizeof(MFTTypeIn);
 
   do_compress_ = estimated_storage_compressed <
     compression_factor_required_() * storage_uncompressed;
@@ -182,7 +183,7 @@ void CompressedBuf::compress() {
 
       cub::DeviceRunLengthEncode::Encode(NULL,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
-        (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
+        (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
         env_.stream_compute());
       num_runs_buf_.from_accel(env_.stream_compute());
 
@@ -200,7 +201,7 @@ void CompressedBuf::compress() {
 
       cub::DeviceRunLengthEncode::Encode((Workspace_t*)rle_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
-        (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, length_(),
+        (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
         env_.stream_compute());
 
       // Retrieve size.
@@ -235,8 +236,9 @@ void CompressedBuf::from_accel_start() {
     keys_alias_buf_.from_accel_start();
     lengths_alias_buf_.from_accel_start();
     state_ = State::TRANSFER_STARTED;
+#ifdef COMET_ASSERTIONS_ON
     //buf_->from_accel_start();
-
+#endif
   } else {
     buf_->from_accel_start();
   }
@@ -254,7 +256,7 @@ void CompressedBuf::from_accel_wait() {
 
 #if 0
     for (size_t i=0; i<num_runs_; ++i) {
-      printf("%i %i %f\n", (int)i,
+      printf("cbuf %i %i %f\n", (int)i,
         (int)lengths_alias_buf_.elt_const<size_t>(i, 0),
         (double)keys_alias_buf_.elt_const<MFTTypeIn>(i, 0) ); 
     }
@@ -265,16 +267,19 @@ void CompressedBuf::from_accel_wait() {
       if (keys_alias_buf_.elt_const<MFTTypeIn>(i, 0))
         num_entries_ += lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
     } // i
+//printf("%i\n", (int)num_entries_);
 
     elt_read_start();
 
     state_ = State::IDLE;
+#ifdef COMET_ASSERTIONS_ON
     //buf_->from_accel_wait();
+#endif
 
 #if 0
     for (size_t i=0; i<64; ++i) {
       if ((double)(((MFTTypeIn*)(buf_->h))[i]))
-        printf("%i %f\n", (int)i,
+        printf("buf %i %f\n", (int)i,
           (double)(((MFTTypeIn*)(buf_->h))[i]));
     }
 #endif

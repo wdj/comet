@@ -191,7 +191,7 @@ private:
 
   double compression_factor_required_() const {return 1.;}
 
-  const size_t length_max_;
+  const size_t buf_length_max_;
   size_t num_nonzeros_approx_;
   bool do_compress_;
   size_t num_runs_;
@@ -199,6 +199,8 @@ private:
   int state_;
 
   size_t num_entries_;
+
+  //----------
 
   mutable Reader reader_;
 
@@ -208,10 +210,10 @@ private:
 
   /// \brief Compute current len of (uncompressed) buffer, in MFTTypeIn vals.
 
-  size_t length_() const {
+  size_t buf_length_() const {
     // NOTE: is dynamic since buf_ can change size if elsewhere realloc/realias.
     const size_t length = buf_->dim0 * buf_->dim1 * NUM_VALUES_PER_METRIC;
-    COMET_INSIST(length <= length_max_);
+    COMET_INSIST(length <= buf_length_max_);
     return length;
  }
 

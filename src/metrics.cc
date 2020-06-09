@@ -475,7 +475,7 @@ void GMMetrics_create(GMMetrics* metrics,
   // Allocations: data.
   //--------------------
 
-  metrics->data_elt_size = env->metric_size();
+  metrics->data_elt_size = env->metric_item_size();
 
   metrics->num_metric_items_local_allocated =
     env->shrink(metrics->num_metric_items_local);
@@ -867,7 +867,7 @@ void GMMetrics_destroy(GMMetrics* metrics, CEnv* env) {
 
 size_t Metrics_coords_getG(GMMetrics& metrics, size_t index, int ijk,
   CEnv& env) {
-  COMET_ASSERT(index+1 >= 1 && index < metrics.num_metrics_local);
+  COMET_ASSERT(index+1 >= 1 && index < metrics.num_metric_items_local_allocated);
   COMET_ASSERT(ijk >= 0 && ijk < env.num_way());
 
   const size_t result = CoordsInfo::getG(metrics.coords_value(index), ijk,

@@ -174,7 +174,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
       if (Metrics_ccc_duo_get_threshold_2<COUNTED_BITS_PER_ELT>(
             *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
-        for (int entry_num = 0; entry_num < env->num_entries_per_metric();
+        for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -299,13 +299,16 @@ static void MetricsIO_write_tally4x2_bin_impl_(
     const size_t ind_max = utils::min(metrics->num_metrics_local,
                                      ind_base + num_buf_ind);
     // Fill buffer
+// FIX
+// FIX this to work with is_shrink case !!!
+// FIX
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Do any of the values exceed the threshold
       if (Metrics_ccc_duo_get_threshold_3<COUNTED_BITS_PER_ELT>(
              *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
-        for (int entry_num = 0; entry_num < env->num_entries_per_metric();
+        for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -483,7 +486,7 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NumWay::_2);
     COMET_INSIST(env->is_metric_type_bitwise());
 
-    MetricIO writer(file, *metrics, *env);
+    //MetricIO writer(file, *metrics, *env);
 
     size_t index = 0;
     for (index = 0; index < metrics->num_metrics_local; ++index) {
@@ -496,7 +499,7 @@ static void MetricsIO_write_(
           jG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
-      for (int entry_num = 0; entry_num < env->num_entries_per_metric();
+      for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
            ++entry_num) {
         const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
         const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -523,7 +526,7 @@ static void MetricsIO_write_(
         fprintf(file, "\n");
     } // for index
 
-    num_written_ += writer.num_written();
+    //num_written_ += writer.num_written();
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2 &&
@@ -540,22 +543,20 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NumWay::_3);
     COMET_INSIST(env->is_metric_type_bitwise());
 
-    MetricIO writer(file, *metrics, *env);
+    //MetricIO writer(file, *metrics, *env);
 
-    for (size_t index = 0; index < metrics->num_metrics_local; ++index) {
+    for (size_t index = 0; index < metrics->num_metric_items_local_computed;
+         ++index) {
       const MetricItemCoords_t coords = metrics->coords_value(index);
       const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
       const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
       const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
-//      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-//      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
-//      const size_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active ||
           kG >= metrics->num_vector_active)
         continue;
       int num_out_this_line = 0;
-      for (int entry_num = 0; entry_num < env->num_entries_per_metric();
+      for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
            ++entry_num) {
         const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
         const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
@@ -563,6 +564,9 @@ static void MetricsIO_write_(
 //      for (int iE = 0; iE < 2; ++iE) {
 //        for (int jE = 0; jE < 2; ++jE) {
 //          for (int kE = 0; kE < 2; ++kE) {
+// FIX
+// FIX this to work with is_shrink case !!!
+// FIX
             const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
               index, iE, jE, kE, *env);
             if (!env->pass_threshold(value))
@@ -586,7 +590,7 @@ static void MetricsIO_write_(
         fprintf(file, "\n");
     } // for index
 
-    num_written_ += writer.num_written();
+    //num_written_ += writer.num_written();
 
   //----------
   } else {
@@ -736,6 +740,9 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const int jE = metric.jE(env_);
       const int kE = metric.kE(env_);
 
+// FIX
+// FIX this to work with is_shrink case !!!
+// FIX
       const Float_t metric_value = env_.is_shrink() ?
         (Float_t)GMMetrics_get_3(metrics, index, iE, jE, kE, env_) :
         (Float_t)GMMetrics_get_3(metrics, iG, jG, kG, iE, jE, kE, env_);
@@ -790,6 +797,9 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   } else { // if (env_.num_way() == NumWay::_3)
 
+// FIX
+// FIX this to work with is_shrink case !!!
+// FIX
     for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
       const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
       const size_t jG = Metrics_coords_getG(metrics, index, 1, env_);

@@ -165,12 +165,12 @@ double Checksum::metrics_elt(
   size_t index,
   int entry_num,
   CEnv& env) { 
-  COMET_INSIST(index < metrics.num_metrics_local); // && index >= 0
-  COMET_INSIST(entry_num >= 0 && entry_num < env.num_entries_per_metric());
+  COMET_INSIST(index < metrics.num_metric_items_local_allocated); // && index >= 0
+  COMET_INSIST(entry_num >= 0 && entry_num < env.num_entries_per_metric_item());
 
   // Obtain global coords of metrics elt
-  MetricItemCoords_t coords[NumWay::MAX];
-  MetricItemCoords_t coords_perm[NumWay::MAX];
+  size_t coords[NumWay::MAX];
+  size_t coords_perm[NumWay::MAX];
   int iperm[NumWay::MAX];
   for (int i = 0; i < env.num_way(); ++i) {
     coords[i] = Metrics_coords_getG(metrics, index, i, env);
@@ -263,18 +263,19 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
 
   // Loop over metrics indices to find max.
   #pragma omp parallel for reduction(max:result)
-  for (size_t index = 0; index < metrics.num_metrics_local; ++index) {
+  for (size_t index = 0; index < metrics.num_metric_items_local_computed;
+       ++index) {
 
     // Determine whether this cell is active.
     bool is_active = true;
     for (int i = 0; i < env.num_way(); ++i) {
-      const MetricItemCoords_t coord = Metrics_coords_getG(metrics, index, i,
+      const size_t coord = Metrics_coords_getG(metrics, index, i,
         env);
       is_active = is_active && coord < metrics.num_vector_active;
     }
     double value_max = -DBL_MAX;
     if (is_active) {
-      for (int entry_num = 0; entry_num < env.num_entries_per_metric();
+      for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
            ++entry_num) {
         // Pick up value of this metrics elt
         const double value = Checksum::metrics_elt(metrics, index, entry_num,
@@ -382,14 +383,15 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     double num_zero_private = 0;
     // Loop over metrics indices to get checksum contribution.
     #pragma omp for collapse(2)
-    for (size_t index = 0; index < metrics.num_metrics_local; ++index) {
+    for (size_t index = 0; index < metrics.num_metric_items_local_computed;
+         ++index) {
       // Loop over data values at this index
-      for (int entry_num = 0; entry_num < env.num_entries_per_metric();
+      for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
            ++entry_num) {
 
         // Obtain global coords of metrics elt
-        MetricItemCoords_t coords_perm[NumWay::MAX];
-        int iperm[NumWay::MAX];
+        size_t coords_perm[NumWay::MAX] = {0};
+        int iperm[NumWay::MAX] = {0};
         bool is_active = true;
         for (int i = 0; i < env.num_way(); ++i) {
           const size_t coord = Metrics_coords_getG(metrics, index, i, env);
@@ -411,6 +413,21 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           sort3(coords_perm[0], coords_perm[1], coords_perm[2],
                 iperm[0], iperm[1], iperm[2]);
 
+        // Get elt_num that is uniform independeont of is_shrink().
+
+        const MetricItemCoords_t coords = metrics.coords_value(index);
+
+        size_t ijkE_perm[NumWay::MAX] = {0};
+        for (int i = 0; i < env.num_way(); ++i) {
+          ijkE_perm[iperm[i]] =
+            CoordsInfo::getE(coords, i, entry_num, metrics, env);
+        }
+
+        const int entry_num_noshrink = !env.is_shrink() ? entry_num :
+          NumWay::_2 == env.num_way() ?
+            ijkE_perm[1] + 2 * ijkE_perm[0] :
+        //NumWay::_3 == env.num_way() ?
+            ijkE_perm[2] + 2 * (ijkE_perm[1] + 2 * ijkE_perm[0]);
 
         // Convert to uint64.  Store only 2*w+1 bits, at most -
         // if (value / scaling) <= 1, which it should be if
@@ -427,7 +444,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         for (int i = 1; i < env.num_way(); ++i) {
           uid = uid * metrics.num_vector_active + coords_perm[i];
         }
-        uid = uid * env.num_entries_per_metric() + entry_num;
+        uid = uid * env.num_entries_per_metric() + entry_num_noshrink;
+//printf("%zu %zu %i\n", (size_t)ivalue, (size_t)uid, entry_num_noshrink);
         // Randomize this id
         const UI64_t rand1 = utils::randomize(uid + 956158765);
         const UI64_t rand2 = utils::randomize(uid + 842467637);
