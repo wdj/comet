@@ -102,7 +102,7 @@ int System::compute_capability() {
 #elif defined COMET_USE_HIP
   hipDeviceProp_t deviceProp;
   hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-//FIX this
+//FIX this to work for an appropriate way for AMD gpu
   const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
 #else
   const int compute_capability = 0;
@@ -267,9 +267,19 @@ void CEnv::set_defaults_() {
   num_tc_steps_ = 1;
   threshold_ = CEnv::threshold_eff(-1);
   threshold_eff_cache_ = threshold_;
-  metrics_shrink_ = 1.;
-  //metrics_shrink_ = .1; //FIX
+  metrics_shrink_ = 1;
   coords_type_cache_ = 0;
+
+  ctime_ = 0;
+  ops_local_ = 0;
+  cpu_mem_local_ = 0;
+  gpu_mem_local_ = 0;
+  cpu_mem_max_local_ = 0;
+  gpu_mem_max_local_ = 0;
+  metriccompares_ = 0;
+  entrycompares_ = 0;
+  veccompares_ = 0;
+  shrink_achieved_ = DBL_MAX;
 }
 
 //-----------------------------------------------------------------------------
@@ -442,6 +452,17 @@ void CEnv::parse_args_(int argc, char** argv) {
       const double threshold = strtod(argv[i], NULL);
       COMET_INSIST_INTERFACE(env, 0 == errno && "Invalid setting for threshold.");
       threshold_ = threshold;
+      //--------------------
+    } else if (strcmp(argv[i], "--metrics_shrink") == 0) {
+      //--------------------
+      ++i;
+      COMET_INSIST_INTERFACE(env, i < argc && "Missing value for metrics_shrink.");
+      errno = 0;
+      const double metrics_shrink = strtod(argv[i], NULL);
+      COMET_INSIST_INTERFACE(env, 0 == errno
+                    && metrics_shrink > 0
+                    && "Invalid setting for metrics_shrink.");
+      metrics_shrink_ = metrics_shrink;
       //--------------------
     } // if/else
   }   // for i

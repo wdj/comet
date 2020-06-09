@@ -453,14 +453,13 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
-            const double diff = fabs(value - value_expected);
-            max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
-            if (num_incorrect < max_to_print) {
-              fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu  "
+            const double diff = value - value_expected;
+            max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
+            if (num_incorrect < max_to_print)
+              fprintf(stderr, "Error: incorrect result detected.  "
+                     "coords %zu %zu  "
                      "expected %.20e  actual %.20e  diff %.20e\n", vi, vj,
-                     (double)value_expected, (double)value,
-                     (double)value-(double)value_expected);
-            }
+                     (double)value_expected, (double)value, diff);
           }
 
           num_incorrect += is_incorrect;
@@ -513,14 +512,13 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
-            const double diff = fabs(value - value_expected);
-            max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
-            if (num_incorrect < max_to_print) {
-              fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu %zu  "
-                     "expected %.20e  actual %.20e  diff %.20e\n", vi, vj, vk,
-                     (double)value_expected, (double)value,
-                     (double)value-(double)value_expected);
-            }
+            const double diff = value - value_expected;
+            max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
+            if (num_incorrect < max_to_print)
+              fprintf(stderr, "Error: incorrect result detected.  "
+                      "coords %zu %zu %zu  "
+                      "expected %.20e  actual %.20e  diff %.20e\n", vi, vj, vk,
+                      (double)value_expected, (double)value, diff);
           }
 
           num_incorrect += is_incorrect;
@@ -545,136 +543,131 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
-//        for (int iE = 0; iE < 2; ++iE) {
-//          for (int jE = 0; jE < 2; ++jE) {
-            const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
-              iE, jE, *env);
+          const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
+            iE, jE, *env);
 
-            GMTally1 rij = 0;
-            GMTally1 si = 0;
-            GMTally1 sj = 0;
-            GMTally1 ci = 0;
-            GMTally1 cj = 0;
-            GMTally1 cij = 0;
+          GMTally1 rij = 0;
+          GMTally1 si = 0;
+          GMTally1 sj = 0;
+          GMTally1 ci = 0;
+          GMTally1 cj = 0;
+          GMTally1 cij = 0;
 
-            for (size_t g=0; g<num_group; ++g) {
+          for (size_t g=0; g<num_group; ++g) {
 
-              const size_t pf_min = g * group_size_max;
-              const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
-              const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
+            const size_t pf_min = g * group_size_max;
+            const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
+            const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-              const size_t piG = perm(g, iG, nva);
-              const size_t pjG = perm(g, jG, nva);
+            const size_t piG = perm(g, iG, nva);
+            const size_t pjG = perm(g, jG, nva);
 
-              const size_t value_i = value_min + ( piG * value_max ) /
-                                                 (nva+value_min);
-              const size_t value_j = value_min + ( pjG * value_max ) /
-                                                 (nva+value_min);
+            const size_t value_i = value_min + ( piG * value_max ) /
+                                               (nva+value_min);
+            const size_t value_j = value_min + ( pjG * value_max ) /
+                                               (nva+value_min);
 
-              const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
-              const GMBits2 bval_j = ((size_t)3) & (value_j - value_min);
+            const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
+            const GMBits2 bval_j = ((size_t)3) & (value_j - value_min);
 
-              const int bval_i_0 = !!(bval_i&1);
-              const int bval_i_1 = !!(bval_i&2);
-              const int bval_j_0 = !!(bval_j&1);
-              const int bval_j_1 = !!(bval_j&2);
+            const int bval_i_0 = !!(bval_i&1);
+            const int bval_i_1 = !!(bval_i&2);
+            const int bval_j_0 = !!(bval_j&1);
+            const int bval_j_1 = !!(bval_j&2);
 
-              const bool unk_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
-              const bool unk_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
-              const bool unk_ij = unk_i || unk_j;
+            const bool unk_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
+            const bool unk_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
+            const bool unk_ij = unk_i || unk_j;
 
-              if (! unk_i) {
-                ci += gs_this;
-                si += cbpe == 2 ?
-                  ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
-                  (bval_i_0 == iE) * gs_this;
-              }
-
-              if (! unk_j) {
-                cj += gs_this;
-                sj += cbpe == 2 ?
-                  ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
-                  (bval_j_0 == jE) * gs_this;
-              }
-
-              if (! unk_ij) {
-                cij += cbpe * cbpe * gs_this;
-                rij += cbpe == 2 ?
-                       (((bval_i_0 == iE) && (bval_j_0 == jE)) +
-                        ((bval_i_0 == iE) && (bval_j_1 == jE)) +
-                        ((bval_i_1 == iE) && (bval_j_0 == jE)) +
-                        ((bval_i_1 == iE) && (bval_j_1 == jE))) *
-                       gs_this :
-                       ((bval_i_0 == iE) && (bval_j_0 == jE)) *
-                       gs_this;
-              }
-            } //---g
-
-            double value_expected_floatcalc = 0;
-            if (!(ci == 0 || cj == 0 || cij == 0)) {
-              // FIX typing here
-              const double f_one = 1;
-
-              const double f_ci = (double) ci;
-              const double f_cj = (double) cj;
-
-              const double f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
-              const double f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
-
-              const double f_cij = (double) cij;
-              const double recip_cicjcij = f_one /
-                                            (f_cicj_min * f_cicj_max * f_cij);
-
-              const double recip_ci = env->sparse() ?
-                f_cj * f_cij * recip_cicjcij : metrics->recip_m;
-              const double recip_cj = env->sparse() ?
-                f_ci * f_cij * recip_cicjcij : metrics->recip_m;
-
-              const double recip_sumcij = env->sparse() ?
-                f_cicj_min * f_cicj_max * recip_cicjcij :
-                (f_one / (cbpe * cbpe)) * metrics->recip_m;
-
-              value_expected_floatcalc = cbpe == CBPE::CCC ?
-                ccc_duo_value<CBPE::CCC>(rij, si, sj,
-                    recip_ci, recip_cj, recip_sumcij,
-                    env_ccc_duo_multiplier<CBPE::CCC>(*env), env->ccc_param()) :
-                ccc_duo_value<CBPE::DUO>(rij, si, sj,
-                    recip_ci, recip_cj, recip_sumcij,
-                    env_ccc_duo_multiplier<CBPE::DUO>(*env), env->ccc_param());
+            if (! unk_i) {
+              ci += gs_this;
+              si += cbpe == 2 ?
+                ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
+                (bval_i_0 == iE) * gs_this;
             }
 
-            const bool do_set_zero = env->threshold_tc() &&
-              !env->pass_threshold(value_expected_floatcalc);
+            if (! unk_j) {
+              cj += gs_this;
+              sj += cbpe == 2 ?
+                ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
+                (bval_j_0 == jE) * gs_this;
+            }
 
-            GMFloat value_expected = do_set_zero ?
-              0e0 :value_expected_floatcalc;
+            if (! unk_ij) {
+              cij += cbpe * cbpe * gs_this;
+              rij += cbpe == 2 ?
+                     (((bval_i_0 == iE) && (bval_j_0 == jE)) +
+                      ((bval_i_0 == iE) && (bval_j_1 == jE)) +
+                      ((bval_i_1 == iE) && (bval_j_0 == jE)) +
+                      ((bval_i_1 == iE) && (bval_j_1 == jE))) *
+                     gs_this :
+                     ((bval_i_0 == iE) && (bval_j_0 == jE)) *
+                     gs_this;
+            }
+          } //---g
+
+          double value_expected_floatcalc = 0;
+          const bool is_zero_denom = ci == 0 || cj == 0 || cij == 0;
+          if (!is_zero_denom) {
+            // CHECK typing here
+            const double f_one = 1;
+
+            const double f_ci = (double) ci;
+            const double f_cj = (double) cj;
+
+            const double f_cicj_min = f_ci < f_cj ? f_ci : f_cj;
+            const double f_cicj_max = f_ci > f_cj ? f_ci : f_cj;
+
+            const double f_cij = (double) cij;
+            const double recip_cicjcij = f_one /
+                                          (f_cicj_min * f_cicj_max * f_cij);
+
+            const double recip_ci = env->sparse() ?
+              f_cj * f_cij * recip_cicjcij : metrics->recip_m;
+            const double recip_cj = env->sparse() ?
+              f_ci * f_cij * recip_cicjcij : metrics->recip_m;
+
+            const double recip_sumcij = env->sparse() ?
+              f_cicj_min * f_cicj_max * recip_cicjcij :
+              (f_one / (cbpe * cbpe)) * metrics->recip_m;
+
+            value_expected_floatcalc = cbpe == CBPE::CCC ?
+              ccc_duo_value<CBPE::CCC>(rij, si, sj,
+                  recip_ci, recip_cj, recip_sumcij,
+                  env_ccc_duo_multiplier<CBPE::CCC>(*env), env->ccc_param()) :
+              ccc_duo_value<CBPE::DUO>(rij, si, sj,
+                  recip_ci, recip_cj, recip_sumcij,
+                  env_ccc_duo_multiplier<CBPE::DUO>(*env), env->ccc_param());
+          } // is_zero_denom
+
+          const bool do_set_zero = env->threshold_tc() &&
+            !env->pass_threshold(value_expected_floatcalc);
+
+          GMFloat value_expected = do_set_zero ? 0. : value_expected_floatcalc;
 
 #if 0
 //#ifdef COMET_USE_INT128
-            if (env->are_ccc_params_default()) {
-            if (!(0 == ci || 0 == cj || 0 == cij)) {
-              value_expected = GMMetrics_ccc_value_nofp_2(metrics,
-                rij, si, sj, ci, cj, cij, env); 
-            }
-            }
+          if (env->are_ccc_params_default()) {
+          if (!(0 == ci || 0 == cj || 0 == cij)) {
+            value_expected = GMMetrics_ccc_value_nofp_2(metrics,
+              rij, si, sj, ci, cj, cij, env); 
+          }
+          }
 #endif
 
-            const bool is_incorrect = value_expected != value;
-            if (is_incorrect) {
-              const double diff = fabs(value - value_expected);
-              max_incorrect_diff = diff > max_incorrect_diff ?
-                                   diff : max_incorrect_diff;
-              if (num_incorrect < max_to_print) {
-                fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu  %i %i  "
-                       "expected %.20e  actual %.20e  diff %.20e\n", iG, jG, iE, jE,
-                       (double)value_expected, (double)value,
-                       (double)value-(double)value_expected);
-              }
-            }
+          const bool is_incorrect = value_expected != value;
+          if (is_incorrect) {
+            const double diff = value - value_expected;
+            max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
+            if (num_incorrect < max_to_print)
+              fprintf(stderr, "Error: incorrect result detected.  "
+                     "coords %zu %zu  %i %i  "
+                     "expected %.20e  actual %.20e  diff %.20e\n",
+                     iG, jG, iE, jE,
+                     (double)value_expected, (double)value, diff);
+          } // is_correct
 
-            num_incorrect += is_incorrect;
-//          } //---j
-//        } //---i
+          num_incorrect += is_incorrect;
         } // for entry_num
       } // for index
     } break;
@@ -698,147 +691,141 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
           const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
-//        for (int iE = 0; iE < 2; ++iE) {
-//          for (int jE = 0; jE < 2; ++jE) {
-//            for (int kE = 0; kE < 2; ++kE) {
-              const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
-                index, iE, jE, kE, *env);
+          const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
+            index, iE, jE, kE, *env);
 
-              GMTally1 rijk = 0;
-              GMTally1 si = 0;
-              GMTally1 sj = 0;
-              GMTally1 sk = 0;
-              GMTally1 ci = 0;
-              GMTally1 cj = 0;
-              GMTally1 ck = 0;
-              GMTally1 cijk = 0;
+          GMTally1 rijk = 0;
+          GMTally1 si = 0;
+          GMTally1 sj = 0;
+          GMTally1 sk = 0;
+          GMTally1 ci = 0;
+          GMTally1 cj = 0;
+          GMTally1 ck = 0;
+          GMTally1 cijk = 0;
 
-              for (size_t g=0; g<num_group; ++g) {
+          for (size_t g=0; g<num_group; ++g) {
 
-                const size_t pf_min = g * group_size_max;
-                const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
-                const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
+            const size_t pf_min = g * group_size_max;
+            const size_t pf_max = utils::min((g+1) * group_size_max, nfa);
+            const size_t gs_this = pf_max >= pf_min ? pf_max - pf_min : 0;
 
-                const size_t piG = perm(g, iG, nva);
-                const size_t pjG = perm(g, jG, nva);
-                const size_t pkG = perm(g, kG, nva);
+            const size_t piG = perm(g, iG, nva);
+            const size_t pjG = perm(g, jG, nva);
+            const size_t pkG = perm(g, kG, nva);
 
-                const size_t value_i = value_min + ( piG * value_max ) /
-                                                   (nva+value_min);
-                const size_t value_j = value_min + ( pjG * value_max ) /
-                                                   (nva+value_min);
-                const size_t value_k = value_min + ( pkG * value_max ) /
-                                                   (nva+value_min);
+            const size_t value_i = value_min + ( piG * value_max ) /
+                                               (nva+value_min);
+            const size_t value_j = value_min + ( pjG * value_max ) /
+                                               (nva+value_min);
+            const size_t value_k = value_min + ( pkG * value_max ) /
+                                               (nva+value_min);
 
-                const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
-                const GMBits2 bval_j = ((size_t)3) & (value_j - value_min);
-                const GMBits2 bval_k = ((size_t)3) & (value_k - value_min);
+            const GMBits2 bval_i = ((size_t)3) & (value_i - value_min);
+            const GMBits2 bval_j = ((size_t)3) & (value_j - value_min);
+            const GMBits2 bval_k = ((size_t)3) & (value_k - value_min);
 
-                const int bval_i_0 = !!(bval_i&1);
-                const int bval_i_1 = !!(bval_i&2);
-                const int bval_j_0 = !!(bval_j&1);
-                const int bval_j_1 = !!(bval_j&2);
-                const int bval_k_0 = !!(bval_k&1);
-                const int bval_k_1 = !!(bval_k&2);
+            const int bval_i_0 = !!(bval_i&1);
+            const int bval_i_1 = !!(bval_i&2);
+            const int bval_j_0 = !!(bval_j&1);
+            const int bval_j_1 = !!(bval_j&2);
+            const int bval_k_0 = !!(bval_k&1);
+            const int bval_k_1 = !!(bval_k&2);
 
 
-                const bool unk_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
-                const bool unk_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
-                const bool unk_k = env->sparse() && bval_k == GM_2BIT_UNKNOWN;
-                const bool unk_ijk = unk_i || unk_j || unk_k;
+            const bool unk_i = env->sparse() && bval_i == GM_2BIT_UNKNOWN;
+            const bool unk_j = env->sparse() && bval_j == GM_2BIT_UNKNOWN;
+            const bool unk_k = env->sparse() && bval_k == GM_2BIT_UNKNOWN;
+            const bool unk_ijk = unk_i || unk_j || unk_k;
 
-                if (! unk_i) {
-                  ci += gs_this;
-                  si += cbpe == 2 ?
-                    ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
-                    (bval_i_0 == iE) * gs_this;
-                }
+            if (! unk_i) {
+              ci += gs_this;
+              si += cbpe == 2 ?
+                ((bval_i_0 == iE) + (bval_i_1 == iE)) * gs_this :
+                (bval_i_0 == iE) * gs_this;
+            }
 
-                if (! unk_j) {
-                  cj += gs_this;
-                  sj += cbpe == 2 ?
-                    ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
-                    (bval_j_0 == jE) * gs_this;
-                }
+            if (! unk_j) {
+              cj += gs_this;
+              sj += cbpe == 2 ?
+                ((bval_j_0 == jE) + (bval_j_1 == jE)) * gs_this :
+                (bval_j_0 == jE) * gs_this;
+            }
 
-                if (! unk_k) {
-                  ck += gs_this;
-                  sk += cbpe == 2 ?
-                    ((bval_k_0 == kE) + (bval_k_1 == kE)) * gs_this :
-                    (bval_k_0 == kE) * gs_this;
-                }
+            if (! unk_k) {
+              ck += gs_this;
+              sk += cbpe == 2 ?
+                ((bval_k_0 == kE) + (bval_k_1 == kE)) * gs_this :
+                (bval_k_0 == kE) * gs_this;
+            }
 
-                if (! unk_ijk) {
-                  cijk += cbpe * cbpe * cbpe * gs_this;
-                  rijk += cbpe == 2 ?
-                          (((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
-                           ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
-                           ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
-                           ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
-                           ((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
-                           ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
-                           ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_1==kE))+
-                           ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_1==kE)))
-                         * gs_this :
-                         ((bval_i_0 == iE) && (bval_j_0 == jE) &&
-                          (bval_k_0 == kE)) * gs_this;
-                }
-              } //---g
+            if (! unk_ijk) {
+              cijk += cbpe * cbpe * cbpe * gs_this;
+              rijk += cbpe == 2 ?
+                      (((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
+                       ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_0==kE))+
+                       ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
+                       ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_0==kE))+
+                       ((bval_i_0==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
+                       ((bval_i_1==iE) && (bval_j_0==jE) && (bval_k_1==kE))+
+                       ((bval_i_0==iE) && (bval_j_1==jE) && (bval_k_1==kE))+
+                       ((bval_i_1==iE) && (bval_j_1==jE) && (bval_k_1==kE)))
+                     * gs_this :
+                     ((bval_i_0 == iE) && (bval_j_0 == jE) &&
+                      (bval_k_0 == kE)) * gs_this;
+            }
+          } //---g
 
-              double value_expected_floatcalc = 0;
-              if (!(ci == 0 || cj == 0 || ck == 0 || cijk == 0)) {
-                // FIX typing here
-                const double f_one = 1;
+          double value_expected_floatcalc = 0;
+          const bool is_zero_denom = ci == 0 || cj == 0 || ck == 0 || cijk == 0;
+          if (!is_zero_denom) {
+            // CHECK typing here
+            const double f_one = 1;
   
-                const double recip_ci = env->sparse() ? f_one/ci
-                                                      : metrics->recip_m;
-                const double recip_cj = env->sparse() ? f_one/cj
-                                                      : metrics->recip_m;
-                const double recip_ck = env->sparse() ? f_one/ck
-                                                      : metrics->recip_m;
+            const double recip_ci = env->sparse() ? f_one/ci
+                                                  : metrics->recip_m;
+            const double recip_cj = env->sparse() ? f_one/cj
+                                                  : metrics->recip_m;
+            const double recip_ck = env->sparse() ? f_one/ck
+                                                  : metrics->recip_m;
   
-                const double recip_sumcijk = env->sparse() ? f_one/cijk :
-                                               (f_one / 8) * metrics->recip_m;
+            const double recip_sumcijk = env->sparse() ? f_one/cijk :
+                                           (f_one / 8) * metrics->recip_m;
   
-                value_expected_floatcalc = cbpe == CBPE::CCC ?
-                  Metrics_ccc_duo_value<CBPE::CCC>(*metrics, rijk, si, sj, sk,
-                           recip_ci, recip_cj, recip_ck, recip_sumcijk, *env) :
-                  Metrics_ccc_duo_value<CBPE::DUO>(*metrics, rijk, si, sj, sk,
-                           recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
-              }
+            value_expected_floatcalc = cbpe == CBPE::CCC ?
+              Metrics_ccc_duo_value<CBPE::CCC>(*metrics, rijk, si, sj, sk,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, *env) :
+              Metrics_ccc_duo_value<CBPE::DUO>(*metrics, rijk, si, sj, sk,
+                       recip_ci, recip_cj, recip_ck, recip_sumcijk, *env);
+          } // is_zero_denom
 
-            const bool do_set_zero = env->threshold_tc() &&
-              !env->pass_threshold(value_expected_floatcalc);
+          const bool do_set_zero = env->threshold_tc() &&
+            !env->pass_threshold(value_expected_floatcalc);
 
-            GMFloat value_expected = do_set_zero ?
-              0e0 :value_expected_floatcalc;
+          GMFloat value_expected = do_set_zero ? 0. : value_expected_floatcalc;
 
 #if 0
 //#ifdef COMET_USE_INT128
-              if (env->are_ccc_params_default()) {
-              if (!(0 == ci || 0 == cj || 0 == ck || 0 == cijk)) {
-                value_expected = GMMetrics_ccc_value_nofp_3(metrics,
-                  rijk, si, sj, sk, ci, cj, ck, cijk, env); 
-              }
-              }
+         if (env->are_ccc_params_default()) {
+          if (!(0 == ci || 0 == cj || 0 == ck || 0 == cijk)) {
+            value_expected = GMMetrics_ccc_value_nofp_3(metrics,
+              rijk, si, sj, sk, ci, cj, ck, cijk, env); 
+          }
+          }
 #endif
 
-              const bool is_incorrect = value_expected != value;
-              if (is_incorrect) {
-                const double diff = fabs(value - value_expected);
-                max_incorrect_diff = diff > max_incorrect_diff ? diff : max_incorrect_diff;
-                if (num_incorrect < max_to_print) {
-                  fprintf(stderr, "Error: incorrect result detected.  coords %zu %zu %zu  %i %i %i  "
-                         "expected %.20e  actual %.20e  diff %.20e\n", iG, jG, kG, iE, jE, kE,
-                         (double)value_expected, (double)value,
-                         (double)value-(double)value_expected);
-                }
-              }
+          const bool is_incorrect = value_expected != value;
+          if (is_incorrect) {
+            const double diff = value - value_expected;
+            max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
+            if (num_incorrect < max_to_print)
+              fprintf(stderr, "Error: incorrect result detected.  "
+                     "coords %zu %zu %zu  %i %i %i  "
+                     "expected %.20e  actual %.20e  diff %.20e\n",
+                     iG, jG, kG, iE, jE, kE,
+                     (double)value_expected, (double)value, diff);
+          } // is_correct
 
-              num_incorrect += is_incorrect;
-//            } //---k
-//          } //---j
-//        } //---i
+          num_incorrect += is_incorrect;
         } // for entry_num
       } // for index
     } break;
@@ -847,8 +834,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
       COMET_INSIST(false && "Invalid data type.");
   } // switch
   do_->num_incorrect += num_incorrect;
-  do_->max_incorrect_diff = max_incorrect_diff > do_->max_incorrect_diff ?
-                            max_incorrect_diff : do_->max_incorrect_diff;
+  do_->max_incorrect_diff = utils::max(max_incorrect_diff,
+                                       do_->max_incorrect_diff);
 }
 
 //=============================================================================

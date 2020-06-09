@@ -1863,12 +1863,14 @@ void DriverTest_threshold_() {
         "--threshold %f "
         "--tc %i "
         "--compute_method %s "
+        "--metrics_shrink %f "
         "--verbosity 1 ";
 
     typedef comet::ComputeMethod CM;
     typedef comet::MetricType MT;
     typedef comet::TC TC;
 
+    for (double metrics_shrink : {1., .1})
     for (int num_way : {2, 3})
     //for (int num_way : {3})
     for (int metric_type : {MT::CCC, MT::DUO})
@@ -1880,9 +1882,10 @@ void DriverTest_threshold_() {
     for (int tc=1; tc<comet::TC::NUM; ++tc) {
     //for (int tc=1; tc<2; ++tc) {
       sprintf(options1, options_template, MT::str(metric_type),
-        num_proc_vector, num_way, threshold, TC::NO, CM::str(CM::REF));
+        num_proc_vector, num_way, threshold, TC::NO, CM::str(CM::REF), 1.);
       sprintf(options2, options_template, MT::str(metric_type),
-        num_proc_vector, num_way, threshold, tc, CM::str(compute_method));
+        num_proc_vector, num_way, threshold, tc, CM::str(compute_method),
+        metrics_shrink);
       test_2runs(options1, options2);
     } 
 } // DriverTest_tc_
@@ -2476,11 +2479,11 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
+#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
 
-#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2520,11 +2523,13 @@ TEST(DriverTest, czek2) {
 TEST(DriverTest, czek3) {
   DriverTest_czek3_();
 }
+#endif
 
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
 
+#if 1
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }

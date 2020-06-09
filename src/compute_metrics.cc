@@ -112,7 +112,7 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
                 env_.is_shrink()) &&
            "Failure to compute all requested metrics.");
 
-  // Compute global counts of compares.
+  // Compute counter values: compares.
 
   size_t num_metrics = 0;
 
@@ -125,6 +125,18 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
                     env_.num_entries_per_metric());
   env_.entrycompares_inc(metrics.num_field_active * num_metrics);
   env_.veccompares_inc(num_metrics);
+
+  // Compute counter values: shrink_achieved.
+
+  const double shrink_achieved_tmp = utils::min(env_.shrink_achieved(),
+    metrics.shrink_achieved_local());
+
+  double shrink_achieved = 0;
+
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&shrink_achieved_tmp, &shrink_achieved,
+    1, MPI_DOUBLE, MPI_MIN, env_.comm_repl_vector()));
+
+  env_.shrink_achieved_set(shrink_achieved);
 }
 
 //-----------------------------------------------------------------------------

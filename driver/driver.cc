@@ -251,6 +251,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i; // optionally processed by caller.
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
       ++i; // optionally processed by caller.
+    } else if (strcmp(argv[i], "--metrics_shrink") == 0) {
+      ++i; // optionally processed by caller.
     } else {
     //----------
       if (env->proc_num() == 0) {
@@ -337,6 +339,9 @@ void print_output(bool do_print,
         (cksum.num()-cksum.num_zero()) / cksum.num());
     }
   }
+
+  if (env.is_shrink())
+    printf(" shrink %e", env.shrink_achieved());
 
   printf(" vctime %.6f", vctime);
   printf(" mctime %.6f", mctime);

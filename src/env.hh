@@ -471,7 +471,7 @@ public:
     const size_t storage_per_metric_shrink = metric_size() +
       sizeof(MetricItemCoords_t) * num_entries_per_metric();
     return threshold_tc() &&
-      NumWay::_3 == num_way() && // FIX - implement 2-way
+      NumWay::_3 == num_way() && // FIX - TODO - implement 2-way
       storage_per_metric_shrink * metrics_shrink_ < storage_per_metric;
   }
 
@@ -493,7 +493,7 @@ public:
     return metric_size() / num_metric_items_per_metric();
   }
 
-  size_t shrink(size_t v) const {
+  size_t apply_shrink(size_t v) const {
     const double fuzz = 1.e-10;
     return is_shrink() ? (size_t)((v / metrics_shrink_) * (1.+fuzz)) : v;
   }
@@ -541,6 +541,8 @@ public:
   void metriccompares_inc(double n) {metriccompares_ += n;}
   void entrycompares_inc(double n) {entrycompares_ += n;}
   void veccompares_inc(double n) {veccompares_ += n;}
+  double shrink_achieved() const {return shrink_achieved_;}
+  void shrink_achieved_set(double v) {shrink_achieved_ = v;}
 
   //----------------------------------------
   // MPI comms
@@ -646,6 +648,7 @@ private:
   double metriccompares_;
   double entrycompares_;
   double veccompares_;
+  double shrink_achieved_;
 
   // MPI comms
   bool make_comms_;

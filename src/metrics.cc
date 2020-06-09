@@ -478,7 +478,7 @@ void GMMetrics_create(GMMetrics* metrics,
   metrics->data_elt_size = env->metric_item_size();
 
   metrics->num_metric_items_local_allocated =
-    env->shrink(metrics->num_metric_items_local);
+    env->apply_shrink(metrics->num_metric_items_local);
 
   const size_t data_size = metrics->num_metric_items_local_allocated *
     env->metric_item_size();

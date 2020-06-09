@@ -235,7 +235,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
       const int table_entry_value_max =
         env->metric_type() == MetricType::DUO ?
         1 : 1 << env->num_way();
-//FIX
+//FIX - make sure this is correct for all different methods, implementations.
       COMET_INSIST_INTERFACE(env,
                ((uint64_t)(table_entry_value_max * dm->num_field)) <
                        (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)

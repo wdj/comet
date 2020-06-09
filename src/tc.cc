@@ -334,7 +334,7 @@ void tc_bufs_malloc(int num_vector_local,
     COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_set_stream.");
 
-    //FIX - will this be needed?
+    //FIX - will this be needed for AMD gpu?
     //  status = cublasSetMathMode(tc_bufs.accelblas_handle,
     //                             CUBLAS_TENSOR_OP_MATH);
     //  COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&

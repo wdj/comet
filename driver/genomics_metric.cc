@@ -96,7 +96,7 @@ void bt_sighandler(int sig, struct sigcontext ctx) {
     fprintf(stdout,"MPI rank %i: stack trace for %s pid=%s\n",
             proc_num, name_buf, pid_buf);
 
-    //FIX
+    //this needs work
     //char cmd[512];
     //sprintf(cmd, "gdb --batch -n -ex thread -ex bt %s %s 2>&1"
     //             " | grep '^#' | sed -e 's/^/MPI rank %i: /'",
@@ -496,7 +496,8 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
   char options[1024];
   sprintf(options, options_template, ranks_in_node);
 
-  int num_trial = 1; //FIX 3;
+  //int num_trial = 3; // ISSUE: how many needed
+  int num_trial = 1;
   double max_time = 0.;
 
   for (int trial=0; trial<num_trial; ++trial) {

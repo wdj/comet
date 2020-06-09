@@ -120,9 +120,6 @@ struct GMMetrics {
   void* __restrict__ data;
   void* __restrict__ data_S;
   void* __restrict__ data_C;
-//  size_t data_size;
-//  size_t data_S_size;
-//  size_t data_C_size;
   size_t data_elt_size;
   size_t data_S_elt_size;
   size_t data_C_elt_size;
@@ -137,6 +134,11 @@ struct GMMetrics {
   size_t num_metric_items_local_computed;
   void num_metric_items_local_computed_inc(size_t n) {
     num_metric_items_local_computed += n;
+  }
+  double shrink_achieved_local() const {
+    double fuzz = 1;
+    return num_metric_items_local == num_metric_items_local_computed ? 1 :
+      num_metric_items_local / (num_metric_items_local_computed + fuzz);
   }
   // Other.
   int data_type_id;

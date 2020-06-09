@@ -345,13 +345,38 @@ static FloatResult_t Metrics_ccc_duo_get_3(
 }
 
 //-----------------------------------------------------------------------------
+
+template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
+static FloatResult_t Metrics_ccc_duo_get_3(
+  GMMetrics& metrics, size_t index, int entry_num, CEnv& env) {
+
+  if (env.is_shrink()) {
+    COMET_ASSERT(0 == entry_num);
+    typedef MetricFormatTraits<MetricFormat::SINGLE>::TypeIn TypeIn;
+    return (FloatResult_t)Metrics_elt_const<TypeIn>(metrics, index, env);
+  }
+
+  COMET_ASSERT(0 <= entry_num && entry_num < (1 << env.num_way()));
+  const int iE = entry_num / 4;
+  const int jE = (entry_num / 2) % 2;;
+  const int kE = entry_num % 2;;
+
+  return MetricsIndexCCCDUO3Helper<CBPE, FloatResult_t>::impl( 
+    metrics, index, iE, jE, kE, env);
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Templatized Check if any table value may exceed threshold.
 
 template<int COUNTED_BITS_PER_ELT>
-static bool Metrics_ccc_duo_get_threshold_3(
+static bool Metrics_ccc_duo_threshold_detect_3(
   GMMetrics& metrics, const size_t index, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);
+
+  // if is_shrink, assume a threhold pass my exist, don't take time to check.
+  if (env.is_shrink())
+    return true;
 
   if (env.threshold_tc()) {
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;

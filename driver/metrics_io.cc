@@ -161,45 +161,39 @@ static void MetricsIO_write_tally2x2_bin_impl_(
     do_out_buf[i] = 0;
 
   // Process num_buf_ind index values at a time
-  for (size_t ind_base = 0; ind_base < metrics->num_metrics_local;
+  for (size_t ind_base = 0; ind_base < metrics->num_metric_items_local_computed;
        ind_base += num_buf_ind) {
     // Largest index value to visit for this loop trip.
-    const size_t ind_max = utils::min(metrics->num_metrics_local,
+    const size_t ind_max = utils::min(metrics->num_metric_items_local_computed,
                                       ind_base + num_buf_ind);
 
     // Fill buffer
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
-      // Do any of the values exceed the threshold
-      if (Metrics_ccc_duo_get_threshold_2<COUNTED_BITS_PER_ELT>(
+      // Fast check to skip metrics with no passes.
+      if (Metrics_ccc_duo_threshold_detect_2<COUNTED_BITS_PER_ELT>(
             *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
         for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
-//        for (int iE = 0; iE < 2; ++iE) {
-//          for (int jE = 0; jE < 2; ++jE) {
-            const GMFloat value =
-              Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
-               iE, jE, *env);
-            if (env->pass_threshold(value)) {
-              const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
-              const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
-//              const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-//              const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
-              const char do_out = iG < metrics->num_vector_active &&
-                                  jG < metrics->num_vector_active;
-              const size_t ind_buf = jE + 2*(iE + 2*(index-ind_base));
-              COMET_ASSERT(ind_buf < num_buf);
-              do_out_buf[ind_buf] = do_out;
-              iG_buf[ind_buf] = iG;
-              jG_buf[ind_buf] = jG;
-              ijE_buf[ind_buf] = iE + 2*jE;
-              value_buf[ind_buf] = value;
-            } // if
-//          } // jE
-//        } // iE
+          const GMFloat value =
+            Metrics_ccc_duo_get_2<COUNTED_BITS_PER_ELT>( *metrics, index,
+             iE, jE, *env);
+          if (env->pass_threshold(value)) {
+            const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+            const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+            const char do_out = iG < metrics->num_vector_active &&
+                                jG < metrics->num_vector_active;
+            const size_t ind_buf = jE + 2*(iE + 2*(index-ind_base));
+            COMET_ASSERT(ind_buf < num_buf);
+            do_out_buf[ind_buf] = do_out;
+            iG_buf[ind_buf] = iG;
+            jG_buf[ind_buf] = jG;
+            ijE_buf[ind_buf] = iE + 2*jE;
+            value_buf[ind_buf] = value;
+          } // if
         } // for entry_num
       } // if
     } // pragma omp / for index
@@ -294,18 +288,16 @@ static void MetricsIO_write_tally4x2_bin_impl_(
     do_out_buf[i] = 0;
 
   // Process num_buf_ind index values at a time
-  for (size_t ind_base = 0; ind_base < metrics->num_metrics_local;
+  for (size_t ind_base = 0; ind_base < metrics->num_metric_items_local_computed;
        ind_base += num_buf_ind) {
-    const size_t ind_max = utils::min(metrics->num_metrics_local,
-                                     ind_base + num_buf_ind);
+    // Largest index value to visit for this loop trip.
+    const size_t ind_max = utils::min(metrics->num_metric_items_local_computed,
+                                      ind_base + num_buf_ind);
     // Fill buffer
-// FIX
-// FIX this to work with is_shrink case !!!
-// FIX
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
-      // Do any of the values exceed the threshold
-      if (Metrics_ccc_duo_get_threshold_3<COUNTED_BITS_PER_ELT>(
+      // Fast check to skip metrics with no passes.
+      if (Metrics_ccc_duo_threshold_detect_3<COUNTED_BITS_PER_ELT>(
              *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
         for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
@@ -313,32 +305,23 @@ static void MetricsIO_write_tally4x2_bin_impl_(
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
           const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
-//        for (int iE = 0; iE < 2; ++iE) {
-//          for (int jE = 0; jE < 2; ++jE) {
-//            for (int kE = 0; kE < 2; ++kE) {
-              const GMFloat value = Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
-                  *metrics, index, iE, jE, kE, *env);
-              if (env->pass_threshold(value)) {
-//                const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-//                const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
-//                const size_t kG = Metrics_coords_getG(*metrics, index, 2, *env);
-                const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
-                const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
-                const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
-                const char do_out = iG < metrics->num_vector_active &&
-                                    jG < metrics->num_vector_active &&
-                                    kG < metrics->num_vector_active;
-                const size_t ind_buf = jE + 2*(iE + 2*(kE +2*(index-ind_base)));
-                do_out_buf[ind_buf] = do_out;
-                iG_buf[ind_buf] = iG;
-                jG_buf[ind_buf] = jG;
-                kG_buf[ind_buf] = kG;
-                ijkE_buf[ind_buf] = iE + 2*(jE + 2*kE);
-                value_buf[ind_buf] = value;
-              } // if
-//            } // kE
-//          } // jE
-//        } // iE
+          const GMFloat value = Metrics_ccc_duo_get_3<COUNTED_BITS_PER_ELT>(
+              *metrics, index, iE, jE, kE, *env);
+          if (env->pass_threshold(value)) {
+            const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
+            const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
+            const size_t kG = CoordsInfo::getkG(coords, *metrics, *env);
+            const char do_out = iG < metrics->num_vector_active &&
+                                jG < metrics->num_vector_active &&
+                                kG < metrics->num_vector_active;
+            const size_t ind_buf = jE + 2*(iE + 2*(kE +2*(index-ind_base)));
+            do_out_buf[ind_buf] = do_out;
+            iG_buf[ind_buf] = iG;
+            jG_buf[ind_buf] = jG;
+            kG_buf[ind_buf] = kG;
+            ijkE_buf[ind_buf] = iE + 2*(jE + 2*kE);
+            value_buf[ind_buf] = value;
+          } // if
         } // for entry_num
       } // if
     } // paragma opm / for index
@@ -478,6 +461,8 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NumWay::_2);
     COMET_INSIST(env->is_metric_type_bitwise());
 
+    // Special code to handle this faster.
+
     MetricsIO_write_tally2x2_bin_(metrics, file, num_written_, env);
 
   //----------
@@ -503,24 +488,23 @@ static void MetricsIO_write_(
            ++entry_num) {
         const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
         const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
-//      for (int iE = 0; iE < 2; ++iE) {
-//        for (int jE = 0; jE < 2; ++jE) {
-          const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
-            index, iE, jE, *env);
-          if (!env->pass_threshold(value))
-            continue;
 
-          // Output the value.
+        //const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
+        //  index, iE, jE, *env);
+        const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
+          index, entry_num, *env);
+        if (!env->pass_threshold(value))
+          continue;
 
-          if (num_out_this_line == 0)
-            fprintf(file, "element (%li,%li): values:", iG, jG);
+        // Output the value.
 
-          fprintf(file, " %i %i %.17e", iE, jE, value);
+        if (num_out_this_line == 0)
+          fprintf(file, "element (%li,%li): values:", iG, jG);
 
-          num_out_this_line++;
+        fprintf(file, " %i %i %.17e", iE, jE, value);
 
-//        } // jE
-//      } // iE
+        num_out_this_line++;
+
       } // for entry_num
       if (num_out_this_line > 0)
         fprintf(file, "\n");
@@ -534,6 +518,8 @@ static void MetricsIO_write_(
   //----------
     COMET_INSIST(env->num_way() == NumWay::_3);
     COMET_INSIST(env->is_metric_type_bitwise());
+
+    // Special code to handle this faster.
 
     MetricsIO_write_tally4x2_bin_(metrics, file, num_written_, env);
 
@@ -561,30 +547,24 @@ static void MetricsIO_write_(
         const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
         const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
         const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
-//      for (int iE = 0; iE < 2; ++iE) {
-//        for (int jE = 0; jE < 2; ++jE) {
-//          for (int kE = 0; kE < 2; ++kE) {
-// FIX
-// FIX this to work with is_shrink case !!!
-// FIX
-            const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
-              index, iE, jE, kE, *env);
-            if (!env->pass_threshold(value))
-              continue;
 
-            // Output the value.
+        //const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
+        //  index, iE, jE, kE, *env);
+        const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
+          index, entry_num, *env);
+        if (!env->pass_threshold(value))
+          continue;
 
-            if (num_out_this_line == 0)
-              fprintf(file, "element (%li,%li,%li): values:",
-                iG, jG, kG);
+        // Output the value.
 
-            fprintf(file, " %i %i %i %.17e", iE, jE, kE, value);
+        if (num_out_this_line == 0)
+          fprintf(file, "element (%li,%li,%li): values:",
+            iG, jG, kG);
 
-            num_out_this_line++;
+        fprintf(file, " %i %i %i %.17e", iE, jE, kE, value);
 
-//          } // kE
-//        } // jE
-//      } // iE
+        num_out_this_line++;
+
       } // for entry_num
       if (num_out_this_line > 0)
         fprintf(file, "\n");
@@ -701,7 +681,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const int jE = metric.jE(env_);
 
       const Float_t metric_value = env_.is_shrink() ?
-        (Float_t)GMMetrics_get_2(metrics, index, iE, jE, env_) :
+        (Float_t)Metrics_ccc_duo_get_2(metrics, index, 0, env_) :
         (Float_t)GMMetrics_get_2(metrics, iG, jG, iE, jE, env_);
 
       bool do_coords_match = true;
@@ -717,15 +697,10 @@ void MetricsIO::check_file(GMMetrics& metrics) {
                               do_coords_match;
       num_incorrect += !is_correct;
 
-      if (num_incorrect < 10 && !is_correct) {
+      if (num_incorrect < 10 && !is_correct)
         fprintf(stderr, "Incorrect metric value: "
           "element %zu %zu actual %.17e expected %.17e\n",
           iG, jG, (double)metric_value, (double)metric.value);
-
-        fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu actual %.17e expected %.17e\n",
-          iG, jG, (double)metric_value, (double)metric.value);
-      }
 
     } else { // if (env_.num_way() == NumWay::_3)
 
@@ -740,11 +715,8 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const int jE = metric.jE(env_);
       const int kE = metric.kE(env_);
 
-// FIX
-// FIX this to work with is_shrink case !!!
-// FIX
       const Float_t metric_value = env_.is_shrink() ?
-        (Float_t)GMMetrics_get_3(metrics, index, iE, jE, kE, env_) :
+        (Float_t)Metrics_ccc_duo_get_3(metrics, index, 0, env_) :
         (Float_t)GMMetrics_get_3(metrics, iG, jG, kG, iE, jE, kE, env_);
 
       bool do_coords_match = true;
@@ -761,11 +733,10 @@ void MetricsIO::check_file(GMMetrics& metrics) {
                               do_coords_match;
       num_incorrect += !is_correct;
 
-      if (!is_correct && num_incorrect < 10) {
+      if (!is_correct && num_incorrect < 10)
         fprintf(stderr, "Incorrect metric value: "
           "element %zu %zu %zu actual %.17e expected %.17e\n",
           iG, jG, kG, (double)metric_value, (double)metric.value);
-      }
 
     } // if (env_.num_way() == NumWay::_2)
 
@@ -780,27 +751,30 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   if (env_.num_way() == NumWay::_2) {
 
-    for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
+    for (size_t index = 0; index <  metrics.num_metric_items_local_computed;
+         ++index) {
       const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
       const size_t jG = Metrics_coords_getG(metrics, index, 1, env_);
       if (iG >= metrics.num_vector_active ||
           jG >= metrics.num_vector_active)
         continue;
-      for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
-        for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
-          const MetricIO::Float_t metric_value =
-            (MetricIO::Float_t)GMMetrics_get_2(metrics, index, iE, jE, env_);
-          num_passed += env_.pass_threshold(metric_value);
+      if (env_.is_shrink()) {
+        num_passed += 1;
+      } else {
+        for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
+          for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
+            const MetricIO::Float_t metric_value =
+              (MetricIO::Float_t)GMMetrics_get_2(metrics, index, iE, jE, env_);
+            num_passed += env_.pass_threshold(metric_value);
+          }
         }
-      }
-    }
+      } // if is_shrink
+    } // for index
 
   } else { // if (env_.num_way() == NumWay::_3)
 
-// FIX
-// FIX this to work with is_shrink case !!!
-// FIX
-    for (size_t index = 0; index <  metrics.num_metrics_local; ++index) {
+    for (size_t index = 0; index <  metrics.num_metric_items_local_computed;
+         ++index) {
       const size_t iG = Metrics_coords_getG(metrics, index, 0, env_);
       const size_t jG = Metrics_coords_getG(metrics, index, 1, env_);
       const size_t kG = Metrics_coords_getG(metrics, index, 2, env_);
@@ -808,16 +782,20 @@ void MetricsIO::check_file(GMMetrics& metrics) {
           jG >= metrics.num_vector_active ||
           kG >= metrics.num_vector_active)
         continue;
-      for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
-        for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
-          for (int kE = 0; kE < env_.ijkE_max(); ++kE) {
-            const GMFloat metric_value =
-              GMMetrics_get_3(metrics, index, iE, jE, kE, env_);
-            num_passed += env_.pass_threshold(metric_value);
+      if (env_.is_shrink()) {
+        num_passed += 1;
+      } else {
+        for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
+          for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
+            for (int kE = 0; kE < env_.ijkE_max(); ++kE) {
+              const GMFloat metric_value =
+                GMMetrics_get_3(metrics, index, iE, jE, kE, env_);
+              num_passed += env_.pass_threshold(metric_value);
+            }
           }
         }
-      }
-    }
+      } // if is_shrink
+    } // for index
 
   } // if (env_.num_way() == NumWay::_2)
 
