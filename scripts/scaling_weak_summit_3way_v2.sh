@@ -125,6 +125,7 @@ num_proc=$(( $num_proc_vector * $num_proc_field * $num_proc_repl ))
 
 if [ "$metric_type" != czekanowski ] ; then
   num_field_local=$(( 100000 * $num_tc_steps ))
+  ##num_field_local=$(( 10000 * $num_tc_steps ))
   #num_field_local=$(( 98304 * $num_tc_steps ))
   #num_field_local=$(( 2 * 98304 * $num_tc_steps ))
   #num_field_local=$(( 200000 * $num_tc_steps ))
@@ -132,6 +133,7 @@ if [ "$metric_type" != czekanowski ] ; then
   #num_field_local=$(( 5 * 16384 * $num_tc_steps ))
   #num_field_local=$(( 98304 * $num_tc_steps ))
   num_vector_local=$(( 992 * 6 ))
+  ##num_vector_local=$(( 596 * 6 ))
   num_stage=$(( 992 / 4 ))
 elif [ "$single" = 1 ] ; then
   num_field_local=$(( 7500 * $num_tc_steps ))
@@ -173,7 +175,11 @@ else
 fi
 
 if [ "$metric_type" != czekanowski ] ; then
-  executable=$executable_double
+  if [ "$single" = 1 ] ; then
+    executable=$executable_single
+  else
+    executable=$executable_double
+  fi
   [[ "$sparse" == yes ]] && tag=${metric_type}_sparse || tag=${metric_type}_nonsparse
 elif [ "$single" = 1 ] ; then
   executable=$executable_single
@@ -196,11 +202,16 @@ outfile=${out_stub}_log.txt
 
 #ar_opts="PAMI_IBV_ENABLE_DCT=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ADAPTER_AFFINITY=0 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_OOO_AR=1"
 ar_opts="PAMI_IBV_DEVICE_NAME=mlx5_0:1,mlx5_3:1 PAMI_IBV_DEVICE_NAME_1=mlx5_3:1,mlx5_0:1 PAMI_IBV_ADAPTER_AFFINITY=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ENABLE_OOO_AR=1 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_DCT=1"
-launch_command="env OMP_NUM_THREADS=7 $ar_opts jsrun --nrs $(( $num_node_launch * $ranks_per_node )) --bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 --rs_per_host $ranks_per_node --tasks_per_rs 1 -X 1"
+launch_command="env OMP_NUM_THREADS=7 $ar_opts jsrun --smpiargs=-gpu --nrs $(( $num_node_launch * $ranks_per_node )) --bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 --rs_per_host $ranks_per_node --tasks_per_rs 1 -X 1"
 
 #------------------------------------------------------------------------------
 
 [[ $num_node_solve == $num_node_launch ]] &&  fastnodes_arg="" || fastnodes_arg="--fastnodes"
+
+fastnodes_arg="" #FIX
+
+threshold=.6
+metrics_shrink=10
 
 # Command to execute, with options
 
@@ -220,8 +231,9 @@ if [ $metric_type != czekanowski ] ; then
     --num_proc_repl $num_proc_repl \
     --num_phase $num_phase --phase_min $phase_min --phase_max $phase_max \
     --num_stage $num_stage --stage_min $(( $num_stage - 1 )) \
-    --threshold .1 \
+    --threshold $threshold \
     --verbosity 1 $fastnodes_arg \
+    --metrics_shrink $metrics_shrink \
     --tc $tc --num_tc_steps $num_tc_steps "
 else
   exec_command="$launch_command $executable \

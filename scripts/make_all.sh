@@ -46,6 +46,7 @@ function main
 
   if [ -z "${1:-}" ] ; then
     local DIRS="$(ls -d build_*_$COMET_PLATFORM_STUB)"
+    #local DIRS="$(ls -d build_single_release_$COMET_PLATFORM_STUB)"
   else
     # Build only versions needed for debugging work.
     if [ $COMET_CAN_USE_MPI = ON ] ; then

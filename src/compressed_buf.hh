@@ -172,6 +172,8 @@ public:
   int iE_recent() const {return reader_.iE_recent;}
   int jE_recent() const {return reader_.jE_recent;}
 
+  bool do_compress() const {return do_compress_;}
+
 private:
 
   CEnv& env_;

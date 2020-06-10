@@ -309,6 +309,8 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
     const int is_halved = env.is_vectors_halved();
     const int num_halves = is_halved ? 2 : 1;
 
+    matB_buf->elt_read_start();
+
     if (env.is_shrink()) {
 
       // NOTE: this may be a slight overestimate of the amount of mem needed.
@@ -320,8 +322,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
                    "please decrease metrics_shrink.");
 
       const int i_block = env.proc_num_vector();
-
-      matB_buf->elt_read_start();
 
       for (size_t ind_entry = 0; ind_entry < matB_buf->num_entries();
            ++ind_entry) {
@@ -388,7 +388,8 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
-      #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000)
+      #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000) if (!matB_buf->do_compress())
+// if(!env.threshold_tc())
       for (int K = K_min; K < K_max; ++K) {
 
         for (int half_num = 0; half_num < num_halves; ++half_num) {

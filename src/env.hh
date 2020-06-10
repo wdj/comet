@@ -446,6 +446,8 @@ public:
           is_bitwise_3way_2step();
   }
 
+  bool try_compress() const {return true;}
+
   int metric_format() const {return threshold_tc() ?
     MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
 
@@ -472,7 +474,7 @@ public:
       sizeof(MetricItemCoords_t) * num_entries_per_metric();
     return threshold_tc() &&
       NumWay::_3 == num_way() && // FIX - TODO - implement 2-way
-      storage_per_metric_shrink * metrics_shrink_ < storage_per_metric;
+      storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
   }
 
   //size_t metric_entry_size() const {

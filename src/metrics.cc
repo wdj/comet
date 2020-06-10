@@ -846,7 +846,8 @@ void GMMetrics_create(GMMetrics* metrics,
                  num_elts);
 
   COMET_INSIST(env->all2all() ||
-    utils::nchoosek(metrics->num_vector_local, env->num_way()) == num_elts);
+    utils::nchoosek(metrics->num_vector_local, env->num_way()) ==
+                    metrics->num_metrics_local);
 }
 
 //=============================================================================

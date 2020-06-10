@@ -338,16 +338,16 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 
       const GMTally1 sJ = indT_J == 0 ? CBPE * cJ - sJ1 : sJ1;
 
-      const MFTypeIn rij = values_this[indT_J];
+      const auto rij = (GMTally1)values_this[indT_J];
 
-      const double metric_value =
-        0 == cI || 0 == cJ || 0 == cij ? 0e0 :
+      const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cij;
+      const double metric_value = is_zero_denom ? 0e0 :
         ccc_duo_value<CBPE, double>(
-          (GMTally1)rij, sI, sJ, recip_cI, recip_cJ,
+          rij, sI, sJ, recip_cI, recip_cJ,
           recip_sumcij, multiplier, param);
 
-      const bool pass_threshold = CEnv::pass_threshold(metric_value,
-                                                       threshold_eff);
+      const bool pass_threshold = CEnv::pass_threshold(
+        (double)(MFTypeIn)metric_value, threshold_eff);
 
       values_this[indT_J] = pass_threshold ? (MFTypeIn)metric_value :
                                              (MFTypeIn)0;
@@ -460,16 +460,16 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 
         const GMTally1 sK = indT_K == 0 ? CBPE * cK - sK1 : sK1;
 
-        const MFTypeIn rijk = values_this[indT_K];
+        const auto rijk = (GMTally1)values_this[indT_K];
 
-        const double metric_value =
-          0 == cI || 0 == cJ || 0 == cK || 0 == cijk ? 0e0 :
+        const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cK || 0 == cijk;
+        const double metric_value = is_zero_denom ? 0e0 :
           ccc_duo_value<CBPE, double>(
-            (GMTally1)rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
+            rijk, sI, sJ, sK, recip_cI, recip_cJ, recip_cK,
             recip_sumcijk, multiplier, param);
 
-        const bool pass_threshold = CEnv::pass_threshold(metric_value,
-                                                         threshold_eff);
+        const bool pass_threshold = CEnv::pass_threshold(
+          (double)(MFTypeIn)metric_value, threshold_eff);
 
         values_this[indT_K] = pass_threshold ? (MFTypeIn)metric_value :
                                                (MFTypeIn)0;

@@ -169,7 +169,8 @@ void CompressedBuf::compress() {
   const size_t storage_uncompressed = buf_length_() * sizeof(MFTTypeIn);
 
   do_compress_ = estimated_storage_compressed <
-    compression_factor_required_() * storage_uncompressed;
+    compression_factor_required_() * storage_uncompressed &&
+    env_.try_compress();
 
   if (do_compress_) {
 
@@ -268,6 +269,16 @@ void CompressedBuf::from_accel_wait() {
         num_entries_ += lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
     } // i
 //printf("%i\n", (int)num_entries_);
+
+#if 0
+double mysum = 0;
+    for (size_t i = 0; i < num_runs_; ++i) {
+mysum += 
+keys_alias_buf_.elt_const<MFTTypeIn>(i, 0)
+* lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
+    } // i
+printf("%.20e\n", mysum);
+#endif
 
     elt_read_start();
 
