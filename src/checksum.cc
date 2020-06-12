@@ -168,15 +168,15 @@ double Checksum::metrics_elt(
   COMET_INSIST(index < metrics.num_metric_items_local_allocated); // && index >= 0
   COMET_INSIST(entry_num >= 0 && entry_num < env.num_entries_per_metric_item());
 
-  // Obtain global coords of metrics elt
-  size_t coords[NumWay::MAX];
-  size_t coords_perm[NumWay::MAX];
-  int iperm[NumWay::MAX];
-  for (int i = 0; i < env.num_way(); ++i) {
-    coords[i] = Metrics_coords_getG(metrics, index, i, env);
-    coords_perm[i] = coords[i];
-    iperm[i] = i;
-  }
+//  // Obtain global coords of metrics elt
+//  size_t coords[NumWay::MAX];
+//  size_t coord_perm[NumWay::MAX];
+//  int iperm[NumWay::MAX];
+//  for (int i = 0; i < env.num_way(); ++i) {
+//    coords[i] = Metrics_coords_getG(metrics, index, i, env);
+//    coord_perm[i] = coords[i];
+//    iperm[i] = i;
+//  }
   // Reflect coords by symmetry to get uniform result -
   //   sort into descending order
   //
@@ -187,11 +187,13 @@ double Checksum::metrics_elt(
   // so that this is not viewed as a difference in the results.
   // Note also below we will permute iE / jE / kE as needed.
 
-  if (env.num_way() == NumWay::_2)
-    sort2(coords_perm[0], coords_perm[1], iperm[0], iperm[1]);
-  else
-    sort3(coords_perm[0], coords_perm[1], coords_perm[2],
-          iperm[0], iperm[1], iperm[2]);
+//if(0){
+//  if (env.num_way() == NumWay::_2)
+//    sort2(coord_perm[0], coord_perm[1], iperm[0], iperm[1]);
+//  else
+//    sort3(coord_perm[0], coord_perm[1], coord_perm[2],
+//          iperm[0], iperm[1], iperm[2]);
+//}
 
   // Pick up value of this metrics elt
   double value = 0;
@@ -202,33 +204,35 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
-      // TODO: check
-      const int iE = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
-      const int jE = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
-      const int iE_perm = iperm[0] == 0 ? iE : jE;
-      const int jE_perm = iperm[0] == 0 ? jE : iE;
-      value = Metrics_ccc_duo_get_2(metrics, index, iE_perm, jE_perm, env);
+//      // TODO: check
+//      const int iE = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
+//      const int jE = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
+//      const int iE_perm = iperm[0] == 0 ? iE : jE;
+//      const int jE_perm = iperm[0] == 0 ? jE : iE;
+//      value = Metrics_ccc_duo_get_2(metrics, index, iE_perm, jE_perm, env);
+      value = Metrics_ccc_duo_get_2(metrics, index, entry_num, env);
       // ensure result independent of threshold_tc
       if (!env.is_double_prec())
         value = (double)(float)value;
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
-      // TODO: check
-      const int iE = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
-      const int jE = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
-      const int kE = CoordsInfo::getkE(coords[2], entry_num, metrics, env);
-      const int iE_perm = iperm[0] == 0 ? iE :
-                          iperm[1] == 0 ? jE :
-                                          kE;
-      const int jE_perm = iperm[0] == 1 ? iE :
-                          iperm[1] == 1 ? jE :
-                                          kE;
-      const int kE_perm = iperm[0] == 2 ? iE :
-                          iperm[1] == 2 ? jE :
-                                          kE;
-      value = Metrics_ccc_duo_get_3(metrics, index, iE_perm, jE_perm, kE_perm,
-                                    env);
+//      // TODO: check
+//      const int iE = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
+//      const int jE = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
+//      const int kE = CoordsInfo::getkE(coords[2], entry_num, metrics, env);
+//      const int iE_perm = iperm[0] == 0 ? iE :
+//                          iperm[1] == 0 ? jE :
+//                                          kE;
+//      const int jE_perm = iperm[0] == 1 ? iE :
+//                          iperm[1] == 1 ? jE :
+//                                          kE;
+//      const int kE_perm = iperm[0] == 2 ? iE :
+//                          iperm[1] == 2 ? jE :
+//                                          kE;
+//      value = Metrics_ccc_duo_get_3(metrics, index, iE_perm, jE_perm, kE_perm,
+//                                    env);
+      value = Metrics_ccc_duo_get_3(metrics, index, entry_num, env);
       // ensure result independent of threshold_tc
       if (!env.is_double_prec())
         value = (double)(float)value;
@@ -375,6 +379,16 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   double num = 0;
   double num_zero = 0;
 
+#if 0
+printf("%i %zu %zu %zu\n"
+, env.compute_method()
+, metrics.num_metric_items_local_computed
+, (size_t)metrics.num_vector_active
+, (size_t)metrics.dm->num_vector_active_local
+);
+fflush(stdout);
+#endif
+
   #pragma omp parallel
   {
     MultiprecInt sum_local_private; // = 0
@@ -389,45 +403,98 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
       for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
            ++entry_num) {
 
+        const MetricItemCoords_t coords = metrics.coords_value(index);
+        const bool is_active = CoordsInfo::is_active(coords, metrics, env);
+
         // Obtain global coords of metrics elt
-        size_t coords_perm[NumWay::MAX] = {0};
+        size_t coord_perm[NumWay::MAX] = {0};
         int iperm[NumWay::MAX] = {0};
-        bool is_active = true;
+
         for (int i = 0; i < env.num_way(); ++i) {
           const size_t coord = Metrics_coords_getG(metrics, index, i, env);
-          // Ignore padding vectors.
-          is_active = is_active && coord < metrics.num_vector_active;
-          coords_perm[i] = coord;
+          coord_perm[i] = coord;
           iperm[i] = i;
         }
 
         // Pick up value of this metrics elt
         const double value = Checksum::metrics_elt(metrics, index, entry_num,
                                                    env);
+
         num_private += true && is_active;
         num_zero_private += (double)0 == value && is_active;
 
         if (env.num_way() == NumWay::_2)
-          sort2(coords_perm[0], coords_perm[1], iperm[0], iperm[1]);
+          sort2(coord_perm[0], coord_perm[1], iperm[0], iperm[1]);
         else
-          sort3(coords_perm[0], coords_perm[1], coords_perm[2],
+          sort3(coord_perm[0], coord_perm[1], coord_perm[2],
                 iperm[0], iperm[1], iperm[2]);
 
         // Get elt_num that is uniform independeont of is_shrink().
 
-        const MetricItemCoords_t coords = metrics.coords_value(index);
-
-        size_t ijkE_perm[NumWay::MAX] = {0};
+        int ijkE_perm[NumWay::MAX] = {0};
         for (int i = 0; i < env.num_way(); ++i) {
-          ijkE_perm[iperm[i]] =
-            CoordsInfo::getE(coords, i, entry_num, metrics, env);
-        }
+//          ijkE_perm[iperm[i]] =
+//            CoordsInfo::getE(coords, i, entry_num, metrics, env);
+          ijkE_perm[i] =
+            CoordsInfo::getE(coords, iperm[i], entry_num, metrics, env);
+       }
 
-        const int entry_num_noshrink = !env.is_shrink() ? entry_num :
+        //const int entry_num_perm = !env.is_shrink() ? entry_num :
+        const int entry_num_perm =
+// !env.is_shrink() ? entry_num :
           NumWay::_2 == env.num_way() ?
             ijkE_perm[1] + 2 * ijkE_perm[0] :
         //NumWay::_3 == env.num_way() ?
-            ijkE_perm[2] + 2 * (ijkE_perm[1] + 2 * ijkE_perm[0]);
+           ijkE_perm[2] + 2 * (ijkE_perm[1] + 2 * ijkE_perm[0]);
+
+#if 0
+if (coord_perm[0] == 12 && coord_perm[1] == 10 && coord_perm[2] == 0)
+//if (env.compute_method() == ComputeMethod::REF)
+if (is_active)
+printf("%zu %zu %zu  %zu %zu %zu  %i %i %i  %i %i %i  %i %.20f  %i  %zu %i\n",
+ coord_perm[0],
+ coord_perm[1],
+ coord_perm[2],
+ CoordsInfo::getG(coords, 0, metrics, env),
+ CoordsInfo::getG(coords, 1, metrics, env),
+ CoordsInfo::getG(coords, 2, metrics, env),
+ ijkE_perm[0],
+ ijkE_perm[1],
+ ijkE_perm[2],
+ CoordsInfo::getE(coords, 0, entry_num, metrics, env),
+ CoordsInfo::getE(coords, 1, entry_num, metrics, env),
+ CoordsInfo::getE(coords, 2, entry_num, metrics, env),
+ //metrics.num_metric_items_local_computed,
+ entry_num_perm,
+ (double)value,
+ env.proc_num(),
+ index, env.compute_method()
+);
+fflush(stdout);
+#endif
+
+#if 0
+if( Metrics_coords_getG(metrics, index, 0, env)==0 &&
+ Metrics_coords_getG(metrics, index, 1, env)==1 &&
+ Metrics_coords_getG(metrics, index, 2, env)==5)
+//if(value)
+printf("DEBUG %zu %zu %zu   %i %i %i  %.20e  %i   %i  %zu\n"
+, Metrics_coords_getG(metrics, index, 0, env)
+, Metrics_coords_getG(metrics, index, 1, env)
+, Metrics_coords_getG(metrics, index, 2, env)
+, CoordsInfo::getE(coords, 0, entry_num, metrics, env)
+, CoordsInfo::getE(coords, 1, entry_num, metrics, env)
+, CoordsInfo::getE(coords, 2, entry_num, metrics, env)
+//, ijkE_perm[0]
+//, ijkE_perm[1]
+//, ijkE_perm[2]
+, value
+, env.proc_num()
+, entry_num
+, index
+);
+#endif
+
 
         // Convert to uint64.  Store only 2*w+1 bits, at most -
         // if (value / scaling) <= 1, which it should be if
@@ -440,12 +507,12 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         UI64_t ivalue = (UI64_t)( (value / scaling) * (one64 << (2 * w)) );
         // Construct an id that is a single number representing the coord
         // and value number.
-        UI64_t uid = coords_perm[0];
+        UI64_t uid = coord_perm[0];
         for (int i = 1; i < env.num_way(); ++i) {
-          uid = uid * metrics.num_vector_active + coords_perm[i];
+          uid = uid * metrics.num_vector_active + coord_perm[i];
         }
-        uid = uid * env.num_entries_per_metric() + entry_num_noshrink;
-//printf("%zu %zu %i\n", (size_t)ivalue, (size_t)uid, entry_num_noshrink);
+        uid = uid * env.num_entries_per_metric() + entry_num_perm;
+//printf("%zu %zu %i\n", (size_t)ivalue, (size_t)uid, entry_num_perm);
         // Randomize this id
         const UI64_t rand1 = utils::randomize(uid + 956158765);
         const UI64_t rand2 = utils::randomize(uid + 842467637);

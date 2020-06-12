@@ -210,11 +210,12 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(kE >= 0 && kE < 2);
 
+  COMET_ASSERT(!env.is_shrink()); //FIX
+
   if (env.threshold_tc()) {
-//FIXFIX
-    if (env.is_shrink()) {
-      return (FloatResult_t)Metrics_elt_const<float>(metrics, index, env);
-    }
+//    if (env.is_shrink()) {
+//      return (FloatResult_t)Metrics_elt_const<float>(metrics, index, env);
+//    }
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
     const auto table = Metrics_elt_const<TTable_t>(metrics, index, env);
     TTable_t::TypeIn result = TTable_t::get(table, iE, jE, kE);
@@ -294,7 +295,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
                                          index, iE, jE, kE, &env);
 
     // TODO: CHECK floating point type here
-    const double eps = 1. / ( ((size_t)1) << (mantissa_digits<FloatResult_t>() - 5) );
+    const double eps = 1. / ( ((size_t)1) << (mantissa_digits<FloatResult_t>() - 6) );
 
     const double diff = fabs(result_intcalc - result_floatcalc);
 
@@ -337,12 +338,14 @@ struct MetricsIndexCCCDUO3Helper<CBPE::NONE, FloatResult_t> {
 //-----------------------------------------------------------------------------
 /// \brief Templatized accessor for 3-way CCC or DUO result.
 
+#if 1
 template<int CBPE = CBPE::NONE, typename FloatResult_t = GMFloat>
 static FloatResult_t Metrics_ccc_duo_get_3(
   GMMetrics& metrics, size_t index, int iE, int jE, int kE, CEnv& env) {
     return MetricsIndexCCCDUO3Helper<CBPE, FloatResult_t>::impl( 
       metrics, index, iE, jE, kE, env);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -358,8 +361,8 @@ static FloatResult_t Metrics_ccc_duo_get_3(
 
   COMET_ASSERT(0 <= entry_num && entry_num < (1 << env.num_way()));
   const int iE = entry_num / 4;
-  const int jE = (entry_num / 2) % 2;;
-  const int kE = entry_num % 2;;
+  const int jE = (entry_num / 2) % 2;
+  const int kE = entry_num % 2;
 
   return MetricsIndexCCCDUO3Helper<CBPE, FloatResult_t>::impl( 
     metrics, index, iE, jE, kE, env);
@@ -576,6 +579,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   COMET_ASSERT(jE >= 0 && jE < env.ijkE_max());
   COMET_ASSERT(kE >= 0 && kE < env.ijkE_max());
 
+  COMET_ASSERT(!env.is_shrink()); //FIX
   const GMFloat result =
     env.metric_type() == MetricType::CZEK ?
       //Metrics_get<GMFloat>(metrics, index, env) :
@@ -596,6 +600,7 @@ static GMFloat GMMetrics_get_3(GMMetrics& metrics,
   COMET_ASSERT(kE >= 0 && kE < env.ijkE_max());
   // WARNING: these conditions are not exhaustive.
 
+  COMET_ASSERT(!env.is_shrink()); //FIX
   const size_t i = GMDecompMgr_get_vector_local_from_vector_active(
     metrics.dm, iG, &env);
   const size_t j = GMDecompMgr_get_vector_local_from_vector_active(

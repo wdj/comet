@@ -543,8 +543,10 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
              ++entry_num) {
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
+          //const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
+          //  iE, jE, *env);
           const GMFloat value = Metrics_ccc_duo_get_2(*metrics, index,
-            iE, jE, *env);
+            entry_num, *env);
 
           GMTally1 rij = 0;
           GMTally1 si = 0;
@@ -641,7 +643,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           } // is_zero_denom
 
           const bool do_set_zero = env->threshold_tc() &&
-            !env->pass_threshold(value_expected_floatcalc);
+            !env->pass_threshold((double)(float)value_expected_floatcalc);
 
           GMFloat value_expected = do_set_zero ? 0. : value_expected_floatcalc;
 
@@ -691,8 +693,10 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
           const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
           const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
-          const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
-            index, iE, jE, kE, *env);
+          //const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
+          //  index, iE, jE, kE, *env);
+          const GMFloat value = Metrics_ccc_duo_get_3(*metrics, index,
+            entry_num, *env);
 
           GMTally1 rijk = 0;
           GMTally1 si = 0;
@@ -799,7 +803,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           } // is_zero_denom
 
           const bool do_set_zero = env->threshold_tc() &&
-            !env->pass_threshold(value_expected_floatcalc);
+            !env->pass_threshold((double)(float)value_expected_floatcalc);
 
           GMFloat value_expected = do_set_zero ? 0. : value_expected_floatcalc;
 

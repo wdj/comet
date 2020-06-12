@@ -142,12 +142,7 @@ public:
   void from_accel_start();
   void from_accel_wait();
 
-  static bool can_compress(CEnv& env) {return
-    env.threshold_tc() &&
-    env.num_way() == NumWay::_3 && // TODO: implement for 2-way
-    env.is_compute_method_gpu() &&
-    !env.do_reduce();}
-//  static bool can_compress(CEnv& env) {return false;}
+  static bool can_compress(CEnv& env) {return env.can_compress();}
 
   void attach(MirroredBuf& buf);
 

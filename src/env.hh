@@ -448,6 +448,14 @@ public:
 
   bool try_compress() const {return true;}
 
+  bool can_compress() const {
+    return
+    threshold_tc() &&
+    num_way() == NumWay::_3 && // TODO: implement for 2-way
+    is_compute_method_gpu() &&
+    !do_reduce();
+  }
+
   int metric_format() const {return threshold_tc() ?
     MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
 
@@ -472,7 +480,7 @@ public:
       sizeof(MetricItemCoords_t);
     const size_t storage_per_metric_shrink = metric_size() +
       sizeof(MetricItemCoords_t) * num_entries_per_metric();
-    return threshold_tc() &&
+    return threshold_tc() && try_compress() &&
       NumWay::_3 == num_way() && // FIX - TODO - implement 2-way
       storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
   }

@@ -247,6 +247,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i; // processed elsewhere by CEnv.
     } else if (strcmp(argv[i], "--fastnodes") == 0) {
       // optionally processed by caller.
+    } else if (strcmp(argv[i], "--nopreflight") == 0) {
+      // optionally processed by caller.
     } else if (strcmp(argv[i], "--tc") == 0) {
       ++i; // optionally processed by caller.
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {

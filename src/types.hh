@@ -165,7 +165,7 @@ template<> struct MetricFormatTraits<MetricFormat::PACKED_DOUBLE> {
   __host__ __device__
   static void decode(TypeIn& __restrict__ val0,
                      TypeIn& __restrict__ val1,
-                     const Type v) {
+                     const Type& v) {
     const uint64_t tally2 = (uint64_t)v;
     COMET_ASSERT(v == (Type)tally2);
     const uint64_t shifter = (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
@@ -233,7 +233,7 @@ template<> struct MetricFormatTraits<MetricFormat::SINGLE> {
   __host__ __device__
   static void decode(TypeIn& __restrict__ val0,
                      TypeIn& __restrict__ val1,
-                     const Type v) {
+                     const Type& v) {
     val0 = v.data[0];
     val1 = v.data[1];
   }
@@ -327,11 +327,11 @@ template<int METRIC_FORMAT> struct Tally4x2 {
   }
 
   __host__ __device__ 
-  static TypeIn get(const This_t& value, int iE, int jE, int i2) {
+  static TypeIn get(const This_t& value, int iE, int jE, int kE) {
     const Type data = value.data[jE + 2*iE];
     TypeIn results[2];
     MFT::decode(results[0], results[1], data);
-    return results[i2];
+    return results[kE];
   }
 };
 
@@ -441,15 +441,15 @@ static GMTally1 GMTally2x2_get(GMTally2x2 tally2x2, int iE, int jE) {
 //-----------------------------------------------------------------------------
 // Get a table entry: 4x2
 
-static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int iE, int jE, int i2) {
+static GMTally1 GMTally4x2_get(GMTally4x2 tally4x2, int iE, int jE, int kE) {
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
-  COMET_ASSERT(i2 >= 0 && i2 < 2);
+  COMET_ASSERT(kE >= 0 && kE < 2);
 
   const uint64_t tally2 = tally4x2.data[jE + 2 * iE];
 
   const GMTally1 result =
-      i2 == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
+      kE == 0 ? tally2 % (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
               : tally2 / (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS);
   //COMET_ASSERT(result >= 0);
   COMET_ASSERT(result < (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS));

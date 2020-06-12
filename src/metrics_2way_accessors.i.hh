@@ -298,7 +298,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
                                          index, iE, jE, &env);
 
     // TODO: CHECK floating point type here
-    const double eps = 1. / ( ((size_t)1) << (mantissa_digits<FloatResult_t>() - 5) );
+    const double eps = 1. / ( ((size_t)1) << (mantissa_digits<FloatResult_t>() - 6) );
 
     const double diff = fabs(result_intcalc - result_floatcalc);
 

@@ -632,10 +632,12 @@ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
   bool use_fast_nodes = false;
+  bool no_preflight = false;
   for (int i=1; i<argc; ++i) {
-    if (strcmp(argv[i], "--fastnodes") == 0) {
+    if (strcmp(argv[i], "--fastnodes") == 0)
       use_fast_nodes = true;
-    }
+    if (strcmp(argv[i], "--nopreflight") == 0)
+      no_preflight = true;
   }
 
   setbuf(stdout, NULL);
@@ -665,7 +667,8 @@ int main(int argc, char** argv) {
 
     // Perform preflight warmup.
 
-    perform_run_preflight(argc, argv);
+    if (!no_preflight)
+      perform_run_preflight(argc, argv);
 
     perform_run_preflight_2(argc, argv, &fast_comm);
 
@@ -684,7 +687,8 @@ int main(int argc, char** argv) {
 
     // Perform preflight warmup.
 
-    perform_run_preflight(argc, argv);
+    if (!no_preflight)
+      perform_run_preflight(argc, argv);
 
     // Perform actual run.
 

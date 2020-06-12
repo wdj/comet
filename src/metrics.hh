@@ -207,6 +207,14 @@ struct CoordsInfo {
                     getkG(coords, metrics, env);
   }
 
+  static size_t is_active(MetricItemCoords_t coords, GMMetrics& metrics,
+    CEnv& env) {
+    return getiG(coords, metrics, env) < metrics.num_vector_active &&
+           getjG(coords, metrics, env) < metrics.num_vector_active &&
+          (env.num_way() == NumWay::_2 ||
+           getkG(coords, metrics, env) < metrics.num_vector_active);
+  }
+
   //---------- Get i/j/k E
 
   static int getiE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
@@ -273,6 +281,8 @@ struct CoordsInfo {
     COMET_ASSERT(iG+1 >= 1 && iG < metrics.num_vector);
     COMET_ASSERT(jG+1 >= 1 && jG < metrics.num_vector);
     const size_t result = iG + metrics.num_vector * (jG);
+    COMET_ASSERT(getiG(result, metrics, env) == iG);
+    COMET_ASSERT(getjG(result, metrics, env) == jG);
     return result;
   }
 
@@ -285,6 +295,10 @@ struct CoordsInfo {
     COMET_ASSERT(iE >= 0 && iE < 2);
     COMET_ASSERT(jE >= 0 && jE < 2);
     const size_t result = iE + 2 * (iG + metrics.num_vector * (jE + 2 * (jG)));
+    COMET_ASSERT(getiG(result, metrics, env) == iG);
+    COMET_ASSERT(getjG(result, metrics, env) == jG);
+    COMET_ASSERT(getiE(result, 0, metrics, env) == iE);
+    COMET_ASSERT(getjE(result, 0, metrics, env) == jE);
     return result;
   }
 
@@ -297,6 +311,9 @@ struct CoordsInfo {
     COMET_ASSERT(kG+1 >= 1 && kG < metrics.num_vector);
     const size_t result = iG + metrics.num_vector * (
                           jG + metrics.num_vector * (kG));
+    COMET_ASSERT(getiG(result, metrics, env) == iG);
+    COMET_ASSERT(getjG(result, metrics, env) == jG);
+    COMET_ASSERT(getkG(result, metrics, env) == kG);
     return result;
   }
 
@@ -313,6 +330,12 @@ struct CoordsInfo {
     const size_t result = iE + 2 * (iG + metrics.num_vector * (
                           jE + 2 * (jG + metrics.num_vector * (
                           kE + 2 * (kG)))));
+    COMET_ASSERT(getiG(result, metrics, env) == iG);
+    COMET_ASSERT(getjG(result, metrics, env) == jG);
+    COMET_ASSERT(getkG(result, metrics, env) == kG);
+    COMET_ASSERT(getiE(result, 0, metrics, env) == iE);
+    COMET_ASSERT(getjE(result, 0, metrics, env) == jE);
+    COMET_ASSERT(getkE(result, 0, metrics, env) == kE);
     return result;
   }
 };

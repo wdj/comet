@@ -284,7 +284,7 @@ elt_const(size_t ind_entry, const CompressedBuf* cbuf) {
 //if (! TTable_t::get(buf_->elt_const<TTable_t>(ind0, ind1), iE, jE) == key_run)
 //printf("%i %i %i %i %i %i %i  %f  %f\n", (int)ind_entry, (int)ind_typein, iE, jE, (int)ind, (int)ind0, (int)ind1, (double)key_run, (double)TTable_t::get(buf_->elt_const<TTable_t>(ind0, ind1), iE, jE));
 
-  //COMET_INSIST(TTable_t::get(buf_->elt_const<TTable_t>(ind0, ind1), iE, jE) == key_run);
+  //COMET_ASSERT(TTable_t::get(buf_->elt_const<TTable_t>(ind0, ind1), iE, jE) == key_run);
 
   return key_run;
 }

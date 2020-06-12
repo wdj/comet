@@ -552,6 +552,7 @@ static void MetricsIO_write_(
         //  index, iE, jE, kE, *env);
         const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
           index, entry_num, *env);
+
         if (!env->pass_threshold(value))
           continue;
 

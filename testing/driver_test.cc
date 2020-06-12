@@ -1870,17 +1870,21 @@ void DriverTest_threshold_() {
     typedef comet::MetricType MT;
     typedef comet::TC TC;
 
-    for (double metrics_shrink : {1., .1})
+    for (double metrics_shrink : {1., 3.35})
+    //for (double metrics_shrink : {3.35})
     for (int num_way : {2, 3})
     //for (int num_way : {3})
     for (int metric_type : {MT::CCC, MT::DUO})
     //for (int metric_type : {MT::CCC})
-    for (double threshold : {.65, .25, .001, 0.})
-    //for (double threshold : {.65})
+    for (double threshold : {.65, .50, .25, .001, 0.})
+    //for (double threshold : {.85})
     for (int compute_method : {CM::CPU, CM::GPU})
     //for (int compute_method : {CM::GPU})
     for (int tc=1; tc<comet::TC::NUM; ++tc) {
-    //for (int tc=1; tc<2; ++tc) {
+    //for (int tc=3; tc<=3; ++tc) {
+      if (metrics_shrink > 1.1 && (CM::GPU != compute_method ||
+           threshold < .4 || comet::BuildHas::DOUBLE_PREC))
+        continue;
       sprintf(options1, options_template, MT::str(metric_type),
         num_proc_vector, num_way, threshold, TC::NO, CM::str(CM::REF), 1.);
       sprintf(options2, options_template, MT::str(metric_type),

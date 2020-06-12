@@ -400,6 +400,7 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
                 MFT::add(sum.data[2], r100, r101);
                 MFT::add(sum.data[3], r110, r111);
 
+
               } // if (env->metric_type() == MetricType::CCC)
 
             } // if ! unknown
@@ -417,6 +418,26 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
 
           Metrics_elt_3<GMTally4x2>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, *env) = sum;
+
+#if 0
+GMTally1 r000=0, r001=0, r010=0, r011=0, r100=0, r101=0, r110=0, r111=0;
+            MFT::decode(r000, r001, sum.data[0]);
+            MFT::decode(r010, r011, sum.data[1]);
+            MFT::decode(r100, r101, sum.data[2]);
+            MFT::decode(r110, r111, sum.data[3]);
+
+int index_ = Metrics_index_3(*metrics, (int)I, J, (int)K, j_block, k_block, index_cache, *env);
+if (
+(index_ == 204 && env->proc_num()==0 && env->compute_method()==2)
+||
+(index_ == 1120 && env->proc_num()==1 && env->compute_method()==0)
+)
+printf("2  %i   %i %i %i %i %i %i %i %i \n", si->part_num,
+(int)r000, (int)r001, (int)r010, (int)r011,
+(int)r100, (int)r101, (int)r110, (int)r111);
+fflush(stdout);
+#endif
+
           Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, *env) = si1_sj1_sk1;
           if (env->sparse()) {
