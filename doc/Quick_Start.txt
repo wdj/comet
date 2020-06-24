@@ -80,7 +80,7 @@ Options:
 
     --num_proc_vector <value>
         blocking factor to denote number of blocks used to decompose
-        the total number of vectors across processors 
+        the total number of vectors across processors
         (default is the total number of procs requested)
 
     --num_proc_field <value>
@@ -136,6 +136,14 @@ Options:
         output each result value only if its magnitude is greater than
         this threshold.  If set negative, no thresholding is done
         (default -1)
+
+    --metrics_shrink <value>
+        anticipated reduction factor in the number of metric entries
+        stored due to thresholding, used to reduce CPU memory requirements
+        to allow larger problems to be solved.  For example, a value of
+        10 specifies that memory will be allocated assuming no more than
+        1/10 of metric entries pass threshold for any stage, phase or
+        process. (default 1.0)
 
     --checksum <value>
         compute checksum of the metrics results (yes=yes (default), no=no)
