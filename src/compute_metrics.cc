@@ -114,17 +114,41 @@ void ComputeMetrics::compute_stats_(GMMetrics& metrics) {
 
   // Compute counter values: compares.
 
-  size_t num_metrics = 0;
+  const double num_metrics_local = metrics.num_metrics_local;
+  double num_metrics = 0;
 
   // NOTE: metrics elts have no field axis so just sum across repl/vector procs.
 
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metrics.num_metrics_local, &num_metrics,
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&num_metrics_local, &num_metrics,
+    1, MPI_DOUBLE, MPI_SUM, env_.comm_repl_vector()));
+
+  const double num_metric_compares = num_metrics * metrics.num_field_active;
+  const double num_entry_compares = num_metric_compares *
+                                    env_.num_entries_per_metric();
+//if (env_.proc_num()==0) printf("%zu %zu %zu\n", num_metrics, num_metric_compares, num_entry_compares);
+
+  env_.vec_compares_inc(num_metrics);
+  env_.metric_compares_inc(num_metric_compares);
+  env_.entry_compares_inc(num_entry_compares);
+
+  // Compute counter values: metric entries.
+
+  const size_t metric_entries_local = metrics.num_metric_items_local *
+    env_.num_entries_per_metric_item();
+  const size_t metric_entries_local_computed =
+    metrics.num_metric_items_local_computed *
+    env_.num_entries_per_metric_item();
+  size_t metric_entries = 0;
+  size_t metric_entries_computed = 0;
+
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metric_entries_local, &metric_entries,
+    1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_repl_vector()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&metric_entries_local_computed,
+    &metric_entries_computed,
     1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, env_.comm_repl_vector()));
 
-  env_.metriccompares_inc(metrics.num_field_active * num_metrics *
-                    env_.num_entries_per_metric());
-  env_.entrycompares_inc(metrics.num_field_active * num_metrics);
-  env_.veccompares_inc(num_metrics);
+  env_.metric_entries_inc(metric_entries);
+  env_.metric_entries_computed_inc(metric_entries_computed);
 
   // Compute counter values: shrink_achieved.
 

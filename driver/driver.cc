@@ -321,18 +321,23 @@ void print_output(bool do_print,
     printf(" ops_rate/proc %e", ops / (env.ctime() * env.num_proc()) );
   }
 
-  printf(" vcmp %e", env.veccompares());
+  printf(" vcmp %e", env.vec_compares());
   if (metrics_file_path_stub) {
     printf(" vcmpout %e", (double)num_written);
   }
 
-  printf(" cmp %e", env.metriccompares());
-  printf(" ecmp %e", env.entrycompares());
+  printf(" cmp %e", env.entry_compares());
+
+  printf(" ecmp %e", env.metric_compares());
   if (env.ctime() > 0) {
-    printf(" ecmp_rate %e", env.entrycompares() / env.ctime());
-    printf(" ecmp_rate/proc %e", env.entrycompares() /
+    printf(" ecmp_rate %e", env.metric_compares() / env.ctime());
+    printf(" ecmp_rate/proc %e", env.metric_compares() /
       (env.ctime() * env.num_proc()) );
   }
+
+  printf(" ment %e", (double)env.metric_entries());
+  printf(" mentc %e", (double)env.metric_entries_computed());
+
   if (cksum.computing_checksum()) {
     printf(" me %.0f", cksum.num());
     printf(" mezero %.0f", cksum.num_zero());
