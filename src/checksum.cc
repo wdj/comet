@@ -168,33 +168,6 @@ double Checksum::metrics_elt(
   COMET_INSIST(index < metrics.num_metric_items_local_allocated); // && index >= 0
   COMET_INSIST(entry_num >= 0 && entry_num < env.num_entries_per_metric_item());
 
-//  // Obtain global coords of metrics elt
-//  size_t coords[NumWay::MAX];
-//  size_t coord_perm[NumWay::MAX];
-//  int iperm[NumWay::MAX];
-//  for (int i = 0; i < env.num_way(); ++i) {
-//    coords[i] = Metrics_coords_getG(metrics, index, i, env);
-//    coord_perm[i] = coords[i];
-//    iperm[i] = i;
-//  }
-  // Reflect coords by symmetry to get uniform result -
-  //   sort into descending order
-  //
-  // The idea here is that, because the tensor has reflective
-  // symmetries, a different equivlent reflected tensor value may be
-  // computed based on the parallel decomposition.
-  // This permutation puts the indices into a uniform order
-  // so that this is not viewed as a difference in the results.
-  // Note also below we will permute iE / jE / kE as needed.
-
-//if(0){
-//  if (env.num_way() == NumWay::_2)
-//    sort2(coord_perm[0], coord_perm[1], iperm[0], iperm[1]);
-//  else
-//    sort3(coord_perm[0], coord_perm[1], coord_perm[2],
-//          iperm[0], iperm[1], iperm[2]);
-//}
-
   // Pick up value of this metrics elt
   double value = 0;
   switch (metrics.data_type_id) {
@@ -204,12 +177,6 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
-//      // TODO: check
-//      const int iE = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
-//      const int jE = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
-//      const int iE_perm = iperm[0] == 0 ? iE : jE;
-//      const int jE_perm = iperm[0] == 0 ? jE : iE;
-//      value = Metrics_ccc_duo_get_2(metrics, index, iE_perm, jE_perm, env);
       value = Metrics_ccc_duo_get_2(metrics, index, entry_num, env);
       // ensure result independent of threshold_tc
       if (!env.is_double_prec())
@@ -217,21 +184,6 @@ double Checksum::metrics_elt(
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
-//      // TODO: check
-//      const int iE = CoordsInfo::getiE(coords[0], entry_num, metrics, env);
-//      const int jE = CoordsInfo::getjE(coords[1], entry_num, metrics, env);
-//      const int kE = CoordsInfo::getkE(coords[2], entry_num, metrics, env);
-//      const int iE_perm = iperm[0] == 0 ? iE :
-//                          iperm[1] == 0 ? jE :
-//                                          kE;
-//      const int jE_perm = iperm[0] == 1 ? iE :
-//                          iperm[1] == 1 ? jE :
-//                                          kE;
-//      const int kE_perm = iperm[0] == 2 ? iE :
-//                          iperm[1] == 2 ? jE :
-//                                          kE;
-//      value = Metrics_ccc_duo_get_3(metrics, index, iE_perm, jE_perm, kE_perm,
-//                                    env);
       value = Metrics_ccc_duo_get_3(metrics, index, entry_num, env);
       // ensure result independent of threshold_tc
       if (!env.is_double_prec())
@@ -379,16 +331,6 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   double num = 0;
   double num_zero = 0;
 
-#if 0
-printf("%i %zu %zu %zu\n"
-, env.compute_method()
-, metrics.num_metric_items_local_computed
-, (size_t)metrics.num_vector_active
-, (size_t)metrics.dm->num_vector_active_local
-);
-fflush(stdout);
-#endif
-
   #pragma omp parallel
   {
     MultiprecInt sum_local_private; // = 0
@@ -423,6 +365,16 @@ fflush(stdout);
         num_private += true && is_active;
         num_zero_private += (double)0 == value && is_active;
 
+        // Reflect coords by symmetry to get uniform result -
+        //   sort into descending order
+        //
+        // The idea here is that, because the tensor has reflective
+        // symmetries, a different equivlent reflected tensor value may be
+        // computed based on the parallel decomposition.
+        // This permutation puts the indices into a uniform order
+        // so that this is not viewed as a difference in the results.
+        // Note also below we will permute iE / jE / kE as needed.
+
         if (env.num_way() == NumWay::_2)
           sort2(coord_perm[0], coord_perm[1], iperm[0], iperm[1]);
         else
@@ -447,56 +399,7 @@ fflush(stdout);
         //NumWay::_3 == env.num_way() ?
            ijkE_perm[2] + 2 * (ijkE_perm[1] + 2 * ijkE_perm[0]);
 
-#if 0
-if (coord_perm[0] == 12 && coord_perm[1] == 10 && coord_perm[2] == 0)
-//if (env.compute_method() == ComputeMethod::REF)
-if (is_active)
-printf("%zu %zu %zu  %zu %zu %zu  %i %i %i  %i %i %i  %i %.20f  %i  %zu %i\n",
- coord_perm[0],
- coord_perm[1],
- coord_perm[2],
- CoordsInfo::getG(coords, 0, metrics, env),
- CoordsInfo::getG(coords, 1, metrics, env),
- CoordsInfo::getG(coords, 2, metrics, env),
- ijkE_perm[0],
- ijkE_perm[1],
- ijkE_perm[2],
- CoordsInfo::getE(coords, 0, entry_num, metrics, env),
- CoordsInfo::getE(coords, 1, entry_num, metrics, env),
- CoordsInfo::getE(coords, 2, entry_num, metrics, env),
- //metrics.num_metric_items_local_computed,
- entry_num_perm,
- (double)value,
- env.proc_num(),
- index, env.compute_method()
-);
-fflush(stdout);
-#endif
-
-#if 0
-if( Metrics_coords_getG(metrics, index, 0, env)==0 &&
- Metrics_coords_getG(metrics, index, 1, env)==1 &&
- Metrics_coords_getG(metrics, index, 2, env)==5)
-//if(value)
-printf("DEBUG %zu %zu %zu   %i %i %i  %.20e  %i   %i  %zu\n"
-, Metrics_coords_getG(metrics, index, 0, env)
-, Metrics_coords_getG(metrics, index, 1, env)
-, Metrics_coords_getG(metrics, index, 2, env)
-, CoordsInfo::getE(coords, 0, entry_num, metrics, env)
-, CoordsInfo::getE(coords, 1, entry_num, metrics, env)
-, CoordsInfo::getE(coords, 2, entry_num, metrics, env)
-//, ijkE_perm[0]
-//, ijkE_perm[1]
-//, ijkE_perm[2]
-, value
-, env.proc_num()
-, entry_num
-, index
-);
-#endif
-
-
-        // Convert to uint64.  Store only 2*w+1 bits, at most -
+        // Convert value to uint64.  Store only 2*w+1 bits, at most -
         // if (value / scaling) <= 1, which it should be if
         // floating point arithmetic works as expected,
         // must have ivalue <= (1<<(2*w)).

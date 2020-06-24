@@ -679,7 +679,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
       const int cbpe = env->counted_bits_per_elt();
 
-#pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
+#     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
       for (size_t index = 0; index < metrics->num_metric_items_local_computed;
            ++index) {
         const MetricItemCoords_t coords = metrics->coords_value(index);

@@ -377,7 +377,7 @@ static bool Metrics_ccc_duo_threshold_detect_3(
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);
 
-  // if is_shrink, assume a threhold pass my exist, don't take time to check.
+  // if is_shrink, assume a threhold pass may exist, don't take time to check.
   if (env.is_shrink())
     return true;
 

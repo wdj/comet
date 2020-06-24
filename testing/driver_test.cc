@@ -1924,7 +1924,7 @@ void DriverTest_file_output_() {
     typedef comet::TC TC;
     typedef comet::NumWay NumWay;
 
-    for (int num_way : {2, 3})
+    for (int num_way : {NumWay::_2, NumWay::_3})
     for (int all2all : {1})
     for (int metric_type : {MT::CZEK, MT::CCC, MT::DUO})
     for (int compute_method : {CM::CPU, CM::GPU}) {
