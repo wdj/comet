@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#elif defined COMET_USE_CUDA
 //  #include "cublas_v2.h"
 #elif defined COMET_USE_HIP
-  #include "hip/hip_runtime_api.h"
+//  #include "hip/hip_runtime_api.h"
 //  #include "hip/hip_runtime.h"
 #endif
 

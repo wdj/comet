@@ -308,7 +308,8 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   export ROCM_PATH=/opt/rocm
   export HIP_PATH=/opt/rocm/hip
   # Use custom rocblas build if available.
-  export ROCBLAS_PATH=$HOME/rocBLAS/build/release/rocblas-install/rocblas
+  local ROCBLAS_LOCAL=$HOME/rocBLAS/build/release/rocblas-install/rocblas
+  export ROCBLAS_PATH=$ROCBLAS_LOCAL
   if [ -e $ROCBLAS_PATH ] ; then
     local BLIS_PATH=$HOME/rocBLAS/extern/blis
   else
@@ -331,6 +332,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
   COMET_HIP_COMPILE_OPTS+=" -fno-gpu-rdc -Wno-unused-command-line-argument"
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
+  #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 

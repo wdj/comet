@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #elif defined COMET_USE_HIP
 //#  include "hip/hip_runtime_api.h"
 //#  pragma GCC diagnostic ignored "-Wc99-designator"
-#  include "hip/hip_runtime.h"
+//#  include "hip/hip_runtime.h"
 #  include "rocblas.h"
 #endif
 
@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "env.hh"
+
 #include "tc.hh"
 #include "tc_helpers.i.hh"
 #include "tc_in.i.hh"
