@@ -234,7 +234,7 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         nvl, nvll, nvllD2, vo);
 
-      System::accel_last_call_succeeded();
+      COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { // (!env.is_compute_method_gpu())
 
@@ -624,7 +624,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
 
       } // if cbpe, env.num_way()
 
-      System::accel_last_call_succeeded();
+      COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { // (!env.is_compute_method_gpu())
 

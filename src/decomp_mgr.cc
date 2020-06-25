@@ -233,8 +233,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
       // have 2-way method on-proc be exact, then for 3-way combining
       // or num_proc_field>1 drop low order bits to allow to fit.
       const int table_entry_value_max =
-        env->metric_type() == MetricType::DUO ?
-        1 : 1 << env->num_way();
+        env->metric_type() == MetricType::DUO ?  1 : env->pow2_num_way();
 //FIX - make sure this is correct for all different methods, implementations.
       COMET_INSIST_INTERFACE(env,
                ((uint64_t)(table_entry_value_max * dm->num_field)) <

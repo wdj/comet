@@ -360,7 +360,7 @@ static FloatResult_t Metrics_ccc_duo_get_2(
     return (FloatResult_t)Metrics_elt_const<TypeIn>(metrics, index, env);
   }
 
-  COMET_ASSERT(0 <= entry_num && entry_num < (1 << env.num_way()));
+  COMET_ASSERT(0 <= entry_num && entry_num < env.pow2_num_way());
   const int iE = entry_num / 2;
   const int jE = entry_num % 2;;
 

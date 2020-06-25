@@ -572,16 +572,19 @@ bool CEnv::can_run(int tc) const {
     result = false; // currently unimplemented
   }
 
+// /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802', 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
+// MI60 is 906
+
 //TODO: adjust this for HIP case.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc) {
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
-                     || (BuildHas::HIP && System::compute_capability() >= 900));
+                     || (BuildHas::HIP && System::compute_capability() >= 1000));
   }
 
 //TODO: adjust this for HIP case.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc) {
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-                     || (BuildHas::HIP && System::compute_capability() >= 900));
+                     || (BuildHas::HIP && System::compute_capability() >= 1000));
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc) {

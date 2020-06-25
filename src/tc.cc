@@ -86,6 +86,7 @@ static void set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
 #   ifdef COMET_USE_HIP
       hipMemsetAsync(matC, 0, size, env.stream_compute());
 #    endif
+    COMET_INSIST(System::accel_last_call_succeeded());
   } else {
     memset(matC, 0, size);
   }
@@ -303,7 +304,7 @@ void tc_bufs_malloc(int num_vector_local,
 #elif defined COMET_USE_HIP
     hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
 #endif
-    System::accel_last_call_succeeded();
+    COMET_INSIST(System::accel_last_call_succeeded());
     env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
 #if defined COMET_USE_CUDA
@@ -311,7 +312,7 @@ void tc_bufs_malloc(int num_vector_local,
 #elif defined COMET_USE_HIP
     hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
 #endif
-    System::accel_last_call_succeeded();
+    COMET_INSIST(System::accel_last_call_succeeded());
     env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
     // Set up accel blas handle.
@@ -319,20 +320,25 @@ void tc_bufs_malloc(int num_vector_local,
 #if defined COMET_USE_CUDA
     cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
+    COMET_INSIST(System::accel_last_call_succeeded());
 
     status = cublasSetStream(tc_bufs.accelblas_handle, env.stream_compute());
     COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetStream.");
 
     status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
-    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetMathMode.");
+    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
+                 "Error in cublasSetMathMode.");
+    COMET_INSIST(System::accel_last_call_succeeded());
 #elif defined COMET_USE_HIP
     int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
     COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_create_handle.");
+    COMET_INSIST(System::accel_last_call_succeeded());
 
     status = rocblas_set_stream(tc_bufs.accelblas_handle, env.stream_compute());
     COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_set_stream.");
+    COMET_INSIST(System::accel_last_call_succeeded());
 
     //FIX - will this be needed for AMD gpu?
     //  status = cublasSetMathMode(tc_bufs.accelblas_handle,
@@ -377,7 +383,7 @@ void tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
 #elif defined COMET_USE_HIP
     hipFree(tc_bufs.tc_buf_left);
 #endif
-    System::accel_last_call_succeeded();
+    COMET_INSIST(System::accel_last_call_succeeded());
     tc_bufs.tc_buf_left = NULL;
     env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
@@ -386,7 +392,7 @@ void tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
 #elif defined COMET_USE_HIP
     hipFree(tc_bufs.tc_buf_right);
 #endif
-    System::accel_last_call_succeeded();
+    COMET_INSIST(System::accel_last_call_succeeded());
     tc_bufs.tc_buf_right = NULL;
     env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
 

@@ -137,7 +137,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #   endif // COMET_USE_ACCEL
 
-    System::accel_last_call_succeeded();
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { // (!env.is_compute_method_gpu()) {
 

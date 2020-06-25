@@ -187,7 +187,9 @@ static int gm_J_hi(int section_num, int nvl, int part_num, CEnv* env) {
 //=============================================================================
 // GMSectionInfo.
 
-typedef struct {
+//typedef struct {
+struct GMSectionInfo {
+//typedef struct {
   bool is_part1;
   bool is_part2;
   bool is_part3;
@@ -243,7 +245,8 @@ typedef struct {
            sax1      ?   v2 :
        /*  sax2      ?*/ v1;
   }
-} GMSectionInfo;
+};
+//} GMSectionInfo;
 
 //-----------------------------------------------------------------------------
 

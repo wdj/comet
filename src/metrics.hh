@@ -220,9 +220,9 @@ struct CoordsInfo {
   static int getiE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(entry_num >= 0 &&
-       entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
+        entry_num < env.coords_type_by_metric() ? env.pow2_num_way() : 1);
     if (env.coords_type_by_metric()) {
-      const int result = entry_num / (1 << (env.num_way()-1));
+      const int result = entry_num / (env.pow2_num_way()/2);
       COMET_ASSERT(result >= 0 && result < 2);
       return result;
     } else {
@@ -235,9 +235,10 @@ struct CoordsInfo {
   static int getjE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(entry_num >= 0 &&
-       entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
+        entry_num < env.coords_type_by_metric() ? env.pow2_num_way() : 1);
     if (env.coords_type_by_metric()) {
-      const int result = (entry_num / (1 << (env.num_way()-2))) % 2;
+      //const int result = (entry_num / (1 << (env.num_way()-2))) % 2;
+      const int result = (entry_num / (env.pow2_num_way()/4)) % 2;
       COMET_ASSERT(result >= 0 && result < 2);
       return result;
     } else {
@@ -250,7 +251,7 @@ struct CoordsInfo {
   static int getkE(MetricItemCoords_t coords, int entry_num, GMMetrics& metrics,
     CEnv& env) {
     COMET_ASSERT(entry_num >= 0 &&
-       entry_num < env.coords_type_by_metric() ? 1 << env.num_way() : 1);
+        entry_num < env.coords_type_by_metric() ? env.pow2_num_way() : 1);
     COMET_ASSERT(env.num_way() >= NumWay::_3);
     if (env.coords_type_by_metric()) {
       const int result = entry_num % 2;

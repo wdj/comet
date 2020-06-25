@@ -262,7 +262,10 @@ function main
     CMAKE_CXX_FLAGS+=" -DCOMET_BUILD_TYPE_DEBUG"
   fi
   CMAKE_CXX_FLAGS+=" -g" # for stack trace
-  CMAKE_CXX_FLAGS+=" -Wall -Wno-unused-function -Werror"
+  CMAKE_CXX_FLAGS+=" -Wall -Wno-unused-function"
+  if [ $COMET_WERROR = ON ] ; then
+    CMAKE_CXX_FLAGS+=" -Werror"
+  fi
   CMAKE_CXX_FLAGS+=" -fno-associative-math"
   CMAKE_CXX_FLAGS+=" -Wno-error=unknown-pragmas"
   CMAKE_CXX_FLAGS+=" -DTEST_PROCS_MAX=$COMET_TEST_PROCS_MAX"

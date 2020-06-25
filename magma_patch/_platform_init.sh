@@ -47,6 +47,7 @@ local COMET_PLATFORM_STUB
 # Defaults.
 
 local COMET_TEST_PROCS_MAX=64
+local COMET_WERROR=ON
 
 #----------------------------------------
 if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
@@ -333,6 +334,8 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
+  COMET_WERROR=OFF
+
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
 
   #---Libraries.
@@ -361,7 +364,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   # salloc -N1 -A stf006 $SHELL
 
   #local COMET_TEST_COMMAND="module load openmpi ; env OMP_NUM_THREADS=2 mpirun --npernode 48"
-  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2"
+  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
 

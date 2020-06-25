@@ -54,6 +54,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #elif defined COMET_USE_HIP
 //#  include "hip/hip_runtime_api.h"
 #  include "hip/hip_runtime.h"
+//void hipdummy() {
+//  void* dummy = (void*)s;
+//  dummy++;
+//}
 #else
 #  define __host__
 #  define __device__
@@ -349,6 +353,7 @@ public:
   int all2all() const {return all2all_;}
   int compute_method() const {return compute_method_;}
   int num_way() const {return num_way_;}
+  int pow2_num_way() const {return 1 << num_way_;}
   bool sparse() const {return sparse_;}
   int tc() const {return tc_;};
   int tc_eff() const {return tc_eff_;}
@@ -467,7 +472,7 @@ public:
   // Accessors pertaining to metric sizes.
 
   int num_entries_per_metric() const {
-    return MetricType::CZEK == metric_type_ ? 1 : 1 << num_way_;
+    return MetricType::CZEK == metric_type_ ? 1 : pow2_num_way();
   }
 
   size_t metric_size() const {
