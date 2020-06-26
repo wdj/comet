@@ -246,8 +246,16 @@ function main
     $COMET_CXX_SERIAL_COMPILER -isystem ${GTEST_DIR}/include -I${GTEST_DIR} \
       -pthread -c ${GTEST_DIR}/src/gtest-all.cc
     ar -rv $GTEST_DIR/lib/libgtest.a gtest-all.o
-    local COMET_TEST_COMPILE_OPTS="-isystem $GTEST_DIR/include -pthread"
-    local COMET_TEST_LINK_OPTS="-L$GTEST_DIR/lib -lgtest"
+    if [ -z "${COMET_TEST_COMPILE_OPTS+x}" ] ; then
+      local COMET_TEST_COMPILE_OPTS="-isystem $GTEST_DIR/include -pthread"
+    fi
+    if [ -z "${COMET_TEST_LINK_OPTS+x}" ] ; then
+      local COMET_TEST_LINK_OPTS="-L$GTEST_DIR/lib -lgtest"
+    fi
+#cp -rp $GTEST_DIR/include/gtest $GTEST_DIR/include/gtest2 #FIX
+#FIX
+#    local COMET_TEST_COMPILE_OPTS=""
+#    local COMET_TEST_LINK_OPTS="-L/cm/shared/opt/rocm-alt/3.5.0/lib64 -lgtest"
   fi
 
   #============================================================================
@@ -283,6 +291,10 @@ function main
   [[ ${USE_CUDA:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_CUDA -DCOMET_USE_ACCEL"
   CMAKE_CXX_FLAGS+=" ${COMET_CUDA_COMPILE_OPTS:-}"
 
+#FIX
+#if [ $TESTING = ON ] ; then
+#  CMAKE_CXX_FLAGS+=" -I $GTEST_DIR/include"
+#fi
   [[ ${USE_HIP:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_HIP -DCOMET_USE_ACCEL"
   CMAKE_CXX_FLAGS+=" ${COMET_HIP_COMPILE_OPTS:-}"
 

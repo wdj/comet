@@ -14,6 +14,8 @@ project("genomics_gpu")
 MESSAGE("--------------------")
 MESSAGE("Compiler ID: ${CMAKE_C_COMPILER_ID}")
 
+set(HIPLOCAL_DIR "${CMAKE_SOURCE_DIR}/scripts")
+
 #--------------------
 # Dirs, Files.
 
@@ -132,8 +134,8 @@ elseif(USE_HIP) #=========================================
     endif()
   endif()
   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
-  find_package(HIP QUIET)
-  if(HIP_FOUND)
+  find_package(HIPLOCAL QUIET)
+  if(HIPLOCAL_FOUND)
     message(STATUS "Found HIP: " ${HIP_VERSION})
   else()
     message(FATAL_ERROR "Could not find HIP.")
@@ -188,6 +190,7 @@ if(TESTING)
     else()
       add_test(${TEST_TARGET} bash -c
         "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
+      set(UNUSED_NO_WARN_1, ${FP_PRECISION})
     endif()
 
   endforeach()

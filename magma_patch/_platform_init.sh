@@ -412,7 +412,9 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
 
   #module load rocm-alt/2.7
   #module load rocm-alt/2.9
-  module load rocm
+  #module load rocm
+  #module load rocm/3.5.0
+  module load rocm-alt/3.5.0
   (module list) 2>&1 | grep -v '^ *$'
 
   export ROCM_PATH=$ROCM_PATH
@@ -446,6 +448,14 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
   COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906"
   # https://llvm.org/docs/AMDGPUUsage.html
+
+  if [ -e $ROCM_PATH/include/gtest ] ; then
+    # Poplar has gtest built-in.
+    local COMET_TEST_COMPILE_OPTS=""
+    local COMET_TEST_LINK_OPTS="-L$ROCM_PATH/lib64 -lgtest"
+  fi
+
+  COMET_WERROR=OFF
 
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
 
