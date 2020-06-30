@@ -355,10 +355,13 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
     # ./configure --disable-threading --enable-cblas generic
   fi
 
-  local COMET_CAN_USE_MPI=OFF
-#  local COMET_CAN_USE_MPI=ON
-#  local COMET_MPI_COMPILE_OPTS="-I$OLCF_OPENMPI_ROOT/include"
-#  local COMET_MPI_LINK_OPTS="-L$OLCF_OPENMPI_ROOT/lib -Wl,-rpath,$OLCF_OPENMPI_ROOT/lib -lmpi"
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    local COMET_MPI_COMPILE_OPTS="-I$OLCF_OPENMPI_ROOT/include"
+    local COMET_MPI_LINK_OPTS="-L$OLCF_OPENMPI_ROOT/lib -Wl,-rpath,$OLCF_OPENMPI_ROOT/lib -lmpi"
+  fi
 
   #---Testing.
 
@@ -366,12 +369,17 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
 
   #XXX salloc -N2 -A stf006 $SHELL
   #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
-  # salloc -N2 -A stf006 $SHELL
-  # salloc -N1 -A stf006 $SHELL
+  #XXX salloc -N2 -A stf006 $SHELL
+  #XXX salloc -N2 -A stf006 $SHELL
+  # salloc -N1 -A stf006
+  # salloc -N1 -A stf006
 
-  #local COMET_TEST_COMMAND="module load openmpi ; env OMP_NUM_THREADS=2 mpirun --npernode 48"
-  #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
-  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1"
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    local COMET_TEST_COMMAND="module load openmpi ; env OMP_NUM_THREADS=1 mpirun --npernode 48"
+  else
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1"
+  fi
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
 

@@ -455,12 +455,12 @@ public:
 
   bool can_compress() const {
     return
-    threshold_tc() &&
-    num_way() == NumWay::_3 && // TODO: implement for 2-way
-    //BuildHas::ACCEL &&
-    BuildHas::CUDA && // TODO: implement for HIP
-    is_compute_method_gpu() &&
-    !do_reduce();
+      threshold_tc() &&
+      num_way() == NumWay::_3 && // TODO: implement for 2-way
+      //BuildHas::ACCEL &&
+      BuildHas::CUDA && // TODO: implement for HIP
+      is_compute_method_gpu() &&
+      !do_reduce();
   }
 
   int metric_format() const {return threshold_tc() ?
@@ -487,7 +487,7 @@ public:
       sizeof(MetricItemCoords_t);
     const size_t storage_per_metric_shrink = metric_size() +
       sizeof(MetricItemCoords_t) * num_entries_per_metric();
-    return threshold_tc() && try_compress() &&
+    return threshold_tc() && try_compress() && can_compress() &&
       NumWay::_3 == num_way() && // TODO: implement 2-way
       storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
   }
