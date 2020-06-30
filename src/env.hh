@@ -457,6 +457,8 @@ public:
     return
     threshold_tc() &&
     num_way() == NumWay::_3 && // TODO: implement for 2-way
+    //BuildHas::ACCEL &&
+    BuildHas::CUDA && // TODO: implement for HIP
     is_compute_method_gpu() &&
     !do_reduce();
   }
@@ -486,7 +488,7 @@ public:
     const size_t storage_per_metric_shrink = metric_size() +
       sizeof(MetricItemCoords_t) * num_entries_per_metric();
     return threshold_tc() && try_compress() &&
-      NumWay::_3 == num_way() && // FIX - TODO - implement 2-way
+      NumWay::_3 == num_way() && // TODO: implement 2-way
       storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
   }
 
@@ -759,6 +761,7 @@ void GMFloat_check(GMFloat* const a, size_t n);
 size_t gm_array_cksum(unsigned char* a, size_t n);
 
 //=============================================================================
+
 
 } // namespace comet
 

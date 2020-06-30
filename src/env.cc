@@ -107,6 +107,7 @@ int System::compute_capability() {
 #else
   const int compute_capability = 0;
 #endif
+  COMET_INSIST(System::accel_last_call_succeeded());
   return compute_capability;
 }
 

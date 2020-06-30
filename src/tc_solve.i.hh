@@ -40,6 +40,67 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+#if 0
+static void mysub() {
+
+  typedef float Float_t;
+
+  const size_t m = 8; const size_t n = 8; const size_t k = 64;
+
+  Float_t* const ha = (Float_t*)malloc(m * k * sizeof(*ha));
+  Float_t* const hb = (Float_t*)malloc(k * n * sizeof(*hb));
+  Float_t* const hc = (Float_t*)malloc(m * n * sizeof(*hc));
+
+  for (size_t i=0; i<m*k; ++i) ha[i] = 2;
+  for (size_t i=0; i<k*n; ++i) hb[i] = 3;
+  for (size_t i=0; i<m*n; ++i) hc[i] = 0;
+
+  Float_t* da = 0; Float_t* db = 0; Float_t* dc = 0;
+
+  hipMalloc(&da, m * k * sizeof(*da));
+  hipMalloc(&db, k * n * sizeof(*db));
+  hipMalloc(&dc, m * n * sizeof(*dc));
+COMET_INSIST(System::accel_last_call_succeeded());
+
+  hipMemcpy(da, ha, m * k * sizeof(*ha), hipMemcpyHostToDevice);
+  hipMemcpy(db, hb, k * n * sizeof(*hb), hipMemcpyHostToDevice);
+  hipMemcpy(dc, hc, m * n * sizeof(*hc), hipMemcpyHostToDevice);
+COMET_INSIST(System::accel_last_call_succeeded());
+
+  const Float_t alpha = 1; const Float_t beta = 1;
+  rocblas_handle handle; rocblas_create_handle(&handle);
+printf("%zu\n", (size_t)handle);
+COMET_INSIST(System::accel_last_call_succeeded());
+
+  const rocblas_status status = rocblas_gemm_ex(
+    handle,
+    //rocblas_operation_none, rocblas_operation_none,
+    rocblas_operation_none, rocblas_operation_transpose,
+    m, n, k,
+    (void*)&alpha,
+    da, rocblas_datatype_f32_r, m,
+    db, rocblas_datatype_f32_r, n,
+    (void*)&beta,
+    dc, rocblas_datatype_f32_r, m,
+    dc, rocblas_datatype_f32_r, m,
+    rocblas_datatype_f32_r,
+    rocblas_gemm_algo_standard,
+    0, 0);
+COMET_INSIST(System::accel_last_call_succeeded());
+
+  hipMemcpy(hc, dc, m * n * sizeof(*hc), hipMemcpyDeviceToHost);
+COMET_INSIST(System::accel_last_call_succeeded());
+
+  printf("%f\n", (double)hc[0]);
+
+  rocblas_destroy_handle(handle);
+COMET_INSIST(System::accel_last_call_succeeded());
+  hipFree(da); hipFree(db); hipFree(dc);
+COMET_INSIST(System::accel_last_call_succeeded());
+  free(ha); free(hb); free(hc);
+}
+#endif
+
 //-----------------------------------------------------------------------------
 /// \brief Call cublas to perform required GEMM.
 
@@ -76,6 +137,58 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       // GPU BLAS call.
 
+#if 0
+      COMET_INSIST(System::accel_last_call_succeeded());
+mysub();
+      COMET_INSIST(System::accel_last_call_succeeded());
+mysub();
+      COMET_INSIST(System::accel_last_call_succeeded());
+mysub();
+      COMET_INSIST(System::accel_last_call_succeeded());
+
+printf("2 %zu %zu %zu %zu\n", (size_t)tc_bufs.accelblas_handle, (size_t)m, (size_t)n, (size_t)k);
+  rocblas_handle handle; rocblas_create_handle(&handle);
+printf("2.1 %zu %zu %zu %zu\n", (size_t)handle, (size_t)tc_bufs.tc_buf_left, (size_t)tc_bufs.tc_buf_right, (size_t)matC);
+
+const float alpha_ = 1; const float beta_ = 1;
+float* da = 0; float* db = 0; float* dc = 0;
+hipMalloc(&da, m * k * sizeof(*da));
+hipMalloc(&db, k * n * sizeof(*db));
+hipMalloc(&dc, m * n * sizeof(*dc));
+COMET_INSIST(System::accel_last_call_succeeded());
+mysub();
+COMET_INSIST(System::accel_last_call_succeeded());
+
+        const rocblas_status status = rocblas_gemm_ex(
+        //tc_bufs.accelblas_handle
+        handle
+        , rocblas_operation_none, rocblas_operation_transpose
+        //, m, n, k
+        , (size_t)m, (size_t)n, (size_t)k
+        //, (void*)&alpha
+        , (void*)&alpha_
+        //, tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m
+        , da, rocblas_datatype_f32_r, (size_t)m
+        //, tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
+        , db, rocblas_datatype_f32_r, (size_t)n
+        //, (void*)&beta
+        , (void*)&beta_
+        //, matC, TCSelector<TC_METHOD>::gemm_type_out(), m
+        , dc, rocblas_datatype_f32_r, (size_t)m
+        //, matC, TCSelector<TC_METHOD>::gemm_type_out(), m
+        , dc, rocblas_datatype_f32_r, (size_t)m
+        //, TCSelector<TC_METHOD>::gemm_type_out()
+        , rocblas_datatype_f32_r
+        , rocblas_gemm_algo_standard
+        , 0, 0
+      );
+      COMET_INSIST(System::accel_last_call_succeeded());
+
+printf("3 %zu\n", (size_t)tc_bufs.accelblas_handle);
+
+if(0)
+#endif
+
 #     ifdef COMET_USE_CUDA
         const cublasStatus_t status = cublasGemmEx(
 #     else
@@ -106,8 +219,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         , rocblas_gemm_algo_standard
         , 0, 0  // solution_index, flags, workspace_size, workspace
 #     endif
-      );
-      // TODO: use CUDA 10 autotuning capability here (later).
+        );
+        // TODO: use CUDA 10 autotuning capability here (later).
 
 #     ifdef COMET_USE_CUDA
         if (CUBLAS_STATUS_SUCCESS != status) {
@@ -131,13 +244,23 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
                      "Failure in call to rocblas_gemm_ex.");
 #     endif
 
+
+
+
+
+
+
+
+
 #   else // COMET_USE_ACCEL
 
       COMET_INSIST(false && "Failure to call GEMM function.");
 
 #   endif // COMET_USE_ACCEL
 
+if (! BuildHas::HIP) // FIX
     COMET_INSIST(System::accel_last_call_succeeded());
+    //System::accel_last_call_succeeded();
 
   } else { // (!env.is_compute_method_gpu()) {
 

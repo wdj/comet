@@ -407,6 +407,7 @@ void tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
     COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_destroy_handle.");
 #endif
+    COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { // compute_method
 

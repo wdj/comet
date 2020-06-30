@@ -82,6 +82,9 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t i12 = ivo[ivo_offset1+2];
   const GemmOut_t i13 = ivo[ivo_offset1+3];
 
+//printf("%i %i %i %i %i %i %i %i\n",
+//(int)i00, (int)i01, (int)i02, (int)i03, (int)i10, (int)i11, (int)i12, (int)i13);
+
   // Apply the permutation:
 
   // [ i00  i10 ]  ->  [ i00  i02 ]
@@ -473,6 +476,8 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 
         values_this[indT_K] = pass_threshold ? (MFTypeIn)metric_value :
                                                (MFTypeIn)0;
+//if (I + J + K == 3 && I*J*K==0 && (I+1)*(J+1)*(K+1)==6)
+//printf("        %i   %f    %f\n", (int)rijk, (double)metric_value, (double)values_this[indT_K]);
       } // indT_K
 
       MFT::encode(dvo_this, values_this[0], values_this[1]);

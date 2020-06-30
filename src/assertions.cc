@@ -38,7 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "errno.h"
 
 #ifdef TESTING
-#include "gtest/gtest.h"
+# ifdef COMET_USE_GTEST
+#   include "gtest/gtest.h"
+# endif
 #endif
 
 #include "env.hh"
@@ -53,7 +55,9 @@ namespace comet {
 
 void trigger_test_harness_failure() {
 # ifdef TESTING
-    ASSERT_TRUE(0);
+#   ifdef COMET_USING_GTEST
+      ASSERT_TRUE(0);
+#   endif
 # endif
 }
 

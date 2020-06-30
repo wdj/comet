@@ -40,7 +40,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "string.h"
 #include "math.h"
 
-#include "gtest/gtest.h"
+#ifdef COMET_USE_GTEST
+# include "gtest/gtest.h"
+#else
+# define GTEST_API_
+# define EXPECT_EQ(a, b) COMET_INSIST((a) == (b));
+#endif
 
 #include "env.hh"
 #include "metrics.hh"
@@ -106,15 +111,29 @@ void MetricsTest_3way_num_metrics_local_() {
 
 //=============================================================================
 
+#ifdef COMET_USE_GTEST
+
 TEST(MetricsTest, 3way_num_metrics_local) {
   MetricsTest_3way_num_metrics_local_();
 }
+
+#else
+
+int RUN_ALL_TESTS() {
+  MetricsTest_3way_num_metrics_local_();
+  return 0;
+}
+
+#endif
+
 
 //=============================================================================
 
 GTEST_API_ int main(int argc, char** argv) {
 
-  ::testing::InitGoogleTest(&argc, argv);
+# ifdef COMET_USE_GTEST
+    ::testing::InitGoogleTest(&argc, argv);
+# endif
 
   COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
@@ -122,12 +141,15 @@ GTEST_API_ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
   if (comm_rank != 0) {
-    ::testing::TestEventListeners& listeners =
-      ::testing::UnitTest::GetInstance()->listeners();
-    delete listeners.Release(listeners.default_result_printer());
+#   ifdef COMET_USE_GTEST
+      ::testing::TestEventListeners& listeners =
+        ::testing::UnitTest::GetInstance()->listeners();
+      delete listeners.Release(listeners.default_result_printer());
+#   endif
   }
 
   int result = RUN_ALL_TESTS();
+
   int result_g = 11;
 
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&result, &result_g, 1, MPI_INT, MPI_MAX,

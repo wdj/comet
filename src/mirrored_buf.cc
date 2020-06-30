@@ -146,12 +146,18 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   size_allocated_ = num_elts_ * elt_size_;
 # if defined COMET_USE_CUDA
     cudaMallocHost((void**)&h, size_allocated_);
-    if (env_.is_compute_method_gpu())
+    COMET_INSIST(System::accel_last_call_succeeded());
+    if (env_.is_compute_method_gpu()) {
       cudaMalloc((void**)&d, size_allocated_);
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
 # elif defined COMET_USE_HIP
     hipHostMalloc((void**)&h, size_allocated_);
-    if (env_.is_compute_method_gpu())
+    COMET_INSIST(System::accel_last_call_succeeded());
+    if (env_.is_compute_method_gpu()) {
       hipMalloc((void**)&d, size_allocated_);
+      COMET_INSIST(System::accel_last_call_succeeded());
+    }
 # else
     h = malloc(size_allocated_);
     COMET_INSIST(!env_.is_compute_method_gpu() &&
@@ -255,12 +261,18 @@ void MirroredBuf::deallocate() {
 
 #     if defined COMET_USE_CUDA
         cudaFreeHost(h);
-        if (env_.is_compute_method_gpu())
+        COMET_INSIST(System::accel_last_call_succeeded());
+        if (env_.is_compute_method_gpu()) {
           cudaFree(d);
+          COMET_INSIST(System::accel_last_call_succeeded());
+        }
 #     elif defined COMET_USE_HIP
         hipHostFree(h);
-        if (env_.is_compute_method_gpu())
+        COMET_INSIST(System::accel_last_call_succeeded());
+        if (env_.is_compute_method_gpu()) {
           hipFree(d);
+          COMET_INSIST(System::accel_last_call_succeeded());
+        }
 #     else
         free(h);
         COMET_INSIST(!env_.is_compute_method_gpu() &&
@@ -301,6 +313,7 @@ void MirroredBuf::to_accel_start() {
 #   elif defined COMET_USE_HIP
       hipMemcpyAsync(d, h, size(), hipMemcpyHostToDevice, env_.stream_togpu());
 #   endif
+    COMET_INSIST(System::accel_last_call_succeeded());
   } // if (use_linalg_)
 }
 
@@ -344,6 +357,7 @@ void MirroredBuf::from_accel_start(Stream_t stream) {
 #   elif defined COMET_USE_HIP
       hipMemcpyAsync(h, d, size(), hipMemcpyDeviceToHost, stream);
 #   endif
+    COMET_INSIST(System::accel_last_call_succeeded());
   } // if (use_linalg_)
 }
 

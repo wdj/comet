@@ -39,7 +39,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "math.h"
 #include "string"
 
-#include "gtest/gtest.h"
+#ifdef COMET_USE_GTEST
+# include "gtest/gtest.h"
+#else
+# define GTEST_API_
+# define EXPECT_EQ(a, b) COMET_INSIST((a) == (b));
+#endif
 
 #include "env.hh"
 #include "vectors.hh"
@@ -2483,6 +2488,8 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
+#ifdef COMET_USE_GTEST
+
 #if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
@@ -2547,11 +2554,131 @@ TEST(DriverTest, duo3) {
 }
 #endif
 
+#else
+
+int RUN_ALL_TESTS() {
+
+  DriverTest_threshold_();
+  DriverTest_file_output_();
+  DriverTest_tc_();
+  DriverTest_ccc3_simple_();
+  DriverTest_ccc3_simple_sparse_();
+  DriverTest_duo3_simple_sparse_();
+  DriverTest_ccc2_simple_();
+  DriverTest_ccc2_simple_sparse_();
+  DriverTest_duo2_simple_sparse_();
+  DriverTest_czek2_();
+  DriverTest_czek3_();
+  DriverTest_ccc2_();
+  DriverTest_ccc3_();
+  DriverTest_duo2_();
+  DriverTest_duo3_();
+
+  return 0;
+}
+
+#endif
+
+//=============================================================================
+
+#if 0
+
+#include "rocblas.h"
+
+//----------
+
+bool accel_last_call_succeeded() {
+
+  // NOTE: this read of the last error is (apparently) a destructive read.
+  hipError_t error = hipGetLastError();
+  const bool result = error == hipSuccess;
+
+  if (!result) {
+    fprintf(stderr, "HIP error detected: %s\n", hipGetErrorString(error));
+  }
+
+  return result;
+}
+
+//----------
+
+static void mysub() {
+
+  //using namespace comet;
+
+  typedef float Float_t;
+
+  const size_t m = 8; const size_t n = 8; const size_t k = 64;
+
+  Float_t* const ha = (Float_t*)malloc(m * k * sizeof(*ha));
+  Float_t* const hb = (Float_t*)malloc(k * n * sizeof(*hb));
+  Float_t* const hc = (Float_t*)malloc(m * n * sizeof(*hc));
+
+  for (size_t i=0; i<m*k; ++i) ha[i] = 2;
+  for (size_t i=0; i<k*n; ++i) hb[i] = 3;
+  for (size_t i=0; i<m*n; ++i) hc[i] = 0;
+
+  Float_t* da = 0; Float_t* db = 0; Float_t* dc = 0;
+
+  hipMalloc(&da, m * k * sizeof(*da));
+  hipMalloc(&db, k * n * sizeof(*db));
+  hipMalloc(&dc, m * n * sizeof(*dc));
+  accel_last_call_succeeded();
+//COMET_INSIST(System::accel_last_call_succeeded());
+
+  hipMemcpy(da, ha, m * k * sizeof(*ha), hipMemcpyHostToDevice);
+  accel_last_call_succeeded();
+  hipMemcpy(db, hb, k * n * sizeof(*hb), hipMemcpyHostToDevice);
+  accel_last_call_succeeded();
+  hipMemcpy(dc, hc, m * n * sizeof(*hc), hipMemcpyHostToDevice);
+  accel_last_call_succeeded();
+
+  const Float_t alpha = 1; const Float_t beta = 1;
+  rocblas_handle handle; rocblas_create_handle(&handle);
+printf("%zu\n", (size_t)handle);
+  accel_last_call_succeeded();
+
+  const rocblas_status status = rocblas_gemm_ex(
+    handle,
+    //rocblas_operation_none, rocblas_operation_none,
+    rocblas_operation_none, rocblas_operation_transpose,
+    m, n, k,
+    (void*)&alpha,
+    da, rocblas_datatype_f32_r, m,
+    db, rocblas_datatype_f32_r, n,
+    (void*)&beta,
+    dc, rocblas_datatype_f32_r, m,
+    dc, rocblas_datatype_f32_r, m,
+    rocblas_datatype_f32_r,
+    rocblas_gemm_algo_standard,
+    0, 0);
+  accel_last_call_succeeded();
+
+  hipMemcpy(hc, dc, m * n * sizeof(*hc), hipMemcpyDeviceToHost);
+  accel_last_call_succeeded();
+
+  printf("%f\n", (double)hc[0]);
+
+  rocblas_destroy_handle(handle);
+  accel_last_call_succeeded();
+  hipFree(da); hipFree(db); hipFree(dc);
+  accel_last_call_succeeded();
+  free(ha); free(hb); free(hc);
+}
+#endif
+
+
 //=============================================================================
 
 GTEST_API_ int main(int argc, char** argv) {
 
-  ::testing::InitGoogleTest(&argc, argv);
+#if 0
+mysub();
+#endif
+
+# ifdef COMET_USE_GTEST
+    ::testing::InitGoogleTest(&argc, argv);
+# endif
 
   COMET_MPI_SAFE_CALL(MPI_Init(&argc, &argv));
 
@@ -2559,9 +2686,11 @@ GTEST_API_ int main(int argc, char** argv) {
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
   if (comm_rank != 0) {
-    ::testing::TestEventListeners& listeners =
-      ::testing::UnitTest::GetInstance()->listeners();
-    delete listeners.Release(listeners.default_result_printer());
+#   ifdef COMET_USE_GTEST
+      ::testing::TestEventListeners& listeners =
+        ::testing::UnitTest::GetInstance()->listeners();
+      delete listeners.Release(listeners.default_result_printer());
+#   endif
   }
 
   int result = RUN_ALL_TESTS();

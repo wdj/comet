@@ -55,6 +55,7 @@ function main
     else
       local DIRS="build_test_nompi_$COMET_PLATFORM_STUB \
                   build_single_test_nompi_$COMET_PLATFORM_STUB"
+      #local DIRS="build_single_test_nompi_$COMET_PLATFORM_STUB"
     fi
   fi
 
