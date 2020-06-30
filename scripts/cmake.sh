@@ -233,7 +233,9 @@ function main
 
   if [ ${USE_HIP:-OFF} = ON ] ; then
     local ROCPRIM_VERSION=3.5.1
-    if [ -e ../rocPRIM-rocm-${ROCPRIM_VERSION}/build/build_is_complete ] ; then
+    if [ -e "${ROCM_PATH:-}/rocprim" ] ; then
+      ln -s "${ROCM_PATH:-}/rocprim" rocPRIM-rocm-${ROCPRIM_VERSION}
+    elif [ -e ../rocPRIM-rocm-${ROCPRIM_VERSION}/build/build_is_complete ] ; then
       ln -s ../rocPRIM-rocm-${ROCPRIM_VERSION} .
     else
       echo "Building ROCPRIM library ..."

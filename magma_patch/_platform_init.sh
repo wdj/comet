@@ -423,6 +423,7 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
 
   #---Modules etc.
 
+  module load cmake
   #module load rocm-alt/2.7
   #module load rocm-alt/2.9
   #module load rocm
@@ -457,6 +458,7 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   COMET_HIP_COMPILE_OPTS+=" -fno-gpu-rdc -Wno-unused-command-line-argument"
   COMET_HIP_COMPILE_OPTS+=" --amdgpu-target=gfx906"
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
+  COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
   COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906"
@@ -486,6 +488,7 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
 
   local COMET_CAN_USE_MPI=OFF
 #  local COMET_CAN_USE_MPI=ON
+
 #  local COMET_MPI_COMPILE_OPTS="-I$OLCF_OPENMPI_ROOT/include"
 #  local COMET_MPI_LINK_OPTS="-L$OLCF_OPENMPI_ROOT/lib -Wl,-rpath,$OLCF_OPENMPI_ROOT/lib -lmpi"
 
