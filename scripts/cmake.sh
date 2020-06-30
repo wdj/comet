@@ -221,11 +221,38 @@ function main
 
   if [ ${USE_CUDA:-OFF} = ON ] ; then
     echo "Building CUB library ..."
-    CUB_VERSION=1.8.0
+    local CUB_VERSION=1.8.0
     ln -s ../genomics_gpu/tpls/cub-${CUB_VERSION}.zip
     rm -rf cub-${CUB_VERSION}
     unzip -q cub-${CUB_VERSION}
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cub-${CUB_VERSION}/cub"
+  fi
+
+  #----------------------------------------------------------------------------
+  #---Get AMD ROCPRIM library.
+
+  if [ ${USE_HIP:-OFF} = ON ] ; then
+    local ROCPRIM_VERSION=3.5.1
+    if [ -e ../rocPRIM-rocm-${ROCPRIM_VERSION}/build/build_is_complete ] ; then
+      ln -s ../rocPRIM-rocm-${ROCPRIM_VERSION} .
+    else
+      echo "Building ROCPRIM library ..."
+      ln -s ../genomics_gpu/tpls/rocPRIM-rocm-${ROCPRIM_VERSION}.tar.gz
+      rm -rf rocPRIM-rocm-${ROCPRIM_VERSION}
+      gunzip <rocPRIM-rocm-${ROCPRIM_VERSION}.tar.gz | tar xf -
+      pushd rocPRIM-rocm-${ROCPRIM_VERSION}
+      mkdir build
+      cd build
+      cmake -DBUILD_BENCHMARK=ON -DCMAKE_CXX_COMPILER=hipcc ../.
+      make -j16
+      touch build_is_complete
+      # ISSUE: need to check for hipcc version consistency.
+      popd
+      rm -rf ../rocPRIM-rocm-${ROCPRIM_VERSION}
+      mv rocPRIM-rocm-${ROCPRIM_VERSION} ..
+    fi
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/rocprim/include"
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/build/rocprim/include/rocprim"
   fi
 
   #----------------------------------------------------------------------------

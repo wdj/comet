@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined COMET_USE_CUDA
 #  include "cub.cuh"
 #elif defined COMET_USE_HIP
-// TODO
+#  include "rocprim/rocprim.hpp"
 #endif
 
 #include "env.hh"
@@ -106,9 +106,7 @@ void CompressedBuf::attach(MirroredBuf& buf) {
 void CompressedBuf::compute_num_nonzeros_() {
   COMET_INSIST(can_compress_());
 
-# if defined COMET_USE_CUDA
-
-    // see https://nvlabs.github.io/cub/structcub_1_1_device_reduce.html
+# if defined COMET_USE_ACCEL
 
     ReductionOp reduction_op;
     size_t temp_storage_bytes = 0;
@@ -117,9 +115,24 @@ void CompressedBuf::compute_num_nonzeros_() {
 
     const MFTTypeIn initial_value = ReductionOp::INITIAL_VALUE;
 
+# if defined COMET_USE_CUDA
+
+    // see https://nvlabs.github.io/cub/structcub_1_1_device_reduce.html
+
     cub::DeviceReduce::Reduce(NULL,
       temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
       buf_length_(), reduction_op, initial_value, env_.stream_compute());
+
+# elif defined COMET_USE_HIP
+
+    // see https://github.com/ROCmSoftwarePlatform/rocPRIM/blob/develop/rocprim/include/rocprim/device/device_reduce.hpp
+
+    rocprim::reduce(NULL,
+      temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
+      initial_value, buf_length_(), reduction_op, env_.stream_compute());
+
+# endif // COMET_USE_CUDA || COMET_USE_HIP
+
     num_nonzeros_buf_.from_accel(env_.stream_compute());
 
     // Re/allocate temp storage.
@@ -134,9 +147,19 @@ void CompressedBuf::compute_num_nonzeros_() {
 
     // Perform reduction.
 
+# if defined COMET_USE_CUDA
+
     cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
       temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
       buf_length_(), reduction_op, initial_value, env_.stream_compute());
+
+# elif defined COMET_USE_HIP
+
+    rocprim::reduce((Workspace_t*)reduce_workspace_buf_.d,
+      temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
+      initial_value, buf_length_(), reduction_op, env_.stream_compute());
+
+# endif // COMET_USE_CUDA || COMET_USE_HIP
 
     // Retrieve count.
     // NOTE: this value may be approximate, since reduction is over floats.
@@ -146,11 +169,7 @@ void CompressedBuf::compute_num_nonzeros_() {
     num_nonzeros_approx_ = (size_t)
       -(num_nonzeros_buf_.elt_const<MFTTypeIn>(0, 0) - initial_value);
 
-# elif defined COMET_USE_HIP
-
-  // TODO
-
-# endif // COMET_USE_CUDA || COMET_USE_HIP
+#endif // COMET_USE_ACCEL
 }
 
 //-----------------------------------------------------------------------------
@@ -176,16 +195,34 @@ void CompressedBuf::compress() {
 
     COMET_INSIST(State::IDLE == state_);
 
-#   if defined COMET_USE_CUDA
-      //https://nvlabs.github.io/cub/structcub_1_1_device_run_length_encode.html
+#   if defined COMET_USE_ACCEL
+
+
       size_t temp_storage_bytes = 0;
 
       // Get amount of temp storage needed.
+
+#   if defined COMET_USE_CUDA
+
+      // see https://nvlabs.github.io/cub/structcub_1_1_device_run_length_encode.html
 
       cub::DeviceRunLengthEncode::Encode(NULL,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
         (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
         env_.stream_compute());
+
+# elif defined COMET_USE_HIP
+
+      // see https://github.com/ROCmSoftwarePlatform/rocPRIM/blob/develop/rocprim/include/rocprim/device/device_run_length_encode.hpp
+
+      rocprim::run_length_encode(NULL,
+        temp_storage_bytes, (MFTTypeIn*)buf_->d, buf_length_(),
+        (MFTTypeIn*)keys_buf_.d, (Lengths_t*)lengths_buf_.d,
+        (size_t*)num_runs_buf_.d,
+        env_.stream_compute());
+
+# endif // COMET_USE_CUDA || COMET_USE_HIP
+
       num_runs_buf_.from_accel(env_.stream_compute());
 
       // Re/allocate temp storage.
@@ -200,10 +237,22 @@ void CompressedBuf::compress() {
 
       // Perform RLE.
 
+#   if defined COMET_USE_CUDA
+
       cub::DeviceRunLengthEncode::Encode((Workspace_t*)rle_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
         (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
         env_.stream_compute());
+
+# elif defined COMET_USE_HIP
+
+      rocprim::run_length_encode((Workspace_t*)rle_workspace_buf_.d,
+        temp_storage_bytes, (MFTTypeIn*)buf_->d, buf_length_(),
+        (MFTTypeIn*)keys_buf_.d, (Lengths_t*)lengths_buf_.d,
+        (size_t*)num_runs_buf_.d,
+        env_.stream_compute());
+
+# endif // COMET_USE_CUDA || COMET_USE_HIP
 
       // Retrieve size.
 
@@ -216,11 +265,7 @@ void CompressedBuf::compress() {
       keys_alias_buf_.allocate(keys_buf_, num_runs_);
       lengths_alias_buf_.allocate(lengths_buf_, num_runs_);
 
-#   elif defined COMET_USE_HIP
-
-  // TODO
-
-#   endif // COMET_USE_CUDA || COMET_USE_HIP
+#endif // COMET_USE_ACCEL
 
     state_ = State::COMPRESSED;
 
