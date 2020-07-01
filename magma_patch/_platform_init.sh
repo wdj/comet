@@ -424,6 +424,9 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   #---Modules etc.
 
   module load cmake
+  #module load PrgEnv-cray
+  module use /home/users/twhite/share/modulefiles
+  module load ompi
   #module load rocm-alt/2.7
   #module load rocm-alt/2.9
   #module load rocm
@@ -486,23 +489,38 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
   fi
 
-  local COMET_CAN_USE_MPI=OFF
-#  local COMET_CAN_USE_MPI=ON
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
 
-#  local COMET_MPI_COMPILE_OPTS="-I$OLCF_OPENMPI_ROOT/include"
-#  local COMET_MPI_LINK_OPTS="-L$OLCF_OPENMPI_ROOT/lib -Wl,-rpath,$OLCF_OPENMPI_ROOT/lib -lmpi"
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    #local MPI_HOME=$(echo $PATH | sed 's,\(^\|.*:\)\([^:]*mvapich2[^:]*\)/bin.*,\2,')
+    local COMET_MPI_COMPILE_OPTS="-I$MPI_HOME/include"
+    local COMET_MPI_LINK_OPTS="-L$MPI_HOME/lib -Wl,-rpath,$MPI_HOME/lib -lmpi"
+    #local COMET_MPI_CMAKE_OPTS="-DMPI_C:STRING=$COMET_C_COMPILER"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_C_INCLUDE_PATH:STRING=$MPI_HOME/include"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_C_LIBRARIES:STRING=\"-L$MPI_HOME/lib -lmpi\""
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX:STRING=$COMET_CXX_COMPILER"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_INCLUDE_PATH:STRING=$MPI_HOME/include"
+    #COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_LIBRARIES:STRING=\"-L$MPI_HOME/lib -lmpi\""
+  fi
+
+  # local COMET_MPI_COMPILE_OPTS="-I$OLCF_OPENMPI_ROOT/include"
+  # local COMET_MPI_LINK_OPTS="-L$OLCF_OPENMPI_ROOT/lib -Wl,-rpath,$OLCF_OPENMPI_ROOT/lib -lmpi"
 
   #---Testing.
 
   COMET_USE_GTEST=OFF
 
-  #XXX salloc -N2 -A stf006 $SHELL
-  #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
-  # salloc -N2 -A stf006 $SHELL
-  # salloc -N1 -A stf006 $SHELL
-
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    #XXX salloc -N2 -A stf006 $SHELL
+    #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
+    # salloc -N1
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+  else
+    # salloc -N1
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1"
+  fi
   #local COMET_TEST_COMMAND="module load openmpi ; env OMP_NUM_THREADS=2 mpirun --npernode 48"
-  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1"
   #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -N 2 --ntasks-per-node=32"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"
 
