@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdlib"
 #include "cstdio"
 #include "cstdint"
+#define __STDC_FORMAT_MACROS 1
 #include "inttypes.h"
 #include "string.h"
 #include "math.h"

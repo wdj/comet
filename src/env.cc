@@ -589,7 +589,9 @@ bool CEnv::can_run(int tc) const {
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc) {
-    result = result && (BuildHas::CUDA==true || BuildHas::HIP==true);
+    // TODO: check what is the right compute cpability here for cuda.
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
+                     || (BuildHas::HIP && System::compute_capability() >= 900));
   }
 
   if (is_compute_method_gpu() && (!is_metric_type_bitwise()

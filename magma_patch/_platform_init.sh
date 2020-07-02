@@ -365,7 +365,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
 
   #---Testing.
 
-  COMET_USE_GTEST=OFF
+  #COMET_USE_GTEST=OFF
 
   #XXX salloc -N2 -A stf006 $SHELL
   #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
