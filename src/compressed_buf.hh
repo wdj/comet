@@ -208,7 +208,7 @@ private:
   /// \brief Compute current len of (uncompressed) buffer, in MFTTypeIn vals.
 
   size_t buf_length_() const {
-    // NOTE: is dynamic since buf_ can change size if elsewhere realloc/realias.
+    // NOTE: this is dynamic since buf_ can change size if elsewhere realloc/realias.
     const size_t length = buf_->dim0 * buf_->dim1 * NUM_VALUES_PER_METRIC;
     COMET_INSIST(length <= buf_length_max_);
     return length;
@@ -225,7 +225,7 @@ public:
 
   size_t num_entries() const {return num_entries_;}
 
-  /// \brief Internal class to support CUB reduction calls.
+  /// \brief Internal class to support CUB/rocPRIM reduction calls.
 
   struct ReductionOp {
     enum {INITIAL_VALUE = -1};

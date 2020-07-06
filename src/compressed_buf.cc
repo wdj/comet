@@ -108,60 +108,64 @@ void CompressedBuf::compute_num_nonzeros_() {
 
 # if defined COMET_USE_ACCEL
 
+    // Initializations.
+
     ReductionOp reduction_op;
     size_t temp_storage_bytes = 0;
 
-    // Get amount of temp storage needed.
+    // First get amount of temp storage needed for reduction.
 
     const MFTTypeIn initial_value = ReductionOp::INITIAL_VALUE;
 
-# if defined COMET_USE_CUDA
+#   if defined COMET_USE_CUDA
 
-    // see https://nvlabs.github.io/cub/structcub_1_1_device_reduce.html
+      // see https://nvlabs.github.io/cub/structcub_1_1_device_reduce.html
 
-    cub::DeviceReduce::Reduce(NULL,
-      temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-      buf_length_(), reduction_op, initial_value, env_.stream_compute());
+      cub::DeviceReduce::Reduce(NULL,
+        temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
+        buf_length_(), reduction_op, initial_value, env_.stream_compute());
 
-# elif defined COMET_USE_HIP
+#   elif defined COMET_USE_HIP
 
-    // see https://github.com/ROCmSoftwarePlatform/rocPRIM/blob/develop/rocprim/include/rocprim/device/device_reduce.hpp
+      // see https://github.com/ROCmSoftwarePlatform/rocPRIM/blob/develop/rocprim/include/rocprim/device/device_reduce.hpp
 
-    rocprim::reduce(NULL,
-      temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-      initial_value, buf_length_(), reduction_op, env_.stream_compute());
+      rocprim::reduce(NULL,
+        temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
+        initial_value, buf_length_(), reduction_op, env_.stream_compute());
 
-# endif // COMET_USE_CUDA || COMET_USE_HIP
+#   endif // COMET_USE_CUDA || COMET_USE_HIP
 
     num_nonzeros_buf_.from_accel(env_.stream_compute());
 
-    // Re/allocate temp storage.
+    // Re/allocate temp storage as needed.
 
     if (temp_storage_bytes > reduce_workspace_buf_.size()) {
       reduce_workspace_buf_.deallocate();
-      // Allocate slightly extra to allow some future growth.
+      // Possibly allocate slightly extra to allow some future growth
+      // without need to resize.
       const double fuzz = 0;
       const size_t alloc_size = temp_storage_bytes * (1+fuzz);
+      COMET_INSIST(alloc_size >= temp_storage_bytes);
       reduce_workspace_buf_.allocate(alloc_size, 1, sizeof(char));
     }
 
-    // Perform reduction.
+    // Now perform reduction.
 
-# if defined COMET_USE_CUDA
+#   if defined COMET_USE_CUDA
 
-    cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
-      temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-      buf_length_(), reduction_op, initial_value, env_.stream_compute());
+      cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
+        temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
+        buf_length_(), reduction_op, initial_value, env_.stream_compute());
 
-# elif defined COMET_USE_HIP
+#   elif defined COMET_USE_HIP
 
-    rocprim::reduce((Workspace_t*)reduce_workspace_buf_.d,
-      temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-      initial_value, buf_length_(), reduction_op, env_.stream_compute());
+      rocprim::reduce((Workspace_t*)reduce_workspace_buf_.d,
+        temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
+        initial_value, buf_length_(), reduction_op, env_.stream_compute());
 
-# endif // COMET_USE_CUDA || COMET_USE_HIP
+#   endif // COMET_USE_CUDA || COMET_USE_HIP
 
-    // Retrieve count.
+    // Retrieve nonzeros count.
     // NOTE: this value may be approximate, since reduction is over floats.
 
     num_nonzeros_buf_.from_accel(env_.stream_compute());
@@ -169,16 +173,23 @@ void CompressedBuf::compute_num_nonzeros_() {
     num_nonzeros_approx_ = (size_t)
       -(num_nonzeros_buf_.elt_const<MFTTypeIn>(0, 0) - initial_value);
 
-#endif // COMET_USE_ACCEL
+    const size_t roundoff_limit = 4e6;
+    COMET_INSIST((size_t)(float)roundoff_limit == roundoff_limit);
+    COMET_INSIST(num_nonzeros_approx_ <= buf_length_() ||
+                 buf_length_() > roundoff_limit);
+
+# endif // COMET_USE_ACCEL
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Compress the underlying buffer if it meets conditions.
+/// \brief Compress the underlying buffer if needed.
 
 void CompressedBuf::compress() {
 
   if (!can_compress_())
     return;
+
+ // Determine whether it is worth the effort to compress.
 
   compute_num_nonzeros_();
 
@@ -191,16 +202,16 @@ void CompressedBuf::compress() {
     compression_factor_required_() * storage_uncompressed &&
     env_.try_compress();
 
-  if (do_compress_) {
+  if (!do_compress_)
+    return;
 
-    COMET_INSIST(State::IDLE == state_);
+  COMET_INSIST(State::IDLE == state_);
 
-#   if defined COMET_USE_ACCEL
+# if defined COMET_USE_ACCEL
 
+    size_t temp_storage_bytes = 0;
 
-      size_t temp_storage_bytes = 0;
-
-      // Get amount of temp storage needed.
+    // First get amount of temp storage needed for rle.
 
 #   if defined COMET_USE_CUDA
 
@@ -211,7 +222,7 @@ void CompressedBuf::compress() {
         (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
         env_.stream_compute());
 
-# elif defined COMET_USE_HIP
+#   elif defined COMET_USE_HIP
 
       // see https://github.com/ROCmSoftwarePlatform/rocPRIM/blob/develop/rocprim/include/rocprim/device/device_run_length_encode.hpp
 
@@ -221,21 +232,23 @@ void CompressedBuf::compress() {
         (size_t*)num_runs_buf_.d,
         env_.stream_compute());
 
-# endif // COMET_USE_CUDA || COMET_USE_HIP
+#   endif // COMET_USE_CUDA || COMET_USE_HIP
 
-      num_runs_buf_.from_accel(env_.stream_compute());
+    num_runs_buf_.from_accel(env_.stream_compute());
 
-      // Re/allocate temp storage.
+    // Re/allocate temp storage as needed.
 
-      if (temp_storage_bytes > rle_workspace_buf_.size()) {
-        rle_workspace_buf_.deallocate();
-        // Allocate slightly extra to allow some future growth.
-        const double fuzz = 0;
-        const size_t alloc_size = temp_storage_bytes * (1+fuzz);
-        rle_workspace_buf_.allocate(alloc_size, 1, sizeof(char));
-      }
+    if (temp_storage_bytes > rle_workspace_buf_.size()) {
+      rle_workspace_buf_.deallocate();
+      // Possibly allocate slightly extra to allow some future growth
+      // without need to resize.
+      const double fuzz = 0;
+      const size_t alloc_size = temp_storage_bytes * (1+fuzz);
+      COMET_INSIST(alloc_size >= temp_storage_bytes);
+      rle_workspace_buf_.allocate(alloc_size, 1, sizeof(char));
+    }
 
-      // Perform RLE.
+    // Now perform RLE.
 
 #   if defined COMET_USE_CUDA
 
@@ -244,7 +257,7 @@ void CompressedBuf::compress() {
         (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
         env_.stream_compute());
 
-# elif defined COMET_USE_HIP
+#   elif defined COMET_USE_HIP
 
       rocprim::run_length_encode((Workspace_t*)rle_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, buf_length_(),
@@ -252,24 +265,23 @@ void CompressedBuf::compress() {
         (size_t*)num_runs_buf_.d,
         env_.stream_compute());
 
-# endif // COMET_USE_CUDA || COMET_USE_HIP
+#   endif // COMET_USE_CUDA || COMET_USE_HIP
 
-      // Retrieve size.
+    // Retrieve number of runs.
 
-      num_runs_buf_.from_accel(env_.stream_compute());
+    num_runs_buf_.from_accel(env_.stream_compute());
 
-      num_runs_ = num_runs_buf_.elt_const<size_t>(0, 0);
+    num_runs_ = num_runs_buf_.elt_const<size_t>(0, 0);
 
-      // Create right-sized buf aliases to later capture run lengths/keys.
+    // Create smaller-sized buf aliases, for later retrieval
+    // of run lengths and keys.
 
-      keys_alias_buf_.allocate(keys_buf_, num_runs_);
-      lengths_alias_buf_.allocate(lengths_buf_, num_runs_);
+    keys_alias_buf_.allocate(keys_buf_, num_runs_);
+    lengths_alias_buf_.allocate(lengths_buf_, num_runs_);
 
-#endif // COMET_USE_ACCEL
+# endif // COMET_USE_ACCEL
 
-    state_ = State::COMPRESSED;
-
-  } // if (do_compress_)
+  state_ = State::COMPRESSED;
 }
 
 //-----------------------------------------------------------------------------
@@ -278,15 +290,26 @@ void CompressedBuf::compress() {
 void CompressedBuf::from_accel_start() {
 
   if (do_compress_) {
+
     COMET_INSIST(State::COMPRESSED == state_);
+
+    // Begin retrieval of rle data.
+
     keys_alias_buf_.from_accel_start();
     lengths_alias_buf_.from_accel_start();
+
     state_ = State::TRANSFER_STARTED;
-#ifdef COMET_ASSERTIONS_ON
-    //buf_->from_accel_start();
-#endif
+
+# ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
+#   ifdef COMET_ASSERTIONS_ON
+      buf_->from_accel_start();
+#   endif
+# endif
+
   } else {
+
     buf_->from_accel_start();
+
   }
 }
 
@@ -296,49 +319,51 @@ void CompressedBuf::from_accel_start() {
 void CompressedBuf::from_accel_wait() {
 
   if (do_compress_) {
+
     COMET_INSIST(State::TRANSFER_STARTED == state_);
+
+    // Finish retrieval of rle data.
+
     keys_alias_buf_.from_accel_wait();
     lengths_alias_buf_.from_accel_wait();
 
-#if 0
-    for (size_t i=0; i<num_runs_; ++i) {
-      printf("cbuf %i %i %f\n", (int)i,
-        (int)lengths_alias_buf_.elt_const<size_t>(i, 0),
-        (double)keys_alias_buf_.elt_const<MFTTypeIn>(i, 0) ); 
-    }
-#endif
+//    for (size_t i=0; i<num_runs_; ++i)
+//      printf("cbuf %i %i %f\n", (int)i,
+//        (int)lengths_alias_buf_.elt_const<size_t>(i, 0),
+//        (double)keys_alias_buf_.elt_const<MFTTypeIn>(i, 0) ); 
+
+    // Count total number of nonzero values present after uncompression.
 
     num_entries_ = 0;
     for (size_t i = 0; i < num_runs_; ++i) {
       if (keys_alias_buf_.elt_const<MFTTypeIn>(i, 0))
         num_entries_ += lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
     } // i
-//printf("%i\n", (int)num_entries_);
+// printf("%i\n", (int)num_entries_);
 
-#if 0
-double mysum = 0;
-    for (size_t i = 0; i < num_runs_; ++i) {
-mysum += 
-keys_alias_buf_.elt_const<MFTTypeIn>(i, 0)
-* lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
-    } // i
-printf("%.20e\n", mysum);
-#endif
+//  double mysum = 0;
+//  for (size_t i = 0; i < num_runs_; ++i)
+//    mysum += keys_alias_buf_.elt_const<MFTTypeIn>(i, 0)
+//      * lengths_alias_buf_.elt_const<Lengths_t>(i, 0);
+//  printf("%.20e\n", mysum);
+
+    // Prepare for calls to read rle data.
 
     elt_read_start();
 
     state_ = State::IDLE;
-#ifdef COMET_ASSERTIONS_ON
-    //buf_->from_accel_wait();
-#endif
 
-#if 0
-    for (size_t i=0; i<64; ++i) {
-      if ((double)(((MFTTypeIn*)(buf_->h))[i]))
-        printf("buf %i %f\n", (int)i,
-          (double)(((MFTTypeIn*)(buf_->h))[i]));
-    }
-#endif
+# ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
+#   ifdef COMET_ASSERTIONS_ON
+      buf_->from_accel_wait();
+#   endif
+# endif
+
+//    for (size_t i=0; i<64; ++i) {
+//      if ((double)(((MFTTypeIn*)(buf_->h))[i]))
+//        printf("buf %i %f\n", (int)i,
+//          (double)(((MFTTypeIn*)(buf_->h))[i]));
+//    }
 
   } else {
 
@@ -348,7 +373,7 @@ printf("%.20e\n", mysum);
 }
 
 //-----------------------------------------------------------------------------
-/// \brief CompressedBuf lock buffer for exclusive use.
+/// \brief Lock CompressedBuf buffer for exclusive use.
 
 void CompressedBuf::lock_h() {
 
@@ -361,7 +386,7 @@ void CompressedBuf::lock_h() {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief CompressedBuf unlock buffer.
+/// \brief Unlock CompressedBuf buffer.
 
 void CompressedBuf::unlock_h() {
 

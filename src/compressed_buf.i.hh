@@ -66,7 +66,8 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
 
 // NOTE: this needs to be here because Tally2x2<MetricFormat::SINGLE>::TypeIn
 // is float, which also is incidentally GMFloat for Czekanowski for
-// the single precision build, so that case comes here.
+// the single precision build, so that case comes here.  Thus needed to
+// properly disambiguate types.
 
 inline Tally2x2<MetricFormat::SINGLE>::TypeIn
 CompressedBufAccessor_<Tally2x2<MetricFormat::SINGLE>::TypeIn>::
@@ -81,7 +82,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Cartesian elt access, compressed case, entire metric (4 entries).
+/// \brief Cartesian elt accessor, compressed case, entire metric (4 entries).
 
 inline Tally2x2<MetricFormat::SINGLE>
 CompressedBufAccessor_<Tally2x2<MetricFormat::SINGLE>>::
@@ -98,7 +99,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   // index into Tally2x2<MetricFormat::SINGLE> elt of (uncompresed) buf.
   const size_t ind = ind0 + buf_->dim0 * ind1;
 
-  // NOTE: for compressed case, assuming that access are in fact sequential.
+  // NOTE: for compressed case, assuming here that access are in fact sequential.
   COMET_ASSERT(ind > reader_.ind_recent || ! reader_.is_reading_started ||
                !cbuf->do_compress_);
 
@@ -108,26 +109,26 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   reader_.ind0_recent = ind0;
   reader_.ind1_recent = ind1;
 
-  // Trap simple case.
+  // Trap simple (uncompressed) case.
   if (!cbuf->do_compress_)
     return buf_->elt_const<T>(ind0, ind1);
 
   T result = T::null();
 
-#ifdef COMET_ASSERTIONS_ON
-  // number of Tally2x2<MetricFormat::SINGLE> elts of (uncompresed) buf.
-  const size_t dim = buf_->dim0 * buf_->dim1;
-  // number of TypeIn (float) elements of (uncompressed) buf.
-  const size_t dim_typein = 4 * dim;
-#endif
+# ifdef COMET_ASSERTIONS_ON
+    // number of Tally2x2<MetricFormat::SINGLE> elts of (uncompresed) buf.
+    const size_t dim = buf_->dim0 * buf_->dim1;
+    // number of TypeIn (float) elements of (uncompressed) buf.
+    const size_t dim_typein = 4 * dim;
+# endif
 
   // Index to run in the rle.
   size_t& ind_run = reader_.ind_run_recent;
 
   // Loop to look for and pick up 4 table entries, if they are in rle.
 
-  // NOTE: order of next 2 nested loops must match mem layout of Tally2x2,
-  // since that is the order of elts submitted to the rle.
+  // NOTE: the order of next 2 nested loops must match mem layout of Tally2x2,
+  // since that is the order of elements submitted to the rle.
 
   for (int iE=0; iE<2; ++iE) {
     for (int jE=0; jE<2; ++jE) {
@@ -168,8 +169,15 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
     } // for jE
   } // for iE
 
-  //COMET_ASSERT(buf_->elt_const<T>(ind0, ind1)==result);
-  //return buf_->elt_const<T>(ind0, ind1);
+// Turn this on to explicitly check values against uncompressed buf.
+//# define _COMET_COMPRESSED_BUF_CHECK_RESULT
+
+# ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
+  for (int iE=0; iE<2; ++iE)
+    for (int jE=0; jE<2; ++jE)
+      COMET_ASSERT(T::get(buf_->elt_const<T>(ind0, ind1), iE, jE) ==
+                   T::get(result, iE, jE));
+# endif
   return result;
 }
 
@@ -222,7 +230,7 @@ elt_const(size_t ind_entry, const CompressedBuf* cbuf) {
   size_t& ind0 = reader_.ind0_recent;
   size_t& ind1 = reader_.ind1_recent;
 
-  // Trap simple case.
+  // Trap simple (uncompressed) case.
   if (!cbuf->do_compress_) {
     ind_typein = ind_entry;
     iE = (ind_typein / 2) % 2;

@@ -457,8 +457,8 @@ public:
     return
       threshold_tc() &&
       num_way() == NumWay::_3 && // TODO: implement for 2-way
-      //BuildHas::ACCEL &&
-      BuildHas::CUDA && // TODO: implement for HIP
+      BuildHas::ACCEL &&
+      //BuildHas::CUDA &&
       is_compute_method_gpu() &&
       !do_reduce();
   }
