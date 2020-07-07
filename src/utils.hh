@@ -186,6 +186,7 @@ static int log2(size_t n) {
 //-----------------------------------------------------------------------------
 /// \brief Population count of 1-bits in 64-bit word.
 
+__host__ __device__
 static int popc64(uint64_t x) {
   // Adapted from https://en.wikipedia.org/wiki/Hamming_weight
   const uint64_t m1 = 0x5555555555555555;

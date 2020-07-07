@@ -47,7 +47,8 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Helper function: is a nonnegative integer a power of 2.
 
-__host__ __device__ static bool is_po2(int x) {
+template<typename T>
+__host__ __device__ static bool is_po2(T x) {
   return x && (!(x&(x-1))); 
 }
 

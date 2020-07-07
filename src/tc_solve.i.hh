@@ -40,69 +40,49 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-#if 0
-static void mysub() {
+//-----------------------------------------------------------------------------
+/// \brief 1-bit xor gemm, cpu version (not high performance).
 
-  typedef float Float_t;
+void b1_xor_gemm_cpu(size_t m, size_t n, size_t k,
+  uint64_t* a, uint64_t* b, bool beta, int32_t* c) {
+  COMET_INSIST(a && b && c);
+  COMET_INSIST(k % 64 == 0);
+  //COMET_INSIST(m == n);
 
-  const size_t m = 8; const size_t n = 8; const size_t k = 64;
-
-  Float_t* const ha = (Float_t*)malloc(m * k * sizeof(*ha));
-  Float_t* const hb = (Float_t*)malloc(k * n * sizeof(*hb));
-  Float_t* const hc = (Float_t*)malloc(m * n * sizeof(*hc));
-
-  for (size_t i=0; i<m*k; ++i) ha[i] = 2;
-  for (size_t i=0; i<k*n; ++i) hb[i] = 3;
-  for (size_t i=0; i<m*n; ++i) hc[i] = 0;
-
-  Float_t* da = 0; Float_t* db = 0; Float_t* dc = 0;
-
-  hipMalloc(&da, m * k * sizeof(*da));
-  hipMalloc(&db, k * n * sizeof(*db));
-  hipMalloc(&dc, m * n * sizeof(*dc));
-COMET_INSIST(System::accel_last_call_succeeded());
-
-  hipMemcpy(da, ha, m * k * sizeof(*ha), hipMemcpyHostToDevice);
-  hipMemcpy(db, hb, k * n * sizeof(*hb), hipMemcpyHostToDevice);
-  hipMemcpy(dc, hc, m * n * sizeof(*hc), hipMemcpyHostToDevice);
-COMET_INSIST(System::accel_last_call_succeeded());
-
-  const Float_t alpha = 1; const Float_t beta = 1;
-  rocblas_handle handle; rocblas_create_handle(&handle);
-printf("%zu\n", (size_t)handle);
-COMET_INSIST(System::accel_last_call_succeeded());
-
-  const rocblas_status status = rocblas_gemm_ex(
-    handle,
-    //rocblas_operation_none, rocblas_operation_none,
-    rocblas_operation_none, rocblas_operation_transpose,
-    m, n, k,
-    (void*)&alpha,
-    da, rocblas_datatype_f32_r, m,
-    db, rocblas_datatype_f32_r, n,
-    (void*)&beta,
-    dc, rocblas_datatype_f32_r, m,
-    dc, rocblas_datatype_f32_r, m,
-    rocblas_datatype_f32_r,
-    rocblas_gemm_algo_standard,
-    0, 0);
-COMET_INSIST(System::accel_last_call_succeeded());
-
-  hipMemcpy(hc, dc, m * n * sizeof(*hc), hipMemcpyDeviceToHost);
-COMET_INSIST(System::accel_last_call_succeeded());
-
-  printf("%f\n", (double)hc[0]);
-
-  rocblas_destroy_handle(handle);
-COMET_INSIST(System::accel_last_call_succeeded());
-  hipFree(da); hipFree(db); hipFree(dc);
-COMET_INSIST(System::accel_last_call_succeeded());
-  free(ha); free(hb); free(hc);
+  for (size_t ind_i = 0; ind_i < m; ++ind_i) {
+    for (size_t ind_j = 0; ind_j < n; ++ind_j) {
+      for (size_t ind_k = 0; ind_k < k; ++ind_k) {
+        const int32_t v = utils::popc64(a[ind_k+k*ind_i] ^ b[ind_k+k*ind_j]);
+        c[ind_i+m*ind_j] = beta ? c[ind_i+m*ind_j] + v : v;
+      }
+    }
+  }
 }
-#endif
 
 //-----------------------------------------------------------------------------
-/// \brief Call cublas to perform required GEMM.
+/// \brief 1-bit xor gemm, gpu version (not high performance).
+
+__global__
+void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
+  uint64_t* a, uint64_t* b, bool beta, int32_t* c) {
+  //COMET_INSIST(a && b && c);
+  //COMET_INSIST(k % 64 == 0);
+  //COMET_INSIST(m == n);
+
+  const int ind_i = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int ind_j = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+
+  if (ind_i >= m || ind_j >= n)
+    return;
+
+  for (size_t ind_k = 0; ind_k < k; ++ind_k) {
+    const int32_t v = utils::popc64(a[ind_k+k*ind_i] ^ b[ind_k+k*ind_j]);
+    c[ind_i+m*ind_j] = beta ? c[ind_i+m*ind_j] + v : v;
+  }
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Perform required GEMM.
 
 template<int TC_METHOD>
 static void tc_solve_impl(bool is_first, int m, int n, int k,
@@ -126,7 +106,27 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   // Make BLAS call.
 
-  if (env.is_compute_method_gpu()) {
+  if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
+
+    COMET_INSIST(k % 64 == 0 && "Failed divisibility condition for tc gemm.");
+
+    const bool beta = is_first ? 0 : 1;
+
+    const int threadblocksize = 256;
+    COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+                 "Current HIP limitation.");
+    const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
+    const int num_threadblocks_1 = n;
+
+    COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu,
+      dim3(num_threadblocks_0, num_threadblocks_1, 1),
+      dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+      m, n, k/64, (uint64_t*)tc_bufs.tc_buf_left,
+      (uint64_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+
+    System::accel_last_call_succeeded();
+
+  } else if (env.is_compute_method_gpu()) { // && TC_METHOD != TC::B1
 
     // Make accelerator BLAS call.
 
@@ -136,58 +136,6 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
       // GPU BLAS call.
-
-#if 0
-      COMET_INSIST(System::accel_last_call_succeeded());
-mysub();
-      COMET_INSIST(System::accel_last_call_succeeded());
-mysub();
-      COMET_INSIST(System::accel_last_call_succeeded());
-mysub();
-      COMET_INSIST(System::accel_last_call_succeeded());
-
-printf("2 %zu %zu %zu %zu\n", (size_t)tc_bufs.accelblas_handle, (size_t)m, (size_t)n, (size_t)k);
-  rocblas_handle handle; rocblas_create_handle(&handle);
-printf("2.1 %zu %zu %zu %zu\n", (size_t)handle, (size_t)tc_bufs.tc_buf_left, (size_t)tc_bufs.tc_buf_right, (size_t)matC);
-
-const float alpha_ = 1; const float beta_ = 1;
-float* da = 0; float* db = 0; float* dc = 0;
-hipMalloc(&da, m * k * sizeof(*da));
-hipMalloc(&db, k * n * sizeof(*db));
-hipMalloc(&dc, m * n * sizeof(*dc));
-COMET_INSIST(System::accel_last_call_succeeded());
-mysub();
-COMET_INSIST(System::accel_last_call_succeeded());
-
-        const rocblas_status status = rocblas_gemm_ex(
-        //tc_bufs.accelblas_handle
-        handle
-        , rocblas_operation_none, rocblas_operation_transpose
-        //, m, n, k
-        , (size_t)m, (size_t)n, (size_t)k
-        //, (void*)&alpha
-        , (void*)&alpha_
-        //, tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m
-        , da, rocblas_datatype_f32_r, (size_t)m
-        //, tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
-        , db, rocblas_datatype_f32_r, (size_t)n
-        //, (void*)&beta
-        , (void*)&beta_
-        //, matC, TCSelector<TC_METHOD>::gemm_type_out(), m
-        , dc, rocblas_datatype_f32_r, (size_t)m
-        //, matC, TCSelector<TC_METHOD>::gemm_type_out(), m
-        , dc, rocblas_datatype_f32_r, (size_t)m
-        //, TCSelector<TC_METHOD>::gemm_type_out()
-        , rocblas_datatype_f32_r
-        , rocblas_gemm_algo_standard
-        , 0, 0
-      );
-      COMET_INSIST(System::accel_last_call_succeeded());
-
-printf("3 %zu\n", (size_t)tc_bufs.accelblas_handle);
-
-if(0)
-#endif
 
 #     ifdef COMET_USE_CUDA
         const cublasStatus_t status = cublasGemmEx(
@@ -244,44 +192,51 @@ if(0)
                      "Failure in call to rocblas_gemm_ex.");
 #     endif
 
-
-
-
-
-
-
-
-
 #   else // COMET_USE_ACCEL
 
       COMET_INSIST(false && "Failure to call GEMM function.");
 
 #   endif // COMET_USE_ACCEL
 
-if (! BuildHas::HIP) // FIX
+    if (! BuildHas::HIP) // FIX - this is a bug workaround
     COMET_INSIST(System::accel_last_call_succeeded());
     //System::accel_last_call_succeeded();
 
   } else { // (!env.is_compute_method_gpu()) {
 
-#   ifdef COMET_USE_CPUBLAS
+    if (env.tc_eff() == TC::FP32) {
 
-      COMET_INSIST(env.tc_eff() == TC::FP32);
+#     ifdef COMET_USE_CPUBLAS
 
-      const float alpha = 1;
-      const float beta = is_first ? 0 : 1;
+        const float alpha = 1;
+        const float beta = is_first ? 0 : 1;
 
-      // Make CPU BLAS call.
+        // Make CPU BLAS call.
 
-      cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
-        m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
-        (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
+        cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
+          m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
+          (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
 
-#   else // COMET_USE_CPUBLAS
+#     else // COMET_USE_CPUBLAS
+
+        COMET_INSIST(false && "Failure to call GEMM function.");
+
+#     endif // COMET_USE_CPUBLAS
+
+    } else if (env.tc_eff() == TC::B1) {
+
+      COMET_INSIST(k % 64 == 0 && "Failed divisibility condition for tc gemm.");
+
+      const bool beta = is_first ? 0 : 1;
+
+      b1_xor_gemm_cpu(m, n, k/64, (uint64_t*)tc_bufs.tc_buf_left,
+        (uint64_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+
+    } else { // if env.tc_eff()
 
       COMET_INSIST(false && "Failure to call GEMM function.");
 
-#   endif // COMET_USE_CPUBLAS
+    } // if env.tc_eff()
 
   } // if compute_method
 

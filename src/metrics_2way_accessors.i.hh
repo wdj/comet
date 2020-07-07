@@ -276,6 +276,8 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
   } else { // !env.sparse
 
+    COMET_ASSERT(!(env.is_using_xor() && !env.sparse())); // should never occur
+
     COMET_ASSERT(metrics.num_field_active > 0);
 
     // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
