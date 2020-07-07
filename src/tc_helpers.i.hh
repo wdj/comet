@@ -44,9 +44,104 @@ namespace comet {
 // HELPERS
 
 //-----------------------------------------------------------------------------
+/// \brief Select types etc. based on the setting of the tc param.
+
+template<int TC_METHOD> struct TCSelector;
+
+//----------
+
+template<> struct TCSelector<TC::FP32> {
+  // types.
+  //typedef GMFp32 GemmIn_t; // don't use this because harder to access bits.
+  typedef uint32_t GemmIn_t;
+  typedef GMFp32 GemmOut_t;
+#if defined COMET_USE_CUDA
+  // type selector parameters.
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_32F;}
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
+#elif defined COMET_USE_HIP
+  // type selector parameters.
+  static rocblas_datatype __host__ __device__ gemm_type_in() {
+    return rocblas_datatype_f32_r;
+  }
+  static rocblas_datatype __host__ __device__ gemm_type_out() {
+    return rocblas_datatype_f32_r;
+  }
+#endif
+  enum {NFPGI = 1};
+  //enum {NUM_FIELDS_PER_GEMMIN_T = NFPGI};
+};
+
+//----------
+
+template<> struct TCSelector<TC::FP16> {
+  // types.
+  typedef uint16_t GemmIn_t;
+  typedef GMFp32 GemmOut_t;
+#if defined COMET_USE_CUDA
+  // type selector parameters.
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
+#elif defined COMET_USE_HIP
+  // type selector parameters.
+  static rocblas_datatype __host__ __device__ gemm_type_in() {
+    return rocblas_datatype_f16_r;
+  }
+  static rocblas_datatype __host__ __device__ gemm_type_out() {
+    return rocblas_datatype_f32_r;
+  }
+#endif
+  enum {NFPGI = 1};
+};
+
+//----------
+
+template<> struct TCSelector<TC::INT8> {
+  // types.
+  typedef int8_t GemmIn_t;
+  typedef int32_t GemmOut_t;
+#if defined COMET_USE_CUDA
+  // type selector parameters.
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
+#elif defined COMET_USE_HIP
+  // type selector parameters.
+  static rocblas_datatype __host__ __device__ gemm_type_in() {
+   return rocblas_datatype_u8_r;
+  }
+  static rocblas_datatype __host__ __device__ gemm_type_out() {
+   return rocblas_datatype_u32_r;
+  }
+#endif
+  enum {NFPGI = 1};
+};
+
+//----------
+
+template<> struct TCSelector<TC::B1> {
+  // types.
+  typedef int8_t GemmIn_t;
+  typedef int32_t GemmOut_t;
+#if defined COMET_USE_CUDA
+  // type selector parameters.
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
+#elif defined COMET_USE_HIP
+  // type selector parameters.
+  static rocblas_datatype __host__ __device__ gemm_type_in() {
+   return rocblas_datatype_u8_r; // UNUSED
+  }
+  static rocblas_datatype __host__ __device__ gemm_type_out() {
+   return rocblas_datatype_u32_r;
+  }
+#endif
+  enum {NFPGI = 8};
+};
+
+//-----------------------------------------------------------------------------
 /// \brief Provide needed constants of GemmIn_t type.
 ///
-///        Provide constants "0", "1" and "2" in the datatype
+///        Provide constants "0", "1". "2", "4" in the datatype
 ///        required to input to the reduced precision GEMM.
 
 // Note: we could use __half here instead of uint16_t.  The intent here
@@ -58,11 +153,30 @@ template<typename GemmIn_t> struct TCBufTypes;
 
 //----------
 
-template<> struct TCBufTypes<GMFp32> {
-  static __host__ __device__ GMFp32 zero() {return (GMFp32)0;}
-  static __host__ __device__ GMFp32 one() {return (GMFp32)1;}
-  static __host__ __device__ GMFp32 two() {return (GMFp32)2;}
-  static __host__ __device__ GMFp32 four() {return (GMFp32)4;}
+template<> struct TCBufTypes<uint32_t> {
+private:
+  //static __host__ __device__ uint32_t mycast(GMFp32 v) {
+  //  // ISSUE: the result here is, "by the book", undefined; the proper
+  //  // way is to use char* to access the component bytes of the types
+  //  // to copy from one type to another.
+  //  const uint32_t* const p = (uint32_t*)&v;
+  //  return *p;
+  //}
+  static __host__ __device__ uint32_t mycast(const GMFp32 v) {
+    const char* const pv = (const char*)&v;
+    uint32_t r = 0;
+    char* const pr = (char*)&r;
+    pr[0] = pv[0];
+    pr[1] = pv[1];
+    pr[2] = pv[2];
+    pr[3] = pv[3];
+    return r;
+  }
+public:
+  static __host__ __device__ uint32_t zero() {return mycast(0);}
+  static __host__ __device__ uint32_t one() {return mycast(1);}
+  static __host__ __device__ uint32_t two() {return mycast(2);}
+  static __host__ __device__ uint32_t four() {return mycast(4);}
 };
 
 //----------
@@ -85,99 +199,6 @@ template<> struct TCBufTypes<int8_t> {
   static __host__ __device__ int8_t one() {return (int8_t)1;}
   static __host__ __device__ int8_t two() {return (int8_t)2;}
   static __host__ __device__ int8_t four() {return (int8_t)4;}
-};
-
-//-----------------------------------------------------------------------------
-/// \brief Select types etc. based on the setting of the tc param.
-
-template<int TC_METHOD> struct TCSelector;
-
-//----------
-
-template<> struct TCSelector<TC::FP32> {
-  // types.
-  typedef GMFp32 GemmIn_t;
-  typedef GMFp32 GemmOut_t;
-#if defined COMET_USE_CUDA
-  // type selector parameters.
-  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_32F;}
-  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
-#elif defined COMET_USE_HIP
-  // type selector parameters.
-  static rocblas_datatype __host__ __device__ gemm_type_in() {
-    return rocblas_datatype_f32_r;
-  }
-  static rocblas_datatype __host__ __device__ gemm_type_out() {
-    return rocblas_datatype_f32_r;
-  }
-#endif
-  enum { COUNT = 1 };
-};
-
-//----------
-
-template<> struct TCSelector<TC::FP16> {
-  // types.
-  typedef uint16_t GemmIn_t;
-  typedef GMFp32 GemmOut_t;
-#if defined COMET_USE_CUDA
-  // type selector parameters.
-  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
-  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
-#elif defined COMET_USE_HIP
-  // type selector parameters.
-  static rocblas_datatype __host__ __device__ gemm_type_in() {
-    return rocblas_datatype_f16_r;
-  }
-  static rocblas_datatype __host__ __device__ gemm_type_out() {
-    return rocblas_datatype_f32_r;
-  }
-#endif
-  enum { COUNT = 1 };
-};
-
-//----------
-
-template<> struct TCSelector<TC::INT8> {
-  // types.
-  typedef int8_t GemmIn_t;
-  typedef int32_t GemmOut_t;
-#if defined COMET_USE_CUDA
-  // type selector parameters.
-  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
-  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
-#elif defined COMET_USE_HIP
-  // type selector parameters.
-  static rocblas_datatype __host__ __device__ gemm_type_in() {
-   return rocblas_datatype_u8_r;
-  }
-  static rocblas_datatype __host__ __device__ gemm_type_out() {
-   return rocblas_datatype_u32_r;
-  }
-#endif
-  enum { COUNT = 1 };
-};
-
-//----------
-
-template<> struct TCSelector<TC::B1> {
-  // types.
-  typedef int8_t GemmIn_t;
-  typedef int32_t GemmOut_t;
-#if defined COMET_USE_CUDA
-  // type selector parameters.
-  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
-  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
-#elif defined COMET_USE_HIP
-  // type selector parameters.
-  static rocblas_datatype __host__ __device__ gemm_type_in() {
-   return rocblas_datatype_u8_r; // UNUSED
-  }
-  static rocblas_datatype __host__ __device__ gemm_type_out() {
-   return rocblas_datatype_u32_r;
-  }
-#endif
-  enum { COUNT = 8 };
 };
 
 //=============================================================================

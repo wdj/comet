@@ -158,9 +158,9 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
     ) : is_duo /* && is_sparse */ ? (
 
              // DUO: pick up low order bit (unless undefined)
-             snm == _UNDEF         ? zero :
-             (snm & 1) == jE    ? one :
-          /* (snm & 1) == 1-jE */ zero
+             snm == _UNDEF    ? zero :
+             (snm&1) == jE    ? one :
+          /* (snm&1) == 1-jE */ zero
 
     ) : num_way_3_left && is_bitwise_3way_2step
         /* && is_ccc && form_matX_tc */ ? (
@@ -208,7 +208,7 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
 /// \brief Write individual elements to buf.
 ///
 
-template<typename GemmIn_t, int NGIPT>
+template<typename GemmIn_t, int NGIPT, int NFPGI>
 __host__ __device__ static void tc_buf_write_kernel_elt_(
   GemmIn_t* vo,
   const uint32_t* vim,
@@ -273,51 +273,65 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   // Sizes.
 
+  enum {BITS_PER_BYTE = 8};
   enum {SNPW = 16}; // seminibbles per 32-bit word
   enum {BPSN = 2}; // bits per seminibble
-  // assert(SNPW * BPSN == 32);
+  // assert(SNPW * BPSN == sizeof(*vim) * BITS_PER_BYTE);
 
-  // assert(NGIPT >= 1 && NGIPT <= SNPW);
+  // assert(NGIPT >= 1 && NFPGI >= 1);
+  // assert(NFPGI * NGIPT <= SNPW);
   // assert NGIPT is power of 2
+  // assert NFPGI is power of 2
   enum {DIMHI = SNPW/NGIPT};
   enum {DIMLO = BPSN*NGIPT};
 
   const uint32_t mask_lo = (((uint32_t)1)<<DIMLO) - 1;
-  const uint32_t shift = (flG % DIMHI) * DIMLO;
+  const uint32_t shift_lo = (flG % DIMHI) * DIMLO;
 
   // Loop over GemmIn_t values per this thread.
   // ISSUE: would this be faster with unroll pragma or template recursion
 
   for (int igipt = 0; igipt < NGIPT; ++igipt) {
 
-    // Pick up field value.
-    // Set to zero if outside of active range.
-
-    const uint32_t sns_m = is_vector_inactive ? 0 :
-      (vim_col[flG/DIMHI] >> shift) & mask_lo;
-    const int sn_m = (sns_m >> (BPSN*igipt)) & 3;
-
-    const uint32_t sns_c = is_vector_inactive ? 0 : /* is_right ? 0 : */
-      (vic    [flG/DIMHI] >> shift) & mask_lo;
-    const int sn_c = (sns_c >> (BPSN*igipt)) & 3;
-
-    // Count number of 0 (or 1) bits in respective seminibble.
-    // Determine whether to skip (1,0) null indicator value.
-    // NOTE: does not work for all cases.
-
     const int fl_index = igipt + NGIPT * flG_thread;
-
     const bool is_field_inactive = NGIPT * flG_min + fl_index >= nfal;
 
-    const GemmIn_t out = is_field_inactive ? 0 :
-      tc_buf_write_kernel_value_<GemmIn_t>(sn_m, sn_c, jE, kE, step_2way,
-        num_way, is_sparse, is_right, is_duo, form_matX_tc,
-        is_bitwise_3way_2step);
+    GemmIn_t& vo_value = vo[vlX2_index + vlX2_dim * (size_t)fl_index];
 
-    // Store.
+    for (int ifpgi = 0; ifpgi < NFPGI; ++ifpgi) {
 
-    vo[vlX2_index + vlX2_dim * (size_t)fl_index] = out;
+      const int ifpt = ifpgi + NFPGI * igipt;
 
+      // Pick up field value.
+      // Set to zero if outside of active range.
+
+      const uint32_t sns_m = is_vector_inactive ? 0 :
+        (vim_col[flG/DIMHI] >> shift_lo) & mask_lo;
+      const int sn_m = (sns_m >> (BPSN*ifpt)) & 3;
+
+      const uint32_t sns_c = is_vector_inactive ? 0 : /* is_right ? 0 : */
+        (vic    [flG/DIMHI] >> shift_lo) & mask_lo;
+      const int sn_c = (sns_c >> (BPSN*ifpt)) & 3;
+
+      // Count number of 0 (or 1) bits in respective seminibble.
+      // Determine whether to skip (1,0) null indicator value.
+      // NOTE: does not work for all cases.
+
+      const GemmIn_t out = is_field_inactive ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t>(sn_m, sn_c, jE, kE, step_2way,
+          num_way, is_sparse, is_right, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+
+      // Store.
+
+      if (ifpgi) {
+        const int shift = ( ifpgi * sizeof(GemmIn_t) ) / BITS_PER_BYTE;
+        vo_value = vo_value | ( out << shift);
+      } else {
+        vo_value = out;
+      }
+
+    } // ifpgi
   } // igipt
 
 #if 0
@@ -328,15 +342,15 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   // Set to zero if outside of active range.
 
   const uint32_t mask_lo = (((uint32_t)1)<<DIMLO) - 1;
-  const uint32_t shift = (flG % DIMHI) * DIMLO;
+  const uint32_t shift_lo = (flG % DIMHI) * DIMLO;
 
   const uint32_t sns_m = is_vector_inactive ? 0 :
-    (vim_col[flG/DIMHI] >> shift) & mask_lo;
+    (vim_col[flG/DIMHI] >> shift_lo) & mask_lo;
   const int snm0 = (sns_m >> (BPSN*IGIPT0)) & 3;
   const int snm1 = (sns_m >> (BPSN*IGIPT1)) & 3;
 
   const uint32_t sns_c = is_vector_inactive ? 0 : /* is_right ? 0 : */
-    (vic    [flG/DIMHI] >> shift) & mask_lo;
+    (vic    [flG/DIMHI] >> shift_lo) & mask_lo;
   const int snc0 = (sns_c >> (BPSN*IGIPT0)) & 3;
   const int snc1 = (sns_c >> (BPSN*IGIPT1)) & 3;
 
@@ -370,7 +384,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support tc_buf_write_.
 
-template<typename GemmIn_t, int NGIPT>
+template<typename GemmIn_t, int NGIPT, int NFPGI>
 __global__ static void tc_buf_write_kernel_(
   GemmIn_t* vo,
   const uint32_t* vim,
@@ -404,7 +418,7 @@ __global__ static void tc_buf_write_kernel_(
   if (vlX2_thread >= nvleX2_thread || flG_thread >= nflG_thread)
     return;
 
-  tc_buf_write_kernel_elt_<GemmIn_t, NGIPT>(vo, vim, vic, vi_dim0,
+  tc_buf_write_kernel_elt_<GemmIn_t, NGIPT, NFPGI>(vo, vim, vic, vi_dim0,
     num_way, is_sparse, is_right, is_duo, form_matX_tc, step_2way,
     is_bitwise_3way_2step, is_vectors_halved,
     nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflG, nflG_thread, flG_min, nfal,
@@ -449,6 +463,9 @@ void tc_buf_write_(
   enum {NGIPT = 2};
   // = number of GemmIn_t values processed per thread - a tuning parameter.
 
+  enum {NFPGI = TCSelector<TC_METHOD>::NFPGI};
+  // = number of fields handled by each GemmIn_t value.
+
   const int nfl = npvfl * NUM_FL_PER_PVFL;
   const int nfl_thisstep = npvfl_thisstep * NUM_FL_PER_PVFL;
   const int fl_min = pvfl_min * NUM_FL_PER_PVFL;
@@ -492,7 +509,7 @@ void tc_buf_write_(
       const int num_threadblocks_1 = utils::min(nflG_thread, blockdim_y);
       const int num_threadblocks_2 = utils::ceil(nflG_thread, blockdim_y);
 
-      COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<GemmIn_t, NGIPT>),
+      COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<GemmIn_t, NGIPT, NFPGI>),
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
@@ -508,7 +525,7 @@ void tc_buf_write_(
     for (int flG_thread=0; flG_thread<nflG_thread; ++flG_thread) {
       for (int vlX2_thread=0; vlX2_thread<nvleX2_thread; ++vlX2_thread) {
 
-        tc_buf_write_kernel_elt_<GemmIn_t, NGIPT>(
+        tc_buf_write_kernel_elt_<GemmIn_t, NGIPT, NFPGI>(
           tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
           is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
           env.is_vectors_halved(),

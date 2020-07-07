@@ -219,7 +219,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
     if (env.is_using_xor()) {
 
-      // Mke adjustment for xor gemm.
+      // Make adjustment for xor gemm.
       // See notes for 8x8 system solve to back out this result.
       GMTally1 cij = (si1 + sj1 - GMTally2x2_get(ttable, 1, 1)) / 2 +
                      (si1 + sj0 - GMTally2x2_get(ttable, 1, 0)) / 2 +
@@ -237,7 +237,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
       const Float_t recip_sumcij = f_cicj_min * f_cicj_max * recip_cicjcij;
 
-      // Mke adjustment for xor gemm.
+      // Make adjustment for xor gemm.
       // See notes for 8x8 system solve to back out this result.
       const GMTally1 rij_true = iE &&  jE ? (si1 + sj1 - rij) / 2 :
                                 iE && !jE ? (si1 + sj0 - rij) / 2 :
