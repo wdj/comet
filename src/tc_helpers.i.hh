@@ -166,12 +166,12 @@ template<> struct TCSelector<TC::B1> {
   typedef int32_t GemmOut_t;
 #if defined COMET_USE_CUDA
   // type selector parameters.
-  static cudaDataType __host__ __device__ gemm_type_in() {return 0;} // UNUSED
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
 #elif defined COMET_USE_HIP
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
-   return 0; //UNUSED
+   return rocblas_datatype_u8_r; // UNUSED
   }
   static rocblas_datatype __host__ __device__ gemm_type_out() {
    return rocblas_datatype_u32_r;

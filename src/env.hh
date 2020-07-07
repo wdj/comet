@@ -299,8 +299,10 @@ struct TC {
     INT8 = 2,
     FP32 = 3,
     AUTO = 4,
-    B1 = 5,
-    NUM = 6
+    NUM = 5,
+
+    B1 = 5, // TODO: complete implementation for this.
+    //NUM = 6
     //INT4 = 6,
   };
 
