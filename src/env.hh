@@ -469,9 +469,15 @@ public:
     MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
 
 //  int is_using_xor() const {return false;}
-  int is_using_xor() const {return MetricType::DUO == metric_type_ &&
-    NumWay::_2 == num_way_ && ComputeMethod::CPU == compute_method_ &&
-    !is_using_linalg();}
+  int is_using_xor() const {
+    return
+      MetricType::DUO == metric_type_ && // THIS LINE CURRENTLY REQUIRED
+      sparse_ && // THIS LINE CURRENTLY REQUIRED
+      (!is_threshold() || threshold_tc() || is_shrink()) && // THIS LINE CURRENTLY REQUIRED
+      NumWay::_2 == num_way_ && // TODO: implement for 3-way
+      ComputeMethod::CPU == compute_method_ && // TODO: remove/replace this
+      !is_using_linalg(); // TODO: remove/replace this
+  }
 
   // Accessors pertaining to metric sizes.
 

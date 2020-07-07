@@ -245,6 +245,16 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
       index, env);
     GMTally1 ci, cj, ck;
     GMFloat3_decode(&ci, &cj, &ck, ci_cj_ck);
+    if (0 == ci || 0 == cj || 0 == ck)
+      return (FloatResult_t)0;
+
+    // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
+    const GMTally1 si0 = CBPE * ci - si1;
+    const GMTally1 sj0 = CBPE * cj - sj1;
+    const GMTally1 sk0 = CBPE * ck - sk1;
+    const GMTally1 si = iE == 0 ? si0 : si1;
+    const GMTally1 sj = jE == 0 ? sj0 : sj1;
+    const GMTally1 sk = kE == 0 ? sk0 : sk1;
 
     // TODO: it may be possible to decrease the number of divides
     // here - see GMMetrics_ccc_get_from_index_2.
@@ -252,25 +262,56 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
     const Float_t recip_cj = f_one / cj;
     const Float_t recip_ck = f_one / ck;
 
-    GMTally1 cijk =
+    if (env.is_using_xor()) {
+
+      // Make adjustment for xor gemm.
+      // See notes for 8x8 system solve to back out this result.
+      // Note i and k are the GEMM axes, j is fixed, hence the following.
+      const GMTally1 cijk = (si0 + sk0 - GMTally4x2_get(ttable, 0, 0, 0)) / 2 +
+                            (si0 + sk1 - GMTally4x2_get(ttable, 0, 0, 1)) / 2 +
+                            (si0 + sk0 - GMTally4x2_get(ttable, 0, 1, 0)) / 2 +
+                            (si0 + sk1 - GMTally4x2_get(ttable, 0, 1, 1)) / 2 +
+                            (si1 + sk0 - GMTally4x2_get(ttable, 1, 0, 0)) / 2 +
+                            (si1 + sk1 - GMTally4x2_get(ttable, 1, 0, 1)) / 2 +
+                            (si1 + sk0 - GMTally4x2_get(ttable, 1, 1, 0)) / 2 +
+                            (si1 + sk1 - GMTally4x2_get(ttable, 1, 1, 1)) / 2;
+      if (0 == cijk)
+        return (FloatResult_t)0;
+
+      const Float_t recip_sumcijk = f_one / cijk;
+
+      // Make adjustment for xor gemm.
+      // See notes for 8x8 system solve to back out this result.
+      // Note i and k are the GEMM axes, j is fixed, hence the following.
+      const GMTally1 rijk_true = (si + sk - rijk) / 2;
+      //const GMTally1 rijk_true = iE &&  kE ? (si1 + sk1 - rijk) / 2 :
+      //                           iE && !kE ? (si1 + sk0 - rijk) / 2 :
+      //                          !iE &&  kE ? (si0 + sk1 - rijk) / 2 :
+      //                                       (si0 + sk0 - rijk) / 2;
+
+      result_floatcalc = Metrics_ccc_duo_value<CBPE>(metrics,
+        rijk_true, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
+
+    } else { // if (!env.is_using_xor())
+
+      const GMTally1 cijk =
            GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
            GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
            GMTally4x2_get(ttable, 1, 0, 0) + GMTally4x2_get(ttable, 1, 0, 1) +
            GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1);
-    if (0 == ci || 0 == cj || 0 == ck || 0 == cijk)
-      return (FloatResult_t)0;
+      if (0 == cijk)
+        return (FloatResult_t)0;
 
-    // Get number of 1 bits OR get number of 0 bits from number of 1 bits.
-    const GMTally1 si = iE == 0 ? (CBPE * ci - si1) : si1;
-    const GMTally1 sj = jE == 0 ? (CBPE * cj - sj1) : sj1;
-    const GMTally1 sk = kE == 0 ? (CBPE * ck - sk1) : sk1;
+      const Float_t recip_sumcijk = f_one / cijk;
 
-    const Float_t recip_sumcijk = f_one / cijk;
+      result_floatcalc = Metrics_ccc_duo_value<CBPE>(metrics,
+        rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
 
-    result_floatcalc = Metrics_ccc_duo_value<CBPE>(metrics,
-      rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
+    }  // if (env.is_using_xor())
 
   } else { // !env.sparse
+
+    COMET_ASSERT(!(env.is_using_xor() && !env.sparse())); // should never occur
 
     COMET_ASSERT(metrics.num_field_active > 0);
 
@@ -377,6 +418,10 @@ static bool Metrics_ccc_duo_threshold_detect_3(
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);
 
+  // if no active threshold, then always pass threshold criterion.
+  if (!env.is_threshold())
+    return true;
+
   // if is_shrink, assume a threhold pass may exist, don't take time to check.
   if (env.is_shrink())
     return true;
@@ -394,6 +439,8 @@ static bool Metrics_ccc_duo_threshold_detect_3(
     }
     return false;
   }
+
+  COMET_ASSERT(!env.is_using_xor()); // should never occur
 
   typedef double Float_t; // Perform all calcs in double.
 

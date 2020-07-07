@@ -258,8 +258,8 @@ template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
 __host__ __device__ void tc_threshold_2way_kernel_elt_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
-  double param, double multiplier,
-  double threshold_eff, int thread_r, int thread_c) {
+  double param, double multiplier, double threshold_eff, bool is_using_xor,
+  int thread_r, int thread_c) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(nvll >= 0 && nvl >= 0 && nvll <= nvl);
   COMET_ASSERT(thread_r >= 0 && thread_r < nvll);
@@ -284,12 +284,33 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 
   // TODO: use MirroredBuf class for indexing.
 
-  // Calculate cijk.
+  const int I = thread_r;
+  COMET_ASSERT(I >= 0 && I < nvll);
+
+  const int J = thread_c;
+  COMET_ASSERT(J >= 0 && J < nvl);
+
+  // Values to be plugged into CCC/DUO formula.
+
+  const GMTally1 cI = (GMTally1)counts_I[I];
+  const GMTally1 cJ = (GMTally1)counts_J[J];
+
+  const double recip_cI = 1e0 / cI;
+  const double recip_cJ = 1e0 / cJ;
+
+  const GMTally1 sI1 = (GMTally1)sums_I[I];
+  const GMTally1 sJ1 = (GMTally1)sums_J[J];
+  const GMTally1 sI0 = CBPE * cI - sI1;
+  const GMTally1 sJ0 = CBPE * cJ - sJ1;
+
+  // Calculate cij.
 
   const int mftype_per_tallytable = Tally2x2<METRIC_FORMAT>::NUM;
 
   GMTally1 cij = 0;
   for (int indT_I = 0; indT_I < 2; ++indT_I) {
+
+    const GMTally1 sI = indT_I == 0 ? sI0 : sI1;
 
     const size_t index_this = indT_I + mftype_per_tallytable * (
                               thread_r + nvll * (
@@ -300,33 +321,18 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
     MFTypeIn values_this[2];
     MFT::decode(values_this[0], values_this[1], dvo_this);
 
-    cij += (GMTally1)values_this[0] + (GMTally1)values_this[1];
+    cij += is_using_xor ? (GMTally1)(sI + sJ0 - values_this[0]) +
+                          (GMTally1)(sI + sJ1 - values_this[1]) :
+                          (GMTally1)values_this[0] + (GMTally1)values_this[1];
   }
 
   const double recip_sumcij = 1e0 / cij;
 
-  const int I = thread_r;
-  COMET_ASSERT(I >= 0 && I < nvll);
-
-  const int J = thread_c;
-  COMET_ASSERT(J >= 0 && J < nvl);
-
-  // (more) values to be plugged into CCC/DUO formula.
-
-  const GMTally1 cI = (GMTally1)counts_I[I];
-  const GMTally1 cJ = (GMTally1)counts_J[J];
-
-  const double recip_cI = 1e0 / cI;
-  const double recip_cJ = 1e0 / cJ;
-
-  const GMTally1 sI1 = (GMTally1)sums_I[I];
-  const GMTally1 sJ1 = (GMTally1)sums_J[J];
-
-  // Loops to update all 8 table values.
+  // Loops to update all 4 table values.
 
   for (int indT_I = 0; indT_I < 2; ++indT_I) {
 
-    const GMTally1 sI = indT_I == 0 ? CBPE * cI - sI1 : sI1;
+    const GMTally1 sI = indT_I == 0 ? sI0 : sI1;
 
     const size_t index_this = indT_I + mftype_per_tallytable * (
                               thread_r + nvll * (
@@ -339,9 +345,11 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 
     for (int indT_J = 0; indT_J < 2; ++indT_J) {
 
-      const GMTally1 sJ = indT_J == 0 ? CBPE * cJ - sJ1 : sJ1;
+      const GMTally1 sJ = indT_J == 0 ? sJ0 : sJ1;
 
-      const auto rij = (GMTally1)values_this[indT_J];
+      const auto rij = is_using_xor ?
+        (GMTally1)(sI + sJ - values_this[indT_J]) :
+        (GMTally1)values_this[indT_J];
 
       const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cij;
       const double metric_value = is_zero_denom ? 0e0 :
@@ -369,7 +377,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int step_2way, double param, double multiplier,
-  double threshold_eff, int thread_r, int thread_c) {
+  double threshold_eff, bool is_using_xor, int thread_r, int thread_c) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(nvll*2 == nvllX2);
@@ -397,29 +405,6 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   // I, J, K - (permuted) coordinate of element in the 3D block
   // indT_I, indT_J, indT_K - indices into the 2x2x2 table at each coord
 
-  // Calculate cijk.
-
-  const int mftype_per_tallytable = Tally2x2<METRIC_FORMAT>::NUM;
-  const size_t halves_per_whole = 2;
-
-  GMTally1 cijk = 0;
-  for (int indT_I = 0; indT_I < 2; ++indT_I) {
-    for (int indT_J = 0; indT_J < 2; ++indT_J) {
-
-      const MFType dvo_this = dvo[indT_J + mftype_per_tallytable * (
-                                  thread_r + nvllD2 * (
-                                  indT_I + halves_per_whole * (
-                                  thread_c)))];
-
-      MFTypeIn values_this[2];
-      MFT::decode(values_this[0], values_this[1], dvo_this);
-
-      cijk += (GMTally1)values_this[0] + (GMTally1)values_this[1];
-    }
-  }
-
-  const double recip_sumcijk = 1e0 / cijk;
-
   const int I = thread_r + nvllD2 * step_2way;
   COMET_ASSERT(I >= 0 && I < nvll);
   COMET_ASSERT(I/nvllD2 == step_2way);
@@ -427,7 +412,7 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   const int K = thread_c;
   COMET_ASSERT(K >= 0 && K < nvl);
 
-  // (more) values to be plugged into CCC/DUO formula.
+  // Values to be plugged into CCC/DUO formula.
 
   const GMTally1 cI = (GMTally1)counts_I[I];
   const GMTally1 cJ = (GMTally1)counts_J[J];
@@ -440,16 +425,47 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
   const GMTally1 sI1 = (GMTally1)sums_I[I];
   const GMTally1 sJ1 = (GMTally1)sums_J[J];
   const GMTally1 sK1 = (GMTally1)sums_K[K];
+  const GMTally1 sI0 = CBPE * cI - sI1;
+  const GMTally1 sJ0 = CBPE * cJ - sJ1;
+  const GMTally1 sK0 = CBPE * cK - sK1;
+
+  // Calculate cijk.
+
+  const int mftype_per_tallytable = Tally2x2<METRIC_FORMAT>::NUM;
+  const size_t halves_per_whole = 2;
+
+  GMTally1 cijk = 0;
+  for (int indT_I = 0; indT_I < 2; ++indT_I) {
+
+    const GMTally1 sI = indT_I == 0 ? sI0 : sI1;
+
+    for (int indT_J = 0; indT_J < 2; ++indT_J) {
+
+      const MFType dvo_this = dvo[indT_J + mftype_per_tallytable * (
+                                  thread_r + nvllD2 * (
+                                  indT_I + halves_per_whole * (
+                                  thread_c)))];
+
+      MFTypeIn values_this[2];
+      MFT::decode(values_this[0], values_this[1], dvo_this);
+
+      cijk += is_using_xor ? (GMTally1)(sI + sK0 - values_this[0]) +
+                             (GMTally1)(sI + sK1 - values_this[1]) :
+                             (GMTally1)values_this[0] + (GMTally1)values_this[1];
+    }
+  }
+
+  const double recip_sumcijk = 1e0 / cijk;
 
   // Loops to update all 8 table values.
 
   for (int indT_I = 0; indT_I < 2; ++indT_I) {
 
-    const GMTally1 sI = indT_I == 0 ? CBPE * cI - sI1 : sI1;
+    const GMTally1 sI = indT_I == 0 ? sI0 : sI1;
 
     for (int indT_J = 0; indT_J < 2; ++indT_J) {
 
-      const GMTally1 sJ = indT_J == 0 ? CBPE * cJ - sJ1 : sJ1;
+      const GMTally1 sJ = indT_J == 0 ? sJ0 : sJ1;
 
       MFType& dvo_this = dvo[indT_J + mftype_per_tallytable * (
                              thread_r + nvllD2 * (
@@ -461,9 +477,11 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 
       for (int indT_K = 0; indT_K < 2; ++indT_K) {
 
-        const GMTally1 sK = indT_K == 0 ? CBPE * cK - sK1 : sK1;
+        const GMTally1 sK = indT_K == 0 ? sK0 : sK1;
 
-        const auto rijk = (GMTally1)values_this[indT_K];
+        const auto rijk = is_using_xor ?
+          (GMTally1)(sI + sK - values_this[indT_K]) :
+          (GMTally1)values_this[indT_K];
 
         const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cK || 0 == cijk;
         const double metric_value = is_zero_denom ? 0e0 :
@@ -476,8 +494,6 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
 
         values_this[indT_K] = pass_threshold ? (MFTypeIn)metric_value :
                                                (MFTypeIn)0;
-//if (I + J + K == 3 && I*J*K==0 && (I+1)*(J+1)*(K+1)==6)
-//printf("        %i   %f    %f\n", (int)rijk, (double)metric_value, (double)values_this[indT_K]);
       } // indT_K
 
       MFT::encode(dvo_this, values_this[0], values_this[1]);
@@ -492,7 +508,7 @@ template<int COUNTED_BITS_PER_ELT, int METRIC_FORMAT>
 __global__ void tc_threshold_2way_kernel_(
   int nvll, int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* counts_I, GMFloat* counts_J,
-  double param, double multiplier, double threshold_eff) {
+  double param, double multiplier, double threshold_eff, bool is_using_xor) {
   COMET_ASSERT(vo && sums_I && sums_J && counts_I && counts_J);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
 
@@ -505,7 +521,7 @@ __global__ void tc_threshold_2way_kernel_(
 
   tc_threshold_2way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT>(
     nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-    param, multiplier, threshold_eff, thread_r, thread_c);
+    param, multiplier, threshold_eff, is_using_xor, thread_r, thread_c);
 }
 
 //-----------------------------------------------------------------------------
@@ -516,7 +532,8 @@ __global__ void tc_threshold_3way_kernel_(
   int nvll, int nvllX2, int nvllD2,  int nvl, void* vo,
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
-  int step_2way, double param, double multiplier, double threshold_eff) {
+  int step_2way, double param, double multiplier, double threshold_eff,
+  bool is_using_xor) {
   COMET_ASSERT(vo);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
   COMET_ASSERT(METRIC_FORMAT == MetricFormat::SINGLE);
@@ -531,7 +548,8 @@ __global__ void tc_threshold_3way_kernel_(
   tc_threshold_3way_kernel_elt_<COUNTED_BITS_PER_ELT, METRIC_FORMAT>(
     nvll, nvllX2, nvllD2, nvl, vo,
     sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-    step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
+    step_2way, param, multiplier, threshold_eff, is_using_xor,
+    thread_r, thread_c);
 }
 
 //-----------------------------------------------------------------------------
@@ -568,6 +586,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   const double param = env.ccc_param();
   const double multiplier = env.ccc_duo_multiplier();
   const double threshold_eff = env.threshold_eff();
+  const bool is_using_xor = env.is_using_xor();
   COMET_INSIST_INTERFACE(&env, param <= 1 &&
                          "CCC/DUO param value not allowed.");
   COMET_INSIST_INTERFACE(&env, multiplier >= 0 &&
@@ -593,7 +612,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
           dim3(vll_threadblocks, num_threads_c, 1),
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-          param, multiplier, threshold_eff);
+          param, multiplier, threshold_eff, is_using_xor);
 
       } else if (NumWay::_2 == env.num_way()) { // && CBPE::CCC == cbpe
 
@@ -603,7 +622,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
           dim3(vll_threadblocks, num_threads_c, 1),
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-          param, multiplier, threshold_eff);
+          param, multiplier, threshold_eff, is_using_xor);
 
       } else if (CBPE::DUO == cbpe) { // && (3 == env.num_way())
 
@@ -614,7 +633,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvllX2, nvllD2, nvl, vo,
           sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-          step_2way, param, multiplier, threshold_eff);
+          step_2way, param, multiplier, threshold_eff, is_using_xor);
 
       } else { // if (CBPE::CCC == cbpe && NumWay::_3 == env.num_way())
 
@@ -625,7 +644,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
           nvll, nvllX2, nvllD2, nvl, vo,
           sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-          step_2way, param, multiplier, threshold_eff);
+          step_2way, param, multiplier, threshold_eff, is_using_xor);
 
       } // if cbpe, env.num_way()
 
@@ -641,7 +660,8 @@ void tc_threshold_(int nvll, int nvl, void* vo,
         for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
           tc_threshold_2way_kernel_elt_<CBPE, MF>(
             nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-            param, multiplier, threshold_eff, thread_r, thread_c);
+            param, multiplier, threshold_eff, is_using_xor,
+            thread_r, thread_c);
         } // for
       } // for
 
@@ -653,7 +673,8 @@ void tc_threshold_(int nvll, int nvl, void* vo,
         for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
           tc_threshold_2way_kernel_elt_<CBPE, MF>(
             nvll, nvl, vo, sums_I, sums_J, counts_I, counts_J,
-            param, multiplier, threshold_eff, thread_r, thread_c);
+            param, multiplier, threshold_eff, is_using_xor,
+            thread_r, thread_c);
         } // for
       } // for
 
@@ -666,7 +687,8 @@ void tc_threshold_(int nvll, int nvl, void* vo,
           tc_threshold_3way_kernel_elt_<CBPE, MF>(
             nvll, nvllX2, nvllD2, nvl, vo,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-            step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
+            step_2way, param, multiplier, threshold_eff, is_using_xor,
+            thread_r, thread_c);
         } // for
       } // for
 
@@ -679,7 +701,8 @@ void tc_threshold_(int nvll, int nvl, void* vo,
           tc_threshold_3way_kernel_elt_<CBPE, MF>(
             nvll, nvllX2, nvllD2, nvl, vo,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-            step_2way, param, multiplier, threshold_eff, thread_r, thread_c);
+            step_2way, param, multiplier, threshold_eff, is_using_xor,
+            thread_r, thread_c);
         } // for
       } // for
 

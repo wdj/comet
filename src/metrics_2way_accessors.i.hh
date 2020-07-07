@@ -221,10 +221,10 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
       // Make adjustment for xor gemm.
       // See notes for 8x8 system solve to back out this result.
-      GMTally1 cij = (si1 + sj1 - GMTally2x2_get(ttable, 1, 1)) / 2 +
-                     (si1 + sj0 - GMTally2x2_get(ttable, 1, 0)) / 2 +
-                     (si0 + sj1 - GMTally2x2_get(ttable, 0, 1)) / 2 +
-                     (si0 + sj0 - GMTally2x2_get(ttable, 0, 0)) / 2;
+      const GMTally1 cij = (si1 + sj1 - GMTally2x2_get(ttable, 1, 1)) / 2 +
+                           (si1 + sj0 - GMTally2x2_get(ttable, 1, 0)) / 2 +
+                           (si0 + sj1 - GMTally2x2_get(ttable, 0, 1)) / 2 +
+                           (si0 + sj0 - GMTally2x2_get(ttable, 0, 0)) / 2;
       if (0 == cij)
         return (FloatResult_t)0;
 
@@ -239,16 +239,17 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
       // Make adjustment for xor gemm.
       // See notes for 8x8 system solve to back out this result.
-      const GMTally1 rij_true = iE &&  jE ? (si1 + sj1 - rij) / 2 :
-                                iE && !jE ? (si1 + sj0 - rij) / 2 :
-                               !iE &&  jE ? (si0 + sj1 - rij) / 2 :
-                                            (si0 + sj0 - rij) / 2;
+      const GMTally1 rij_true = (si + sj - rij) / 2;
+      //const GMTally1 rij_true = iE &&  jE ? (si1 + sj1 - rij) / 2 :
+      //                          iE && !jE ? (si1 + sj0 - rij) / 2 :
+      //                         !iE &&  jE ? (si0 + sj1 - rij) / 2 :
+      //                                      (si0 + sj0 - rij) / 2;
 
       result_floatcalc = ccc_duo_value<COUNTED_BITS_PER_ELT, Float_t>(
         rij_true, si, sj, recip_ci, recip_cj, recip_sumcij, 
         env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
 
-    } else {
+    } else { // if (!env.is_using_xor())
 
       GMTally1 cij = GMTally2x2_get(ttable, 0, 0) +
                      GMTally2x2_get(ttable, 0, 1) +
@@ -272,7 +273,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
         rij_true, si, sj, recip_ci, recip_cj, recip_sumcij, 
         env_ccc_duo_multiplier<COUNTED_BITS_PER_ELT>(env), env.ccc_param());
 
-    }
+    }  // if (env.is_using_xor())
 
   } else { // !env.sparse
 
