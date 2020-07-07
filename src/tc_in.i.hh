@@ -286,6 +286,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   const uint32_t shift = (flG % DIMHI) * DIMLO;
 
   // Loop over GemmIn_t values per this thread.
+  // ISSUE: would this be faster with unroll pragma or template recursion
 
   for (int igipt = 0; igipt < NGIPT; ++igipt) {
 

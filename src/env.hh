@@ -299,9 +299,9 @@ struct TC {
     INT8 = 2,
     FP32 = 3,
     AUTO = 4,
-    //GM_TC_METHOD_INT4 = 5,
-    //GM_TC_METHOD_INT1 = 6,
-    NUM = 5
+    B1 = 5,
+    NUM = 6
+    //INT4 = 6,
   };
 
   static bool is_valid(int tc) {
