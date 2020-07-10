@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMET_TC_SOLVE_I_HH_
 #define _COMET_TC_SOLVE_I_HH_
 
+//#include <inttypes.h>
+
 //=============================================================================
 
 namespace comet {
@@ -44,16 +46,20 @@ namespace comet {
 /// \brief 1-bit xor gemm, cpu version (not high performance).
 
 void b1_xor_gemm_cpu(size_t m, size_t n, size_t k,
-  uint64_t* a, uint64_t* b, bool beta, int32_t* c) {
+  uint8_t* a, uint8_t* b, bool beta, int32_t* c) {
   COMET_INSIST(a && b && c);
-  COMET_INSIST(k % 64 == 0);
   //COMET_INSIST(m == n);
 
   for (size_t ind_i = 0; ind_i < m; ++ind_i) {
     for (size_t ind_j = 0; ind_j < n; ++ind_j) {
       for (size_t ind_k = 0; ind_k < k; ++ind_k) {
-        const int32_t v = utils::popc64(a[ind_k+k*ind_i] ^ b[ind_k+k*ind_j]);
-        c[ind_i+m*ind_j] = beta ? c[ind_i+m*ind_j] + v : v;
+
+        const uint8_t ai = a[ind_i+m*ind_k];
+        const uint8_t bj = b[ind_j+n*ind_k];
+        int32_t& ci = c[ind_i+m*ind_j];
+
+        const int32_t v = utils::popc8(ai ^ bj);
+        ci = beta ? ci + v : v;
       }
     }
   }
@@ -64,20 +70,36 @@ void b1_xor_gemm_cpu(size_t m, size_t n, size_t k,
 
 __global__
 void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
-  uint64_t* a, uint64_t* b, bool beta, int32_t* c) {
+  uint8_t* a, uint8_t* b, bool beta, int32_t* c) {
   //COMET_INSIST(a && b && c);
-  //COMET_INSIST(k % 64 == 0);
   //COMET_INSIST(m == n);
 
   const int ind_i = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int ind_j = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+  const int ind_j = blockIdx_y_();
 
   if (ind_i >= m || ind_j >= n)
     return;
 
   for (size_t ind_k = 0; ind_k < k; ++ind_k) {
-    const int32_t v = utils::popc64(a[ind_k+k*ind_i] ^ b[ind_k+k*ind_j]);
-    c[ind_i+m*ind_j] = beta ? c[ind_i+m*ind_j] + v : v;
+
+    const uint8_t aik = a[ind_i + m*ind_k];
+    const uint8_t bjk = b[ind_j + n*ind_k];
+    int32_t& cij = c[ind_i + m*ind_j];
+
+    const int32_t v = utils::popc8(aik ^ bjk);
+    cij = beta || ind_k ? cij + v : v;
+
+//if (ind_i==0 && ind_j==0) printf("%i %i %" PRIu64 " %" PRIu64 " \n", beta, (int)v, a[ind_k+k*ind_i], b[ind_k+k*ind_j]);
+//if (ind_i==0 && ind_j==0) 
+
+//if (ind_i<2 && ind_j<2 && ind_i != ind_j) 
+//if (ind_i==0 && ind_j==0) 
+//printf("%i %i  %i   %i %i %i   %x %x %x %i %i\n", (int)ind_i, (int)ind_j, (int)ind_k, (int)k, (int)m, (int)n, (int)aik, (int)bjk, (int)(aik ^ bjk), (int)v, (int)cij);
+
+//if (ind_i==0 && ind_j==0) printf("A  %i %i %" PRIu64 " \n", beta, (int)v, &a[ind_k+k*ind_i]);
+//if (ind_i==0 && ind_j==0) printf("B  %i %i %" PRIu64 " \n", beta, (int)v, &b[ind_k+k*ind_i]);
+//if (ind_i==0 && ind_j==0) printf("Av %i %i %" PRIx64 " \n", beta, (int)v, a[ind_k+k*ind_i]);
+//if (ind_i==0 && ind_j==0) printf("Bv %i %i %" PRIx64 " \n", beta, (int)v, b[ind_k+k*ind_i]);
   }
 }
 
@@ -108,9 +130,13 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
 
-    COMET_INSIST(k % 64 == 0 && "Failed divisibility condition for tc gemm.");
+    enum {NUM_FL_PER_PVFL = 64};
+    COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
     const bool beta = is_first ? 0 : 1;
+
+    const int size_gi = sizeof(typename TCSelector<TC_METHOD>::GemmIn_t);
+    const size_t k_eff = (k / NUM_FL_PER_PVFL) * (8 / size_gi);
 
     const int threadblocksize = 256;
     COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
@@ -121,8 +147,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
     COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu,
       dim3(num_threadblocks_0, num_threadblocks_1, 1),
       dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-      m, n, k/64, (uint64_t*)tc_bufs.tc_buf_left,
-      (uint64_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+      m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
+      (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
 
     System::accel_last_call_succeeded();
 
@@ -225,12 +251,16 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
     } else if (env.tc_eff() == TC::B1) {
 
-      COMET_INSIST(k % 64 == 0 && "Failed divisibility condition for tc gemm.");
+      enum {NUM_FL_PER_PVFL = 64};
+      COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
       const bool beta = is_first ? 0 : 1;
 
-      b1_xor_gemm_cpu(m, n, k/64, (uint64_t*)tc_bufs.tc_buf_left,
-        (uint64_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+      const int size_gi = sizeof(typename TCSelector<TC_METHOD>::GemmIn_t);
+      const size_t k_eff = (k / NUM_FL_PER_PVFL) * (8 / size_gi);
+
+      b1_xor_gemm_cpu(m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
+        (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
 
     } else { // if env.tc_eff()
 

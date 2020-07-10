@@ -184,6 +184,41 @@ static int log2(size_t n) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Population count of 1-bits in 8-bit word.
+
+__host__ __device__
+static int popc8(uint8_t x) {
+  // Adapted from https://stackoverflow.com/questions/30688465/how-to-check-the-number-of-set-bits-in-an-8-bit-unsigned-char
+  //x = x - ((x >> 1) & 0x55);
+  //x = (x & 0x33) + ((x >> 2) & 0x33);
+  //return (((x + (x >> 4)) & 0x0F) * 0x01);
+
+  return (!!(((int)x)&  1)) +
+         (!!(((int)x)&  2)) +
+         (!!(((int)x)&  4)) +
+         (!!(((int)x)&  8)) +
+         (!!(((int)x)& 16)) +
+         (!!(((int)x)& 32)) +
+         (!!(((int)x)& 64)) +
+         (!!(((int)x)&128));
+
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Population count of 1-bits in 32-bit word.
+
+__host__ __device__
+static int popc32(uint32_t x) {
+  // Adapted from Hacker's Delight, 2nd ed.
+   x = x - ((x >> 1) & 0x55555555);
+   x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+   x = (x + (x >> 4)) & 0x0F0F0F0F;
+   x = x + (x >> 8);
+   x = x + (x >> 16);
+   return x & 0x0000003F;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Population count of 1-bits in 64-bit word.
 
 __host__ __device__

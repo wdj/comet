@@ -71,7 +71,7 @@ CompressedBuf::CompressedBuf(MirroredBuf& buf, CEnv& env)
   //, is_open_(false)
   //, read_ptr_(0) {
 
-  if (!can_compress_())
+  if (!is_compress_enabled_())
     return;
 
   COMET_INSIST(env_.metric_format() == METRIC_FORMAT);
@@ -104,7 +104,7 @@ void CompressedBuf::attach(MirroredBuf& buf) {
 /// \brief Compute number of nonzero MFTTypeIn values in buffer device memory.
 
 void CompressedBuf::compute_num_nonzeros_() {
-  COMET_INSIST(can_compress_());
+  COMET_INSIST(is_compress_enabled_());
 
 # if defined COMET_USE_ACCEL
 
@@ -186,7 +186,7 @@ void CompressedBuf::compute_num_nonzeros_() {
 
 void CompressedBuf::compress() {
 
-  if (!can_compress_())
+  if (!is_compress_enabled_())
     return;
 
  // Determine whether it is worth the effort to compress.
@@ -199,8 +199,7 @@ void CompressedBuf::compress() {
   const size_t storage_uncompressed = buf_length_() * sizeof(MFTTypeIn);
 
   do_compress_ = estimated_storage_compressed <
-    compression_factor_required_() * storage_uncompressed &&
-    env_.try_compress();
+    compression_factor_required_() * storage_uncompressed;
 
   if (!do_compress_)
     return;
@@ -368,6 +367,7 @@ void CompressedBuf::from_accel_wait() {
   } else {
 
     buf_->from_accel_wait();
+
 
   }
 }

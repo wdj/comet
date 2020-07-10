@@ -321,8 +321,8 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
     MFTypeIn values_this[2];
     MFT::decode(values_this[0], values_this[1], dvo_this);
 
-    cij += is_using_xor ? (GMTally1)(sI + sJ0 - values_this[0]) +
-                          (GMTally1)(sI + sJ1 - values_this[1]) :
+    cij += is_using_xor ? (GMTally1)((sI + sJ0 - values_this[0])/2) +
+                          (GMTally1)((sI + sJ1 - values_this[1])/2) :
                           (GMTally1)values_this[0] + (GMTally1)values_this[1];
   }
 
@@ -348,8 +348,11 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
       const GMTally1 sJ = indT_J == 0 ? sJ0 : sJ1;
 
       const auto rij = is_using_xor ?
-        (GMTally1)(sI + sJ - values_this[indT_J]) :
+        (GMTally1)((sI + sJ - values_this[indT_J])/2) :
         (GMTally1)values_this[indT_J];
+//if (I==0 && J==0 && indT_I==0 && indT_J==0) printf("%i %i   %i  %i\n", (int)sI, (int)sJ, (int)rij, (int)values_this[indT_J]);
+//if (I==0 && J==0 && indT_I != indT_J)
+//printf("%i %i   %i %i      %i  %i %i %i   \n", (int)I, (int)J, (int)indT_I, (int)indT_J, (int)rij, (int)sI, (int)sJ, (int)values_this[indT_J]  );
 
       const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cij;
       const double metric_value = is_zero_denom ? 0e0 :
@@ -359,6 +362,7 @@ __host__ __device__ void tc_threshold_2way_kernel_elt_(
 
       const bool pass_threshold = CEnv::pass_threshold(
         (double)(MFTypeIn)metric_value, threshold_eff);
+//if (I==0 && J==0 && indT_I==0 && indT_J==0) printf("%f  %i  %f\n", (double)metric_value, is_using_xor, (double)(pass_threshold ? (MFTypeIn)metric_value : (MFTypeIn)0));
 
       values_this[indT_J] = pass_threshold ? (MFTypeIn)metric_value :
                                              (MFTypeIn)0;
@@ -480,8 +484,11 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
         const GMTally1 sK = indT_K == 0 ? sK0 : sK1;
 
         const auto rijk = is_using_xor ?
-          (GMTally1)(sI + sK - values_this[indT_K]) :
+          (GMTally1)((sI + sK - values_this[indT_K])/2) :
           (GMTally1)values_this[indT_K];
+//if (I==0 && J==0 && indT_I != indT_J)
+//if (I==0 && K==0)
+//printf("%i %i %i   %i %i %i      %i   %i %i %i  %i  \n", (int)I, (int)J, (int)K, (int)indT_I, (int)indT_J, (int)indT_K, (int)rijk, (int)sI, (int)sJ, (int)sK, (int)values_this[indT_K]  );
 
         const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cK || 0 == cijk;
         const double metric_value = is_zero_denom ? 0e0 :
@@ -729,7 +736,7 @@ void tc_out_( int nvll, int nvl, void* vo,
 
   // Apply thresholding of smaller values to zero, if requested.
 
-  if (env.threshold_tc())
+  if (env.is_threshold_tc())
     tc_threshold_<TC_METHOD, METRIC_FORMAT>(nvll, nvl, vo,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
 }

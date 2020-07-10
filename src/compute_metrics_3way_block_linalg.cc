@@ -99,7 +99,10 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
 
     } else { // if (!env.form_matX_tc())
 
-      COMET_INSIST(env.metric_type() == MetricType::CCC &&
+//if (env.metric_type() == MetricType::DUO)
+//printf("%i\n", env.tc_eff());
+
+      COMET_INSIST(env.metric_type() != MetricType::DUO &&
                    "Case currently unimplemented.");
       // TODO: implement DUO here.
 
@@ -316,7 +319,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
       // NOTE: this may be a slight overestimate of the amount of mem needed.
 
 #if 0
-printf("%i %i %i %i\n", (int)metrics->num_metric_items_local_computed, (int)matB_buf->num_entries(), (int)metrics->num_metric_items_local_allocated, env.threshold_tc());
+printf("%i %i %i %i\n", (int)metrics->num_metric_items_local_computed, (int)matB_buf->num_entries(), (int)metrics->num_metric_items_local_allocated, env.is_threshold_tc());
 fflush(stdout);
 #endif
 
@@ -397,7 +400,7 @@ fflush(stdout);
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) firstprivate(index_cache) schedule(dynamic,1000)
       #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000) if (!matB_buf->do_compress())
-// if(!env.threshold_tc())
+// if(!env.is_threshold_tc())
       for (int K = K_min; K < K_max; ++K) {
 
         for (int half_num = 0; half_num < num_halves; ++half_num) {
@@ -598,7 +601,7 @@ fflush(stdout);
 
           // Denominator.
 
-          if ((!env.threshold_tc()) &&
+          if ((!env.is_threshold_tc()) &&
               step_2way == env.num_step_2way_for_3way() - 1) {
 
             const auto si1 = (GMTally1)vs_i->sum(i);
@@ -620,7 +623,7 @@ fflush(stdout);
                 j_block_eff, k_block_eff, index_cache, env) = ci1_cj1_ck1;
             } // if sparse
 
-          } // if ((!env.threshold_tc()) && ...
+          } // if ((!env.is_threshold_tc()) && ...
 
         } // I
         } // for half_num
@@ -659,7 +662,7 @@ static void compute_metrics_3way_block_linalg_form_metrics_(
   VectorSums* vs_i, VectorSums* vs_j, VectorSums* vs_k,
   CEnv& env) {
 
-  if (env.threshold_tc()) {
+  if (env.is_threshold_tc()) {
 
     compute_metrics_3way_block_linalg_form_metrics_mf_<
       MetricFormat::SINGLE>(

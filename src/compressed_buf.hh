@@ -142,7 +142,7 @@ public:
   void from_accel_start();
   void from_accel_wait();
 
-  static bool can_compress(CEnv& env) {return env.can_compress();}
+  static bool is_compress_enabled(CEnv& env) {return env.is_compress_enabled();}
 
   void attach(MirroredBuf& buf);
 
@@ -203,7 +203,7 @@ private:
 
   void compute_num_nonzeros_();
 
-  bool can_compress_() const {return can_compress(env_);}
+  bool is_compress_enabled_() const {return is_compress_enabled(env_);}
 
   /// \brief Compute current len of (uncompressed) buffer, in MFTTypeIn vals.
 

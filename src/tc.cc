@@ -166,7 +166,7 @@ static void tc_gemm_start_impl_(
 
   // Postprocess GEMM results.
 
-  if (env.threshold_tc()) {
+  if (env.is_threshold_tc()) {
 
     tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
@@ -209,8 +209,8 @@ void tc_gemm_start(
 
   switch (env.tc_eff()) {
     // --------------
-    case TC::INT8: {
-      tc_gemm_start_impl_<TC::INT8>(
+    case TC::FP32: {
+      tc_gemm_start_impl_<TC::FP32>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
         tc_bufs, nfal, step_2way, env);
@@ -223,8 +223,15 @@ void tc_gemm_start(
         tc_bufs, nfal, step_2way, env);
     } break;
     // --------------
-    case TC::FP32: {
-      tc_gemm_start_impl_<TC::FP32>(
+    case TC::INT8: {
+      tc_gemm_start_impl_<TC::INT8>(
+        m, n, k, matA1, matA2, matB, matC, lddc,
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+        tc_bufs, nfal, step_2way, env);
+    } break;
+    // --------------
+    case TC::B1: {
+      tc_gemm_start_impl_<TC::B1>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
         tc_bufs, nfal, step_2way, env);
@@ -282,12 +289,14 @@ void tc_bufs_malloc(int num_vector_local,
   const size_t npvfl_thisstep_max = utils::ceil(npvfl, (size_t)env.num_tc_steps());
 
   const int sizeof_gemm_in_t =
-     env.tc_eff() == TC::INT8 ?
-       sizeof(typename TCSelector<TC::INT8>::GemmIn_t) :
-     env.tc_eff() == TC::FP16 ?
-       sizeof(typename TCSelector<TC::FP16>::GemmIn_t) :
      env.tc_eff() == TC::FP32 ?
        sizeof(typename TCSelector<TC::FP32>::GemmIn_t) :
+     env.tc_eff() == TC::FP16 ?
+       sizeof(typename TCSelector<TC::FP16>::GemmIn_t) :
+     env.tc_eff() == TC::INT8 ?
+       sizeof(typename TCSelector<TC::INT8>::GemmIn_t) :
+     env.tc_eff() == TC::B1 ?
+       sizeof(typename TCSelector<TC::B1>::GemmIn_t) :
      0;
   COMET_INSIST(TC::is_valid(env.tc_eff())); // this code must be updated if new method
 

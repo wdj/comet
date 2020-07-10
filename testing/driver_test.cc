@@ -1815,6 +1815,8 @@ void DriverTest_tc_() {
     const int num_proc_vector = 2;
     //const int num_proc_vector = 1;
 
+    typedef comet::TC TC;
+
     for (int is_duo=0; is_duo<=1; ++is_duo) {
     //for (int is_duo=1; is_duo<=1; ++is_duo) {
     for (int gpu=0; gpu<=1; ++gpu) {
@@ -1828,9 +1830,10 @@ void DriverTest_tc_() {
     for (int sparse=0; sparse<=1; ++sparse) {
     //for (int sparse=1; sparse<=1; ++sparse) {
       if (is_duo && 0 == sparse) continue;
-    for (int tc=1; tc<comet::TC::NUM; ++tc) {
+    for (int tc=1; tc<TC::NUM; ++tc) {
     //for (int tc=4; tc<=4; ++tc) {
       if (nv/num_proc_vector < num_way) continue;
+      if (!is_duo && TC::B1 == tc) continue;
 
       sprintf(options1, options_template, is_duo ? "duo" : "ccc",
               num_proc_vector, nv, "REF",
@@ -1862,6 +1865,7 @@ void DriverTest_threshold_() {
         "--metric_type %s "
         "--num_proc_vector %i "
         "--num_field 71 --num_vector 17 "
+        //"--num_field 8 --num_vector 4 "
         "--num_way %i "
         "--all2all yes --sparse yes "
         "--problem_type analytic "
@@ -1880,16 +1884,19 @@ void DriverTest_threshold_() {
     for (int num_way : {2, 3})
     //for (int num_way : {3})
     for (int metric_type : {MT::CCC, MT::DUO})
-    //for (int metric_type : {MT::CCC})
+    //for (int metric_type : {MT::DUO})
     for (double threshold : {.65, .50, .25, .001, 0.})
-    //for (double threshold : {.85})
+    //for (double threshold : {.65})
     for (int compute_method : {CM::CPU, CM::GPU})
     //for (int compute_method : {CM::GPU})
-    for (int tc=1; tc<comet::TC::NUM; ++tc) {
+     for (int tc=1; tc<TC::NUM; ++tc) {
+    //for (int tc : {1, 5}) {
     //for (int tc=3; tc<=3; ++tc) {
       if (metrics_shrink > 1.1 && (CM::GPU != compute_method ||
            threshold < .4 || comet::BuildHas::DOUBLE_PREC))
         continue;
+      if (MT::CCC == metric_type && TC::B1 == tc) continue;
+
       sprintf(options1, options_template, MT::str(metric_type),
         num_proc_vector, num_way, threshold, TC::NO, CM::str(CM::REF), 1.);
       sprintf(options2, options_template, MT::str(metric_type),
@@ -2494,7 +2501,9 @@ void DriverTest_duo3_() {
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
+#endif
 
+#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2534,13 +2543,11 @@ TEST(DriverTest, czek2) {
 TEST(DriverTest, czek3) {
   DriverTest_czek3_();
 }
-#endif
 
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
 
-#if 1
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
@@ -2581,100 +2588,7 @@ int RUN_ALL_TESTS() {
 
 //=============================================================================
 
-#if 0
-
-#include "rocblas.h"
-
-//----------
-
-bool accel_last_call_succeeded() {
-
-  // NOTE: this read of the last error is (apparently) a destructive read.
-  hipError_t error = hipGetLastError();
-  const bool result = error == hipSuccess;
-
-  if (!result) {
-    fprintf(stderr, "HIP error detected: %s\n", hipGetErrorString(error));
-  }
-
-  return result;
-}
-
-//----------
-
-static void mysub() {
-
-  //using namespace comet;
-
-  typedef float Float_t;
-
-  const size_t m = 8; const size_t n = 8; const size_t k = 64;
-
-  Float_t* const ha = (Float_t*)malloc(m * k * sizeof(*ha));
-  Float_t* const hb = (Float_t*)malloc(k * n * sizeof(*hb));
-  Float_t* const hc = (Float_t*)malloc(m * n * sizeof(*hc));
-
-  for (size_t i=0; i<m*k; ++i) ha[i] = 2;
-  for (size_t i=0; i<k*n; ++i) hb[i] = 3;
-  for (size_t i=0; i<m*n; ++i) hc[i] = 0;
-
-  Float_t* da = 0; Float_t* db = 0; Float_t* dc = 0;
-
-  hipMalloc(&da, m * k * sizeof(*da));
-  hipMalloc(&db, k * n * sizeof(*db));
-  hipMalloc(&dc, m * n * sizeof(*dc));
-  accel_last_call_succeeded();
-//COMET_INSIST(System::accel_last_call_succeeded());
-
-  hipMemcpy(da, ha, m * k * sizeof(*ha), hipMemcpyHostToDevice);
-  accel_last_call_succeeded();
-  hipMemcpy(db, hb, k * n * sizeof(*hb), hipMemcpyHostToDevice);
-  accel_last_call_succeeded();
-  hipMemcpy(dc, hc, m * n * sizeof(*hc), hipMemcpyHostToDevice);
-  accel_last_call_succeeded();
-
-  const Float_t alpha = 1; const Float_t beta = 1;
-  rocblas_handle handle; rocblas_create_handle(&handle);
-printf("%zu\n", (size_t)handle);
-  accel_last_call_succeeded();
-
-  const rocblas_status status = rocblas_gemm_ex(
-    handle,
-    //rocblas_operation_none, rocblas_operation_none,
-    rocblas_operation_none, rocblas_operation_transpose,
-    m, n, k,
-    (void*)&alpha,
-    da, rocblas_datatype_f32_r, m,
-    db, rocblas_datatype_f32_r, n,
-    (void*)&beta,
-    dc, rocblas_datatype_f32_r, m,
-    dc, rocblas_datatype_f32_r, m,
-    rocblas_datatype_f32_r,
-    rocblas_gemm_algo_standard,
-    0, 0);
-  accel_last_call_succeeded();
-
-  hipMemcpy(hc, dc, m * n * sizeof(*hc), hipMemcpyDeviceToHost);
-  accel_last_call_succeeded();
-
-  printf("%f\n", (double)hc[0]);
-
-  rocblas_destroy_handle(handle);
-  accel_last_call_succeeded();
-  hipFree(da); hipFree(db); hipFree(dc);
-  accel_last_call_succeeded();
-  free(ha); free(hb); free(hc);
-}
-#endif
-
-
-//=============================================================================
-
 GTEST_API_ int main(int argc, char** argv) {
-
-#if 0
-mysub();
-#endif
 
 # ifdef COMET_USE_GTEST
     ::testing::InitGoogleTest(&argc, argv);

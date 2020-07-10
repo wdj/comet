@@ -299,10 +299,8 @@ struct TC {
     INT8 = 2,
     FP32 = 3,
     AUTO = 4,
-    NUM = 5,
-
-    B1 = 5, // TODO: complete implementation for this.
-    //NUM = 6
+    B1 = 5,
+    NUM = 6
     //INT4 = 6,
   };
 
@@ -415,14 +413,22 @@ public:
   }
   int ijkE_max() const {return is_metric_type_bitwise() ? 2 : 1;}
   // Do we use TC package.
-  bool is_using_tc() const {
-    //COMET_INSIST(is_using_linalg());
-    return tc_eff() != TC::NO && is_metric_type_bitwise();
-  }
+  static bool is_try_tc_(int tc_try) {return TC::NO != tc_try;}
+  bool is_using_tc() const {return is_try_tc_(tc_eff());}
+//  bool is_using_tc() const {
+//    return is_try_tc_(tc_eff()) && is_metric_type_bitwise();
+//  }
   // Do we use either MAGMA or TC.
-  bool is_using_linalg() const {return ComputeMethod::GPU == compute_method_ ||
-    (ComputeMethod::CPU == compute_method_ && is_using_tc());
+  bool can_use_linalg_(int tc_try) const {
+    COMET_INSIST(TC::AUTO != tc_try);
+    return ComputeMethod::GPU == compute_method_ ||
+      (ComputeMethod::CPU == compute_method_ && is_metric_type_bitwise() &&
+       is_try_tc_(tc_try));
   }
+  bool is_using_linalg() const {return can_use_linalg_(tc_eff());}
+//return ComputeMethod::GPU == compute_method_ ||
+//    (ComputeMethod::CPU == compute_method_ && is_using_tc());
+//  }
   // Do we form the X matrix in the TC package.
   bool form_matX_tc() const {return is_using_tc();}
   bool is_bitwise_3way_2step() const {return is_using_tc();}
@@ -443,41 +449,47 @@ public:
       duo_multiplier() : ccc_multiplier();
   }
   // Do we do final metrics calc and thresholding in TC package.
-  bool threshold_tc() const {
-    return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold()
+  bool can_threshold_tc_(int tc_try) const {
+    COMET_INSIST(TC::AUTO != tc_try);
+    return is_try_tc_(tc_try) && sparse() && num_proc_field() == 1 && is_threshold()
       && !is_double_prec();
   }
+  bool is_threshold_tc() const {return can_threshold_tc_(tc_eff());}
+//    return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold()
+//      && !is_double_prec();
+//  }
   // Are 3-way metrics computed half block-plane at a time.
   bool is_vectors_halved() const {
-    return NumWay::_3 == num_way() && threshold_tc() &&
+    return NumWay::_3 == num_way() && is_threshold_tc() &&
           is_bitwise_3way_2step();
   }
 
-  bool try_compress() const {return true;}
-
-  bool can_compress() const {
+  bool can_compress_enable_(int tc_try) const {
+    COMET_INSIST(TC::AUTO != tc_try);
+    const bool try_compress = true;
     return
-      threshold_tc() &&
+      try_compress &&
+      is_try_tc_(tc_try) &&
+      can_threshold_tc_(tc_try) &&
       num_way() == NumWay::_3 && // TODO: implement for 2-way
       BuildHas::ACCEL &&
-      //BuildHas::CUDA &&
       is_compute_method_gpu() &&
       !do_reduce();
   }
 
-  int metric_format() const {return threshold_tc() ?
-    MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
+  bool is_compress_enabled() const {return can_compress_enable_(tc_eff());}
+//    const bool try_compress = true;
+//    return
+//      try_compress &&
+//      is_threshold_tc() &&
+//      num_way() == NumWay::_3 && // TODO: implement for 2-way
+//      BuildHas::ACCEL &&
+//      is_compute_method_gpu() &&
+//      !do_reduce();
+//  }
 
-//  int is_using_xor() const {return false;}
-  int is_using_xor() const {
-    return
-      MetricType::DUO == metric_type_ && // THIS LINE CURRENTLY REQUIRED
-      sparse_ && // THIS LINE CURRENTLY REQUIRED
-      (!is_threshold() || threshold_tc() || is_shrink()) && // THIS LINE CURRENTLY REQUIRED
-      NumWay::_2 == num_way_ && // TODO: implement for 3-way
-      ComputeMethod::CPU == compute_method_ && // TODO: remove/replace this
-      !is_using_linalg(); // TODO: remove/replace this
-  }
+  int metric_format() const {return is_threshold_tc() ?
+    MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
 
   // Accessors pertaining to metric sizes.
 
@@ -490,15 +502,29 @@ public:
            NumWay::_2 == num_way_ ? sizeof(GMTally2x2) : sizeof(GMTally4x2);
   }
 
-  bool is_shrink() const {
+  // Shrink-related.
+
+  bool can_shrink_(int tc_try) const {
+    COMET_INSIST(TC::AUTO != tc_try);
     const size_t storage_per_metric = metric_size() +
       sizeof(MetricItemCoords_t);
     const size_t storage_per_metric_shrink = metric_size() +
       sizeof(MetricItemCoords_t) * num_entries_per_metric();
-    return threshold_tc() && try_compress() && can_compress() &&
+    return can_threshold_tc_(tc_try) && can_compress_enable_(tc_try) &&
+      is_try_tc_(tc_try) &&
       NumWay::_3 == num_way() && // TODO: implement 2-way
       storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
   }
+
+  bool is_shrink() const {return can_shrink_(tc_eff());}
+//    const size_t storage_per_metric = metric_size() +
+//      sizeof(MetricItemCoords_t);
+//    const size_t storage_per_metric_shrink = metric_size() +
+//      sizeof(MetricItemCoords_t) * num_entries_per_metric();
+//    return is_threshold_tc() && is_compress_enabled() &&
+//      NumWay::_3 == num_way() && // TODO: implement 2-way
+//      storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
+//  }
 
   //size_t metric_entry_size() const {
   //  COMET_INSIST(metric_size() % num_entries_per_metric() == 0);
@@ -523,6 +549,9 @@ public:
     return is_shrink() ? (size_t)((v / metrics_shrink_) * (1.+fuzz)) : v;
   }
 
+  int coords_type_compute_() const {
+   return is_shrink() ? CoordsType::BY_ENTRY : CoordsType::BY_METRIC;
+  }
   int coords_type() const {
    return coords_type_cache_;
    //return is_shrink() ? CoordsType::BY_ENTRY : CoordsType::BY_METRIC;
@@ -531,6 +560,31 @@ public:
   bool coords_type_by_metric() const {
    return CoordsType::BY_METRIC == coords_type_cache_;
   }
+
+  // XOR GEMM-related.
+
+  bool can_use_xor_(int tc_try) const {
+    //return false;
+    const bool try_use_xor_nonlinalg = true;
+    const bool can_use_xor_nonlinalg =
+      try_use_xor_nonlinalg &&
+      NumWay::_2 == num_way_ &&
+      ComputeMethod::CPU == compute_method_ &&
+      !can_use_linalg_(tc_try);
+    const bool is_not_using_threshold_detect =
+      !is_threshold() || can_shrink_(tc_try) || can_threshold_tc_(tc_try);
+    return
+      MetricType::DUO == metric_type_ && // THIS LINE CURRENTLY REQUIRED
+      sparse() && // THIS LINE CURRENTLY REQUIRED
+      is_not_using_threshold_detect && // THIS LINE CURRENTLY REQUIRED
+      //(can_use_xor_nonlinalg || is_try_tc_(tc_try));
+      num_way() == NumWay::_2 && // TODO: implement for 3-way
+      (can_use_xor_nonlinalg || TC::B1 == tc_try);
+  }
+
+  int is_using_xor() const {return can_use_xor_(tc_eff());}
+
+  // Misc.
 
   int data_type_vectors() const;
   int data_type_metrics() const;
@@ -662,9 +716,6 @@ private:
   int phase_num_;
 
   int coords_type_cache_;
-  int coords_type_compute_() const {
-   return is_shrink() ? CoordsType::BY_ENTRY : CoordsType::BY_METRIC;
-  }
 
   // Counters
   void accel_sync_() const;

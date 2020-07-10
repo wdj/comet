@@ -94,17 +94,19 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, CEnv* env) {
 //-----------------------------------------------------------------------------
 /// \brief Formula for CCC 3-way metric using 128 bit integer arithmetic.
 
-static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
-                                          const GMTally1 rijk,
-                                          const GMTally1 si,
-                                          const GMTally1 sj,
-                                          const GMTally1 sk,
-                                          const GMTally1 ci,
-                                          const GMTally1 cj,
-                                          const GMTally1 ck,
-                                          const GMTally1 cijk,
-                                          CEnv* env) {
+static double GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
+                                         const GMTally1 rijk,
+                                         const GMTally1 si,
+                                         const GMTally1 sj,
+                                         const GMTally1 sk,
+                                         const GMTally1 ci,
+                                         const GMTally1 cj,
+                                         const GMTally1 ck,
+                                         const GMTally1 cijk,
+                                         CEnv* env) {
   COMET_ASSERT(metrics && env);
+
+  typedef double Float_t;
 
   const GMUInt128 num = rijk * (GMUInt128)(3 * ci - 1 * si) *
                                (GMUInt128)(3 * cj - 1 * sj) *
@@ -119,7 +121,7 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
   // Bound on log2(numerator)
   const int lnum = 3+lm + 2+lm + 2+lm + 2+lm;
 
-  const int shift = mantissa_digits<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
+  const int shift = mantissa_digits<Float_t>() - 3; // Note num/denom <= 4.5 < 1<<3
                                                 // always >= 0, < 128
 
   // Guarantee not to shift bits off the top.
@@ -129,9 +131,9 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
 
   const int shift_right = shift - shift_left; // >= 0, < 128
 
-  const GMFloat result = ( (GMFloat) ((num << shift_left) /
+  const Float_t result = ( (Float_t) ((num << shift_left) /
                                       (denom >> shift_right)) ) /
-                         ( (GMFloat)( ((size_t)1) << shift ) );
+                         ( (Float_t)( ((size_t)1) << shift ) );
 
   return result;
 }
@@ -139,12 +141,12 @@ static GMFloat GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 /// \brief Accessor for 3-way CCC metric computed with 128 bit int arithmetic.
 
-static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
-                                                   size_t index,
-                                                   int iE,
-                                                   int jE,
-                                                   int kE,
-                                                   CEnv* env) {
+static double GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
+                                                  size_t index,
+                                                  int iE,
+                                                  int jE,
+                                                  int kE,
+                                                  CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_metrics_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NumWay::_3);
@@ -152,6 +154,8 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(kE >= 0 && kE < 2);
   COMET_ASSERT(env->are_ccc_params_default());
+
+  typedef double Float_t;
 
   const auto ttable = Metrics_elt_const<GMTally4x2>(*metrics, index, *env);
   const GMTally1 rijk = GMTally4x2_get(ttable, iE, jE, kE);
@@ -174,7 +178,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
            GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1);
 
     if (0 == ci || 0 == cj || 0 == ck || 0 == cijk) {
-      return (GMFloat)0;
+      return (Float_t)0;
     }
   } else {
     const int m = metrics->num_field_active;
@@ -212,7 +216,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 
   COMET_ASSERT(!env.is_shrink()); //FIX
 
-  if (env.threshold_tc()) {
+  if (env.is_threshold_tc()) {
 //    if (env.is_shrink()) {
 //      return (FloatResult_t)Metrics_elt_const<float>(metrics, index, env);
 //    }
@@ -422,11 +426,11 @@ static bool Metrics_ccc_duo_threshold_detect_3(
   if (!env.is_threshold())
     return true;
 
-  // if is_shrink, assume a threhold pass may exist, don't take time to check.
+  // if is_shrink, assume a threshold pass may exist, don't take time to check.
   if (env.is_shrink())
     return true;
 
-  if (env.threshold_tc()) {
+  if (env.is_threshold_tc()) {
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
     const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
     for (int iE = 0; iE < 2; ++iE) {
@@ -440,7 +444,8 @@ static bool Metrics_ccc_duo_threshold_detect_3(
     return false;
   }
 
-  COMET_ASSERT(!env.is_using_xor()); // should never occur
+  // this is here because xor stuff not implemented below.
+  COMET_ASSERT(!env.is_using_xor()); // should never occur.
 
   typedef double Float_t; // Perform all calcs in double.
 

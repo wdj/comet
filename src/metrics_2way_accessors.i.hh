@@ -76,30 +76,32 @@ static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, CEnv* env) {
 //-----------------------------------------------------------------------------
 /// \brief Formula for CCC 2-way metric using 128 bit integer arithmetic.
 
-static GMFloat GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
-                                          const GMTally1 rij,
-                                          const GMTally1 si,
-                                          const GMTally1 sj,
-                                          const GMTally1 ci,
-                                          const GMTally1 cj,
-                                          const GMTally1 cij,
-                                          CEnv* env) {
+static double GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
+                                         const GMTally1 rij,
+                                         const GMTally1 si,
+                                         const GMTally1 sj,
+                                         const GMTally1 ci,
+                                         const GMTally1 cj,
+                                         const GMTally1 cij,
+                                         CEnv* env) {
   COMET_ASSERT(metrics && env);
+
+  typedef double Float_t;
 
   const GMUInt128 num = rij * (GMUInt128)(3 * ci - 1 * si) *
                               (GMUInt128)(3 * cj - 1 * sj);
 
   const GMUInt128 denom = 2 * cij * (GMUInt128)ci * (GMUInt128)cj;
 
-  const int shift = mantissa_digits<GMFloat>() - 3; // Note num/denom <= 4.5 < 1<<3
+  const int shift = mantissa_digits<Float_t>() - 3; // Note num/denom <= 4.5 < 1<<3
 
   // This should be an integer with no more than
-  // mantissa_digits<GMFloat>() binary digits
+  // mantissa_digits<Float_t>() binary digits
   const GMUInt128 int_ratio = (num << shift) / denom;
 
   // Convert to floting point and then adjust exponent.
-  const GMFloat result = ( (GMFloat) int_ratio ) /
-                         ( (GMFloat) ( ((size_t)1) << shift ) );
+  const Float_t result = ( (Float_t) int_ratio ) /
+                         ( (Float_t) ( ((size_t)1) << shift ) );
 
   return result;
 }
@@ -108,17 +110,19 @@ static GMFloat GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
 //-----------------------------------------------------------------------------
 /// \brief Accessor for 2-way CCC metric computed with 128 bit int arithmetic.
 
-static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
-                                                   size_t index,
-                                                   int iE,
-                                                   int jE,
-                                                   CEnv* env) {
+static double GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
+                                                  size_t index,
+                                                  int iE,
+                                                  int jE,
+                                                  CEnv* env) {
   COMET_ASSERT(metrics && env);
   COMET_ASSERT(index < metrics->num_metrics_local); // && index >= 0
   COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(env->are_ccc_params_default());
+
+  typedef double Float_t;
 
   const auto ttable = Metrics_elt_const<GMTally2x2>(*metrics, index, *env);
   const GMTally1 rij = GMTally2x2_get(ttable, iE, jE);
@@ -139,7 +143,7 @@ static GMFloat GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
           GMTally2x2_get(ttable, 1, 0) + GMTally2x2_get(ttable, 1, 1);
 
     if (0 == ci || 0 == cj || 0 == cij) {
-      return (GMFloat)0;
+      return (Float_t)0;
     }
   } else {
     const int m = metrics->num_field_active;
@@ -171,7 +175,7 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
 
-  if (env.threshold_tc()) {
+  if (env.is_threshold_tc()) {
     typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
     const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
     TTable_t::TypeIn result = TTable_t::get(ttable, iE, jE);
@@ -380,11 +384,15 @@ static bool Metrics_ccc_duo_threshold_detect_2(GMMetrics& metrics,
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_2);
 
-  // if is_shrink, assume a threhold pass my exist, don't take time to check.
+  // if no active threshold, then always pass threshold criterion.
+  if (!env.is_threshold())
+    return true;
+
+  // if is_shrink, assume a threshold pass my exist, don't take time to check.
   if (env.is_shrink())
     return true;
 
-  if (env.threshold_tc()) {
+  if (env.is_threshold_tc()) {
     typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
     const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
     for (int iE = 0; iE < 2; ++iE) {
@@ -395,6 +403,9 @@ static bool Metrics_ccc_duo_threshold_detect_2(GMMetrics& metrics,
     }
     return false;
   }
+
+  // this is here because xor stuff not implemented below.
+  COMET_ASSERT(!env.is_using_xor()); // should never occur.
 
   typedef double Float_t; // Perform all calcs in double.
 

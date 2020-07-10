@@ -433,7 +433,7 @@ void gm_compute_2way_proc_combine_ccc_(
     // --------------
 
     if (do_compute_triang_only) {
-      if (!env->threshold_tc()) {
+      if (!env->is_threshold_tc()) {
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
@@ -450,13 +450,13 @@ void gm_compute_2way_proc_combine_ccc_(
           } // if sparse
         }   // for i
       }   // for j
-      } // if (!env->threshold_tc())
+      } // if (!env->is_threshold_tc())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
         metrics->num_metric_items_local_computed_inc(i_max);
       }   // for j
     } else {
-      if (!env->threshold_tc()) {
+      if (!env->is_threshold_tc()) {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
@@ -474,14 +474,14 @@ void gm_compute_2way_proc_combine_ccc_(
           } // if sparse
         }   // for i
       }   // for j
-      } // if (!env->threshold_tc())
+      } // if (!env->is_threshold_tc())
       metrics->num_metric_items_local_computed_inc(nvl * (size_t)nvl);
    }
 
     // --------------
   } else { // (! env->all2all())
     // --------------
-    if (!env->threshold_tc()) {
+    if (!env->is_threshold_tc()) {
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMTally1 sj1 = vs_r->sum(j);
@@ -498,7 +498,7 @@ void gm_compute_2way_proc_combine_ccc_(
         } // if sparse
       } // for i
     }   // for j
-    } // if (!env->threshold_tc())
+    } // if (!env->is_threshold_tc())
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
       metrics->num_metric_items_local_computed_inc(i_max);
@@ -532,6 +532,10 @@ void gm_compute_2way_proc_combine_duo_(
   // Copy from metrics_buffer for GPU case.
 
   if (env->is_using_linalg()) {
+
+    // NOTE: this technically uses the wrong type for copying if env->is_threshold_tc(),
+    // but still works ok.
+
     // --------------
     if (env->all2all()) {
       // --------------
@@ -568,6 +572,8 @@ void gm_compute_2way_proc_combine_duo_(
         for (int i = 0; i < i_max; ++i) {
           const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
+//              const GMTally2x2* p = &value;
+//printf("///////////////// %i %i   %f %f %f %f\n", i, j, ((const float*)p)[0], ((const float*)p)[1], ((const float*)p)[2], ((const float*)p)[3]);
           Metrics_elt_2<GMTally2x2>(*metrics, i, j, env->proc_num_vector(), *env) = value;
         } // for i
       }   // for j
@@ -583,7 +589,7 @@ void gm_compute_2way_proc_combine_duo_(
     // --------------
 
     if (do_compute_triang_only) {
-      if (!env->threshold_tc()) {
+      if (!env->is_threshold_tc()) {
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
@@ -600,13 +606,13 @@ void gm_compute_2way_proc_combine_duo_(
           } // if sparse
         }   // for i
       }   // for j
-      } // if (!env->threshold_tc())
+      } // if (!env->is_threshold_tc())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
         metrics->num_metric_items_local_computed_inc(i_max);
       }   // for j
     } else {
-      if (!env->threshold_tc()) {
+      if (!env->is_threshold_tc()) {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
@@ -624,14 +630,14 @@ void gm_compute_2way_proc_combine_duo_(
           } // if sparse
         }   // for i
       }   // for j
-      } // if (!env->threshold_tc())
+      } // if (!env->is_threshold_tc())
       metrics->num_metric_items_local_computed_inc(nvl * (size_t)nvl);
    }
 
     // --------------
   } else { // (! env->all2all())
     // --------------
-    if (!env->threshold_tc()) {
+    if (!env->is_threshold_tc()) {
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMTally1 sj1 = vs_r->sum(j);
@@ -648,7 +654,7 @@ void gm_compute_2way_proc_combine_duo_(
         } // if sparse
       } // for i
     }   // for j
-    } // if (!env->threshold_tc())
+    } // if (!env->is_threshold_tc())
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
       metrics->num_metric_items_local_computed_inc(i_max);

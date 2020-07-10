@@ -505,7 +505,7 @@ void GMMetrics_create(GMMetrics* metrics,
     //----------
     case GM_DATA_TYPE_TALLY2X2: {
 
-      if (!env->threshold_tc()) {
+      if (!env->is_threshold_tc()) {
 
         metrics->data_S_elt_size = sizeof(GMFloat2);
         const size_t data_S_size = metrics->num_metrics_local *
@@ -525,7 +525,7 @@ void GMMetrics_create(GMMetrics* metrics,
     //----------
     case GM_DATA_TYPE_TALLY4X2: {
 
-      if (!env->threshold_tc()) {
+      if (!env->is_threshold_tc()) {
 
         metrics->data_S_elt_size = sizeof(GMFloat3);
         const size_t data_S_size = metrics->num_metrics_local *

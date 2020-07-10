@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "tc.hh"
 //#include "tc_int.hh"
 
+//#include <inttypes.h>
+
 //=============================================================================
 
 namespace comet {
@@ -230,13 +232,13 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   int nvlea,
 
   int nfl,
-  int nflG,
-  int nflG_thread,
-  int flG_min,
+  int nflT,
+  int nflT_thread,
+  int flT_min,
   int nfal,
 
   int vlX2_thread,
-  int flG_thread) {
+  int flT_thread) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
@@ -268,9 +270,10 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   const uint32_t* const vim_col = vim + vl * (size_t)vi_dim0;
 
-  // "full" field local based on fl for this tc_step.
+  // "full" field-T local based on fl thread for this tc_step.
+  // index into col, measured in GemmIn_t[NGIPT] sized elts.
 
-  const int flG = flG_min + flG_thread;
+  const int flT = flT_min + flT_thread;
 
   // Sizes.
 
@@ -283,36 +286,39 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   // assert(NFPGI * NGIPT <= SNPW);
   // assert NGIPT is power of 2
   // assert NFPGI is power of 2
-  enum {DIMHI = SNPW/NGIPT};
-  enum {DIMLO = BPSN*NGIPT};
+//  enum {DIMHI = SNPW/NGIPT}; // 
+//  enum {DIMLO = BPSN*NGIPT};
 
-  const uint32_t mask_lo = (((uint32_t)1)<<DIMLO) - 1;
-  const uint32_t shift_lo = (flG % DIMHI) * DIMLO;
+//      const uint32_t mask_lo = (((uint32_t)1)<<DIMLO) - 1;
+//      const uint32_t shift_lo = (flG % DIMHI) * DIMLO;
 
   // Loop over GemmIn_t values per this thread.
   // ISSUE: would this be faster with unroll pragma or template recursion
 
   for (int igipt = 0; igipt < NGIPT; ++igipt) {
 
-    const int fl_index = igipt + NGIPT * flG_thread;
-    const bool is_field_inactive = NGIPT * flG_min + fl_index >= nfal;
+    const int flG_index = igipt + NGIPT * flT_thread;
 
-    GemmIn_t& vo_value = vo[vlX2_index + vlX2_dim * (size_t)fl_index];
+    GemmIn_t& vo_value = vo[vlX2_index + vlX2_dim * (size_t)flG_index];
 
     for (int ifpgi = 0; ifpgi < NFPGI; ++ifpgi) {
 
-      const int ifpt = ifpgi + NFPGI * igipt;
+      // Get active field_local number.
+
+      const int fl = ifpgi + NFPGI * (igipt + NGIPT * flT);
+
+      // Is this fl in active range.
+
+      const bool is_field_inactive = fl >= nfal;
 
       // Pick up field value.
       // Set to zero if outside of active range.
 
-      const uint32_t sns_m = is_vector_inactive ? 0 :
-        (vim_col[flG/DIMHI] >> shift_lo) & mask_lo;
-      const int sn_m = (sns_m >> (BPSN*ifpt)) & 3;
+      const uint32_t sn_m = is_vector_inactive ? 0 :
+        ( (vim_col[fl/SNPW]) >> (BPSN*(fl%SNPW)) ) & 3;
 
-      const uint32_t sns_c = is_vector_inactive ? 0 : /* is_right ? 0 : */
-        (vic    [flG/DIMHI] >> shift_lo) & mask_lo;
-      const int sn_c = (sns_c >> (BPSN*ifpt)) & 3;
+      const uint32_t sn_c = is_vector_inactive ? 0 : /* is_right ? 0 : */
+        ( (vic    [fl/SNPW]) >> (BPSN*(fl%SNPW)) ) & 3;
 
       // Count number of 0 (or 1) bits in respective seminibble.
       // Determine whether to skip (1,0) null indicator value.
@@ -326,11 +332,22 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
       // Store.
 
       if (ifpgi) {
-        const int shift = ( ifpgi * sizeof(GemmIn_t) ) / BITS_PER_BYTE;
+        const int shift = ( ifpgi * BITS_PER_BYTE * sizeof(GemmIn_t) ) / NFPGI;
         vo_value = vo_value | ( out << shift);
       } else {
         vo_value = out;
       }
+
+//if ((is_right && vl==0 && jE==0) || (!is_right && vl==0 && jE==0))
+//printf("%s  %i   %i  %i  %i\n", is_right ? "R" : "L", fl, !!out, (int)vo_value, (int)(flG_index));
+//if ((is_right && vl==0 && jE==0 && ifpgi==NFPGI-1) || (!is_right && vl==0 && jE==0 && ifpgi==NFPGI-1))
+//printf("%s  %i   %" PRIu64 " %i \n", is_right ? "R" : "L", fl, (long unsigned int)&vo[vlX2_index + vlX2_dim * (size_t)flG_index], (int)vo_value);
+
+//if (ifpt < 2 && flG<2 && vl==0)
+//printf("%i   %i %i   %i\n", (int)is_right, (int)ifpt, (int)flG, (int)out);
+
+//if ((is_right && vl==0 ) || (!is_right && vl==0 )) if (fl<8 && jE==0)
+//printf("%s  %i %i   %i  %x  %i  %i %i   %i %i\n", is_right ? "R" : "L", fl, jE, !!out, (unsigned int)vo_value, (int)(flG_index), ifpgi, (int)out, vlX2_thread, flT_thread);
 
     } // ifpgi
   } // igipt
@@ -406,24 +423,24 @@ __global__ static void tc_buf_write_kernel_(
   int nvlea,
 
   int nfl,
-  int nflG,
-  int nflG_thread,
-  int flG_min,
+  int nflT,
+  int nflT_thread,
+  int flT_min,
   int nfal) {
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
   const int vlX2_thread = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int flG_thread = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+  const int flT_thread = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
 
-  if (vlX2_thread >= nvleX2_thread || flG_thread >= nflG_thread)
+  if (vlX2_thread >= nvleX2_thread || flT_thread >= nflT_thread)
     return;
 
   tc_buf_write_kernel_elt_<GemmIn_t, NGIPT, NFPGI>(vo, vim, vic, vi_dim0,
     num_way, is_sparse, is_right, is_duo, form_matX_tc, step_2way,
     is_bitwise_3way_2step, is_vectors_halved,
-    nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflG, nflG_thread, flG_min, nfal,
-    vlX2_thread, flG_thread);
+    nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflT, nflT_thread, flT_min, nfal,
+    vlX2_thread, flT_thread);
 }
 
 //-----------------------------------------------------------------------------
@@ -467,13 +484,21 @@ void tc_buf_write_(
   enum {NFPGI = TCSelector<TC_METHOD>::NFPGI};
   // = number of fields handled by each GemmIn_t value.
 
+  enum {NFPT = NFPGI * NGIPT};
+  // = num fields processed per thread.
+
   const int nfl = npvfl * NUM_FL_PER_PVFL;
   const int nfl_thisstep = npvfl_thisstep * NUM_FL_PER_PVFL;
   const int fl_min = pvfl_min * NUM_FL_PER_PVFL;
 
-  const int nflG = nfl / NGIPT;
-  const int nflG_thisstep = nfl_thisstep / NGIPT;
-  const int flG_min = fl_min / NGIPT;
+  //const int nGI = nfl / NFPGI;
+  const int nGI_thisstep = nfl_thisstep / NFPGI;
+  //const int GI_min = fl_min / NFPGI;
+
+  const int nflT = nfl / NFPT;
+  const int nflT_thisstep = nfl_thisstep / NFPT;
+  const int flT_min = fl_min / NFPT;
+
   // Remember: end padding is set to zero; will correct zero counts later.
 
   // Arrays.
@@ -482,7 +507,7 @@ void tc_buf_write_(
   const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
   GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
                                       (GemmIn_t*)tc_bufs.tc_buf_left;
-  COMET_INSIST(nvleX2 * (size_t)(NGIPT*nflG_thisstep) *
+  COMET_INSIST(nvleX2 * (size_t)(nGI_thisstep) *
            sizeof(typename TCSelector<TC_METHOD>::GemmIn_t)
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
@@ -496,7 +521,7 @@ void tc_buf_write_(
   const uint32_t* vic = form_matX_tc ? vi1 : unused_col; // column
 
   const int nvleX2_thread = nvleX2;
-  const int nflG_thread = nflG_thisstep;
+  const int nflT_thread = nflT_thisstep;
 
   if (env.is_compute_method_gpu()) {
 
@@ -507,8 +532,8 @@ void tc_buf_write_(
                    "Current HIP limitation.");
       const int blockdim_y = 32768;
       const int num_threadblocks_0 = utils::ceil(nvleX2_thread, threadblocksize);
-      const int num_threadblocks_1 = utils::min(nflG_thread, blockdim_y);
-      const int num_threadblocks_2 = utils::ceil(nflG_thread, blockdim_y);
+      const int num_threadblocks_1 = utils::min(nflT_thread, blockdim_y);
+      const int num_threadblocks_2 = utils::ceil(nflT_thread, blockdim_y);
 
       COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<GemmIn_t, NGIPT, NFPGI>),
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
@@ -517,13 +542,13 @@ void tc_buf_write_(
         is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
         env.is_vectors_halved(),
         nvle, nvleD2, nvleX2_thread, nvlea,
-        nfl, nflG, nflG_thread, flG_min, nfal);
+        nfl, nflT, nflT_thread, flT_min, nfal);
 
       System::accel_last_call_succeeded();
 
   } else { // (!env.is_compute_method_gpu())
 
-    for (int flG_thread=0; flG_thread<nflG_thread; ++flG_thread) {
+    for (int flT_thread=0; flT_thread<nflT_thread; ++flT_thread) {
       for (int vlX2_thread=0; vlX2_thread<nvleX2_thread; ++vlX2_thread) {
 
         tc_buf_write_kernel_elt_<GemmIn_t, NGIPT, NFPGI>(
@@ -531,8 +556,8 @@ void tc_buf_write_(
           is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
           env.is_vectors_halved(),
           nvle, nvleD2, nvleX2_thread, nvlea,
-          nfl, nflG, nflG_thread, flG_min, nfal,
-          vlX2_thread, flG_thread);
+          nfl, nflT, nflT_thread, flT_min, nfal,
+          vlX2_thread, flT_thread);
 
       }
     }

@@ -538,17 +538,19 @@ int CEnv::data_type_metrics() const {
   return 0;
 }
 
+//#define TEST_B1
+
 //-----------------------------------------------------------------------------
 /// \brief Determine whether requested run possible on this hardware and build.
 
-bool CEnv::can_run(int tc) const {
+bool CEnv::can_run(int tc_try) const {
 
-  COMET_INSIST(TC::AUTO != tc);
+  COMET_INSIST(TC::AUTO != tc_try);
 
   bool result = true;
 
   if (compute_method_ == ComputeMethod::REF) {
-    result = result && TC::NO == tc;
+    result = result && !is_try_tc_(tc_try);
   }
 
   if (make_comms_) {
@@ -559,43 +561,59 @@ bool CEnv::can_run(int tc) const {
     }
   }
 
+  result = result && !(!is_metric_type_bitwise() && is_try_tc_(tc_try));
+
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
-    result = result && (TC::NO == tc ||
-                        (TC::FP32 == tc && BuildHas::CPUBLAS));
+    result = result && (!is_try_tc_(tc_try) ||
+                        (TC::FP32 == tc_try && BuildHas::CPUBLAS));
   }
 
   if (is_compute_method_gpu()) {
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
   }
 
-  if (is_using_linalg() && TC::NO == tc && num_way() == NumWay::_3 &&
+  if (can_use_linalg_(tc_try) && !is_try_tc_(tc_try) && num_way() == NumWay::_3 &&
       metric_type() == MetricType::DUO) {
     result = false; // currently unimplemented
   }
 
-// /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802', 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
-// MI60 is 906
+  // /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802',
+  // 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
+  // NOTE: MI60 is 906
 
-//TODO: adjust this for HIP case.
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc) {
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
-                     || (BuildHas::HIP && System::compute_capability() >= 1000));
-  }
-
-//TODO: adjust this for HIP case.
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc) {
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-                     || (BuildHas::HIP && System::compute_capability() >= 1000));
-  }
-
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc) {
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc_try) {
     // TODO: check what is the right compute cpability here for cuda.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
                      || (BuildHas::HIP && System::compute_capability() >= 900));
   }
 
+  // TODO: determine, set correct values for HIP, if any.
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc_try) {
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
+                     || (BuildHas::HIP && System::compute_capability() >= 1000));
+  }
+
+  // TODO: determine, set correct values for HIP, if any.
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc_try) {
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
+                     || (BuildHas::HIP && System::compute_capability() >= 1000));
+  }
+
+  // TODO: determine, set correct values for HIP, if any.
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::B1 == tc_try) {
+#ifdef TEST_B1
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
+                     || (BuildHas::HIP && System::compute_capability() >= 1000))
+                    && can_use_xor_(tc_try);
+#else
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
+                     || (BuildHas::HIP && System::compute_capability() >= 1000))
+                    && can_use_xor_(tc_try);
+#endif
+  }
+
   if (is_compute_method_gpu() && (!is_metric_type_bitwise()
-      || (is_metric_type_bitwise() && TC::NO == tc))) {
+      || (is_metric_type_bitwise() && !is_try_tc_(tc_try)))) {
     result = result && BuildHas::MAGMA;
   }
 
@@ -611,9 +629,12 @@ int CEnv::tc_eff_compute_() const {
     return tc_;
 
   // NOTE: order is important here: fastest first.
-  for (auto tc : {TC::INT8, TC::FP16, TC::FP32}) {
-    if (can_run(tc))
-      return tc;
+  for (auto tc_try : {TC::B1, TC::INT8, TC::FP16, TC::FP32}) {
+#ifndef TEST_B1
+    if (TC::B1 == tc_try) continue;
+#endif
+    if (can_run(tc_try))
+      return tc_try;
   }
 
 //  COMET_INSIST(false && "Suitable tc setting not found for this platform / build.");

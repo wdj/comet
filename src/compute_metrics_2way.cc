@@ -415,9 +415,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // Compute sums for denominators
 
     //const int compute_sums_this = CEnv_is_ppc64() ? 1 : 2;
-    const int compute_sums_this = 0; //FIX env_.threshold_tc() ? 0 : 1;
+    const int compute_sums_this = 0; //FIX env_.is_threshold_tc() ? 0 : 1;
 
-    if (0 == compute_sums_this) { // needed here for threshold_tc
+    if (0 == compute_sums_this) { // needed here for is_threshold_tc
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {

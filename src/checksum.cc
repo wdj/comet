@@ -178,14 +178,14 @@ double Checksum::metrics_elt(
     // --------------
     case GM_DATA_TYPE_TALLY2X2: {
       value = Metrics_ccc_duo_get_2(metrics, index, entry_num, env);
-      // ensure result independent of threshold_tc
+      // ensure result independent of is_threshold_tc
       if (!env.is_double_prec())
         value = (double)(float)value;
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
       value = Metrics_ccc_duo_get_3(metrics, index, entry_num, env);
-      // ensure result independent of threshold_tc
+      // ensure result independent of is_threshold_tc
       if (!env.is_double_prec())
         value = (double)(float)value;
     } break;
@@ -196,7 +196,7 @@ double Checksum::metrics_elt(
 
   // Apply the thresold if not doing in TC package and if value fails test.
 
-  const bool do_set_zero = !env.threshold_tc() && !env.pass_threshold(value);
+  const bool do_set_zero = !env.is_threshold_tc() && !env.pass_threshold(value);
 
   const double result = do_set_zero ? 0e0 : value;
   return result;
