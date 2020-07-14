@@ -1,20 +1,18 @@
-diff -aur magma_mgemm5.cloned/Makefile.internal magma_mgemm5/Makefile.internal
---- magma_mgemm5.cloned/Makefile.internal	2019-02-26 09:23:34.222883000 -0500
-+++ magma_mgemm5/Makefile.internal	2019-02-26 09:25:18.749094000 -0500
-@@ -94,8 +94,8 @@
- #
- # See also $(info compile for ...) in Makefile
- #
--NV_SM    :=
--NV_COMP  :=
-+#NV_SM    :=
-+#NV_COMP  :=
- 
- ifneq ($(findstring sm10, $(GPU_TARGET)),)
-     # sm10 is no longer supported by CUDA 6.x nvcc
+diff -aur magma_mgemm5.cloned/control/auxiliary.cpp magma_mgemm5/control/auxiliary.cpp
+--- magma_mgemm5.cloned/control/auxiliary.cpp	2020-07-14 16:57:15.142854415 -0400
++++ magma_mgemm5/control/auxiliary.cpp	2020-07-14 17:04:38.541265087 -0400
+@@ -61,7 +61,7 @@
+             err = cudaPointerGetAttributes( &attr, const_cast<void*>( A ));
+             if ( ! err ) {
+                 // definitely know type
+-                return (attr.memoryType == cudaMemoryTypeDevice);
++                return true; // return (attr.memoryType == cudaMemoryTypeDevice);
+             }
+             else if ( err == cudaErrorInvalidValue ) {
+                 // clear error; see http://icl.cs.utk.edu/magma_mgemm5/forum/viewtopic.php?f=2&t=529
 diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/magma_mgemm5blas/gemm_stencil.cuh
---- magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh	2019-02-26 09:23:33.079040000 -0500
-+++ magma_mgemm5/magma_mgemm5blas/gemm_stencil.cuh	2019-02-27 08:05:00.355301000 -0500
+--- magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh	2020-07-14 16:57:01.601749653 -0400
++++ magma_mgemm5/magma_mgemm5blas/gemm_stencil.cuh	2020-07-14 16:57:20.313894421 -0400
 @@ -138,6 +138,215 @@
  #define THR_M ( BLK_M / DIM_X )
  #define THR_N ( BLK_N / DIM_Y )
@@ -262,8 +260,8 @@ diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/mag
                  #endif
              }
 diff -aur magma_mgemm5.cloned/magma_mgemm5blas/zgemm_fermi.cu magma_mgemm5/magma_mgemm5blas/zgemm_fermi.cu
---- magma_mgemm5.cloned/magma_mgemm5blas/zgemm_fermi.cu	2019-02-26 09:23:33.720878000 -0500
-+++ magma_mgemm5/magma_mgemm5blas/zgemm_fermi.cu	2019-02-26 21:43:30.427006000 -0500
+--- magma_mgemm5.cloned/magma_mgemm5blas/zgemm_fermi.cu	2020-07-14 16:57:01.779751031 -0400
++++ magma_mgemm5/magma_mgemm5blas/zgemm_fermi.cu	2020-07-14 16:57:20.313894421 -0400
 @@ -275,6 +275,7 @@
      else if ( TransA == 1 && TransB == 0 ) {
          dim3 dimGrid( (m - 1)/BLK_M_tn + 1,
@@ -272,3 +270,17 @@ diff -aur magma_mgemm5.cloned/magma_mgemm5blas/zgemm_fermi.cu magma_mgemm5/magma
          zgemm_kernel_fermi_tn<<< dimGrid, dimBlock, 0, magma_mgemm5_stream >>>(
              m, n, k, dA, ldda, dB, lddb, dC, lddc, alpha, beta,
              (int)offsetA, (int)offsetB );
+diff -aur magma_mgemm5.cloned/Makefile.internal magma_mgemm5/Makefile.internal
+--- magma_mgemm5.cloned/Makefile.internal	2020-07-14 16:57:01.929752191 -0400
++++ magma_mgemm5/Makefile.internal	2020-07-14 16:57:20.312894414 -0400
+@@ -94,8 +94,8 @@
+ #
+ # See also $(info compile for ...) in Makefile
+ #
+-NV_SM    :=
+-NV_COMP  :=
++#NV_SM    :=
++#NV_COMP  :=
+ 
+ ifneq ($(findstring sm10, $(GPU_TARGET)),)
+     # sm10 is no longer supported by CUDA 6.x nvcc

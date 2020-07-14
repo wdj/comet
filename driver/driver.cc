@@ -467,6 +467,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
     env->data_type_vectors(), env);
+env->stream_compute(); //FIX
   double time_end = env->synced_time();
   vctime += time_end - time_beg;
 

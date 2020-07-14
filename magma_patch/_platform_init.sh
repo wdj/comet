@@ -228,17 +228,19 @@ elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
   local COMET_C_COMPILER=$(spack location --install-dir gcc)/bin/gcc
   local COMET_CXX_COMPILER=$(spack location --install-dir gcc)/bin/g++
   local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
-  local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++11"
+  local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
 
-  local USE_OPENMP=ON
-  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
+  #local USE_OPENMP=ON
+  local USE_OPENMP=OFF
+  #local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
+  local COMET_OPENMP_COMPILE_OPTS=""
 
-  local USE_INT128=ON
+  local USE_INT128=OFF
 
   #---Libraries.
 
   local USE_CUDA=ON
-  export CUDA_ROOT=/usr/local/cuda-10.1   # FIX export
+  export CUDA_ROOT=/usr/local/cuda-11.0   # FIX export
   local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
@@ -256,7 +258,8 @@ elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
 
   #---Testing.
 
-  local COMET_TEST_COMMAND="env CRAY_CUDA_PROXY=1 OMP_NUM_THREADS=1"
+  #local COMET_TEST_COMMAND="env CUDA_PROXY=1"
+  local COMET_TEST_COMMAND=""
 
 #----------------------------------------
 elif [ $COMET_PLATFORM = EDISON ] ; then
