@@ -130,27 +130,35 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
 
-    enum {NUM_FL_PER_PVFL = 64};
-    COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
+#   ifdef COMET_USE_ACCEL
 
-    const bool beta = is_first ? 0 : 1;
+      enum {NUM_FL_PER_PVFL = 64};
+      COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
-    const int size_gi = sizeof(typename TCSelector<TC_METHOD>::GemmIn_t);
-    const size_t k_eff = (k / NUM_FL_PER_PVFL) * (8 / size_gi);
+      const bool beta = is_first ? 0 : 1;
 
-    const int threadblocksize = 256;
-    COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
-                 "Current HIP limitation.");
-    const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
-    const int num_threadblocks_1 = n;
+      const int size_gi = sizeof(typename TCSelector<TC_METHOD>::GemmIn_t);
+      const size_t k_eff = (k / NUM_FL_PER_PVFL) * (8 / size_gi);
 
-    COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu,
-      dim3(num_threadblocks_0, num_threadblocks_1, 1),
-      dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-      m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
-      (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+      const int threadblocksize = 256;
+      COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+                   "Current HIP limitation.");
+      const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
+      const int num_threadblocks_1 = n;
 
-    System::accel_last_call_succeeded();
+      COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu,
+        dim3(num_threadblocks_0, num_threadblocks_1, 1),
+        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+        m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
+        (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+
+      System::accel_last_call_succeeded();
+
+#   else // COMET_USE_ACCEL
+
+      COMET_INSIST(false && "Failure to call GEMM function.");
+
+#   endif // COMET_USE_ACCEL
 
   } else if (env.is_compute_method_gpu()) { // && TC_METHOD != TC::B1
 
