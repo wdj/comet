@@ -32,6 +32,7 @@ local COMET_PLATFORM=""
 [[ "$COMET_HOST" = "wombat" ]] && COMET_PLATFORM=WOMBAT # ORNL HPE GPU system
 [[ "$COMET_HOST" = "poplar" ]] && COMET_PLATFORM=POPLAR # Cray internal system
 [[ "$(uname -s)" = "Darwin" ]] && COMET_PLATFORM=MACOS
+[[ "$COMET_HOST" = "va" ]] && COMET_PLATFORM=MURPHY # enclave system
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform." 1>&2
   exit 1
@@ -608,6 +609,114 @@ elif [ $COMET_PLATFORM = MACOS ] ; then
   #---Testing.
 
   local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+
+#----------------------------------------
+elif [ $COMET_PLATFORM = MURPHY ] ; then
+#----------------------------------------
+
+  local CONDA_PREFIX=$HOME/.conda/envs/comet_build
+
+  if [ 0 = 1 ] ; then
+  #if [ ! -e $CONDA_PREFIX/g++ ] ; then
+
+    # NOTE: Prerequisite: need to first install conda.
+
+    conda create --name comet_build
+    conda activate comet_build
+    conda install gxx_linux-64=7.3.0
+    conda install openmpi
+    conda deactivate
+
+    pushd $HOME
+    sh /software/source/cuda/v.10.0/cuda_10.0.130_410.48_linux.run \
+      --toolkit --toolkitpath=$HOME/cuda-10.0 --silent
+    popd
+
+    pushd $HOME/cuda-10.0/bin
+    ln -s $CONDA_PREFIX/bin/x86_64-conda_cos6-linux-gnu-gcc gcc
+    ln -s $CONDA_PREFIX/bin/x86_64-conda_cos6-linux-gnu-g++ g++
+    popd
+
+    pushd $HOME/.conda/envs/comet_build/bin
+    ln -s x86_64-conda_cos6-linux-gnu-gcc gcc
+    ln -s x86_64-conda_cos6-linux-gnu-g++ g++
+    popd
+
+  fi
+
+  module load apps/cmake
+
+  #---Compiler.
+
+  local USE_GCC=ON
+  local GCC_VERSION=7.3.0
+  local COMET_C_COMPILER=$CONDA_PREFIX/bin/x86_64-conda_cos6-linux-gnu-gcc
+  local COMET_CXX_COMPILER=$CONDA_PREFIX/bin/x86_64-conda_cos6-linux-gnu-g++
+  local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
+  local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++11"
+  #local COMET_EXTRA_COMPILE_OPTS+=" -I$CONDA_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/include"
+
+  #export C_INCLUDE_PATH="$CONDA_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/include:$CONDA_PREFIX/x86_64-conda_cos6-linux-gnu/include/c++/${GCC_VERSION}:$CONDA_PREFIX/x86_64-conda_cos6-linux-gnu/include/c++/${GCC_VERSION}/tr1"
+  export C_INCLUDE_PATH="$CONDA_PREFIX/x86_64-conda_cos6-linux-gnu/include/c++/${GCC_VERSION}:$CONDA_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/include"
+  export CPLUS_INCLUDE_PATH="$C_INCLUDE_PATH"
+  export LIBRARY_PATH="$CONDA_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib:$CONDA_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/lib"
+  export PATH="$CONDA_PREFIX/bin:${PATH}"
+
+  local USE_OPENMP=OFF # currently not available via conda.
+  #local USE_OPENMP=ON
+  #local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
+
+  local USE_INT128=ON
+
+  #---Libraries.
+
+  local USE_CUDA=ON
+  export CUDA_ROOT=$HOME/cuda-10.0   # FIX export
+  local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
+  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
+  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
+  local COMET_CUDA_LINK_OPTS="-L$CUDA_ROOT/lib64"
+  COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
+  local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
+  local _COMPILER_DIR_TMP_=$(dirname $COMET_CXX_SERIAL_COMPILER)
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_ROOT"
+
+  export PATH="${PATH}:$CUDA_ROOT/bin"
+
+  local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
+  local COMET_MAGMA_GPU_ARCH=37
+  local COMET_MAGMA_MAKE_INC=make.inc.summit
+
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    #local MPI_HOME=/usr/mpi/gcc/openmpi-4.0.3rc4 # NOTE this doesn't work
+    local MPI_HOME=$CONDA_PREFIX
+    local COMET_MPI_COMPILE_OPTS="-I$MPI_HOME/include"
+    local COMET_MPI_LINK_OPTS="-L$MPI_HOME/lib -Wl,-rpath,$MPI_HOME/lib -lmpi_cxx -lmpi"
+    local COMET_MPI_CMAKE_OPTS="-DMPI_C_COMPILER:STRING=$COMET_C_COMPILER"
+    COMET_MPI_CMAKE_OPTS+=" -DMPI_C_INCLUDE_PATH:STRING=$MPI_HOME/include"
+    COMET_MPI_CMAKE_OPTS+=" -DMPI_C_LIBRARIES:STRING=$MPI_HOME/lib64"
+    COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_COMPILER:STRING=$COMET_CXX_COMPILER"
+    COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_INCLUDE_PATH:STRING=$MPI_HOME/include"
+    COMET_MPI_CMAKE_OPTS+=" -DMPI_CXX_LIBRARIES:STRING=$MPI_HOME/lib64"
+  fi
+
+  #---Testing.
+
+  # 36 cores, 4 GPUS per node
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    # salloc -N 2 -n 64 -p gpu
+    # salloc -N 2 -n 64 -p gpu --exclude=va-murphy-21,va-murphy-22,va-murphy-23,va-murphy-g15
+    local COMET_TEST_COMMAND="env $CONDA_PREFIX/bin/mpirun -npernode 32"
+  else
+    # salloc -N 1 -p gpu
+    local COMET_TEST_COMMAND="env srun"
+  fi
 
 #----------------------------------------
 else
