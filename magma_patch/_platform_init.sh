@@ -222,6 +222,25 @@ elif [ $COMET_PLATFORM = DGX2 ] ; then
 elif [ $COMET_PLATFORM = GPUSYS2 ] ; then
 #----------------------------------------
 
+  if [ 0 = 1 ] ; then
+    pushd ~
+    git clone https://github.com/spack/spack.git
+    cat <<EOF | sed -e 's/^ *//' >> ~/.bashrc
+      export SPACK_ROOT=$HOME/spack
+      . $SPACK_ROOT/share/spack/setup-env.sh
+EOF
+    . ~/.bashrc
+    spack install gcc@8.3.0
+    spack compiler add `spack location -i gcc@8.3.0`
+    spack install cmake
+    cat <<EOF | sed -e 's/^ *//' >> ~/.bashrc
+      export PATH="${PATH}:/usr/local/cuda/bin"
+      export PATH="${PATH}:$(spack location --install-dir cmake)/bin/"
+EOF
+    . ~/.bashrc
+    popd
+  fi
+
   #---Compiler.
 
   local USE_GCC=ON
