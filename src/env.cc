@@ -538,8 +538,6 @@ int CEnv::data_type_metrics() const {
   return 0;
 }
 
-//#define TEST_B1
-
 //-----------------------------------------------------------------------------
 /// \brief Determine whether requested run possible on this hardware and build.
 
@@ -601,15 +599,13 @@ bool CEnv::can_run(int tc_try) const {
 
   // TODO: determine, set correct values for HIP, if any.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::B1 == tc_try) {
-#ifdef TEST_B1
+    // Temporary code for testing xor mock code on summit.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
                      || (BuildHas::HIP && System::compute_capability() >= 1000))
                     && can_use_xor_(tc_try);
-#else
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-                     || (BuildHas::HIP && System::compute_capability() >= 1000))
-                    && can_use_xor_(tc_try);
-#endif
+//    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
+//                     || (BuildHas::HIP && System::compute_capability() >= 1000))
+//                    && can_use_xor_(tc_try);
   }
 
   if (is_compute_method_gpu() && (!is_metric_type_bitwise()
@@ -629,10 +625,8 @@ int CEnv::tc_eff_compute_() const {
     return tc_;
 
   // NOTE: order is important here: fastest first.
-  for (auto tc_try : {TC::B1, TC::INT8, TC::FP16, TC::FP32}) {
-#ifndef TEST_B1
-    if (TC::B1 == tc_try) continue;
-#endif
+  //for (auto tc_try : {TC::B1, TC::INT8, TC::FP16, TC::FP32}) {
+  for (auto tc_try : {TC::INT8, TC::FP16, TC::FP32, TC::B1}) {
     if (can_run(tc_try))
       return tc_try;
   }
