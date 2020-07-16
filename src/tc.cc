@@ -131,6 +131,11 @@ static void tc_gemm_start_impl_(
   const int nvll = I_max_dim;
   COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
 
+  // Get matX counts if needed.
+
+  tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
+    (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs, step_2way, env);
+
   set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
 
   const int num_tc_steps = env.num_tc_steps();
@@ -305,6 +310,9 @@ void tc_bufs_malloc(int num_vector_local,
   tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64) * sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 
+  tc_bufs.matX_counts_size = env.is_using_xor() && env.num_way() == NumWay::_3 ?
+    nvlX2 * sizeof(uint32_t) : 1;
+
   if (env.is_compute_method_gpu()) {
 
     // Allocate buffers.
@@ -324,6 +332,14 @@ void tc_bufs_malloc(int num_vector_local,
 #endif
     COMET_INSIST(System::accel_last_call_succeeded());
     env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
+
+#if defined COMET_USE_CUDA
+    cudaMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
+#elif defined COMET_USE_HIP
+    hipMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
+#endif
+    COMET_INSIST(System::accel_last_call_succeeded());
+    env.gpu_mem_local_inc(tc_bufs.matX_counts_size);
 
     // Set up accel blas handle.
 
@@ -405,6 +421,15 @@ void tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
     COMET_INSIST(System::accel_last_call_succeeded());
     tc_bufs.tc_buf_right = NULL;
     env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
+
+#if defined COMET_USE_CUDA
+    cudaFree(tc_bufs.matX_counts);
+#elif defined COMET_USE_HIP
+    hipFree(tc_bufs.matX_counts);
+#endif
+    COMET_INSIST(System::accel_last_call_succeeded());
+    tc_bufs.matX_counts = NULL;
+    env.gpu_mem_local_dec(tc_bufs.matX_counts_size);
 
     // Free accel blas handle.
 

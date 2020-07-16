@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+#if 0
 //-----------------------------------------------------------------------------
 /// \brief 1-bit xor gemm, cpu version (not high performance).
 
@@ -64,6 +65,7 @@ void b1_xor_gemm_cpu(size_t m, size_t n, size_t k,
     }
   }
 }
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief 1-bit xor gemm, gpu version (not high performance).
@@ -257,6 +259,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #     endif // COMET_USE_CPUBLAS
 
+#if 0
     } else if (env.tc_eff() == TC::B1) {
 
       enum {NUM_FL_PER_PVFL = 64};
@@ -269,6 +272,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       b1_xor_gemm_cpu(m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
         (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+#endif
 
     } else { // if env.tc_eff()
 

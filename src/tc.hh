@@ -62,9 +62,11 @@ typedef int accelblasHandle_t;
 #endif
 
 struct TCBufs {
-  size_t tc_buf_size;
   void* tc_buf_left;
   void* tc_buf_right;
+  size_t tc_buf_size;
+  uint32_t* matX_counts;
+  size_t matX_counts_size;
   accelblasHandle_t accelblas_handle;
 };
 
