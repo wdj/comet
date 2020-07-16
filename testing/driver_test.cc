@@ -41,9 +41,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef COMET_USE_GTEST
 # include "gtest/gtest.h"
+# define BEGIN_TESTS
+# define END_TESTS
 #else
 # define GTEST_API_
 # define EXPECT_EQ(a, b) COMET_INSIST((a) == (b));
+# define BEGIN_TESTS int RUN_ALL_TESTS() {
+# define END_TESTS return 0;}
+# define TEST(a,b)
 #endif
 
 #include "env.hh"
@@ -1854,6 +1859,44 @@ void DriverTest_tc_() {
 
 //=============================================================================
 
+void DriverTest_b1_xor_gemm_() {
+
+    char options1[1024];
+    char options2[1024];
+
+    char options_template[] =
+        "--metric_type %s "
+        //"--num_proc_vector %i --num_field 100 --num_vector %i "
+        "--num_proc_vector %i --num_field 1 --num_vector %i "
+        "--compute_method %s --sparse %s "
+        "--problem_type random --verbosity %i --tc %i --num_way %i "
+        "--num_tc_steps %i --all2all yes" ;
+
+    const int num_proc_vector = 1;
+
+    typedef comet::TC TC;
+
+    const bool is_duo = true;
+    const bool gpu = 1;
+    const int num_tc_steps = 1;
+    const int nv = 4;
+    const int num_way = 2;
+    const bool sparse = true;
+    const int tc = TC::B1;
+
+    //if (nv/num_proc_vector < num_way) continue;
+
+    sprintf(options1, options_template, is_duo ? "duo" : "ccc",
+            num_proc_vector, nv, "REF",
+            sparse ? "yes" : "no", 1, 0, num_way, 1);
+    sprintf(options2, options_template, is_duo ? "duo" : "ccc",
+            num_proc_vector, nv, gpu ? "GPU" : "CPU",
+            sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
+    EXPECT_EQ(true, compare_2runs(options1, options2));
+} // DriverTest_b1_xor_gemm_
+
+//=============================================================================
+
 void DriverTest_threshold_() {
 
     char options1[1024];
@@ -2495,15 +2538,17 @@ void DriverTest_duo3_() {
 
 //=============================================================================
 
-#ifdef COMET_USE_GTEST
+BEGIN_TESTS
+
+TEST(DriverTest, b1_xor_gemm) {
+  DriverTest_b1_xor_gemm_();
+}
 
 #if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
-#endif
 
-#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2561,30 +2606,7 @@ TEST(DriverTest, duo3) {
 }
 #endif
 
-#else
-
-int RUN_ALL_TESTS() {
-
-  DriverTest_threshold_();
-  DriverTest_file_output_();
-  DriverTest_tc_();
-  DriverTest_ccc3_simple_();
-  DriverTest_ccc3_simple_sparse_();
-  DriverTest_duo3_simple_sparse_();
-  DriverTest_ccc2_simple_();
-  DriverTest_ccc2_simple_sparse_();
-  DriverTest_duo2_simple_sparse_();
-  DriverTest_czek2_();
-  DriverTest_czek3_();
-  DriverTest_ccc2_();
-  DriverTest_ccc3_();
-  DriverTest_duo2_();
-  DriverTest_duo3_();
-
-  return 0;
-}
-
-#endif
+END_TESTS
 
 //=============================================================================
 
