@@ -696,6 +696,8 @@ void tc_compute_matX_counts(
   COMET_INSIST(env.is_bitwise_3way_2step());
   COMET_INSIST(env.is_vectors_halved());
 
+#ifdef COMET_USE_ACCEL
+
   // num_vector-related dimensions.
 
   const int nvle = I_max_dim; // effective nvl dimension
@@ -738,6 +740,8 @@ void tc_compute_matX_counts(
     nfl, nfl_thread, nfal);
 
   System::accel_last_call_succeeded();
+
+#endif //COMET_USE_ACCEL
 }
 
 //=============================================================================
