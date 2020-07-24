@@ -194,7 +194,7 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_) {
 
   if (use_linalg_) {
 
-    gm_linalg_malloc(this, dim0_, dim1_, &env_);
+    MagmaWrapper::malloc(this, dim0_, dim1_, env_);
 
     env_.cpu_mem_local_inc(size_allocated_);
     if (env_.is_compute_method_gpu())
@@ -251,7 +251,7 @@ void MirroredBuf::deallocate() {
 
     if (use_linalg_) {
 
-      gm_linalg_free(this, &env_);
+      MagmaWrapper::free(this, env_);
 
       env_.cpu_mem_local_dec(size_allocated_);
       if (env_.is_compute_method_gpu())
@@ -306,7 +306,7 @@ void MirroredBuf::to_accel_start() {
   lock();
 
   if (use_linalg_) {
-    gm_linalg_set_matrix_start(this, &env_);
+    MagmaWrapper::set_matrix_start(this, env_);
   } else {
 #   if defined COMET_USE_CUDA
       cudaMemcpyAsync(d, h, size(), cudaMemcpyHostToDevice, env_.stream_togpu());
@@ -325,7 +325,7 @@ void MirroredBuf::to_accel_wait() {
     return;
 
   if (use_linalg_)
-    gm_linalg_set_matrix_wait(&env_);
+    MagmaWrapper::set_matrix_wait(env_);
   else
     env_.stream_synchronize(env_.stream_togpu());
 
@@ -350,7 +350,7 @@ void MirroredBuf::from_accel_start(Stream_t stream) {
 
   if (use_linalg_) {
     COMET_INSIST(env_.stream_fromgpu() == stream);
-    gm_linalg_get_matrix_start(this, &env_);
+    MagmaWrapper::get_matrix_start(this, env_);
   } else {
 #   if defined COMET_USE_CUDA
       cudaMemcpyAsync(h, d, size(), cudaMemcpyDeviceToHost, stream);
@@ -370,7 +370,7 @@ void MirroredBuf::from_accel_wait(Stream_t stream) {
 
   if (use_linalg_) {
     COMET_INSIST(env_.stream_fromgpu() == stream);
-    gm_linalg_get_matrix_wait(&env_);
+    MagmaWrapper::get_matrix_wait(env_);
   } else
     env_.stream_synchronize(stream);
 

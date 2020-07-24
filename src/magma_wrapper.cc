@@ -63,247 +63,219 @@ namespace comet {
 //=============================================================================
 // Magma setup, teardown.
 
-void gm_linalg_initialize(CEnv* env) {
-  COMET_INSIST(env);
+void MagmaWrapper::initialize(CEnv& env) {
 
   // need magma blasSetKernelStream -- see
   // http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
   // page 14
 
-// TODO: non-GPU calls should nt need to init magma, should use
+// TODO: non-GPU calls should not need to init magma, should use
 // regular malloc instead of magma malloc.
 
 #ifdef COMET_USE_MAGMA
-  if (use_minproduct(env)) { //--------------------
+
+  if (use_minproduct_(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_init();
-    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in call to magma_minproduct_init.");
-    magma_code = magma_minproductblasSetKernelStream(env->stream_compute());
-    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in call to magma_minproductblasSetKernelStream.");
+    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS && "Init error.");
+    magma_code = magma_minproductblasSetKernelStream(env.stream_compute());
+    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS && "SetKernelStream.");
 
-  } else if (use_mgemm4(env)) { //--------------------
+  } else if (use_mgemm4_(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_init();
-    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
-                   "Error in call to magma_mgemm4_init.");
-    magma_code = magma_mgemm4blasSetKernelStream(env->stream_compute());
-    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
-                   "Error in call to magma_mgemm4blasSetKernelStream.");
+    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS && "Init error.");
+    magma_code = magma_mgemm4blasSetKernelStream(env.stream_compute());
+    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS && "SetKernelStream.");
 
-  } else if (use_mgemm2(env)) { //--------------------
+  } else if (use_mgemm2_(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_init();
-    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-                   "Error in call to magma_mgemm2_init.");
-    magma_code = magma_mgemm2blasSetKernelStream(env->stream_compute());
-    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-                   "Error in call to magma_mgemm2blasSetKernelStream.");
+    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS && "Init error.");
+    magma_code = magma_mgemm2blasSetKernelStream(env.stream_compute());
+    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS && "SetKernelStream.");
 
-  } else if (use_mgemm3(env)) { //--------------------
+  } else if (use_mgemm3_(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_init();
-    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-                   "Error in call to magma_mgemm3_init.");
-    magma_code = magma_mgemm3blasSetKernelStream(env->stream_compute());
-    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-                   "Error in call to magma_mgemm3blasSetKernelStream.");
+    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS && "Init error.");
+    magma_code = magma_mgemm3blasSetKernelStream(env.stream_compute());
+    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS && "SetKernelStream.");
 
-  } else if (use_mgemm5(env)) { //--------------------
+  } else if (use_mgemm5_(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_init();
-    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-                   "Error in call to magma_mgemm5_init.");
-    magma_code = magma_mgemm5blasSetKernelStream(env->stream_compute());
-    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-                   "Error in call to magma_mgemm5blasSetKernelStream.");
+    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS && "Init error.");
+    magma_code = magma_mgemm5blasSetKernelStream(env.stream_compute());
+    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS && "SetKernelStream.");
 
   } else { //--------------------
 
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
+    COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
 
   } // if //--------------------
+
 #endif // COMET_USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_finalize(CEnv* env) {
-  COMET_INSIST(env);
+void MagmaWrapper::finalize(CEnv& env) {
 
   // TODO: (maybe) reset kernel stream (probably not really needed)
 
 #ifdef COMET_USE_MAGMA
-  if (use_minproduct(env)) { //--------------------
+
+  if (use_minproduct_(env)) { //--------------------
 
     magma_minproduct_int_t magma_code = magma_minproduct_finalize();
-    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in call to magma_minproduct_finalize.");
+    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS && "Finalize error.");
 
-  } else if (use_mgemm4(env)) { //--------------------
+  } else if (use_mgemm4_(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_finalize();
-    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
-                   "Error in call to magma_mgemm4_finalize.");
+    COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS && "Finalize error.");
 
-  } else if (use_mgemm2(env)) { //--------------------
+  } else if (use_mgemm2_(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_finalize();
-    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-                   "Error in call to magma_mgemm2_finalize.");
+    COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS && "Finalize error.");
 
-  } else if (use_mgemm3(env)) { //--------------------
+  } else if (use_mgemm3_(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_finalize();
-    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-                   "Error in call to magma_mgemm3_finalize.");
+    COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS && "Finalize error.");
 
-  } else if (use_mgemm5(env)) { //--------------------
+  } else if (use_mgemm5_(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_finalize();
-    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-                   "Error in call to magma_mgemm5_finalize.");
+    COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS && "Finalize error.");
 
   } else { //--------------------
 
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
+    COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
 
   } // if //--------------------
+
 #endif // COMET_USE_MAGMA
 }
 
 //=============================================================================
 // Allocate/free host and device memory.
 
-void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
-  COMET_INSIST(p && env);
+void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
+   CEnv& env) {
+  COMET_INSIST(buf);
   COMET_INSIST(dim0 + 1 >= 1 && dim1 + 1 >= 1);
 
 #ifdef COMET_USE_MAGMA
 
-  //p->dim0 = dim0;
-  //p->dim1 = dim1;
-
   const size_t n = dim0 * dim1;
 
-  if (use_minproduct(env)) { //--------------------
+  if (use_minproduct_(env)) { //--------------------
 
     //typedef GMFloat Float_t;
 
     magma_minproduct_int_t magma_code = 0;
 
-    if (env->is_double_prec()) {
-      magma_code = magma_minproduct_dmalloc_pinned((double**)&p->h, n);
+    if (env.is_double_prec()) {
+      magma_code = magma_minproduct_dmalloc_pinned((double**)&buf->h, n);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in magma_minproduct_dmalloc_pinned,"
-                   " possibly insufficient memory.");
+        "Memory allocation error, possibly due to insufficient CPU memory.");
     } else {
-      magma_code = magma_minproduct_smalloc_pinned((float**)&p->h, n);
+      magma_code = magma_minproduct_smalloc_pinned((float**)&buf->h, n);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in magma_minproduct_smalloc_pinned,"
-                   " possibly insufficient memory.");
+        "Memory allocation error, possibly due to insufficient CPU memory.");
     }
-    GMFloat_fill_nan((GMFloat*)p->h, n);
+    GMFloat_fill_nan((GMFloat*)buf->h, n);
 
-    if (env->is_compute_method_gpu()) {
-      if (env->is_double_prec()) {
-        magma_code = magma_minproduct_dmalloc((double**)&p->d, n);
+    if (env.is_compute_method_gpu()) {
+      if (env.is_double_prec()) {
+        magma_code = magma_minproduct_dmalloc((double**)&buf->d, n);
         COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-                   "Error in magma_minproduct_dmalloc,"
-                     " possibly insufficient memory.");
+          "Memory allocation error, possibly due to insufficient GPU memory.");
       } else {
-        magma_code = magma_minproduct_smalloc((float**)&p->d, n);
+        magma_code = magma_minproduct_smalloc((float**)&buf->d, n);
         COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-                     "Error in call to magma_minproduct_smalloc,"
-                     " possibly insufficient memory.");
+          "Memory allocation error, possibly due to insufficient GPU memory.");
       }
     }
     // TODO: ? fill GPU memory with NaNs
-    //p->size = n * sizeof(Float_t);
 
-  } else if (use_mgemm4(env)) { //--------------------
+  } else if (use_mgemm4_(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
     magma_mgemm4_int_t magma_code = 0;
 
-    magma_code = magma_mgemm4_zmalloc_pinned((Float_t**)&p->h, n);
+    magma_code = magma_mgemm4_zmalloc_pinned((Float_t**)&buf->h, n);
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
-      "Error in magma_mgemm4_zmalloc_pinned, possibly insufficient memory.");
+      "Memory allocation error, possibly due to insufficient CPU memory.");
 
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_mgemm4_zmalloc((Float_t**)&p->d, n);
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_mgemm4_zmalloc((Float_t**)&buf->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
-        "Error in magma_mgemm4_zmalloc, possibly insufficient memory.");
+        "Memory allocation error, possibly due to insufficient GPU memory.");
     }
-    //p->size = n * sizeof(Float_t);
 
-  } else if (use_mgemm2(env)) { //--------------------
+  } else if (use_mgemm2_(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
     magma_mgemm2_int_t magma_code = 0;
 
-    magma_code = magma_mgemm2_zmalloc_pinned((Float_t**)&p->h, n);
+    magma_code = magma_mgemm2_zmalloc_pinned((Float_t**)&buf->h, n);
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-      "Error in magma_mgemm2_zmalloc_pinned, possibly insufficient memory.");
+      "Memory allocation error, possibly due to insufficient CPU memory.");
 
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_mgemm2_zmalloc((Float_t**)&p->d, n);
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_mgemm2_zmalloc((Float_t**)&buf->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-        "Error in magma_mgemm2_zmalloc, possibly insufficient memory.");
+        "Memory allocation error, possibly due to insufficient GPU memory.");
     }
-    //p->size = n * sizeof(Float_t);
 
-  } else if (use_mgemm3(env)) { //--------------------
+  } else if (use_mgemm3_(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
     magma_mgemm3_int_t magma_code = 0;
 
-    magma_code = magma_mgemm3_zmalloc_pinned((Float_t**)&p->h, n);
+    magma_code = magma_mgemm3_zmalloc_pinned((Float_t**)&buf->h, n);
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-      "Error in magma_mgemm3_zmalloc_pinned, possibly insufficient memory.");
+      "Memory allocation error, possibly due to insufficient CPU memory.");
 
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_mgemm3_zmalloc((Float_t**)&p->d, n);
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_mgemm3_zmalloc((Float_t**)&buf->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-        "Error in magma_mgemm3_zmalloc, possibly insufficient memory.");
+        "Memory allocation error, possibly due to insufficient GPU memory.");
     }
-    //p->size = n * sizeof(Float_t);
 
-  } else if (use_mgemm5(env)) { //--------------------
+  } else if (use_mgemm5_(env)) { //--------------------
 
     typedef magma_mgemm5DoubleComplex Float_t;
 
     magma_mgemm5_int_t magma_code = 0;
 
-    magma_code = magma_mgemm5_zmalloc_pinned((Float_t**)&p->h, n);
+    magma_code = magma_mgemm5_zmalloc_pinned((Float_t**)&buf->h, n);
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-      "Error in magma_mgemm5_zmalloc_pinned, possibly insufficient memory.");
+      "Memory allocation error, possibly due to insufficient CPU memory.");
 
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_mgemm5_zmalloc((Float_t**)&p->d, n);
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_mgemm5_zmalloc((Float_t**)&buf->d, n);
       COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-        "Error in magma_mgemm5_zmalloc, possibly insufficient memory.");
+        "Memory allocation error, possibly due to insufficient GPU memory.");
     }
-    //p->size = n * sizeof(Float_t);
 
   } else { //--------------------
 
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
+    COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
 
   } // if //--------------------
 
-  //env->cpu_mem_local_inc(p->size);
-  //if (env->is_compute_method_gpu())
-  //  env->gpu_mem_local_inc(p->size);
-
-  COMET_INSIST(p->h &&
-    "Invalid host pointer created, possibly due to insufficient memory.");
-  COMET_INSIST((p->d || !env->is_compute_method_gpu()) &&
-    "Invalid device pointer created, possibly due to insufficient memory.");
+  COMET_INSIST(buf->h &&
+    "Invalid host pointer created, possibly due to insufficient CPU memory.");
+  COMET_INSIST((buf->d || !env.is_compute_method_gpu()) &&
+    "Invalid device pointer created, possibly due to insufficient GPU memory.");
 
 #else
 
@@ -314,78 +286,72 @@ void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_free(MirroredBuf* p, CEnv* env) {
-  COMET_INSIST(p && env);
-  COMET_INSIST(! p->is_alias);
+void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
+  COMET_INSIST(buf);
+  COMET_INSIST(! buf->is_alias);
 
 #ifdef COMET_USE_MAGMA
-  if (use_minproduct(env)) { //--------------------
 
-    magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(p->h);
+  if (use_minproduct_(env)) { //--------------------
+
+    magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-             "Error in magma_minproduct_free_pinned.");
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_minproduct_free(p->d);
+      "Error in CPU memory free.");
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_minproduct_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
-             "Error in magma_minproduct_free.");
+        "Error in GPU memory free.");
     }
 
-  } else if (use_mgemm4(env)) { //--------------------
+  } else if (use_mgemm4_(env)) { //--------------------
 
-    magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(p->h);
+    magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
              "Error in magma_mgemm4_free_pinned.");
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_mgemm4_free(p->d);
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_mgemm4_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
-               "Error in magma_mgemm4_free.");
+        "Error in GPU memory free.");
     }
 
-  } else if (use_mgemm2(env)) { //--------------------
+  } else if (use_mgemm2_(env)) { //--------------------
 
-    magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(p->h);
+    magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-             "Error in magma_mgemm2_free_pinned.");
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_mgemm2_free(p->d);
+      "Error in CPU memory free.");
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_mgemm2_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
-               "Error in magma_mgemm2_free.");
+        "Error in GPU memory free.");
     }
 
-  } else if (use_mgemm3(env)) { //--------------------
+  } else if (use_mgemm3_(env)) { //--------------------
 
-    magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(p->h);
+    magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-             "Error in magma_mgemm3_free_pinned.");
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_mgemm3_free(p->d);
+      "Error in CPU memory free.");
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_mgemm3_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
-               "Error in magma_mgemm3_free.");
+        "Error in GPU memory free.");
     }
 
-  } else if (use_mgemm5(env)) { //--------------------
+  } else if (use_mgemm5_(env)) { //--------------------
 
-    magma_mgemm5_int_t magma_code = magma_mgemm5_free_pinned(p->h);
+    magma_mgemm5_int_t magma_code = magma_mgemm5_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-             "Error in magma_mgemm5_free_pinned.");
-    if (env->is_compute_method_gpu()) {
-      magma_code = magma_mgemm5_free(p->d);
+      "Error in CPU memory free.");
+    if (env.is_compute_method_gpu()) {
+      magma_code = magma_mgemm5_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
-               "Error in magma_mgemm5_free.");
+        "Error in GPU memory free.");
     }
 
   } else { //--------------------
 
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
+    COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
 
   } // if //--------------------
-
-  //p->h = NULL;
-  //p->d = NULL;
-
-  //env->cpu_mem_local_dec(p->size);
-  //if (env->is_compute_method_gpu())
-  //  env->gpu_mem_local_dec(p->size);
 
 #else
 
@@ -396,72 +362,70 @@ void gm_linalg_free(MirroredBuf* p, CEnv* env) {
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_set_matrix_zero_start_(MirroredBuf* matrix_buf, CEnv* env) {
-  COMET_INSIST(matrix_buf && env);
+void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
+  COMET_INSIST(buf);
 
-  if (!env->is_compute_method_gpu()) {
-//    memset(matrix_buf->h, 0, matrix_buf->size);
+  if (!env.is_compute_method_gpu())
     return;
-  }
 
 #ifdef COMET_USE_MAGMA
 
-  const size_t mat_dim1 = matrix_buf->dim0;
-  const size_t mat_dim2 = matrix_buf->dim1;
+  const size_t mat_dim1 = buf->dim0;
+  const size_t mat_dim2 = buf->dim1;
 
   // ISSUE: these MAGMA routines don't return an error code.
 
-  if (use_minproduct(env)) { //--------------------
+  if (use_minproduct_(env) && env.is_double_prec()) { //--------------------
 
-    if (env->is_double_prec()) {
-      magma_minproductblas_dlaset
-        (Magma_minproductFull, mat_dim1, mat_dim2, (double)0, (double)0,
-         (double*)matrix_buf->d, mat_dim1);
-    } else {
-      magma_minproductblas_slaset
-        (Magma_minproductFull, mat_dim1, mat_dim2, (float)0, (float)0,
-         (float*)matrix_buf->d, mat_dim1);
-    }
+    magma_minproductblas_dlaset
+      (Magma_minproductFull, mat_dim1, mat_dim2, (double)0, (double)0,
+       (double*)buf->d, mat_dim1);
 
-  } else if (use_mgemm4(env)) { //--------------------
+  } else if (use_minproduct_(env)) { //--------------------
+
+    magma_minproductblas_slaset
+      (Magma_minproductFull, mat_dim1, mat_dim2, (float)0, (float)0,
+       (float*)buf->d, mat_dim1);
+
+  } else if (use_mgemm4_(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
     Float_t zero = {0, 0};
 
     magma_mgemm4blas_zlaset(Magma_mgemm4Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)matrix_buf->d, mat_dim1);
+                            (Float_t*)buf->d, mat_dim1);
 
-  } else if (use_mgemm2(env)) { //--------------------
+  } else if (use_mgemm2_(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
     Float_t zero = {0, 0};
 
     magma_mgemm2blas_zlaset(Magma_mgemm2Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)matrix_buf->d, mat_dim1);
+                            (Float_t*)buf->d, mat_dim1);
 
-  } else if (use_mgemm3(env)) { //--------------------
+  } else if (use_mgemm3_(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
     Float_t zero = {0, 0};
 
     magma_mgemm3blas_zlaset(Magma_mgemm3Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)matrix_buf->d, mat_dim1);
+                            (Float_t*)buf->d, mat_dim1);
 
-  } else if (use_mgemm5(env)) { //--------------------
+  } else if (use_mgemm5_(env)) { //--------------------
 
     typedef magma_mgemm5DoubleComplex Float_t;
 
     Float_t zero = {0, 0};
 
     magma_mgemm5blas_zlaset(Magma_mgemm5Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)matrix_buf->d, mat_dim1);
+                            (Float_t*)buf->d, mat_dim1);
 
   } else { //--------------------
 
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
 
   } // if //--------------------
 
@@ -469,53 +433,38 @@ void gm_linalg_set_matrix_zero_start_(MirroredBuf* matrix_buf, CEnv* env) {
 
   COMET_INSIST(false && "Magma library unavailable for this build.");
 
-//#elif defined COMET_USE_CUDA
-// NOTE: shouldn't be needed.
-//  cudaMemset(matrix_buf->d, 0, matrix_buf->size);
-//#elif defined COMET_USE_HIP
-// NOTE: shouldn't be needed.
-//  hipMemset(matrix_buf->d, 0, matrix_buf->size);
 #endif // COMET_USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_gemm_magma_block_start(size_t m,
-                                      size_t n,
-                                      size_t k,
-                                      const void* matA,
-                                      size_t ldda,
-                                      const void* matB,
-                                      size_t lddb,
-                                      void* matC,
-                                      size_t lddc,
-                                      bool is_beta_one,
-                                      CEnv* env) {
-  COMET_INSIST(matA && matB && matC && env);
-  COMET_INSIST(env->is_compute_method_gpu());
+void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
+  const void* matA, size_t ldda, const void* matB, size_t lddb,
+  void* matC, size_t lddc, bool is_beta_one, CEnv& env) {
+  COMET_INSIST(matA && matB && matC);
+  COMET_INSIST(env.is_compute_method_gpu());
 
 #ifdef COMET_USE_MAGMA
-  {
-    // Ensure Magmablas function doesn't internally failover to CUBLAS call.
-    int TransA = 1;
-    int TransB = 0;
 
-    size_t Am = ! TransA ? m : k;
-    size_t An = ! TransA ? k : m;
-    size_t Bm = ! TransB ? k : n;
-    size_t Bn = ! TransB ? n : k;
-    size_t sizeA = ldda * (An - 1) + Am;
-    size_t sizeB = lddb * (Bn - 1) + Bm;
+  // Ensure Magmablas function doesn't internally failover to CUBLAS call.
+  int TransA = 1;
+  int TransB = 0;
 
-    size_t CUBLAS_MAX_1DBUF_SIZE = ((1 << 27) - 512);
-    COMET_INSIST((! (sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
-                 sizeB >= CUBLAS_MAX_1DBUF_SIZE )) &&
-             "Error in MAGMA block sizes.");
-  }
+  size_t Am = ! TransA ? m : k;
+  size_t An = ! TransA ? k : m;
+  size_t Bm = ! TransB ? k : n;
+  size_t Bn = ! TransB ? n : k;
+  size_t sizeA = ldda * (An - 1) + Am;
+  size_t sizeB = lddb * (Bn - 1) + Bm;
+
+  size_t CUBLAS_MAX_1DBUF_SIZE = ((1 << 27) - 512);
+  COMET_INSIST((! (sizeA >= CUBLAS_MAX_1DBUF_SIZE ||
+               sizeB >= CUBLAS_MAX_1DBUF_SIZE )) &&
+           "Error in MAGMA block sizes.");
 
   // ISSUE: these MAGMA routines don't return an error code.
 
-  if (use_minproduct(env)) { //--------------------
+  if (use_minproduct_(env)) { //--------------------
 
     const GMFloat alpha = 1;
     const GMFloat beta = is_beta_one ? 1 : 0;
@@ -529,7 +478,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     const Int_t lddb_ = safe_cast<Int_t>(lddb);
     const Int_t lddc_ = safe_cast<Int_t>(lddc);
 
-    if (env->is_double_prec()) {
+    if (env.is_double_prec()) {
       magma_minproductblas_dgemm(
         Magma_minproductTrans,
         Magma_minproductNoTrans,
@@ -565,9 +514,9 @@ void gm_linalg_gemm_magma_block_start(size_t m,
                "Failure in call to magma_minproductblas_sgemm.");
     }
 
-    env->ops_local_inc(2 * m * (double)n * (double)k);
+    env.ops_local_inc(2 * m * (double)n * (double)k);
 
-  } else if (use_mgemm4(env)) { //--------------------
+  } else if (use_mgemm4_(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
@@ -602,7 +551,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm4blas_zgemm.");
 
-  } else if (use_mgemm2(env)) { //--------------------
+  } else if (use_mgemm2_(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
@@ -637,7 +586,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm2blas_zgemm.");
 
-  } else if (use_mgemm3(env)) { //--------------------
+  } else if (use_mgemm3_(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
@@ -672,7 +621,7 @@ void gm_linalg_gemm_magma_block_start(size_t m,
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm3blas_zgemm.");
 
-  } else if (use_mgemm5(env)) { //--------------------
+  } else if (use_mgemm5_(env)) { //--------------------
 
     typedef magma_mgemm5DoubleComplex Float_t;
 
@@ -709,37 +658,39 @@ void gm_linalg_gemm_magma_block_start(size_t m,
 
   } else { //--------------------
 
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
 
   } // if //--------------------
+
 #endif // COMET_USE_MAGMA
 }
 
 //-----------------------------------------------------------------------------
 
-void gm_linalg_gemm_magma_start(size_t m, size_t n, size_t k,
+void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
   const void* matA, size_t ldda, const void* matB, size_t lddb,
-  void* matC, size_t lddc, CEnv* env) {
-  COMET_INSIST(matA && matB && matC && env);
-  COMET_INSIST(env->is_compute_method_gpu());
+  void* matC, size_t lddc, CEnv& env) {
+  COMET_INSIST(matA && matB && matC);
+  COMET_INSIST(env.is_compute_method_gpu());
 
   // The purpose of this code is to workaround the magma size
   // limitation (for non CUBLAS failover) by doing gemm in blocks.
 
 #ifdef COMET_USE_MAGMA
+
   const size_t rows = k;
   const size_t cols_A = m;
   const size_t cols_B = n;
 
   const size_t elt_size =
-    env->metric_type() == MetricType::CZEK ? sizeof(GMFloat) :
-   (env->metric_type() == MetricType::CCC && env->sparse()) ?
+    env.metric_type() == MetricType::CZEK ? sizeof(GMFloat) :
+   (env.metric_type() == MetricType::CCC && env.sparse()) ?
                                          sizeof(magma_mgemm4DoubleComplex) :
-   (env->metric_type() == MetricType::CCC &&
-    env->num_way() == NumWay::_2) ? sizeof(magma_mgemm2DoubleComplex) :
-   (env->metric_type() == MetricType::CCC &&
-    env->num_way() == NumWay::_3) ? sizeof(magma_mgemm3DoubleComplex) :
-   (env->metric_type() == MetricType::DUO) ?
+   (env.metric_type() == MetricType::CCC &&
+    env.num_way() == NumWay::_2) ? sizeof(magma_mgemm2DoubleComplex) :
+   (env.metric_type() == MetricType::CCC &&
+    env.num_way() == NumWay::_3) ? sizeof(magma_mgemm3DoubleComplex) :
+   (env.metric_type() == MetricType::DUO) ?
                                          sizeof(magma_mgemm5DoubleComplex) : 0;
   COMET_INSIST(elt_size > 0 && "Error in gemm block calculation.");
 
@@ -787,76 +738,75 @@ void gm_linalg_gemm_magma_start(size_t m, size_t n, size_t k,
 
         void* C_this = (char*)matC + (col_A_base + lddc*col_B_base)*elt_size;
 
-        gm_linalg_gemm_magma_block_start(cols_A_this, cols_B_this, rows_this,
+        MagmaWrapper::gemm_block_start(cols_A_this, cols_B_this, rows_this,
           A_this, ldda, B_this, lddb, C_this, lddc, row_base > 0,  env);
       }
     }
   }
+
 #endif // COMET_USE_MAGMA
 }
 
 //=============================================================================
-// Start/end transfer of generic matrix to GPU.
+/// \brief Start transfer of generic matrix to GPU.
 
-void gm_linalg_set_matrix_start(MirroredBuf* p, CEnv* env) {
-  COMET_INSIST(p && env);
+void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
+  COMET_INSIST(buf);
 
-  if (!env->is_compute_method_gpu())
+  if (!env.is_compute_method_gpu())
     return;
 
-  // Send vectors to GPU.
-
-  // ISSUE: these MAGMA routines don't return an error code.
+  // NOTE: these MAGMA routines don't return an error code.
 
 #ifdef COMET_USE_MAGMA
 
-  if (use_minproduct(env)) { //--------------------
+  if (use_minproduct_(env) && env.is_double_prec()) { //--------------------
 
-    if (env->is_double_prec()) {
-      magma_minproduct_dsetmatrix_async(
-        p->dim0, p->dim1, (double*)p->h, p->dim0,
-        (double*)p->d, p->dim0, env->stream_togpu());
-    } else {
-      magma_minproduct_ssetmatrix_async(
-        p->dim0, p->dim1, (float*)p->h, p->dim0,
-        (float*)p->d, p->dim0, env->stream_togpu());
-    }
+    magma_minproduct_dsetmatrix_async(
+      buf->dim0, buf->dim1, (double*)buf->h, buf->dim0,
+      (double*)buf->d, buf->dim0, env.stream_togpu());
 
-  } else if (use_mgemm4(env)) { //--------------------
+  } else if (use_minproduct_(env)) { //--------------------
+
+    magma_minproduct_ssetmatrix_async(
+      buf->dim0, buf->dim1, (float*)buf->h, buf->dim0,
+      (float*)buf->d, buf->dim0, env.stream_togpu());
+
+  } else if (use_mgemm4_(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
-    magma_mgemm4_zsetmatrix_async(p->dim0, p->dim1, (Float_t*)p->h,
-                                  p->dim0, (Float_t*)p->d, p->dim0,
-                                  env->stream_togpu());
+    magma_mgemm4_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
+                                  buf->dim0, (Float_t*)buf->d, buf->dim0,
+                                  env.stream_togpu());
 
-  } else if (use_mgemm2(env)) { //--------------------
+  } else if (use_mgemm2_(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
-    magma_mgemm2_zsetmatrix_async(p->dim0, p->dim1, (Float_t*)p->h,
-                                  p->dim0, (Float_t*)p->d, p->dim0,
-                                  env->stream_togpu());
+    magma_mgemm2_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
+                                  buf->dim0, (Float_t*)buf->d, buf->dim0,
+                                  env.stream_togpu());
 
-  } else if (use_mgemm3(env)) { //--------------------
+  } else if (use_mgemm3_(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
-    magma_mgemm3_zsetmatrix_async(p->dim0, p->dim1, (Float_t*)p->h,
-                                  p->dim0, (Float_t*)p->d, p->dim0,
-                                  env->stream_togpu());
+    magma_mgemm3_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
+                                  buf->dim0, (Float_t*)buf->d, buf->dim0,
+                                  env.stream_togpu());
 
-  } else if (use_mgemm5(env)) { //--------------------
+  } else if (use_mgemm5_(env)) { //--------------------
 
     typedef magma_mgemm5DoubleComplex Float_t;
 
-    magma_mgemm5_zsetmatrix_async(p->dim0, p->dim1, (Float_t*)p->h,
-                                  p->dim0, (Float_t*)p->d, p->dim0,
-                                  env->stream_togpu());
+    magma_mgemm5_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
+                                  buf->dim0, (Float_t*)buf->d, buf->dim0,
+                                  env.stream_togpu());
 
   } else { //--------------------
 
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
 
   } // if //--------------------
 
@@ -868,76 +818,72 @@ void gm_linalg_set_matrix_start(MirroredBuf* p, CEnv* env) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief End transfer of generic matrix to GPU.
 
-void gm_linalg_set_matrix_wait(CEnv* env) {
-  COMET_INSIST(env);
-
-  env->stream_synchronize(env->stream_togpu());
+void MagmaWrapper::set_matrix_wait(CEnv& env) {
+  env.stream_synchronize(env.stream_togpu());
 }
 
 //=============================================================================
-// Start/end transfer of generic matrix from GPU.
+/// \brief Start transfer of generic matrix from GPU.
 
-void gm_linalg_get_matrix_start(MirroredBuf* p, CEnv* env) {
-  COMET_INSIST(p && env);
+void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
+  COMET_INSIST(buf);
 
-  if (!env->is_compute_method_gpu()) {
+  if (!env.is_compute_method_gpu())
     return;
-  }
 
-  // Get vectors from GPU.
-
-  // ISSUE: these MAGMA routines don't return an error code.
+  // NOTE: these MAGMA routines don't return an error code.
 
 #ifdef COMET_USE_MAGMA
 
-  if (use_minproduct(env)) { //--------------------
+  if (use_minproduct_(env) && env.is_double_prec()) { //--------------------
 
-    if (env->is_double_prec()) {
-      magma_minproduct_dgetmatrix_async(
-        p->dim0, p->dim1, (double*)p->d, p->dim0,
-        (double*)p->h, p->dim0, env->stream_fromgpu());
-    } else {
-      magma_minproduct_sgetmatrix_async(
-        p->dim0, p->dim1, (float*)p->d, p->dim0,
-        (float*)p->h, p->dim0, env->stream_fromgpu());
-    }
+    magma_minproduct_dgetmatrix_async(
+      buf->dim0, buf->dim1, (double*)buf->d, buf->dim0,
+      (double*)buf->h, buf->dim0, env.stream_fromgpu());
 
-  } else if (use_mgemm4(env)) { //--------------------
+  } else if (use_minproduct_(env)) { //--------------------
+
+    magma_minproduct_sgetmatrix_async(
+      buf->dim0, buf->dim1, (float*)buf->d, buf->dim0,
+      (float*)buf->h, buf->dim0, env.stream_fromgpu());
+
+  } else if (use_mgemm4_(env)) { //--------------------
 
     typedef magma_mgemm4DoubleComplex Float_t;
 
-    magma_mgemm4_zgetmatrix_async(p->dim0, p->dim1, (Float_t*)p->d,
-                                  p->dim0, (Float_t*)p->h, p->dim0,
-                                  env->stream_fromgpu());
+    magma_mgemm4_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
+                                  buf->dim0, (Float_t*)buf->h, buf->dim0,
+                                  env.stream_fromgpu());
 
-  } else if (use_mgemm2(env)) { //--------------------
+  } else if (use_mgemm2_(env)) { //--------------------
 
     typedef magma_mgemm2DoubleComplex Float_t;
 
-    magma_mgemm2_zgetmatrix_async(p->dim0, p->dim1, (Float_t*)p->d,
-                                  p->dim0, (Float_t*)p->h, p->dim0,
-                                  env->stream_fromgpu());
+    magma_mgemm2_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
+                                  buf->dim0, (Float_t*)buf->h, buf->dim0,
+                                  env.stream_fromgpu());
 
-  } else if (use_mgemm3(env)) { //--------------------
+  } else if (use_mgemm3_(env)) { //--------------------
 
     typedef magma_mgemm3DoubleComplex Float_t;
 
-    magma_mgemm3_zgetmatrix_async(p->dim0, p->dim1, (Float_t*)p->d,
-                                  p->dim0, (Float_t*)p->h, p->dim0,
-                                  env->stream_fromgpu());
+    magma_mgemm3_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
+                                  buf->dim0, (Float_t*)buf->h, buf->dim0,
+                                  env.stream_fromgpu());
 
-  } else if (use_mgemm5(env)) { //--------------------
+  } else if (use_mgemm5_(env)) { //--------------------
 
     typedef magma_mgemm5DoubleComplex Float_t;
 
-    magma_mgemm5_zgetmatrix_async(p->dim0, p->dim1, (Float_t*)p->d,
-                                  p->dim0, (Float_t*)p->h, p->dim0,
-                                  env->stream_fromgpu());
+    magma_mgemm5_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
+                                  buf->dim0, (Float_t*)buf->h, buf->dim0,
+                                  env.stream_fromgpu());
 
   } else { //--------------------
 
-      COMET_INSIST_INTERFACE(env, false && "Unimplemented modified gemm method.");
+      COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
 
   } // if //--------------------
 
@@ -949,11 +895,10 @@ void gm_linalg_get_matrix_start(MirroredBuf* p, CEnv* env) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief End transfer of generic matrix from GPU.
 
-void gm_linalg_get_matrix_wait(CEnv* env) {
-  COMET_INSIST(env);
-
-  env->stream_synchronize(env->stream_fromgpu());
+void MagmaWrapper::get_matrix_wait(CEnv& env) {
+  env.stream_synchronize(env.stream_fromgpu());
 }
 
 //=============================================================================

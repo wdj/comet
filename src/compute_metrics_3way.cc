@@ -96,7 +96,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   // Numerator
   //---------------
 
-  gm_linalg_initialize(env);
+  MagmaWrapper::initialize(env_);
 
   {
 
@@ -139,7 +139,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   }
 
-  gm_linalg_finalize(env);
+  MagmaWrapper::finalize(env_);
 }
 
 //-----------------------------------------------------------------------------
@@ -151,7 +151,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   // Initializations.
 
-  gm_linalg_initialize(env);
+  MagmaWrapper::initialize(env_);
 
   {
 
@@ -531,7 +531,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   }
 
-  gm_linalg_finalize(env);
+  MagmaWrapper::finalize(env_);
 }
 
 //=============================================================================

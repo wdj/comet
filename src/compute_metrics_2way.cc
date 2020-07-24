@@ -125,7 +125,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   // Numerator
   //---------------
 
-  gm_linalg_initialize(&env_);
+  MagmaWrapper::initialize(env_);
 
   {
 
@@ -188,7 +188,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   }
 
-  gm_linalg_finalize(&env_);
+  MagmaWrapper::finalize(env_);
 }
 
 //=============================================================================
@@ -203,7 +203,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   const int num_block = env_.num_block_vector();
   const int i_block = env_.proc_num_vector();
 
-  gm_linalg_initialize(&env_);
+  MagmaWrapper::initialize(env_);
 
   // Create double buffer of vectors objects for send/recv
 
@@ -597,7 +597,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   COMET_INSIST(!lock_vectors_buf_d);
   COMET_INSIST(!lock_metrics_tmp_buf_h);
 
-  gm_linalg_finalize(&env_);
+  MagmaWrapper::finalize(env_);
 }
 
 //=============================================================================

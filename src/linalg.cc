@@ -96,9 +96,10 @@ void gm_linalg_gemm_start(
         dm->num_field_active_local, step_2way, dm->tc_bufs, *env);
     }
   } else {
-    gm_linalg_set_matrix_zero_start_(matC, env); // apparently needed by magma.
-    gm_linalg_gemm_magma_start(m, n, k, matA1->active, matA1->dim0,
-      matB->active, matB->dim0, matC->active, matC->dim0, env);
+    // apparently needed by magma.
+    MagmaWrapper::set_matrix_zero_start(matC, *env);
+    MagmaWrapper::gemm_start(m, n, k, matA1->active, matA1->dim0,
+      matB->active, matB->dim0, matC->active, matC->dim0, *env);
   }
 }
 

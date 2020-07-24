@@ -148,13 +148,11 @@ private:
   mutable bool is_locked_d_;
   bool use_linalg_;
 
+  friend class MagmaWrapper;
+
   // Disallowed methods.
   MirroredBuf(const MirroredBuf&);
   void operator=(const MirroredBuf&);
-
-  friend void gm_linalg_malloc(MirroredBuf* p, size_t dim0, size_t dim1, CEnv* env);
-  friend void gm_linalg_free(MirroredBuf* p, CEnv* env);
-
 };
 
 //=============================================================================
