@@ -454,7 +454,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   #module load rocm-alt/2.9
   #module load rocm
   #module load rocm/3.5.0
-  module load rocm-alt/3.5.0
+  #module load rocm-alt/3.5.0
+  module load rocm-alt/3.6.0
   (module list) 2>&1 | grep -v '^ *$'
 
   export ROCM_PATH=$ROCM_PATH
@@ -538,6 +539,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     #XXX salloc -N2 -A stf006 $SHELL
     #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
     # salloc -N1
+    # salloc -N1 -pamdMI60
+    # salloc -N1 -pamdMI100
     local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
   else
     # salloc -N1
