@@ -582,19 +582,21 @@ bool CEnv::can_run(int tc_try) const {
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc_try) {
     // TODO: check what is the right compute cpability here for cuda.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
-                     || (BuildHas::HIP && System::compute_capability() >= 900));
+                     || (BuildHas::HIP && System::compute_capability() >= 906));
   }
 
   // TODO: determine, set correct values for HIP, if any.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc_try) {
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
                      || (BuildHas::HIP && System::compute_capability() >= 1000));
+                     //|| (BuildHas::HIP && System::compute_capability() >= 908));
   }
 
   // TODO: determine, set correct values for HIP, if any.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc_try) {
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-                     || (BuildHas::HIP && System::compute_capability() >= 1000));
+                     //|| (BuildHas::HIP && System::compute_capability() >= 1000));
+                     || (BuildHas::HIP && System::compute_capability() >= 908));
   }
 
   // TODO: determine, set correct values for HIP, if any.

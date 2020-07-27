@@ -167,6 +167,7 @@ static void tc_gemm_start_impl_(
     const bool is_first = 0 == pvfl_min;
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
       matC, tc_bufs, env);
+
   } // for
 
   // Postprocess GEMM results.

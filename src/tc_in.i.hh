@@ -384,9 +384,15 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   for (int igipt = 0; igipt < NGIPT; ++igipt) {
 
-    const int flG_index = igipt + NGIPT * flT_thread;
+    const size_t flG_index = igipt + NGIPT * flT_thread;
 
-    GemmIn_t& vo_value = vo[vlX2_index + vlX2_dim * (size_t)flG_index];
+    const int nb = 4;
+
+    // see https://rocblas.readthedocs.io/en/latest/functions.html?highlight=rocblas_gemm_ex#blas-extensions
+
+    GemmIn_t& vo_value = !(BuildHas::HIP && sizeof(GemmIn_t) == 1) ?
+      vo[vlX2_index + vlX2_dim * flG_index] :
+      vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))];
 
     for (int ifpgi = 0; ifpgi < NFPGI; ++ifpgi) {
 

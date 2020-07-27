@@ -107,10 +107,10 @@ template<> struct TCSelector<TC::INT8> {
 #elif defined COMET_USE_HIP
   // type selector parameters.
   static rocblas_datatype __host__ __device__ gemm_type_in() {
-   return rocblas_datatype_u8_r;
+   return rocblas_datatype_i8_r;
   }
   static rocblas_datatype __host__ __device__ gemm_type_out() {
-   return rocblas_datatype_u32_r;
+   return rocblas_datatype_i32_r;
   }
 #endif
   enum {NFPGI = 1};

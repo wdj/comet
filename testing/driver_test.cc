@@ -1817,7 +1817,7 @@ void DriverTest_tc_() {
         "--problem_type random --verbosity %i --tc %i --num_way %i "
         "--num_tc_steps %i --all2all yes" ;
 
-    const int num_proc_vector = 2;
+    const int num_proc_vector = comet::System::num_proc() >= 2 ? 2 : 1;
     //const int num_proc_vector = 1;
 
     typedef comet::TC TC;
@@ -1902,7 +1902,7 @@ void DriverTest_threshold_() {
     char options1[1024];
     char options2[1024];
 
-    const int num_proc_vector = 3;
+    const int num_proc_vector = comet::System::num_proc() >= 3 ? 3 : 1;
 
     char options_template[] =
         "--metric_type %s "

@@ -207,7 +207,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         // TODO: use CUDA 10 autotuning capability here (later).
 
 #     ifdef COMET_USE_CUDA
-        if (CUBLAS_STATUS_SUCCESS != status) {
+        if (CUBLAS_STATUS_SUCCESS != status)
           // Decode error message.
           fprintf(stderr, "Error: %s\n",
                    CUBLAS_STATUS_NOT_INITIALIZED == status ?
@@ -220,10 +220,36 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
                   "CUBLAS_STATUS_INVALID_VALUE" :
                    CUBLAS_STATUS_EXECUTION_FAILED == status ?
                   "CUBLAS_STATUS_EXECUTION_FAILED" : "");
-        }
         COMET_INSIST(CUBLAS_STATUS_SUCCESS == status &&
                      "Failure in call to cublasGemmEx.");
 #     else
+        if (status != rocblas_status_success)
+          // Decode error message.
+          fprintf(stderr, "Error: %s\n",
+                  rocblas_status_invalid_handle      == status ?
+                  "handle not initialized, invalid or null" :
+                  rocblas_status_not_implemented     == status ?
+                  "function is not implemented" :
+                  rocblas_status_invalid_pointer     == status ?
+                  "invalid pointer argument" :
+                  rocblas_status_invalid_size        == status ?
+                  "invalid size argument" :
+                  rocblas_status_memory_error        == status ?
+                  "failed internal memory allocation, copy or dealloc" :
+                  rocblas_status_internal_error      == status ?
+                  "other internal library failure" :
+                  rocblas_status_perf_degraded       == status ?
+                  "performance degraded due to low device memory" :
+                  rocblas_status_size_query_mismatch == status ?
+                  "unmatched start/stop size query" :
+                  rocblas_status_size_increased      == status ?
+                  "queried device memory size increased" :
+                  rocblas_status_size_unchanged      == status ?
+                  "queried device memory size unchanged" :
+                  rocblas_status_invalid_value       == status ?
+                  "passed argument not valid" :
+                  rocblas_status_continue            == status ?
+                  "nothing preventing function to proceed" : "");
         COMET_INSIST(status == rocblas_status_success &&
                      "Failure in call to rocblas_gemm_ex.");
 #     endif

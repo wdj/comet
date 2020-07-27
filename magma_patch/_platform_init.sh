@@ -444,18 +444,25 @@ elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
 elif [ $COMET_PLATFORM = POPLAR ] ; then
 #----------------------------------------
 
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
+
   #---Modules etc.
 
   module load cmake
   #module load PrgEnv-cray
-  module use /home/users/twhite/share/modulefiles
-  module load ompi
-  #module load rocm-alt/2.7
-  #module load rocm-alt/2.9
-  #module load rocm
-  #module load rocm/3.5.0
-  #module load rocm-alt/3.5.0
-  module load rocm-alt/3.6.0
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    module use /home/users/twhite/share/modulefiles
+    module load ompi # Trey's ompi includes rocm/3.5.0
+  else
+    #module load rocm-alt/2.7
+    #module load rocm-alt/2.9
+    #module load rocm
+    #module load rocm/3.5.0
+    #module load rocm-alt/3.5.0
+    #module load rocm-alt/3.6.0
+    module load rocm/3.6.0
+  fi
   (module list) 2>&1 | grep -v '^ *$'
 
   export ROCM_PATH=$ROCM_PATH
@@ -483,12 +490,12 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
   COMET_HIP_COMPILE_OPTS+=" -fno-gpu-rdc -Wno-unused-command-line-argument"
-  COMET_HIP_COMPILE_OPTS+=" --amdgpu-target=gfx906"
+  COMET_HIP_COMPILE_OPTS+=" --amdgpu-target=gfx906,gfx908"
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
-  COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906"
+  COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   # https://llvm.org/docs/AMDGPUUsage.html
 
   if [ -e $ROCM_PATH/include/gtest ] ; then
@@ -512,9 +519,6 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/zen"
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
   fi
-
-  #local COMET_CAN_USE_MPI=OFF
-  local COMET_CAN_USE_MPI=ON
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local MPI_HOME=$(echo $PATH | sed 's,\(^\|.*:\)\([^:]*mvapich2[^:]*\)/bin.*,\2,')
@@ -540,11 +544,11 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
     # salloc -N1
     # salloc -N1 -pamdMI60
-    # salloc -N1 -pamdMI100
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+    # salloc -N1 -pamdMI100 --reservation=maintenance
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64 --cpu-bind=map_ldom:1 --mem-bind=local"
   else
     # salloc -N1
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpu-bind=map_ldom:1 --mem-bind=local"
   fi
   #local COMET_TEST_COMMAND="module load openmpi ; env OMP_NUM_THREADS=2 mpirun --npernode 48"
   #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -N 2 --ntasks-per-node=32"

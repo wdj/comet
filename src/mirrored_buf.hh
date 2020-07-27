@@ -148,7 +148,7 @@ private:
   mutable bool is_locked_d_;
   bool use_linalg_;
 
-  friend class MagmaWrapper;
+  friend struct MagmaWrapper;
 
   // Disallowed methods.
   MirroredBuf(const MirroredBuf&);
