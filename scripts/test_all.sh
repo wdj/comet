@@ -47,27 +47,48 @@ function main
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  if [ -d "build_test_$COMET_PLATFORM_STUB" ] ; then
-    local DIRS="build_single_test_$COMET_PLATFORM_STUB"
-    DIRS+=" build_test_$COMET_PLATFORM_STUB"
-  else
-    local DIRS="build_single_test_nompi_$COMET_PLATFORM_STUB"
-    DIRS+=" build_test_nompi_$COMET_PLATFORM_STUB"
+  local DO_SINGLE=1
+  local DO_DOUBLE=1
+
+  while [ "${1:-}" != "" ] ; do
+    case $1 in
+      --nosingle) DO_SINGLE=0 ;;
+      --nodouble) DO_DOUBLE=0 ;;
+      *)          echo "${0##*/}: Unrecognized argumnt. $1" 1>&2 ; exit 1 ;;
+    esac
+    shift
+  done
+
+  local DIRS=""
+
+  if [ $DO_SINGLE = 1 ] ; then
+    if [ -d "build_single_test_$COMET_PLATFORM_STUB" ] ; then
+      DIRS+=" build_single_test_$COMET_PLATFORM_STUB"
+    else
+      DIRS+="build_single_test_nompi_$COMET_PLATFORM_STUB"
+    fi
+  fi
+
+  if [ $DO_DOUBLE = 1 ] ; then
+    if [ -d "build_test_$COMET_PLATFORM_STUB" ] ; then
+      DIRS+=" build_test_$COMET_PLATFORM_STUB"
+    else
+      DIRS+="build_test_nompi_$COMET_PLATFORM_STUB"
+    fi
   fi
 
   # Do tests.
 
   local DIR
   for DIR in $DIRS ; do
-    echo "===================="
-    echo $DIR
-    echo "===================="
+    printf -- '-%.0s' {1..79}; echo ""
     pushd $DIR
     time make test ARGS=-V 2>&1 | tee out_test.txt
     if [ $? != 0 ] ; then
       exit $?
     fi
     popd
+    printf -- '-%.0s' {1..79}; echo ""
   done
 
   # Final reporting.

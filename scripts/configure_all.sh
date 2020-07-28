@@ -45,10 +45,7 @@ function script_dir
 
 function configure_1case
 {
-  printf -- '-%.0s' {1..79}; echo ""
-  echo COMET_PLATFORM_STUB=$COMET_PLATFORM_STUB INSTALLS_DIR=$INSTALLS_DIR \
-    BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING USE_MPI=$USE_MPI \
-    FP_PRECISION=$FP_PRECISION
+  local DO_BUILD="$1"
 
   local BUILD_STUB=""
   [[ $FP_PRECISION = SINGLE ]] && BUILD_STUB+="single_"
@@ -56,35 +53,46 @@ function configure_1case
   [[ $USE_MPI = OFF ]] && BUILD_STUB+="_nompi"
 
   local BUILD_DIR=build_${BUILD_STUB}_$COMET_PLATFORM_STUB
-  echo "Creating $BUILD_DIR ..."
-  mkdir -p $BUILD_DIR
-  pushd $BUILD_DIR
-  rm -rf * # Clean out any previous build files
-
-  # Link to common MAGMA build if available.
-  local MAGMA_BUILD_DIR=../magma_build_$COMET_PLATFORM_STUB
-  if [ -e $MAGMA_BUILD_DIR ] ; then
-    ln -s $MAGMA_BUILD_DIR magma_patch
-  fi
-
   local INSTALL_DIR=$INSTALLS_DIR/install_${BUILD_STUB}_$COMET_PLATFORM_STUB
 
-  env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
-      USE_MPI=$USE_MPI FP_PRECISION=$FP_PRECISION \
-      ../genomics_gpu/scripts/cmake.sh
+  rm -rf $BUILD_DIR # Clean out any previous build files
+  rm -rf $INSTALL_DIR
 
-  # Move magma build to location for common use for different builds.
-  if [ -e magma_patch -a ! -e $MAGMA_BUILD_DIR ] ; then
-    mv magma_patch $MAGMA_BUILD_DIR # share common MAGMA build
-    ln -s          $MAGMA_BUILD_DIR magma_patch
-  fi
+  if [ $DO_BUILD = ON ] ; then
 
-  popd
-  rm -f $(basename $INSTALL_DIR)
-  ln -s $INSTALL_DIR .
-  printf -- '-%.0s' {1..79}; echo ""
+    printf -- '-%.0s' {1..79}; echo ""
+    echo COMET_PLATFORM_STUB=$COMET_PLATFORM_STUB INSTALLS_DIR=$INSTALLS_DIR \
+      BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING USE_MPI=$USE_MPI \
+      FP_PRECISION=$FP_PRECISION
 
-  #sleep 5
+    echo "Creating $BUILD_DIR ..."
+    mkdir $BUILD_DIR
+    pushd $BUILD_DIR
+
+    # Link to common MAGMA build if available.
+    local MAGMA_BUILD_DIR=../magma_build_$COMET_PLATFORM_STUB
+    if [ -e $MAGMA_BUILD_DIR ] ; then
+      ln -s $MAGMA_BUILD_DIR magma_patch
+    fi
+
+    echo "Executing cmake.sh script ..."
+    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
+        USE_MPI=$USE_MPI FP_PRECISION=$FP_PRECISION \
+        ../genomics_gpu/scripts/cmake.sh
+
+    # Move magma build to location for common use for different builds.
+    if [ -e magma_patch -a ! -e $MAGMA_BUILD_DIR ] ; then
+      mv magma_patch $MAGMA_BUILD_DIR # share common MAGMA build
+      ln -s          $MAGMA_BUILD_DIR magma_patch
+    fi
+
+    popd
+    rm -f $(basename $INSTALL_DIR)
+    ln -s $INSTALL_DIR .
+
+    printf -- '-%.0s' {1..79}; echo ""
+
+  fi # DO_BUILD
 } # configure_1case
 
 #==============================================================================
@@ -126,80 +134,64 @@ function main
   export COMET_PLATFORM_STUB=$COMET_PLATFORM_STUB INSTALLS_DIR=$INSTALLS_DIR
 
   #----------------------------------------------------------------------------
-  # Build: test / double precision case.
+  # Build: test / double precision / mpi case.
 
   local DO_BUILD=ON # OFF
   [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
-  if [ $DO_BUILD = ON ] ; then
-    export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=DOUBLE
-    configure_1case
-  fi
+  export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=DOUBLE
+  configure_1case $DO_BUILD
 
   #----------------------------------------------------------------------------
   # Build: test / double precision / nompi case.
 
   local DO_BUILD=ON # OFF
-  if [ $DO_BUILD = ON ] ; then
-    export BUILD_TYPE=Debug TESTING=ON USE_MPI=OFF FP_PRECISION=DOUBLE
-    configure_1case
-  fi
+  export BUILD_TYPE=Debug TESTING=ON USE_MPI=OFF FP_PRECISION=DOUBLE
+  configure_1case $DO_BUILD
 
   #----------------------------------------------------------------------------
-  # Build: test / single precision case.
+  # Build: test / single precision / mpi case.
 
   local DO_BUILD=ON # OFF
   [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
-  if [ $DO_BUILD = ON ] ; then
-    export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=SINGLE
-    configure_1case
-  fi
+  export BUILD_TYPE=Debug TESTING=ON USE_MPI=ON FP_PRECISION=SINGLE
+  configure_1case $DO_BUILD
 
   #----------------------------------------------------------------------------
   # Build: test / single precision / nompi case.
 
   local DO_BUILD=ON # OFF
-  if [ $DO_BUILD = ON ] ; then
-    export BUILD_TYPE=Debug TESTING=ON USE_MPI=OFF FP_PRECISION=SINGLE
-    configure_1case
-  fi
+  export BUILD_TYPE=Debug TESTING=ON USE_MPI=OFF FP_PRECISION=SINGLE
+  configure_1case $DO_BUILD
 
   #----------------------------------------------------------------------------
-  # Build: release / double precision case.
+  # Build: release / double precision / mpi case.
 
   local DO_BUILD=ON # OFF
   [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
-  if [ $DO_BUILD = ON ] ; then
-    export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=DOUBLE
-    configure_1case
-  fi
+  export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=DOUBLE
+  configure_1case $DO_BUILD
 
   #----------------------------------------------------------------------------
   # Build: release / double precision / nompi case.
 
   local DO_BUILD=ON # OFF
-  if [ $DO_BUILD = ON ] ; then
-    export BUILD_TYPE=Release TESTING=OFF USE_MPI=OFF FP_PRECISION=DOUBLE
-    configure_1case
-  fi
+  export BUILD_TYPE=Release TESTING=OFF USE_MPI=OFF FP_PRECISION=DOUBLE
+  configure_1case $DO_BUILD
 
   #----------------------------------------------------------------------------
-  # Build release / single precision case.
+  # Build release / single precision / mpi case.
 
   local DO_BUILD=ON # OFF
   [[ $COMET_CAN_USE_MPI = OFF ]] && DO_BUILD=OFF
-  if [ $DO_BUILD = ON ] ; then
-    export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=SINGLE 
-    configure_1case
-  fi
+  export BUILD_TYPE=Release TESTING=OFF USE_MPI=ON FP_PRECISION=SINGLE 
+  configure_1case $DO_BUILD
 
   #----------------------------------------------------------------------------
   # Build release / single precision / nompi case.
 
   local DO_BUILD=ON # OFF
-  if [ $DO_BUILD = ON ] ; then
-    export BUILD_TYPE=Release TESTING=OFF USE_MPI=OFF FP_PRECISION=SINGLE 
-    configure_1case
-  fi
+  export BUILD_TYPE=Release TESTING=OFF USE_MPI=OFF FP_PRECISION=SINGLE 
+  configure_1case $DO_BUILD
 } # main
 
 #==============================================================================

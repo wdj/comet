@@ -390,6 +390,8 @@ function main
   #============================================================================
   # Run cmake.
 
+  echo "Executibg cmake ..."
+
   set -x
   time cmake \
    \
