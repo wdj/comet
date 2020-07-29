@@ -46,11 +46,11 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Select types etc. based on the setting of the tc param.
 
-template<int TC_METHOD> struct TCSelector;
+template<int TC_METHOD> struct TCTraits;
 
 //----------
 
-template<> struct TCSelector<TC::FP32> {
+template<> struct TCTraits<TC::FP32> {
   // types.
   //typedef GMFp32 GemmIn_t; // don't use this because harder to access bits.
   typedef uint32_t GemmIn_t;
@@ -74,7 +74,7 @@ template<> struct TCSelector<TC::FP32> {
 
 //----------
 
-template<> struct TCSelector<TC::FP16> {
+template<> struct TCTraits<TC::FP16> {
   // types.
   typedef uint16_t GemmIn_t;
   typedef GMFp32 GemmOut_t;
@@ -96,7 +96,7 @@ template<> struct TCSelector<TC::FP16> {
 
 //----------
 
-template<> struct TCSelector<TC::INT8> {
+template<> struct TCTraits<TC::INT8> {
   // types.
   typedef int8_t GemmIn_t;
   typedef int32_t GemmOut_t;
@@ -118,7 +118,7 @@ template<> struct TCSelector<TC::INT8> {
 
 //----------
 
-template<> struct TCSelector<TC::B1> {
+template<> struct TCTraits<TC::B1> {
   // types.
   typedef int8_t GemmIn_t;
   typedef int32_t GemmOut_t;
@@ -149,11 +149,11 @@ template<> struct TCSelector<TC::B1> {
 // are done in this code based on the specifics of the type, so it doesn't
 // matter.  Important thing is that sizeof(uint16_t) == sizeof(__half) == 2.
 
-template<typename GemmIn_t> struct TCBufTypes;
+template<typename GemmIn_t> struct TCBufTraits;
 
 //----------
 
-template<> struct TCBufTypes<uint32_t> {
+template<> struct TCBufTraits<uint32_t> {
 private:
   //static __host__ __device__ uint32_t mycast(GMFp32 v) {
   //  // ISSUE: the result here is, "by the book", undefined; the proper
@@ -181,7 +181,7 @@ public:
 
 //----------
 
-template<> struct TCBufTypes<uint16_t> {
+template<> struct TCBufTraits<uint16_t> {
   static __host__ __device__ uint16_t zero() {return (uint16_t)0x0000;}
   static __host__ __device__ uint16_t one() {return (uint16_t)0x3c00;}
   static __host__ __device__ uint16_t two() {return (uint16_t)0x4000;}
@@ -194,7 +194,7 @@ template<> struct TCBufTypes<uint16_t> {
 
 //----------
 
-template<> struct TCBufTypes<int8_t> {
+template<> struct TCBufTraits<int8_t> {
   static __host__ __device__ int8_t zero() {return (int8_t)0;}
   static __host__ __device__ int8_t one() {return (int8_t)1;}
   static __host__ __device__ int8_t two() {return (int8_t)2;}

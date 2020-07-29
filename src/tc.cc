@@ -76,7 +76,7 @@ template<int TC_METHOD>
 static void set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
   COMET_INSIST(matC);
 
-  typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
+  typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
 
   const size_t size = lddc * (size_t)m * sizeof(GemmOut_t) * 4;
 
@@ -296,13 +296,13 @@ void tc_bufs_malloc(int num_vector_local,
 
   const int sizeof_gemm_in_t =
      env.tc_eff() == TC::FP32 ?
-       sizeof(typename TCSelector<TC::FP32>::GemmIn_t) :
+       sizeof(typename TCTraits<TC::FP32>::GemmIn_t) :
      env.tc_eff() == TC::FP16 ?
-       sizeof(typename TCSelector<TC::FP16>::GemmIn_t) :
+       sizeof(typename TCTraits<TC::FP16>::GemmIn_t) :
      env.tc_eff() == TC::INT8 ?
-       sizeof(typename TCSelector<TC::INT8>::GemmIn_t) :
+       sizeof(typename TCTraits<TC::INT8>::GemmIn_t) :
      env.tc_eff() == TC::B1 ?
-       sizeof(typename TCSelector<TC::B1>::GemmIn_t) :
+       sizeof(typename TCTraits<TC::B1>::GemmIn_t) :
      0;
   COMET_INSIST(TC::is_valid(env.tc_eff())); // this code must be updated if new method
 

@@ -129,10 +129,10 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
 
   // Possible counts, represented in target type.
 
-  const GemmIn_t zero = TCBufTypes<GemmIn_t>::zero();
-  const GemmIn_t one  = TCBufTypes<GemmIn_t>::one();
-  const GemmIn_t two  = TCBufTypes<GemmIn_t>::two();
-  const GemmIn_t four = TCBufTypes<GemmIn_t>::four();
+  const GemmIn_t zero = TCBufTraits<GemmIn_t>::zero();
+  const GemmIn_t one  = TCBufTraits<GemmIn_t>::one();
+  const GemmIn_t two  = TCBufTraits<GemmIn_t>::two();
+  const GemmIn_t four = TCBufTraits<GemmIn_t>::four();
 
   // Possible seminibble bit patterns.
 
@@ -303,9 +303,9 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_get_field_(
 /// \brief Write individual elements to buf.
 ///
 
-template<typename GemmIn_t, int NGIPT, int NFPGI>
+template<int TC_METHOD, int NGIPT, int NFPGI>
 __host__ __device__ static void tc_buf_write_kernel_elt_(
-  GemmIn_t* vo,
+  typename TCTraits<TC_METHOD>::GemmIn_t* vo,
   const uint32_t* vim,
   const uint32_t* vic,
   int vi_dim0,
@@ -331,6 +331,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   int vlX2_thread,
   int flT_thread) {
+
+  typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
@@ -382,6 +384,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   // Loop over GemmIn_t values per this thread.
   // ISSUE: would this be faster with unroll pragma or template recursion
 
+  const size_t nflG_dim = NGIPT * nflT_thread;
+
   for (int igipt = 0; igipt < NGIPT; ++igipt) {
 
     const size_t flG_index = igipt + NGIPT * flT_thread;
@@ -390,9 +394,12 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
     // see https://rocblas.readthedocs.io/en/latest/functions.html?highlight=rocblas_gemm_ex#blas-extensions
 
-    GemmIn_t& vo_value = !(BuildHas::HIP && sizeof(GemmIn_t) == 1) ?
-      vo[vlX2_index + vlX2_dim * flG_index] :
-      vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))];
+    GemmIn_t& vo_value =
+      TC_METHOD == TC::B1 ?
+        vo[flG_index + nflG_dim * vlX2_index] :
+      (BuildHas::HIP && TC_METHOD == TC::INT8) ?
+        vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))] :
+        vo[vlX2_index + vlX2_dim * flG_index];
 
     for (int ifpgi = 0; ifpgi < NFPGI; ++ifpgi) {
 
@@ -408,11 +415,9 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
       // Set to zero if outside of active range.
 
 
-//NOTE
 //      const uint32_t sn_m = is_vector_inactive ? 0 :
 //        ( (vim_col[fl/SNPW]) >> (BPSN*(fl%SNPW)) ) & 3;
 
-//NOTE
 //      const uint32_t sn_c = is_vector_inactive ? 0 : /* is_right ? 0 : */
 //        ( (vic    [fl/SNPW]) >> (BPSN*(fl%SNPW)) ) & 3;
 
@@ -420,7 +425,6 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
       // Determine whether to skip (1,0) null indicator value.
       // NOTE: does not work for all cases.
 
-//NOTE
 //      const GemmIn_t out = is_field_inactive ? 0 :
 //        tc_buf_write_kernel_value_<GemmIn_t>(sn_m, sn_c, jE, kE, step_2way,
 //          num_way, is_sparse, is_right, is_duo, form_matX_tc,
@@ -450,9 +454,9 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support tc_buf_write_.
 
-template<typename GemmIn_t, int NGIPT, int NFPGI>
+template<int TC_METHOD, int NGIPT, int NFPGI>
 __global__ static void tc_buf_write_kernel_(
-  GemmIn_t* vo,
+  typename TCTraits<TC_METHOD>::GemmIn_t* vo,
   const uint32_t* vim,
   const uint32_t* vic,
   int vi_dim0,
@@ -484,7 +488,7 @@ __global__ static void tc_buf_write_kernel_(
   if (vlX2_thread >= nvleX2_thread || flT_thread >= nflT_thread)
     return;
 
-  tc_buf_write_kernel_elt_<GemmIn_t, NGIPT, NFPGI>(vo, vim, vic, vi_dim0,
+  tc_buf_write_kernel_elt_<TC_METHOD, NGIPT, NFPGI>(vo, vim, vic, vi_dim0,
     num_way, is_sparse, is_right, is_duo, form_matX_tc, step_2way,
     is_bitwise_3way_2step, is_vectors_halved,
     nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflT, nflT_thread, flT_min, nfal,
@@ -524,20 +528,21 @@ void tc_buf_write_(
 
   // num_field-related dimensions.
 
-  enum {NUM_FL_PER_PVFL = 64};
-
-  enum {NGIPT = 2};
-  // = number of GemmIn_t values processed per thread - a tuning parameter.
-
-  enum {NFPGI = TCSelector<TC_METHOD>::NFPGI};
-  // = number of fields handled by each GemmIn_t value.
-
-  enum {NFPT = NFPGI * NGIPT};
-  // = num fields processed per thread.
+  enum {NUM_FIELD_PER_PACKEDVAL_FIELD = 64};
+  enum {NUM_FL_PER_PVFL = NUM_FIELD_PER_PACKEDVAL_FIELD};
 
   const int nfl = npvfl * NUM_FL_PER_PVFL;
   const int nfl_thisstep = npvfl_thisstep * NUM_FL_PER_PVFL;
   const int fl_min = pvfl_min * NUM_FL_PER_PVFL;
+
+  enum {NUM_GEMMIN_T_PER_THREAD = 2}; // tuning param
+  enum {NGIPT = NUM_GEMMIN_T_PER_THREAD};
+
+  enum {NUM_FIELD_PER_GEMMIN_T = TCTraits<TC_METHOD>::NFPGI};
+  enum {NFPGI = NUM_FIELD_PER_GEMMIN_T};
+
+  enum {NUM_FIELD_PER_THREAD = NFPGI * NGIPT};
+  enum {NFPT = NUM_FIELD_PER_THREAD};
 
   //const int nGI = nfl / NFPGI;
   const int nGI_thisstep = nfl_thisstep / NFPGI;
@@ -551,12 +556,12 @@ void tc_buf_write_(
 
   // Arrays.
 
-  typedef typename TCSelector<TC_METHOD>::GemmIn_t GemmIn_t;
+  typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
   const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
   GemmIn_t* const tc_buf = is_right ? (GemmIn_t*)tc_bufs.tc_buf_right :
                                       (GemmIn_t*)tc_bufs.tc_buf_left;
   COMET_INSIST(nvleX2 * (size_t)(nGI_thisstep) *
-           sizeof(typename TCSelector<TC_METHOD>::GemmIn_t)
+           sizeof(typename TCTraits<TC_METHOD>::GemmIn_t)
            <= tc_bufs.tc_buf_size &&
            "Subscriptrange error on tc buf.");
 
@@ -583,7 +588,7 @@ void tc_buf_write_(
       const int num_threadblocks_1 = utils::min(nflT_thread, blockdim_y);
       const int num_threadblocks_2 = utils::ceil(nflT_thread, blockdim_y);
 
-      COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<GemmIn_t, NGIPT, NFPGI>),
+      COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<TC_METHOD, NGIPT, NFPGI>),
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
@@ -599,7 +604,7 @@ void tc_buf_write_(
     for (int flT_thread=0; flT_thread<nflT_thread; ++flT_thread) {
       for (int vlX2_thread=0; vlX2_thread<nvleX2_thread; ++vlX2_thread) {
 
-        tc_buf_write_kernel_elt_<GemmIn_t, NGIPT, NFPGI>(
+        tc_buf_write_kernel_elt_<TC_METHOD, NGIPT, NFPGI>(
           tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
           is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
           env.is_vectors_halved(),
@@ -724,7 +729,7 @@ void tc_compute_matX_counts(
   const int nfl_thread = nfl / NUM_FL_PER_UINT32;
   const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
 
-  typedef TCSelector<TC::B1>::GemmIn_t GemmIn_t;
+  typedef TCTraits<TC::B1>::GemmIn_t GemmIn_t;
 
   uint32_t* const matX_counts = tc_bufs.matX_counts;
 

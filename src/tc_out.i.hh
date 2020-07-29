@@ -221,7 +221,7 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
   COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
   const int nvllD2 = nvll / 2;
 
-  typedef typename TCSelector<TC_METHOD>::GemmOut_t GemmOut_t;
+  typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
 
   if (env.is_compute_method_gpu()) {
 

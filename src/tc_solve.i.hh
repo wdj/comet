@@ -76,17 +76,20 @@ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
   //COMET_INSIST(a && b && c);
   //COMET_INSIST(m == n);
 
-  const int ind_i = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int ind_j = blockIdx_y_();
+  const int ind_m = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int ind_n = blockIdx_y_();
 
-  if (ind_i >= m || ind_j >= n)
+  if (ind_m >= m || ind_n >= n)
     return;
 
   for (size_t ind_k = 0; ind_k < k; ++ind_k) {
 
-    const uint8_t aik = a[ind_i + m*ind_k];
-    const uint8_t bjk = b[ind_j + n*ind_k];
-    int32_t& cij = c[ind_i + m*ind_j];
+    //const uint8_t aik = a[ind_m + m*ind_k];
+    //const uint8_t bjk = b[ind_n + n*ind_k];
+    const uint8_t aik = a[ind_k + k*ind_m];
+    const uint8_t bjk = b[ind_k + k*ind_n];
+
+    int32_t& cij = c[ind_m + m*ind_n];
 
     const int32_t v = utils::popc8(aik ^ bjk);
     cij = beta || ind_k ? cij + v : v;
@@ -139,8 +142,13 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       const bool beta = is_first ? 0 : 1;
 
-      const int size_gi = sizeof(typename TCSelector<TC_METHOD>::GemmIn_t);
-      const size_t k_eff = (k / NUM_FL_PER_PVFL) * (8 / size_gi);
+      // 8 == number of uint8_t values used to store NUM_FL_PER_PVFL fields
+      // in the tc buf.
+      enum {BYTES_PER_PVFL_FIELDS = 8};
+
+      const int bytes_per_gi = sizeof(typename TCTraits<TC_METHOD>::GemmIn_t);
+      const size_t k_eff = (k / NUM_FL_PER_PVFL) *
+                           (BYTES_PER_PVFL_FIELDS / bytes_per_gi);
 
       const int threadblocksize = 256;
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
@@ -168,8 +176,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #   ifdef COMET_USE_ACCEL
 
-      const typename TCSelector<TC_METHOD>::GemmOut_t alpha = 1;
-      const typename TCSelector<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
+      const typename TCTraits<TC_METHOD>::GemmOut_t alpha = 1;
+      const typename TCTraits<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
       // GPU BLAS call.
 
@@ -187,14 +195,14 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 #     endif
         , m, n, k
         , (void*)&alpha
-        , tc_bufs.tc_buf_left, TCSelector<TC_METHOD>::gemm_type_in(), m
-        , tc_bufs.tc_buf_right, TCSelector<TC_METHOD>::gemm_type_in(), n
+        , tc_bufs.tc_buf_left, TCTraits<TC_METHOD>::gemm_type_in(), m
+        , tc_bufs.tc_buf_right, TCTraits<TC_METHOD>::gemm_type_in(), n
         , (void*)&beta
-        , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
+        , matC, TCTraits<TC_METHOD>::gemm_type_out(), m
 #     ifdef COMET_USE_HIP
-        , matC, TCSelector<TC_METHOD>::gemm_type_out(), m
+        , matC, TCTraits<TC_METHOD>::gemm_type_out(), m
 #     endif
-        , TCSelector<TC_METHOD>::gemm_type_out()
+        , TCTraits<TC_METHOD>::gemm_type_out()
 #     ifdef COMET_USE_CUDA
         //, CUBLAS_GEMM_ALGO3_TENSOR_OP // best timing for cuda 9.1.85 transpose
         //, CUBLAS_GEMM_DFALT_TENSOR_OP // good timing for cuda 9.2.88 transpose
@@ -293,7 +301,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       const bool beta = is_first ? 0 : 1;
 
-      const int size_gi = sizeof(typename TCSelector<TC_METHOD>::GemmIn_t);
+      const int size_gi = sizeof(typename TCTraits<TC_METHOD>::GemmIn_t);
       const size_t k_eff = (k / NUM_FL_PER_PVFL) * (8 / size_gi);
 
       b1_xor_gemm_cpu(m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,

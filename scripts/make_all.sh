@@ -48,6 +48,8 @@ function main
   local DO_RELEASE=1
   local DO_MPI=1
   local DO_NOMPI=1
+  local DO_SINGLE=1
+  local DO_DOUBLE=1
 
   while [ "${1:-}" != "" ] ; do
     case $1 in
@@ -55,6 +57,8 @@ function main
       --norelease)  DO_RELEASE=0 ;;
       --nompi)      DO_MPI=0 ;;
       --nonompi)    DO_NOMPI=0 ;;
+      --nosingle)   DO_SINGLE=0 ;;
+      --nodouble)   DO_DOUBLE=0 ;;
       *)            echo "${0##*/}: Unrecognized argumnt. $1" 1>&2 ; exit 1 ;;
     esac
     shift
@@ -64,23 +68,39 @@ function main
 
   if [ $DO_TEST = 1 ] ; then
     if [ $DO_MPI = 1 ] ; then
-      DIRS+=" build_test_$COMET_PLATFORM_STUB \
-              build_single_test_$COMET_PLATFORM_STUB"
+      if [ $DO_SINGLE = 1 ] ; then
+        DIRS+=" build_single_test_$COMET_PLATFORM_STUB"
+      fi
+      if [ $DO_DOUBLE = 1 ] ; then
+        DIRS+=" build_test_$COMET_PLATFORM_STUB"
+      fi
     fi
     if [ $DO_NOMPI = 1 ] ; then
-      DIRS+=" build_test_nompi_$COMET_PLATFORM_STUB \
-              build_single_test_nompi_$COMET_PLATFORM_STUB"
+      if [ $DO_SINGLE = 1 ] ; then
+        DIRS+=" build_single_test_nompi_$COMET_PLATFORM_STUB"
+      fi
+      if [ $DO_DOUBLE = 1 ] ; then
+        DIRS+=" build_test_nompi_$COMET_PLATFORM_STUB"
+      fi
     fi
   fi
 
   if [ $DO_RELEASE = 1 ] ; then
     if [ $DO_MPI = 1 ] ; then
-      DIRS+=" build_release_$COMET_PLATFORM_STUB \
-              build_single_release_$COMET_PLATFORM_STUB"
+      if [ $DO_SINGLE = 1 ] ; then
+        DIRS+=" build_single_release_$COMET_PLATFORM_STUB"
+      fi
+      if [ $DO_DOUBLE = 1 ] ; then
+        DIRS+=" build_release_$COMET_PLATFORM_STUB"
+      fi
     fi
     if [ $DO_NOMPI = 1 ] ; then
-      DIRS+=" build_release_nompi_$COMET_PLATFORM_STUB \
-              build_single_release_nompi_$COMET_PLATFORM_STUB"
+      if [ $DO_SINGLE = 1 ] ; then
+        DIRS+=" build_single_release_nompi_$COMET_PLATFORM_STUB"
+      fi
+      if [ $DO_DOUBLE = 1 ] ; then
+        DIRS+=" build_release_nompi_$COMET_PLATFORM_STUB"
+      fi
     fi
   fi
 
