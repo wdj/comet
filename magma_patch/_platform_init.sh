@@ -444,8 +444,8 @@ elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
 elif [ $COMET_PLATFORM = POPLAR ] ; then
 #----------------------------------------
 
-  #local COMET_CAN_USE_MPI=OFF
-  local COMET_CAN_USE_MPI=ON
+  local COMET_CAN_USE_MPI=OFF
+  #local COMET_CAN_USE_MPI=ON
 
   #---Modules etc.
 

@@ -133,9 +133,14 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   // Make BLAS call.
 
+env.stream_synchronize(env.stream_compute());
+double t1 = System::time(); //FIX
+
   if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
 
 #   ifdef COMET_USE_ACCEL
+
+      COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
       enum {NUM_FL_PER_PVFL = 64};
       COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
@@ -179,6 +184,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       const typename TCTraits<TC_METHOD>::GemmOut_t alpha = 1;
       const typename TCTraits<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
+      enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
+
       // GPU BLAS call.
 
 #     ifdef COMET_USE_CUDA
@@ -189,9 +196,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 #     endif
         tc_bufs.accelblas_handle
 #     ifdef COMET_USE_CUDA
-        , CUBLAS_OP_N, CUBLAS_OP_T
+        , IS_B_FIELD_MAJOR ? CUBLAS_OP_T : CUBLAS_OP_N
+        , IS_B_FIELD_MAJOR ? CUBLAS_OP_N : CUBLAS_OP_T
 #     else
-        , rocblas_operation_none, rocblas_operation_transpose
+        , IS_B_FIELD_MAJOR ? rocblas_operation_transpose : rocblas_operation_none
+        , IS_B_FIELD_MAJOR ? rocblas_operation_none : rocblas_operation_transpose
 #     endif
         , m, n, k
         , (void*)&alpha
@@ -317,6 +326,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
   } // if compute_method
 
   env.ops_local_inc(2 * m * (double)n * (double)k);
+
+env.stream_synchronize(env.stream_compute());
+double t2 = System::time(); //FIX
+const double t = t2 - t1;
+printf("%i %i %i   %f %f\n", (int)m, (int)n, (int)k, t, (2 * m * (double)n * (double)k) / (t * 1e12));
 }
 
 //-----------------------------------------------------------------------------

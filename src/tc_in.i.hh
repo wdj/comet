@@ -256,13 +256,6 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_get_field_(
   // Left case: interleave to make later swizzling of metrics array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
 
-//  const int vl_index = is_right           ?   vl_thread :
-//                       vl_thread < nvleD2 ? 2*vl_thread :
-//                                            2*vl_thread - nvle + 1;
-//  const int vlX2_index = jE + 2*vl_index;
-
-//  const int vlX2_dim = nvleX2_thread;
-
   // Output array interpreted as having GemmIn_t scalars has nfl rows.
 
   const uint32_t* const vim_col = vim + vl * (size_t)vi_dim0;
@@ -339,16 +332,6 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   const int jE = vlX2_thread % 2; // count either 0 or 1 bits.
   const int vl_thread = vlX2_thread / 2;
 
-//  const int vl = is_vectors_halved && !is_right ?
-//                 vl_thread % nvleD2 + step_2way * nvleD2 :
-//                 vl_thread;
-
-//  const bool is_vector_inactive = vl >= nvlea;
-
-//  const int kE = is_vectors_halved && !is_right ?
-//                 vl_thread / nvleD2 :
-//                 step_2way;
-
   // Right case: straight copy of cols to cols in sequence.
   // Left case: interleave to make later swizzling of metrics array work:
   // [ A A B B C C D D E E F F ] -> [ A A D D B B E E C C F F]
@@ -361,8 +344,6 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   const int vlX2_dim = nvleX2_thread;
 
   // Output array interpreted as having GemmIn_t scalars has nfl rows.
-
-//  const uint32_t* const vim_col = vim + vl * (size_t)vi_dim0;
 
   // "full" field-T local based on fl thread for this tc_step.
   // index into col, measured in GemmIn_t[NGIPT] sized elts.
@@ -394,8 +375,12 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
     // see https://rocblas.readthedocs.io/en/latest/functions.html?highlight=rocblas_gemm_ex#blas-extensions
 
+    // NOTE: this must be coordinated with tc_solve.
+
+    enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
+
     GemmIn_t& vo_value =
-      TC_METHOD == TC::B1 ?
+      IS_B_FIELD_MAJOR ?
         vo[flG_index + nflG_dim * vlX2_index] :
       (BuildHas::HIP && TC_METHOD == TC::INT8) ?
         vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))] :
@@ -407,28 +392,9 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
       const int fl = ifpgi + NFPGI * (igipt + NGIPT * flT);
 
-      // Is this fl in active range.
-
-//      const bool is_field_inactive = fl >= nfal;
-
-      // Pick up field value.
-      // Set to zero if outside of active range.
-
-
-//      const uint32_t sn_m = is_vector_inactive ? 0 :
-//        ( (vim_col[fl/SNPW]) >> (BPSN*(fl%SNPW)) ) & 3;
-
-//      const uint32_t sn_c = is_vector_inactive ? 0 : /* is_right ? 0 : */
-//        ( (vic    [fl/SNPW]) >> (BPSN*(fl%SNPW)) ) & 3;
-
       // Count number of 0 (or 1) bits in respective seminibble.
       // Determine whether to skip (1,0) null indicator value.
       // NOTE: does not work for all cases.
-
-//      const GemmIn_t out = is_field_inactive ? 0 :
-//        tc_buf_write_kernel_value_<GemmIn_t>(sn_m, sn_c, jE, kE, step_2way,
-//          num_way, is_sparse, is_right, is_duo, form_matX_tc,
-//          is_bitwise_3way_2step);
 
       const GemmIn_t out =
         tc_buf_write_kernel_get_field_<GemmIn_t>(vo, vim, vic, vi_dim0,
@@ -482,8 +448,14 @@ __global__ static void tc_buf_write_kernel_(
 
   // Two fields (seminibbles) map to two halves of (2*sizeof(GemmIn_t))-bit word
 
-  const int vlX2_thread = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int flT_thread = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+  const int thread_dim0 = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const int thread_dim1 = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
+
+  enum {IS_THREAD_MAPPING_FIELD_MAJOR =
+        TCTraits<TC_METHOD>::IS_THREAD_MAPPING_FIELD_MAJOR};
+
+  const int flT_thread = IS_THREAD_MAPPING_FIELD_MAJOR ? thread_dim0 : thread_dim1;
+  const int vlX2_thread = IS_THREAD_MAPPING_FIELD_MAJOR ? thread_dim1 : thread_dim0;
 
   if (vlX2_thread >= nvleX2_thread || flT_thread >= nflT_thread)
     return;
@@ -535,8 +507,7 @@ void tc_buf_write_(
   const int nfl_thisstep = npvfl_thisstep * NUM_FL_PER_PVFL;
   const int fl_min = pvfl_min * NUM_FL_PER_PVFL;
 
-  enum {NUM_GEMMIN_T_PER_THREAD = 2}; // tuning param
-  enum {NGIPT = NUM_GEMMIN_T_PER_THREAD};
+  enum {NGIPT = TCTraits<TC_METHOD>::NUM_GEMMIN_T_PER_THREAD};
 
   enum {NUM_FIELD_PER_GEMMIN_T = TCTraits<TC_METHOD>::NFPGI};
   enum {NFPGI = NUM_FIELD_PER_GEMMIN_T};
@@ -576,6 +547,12 @@ void tc_buf_write_(
   const int nvleX2_thread = nvleX2;
   const int nflT_thread = nflT_thisstep;
 
+  enum {IS_THREAD_MAPPING_FIELD_MAJOR =
+        TCTraits<TC_METHOD>::IS_THREAD_MAPPING_FIELD_MAJOR};
+
+  const int thread_dim0 = IS_THREAD_MAPPING_FIELD_MAJOR ? nflT_thread : nvleX2_thread;
+  const int thread_dim1 = IS_THREAD_MAPPING_FIELD_MAJOR ? nvleX2_thread : nflT_thread;
+
   if (env.is_compute_method_gpu()) {
 
     // Kernel call.
@@ -584,9 +561,9 @@ void tc_buf_write_(
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
                    "Current HIP limitation.");
       const int blockdim_y = 32768;
-      const int num_threadblocks_0 = utils::ceil(nvleX2_thread, threadblocksize);
-      const int num_threadblocks_1 = utils::min(nflT_thread, blockdim_y);
-      const int num_threadblocks_2 = utils::ceil(nflT_thread, blockdim_y);
+      const int num_threadblocks_0 = utils::ceil(thread_dim0, threadblocksize);
+      const int num_threadblocks_1 = utils::min(thread_dim1, blockdim_y);
+      const int num_threadblocks_2 = utils::ceil(thread_dim1, blockdim_y);
 
       COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<TC_METHOD, NGIPT, NFPGI>),
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
@@ -601,8 +578,11 @@ void tc_buf_write_(
 
   } else { // (!env.is_compute_method_gpu())
 
-    for (int flT_thread=0; flT_thread<nflT_thread; ++flT_thread) {
-      for (int vlX2_thread=0; vlX2_thread<nvleX2_thread; ++vlX2_thread) {
+    for (int i1 = 0; i1 < thread_dim1; ++i1) {
+      for (int i0 = 0; i0 < thread_dim0; ++i0) {
+
+        const int flT_thread = IS_THREAD_MAPPING_FIELD_MAJOR ? i0 : i1;
+        const int vlX2_thread = IS_THREAD_MAPPING_FIELD_MAJOR ? i1 : i0;
 
         tc_buf_write_kernel_elt_<TC_METHOD, NGIPT, NFPGI>(
           tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
@@ -614,6 +594,38 @@ void tc_buf_write_(
 
       }
     }
+
+#if 0
+    if (IS_THREAD_MAPPING_FIELD_MAJOR) {
+
+      for (int vlX2_thread=0; vlX2_thread<nvleX2_thread; ++vlX2_thread) {
+        for (int flT_thread=0; flT_thread<nflT_thread; ++flT_thread) {
+          tc_buf_write_kernel_elt_<TC_METHOD, NGIPT, NFPGI>(
+            tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
+            is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
+            env.is_vectors_halved(),
+            nvle, nvleD2, nvleX2_thread, nvlea,
+            nfl, nflT, nflT_thread, flT_min, nfal,
+            vlX2_thread, flT_thread);
+        }
+      }
+
+    } else {
+
+      for (int flT_thread=0; flT_thread<nflT_thread; ++flT_thread) {
+        for (int vlX2_thread=0; vlX2_thread<nvleX2_thread; ++vlX2_thread) {
+          tc_buf_write_kernel_elt_<TC_METHOD, NGIPT, NFPGI>(
+            tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(), is_right,
+            is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
+            env.is_vectors_halved(),
+            nvle, nvleD2, nvleX2_thread, nvlea,
+            nfl, nflT, nflT_thread, flT_min, nfal,
+            vlX2_thread, flT_thread);
+        }
+      }
+
+    } // if
+#endif
 
   } // if (env.is_compute_method_gpu())
 }
