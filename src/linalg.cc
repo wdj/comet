@@ -63,139 +63,148 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief GEMM start, A matrix+column case.
 
-void gm_linalg_gemm_start(
+void LinAlg::gemm_start(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA1, const MirroredBuf* matA2,
   const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
   MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
-  int step_2way, GMDecompMgr* dm, CEnv* env) {
-  COMET_INSIST(matA1 && matA2 && matB && matC && env);
+  int step_2way, GMDecompMgr& dm, CEnv& env) {
+  COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
-  if (m==0 || n==0 || k==0)
+  if (!m || !n || !k)
     return;
 
-  if (env->is_compute_method_gpu()) {
+  // Lock.
+
+  if (env.is_compute_method_gpu()) {
     matA1->lock_d();
-    if (matB != matA1) {
+    if (matB != matA1)
       matB->lock_d();
-    }
     matC->lock_d();
   }
 
-  if (env->is_using_tc()) {
-    if (env->is_compute_method_gpu()) {
+  // GPU case.
+
+  if (env.is_using_tc()) {
+    if (env.is_compute_method_gpu())
+      // GEMM call, tc case.
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
-//        0,0,0,0,0,0,0,
         (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
-        dm->num_field_active_local, step_2way, dm->tc_bufs, *env);
-    }
+        dm.num_field_active_local, step_2way, dm.tc_bufs, env);
   } else {
     // apparently needed by magma.
-    MagmaWrapper::set_matrix_zero_start(matC, *env);
+    MagmaWrapper::set_matrix_zero_start(matC, env);
+    // GEMM call, non-tc case.
     MagmaWrapper::gemm_start(m, n, k, matA1->active, matA1->dim0,
-      matB->active, matB->dim0, matC->active, matC->dim0, *env);
+      matB->active, matB->dim0, matC->active, matC->dim0, env);
   }
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GEMM wait, A matrix+column case.
 
-void gm_linalg_gemm_wait(
+void LinAlg::gemm_wait(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA1, const MirroredBuf* matA2,
   const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
   MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
-  int step_2way, GMDecompMgr* dm, CEnv* env) {
-  COMET_INSIST(matA1 && matA2 && matB && matC && env);
+  int step_2way, GMDecompMgr& dm, CEnv& env) {
+  COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
-  if (m==0 || n==0 || k==0)
+  if (!m || !n || !k)
     return;
 
-  if (env->is_using_tc()) {
-    if (!env->is_compute_method_gpu()) {
+  // CPU case.
+
+  if (env.is_using_tc()) {
+    if (!env.is_compute_method_gpu()) {
+      // Lock
       matA1->lock_h();
-      if (matA2 != matA1 && matA2 != matB) {
+      if (matA2 != matA1 && matA2 != matB)
         matA2->lock_h();
-      }
-      if (matB != matA1) {
+      if (matB != matA1)
         matB->lock_h();
-      }
       matC->lock_h();
+      // GEMM call, tc case.
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
-//        0,0,0,0,0,0,0,
         (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
-        dm->num_field_active_local, step_2way, dm->tc_bufs, *env);
+        dm.num_field_active_local, step_2way, dm.tc_bufs, env);
+      // Unlock
       matA1->unlock_h();
-      if (matA2 != matA1 && matA2 != matB) {
+      if (matA2 != matA1 && matA2 != matB)
         matA2->unlock_h();
-      }
-      if (matB != matA1) {
+      if (matB != matA1)
         matB->unlock_h();
-      }
       matC->unlock_h();
     }
   }
 
-  env->stream_synchronize(env->stream_compute());
+  env.stream_synchronize(env.stream_compute());
 
-  if (env->is_compute_method_gpu()) {
+  // Unlock.
+
+  if (env.is_compute_method_gpu()) {
     matA1->unlock_d();
-    if (matB != matA1) {
+    if (matB != matA1)
       matB->unlock_d();
-    }
     matC->unlock_d();
   }
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GEMM start, standard A case.
 
-void gm_linalg_gemm_start(
+void LinAlg::gemm_start(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr* dm, CEnv* env) {
+  GMDecompMgr& dm, CEnv& env) {
 
-  gm_linalg_gemm_start(m, n, k, matA, matA, matB, matC,
+  gemm_start(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm, env);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GEMM wait, standard A case.
 
-void gm_linalg_gemm_wait(
+void LinAlg::gemm_wait(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr* dm, CEnv* env) {
+  GMDecompMgr& dm, CEnv& env) {
 
-  gm_linalg_gemm_wait(m, n, k, matA, matA, matB, matC,
+  gemm_wait(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm, env);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GEMM start and wait, standard A case.
 
-void gm_linalg_gemm(
+void LinAlg::gemm(
   size_t m, size_t n, size_t k,
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr* dm, CEnv* env) {
-  COMET_INSIST(matA && matB && matC && env);
+  GMDecompMgr& dm, CEnv& env) {
+  COMET_INSIST(matA && matB && matC);
 
-  gm_linalg_gemm_start(m, n, k, matA, matB, matC,
+  gemm_start(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, env);
-  gm_linalg_gemm_wait(m, n, k, matA, matB, matC,
+  gemm_wait(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, env);
 }
 

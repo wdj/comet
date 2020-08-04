@@ -664,7 +664,7 @@ void gm_compute_2way_proc_nums_start(
 
     // Perform pseudo GEMM.
 
-    gm_linalg_gemm_start(
+    LinAlg::gemm_start(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
       vectors_left->num_packedval_field_local,
@@ -673,7 +673,7 @@ void gm_compute_2way_proc_nums_start(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      vectors_left->dm, env);
+      *(vectors_left->dm), *env);
 
     return;
 
@@ -725,7 +725,7 @@ void gm_compute_2way_proc_nums_wait(
 
   if (env->is_using_linalg()) {
 
-    gm_linalg_gemm_wait(
+    LinAlg::gemm_wait(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
       vectors_left->num_packedval_field_local,
@@ -734,7 +734,7 @@ void gm_compute_2way_proc_nums_wait(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      vectors_left->dm, env);
+      *(vectors_left->dm), *env);
 
   } // if
 }
