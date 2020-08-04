@@ -58,8 +58,10 @@ namespace utils {
 
 template<typename T>
 T min(const T& i, const T& j) {
+
   const T r = i < j ? i : j;
   COMET_ASSERT(std::min(i, j) == r);
+
   return r;
 }
 
@@ -68,8 +70,10 @@ T min(const T& i, const T& j) {
 
 template<typename T>
 T max(const T& i, const T& j) {
+
   const T r = i > j ? i : j;
   COMET_ASSERT(std::max(i, j) == r);
+
   return r;
 }
 
@@ -80,9 +84,11 @@ template<typename T>
 T trunc(const T& i, const T& n) {
   COMET_ASSERT(n > 0);
   COMET_ASSERT(i+1 >= 1);
+
   const T r = i / n;
   COMET_ASSERT(i >= r*n);
   COMET_ASSERT(i < r*n + n);
+
   return r;
 }
 
@@ -93,9 +99,11 @@ template<typename T>
 T floor(const T& i, const T& n) {
   COMET_STATIC_ASSERT(std::is_signed<T>::value);
   COMET_ASSERT(n > 0);
+
   const T r = i >= 0 ? i / n : (i + 1 - n) / n;
   COMET_ASSERT(i >= r*n);
   COMET_ASSERT(i < r*n + n);
+
   return r;
 }
 
@@ -105,9 +113,11 @@ T floor(const T& i, const T& n) {
 template<typename T>
 T ceil(const T& i, const T& n) {
   COMET_ASSERT(n > 0);
+
   const T r = i > 0 ? (i + n - 1) / n : i / n;
   // WARNING: may fail if unsigned type.
   COMET_ASSERT(i + n > r*n && i <= r*n);
+
   return r;
 }
 
@@ -118,9 +128,11 @@ template<typename T>
 T mod_i(const T& i, const T& n) {
   COMET_STATIC_ASSERT((std::is_same<T,int>::value));
   COMET_ASSERT(n > 0);
+
   const T r = i - n * floor(i, n);
   COMET_ASSERT(r >= 0 && r < n);
   COMET_ASSERT((r-i) % n == 0);
+
   return r;
 }
 
@@ -128,6 +140,7 @@ T mod_i(const T& i, const T& n) {
 /// \brief Upper bound of random numbers from generator.
 
 static size_t randomize_max() {
+
   const size_t im = 714025;
   return im;
 }
@@ -136,6 +149,7 @@ static size_t randomize_max() {
 /// \brief Random number genrator.
 
 static size_t randomize(size_t i) {
+
   const size_t im = 714025;
   const size_t ia = 4096;
   const size_t ic = 150889;
@@ -148,12 +162,15 @@ static size_t randomize(size_t i) {
 static size_t nchoosek(int n, int k) {
   COMET_ASSERT(n >= 0);
   COMET_ASSERT(k >= 0 && k <= n);
+
   size_t numer = 1;
   size_t denom = 1;
+
   for (int i = 0; i < k; ++i) {
     numer *= (n - i);
     denom *= (i + 1);
   }
+
   return numer / denom;
 }
 
@@ -162,9 +179,10 @@ static size_t nchoosek(int n, int k) {
 
 static int log2(size_t n) {
   COMET_STATIC_ASSERT(sizeof(n) == 8);
-  if (n <= 1) {
+
+  if (n <= 1)
     return 0;
-  }
+
   size_t n_ = n - 1;
  
   int r = 0; 
@@ -201,7 +219,6 @@ static int popc8(uint8_t x) {
          (!!(((int)x)& 32)) +
          (!!(((int)x)& 64)) +
          (!!(((int)x)&128));
-
 }
 
 //-----------------------------------------------------------------------------
@@ -209,12 +226,14 @@ static int popc8(uint8_t x) {
 
 __host__ __device__
 static int popc32(uint32_t x) {
+
   // Adapted from Hacker's Delight, 2nd ed.
    x = x - ((x >> 1) & 0x55555555);
    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
    x = (x + (x >> 4)) & 0x0F0F0F0F;
    x = x + (x >> 8);
    x = x + (x >> 16);
+
    return x & 0x0000003F;
 }
 
@@ -223,6 +242,7 @@ static int popc32(uint32_t x) {
 
 __host__ __device__
 static int popc64(uint64_t x) {
+
   // Adapted from https://en.wikipedia.org/wiki/Hamming_weight
   const uint64_t m1 = 0x5555555555555555;
   const uint64_t m2 = 0x3333333333333333;
@@ -231,6 +251,7 @@ static int popc64(uint64_t x) {
   x -= (x >> 1) & m1;
   x = (x & m2) + ((x >> 2) & m2);
   x = (x + (x >> 4)) & m4;
+
   return (x * h01) >> 56;
 }
 

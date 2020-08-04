@@ -318,11 +318,6 @@ static void compute_metrics_3way_block_linalg_form_metrics_mf_(
 
       // NOTE: this may be a slight overestimate of the amount of mem needed.
 
-#if 0
-printf("%i %i %i %i\n", (int)metrics->num_metric_items_local_computed, (int)matB_buf->num_entries(), (int)metrics->num_metric_items_local_allocated, env.is_threshold_tc());
-fflush(stdout);
-#endif
-
       COMET_INSIST(metrics->num_metric_items_local_computed +
                    matB_buf->num_entries() <=
                    metrics->num_metric_items_local_allocated &&
@@ -373,23 +368,15 @@ fflush(stdout);
         const int JE = matB_buf->iE_recent();
         const int KE = matB_buf->jE_recent();
 
-//if(I==1 && J==4 && K==6 && env.proc_num_vector()==0)
-//printf("%i %i\n", (int)JE, (int)KE);
-
         const int iE = si->unperm0(IE, JE, KE);
         const int jE = si->unperm1(IE, JE, KE);
         const int kE = si->unperm2(IE, JE, KE);
-
-//if(iG==0 && jG==1 && kG==5)
-//printf("%i %i %i  %i %i %i  %i  %i  %.20e\n", iE, jE, kE, IE, JE, KE, env.proc_num(), si->part_num, (double)metric_item);
 
         // TODO: accessor function
         metrics->data_coords_values_[index] =
           CoordsInfo::set(iG, jG, kG, iE, jE, kE, *metrics, env);
 
         metrics->num_metric_items_local_computed_inc(1);
-
-//printf("%i  %i %i %i   %i %i %i  %f  %zu   %i %i %i %i\n", (int)ind_entry, (int)iG, (int)jG, (int)kG, iE, jE, kE, (double)metric_item, (size_t)CoordsInfo::set(iG, jG, kG, iE, jE, kE, *metrics, env), nvleD2, (int)I_mapped, (int)J, (int)step_2way);
 
       } // for ind_entry
 
@@ -452,16 +439,6 @@ fflush(stdout);
             MFTypeIn r101_perm = si->perm1(r011, r101, r110);
             MFTypeIn r110_perm = si->perm2(r011, r101, r110);
             MFTypeIn r111_perm = r111;
-
-#if 0
-    const size_t i = si->unperm0((size_t)I, (size_t)J, (size_t)K);
-    const size_t j = si->unperm1((size_t)I, (size_t)J, (size_t)K);
-    const size_t k = si->unperm2((size_t)I, (size_t)J, (size_t)K);
-
-    const size_t iG = i + nvl * i_block;
-    const size_t jG = j + nvl * j_block;
-    const size_t kG = k + nvl * k_block;
-#endif
 
             // Add contribution from this 2-way step.
 
@@ -583,19 +560,6 @@ fflush(stdout);
             Metrics_elt_3<Tally4x2<MF>>(*metrics, I, J, K,
               j_block_eff, k_block_eff, index_cache, env) = numer;
 //printf("%i %i %i  %f %f %f %f %f %f %f %f\n", I, J, K, (double)r000, (double)r001, (double)r010, (double)r011, (double)r100, (double)r101, (double)r110, (double)r111);
-
-#if 0
-int index_ = Metrics_index_3(*metrics, (int)I, J, (int)K, j_block, k_block, index_cache, env);
-if (
-(index_ == 204 && env.proc_num()==0 && env.compute_method()==2)
-||
-(index_ == 1120 && env.proc_num()==1 && env.compute_method()==0)
-)
-printf("0  %i   %i %i %i %i %i %i %i %i \n", si->part_num,
-(int)r000, (int)r001, (int)r010, (int)r011,
-(int)r100, (int)r101, (int)r110, (int)r111);
-fflush(stdout);
-#endif
 
           } // if (is_I_in_range)
 
@@ -871,10 +835,6 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   const int num_buf = 4;
 
-//  std::vector<LoopVars> vars_buf;
-//  for (int i=0; i<num_buf; ++i)
-//    vars_buf.push_back(LoopVars(env_));
-
   LoopVars vars_buf0(env_);
   LoopVars vars_buf1(env_);
   LoopVars vars_buf2(env_);
@@ -981,7 +941,6 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Copy result matrix matB from GPU - WAIT
 
     if (vars_prev.do_compute) {
-//c
       //vars_prev.matB_buf_ptr()->from_accel_wait();
       matB_buf_compressed.from_accel_wait();
       if (vars_prev.step_2way == 0) {
@@ -1016,7 +975,6 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_tail.do_compute) {
       compute_metrics_3way_block_linalg_form_metrics_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
-//c
           &matB_buf_compressed,
           //&vars_tail.matB_buf,
           &metrics, nvl, vars_tail.J, vars_tail.step_2way,

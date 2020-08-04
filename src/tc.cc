@@ -73,7 +73,7 @@ namespace comet {
 // C to zero if C is filled with trash (e.g. NaNs).
 
 template<int TC_METHOD>
-static void set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
+static void tc_set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
   COMET_INSIST(matC);
 
   typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
@@ -136,7 +136,7 @@ static void tc_gemm_start_impl_(
   tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
     (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs, step_2way, env);
 
-  set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
+  tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
 
   const int num_tc_steps = env.num_tc_steps();
 
@@ -275,7 +275,7 @@ size_t tc_gemm_size_required(size_t size_requested, const CEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Initialize TCBufs object by allocating memory etc.
 
-void tc_bufs_malloc(int num_vector_local,
+void TCBufs::malloc(int num_vector_local,
                     int num_field_local,
                     int num_packedval_field_local,
                     TCBufs& tc_bufs,
@@ -292,7 +292,8 @@ void tc_bufs_malloc(int num_vector_local,
 
   const size_t nvl = num_vector_local;
   const size_t npvfl = num_packedval_field_local;
-  const size_t npvfl_thisstep_max = utils::ceil(npvfl, (size_t)env.num_tc_steps());
+  const size_t npvfl_thisstep_max =
+    utils::ceil(npvfl, (size_t)env.num_tc_steps());
 
   const int sizeof_gemm_in_t =
      env.tc_eff() == TC::FP32 ?
@@ -304,7 +305,7 @@ void tc_bufs_malloc(int num_vector_local,
      env.tc_eff() == TC::B1 ?
        sizeof(typename TCTraits<TC::B1>::GemmIn_t) :
      0;
-  COMET_INSIST(TC::is_valid(env.tc_eff())); // this code must be updated if new method
+  COMET_INSIST(TC::is_valid(env.tc_eff())); // must be updated if new method
 
   const size_t nvlX2 = nvl * 2;
 
@@ -318,75 +319,78 @@ void tc_bufs_malloc(int num_vector_local,
 
     // Allocate buffers.
 
-#if defined COMET_USE_CUDA
-    cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
-#elif defined COMET_USE_HIP
-    hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
-#endif
+#   if defined COMET_USE_CUDA
+      cudaMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
+#   elif defined COMET_USE_HIP
+      hipMalloc(&tc_bufs.tc_buf_left, tc_bufs.tc_buf_size);
+#   endif
     COMET_INSIST(System::accel_last_call_succeeded());
     env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
-#if defined COMET_USE_CUDA
-    cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
-#elif defined COMET_USE_HIP
-    hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
-#endif
+#   if defined COMET_USE_CUDA
+      cudaMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
+#   elif defined COMET_USE_HIP
+      hipMalloc(&tc_bufs.tc_buf_right, tc_bufs.tc_buf_size);
+#   endif
     COMET_INSIST(System::accel_last_call_succeeded());
     env.gpu_mem_local_inc(tc_bufs.tc_buf_size);
 
-#if defined COMET_USE_CUDA
-    cudaMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
-#elif defined COMET_USE_HIP
-    hipMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
-#endif
+#   if defined COMET_USE_CUDA
+      cudaMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
+#   elif defined COMET_USE_HIP
+      hipMalloc(&tc_bufs.matX_counts, tc_bufs.matX_counts_size);
+#   endif
     COMET_INSIST(System::accel_last_call_succeeded());
     env.gpu_mem_local_inc(tc_bufs.matX_counts_size);
 
     // Set up accel blas handle.
 
-#if defined COMET_USE_CUDA
-    cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
-    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
-    COMET_INSIST(System::accel_last_call_succeeded());
+#   if defined COMET_USE_CUDA
+      cublasStatus_t status = cublasCreate(&tc_bufs.accelblas_handle);
+      COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
+      COMET_INSIST(System::accel_last_call_succeeded());
 
-    status = cublasSetStream(tc_bufs.accelblas_handle, env.stream_compute());
-    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasSetStream.");
+      status = cublasSetStream(tc_bufs.accelblas_handle, env.stream_compute());
+      COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
+                   "Error in cublasSetStream.");
 
-    status = cublasSetMathMode(tc_bufs.accelblas_handle, CUBLAS_TENSOR_OP_MATH);
-    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
-                 "Error in cublasSetMathMode.");
-    COMET_INSIST(System::accel_last_call_succeeded());
-#elif defined COMET_USE_HIP
-    int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
-    COMET_INSIST(status == rocblas_status_success &&
-             "Error in rocblas_create_handle.");
-    COMET_INSIST(System::accel_last_call_succeeded());
+      status = cublasSetMathMode(tc_bufs.accelblas_handle,
+                                 CUBLAS_TENSOR_OP_MATH);
+      COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
+                   "Error in cublasSetMathMode.");
+      COMET_INSIST(System::accel_last_call_succeeded());
+#   elif defined COMET_USE_HIP
+      int status = rocblas_create_handle(&tc_bufs.accelblas_handle);
+      COMET_INSIST(status == rocblas_status_success &&
+               "Error in rocblas_create_handle.");
+      COMET_INSIST(System::accel_last_call_succeeded());
 
-    status = rocblas_set_stream(tc_bufs.accelblas_handle, env.stream_compute());
-    COMET_INSIST(status == rocblas_status_success &&
-             "Error in rocblas_set_stream.");
-    COMET_INSIST(System::accel_last_call_succeeded());
+      status = rocblas_set_stream(tc_bufs.accelblas_handle,
+                                  env.stream_compute());
+      COMET_INSIST(status == rocblas_status_success &&
+               "Error in rocblas_set_stream.");
+      COMET_INSIST(System::accel_last_call_succeeded());
 
-    //FIX - will this be needed for AMD gpu?
-    //  status = cublasSetMathMode(tc_bufs.accelblas_handle,
-    //                             CUBLAS_TENSOR_OP_MATH);
-    //  COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
-    //           "Error in cublasSetMathMode.");
-#endif
+      //FIX - will this be needed for AMD gpu?
+      //  status = cublasSetMathMode(tc_bufs.accelblas_handle,
+      //                             CUBLAS_TENSOR_OP_MATH);
+      //  COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
+      //           "Error in cublasSetMathMode.");
+#   endif
 
   } else { // compute_method
 
     // Allocate buffers.
 
-    tc_bufs.tc_buf_left = malloc(tc_bufs.tc_buf_size);
+    tc_bufs.tc_buf_left = ::malloc(tc_bufs.tc_buf_size);
     COMET_INSIST(tc_bufs.tc_buf_left);
     env.cpu_mem_local_inc(tc_bufs.tc_buf_size);
+    //memset((void*)tc_bufs.tc_buf_left, 0, tc_bufs.tc_buf_size);
 
-    tc_bufs.tc_buf_right = malloc(tc_bufs.tc_buf_size);
+    tc_bufs.tc_buf_right = ::malloc(tc_bufs.tc_buf_size);
     COMET_INSIST(tc_bufs.tc_buf_right);
     env.cpu_mem_local_inc(tc_bufs.tc_buf_size);
-//memset((void*)tc_bufs.tc_buf_left, 0, tc_bufs.tc_buf_size);
-//memset((void*)tc_bufs.tc_buf_right, 0, tc_bufs.tc_buf_size);
+    //memset((void*)tc_bufs.tc_buf_right, 0, tc_bufs.tc_buf_size);
 
   } // compute_method
 }
@@ -394,65 +398,65 @@ void tc_bufs_malloc(int num_vector_local,
 //-----------------------------------------------------------------------------
 /// \brief Terminate TCBufs object by deallocating memory etc.
 
-void tc_bufs_free(TCBufs& tc_bufs, CEnv& env) {
+void TCBufs::free(TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST((tc_bufs.tc_buf_left != 0) == (tc_bufs.tc_buf_right != 0));
 
-  if (!tc_bufs.tc_buf_left) {
+  if (!tc_bufs.tc_buf_left)
     return;
-  }
 
   if (env.is_compute_method_gpu()) {
 
     // Free buffers.
 
-#if defined COMET_USE_CUDA
-    cudaFree(tc_bufs.tc_buf_left);
-#elif defined COMET_USE_HIP
-    hipFree(tc_bufs.tc_buf_left);
-#endif
+#   if defined COMET_USE_CUDA
+      cudaFree(tc_bufs.tc_buf_left);
+#   elif defined COMET_USE_HIP
+      hipFree(tc_bufs.tc_buf_left);
+#   endif
     COMET_INSIST(System::accel_last_call_succeeded());
     tc_bufs.tc_buf_left = NULL;
     env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
-#if defined COMET_USE_CUDA
-    cudaFree(tc_bufs.tc_buf_right);
-#elif defined COMET_USE_HIP
-    hipFree(tc_bufs.tc_buf_right);
-#endif
+#   if defined COMET_USE_CUDA
+      cudaFree(tc_bufs.tc_buf_right);
+#   elif defined COMET_USE_HIP
+      hipFree(tc_bufs.tc_buf_right);
+#   endif
     COMET_INSIST(System::accel_last_call_succeeded());
     tc_bufs.tc_buf_right = NULL;
     env.gpu_mem_local_dec(tc_bufs.tc_buf_size);
 
-#if defined COMET_USE_CUDA
-    cudaFree(tc_bufs.matX_counts);
-#elif defined COMET_USE_HIP
-    hipFree(tc_bufs.matX_counts);
-#endif
+#   if defined COMET_USE_CUDA
+      cudaFree(tc_bufs.matX_counts);
+#   elif defined COMET_USE_HIP
+      hipFree(tc_bufs.matX_counts);
+#   endif
     COMET_INSIST(System::accel_last_call_succeeded());
     tc_bufs.matX_counts = NULL;
     env.gpu_mem_local_dec(tc_bufs.matX_counts_size);
 
     // Free accel blas handle.
 
-#if defined COMET_USE_CUDA
-    cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
-    COMET_INSIST(status == CUBLAS_STATUS_SUCCESS && "Error in cublasDestroy.");
-#elif defined COMET_USE_HIP
-    int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
-    COMET_INSIST(status == rocblas_status_success &&
+#   if defined COMET_USE_CUDA
+      cublasStatus_t status = cublasDestroy(tc_bufs.accelblas_handle);
+      COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
+                   "Error in cublasDestroy.");
+#   elif defined COMET_USE_HIP
+      int status = rocblas_destroy_handle(tc_bufs.accelblas_handle);
+      COMET_INSIST(status == rocblas_status_success &&
              "Error in rocblas_destroy_handle.");
-#endif
+#   endif
     COMET_INSIST(System::accel_last_call_succeeded());
 
-  } else { // compute_method
+  } else { // compute_method CPU
 
     // Free buffers.
 
-    free(tc_bufs.tc_buf_left);
+    ::free(tc_bufs.tc_buf_left);
     tc_bufs.tc_buf_left = NULL;
     env.cpu_mem_local_dec(tc_bufs.tc_buf_size);
 
-    free(tc_bufs.tc_buf_right);
+    ::free(tc_bufs.tc_buf_right);
     tc_bufs.tc_buf_right = NULL;
     env.cpu_mem_local_dec(tc_bufs.tc_buf_size);
 

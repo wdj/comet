@@ -272,7 +272,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   // tc memory
   //--------------------
 
-  tc_bufs_malloc(dm->num_vector_local, dm->num_field_local,
+  TCBufs::malloc(dm->num_vector_local, dm->num_field_local,
                  dm->num_packedfield_local, dm->tc_bufs, *env);
 }
 
@@ -282,15 +282,14 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 void GMDecompMgr_destroy(GMDecompMgr* dm, CEnv* env) {
   COMET_INSIST(dm && env);
 
-  if (! env->is_proc_active()) {
+  if (! env->is_proc_active())
     return;
-  }
 
   //--------------------
   // tc memory
   //--------------------
 
-  tc_bufs_free(dm->tc_bufs, *env);
+  TCBufs::free(dm->tc_bufs, *env);
 }
 
 //=============================================================================

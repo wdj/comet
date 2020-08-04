@@ -60,8 +60,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-//=============================================================================
-// Magma setup, teardown.
+//-----------------------------------------------------------------------------
+/// \brief Magma setup.
 
 void MagmaWrapper::initialize(CEnv& env) {
 
@@ -119,6 +119,7 @@ void MagmaWrapper::initialize(CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Magma teardown.
 
 void MagmaWrapper::finalize(CEnv& env) {
 
@@ -160,8 +161,8 @@ void MagmaWrapper::finalize(CEnv& env) {
 #endif // COMET_USE_MAGMA
 }
 
-//=============================================================================
-// Allocate/free host and device memory.
+//-----------------------------------------------------------------------------
+/// \brief Allocate host and device memory.
 
 void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
    CEnv& env) {
@@ -285,6 +286,7 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Free host and device memory.
 
 void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
   COMET_INSIST(buf);
@@ -361,6 +363,7 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Set matrix to zero.
 
 void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
   COMET_INSIST(buf);
@@ -437,6 +440,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GEMM on block of matrix, start.
 
 void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
   const void* matA, size_t ldda, const void* matB, size_t lddb,
@@ -666,6 +670,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
 }
 
 //-----------------------------------------------------------------------------
+/// \brief GEMM on matrix, start.
 
 void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
   const void* matA, size_t ldda, const void* matB, size_t lddb,
@@ -747,8 +752,8 @@ void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
 #endif // COMET_USE_MAGMA
 }
 
-//=============================================================================
-/// \brief Start transfer of generic matrix to GPU.
+//-----------------------------------------------------------------------------
+/// \brief Start transfer of matrix to GPU.
 
 void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
   COMET_INSIST(buf);
@@ -818,14 +823,14 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief End transfer of generic matrix to GPU.
+/// \brief Wait transfer of matrix to GPU.
 
 void MagmaWrapper::set_matrix_wait(CEnv& env) {
   env.stream_synchronize(env.stream_togpu());
 }
 
-//=============================================================================
-/// \brief Start transfer of generic matrix from GPU.
+//-----------------------------------------------------------------------------
+/// \brief Start transfer of matrix from GPU.
 
 void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
   COMET_INSIST(buf);
@@ -895,7 +900,7 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief End transfer of generic matrix from GPU.
+/// \brief Wait transfer of matrix from GPU.
 
 void MagmaWrapper::get_matrix_wait(CEnv& env) {
   env.stream_synchronize(env.stream_fromgpu());

@@ -572,8 +572,6 @@ void gm_compute_2way_proc_combine_duo_(
         for (int i = 0; i < i_max; ++i) {
           const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
-//              const GMTally2x2* p = &value;
-//printf("///////////////// %i %i   %f %f %f %f\n", i, j, ((const float*)p)[0], ((const float*)p)[1], ((const float*)p)[2], ((const float*)p)[3]);
           Metrics_elt_2<GMTally2x2>(*metrics, i, j, env->proc_num_vector(), *env) = value;
         } // for i
       }   // for j
