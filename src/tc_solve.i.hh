@@ -133,8 +133,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   // Make BLAS call.
 
-env.stream_synchronize(env.stream_compute());
-double t1 = System::time(); //FIX
+//env.stream_synchronize(env.stream_compute());
+//double t1 = System::time(); //FIX
 
   if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
 
@@ -327,10 +327,10 @@ double t1 = System::time(); //FIX
 
   env.ops_local_inc(2 * m * (double)n * (double)k);
 
-env.stream_synchronize(env.stream_compute());
-double t2 = System::time(); //FIX
-const double t = t2 - t1;
-printf("%i %i %i   %f %f\n", (int)m, (int)n, (int)k, t, (2 * m * (double)n * (double)k) / (t * 1e12));
+//env.stream_synchronize(env.stream_compute());
+//double t2 = System::time(); //FIX
+//const double t = t2 - t1;
+//printf("%i %i %i   %f %f\n", (int)m, (int)n, (int)k, t, (2 * m * (double)n * (double)k) / (t * 1e12));
 }
 
 //-----------------------------------------------------------------------------

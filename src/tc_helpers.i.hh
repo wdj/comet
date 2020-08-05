@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   tc_int.hh
+ * \file   tc_helpers.i.hh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  Declarations needed internally for the tc package.
@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -----------------------------------------------------------------------------*/
 
-#ifndef _COMET_TC_INT_HH_
-#define _COMET_TC_INT_HH_
+#ifndef _COMET_TC_HELPERS_I_HH_
+#define _COMET_TC_HELPERS_I_HH_
 
 //=============================================================================
 
@@ -47,8 +47,11 @@ namespace comet {
 /// \brief Select types etc. based on the setting of the tc param.
 
 struct TCTraitsBase {
-  enum {IS_THREAD_MAPPING_FIELD_MAJOR = BuildHas::HIP ? true : false}; // tuning param
+  //enum {IS_THREAD_MAPPING_FIELD_MAJOR = BuildHas::HIP ? false : false}; // tuning param
+  enum {IS_THREAD_MAPPING_FIELD_MAJOR = BuildHas::HIP ? false : false}; // tuning param
+  //enum {NUM_GEMMIN_T_PER_THREAD = BuildHas::HIP ? 64 : 2}; // tuning param
   enum {NUM_GEMMIN_T_PER_THREAD = BuildHas::HIP ? 64 : 2}; // tuning param
+  enum {NGIPT = NUM_GEMMIN_T_PER_THREAD};
 
   enum {NUM_FIELDS_PER_GEMMIN_T_DEFAULT = 1};
   enum {NFPGI = NUM_FIELDS_PER_GEMMIN_T_DEFAULT};
@@ -203,6 +206,6 @@ template<> struct TCBufTraits<int8_t> {
 
 //-----------------------------------------------------------------------------
 
-#endif // _COMET_TC_INT_HH_
+#endif // _COMET_TC_HELPERS_I_HH_
 
 //-----------------------------------------------------------------------------

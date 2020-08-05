@@ -106,6 +106,9 @@ function main
 
   local DIR
   for DIR in $DIRS ; do
+    if [ ! -e $DIR ] ; then
+      continue
+    fi
     printf -- '-%.0s' {1..79}; echo ""
     pushd $DIR
     $SCRIPT_DIR/make.sh 2>&1 | tee out_make.txt

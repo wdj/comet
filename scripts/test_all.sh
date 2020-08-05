@@ -65,7 +65,7 @@ function main
     if [ -d "build_single_test_$COMET_PLATFORM_STUB" ] ; then
       DIRS+=" build_single_test_$COMET_PLATFORM_STUB"
     else
-      DIRS+="build_single_test_nompi_$COMET_PLATFORM_STUB"
+      DIRS+=" build_single_test_nompi_$COMET_PLATFORM_STUB"
     fi
   fi
 
@@ -73,7 +73,7 @@ function main
     if [ -d "build_test_$COMET_PLATFORM_STUB" ] ; then
       DIRS+=" build_test_$COMET_PLATFORM_STUB"
     else
-      DIRS+="build_test_nompi_$COMET_PLATFORM_STUB"
+      DIRS+=" build_test_nompi_$COMET_PLATFORM_STUB"
     fi
   fi
 

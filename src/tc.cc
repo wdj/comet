@@ -154,12 +154,11 @@ static void tc_gemm_start_impl_(
 
     // Convert the input matrices of packed bit values into matrices
     // of a type suitable for the GEMM.
-    const bool left_matrix = false; // A
-    const bool right_matrix = true; // B
-    tc_buf_write_<TC_METHOD>(left_matrix, I_max, I_max_dim, nvl, npvfl,
+    enum {IS_LEFT = true};
+    tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, nfal, (uint32_t*)matA1, (uint32_t*)matA2,
       tc_bufs, step_2way, env);
-    tc_buf_write_<TC_METHOD>(right_matrix, I_max, I_max_dim, nvl, npvfl,
+    tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, nfal, (uint32_t*)matB, (uint32_t*)matB,
       tc_bufs, step_2way, env);
 

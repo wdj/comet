@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   tc_copyout.i.hh
+ * \file   tc_out.i.hh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
  * \brief  CUDA code, tc package: copying data from the accelerator.
@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -----------------------------------------------------------------------------*/
 
-#ifndef _COMET_TC_COPYOUT_I_HH_
-#define _COMET_TC_COPYOUT_I_HH_
+#ifndef _COMET_TC_OUT_I_HH_
+#define _COMET_TC_OUT_I_HH_
 
 #include "formulas.hh"
 
@@ -747,6 +747,6 @@ void tc_out_( int nvll, int nvl, void* vo,
 
 //-----------------------------------------------------------------------------
 
-#endif // _COMET_TC_COPYOUT_I_HH_
+#endif // _COMET_TC_OUT_I_HH_
 
 //-----------------------------------------------------------------------------
