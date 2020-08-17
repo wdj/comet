@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_2way_block_combine.hh
- * \author Wayne Joubert, James Nance
+ * \file   compute_metrics_2way_block.hh
+ * \author Wayne Joubert
  * \date   Fri Oct  9 14:06:44 EDT 2015
- * \brief  Combine numerators and denominators, 2-way, for a single block.
+ * \brief  Calculate metrics, 2-way, for a single block.
  */
 //-----------------------------------------------------------------------------
 /*-----------------------------------------------------------------------------
@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -----------------------------------------------------------------------------*/
 
-#ifndef _COMET_COMPUTE_METRICS_2WAY_BLOCK_COMBINE_HH_
-#define _COMET_COMPUTE_METRICS_2WAY_BLOCK_COMBINE_HH_
+#ifndef _COMET_COMPUTE_METRICS_2WAY_BLOCK_HH_
+#define _COMET_COMPUTE_METRICS_2WAY_BLOCK_HH_
 
 #include "env.hh"
 #include "mirrored_buf.hh"
@@ -48,14 +48,46 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-void gm_compute_2way_proc_combine(
-  GMMetrics* metrics,
-  MirroredBuf* metrics_buf,
-  const VectorSums* const vector_sums_left,
-  const VectorSums* const vector_sums_right,
-  int j_proc,
-  bool do_compute_triang_only,
-  CEnv* env);
+class ComputeMetrics2WayBlock {
+
+public:
+
+  static void compute_nums_start(
+    GMVectors* vectors_left,
+    GMVectors* vectors_right,
+    GMMetrics* metrics,
+    MirroredBuf* vectors_left_buf,
+    MirroredBuf* vectors_right_buf,
+    MirroredBuf* metrics_buf,
+    VectorSums* vector_sums_left,
+    VectorSums* vector_sums_right,
+    int j_proc,
+    bool compute_triang_only,
+    CEnv* env);
+
+  static void compute_nums_wait(
+    GMVectors* vectors_left,
+    GMVectors* vectors_right,
+    GMMetrics* metrics,
+    MirroredBuf* vectors_left_buf,
+    MirroredBuf* vectors_right_buf,
+    MirroredBuf* metrics_buf,
+    VectorSums* vector_sums_left,
+    VectorSums* vector_sums_right,
+    int j_proc,
+    bool compute_triang_only,
+    CEnv* env);
+
+  static void finalize(
+    GMMetrics* metrics,
+    MirroredBuf* metrics_buf,
+    const VectorSums* const vector_sums_left,
+    const VectorSums* const vector_sums_right,
+    int j_proc,
+    bool do_compute_triang_only,
+    CEnv* env);
+
+};
 
 //=============================================================================
 
@@ -63,6 +95,6 @@ void gm_compute_2way_proc_combine(
 
 //-----------------------------------------------------------------------------
 
-#endif // _COMET_COMPUTE_METRICS_2WAY_BLOCK_COMBINE_HH_
+#endif // _COMET_COMPUTE_METRICS_2WAY_BLOCK_HH_
 
 //-----------------------------------------------------------------------------

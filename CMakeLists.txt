@@ -39,7 +39,7 @@ SET(LIB_SOURCES
   src/checksum.cc
   src/comm_xfer_utils.cc
   src/compute_metrics_2way_block_nums.cc
-  src/compute_metrics_2way_block_combine.cc
+  src/compute_metrics_2way_block_finalize.cc
   src/compute_metrics_3way_block_nonlinalg.cc
   src/compute_metrics_3way_block_linalg.cc
   src/compute_metrics_3way_block.cc
@@ -80,8 +80,7 @@ SET(LIB_INCLUDES
   src/vector_sums.hh
   src/checksum.hh
   src/comm_xfer_utils.hh
-  src/compute_metrics_2way_block_nums.hh
-  src/compute_metrics_2way_block_combine.hh
+  src/compute_metrics_2way_block.hh
   src/compute_metrics_3way_block.hh
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh

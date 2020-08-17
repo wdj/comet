@@ -43,8 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "metrics.hh"
 #include "vector_sums.hh"
 #include "comm_xfer_utils.hh"
-#include "compute_metrics_2way_block_nums.hh"
-#include "compute_metrics_2way_block_combine.hh"
+#include "compute_metrics_2way_block.hh"
 #include "compute_metrics_2way.hh"
 
 //=============================================================================
@@ -68,7 +67,8 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   , vector_sums_offproc_01_{&vector_sums_offproc_0_, &vector_sums_offproc_1_} {
   COMET_INSIST(env_.is_proc_active());
 
-  if (!env_.all2all()) return;
+  if (!env_.all2all())
+    return;
 
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_create_with_buf(&vectors_01_[i], env_.data_type_vectors(),
@@ -88,7 +88,8 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
 ComputeMetrics2Way::~ComputeMetrics2Way() {
   COMET_INSIST(env_.is_proc_active());
 
-  if (!env_.all2all()) return;
+  if (!env_.all2all())
+    return;
 
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_destroy(&vectors_01_[i], &env_);
@@ -153,19 +154,21 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   vectors_buf.to_accel();
 
-  gm_compute_2way_proc_nums_start(&vectors, &vectors, &metrics, &vectors_buf,
-                                  &vectors_buf, metrics_buf_ptr,
-                                  &vector_sums_onproc_,
-                                  &vector_sums_onproc_,
-                                  env_.proc_num_vector(),
-                                  true, &env_);
+  ComputeMetrics2WayBlock::compute_nums_start(
+    &vectors, &vectors, &metrics, &vectors_buf,
+     &vectors_buf, metrics_buf_ptr,
+     &vector_sums_onproc_,
+     &vector_sums_onproc_,
+     env_.proc_num_vector(),
+     true, &env_);
 
-  gm_compute_2way_proc_nums_wait(&vectors, &vectors, &metrics, &vectors_buf,
-                                 &vectors_buf, metrics_buf_ptr,
-                                 &vector_sums_onproc_,
-                                 &vector_sums_onproc_,
-                                 env_.proc_num_vector(),
-                                 true, &env_);
+  ComputeMetrics2WayBlock::compute_nums_wait(
+    &vectors, &vectors, &metrics, &vectors_buf,
+    &vectors_buf, metrics_buf_ptr,
+    &vector_sums_onproc_,
+    &vector_sums_onproc_,
+    env_.proc_num_vector(),
+    true, &env_);
 
   // Copy result from GPU
 
@@ -178,9 +181,9 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Combine
 
-  gm_compute_2way_proc_combine(&metrics, &metrics_buf,
-                               &vector_sums_onproc_, &vector_sums_onproc_,
-                               env_.proc_num_vector(), true, &env_);
+  ComputeMetrics2WayBlock::finalize(&metrics, &metrics_buf,
+                                    &vector_sums_onproc_, &vector_sums_onproc_,
+                                    env_.proc_num_vector(), true, &env_);
 
   //---------------
   // Terminations
@@ -437,7 +440,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         lock(lock_vectors_right_buf_d);
       }
       lock(lock_metrics_buf_ptr_d);
-      gm_compute_2way_proc_nums_start(
+      ComputeMetrics2WayBlock::compute_nums_start(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
@@ -468,7 +471,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                             vars_prev.metrics_buf, &env_);
         }
 
-        gm_compute_2way_proc_combine(
+        ComputeMetrics2WayBlock::finalize(
           &metrics, metrics_buf_prev_ptr,
           vector_sums_left, vars_prev.vector_sums_right,
           vars_prev.j_block,
@@ -523,7 +526,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // Wait for numerators computation to complete
 
     if (vars.is_compute_step && vars.do_compute_block) {
-      gm_compute_2way_proc_nums_wait(
+      ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
@@ -565,7 +568,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         unlock(lock_metrics_buf_ptr_d);
         unlock(lock_metrics_buf_ptr_h);
         lock(lock_metrics_buf_ptr_h);
-        gm_compute_2way_proc_combine(
+        ComputeMetrics2WayBlock::finalize(
           &metrics, vars.metrics_buf, vector_sums_left,
           vars.vector_sums_right, vars.j_block,
           vars.is_main_diag, &env_);

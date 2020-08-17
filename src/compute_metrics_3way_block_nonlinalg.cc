@@ -52,9 +52,9 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Compute 3-way numerators Czek cases that don't use linalg package.
 
-void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
-  VData vdata_k, GMMetrics& numerators,
-  int j_block, int k_block, int section_step) {
+static void compute_nonlinalg_czek_(
+  VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& numerators,
+  int j_block, int k_block, int section_step, CEnv& env_) {
 
   GMMetrics* metrics = &numerators;
   CEnv* env = &env_;
@@ -206,9 +206,9 @@ void ComputeMetrics3WayBlock::compute_czek_(VData vdata_i, VData vdata_j,
 //-----------------------------------------------------------------------------
 /// \brief Compute 3-way numerators CCC/DUO cases that don't use linalg package.
 
-void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
-  VData vdata_k, GMMetrics& numerators,
-  int j_block, int k_block, int section_step) {
+static void compute_nonlinalg_ccc_duo_(
+  VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& numerators,
+  int j_block, int k_block, int section_step, CEnv& env_) {
 
 
   GMMetrics* metrics = &numerators;
@@ -413,30 +413,13 @@ void ComputeMetrics3WayBlock::compute_ccc_duo_(VData vdata_i, VData vdata_j,
           const auto sk1 = (GMTally1)vs_k->sum(k);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
 
-          const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
-          const int k_block_eff = env->all2all() ? k_block : env->proc_num_vector();
+          const int j_block_eff = env->all2all() ?
+            j_block : env->proc_num_vector();
+          const int k_block_eff = env->all2all() ?
+            k_block : env->proc_num_vector();
 
           Metrics_elt_3<GMTally4x2>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, *env) = sum;
-
-#if 0
-GMTally1 r000=0, r001=0, r010=0, r011=0, r100=0, r101=0, r110=0, r111=0;
-            MFT::decode(r000, r001, sum.data[0]);
-            MFT::decode(r010, r011, sum.data[1]);
-            MFT::decode(r100, r101, sum.data[2]);
-            MFT::decode(r110, r111, sum.data[3]);
-
-int index_ = Metrics_index_3(*metrics, (int)I, J, (int)K, j_block, k_block, index_cache, *env);
-if (
-(index_ == 204 && env->proc_num()==0 && env->compute_method()==2)
-||
-(index_ == 1120 && env->proc_num()==1 && env->compute_method()==0)
-)
-printf("2  %i   %i %i %i %i %i %i %i %i \n", si->part_num,
-(int)r000, (int)r001, (int)r010, (int)r011,
-(int)r100, (int)r101, (int)r110, (int)r111);
-fflush(stdout);
-#endif
 
           Metrics_elt_3<GMFloat3, MetricsArray::S>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, *env) = si1_sj1_sk1;
@@ -466,7 +449,8 @@ fflush(stdout);
 
     const int cbpe = env->counted_bits_per_elt();
 
-    const int pad_adjustment = cbpe * cbpe * cbpe * metrics->dm->num_pad_field_local;
+    const int pad_adjustment = cbpe * cbpe * cbpe *
+      metrics->dm->num_pad_field_local;
 
     const int J_lo = si->J_lb;
     const int J_hi = si->J_ub;
@@ -510,22 +494,22 @@ fflush(stdout);
             const uint64_t oddbits = 0x5555555555555555;
 
             const uint64_t vi0mask =
-                       (env->sparse() ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
+                     (env->sparse() ? (vi0 | ~(vi0 >> 1)) & oddbits : oddbits);
 
             const uint64_t vi1mask =
-                       (env->sparse() ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
+                     (env->sparse() ? (vi1 | ~(vi1 >> 1)) & oddbits : oddbits);
 
             const uint64_t vj0mask =
-                       (env->sparse() ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
+                     (env->sparse() ? (vj0 | ~(vj0 >> 1)) & oddbits : oddbits);
 
             const uint64_t vj1mask =
-                       (env->sparse() ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
+                     (env->sparse() ? (vj1 | ~(vj1 >> 1)) & oddbits : oddbits);
 
             const uint64_t vk0mask =
-                       (env->sparse() ? (vk0 | ~(vk0 >> 1)) & oddbits : oddbits);
+                     (env->sparse() ? (vk0 | ~(vk0 >> 1)) & oddbits : oddbits);
 
             const uint64_t vk1mask =
-                       (env->sparse() ? (vk1 | ~(vk1 >> 1)) & oddbits : oddbits);
+                     (env->sparse() ? (vk1 | ~(vk1 >> 1)) & oddbits : oddbits);
 
             const uint64_t v0mask = vi0mask & vj0mask & vk0mask;
             const uint64_t v1mask = vi1mask & vj1mask & vk1mask;
@@ -746,8 +730,10 @@ fflush(stdout);
           const auto sk1 = (GMTally1)vs_k->sum(k);
           const GMFloat3 si1_sj1_sk1 = GMFloat3_encode(si1, sj1, sk1);
 
-          const int j_block_eff = env->all2all() ? j_block : env->proc_num_vector();
-          const int k_block_eff = env->all2all() ? k_block : env->proc_num_vector();
+          const int j_block_eff = env->all2all() ?
+            j_block : env->proc_num_vector();
+          const int k_block_eff = env->all2all() ?
+            k_block : env->proc_num_vector();
 
           Metrics_elt_3<GMTally4x2>(*metrics, I, J, K,
             j_block_eff, k_block_eff, index_cache, *env) = sum;
@@ -771,12 +757,41 @@ fflush(stdout);
     // ----------------------------------
   } else /* if (env->is_using_linalg()) */ {
     // ----------------------------------
+
     COMET_INSIST(false && "Invalid compute_method");
+
     // ----------------------------------
   } // if
   // ----------------------------------
 
   GMSectionInfo_destroy(si, env);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute 3-way numerators for that don't use linalg package.
+
+void ComputeMetrics3WayBlock::compute_nonlinalg_(
+  VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& numerators,
+  int j_block, int k_block, int section_step) {
+
+  COMET_INSIST(!env_.is_using_linalg());
+
+  if (env_.metric_type() == MetricType::CZEK)  {
+
+    compute_nonlinalg_czek_(vdata_i, vdata_j, vdata_k, numerators,
+      j_block, k_block, section_step, env_);
+
+  } else if (env_.is_metric_type_bitwise())  {
+
+    compute_nonlinalg_ccc_duo_(vdata_i, vdata_j, vdata_k, numerators,
+      j_block, k_block, section_step, env_);
+
+  } else {
+
+    COMET_INSIST_INTERFACE(&env_, false &&
+      "Selected metric_type unimplemented.");
+
+  }
 }
 
 //=============================================================================

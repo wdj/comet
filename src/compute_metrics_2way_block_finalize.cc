@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   compute_metrics_2way_block_combine.cc
+ * \file   compute_metrics_2way_block_finalize.cc
  * \author Wayne Joubert, James Nance
  * \date   Fri Oct  9 14:06:44 EDT 2015
  * \brief  Combine numerators and denominators, 2-way, for a single block.
@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
-#include "compute_metrics_2way_block_combine.hh"
+#include "compute_metrics_2way_block.hh"
 
 //=============================================================================
 
@@ -52,7 +52,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Combine nums and denoms on CPU to get final result, 2-way Czek.
 
-void gm_compute_2way_proc_combine_czek_(
+static void finalize_czek_(
   GMMetrics* metrics,
   MirroredBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
@@ -104,7 +104,7 @@ void gm_compute_2way_proc_combine_czek_(
          * zero---*/
 
     // ----------------------------------
-  } else if (!env->is_compute_method_gpu()) {
+  } else if (!env->is_compute_method_gpu()) { // && !env->all2all()
     // ----------------------------------
 
     for (int j = 0; j < nvl; ++j) {
@@ -117,13 +117,14 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat denom = vs_i < vs_j ?  vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
-        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = value;
+        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) =
+          value;
       } // for i
       metrics->num_metric_items_local_computed_inc(i_max);
     }   // for j
 
     // ----------------------------------
-  } else if (env->all2all()) {
+  } else if (env->all2all()) { // && env->is_compute_method_gpu()
     // ----------------------------------
 
     if (do_compute_triang_only) {
@@ -165,7 +166,7 @@ void gm_compute_2way_proc_combine_czek_(
     }
 
     // ----------------------------------
-  } else {
+  } else { // !env->all2all()) && env->is_compute_method_gpu()
     // ----------------------------------
 
     #pragma omp parallel for schedule(dynamic,1000)
@@ -179,7 +180,8 @@ void gm_compute_2way_proc_combine_czek_(
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
         const GMFloat value = (multiplier * numer) / denom;
-        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = value;
+        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) =
+          value;
       } // for i
     }   // for j
     for (int j = 0; j < nvl; ++j) {
@@ -195,7 +197,7 @@ void gm_compute_2way_proc_combine_czek_(
 //=============================================================================
 // Combine nums and denoms on CPU to get final result, 2-way CCC.
 
-void gm_compute_2way_proc_combine_ccc_(
+static void finalize_ccc_(
   GMMetrics* metrics,
   MirroredBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
@@ -227,7 +229,6 @@ void gm_compute_2way_proc_combine_ccc_(
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
             Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
-#if 1
             // ISSUE: this check may increase runtime nontrivially
             if (! env->sparse()) {
               // 4-sum check.
@@ -284,7 +285,6 @@ void gm_compute_2way_proc_combine_ccc_(
                 COMET_INSIST((! error3) && "Violation of algorithm computational invariant.");
               }
             }
-#endif
 #ifdef COMET_ASSERTIONS_ON
             if (! env->sparse()) {
               // 4-sum check.
@@ -304,7 +304,7 @@ void gm_compute_2way_proc_combine_ccc_(
 #endif
           } // for i
         }   // for j
-      } else {
+      } else { // do_compute_triang_only
         // don't use collapse because of overflow for large sizes
         //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
         #pragma omp parallel for schedule(dynamic,1000)
@@ -313,7 +313,6 @@ void gm_compute_2way_proc_combine_ccc_(
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
             Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
-#if 1
             // ISSUE: this check may increase runtime nontrivially
             if (! env->sparse()) {
               // 4-sum check.
@@ -370,7 +369,6 @@ void gm_compute_2way_proc_combine_ccc_(
                 COMET_INSIST((! error3) && "Violation of algorithm computational invariant.");
               }
             }
-#endif
 #ifdef COMET_ASSERTIONS_ON
             if (! env->sparse()) {
               // 4-sum check.
@@ -390,7 +388,7 @@ void gm_compute_2way_proc_combine_ccc_(
 #endif
           } // for i
         }   // for j
-     }
+     } // do_compute_triang_only
 
       // --------------
     } else { // (! env->all2all())
@@ -424,7 +422,7 @@ void gm_compute_2way_proc_combine_ccc_(
       // --------------
     } // if
     // --------------
-  }
+  } // if (env->is_using_linalg())
 
   // Compute multipliers.
 
@@ -511,7 +509,7 @@ void gm_compute_2way_proc_combine_ccc_(
 //=============================================================================
 // Combine nums and denoms on CPU to get final result, 2-way DUO.
 
-void gm_compute_2way_proc_combine_duo_(
+static void finalize_duo_(
   GMMetrics* metrics,
   MirroredBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
@@ -665,7 +663,7 @@ void gm_compute_2way_proc_combine_duo_(
 //=============================================================================
 // Combine nums and denoms on CPU to get final result, 2-way generic.
 
-void gm_compute_2way_proc_combine(
+void ComputeMetrics2WayBlock::finalize(
   GMMetrics* metrics,
   MirroredBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
@@ -681,22 +679,29 @@ void gm_compute_2way_proc_combine(
 
   switch (env->metric_type()) {
     case MetricType::CZEK: {
-      gm_compute_2way_proc_combine_czek_(metrics, metrics_buf,
-                                         vector_sums_left, vector_sums_right,
-                                         j_block, do_compute_triang_only, env);
+
+      finalize_czek_(metrics, metrics_buf,
+                     vector_sums_left, vector_sums_right,
+                     j_block, do_compute_triang_only, env);
+
     } break;
     case MetricType::CCC: {
-      gm_compute_2way_proc_combine_ccc_(metrics, metrics_buf,
-                                        vector_sums_left, vector_sums_right,
-                                        j_block, do_compute_triang_only, env);
+
+      finalize_ccc_(metrics, metrics_buf,
+                    vector_sums_left, vector_sums_right,
+                    j_block, do_compute_triang_only, env);
+
     } break;
     case MetricType::DUO: {
-      gm_compute_2way_proc_combine_duo_(metrics, metrics_buf,
-                                        vector_sums_left, vector_sums_right,
-                                        j_block, do_compute_triang_only, env);
+
+      finalize_duo_(metrics, metrics_buf,
+                    vector_sums_left, vector_sums_right,
+                    j_block, do_compute_triang_only, env);
+
     } break;
     default:
-      COMET_INSIST_INTERFACE(env, false && "Selected metric_type unimplemented.");
+      COMET_INSIST_INTERFACE(env, false &&
+        "Selected metric_type unimplemented.");
   } // case
 }
 

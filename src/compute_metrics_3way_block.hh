@@ -82,10 +82,7 @@ private:
   void compute_linalg_(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& metrics, int j_block, int k_block, int section_step);
 
-  void compute_czek_(VData vdata_i, VData vdata_j, VData vdata_k,
-    GMMetrics& metrics, int j_block, int k_block, int section_step);
-
-  void compute_ccc_duo_(VData vdata_i, VData vdata_j, VData vdata_k,
+  void compute_nonlinalg_(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& metrics, int j_block, int k_block, int section_step);
 
   // Disallowed methods.

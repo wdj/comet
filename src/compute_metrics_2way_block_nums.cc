@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
-#include "compute_metrics_2way_block_nums.hh"
+#include "compute_metrics_2way_block.hh"
 
 //=============================================================================
 
@@ -50,7 +50,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Start calculation of numerators, 2-way Czekanowski.
 
-void gm_compute_2way_proc_nums_czek_start_(
+static void compute_nums_nonlinalg_czek_start_(
   GMVectors* vectors_left,
   GMVectors* vectors_right,
   GMMetrics* metrics,
@@ -108,19 +108,20 @@ void gm_compute_2way_proc_nums_czek_start_(
           metric += value1 < value2 ? value1 : value2;
         } // for k
         // Update metrics array.
-        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) = metric;
+        Metrics_elt_2<GMFloat>(*metrics, i, j, env->proc_num_vector(), *env) =
+          metric;
       } // for i
     }   // for j
 
     // ----------------------------------
-  } // if
+  } // if (env->all2all())
   // ----------------------------------
 }
 
 //=============================================================================
 // Start calculation of numerators, 2-way CCC.
 
-void gm_compute_2way_proc_nums_ccc_start_(
+static void compute_nums_nonlinalg_ccc_start_(
   GMVectors* vectors_left,
   GMVectors* vectors_right,
   GMMetrics* metrics,
@@ -358,7 +359,7 @@ void gm_compute_2way_proc_nums_ccc_start_(
 //=============================================================================
 // Start calculation of numerators, 2-way DUO.
 
-void gm_compute_2way_proc_nums_duo_start_(
+static void compute_nums_nonlinalg_duo_start_(
   GMVectors* vectors_left,
   GMVectors* vectors_right,
   GMMetrics* metrics,
@@ -643,7 +644,7 @@ void gm_compute_2way_proc_nums_duo_start_(
 // NOTE: unlike the 3-way case, this function does not retrieve the
 // metrics_buf from the GPU.
 
-void gm_compute_2way_proc_nums_start(
+void ComputeMetrics2WayBlock::compute_nums_start(
   GMVectors* vectors_left,
   GMVectors* vectors_right,
   GMMetrics* metrics,
@@ -662,8 +663,6 @@ void gm_compute_2way_proc_nums_start(
 
   if (env->is_using_linalg()) {
 
-    // Perform pseudo GEMM.
-
     LinAlg::gemm_start(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
@@ -675,38 +674,39 @@ void gm_compute_2way_proc_nums_start(
       vector_sums_left->counts(), vector_sums_right->counts(),
       *(vectors_left->dm), *env);
 
-    return;
+  } else if(env->metric_type() == MetricType::CZEK) {
+
+    compute_nums_nonlinalg_czek_start_(
+        vectors_left, vectors_right, metrics, vectors_left_buf,
+        vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
+        env);
+
+  } else if(env->metric_type() == MetricType::CCC) {
+
+    compute_nums_nonlinalg_ccc_start_(
+        vectors_left, vectors_right, metrics, vectors_left_buf,
+        vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
+        env);
+
+  } else if(env->metric_type() == MetricType::DUO) {
+
+      compute_nums_nonlinalg_duo_start_(
+          vectors_left, vectors_right, metrics, vectors_left_buf,
+          vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
+          env);
+
+  } else {
+
+      COMET_INSIST_INTERFACE(env, false &&
+        "Selected metric_type unimplemented.");
 
   } // if
-
-  switch (env->metric_type()) {
-    case MetricType::CZEK: {
-      gm_compute_2way_proc_nums_czek_start_(
-          vectors_left, vectors_right, metrics, vectors_left_buf,
-          vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
-          env);
-    } break;
-    case MetricType::CCC: {
-      gm_compute_2way_proc_nums_ccc_start_(
-          vectors_left, vectors_right, metrics, vectors_left_buf,
-          vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
-          env);
-    } break;
-    case MetricType::DUO: {
-      gm_compute_2way_proc_nums_duo_start_(
-          vectors_left, vectors_right, metrics, vectors_left_buf,
-          vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
-          env);
-    } break;
-    default:
-      COMET_INSIST_INTERFACE(env, false && "Selected metric_type unimplemented.");
-  } // case
 }
 
 //=============================================================================
 // Finish calculation of numerators, 2-way generic.
 
-void gm_compute_2way_proc_nums_wait(
+void ComputeMetrics2WayBlock::compute_nums_wait(
   GMVectors* vectors_left,
   GMVectors* vectors_right,
   GMMetrics* metrics,
