@@ -141,6 +141,7 @@ namespace comet {
 /// \brief Build options enums
 
 struct BuildHas {
+
 # ifdef COMET_USE_MPI
     enum {MPI = true};
 # else
@@ -188,7 +189,10 @@ struct BuildHas {
 # else
     enum {DEBUG = false};
 # endif
-};
+
+  enum {INT128 = sizeof(BasicTypes::BigUInt) == 128/8};
+
+}; // BuildHas
 
 //-----------------------------------------------------------------------------
 /// \brief Helper class for system functions.
@@ -482,15 +486,6 @@ public:
   }
 
   bool is_compress_enabled() const {return can_compress_enable_(tc_eff());}
-//    const bool try_compress = true;
-//    return
-//      try_compress &&
-//      is_threshold_tc() &&
-//      num_way() == NumWay::_3 && // TODO: implement for 2-way
-//      BuildHas::ACCEL &&
-//      is_compute_method_gpu() &&
-//      !do_reduce();
-//  }
 
   int metric_format() const {return is_threshold_tc() ?
     MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
@@ -521,14 +516,6 @@ public:
   }
 
   bool is_shrink() const {return can_shrink_(tc_eff());}
-//    const size_t storage_per_metric = metric_size() +
-//      sizeof(MetricItemCoords_t);
-//    const size_t storage_per_metric_shrink = metric_size() +
-//      sizeof(MetricItemCoords_t) * num_entries_per_metric();
-//    return is_threshold_tc() && is_compress_enabled() &&
-//      NumWay::_3 == num_way() && // TODO: implement 2-way
-//      storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
-//  }
 
   //size_t metric_entry_size() const {
   //  COMET_INSIST(metric_size() % num_entries_per_metric() == 0);

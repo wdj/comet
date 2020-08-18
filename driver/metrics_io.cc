@@ -78,7 +78,7 @@ void MetricIO::write(size_t iG, size_t jG, GMFloat value) const {
 
   success = success && write_<uint32_t>(iG, bytes_written);
   success = success && write_<uint32_t>(jG, bytes_written);
-  success = success && write_<GMFp32>(value, bytes_written);
+  success = success && write_<BasicTypes::FP32>(value, bytes_written);
 
   COMET_INSIST(success && "File write failure.");
   num_written_++;
@@ -97,7 +97,7 @@ void MetricIO::write(size_t iG, size_t jG, size_t kG,
   success = success && write_<uint32_t>(iG, bytes_written);
   success = success && write_<uint32_t>(jG, bytes_written);
   success = success && write_<uint32_t>(kG, bytes_written);
-  success = success && write_<GMFp32>(value, bytes_written);
+  success = success && write_<BasicTypes::FP32>(value, bytes_written);
 
   COMET_INSIST(success && "File write failure.");
   num_written_++;

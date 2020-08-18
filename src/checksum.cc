@@ -385,18 +385,14 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
 
         int ijkE_perm[NumWay::MAX] = {0};
         for (int i = 0; i < env.num_way(); ++i) {
-//          ijkE_perm[iperm[i]] =
-//            CoordsInfo::getE(coords, i, entry_num, metrics, env);
           ijkE_perm[i] =
             CoordsInfo::getE(coords, iperm[i], entry_num, metrics, env);
        }
 
         //const int entry_num_perm = !env.is_shrink() ? entry_num :
         const int entry_num_perm =
-// !env.is_shrink() ? entry_num :
           NumWay::_2 == env.num_way() ?
             ijkE_perm[1] + 2 * ijkE_perm[0] :
-        //NumWay::_3 == env.num_way() ?
            ijkE_perm[2] + 2 * (ijkE_perm[1] + 2 * ijkE_perm[0]);
 
         // Convert value to uint64.  Store only 2*w+1 bits, at most -
@@ -415,7 +411,6 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
           uid = uid * metrics.num_vector_active + coord_perm[i];
         }
         uid = uid * env.num_entries_per_metric() + entry_num_perm;
-//printf("%zu %zu %i\n", (size_t)ivalue, (size_t)uid, entry_num_perm);
         // Randomize this id
         const UI64_t rand1 = utils::randomize(uid + 956158765);
         const UI64_t rand2 = utils::randomize(uid + 842467637);

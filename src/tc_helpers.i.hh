@@ -65,9 +65,9 @@ template<int TC_METHOD> struct TCTraits;
 //----------
 
 template<> struct TCTraits<TC::FP32> : public TCTraitsBase {
-  //typedef GMFp32 GemmIn_t; // don't use this because harder to access bits.
+  //typedef BasicTypes::FP32 GemmIn_t; // don't use, harder to access bits.
   typedef uint32_t GemmIn_t;
-  typedef GMFp32 GemmOut_t;
+  typedef BasicTypes::FP32 GemmOut_t;
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_32F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
@@ -85,7 +85,7 @@ template<> struct TCTraits<TC::FP32> : public TCTraitsBase {
 
 template<> struct TCTraits<TC::FP16> : public TCTraitsBase {
   typedef uint16_t GemmIn_t;
-  typedef GMFp32 GemmOut_t;
+  typedef BasicTypes::FP32 GemmOut_t;
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
@@ -154,14 +154,14 @@ template<typename GemmIn_t> struct TCBufTraits;
 
 template<> struct TCBufTraits<uint32_t> {
 private:
-  //static __host__ __device__ uint32_t mycast(GMFp32 v) {
+  //static __host__ __device__ uint32_t mycast(BasicTypes::FP32 v) {
   //  // ISSUE: the result here is, "by the book", undefined; the proper
   //  // way is to use char* to access the component bytes of the types
   //  // to copy from one type to another.
   //  const uint32_t* const p = (uint32_t*)&v;
   //  return *p;
   //}
-  static __host__ __device__ uint32_t mycast(const GMFp32 v) {
+  static __host__ __device__ uint32_t mycast(const BasicTypes::FP32 v) {
     const char* const pv = (const char*)&v;
     uint32_t r = 0;
     char* const pr = (char*)&r;

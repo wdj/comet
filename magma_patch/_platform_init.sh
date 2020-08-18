@@ -50,6 +50,7 @@ local COMET_PLATFORM_STUB
 local COMET_TEST_PROCS_MAX=64
 local COMET_WERROR=ON
 local COMET_USE_GTEST=ON
+local COMET_USE_INT128=OFF
 
 #----------------------------------------
 if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
@@ -83,7 +84,7 @@ elif [ $COMET_PLATFORM = CRAY_XK7 ] ; then
   local USE_OPENMP=ON
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
-  local USE_INT128=ON
+  local COMET_USE_INT128=ON
 
   #---Libraries.
 
@@ -139,7 +140,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   local USE_OPENMP=ON
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
-  local USE_INT128=ON
+  local COMET_USE_INT128=ON
 
   #---Libraries.
 
@@ -199,7 +200,7 @@ elif [ $COMET_PLATFORM = DGX2 ] ; then
   local USE_OPENMP=ON
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
-  local USE_INT128=ON
+  local COMET_USE_INT128=ON
 
   #---Libraries.
 
@@ -254,8 +255,6 @@ EOF
   local USE_OPENMP=OFF
   #local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
   local COMET_OPENMP_COMPILE_OPTS=""
-
-  local USE_INT128=OFF
 
   #---Libraries.
 
@@ -586,7 +585,7 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   local USE_OPENMP=ON
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
-  local USE_INT128=ON
+  local COMET_USE_INT128=ON
 
   #---Libraries.
 
@@ -696,7 +695,7 @@ elif [ $COMET_PLATFORM = MURPHY ] ; then
   #local USE_OPENMP=ON
   #local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
 
-  local USE_INT128=ON
+  local COMET_USE_INT128=ON
 
   #---Libraries.
 

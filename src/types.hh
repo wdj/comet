@@ -59,30 +59,40 @@ enum {
 };
 
 //=============================================================================
-// Types: general
+/// \brief Basic types.
 
-// TODO: use C++ types that have guaranteed sizes, e.g., int32_t.
+// TODO: consistently use C++ types that have guaranteed sizes, e.g., int32_t.
 
-// Integer types
+struct BasicTypes {
 
-#ifdef COMET_USE_INT128
-typedef unsigned __int128 GMUInt128;
-#endif
+  typedef float FP32;
+  typedef double FP64;
 
-// Floating point of explicit (double) precision
+# ifdef COMET_USE_INT128
+    typedef unsigned __int128 BigUInt;
+# else
+    typedef uint64_t BigUInt;
+# endif
 
-typedef float GMFp32;
-typedef double GMFp64;
+private:
 
-static void gm_check_type_sizes() {
-  COMET_STATIC_ASSERT(sizeof(GMFp32) == 32/8);
-  COMET_STATIC_ASSERT(sizeof(GMFp64) == 64/8);
-  COMET_STATIC_ASSERT(sizeof(int) == 4);
-  COMET_STATIC_ASSERT(sizeof(size_t) == 8);
-#ifdef COMET_USE_INT128
-  COMET_STATIC_ASSERT(sizeof(GMUInt128) == 16);
-#endif
-}
+  enum {BITS_PER_BYTE_ = 8};
+
+  static void check_type_sizes_() {
+    COMET_STATIC_ASSERT(sizeof(FP32) == 32/BITS_PER_BYTE_);
+    COMET_STATIC_ASSERT(sizeof(FP64) == 64/BITS_PER_BYTE_);
+    COMET_STATIC_ASSERT(sizeof(int) == 4);
+    COMET_STATIC_ASSERT(sizeof(size_t) == 8);
+#   ifdef COMET_USE_INT128
+      COMET_STATIC_ASSERT(sizeof(BigUInt) == 128/BITS_PER_BYTE_);
+#   endif
+  }
+
+  // Disallowed methods.
+
+  BasicTypes(const BasicTypes&);
+  void operator=(const BasicTypes&);
+}; // BasicTypes
 
 //=============================================================================
 // Type for storing coordinates of a metrics item.
@@ -131,11 +141,11 @@ enum { GM_BITS2_MAX_VALUE_BITS = 2 };
 typedef unsigned int GMTally1;
 
 // For Metrics: double used to store two metric numerator values.
-typedef GMFp64 PackedDouble;
+typedef BasicTypes::FP64 PackedDouble;
 
 // For Metrics: two floats used to store two metric numerator values.
 
-typedef struct { GMFp32 data[2]; } Single2;
+typedef struct { BasicTypes::FP32 data[2]; } Single2;
 
 // For Metrics: 2 (4) doubles to store 4 (8) packed tally results:
 // use 25 bits of each 52-bit mantissa to store a result

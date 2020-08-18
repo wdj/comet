@@ -74,6 +74,9 @@ static double Metrics_ccc_duo_value(
 static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
 
+  if (!BuildHas::INT128)
+    return;
+
   if (env->metric_type() != MetricType::CCC || 
       env->num_way() != NumWay::_3 || ! env->are_ccc_params_default())
     return;
@@ -86,10 +89,6 @@ static void GMMetrics_ccc_check_size_nofp_3(GMMetrics* metrics, CEnv* env) {
 
   COMET_INSIST_INTERFACE(env, lnum < 128 && "Number of fields too large.");
 }
-
-//-----------------------------------------------------------------------------
-
-#ifdef COMET_USE_INT128
 
 //-----------------------------------------------------------------------------
 /// \brief Formula for CCC 3-way metric using 128 bit integer arithmetic.
@@ -105,15 +104,17 @@ static double GMMetrics_ccc_value_nofp_3(GMMetrics* metrics,
                                          const GMTally1 cijk,
                                          CEnv* env) {
   COMET_ASSERT(metrics && env);
+  COMET_ASSERT(BuildHas::INT128);
 
   typedef double Float_t;
+  typedef BasicTypes::BigUInt UInt128;
 
-  const GMUInt128 num = rijk * (GMUInt128)(3 * ci - 1 * si) *
-                               (GMUInt128)(3 * cj - 1 * sj) *
-                               (GMUInt128)(3 * ck - 1 * sk);
+  const UInt128 num = rijk * (UInt128)(3 * ci - 1 * si) *
+                             (UInt128)(3 * cj - 1 * sj) *
+                             (UInt128)(3 * ck - 1 * sk);
 
-  const GMUInt128 denom = 6 * cijk * (GMUInt128)ci * (GMUInt128)cj
-                                   * (GMUInt128)ck;
+  const UInt128 denom = 6 * cijk * (UInt128)ci * (UInt128)cj
+                                 * (UInt128)ck;
 
   const size_t m = metrics->num_field_active;
   const int lm = utils::log2(m);
@@ -154,6 +155,7 @@ static double GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(kE >= 0 && kE < 2);
   COMET_ASSERT(env->are_ccc_params_default());
+  COMET_ASSERT(BuildHas::INT128);
 
   typedef double Float_t;
 
@@ -197,8 +199,6 @@ static double GMMetrics_ccc_get_from_index_nofp_3(GMMetrics* metrics,
   return GMMetrics_ccc_value_nofp_3(metrics, rijk, si, sj, sk, ci, cj, ck,
                                     cijk, env);
 }
-
-#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Templatized accessor for 3-way CCC or DUO result, implementation.
@@ -342,8 +342,9 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 
   } // if (env.sparse())
 
-#ifdef COMET_USE_INT128
-  if (env.metric_type() == MetricType::CCC && env.are_ccc_params_default()) {
+
+  if (BuildHas::INT128 && env.metric_type() == MetricType::CCC &&
+      env.are_ccc_params_default()) {
     const Float_t result_intcalc = GMMetrics_ccc_get_from_index_nofp_3(&metrics,
                                          index, iE, jE, kE, &env);
 
@@ -353,12 +354,13 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
     const double diff = fabs(result_intcalc - result_floatcalc);
 
     if (!(diff < eps)) {
-      fprintf(stderr, "Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
+      fprintf(stderr,
+              "Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
              (double)result_floatcalc, (double)result_intcalc);
       COMET_INSIST(diff < eps);
     }
   }
-#endif
+
   return (FloatResult_t)result_floatcalc;
 }
 

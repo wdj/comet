@@ -73,7 +73,6 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
     // Populate leading columns of matX.
 
     // Don't use collapse because of overflow for large sizes
-    //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
     #pragma omp parallel for schedule(dynamic,1000)
     for (int I = I_min; I < I_max; ++I) {
       // Operate on columns x_i and x_j elementwise.

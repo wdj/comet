@@ -52,6 +52,9 @@ namespace comet {
 static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, CEnv* env) {
   COMET_INSIST(metrics && env);
 
+  if (!BuildHas::INT128)
+    return;
+
   if (env->metric_type() != MetricType::CCC ||
       env->num_way() != NumWay::_2 || ! env->are_ccc_params_default())
     return;
@@ -70,10 +73,6 @@ static void GMMetrics_ccc_check_size_nofp_2(GMMetrics* metrics, CEnv* env) {
 }
 
 //-----------------------------------------------------------------------------
-
-#ifdef COMET_USE_INT128
-
-//-----------------------------------------------------------------------------
 /// \brief Formula for CCC 2-way metric using 128 bit integer arithmetic.
 
 static double GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
@@ -85,19 +84,21 @@ static double GMMetrics_ccc_value_nofp_2(GMMetrics* metrics,
                                          const GMTally1 cij,
                                          CEnv* env) {
   COMET_ASSERT(metrics && env);
+  COMET_ASSERT(BuildHas::INT128);
 
   typedef double Float_t;
+  typedef BasicTypes::BigUInt UInt128;
 
-  const GMUInt128 num = rij * (GMUInt128)(3 * ci - 1 * si) *
-                              (GMUInt128)(3 * cj - 1 * sj);
+  const UInt128 num = rij * (UInt128)(3 * ci - 1 * si) *
+                            (UInt128)(3 * cj - 1 * sj);
 
-  const GMUInt128 denom = 2 * cij * (GMUInt128)ci * (GMUInt128)cj;
+  const UInt128 denom = 2 * cij * (UInt128)ci * (UInt128)cj;
 
   const int shift = mantissa_digits<Float_t>() - 3; // Note num/denom <= 4.5 < 1<<3
 
   // This should be an integer with no more than
   // mantissa_digits<Float_t>() binary digits
-  const GMUInt128 int_ratio = (num << shift) / denom;
+  const UInt128 int_ratio = (num << shift) / denom;
 
   // Convert to floting point and then adjust exponent.
   const Float_t result = ( (Float_t) int_ratio ) /
@@ -121,6 +122,7 @@ static double GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(env->are_ccc_params_default());
+  COMET_ASSERT(BuildHas::INT128);
 
   typedef double Float_t;
 
@@ -159,8 +161,6 @@ static double GMMetrics_ccc_get_from_index_nofp_2(GMMetrics* metrics,
 
   return GMMetrics_ccc_value_nofp_2(metrics, rij, si, sj, ci, cj, cij, env);
 }
-
-#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Templatized accessor for 2-way CCC or DUO result, implementation.
@@ -299,23 +299,24 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
   } // if (env.sparse())
 
-#ifdef COMET_USE_INT128
-  if (env.metric_type() == MetricType::CCC && env.are_ccc_params_default()) {
+  if (BuildHas::INT128 && env.metric_type() == MetricType::CCC &&
+      env.are_ccc_params_default()) {
     const Float_t result_intcalc = GMMetrics_ccc_get_from_index_nofp_2(&metrics,
                                          index, iE, jE, &env);
 
     // TODO: CHECK floating point type here
-    const double eps = 1. / ( ((size_t)1) << (mantissa_digits<FloatResult_t>() - 6) );
+    const double eps = 1. /
+      ( ((size_t)1) << (mantissa_digits<FloatResult_t>() - 6) );
 
     const double diff = fabs(result_intcalc - result_floatcalc);
 
     if (!(diff < eps)) {
-      fprintf(stderr, "Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
-             (double)result_floatcalc, (double)result_intcalc);
+      fprintf(stderr,
+              "Error: mismatch result_floatcalc %.16e result_intcalc %.16e\n",
+              (double)result_floatcalc, (double)result_intcalc);
       COMET_INSIST(diff < eps);
     }
   }
-#endif
   return (FloatResult_t)result_floatcalc;
 }
 
