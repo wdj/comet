@@ -431,14 +431,19 @@ static bool Metrics_ccc_duo_threshold_detector_3(
   COMET_ASSERT(env.num_way() == NumWay::_3);
 
   // if no active threshold, then always pass threshold criterion.
-  if (!env.is_threshold())
+  if (!env.is_threshold()) {
+    COMET_INSIST(!env.is_using_threshold_detector());
     return true;
+  }
 
   // if is_shrink, assume a threshold pass may exist, don't take time to check.
-  if (env.is_shrink())
+  if (env.is_shrink()) {
+    COMET_INSIST(!env.is_using_threshold_detector());
     return true;
+  }
 
   if (env.is_threshold_tc()) {
+    COMET_INSIST(!env.is_using_threshold_detector());
     typedef Tally4x2<MetricFormat::SINGLE> TTable_t;
     const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
     for (int iE = 0; iE < 2; ++iE) {
@@ -451,6 +456,8 @@ static bool Metrics_ccc_duo_threshold_detector_3(
     }
     return false;
   }
+
+  COMET_INSIST(env.is_using_threshold_detector());
 
   // this is here because xor stuff not implemented below.
   COMET_ASSERT(!env.is_using_xor()); // should never occur.

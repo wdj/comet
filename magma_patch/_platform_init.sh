@@ -120,7 +120,8 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
 
   #---Modules etc.
 
-  module -q load gcc/6.4.0
+  #module -q load gcc/6.4.0
+  module -q load gcc
   module -q load cuda
   module -q load cmake
   module -q load essl

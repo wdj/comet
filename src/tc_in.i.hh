@@ -779,6 +779,7 @@ void tc_buf_write_(
 }
 
 //=============================================================================
+/// \brief GPU kernel to support tc_compute_matX_counts.
 
 template<typename GemmIn_t>
 __global__ static void tc_compute_matX_counts_kernel_(
@@ -810,7 +811,7 @@ __global__ static void tc_compute_matX_counts_kernel_(
 
   const int fl_thread = fl_ind0 + fl_dim0 * fl_ind1;
 
-  // NOTE: here nfl/nfal can be larger than the number of fl threads.
+  // NOTE: here nfl and nfal can be larger than the number of fl threads.
 
   const int num_way = NumWay::_3;
   const bool is_sparse = true;
@@ -819,6 +820,8 @@ __global__ static void tc_compute_matX_counts_kernel_(
   const bool is_bitwise_3way_2step = true;
   const bool is_vectors_halved = true;
   enum {IS_LEFT = true};
+
+  // Adapted from https://www.olcf.ornl.gov/wp-content/uploads/2019/12/05_Atomics_Reductions_Warp_Shuffle.pdf
 
   extern __shared__ uint32_t sdata[];
 
@@ -851,11 +854,12 @@ __global__ static void tc_compute_matX_counts_kernel_(
   // First thread of threadblock adds in its contribution.
 
   if (fl_ind0 == 0) {
-    atomicAdd(&matX_counts[vlX2_thread], sdata[0]);
+    atomicAdd(&(matX_counts[vlX2_thread]), sdata[0]);
   }
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Compute vector (column) sums for matX to support 3-way xor gemm.
 
 void tc_compute_matX_counts(
   int I_max,
@@ -908,6 +912,14 @@ void tc_compute_matX_counts(
   typedef TCTraits<TC::B1>::GemmIn_t GemmIn_t;
 
   uint32_t* const matX_counts = tc_bufs.matX_counts;
+
+# if defined COMET_USE_CUDA
+    cudaMemsetAsync(matX_counts, 0, tc_bufs.matX_counts_size,
+      env.stream_compute());
+# elif defined COMET_USE_HIP
+    hipMemsetAsync(matX_counts, 0, tc_bufs.matX_counts_size,
+      env.stream_compute());
+# endif
 
   const int threadblocksize = 256;
   COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&

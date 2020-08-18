@@ -1870,14 +1870,14 @@ void DriverTest_b1_xor_gemm_() {
         "--num_proc_vector %i --num_field 1 --num_vector %i "
         "--compute_method %s --sparse %s "
         "--problem_type random --verbosity %i --tc %i --num_way %i "
-        "--num_tc_steps %i --all2all yes" ;
+        "--num_tc_steps %i --all2all yes";
 
     const int num_proc_vector = 1;
 
     typedef comet::TC TC;
 
     const bool is_duo = true;
-    const bool gpu = 1;
+    const bool gpu = true;
     const int num_tc_steps = 1;
     const int nv = 4;
     const int num_way = 2;
@@ -1894,6 +1894,45 @@ void DriverTest_b1_xor_gemm_() {
             sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
     EXPECT_EQ(true, compare_2runs(options1, options2));
 } // DriverTest_b1_xor_gemm_
+
+#if 0
+void DriverTest_b1_xor_gemm_() {
+
+    char options1[1024];
+    char options2[1024];
+
+    char options_template[] =
+        "--metric_type %s "
+        //"--num_proc_vector %i --num_field 100 --num_vector %i "
+        "--num_proc_vector %i --num_field 71 --num_vector %i "
+        "--compute_method %s --sparse %s "
+        "--problem_type random --verbosity %i --tc %i --num_way %i "
+        "--num_tc_steps %i --all2all yes"
+        " --threshold .0001 --verbosity 1 ";
+
+    const int num_proc_vector = 1;
+
+    typedef comet::TC TC;
+
+    const bool is_duo = true;
+    const bool gpu = true;
+    const int num_tc_steps = 1;
+    const int nv = 17;
+    const int num_way = 3;
+    const bool sparse = true;
+    const int tc = TC::B1;
+
+    //if (nv/num_proc_vector < num_way) continue;
+
+    sprintf(options1, options_template, is_duo ? "duo" : "ccc",
+            num_proc_vector, nv, "GPU",
+            sparse ? "yes" : "no", 1, TC::FP16, num_way, num_tc_steps);
+    sprintf(options2, options_template, is_duo ? "duo" : "ccc",
+            num_proc_vector, nv, gpu ? "GPU" : "CPU",
+            sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
+    EXPECT_EQ(true, compare_2runs(options1, options2));
+} // DriverTest_b1_xor_gemm_
+#endif
 
 //=============================================================================
 
@@ -2544,7 +2583,6 @@ TEST(DriverTest, b1_xor_gemm) {
   DriverTest_b1_xor_gemm_();
 }
 
-#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
@@ -2604,7 +2642,6 @@ TEST(DriverTest, duo2) {
 TEST(DriverTest, duo3) {
   DriverTest_duo3_();
 }
-#endif
 
 END_TESTS
 

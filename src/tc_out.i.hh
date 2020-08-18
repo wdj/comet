@@ -494,10 +494,6 @@ __host__ __device__ void tc_threshold_3way_kernel_elt_(
           (GMTally1)((sIJ + sK - vals_this[indT_K])/2) :
           (GMTally1)vals_this[indT_K];
 
-//if (I==0 && J==0 && indT_I != indT_J)
-//if (I==0 && K==0)
-//printf("%i %i %i   %i %i %i      %i   %i %i %i  %i  \n", (int)I, (int)J, (int)K, (int)indT_I, (int)indT_J, (int)indT_K, (int)rijk, (int)sI, (int)sJ, (int)sK, (int)vals_this[indT_K]  );
-
         const bool is_zero_denom = 0 == cI || 0 == cJ || 0 == cK || 0 == cijk;
         const double metric_value = is_zero_denom ? 0e0 :
           ccc_duo_value<CBPE, double>(

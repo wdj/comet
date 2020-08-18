@@ -6,9 +6,12 @@ Code levelization: subpackage dependencies
 
 [implementation highlights are in brackets]
 
+
+0. external libraries:
      CUDA
+     ROCM
      MPI
-0.   MAGMA (patched)
+     MAGMA (patched)
           Patches to MAGMA to support needed modified GEMM operations
 
 
@@ -27,15 +30,16 @@ Code levelization: subpackage dependencies
 2a   utils
           Miscellaneous math utilities
 2b.  formulas
-          Basic formulas that define the metrics used.
+          Basic formulas that define some of the metrics used.
 
 
 3.   magma_wrapper
           Interface to generalized linear algebra functions, e.g. MAGMA
-          [because of MAGMA limitations, tile the GEMM to smaller sizes]
+          [because of MAGMABLAS limitations, it is needed to tile the
+           GEMM to smaller sizes]
      mirrored_buf
           Class to manage dual CPU/GPU reflected arrays
-          [CPU/pinneed and GPU mem, same size; user chooses when to reflect]
+          [CPU/pinned and GPU mem, same size; user chooses when to transfer]
 
 
 4.   compressed_buf
@@ -111,15 +115,15 @@ Code levelization: subpackage dependencies
 10a. compute_metrics_2way_block_nums
           Calculate metrics numerators, 2-way, for a single block
           [non-all2all special case code: every block computes triangle]
-10b. compute_metrics_2way_block_combine
+10b. compute_metrics_2way_block_finalize
           Combine numerators and denominators, 2-way, for a single block
           [2-way combine in separate function; 3-way: colocated with num calc]
           [2-way, 3-way CCC: no combine; just save sums and counts]
           [note metrics_buf is square, metrics is combined triang and squares]
-10c. compute_metrics_3way_block_nongpu
+10c. compute_metrics_3way_block_nonlinalg
           Calculate numerators, 3-way, for a single block, non-GPU case
           [not-all2all is always tetrahedron, otherwise tet, prism or slice]
-     compute_metrics_3way_block_gpu
+     compute_metrics_3way_block_linalg
           Calculate numerators, 3-way, for a single block, GPU case
           [steps in inner loop: form X, mGEMM on X, add result into metrics]
           [Czek requires 3 2-way matrices; CCC requires 3 inner mGEMM steps]

@@ -454,7 +454,8 @@ public:
   // Do we do final metrics calc and thresholding in TC package.
   bool can_threshold_tc_(int tc_try) const {
     COMET_INSIST(TC::AUTO != tc_try);
-    return is_try_tc_(tc_try) && sparse() && num_proc_field() == 1 && is_threshold()
+    return is_try_tc_(tc_try) && sparse() && num_proc_field() == 1 &&
+           is_threshold()
       && !is_double_prec();
   }
   bool is_threshold_tc() const {return can_threshold_tc_(tc_eff());}
@@ -564,6 +565,15 @@ public:
    return CoordsType::BY_METRIC == coords_type_cache_;
   }
 
+  bool is_using_threshold_detector(int tc_try) const {
+      return !(!is_threshold() || can_shrink_(tc_try) ||
+               can_threshold_tc_(tc_try));
+  }
+
+  bool is_using_threshold_detector() const {
+    return is_using_threshold_detector(tc_eff());
+  }
+
   // XOR GEMM-related.
 
   bool can_use_xor_(int tc_try) const {
@@ -574,14 +584,13 @@ public:
       NumWay::_2 == num_way_ &&
       ComputeMethod::CPU == compute_method_ &&
       !can_use_linalg_(tc_try);
-    const bool is_not_using_threshold_detector =
-      !is_threshold() || can_shrink_(tc_try) || can_threshold_tc_(tc_try);
     return
       MetricType::DUO == metric_type_ && // THIS LINE CURRENTLY REQUIRED
       sparse() && // THIS LINE CURRENTLY REQUIRED
-      is_not_using_threshold_detector && // THIS LINE CURRENTLY REQUIRED
-      //(can_use_xor_nonlinalg || is_try_tc_(tc_try));
-      num_way() == NumWay::_2 && // TODO: implement for 3-way
+      !is_using_threshold_detector(tc_try) && // THIS LINE CURRENTLY REQUIRED
+      //num_way() == NumWay::_2 && // TODO: implement for 3-way
+      (num_way() == NumWay::_2 ||
+       (num_way() == NumWay::_3 && can_threshold_tc_(tc_try))) &&
       (can_use_xor_nonlinalg || TC::B1 == tc_try);
   }
 
