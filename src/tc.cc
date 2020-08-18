@@ -174,12 +174,14 @@ static void tc_gemm_start_impl_(
   if (env.is_threshold_tc()) {
 
     tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
-      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
+      J, step_2way, env);
 
   } else {
 
     tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
-      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J, step_2way, env);
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
+      J, step_2way, env);
 
   }
 }

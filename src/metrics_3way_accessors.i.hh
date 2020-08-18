@@ -268,9 +268,14 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
 
     if (env.is_using_xor()) {
 
+      COMET_INSIST(false && "Unimplemented.");
+
       // Make adjustment for xor gemm.
       // See notes for 8x8 system solve to back out this result.
       // Note i and k are the GEMM axes, j is fixed, hence the following.
+
+      // NOTE: this code is wrong, need sij instead of si.
+
       const GMTally1 cijk = (si0 + sk0 - GMTally4x2_get(ttable, 0, 0, 0)) / 2 +
                             (si0 + sk1 - GMTally4x2_get(ttable, 0, 0, 1)) / 2 +
                             (si0 + sk0 - GMTally4x2_get(ttable, 0, 1, 0)) / 2 +
@@ -287,6 +292,9 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
       // Make adjustment for xor gemm.
       // See notes for 8x8 system solve to back out this result.
       // Note i and k are the GEMM axes, j is fixed, hence the following.
+
+      // NOTE: this code is wrong, need sij instead of si.
+
       const GMTally1 rijk_true = (si + sk - rijk) / 2;
       //const GMTally1 rijk_true = iE &&  kE ? (si1 + sk1 - rijk) / 2 :
       //                           iE && !kE ? (si1 + sk0 - rijk) / 2 :
@@ -417,7 +425,7 @@ static FloatResult_t Metrics_ccc_duo_get_3(
 /// \brief Templatized Check if any table value may exceed threshold.
 
 template<int COUNTED_BITS_PER_ELT>
-static bool Metrics_ccc_duo_threshold_detect_3(
+static bool Metrics_ccc_duo_threshold_detector_3(
   GMMetrics& metrics, const size_t index, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_3);

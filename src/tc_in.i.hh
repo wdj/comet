@@ -319,7 +319,6 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
 
 template<typename GemmIn_t, bool IS_LEFT>
 __host__ __device__ static GemmIn_t tc_buf_write_kernel_get_field_(
-  GemmIn_t* vo,
   const uint32_t* vim,
   const uint32_t* vic,
   int vi_dim0,
@@ -581,7 +580,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
       // NOTE: does not work for all cases.
 
       const GemmIn_t out =
-        tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vo, vim, vic, vi_dim0,
+        tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vim, vic, vi_dim0,
           num_way, is_sparse, is_duo, form_matX_tc, step_2way,
           is_bitwise_3way_2step, is_vectors_halved,
           nvle, nvleD2, nvleX2_thread, nvlea,
@@ -796,48 +795,64 @@ __global__ static void tc_compute_matX_counts_kernel_(
   int nfl_thread,
   int nfal) {
 
-#if xxx
-
-
-
-
-  const int fl_thread0 = threadIdx_x_();
-  const int fl_thread = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const int vlX2_thread = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
 
-  if (vlX2_thread >= nvleX2_thread || fl_thread >= nfl_thread)
+  if (vlX2_thread >= nvleX2_thread)
     return;
+
+  const int jE = vlX2_thread % 2; // count either 0 or 1 bits.
+  const int vl_thread = vlX2_thread / 2;
+
+  const int fl_ind0 = threadIdx_x_();
+  const int fl_dim0 = blockDim_x_();
+  const int fl_ind1 = blockIdx_x_();
+  const int fl_dim1 = gridDim_x_();
+
+  const int fl_thread = fl_ind0 + fl_dim0 * fl_ind1;
+
+  // NOTE: here nfl/nfal can be larger than the number of fl threads.
 
   const int num_way = NumWay::_3;
   const bool is_sparse = true;
-  const bool is_right = false;
   const bool is_duo = true;
   const bool form_matX_tc = true;
   const bool is_bitwise_3way_2step = true;
   const bool is_vectors_halved = true;
+  enum {IS_LEFT = true};
 
-  __shared__ uint32_t sdata[];
+  extern __shared__ uint32_t sdata[];
 
-  int tid = fl_thread0;
-  sdata[tid] = 0;
-  size_t idx = fl_thread;
+  sdata[fl_ind0] = 0;
+  int fl = fl_thread;
 
-  while (idx < N) { // grid stride loop to load data
-    sdata[tid] += gdata[idx];
-    idx += gridDim.x * blockDim.x;
+  // Reduce across threadblocks along fl direction.
+
+  while (fl < nfal) {
+    const GemmIn_t elt = 
+      tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vim, vic, vi_dim0,
+        num_way, is_sparse, is_duo, form_matX_tc, step_2way,
+        is_bitwise_3way_2step, is_vectors_halved,
+        nvle, nvleD2, nvleX2_thread, nvlea,
+        nfl, nfal, 
+        jE, vl_thread, fl);
+
+    sdata[fl_ind0] += elt;
+    fl += fl_dim1 * fl_dim0;
   }
 
-  for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
+  // Reduce within threadblock.
+
+  for (unsigned int s = fl_dim0/2; s > 0; s >>= 1) {
     __syncthreads();
-    if (tid < s) // parallel sweep reduction
-      sdata[tid] += sdata[tid + s];
-    }
+    if (fl_ind0 < s) // parallel sweep reduction
+      sdata[fl_ind0] += sdata[fl_ind0 + s];
+  }
 
-  if (tid == 0) atomicAdd(out, sdata[0]);
+  // First thread of threadblock adds in its contribution.
 
-
-
-#endif
+  if (fl_ind0 == 0) {
+    atomicAdd(&matX_counts[vlX2_thread], sdata[0]);
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -905,7 +920,7 @@ void tc_compute_matX_counts(
   COMET_LAUNCH_KERNEL((tc_compute_matX_counts_kernel_<GemmIn_t>),
     dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
     dim3(threadblocksize, 1, 1),
-    threadblocksize * sizeof(uint32_t),
+    threadblocksize * sizeof(int32_t),
     env.stream_compute(),
     matX_counts, vim, vic, vi_dim0, step_2way,
     nvle, nvleD2, nvleX2_thread, nvlea,

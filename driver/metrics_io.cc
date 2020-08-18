@@ -171,7 +171,7 @@ static void MetricsIO_write_tally2x2_bin_impl_(
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Fast check to skip metrics with no passes.
-      if (Metrics_ccc_duo_threshold_detect_2<COUNTED_BITS_PER_ELT>(
+      if (Metrics_ccc_duo_threshold_detector_2<COUNTED_BITS_PER_ELT>(
             *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
         for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
@@ -297,7 +297,7 @@ static void MetricsIO_write_tally4x2_bin_impl_(
 #pragma omp parallel for schedule(dynamic,1000)
     for (size_t index = ind_base; index < ind_max; ++index) {
       // Fast check to skip metrics with no passes.
-      if (Metrics_ccc_duo_threshold_detect_3<COUNTED_BITS_PER_ELT>(
+      if (Metrics_ccc_duo_threshold_detector_3<COUNTED_BITS_PER_ELT>(
              *metrics, index, *env)) {
         const MetricItemCoords_t coords = metrics->coords_value(index);
         for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();

@@ -379,7 +379,7 @@ static FloatResult_t Metrics_ccc_duo_get_2(
 /// \brief Templatized Check if any table value may exceed threshold.
 
 template<int COUNTED_BITS_PER_ELT>
-static bool Metrics_ccc_duo_threshold_detect_2(GMMetrics& metrics,
+static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
   const size_t index, CEnv& env) {
   COMET_ASSERT(index < metrics.num_metrics_local); // && index >= 0
   COMET_ASSERT(env.num_way() == NumWay::_2);

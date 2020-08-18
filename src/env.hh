@@ -111,6 +111,7 @@ namespace comet {
 
   __device__ static int blockDim_x_() { return blockDim.x; }
 
+  __device__ static int gridDim_x_() { return gridDim.x; }
   __device__ static int gridDim_y_() { return gridDim.y; }
 #elif defined COMET_USE_HIP && defined __HIPCC__
   __device__ static int threadIdx_x_() { return hipThreadIdx_x; }
@@ -121,6 +122,7 @@ namespace comet {
 
   __device__ static int blockDim_x_() { return hipBlockDim_x; }
 
+  __device__ static int gridDim_x_() { return hipGridDim_x; }
   __device__ static int gridDim_y_() { return hipGridDim_y; }
 #else
   __device__ static int threadIdx_x_() { return 0; }
@@ -131,6 +133,7 @@ namespace comet {
 
   __device__ static int blockDim_x_() { return 0; }
 
+  __device__ static int gridDim_x_() { return 0; }
   __device__ static int gridDim_y_() { return 0; }
 #endif
 
@@ -571,12 +574,12 @@ public:
       NumWay::_2 == num_way_ &&
       ComputeMethod::CPU == compute_method_ &&
       !can_use_linalg_(tc_try);
-    const bool is_not_using_threshold_detect =
+    const bool is_not_using_threshold_detector =
       !is_threshold() || can_shrink_(tc_try) || can_threshold_tc_(tc_try);
     return
       MetricType::DUO == metric_type_ && // THIS LINE CURRENTLY REQUIRED
       sparse() && // THIS LINE CURRENTLY REQUIRED
-      is_not_using_threshold_detect && // THIS LINE CURRENTLY REQUIRED
+      is_not_using_threshold_detector && // THIS LINE CURRENTLY REQUIRED
       //(can_use_xor_nonlinalg || is_try_tc_(tc_try));
       num_way() == NumWay::_2 && // TODO: implement for 3-way
       (can_use_xor_nonlinalg || TC::B1 == tc_try);
