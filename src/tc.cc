@@ -48,7 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined COMET_USE_CPUBLAS
 #if defined COMET_USE_HIP
-#include "blis.h"
+//#include "blis.h"
+#include "cblas.h"
 #else
 #include BLAS_H
 #endif

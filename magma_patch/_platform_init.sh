@@ -326,20 +326,22 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   module load openmpi
   module load rocm
   module load hip
+  module load cray-libsci
   #module load rocblas
   (module list) 2>&1 | grep -v '^ *$'
 
   #export ROCM_PATH=/opt/rocm
   #export HIP_PATH=/opt/rocm/hip
   # Use custom rocblas build if available.
-  local ROCBLAS_LOCAL=$HOME/rocBLAS/build/release/rocblas-install/rocblas
-  export ROCBLAS_PATH=$ROCBLAS_LOCAL
-  if [ -e $ROCBLAS_PATH ] ; then
-    local BLIS_PATH=$HOME/rocBLAS/extern/blis
-  else
-    export ROCBLAS_PATH=/opt/rocm/rocblas
-    local BLIS_PATH=$HOME/rocblas_extern/blis
-  fi
+#  local ROCBLAS_LOCAL=$HOME/rocBLAS/build/release/rocblas-install/rocblas
+#  export ROCBLAS_PATH=$ROCBLAS_LOCAL
+#  if [ -e $ROCBLAS_PATH ] ; then
+#    local BLIS_PATH=$HOME/rocBLAS/extern/blis
+#  else
+#    export ROCBLAS_PATH=/opt/rocm/rocblas
+#    local BLIS_PATH=$HOME/rocblas_extern/blis
+#  fi
+  local ROCBLAS_PATH=$ROCM_PATH
 
   #---Compiler.
 
@@ -369,14 +371,19 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
 
   local USE_MAGMA=OFF
 
-  if [ "${BLIS_PATH:-}" != "" ] ; then
-    local USE_CPUBLAS=ON
-    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/generic"
-    #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
-    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/generic"
-    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/generic -lblis"
-    # ./configure --disable-threading --enable-cblas generic
-  fi
+#  if [ "${BLIS_PATH:-}" != "" ] ; then
+#    local USE_CPUBLAS=ON
+#    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/generic"
+#    #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
+#    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/generic"
+#    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/generic -lblis"
+#    # ./configure --disable-threading --enable-cblas generic
+#  fi
+
+  local USE_CPUBLAS=ON
+  local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
+  local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
+  COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
 
   #local COMET_CAN_USE_MPI=OFF
   local COMET_CAN_USE_MPI=ON
