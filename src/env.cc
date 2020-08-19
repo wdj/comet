@@ -596,7 +596,8 @@ bool CEnv::can_run(int tc_try) const {
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc_try) {
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
                      //|| (BuildHas::HIP && System::compute_capability() >= 1000));
-                     || (BuildHas::HIP && System::compute_capability() >= 908));
+                     //|| (BuildHas::HIP && System::compute_capability() >= 908));
+                     || (BuildHas::HIP && System::compute_capability() >= 906));
   }
 
   // TODO: determine, set correct values for HIP, if any.

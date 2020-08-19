@@ -329,8 +329,8 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   #module load rocblas
   (module list) 2>&1 | grep -v '^ *$'
 
-  export ROCM_PATH=/opt/rocm
-  export HIP_PATH=/opt/rocm/hip
+  #export ROCM_PATH=/opt/rocm
+  #export HIP_PATH=/opt/rocm/hip
   # Use custom rocblas build if available.
   local ROCBLAS_LOCAL=$HOME/rocBLAS/build/release/rocblas-install/rocblas
   export ROCBLAS_PATH=$ROCBLAS_LOCAL

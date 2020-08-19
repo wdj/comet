@@ -265,7 +265,7 @@ function main
       echo "Building googletest ..."
       if [ -e ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz ] ; then
         ln -s ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz
-    else
+      else
         wget -O googletest-release-1.7.0.tar.gz \
           https://github.com/google/googletest/archive/release-1.7.0.tar.gz
       fi
@@ -390,7 +390,7 @@ function main
   #============================================================================
   # Run cmake.
 
-  echo "Executibg cmake ..."
+  echo "Executing cmake ..."
 
   set -x
   time cmake \
