@@ -23,7 +23,7 @@ of CoMet is done.
 
 FOR DEVELOPERS:
 The adaptation of MAGMA is a two step process.
-First, running ./clone_magma.sh $tag creates a modified MAGMA version,
+First, running ./clone_magma.sh $tag $version creates a modified MAGMA,
 magma_${tag}.cloned, with functions and files renamed to avoid namespace
 collisions.
 Second, this is patched by typing ./patch_magma.sh $tag which applies

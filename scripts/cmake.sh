@@ -157,7 +157,7 @@ function main
   #----------------------------------------------------------------------------
   #---Create magma variants.
 
-  if [ $USE_MAGMA = ON ] ; then
+  if [ $USE_MAGMA = ON -a ${USE_CUDA:-OFF} = ON ] ; then
     local MAGMA_DIR=$BUILD_DIR/magma_patch
     local MAGMA_VERSION=1.6.2
     if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
@@ -173,7 +173,37 @@ function main
           http://icl.utk.edu/projectsfiles/magma/downloads/magma-${MAGMA_VERSION}.tar.gz
       fi
       pushd $MAGMA_DIR
-      ./create_modified_magmas.sh
+      ./create_modified_magmas.sh $MAGMA_VERSION
+      popd
+      touch $MAGMA_DIR/copy_is_complete
+    fi
+  fi
+
+  if [ $USE_MAGMA = ON -a ${USE_HIP:-OFF} = ON ] ; then
+    local MAGMA_DIR=$BUILD_DIR/magma_patch
+    #local MAGMA_VERSION="f50e717b2e7820b6fdd635eb894c3e6242b2c9e2"
+    local MAGMA_VERSION="f50e717b"
+    if [ ! -e $MAGMA_DIR/copy_is_complete ] ; then
+      rm -rf $MAGMA_DIR
+      echo "Copying MAGMA ..."
+      cp -r $REPO_DIR/magma_patch $MAGMA_DIR
+      pushd $MAGMA_DIR
+      if [ -e $REPO_DIR/tpls/magma-${MAGMA_VERSION}.tar.gz ] ; then
+        cp $REPO_DIR/tpls/magma-${MAGMA_VERSION}.tar.gz $MAGMA_DIR/
+      else
+        git clone https://bitbucket.org/icl/magma.git
+        cd magma
+        git checkout -b hipMAGMA origin/hipMAGMA
+        git checkout $MAGMA_VERSION
+        rm -rf .git
+        cp make.inc-examples/make.inc.hip_openblas make.inc
+        sed -i -e 's/lopenblas/lsci_cray/' make.inc
+        cd ..
+        mv magma magma-$MAGMA_VERSION
+        tar cf - magma-$MAGMA_VERSION | gzip > magma-${MAGMA_VERSION}.tar.gz
+        rm -rf magma-$MAGMA_VERSION
+      fi
+      ./create_modified_magmas.sh $MAGMA_VERSION
       popd
       touch $MAGMA_DIR/copy_is_complete
     fi

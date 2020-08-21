@@ -48,13 +48,35 @@ function do_make
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
-  cp ../$COMET_MAGMA_MAKE_INC make.inc
-  local _CMGA_=$COMET_MAGMA_GPU_ARCH
-  time env CUDA_DIR=$CUDA_ROOT \
-    GPU_TARGET=sm$_CMGA_ MIN_ARCH=350 \
-    NV_SM=" -gencode arch=compute_${_CMGA_},code=sm_${_CMGA_}" \
-    NV_COMP=" -gencode arch=compute_${_CMGA_},code=compute_${_CMGA_}" \
-  make lib CC=$COMET_CXX_SERIAL_COMPILER -j8
+  if [ ${USE_CUDA:-OFF} = ON ] ; then
+    cp ../$COMET_MAGMA_MAKE_INC make.inc
+    local _CMGA_=$COMET_MAGMA_GPU_ARCH
+    time env CUDA_DIR=$CUDA_ROOT \
+      GPU_TARGET=sm$_CMGA_ MIN_ARCH=350 \
+      NV_SM=" -gencode arch=compute_${_CMGA_},code=sm_${_CMGA_}" \
+      NV_COMP=" -gencode arch=compute_${_CMGA_},code=compute_${_CMGA_}" \
+    make lib CC=$COMET_CXX_SERIAL_COMPILER -j8
+  fi
+
+  if [ ${USE_HIP:-OFF} = ON ] ; then
+    cp make.inc-examples/make.inc.hip_openblas make.inc
+    sed -i -e 's/lopenblas/lsci_cray/' make.inc
+
+    env OPENBLASDIR=$CRAY_LIBSCI_PREFIX HIPDIR=$HIP_PATH make -f make.gen.hipMAGMA_*
+
+    # tools/codegen.py fails on non-ascii characters in files, thus:
+    sed -i -e '122d' magma_*blas_hip/zlarfg.hip.cpp
+    sed -i -e '93d' magma_*blas_hip/zlarfg-v2.hip.cpp
+    sed -i -e '100d' magma_*blas_hip/zlarfgx-v2.hip.cpp
+    sed -i -e '128d' magma_*blas_hip/zlarfgx-v2.hip.cpp
+    sed -i -e '595d' testing/magma_*_generate.cpp
+    sed -i -e '13d' sparse/blas/zgeellrtmv.cu
+    sed -i -e '115d' sparse/blas/zgeellrtmv.cu
+    sed -i -e '64d' sparse/blas/zgeellrtmv.cu
+    sed -i -e 's/.*#include .*cublas.h.*//' include/*.h
+
+    env OPENBLASDIR=$CRAY_LIBSCI_PREFIX HIPDIR=$HIP_PATH  make lib -j16
+  fi
 }
 
 #==============================================================================
