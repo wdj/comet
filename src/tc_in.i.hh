@@ -796,6 +796,7 @@ __global__ static void tc_compute_matX_counts_kernel_(
   int nfl_thread,
   int nfal) {
 
+#ifdef COMET_USE_ACCEL
   const int vlX2_thread = blockIdx_y_() + gridDim_y_() * blockIdx_z_();
 
   if (vlX2_thread >= nvleX2_thread)
@@ -856,6 +857,7 @@ __global__ static void tc_compute_matX_counts_kernel_(
   if (fl_ind0 == 0) {
     atomicAdd(&(matX_counts[vlX2_thread]), sdata[0]);
   }
+#endif
 }
 
 //-----------------------------------------------------------------------------
