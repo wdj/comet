@@ -34,16 +34,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------*/
 
 #ifdef COMET_USE_MAGMA
-#include "magma_minproduct.h"
-#include "magma_minproduct_lapack.h"
-#include "magma_mgemm2.h"
-#include "magma_mgemm2_lapack.h"
-#include "magma_mgemm3.h"
-#include "magma_mgemm3_lapack.h"
-#include "magma_mgemm4.h"
-#include "magma_mgemm4_lapack.h"
-#include "magma_mgemm5.h"
-#include "magma_mgemm5_lapack.h"
+//#include "magma_minproduct.h"
+//#include "magma_minproduct_lapack.h"
+//#include "magma_mgemm2.h"
+//#include "magma_mgemm2_lapack.h"
+//#include "magma_mgemm3.h"
+//#include "magma_mgemm3_lapack.h"
+//#include "magma_mgemm4.h"
+//#include "magma_mgemm4_lapack.h"
+//#include "magma_mgemm5.h"
+//#include "magma_mgemm5_lapack.h"
 //#elif defined COMET_USE_CUDA
 //  #include "cublas_v2.h"
 #elif defined COMET_USE_HIP

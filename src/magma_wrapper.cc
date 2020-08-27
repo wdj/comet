@@ -33,28 +33,51 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -----------------------------------------------------------------------------*/
 
+#if defined COMET_USE_HIP
+# define COMET_USE_MAGMA_V2
+#endif
+
 #ifdef COMET_USE_MAGMA
+#ifdef COMET_USE_MAGMA_V2
+#include "magma_minproduct_v2.h"
+#include "magma_minproduct_auxiliary.h"
+#include "magma_mgemm2_v2.h"
+#include "magma_mgemm2_auxiliary.h"
+#include "magma_mgemm3_v2.h"
+#include "magma_mgemm3_auxiliary.h"
+#include "magma_mgemm4_v2.h"
+#include "magma_mgemm4_auxiliary.h"
+#include "magma_mgemm5_v2.h"
+#include "magma_mgemm5_auxiliary.h"
+#else
 #include "magma_minproduct.h"
 #include "magma_minproductblas.h"
-//#include "magma_minproduct_lapack.h"
 #include "magma_mgemm2.h"
 #include "magma_mgemm2blas.h"
-//#include "magma_mgemm2_lapack.h"
 #include "magma_mgemm3.h"
 #include "magma_mgemm3blas.h"
-//#include "magma_mgemm3_lapack.h"
 #include "magma_mgemm4.h"
 #include "magma_mgemm4blas.h"
-//#include "magma_mgemm4_lapack.h"
 #include "magma_mgemm5.h"
 #include "magma_mgemm5blas.h"
-//#include "magma_mgemm5_lapack.h"
+#endif
 //#elif defined COMET_USE_CUDA
 //  #include "cublas_v2.h"
 #elif defined COMET_USE_HIP
   //#include "hip/hip_runtime_api.h"
 //  #include "hip/hip_runtime.h"
 #endif
+
+#if defined COMET_USE_HIP
+# define COMET_USE_MAGMA_V2
+#endif
+
+#if defined COMET_USE_MAGMA_V2
+# define COMMA_ARG(q) , q
+#else
+# define COMMA_ARG
+#endif
+
 
 #include "env.hh"
 #include "assertions.hh"
@@ -83,36 +106,46 @@ void MagmaWrapper::initialize(CEnv& env) {
 
     magma_minproduct_int_t magma_code = magma_minproduct_init();
     COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS && "Init error.");
-    magma_code = magma_minproductblasSetKernelStream(env.stream_compute());
-    COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS && "SetKernelStream.");
+#   if ! defined COMET_USE_MAGMA_V2
+      magma_code = magma_minproductblasSetKernelStream(env.stream_compute());
+      COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS && "SetKernelStream.");
+#   endif
 
   } else if (use_mgemm4_(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_init();
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS && "Init error.");
+#   if ! defined COMET_USE_MAGMA_V2
     magma_code = magma_mgemm4blasSetKernelStream(env.stream_compute());
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS && "SetKernelStream.");
+#   endif
 
   } else if (use_mgemm2_(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_init();
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS && "Init error.");
+#   if ! defined COMET_USE_MAGMA_V2
     magma_code = magma_mgemm2blasSetKernelStream(env.stream_compute());
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS && "SetKernelStream.");
+#   endif
 
   } else if (use_mgemm3_(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_init();
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS && "Init error.");
+#   if ! defined COMET_USE_MAGMA_V2
     magma_code = magma_mgemm3blasSetKernelStream(env.stream_compute());
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS && "SetKernelStream.");
+#   endif
 
   } else if (use_mgemm5_(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_init();
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS && "Init error.");
+#   if ! defined COMET_USE_MAGMA_V2
     magma_code = magma_mgemm5blasSetKernelStream(env.stream_compute());
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS && "SetKernelStream.");
+#   endif
 
   } else { //--------------------
 
@@ -387,13 +420,13 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
 
     magma_minproductblas_dlaset
       (Magma_minproductFull, mat_dim1, mat_dim2, (double)0, (double)0,
-       (double*)buf->d, mat_dim1);
+       (double*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MINPRODUCT>().compute(env)));
 
   } else if (use_minproduct_(env)) { //--------------------
 
     magma_minproductblas_slaset
       (Magma_minproductFull, mat_dim1, mat_dim2, (float)0, (float)0,
-       (float*)buf->d, mat_dim1);
+       (float*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MINPRODUCT>().compute(env)));
 
   } else if (use_mgemm4_(env)) { //--------------------
 
@@ -402,7 +435,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
     Float_t zero = {0, 0};
 
     magma_mgemm4blas_zlaset(Magma_mgemm4Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)buf->d, mat_dim1);
+                            (Float_t*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM4>().compute(env)));
 
   } else if (use_mgemm2_(env)) { //--------------------
 
@@ -411,7 +444,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
     Float_t zero = {0, 0};
 
     magma_mgemm2blas_zlaset(Magma_mgemm2Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)buf->d, mat_dim1);
+                            (Float_t*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM2>().compute(env)));
 
   } else if (use_mgemm3_(env)) { //--------------------
 
@@ -420,7 +453,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
     Float_t zero = {0, 0};
 
     magma_mgemm3blas_zlaset(Magma_mgemm3Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)buf->d, mat_dim1);
+                            (Float_t*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM3>().compute(env)));
 
   } else if (use_mgemm5_(env)) { //--------------------
 
@@ -429,7 +462,7 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
     Float_t zero = {0, 0};
 
     magma_mgemm5blas_zlaset(Magma_mgemm5Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)buf->d, mat_dim1);
+                            (Float_t*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM5>().compute(env)));
 
   } else { //--------------------
 
@@ -501,7 +534,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
         lddb_,
         beta,
         (double*)matC,
-        lddc_);
+        lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MINPRODUCT>().compute(env)));
       COMET_INSIST(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_dgemm.");
     } else {
@@ -518,7 +551,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
         lddb_,
         beta,
         (float*)matC,
-        lddc_);
+        lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MINPRODUCT>().compute(env)));
       COMET_INSIST(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_sgemm.");
     }
@@ -556,7 +589,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
       lddb_,
       beta,
       (Float_t*)matC,
-      lddc_);
+      lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM4>().compute(env)));
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm4blas_zgemm.");
 
@@ -591,7 +624,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
       lddb_,
       beta,
       (Float_t*)matC,
-      lddc_);
+      lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM2>().compute(env)));
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm2blas_zgemm.");
 
@@ -626,7 +659,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
       lddb_,
       beta,
       (Float_t*)matC,
-      lddc_);
+      lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM3>().compute(env)));
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm3blas_zgemm.");
 
@@ -661,7 +694,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
       lddb_,
       beta,
       (Float_t*)matC,
-      lddc_);
+      lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM5>().compute(env)));
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm5blas_zgemm.");
 
@@ -770,17 +803,30 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
 #ifdef COMET_USE_MAGMA
 
+  typedef MagmaWrapper MW;
+
   if (use_minproduct_(env) && env.is_double_prec()) { //--------------------
 
+    typedef double Float_t;
+
     magma_minproduct_dsetmatrix_async(
-      buf->dim0, buf->dim1, (double*)buf->h, buf->dim0,
-      (double*)buf->d, buf->dim0, env.stream_togpu());
+      buf->dim0, buf->dim1, (Float_t*)buf->h, buf->dim0,
+      (Float_t*)buf->d, buf->dim0,
+      MagmaQueue<MW::MINPRODUCT>().togpu(env));
+      //(Float_t*)buf->d, buf->dim0, env.stream_togpu());
 
   } else if (use_minproduct_(env)) { //--------------------
 
+    typedef float Float_t;
+
     magma_minproduct_ssetmatrix_async(
-      buf->dim0, buf->dim1, (float*)buf->h, buf->dim0,
-      (float*)buf->d, buf->dim0, env.stream_togpu());
+      buf->dim0, buf->dim1, (Float_t*)buf->h, buf->dim0,
+      (Float_t*)buf->d, buf->dim0,
+      MagmaQueue<MW::MINPRODUCT>().togpu(env));
+      //(Float_t*)buf->d, buf->dim0, env.stream_togpu());
+
+//#   if ! defined COMET_USE_MAGMA_V2
+//#   endif
 
   } else if (use_mgemm4_(env)) { //--------------------
 
@@ -788,7 +834,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm4_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
                                   buf->dim0, (Float_t*)buf->d, buf->dim0,
-                                  env.stream_togpu());
+                                  MagmaQueue<MW::MGEMM4>().togpu(env));
+                                  //env.stream_togpu());
 
   } else if (use_mgemm2_(env)) { //--------------------
 
@@ -796,7 +843,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm2_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
                                   buf->dim0, (Float_t*)buf->d, buf->dim0,
-                                  env.stream_togpu());
+                                  MagmaQueue<MW::MGEMM2>().togpu(env));
+                                  //env.stream_togpu());
 
   } else if (use_mgemm3_(env)) { //--------------------
 
@@ -804,7 +852,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm3_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
                                   buf->dim0, (Float_t*)buf->d, buf->dim0,
-                                  env.stream_togpu());
+                                  MagmaQueue<MW::MGEMM3>().togpu(env));
+                                  //env.stream_togpu());
 
   } else if (use_mgemm5_(env)) { //--------------------
 
@@ -812,7 +861,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm5_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
                                   buf->dim0, (Float_t*)buf->d, buf->dim0,
-                                  env.stream_togpu());
+                                  MagmaQueue<MW::MGEMM5>().togpu(env));
+                                  //env.stream_togpu());
 
   } else { //--------------------
 
@@ -847,17 +897,27 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
 #ifdef COMET_USE_MAGMA
 
+  typedef MagmaWrapper MW;
+
   if (use_minproduct_(env) && env.is_double_prec()) { //--------------------
 
+    typedef double Float_t;
+
     magma_minproduct_dgetmatrix_async(
-      buf->dim0, buf->dim1, (double*)buf->d, buf->dim0,
-      (double*)buf->h, buf->dim0, env.stream_fromgpu());
+      buf->dim0, buf->dim1, (Float_t*)buf->d, buf->dim0,
+      (Float_t*)buf->h, buf->dim0,
+      MagmaQueue<MW::MINPRODUCT>().fromgpu(env));
+      //env.stream_fromgpu());
 
   } else if (use_minproduct_(env)) { //--------------------
 
+    typedef float Float_t;
+
     magma_minproduct_sgetmatrix_async(
-      buf->dim0, buf->dim1, (float*)buf->d, buf->dim0,
-      (float*)buf->h, buf->dim0, env.stream_fromgpu());
+      buf->dim0, buf->dim1, (Float_t*)buf->d, buf->dim0,
+      (Float_t*)buf->h, buf->dim0,
+      MagmaQueue<MW::MINPRODUCT>().fromgpu(env));
+      //env.stream_fromgpu());
 
   } else if (use_mgemm4_(env)) { //--------------------
 
@@ -865,7 +925,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm4_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
                                   buf->dim0, (Float_t*)buf->h, buf->dim0,
-                                  env.stream_fromgpu());
+                                  MagmaQueue<MW::MGEMM4>().fromgpu(env));
+                                  //env.stream_fromgpu());
 
   } else if (use_mgemm2_(env)) { //--------------------
 
@@ -873,7 +934,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm2_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
                                   buf->dim0, (Float_t*)buf->h, buf->dim0,
-                                  env.stream_fromgpu());
+                                  MagmaQueue<MW::MGEMM2>().fromgpu(env));
+                                  //env.stream_fromgpu());
 
   } else if (use_mgemm3_(env)) { //--------------------
 
@@ -881,7 +943,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm3_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
                                   buf->dim0, (Float_t*)buf->h, buf->dim0,
-                                  env.stream_fromgpu());
+                                  MagmaQueue<MW::MGEMM3>().fromgpu(env));
+                                  //env.stream_fromgpu());
 
   } else if (use_mgemm5_(env)) { //--------------------
 
@@ -889,7 +952,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm5_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
                                   buf->dim0, (Float_t*)buf->h, buf->dim0,
-                                  env.stream_fromgpu());
+                                  MagmaQueue<MW::MGEMM5>().fromgpu(env));
+                                  //env.stream_fromgpu());
 
   } else { //--------------------
 

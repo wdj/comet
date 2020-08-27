@@ -194,6 +194,11 @@ function main
   stepinit_ipiv
   adjust_ipiv
 
+  blas_ssyrk_batched
+  blas_dsyrk_batched
+  blas_csyrk_batched
+  blas_zsyrk_batched
+
   "
 
   local name

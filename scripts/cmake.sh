@@ -242,7 +242,8 @@ function main
         fi
       fi # build_is_complete
       COMET_MAGMA_COMPILE_OPTS+=" -I$MAGMA_SUBDIR/include"
-      COMET_MAGMA_LINK_OPTS+=" -L$MAGMA_SUBDIR/lib -lmagma_$TAG"
+      COMET_MAGMA_LINK_OPTS+=" -L$MAGMA_SUBDIR/lib -Wl,-rpath=$MAGMA_SUBDIR/lib -lmagma_$TAG"
+      #COMET_MAGMA_LINK_OPTS+=" $MAGMA_SUBDIR/lib/libmagma_${TAG}.a"
     done # TAG
   fi
 
