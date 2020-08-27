@@ -75,7 +75,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined COMET_USE_MAGMA_V2
 # define COMMA_ARG(q) , q
 #else
-# define COMMA_ARG
+# define COMMA_ARG(q)
 #endif
 
 
