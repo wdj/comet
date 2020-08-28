@@ -371,8 +371,8 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
 
   #---Libraries.
 
-  local USE_MAGMA=OFF
-  #local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
+  local USE_MAGMA=ON
 
 #  if [ "${BLIS_PATH:-}" != "" ] ; then
 #    local USE_CPUBLAS=ON
@@ -405,7 +405,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   #XXX salloc -N2 -A stf006 $SHELL
   #XXX salloc -N2 -A stf006 $SHELL
   # salloc -N1 -A stf006
-  # salloc -N1 -A stf006
+  # salloc -N2 -A stf006
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     local COMET_TEST_COMMAND="module load openmpi ; env OMP_NUM_THREADS=1 mpirun --npernode 48"

@@ -1,6 +1,49 @@
+diff -aur magma_mgemm5.cloned/interface_cuda/interface.cpp magma_mgemm5/interface_cuda/interface.cpp
+--- magma_mgemm5.cloned/interface_cuda/interface.cpp	2020-08-28 09:26:57.438658000 -0400
++++ magma_mgemm5/interface_cuda/interface.cpp	2020-08-28 09:27:58.643609000 -0400
+@@ -1155,18 +1155,18 @@
+     const char* func, const char* file, int line )
+ {
+     if ( queue != NULL ) {
+-    #ifdef HAVE_CUDA
+-        if ( queue->cublas__ != NULL && (queue->own__ & own_cublas)) {
+-            cublasStatus_t stat = cublasDestroy( queue->cublas__ );
++    //#ifdef HAVE_CUDA
++        if ( queue->hipblas__ != NULL && (queue->own__ & own_hipblas)) {
++            hipblasStatus_t stat = hipblasDestroy( queue->hipblas__ );
+             check_xerror( stat, func, file, line );
+             MAGMA_mgemm5_UNUSED( stat );
+         }
+-        if ( queue->cusparse__ != NULL && (queue->own__ & own_cusparse)) {
+-            cusparseStatus_t stat = cusparseDestroy( queue->cusparse__ );
++        if ( queue->hipsparse__ != NULL && (queue->own__ & own_hipsparse)) {
++            hipsparseStatus_t stat = hipsparseDestroy( queue->hipsparse__ );
+             check_xerror( stat, func, file, line );
+             MAGMA_mgemm5_UNUSED( stat );
+         }
+-    #endif
++    //#endif
+         if ( queue->stream__ != NULL && (queue->own__ & own_stream)) {
+             cudaError_t err = cudaStreamDestroy( queue->stream__ );
+             check_xerror( err, func, file, line );
+@@ -1179,10 +1179,10 @@
+         queue->own__      = own_none;
+         queue->device__   = -1;
+         queue->stream__   = NULL;
+-    #ifdef HAVE_CUDA
+-        queue->cublas__   = NULL;
+-        queue->cusparse__ = NULL;
+-    #endif
++    //#ifdef HAVE_CUDA
++        queue->hipblas__   = NULL;
++        queue->hipsparse__ = NULL;
++    //#endif
+         magma_mgemm5_free_cpu( queue );
+     }
+ }
 diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/magma_mgemm5blas/gemm_stencil.cuh
---- magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh	2020-08-20 10:49:54.857935000 -0400
-+++ magma_mgemm5/magma_mgemm5blas/gemm_stencil.cuh	2020-08-20 11:34:59.530741000 -0400
+--- magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh	2020-08-28 09:26:57.559654000 -0400
++++ magma_mgemm5/magma_mgemm5blas/gemm_stencil.cuh	2020-08-28 09:34:16.703664000 -0400
 @@ -138,6 +138,217 @@
  #define THR_M ( BLK_M / DIM_X )
  #define THR_N ( BLK_N / DIM_Y )
@@ -235,3 +278,19 @@ diff -aur magma_mgemm5.cloned/magma_mgemm5blas/gemm_stencil.cuh magma_mgemm5/mag
                        #endif
                      #endif
                  }
+@@ -421,7 +639,14 @@
+                   #ifdef CONJ_B
+                     fma(rA[m], conj(rB[n]), rC[n][m]);
+                   #else
+-                    fma(rA[m], rB[n], rC[n][m]);
++                    //---BEGIN MODIFIED GENOMICS_METRICS
++                    //fma(rA[m], rB[n], rC[n][m]);
++                    #if (version == trans_tn) && (precision == z)
++                      rC[n][m] = mgemm5_compute(rA[m], rB[n], rC[n][m]);
++                    #else
++                      fma(rA[m], rB[n], rC[n][m]);
++                    #endif
++                    //---END MODIFIED GENOMICS_METRICS
+                   #endif
+                 #endif
+             }

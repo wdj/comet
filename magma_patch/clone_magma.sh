@@ -38,20 +38,20 @@ function main
 
   local source_file=${magma_name}.tar.gz
   if [ ! -e $source_file ] ; then
-    echo "Error: unable to locate source file. $source_file" 1>&2
+    echo "Error: unable to locate source file. $source_file PWD=$PWD" 1>&2
     exit 1
   fi
 
   local source_dir=$magma_name
   if [ -e $source_dir ] ; then
-    echo "Error: source directory already exists. $source_dir" 1>&2
+    echo "Error: source directory already exists. $source_dir PWD=$PWD" 1>&2
     exit 1
   fi
 
   local target_dir=magma_${tag}.cloned
 
   if [ -e $target_dir ] ; then
-    echo "Error: target directory already exists. $source_dir" 1>&2
+    echo "Error: target directory already exists. $target_dir PWD=$PWD" 1>&2
     exit 1
   fi
 
