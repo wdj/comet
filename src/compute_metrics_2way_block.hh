@@ -46,6 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+// Forward declaration.
+class MagmaWrapper;
+
 //-----------------------------------------------------------------------------
 
 class ComputeMetrics2WayBlock {
@@ -63,6 +66,7 @@ public:
     VectorSums* vector_sums_right,
     int j_proc,
     bool compute_triang_only,
+    MagmaWrapper& magma_wrapper,
     CEnv* env);
 
   static void compute_nums_wait(

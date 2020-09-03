@@ -46,6 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+// Forward declaration.
+class MagmaWrapper;
+
 //-----------------------------------------------------------------------------
 /// \brief Class for computing numerators for 3-way methods.
 
@@ -59,7 +62,8 @@ public:
   ~ComputeMetrics3WayBlock();
 
   void compute(VData vdata_i, VData vdata_j, VData vdata_k,
-    GMMetrics& numerators, int j_block, int k_block, int section_step);
+    GMMetrics& numerators, int j_block, int k_block, int section_step,
+    MagmaWrapper& magma_wrapper);
 
 private:
 
@@ -80,7 +84,8 @@ private:
   MirroredBuf* matB_buf_[NUM_BUF];
 
   void compute_linalg_(VData vdata_i, VData vdata_j, VData vdata_k,
-    GMMetrics& metrics, int j_block, int k_block, int section_step);
+    GMMetrics& metrics, int j_block, int k_block, int section_step,
+    MagmaWrapper& magma_wrapper);
 
   void compute_nonlinalg_(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& metrics, int j_block, int k_block, int section_step);

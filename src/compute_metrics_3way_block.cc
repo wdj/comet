@@ -103,7 +103,8 @@ ComputeMetrics3WayBlock::~ComputeMetrics3WayBlock() {
 
 void ComputeMetrics3WayBlock::compute(
   VData vdata_i, VData vdata_j, VData vdata_k, 
-  GMMetrics& numerators, int j_block, int k_block, int section_step) {
+  GMMetrics& numerators, int j_block, int k_block, int section_step,
+  MagmaWrapper& magma_wrapper) {
   COMET_INSIST(j_block >= 0 && j_block < env_.num_block_vector());
   COMET_INSIST(k_block >= 0 && k_block < env_.num_block_vector());
   COMET_INSIST(! (env_.proc_num_vector() == j_block &&
@@ -114,7 +115,7 @@ void ComputeMetrics3WayBlock::compute(
   if (env_.is_using_linalg()) {
 
     compute_linalg_(vdata_i, vdata_j, vdata_k, numerators, j_block, k_block,
-      section_step);
+      section_step, magma_wrapper);
 
   } else {
 

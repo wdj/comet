@@ -71,7 +71,7 @@ void LinAlg::gemm_start(
   const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
   MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
-  int step_2way, GMDecompMgr& dm, CEnv& env) {
+  int step_2way, GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
   COMET_INSIST(matA1 && matA2 && matB && matC);
   COMET_ASSERT(sums_I && sums_J && sums_K && counts_I && counts_J && counts_K);
 
@@ -171,10 +171,11 @@ void LinAlg::gemm_start(
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr& dm, CEnv& env) {
+  GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
 
   gemm_start(m, n, k, matA, matA, matB, matC,
-    sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm, env);
+    sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm,
+    magma_wrapper, env);
 }
 
 //-----------------------------------------------------------------------------
@@ -199,11 +200,11 @@ void LinAlg::gemm(
   const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
   MirroredBuf* sums_I, MirroredBuf* sums_J,
   MirroredBuf* counts_I, MirroredBuf* counts_J,
-  GMDecompMgr& dm, CEnv& env) {
+  GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
   COMET_INSIST(matA && matB && matC);
 
   gemm_start(m, n, k, matA, matB, matC,
-    sums_I, sums_J, counts_I, counts_J, dm, env);
+    sums_I, sums_J, counts_I, counts_J, dm, magma_wrapper, env);
   gemm_wait(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, env);
 }

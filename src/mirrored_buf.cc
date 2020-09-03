@@ -341,7 +341,7 @@ void MirroredBuf::to_accel() {
 
 //-----------------------------------------------------------------------------
 
-void MirroredBuf::from_accel_start(Stream_t stream) {
+void MirroredBuf::from_accel_start(AccelStream_t stream) {
 
   if (!env_.is_compute_method_gpu())
     return;
@@ -363,7 +363,7 @@ void MirroredBuf::from_accel_start(Stream_t stream) {
 
 //-----------------------------------------------------------------------------
 
-void MirroredBuf::from_accel_wait(Stream_t stream) {
+void MirroredBuf::from_accel_wait(AccelStream_t stream) {
 
   if (!env_.is_compute_method_gpu())
     return;
@@ -379,7 +379,7 @@ void MirroredBuf::from_accel_wait(Stream_t stream) {
 
 //-----------------------------------------------------------------------------
 
-void MirroredBuf::from_accel(Stream_t stream) {
+void MirroredBuf::from_accel(AccelStream_t stream) {
   from_accel_start(stream);
   from_accel_wait(stream);
 }

@@ -655,6 +655,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
   VectorSums* vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
+  MagmaWrapper& magma_wrapper,
   CEnv* env) {
 
   COMET_INSIST(vectors_left && vectors_right && metrics && env);
@@ -672,7 +673,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
       metrics_buf,
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
-      *(vectors_left->dm), *env);
+      *(vectors_left->dm), magma_wrapper, *env);
 
   } else if(env->metric_type() == MetricType::CZEK) {
 

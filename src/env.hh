@@ -51,9 +51,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined COMET_USE_CUDA
 #  include "cuda.h"
 #  include "cuda_runtime.h"
+#  include "cublas_v2.h"
+#  include "cusparse.h"
 #elif defined COMET_USE_HIP
 //#  include "hip/hip_runtime_api.h"
 #  include "hip/hip_runtime.h"
+#  include "rocblas.h"
+#  include "rocsparse.h"
 //void hipdummy() {
 //  void* dummy = (void*)s;
 //  dummy++;
@@ -98,6 +102,32 @@ static void dim3(size_t dim0, size_t dim1, size_t dim2) {}
 //-----------------------------------------------------------------------------
 
 namespace comet {
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator-related types.
+
+# if defined COMET_USE_CUDA
+    typedef cudaStream_t AccelStream_t;
+//    typedef cublasHandle_t AccelBlasHandle_t;
+//    typedef cusparseHandle_t AccelSparseHandle_t;
+# elif defined COMET_USE_HIP
+    typedef hipStream_t AccelStream_t;
+//    typedef rocblas_handle AccelBlasHandle_t;
+//    typedef rocsparse_handle AccelSparseHandle_t;
+# else
+    typedef int AccelStream_t;
+//    typedef int AccelBlasHandle_t;
+//    typedef int AccelSparseHandle_t;
+# endif
+
+//-----------------------------------------------------------------------------
+/// \brief Struct to help manage (MAGMA) accelerator queues.
+
+class QueueContainer {
+public:
+  bool is_initialized;
+  void* magma_queue;
+};
 
 //-----------------------------------------------------------------------------
 /// \brief Abstracted accelerator thread indexing/dimensions functions.
@@ -656,17 +686,59 @@ public:
   //----------------------------------------
   // Accelerator streams
 
-# if defined COMET_USE_CUDA
-    typedef cudaStream_t Stream_t;
-# elif defined COMET_USE_HIP
-    typedef hipStream_t Stream_t;
-# else
-    typedef int Stream_t;
-# endif
-  Stream_t stream_compute();
-  Stream_t stream_togpu();
-  Stream_t stream_fromgpu();
-  void stream_synchronize(Stream_t stream) const;
+  AccelStream_t stream_compute();
+  AccelStream_t stream_togpu();
+  AccelStream_t stream_fromgpu();
+  void stream_synchronize(AccelStream_t stream) const;
+
+  //----------------------------------------
+  // Accelerator queues
+
+  template<class MagmaQueue_t>
+  void queues_initialize() {
+    queue_compute_.magma_queue = (void*)new MagmaQueue_t(stream_compute(), *this);
+    queue_togpu_.magma_queue = (void*)new MagmaQueue_t(stream_togpu(), *this);
+    queue_fromgpu_.magma_queue = (void*)new MagmaQueue_t(stream_fromgpu(), *this);
+    queue_compute_.is_initialized = true;
+    queue_togpu_.is_initialized = true;
+    queue_fromgpu_.is_initialized = true;
+  }
+
+  template<class MagmaQueue_t>
+  void queues_terminate() {
+    delete (MagmaQueue_t*)queue_compute_.magma_queue;
+    delete (MagmaQueue_t*)queue_togpu_.magma_queue;
+    delete (MagmaQueue_t*)queue_fromgpu_.magma_queue;
+    queue_compute_.magma_queue = NULL;
+    queue_togpu_.magma_queue = NULL;
+    queue_fromgpu_.magma_queue = NULL;
+    queue_compute_.is_initialized = false;
+    queue_togpu_.is_initialized = false;
+    queue_fromgpu_.is_initialized = false;
+  }
+
+  template<class MagmaQueue_t>
+  typename MagmaQueue_t::queue_t queue_compute() {
+    return ((MagmaQueue_t*)queue_compute_.magma_queue)->queue();
+  }
+
+  template<class MagmaQueue_t>
+  typename MagmaQueue_t::queue_t queue_togpu() {
+    return ((MagmaQueue_t*)queue_togpu_.magma_queue)->queue();
+  }
+
+  template<class MagmaQueue_t>
+  typename MagmaQueue_t::queue_t queue_fromgpu() {
+    return ((MagmaQueue_t*)queue_fromgpu_.magma_queue)->queue();
+  }
+
+#if 0
+  //----------------------------------------
+  // Accelerator handles
+
+  AccelBlasHandle_t blas_handle();
+  AccelSparseHandle_t sparse_handle();
+#endif
 
 //----------------------------------------
 private:
@@ -761,12 +833,32 @@ private:
   bool is_proc_active_;
 
   // Accelerator streams
-  Stream_t stream_compute_;
-  Stream_t stream_togpu_;
-  Stream_t stream_fromgpu_;
+  AccelStream_t stream_compute_;
+  AccelStream_t stream_togpu_;
+  AccelStream_t stream_fromgpu_;
   void streams_initialize_();
   void streams_terminate_();
   bool are_streams_initialized_;
+
+#if 0
+  // Accelerator handles
+  AccelBlasHandle_t blas_handle_;
+  AccelSparseHandle_t sparse_handle_;
+  void handles_initialize_();
+  void handles_terminate_();
+  bool are_handles_initialized_;
+#endif
+
+//FIX
+public:
+  // Accelerator queues
+  QueueContainer queue_compute_;
+  QueueContainer queue_togpu_;
+  QueueContainer queue_fromgpu_;
+  void queues_initialize_();
+  void queues_terminate_();
+  bool are_queues_initialized_;
+private:
 
   // Other
   const char* description_;

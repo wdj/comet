@@ -49,8 +49,6 @@ private:
 
   CEnv& env_;
 
-  typedef CEnv::Stream_t Stream_t;
-
 public:
 
   MirroredBuf(CEnv& env);
@@ -89,9 +87,9 @@ public:
   void to_accel_wait();
   void to_accel();
 
-  void from_accel_start(Stream_t stream);
-  void from_accel_wait(Stream_t stream);
-  void from_accel(Stream_t stream);
+  void from_accel_start(AccelStream_t stream);
+  void from_accel_wait(AccelStream_t stream);
+  void from_accel(AccelStream_t stream);
 
   void from_accel_start();
   void from_accel_wait();
@@ -148,7 +146,7 @@ private:
   mutable bool is_locked_d_;
   bool use_linalg_;
 
-  friend struct MagmaWrapper;
+  friend class MagmaWrapper;
 
   // Disallowed methods.
   MirroredBuf(const MirroredBuf&);
