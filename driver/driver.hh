@@ -87,9 +87,11 @@ void print_output(bool do_print,
                   size_t num_written = 0,
                   double vctime = 0,
                   double mctime = 0,
+                  double cmtime = 0,
                   double cktime = 0,
                   double intime = 0,
                   double outtime = 0,
+                  double looptime = 0,
                   double tottime = 0);
 
 void perform_run(int argc, char** argv, const char* const description,

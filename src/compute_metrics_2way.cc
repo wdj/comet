@@ -70,6 +70,8 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   if (!env_.all2all())
     return;
 
+  if(env.print_details()) printf("Creating ComputeMetrics2Way\n");
+
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_create_with_buf(&vectors_01_[i], env_.data_type_vectors(),
       &dm, &env_);
@@ -115,6 +117,8 @@ void ComputeMetrics2Way::compute(GMMetrics& metrics, GMVectors& vectors) {
 void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
                                              GMVectors& vectors) {
   COMET_INSIST(!env_.all2all());
+
+  if(env_.print_details()) printf("In compute_notall2all\n");
 
   //---------------
   // Denominator
@@ -192,6 +196,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   }
 
   MagmaWrapper::finalize(env_);
+  if(env_.print_details()) printf("Done in compute_notall2all\n");
 }
 
 //=============================================================================
@@ -200,6 +205,8 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                                           GMVectors& vectors) {
   COMET_INSIST(env_.all2all());
+
+  if(env_.print_details()) printf("In compute_all2all\n");
 
   // Initializations
 
@@ -440,11 +447,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         lock(lock_vectors_right_buf_d);
       }
       lock(lock_metrics_buf_ptr_d);
+      if(env_.print_details()) printf("Calling proc_nums_start\n");
       ComputeMetrics2WayBlock::compute_nums_start(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, &env_);
+      if(env_.print_details()) printf("Done calling proc_nums_start\n");
     }
 
     // GPU case: wait for prev step get metrics to complete, then combine.
@@ -471,11 +480,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                             vars_prev.metrics_buf, &env_);
         }
 
+        if(env_.print_details()) printf("Calling Block::finalize\n");
         ComputeMetrics2WayBlock::finalize(
           &metrics, metrics_buf_prev_ptr,
           vector_sums_left, vars_prev.vector_sums_right,
           vars_prev.j_block,
           vars_prev.is_main_diag, &env_);
+        if(env_.print_details()) printf("Done calling Block::finalize\n");
 
         unlock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
 
@@ -526,11 +537,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // Wait for numerators computation to complete
 
     if (vars.is_compute_step && vars.do_compute_block) {
+      if(env_.print_details()) printf("Calling compute_nums_wait\n");
       ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, &env_);
+      if(env_.print_details()) printf("Done calling compute_nums_wait\n");
       unlock(lock_vectors_left_buf_d);
       if (! vars.is_right_aliased) {
         unlock(lock_vectors_right_buf_d);
@@ -568,10 +581,12 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         unlock(lock_metrics_buf_ptr_d);
         unlock(lock_metrics_buf_ptr_h);
         lock(lock_metrics_buf_ptr_h);
+        if(env_.print_details()) printf("Calling 2nd Block::finalize\n");
         ComputeMetrics2WayBlock::finalize(
           &metrics, vars.metrics_buf, vector_sums_left,
           vars.vector_sums_right, vars.j_block,
           vars.is_main_diag, &env_);
+        if(env_.print_details()) printf("Done calling 2nd Block::finalize\n");
         unlock(lock_metrics_buf_ptr_h);
       }
     }
@@ -601,6 +616,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   COMET_INSIST(!lock_metrics_tmp_buf_h);
 
   MagmaWrapper::finalize(env_);
+
+  if(env_.print_details()) printf("Done in compute_all2all\n");
 }
 
 //=============================================================================

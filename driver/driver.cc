@@ -253,7 +253,11 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i; // optionally processed by caller.
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
       ++i; // optionally processed by caller.
+    } else if (strcmp(argv[i], "--num_kernel") == 0) {
+      ++i; // optionally processed by caller.
     } else if (strcmp(argv[i], "--metrics_shrink") == 0) {
+      ++i; // optionally processed by caller.
+    } else if (strcmp(argv[i], "--print_details") == 0) {
       ++i; // optionally processed by caller.
     } else {
     //----------
@@ -295,17 +299,22 @@ void print_output(bool do_print,
                   size_t num_written,
                   double vctime,
                   double mctime,
+                  double cmtime,
                   double cktime,
                   double intime,
                   double outtime,
+                  double looptime,
                   double tottime) {
 
   const double ops = env.ops();
+  const double simops = env.simops();
   const size_t cpu_mem_max = env.cpu_mem_max();
   const size_t gpu_mem_max = env.gpu_mem_max();
 
   if (!do_print)
     return;
+
+  printf("\nOutput:\n");
 
   if (cksum.computing_checksum()) {
     printf("metrics checksum ");
@@ -368,8 +377,58 @@ void print_output(bool do_print,
   if (env.tc() != env.tc_eff()) {
     printf(" tc_eff %i", env.tc_eff());
   }
-
   printf("\n");
+
+  // More readable runtime output
+  printf("\nDetailed Output:\n");
+  printf("GEMM:\n"
+         "Pre-GEMM time:        %.6f\n"
+         "GEMM time:            %.6f\n"
+         "Post-GEMM time:       %.6f\n",
+          env.pregemmtime(), env.gemmtime(), env.postgemmtime());
+
+  printf("\nComputeMetrics:\n"
+         "Nums start time:      %.6f\n"
+         "Nums wait time:       %.6f\n"
+         "Combine time:         %.6f\n",
+         env.numsstarttime(), env.numswaittime(), env.combinetime());
+
+  printf("\nDriver:\n"
+         "Input time:           %.6f\n"
+         "Compute metric time:  %.6f\n"
+         "Output time:          %.6f\n"
+         "Compute metric total: %.6f\n"
+         "Loop time:            %.6f\n"
+         "Total time:           %.6f\n",
+         intime, cmtime, outtime, env.ctime(), looptime, tottime);
+
+  double tops = ops/(1024.0*1024.0*1024.0*1024.0);
+  double gemmops = 0.0, cmops = 0.0, cops = 0.0;
+  if(env.gemmtime()>0.0) gemmops = tops/env.gemmtime();
+  if(cmtime>0.0)         cmops   = tops/cmtime;
+  if(env.ctime()>0.0)    cops    = tops/env.ctime();
+
+  printf("\nOps (Algorithm per Byte):\n"
+         "Ops:                  %e\n"
+         "TOps:                 %.2f\n"
+         "GEMM TOps:            %.2f\n"
+         "Metric TOps:          %.2f\n"
+         "Metric total TOps:    %.2f\n\n",
+         ops, tops, gemmops, cmops, cops);
+
+  double tsimops = simops/(1024.0*1024.0*1024.0*1024.0);
+  gemmops = 0.0; cmops = 0.0; cops = 0.0;
+  if(env.gemmtime()>0.0) gemmops = tsimops/env.gemmtime();
+  if(cmtime>0.0)         cmops   = tsimops/cmtime;
+  if(env.ctime()>0.0)    cops    = tsimops/env.ctime();
+
+  printf("\nSimulation Ops (Simulation per Bit):\n"
+         "SimOps:               %e\n"
+         "TSimOps:              %.2f\n"
+         "GEMM TSimOps:         %.2f\n"
+         "Metric TSimOps:       %.2f\n"
+         "Metric total TSimOps: %.2f\n\n",
+         simops, tsimops, gemmops, cmops, cops);
 }
 
 //=============================================================================
@@ -431,6 +490,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   CEnv* const env = env_in ? env_in : env_local;
 
+  if(env->print_details()) printf("Starting CoMet run\n");
   double total_time_beg = env->synced_time();
 
   // Parse remaining unprocessed arguments.
@@ -467,11 +527,11 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
     env->data_type_vectors(), env);
-env->stream_compute(); //FIX
+  env->stream_compute(); //FIX
   double time_end = env->synced_time();
   vctime += time_end - time_beg;
 
-//TODO: possibly replace this with stuff from dm
+  //TODO: possibly replace this with stuff from dm
   if (do_.num_vector_local_initialized) {
     do_.num_vector = do_.num_vector_local *
       (size_t)env->num_proc_vector();
@@ -522,8 +582,10 @@ env->stream_compute(); //FIX
 
   double outtime = 0;
   double mctime = 0;
+  double cmtime = 0;
   double cktime = 0;
-
+  double looptime = 0;
+  double time_beg_loop = 0, time_end_loop = 0;
   size_t num_metric_items_local_computed = 0;
   size_t num_local_written = 0;
 
@@ -538,10 +600,12 @@ env->stream_compute(); //FIX
   {
   MetricsMem metrics_mem(env);
 
+  if(env->print_details()) printf("Setting up ComputeMetrics\n");
   ComputeMetrics compute_metrics(*dm, *env);
+  if(env->print_details()) printf("Done setting up ComputeMetrics\n");
 
   // Loops over phases, stages.
-
+  time_beg_loop = env->synced_time();  
   for (int phase_num=do_.phase_min_0based; phase_num<=do_.phase_max_0based;
        ++phase_num) {
       env->phase_num(phase_num);
@@ -551,7 +615,8 @@ env->stream_compute(); //FIX
       env->stage_num(stage_num);
 
       // Set up metrics container for results.
-
+      if(env->print_details()) printf("Setting up metrics phase=%d/%d stage=%d/%d\n",phase_num,
+        do_.phase_max_0based,stage_num,do_.stage_max_0based);
       time_beg = env->synced_time();
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
       GMMetrics_create(metrics, env->data_type_metrics(), dm,
@@ -560,13 +625,17 @@ env->stream_compute(); //FIX
       mctime += time_end - time_beg;
 
       // Calculate metrics.
-
+      if(env->print_details()) printf("Computing metrics\n");
+      time_beg = env->synced_time();
       compute_metrics.compute(*metrics, *vectors);
+      time_end = env->synced_time();
+      if(env->print_details()) printf("Done computing metrics\n");
+      cmtime += time_end - time_beg;
 
       num_metric_items_local_computed += metrics->num_metric_items_local_computed;
 
       // Output results.
-
+      if(env->print_details()) printf("Outputting results\n");
       time_beg = env->synced_time();
       metrics_io.write(*metrics);
       if (BuildHas::DEBUG) {
@@ -576,8 +645,8 @@ env->stream_compute(); //FIX
       outtime += time_end - time_beg;
 
       // Check correctness.
-
       if (do_.checksum) {
+        if(env->print_details()) printf("Checking correctness\n");
         time_beg = env->synced_time();
         check_metrics(metrics, &do_, env);
         time_end = env->synced_time();
@@ -585,8 +654,8 @@ env->stream_compute(); //FIX
       }
 
       // Compute checksum.
-
       if (do_.checksum) {
+        if(env->print_details()) printf("Computing checksum\n");
         time_beg = env->synced_time();
         comet::Checksum::compute(cksum, cksum_local, *metrics, *env);
         time_end = env->synced_time();
@@ -599,13 +668,13 @@ env->stream_compute(); //FIX
 
       if (do_print) {
         if (env->num_phase() > 1 && env->num_stage() > 1) {
-          printf("Completed phase %i stage %i\n",
+          if(env->print_details()) printf("Completed phase %i stage %i\n",
                  env->phase_num(), env->stage_num());
         } else if (env->num_phase() > 1) {
-          printf("Completed phase %i\n",
+          if(env->print_details()) printf("Completed phase %i\n",
                  env->phase_num());
         } else if (env->num_stage() > 1) {
-          printf("Completed stage %i\n",
+          if(env->print_details()) printf("Completed stage %i\n",
                  env->stage_num());
         }
       }
@@ -627,7 +696,8 @@ env->stream_compute(); //FIX
   }
   time_end = env->synced_time();
   outtime += time_end - time_beg;
-
+  time_end_loop = env->synced_time();
+  looptime = time_end_loop - time_beg_loop;
   // Deallocate vectors.
 
   time_beg = env->synced_time();
@@ -670,13 +740,15 @@ env->stream_compute(); //FIX
     }
   }
 
+  if(env->print_details()) printf("Finishing CoMet run\n");
+
   double total_time_end = env->synced_time();
   double tottime = total_time_end - total_time_beg;
 
   // Output run information.
 
   print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
-    vctime, mctime, cktime, intime, outtime, tottime);
+    vctime, mctime, cmtime, cktime, intime, outtime, looptime, tottime);
     
   // Output a local checksum, for testing purposes.
 
@@ -706,6 +778,8 @@ env->stream_compute(); //FIX
   }
 
   COMET_INSIST(do_.num_incorrect == 0);
+
+  if(env->print_details()) printf("Finished CoMet run\n");
 
   // Finalize.
 

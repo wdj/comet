@@ -55,6 +55,7 @@ ComputeMetrics::ComputeMetrics(GMDecompMgr& dm, CEnv& env)
   if (! can_run_())
     return;
 
+  if(env.print_details()) printf("Creating ComputeMetrics\n");
   CodeBlockTimer timer(env_);
 
   if (env_.num_way() == NumWay::_2) {

@@ -62,6 +62,8 @@ void set_vectors_random_(GMVectors* vectors, int verbosity, CEnv* env) {
     return;
   }
 
+  if(env->print_details()) printf("Setting random vector\n");
+
   const size_t nva = vectors->dm->num_vector_active;
   const size_t nfa = vectors->dm->num_field_active;
 
@@ -226,6 +228,8 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
     return;
   }
 
+  if(env->print_details()) printf("Setting analytic vector\n");
+
   const size_t nfa = vectors->num_field_active;
   const size_t nva = vectors->dm->num_vector_active;
 
@@ -259,6 +263,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
     //--------------------
     case GM_DATA_TYPE_FLOAT: {
     //--------------------
+      if(env->print_details()) printf("Setting GM_DATA_TYPE_FLOAT\n");
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
@@ -302,6 +307,7 @@ void set_vectors_analytic_(GMVectors* vectors, int verbosity, CEnv* env) {
     case GM_DATA_TYPE_BITS2: {
     //--------------------
 
+      if(env->print_details()) printf("Setting GM_DATA_TYPE_BITS2\n");
 #pragma omp parallel for
       for (int vl = 0; vl < vectors->num_vector_local; ++vl) {
         size_t vector = vl +
@@ -402,6 +408,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   switch (env->data_type_metrics()) {
     //--------------------
     case GM_DATA_TYPE_FLOAT: {
+      if(env->print_details()) printf("Checking solution for FLOAT\n");
     //--------------------
       if (env->num_way() == NumWay::_2) {
 #pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
@@ -528,6 +535,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     //--------------------
     case GM_DATA_TYPE_TALLY2X2: {
     //--------------------
+
+    if(env->print_details()) printf("Checking solution for TALLY2X2\n");
 
     const int cbpe = env->counted_bits_per_elt();
 
@@ -676,7 +685,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     //--------------------
     case GM_DATA_TYPE_TALLY4X2: {
     //--------------------
-
+      if(env->print_details()) printf("Checking solution for TALLY4X2\n");
       const int cbpe = env->counted_bits_per_elt();
 
 #     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)

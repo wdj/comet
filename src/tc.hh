@@ -82,6 +82,11 @@ struct TCBufs {
 
 //-----------------------------------------------------------------------------
 
+void tc_gemm_wmma_start(
+  size_t m, size_t n, size_t k,
+  const void* matA, size_t ldda, const void* matB, size_t lddb,
+  void* matC, size_t lddc, CEnv& env);
+
 void tc_gemm_start(
   int m, int n, int k,
   const void* matA1, int ldda1, const void* matA2, int ldda2,

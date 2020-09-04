@@ -486,6 +486,9 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
   COMET_INSIST(matA && matB && matC);
   COMET_INSIST(env.is_compute_method_gpu());
 
+  if(env.print_details()) printf("In MagmaWrapper gemm_block_start\n");
+  double tbegin = env.synced_time();
+
 #ifdef COMET_USE_MAGMA
 
   // Ensure Magmablas function doesn't internally failover to CUBLAS call.
@@ -681,6 +684,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
     const Float_t alpha = {1, 0};
     const Float_t beta = is_beta_one ? one : zero;
 
+    if(env.print_details()) printf("Calling mgemm5 magma_mgemm5_blas_zgemm with mnk=%d,%d,%d\n",m_,n_,k_);
     magma_mgemm5blas_zgemm(
       Magma_mgemm5Trans,
       Magma_mgemm5NoTrans,
@@ -698,6 +702,8 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm5blas_zgemm.");
 
+    env.ops_local_inc(2*m*(double)n*(double)k*16); // 16 bytes per doublecomplex
+
   } else { //--------------------
 
       COMET_INSIST_INTERFACE(&env, false && "Unimplemented method.");
@@ -705,6 +711,8 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
   } // if //--------------------
 
 #endif // COMET_USE_MAGMA
+
+  env.gemmtime_inc(env.synced_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------
@@ -718,6 +726,8 @@ void MagmaWrapper::gemm_start(size_t m, size_t n, size_t k,
 
   // The purpose of this code is to workaround the magma size
   // limitation (for non CUBLAS failover) by doing gemm in blocks.
+
+  if(env.print_details()) printf("In MagmaWrapper gemm_start mnk=%zu,%zu,%zu\n",m,n,k);
 
 #ifdef COMET_USE_MAGMA
 

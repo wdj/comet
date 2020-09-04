@@ -194,10 +194,17 @@ void GMVectors_create_imp_(GMVectors* vectors,
   vectors->buf = new MirroredBuf(*env);
 
   if (vectors->has_buf) {
+    if(env->print_details())
+      printf("Allocating vectors with buf %dx%d\n",vectors->num_packedval_field_local,
+             vectors->num_vector_local);
     vectors->buf->allocate(vectors->num_packedval_field_local,
                            vectors->num_vector_local);
     vectors->data = vectors->buf->h; // alias vector storage to buf
   } else {
+    if(env->print_details())
+      printf("Allocating vectors size=%zu = %zu*%zu * (%d/%d)\n",vectors->data_size,
+             dm->num_packedfield_local,dm->num_vector_local,dm->num_bit_per_packedfield,
+             bits_per_byte);
     vectors->data = gm_malloc(vectors->data_size, env);
   }
 
@@ -214,6 +221,7 @@ void GMVectors_create(GMVectors* vectors,
                       CEnv* env) {
   COMET_INSIST(vectors && dm && env);
 
+  if(env->print_details()) printf("Creating vectors\n");
   *vectors = GMVectors_null();
 
   if (! env->is_proc_active()) {
@@ -233,6 +241,7 @@ void GMVectors_create_with_buf(GMVectors* vectors,
                                CEnv* env) {
   COMET_INSIST(vectors && dm && env);
 
+  if(env->print_details()) printf("Creating vectors with buf\n");
   *vectors = GMVectors_null();
 
   if (! env->is_proc_active()) {

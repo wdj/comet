@@ -677,6 +677,9 @@ void ComputeMetrics2WayBlock::finalize(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
+  if(env->print_details()) printf("In gm_compute_2way_proc_combine\n");
+  double tbegin = env->synced_time();
+
   switch (env->metric_type()) {
     case MetricType::CZEK: {
 
@@ -703,6 +706,8 @@ void ComputeMetrics2WayBlock::finalize(
       COMET_INSIST_INTERFACE(env, false &&
         "Selected metric_type unimplemented.");
   } // case
+
+  env->combinetime_inc(env->synced_time() - tbegin);
 }
 
 //=============================================================================

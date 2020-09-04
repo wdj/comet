@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tc_helpers.i.hh"
 #include "tc_in.i.hh"
 #include "tc_solve.i.hh"
+#include "tc_solve_full.i.hh"
 #include "tc_out.i.hh"
 
 //=============================================================================
@@ -120,6 +121,7 @@ static void tc_gemm_start_impl_(
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
+  double tbegin;
   const int nvl = n;
   const int npvfl = k;
   const int I_max = m;
@@ -155,6 +157,7 @@ static void tc_gemm_start_impl_(
 
     // Convert the input matrices of packed bit values into matrices
     // of a type suitable for the GEMM.
+    tbegin = env.synced_time();
     enum {IS_LEFT = true};
     tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, nfal, (uint32_t*)matA1, (uint32_t*)matA2,
@@ -162,6 +165,7 @@ static void tc_gemm_start_impl_(
     tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, nfal, (uint32_t*)matB, (uint32_t*)matB,
       tc_bufs, step_2way, env);
+    env.pregemmtime_inc(env.synced_time() - tbegin);
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pvfl_min;
@@ -172,24 +176,38 @@ static void tc_gemm_start_impl_(
 
   // Postprocess GEMM results.
 
+  tbegin = env.synced_time();
   if (env.is_threshold_tc()) {
 
+    if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
     tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
 
   } else {
 
+    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE\n");
     tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
 
   }
+  env.postgemmtime_inc(env.synced_time() - tbegin);
 }
 
 //=============================================================================
 // EXTERNALLY VISIBLE FUNCTIONS: GENERAL
 //=============================================================================
+
+//-----------------------------------------------------------------------------
+///// \brief Run custom 1-bit tensor core WMMA GEMM
+void tc_gemm_wmma_start(size_t m, size_t n, size_t k,
+  const void* matA, size_t ldda, const void* matB, size_t lddb,
+  void* matC, size_t lddc, CEnv& env) {
+
+  if(env.print_details()) printf("In tc_gemm_wmma_start\n");
+  tc_solve_wmma_(m,n,k,matA,ldda,matB,lddb,matC,lddc,env);
+}
 
 //-----------------------------------------------------------------------------
 /// \brief Use a standard GEMM to compute CoMet metrics bitwise result.

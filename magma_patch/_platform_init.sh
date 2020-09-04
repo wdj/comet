@@ -246,8 +246,8 @@ EOF
   #---Compiler.
 
   local USE_GCC=ON
-  local COMET_C_COMPILER=$(spack location --install-dir gcc)/bin/gcc
-  local COMET_CXX_COMPILER=$(spack location --install-dir gcc)/bin/g++
+  local COMET_C_COMPILER=$(spack location --install-dir gcc@8.3.0)/bin/gcc
+  local COMET_CXX_COMPILER=$(spack location --install-dir gcc@8.3.0)/bin/g++
   local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
   local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
 

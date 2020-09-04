@@ -1,0 +1,5 @@
+ToDo:
+Add automatic compilation settings for tensor core and Cutlass GEMMs
+Get tar of Cutlass to put into CoMet directory
+Setup CoMet to unpack Cutlass and use this when installing
+

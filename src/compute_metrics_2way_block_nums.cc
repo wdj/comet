@@ -374,6 +374,8 @@ static void compute_nums_nonlinalg_duo_start_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
+  if(env->print_details()) printf("In gm_compute_2way_proc_nums_duo_start\n");
+
   typedef MetricFormatTraits<MetricFormat::PACKED_DOUBLE> MFT;
 
   // ----------------------------------
@@ -382,6 +384,8 @@ static void compute_nums_nonlinalg_duo_start_(
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for REF compute_method not supported");
+
+    if(env->print_details()) printf("DUO compute method REF\n");
 
     // Perform pseudo GEMM.
 
@@ -433,6 +437,8 @@ static void compute_nums_nonlinalg_duo_start_(
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
+
+    if(env->print_details()) printf("DUO compute method not using xor\n");
 
     // Perform pseudo GEMM.
 
@@ -537,6 +543,8 @@ static void compute_nums_nonlinalg_duo_start_(
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
       "num_proc_field>1 for CPU compute_method for this case not supported");
+
+    if(env->print_details()) printf("DUO compute method using xor\n");
 
     // Perform pseudo GEMM.
 
@@ -661,8 +669,12 @@ void ComputeMetrics2WayBlock::compute_nums_start(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
+  if(env->print_details()) printf("In ComputeMetrics2WayBlock::compute_nums_start\n");
+  double tbegin = env->synced_time();
+
   if (env->is_using_linalg()) {
 
+    if(env->print_details()) printf("Calling LinAlg::gemm_start\n");
     LinAlg::gemm_start(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
@@ -690,6 +702,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
 
   } else if(env->metric_type() == MetricType::DUO) {
 
+      if(env->print_details()) printf("Calling gm_compute_nums_nonlinalg_duo_start\n");
       compute_nums_nonlinalg_duo_start_(
           vectors_left, vectors_right, metrics, vectors_left_buf,
           vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
@@ -701,6 +714,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
         "Selected metric_type unimplemented.");
 
   } // if
+  env->numsstarttime_inc(env->synced_time() - tbegin);
 }
 
 //=============================================================================
@@ -723,6 +737,9 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
+  if(env->print_details()) printf("In ComputeMetrics2WayBlock::compute_nums_wait\n");
+  double tbegin = env->synced_time();
+
   if (env->is_using_linalg()) {
 
     LinAlg::gemm_wait(
@@ -737,6 +754,8 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
       *(vectors_left->dm), *env);
 
   } // if
+
+  env->numswaittime_inc(env->synced_time() - tbegin);
 }
 
 //=============================================================================

@@ -78,6 +78,8 @@ void LinAlg::gemm_start(
   if (!m || !n || !k)
     return;
 
+  if(env.print_details()) printf("In gm_linalg_gemm_start with A1,A2,B,C mnk=%zu,%zu,%zu\n",m,n,k);
+
   // Lock.
 
   if (env.is_compute_method_gpu()) {
@@ -90,7 +92,8 @@ void LinAlg::gemm_start(
   // GPU case.
 
   if (env.is_using_tc()) {
-    if (env.is_compute_method_gpu())
+    if (env.is_compute_method_gpu()) {
+      if(env.print_details()) printf("Calling tc_gemm_start\n");
       // GEMM call, tc case.
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
@@ -98,13 +101,31 @@ void LinAlg::gemm_start(
         (GMFloat*)sums_I->active, (GMFloat*)sums_J->active, (GMFloat*)sums_K->active,
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
         dm.num_field_active_local, step_2way, dm.tc_bufs, env);
+    }
   } else {
-    // apparently needed by magma.
-    MagmaWrapper::set_matrix_zero_start(matC, env);
-    // GEMM call, non-tc case.
-    MagmaWrapper::gemm_start(m, n, k, matA1->active, matA1->dim0,
-      matB->active, matB->dim0, matC->active, matC->dim0, env);
+    switch(env.num_kernel()) {
+      case 0: {
+        if(env.print_details()) printf("Calling gm_linalg_gemm_magma_start\n");
+        // apparently needed by magma.
+        MagmaWrapper::set_matrix_zero_start(matC, env);
+        // GEMM call, non-tc case.
+        MagmaWrapper::gemm_start(m, n, k, matA1->active, matA1->dim0,
+          matB->active, matB->dim0, matC->active, matC->dim0, env);
+      } break;
+      case 1: {
+        if(env.print_details()) printf("Calling custom 1-bit WMMA GEMM\n");
+        tc_gemm_wmma_start(m, n, k, matA1->active, matA1->dim0,
+          matB->active, matB->dim0, matC->active, matC->dim0, env);
+      } break;
+      default: {
+        if(env.print_details()) printf("ERROR: Need to set num_kernel=%d to valid kernel\n",env.num_kernel());
+        COMET_INSIST(false && "Invalid tc type and num_kernel.");
+      }
+    }
   }
+  if(env.print_details()) printf("Setting simops=2*128*mnk=2*128*%zu*%zu*%zu=%lf\n",
+         m,n,k,2*m*(double)n*(double)k*128);
+  env.simops_local_inc(2*m*(double)n*(double)k*128);
 }
 
 //-----------------------------------------------------------------------------
@@ -122,6 +143,8 @@ void LinAlg::gemm_wait(
 
   if (!m || !n || !k)
     return;
+
+  if(env.print_details()) printf("In LinAlg::gemm_wait\n");
 
   // CPU case.
 
@@ -152,6 +175,7 @@ void LinAlg::gemm_wait(
   }
 
   env.stream_synchronize(env.stream_compute());
+  if(env.print_details()) printf("Stream synchronized in wait\n");
 
   // Unlock.
 
@@ -173,6 +197,7 @@ void LinAlg::gemm_start(
   MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr& dm, CEnv& env) {
 
+  if(env.print_details()) printf("Calling gemm_start with A,A,B,C\n");
   gemm_start(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm, env);
 }
@@ -202,10 +227,12 @@ void LinAlg::gemm(
   GMDecompMgr& dm, CEnv& env) {
   COMET_INSIST(matA && matB && matC);
 
+  if(env.print_details()) printf("Starting LinAlg::gemm\n");
   gemm_start(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, env);
   gemm_wait(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, env);
+  if(env.print_details()) printf("Done with LinAlg::gemm\n");
 }
 
 //=============================================================================

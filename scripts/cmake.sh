@@ -141,7 +141,7 @@ function main
     echo "Building mpi-stub ..."
     local C_COMPILER=$COMET_C_COMPILER
     local CXX_COMPILER=$COMET_CXX_SERIAL_COMPILER
-    ln -s ../genomics_gpu/tpls/mpi-stub.tar.gz
+    ln -s ${COMET_SRC}/tpls/mpi-stub.tar.gz
     rm -rf mpi-stub
     gunzip <mpi-stub.tar.gz | tar xf -
     pushd mpi-stub
@@ -253,7 +253,7 @@ function main
   if [ ${USE_CUDA:-OFF} = ON ] ; then
     echo "Building CUB library ..."
     local CUB_VERSION=1.8.0
-    ln -s ../genomics_gpu/tpls/cub-${CUB_VERSION}.zip
+    ln -s ${COMET_SRC}/tpls/cub-${CUB_VERSION}.zip
     rm -rf cub-${CUB_VERSION}
     unzip -q cub-${CUB_VERSION}
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cub-${CUB_VERSION}/cub"

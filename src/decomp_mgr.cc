@@ -92,6 +92,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     return;
   }
 
+  if(env->print_details()) printf("In DecompManager\n");
+
   //--------------------
   // Vector counts
   //--------------------
@@ -108,6 +110,9 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                             env->num_proc_vector();
     dm->num_vector = dm->num_vector_local * env->num_proc_vector();
     dm->vector_base = dm->num_vector_local * env->proc_num_vector();
+    if(env->print_details())
+      printf("In vectors_by_local num_vector=%zu num_vector_active=%zu\n",
+             dm->num_vector,dm->num_vector_active);
   } else { // ! vectors_by_local
     COMET_INSIST_INTERFACE(env, (env->all2all() ||
                                  env->num_proc_vector() == 1) &&
@@ -133,6 +138,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                                   nva - nvl * proc_num;
     dm->vector_base = nvl * proc_num <= nva ? nvl * proc_num : nva;
     COMET_INSIST(nvl * proc_num == dm->vector_base || 0 == dm->num_vector_active_local);
+    if(env->print_details()) printf("In !vectors_by_local\n");
   } // if vectors_by_local
 
   //--------------------
@@ -168,6 +174,9 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_field = dm->num_field_local * env->num_proc_field();
     dm->num_field_active = dm->num_field;
     dm->field_base = dm->num_field_local * env->proc_num_field();
+    if(env->print_details())
+      printf("In fields_by_local num_field=%zu num_field_local=%zu\n",
+             dm->num_field,dm->num_field_local);
   } else { // ! fields_by_local
     dm->num_field_active = num_field_specifier;
     // Pad up as needed so that every proc has same number
@@ -189,7 +198,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     // right independent of decomposition
     dm->field_base = nfl * proc_num <= nfa ? nfl * proc_num : nfa;
     COMET_INSIST(nfl * proc_num == dm->field_base || 0 == dm->num_field_active_local);
-
+    if(env->print_details()) printf("In !fields_by_local\n");
   } // if fields_by_local
 
   //--------------------
@@ -223,6 +232,9 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     case GM_DATA_TYPE_FLOAT: {
       dm->num_bit_per_field = bits_per_byte * sizeof(GMFloat);
       dm->num_bit_per_packedfield = bits_per_byte * sizeof(GMFloat);
+      if(env->print_details())
+        printf("In GM_DATA_TYPE_FLOAT bits_per_byte=%d size=%zu\n",
+               bits_per_byte,sizeof(GMFloat));
     } break;
     //--------------------
     case GM_DATA_TYPE_BITS2: {
@@ -239,6 +251,10 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                ((uint64_t)(table_entry_value_max * dm->num_field)) <
                        (((uint64_t)1) << GM_TALLY1_MAX_VALUE_BITS)
                 && "Number of fields requested is too large for this metric");
+      if(env->print_details())
+        printf("In GM_DATA_TYPE_BITS2 num_bit_per_field=%d bits_per_byte=%d "
+               "GMBits2x64=%zu num_bit_per_packedfield=%d\n",
+               dm->num_bit_per_field,bits_per_byte,sizeof(GMBits2x64),dm->num_bit_per_packedfield);
     } break;
     //--------------------
     default:
@@ -250,6 +266,9 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 
   dm->num_field_per_packedfield = dm->num_bit_per_packedfield /
                                   dm->num_bit_per_field;
+  if(env->print_details())
+    printf("num_field_per_packedfield = %d/%d = %d\n",
+           dm->num_bit_per_packedfield,dm->num_bit_per_field,dm->num_field_per_packedfield);
 
   //--------------------
   // Packedfield counts
@@ -258,6 +277,9 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   dm->num_packedfield_local =
       utils::ceil(dm->num_field_local * dm->num_bit_per_field,
                   (size_t)dm->num_bit_per_packedfield);
+  if(env->print_details())
+    printf("num_packedfield_local = ceil(%zu*%d,%d)=%zu\n",dm->num_field_local,
+           dm->num_bit_per_field, dm->num_bit_per_packedfield,dm->num_packedfield_local);
 
   //--------------------
   // Number of non-active fields on proc.
@@ -267,6 +289,9 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_packedfield_local *
     dm->num_field_per_packedfield -
     dm->num_field_active_local;
+  if(env->print_details()) 
+    printf("num_pad_field_local = %zu*%d - %zu = %d\n",dm->num_packedfield_local,
+           dm->num_field_per_packedfield,dm->num_field_active_local,dm->num_pad_field_local);
 
   //--------------------
   // tc memory

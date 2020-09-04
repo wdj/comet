@@ -366,6 +366,7 @@ public:
   int tc_eff() const {return tc_eff_;}
   int tc_eff_compute_() const;
   int num_tc_steps() const {return num_tc_steps_;};
+  int num_kernel() const {return num_kernel_;};
   double threshold() const {return threshold_;}
   double metrics_shrink() const {return metrics_shrink_;}
   double ccc_multiplier() const {return ccc_multiplier_;}
@@ -561,6 +562,10 @@ public:
     return is_using_threshold_detector(tc_eff());
   }
 
+  bool print_details() const {
+    return print_details_;
+  }
+
   // XOR GEMM-related.
 
   bool can_use_xor_(int tc_try) const {
@@ -602,6 +607,19 @@ public:
 
   double ctime() const {return ctime_;}
   void ctime_inc(double t) {ctime_ += t;}
+  double gemmtime() const {return gemmtime_;}
+  void gemmtime_inc(double t) {gemmtime_ += t;}
+  double pregemmtime() const {return pregemmtime_;}
+  void pregemmtime_inc(double t) {pregemmtime_ += t;}
+  double postgemmtime() const {return postgemmtime_;}
+  void postgemmtime_inc(double t) {postgemmtime_ += t;}
+  double numsstarttime() const {return numsstarttime_;}
+  void numsstarttime_inc(double t) {numsstarttime_ += t;}
+  double numswaittime() const {return numswaittime_;}
+  void numswaittime_inc(double t) {numswaittime_ += t;}
+  double combinetime() const {return combinetime_;}
+  void combinetime_inc(double t) {combinetime_ += t;}
+
   double synced_time();
   size_t cpu_mem_local() const {return cpu_mem_local_;}
   size_t gpu_mem_local() const {return gpu_mem_local_;}
@@ -613,6 +631,8 @@ public:
   size_t gpu_mem_max() const;
   void ops_local_inc(double n) {ops_local_ += n;}
   double ops() const;
+  void simops_local_inc(double n) {simops_local_ += n;}
+  double simops() const;
   double entry_compares() const {return entry_compares_;}
   double metric_compares() const {return metric_compares_;}
   double vec_compares() const {return vec_compares_;}
@@ -687,6 +707,7 @@ private:
   int tc_;
   int tc_eff_;
   int num_tc_steps_;
+  int num_kernel_;
   double threshold_;
   double threshold_eff_cache_;
   double metrics_shrink_;
@@ -716,10 +737,20 @@ private:
 
   int coords_type_cache_;
 
+  bool print_details_;
+
   // Counters
   void accel_sync_() const;
   double ctime_;
+  double gemmtime_;
+  double pregemmtime_;
+  double postgemmtime_;
+  double numsstarttime_;
+  double numswaittime_;
+  double combinetime_;
+
   double ops_local_;
+  double simops_local_;
   size_t cpu_mem_local_;
   size_t gpu_mem_local_;
   size_t cpu_mem_max_local_;

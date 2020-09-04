@@ -266,13 +266,22 @@ void CEnv::set_defaults_() {
   tc_ = TC::NO;
   tc_eff_ = tc_eff_compute_();
   num_tc_steps_ = 1;
+  num_kernel_ = 0;
   threshold_ = CEnv::threshold_eff(-1);
   threshold_eff_cache_ = threshold_;
   metrics_shrink_ = 1;
   coords_type_cache_ = 0;
+  print_details_ = false;
 
   ctime_ = 0;
+  gemmtime_ = 0;
+  pregemmtime_ = 0;
+  postgemmtime_ = 0;
+  numsstarttime_ = 0;
+  numswaittime_ = 0;
+  combinetime_ = 0;
   ops_local_ = 0;
+  simops_local_ = 0;
   cpu_mem_local_ = 0;
   gpu_mem_local_ = 0;
   cpu_mem_max_local_ = 0;
@@ -435,6 +444,12 @@ void CEnv::parse_args_(int argc, char** argv) {
       tc_ = tc;
       tc_eff_ = tc_eff_compute_();
       //--------------------
+    } else if (strcmp(argv[i], "--num_kernel") == 0) {
+      //--------------------
+      ++i;
+      const long num_kernel = strtol(argv[i], NULL, 10);
+      num_kernel_ = num_kernel;
+      //--------------------
     } else if (strcmp(argv[i], "--num_tc_steps") == 0) {
       //--------------------
       ++i;
@@ -467,6 +482,14 @@ void CEnv::parse_args_(int argc, char** argv) {
                     && "Invalid setting for metrics_shrink.");
       metrics_shrink_ = metrics_shrink;
       //--------------------
+    } else if (strcmp(argv[i], "--print_details") == 0) {
+      //--------------------
+      ++i;
+      if (strcmp(argv[i], "yes") == 0) {
+        print_details_ = true;
+      } else if (strcmp(argv[i], "no") == 0) {
+        print_details_ = false;
+      }
     } // if/else
   }   // for i
 
@@ -752,6 +775,16 @@ size_t CEnv::gpu_mem_max() const {
 double CEnv::ops() const {
   double result = 0;
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&ops_local_, &result, 1, MPI_DOUBLE,
+    MPI_SUM, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute and return (global) number of simulation operations performed.
+
+double CEnv::simops() const {
+  double result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&simops_local_, &result, 1, MPI_DOUBLE,
     MPI_SUM, comm()));
   return result;
 }
