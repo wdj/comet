@@ -666,6 +666,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           }
 #endif
 
+          printf("index=%zu entry_num=%d value_expected=%e value=%e\n",
+                 index,entry_num,value_expected,value);
+
           const bool is_incorrect = value_expected != value;
           if (is_incorrect) {
             const double diff = value - value_expected;

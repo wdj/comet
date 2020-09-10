@@ -137,6 +137,24 @@ template<> struct TCTraits<TC::B1> : public TCTraitsBase {
   enum {IS_B_FIELD_MAJOR = true};
 };
 
+//----------
+
+template<> struct TCTraits<TC::B1INT> : public TCTraitsBase {
+  typedef int8_t GemmIn_t;
+  typedef int32_t GemmOut_t;
+#if defined COMET_USE_CUDA
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
+#elif defined COMET_USE_HIP
+  static rocblas_datatype __host__ __device__ gemm_type_in() {
+   return rocblas_datatype_u8_r; // UNUSED
+  }
+  static rocblas_datatype __host__ __device__ gemm_type_out() {
+   return rocblas_datatype_u32_r;
+  }
+#endif
+};
+
 //-----------------------------------------------------------------------------
 /// \brief Provide needed constants of GemmIn_t type.
 ///

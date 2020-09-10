@@ -307,7 +307,8 @@ struct TC {
     FP32 = 3,
     AUTO = 4,
     B1 = 5,
-    NUM = 6
+    B1INT = 6,
+    NUM = 7
     //INT4 = 6,
   };
 

@@ -63,6 +63,7 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
   const size_t lcm = (! need_divisible_by_6) ? factor_4 :
                      factor_4 % 2 == 0 ? 3 * factor_4 : 6 * factor_4;
 
+  if(env->print_details()) printf("factor_4=%zu lcm=%zu total=%zu\n",factor_4,lcm,utils::ceil(num_vector_active_local, lcm)*lcm);
   return utils::ceil(num_vector_active_local, lcm)*lcm;
 }
 
@@ -138,7 +139,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                                   nva - nvl * proc_num;
     dm->vector_base = nvl * proc_num <= nva ? nvl * proc_num : nva;
     COMET_INSIST(nvl * proc_num == dm->vector_base || 0 == dm->num_vector_active_local);
-    if(env->print_details()) printf("In !vectors_by_local\n");
+    if(env->print_details()) printf("In !vectors_by_local num_vector_active=%d num_vector_local=%zu num_vector=%zu num_vector_active_local=%zu vector_base=%zu\n",dm->num_vector_active,dm->num_vector_local,dm->num_vector,dm->num_vector_active_local,dm->vector_base);
   } // if vectors_by_local
 
   //--------------------
@@ -296,9 +297,11 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   //--------------------
   // tc memory
   //--------------------
-
+  if(env->print_details()) printf("Calling TCBufs malloc\n");
   TCBufs::malloc(dm->num_vector_local, dm->num_field_local,
                  dm->num_packedfield_local, dm->tc_bufs, *env);
+
+  if(env->print_details()) printf("Done in DecompManager\n");
 }
 
 //-----------------------------------------------------------------------------

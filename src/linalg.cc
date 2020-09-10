@@ -78,7 +78,7 @@ void LinAlg::gemm_start(
   if (!m || !n || !k)
     return;
 
-  if(env.print_details()) printf("In gm_linalg_gemm_start with A1,A2,B,C mnk=%zu,%zu,%zu\n",m,n,k);
+  if(env.print_details()) printf("In LinAlg::gemm_start\n");
 
   // Lock.
 
@@ -93,7 +93,7 @@ void LinAlg::gemm_start(
 
   if (env.is_using_tc()) {
     if (env.is_compute_method_gpu()) {
-      if(env.print_details()) printf("Calling tc_gemm_start\n");
+      if(env.print_details()) printf("Calling tc_gemm_start with mnk=%zu,%zu,%zu\n",m,n,k);
       // GEMM call, tc case.
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
@@ -105,7 +105,7 @@ void LinAlg::gemm_start(
   } else {
     switch(env.num_kernel()) {
       case 0: {
-        if(env.print_details()) printf("Calling gm_linalg_gemm_magma_start\n");
+        if(env.print_details()) printf("Calling gm_linalg_gemm_magma_start with mnk=%zu,%zu,%zu\n",m,n,k);
         // apparently needed by magma.
         MagmaWrapper::set_matrix_zero_start(matC, env);
         // GEMM call, non-tc case.
@@ -113,7 +113,7 @@ void LinAlg::gemm_start(
           matB->active, matB->dim0, matC->active, matC->dim0, env);
       } break;
       case 1: {
-        if(env.print_details()) printf("Calling custom 1-bit WMMA GEMM\n");
+        if(env.print_details()) printf("Calling custom 1-bit WMMA GEMM with mnk=%zu,%zu,%zu\n",m,n,k);
         tc_gemm_wmma_start(m, n, k, matA1->active, matA1->dim0,
           matB->active, matB->dim0, matC->active, matC->dim0, env);
       } break;

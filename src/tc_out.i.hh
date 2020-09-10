@@ -125,6 +125,8 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
 
   ovo[o_offset1+0] = o10;
   ovo[o_offset1+1] = o11;
+  //printf("t=%d,%d ovo\n",thread_r,thread_c);
+  printf("t=%d,%d ovo0=%lf %lf ovo1=%lf %lf\n",thread_r,thread_c,ovo[o_offset0],ovo[o_offset0+1],ovo[o_offset1],ovo[o_offset1+1]);
 }
 
 //-----------------------------------------------------------------------------
@@ -219,18 +221,21 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 
   // always true, because of tc_gemm_divisibility_required()
   COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
-  const int nvllD2 = nvll / 2;
+  //const int nvllD2 = nvll;// For B1INT?
+  const int nvllD2 = nvll / 2; // For B1
 
   typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
 
   if (env.is_compute_method_gpu()) {
 
-    // Kernel call.
+      // Kernel call.
 
       const int threadblocksize = 256;
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
                    "Current HIP limitation.");
       const int vll2_threadblocks = utils::ceil(nvllD2, threadblocksize);
+
+      if(env.print_details()) printf("Calling tc_repair_metrics_kernel with blocks=%d,%d threads=%d c=0 to nvl=%d nvll=%d r=0 to nvllD2=%d\n",vll2_threadblocks,nvl,threadblocksize,nvl,nvll,nvllD2);
 
       COMET_LAUNCH_KERNEL((tc_repair_metrics_kernel_<GemmOut_t, METRIC_FORMAT>),
         dim3(vll2_threadblocks, nvl, 1),
@@ -240,6 +245,8 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
       COMET_INSIST(System::accel_last_call_succeeded());
 
   } else { // (!env.is_compute_method_gpu())
+
+    if(env.print_details()) printf("Calling tc_repair_metrics_kernel_elt\n");
 
     for (int thread_c=0; thread_c<nvl; ++thread_c) {
       for (int thread_r=0; thread_r<nvllD2; ++thread_r) {
@@ -732,6 +739,8 @@ void tc_out_( int nvll, int nvl, void* vo,
   uint32_t* matX_counts, int J, int step_2way, CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
+
+  if(env.print_details()) printf("In tc_out_\n");
 
   // Perform (1) swizzle and (2) reformatting to packed double format.
 

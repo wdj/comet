@@ -81,6 +81,7 @@ static void tc_set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
   typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
 
   const size_t size = lddc * (size_t)m * sizeof(GemmOut_t) * 4;
+  if(env.print_details()) printf("Zeroing matrix of size %d*%d*%zu*4=%zu\n",lddc,m,sizeof(GemmOut_t),size);
 
   if (env.is_compute_method_gpu()) {
 #   ifdef COMET_USE_CUDA
@@ -134,11 +135,14 @@ static void tc_gemm_start_impl_(
   const int nvll = I_max_dim;
   COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
 
+  if(env.print_details()) printf("In tc_gemm_start_impl\n");
+
   // Get matX counts if needed.
 
   tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
     (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs, step_2way, env);
 
+  if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
   tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
 
   const int num_tc_steps = env.num_tc_steps();
@@ -169,6 +173,7 @@ static void tc_gemm_start_impl_(
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pvfl_min;
+    if(env.print_details()) printf("Calling tc_solve with is_first=%d nvll=%d nvl=%d npvfl_thisstep=%d\n",is_first,nvll,nvl,npvfl_thisstep);
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
       matC, tc_bufs, env);
 
@@ -194,6 +199,98 @@ static void tc_gemm_start_impl_(
   }
   env.postgemmtime_inc(env.synced_time() - tbegin);
 }
+
+//-----------------------------------------------------------------------------
+/// \brief Use a standard GEMM to compute bitwise result: implementation.
+///
+///        This is the main function to perform the relevant
+///        bitwise modified GEMM operation by use of standard GEMM
+///        computations, typically using reduced precision arithmetic
+///        and associated hardware features.
+///
+///        This is composed of three steps:
+///        1. copy the input matrices into the required matrix format
+///        2. apply the GEMM
+///        3. adjust the results in-place to the required format.
+///        To save on memory, this 3-step process is broken into
+///        a sequence of steps as an outer loop.
+///        All of these operations are pipelined in a (CUDA) execution
+///        stream.
+///
+
+template<int TC_METHOD>
+static void tc_gemm_full_start_impl_(
+  int m, int n, int k,
+  const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
+  TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
+
+  double tbegin;
+  const int nvl = n;
+  const int npvfl = k;
+  const int I_max = m;
+  const int I_max_dim = lddc;
+  COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
+  // nvll is the effective nvl (column dim) for the left matrix
+  // We only really only need up to I_max, but must compute to I_max_dim
+  // to satisfy cublas divisibility requirements.
+  // Note nvl is always the column dim for the right matrix (CHECK).
+  const int nvll = I_max_dim;
+  COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
+
+  if(env.print_details()) printf("In tc_gemm_full_start_impl\n");
+
+  // Get matX counts if needed.
+
+  tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
+    (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs, step_2way, env);
+
+  if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
+  tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
+
+  const int num_tc_steps = env.num_tc_steps();
+
+  // Loop over steps of algorithm.
+  for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
+
+    // Select the block row of the left and right matrices for this step.
+    const int pvfl_min = ((tc_step_num+0) * npvfl) / num_tc_steps;
+    const int pvfl_max = ((tc_step_num+1) * npvfl) / num_tc_steps;
+    const int npvfl_thisstep = pvfl_max - pvfl_min;
+
+    const bool is_empty_block_row = 0 == npvfl_thisstep;
+    if (is_empty_block_row)
+      continue;
+
+    // Perform the GEMM for this pair of block rows; accumulate.
+    const bool is_first = 0 == pvfl_min;
+    if(env.print_details()) printf("mnk=%d,%d,%d nvll=%d nvl=%d npvfl_thisstep=%d pvfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",m,n,k,nvll,nvl,npvfl_thisstep,pvfl_min,pvfl_max,I_max_dim,lddc);
+    tc_solve_full_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
+      matA1, matB, matC, tc_bufs, env);
+
+  } // for
+
+  // Postprocess GEMM results.
+
+  tbegin = env.synced_time();
+  if (env.is_threshold_tc()) {
+
+    if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
+    tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
+      J, step_2way, env);
+
+  } else {
+
+    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE\n");
+    tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
+      J, step_2way, env);
+
+  }
+  env.postgemmtime_inc(env.synced_time() - tbegin);
+}   
 
 //=============================================================================
 // EXTERNALLY VISIBLE FUNCTIONS: GENERAL
@@ -227,7 +324,7 @@ void tc_gemm_start(
   COMET_INSIST(env.is_metric_type_bitwise());
   COMET_INSIST(nfal <= 64 * k);
 
-  COMET_INSIST(tc_bufs.tc_buf_left);
+  COMET_INSIST(env.tc_eff() == TC::B1INT || tc_bufs.tc_buf_left);
 
   COMET_INSIST(ldda1 == k && ldda2 == k && lddb == k); // always true here
 
@@ -235,6 +332,7 @@ void tc_gemm_start(
 
   switch (env.tc_eff()) {
     // --------------
+    if(env.print_details()) printf("Calling TC::FP32 GEMM\n");
     case TC::FP32: {
       tc_gemm_start_impl_<TC::FP32>(
         m, n, k, matA1, matA2, matB, matC, lddc,
@@ -243,6 +341,7 @@ void tc_gemm_start(
     } break;
     // --------------
     case TC::FP16: {
+      if(env.print_details()) printf("Calling TC::FP16 GEMM\n");
       tc_gemm_start_impl_<TC::FP16>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -250,6 +349,7 @@ void tc_gemm_start(
     } break;
     // --------------
     case TC::INT8: {
+      if(env.print_details()) printf("Calling TC::INT8 GEMM\n");
       tc_gemm_start_impl_<TC::INT8>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -257,7 +357,17 @@ void tc_gemm_start(
     } break;
     // --------------
     case TC::B1: {
+      if(env.print_details()) printf("Calling TC::B1 GEMM num_kernel=%d mnk=%d,%d,%d\n",env.num_kernel(),m,n,k);
       tc_gemm_start_impl_<TC::B1>(
+        m, n, k, matA1, matA2, matB, matC, lddc,
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+        tc_bufs, nfal, step_2way, env);
+      
+    } break;
+    // --------------
+    case TC::B1INT: {
+      if(env.print_details()) printf("Calling TC::B1INT GEMM num_kernel=%d mnk=%d,%d,%d\n",env.num_kernel(),m,n,k);
+      tc_gemm_full_start_impl_<TC::B1INT>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
         tc_bufs, nfal, step_2way, env);
@@ -273,8 +383,8 @@ void tc_gemm_start(
 
 size_t tc_gemm_divisibility_required(const CEnv& env) {
 
-  const bool need_divisible_by_4 = env.tc_eff() != TC::NO;
-
+  const bool need_divisible_by_4 = env.tc_eff() != (TC::NO || TC::B1INT);
+  if(env.print_details()) printf("tc divisibility required = %d\n",need_divisible_by_4);
   return need_divisible_by_4 ? 4 : 1;
 }
 
@@ -305,8 +415,13 @@ void TCBufs::malloc(int num_vector_local,
   COMET_INSIST(!tc_bufs.tc_buf_left);
   COMET_INSIST(!tc_bufs.tc_buf_right);
 
-  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO)
+  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO || env.tc_eff() == TC::B1INT) {
+    if(env.print_details()) printf("Skipping TCBufs malloc bitwise=%d tc_eff=%d\n",env.is_metric_type_bitwise(),env.tc_eff());
     return;
+  }
+
+  if(env.print_details()) printf("Mallocing TCBufs with num_vector_local=%d num_field_local=%d num_packedval_field_local=%d bitwise=%d tc_eff=%d\n",
+    num_vector_local,num_field_local,num_packedval_field_local,env.is_metric_type_bitwise(),env.tc_eff());
 
   // Calculate sizes.
 

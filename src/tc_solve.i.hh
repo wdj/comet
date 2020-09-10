@@ -247,7 +247,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
   // since nvl % 4 == 0; see tc_gemm_divisibility_required()
   COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
-  if(env.print_details()) printf("In tc_solve_impl\n");
+  if(env.print_details()) printf("In tc_solve_impl mnk=%d,%d,%d\n",m,n,k);
   double tbegin = env.synced_time();
 
   // Make BLAS call.
