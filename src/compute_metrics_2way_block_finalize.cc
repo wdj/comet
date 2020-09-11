@@ -523,6 +523,8 @@ static void finalize_duo_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
+  if(env->print_details()) printf("In finalize_duo\n");
+
   const int nvl = metrics->num_vector_local;
   const VectorSums* const vs_l = vector_sums_left;
   const VectorSums* const vs_r = vector_sums_right;
@@ -537,7 +539,7 @@ static void finalize_duo_(
     // --------------
     if (env->all2all()) {
       // --------------
-
+      if(env->print_details()) printf("Copying metrics_buffer all2all\n");
       if (do_compute_triang_only) {
         #pragma omp parallel for schedule(dynamic,1000)
         for (int j = 0; j < nvl; ++j) {
@@ -546,6 +548,7 @@ static void finalize_duo_(
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
             Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            printf("ij=%d,%d value=%lf %lf\n",i,j,value.data[0],value.data[1]);
           } // for i
         }   // for j
       } else {
@@ -564,6 +567,7 @@ static void finalize_duo_(
       // --------------
     } else { // (! env->all2all())
       // --------------
+      if(env->print_details()) printf("Copying metrics_buffer !all2all\n");
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
@@ -583,7 +587,7 @@ static void finalize_duo_(
   // --------------
   if (env->all2all()) {
     // --------------
-
+    if(env->print_details()) printf("Computing multipliers all2all\n");
     if (do_compute_triang_only) {
       if (!env->is_threshold_tc()) {
       #pragma omp parallel for schedule(dynamic,1000)
@@ -633,6 +637,7 @@ static void finalize_duo_(
     // --------------
   } else { // (! env->all2all())
     // --------------
+    if(env->print_details()) printf("Computing multipliers !all2all\n");
     if (!env->is_threshold_tc()) {
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
@@ -677,7 +682,7 @@ void ComputeMetrics2WayBlock::finalize(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
-  if(env->print_details()) printf("In gm_compute_2way_proc_combine\n");
+  if(env->print_details()) printf("In ComputeMetrics2WayBlock::finalize\n");
   double tbegin = env->synced_time();
 
   switch (env->metric_type()) {

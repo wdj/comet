@@ -66,8 +66,8 @@ time $EXE $PROBOPTS $RUNOPTS --num_kernel 1
 #time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 0
 
 # Fastest 1-bit WMMA GEMM tested so far
-#echo -e "\n\nRunning simple WMMA tensor core 1-bit xor duo GEMM"
-#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 1
+echo -e "\n\nRunning simple WMMA tensor core 1-bit xor duo GEMM"
+time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 1
 
 # Needs to be more fully optimized to actually be faster
 #echo -e "\n\nRunning simple shared memory WMMA tensor core 1-bit xor duo GEMM"

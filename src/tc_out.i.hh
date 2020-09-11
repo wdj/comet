@@ -82,6 +82,9 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t i12 = ivo[ivo_offset1+2];
   const GemmOut_t i13 = ivo[ivo_offset1+3];
 
+  printf("offset0=%zu offset1=%zu i0=%d %d %d %d i1=%d %d %d %d\n",
+          ivo_offset0,ivo_offset1,(int)i00,(int)i01,(int)i02,(int)i03,(int)i10,(int)i11,(int)i12,(int)i13);
+
 //printf("%i %i %i %i %i %i %i %i\n",
 //(int)i00, (int)i01, (int)i02, (int)i03, (int)i10, (int)i11, (int)i12, (int)i13);
 
@@ -748,10 +751,12 @@ void tc_out_( int nvll, int nvl, void* vo,
 
   // Apply thresholding of smaller values to zero, if requested.
 
-  if (env.is_threshold_tc())
+  if (env.is_threshold_tc()) {
+    if(env.print_details()) printf("Calling tc_threshold_\n");
     tc_threshold_<TC_METHOD, METRIC_FORMAT>(nvll, nvl, vo,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, matX_counts,
       J, step_2way, env);
+  }
 }
 
 //=============================================================================

@@ -120,7 +120,7 @@ __global__
 void b1_xor_gemm_gpu_simple(size_t m, size_t n, size_t k, uint8_t* a,
                             uint8_t* b, bool beta, int32_t* c) {
   // Block and thread indices
-  //int tx = threadIdx.x, ty = threadIdx.y;
+  int tx = threadIdx.x, ty = threadIdx.y;
   int bx = blockIdx.x, by = blockIdx.y;
 
   // Index of the first sub-matrix of A processed by the block
@@ -135,6 +135,8 @@ void b1_xor_gemm_gpu_simple(size_t m, size_t n, size_t k, uint8_t* a,
   // Loop over each block in a column
   int bBegin = k * WMMA1B_N * by;
   int bStep  = WMMA1B_K/NBITS;
+
+  printf("b=%d,%d t=%d,%d mnk=%d,%d,%d\n",bx,by,tx,ty,(int)m,(int)n,(int)k);
 
   // Declare fragments
   wmma::fragment<wmma::matrix_a, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
@@ -162,6 +164,9 @@ void b1_xor_gemm_gpu_simple(size_t m, size_t n, size_t k, uint8_t* a,
   // Store the output
   int cBegin = n*WMMA1B_M*bx + WMMA1B_N*by;
   wmma::store_matrix_sync(c+cBegin, c_frag, n, wmma::mem_row_major);
+  __syncthreads();
+
+  printf("b=%d,%d t=%d,%d mnk=%d,%d,%d cBegin=%d cShift=%d cInd=%d val=%d\n",bx,by,tx,ty,(int)m,(int)n,(int)k,cBegin,tx*n+ty,cBegin+tx*n+ty,c[cBegin+tx*n+ty]);
   __syncthreads();
 }
 
