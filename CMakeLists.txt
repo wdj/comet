@@ -67,7 +67,10 @@ SET(LIB_INCLUDES
   src/tc.hh
   src/tc_helpers.i.hh
   src/tc_in.i.hh
-  src/tc_solve.i.hh
+  src/tc_solve_comet.i.hh
+  src/tc_solve_general.i.hh
+  src/tc_solve_cutlass_general.i.hh
+  src/tc_solve_comet_xor.i.hh
   src/tc_out.i.hh
   src/decomp_mgr.hh
   src/linalg.hh

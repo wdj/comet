@@ -175,6 +175,8 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
 
+  //if(env.print_details()) printf("In Metrics_ccc_duo_get_2_impl\n");
+
   if (env.is_threshold_tc()) {
     typedef Tally2x2<MetricFormat::SINGLE> TTable_t;
     const auto ttable = Metrics_elt_const<TTable_t>(metrics, index, env);
@@ -223,6 +225,8 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
     if (env.is_using_xor()) {
 
+      //if(env.print_details()) printf("In sparse using xor si0=%d sj0=%d si1=%d sj1=%d\n",si0,sj0,si1,sj1);
+
       // Make adjustment for xor gemm.
       // See notes for 8x8 system solve to back out this result.
       const GMTally1 cij = (si1 + sj1 - GMTally2x2_get(ttable, 1, 1)) / 2 +
@@ -255,6 +259,8 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
 
     } else { // if (!env.is_using_xor())
 
+      //if(env.print_details()) printf("In sparse not using xor\n");
+
       GMTally1 cij = GMTally2x2_get(ttable, 0, 0) +
                      GMTally2x2_get(ttable, 0, 1) +
                      GMTally2x2_get(ttable, 1, 0) +
@@ -280,6 +286,8 @@ static FloatResult_t Metrics_ccc_duo_get_2_impl( GMMetrics& metrics,
     }  // if (env.is_using_xor())
 
   } else { // !env.sparse
+
+    //if(env.print_details()) printf("In not sparse\n");
 
     COMET_ASSERT(!(env.is_using_xor() && !env.sparse())); // should never occur
 

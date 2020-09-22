@@ -82,8 +82,8 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   const GemmOut_t i12 = ivo[ivo_offset1+2];
   const GemmOut_t i13 = ivo[ivo_offset1+3];
 
-  printf("offset0=%zu offset1=%zu i0=%d %d %d %d i1=%d %d %d %d\n",
-          ivo_offset0,ivo_offset1,(int)i00,(int)i01,(int)i02,(int)i03,(int)i10,(int)i11,(int)i12,(int)i13);
+  /*printf("offset0=%d offset1=%d i0=%d %d %d %d i1=%d %d %d %d\n",
+          (int)ivo_offset0,(int)ivo_offset1,(int)i00,(int)i01,(int)i02,(int)i03,(int)i10,(int)i11,(int)i12,(int)i13);*/
 
 //printf("%i %i %i %i %i %i %i %i\n",
 //(int)i00, (int)i01, (int)i02, (int)i03, (int)i10, (int)i11, (int)i12, (int)i13);
@@ -129,7 +129,7 @@ __host__ __device__ static void tc_repair_metrics_kernel_elt_(
   ovo[o_offset1+0] = o10;
   ovo[o_offset1+1] = o11;
   //printf("t=%d,%d ovo\n",thread_r,thread_c);
-  printf("t=%d,%d ovo0=%lf %lf ovo1=%lf %lf\n",thread_r,thread_c,ovo[o_offset0],ovo[o_offset0+1],ovo[o_offset1],ovo[o_offset1+1]);
+  //printf("t=%d,%d ovo0=%lf %lf ovo1=%lf %lf\n",thread_r,thread_c,ovo[o_offset0],ovo[o_offset0+1],ovo[o_offset1],ovo[o_offset1+1]);
 }
 
 //-----------------------------------------------------------------------------
@@ -224,7 +224,6 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
 
   // always true, because of tc_gemm_divisibility_required()
   COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
-  //const int nvllD2 = nvll;// For B1INT?
   const int nvllD2 = nvll / 2; // For B1
 
   typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;

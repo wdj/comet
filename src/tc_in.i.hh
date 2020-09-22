@@ -157,7 +157,6 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
                                               zero
 
     ) : is_duo /* && is_sparse */ ? (
-
              // DUO: pick up low order bit (unless undefined)
              snm == _UNDEF    ? zero :
              (snm&1) == jE    ? one :
@@ -201,7 +200,7 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_value_(
           /* snm == _10 && ... */              one
 
     );
-
+  //printf("snm=%u snm&1=%u jE=%d out=%u\n",snm,(snm&1),jE,out);
   return out;
 }
 
@@ -399,6 +398,7 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_get_field_(
     tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(sn_m, sn_c, jE, kE, step_2way,
       num_way, is_sparse, is_duo, form_matX_tc,
       is_bitwise_3way_2step);
+  //printf("sn_m32=%u sn_m=%u sn_c32=%u sn_c=%u out=%u\n",sn_m32,sn_m,sn_c32,sn_c,out);
 
   return out;
 }
@@ -484,6 +484,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
   if (BuildHas::HIP && TC_METHOD == TC::INT8) {
 
+    printf("In HIP if t=%d,%d\n",vlX2_thread,flT_thread);
+
     const int vl = is_vectors_halved && IS_LEFT ?
                    vl_thread % nvleD2 + step_2way * nvleD2 :
                    vl_thread;
@@ -495,6 +497,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
                    step_2way;
 
     const uint32_t* const vim_col = vim + vl * (size_t)vi_dim0;
+    
 
     enum {BITS_PER_BYTE = 8};
     enum {SNPW = 16}; // seminibbles per 32-bit word
@@ -569,6 +572,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
         vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))] :
         vo[vlX2_index + vlX2_dim * flG_index];
 
+    //printf("t=%d,%d igipt=%d/%d vo_in=%d jE=%u\n",vlX2_thread,flT_thread,igipt,NGIPT,vo_value,jE);
     for (int ifpgi = 0; ifpgi < NFPGI; ++ifpgi) {
 
       // Get active field_local number.
@@ -595,8 +599,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
       } else {
         vo_value = out;
       }
-
     } // ifpgi
+    //printf("t=%d,%d igipt=%d/%d vo_value=%u\n",vlX2_thread,flT_thread,igipt,NGIPT,vo_value);
   } // igipt
 }
 
@@ -642,6 +646,7 @@ __global__ static void tc_buf_write_kernel_(
   if (vlX2_thread >= nvleX2_thread || flT_thread >= nflT_thread)
     return;
 
+  //printf("Calling write_elt with t=%d,%d vlX2_thread=%d flT_thread=%d\n",thread_dim0,thread_dim1,vlX2_thread,flT_thread);
   tc_buf_write_kernel_elt_<TC_METHOD, IS_LEFT>(vo, vim, vic, vi_dim0,
     num_way, is_sparse, is_duo, form_matX_tc, step_2way,
     is_bitwise_3way_2step, is_vectors_halved,
@@ -666,6 +671,8 @@ void tc_buf_write_(
   COMET_INSIST(tc_bufs.tc_buf_left && tc_bufs.tc_buf_right);
   COMET_INSIST(npvfl_thisstep >= 0 && npvfl_thisstep <= npvfl);
   COMET_INSIST(pvfl_min >= 0 && pvfl_min + npvfl_thisstep <= npvfl);
+
+  if(env.print_details()) printf("In tc_buf_write_\n");
 
   // num_vector-related dimensions.
 
@@ -745,6 +752,8 @@ void tc_buf_write_(
       const int num_threadblocks_1 = utils::min(thread_dim1, blockdim_y);
       const int num_threadblocks_2 = utils::ceil(thread_dim1, blockdim_y);
 
+      if(env.print_details()) printf("Launching tc_buf_write_kernel_ with blocks=%d,%d,%d and threads=%d,1,1\n",num_threadblocks_0,num_threadblocks_1,num_threadblocks_2,threadblocksize);
+
       COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<TC_METHOD, IS_LEFT>),
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
@@ -756,7 +765,11 @@ void tc_buf_write_(
 
       System::accel_last_call_succeeded();
 
+      if(env.print_details()) printf("Done with tc_buf_write_\n");
+
   } else { // (!env.is_compute_method_gpu())
+
+    if(env.print_details()) printf("Calling tc_buf_write_kernel_elt non-gpu kernel\n");
 
     for (int i1 = 0; i1 < thread_dim1; ++i1) {
       for (int i0 = 0; i0 < thread_dim0; ++i0) {

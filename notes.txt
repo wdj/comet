@@ -1,5 +1,63 @@
+##########################################
+Overview:
+This document contains notes on the 1-bit GEMM kernels and related changes made to CoMet. This includes additional input options, GEMM implementations, other implementation notes, and notes on planned changes.
+
+
+##########################################
+Input options:
+--num_kernel <int> - Choose kernel number for routines that have multiple otpions
+--print_details <yes/no> - Print additional details about each run
+
+
+##########################################
+GEMMs:
+no tc:
+  * CoMet GEMM kernels with original approach:
+    0: Default Magma kernel (magma_wrapper.cc - magma_mgemm*5blas_zgemm)
+    1: Simple WMMA CoMet kernel (tc_solve_comet.i.hh - b1_comet_gemm_gpu_simple)
+
+tc 5:
+  * 1-bit WMMA xor general GEMM kernels (tc_solve_general.i.hh):
+    0: Very simple 1-bit GEMM (b1_xor_gemm_gpu)
+      - Basic approach to develop CoMet 1-bit xor GEMM code
+    1: Simple tensor core 1-bit GEMM (b1_xor_gemm_gpu_tc_simple)
+      - Simple approach to demonstrate CoMet can use tensor cores
+    2: Very simple shared memory 1-bit GEMM (b1_xor_gemm_gpu_tc_sm)
+      - Simple approach to demonstrate tensor cores can use shared memory
+      - Needs to read larger blocks and loop over them to actually improve performance
+
+  * Cutlass device-level kernels (tc_solve_cutlass_general.i.hh):
+    10: Cutlass kernel with 256x128 blocks
+    11: Cutlass kernel with 128x256 blocks
+      - Fastest Cutlass kernel on GTX 2060
+    12: Cutlass kernel with 128x128 blocks
+    13: Cutlass kernel with 128x64 blocks
+    14: Cutlass kernel with 64x128 blocks
+    15: Cutlass kernel with 64x64 blocks
+    16: Cutlass WMMA kernel with 64x64 blocks
+      - Another Cutlass kernel approach, but not sure what is different about it
+
+  * 1-bit WMMA xor CoMet GEMM kernels (tc_solve_comet_xor.i.hh)
+    20: Simple GEMM that returns int array (b1_comet_xor_gemm_gpu_int_simple)
+      - Need to shuffle output array differently to get this to produce correct solution
+    21: Simple xor GEMM (b1_comet_xor_gemm_gpu_simple)
+      - Does not need tc_in or tc_out kernels
+    22: Simple xor tensor core GEMM (b1_comet_xor_gemm_gpu_tc_simple)
+      - Work in progress
+
+  * Cutlass - ToDo (tc_solve_cutlass_comet_xor.i.hh):
+    30: ToDo - Need to contact Nvidia and send them working tensor core CoMet GEMM kernel
+
+
+##########################################
+Implementation Notes:
+In setup routines use env.num_kernel()<20 for general GEMMs and env.num_kernel()>=20 for CoMet GEMMs to differentiate between the two types of GEMMs. Will likely pick fastest kernels later for master version of CoMet.
+
+Added compile and run scripts. Run scripts have options to run accuracy tests and run performance tests.
+
+
+##########################################
 ToDo:
-Figure out how to get this branch added into git repo correctly
 Add automatic compilation settings for tensor core and Cutlass GEMMs
 Get tar of Cutlass to put into CoMet directory
 Setup CoMet to unpack Cutlass and use this when installing

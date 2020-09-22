@@ -589,7 +589,7 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
 
 //=============================================================================
 
-void perform_run_preflight(int argc, char** argv) {
+void perform_run_preflight(int argc, char** argv, int print_details) {
 
 // TODO: make this better.
 #ifdef COMET_USE_MAGMA
@@ -602,7 +602,8 @@ void perform_run_preflight(int argc, char** argv) {
     int num_proc = 0;
     COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &num_proc));
 
-    const char* options_template_1 =
+    // Original preflight run
+    /*const char* options_template_1 =
         env.metric_type() == MetricType::CZEK ?
           "--num_field 1 --num_vector_local 2 "
           "--metric_type ccc "
@@ -611,11 +612,19 @@ void perform_run_preflight(int argc, char** argv) {
           "--num_field 1 --num_vector_local 2 "
           "--metric_type czekanowski "
           "--num_proc_vector %i --all2all no --num_way 2 "
+          "--compute_method GPU --verbosity 0";*/
+
+    // Simple duo preflight run
+    const char* options_template_1 =
+          "--num_field 128 --num_vector_local 4 "
+          "--metric_type duo --sparse yes --tc 5 "
+          "--num_proc_vector %i --all2all no --num_way 2 "
           "--compute_method GPU --verbosity 0";
 
     char options1[1024];
     sprintf(options1, options_template_1, num_proc);
 
+    if(print_details) printf("Calling perform_run from perform_run_preflight\n");
     perform_run(options1);
   }
 
@@ -641,11 +650,14 @@ int main(int argc, char** argv) {
 
   bool use_fast_nodes = false;
   bool no_preflight = false;
+  bool print_details = false;
   for (int i=1; i<argc; ++i) {
     if (strcmp(argv[i], "--fastnodes") == 0)
       use_fast_nodes = true;
     if (strcmp(argv[i], "--nopreflight") == 0)
       no_preflight = true;
+    if (strcmp(argv[i], "--print_details") == 0)
+      print_details = true;
   }
 
   setbuf(stdout, NULL);
@@ -661,9 +673,12 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  if(print_details) printf("Starting CoMet in genomics_metric\n");
+
   //install_handler();
 
   if (use_fast_nodes) { 
+    if(print_details) printf("Using fast nodes\n");
 
     COMET_MPI_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD));
     const double t2 = System::time();
@@ -675,9 +690,12 @@ int main(int argc, char** argv) {
 
     // Perform preflight warmup.
 
-    if (!no_preflight)
-      perform_run_preflight(argc, argv);
+    if (!no_preflight) {
+      if(print_details) printf("Calling perform_run_preflight\n");
+      perform_run_preflight(argc, argv, print_details);
+    }
 
+    if(print_details) printf("Calling perform_run_preflight_2\n");
     perform_run_preflight_2(argc, argv, &fast_comm);
 
     // Perform actual run.
@@ -693,13 +711,17 @@ int main(int argc, char** argv) {
 
   } else {
 
+    if(print_details) printf("Using all nodes\n");
+
     // Perform preflight warmup.
 
-    if (!no_preflight)
-      perform_run_preflight(argc, argv);
+    if (!no_preflight) {
+      if(print_details) printf("Calling perform_run_preflight\n");
+      perform_run_preflight(argc, argv, print_details);
+    }
 
     // Perform actual run.
-
+    if(print_details) printf("Calling perform_run\n");
     perform_run(argc, (char**)argv, NULL, MPI_COMM_WORLD);
 
   }

@@ -7,16 +7,16 @@ EXE=${COMET_SRC}/comet_work_gcc8.3/build_test_nompi_gpusys/genomics_metric
 # Very Short tests
 #nfields=1024
 #nfields=256
-nfields=128
+#nfields=128
 
 #nvectors=256
 #nvectors=8
-nvectors=4
+#nvectors=4
 #nvectors=2
 
 # Small test - about 2s
-#nfields=20480
-#nvectors=2048
+nfields=20480
+nvectors=2048
 
 # Medium test - about 6s
 #nfields=51200
@@ -55,46 +55,54 @@ PROBOPTS="--num_field $nfields --num_vector $nvectors --metric_type duo --sparse
 echo "Running tests using $PROBOPTS $RUNOPTS"
 
 # Original routine
-#echo -e "\n\nRunning original Magma duo GEMM"
-#time $EXE $PROBOPTS $RUNOPTS --num_kernel 0
+echo -e "\n\nRunning original Magma duo CoMet GEMM"
+time $EXE $PROBOPTS $RUNOPTS --num_kernel 0
 
-echo -e "\n\nRunning customized WMMA tensor core 1-bit xor duo GEMM"
+echo -e "\n\nRunning simple WMMA 1-bit duo CoMet GEMM"
 time $EXE $PROBOPTS $RUNOPTS --num_kernel 1
 
 # Extremely slow
-#echo -e "\n\nRunning original very simple CoMet 1-bit xor duo GEMM"
+#echo -e "\n\nRunning very simple CoMet 1-bit xor duo general GEMM"
 #time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 0
 
 # Fastest 1-bit WMMA GEMM tested so far
-echo -e "\n\nRunning simple WMMA tensor core 1-bit xor duo GEMM"
+echo -e "\n\nRunning simple tensor core 1-bit xor duo general GEMM"
 time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 1
 
 # Needs to be more fully optimized to actually be faster
-#echo -e "\n\nRunning simple shared memory WMMA tensor core 1-bit xor duo GEMM"
+#echo -e "\n\nRunning simple shared memory tensor core 1-bit xor duo general GEMM"
 #time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 2
 
-#echo -e "\n\nRunning Cutlass tensor core 1-bit xor duo GEMM 256x128"
-#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 3
+#echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 256x128"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 10
 
 # Fastest Cutlass device-level kernel on gpusys2
-#echo -e "\n\nRunning Cutlass tensor core 1-bit xor duo GEMM 128x256"
-#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 4
+echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 128x256"
+time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 11
 
-#echo -e "\n\nRunning Cutlass tensor core 1-bit xor duo GEMM 128x128"
-#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 5
+#echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 128x128"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 12
 
-#echo -e "\n\nRunning Cutlass tensor core 1-bit xor duo GEMM 128x64"
-#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 6
+#echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 128x64"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 13
 
-#echo -e "\n\nRunning Cutlass tensor core 1-bit xor duo GEMM 64x128"
-#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 7
+#echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 64x128"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 14
 
-#echo -e "\n\nRunning Cutlass tensor core 1-bit xor duo GEMM 64x64"
-#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 8
+#echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 64x64"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 15
 
-#echo -e "\n\nRunning Cutlass tensor core 1-bit xor duo GEMM 64x64"
-#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 9
+#echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 64x64"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 16
 
-echo -e "\n\nRunning customized WMMA 1-bit duo GEMM"
-time $EXE $PROBOPTS $RUNOPTS --tc 6 --num_kernel 10
+# Doesn't work currently, need to rearrange output array differently
+#echo -e "\n\nRunning simple CoMet int xor duo GEMM"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 20
+
+echo -e "\n\nRunning simple CoMet xor duo GEMM"
+time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 21
+
+# In progress kernel
+echo -e "\n\nRunning simple tensor core CoMet xor duo GEMM"
+time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 22
 

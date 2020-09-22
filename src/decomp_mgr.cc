@@ -93,7 +93,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     return;
   }
 
-  if(env->print_details()) printf("In DecompManager\n");
+  if(env->print_details()) printf("In DecompManager vectors_by_local=%d fields_by_local=%d\n",vectors_by_local,fields_by_local);
 
   //--------------------
   // Vector counts
@@ -103,6 +103,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     dm->num_vector_local = num_vector_specifier;
     const size_t num_vector_local_required = gm_num_vector_local_required(
                                               dm->num_vector_local, env);
+    if(env->print_details()) printf("In vectors_by_local num_vector_local=%zu num_vector_local_required=%zu\n",dm->num_vector_local,num_vector_local_required);
     COMET_INSIST_INTERFACE(env, dm->num_vector_local == num_vector_local_required &&
          "Manual selection of nvl requires divisibility condition");
     // All vectors active on every proc.
@@ -139,7 +140,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
                                   nva - nvl * proc_num;
     dm->vector_base = nvl * proc_num <= nva ? nvl * proc_num : nva;
     COMET_INSIST(nvl * proc_num == dm->vector_base || 0 == dm->num_vector_active_local);
-    if(env->print_details()) printf("In !vectors_by_local num_vector_active=%d num_vector_local=%zu num_vector=%zu num_vector_active_local=%zu vector_base=%zu\n",dm->num_vector_active,dm->num_vector_local,dm->num_vector,dm->num_vector_active_local,dm->vector_base);
+    if(env->print_details()) printf("In !vectors_by_local num_vector_active=%zu num_vector_local=%zu num_vector=%zu num_vector_active_local=%zu vector_base=%zu\n",dm->num_vector_active,dm->num_vector_local,dm->num_vector,dm->num_vector_active_local,dm->vector_base);
   } // if vectors_by_local
 
   //--------------------

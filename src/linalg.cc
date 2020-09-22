@@ -104,17 +104,19 @@ void LinAlg::gemm_start(
     }
   } else {
     switch(env.num_kernel()) {
+      // Magma GEMM
       case 0: {
-        if(env.print_details()) printf("Calling gm_linalg_gemm_magma_start with mnk=%zu,%zu,%zu\n",m,n,k);
+        if(env.print_details()) printf("Calling MagmaWrapper::gemm_start with mnk=%zu,%zu,%zu\n",m,n,k);
         // apparently needed by magma.
         MagmaWrapper::set_matrix_zero_start(matC, env);
         // GEMM call, non-tc case.
         MagmaWrapper::gemm_start(m, n, k, matA1->active, matA1->dim0,
           matB->active, matB->dim0, matC->active, matC->dim0, env);
       } break;
+      // General GEMMs
       case 1: {
-        if(env.print_details()) printf("Calling custom 1-bit WMMA GEMM with mnk=%zu,%zu,%zu\n",m,n,k);
-        tc_gemm_wmma_start(m, n, k, matA1->active, matA1->dim0,
+        if(env.print_details()) printf("Calling CoMet GEMM kernel with mnk=%zu,%zu,%zu\n",m,n,k);
+        tc_gemm_comet_start(m, n, k, matA1->active, matA1->dim0,
           matB->active, matB->dim0, matC->active, matC->dim0, env);
       } break;
       default: {
@@ -239,4 +241,4 @@ void LinAlg::gemm(
 
 } // namespace comet
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------a

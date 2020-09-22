@@ -33,10 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -----------------------------------------------------------------------------*/
 
-#ifndef _COMET_TC_SOLVE_I_HH_
-#define _COMET_TC_SOLVE_I_HH_
-
-//#include <inttypes.h>
+#ifndef _COMET_TC_SOLVE_GENERAL_I_HH_
+#define _COMET_TC_SOLVE_GENERAL_I_HH_
 
 #include "cstdlib"
 #include <stdlib.h>
@@ -44,9 +42,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_fp16.h>
 #include <mma.h>
 
-#include "tc_solve_cutlass.i.hh"
+#include "tc_solve_cutlass_general.i.hh"
 
 using namespace nvcuda;
+
+// Tensor core GEMM defines
+// 1-bit int/int tensor core blocks
+#define WMMA1B_M   8
+#define WMMA1B_N   8
+#define WMMA1B_K 128
+
+// Number of bits in a uint8_t
+#define NBITS      8
 
 //=============================================================================
 
@@ -104,23 +111,14 @@ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
   }
 }
 
-// Tensor core GEMM defines
-// 1-bit int/int tensor core blocks
-#define WMMA1B_M   8
-#define WMMA1B_N   8
-#define WMMA1B_K 128
-
-// Number of bits in a uint8_t
-#define NBITS      8
-
 //-----------------------------------------------------------------------------
 /// \brief Simple WMMA tensor core 1-bit xor gemm
 
 __global__
-void b1_xor_gemm_gpu_simple(size_t m, size_t n, size_t k, uint8_t* a,
-                            uint8_t* b, bool beta, int32_t* c) {
+void b1_xor_gemm_gpu_tc_simple(size_t m, size_t n, size_t k, uint8_t* a,
+                               uint8_t* b, bool beta, int32_t* c) {
   // Block and thread indices
-  int tx = threadIdx.x, ty = threadIdx.y;
+  //int tx = threadIdx.x, ty = threadIdx.y;
   int bx = blockIdx.x, by = blockIdx.y;
 
   // Index of the first sub-matrix of A processed by the block
@@ -136,7 +134,8 @@ void b1_xor_gemm_gpu_simple(size_t m, size_t n, size_t k, uint8_t* a,
   int bBegin = k * WMMA1B_N * by;
   int bStep  = WMMA1B_K/NBITS;
 
-  printf("b=%d,%d t=%d,%d mnk=%d,%d,%d\n",bx,by,tx,ty,(int)m,(int)n,(int)k);
+  //printf("b=%d,%d t=%d,%d mnk=%u,%u,%u\n",bx,by,tx,ty,(unsigned int)m,
+  //       (unsigned int)n,(unsigned int)k);
 
   // Declare fragments
   wmma::fragment<wmma::matrix_a, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
@@ -146,7 +145,6 @@ void b1_xor_gemm_gpu_simple(size_t m, size_t n, size_t k, uint8_t* a,
 
   wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> c_frag;
   wmma::fill_fragment(c_frag, 0);
-  __syncthreads();
 
   // Loop over all sub-matrices of A and B to compute block sub-matrix
   int nblocks=((k*NBITS)+WMMA1B_K-1)/WMMA1B_K;
@@ -158,16 +156,18 @@ void b1_xor_gemm_gpu_simple(size_t m, size_t n, size_t k, uint8_t* a,
 
     // Perform the matrix multiplication
     wmma::bmma_sync(c_frag, a_frag, b_frag, c_frag);
-    __syncthreads();
   }
 
   // Store the output
   int cBegin = n*WMMA1B_M*bx + WMMA1B_N*by;
   wmma::store_matrix_sync(c+cBegin, c_frag, n, wmma::mem_row_major);
-  __syncthreads();
 
-  printf("b=%d,%d t=%d,%d mnk=%d,%d,%d cBegin=%d cShift=%d cInd=%d val=%d\n",bx,by,tx,ty,(int)m,(int)n,(int)k,cBegin,tx*n+ty,cBegin+tx*n+ty,c[cBegin+tx*n+ty]);
-  __syncthreads();
+  // Print individual c values
+  //__syncthreads();
+  //int cShift = tx*n+ty;
+  //int cInd = cBegin + cShift;
+  //printf("b=%d,%d t=%d,%d mnk=%u,%u,%u cBegin=%d cShift=%d cInd=%d val=%d\n",
+  //       bx,by,tx,ty,(unsigned int)m,(unsigned int)n,(unsigned int)k,cBegin,cShift,cInd,c[cInd]);
 }
 
 //-----------------------------------------------------------------------------
@@ -175,8 +175,8 @@ void b1_xor_gemm_gpu_simple(size_t m, size_t n, size_t k, uint8_t* a,
 ///        shared memory
 
 __global__
-void b1_xor_gemm_gpu_sm(size_t m, size_t n, size_t k, uint8_t* a,
-                        uint8_t *b, bool beta, int32_t* c) {
+void b1_xor_gemm_gpu_tc_sm(size_t m, size_t n, size_t k, uint8_t* a,
+                           uint8_t *b, bool beta, int32_t* c) {
   // Block and thread indices
   int tx = threadIdx.x, ty = threadIdx.y;
   int bx = blockIdx.x, by = blockIdx.y;
@@ -201,7 +201,6 @@ void b1_xor_gemm_gpu_sm(size_t m, size_t n, size_t k, uint8_t* a,
                  wmma::col_major> b_frag;
   wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> c_frag;
   wmma::fill_fragment(c_frag, 0);
-  __syncthreads();
 
   // Loop over all sub-matrices of A and B to compute block sub-matrix
   int nblocks=((k*NBITS)+WMMA1B_K-1)/WMMA1B_K;
@@ -226,7 +225,6 @@ void b1_xor_gemm_gpu_sm(size_t m, size_t n, size_t k, uint8_t* a,
   // Store the output
   int cBegin = n*WMMA1B_M*bx + WMMA1B_N*by;
   wmma::store_matrix_sync(c+cBegin, c_frag, n, wmma::mem_row_major);
-  __syncthreads();
 }
 
 //-----------------------------------------------------------------------------
@@ -302,7 +300,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         env.ops_local_inc(2 * m * (double)n * (double)k_eff);
       }
       // Call WMMA 1-bit GEMM kernels
-      else if(env.num_kernel()>=1 && env.num_kernel()<=9) {
+      else if(env.num_kernel()>=1 && env.num_kernel()<20) {
         enum {NUM_FL_PER_PVFL = 64};
         COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
@@ -322,7 +320,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         int gridblocky = n/threadblocky;
 
         if(env.print_details()) 
-          printf("Launching b1_xor_gemm_gpu kernel m=%d n=%d k_eff=%zu k=%d beta=%d "
+          printf("Launching 1-bit general GEMM kernel m=%d n=%d k_eff=%zu k=%d beta=%d "
                  "bytes_per_gi=%d NUM_FL_PER_PVFL=%d gridDim=%d,%d threadDim=%d,%d\n",
                  m,n,k_eff,k,(int)beta,bytes_per_gi,NUM_FL_PER_PVFL,
                  gridblockx,gridblocky,threadblockx,threadblocky);
@@ -331,7 +329,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
           // Basic GEMM
           case 1: {
             if(env.print_details()) printf("Using simple tensor core kernel\n");
-            COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu_simple,
+            COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu_tc_simple,
               dim3(gridblockx, gridblocky, 1),
               dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
               n, m, k_eff, (uint8_t*)tc_bufs.tc_buf_right,
@@ -340,44 +338,44 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
           // Simple shared memory GEMM
           case 2: {
             if(env.print_details()) printf("Using shared memory tensor core kernel\n");
-            COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu_sm,
+            COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu_tc_sm,
               dim3(gridblockx, gridblocky, 1),
               dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
               n, m, k_eff, (uint8_t*)tc_bufs.tc_buf_right,
               (uint8_t*)tc_bufs.tc_buf_left, beta, (int32_t*)matC);
           } break;
           // Cutlass kernels
-          case 3: {
+          case 10: {
             if(env.print_details()) printf("Using Cutlass kernel 256x128\n");
             CutlassTCGemm1B_256x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
           } break;
-          case 4: {
+          case 11: {
             if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
             CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
           } break;
-          case 5: {
+          case 12: {
             if(env.print_details()) printf("Using Cutlass kernel 128x128\n");
             CutlassTCGemm1B_128x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
           } break;
-          case 6: {
+          case 13: {
             if(env.print_details()) printf("Using Cutlass kernel 128x64\n");
             CutlassTCGemm1B_128x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
           } break;
-          case 7: {
+          case 14: {
             if(env.print_details()) printf("Using Cutlass kernel 64x128\n");
             CutlassTCGemm1B_64x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
           } break;
-          case 8: {
+          case 15: {
             if(env.print_details()) printf("Using Cutlass kernel 64x64\n");
             CutlassTCGemm1B_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
           } break;
-          case 9: {
+          case 16: {
             if(env.print_details()) printf("Using Cutlass WMMA kernel 64x64\n");
             CutlassTCGemm1BWmma_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);

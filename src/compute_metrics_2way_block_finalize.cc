@@ -548,7 +548,7 @@ static void finalize_duo_(
             const GMTally2x2 value =
               metrics_buf->elt_const<GMTally2x2>(i, j);
             Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
-            printf("ij=%d,%d value=%lf %lf\n",i,j,value.data[0],value.data[1]);
+            //printf("ij=%d,%d value=%lf %lf\n",i,j,value.data[0],value.data[1]);
           } // for i
         }   // for j
       } else {
