@@ -71,7 +71,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //-----------------------------------------------------------------------------
 /// \brief Assertion macro (for debug builds only).
 
-#ifndef NDEBUG
+#define COMET_ASSERTIONS_REQUEST_
+
+#if defined(COMET_ASSERTIONS_REQUEST_) &&  ! defined(NDEBUG)
 # define COMET_ASSERTIONS_ON
 # define COMET_ASSERT(condition) COMET_INSIST(condition)
 #else
