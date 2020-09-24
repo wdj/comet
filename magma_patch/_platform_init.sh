@@ -326,7 +326,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   module load openmpi
   module load rocm
   module load hip
-  module load cray-libsci
+  #module load cray-libsci
   #module load rocblas
   (module list) 2>&1 | grep -v '^ *$'
 
@@ -364,7 +364,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
-  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
   COMET_WERROR=OFF
 
@@ -375,14 +375,18 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   #local USE_BLIS=ON
   local USE_BLIS=OFF
 
+  #local USE_LAPACK=OFF
+  local USE_LAPACK=ON
+
   if [ "${USE_BLIS:-OFF}" != OFF ] ; then
+    local USE_CPUBLAS=ON
+  elif [ "${USE_LAPACK:-OFF}" != OFF ] ; then
     local USE_CPUBLAS=ON
   else
     local USE_CPUBLAS=ON
     local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
     local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
     COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
-
   fi
 
   #local USE_MAGMA=OFF

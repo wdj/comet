@@ -297,6 +297,7 @@ function main
         git checkout $MAGMA_VERSION
         rm -rf .git
         cp make.inc-examples/make.inc.hip_openblas make.inc
+        # FIX
         sed -i -e 's/lopenblas/lsci_cray/' make.inc
         cd ..
         mv magma magma-$MAGMA_VERSION
