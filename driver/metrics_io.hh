@@ -55,33 +55,34 @@ public:
 
   // NOTE: metrics always written in single precision; this could be changed.
 
-  typedef BasicTypes::FP32 Float_t;
+  typedef uint32_t IntForFile_t;
+  typedef BasicTypes::FP32 FloatForFile_t;
 
   template<int N>
-  struct Metric {
-    uint32_t coords[N];
-    Float_t value;
-    uint32_t iG(const CEnv& env) const {
+  struct MetricForFile {
+    IntForFile_t coords[N];
+    FloatForFile_t value;
+    IntForFile_t iG(const CEnv& env) const {
       return env.is_metric_type_bitwise() ? coords[0] / 2 : coords[0];
     }
-    uint32_t jG(const CEnv& env) const {
+    IntForFile_t jG(const CEnv& env) const {
       return env.is_metric_type_bitwise() ? coords[1] / 2 : coords[1];
     }
-    uint32_t kG(const CEnv& env) const {
+    IntForFile_t kG(const CEnv& env) const {
       COMET_ASSERT(N >= 3);
       return env.is_metric_type_bitwise() ? coords[2] / 2 : coords[2];
     }
-    uint32_t iE(const CEnv& env) const {
+    IntForFile_t iE(const CEnv& env) const {
       return env.is_metric_type_bitwise() ? coords[0] % 2 : 0;
     }
-    uint32_t jE(const CEnv& env) const {
+    IntForFile_t jE(const CEnv& env) const {
       return env.is_metric_type_bitwise() ? coords[1] % 2 : 0;
     }
-    uint32_t kE(const CEnv& env) const {
+    IntForFile_t kE(const CEnv& env) const {
       COMET_ASSERT(N >= 3);
       return env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
     }
-  }; // Metric
+  }; // MetricForFile
 
   MetricIO(FILE* file, GMMetrics& metrics, CEnv& env);
   ~MetricIO() {}
@@ -108,7 +109,7 @@ public:
   }
 
   template<int N>
-  static void read(Metric<N>& metric, FILE* file, CEnv& env) {
+  static void read(MetricForFile<N>& metric, FILE* file, CEnv& env) {
 
     const size_t num_read = fread(&metric, sizeof(metric), 1, file);
     COMET_INSIST(1 == num_read);
@@ -141,7 +142,7 @@ private:
 
 class MetricsIO {
 
-  typedef MetricIO::Float_t Float_t;
+  typedef MetricIO::FloatForFile_t FloatForFile_t;
 
 public:
 

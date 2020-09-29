@@ -365,6 +365,8 @@ void print_output(bool do_print,
 
   printf(" prec %s", env.is_double_prec() ? "double" : "single");
 
+  printf(" build %s", BuildHas::DEBUG ? "debug" : "release");
+
   if (env.tc() != env.tc_eff()) {
     printf(" tc_eff %i", env.tc_eff());
   }

@@ -478,6 +478,7 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     module use /home/users/twhite/share/modulefiles
     #module load ompi # Trey's ompi includes rocm/3.5.0
     module load ompi/4.0.4-rocm-3.7
+    #module load ompi/4.0.4-rocm-3.8
   else
     #module load rocm-alt/2.7
     #module load rocm-alt/2.9
@@ -488,6 +489,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     #module load rocm/3.6.0
     module load gcc/8.1.0
     module load rocm/3.7.0
+    #module load gcc/8.1.0
+    #module load rocm/3.8.0
   fi
   (module list) 2>&1 | grep -v '^ *$'
 
@@ -585,9 +588,10 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #XXX salloc -N2 -A stf006 $SHELL
     #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
-    # salloc -N1
+    #XXX salloc -N1
     # salloc -N1 -pamdMI60
-    # salloc -N1 -pamdMI100 --reservation=maintenance
+    #XXX salloc -N1 -pamdMI100 --reservation=maintenance
+    # salloc -N1 -pamdMI100
     local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64 --cpu-bind=map_ldom:1 --mem-bind=local"
   else
     # salloc -N1
