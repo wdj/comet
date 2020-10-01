@@ -477,8 +477,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     module use /home/users/twhite/share/modulefiles
     #module load ompi # Trey's ompi includes rocm/3.5.0
-    module load ompi/4.0.4-rocm-3.7
-    #module load ompi/4.0.4-rocm-3.8
+    #module load ompi/4.0.4-rocm-3.7
+    module load ompi/4.0.4-rocm-3.8
   else
     #module load rocm-alt/2.7
     #module load rocm-alt/2.9
@@ -487,10 +487,10 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     #module load rocm-alt/3.5.0
     #module load rocm-alt/3.6.0
     #module load rocm/3.6.0
-    module load gcc/8.1.0
-    module load rocm/3.7.0
     #module load gcc/8.1.0
-    #module load rocm/3.8.0
+    #module load rocm/3.7.0
+    module load gcc/8.1.0
+    module load rocm/3.8.0
   fi
   (module list) 2>&1 | grep -v '^ *$'
 

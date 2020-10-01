@@ -58,6 +58,19 @@ public:
   typedef uint32_t IntForFile_t;
   typedef BasicTypes::FP32 FloatForFile_t;
 
+  MetricIO(FILE* file, GMMetrics& metrics, CEnv& env);
+  ~MetricIO() {}
+
+  // Write a metric with indexing to file.
+
+  void write(size_t iG, size_t jG, GMFloat value) const;
+  void write(size_t iG, size_t jG, size_t kG, GMFloat value) const;
+  void write(size_t iG, size_t jG, int iE, int jE, GMFloat value) const;
+  void write(size_t iG, size_t jG, size_t kG,
+             int iE, int jE, int kE, GMFloat value) const;
+
+  // Internal helper class to hold one metric with indexing as stored in file.
+
   template<int N>
   struct MetricForFile {
     IntForFile_t coords[N];
@@ -84,33 +97,24 @@ public:
     }
   }; // MetricForFile
 
-  MetricIO(FILE* file, GMMetrics& metrics, CEnv& env);
-  ~MetricIO() {}
-
-  void write(size_t iG, size_t jG, GMFloat value) const;
-  void write(size_t iG, size_t jG, size_t kG, GMFloat value) const;
-  void write(size_t iG, size_t jG, int iE, int jE, GMFloat value) const;
-  void write(size_t iG, size_t jG, size_t kG,
-             int iE, int jE, int kE, GMFloat value) const;
+  // Sizes.
 
   size_t num_written() const {return num_written_;}
 
   static size_t num_bytes_written_per_metric(CEnv& env) {
-    return env.metric_type() == MetricType::CZEK &&
-           env.num_way() == NumWay::_2 ? 4 + 4 + 4 :
-           env.metric_type() == MetricType::CZEK &&
-           env.num_way() == NumWay::_3 ? 4 + 4 + 4 + 4 :
-           env.num_way() == NumWay::_2 ? 4 + 4 + 4 :
-                                         4 + 4 + 4 + 4;
+    return env.num_way() == NumWay::_2 ?
+             2*sizeof(IntForFile_t) + sizeof(FloatForFile_t) :
+             3*sizeof(IntForFile_t) + sizeof(FloatForFile_t);
   }
 
   size_t num_bytes_written_per_metric() const {
     return num_bytes_written_per_metric(env_);
   }
 
+  // Read a single metric from the file.
+
   template<int N>
   static void read(MetricForFile<N>& metric, FILE* file, CEnv& env) {
-
     const size_t num_read = fread(&metric, sizeof(metric), 1, file);
     COMET_INSIST(1 == num_read);
   }
@@ -123,14 +127,17 @@ private:
   int num_way_;
   size_t mutable num_written_;
 
+  // Helper function to write a scalar to the file.
+
   template<typename T>
   bool write_(T v, size_t& bytes_written) const {
     const size_t num_written_this = fwrite(&v, sizeof(v), 1, file_);
     bytes_written += sizeof(v);
-    return 1 == num_written_this;
+    const bool is_written_correctly = 1 == num_written_this;
+    return is_written_correctly;
   }
 
-  //---Disallowed methods.
+  // Disallowed methods.
 
   MetricIO(  const MetricIO&);
   void operator=(const MetricIO&);
