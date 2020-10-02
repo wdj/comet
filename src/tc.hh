@@ -58,6 +58,21 @@ typedef rocblas_handle accelblasHandle_t;
 typedef int accelblasHandle_t;
 #endif
 
+// Tensor core GEMM defines
+// 1-bit int/int tensor core blocks
+#define WMMA1B_M   8
+#define WMMA1B_N   8
+#define WMMA1B_K 128
+
+// Number of bits in a uint8_t
+#define NBITS      8
+
+// Cuda block size
+#define BLOCK_SIZE 8
+
+// GPU bit count routine
+#define gm_popcount64(x) __popcll(x)
+
 //-----------------------------------------------------------------------------
 /// \brief Struct to hold info for tc buffers.
 

@@ -401,7 +401,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
   const size_t num_group = 1 << NUM_SHUFFLE;
   const size_t group_size_max = utils::ceil(nfa, (size_t)num_group);
 
-  size_t num_incorrect = 0;
+  size_t num_incorrect = 0, num_total = 0;
   const size_t max_to_print = 10;
   double max_incorrect_diff = 0.;
 
@@ -666,10 +666,10 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           }
 #endif
 
-          //printf("index=%zu entry_num=%d value_expected=%e value=%e\n",
-          //       index,entry_num,value_expected,value);
-
+          num_total++;
           const bool is_incorrect = value_expected != value;
+          //printf("index=%zu entry_num=%d value_expected=%e value=%e correct=%d\n",
+          //       index,entry_num,value_expected,value,!is_incorrect);
           if (is_incorrect) {
             const double diff = value - value_expected;
             max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
@@ -849,6 +849,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     default:
       COMET_INSIST(false && "Invalid data type.");
   } // switch
+  //printf("Correct: %zu/%zu\n",num_total-num_incorrect,num_total);
   do_->num_incorrect += num_incorrect;
   do_->max_incorrect_diff = utils::max(max_incorrect_diff,
                                        do_->max_incorrect_diff);

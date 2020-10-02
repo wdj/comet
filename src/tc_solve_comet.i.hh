@@ -9,10 +9,10 @@
 #include "types.hh"
 
 // GPU bit count routine
-#define gm_popcount64(x) __popcll(x)
+//#define gm_popcount64(x) __popcll(x)
 
 // Cuda block size
-#define BLOCK_SIZE 8
+//#define BLOCK_SIZE 8
 
 namespace comet {
 

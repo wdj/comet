@@ -48,12 +48,12 @@ using namespace nvcuda;
 
 // Tensor core GEMM defines
 // 1-bit int/int tensor core blocks
-#define WMMA1B_M   8
-#define WMMA1B_N   8
-#define WMMA1B_K 128
+//#define WMMA1B_M   8
+//#define WMMA1B_N   8
+//#define WMMA1B_K 128
 
 // Number of bits in a uint8_t
-#define NBITS      8
+//#define NBITS      8
 
 //=============================================================================
 
