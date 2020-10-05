@@ -316,7 +316,9 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   int gridx = bx*BLOCK_SIZE + tx;
   int gridy = by*BLOCK_SIZE + ty;
 
-  //if(bx==0 && by==0 && tx==0 && ty==0) printf("In b1_comet_xor_gemm_gpu_simple mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",m,n,k,m,k,k,n,m,n,gridx,gridy);
+  //if(bx==0 && by==0 && tx==0 && ty==0)
+  //  printf("In b1_comet_xor_gemm_gpu_simple mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",
+  //         m,n,k,m,k,k,n,m,n,gridx,gridy);
 
   if(gridx>=m || gridy>=n) return;
 
@@ -410,8 +412,8 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   c[cInd].data[0] = c0;
   c[cInd].data[1] = c1;
 
-  //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
-  //         bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
+  printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
+         bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
 
 
   // Each thread writes one element of block sub-matrix to memory
@@ -428,19 +430,6 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel for custom 1-bit tensor core WMMA GEMM
 
-// 1-bit int/int tensor core blocks
-//#define WMMA1B_M   8 // 8 rows
-//#define WMMA1B_N   8 // 8 cols
-//#define WMMA1B_K 128 // 8 bytes or 128 bits
-
-#define BLOCK_SIZE_X 8
-#define BLOCK_SIZE_Y 4
-
-#define COMET_BLOCK_SIZE 8
-
-#define CROWS 2
-#define CCOLS 2
-
 __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
 
@@ -448,12 +437,11 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
   int tx = threadIdx.x, ty = threadIdx.y;
   int bx = blockIdx.x, by = blockIdx.y;
 
-  //int gridx = bx*BLOCK_SIZE + tx;
-  //int gridy = by*BLOCK_SIZE + ty;
+  int COMET_BLOCK_SIZE = 8;
+  int CROWS = 2, CCOLS = 2;
+  int KSIZE = 4;
 
-  //if(bx==0 && by==0 && tx==0 && ty==0) printf("In b1_comet_xor_gemm_gpu_simple mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",m,n,k,m,k,k,n,m,n,gridx,gridy);
-
-  //if(gridx>=m || gridy>=n) return;
+  //if(bx==0 && by==0 && tx==0 && ty==0) printf("In b1_comet_xor_gemm_gpu_simple mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d\n",m,n,k,m,k,k,n,m,n);
 
   enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 
@@ -466,7 +454,7 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
                  wmma::row_major> a_frag;
   wmma::fragment<wmma::matrix_b, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
                  wmma::col_major> b_frag;
-  wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> c_frag[CROWS][CCOLS];
+  wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> c_frag[2][2];
   for(int ii=0; ii<CROWS; ii++) {
     for(int jj=0; jj<CCOLS; jj++) {
       wmma::fill_fragment(c_frag[ii][jj], 0);
@@ -474,33 +462,27 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
   }
   __syncthreads();
 
-  __shared__ uint64_t As[16][4];
-  __shared__ uint64_t Bs[16][4];
+  __shared__ uint64_t As[16][4], Bs[16][4];
   __shared__ int      Cs[16][16];
 
   int nrow  = tx;
   int kval  = ty;
 
   // Each thread computes one element of block sub-matrix
-  for (int l=0; l<k; l+=4) {
+  for (int l=0; l<k; l+=KSIZE) {
 
     // A row major and B col major
-    int aInd = aBegin + k*nrow + kval;
-    int bInd = bBegin + k*nrow + kval;
-    //printf("b=%d,%d t=%d,%d Starting loop l=%d/%d ngrid=%d nrow=%d kval=%d a=%d=%d b=%d=%d\n",
-    //       bx,by,tx,ty,l,k/4,ngrid,nrow,kval,aBegin,aInd,bBegin,bInd);
+    int aInd = aBegin + l + k*nrow + kval;
+    int bInd = bBegin + l + k*nrow + kval;
 
-    GMBits2x64 vi, vj; // Use const if possible
-    //if(nrow<m && nrow<n && kval<k) {
-      //---Extract input values to process---
-      vi = a[aInd];
-      vj = b[bInd];
-    /*} else {
-      vi.data[0] = 0;
-      vi.data[1] = 0;
-      vj.data[0] = 0;
-      vj.data[1] = 0;
-    }*/
+    /*printf("b=%d,%d t=%d,%d l=%d/%d nrow=%d kval=%d KSIZE=%d a=%d=%d b=%d=%d a2=%d=%d=%d b2=%d=%d=%d\n",
+           bx,by,tx,ty,l,k,nrow,kval,KSIZE,
+           aBegin,aBegin+k*nrow+kval,aBegin,aBegin+l,aBegin+l+k*nrow+kval,
+           bBegin,bBegin+k*nrow+kval,bBegin,bBegin+l,bBegin+l+k*nrow+kval);*/
+
+    //---Extract input values to process---
+    const GMBits2x64 vi = a[aInd];
+    const GMBits2x64 vj = b[bInd];
 
     //--------------------
     // Nomenclature:
@@ -520,7 +502,6 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
 
     // Compute masks to sample the single needed bit from each seminibble,
     // and to ignore undefined vector entries.
-
     const uint64_t oddbits = 0x5555555555555555;
     const uint64_t vi0mask = (vi0 | ~(vi0 >> 1)) & oddbits;
     const uint64_t vi1mask = (vi1 | ~(vi1 >> 1)) & oddbits;
@@ -528,27 +509,22 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
     const uint64_t vj1mask = (vj1 | ~(vj1 >> 1)) & oddbits;
 
     // Extract elts that are a "1" bit (=01).
-
     const uint64_t pvi0 =  vi0  & vi0mask;
     const uint64_t pvi1 =  vi1  & vi1mask;
     const uint64_t pvj0 =  vj0  & vj0mask;
     const uint64_t pvj1 =  vj1  & vj1mask;
 
     // Extract elts that are an "0" bit (=00).
-
     const uint64_t nvi0 = ~vi0  & vi0mask;
     const uint64_t nvi1 = ~vi1  & vi1mask;
     const uint64_t nvj0 = ~vj0  & vj0mask;
     const uint64_t nvj1 = ~vj1  & vj1mask;
 
     // Combine lower, upper words - each only uses odd bits - make packed.
-
     const uint64_t pvi = pvi0 | (pvi1 << 1);
     const uint64_t pvj = pvj0 | (pvj1 << 1);
     const uint64_t nvi = nvi0 | (nvi1 << 1);
     const uint64_t nvj = nvj0 | (nvj1 << 1);
-
-    //__syncthreads();
 
     int nbrow  = nrow * 2;
     int nbcol  = kval;
@@ -560,25 +536,17 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
     Bs[nbrow+1][nbcol] = pvj;
     __syncthreads();
 
-    //printf("b=%d,%d t=%d,%d ngrid=%d nrow=%d nbrow=%d nbcol=%d A=%ld %ld B=%ld %ld\n",
-    //       bx,by,tx,ty,ngrid,nrow,nbrow,nbcol,
-    //       As[nbrow][nbcol],As[nbrow+1][nbcol],Bs[nbrow][nbcol],Bs[nbrow+1][nbcol]);
-
     // Compute each tensor core operation
     for(int ii=0; ii<CROWS; ii++) {
       for(int jj=0; jj<CCOLS; jj++) {
-        for(int ntc=0; ntc<2; ntc++) {
-          //if(tx==0 && ty==0) printf("Calling bmma with ntc=%d As[%d]=%ld %ld %ld %ld Bs[%d]=%ld %ld %ld %ld\n",
-          //                          ntc,ntc*2,As[0][ntc*2],As[1][ntc*2+1],As[2][ntc*2+8],As[3][ntc*2+9],
-          //                          ntc*2,Bs[0][ntc*2],Bs[1][ntc*2+1],Bs[2][ntc*2+8],Bs[3][ntc*2+9]);
+        for(int kk=0; kk<2; kk++) {
 
           // Load the inputs
-          wmma::load_matrix_sync(a_frag, &(As[ii*8][ntc*2]), 4*64);
-          wmma::load_matrix_sync(b_frag, &(Bs[jj*8][ntc*2]), 4*64);
+          wmma::load_matrix_sync(a_frag, &(As[ii*8][kk*2]), 4*64);
+          wmma::load_matrix_sync(b_frag, &(Bs[jj*8][kk*2]), 4*64);
 
           // Perform the matrix multiplication
           wmma::bmma_sync(c_frag[ii][jj], a_frag, b_frag, c_frag[ii][jj]);
-          //__syncthreads();
         }
       }
     }
@@ -592,12 +560,6 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
   }
   __syncthreads();
 
-  /*if(kval==0) {
-    printf("b=%d,%d t=%d,%d nrow=%d Cs]=%d %d %d %d\n",
-           bx,by,tx,ty,nrow,
-           Cs[nrow*2][ncol*2],Cs[nrow*2][ncol*2+1],Cs[nrow*2+1][ncol*2],Cs[nrow*2+1][ncol*2+1]);
-  }*/
-
   // Store results in correct format
   for(int kk=0; kk<2; kk++) {
 
@@ -609,14 +571,217 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
     const uint64_t r01 = Cs[crow][ccol+1];
     const uint64_t r10 = Cs[crow+1][ccol];
     const uint64_t r11 = Cs[crow+1][ccol+1];
+
     c0 = r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
     c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
 
-    //double c0 = Cs[crow  ][ccol] | (Cs[crow  ][ccol+1] << GM_TALLY1_MAX_VALUE_BITS);
-    //double c1 = Cs[crow+1][ccol] | (Cs[crow+1][ccol+1] << GM_TALLY1_MAX_VALUE_BITS);
-
     // Each thread writes one element of block sub-matrix to memory
     int cBegin = n*bx*COMET_BLOCK_SIZE+by*COMET_BLOCK_SIZE;
+    int cInd   = cBegin + tx * 8 * gridDim.x + ty * 2 + kk;
+    c[cInd].data[0] = c0;
+    c[cInd].data[1] = c1;
+
+    /*printf("b=%d,%d t=%d,%d crow=%d ccol=%d Cs[%d,%d]=%ld %ld %ld %ld cInd=%d c0=%f c1=%f\n",
+           bx,by,tx,ty,crow,ccol,crow/2,ccol/2,
+           r00,r01,r10,r11,cInd,c0,c1);*/
+  }
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GPU kernel for custom 1-bit tensor core WMMA GEMM
+
+#define BLOCK_DIM_X 8
+#define BLOCK_DIM_Y 4
+
+#define CROWS BLOCK_DIM_X*2/8
+#define CCOLS BLOCK_DIM_Y/2
+
+__global__ void b1_comet_xor_gemm_gpu_tc_opt(int m, int n, int k,
+  GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
+
+  // Block and thread indices
+  int tx = threadIdx.x, ty = threadIdx.y;
+  int bx = blockIdx.x, by = blockIdx.y;
+
+  //if(bx==0 && by==0 && tx==0 && ty==0)
+  //  printf("In b1_comet_xor_gemm_gpu_opt mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d\n",
+  //         m,n,k,m,k,k,n,m,n);
+
+  enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
+
+  // Matrix block location
+  int aBegin = k * BLOCK_DIM_X * bx;
+  int bBegin = k * BLOCK_DIM_X * by;
+
+  // Declare fragments
+  wmma::fragment<wmma::matrix_a, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
+                 wmma::row_major> a_frag;
+  wmma::fragment<wmma::matrix_b, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
+                 wmma::col_major> b_frag;
+  wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> c_frag[CROWS][CCOLS];
+  for(int ii=0; ii<CROWS; ii++) {
+    for(int jj=0; jj<CCOLS; jj++) {
+      wmma::fill_fragment(c_frag[ii][jj], 0);
+    }
+  }
+  __syncthreads();
+
+  __shared__ uint64_t As[BLOCK_DIM_X*2][BLOCK_DIM_Y], Bs[BLOCK_DIM_X*2][BLOCK_DIM_Y];
+  __shared__ int      Cs[BLOCK_DIM_X*2][BLOCK_DIM_X*2];
+
+  int nrow  = tx;
+  int kval  = ty;
+
+  // Each thread computes one element of block sub-matrix
+  for (int l=0; l<k; l+=BLOCK_DIM_Y) {
+
+    // A row major and B col major
+    int aInd = aBegin + l + k*nrow + kval;
+    int bInd = bBegin + l + k*nrow + kval;
+    //printf("b=%d,%d t=%d,%d Starting loop l=%d/%d ngrid=%d nrow=%d kval=%d a=%d=%d b=%d=%d\n",
+    //       bx,by,tx,ty,l,k/4,ngrid,nrow,kval,aBegin,aInd,bBegin,bInd);
+
+    //---Extract input values to process---
+    const GMBits2x64 vi = a[aInd];
+    const GMBits2x64 vj = b[bInd];
+
+    //--------------------
+    // Nomenclature:
+    //
+    // ( )v(i)(0)_(0)
+    // (n)v(j)(1)_(1)
+    //  ^   ^  ^   ^
+    //  |   |  |   |--- lower or upper bit of each seminibble
+    //  |   |  |--- lower or upper word
+    //  |   |--- left or right vector
+    //  |---test for value or for its negative/complement
+    //--------------------
+    const uint64_t vi0 = vi.data[0];
+    const uint64_t vi1 = vi.data[1];
+    const uint64_t vj0 = vj.data[0];
+    const uint64_t vj1 = vj.data[1];
+
+    // Compute masks to sample the single needed bit from each seminibble,
+    // and to ignore undefined vector entries.
+    const uint64_t oddbits = 0x5555555555555555;
+    const uint64_t vi0mask = (vi0 | ~(vi0 >> 1)) & oddbits;
+    const uint64_t vi1mask = (vi1 | ~(vi1 >> 1)) & oddbits;
+    const uint64_t vj0mask = (vj0 | ~(vj0 >> 1)) & oddbits;
+    const uint64_t vj1mask = (vj1 | ~(vj1 >> 1)) & oddbits;
+
+    // Extract elts that are a "1" bit (=01).
+    const uint64_t pvi0 =  vi0  & vi0mask;
+    const uint64_t pvi1 =  vi1  & vi1mask;
+    const uint64_t pvj0 =  vj0  & vj0mask;
+    const uint64_t pvj1 =  vj1  & vj1mask;
+
+    // Extract elts that are an "0" bit (=00).
+    const uint64_t nvi0 = ~vi0  & vi0mask;
+    const uint64_t nvi1 = ~vi1  & vi1mask;
+    const uint64_t nvj0 = ~vj0  & vj0mask;
+    const uint64_t nvj1 = ~vj1  & vj1mask;
+
+    // Combine lower, upper words - each only uses odd bits - make packed.
+    const uint64_t pvi = pvi0 | (pvi1 << 1);
+    const uint64_t pvj = pvj0 | (pvj1 << 1);
+    const uint64_t nvi = nvi0 | (nvi1 << 1);
+    const uint64_t nvj = nvj0 | (nvj1 << 1);
+
+    int nbrow  = nrow * 2;
+    int nbcol  = kval;
+
+    //if(tx==0 && ty==0) {
+    As[nbrow  ][nbcol] = nvi;
+    As[nbrow+1][nbcol] = pvi;
+
+    Bs[nbrow  ][nbcol] = nvj;
+    Bs[nbrow+1][nbcol] = pvj;
+    /*} else {
+    As[nbrow  ][nbcol] = 0;
+    As[nbrow+1][nbcol] = 0;
+
+    Bs[nbrow  ][nbcol] = 0;
+    Bs[nbrow+1][nbcol] = 0;
+    }*/
+    __syncthreads();
+
+    //printf("b=%d,%d t=%d,%d ngrid=%d nrow=%d nbrow=%d nbcol=%d A=%ld %ld B=%ld %ld\n",
+    //       bx,by,tx,ty,ngrid,nrow,nbrow,nbcol,
+    //       As[nbrow][nbcol],As[nbrow+1][nbcol],Bs[nbrow][nbcol],Bs[nbrow+1][nbcol]);
+
+    // Compute each tensor core operation
+    for(int ii=0; ii<CROWS; ii++) {
+      for(int jj=0; jj<CCOLS; jj++) {
+        for(int kk=0; kk<2; kk++) {
+          //if(tx==0 && ty==0) printf("Calling bmma with ntc=%d As[%d]=%ld %ld %ld %ld Bs[%d]=%ld %ld %ld %ld\n",
+          //                          ntc,ntc*2,As[0][ntc*2],As[1][ntc*2+1],As[2][ntc*2+8],As[3][ntc*2+9],
+          //                          ntc*2,Bs[0][ntc*2],Bs[1][ntc*2+1],Bs[2][ntc*2+8],Bs[3][ntc*2+9]);
+
+          // Load the inputs
+          wmma::load_matrix_sync(a_frag, &(As[ii*8][kk*2]), BLOCK_DIM_Y*64);
+          wmma::load_matrix_sync(b_frag, &(Bs[jj*8][kk*2]), BLOCK_DIM_Y*64);
+
+          // Perform the matrix multiplication
+          wmma::bmma_sync(c_frag[ii][jj], a_frag, b_frag, c_frag[ii][jj]);
+          //__syncthreads();
+        }
+      }
+    }
+  }
+
+  // Store the output
+  for(int ii=0; ii<CROWS; ii++) {
+    for(int jj=0; jj<CCOLS; jj++) {
+      wmma::store_matrix_sync(&(Cs[ii*8][jj*8]), c_frag[ii][jj], BLOCK_DIM_X*2, wmma::mem_row_major);
+    }
+  }
+  __syncthreads();
+
+  /*for(int ii=0; ii<c_frag[0][0].num_elements; ii++) {
+    printf("b=%d,%d t=%d,%d c_frag[%d/%d]=%d\n",
+           bx,by,tx,ty,ii,c_frag[0][0].num_elements,c_frag[0][0].x[ii]);
+  }
+  __syncthreads();
+
+  for(int kk=0; kk<2; kk++) {
+    int crow = tx;
+    int ccol = ty*2+kk;
+    printf("b=%d,%d t=%d,%d Cs[%d][%d]=%d\n",
+           bx,by,tx,ty,crow,ccol,Cs[crow][ccol]);
+  }
+  __syncthreads();*/
+
+  /*if(kval==0) {
+    printf("b=%d,%d t=%d,%d nrow=%d Cs]=%d %d %d %d\n",
+           bx,by,tx,ty,nrow,
+           Cs[nrow*2][ncol*2],Cs[nrow*2][ncol*2+1],Cs[nrow*2+1][ncol*2],Cs[nrow*2+1][ncol*2+1]);
+  }*/
+
+  // Store results in correct format
+  for(int kk=0; kk<2; kk++) {
+
+    // Set result to double complex format
+    int crow = tx*2;
+    int ccol = ty*4 + kk*2;
+    double c0 = 0, c1 = 0; 
+    const uint64_t r00 = Cs[crow][ccol];
+    const uint64_t r01 = Cs[crow][ccol+1];
+    const uint64_t r10 = Cs[crow+1][ccol];
+    const uint64_t r11 = Cs[crow+1][ccol+1];
+
+    //
+    /*int cInd = 8 * 2 * ty + tx * 2;
+    double c0 = 0, c1 = 0;
+    const uint64_t r00 = c_frag[0][0].x[cInd];
+    const uint64_t r01 = Cs[crow][ccol+1];
+    const uint64_t r10 = Cs[crow+1][ccol];
+    const uint64_t r11 = Cs[crow+1][ccol+1];*/
+
+    c0 = r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
+    c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+
+    // Each thread writes one element of block sub-matrix to memory
+    int cBegin = n*bx*BLOCK_DIM_X+by*BLOCK_DIM_X;
     int cInd   = cBegin + tx * 8 * gridDim.x + ty * 2 + kk;
     c[cInd].data[0] = c0;
     c[cInd].data[1] = c1;
@@ -657,9 +822,10 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
         m, n, k, (GMBits2x64*)matA,
         (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
     } break;
-    // Basic tensor core GEMM
+
+    // Simple tensor core GEMM
     case 22: {
-      threadblockx = BLOCK_SIZE_X; threadblocky = BLOCK_SIZE_Y;
+      threadblockx = 8; threadblocky = 4;
       gridblockx = (int)ceil((double)m/threadblockx);
       gridblocky = (int)ceil((double)n/threadblockx);
       if(env.print_details()) printf("Calling b1_comet_xor_gemm_gpu_tc_simple kernel gridDim=%d,%d threadDim=%d,%d\n",gridblockx,gridblocky,threadblockx,threadblocky);
@@ -669,6 +835,21 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
         m, n, k, (GMBits2x64*)matA,
         (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
     } break;
+
+    // Optimized tensor core GEMM
+    case 23: {
+      threadblockx = 8; threadblocky = 4;
+      gridblockx = (int)ceil((double)m/threadblockx);
+      gridblocky = (int)ceil((double)n/threadblockx);
+      if(env.print_details()) printf("Calling b1_comet_xor_gemm_gpu_tc_opt kernel gridDim=%d,%d threadDim=%d,%d\n",gridblockx,gridblocky,threadblockx,threadblocky);
+      COMET_LAUNCH_KERNEL(b1_comet_xor_gemm_gpu_tc_opt,
+        dim3(gridblockx, gridblocky, 1),
+        dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
+        m, n, k, (GMBits2x64*)matA,
+        (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
+    } break;
+
+    // Output error for invalid choice
     default: {
       printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
          env.num_kernel());

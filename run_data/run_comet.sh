@@ -5,12 +5,13 @@ EXE=${COMET_SRC}/comet_work_gcc8.3/build_test_nompi_gpusys/genomics_metric
 
 # Problem sizes
 # Very Short tests
-#nfields=1024
+#nfields=2048
+nfields=1024
 #nfields=512
 #nfields=256
 #nfields=128
 
-#nvectors=256
+nvectors=256
 #nvectors=16
 #nvectors=8
 #nvectors=4
@@ -25,8 +26,8 @@ EXE=${COMET_SRC}/comet_work_gcc8.3/build_test_nompi_gpusys/genomics_metric
 #nvectors=5120
 
 # Large test
-nfields=81920
-nvectors=8192
+#nfields=81920
+#nvectors=8192
 
 # Test options
 verbose=1 # 1=minimal, 2=results, 3=all
@@ -57,8 +58,8 @@ PROBOPTS="--num_field $nfields --num_vector $nvectors --metric_type duo --sparse
 echo "Running tests using $PROBOPTS $RUNOPTS"
 
 # Original routine
-#echo -e "\n\nRunning original Magma duo CoMet GEMM"
-#time $EXE $PROBOPTS $RUNOPTS --num_kernel 0
+echo -e "\n\nRunning original Magma duo CoMet GEMM"
+time $EXE $PROBOPTS $RUNOPTS --num_kernel 0
 
 #echo -e "\n\nRunning simple WMMA 1-bit duo CoMet GEMM"
 #time $EXE $PROBOPTS $RUNOPTS --num_kernel 1
@@ -104,7 +105,11 @@ time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 11
 #echo -e "\n\nRunning simple CoMet xor duo GEMM"
 #time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 21
 
-# In progress kernel
+# Simple tensor core CoMet GEMM kernel
 echo -e "\n\nRunning simple tensor core CoMet xor duo GEMM"
 time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 22
+
+# In progress - Optimized tensor core CoMet GEMM kernel
+#echo -e "\n\nRunning optimized tensor core CoMet xor duo GEMM"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 23
 
