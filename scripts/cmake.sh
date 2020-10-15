@@ -390,6 +390,17 @@ function main
   fi
 
   #----------------------------------------------------------------------------
+  #---Get NVIDIA Cutlass library.
+
+  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+    echo "Building Cutlass library ..."
+    ln -s ../genomics_gpu/tpls/cutlass-master.zip
+    rm -rf cutlass-master
+    unzip -q cutlass-master
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass-master/include -I$BUILD_DIR/cutlass-master/tools/util/include"
+  fi
+
+  #----------------------------------------------------------------------------
   #---Get unit test harness if needed.
 
   if [ $TESTING = ON ] ; then
@@ -521,6 +532,12 @@ function main
     CMAKE_EXTRA_OPTIONS+="${COMET_CUDA_CMAKE_OPTS:-}"
   fi
 
+  local CMAKE_NVCC_OPTIONS=""
+
+  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
+  fi
+
   #============================================================================
   # Run cmake.
 
@@ -550,6 +567,8 @@ function main
     -DUSE_MPI:BOOL=${USE_MPI:-OFF} \
     -DUSE_CUDA:BOOL=${USE_CUDA:-OFF} \
     -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
+   \
+    -DCUDA_NVCC_FLAGS:STRING="$CMAKE_NVCC_OPTIONS" \
    \
     $REPO_DIR
   set +x

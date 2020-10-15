@@ -76,6 +76,7 @@ function configure_1case
     fi
 
     echo "Executing cmake.sh script ..."
+    pwd
     env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
         USE_MPI=$USE_MPI FP_PRECISION=$FP_PRECISION \
         ../genomics_gpu/scripts/cmake.sh

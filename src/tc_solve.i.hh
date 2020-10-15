@@ -38,6 +38,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#include <inttypes.h>
 
+#include "cstdlib"
+#include <stdlib.h>
+#include <cuda_runtime.h>
+#include <cuda_fp16.h>
+#include <mma.h>
+#include "tc_solve_cutlass_device.i.hh"
+
+//using namespace nvcuda;
+
 //=============================================================================
 
 namespace comet {
@@ -158,18 +167,55 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       const size_t k_eff = (k / NUM_FL_PER_PVFL) *
                            (BYTES_PER_PVFL_FIELDS / bytes_per_gi);
 
-      const int threadblocksize = 256;
-      COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
-                   "Current HIP limitation.");
-      const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
-      const int num_threadblocks_1 = n;
+      int use_cutlass = 0;
+      switch (use_cutlass) {
+        case 0: {
+          const int threadblocksize = 256;
+          COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
+                       "Current HIP limitation.");
+          const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
+          const int num_threadblocks_1 = n;
 
-      COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu,
-        dim3(num_threadblocks_0, num_threadblocks_1, 1),
-        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-        m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
-        (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
-
+          COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu,
+            dim3(num_threadblocks_0, num_threadblocks_1, 1),
+            dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+            m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
+            (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+        } break;
+        // Fastest Cutlass device level kernel
+        case 1: {
+          CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+        } break;
+        // Slower Cutlass device level kernels
+        case 2: {
+          CutlassTCGemm1B_256x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+        } break;
+        case 3: {
+          CutlassTCGemm1B_128x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+        } break;
+        case 4: {
+          CutlassTCGemm1B_128x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+        } break;
+        case 5: {
+          CutlassTCGemm1B_64x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+        } break;
+        case 6: {
+          CutlassTCGemm1B_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+        } break;
+        case 7: {
+          CutlassTCGemm1BWmma_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+        } break;
+        default: {
+          COMET_INSIST(false && "Failure to call GEMM function.");
+        }
+      }
       System::accel_last_call_succeeded();
 
 #   else // COMET_USE_ACCEL
