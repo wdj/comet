@@ -254,7 +254,7 @@ EOF
   local USE_OPENMP=ON
   #local USE_OPENMP=OFF
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
-  local COMET_OPENMP_COMPILE_OPTS=""
+  #local COMET_OPENMP_COMPILE_OPTS=""
 
   #---Libraries.
 
