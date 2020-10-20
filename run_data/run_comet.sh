@@ -6,12 +6,12 @@ EXE=${COMET_SRC}/comet_work_gcc8.3/build_test_nompi_gpusys/genomics_metric
 # Problem sizes
 # Very Short tests
 #nfields=2048
-nfields=1024
+#nfields=1024
 #nfields=512
 #nfields=256
 #nfields=128
 
-nvectors=256
+#nvectors=256
 #nvectors=16
 #nvectors=8
 #nvectors=4
@@ -26,8 +26,8 @@ nvectors=256
 #nvectors=5120
 
 # Large test
-#nfields=81920
-#nvectors=8192
+nfields=81920
+nvectors=8192
 
 # Test options
 verbose=1 # 1=minimal, 2=results, 3=all
@@ -39,9 +39,13 @@ testtype=$1
 fi
 
 # Output run options
-#echo "Run options:"
-#$EXE
-#exit 0
+printoptions=0
+if [ $printoptions -eq 1 ]
+then
+echo "Run options:"
+$EXE
+exit 0
+fi
 
 if [ $testtype -eq 0 ]
 then
@@ -54,12 +58,17 @@ else
     echo "Running accuracy tests"
 fi
 
-PROBOPTS="--num_field $nfields --num_vector $nvectors --metric_type duo --sparse yes --compute_method GPU --all2all yes --num_way 2 --num_tc_steps 1 --verbosity $verbose"
-echo "Running tests using $PROBOPTS $RUNOPTS"
+# --problem_type analytic (default setting, but slower)
+PROBOPTS="--num_field $nfields --num_vector $nvectors --metric_type duo --sparse yes --compute_method GPU --all2all yes --num_way 2 --num_tc_steps 1 --verbosity $verbose --problem_type random"
+
+THRESHOPTS=""
+#THRESHOPTS="--threshold 1"
+
+echo "Running tests using $PROBOPTS $RUNOPTS $THRESHOPTS"
 
 # Original routine
-echo -e "\n\nRunning original Magma duo CoMet GEMM"
-time $EXE $PROBOPTS $RUNOPTS --num_kernel 0
+#echo -e "\n\nRunning original Magma duo CoMet GEMM"
+#time $EXE $PROBOPTS $RUNOPTS --num_kernel 0
 
 #echo -e "\n\nRunning simple WMMA 1-bit duo CoMet GEMM"
 #time $EXE $PROBOPTS $RUNOPTS --num_kernel 1
@@ -80,8 +89,8 @@ time $EXE $PROBOPTS $RUNOPTS --num_kernel 0
 #time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 10
 
 # Fastest Cutlass device-level kernel on gpusys2
-echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 128x256"
-time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 11
+#echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 128x256"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 11
 
 #echo -e "\n\nRunning Cutlass device-level tensor core 1-bit xor duo GEMM 128x128"
 #time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 12
@@ -106,10 +115,14 @@ time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 11
 #time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 21
 
 # Simple tensor core CoMet GEMM kernel
-echo -e "\n\nRunning simple tensor core CoMet xor duo GEMM"
-time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 22
+#echo -e "\n\nRunning simple tensor core CoMet xor duo GEMM"
+#time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 22
 
 # In progress - Optimized tensor core CoMet GEMM kernel
 #echo -e "\n\nRunning optimized tensor core CoMet xor duo GEMM"
 #time $EXE $PROBOPTS $RUNOPTS --tc 5 --num_kernel 23
+
+# Simple tensor core CoMet GEMM kernel
+echo -e "\n\nRunning optimized Cutlass CoMet xor duo GEMM"
+time $EXE $PROBOPTS $THRESHOPTS $RUNOPTS --tc 5 --num_kernel 24
 

@@ -251,10 +251,10 @@ EOF
   local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
   local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
 
-  #local USE_OPENMP=ON
-  local USE_OPENMP=OFF
-  #local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
-  local COMET_OPENMP_COMPILE_OPTS=""
+  local USE_OPENMP=ON
+  #local USE_OPENMP=OFF
+  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
+  #local COMET_OPENMP_COMPILE_OPTS=""
 
   #---Libraries.
 

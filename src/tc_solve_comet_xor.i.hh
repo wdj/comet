@@ -8,6 +8,8 @@
 #include "cuda_fp16.h"
 #include "types.hh"
 
+#include "tc_solve_cutlass_nvidia.i.hh"
+
 // GPU bit count routine
 #define gm_popcount64(x) __popcll(x)
 
@@ -848,6 +850,17 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
         m, n, k, (GMBits2x64*)matA,
         (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
     } break;
+
+    // Nvidia optimized Cutlass GEMM
+    case 24: {
+      if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass\n");
+      tc_solve_comet_impl_cutlass(m,n,k,(GMBits2x64*)matA,
+        (GMBits2x64*)matB, (GMTally2x2*)matC);
+    } break;
+
+    /*case 30: {
+      
+    } break;*/
 
     // Output error for invalid choice
     default: {

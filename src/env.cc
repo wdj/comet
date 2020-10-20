@@ -569,11 +569,14 @@ bool CEnv::can_run(int tc_try) const {
   COMET_INSIST(TC::AUTO != tc_try);
 
   bool result = true;
+  int printdetails = false;
+
+  if(printdetails) printf("In can_run result=%d\n",(int)result);
 
   if (compute_method_ == ComputeMethod::REF) {
     result = result && !is_try_tc_(tc_try);
   }
-
+  
   if (make_comms_) {
     result = result && num_proc_ <= System::num_proc();
 
@@ -597,6 +600,7 @@ bool CEnv::can_run(int tc_try) const {
       metric_type() == MetricType::DUO) {
     result = false; // currently unimplemented
   }
+  if(printdetails) printf("At middle: result=%d\n",(int)result);
 
   // /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802',
   // 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
@@ -621,6 +625,7 @@ bool CEnv::can_run(int tc_try) const {
                      //|| (BuildHas::HIP && System::compute_capability() >= 1000));
                      //|| (BuildHas::HIP && System::compute_capability() >= 908));
                      || (BuildHas::HIP && System::compute_capability() >= 906));
+    if(printdetails) printf("Check INT8 result=%d\n",(int)result);
   }
 
   // TODO: determine, set correct values for HIP, if any.
@@ -632,12 +637,14 @@ bool CEnv::can_run(int tc_try) const {
 //    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
 //                     || (BuildHas::HIP && System::compute_capability() >= 1000))
 //                    && can_use_xor_(tc_try);
+    if(printdetails) printf("Check B1 use_xor=%d result=%d\n",(int)can_use_xor_(tc_try),(int)result);
   }
 
   if (is_compute_method_gpu() && (!is_metric_type_bitwise()
       || (is_metric_type_bitwise() && !is_try_tc_(tc_try)))) {
     result = result && BuildHas::MAGMA;
   }
+  if(printdetails) printf("At end: result=%d\n",(int)result);
 
   return result;
 }

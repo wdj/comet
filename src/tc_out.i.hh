@@ -615,6 +615,8 @@ void tc_threshold_(int nvll, int nvl, void* vo,
   const int num_threads_r = env.num_way() == NumWay::_2 ? nvll : nvllD2;
   const int num_threads_c = nvl;
 
+  if(env.print_details()) printf("Calling tc_threshold_\n");
+
   if (env.is_compute_method_gpu()) {
 
     // Kernel call.

@@ -539,7 +539,7 @@ static void finalize_duo_(
     // --------------
     if (env->all2all()) {
       // --------------
-      if(env->print_details()) printf("Copying metrics_buffer all2all\n");
+      if(env->print_details()) printf("Copying metrics_buffer all2all do_compute_triang_only=%d\n",do_compute_triang_only);
       if (do_compute_triang_only) {
         #pragma omp parallel for schedule(dynamic,1000)
         for (int j = 0; j < nvl; ++j) {
@@ -587,9 +587,9 @@ static void finalize_duo_(
   // --------------
   if (env->all2all()) {
     // --------------
-    if(env->print_details()) printf("Computing multipliers all2all\n");
+    if(env->print_details()) printf("Computing multipliers all2all do_compute_triang_only=%d\n",do_compute_triang_only);
     if (do_compute_triang_only) {
-      if (!env->is_threshold_tc()) {
+    if (!env->is_threshold_tc()) {
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
@@ -633,6 +633,7 @@ static void finalize_duo_(
       } // if (!env->is_threshold_tc())
       metrics->num_metric_items_local_computed_inc(nvl * (size_t)nvl);
    }
+   if(env->print_details()) printf("Done computing multipliers all2all\n");
 
     // --------------
   } else { // (! env->all2all())
@@ -663,6 +664,7 @@ static void finalize_duo_(
     // --------------
   } // if
   // --------------
+  if(env->print_details()) printf("Done in finalize_duo\n");
 }
 
 //=============================================================================
