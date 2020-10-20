@@ -130,7 +130,8 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   // Numerator
   //---------------
 
-  MagmaWrapper::initialize(env_);
+  //MagmaWrapper::initialize(env_);
+  MagmaWrapper magma_wrapper(env_);
 
   {
 
@@ -164,7 +165,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
      &vector_sums_onproc_,
      &vector_sums_onproc_,
      env_.proc_num_vector(),
-     true, &env_);
+     true, magma_wrapper, &env_);
 
   ComputeMetrics2WayBlock::compute_nums_wait(
     &vectors, &vectors, &metrics, &vectors_buf,
@@ -195,7 +196,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   }
 
-  MagmaWrapper::finalize(env_);
+  //MagmaWrapper::finalize(env_);
   if(env_.print_details()) printf("Done in compute_notall2all\n");
 }
 
@@ -213,7 +214,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   const int num_block = env_.num_block_vector();
   const int i_block = env_.proc_num_vector();
 
-  MagmaWrapper::initialize(env_);
+  //MagmaWrapper::initialize(env_);
+  MagmaWrapper magma_wrapper(env_);
 
   // Create double buffer of vectors objects for send/recv
 
@@ -452,7 +454,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
-        vars.j_block, vars.is_main_diag, &env_);
+        vars.j_block, vars.is_main_diag, magma_wrapper, &env_);
       if(env_.print_details()) printf("Done calling proc_nums_start\n");
     }
 
@@ -615,8 +617,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   COMET_INSIST(!lock_vectors_buf_d);
   COMET_INSIST(!lock_metrics_tmp_buf_h);
 
-  MagmaWrapper::finalize(env_);
-
+  //MagmaWrapper::finalize(env_);
   if(env_.print_details()) printf("Done in compute_all2all\n");
 }
 

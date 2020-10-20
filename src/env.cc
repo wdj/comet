@@ -239,6 +239,7 @@ CEnv::CEnv(const char* const options, int num_proc, int proc_num) {
 
 CEnv::~CEnv() {
   comms_terminate_();
+//  handles_terminate_();
   streams_terminate_();
 }
 
@@ -292,6 +293,15 @@ void CEnv::set_defaults_() {
   metric_entries_ = 0;
   metric_entries_computed_ = 0;
   shrink_achieved_ = DBL_MAX;
+
+
+//FIX
+  queue_compute_.is_initialized = false;
+  queue_fromgpu_.is_initialized = false;
+  queue_togpu_.is_initialized = false;
+  queue_compute_.magma_queue = NULL;
+  queue_fromgpu_.magma_queue = NULL;
+  queue_togpu_.magma_queue = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -850,7 +860,7 @@ void CEnv::comms_terminate_() {
 }
 
 //=============================================================================
-// Accelerator streams
+// Accelerator streams.
 
 //-----------------------------------------------------------------------------
 /// \brief Allocated accelerator streams needed for computation.
@@ -863,8 +873,8 @@ void CEnv::streams_initialize_() {
   if (!is_compute_method_gpu())
     return;
 
-  for (Stream_t* const stream : {&stream_compute_, &stream_togpu_,
-                                 &stream_fromgpu_}) {
+  for (AccelStream_t* const stream : {&stream_compute_, &stream_togpu_,
+                                      &stream_fromgpu_}) {
 #   if defined COMET_USE_CUDA
       cudaStreamCreate(stream);
 #   elif defined COMET_USE_HIP
@@ -887,8 +897,8 @@ void CEnv::streams_terminate_() {
   if (! are_streams_initialized_)
     return;
 
-  for (const Stream_t stream : {stream_compute_, stream_togpu_,
-                                stream_fromgpu_}) {
+  for (const AccelStream_t stream : {stream_compute_, stream_togpu_,
+                                     stream_fromgpu_}) {
 #   if defined COMET_USE_CUDA
       cudaStreamDestroy(stream);
 #   elif defined COMET_USE_HIP
@@ -906,7 +916,7 @@ void CEnv::streams_terminate_() {
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for kernel launches on accelerator.
 
-CEnv::Stream_t CEnv::stream_compute() {
+AccelStream_t CEnv::stream_compute() {
   streams_initialize_(); // Lazy initialization.
   return stream_compute_;
 }
@@ -914,7 +924,7 @@ CEnv::Stream_t CEnv::stream_compute() {
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for transfers from CPU to GPU.
 
-CEnv::Stream_t CEnv::stream_togpu() {
+AccelStream_t CEnv::stream_togpu() {
   streams_initialize_(); // Lazy initialization.
   return stream_togpu_;
 }
@@ -922,7 +932,7 @@ CEnv::Stream_t CEnv::stream_togpu() {
 //-----------------------------------------------------------------------------
 /// \brief Accelerator stream for transfers to CPU from GPU.
 
-CEnv::Stream_t CEnv::stream_fromgpu() {
+AccelStream_t CEnv::stream_fromgpu() {
   streams_initialize_(); // Lazy initialization.
   return stream_fromgpu_;
 }
@@ -930,7 +940,7 @@ CEnv::Stream_t CEnv::stream_fromgpu() {
 //-----------------------------------------------------------------------------
 /// \brief CPU wait for accelerator stream to complete queued work.
 
-void CEnv::stream_synchronize(Stream_t stream) const {
+void CEnv::stream_synchronize(AccelStream_t stream) const {
 
   if (!is_compute_method_gpu())
     return;
@@ -945,6 +955,124 @@ void CEnv::stream_synchronize(Stream_t stream) const {
   COMET_INSIST(System::accel_last_call_succeeded() &&
            "Failure in call to stream synchronize.");
 }
+
+#if 0
+//=============================================================================
+// Accelerator handles.
+
+//-----------------------------------------------------------------------------
+/// \brief Allocate accelerator handles needed for computation.
+
+void CEnv::handles_initialize_() {
+
+  if (are_handles_initialized_)
+    return;
+
+  if (!is_compute_method_gpu())
+    return;
+
+  if (!are_streams_initialized_)
+    streams_initialize_();
+
+# if defined COMET_USE_CUDA
+    cublasStatus_t bstatus = cublasCreate(&blas_handle_);
+    COMET_INSIST(bstatus == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
+    COMET_INSIST(System::accel_last_call_succeeded());
+
+    bstatus = cublasSetStream(blas_handle_, stream_compute());
+    COMET_INSIST(bstatus == CUBLAS_STATUS_SUCCESS &&
+                 "Error in cublasSetStream.");
+
+    bstatus = cublasSetMathMode(blas_handle_, CUBLAS_TENSOR_OP_MATH);
+    COMET_INSIST(bstatus == CUBLAS_STATUS_SUCCESS &&
+                 "Error in cublasSetMathMode.");
+    COMET_INSIST(System::accel_last_call_succeeded());
+
+    cusparseStatus_t sstatus = cusparseCreate(&sparse_handle_);
+    COMET_INSIST(sstatus == CUSPARSE_STATUS_SUCCESS && "Error in cusparseCreate.");
+    COMET_INSIST(System::accel_last_call_succeeded());
+
+# elif defined COMET_USE_HIP
+    int bstatus = rocblas_create_handle(&blas_handle_);
+    COMET_INSIST(bstatus == rocblas_status_success &&
+             "Error in rocblas_create_handle.");
+    COMET_INSIST(System::accel_last_call_succeeded());
+
+    bstatus = rocblas_set_stream(blas_handle_, stream_compute());
+    COMET_INSIST(bstatus == rocblas_status_success &&
+             "Error in rocblas_set_stream.");
+    COMET_INSIST(System::accel_last_call_succeeded());
+
+    //FIX - will this be needed for AMD gpu?
+    //  status = cublasSetMathMode(tc_bufs.accelblas_handle,
+    //                             CUBLAS_TENSOR_OP_MATH);
+    //  COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
+    //           "Error in cublasSetMathMode.");
+
+    int sstatus = rocsparse_create_handle(&sparse_handle_);
+    COMET_INSIST(sstatus == rocsparse_status_success &&
+             "Error in rocsparse_create_handle.");
+    COMET_INSIST(System::accel_last_call_succeeded());
+# endif
+
+  are_handles_initialized_ = true;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Dellocate previously allocated accelerator handles.
+
+void CEnv::handles_terminate_() {
+
+  if (! are_handles_initialized_)
+    return;
+
+# if defined COMET_USE_CUDA
+    cublasStatus_t bstatus = cublasDestroy(blas_handle_);
+    COMET_INSIST(bstatus == CUBLAS_STATUS_SUCCESS &&
+                 "Error in cublasDestroy.");
+    cublasStatus_t sstatus = cusparseDestroy(sparse_handle_);
+    COMET_INSIST(sstatus == CUSPARSE_STATUS_SUCCESS &&
+                 "Error in cusparseDestroy.");
+# elif defined COMET_USE_HIP
+    int bstatus = rocblas_destroy_handle(blas_handle_);
+    COMET_INSIST(bstatus == rocblas_status_success &&
+           "Error in rocblas_destroy_handle.");
+    int sstatus = rocsparse_destroy_handle(sparse_handle_);
+    COMET_INSIST(sstatus == rocsparse_status_success &&
+           "Error in rocsparse_destroy_handle.");
+# endif
+  COMET_INSIST(System::accel_last_call_succeeded());
+
+  are_handles_initialized_ = false;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator handle for blas operations.
+
+AccelBlasHandle_t CEnv::blas_handle() {
+  handles_initialize_(); // Lazy initialization.
+  return blas_handle_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator handle for sparse operations.
+
+AccelSparseHandle_t CEnv::sparse_handle() {
+  handles_initialize_(); // Lazy initialization.
+  return sparse_handle_;
+}
+#endif
+
+//=============================================================================
+// Accelerator queues.
+
+
+
+
+
+
+
+
 
 //=============================================================================
 // MPI proc counts.

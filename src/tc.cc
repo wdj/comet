@@ -37,13 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cstdio"
 
 #if defined COMET_USE_CUDA
-#  include "cublas_v2.h"
+//#  include "cublas_v2.h"
 #  include "cuda_fp16.h"
 #elif defined COMET_USE_HIP
 //#  include "hip/hip_runtime_api.h"
 //#  pragma GCC diagnostic ignored "-Wc99-designator"
 //#  include "hip/hip_runtime.h"
-#  include "rocblas.h"
+//#  include "rocblas.h"
 #endif
 
 #if defined COMET_USE_CPUBLAS

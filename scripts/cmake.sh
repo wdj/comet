@@ -58,8 +58,9 @@ function get_modules_used_magma
   if [ -n "${MODULEPATH:-}" ] ; then
     if [ $(alias | awk '/^alias module=/ {print $0}' | wc -l) != 0 -o \
          $(set | awk '/^module / {print $0}' | wc -l) != 0 ] ; then
-      (module -t list) 2>&1 | sort | awk '/gcc/ {print $0}' 
-      (module -t list) 2>&1 | sort | awk '/cuda/ {print $0}' 
+      (module -t list) 2>&1 | sort | awk '/^gcc/ {print $0}' 
+      (module -t list) 2>&1 | sort | awk '/^cuda/ {print $0}' 
+      (module -t list) 2>&1 | sort | awk '/^rocm/ {print $0}' 
     fi
   fi
 }
@@ -155,6 +156,104 @@ function main
   fi
 
   #----------------------------------------------------------------------------
+  #---Compile blis.
+
+  if [ "${USE_BLIS:-}" = ON ] ; then
+
+    local BLIS_DIR=$BUILD_DIR/blis
+    local BLIS_VERSION=0.7.0
+    #rm -rf $BLIS_DIR
+    mkdir -p $BLIS_DIR
+
+    if [ ! -e $BLIS_DIR/copy_is_complete ] ; then
+      echo "Copying BLIS ..."
+      if [ -e $REPO_DIR/tpls/blis-${BLIS_VERSION}.tar.gz ] ; then
+        cp $REPO_DIR/tpls/blis-${BLIS_VERSION}.tar.gz $BLIS_DIR/
+      else
+        wget -nv -O $BLIS_DIR/blis-${BLIS_VERSION}.tar.gz \
+          https://github.com/flame/blis/archive/${BLIS_VERSION}.tar.gz
+      fi
+      pushd $BLIS_DIR
+      gunzip <blis-${BLIS_VERSION}.tar.gz | tar xf -
+      ln -s blis-$BLIS_VERSION blis
+      popd
+      touch $BLIS_DIR/copy_is_complete
+    fi
+
+    local BLIS_PATH=$BLIS_DIR/blis
+
+    if [ ! -e $BLIS_DIR/build_is_complete ] ; then
+      echo "Building BLIS ..."
+      pushd $BLIS_PATH
+      ./configure --enable-cblas zen
+      make -j8
+      (cd include/zen; tar cf - * | (cd .. ; tar xf -))
+      (cd lib/zen; tar cf - * | (cd .. ; tar xf -))
+      popd
+      touch $BLIS_DIR/build_is_complete
+    fi
+
+    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/zen"
+    local COMET_CPUBLAS_COMPILE_OPTS+=" -I$BLIS_PATH/frame/compat/cblas/src"
+    local COMET_CPUBLAS_COMPILE_OPTS+=" -I$BLIS_PATH/frame/include"
+    local COMET_CPUBLAS_COMPILE_OPTS+=" -I$BLIS_PATH"
+    #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
+    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/zen"
+    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
+
+  fi
+
+  #----------------------------------------------------------------------------
+  #---Compile lapack
+
+  if [ "${USE_LAPACK:-}" = ON ] ; then
+
+    local LAPACK_DIR=$BUILD_DIR/lapack
+    local LAPACK_VERSION=3.9.0
+    #rm -rf $LAPACK_DIR
+    mkdir -p $LAPACK_DIR
+
+    if [ ! -e $LAPACK_DIR/copy_is_complete ] ; then
+      echo "Copying LAPACK ..."
+      if [ -e $REPO_DIR/tpls/lapack-${LAPACK_VERSION}.tar.gz ] ; then
+        cp $REPO_DIR/tpls/lapack-${LAPACK_VERSION}.tar.gz $LAPACK_DIR/
+      else
+        wget -nv -O $LAPACK_DIR/lapack-${LAPACK_VERSION}.tar.gz \
+          https://github.com/Reference-LAPACK/lapack/archive/v3.9.0.tar.gz
+      fi
+      pushd $LAPACK_DIR
+      gunzip <lapack-${LAPACK_VERSION}.tar.gz | tar xf -
+      ln -s lapack-$LAPACK_VERSION lapack
+      popd
+      touch $LAPACK_DIR/copy_is_complete
+    fi
+
+    local LAPACK_PATH=$LAPACK_DIR/lapack
+
+    if [ ! -e $LAPACK_DIR/build_is_complete ] ; then
+      echo "Building LAPACK ..."
+      pushd $LAPACK_PATH
+      ln -s make.inc.example make.inc
+      sed -i -e 's/-O3/-O3 -fPIC/' make.inc
+      sed -i -e 's/-frecursive/-frecursive -fPIC/' make.inc
+      make -j8 blaslib cblaslib lapacklib
+      mkdir -p lib
+      cd lib
+      ln -s ../libcblas.a .
+      ln -s ../librefblas.a .
+      ln -s ../liblapack.a .
+      cd ..
+      popd
+      touch $LAPACK_DIR/build_is_complete
+    fi
+
+    local COMET_CPUBLAS_COMPILE_OPTS="-I$LAPACK_PATH/CBLAS/include"
+    local COMET_CPUBLAS_LINK_OPTS="-L$LAPACK_PATH"
+    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$LAPACK_PATH -llapack -lcblas -lrefblas -lgfortran"
+
+  fi
+
+  #----------------------------------------------------------------------------
   #---Create magma variants.
 
   if [ $USE_MAGMA = ON -a ${USE_CUDA:-OFF} = ON ] ; then
@@ -187,6 +286,7 @@ function main
       rm -rf $MAGMA_DIR
       echo "Copying MAGMA ..."
       cp -r $REPO_DIR/magma_patch $MAGMA_DIR
+      rm -f $MAGMA_DIR/magma-${MAGMA_VERSION}.tar.gz
       pushd $MAGMA_DIR
       if [ -e $REPO_DIR/tpls/magma-${MAGMA_VERSION}.tar.gz ] ; then
         cp $REPO_DIR/tpls/magma-${MAGMA_VERSION}.tar.gz $MAGMA_DIR/
@@ -197,6 +297,7 @@ function main
         git checkout $MAGMA_VERSION
         rm -rf .git
         cp make.inc-examples/make.inc.hip_openblas make.inc
+        # FIX
         sed -i -e 's/lopenblas/lsci_cray/' make.inc
         cd ..
         mv magma magma-$MAGMA_VERSION
@@ -345,6 +446,8 @@ function main
 
   [[ ${USE_OPENMP:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_OPENMP"
   CMAKE_CXX_FLAGS+=" ${COMET_OPENMP_COMPILE_OPTS:-}"
+
+  [[ ${USE_BLIS:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_BLIS"
 
   [[ ${USE_MAGMA:-} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_MAGMA"
   CMAKE_CXX_FLAGS+=" ${COMET_MAGMA_COMPILE_OPTS:-}"

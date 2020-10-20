@@ -326,7 +326,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   module load openmpi
   module load rocm
   module load hip
-  module load cray-libsci
+  #module load cray-libsci
   #module load rocblas
   (module list) 2>&1 | grep -v '^ *$'
 
@@ -363,13 +363,31 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
-  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
   COMET_WERROR=OFF
 
 # If you have device code that calls other device code that exists only in the same translation unit then you can compile with the '-fno-gpu-rdc' option.  This forces the AMD compiler to emit device code at compile time rather than link time.  Link times can be much shorter.  Compile times can increase slightly you're probably already doing a parallel compile via `make -j`.
 
   #---Libraries.
+
+  #local USE_BLIS=ON
+  local USE_BLIS=OFF
+
+  #local USE_LAPACK=OFF
+  local USE_LAPACK=ON
+
+  if [ "${USE_BLIS:-OFF}" != OFF ] ; then
+    local USE_CPUBLAS=ON
+  elif [ "${USE_LAPACK:-OFF}" != OFF ] ; then
+    local USE_CPUBLAS=ON
+  else
+    local USE_CPUBLAS=ON
+    local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
+    local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
+    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
+  fi
 
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
@@ -382,11 +400,6 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
 #    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/generic -lblis"
 #    # ./configure --disable-threading --enable-cblas generic
 #  fi
-
-  local USE_CPUBLAS=ON
-  local COMET_CPUBLAS_COMPILE_OPTS="-I$CRAY_LIBSCI_PREFIX/include"
-  local COMET_CPUBLAS_LINK_OPTS="-L$CRAY_LIBSCI_PREFIX/lib"
-  COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$CRAY_LIBSCI_PREFIX/lib -lsci_cray"
 
   #local COMET_CAN_USE_MPI=OFF
   local COMET_CAN_USE_MPI=ON
@@ -454,8 +467,8 @@ elif [ $COMET_PLATFORM = AMDINTERNAL ] ; then
 elif [ $COMET_PLATFORM = POPLAR ] ; then
 #----------------------------------------
 
-  local COMET_CAN_USE_MPI=OFF
-  #local COMET_CAN_USE_MPI=ON
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
 
   #---Modules etc.
 
@@ -463,7 +476,9 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   #module load PrgEnv-cray
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     module use /home/users/twhite/share/modulefiles
-    module load ompi # Trey's ompi includes rocm/3.5.0
+    #module load ompi # Trey's ompi includes rocm/3.5.0
+    #module load ompi/4.0.4-rocm-3.7
+    module load ompi/4.0.4-rocm-3.8
   else
     #module load rocm-alt/2.7
     #module load rocm-alt/2.9
@@ -471,20 +486,25 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     #module load rocm/3.5.0
     #module load rocm-alt/3.5.0
     #module load rocm-alt/3.6.0
-    module load rocm/3.6.0
+    #module load rocm/3.6.0
+    #module load gcc/8.1.0
+    #module load rocm/3.7.0
+    module load gcc/8.1.0
+    module load rocm/3.8.0
   fi
   (module list) 2>&1 | grep -v '^ *$'
 
   export ROCM_PATH=$ROCM_PATH
   export HIP_PATH=$HIP_PATH
-  # Use custom rocblas build if available.
-  export ROCBLAS_PATH=$HOME/rocBLAS/build/release/rocblas-install/rocblas
-  if [ -e $ROCBLAS_PATH ] ; then
-    local BLIS_PATH=$HOME/rocBLAS/extern/blis
-  else
-    export ROCBLAS_PATH=$ROCM_PATH/rocblas
-    #local BLIS_PATH=$HOME/rocblas_extern/blis
-  fi
+  export ROCBLAS_PATH=$ROCM_PATH/rocblas
+  ## Use custom rocblas build if available.
+  #export ROCBLAS_PATH=$HOME/rocBLAS/build/release/rocblas-install/rocblas
+  #if [ -e $ROCBLAS_PATH ] ; then
+  #  local BLIS_PATH=$HOME/rocBLAS/extern/blis
+  #else
+  #  export ROCBLAS_PATH=$ROCM_PATH/rocblas
+  #  #local BLIS_PATH=$HOME/rocblas_extern/blis
+  #fi
 
   #---Compiler.
 
@@ -503,8 +523,10 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   COMET_HIP_COMPILE_OPTS+=" --amdgpu-target=gfx906,gfx908"
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
+  COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
-  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
+  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
   COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   # https://llvm.org/docs/AMDGPUUsage.html
 
@@ -520,15 +542,29 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
 
   #---Libraries.
 
-  local USE_MAGMA=OFF
+  local USE_BLIS=OFF
 
-  if [ "${BLIS_PATH:-}" != "" ] ; then
+  if [ "${USE_BLIS:-OFF}" != OFF ] ; then
     local USE_CPUBLAS=ON
-    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/zen"
-    #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
-    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/zen"
-    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
   fi
+
+  #local USE_LAPACK=OFF
+  local USE_LAPACK=ON
+
+  if [ "${USE_LAPACK:-OFF}" != OFF ] ; then
+    local USE_CPUBLAS=ON
+  fi
+
+#  if [ "${BLIS_PATH:-}" != "" ] ; then
+#    local USE_CPUBLAS=ON
+#    local COMET_CPUBLAS_COMPILE_OPTS="-I$BLIS_PATH/include/zen"
+#    #COMET_CPUBLAS_COMPILE_OPTS+=' -include "blis.h"'
+#    local COMET_CPUBLAS_LINK_OPTS="-L$BLIS_PATH/lib/zen"
+#    COMET_CPUBLAS_LINK_OPTS+=" -Wl,-rpath,$BLIS_PATH/lib/zen -lblis"
+#  fi
+
+  #local USE_MAGMA=OFF
+  local USE_MAGMA=ON
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #local MPI_HOME=$(echo $PATH | sed 's,\(^\|.*:\)\([^:]*mvapich2[^:]*\)/bin.*,\2,')
@@ -552,9 +588,10 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   if [ $COMET_CAN_USE_MPI = ON ] ; then
     #XXX salloc -N2 -A stf006 $SHELL
     #XXX srun -N 1 --ntasks-per-node=1 -A stf006  --pty bash
-    # salloc -N1
+    #XXX salloc -N1
     # salloc -N1 -pamdMI60
-    # salloc -N1 -pamdMI100 --reservation=maintenance
+    #XXX salloc -N1 -pamdMI100 --reservation=maintenance
+    # salloc -N1 -pamdMI100
     local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64 --cpu-bind=map_ldom:1 --mem-bind=local"
   else
     # salloc -N1

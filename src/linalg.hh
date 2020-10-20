@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "env.hh"
 #include "decomp_mgr.hh"
 #include "mirrored_buf.hh"
+#include "magma_wrapper.hh"
 
 //=============================================================================
 
@@ -55,7 +56,7 @@ struct LinAlg {
     const MirroredBuf* matB, MirroredBuf* matC,
     MirroredBuf* sums_I, MirroredBuf* sums_J, MirroredBuf* sums_K,
     MirroredBuf* counts_I, MirroredBuf* counts_J, MirroredBuf* counts_K, int J,
-    int step_2way, GMDecompMgr& dm, CEnv& env);
+    int step_2way, GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env);
 
   static void gemm_wait(
     size_t m, size_t n, size_t k,
@@ -70,7 +71,7 @@ struct LinAlg {
     const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
     MirroredBuf* sums_I, MirroredBuf* sums_J,
     MirroredBuf* counts_I, MirroredBuf* counts_J,
-    GMDecompMgr& dm, CEnv& env);
+    GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env);
 
   static void gemm_wait(
     size_t m, size_t n, size_t k,
@@ -84,7 +85,7 @@ struct LinAlg {
     const MirroredBuf* matA, const MirroredBuf* matB, MirroredBuf* matC,
     MirroredBuf* sums_I, MirroredBuf* sums_J,
     MirroredBuf* counts_I, MirroredBuf* counts_J,
-    GMDecompMgr& dm, CEnv& env);
+    GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env);
 
 };
 

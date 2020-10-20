@@ -73,9 +73,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if defined COMET_USE_MAGMA_V2
-# define COMMA_ARG(q) , q
+# define PREPEND_COMMA(q) , q
 #else
-# define COMMA_ARG(q)
+# define PREPEND_COMMA(q)
 #endif
 
 
@@ -89,9 +89,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Constructor for MagmaWrapper class.
+
+MagmaWrapper::MagmaWrapper(CEnv& env)
+  : env_(env) {
+  initialize_(env_);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Destructor for MagmaWrapper class.
+
+MagmaWrapper::~MagmaWrapper() {
+  finalize_(env_);
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Magma setup.
 
-void MagmaWrapper::initialize(CEnv& env) {
+void MagmaWrapper::initialize_(CEnv& env) {
 
   // need magma blasSetKernelStream -- see
   // http://on-demand.gputechconf.com/gtc/2014/presentations/S4158-cuda-streams-best-practices-common-pitfalls.pdf
@@ -111,6 +126,16 @@ void MagmaWrapper::initialize(CEnv& env) {
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS && "SetKernelStream.");
 #   endif
 
+//FIX
+    env.queues_initialize<MagmaQueue<MagmaCloneId::MINPRODUCT>>();
+
+    //env.queue_compute_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MINPRODUCT>(env.stream_compute(), env);
+    //env.queue_togpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MINPRODUCT>(env.stream_togpu(), env);
+    //env.queue_fromgpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MINPRODUCT>(env.stream_fromgpu(), env);
+    //env.queue_compute_.is_initialized = true;
+    //env.queue_togpu_.is_initialized = true;
+    //env.queue_fromgpu_.is_initialized = true;
+
   } else if (use_mgemm4_(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_init();
@@ -119,6 +144,15 @@ void MagmaWrapper::initialize(CEnv& env) {
     magma_code = magma_mgemm4blasSetKernelStream(env.stream_compute());
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS && "SetKernelStream.");
 #   endif
+
+//FIX
+    env.queues_initialize<MagmaQueue<MagmaCloneId::MGEMM4>>();
+    //env.queue_compute_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM4>(env.stream_compute(), env);
+    //env.queue_togpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM4>(env.stream_togpu(), env);
+    //env.queue_fromgpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM4>(env.stream_fromgpu(), env);
+    //env.queue_compute_.is_initialized = true;
+    //env.queue_togpu_.is_initialized = true;
+    //env.queue_fromgpu_.is_initialized = true;
 
   } else if (use_mgemm2_(env)) { //--------------------
 
@@ -129,6 +163,15 @@ void MagmaWrapper::initialize(CEnv& env) {
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS && "SetKernelStream.");
 #   endif
 
+//FIX
+    env.queues_initialize<MagmaQueue<MagmaCloneId::MGEMM2>>();
+    //env.queue_compute_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM2>(env.stream_compute(), env);
+    //env.queue_togpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM2>(env.stream_togpu(), env);
+    //env.queue_fromgpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM2>(env.stream_fromgpu(), env);
+    //env.queue_compute_.is_initialized = true;
+    //env.queue_togpu_.is_initialized = true;
+    //env.queue_fromgpu_.is_initialized = true;
+
   } else if (use_mgemm3_(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_init();
@@ -138,6 +181,15 @@ void MagmaWrapper::initialize(CEnv& env) {
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS && "SetKernelStream.");
 #   endif
 
+//FIX
+    env.queues_initialize<MagmaQueue<MagmaCloneId::MGEMM3>>();
+    //env.queue_compute_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM3>(env.stream_compute(), env);
+    //env.queue_togpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM3>(env.stream_togpu(), env);
+    //env.queue_fromgpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM3>(env.stream_fromgpu(), env);
+    //env.queue_compute_.is_initialized = true;
+    //env.queue_togpu_.is_initialized = true;
+    //env.queue_fromgpu_.is_initialized = true;
+
   } else if (use_mgemm5_(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_init();
@@ -146,6 +198,15 @@ void MagmaWrapper::initialize(CEnv& env) {
     magma_code = magma_mgemm5blasSetKernelStream(env.stream_compute());
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS && "SetKernelStream.");
 #   endif
+
+//FIX
+    env.queues_initialize<MagmaQueue<MagmaCloneId::MGEMM5>>();
+    //env.queue_compute_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM5>(env.stream_compute(), env);
+    //env.queue_togpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM5>(env.stream_togpu(), env);
+    //env.queue_fromgpu_.magma_queue = (void*)new MagmaQueue<MagmaCloneId::MGEMM5>(env.stream_fromgpu(), env);
+    //env.queue_compute_.is_initialized = true;
+    //env.queue_togpu_.is_initialized = true;
+    //env.queue_fromgpu_.is_initialized = true;
 
   } else { //--------------------
 
@@ -159,7 +220,7 @@ void MagmaWrapper::initialize(CEnv& env) {
 //-----------------------------------------------------------------------------
 /// \brief Magma teardown.
 
-void MagmaWrapper::finalize(CEnv& env) {
+void MagmaWrapper::finalize_(CEnv& env) {
 
   // TODO: (maybe) reset kernel stream (probably not really needed)
 
@@ -170,25 +231,85 @@ void MagmaWrapper::finalize(CEnv& env) {
     magma_minproduct_int_t magma_code = magma_minproduct_finalize();
     COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS && "Finalize error.");
 
+//FIX
+    env.queues_terminate<MagmaQueue<MagmaCloneId::MINPRODUCT>>();
+    //delete (MagmaQueue<MagmaCloneId::MINPRODUCT>*)env.queue_compute_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MINPRODUCT>*)env.queue_togpu_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MINPRODUCT>*)env.queue_fromgpu_.magma_queue;
+    //env.queue_compute_.magma_queue = NULL;
+    //env.queue_togpu_.magma_queue = NULL;
+    //env.queue_fromgpu_.magma_queue = NULL;
+    //env.queue_compute_.is_initialized = false;
+    //env.queue_togpu_.is_initialized = false;
+    //env.queue_fromgpu_.is_initialized = false;
+
   } else if (use_mgemm4_(env)) { //--------------------
 
     magma_mgemm4_int_t magma_code = magma_mgemm4_finalize();
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS && "Finalize error.");
+
+//FIX
+    env.queues_terminate<MagmaQueue<MagmaCloneId::MGEMM4>>();
+    //delete (MagmaQueue<MagmaCloneId::MGEMM4>*)env.queue_compute_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MGEMM4>*)env.queue_togpu_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MGEMM4>*)env.queue_fromgpu_.magma_queue;
+    //env.queue_compute_.magma_queue = NULL;
+    //env.queue_togpu_.magma_queue = NULL;
+    //env.queue_fromgpu_.magma_queue = NULL;
+    //env.queue_compute_.is_initialized = false;
+    //env.queue_togpu_.is_initialized = false;
+    //env.queue_fromgpu_.is_initialized = false;
 
   } else if (use_mgemm2_(env)) { //--------------------
 
     magma_mgemm2_int_t magma_code = magma_mgemm2_finalize();
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS && "Finalize error.");
 
+//FIX
+    env.queues_terminate<MagmaQueue<MagmaCloneId::MGEMM2>>();
+    //delete (MagmaQueue<MagmaCloneId::MGEMM2>*)env.queue_compute_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MGEMM2>*)env.queue_togpu_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MGEMM2>*)env.queue_fromgpu_.magma_queue;
+    //env.queue_compute_.magma_queue = NULL;
+    //env.queue_togpu_.magma_queue = NULL;
+    //env.queue_fromgpu_.magma_queue = NULL;
+    //env.queue_compute_.is_initialized = false;
+    //env.queue_togpu_.is_initialized = false;
+    //env.queue_fromgpu_.is_initialized = false;
+
   } else if (use_mgemm3_(env)) { //--------------------
 
     magma_mgemm3_int_t magma_code = magma_mgemm3_finalize();
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS && "Finalize error.");
 
+//FIX
+    env.queues_terminate<MagmaQueue<MagmaCloneId::MGEMM3>>();
+    //delete (MagmaQueue<MagmaCloneId::MGEMM3>*)env.queue_compute_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MGEMM3>*)env.queue_togpu_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MGEMM3>*)env.queue_fromgpu_.magma_queue;
+    //env.queue_compute_.magma_queue = NULL;
+    //env.queue_togpu_.magma_queue = NULL;
+    //env.queue_fromgpu_.magma_queue = NULL;
+    //env.queue_compute_.is_initialized = false;
+    //env.queue_togpu_.is_initialized = false;
+    //env.queue_fromgpu_.is_initialized = false;
+
   } else if (use_mgemm5_(env)) { //--------------------
 
     magma_mgemm5_int_t magma_code = magma_mgemm5_finalize();
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS && "Finalize error.");
+
+//FIX
+    env.queues_terminate<MagmaQueue<MagmaCloneId::MGEMM5>>();
+    //delete (MagmaQueue<MagmaCloneId::MGEMM5>*)env.queue_compute_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MGEMM5>*)env.queue_togpu_.magma_queue;
+    //delete (MagmaQueue<MagmaCloneId::MGEMM5>*)env.queue_fromgpu_.magma_queue;
+    //env.queue_compute_.magma_queue = NULL;
+    //env.queue_togpu_.magma_queue = NULL;
+    //env.queue_fromgpu_.magma_queue = NULL;
+    //env.queue_compute_.is_initialized = false;
+    //env.queue_togpu_.is_initialized = false;
+    //env.queue_fromgpu_.is_initialized = false;
 
   } else { //--------------------
 
@@ -418,15 +539,19 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
 
   if (use_minproduct_(env) && env.is_double_prec()) { //--------------------
 
+    COMET_INSIST(env.queue_compute_.magma_queue);
     magma_minproductblas_dlaset
       (Magma_minproductFull, mat_dim1, mat_dim2, (double)0, (double)0,
-       (double*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MINPRODUCT>().compute(env)));
+       //(double*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MINPRODUCT>().compute(env)));
+       (double*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MINPRODUCT>>()));
 
   } else if (use_minproduct_(env)) { //--------------------
 
+    COMET_INSIST(env.queue_compute_.magma_queue);
     magma_minproductblas_slaset
       (Magma_minproductFull, mat_dim1, mat_dim2, (float)0, (float)0,
-       (float*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MINPRODUCT>().compute(env)));
+       //(float*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MINPRODUCT>().compute(env)));
+       (float*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MINPRODUCT>>()));
 
   } else if (use_mgemm4_(env)) { //--------------------
 
@@ -434,8 +559,10 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
 
     Float_t zero = {0, 0};
 
+    COMET_INSIST(env.queue_compute_.magma_queue);
     magma_mgemm4blas_zlaset(Magma_mgemm4Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM4>().compute(env)));
+      //(Float_t*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM4>().compute(env)));
+      (Float_t*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM4>>()));
 
   } else if (use_mgemm2_(env)) { //--------------------
 
@@ -443,8 +570,10 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
 
     Float_t zero = {0, 0};
 
+    COMET_INSIST(env.queue_compute_.magma_queue);
     magma_mgemm2blas_zlaset(Magma_mgemm2Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM2>().compute(env)));
+      //(Float_t*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM2>().compute(env)));
+      (Float_t*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM2>>()));
 
   } else if (use_mgemm3_(env)) { //--------------------
 
@@ -452,8 +581,10 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
 
     Float_t zero = {0, 0};
 
+    COMET_INSIST(env.queue_compute_.magma_queue);
     magma_mgemm3blas_zlaset(Magma_mgemm3Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM3>().compute(env)));
+      //(Float_t*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM3>().compute(env)));
+      (Float_t*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM3>>()));
 
   } else if (use_mgemm5_(env)) { //--------------------
 
@@ -461,8 +592,10 @@ void MagmaWrapper::set_matrix_zero_start(MirroredBuf* buf, CEnv& env) {
 
     Float_t zero = {0, 0};
 
+    COMET_INSIST(env.queue_compute_.magma_queue);
     magma_mgemm5blas_zlaset(Magma_mgemm5Full, mat_dim1, mat_dim2, zero, zero,
-                            (Float_t*)buf->d, mat_dim1 COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM5>().compute(env)));
+      //(Float_t*)buf->d, mat_dim1 PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM5>().compute(env)));
+      (Float_t*)buf->d, mat_dim1 PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM5>>()));
 
   } else { //--------------------
 
@@ -537,7 +670,8 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
         lddb_,
         beta,
         (double*)matC,
-        lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MINPRODUCT>().compute(env)));
+        //lddc_ PREPEND_COMMA(MagmaQueue<MagmaCloneId::MINPRODUCT>().compute(env)));
+        lddc_ PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MINPRODUCT>>()));
       COMET_INSIST(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_dgemm.");
     } else {
@@ -554,7 +688,8 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
         lddb_,
         beta,
         (float*)matC,
-        lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MINPRODUCT>().compute(env)));
+        //lddc_ PREPEND_COMMA(MagmaQueue<MagmaCloneId::MINPRODUCT>().compute(env)));
+        lddc_ PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MINPRODUCT>>()));
       COMET_INSIST(System::accel_last_call_succeeded() &&
                "Failure in call to magma_minproductblas_sgemm.");
     }
@@ -592,7 +727,8 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
       lddb_,
       beta,
       (Float_t*)matC,
-      lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM4>().compute(env)));
+      //lddc_ PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM4>().compute(env)));
+      lddc_ PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM4>>()));
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm4blas_zgemm.");
 
@@ -627,7 +763,8 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
       lddb_,
       beta,
       (Float_t*)matC,
-      lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM2>().compute(env)));
+      //lddc_ PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM2>().compute(env)));
+      lddc_ PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM2>>()));
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm2blas_zgemm.");
 
@@ -662,7 +799,8 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
       lddb_,
       beta,
       (Float_t*)matC,
-      lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM3>().compute(env)));
+      //lddc_ PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM3>().compute(env)));
+      lddc_ PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM3>>()));
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm3blas_zgemm.");
 
@@ -698,7 +836,8 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
       lddb_,
       beta,
       (Float_t*)matC,
-      lddc_ COMMA_ARG(MagmaQueue<MagmaWrapper::MGEMM5>().compute(env)));
+      //lddc_ PREPEND_COMMA(MagmaQueue<MagmaCloneId::MGEMM5>().compute(env)));
+      lddc_ PREPEND_COMMA(env.queue_compute<MagmaQueue<MagmaCloneId::MGEMM5>>()));
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to magma_mgemm5blas_zgemm.");
 
@@ -813,7 +952,7 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
 #ifdef COMET_USE_MAGMA
 
-  typedef MagmaWrapper MW;
+  //typedef MagmaCloneId MW;
 
   if (use_minproduct_(env) && env.is_double_prec()) { //--------------------
 
@@ -822,7 +961,9 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
     magma_minproduct_dsetmatrix_async(
       buf->dim0, buf->dim1, (Float_t*)buf->h, buf->dim0,
       (Float_t*)buf->d, buf->dim0,
-      MagmaQueue<MW::MINPRODUCT>().togpu(env));
+      env.queue_togpu<MagmaQueue<MagmaCloneId::MINPRODUCT>>());
+      //MagmaQueue<MW::MINPRODUCT>().togpu(env));
+      //MagmaQueue<MW::MINPRODUCT>().togpu(env));
       //(Float_t*)buf->d, buf->dim0, env.stream_togpu());
 
   } else if (use_minproduct_(env)) { //--------------------
@@ -832,7 +973,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
     magma_minproduct_ssetmatrix_async(
       buf->dim0, buf->dim1, (Float_t*)buf->h, buf->dim0,
       (Float_t*)buf->d, buf->dim0,
-      MagmaQueue<MW::MINPRODUCT>().togpu(env));
+      env.queue_togpu<MagmaQueue<MagmaCloneId::MINPRODUCT>>());
+      //MagmaQueue<MW::MINPRODUCT>().togpu(env));
       //(Float_t*)buf->d, buf->dim0, env.stream_togpu());
 
 //#   if ! defined COMET_USE_MAGMA_V2
@@ -844,7 +986,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm4_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
                                   buf->dim0, (Float_t*)buf->d, buf->dim0,
-                                  MagmaQueue<MW::MGEMM4>().togpu(env));
+                                  env.queue_togpu<MagmaQueue<MagmaCloneId::MGEMM4>>());
+                                  //MagmaQueue<MW::MGEMM4>().togpu(env));
                                   //env.stream_togpu());
 
   } else if (use_mgemm2_(env)) { //--------------------
@@ -853,7 +996,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm2_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
                                   buf->dim0, (Float_t*)buf->d, buf->dim0,
-                                  MagmaQueue<MW::MGEMM2>().togpu(env));
+                                  env.queue_togpu<MagmaQueue<MagmaCloneId::MGEMM2>>());
+                                  //MagmaQueue<MW::MGEMM2>().togpu(env));
                                   //env.stream_togpu());
 
   } else if (use_mgemm3_(env)) { //--------------------
@@ -862,7 +1006,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm3_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
                                   buf->dim0, (Float_t*)buf->d, buf->dim0,
-                                  MagmaQueue<MW::MGEMM3>().togpu(env));
+                                  env.queue_togpu<MagmaQueue<MagmaCloneId::MGEMM3>>());
+                                  //MagmaQueue<MW::MGEMM3>().togpu(env));
                                   //env.stream_togpu());
 
   } else if (use_mgemm5_(env)) { //--------------------
@@ -871,7 +1016,8 @@ void MagmaWrapper::set_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm5_zsetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->h,
                                   buf->dim0, (Float_t*)buf->d, buf->dim0,
-                                  MagmaQueue<MW::MGEMM5>().togpu(env));
+                                  env.queue_togpu<MagmaQueue<MagmaCloneId::MGEMM5>>());
+                                  //MagmaQueue<MW::MGEMM5>().togpu(env));
                                   //env.stream_togpu());
 
   } else { //--------------------
@@ -907,7 +1053,7 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
 #ifdef COMET_USE_MAGMA
 
-  typedef MagmaWrapper MW;
+  //typedef MagmaCloneId MW;
 
   if (use_minproduct_(env) && env.is_double_prec()) { //--------------------
 
@@ -916,7 +1062,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
     magma_minproduct_dgetmatrix_async(
       buf->dim0, buf->dim1, (Float_t*)buf->d, buf->dim0,
       (Float_t*)buf->h, buf->dim0,
-      MagmaQueue<MW::MINPRODUCT>().fromgpu(env));
+      env.queue_fromgpu<MagmaQueue<MagmaCloneId::MINPRODUCT>>());
+      //MagmaQueue<MW::MINPRODUCT>().fromgpu(env));
       //env.stream_fromgpu());
 
   } else if (use_minproduct_(env)) { //--------------------
@@ -926,7 +1073,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
     magma_minproduct_sgetmatrix_async(
       buf->dim0, buf->dim1, (Float_t*)buf->d, buf->dim0,
       (Float_t*)buf->h, buf->dim0,
-      MagmaQueue<MW::MINPRODUCT>().fromgpu(env));
+      env.queue_fromgpu<MagmaQueue<MagmaCloneId::MINPRODUCT>>());
+      //MagmaQueue<MW::MINPRODUCT>().fromgpu(env));
       //env.stream_fromgpu());
 
   } else if (use_mgemm4_(env)) { //--------------------
@@ -935,7 +1083,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm4_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
                                   buf->dim0, (Float_t*)buf->h, buf->dim0,
-                                  MagmaQueue<MW::MGEMM4>().fromgpu(env));
+                                  env.queue_fromgpu<MagmaQueue<MagmaCloneId::MGEMM4>>());
+                                  //MagmaQueue<MW::MGEMM4>().fromgpu(env));
                                   //env.stream_fromgpu());
 
   } else if (use_mgemm2_(env)) { //--------------------
@@ -944,7 +1093,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm2_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
                                   buf->dim0, (Float_t*)buf->h, buf->dim0,
-                                  MagmaQueue<MW::MGEMM2>().fromgpu(env));
+                                  env.queue_fromgpu<MagmaQueue<MagmaCloneId::MGEMM2>>());
+                                  //MagmaQueue<MW::MGEMM2>().fromgpu(env));
                                   //env.stream_fromgpu());
 
   } else if (use_mgemm3_(env)) { //--------------------
@@ -953,7 +1103,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm3_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
                                   buf->dim0, (Float_t*)buf->h, buf->dim0,
-                                  MagmaQueue<MW::MGEMM3>().fromgpu(env));
+                                  env.queue_fromgpu<MagmaQueue<MagmaCloneId::MGEMM3>>());
+                                  //MagmaQueue<MW::MGEMM3>().fromgpu(env));
                                   //env.stream_fromgpu());
 
   } else if (use_mgemm5_(env)) { //--------------------
@@ -962,7 +1113,8 @@ void MagmaWrapper::get_matrix_start(MirroredBuf* buf, CEnv& env) {
 
     magma_mgemm5_zgetmatrix_async(buf->dim0, buf->dim1, (Float_t*)buf->d,
                                   buf->dim0, (Float_t*)buf->h, buf->dim0,
-                                  MagmaQueue<MW::MGEMM5>().fromgpu(env));
+                                  env.queue_fromgpu<MagmaQueue<MagmaCloneId::MGEMM5>>());
+                                  //MagmaQueue<MW::MGEMM5>().fromgpu(env));
                                   //env.stream_fromgpu());
 
   } else { //--------------------

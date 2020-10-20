@@ -60,9 +60,22 @@ function do_make
 
   if [ ${USE_HIP:-OFF} = ON ] ; then
     cp make.inc-examples/make.inc.hip_openblas make.inc
-    sed -i -e 's/lopenblas/lsci_cray/' make.inc
 
-    env OPENBLASDIR=$CRAY_LIBSCI_PREFIX HIPDIR=$HIP_PATH make -f make.gen.hipMAGMA_*
+    sed -i -e 's/GPU_TARGET = gfx803 gfx900 gfx901/GPU_TARGET = gfx906 gfx908/' make.inc
+    sed -i -e 's/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_/DEVCCFLAGS  = -O3 -DNDEBUG -DADD_ --amdgpu-target=gfx906,gfx908/' make.inc
+#    if [ ${USE_BLIS:-OFF} = ON ] ; then
+#      sed -i -e 's/lopenblas/lblis/' make.inc
+#      export OPENBLASDIR=$PWD/../../blis/blis
+    if [ ${USE_LAPACK:-OFF} = ON ] ; then
+      sed -i -e 's/lopenblas/lrefblas/' make.inc
+      sed -i -e 's/-frecursive/-frecursive -fPIC/' make.inc
+      export OPENBLASDIR=$PWD/../../lapack/lapack
+    else
+      sed -i -e 's/lopenblas/lsci_cray/' make.inc
+      export OPENBLASDIR=$CRAY_LIBSCI_PREFIX
+    fi
+
+    env HIPDIR=$HIP_PATH make -f make.gen.hipMAGMA_*
 
     # tools/codegen.py fails on non-ascii characters in files, thus:
     sed -i -e '122d' magma_*blas_hip/zlarfg.hip.cpp
@@ -75,7 +88,7 @@ function do_make
     sed -i -e '64d' sparse/blas/zgeellrtmv.cu
     sed -i -e 's/.*#include .*cublas.h.*//' include/*.h
 
-    env OPENBLASDIR=$CRAY_LIBSCI_PREFIX HIPDIR=$HIP_PATH  make lib -j16
+    env HIPDIR=$HIP_PATH  make lib -j16
   fi
 }
 

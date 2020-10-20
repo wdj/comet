@@ -96,7 +96,8 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   // Numerator
   //---------------
 
-  MagmaWrapper::initialize(env_);
+  //MagmaWrapper::initialize(env_);
+  MagmaWrapper magma_wrapper(env_);
 
   {
 
@@ -129,7 +130,8 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
     VData(&vectors, &vectors_buf, &vector_sums),
     VData(&vectors, &vectors_buf, &vector_sums),
     VData(&vectors, &vectors_buf, &vector_sums),
-    metrics, env_.proc_num_vector(), env_.proc_num_vector(), section_step);
+    metrics, env_.proc_num_vector(), env_.proc_num_vector(), section_step,
+    magma_wrapper);
 
   //---------------
   // Terminations
@@ -139,7 +141,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   }
 
-  MagmaWrapper::finalize(env_);
+  //MagmaWrapper::finalize(env_);
 }
 
 //-----------------------------------------------------------------------------
@@ -151,7 +153,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   // Initializations.
 
-  MagmaWrapper::initialize(env_);
+  //MagmaWrapper::initialize(env_);
+  MagmaWrapper magma_wrapper(env_);
 
   {
 
@@ -278,7 +281,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           VData(vectors_i, vectors_i_buf, vector_sums_i),
           VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
           VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
-          metrics, j_block_prev, k_block_prev, section_step_prev);
+          metrics, j_block_prev, k_block_prev, section_step_prev,
+          magma_wrapper);
         have_unprocessed_section_block = false;
       }
 
@@ -339,7 +343,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
             VData(vectors_i, vectors_i_buf, vector_sums_i),
             VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
             VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
-            metrics, j_block_prev, k_block_prev, section_step_prev);
+            metrics, j_block_prev, k_block_prev, section_step_prev,
+            magma_wrapper);
           have_unprocessed_section_block = false;
         }
 
@@ -445,7 +450,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
               VData(vectors_i, vectors_i_buf, vector_sums_i),
               VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
               VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
-              metrics, j_block_prev, k_block_prev, section_step_prev);
+              metrics, j_block_prev, k_block_prev, section_step_prev,
+              magma_wrapper);
             have_unprocessed_section_block = false;
           }
 
@@ -516,7 +522,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
       VData(vectors_i, vectors_i_buf, vector_sums_i),
       VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
       VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
-      metrics, j_block_prev, k_block_prev, section_step_prev);
+      metrics, j_block_prev, k_block_prev, section_step_prev,
+      magma_wrapper);
     have_unprocessed_section_block = false;
   }
 
@@ -531,7 +538,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   }
 
-  MagmaWrapper::finalize(env_);
+  //MagmaWrapper::finalize(env_);
 }
 
 //=============================================================================

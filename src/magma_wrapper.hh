@@ -43,20 +43,170 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-//-----------------------------------------------------------------------------
-/// \brief Static-only wrapper class to access MAGMA library variants.
+//=============================================================================
 
-struct MagmaWrapper {
-
+struct MagmaCloneId {
   enum {NONE = 0,
         MINPRODUCT = 1,
         MGEMM2 = 2,
         MGEMM3 = 3,
         MGEMM4 = 4,
         MGEMM5 = 5};
+};
 
-  static void initialize(CEnv& env);
-  static void finalize(CEnv& env);
+//-----------------------------------------------------------------------------
+
+template<int CLONE_ID>
+struct MagmaQueueHelper {
+  typedef AccelStream_t queue_t;
+  static void create(AccelStream_t stream, queue_t& queue, CEnv& env) {
+    queue = stream;
+  }
+  static void destroy(queue_t& queue) {}
+};
+
+template<>
+struct MagmaQueueHelper<MagmaCloneId::MINPRODUCT>
+   : public MagmaQueueHelper<MagmaCloneId::NONE> {
+# ifdef COMET_USE_MAGMA
+# if defined COMET_USE_MAGMA_V2
+    typedef magma_minproduct_queue_t queue_t;
+    static void create(AccelStream_t stream, queue_t& queue, CEnv& env) {
+      magma_minproduct_queue_create_from_hip(0, stream, NULL, NULL, &queue);
+    }
+    static void destroy(queue_t& queue) {
+      magma_minproduct_queue_destroy(queue);
+    }
+# endif
+# endif
+};
+
+template<>
+struct MagmaQueueHelper<MagmaCloneId::MGEMM2>
+   : public MagmaQueueHelper<MagmaCloneId::NONE> {
+# ifdef COMET_USE_MAGMA
+# if defined COMET_USE_MAGMA_V2
+    typedef magma_mgemm2_queue_t queue_t;
+    static void create(AccelStream_t stream, queue_t& queue, CEnv& env) {
+      magma_mgemm2_queue_create_from_hip(0, stream, NULL, NULL, &queue);
+    }
+    static void destroy(queue_t& queue) {
+      magma_mgemm2_queue_destroy(queue);
+    }
+# endif
+# endif
+};
+
+template<>
+struct MagmaQueueHelper<MagmaCloneId::MGEMM3>
+   : public MagmaQueueHelper<MagmaCloneId::NONE> {
+# ifdef COMET_USE_MAGMA
+# if defined COMET_USE_MAGMA_V2
+    typedef magma_mgemm3_queue_t queue_t;
+    static void create(AccelStream_t stream, queue_t& queue, CEnv& env) {
+      magma_mgemm3_queue_create_from_hip(0, stream, NULL, NULL, &queue);
+    }
+    static void destroy(queue_t& queue) {
+      magma_mgemm3_queue_destroy(queue);
+    }
+# endif
+# endif
+};
+
+template<>
+struct MagmaQueueHelper<MagmaCloneId::MGEMM4>
+   : public MagmaQueueHelper<MagmaCloneId::NONE> {
+# ifdef COMET_USE_MAGMA
+# if defined COMET_USE_MAGMA_V2
+    typedef magma_mgemm4_queue_t queue_t;
+    static void create(AccelStream_t stream, queue_t& queue, CEnv& env) {
+      magma_mgemm4_queue_create_from_hip(0, stream, NULL, NULL, &queue);
+    }
+    static void destroy(queue_t& queue) {
+      magma_mgemm4_queue_destroy(queue);
+    }
+# endif
+# endif
+};
+
+template<>
+struct MagmaQueueHelper<MagmaCloneId::MGEMM5>
+   : public MagmaQueueHelper<MagmaCloneId::NONE> {
+# ifdef COMET_USE_MAGMA
+# if defined COMET_USE_MAGMA_V2
+    typedef magma_mgemm5_queue_t queue_t;
+    static void create(AccelStream_t stream, queue_t& queue, CEnv& env) {
+      magma_mgemm5_queue_create_from_hip(0, stream, NULL, NULL, &queue);
+    }
+    static void destroy(queue_t& queue) {
+      magma_mgemm5_queue_destroy(queue);
+    }
+# endif
+# endif
+};
+
+//-----------------------------------------------------------------------------
+
+template<int CLONE_ID>
+class MagmaQueue {
+public:
+
+  typedef typename MagmaQueueHelper<CLONE_ID>::queue_t queue_t;
+
+  queue_t queue() const {return queue_;}
+
+  MagmaQueue()
+    : is_queue_initialized_(false) {
+  }
+
+  MagmaQueue(AccelStream_t stream, CEnv& env)
+    : is_queue_initialized_(true) {
+    MagmaQueueHelper<CLONE_ID>::create(stream, queue_, env);
+  }
+
+  ~MagmaQueue() {
+    COMET_INSIST(is_queue_initialized_);
+    MagmaQueueHelper<CLONE_ID>::destroy(queue_);
+  }
+
+  typename MagmaQueueHelper<CLONE_ID>::queue_t togpu(CEnv& env) {
+    COMET_INSIST(!is_queue_initialized_);
+    MagmaQueueHelper<CLONE_ID>::create(env.stream_togpu(), queue_, env);
+    is_queue_initialized_ = true;
+    return queue_;
+  }
+
+  typename MagmaQueueHelper<CLONE_ID>::queue_t fromgpu(CEnv& env) {
+    COMET_INSIST(!is_queue_initialized_);
+    MagmaQueueHelper<CLONE_ID>::create(env.stream_fromgpu(), queue_, env);
+    is_queue_initialized_ = true;
+    return queue_;
+  }
+
+  typename MagmaQueueHelper<CLONE_ID>::queue_t compute(CEnv& env) {
+    COMET_INSIST(!is_queue_initialized_);
+    MagmaQueueHelper<CLONE_ID>::create(env.stream_compute(), queue_, env);
+    is_queue_initialized_ = true;
+    return queue_;
+  }
+
+private:
+
+  bool is_queue_initialized_;
+  typename MagmaQueueHelper<CLONE_ID>::queue_t queue_;
+
+};
+
+//=============================================================================
+/// \brief Wrapper class to access MAGMA library variants.
+
+class MagmaWrapper {
+
+public:
+
+  MagmaWrapper(CEnv& env);
+  ~MagmaWrapper();
+
   static void malloc(MirroredBuf* buf, size_t dim0, size_t dim1, CEnv& env);
   static void free(MirroredBuf* buf, CEnv& env);
   static void set_matrix_start(MirroredBuf* buf, CEnv& env);
@@ -69,6 +219,11 @@ struct MagmaWrapper {
   static void set_matrix_zero_start(MirroredBuf* buf, CEnv& env);
 
 private:
+
+  CEnv& env_;
+
+  static void initialize_(CEnv& env);
+  static void finalize_(CEnv& env);
 
   static void gemm_block_start(size_t m, size_t n, size_t k,
     const void* matA, size_t ldda, const void* matB, size_t lddb,
@@ -97,186 +252,6 @@ private:
   }
 
 }; // MagmaWrapper
-
-//=============================================================================
-
-template<int>
-struct MagmaQueueHelper {
-  typedef CEnv::Stream_t queue_t;
-  static void create(CEnv::Stream_t stream, queue_t& queue) {
-    queue = stream;
-  }
-  static void destroy(queue_t& queue) {}
-};
-
-template<>
-struct MagmaQueueHelper<MagmaWrapper::MINPRODUCT>
-   : public MagmaQueueHelper<MagmaWrapper::NONE> {
-# ifdef COMET_USE_MAGMA
-# if defined COMET_USE_MAGMA_V2
-    typedef magma_minproduct_queue_t queue_t;
-    static void create(CEnv::Stream_t stream, queue_t& queue) {
-      magma_minproduct_queue_create_from_hip(0, stream, NULL, NULL, &queue);
-    }
-    static void destroy(queue_t& queue) {
-      magma_minproduct_queue_destroy(queue);
-    }
-# endif
-# endif
-};
-
-template<>
-struct MagmaQueueHelper<MagmaWrapper::MGEMM2>
-   : public MagmaQueueHelper<MagmaWrapper::NONE> {
-# ifdef COMET_USE_MAGMA
-# if defined COMET_USE_MAGMA_V2
-    typedef magma_mgemm2_queue_t queue_t;
-    static void create(CEnv::Stream_t stream, queue_t& queue) {
-      magma_mgemm2_queue_create_from_hip(0, stream, NULL, NULL, &queue);
-    }
-    static void destroy(queue_t& queue) {
-      magma_mgemm2_queue_destroy(queue);
-    }
-# endif
-# endif
-};
-
-template<>
-struct MagmaQueueHelper<MagmaWrapper::MGEMM3>
-   : public MagmaQueueHelper<MagmaWrapper::NONE> {
-# ifdef COMET_USE_MAGMA
-# if defined COMET_USE_MAGMA_V2
-    typedef magma_mgemm3_queue_t queue_t;
-    static void create(CEnv::Stream_t stream, queue_t& queue) {
-      magma_mgemm3_queue_create_from_hip(0, stream, NULL, NULL, &queue);
-    }
-    static void destroy(queue_t& queue) {
-      magma_mgemm3_queue_destroy(queue);
-    }
-# endif
-# endif
-};
-
-template<>
-struct MagmaQueueHelper<MagmaWrapper::MGEMM4>
-   : public MagmaQueueHelper<MagmaWrapper::NONE> {
-# ifdef COMET_USE_MAGMA
-# if defined COMET_USE_MAGMA_V2
-    typedef magma_mgemm4_queue_t queue_t;
-    static void create(CEnv::Stream_t stream, queue_t& queue) {
-      magma_mgemm4_queue_create_from_hip(0, stream, NULL, NULL, &queue);
-    }
-    static void destroy(queue_t& queue) {
-      magma_mgemm4_queue_destroy(queue);
-    }
-# endif
-# endif
-};
-
-template<>
-struct MagmaQueueHelper<MagmaWrapper::MGEMM5>
-   : public MagmaQueueHelper<MagmaWrapper::NONE> {
-# ifdef COMET_USE_MAGMA
-# if defined COMET_USE_MAGMA_V2
-    typedef magma_mgemm5_queue_t queue_t;
-    static void create(CEnv::Stream_t stream, queue_t& queue) {
-      magma_mgemm5_queue_create_from_hip(0, stream, NULL, NULL, &queue);
-    }
-    static void destroy(queue_t& queue) {
-      magma_mgemm5_queue_destroy(queue);
-    }
-# endif
-# endif
-};
-
-//-----------------------------------------------------------------------------
-
-template<int CLONE_ID>
-class MagmaQueue {
-public:
-
-  MagmaQueue()
-    : is_queue_initialized_(false) {
-  }
-
-  ~MagmaQueue() {
-    COMET_INSIST(is_queue_initialized_);
-    MagmaQueueHelper<CLONE_ID>::destroy(queue_);
-  }
-
-  typename MagmaQueueHelper<CLONE_ID>::queue_t togpu(CEnv& env) {
-    COMET_INSIST(!is_queue_initialized_);
-    MagmaQueueHelper<CLONE_ID>::create(env.stream_togpu(), queue_);
-    is_queue_initialized_ = true;
-    return queue_;
-  }
-
-  typename MagmaQueueHelper<CLONE_ID>::queue_t fromgpu(CEnv& env) {
-    COMET_INSIST(!is_queue_initialized_);
-    MagmaQueueHelper<CLONE_ID>::create(env.stream_fromgpu(), queue_);
-    is_queue_initialized_ = true;
-    return queue_;
-  }
-
-  typename MagmaQueueHelper<CLONE_ID>::queue_t compute(CEnv& env) {
-    COMET_INSIST(!is_queue_initialized_);
-    MagmaQueueHelper<CLONE_ID>::create(env.stream_compute(), queue_);
-    is_queue_initialized_ = true;
-    return queue_;
-  }
-
-private:
-
-  bool is_queue_initialized_;
-  typename MagmaQueueHelper<CLONE_ID>::queue_t queue_;
-
-};
-
-#if 0
-template<int>
-class MagmaQueue {
-public:
-
-  MagmaQueue()
-    : is_queue_initialized_(false) {
-  }
-
-  ~MagmaQueue();
-
-  CEnv::Stream_t togpu(CEnv& env) {
-    return env.stream_togpu();
-  }
-
-protected:
-
-  bool is_queue_initialized_;
-};
-
-//-----------------------------------------------------------------------------
-
-template<>
-class MagmaQueue<MagmaWrapper::MINPRODUCT> : public MagmaQueue<MagmaWrapper::NONE> {
-# if defined COMET_USE_MAGMA_V2
-public:
-
-  magma_minproduct_queue_t togpu(CEnv& env) {
-    COMET_INSIST(!is_queue_initialized_);
-    magma_minproduct_queue_create_from_hip(0, env.stream_togpu(), NULL, NULL, &queue_);
-    is_queue_initialized_ = true;
-    return queue_;
-  }
-
-  ~MagmaQueue() {
-    if (is_queue_initialized_)
-      magma_minproduct_queue_destroy(queue_);
-  }
-
-private:
-
-  magma_minproduct_queue_t queue_;
-# endif
-};
-#endif
 
 //=============================================================================
 

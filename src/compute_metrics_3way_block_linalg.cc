@@ -680,7 +680,7 @@ static void finalize_(
 
 void ComputeMetrics3WayBlock::compute_linalg_(
   VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& metrics,
-  int j_block, int k_block, int section_step) {
+  int j_block, int k_block, int section_step, MagmaWrapper& magma_wrapper) {
 
   COMET_INSIST(env_.is_using_linalg());
   COMET_INSIST(j_block >= 0 && j_block < env_.num_block_vector());
@@ -724,7 +724,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                  vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
                  vdata_i.sums->sums(), vdata_j.sums->sums(),
                  vdata_i.sums->counts(), vdata_j.sums->counts(),
-                 *dm, env_);
+                 *dm, magma_wrapper, env_);
 
     matM_ij_buf_ptr->from_accel();
 
@@ -747,7 +747,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                  vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
                  vdata_j.sums->sums(), vdata_k.sums->sums(),
                  vdata_j.sums->counts(), vdata_k.sums->counts(),
-                 *dm, env_);
+                 *dm, magma_wrapper, env_);
 
     matM_jk_buf_ptr->from_accel();
 
@@ -773,7 +773,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
                  vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
                  vdata_k.sums->sums(), vdata_i.sums->sums(),
                  vdata_k.sums->counts(), vdata_i.sums->counts(),
-                 *dm, env_);
+                 *dm, magma_wrapper, env_);
 
     matM_kik_buf_ptr->from_accel();
 
@@ -961,7 +961,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           vars.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
-          vars.J, vars.step_2way, *dm, env_);
+          vars.J, vars.step_2way, *dm, magma_wrapper, env_);
     }
 
     //========== Copy result matrix matB from GPU - WAIT

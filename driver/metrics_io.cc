@@ -62,23 +62,28 @@ MetricIO::MetricIO(FILE* file, GMMetrics& metrics, CEnv& env)
   , num_way_(env.num_way())
   , num_written_(0) {
 
+  const size_t index_max = metrics.num_vector_active *
+    (env_.is_metric_type_bitwise() ? 2 : 1) - 1;
   if (stdout != file_)
-    COMET_INSIST_INTERFACE(&env, metrics.num_vector_active ==
-                  (uint32_t)metrics.num_vector_active &&
+    COMET_INSIST_INTERFACE(&env, index_max ==
+       (size_t)(IntForFile_t)index_max &&
                   "Too many vectors for output format.");
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Write a metric value: CZEK 2-way case.
+/// \brief Write a metric value: CZEK 2-way case; helper for others.
 
 void MetricIO::write(size_t iG, size_t jG, GMFloat value) const {
 
   bool success = true;
   size_t bytes_written = 0;
 
-  success = success && write_<uint32_t>(iG, bytes_written);
-  success = success && write_<uint32_t>(jG, bytes_written);
-  success = success && write_<BasicTypes::FP32>(value, bytes_written);
+  // File format currently assumes FP32.
+  const FloatForFile_t value_for_file = (FloatForFile_t)value;
+
+  success = success && write_<IntForFile_t>(iG, bytes_written);
+  success = success && write_<IntForFile_t>(jG, bytes_written);
+  success = success && write_<FloatForFile_t>(value_for_file, bytes_written);
 
   COMET_INSIST(success && "File write failure.");
   num_written_++;
@@ -86,18 +91,20 @@ void MetricIO::write(size_t iG, size_t jG, GMFloat value) const {
   }
 
 //-----------------------------------------------------------------------------
-/// \brief Write a metric value: CZEK 3-way case.
+/// \brief Write a metric value: CZEK 3-way case; helper for others.
 
-void MetricIO::write(size_t iG, size_t jG, size_t kG,
-                         GMFloat value) const {
+void MetricIO::write(size_t iG, size_t jG, size_t kG, GMFloat value) const {
 
   bool success = true;
   size_t bytes_written = 0;
 
-  success = success && write_<uint32_t>(iG, bytes_written);
-  success = success && write_<uint32_t>(jG, bytes_written);
-  success = success && write_<uint32_t>(kG, bytes_written);
-  success = success && write_<BasicTypes::FP32>(value, bytes_written);
+  // File format currently assumes FP32.
+  const FloatForFile_t value_for_file = (FloatForFile_t)value;
+
+  success = success && write_<IntForFile_t>(iG, bytes_written);
+  success = success && write_<IntForFile_t>(jG, bytes_written);
+  success = success && write_<IntForFile_t>(kG, bytes_written);
+  success = success && write_<FloatForFile_t>(value_for_file, bytes_written);
 
   COMET_INSIST(success && "File write failure.");
   num_written_++;
@@ -112,6 +119,7 @@ void MetricIO::write(size_t iG, size_t jG, int iE, int jE,
   COMET_ASSERT(iE >= 0 && iE < 2);
   COMET_ASSERT(jE >= 0 && jE < 2);
 
+  // Use czek write function as helper.
   write(iE + 2 * iG, jE + 2 * jG, value);
 }
 
@@ -124,6 +132,7 @@ void MetricIO::write(size_t iG, size_t jG, size_t kG,
   COMET_ASSERT(jE >= 0 && jE < 2);
   COMET_ASSERT(kE >= 0 && kE < 2);
 
+  // Use czek write function as helper.
   write(iE + 2 * iG, jE + 2 * jG, kE + 2 * kG, value);
 }
 
@@ -662,9 +671,9 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   long offset = bytes_(num_written_ - num_written_last_write_);
   const int success1 = fseek(file_, offset, SEEK_SET);
-  COMET_INSIST(0 == success1);
+  COMET_INSIST(0 == success1 && "Unable to fseek to correct file position.");
 
-  // Loop over metrics stored in file, compare to metrics in memory.
+  // Test 1: loop over metrics stored in file, compare to metrics in memory.
 
   size_t num_incorrect = 0;
 
@@ -672,7 +681,9 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
     if (env_.num_way() == NumWay::_2) {
 
-      MetricIO::Metric<NumWay::_2> metric;
+      // Read current metric from file.
+
+      MetricIO::MetricForFile<NumWay::_2> metric;
       MetricIO::read(metric, file_, env_);
 
       const size_t iG = metric.iG(env_);
@@ -681,9 +692,13 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const int iE = metric.iE(env_);
       const int jE = metric.jE(env_);
 
-      const Float_t metric_value = env_.is_shrink() ?
-        (Float_t)Metrics_ccc_duo_get_2(metrics, index, 0, env_) :
-        (Float_t)GMMetrics_get_2(metrics, iG, jG, iE, jE, env_);
+      // Access current metric from memory.
+
+      const auto metric_value = env_.is_shrink() ?
+        Metrics_ccc_duo_get_2(metrics, index, 0, env_) :
+        GMMetrics_get_2(metrics, iG, jG, iE, jE, env_);
+
+      // Compare.
 
       bool do_coords_match = true;
       if (env_.is_shrink()) {
@@ -693,19 +708,21 @@ void MetricsIO::check_file(GMMetrics& metrics) {
           CoordsInfo::getjG(coords, metrics, env_) == jG;
       }
 
-      const bool is_correct = metric_value == metric.value &&
-                              env_.pass_threshold(metric_value) &&
-                              do_coords_match;
+      const bool pass_threshold = env_.pass_threshold(metric_value);
+      const bool is_correct = (FloatForFile_t)metric_value == metric.value &&
+                              pass_threshold && do_coords_match;
       num_incorrect += !is_correct;
 
       if (num_incorrect < 10 && !is_correct)
         fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu actual %.17e expected %.17e\n",
-          iG, jG, (double)metric_value, (double)metric.value);
+          "element %zu %zu actual %.17e expected %.17e pass_threshold %i\n",
+          iG, jG, (double)metric_value, (double)metric.value, pass_threshold);
 
     } else { // if (env_.num_way() == NumWay::_3)
 
-      MetricIO::Metric<NumWay::_3> metric;
+      // Read current metric from file.
+
+      MetricIO::MetricForFile<NumWay::_3> metric;
       MetricIO::read(metric, file_, env_);
 
       const size_t iG = metric.iG(env_);
@@ -716,9 +733,13 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       const int jE = metric.jE(env_);
       const int kE = metric.kE(env_);
 
-      const Float_t metric_value = env_.is_shrink() ?
-        (Float_t)Metrics_ccc_duo_get_3(metrics, index, 0, env_) :
-        (Float_t)GMMetrics_get_3(metrics, iG, jG, kG, iE, jE, kE, env_);
+      // Access current metric from memory.
+
+      const auto metric_value = env_.is_shrink() ?
+        Metrics_ccc_duo_get_3(metrics, index, 0, env_) :
+        GMMetrics_get_3(metrics, iG, jG, kG, iE, jE, kE, env_);
+
+      // Compare.
 
       bool do_coords_match = true;
       if (env_.is_shrink()) {
@@ -729,15 +750,15 @@ void MetricsIO::check_file(GMMetrics& metrics) {
           CoordsInfo::getkG(coords, metrics, env_) == kG;
       }
 
-      const bool is_correct = metric_value == metric.value &&
-                              env_.pass_threshold(metric_value) &&
-                              do_coords_match;
+      const bool pass_threshold = env_.pass_threshold(metric_value);
+      const bool is_correct = (FloatForFile_t)metric_value == metric.value &&
+                              pass_threshold && do_coords_match;
       num_incorrect += !is_correct;
 
       if (!is_correct && num_incorrect < 10)
         fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu %zu actual %.17e expected %.17e\n",
-          iG, jG, kG, (double)metric_value, (double)metric.value);
+          "element %zu %zu %zu actual %.17e expected %.17e pass_threshold %i\n",
+          iG, jG, kG, (double)metric_value, (double)metric.value, pass_threshold);
 
     } // if (env_.num_way() == NumWay::_2)
 
@@ -746,7 +767,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
   COMET_INSIST(0 == num_incorrect &&
     "Incorrect values detected in output file - partial list is displayed.");
 
-  // Count metrics (in memory) passing threshold, compare to num written.
+  // Test 2: count metrics (in memory) passing threshold, compare to num written.
 
   size_t num_passed = 0;
 
@@ -764,8 +785,8 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       } else {
         for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
           for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
-            const MetricIO::Float_t metric_value =
-              (MetricIO::Float_t)GMMetrics_get_2(metrics, index, iE, jE, env_);
+            const auto metric_value =
+              GMMetrics_get_2(metrics, index, iE, jE, env_);
             num_passed += env_.pass_threshold(metric_value);
           }
         }
@@ -789,7 +810,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
         for (int iE = 0; iE < env_.ijkE_max(); ++iE) {
           for (int jE = 0; jE < env_.ijkE_max(); ++jE) {
             for (int kE = 0; kE < env_.ijkE_max(); ++kE) {
-              const GMFloat metric_value =
+              const auto metric_value =
                 GMMetrics_get_3(metrics, index, iE, jE, kE, env_);
               num_passed += env_.pass_threshold(metric_value);
             }
@@ -817,7 +838,7 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
   offset = bytes_(num_written_);
   const int success2 = fseek(file_, offset, SEEK_SET);
-  COMET_INSIST(0 == success2);
+  COMET_INSIST(0 == success2 && "Unable to fseek to correct file position.");
 }
 
 //-----------------------------------------------------------------------------

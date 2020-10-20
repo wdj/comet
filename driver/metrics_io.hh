@@ -55,36 +55,13 @@ public:
 
   // NOTE: metrics always written in single precision; this could be changed.
 
-  typedef BasicTypes::FP32 Float_t;
-
-  template<int N>
-  struct Metric {
-    uint32_t coords[N];
-    Float_t value;
-    uint32_t iG(const CEnv& env) const {
-      return env.is_metric_type_bitwise() ? coords[0] / 2 : coords[0];
-    }
-    uint32_t jG(const CEnv& env) const {
-      return env.is_metric_type_bitwise() ? coords[1] / 2 : coords[1];
-    }
-    uint32_t kG(const CEnv& env) const {
-      COMET_ASSERT(N >= 3);
-      return env.is_metric_type_bitwise() ? coords[2] / 2 : coords[2];
-    }
-    uint32_t iE(const CEnv& env) const {
-      return env.is_metric_type_bitwise() ? coords[0] % 2 : 0;
-    }
-    uint32_t jE(const CEnv& env) const {
-      return env.is_metric_type_bitwise() ? coords[1] % 2 : 0;
-    }
-    uint32_t kE(const CEnv& env) const {
-      COMET_ASSERT(N >= 3);
-      return env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
-    }
-  }; // Metric
+  typedef uint32_t IntForFile_t;
+  typedef BasicTypes::FP32 FloatForFile_t;
 
   MetricIO(FILE* file, GMMetrics& metrics, CEnv& env);
   ~MetricIO() {}
+
+  // Write a metric with indexing to file.
 
   void write(size_t iG, size_t jG, GMFloat value) const;
   void write(size_t iG, size_t jG, size_t kG, GMFloat value) const;
@@ -92,24 +69,52 @@ public:
   void write(size_t iG, size_t jG, size_t kG,
              int iE, int jE, int kE, GMFloat value) const;
 
+  // Internal helper class to hold one metric with indexing as stored in file.
+
+  template<int N>
+  struct MetricForFile {
+    IntForFile_t coords[N];
+    FloatForFile_t value;
+    IntForFile_t iG(const CEnv& env) const {
+      return env.is_metric_type_bitwise() ? coords[0] / 2 : coords[0];
+    }
+    IntForFile_t jG(const CEnv& env) const {
+      return env.is_metric_type_bitwise() ? coords[1] / 2 : coords[1];
+    }
+    IntForFile_t kG(const CEnv& env) const {
+      COMET_ASSERT(N >= 3);
+      return env.is_metric_type_bitwise() ? coords[2] / 2 : coords[2];
+    }
+    IntForFile_t iE(const CEnv& env) const {
+      return env.is_metric_type_bitwise() ? coords[0] % 2 : 0;
+    }
+    IntForFile_t jE(const CEnv& env) const {
+      return env.is_metric_type_bitwise() ? coords[1] % 2 : 0;
+    }
+    IntForFile_t kE(const CEnv& env) const {
+      COMET_ASSERT(N >= 3);
+      return env.is_metric_type_bitwise() ? coords[2] % 2 : 0;
+    }
+  }; // MetricForFile
+
+  // Sizes.
+
   size_t num_written() const {return num_written_;}
 
   static size_t num_bytes_written_per_metric(CEnv& env) {
-    return env.metric_type() == MetricType::CZEK &&
-           env.num_way() == NumWay::_2 ? 4 + 4 + 4 :
-           env.metric_type() == MetricType::CZEK &&
-           env.num_way() == NumWay::_3 ? 4 + 4 + 4 + 4 :
-           env.num_way() == NumWay::_2 ? 4 + 4 + 4 :
-                                         4 + 4 + 4 + 4;
+    return env.num_way() == NumWay::_2 ?
+             2*sizeof(IntForFile_t) + sizeof(FloatForFile_t) :
+             3*sizeof(IntForFile_t) + sizeof(FloatForFile_t);
   }
 
   size_t num_bytes_written_per_metric() const {
     return num_bytes_written_per_metric(env_);
   }
 
-  template<int N>
-  static void read(Metric<N>& metric, FILE* file, CEnv& env) {
+  // Read a single metric from the file.
 
+  template<int N>
+  static void read(MetricForFile<N>& metric, FILE* file, CEnv& env) {
     const size_t num_read = fread(&metric, sizeof(metric), 1, file);
     COMET_INSIST(1 == num_read);
   }
@@ -122,14 +127,17 @@ private:
   int num_way_;
   size_t mutable num_written_;
 
+  // Helper function to write a scalar to the file.
+
   template<typename T>
   bool write_(T v, size_t& bytes_written) const {
     const size_t num_written_this = fwrite(&v, sizeof(v), 1, file_);
     bytes_written += sizeof(v);
-    return 1 == num_written_this;
+    const bool is_written_correctly = 1 == num_written_this;
+    return is_written_correctly;
   }
 
-  //---Disallowed methods.
+  // Disallowed methods.
 
   MetricIO(  const MetricIO&);
   void operator=(const MetricIO&);
@@ -141,7 +149,7 @@ private:
 
 class MetricsIO {
 
-  typedef MetricIO::Float_t Float_t;
+  typedef MetricIO::FloatForFile_t FloatForFile_t;
 
 public:
 
