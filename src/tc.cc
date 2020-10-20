@@ -292,7 +292,7 @@ void tc_gemm_start(
     } break;
     // --------------
     case TC::B1: {
-      int num_kernel = 1;
+      int num_kernel = 0;
       // Original 1-bit GEMM kernel
       if(num_kernel==0) {
         tc_gemm_start_impl_<TC::B1>(
