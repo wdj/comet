@@ -1,26 +1,23 @@
 Configure and compile process:
 
-1. Initial settings:
-Set COMET_SRC to location of CoMet source code - export COMET_SRC=/home/username/genomics_gpu
-GPUSYS2 uses gcc 8.3 downloaded using Spack
-Create compile directory - mkdir comet_work
+1. Create directory and clone or copy repo into it:
+mkdir comet_work
+git clone https://code.ornl.gov/wjd/genomics_gpu.git
 
 2. Configure CoMet and compile libraries:
-${COMET_SRC}/scripts/configure_all.sh COMET_PLATFORM=GPUSYS2
+genomics_gpu/scripts/configure_all.sh COMET_PLATFORM=GPUSYS2
 
 3. Compile CoMet:
-Make - ${COMET_SRC}/scripts/make_all.sh
-Quick Make - ${COMET_SRC}/scripts/make_all.sh--nompi --norelease --nosingle
-View compile scripts in run_data
+Make - genomics_gpu/scripts/make_all.sh
+Quick Debug Make - genomics_gpu/scripts/make_all.sh --nompi --norelease --nosingle
+Quick Release Make - genomics_gpu/scripts/make_all.sh --nompi --nodebug --nosingle
+View compile script in run_data
 
 4. Run:
-View run scripts in run_data
+View run script in run_data
 
-Other updates that need to be added:
-To add tensor core routines - In CMakeCache.txt set:
+Compile changes:
 CUDA_NVCC_FLAGS:STRING=-gencode arch=compute_75,code=compute_75
-
-To add Cutlass routines - In CMakeCache.txt set:
 CUDA_NVCC_FLAGS:STRING=-I/home/9pe/cutlass/include -I/home/9pe/cutlass/tools/util/include
 Remove -Werror from CMAKE_CXX_FLAGS since cutlass has some strict-aliasing warnings in bfloat16.h and tfloat32.h
 

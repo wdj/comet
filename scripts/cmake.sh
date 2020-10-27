@@ -142,7 +142,7 @@ function main
     echo "Building mpi-stub ..."
     local C_COMPILER=$COMET_C_COMPILER
     local CXX_COMPILER=$COMET_CXX_SERIAL_COMPILER
-    ln -s ${COMET_SRC}/tpls/mpi-stub.tar.gz
+    ln -s ../genomics_gpu/tpls/mpi-stub.tar.gz
     rm -rf mpi-stub
     gunzip <mpi-stub.tar.gz | tar xf -
     pushd mpi-stub
@@ -354,7 +354,7 @@ function main
   if [ ${USE_CUDA:-OFF} = ON ] ; then
     echo "Building CUB library ..."
     local CUB_VERSION=1.8.0
-    ln -s ${COMET_SRC}/tpls/cub-${CUB_VERSION}.zip
+    ln -s ../genomics_gpu/tpls/cub-${CUB_VERSION}.zip
     rm -rf cub-${CUB_VERSION}
     unzip -q cub-${CUB_VERSION}
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cub-${CUB_VERSION}/cub"
@@ -387,6 +387,17 @@ function main
     fi
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/rocprim/include"
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/build/rocprim/include/rocprim"
+  fi
+
+  #----------------------------------------------------------------------------
+  #---Get NVIDIA Cutlass library.
+
+  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+    echo "Building Cutlass library ..."
+    ln -s ../genomics_gpu/tpls/cutlass-master.zip
+    rm -rf cutlass-master
+    unzip -q cutlass-master
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass-master/include -I$BUILD_DIR/cutlass-master/tools/util/include"
   fi
 
   #----------------------------------------------------------------------------
@@ -521,6 +532,12 @@ function main
     CMAKE_EXTRA_OPTIONS+="${COMET_CUDA_CMAKE_OPTS:-}"
   fi
 
+  local CMAKE_NVCC_OPTIONS=""
+
+  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
+  fi
+
   #============================================================================
   # Run cmake.
 
@@ -550,6 +567,8 @@ function main
     -DUSE_MPI:BOOL=${USE_MPI:-OFF} \
     -DUSE_CUDA:BOOL=${USE_CUDA:-OFF} \
     -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
+   \
+    -DCUDA_NVCC_FLAGS:STRING="$CMAKE_NVCC_OPTIONS" \
    \
     $REPO_DIR
   set +x

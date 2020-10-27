@@ -275,6 +275,9 @@ EOF
 
   local COMET_CAN_USE_MPI=OFF
 
+  local USE_CUTLASS=ON
+  COMET_WERROR=OFF
+
   #---Testing.
 
   #local COMET_TEST_COMMAND="env CUDA_PROXY=1"

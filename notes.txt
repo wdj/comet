@@ -43,10 +43,11 @@ tc 5:
     21: Simple xor GEMM (b1_comet_xor_gemm_gpu_simple)
       - Does not need tc_in or tc_out kernels
     22: Simple xor tensor core GEMM (b1_comet_xor_gemm_gpu_tc_simple)
-      - Work in progress
-
-  * Cutlass - ToDo (tc_solve_cutlass_comet_xor.i.hh):
-    30: ToDo - Need to contact Nvidia and send them working tensor core CoMet GEMM kernel
+      - Very simple working 1-bit tensor core GEMM
+    23: In development Cutlass optimized xor tensor core GEMMs
+      - In progress, unlikely to outperform Nvidia version
+    24: Optimized Cutlass tensor core GEMMs from Nvidia
+      - Fairly optimized Nvidia code with best performance
 
 
 ##########################################
@@ -55,10 +56,7 @@ In setup routines use env.num_kernel()<20 for general GEMMs and env.num_kernel()
 
 Added compile and run scripts. Run scripts have options to run accuracy tests and run performance tests.
 
+Modified setup to automically install Cutlass from tar file and setup CoMet to use Cutlass.
 
 ##########################################
-ToDo:
-Add automatic compilation settings for tensor core and Cutlass GEMMs
-Get tar of Cutlass to put into CoMet directory
-Setup CoMet to unpack Cutlass and use this when installing
 
