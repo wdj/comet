@@ -39,12 +39,21 @@ function script_dir
   echo $(dirname $RESULT)
 }
 
+#------------------------------------------------------------------------------
+
+function repo_dir
+{
+  echo "$(script_dir)/.."
+}
+
 #==============================================================================
 
 function do_make
 {
   # Location of this script.
-  local SCRIPT_DIR=$(script_dir)
+  #local SCRIPT_DIR=$(script_dir)
+  local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
+  local SCRIPT_DIR="$REPO_DIR/scripts"
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 

@@ -14,6 +14,10 @@ mkdir comet_work
 cd comet_work
 module load git
 git clone https://code.ornl.gov/wjd/genomics_gpu.git
+# OPTIONAL:
+#   export COMET_REPO_DIR=$PWD/genomics_gpu
+#   export COMET_BUILDS_DIR=$PWD
+#   export COMET_INSTALLS_DIR=$PWD/installs
 genomics_gpu/scripts/configure_all.sh
 genomics_gpu/scripts/make_all.sh
 
