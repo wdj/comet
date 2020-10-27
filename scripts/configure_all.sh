@@ -41,6 +41,13 @@ function script_dir
   echo $(dirname $RESULT)
 }
 
+#------------------------------------------------------------------------------
+
+function repo_dir
+{
+  echo "$(script_dir)/.."
+}
+
 #==============================================================================
 
 function configure_1case
@@ -52,7 +59,7 @@ function configure_1case
   [[ $BUILD_TYPE = Debug ]] && BUILD_STUB+="test" || BUILD_STUB+="release"
   [[ $USE_MPI = OFF ]] && BUILD_STUB+="_nompi"
 
-  local BUILD_DIR=build_${BUILD_STUB}_$COMET_PLATFORM_STUB
+  local BUILD_DIR=$BUILDS_DIR/build_${BUILD_STUB}_$COMET_PLATFORM_STUB
   local INSTALL_DIR=$INSTALLS_DIR/install_${BUILD_STUB}_$COMET_PLATFORM_STUB
 
   rm -rf $BUILD_DIR # Clean out any previous build files
@@ -76,9 +83,11 @@ function configure_1case
     fi
 
     echo "Executing cmake.sh script ..."
-    env INSTALL_DIR=$INSTALL_DIR BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
+    env INSTALL_DIR=$INSTALL_DIR \
+        BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
         USE_MPI=$USE_MPI FP_PRECISION=$FP_PRECISION \
-        ${COMET_SRC}/scripts/cmake.sh
+        #${COMET_SRC}/scripts/cmake.sh
+        $SCRIPT_DIR/cmake.sh
 
     # Move magma build to location for common use for different builds.
     if [ -e magma_patch -a ! -e $MAGMA_BUILD_DIR ] ; then
@@ -87,8 +96,12 @@ function configure_1case
     fi
 
     popd
+
+    # Make convrnience symlink to this install dir.
+    pushd $BUILDS_DIR
     rm -f $(basename $INSTALL_DIR)
     ln -s $INSTALL_DIR .
+    popd
 
     printf -- '-%.0s' {1..79}; echo ""
 
@@ -107,14 +120,22 @@ function main
   fi
 
   # Location of this script.
-  local SCRIPT_DIR=$(script_dir)
+  #local SCRIPT_DIR=$(script_dir)
+  local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
+  local SCRIPT_DIR="$REPO_DIR/scripts"
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
+
+  # Pick up builds directory.
+  local BUILDS_DIR="${COMET_BUILDS_DIR:-$PWD}"
+  mkdir -p "$BUILDS_DIR"
 
   [[ -z "${OLCF_PROJECT:-}" ]] && local OLCF_PROJECT=stf006
 
   # Set directory for all installs.
-  if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
+  if [ -n "${COMET_INSTALLS_DIR:-}" ] ; then
+    local INSTALLS_DIR="$COMET_INSTALLS_DIR"
+  elif [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
     true # skip
   elif [ $COMET_PLATFORM = CRAY_XK7 ] ; then
     local INSTALLS_DIR=/lustre/atlas/scratch/$(whoami)/$OLCF_PROJECT/comet_work

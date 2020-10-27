@@ -3,6 +3,9 @@
 #
 # Configure script for cmake.
 #
+# NOTE: it is recommended that this script not be called directly but
+# instead that the script configure_all.sh be used.
+#
 # Usage: to configure and build code, perform the following steps:
 #
 # cd genomics_gpu/..
@@ -19,6 +22,8 @@
 # FP_PRECISION - SINGLE or DOUBLE (default) precision for floating point
 #    operations (does not affect use of tensor cores for CCC)
 # TESTING - ON or OFF (default), to build testing code
+#
+# NOTE: it is assumed the build takes place in $PWD.
 #
 #==============================================================================
 
@@ -51,6 +56,13 @@ function script_dir
   echo $(dirname $RESULT)
 }
 
+#------------------------------------------------------------------------------
+
+function repo_dir
+{
+  echo "$(script_dir)/.."
+}
+
 #==============================================================================
 
 function get_modules_used_magma
@@ -74,7 +86,9 @@ function main
   #============================================================================
 
   # Location of this script.
-  local SCRIPT_DIR=$(script_dir)
+  #local SCRIPT_DIR=$(script_dir)
+  local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
+  local SCRIPT_DIR="$REPO_DIR/scripts"
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
@@ -120,14 +134,19 @@ function main
   fi
 
   #----------------------------------------------------------------------------
-  #---Set installation dir.
+  #---Set build/s dirs.
 
-  local REPO_DIR=$SCRIPT_DIR/..
+  local BUILD_DIR=$PWD
+
+  local BUILDS_DIR="${COMET_BUILDS_DIR:-$BUILD_DIR/..}"
+
+  #----------------------------------------------------------------------------
+  #---Set installation/s dirs.
 
   if [ -z "${INSTALL_DIR:-}" ] ; then
-    # NOTE: this will typiclly not be executed.
+    local INSTALLS_DIR="${COMET_INSTALLS_DIR:-$BUILDS_DIR}"
     local INSTALL_DIR
-    INSTALL_DIR=$REPO_DIR/../install_$(echo $BUILD_TYPE | tr A-Z a-z)
+    INSTALL_DIR=$INSTALLS_DIR/install_$(echo $BUILD_TYPE | tr A-Z a-z)
   fi
 
   #============================================================================
@@ -136,13 +155,12 @@ function main
 
   #---Get mpi stub library if needed.
 
-  local BUILD_DIR=$PWD
-
   if [ $USE_MPI = OFF ] ; then
     echo "Building mpi-stub ..."
     local C_COMPILER=$COMET_C_COMPILER
     local CXX_COMPILER=$COMET_CXX_SERIAL_COMPILER
-    ln -s ${COMET_SRC}/tpls/mpi-stub.tar.gz
+    #ln -s ${COMET_SRC}/tpls/mpi-stub.tar.gz
+    ln -s $REPO_DIR/tpls/mpi-stub.tar.gz
     rm -rf mpi-stub
     gunzip <mpi-stub.tar.gz | tar xf -
     pushd mpi-stub
@@ -238,11 +256,11 @@ function main
       sed -i -e 's/-frecursive/-frecursive -fPIC/' make.inc
       make -j8 blaslib cblaslib lapacklib
       mkdir -p lib
-      cd lib
+      pushd lib
       ln -s ../libcblas.a .
       ln -s ../librefblas.a .
       ln -s ../liblapack.a .
-      cd ..
+      popd
       popd
       touch $LAPACK_DIR/build_is_complete
     fi
@@ -292,14 +310,14 @@ function main
         cp $REPO_DIR/tpls/magma-${MAGMA_VERSION}.tar.gz $MAGMA_DIR/
       else
         git clone https://bitbucket.org/icl/magma.git
-        cd magma
+        pushd magma
         git checkout -b hipMAGMA origin/hipMAGMA
         git checkout $MAGMA_VERSION
         rm -rf .git
         cp make.inc-examples/make.inc.hip_openblas make.inc
         # FIX
         sed -i -e 's/lopenblas/lsci_cray/' make.inc
-        cd ..
+        popd
         mv magma magma-$MAGMA_VERSION
         tar cf - magma-$MAGMA_VERSION | gzip > magma-${MAGMA_VERSION}.tar.gz
         rm -rf magma-$MAGMA_VERSION
@@ -354,7 +372,8 @@ function main
   if [ ${USE_CUDA:-OFF} = ON ] ; then
     echo "Building CUB library ..."
     local CUB_VERSION=1.8.0
-    ln -s ${COMET_SRC}/tpls/cub-${CUB_VERSION}.zip
+    #ln -s ${COMET_SRC}/tpls/cub-${CUB_VERSION}.zip
+    ln -s $REPO_DIR/tpls/cub-${CUB_VERSION}.zip
     rm -rf cub-${CUB_VERSION}
     unzip -q cub-${CUB_VERSION}
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cub-${CUB_VERSION}/cub"
@@ -366,24 +385,29 @@ function main
   if [ ${USE_HIP:-OFF} = ON ] ; then
     local ROCPRIM_VERSION=3.5.1
     if [ -e "${ROCM_PATH:-}/rocprim" ] ; then
+      # Link to if installed with rocm.
       ln -s "${ROCM_PATH:-}/rocprim" rocPRIM-rocm-${ROCPRIM_VERSION}
     elif [ -e ../rocPRIM-rocm-${ROCPRIM_VERSION}/build/build_is_complete ] ; then
+      # Link to if already built.
       ln -s ../rocPRIM-rocm-${ROCPRIM_VERSION} .
     else
+      # Build.
       echo "Building ROCPRIM library ..."
-      ln -s ../genomics_gpu/tpls/rocPRIM-rocm-${ROCPRIM_VERSION}.tar.gz
+      ln -s $REPO_DIR/tpls/rocPRIM-rocm-${ROCPRIM_VERSION}.tar.gz
       rm -rf rocPRIM-rocm-${ROCPRIM_VERSION}
       gunzip <rocPRIM-rocm-${ROCPRIM_VERSION}.tar.gz | tar xf -
       pushd rocPRIM-rocm-${ROCPRIM_VERSION}
       mkdir build
-      cd build
+      pushd build
       cmake -DBUILD_BENCHMARK=ON -DCMAKE_CXX_COMPILER=hipcc ../.
       make -j16
       touch build_is_complete
       # ISSUE: need to check for hipcc version consistency.
       popd
-      rm -rf ../rocPRIM-rocm-${ROCPRIM_VERSION}
-      mv rocPRIM-rocm-${ROCPRIM_VERSION} ..
+      popd
+      # Save for use with other builds.
+      rm -rf $BUILDS_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}
+      mv rocPRIM-rocm-${ROCPRIM_VERSION} $BUILDS_DIR
     fi
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/rocprim/include"
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/build/rocprim/include/rocprim"
@@ -395,8 +419,8 @@ function main
   if [ $TESTING = ON ] ; then
     if [ ${COMET_USE_GTEST:-OFF} = ON ] ; then
       echo "Building googletest ..."
-      if [ -e ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz ] ; then
-        ln -s ../genomics_gpu/tpls/googletest-release-1.7.0.tar.gz
+      if [ -e $REPO_DIR/tpls/googletest-release-1.7.0.tar.gz ] ; then
+        ln -s $REPO_DIR/tpls/googletest-release-1.7.0.tar.gz
       else
         wget -O googletest-release-1.7.0.tar.gz \
           https://github.com/google/googletest/archive/release-1.7.0.tar.gz
