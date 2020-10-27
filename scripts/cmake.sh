@@ -380,6 +380,31 @@ function main
   fi
 
   #----------------------------------------------------------------------------
+  #---Get NVIDIA CUTLASS library.
+
+  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+    echo "Copying CUTLASS ..."
+    local CUTLASS_VERSION=2.3.0
+    local CUTLASS_DIR=$BUILD_DIR/cutlass
+    mkdir -p $CUTLASS_DIR
+    if [ -e $REPO_DIR/tpls/cutlass-v${CUTLASS_VERSION}.tar.gz ] ; then
+      cp $REPO_DIR/tpls/cutlass-v${CUTLASS_VERSION}.tar.gz $CUTLASS_DIR/
+    else
+      wget -nv -O $CUTLASS_DIR/cutlass-v${CUTLASS_VERSION}.tar.gz \
+        https://github.com/NVIDIA/cutlass/archive/v2.3.0.tar.gz
+    fi
+    pushd $CUTLASS_DIR
+    gunzip <cutlass-v${CUTLASS_VERSION}.tar.gz | tar xf -
+    ln -s cutlass-${CUTLASS_VERSION} cutlass
+    popd
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass/cutlass/include"
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass/cutlass/tools/util/include"
+    COMET_CUDA_COMPILE_OPTS+=" -Wno-strict-aliasing"
+    COMET_CUDA_COMPILE_OPTS+=" -Wno-uninitialized"
+    COMET_CUDA_COMPILE_OPTS+=" -DCOMET_USE_CUTLASS"
+  fi
+
+  #----------------------------------------------------------------------------
   #---Get AMD ROCPRIM library.
 
   if [ ${USE_HIP:-OFF} = ON ] ; then

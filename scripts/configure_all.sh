@@ -86,8 +86,8 @@ function configure_1case
     env INSTALL_DIR=$INSTALL_DIR \
         BUILD_TYPE=$BUILD_TYPE TESTING=$TESTING \
         USE_MPI=$USE_MPI FP_PRECISION=$FP_PRECISION \
-        #${COMET_SRC}/scripts/cmake.sh
         $SCRIPT_DIR/cmake.sh
+        #${COMET_SRC}/scripts/cmake.sh
 
     # Move magma build to location for common use for different builds.
     if [ -e magma_patch -a ! -e $MAGMA_BUILD_DIR ] ; then
