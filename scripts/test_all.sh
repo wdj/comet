@@ -38,14 +38,26 @@ function script_dir
   echo $(dirname $RESULT)
 }
 
+#------------------------------------------------------------------------------
+
+function repo_dir
+{
+  echo "$(script_dir)/.."
+}
+
 #==============================================================================
 
 function main
 {
   # Location of this script.
-  local SCRIPT_DIR=$(script_dir)
+  #local SCRIPT_DIR=$(script_dir)
+  local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
+  local SCRIPT_DIR="$REPO_DIR/scripts"
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
+
+  # Pick up builds directory.
+  local BUILDS_DIR="${COMET_BUILDS_DIR:-$PWD}"
 
   local DO_SINGLE=1
   local DO_DOUBLE=1
@@ -62,18 +74,18 @@ function main
   local DIRS=""
 
   if [ $DO_SINGLE = 1 ] ; then
-    if [ -d "build_single_test_$COMET_PLATFORM_STUB" ] ; then
-      DIRS+=" build_single_test_$COMET_PLATFORM_STUB"
+    if [ -d "$BUILDS_DIR/build_single_test_$COMET_PLATFORM_STUB" ] ; then
+      DIRS+=" $BUILDS_DIR/build_single_test_$COMET_PLATFORM_STUB"
     else
-      DIRS+=" build_single_test_nompi_$COMET_PLATFORM_STUB"
+      DIRS+=" $BUILDS_DIR/build_single_test_nompi_$COMET_PLATFORM_STUB"
     fi
   fi
 
   if [ $DO_DOUBLE = 1 ] ; then
-    if [ -d "build_test_$COMET_PLATFORM_STUB" ] ; then
-      DIRS+=" build_test_$COMET_PLATFORM_STUB"
+    if [ -d "$BUILDS_DIR/build_test_$COMET_PLATFORM_STUB" ] ; then
+      DIRS+=" $BUILDS_DIR/build_test_$COMET_PLATFORM_STUB"
     else
-      DIRS+=" build_test_nompi_$COMET_PLATFORM_STUB"
+      DIRS+=" $BUILDS_DIR/build_test_nompi_$COMET_PLATFORM_STUB"
     fi
   fi
 
