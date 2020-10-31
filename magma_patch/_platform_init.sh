@@ -33,6 +33,8 @@ local COMET_PLATFORM=""
 [[ "$COMET_HOST" = "poplar" ]] && COMET_PLATFORM=POPLAR # Cray internal system
 [[ "$(uname -s)" = "Darwin" ]] && COMET_PLATFORM=MACOS
 [[ "$COMET_HOST" = "va" ]] && COMET_PLATFORM=MURPHY # enclave system
+[[ "$COMET_HOST" = "cgpu" ]] && COMET_PLATFORM=CORI_GPU # A100s on Cori
+
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform." 1>&2
   exit 1
@@ -793,6 +795,55 @@ elif [ $COMET_PLATFORM = MURPHY ] ; then
     # salloc -N 1 -p gpu
     local COMET_TEST_COMMAND="env srun"
   fi
+
+#----------------------------------------
+elif [ $COMET_PLATFORM = CORI_GPU ] ; then
+#----------------------------------------
+
+  #---Modules etc.
+
+  module load gcc # 8.3.0
+  module load cuda/11.0.2
+  module load cmake
+  module list
+
+  #---Compiler.
+
+  local USE_GCC=ON
+  local COMET_C_COMPILER=$(which gcc) # presently unused
+  local COMET_CXX_COMPILER=$(which g++) # presently unused
+  local COMET_CXX_SERIAL_COMPILER=g++
+  #local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++17"
+  local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++14"
+
+  local USE_OPENMP=ON
+  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
+
+  local COMET_USE_INT128=ON
+
+  #---Libraries.
+
+  #local USE_CUDA=OFF
+  local USE_CUDA=ON
+  local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
+  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
+  COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
+  #COMET_CUDA_LINK_OPTS+=" -L$CUDA_ROOT/lib64 -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas_static -lcudart_static"
+  COMET_CUDA_LINK_OPTS+=" -L$CUDA_ROOT/lib64 -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
+  local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
+  #local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
+  #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+
+  #local USE_MAGMA=OFF
+  local USE_MAGMA=ON
+  local COMET_MAGMA_GPU_ARCH=80
+  local COMET_MAGMA_MAKE_INC=make.inc.summit
+
+  local COMET_CAN_USE_MPI=OFF
+
+  #---Testing.
+
+  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=32 srun -n 1"
 
 #----------------------------------------
 else

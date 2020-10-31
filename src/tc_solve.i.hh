@@ -79,7 +79,7 @@ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
   const int ind_m = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const int ind_n = blockIdx_y_();
 
-  if (ind_m >= m || ind_n >= n)
+  if ((size_t)ind_m >= m || (size_t)ind_n >= n)
     return;
 
   for (size_t ind_k = 0; ind_k < k; ++ind_k) {
