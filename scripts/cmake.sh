@@ -580,11 +580,11 @@ function main
     CMAKE_EXTRA_OPTIONS+="${COMET_CUDA_CMAKE_OPTS:-}"
   fi
 
-  local CMAKE_NVCC_OPTIONS=""
-
-  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
-    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
-  fi
+#  local CMAKE_NVCC_OPTIONS=""
+#
+#  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+#    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
+#  fi
 
   #============================================================================
   # Run cmake.
@@ -616,14 +616,14 @@ function main
     -DUSE_CUDA:BOOL=${USE_CUDA:-OFF} \
     -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
    \
-    -DCUDA_NVCC_FLAGS:STRING="$CMAKE_NVCC_OPTIONS" \
-   \
     $REPO_DIR
   set +x
 
   ln -s $INSTALL_DIR install_dir
 }
 
+#    -DCUDA_NVCC_FLAGS:STRING="$CMAKE_NVCC_OPTIONS" \
+#   \
 #==============================================================================
 
 main "$@" 2>&1 | tee out_cmake.txt
