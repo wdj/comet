@@ -293,6 +293,7 @@ function main
       popd
       touch $MAGMA_DIR/copy_is_complete
     fi
+    COMET_MAGMA_COMPILE_OPTS+=" -DMKL_ILP64"
   fi
 
   if [ $USE_MAGMA = ON -a ${USE_HIP:-OFF} = ON ] ; then

@@ -145,7 +145,12 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   elt_size_ = elt_size;
   size_allocated_ = num_elts_ * elt_size_;
 # if defined COMET_USE_CUDA
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    h = malloc(size_allocated_);
+#else
     cudaMallocHost((void**)&h, size_allocated_);
+#endif
     COMET_INSIST(System::accel_last_call_succeeded());
     if (env_.is_compute_method_gpu()) {
       cudaMalloc((void**)&d, size_allocated_);
@@ -260,7 +265,12 @@ void MirroredBuf::deallocate() {
     } else {
 
 #     if defined COMET_USE_CUDA
+#ifdef COMET_PLATFORM_CORI_GPU
+        // WORKAROUND
+        free(h);
+#else
         cudaFreeHost(h);
+#endif
         COMET_INSIST(System::accel_last_call_succeeded());
         if (env_.is_compute_method_gpu()) {
           cudaFree(d);
