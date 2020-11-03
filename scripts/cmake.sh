@@ -437,6 +437,17 @@ function main
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/build/rocprim/include/rocprim"
   fi
 
+#  #----------------------------------------------------------------------------
+#  #---Get NVIDIA Cutlass library.
+#
+#  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+#    echo "Building Cutlass library ..."
+#    ln -s ../genomics_gpu/tpls/cutlass-master.zip
+#    rm -rf cutlass-master
+#    unzip -q cutlass-master
+#    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass-master/include -I$BUILD_DIR/cutlass-master/tools/util/include"
+#  fi
+
   #----------------------------------------------------------------------------
   #---Get NVIDIA Cutlass library.
 
