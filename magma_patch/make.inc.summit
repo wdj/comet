@@ -27,3 +27,10 @@ LIB       = -lpthread -lcublas -lm -lcudart
 CUDADIR   = $(CUDA_DIR)
 LIBDIR    = -L$(CUDADIR)/lib64 
 INC       = -I$(CUDADIR)/include
+
+# Defining MAGMA_ILP64 or MKL_ILP64 changes magma_mgemm5_int_t to int64_t in include/magma_mgemm5_types.h
+OPTS    += -DMKL_ILP64
+F77OPTS += -fdefault-integer-8
+FOPTS   += -fdefault-integer-8
+NVOPTS  += -DMKL_ILP64
+
