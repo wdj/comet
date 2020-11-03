@@ -379,6 +379,31 @@ function main
   fi
 
   #----------------------------------------------------------------------------
+  #---Get NVIDIA CUTLASS library.
+
+  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+    echo "Copying CUTLASS ..."
+    local CUTLASS_VERSION=2.3.0
+    local CUTLASS_DIR=$BUILD_DIR/cutlass
+    mkdir -p $CUTLASS_DIR
+    if [ -e $REPO_DIR/tpls/cutlass-v${CUTLASS_VERSION}.tar.gz ] ; then
+      cp $REPO_DIR/tpls/cutlass-v${CUTLASS_VERSION}.tar.gz $CUTLASS_DIR/
+    else
+      wget -nv -O $CUTLASS_DIR/cutlass-v${CUTLASS_VERSION}.tar.gz \
+        https://github.com/NVIDIA/cutlass/archive/v2.3.0.tar.gz
+    fi
+    pushd $CUTLASS_DIR
+    gunzip <cutlass-v${CUTLASS_VERSION}.tar.gz | tar xf -
+    ln -s cutlass-${CUTLASS_VERSION} cutlass
+    popd
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass/cutlass/include"
+    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass/cutlass/tools/util/include"
+    COMET_CUDA_COMPILE_OPTS+=" -Wno-strict-aliasing"
+    COMET_CUDA_COMPILE_OPTS+=" -Wno-uninitialized"
+    COMET_CUDA_COMPILE_OPTS+=" -DCOMET_USE_CUTLASS"
+  fi
+
+  #----------------------------------------------------------------------------
   #---Get AMD ROCPRIM library.
 
   if [ ${USE_HIP:-OFF} = ON ] ; then
@@ -411,6 +436,17 @@ function main
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/rocprim/include"
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/build/rocprim/include/rocprim"
   fi
+
+#  #----------------------------------------------------------------------------
+#  #---Get NVIDIA Cutlass library.
+#
+#  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+#    echo "Building Cutlass library ..."
+#    ln -s ../genomics_gpu/tpls/cutlass-master.zip
+#    rm -rf cutlass-master
+#    unzip -q cutlass-master
+#    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass-master/include -I$BUILD_DIR/cutlass-master/tools/util/include"
+#  fi
 
   #----------------------------------------------------------------------------
   #---Get unit test harness if needed.
@@ -544,6 +580,12 @@ function main
     CMAKE_EXTRA_OPTIONS+="${COMET_CUDA_CMAKE_OPTS:-}"
   fi
 
+#  local CMAKE_NVCC_OPTIONS=""
+#
+#  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+#    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
+#  fi
+
   #============================================================================
   # Run cmake.
 
@@ -580,6 +622,8 @@ function main
   ln -s $INSTALL_DIR install_dir
 }
 
+#    -DCUDA_NVCC_FLAGS:STRING="$CMAKE_NVCC_OPTIONS" \
+#   \
 #==============================================================================
 
 main "$@" 2>&1 | tee out_cmake.txt

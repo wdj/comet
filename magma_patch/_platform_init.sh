@@ -248,15 +248,15 @@ EOF
   #---Compiler.
 
   local USE_GCC=ON
-  local COMET_C_COMPILER=$(spack location --install-dir gcc)/bin/gcc
-  local COMET_CXX_COMPILER=$(spack location --install-dir gcc)/bin/g++
+  local COMET_C_COMPILER=$(spack location --install-dir gcc@8.3.0)/bin/gcc
+  local COMET_CXX_COMPILER=$(spack location --install-dir gcc@8.3.0)/bin/g++
   local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
   local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
 
-  #local USE_OPENMP=ON
-  local USE_OPENMP=OFF
-  #local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
-  local COMET_OPENMP_COMPILE_OPTS=""
+  local USE_OPENMP=ON
+  #local USE_OPENMP=OFF
+  local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
+  #local COMET_OPENMP_COMPILE_OPTS=""
 
   #---Libraries.
 
@@ -270,6 +270,10 @@ EOF
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_75,code=compute_75"
+
+  local USE_CUTLASS=ON
+  #COMET_WERROR=OFF
 
   local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=75
@@ -280,7 +284,7 @@ EOF
   #---Testing.
 
   #local COMET_TEST_COMMAND="env CUDA_PROXY=1"
-  local COMET_TEST_COMMAND=""
+  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 "
 
 #----------------------------------------
 elif [ $COMET_PLATFORM = EDISON ] ; then
@@ -833,6 +837,10 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   #local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80"
+
+  local USE_CUTLASS=ON
+  #COMET_WERROR=OFF
 
   #local USE_MAGMA=OFF
   local USE_MAGMA=ON
