@@ -338,6 +338,10 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_minproduct_int_t magma_code = 0;
 
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    buf->h = (GMFloat*)::malloc(n*sizeof(GMFloat));
+#else
     if (env.is_double_prec()) {
       magma_code = magma_minproduct_dmalloc_pinned((double**)&buf->h, n);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
@@ -347,6 +351,7 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
         "Memory allocation error, possibly due to insufficient CPU memory.");
     }
+#endif
     GMFloat_fill_nan((GMFloat*)buf->h, n);
 
     if (env.is_compute_method_gpu()) {
@@ -368,9 +373,14 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_mgemm4_int_t magma_code = 0;
 
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
+#else
     magma_code = magma_mgemm4_zmalloc_pinned((Float_t**)&buf->h, n);
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
       "Memory allocation error, possibly due to insufficient CPU memory.");
+#endif
 
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm4_zmalloc((Float_t**)&buf->d, n);
@@ -384,9 +394,14 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_mgemm2_int_t magma_code = 0;
 
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
+#else
     magma_code = magma_mgemm2_zmalloc_pinned((Float_t**)&buf->h, n);
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
       "Memory allocation error, possibly due to insufficient CPU memory.");
+#endif
 
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm2_zmalloc((Float_t**)&buf->d, n);
@@ -400,9 +415,14 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_mgemm3_int_t magma_code = 0;
 
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
+#else
     magma_code = magma_mgemm3_zmalloc_pinned((Float_t**)&buf->h, n);
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
       "Memory allocation error, possibly due to insufficient CPU memory.");
+#endif
 
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm3_zmalloc((Float_t**)&buf->d, n);
@@ -416,9 +436,14 @@ void MagmaWrapper::malloc(MirroredBuf* buf, size_t dim0, size_t dim1,
 
     magma_mgemm5_int_t magma_code = 0;
 
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    buf->h = (Float_t*)::malloc(n*sizeof(Float_t));
+#else
     magma_code = magma_mgemm5_zmalloc_pinned((Float_t**)&buf->h, n);
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
       "Memory allocation error, possibly due to insufficient CPU memory.");
+#endif
 
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm5_zmalloc((Float_t**)&buf->d, n);
@@ -455,9 +480,16 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
 
   if (use_minproduct_(env)) { //--------------------
 
-    magma_minproduct_int_t magma_code = magma_minproduct_free_pinned(buf->h);
+    magma_minproduct_int_t magma_code = 0;
+
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    ::free(buf->h);
+#else
+    magma_code = magma_minproduct_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
       "Error in CPU memory free.");
+#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_minproduct_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_minproduct_SUCCESS &&
@@ -466,9 +498,16 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
 
   } else if (use_mgemm4_(env)) { //--------------------
 
-    magma_mgemm4_int_t magma_code = magma_mgemm4_free_pinned(buf->h);
+    magma_mgemm4_int_t magma_code = 0;
+
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    ::free(buf->h);
+#else
+    magma_code = magma_mgemm4_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
              "Error in magma_mgemm4_free_pinned.");
+#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm4_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm4_SUCCESS &&
@@ -477,9 +516,16 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
 
   } else if (use_mgemm2_(env)) { //--------------------
 
-    magma_mgemm2_int_t magma_code = magma_mgemm2_free_pinned(buf->h);
+    magma_mgemm2_int_t magma_code = 0;
+
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    ::free(buf->h);
+#else
+    magma_code = magma_mgemm2_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
       "Error in CPU memory free.");
+#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm2_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm2_SUCCESS &&
@@ -488,9 +534,16 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
 
   } else if (use_mgemm3_(env)) { //--------------------
 
-    magma_mgemm3_int_t magma_code = magma_mgemm3_free_pinned(buf->h);
+    magma_mgemm3_int_t magma_code = 0;
+
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    ::free(buf->h);
+#else
+    magma_code = magma_mgemm3_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
       "Error in CPU memory free.");
+#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm3_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm3_SUCCESS &&
@@ -499,9 +552,16 @@ void MagmaWrapper::free(MirroredBuf* buf, CEnv& env) {
 
   } else if (use_mgemm5_(env)) { //--------------------
 
-    magma_mgemm5_int_t magma_code = magma_mgemm5_free_pinned(buf->h);
+    magma_mgemm5_int_t magma_code = 0;
+
+#ifdef COMET_PLATFORM_CORI_GPU
+    // WORKAROUND
+    ::free(buf->h);
+#else
+    magma_code = magma_mgemm5_free_pinned(buf->h);
     COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&
       "Error in CPU memory free.");
+#endif
     if (env.is_compute_method_gpu()) {
       magma_code = magma_mgemm5_free(buf->d);
       COMET_INSIST(magma_code == MAGMA_mgemm5_SUCCESS &&

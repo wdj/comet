@@ -1,9 +1,9 @@
 //-----------------------------------------------------------------------------
 /*!
- * \file   tc_solve.i.hh
+ * \file   tc_solve_general.i.hh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
- * \brief  CUDA code, tc package: gemm operation.
+ * \brief  CUDA code, tc package: gemm operation: top-level routines.
  */
 //-----------------------------------------------------------------------------
 /*-----------------------------------------------------------------------------
@@ -37,14 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _COMET_TC_SOLVE_GENERAL_I_HH_
 
 #include "cstdlib"
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
 #include <mma.h>
 
 #include "tc_solve_cutlass_general.i.hh"
-
-using namespace nvcuda;
 
 // Tensor core GEMM defines
 // 1-bit int/int tensor core blocks
@@ -117,6 +115,9 @@ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
 __global__
 void b1_xor_gemm_gpu_tc_simple(size_t m, size_t n, size_t k, uint8_t* a,
                                uint8_t* b, bool beta, int32_t* c) {
+
+  using namespace nvcuda;
+
   // Block and thread indices
   //int tx = threadIdx.x, ty = threadIdx.y;
   int bx = blockIdx.x, by = blockIdx.y;
@@ -177,6 +178,8 @@ void b1_xor_gemm_gpu_tc_simple(size_t m, size_t n, size_t k, uint8_t* a,
 __global__
 void b1_xor_gemm_gpu_tc_sm(size_t m, size_t n, size_t k, uint8_t* a,
                            uint8_t *b, bool beta, int32_t* c) {
+  using namespace nvcuda;
+
   // Block and thread indices
   int tx = threadIdx.x, ty = threadIdx.y;
   int bx = blockIdx.x, by = blockIdx.y;
@@ -228,7 +231,7 @@ void b1_xor_gemm_gpu_tc_sm(size_t m, size_t n, size_t k, uint8_t* a,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Perform required GEMM.
+/// \brief Perform required GEMM, implementation.
 
 template<int TC_METHOD>
 static void tc_solve_impl(bool is_first, int m, int n, int k,
@@ -380,6 +383,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
             CutlassTCGemm1BWmma_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
           } break;
+          /*case 30: {
+            if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
+            CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+          } break;*/
           default: {
             printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
                env.num_kernel());
@@ -563,7 +571,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Call to perform required GEMM.
+/// \brief Perform required GEMM.
 
 template<int TC_METHOD>
 void tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
@@ -591,6 +599,6 @@ void tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 
 //-----------------------------------------------------------------------------
 
-#endif // _COMET_TC_SOLVE_I_HH_
+#endif // _COMET_TC_SOLVE_GENERAL_I_HH_
 
 //-----------------------------------------------------------------------------

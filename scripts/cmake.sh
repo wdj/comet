@@ -293,6 +293,7 @@ function main
       popd
       touch $MAGMA_DIR/copy_is_complete
     fi
+    COMET_MAGMA_COMPILE_OPTS+=" -DMKL_ILP64"
   fi
 
   if [ $USE_MAGMA = ON -a ${USE_HIP:-OFF} = ON ] ; then
@@ -400,6 +401,7 @@ function main
     COMET_CUDA_COMPILE_OPTS+=" -Wno-strict-aliasing"
     COMET_CUDA_COMPILE_OPTS+=" -Wno-uninitialized"
     COMET_CUDA_COMPILE_OPTS+=" -DCOMET_USE_CUTLASS"
+    COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_${COMET_GPU_ARCH},code=compute_${COMET_GPU_ARCH}"
   fi
 
   #----------------------------------------------------------------------------
@@ -434,17 +436,6 @@ function main
     fi
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/rocprim/include"
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/build/rocprim/include/rocprim"
-  fi
-
-  #----------------------------------------------------------------------------
-  #---Get NVIDIA Cutlass library.
-
-  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
-    echo "Building Cutlass library ..."
-    ln -s ../genomics_gpu/tpls/cutlass-master.zip
-    rm -rf cutlass-master
-    unzip -q cutlass-master
-    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass-master/include -I$BUILD_DIR/cutlass-master/tools/util/include"
   fi
 
   #----------------------------------------------------------------------------
@@ -579,15 +570,6 @@ function main
     CMAKE_EXTRA_OPTIONS+="${COMET_CUDA_CMAKE_OPTS:-}"
   fi
 
-  local CMAKE_NVCC_OPTIONS=""
-
-  if [ ${USE_CUTLASS:-OFF} = ON -a ${COMET_MAGMA_GPU_ARCH} = 75 ] ; then
-    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
-  elif [ ${USE_CUTLASS:-OFF} = ON -a ${COMET_MAGMA_GPU_ARCH} = 80 ] ; then
-    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_80,code=compute_80"
-  fi
-
-
   #============================================================================
   # Run cmake.
 
@@ -617,8 +599,6 @@ function main
     -DUSE_MPI:BOOL=${USE_MPI:-OFF} \
     -DUSE_CUDA:BOOL=${USE_CUDA:-OFF} \
     -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
-   \
-    -DCUDA_NVCC_FLAGS:STRING="$CMAKE_NVCC_OPTIONS" \
    \
     $REPO_DIR
   set +x

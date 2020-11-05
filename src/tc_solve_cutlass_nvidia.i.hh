@@ -1,3 +1,38 @@
+//-----------------------------------------------------------------------------
+/*!
+ * \file   tc_solve_cutlass_nvidia.i.hh
+ * \author Paul Eller
+ * \date   Tue Nov  3 08:26:29 EST 2020
+ * \brief  CUDA code, gemm operation, 
+ */
+//-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
+
 #ifndef _COMET_TC_SOLVE_CUTLASS_NVIDIA_I_HH_
 #define _COMET_TC_SOLVE_CUTLASS_NVIDIA_I_HH_
 
@@ -33,7 +68,12 @@
 // Cuda block size
 #define BLOCK_SIZE 8
 
+//=============================================================================
+
 namespace comet {
+
+//-----------------------------------------------------------------------------
+/// 
 
 __device__ inline void process_bits(GMBits2x64 vi, uint64_t &nvi, uint64_t &pvi)
 { 
@@ -68,7 +108,12 @@ __device__ inline void process_bits(GMBits2x64 vi, uint64_t &nvi, uint64_t &pvi)
   // Combine lower, upper words - each only uses odd bits - make packed.
   pvi = pvi0 | (pvi1 << 1);
   nvi = nvi0 | (nvi1 << 1);
+
+  //printf("pvi0=%lu pvi1=%lu pvi=%lu\n",pvi0,pvi1,pvi);
 }
+
+//-----------------------------------------------------------------------------
+/// 
 
 __device__ inline void combine_bits(int nn, int np, int pn, int pp, double &c0, double &c1)
 {
@@ -120,6 +165,9 @@ __device__ inline void g2r(GMBits2x64 *gmem, int begin, int k, uint64_t frag[])
   }
 }
 
+//-----------------------------------------------------------------------------
+/// 
+
 template <int pM, int pK, int block_x, int block_y, bool is_a, class Layout>
 __device__ inline void r2s(uint64_t frag[], uint64_t *smem, Layout layout)
 {
@@ -152,6 +200,9 @@ __device__ inline void r2s(uint64_t frag[], uint64_t *smem, Layout layout)
     }
   }
 }
+
+//-----------------------------------------------------------------------------
+/// 
 
 template <int pM, int pK, int block_x, int block_y, bool is_a, class Layout>
 __device__ inline void g2s(uint64_t *smem, GMBits2x64 *gmem, int begin, int k, Layout layout)
@@ -196,6 +247,9 @@ __device__ inline void g2s(uint64_t *smem, GMBits2x64 *gmem, int begin, int k, L
     }
   }
 }
+
+//-----------------------------------------------------------------------------
+/// 
 
 template <int bM, int bN, int bK, int wM, int wN, int wK, int block_x, int block_y>
 __global__ void __launch_bounds__(block_x *block_y, 1)
@@ -383,6 +437,9 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
   }*/
 }
 
+//-----------------------------------------------------------------------------
+/// 
+
 void set_max_shared_bytes(const void *func)
 {
   cudaFuncSetAttribute(func, cudaFuncAttributePreferredSharedMemoryCarveout, (int)cudaSharedmemCarveoutMaxShared);
@@ -445,5 +502,6 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
 
 //-----------------------------------------------------------------------------
 
-#endif
+#endif // _COMET_TC_SOLVE_CUTLASS_NVIDIA_I_HH_
 
+//-----------------------------------------------------------------------------

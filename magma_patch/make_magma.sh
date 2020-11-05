@@ -59,7 +59,7 @@ function do_make
 
   if [ ${USE_CUDA:-OFF} = ON ] ; then
     cp ../$COMET_MAGMA_MAKE_INC make.inc
-    local _CMGA_=$COMET_MAGMA_GPU_ARCH
+    local _CMGA_=$COMET_GPU_ARCH
     time env CUDA_DIR=$CUDA_ROOT \
       GPU_TARGET=sm$_CMGA_ MIN_ARCH=350 \
       NV_SM=" -gencode arch=compute_${_CMGA_},code=sm_${_CMGA_}" \
