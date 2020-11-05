@@ -293,6 +293,7 @@ function main
       popd
       touch $MAGMA_DIR/copy_is_complete
     fi
+    COMET_MAGMA_COMPILE_OPTS+=" -DMKL_ILP64"
   fi
 
   if [ $USE_MAGMA = ON -a ${USE_HIP:-OFF} = ON ] ; then
@@ -435,6 +436,17 @@ function main
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/rocprim/include"
     COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/rocPRIM-rocm-${ROCPRIM_VERSION}/build/rocprim/include/rocprim"
   fi
+
+#  #----------------------------------------------------------------------------
+#  #---Get NVIDIA Cutlass library.
+#
+#  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+#    echo "Building Cutlass library ..."
+#    ln -s ../genomics_gpu/tpls/cutlass-master.zip
+#    rm -rf cutlass-master
+#    unzip -q cutlass-master
+#    COMET_CUDA_COMPILE_OPTS+=" -I$BUILD_DIR/cutlass-master/include -I$BUILD_DIR/cutlass-master/tools/util/include"
+#  fi
 
   #----------------------------------------------------------------------------
   #---Get NVIDIA Cutlass library.
@@ -579,11 +591,11 @@ function main
     CMAKE_EXTRA_OPTIONS+="${COMET_CUDA_CMAKE_OPTS:-}"
   fi
 
-  local CMAKE_NVCC_OPTIONS=""
-
-  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
-    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
-  fi
+#  local CMAKE_NVCC_OPTIONS=""
+#
+#  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+#    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
+#  fi
 
   #============================================================================
   # Run cmake.
@@ -615,14 +627,14 @@ function main
     -DUSE_CUDA:BOOL=${USE_CUDA:-OFF} \
     -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
    \
-    -DCUDA_NVCC_FLAGS:STRING="$CMAKE_NVCC_OPTIONS" \
-   \
     $REPO_DIR
   set +x
 
   ln -s $INSTALL_DIR install_dir
 }
 
+#    -DCUDA_NVCC_FLAGS:STRING="$CMAKE_NVCC_OPTIONS" \
+#   \
 #==============================================================================
 
 main "$@" 2>&1 | tee out_cmake.txt

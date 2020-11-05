@@ -1,9 +1,44 @@
+//-----------------------------------------------------------------------------
+/*!
+ * \file   tc_solve_comet_xor.i.hh
+ * \author Paul Eller
+ * \date   Tue Nov  3 08:26:29 EST 2020
+ * \brief  CUDA code, gemm operation, native CoMet fmt, tc.
+ */
+//-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
+
+Copyright 2020, UT-Battelle, LLC
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-----------------------------------------------------------------------------*/
+
 #ifndef _COMET_TC_SOLVE_XOR_I_HH_
 #define _COMET_TC_SOLVE_XOR_I_HH_
 
 // Includes
 #include "cstdlib"
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <cuda_runtime.h>
 #include "cuda_fp16.h"
 #include "types.hh"
@@ -15,6 +50,8 @@
 
 // Cuda block size
 #define BLOCK_SIZE 8
+
+//=============================================================================
 
 namespace comet {
 
@@ -244,6 +281,7 @@ void b1_comet_xor_gemm_gpu_int_simple(int m, int n, int k,
 
 //-----------------------------------------------------------------------------
 /// \brief Perform required GEMM.
+
 template<int TC_METHOD>
 static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
   const void *matA, const void *matB, void* matC, TCBufs& tc_bufs, CEnv& env) {
@@ -308,6 +346,7 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel
+
 __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
 
@@ -434,6 +473,7 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
 
 __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
+  using namespace nvcuda;
 
   // Block and thread indices
   int tx = threadIdx.x, ty = threadIdx.y;
@@ -600,6 +640,7 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
 
 __global__ void b1_comet_xor_gemm_gpu_tc_opt(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
+  using namespace nvcuda;
 
   // Block and thread indices
   int tx = threadIdx.x, ty = threadIdx.y;
@@ -796,6 +837,7 @@ __global__ void b1_comet_xor_gemm_gpu_tc_opt(int m, int n, int k,
 
 //-----------------------------------------------------------------------------
 /// \brief Perform required GEMM.
+
 template<int TC_METHOD>
 static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
   const void *matA, const void *matB, void* matC, TCBufs& tc_bufs, CEnv& env) {
@@ -902,5 +944,6 @@ void tc_solve_comet_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 
 //-----------------------------------------------------------------------------
 
-#endif
+#endif // _COMET_TC_SOLVE_XOR_I_HH_
 
+//-----------------------------------------------------------------------------
