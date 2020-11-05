@@ -164,6 +164,7 @@ static void tc_gemm_start_impl_(
     // of a type suitable for the GEMM.
     tbegin = env.synced_time();
     enum {IS_LEFT = true};
+    if(env.print_details()) printf("Calling tc_in with npvfl=%d pvfl_min=%d pvfl_max=%d npvfl_thisstep=%d\n",npvfl,pvfl_min,pvfl_max,npvfl_thisstep);
     tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, nfal, (uint32_t*)matA1, (uint32_t*)matA2,
       tc_bufs, step_2way, env);
@@ -349,6 +350,81 @@ static void tc_gemm_comet_start_impl_(
   } // for
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Use a standard GEMM to compute bitwise result: implementation.
+
+/*template<int TC_METHOD>
+static void tc_gemm_general_start_impl_(
+  int m, int n, int k,
+  const void* matA1, const void* matA2, const void* matB, void* matC, int lddc,
+  GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
+  GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
+  TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
+
+  const int nvl = n;
+  const int npvfl = k;
+  const int I_max = m;
+  const int I_max_dim = lddc;
+  COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
+  // nvll is the effective nvl (column dim) for the left matrix
+  // We only really only need up to I_max, but must compute to I_max_dim
+  // to satisfy cublas divisibility requirements.
+  // Note nvl is always the column dim for the right matrix (CHECK).
+  const int nvll = I_max_dim;
+  COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
+
+  if(env.print_details()) printf("In tc_gemm_comet_start_impl\n");
+
+  // Get matX counts if needed.
+
+  tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
+    (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs, step_2way, env);
+
+  if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
+  tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
+
+  const int num_tc_steps = env.num_tc_steps();
+
+  // Loop over steps of algorithm.
+  for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
+
+    // Select the block row of the left and right matrices for this step.
+    const int pvfl_min = ((tc_step_num+0) * npvfl) / num_tc_steps;
+    const int pvfl_max = ((tc_step_num+1) * npvfl) / num_tc_steps;
+    const int npvfl_thisstep = pvfl_max - pvfl_min;
+
+    const bool is_empty_block_row = 0 == npvfl_thisstep;
+    if (is_empty_block_row)
+      continue;
+
+    // Convert to buffer
+    //tc_in_duo_general(is_first, nvll, nvl, npvfl_thisstep,
+    //  matA1, matB, tc_bufs, env);
+
+    // Perform the GEMM for this pair of block rows; accumulate.
+    const bool is_first = 0 == pvfl_min;
+    if(env.print_details()) printf("mnk=%d,%d,%d nvll=%d nvl=%d npvfl_thisstep=%d pvfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",m,n,k,nvll,nvl,npvfl_thisstep,pvfl_min,pvfl_max,I_max_dim,lddc);
+    tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
+      matC, tc_bufs, env);
+    // Convert back to CoMet double format
+    if (env.is_threshold_tc()) {
+
+      if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
+      //tc_out_duo_general<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
+      //  sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
+      //  J, step_2way, env);
+
+    } else {
+
+        if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE\n");
+        //tc_out_duo_general<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
+        //  sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
+        //  J, step_2way, env);
+    }
+    
+  } // for
+}*/
+
 //=============================================================================
 // EXTERNALLY VISIBLE FUNCTIONS: GENERAL
 //=============================================================================
@@ -437,6 +513,12 @@ void tc_gemm_start(
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             tc_bufs, nfal, step_2way, env);
         }
+        /*else if(env.num_kernel()>=30) {
+          tc_gemm_general_start_impl_<TC::B1>(
+            m, n, k, matA1, matA2, matB, matC, lddc,
+            sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+            tc_bufs, nfal, step_2way, env);
+        }*/
       }
     } break;
     // --------------

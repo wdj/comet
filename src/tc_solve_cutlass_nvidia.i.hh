@@ -68,6 +68,8 @@ __device__ inline void process_bits(GMBits2x64 vi, uint64_t &nvi, uint64_t &pvi)
   // Combine lower, upper words - each only uses odd bits - make packed.
   pvi = pvi0 | (pvi1 << 1);
   nvi = nvi0 | (nvi1 << 1);
+
+  //printf("pvi0=%lu pvi1=%lu pvi=%lu\n",pvi0,pvi1,pvi);
 }
 
 __device__ inline void combine_bits(int nn, int np, int pn, int pp, double &c0, double &c1)

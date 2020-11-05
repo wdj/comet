@@ -380,6 +380,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
             CutlassTCGemm1BWmma_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
               (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
           } break;
+          /*case 30: {
+            if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
+            CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+          } break;*/
           default: {
             printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
                env.num_kernel());

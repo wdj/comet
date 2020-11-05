@@ -25,6 +25,7 @@ tc 5:
     2: Very simple shared memory 1-bit GEMM (b1_xor_gemm_gpu_tc_sm)
       - Simple approach to demonstrate tensor cores can use shared memory
       - Needs to read larger blocks and loop over them to actually improve performance
+    30: Place holder to experiment with different pre and post processing routines
 
   * Cutlass device-level kernels (tc_solve_cutlass_general.i.hh):
     10: Cutlass kernel with 256x128 blocks
@@ -46,17 +47,29 @@ tc 5:
       - Very simple working 1-bit tensor core GEMM
     23: In development Cutlass optimized xor tensor core GEMMs
       - In progress, unlikely to outperform Nvidia version
-    24: Optimized Cutlass tensor core GEMMs from Nvidia
+    24: Optimized Cutlass warp-level tensor core GEMMs from Nvidia
       - Fairly optimized Nvidia code with best performance
+    25: Placeholder for experimenting with warp-level tensor core GEMM that outputs ints
 
 
 ##########################################
 Implementation Notes:
-In setup routines use env.num_kernel()<20 for general GEMMs and env.num_kernel()>=20 for CoMet GEMMs to differentiate between the two types of GEMMs. Will likely pick fastest kernels later for master version of CoMet.
+In setup routines primarily use env.num_kernel()<20 for general GEMMs and env.num_kernel()>=20 for CoMet GEMMs to differentiate between the two types of GEMMs. Will likely pick fastest kernels later for master version of CoMet.
 
-Added compile and run scripts. Run scripts have options to run accuracy tests and run performance tests.
+Have compile and run scripts. Run scripts have options to run accuracy tests and run performance tests. However this is not currently in repo.
 
 Modified setup to automically install Cutlass from tar file and setup CoMet to use Cutlass.
+
+
+##########################################
+Planned changes:
+- Modify setup to allow user to set compute capability of GPUs and use this to automatically compile Magma and Cutlass with appropriate settings for GPU.
+- Add tests to driver_test.cc for various 1-bit and Cutlass kernels. Identify cases where they work correctly and when they do not, including checking corner cases.
+- Explore modifying warp-level Cutlass GEMM to use single mma call and store int result.
+- Explore approaches for developing faster tc_in/tc_out routines.
+- Explore 3-way duo methods using 3-way scaling test as example.
+- Use tester to generate some same input files.
+- Add additional performance analysis code for communication and i/o routines.
 
 ##########################################
 
