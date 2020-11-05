@@ -34,6 +34,9 @@ local COMET_PLATFORM=""
 [[ "$(uname -s)" = "Darwin" ]] && COMET_PLATFORM=MACOS
 [[ "$COMET_HOST" = "va" ]] && COMET_PLATFORM=MURPHY # enclave system
 [[ "$COMET_HOST" = "cgpu" ]] && COMET_PLATFORM=CORI_GPU # A100s on Cori
+[[ "$COMET_HOST" = "cori" ]] && COMET_PLATFORM=CORI_GPU # Compile from Cori login nodes
+
+echo "COMET_HOST=${COMET_HOST} COMET_PLATFORM=${COMET_PLATFORM}"
 
 if [ "$COMET_PLATFORM" = "" ] ; then
   echo "${0##*/}: Unknown platform." 1>&2

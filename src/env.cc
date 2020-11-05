@@ -99,13 +99,16 @@ int System::compute_capability() {
   cudaError_t error = cudaGetDeviceProperties(&deviceProp, 0);
   const int compute_capability = error != cudaSuccess ? 0 :
     deviceProp.major * 100 + deviceProp.minor;
+  //printf("COMET_USE_CUDA error=%d compute_Capability=%d\n",error,compute_capability);
 #elif defined COMET_USE_HIP
   hipDeviceProp_t deviceProp;
   hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
 //FIX this to work for an appropriate way for AMD gpu
   const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  //printf("COMET_USE_HIP compute_capability=%d\n",compute_capability);
 #else
   const int compute_capability = 0;
+  //printf("ELSE compute_capability=%d\n",compute_capability);
 #endif
   COMET_INSIST(System::accel_last_call_succeeded());
   return compute_capability;
@@ -585,6 +588,7 @@ bool CEnv::can_run(int tc_try) const {
 
   if (compute_method_ == ComputeMethod::REF) {
     result = result && !is_try_tc_(tc_try);
+    if(printdetails) printf("ComputeMethod::REF result=%d\n",(int)result);
   }
   
   if (make_comms_) {
@@ -593,17 +597,22 @@ bool CEnv::can_run(int tc_try) const {
     if (num_proc_ > 1) {
       result = result && BuildHas::MPI;
     }
+    if(printdetails) printf("make_comms_ result=%d\n",(int)result);
   }
 
   result = result && !(!is_metric_type_bitwise() && is_try_tc_(tc_try));
+  if(printdetails) printf("metric_type_bitwise && try_tc result=%d\n",(int)result);
 
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
     result = result && (!is_try_tc_(tc_try) ||
                         (TC::FP32 == tc_try && BuildHas::CPUBLAS));
+    if(printdetails) printf("metric_type_bitwise && CPU result=%d\n",(int)result);
   }
 
   if (is_compute_method_gpu()) {
+    if(printdetails) printf("checking compute_method_gpu result=%d BuildHas::ACCEL=%d\n",(int)result,(int)BuildHas::ACCEL);
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
+    if(printdetails) printf("compute_method_gpu result=%d\n",(int)result);
   }
 
   if (can_use_linalg_(tc_try) && !is_try_tc_(tc_try) && num_way() == NumWay::_3 &&

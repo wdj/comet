@@ -581,9 +581,12 @@ function main
 
   local CMAKE_NVCC_OPTIONS=""
 
-  if [ ${USE_CUTLASS:-OFF} = ON ] ; then
+  if [ ${USE_CUTLASS:-OFF} = ON -a ${COMET_MAGMA_GPU_ARCH} = 75 ] ; then
     CMAKE_NVCC_OPTIONS+="-gencode arch=compute_75,code=compute_75"
+  elif [ ${USE_CUTLASS:-OFF} = ON -a ${COMET_MAGMA_GPU_ARCH} = 80 ] ; then
+    CMAKE_NVCC_OPTIONS+="-gencode arch=compute_80,code=compute_80"
   fi
+
 
   #============================================================================
   # Run cmake.

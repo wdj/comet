@@ -239,7 +239,7 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
   using InstructionShape = cutlass::gemm::GemmShape<16, 8, 256>;
 #endif
 
-  static_assert(wK % alignment == 0, "alignment");
+  //static_assert(wK % alignment == 0, "alignment");
 
   using WarpShape = cutlass::gemm::GemmShape<wM, wN, wK>;
   using ElementA = cutlass::uint1b_t;
@@ -359,7 +359,7 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
     if (l + pK < k) { __syncthreads(); }
   }
 
-  if (warp_id < warp_count_n * warp_count_m) {
+  /*if (warp_id < warp_count_n * warp_count_m) {
     // use "double2" instead of "GMTally2x2" to make sure compiler issue 128-bit store instructions.
     using output_type = double2;
 
@@ -380,7 +380,7 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
     // The following code does not translates into the most efficient instructions, even with 128-bit stores.
     // With current version of CUTLASS this is as far as we can go.
     iter_tally_C.store(accum_tally);
-  }
+  }*/
 }
 
 void set_max_shared_bytes(const void *func)
