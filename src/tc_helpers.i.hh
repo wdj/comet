@@ -120,6 +120,7 @@ template<> struct TCTraits<TC::INT8> : public TCTraitsBase {
 //----------
 
 template<> struct TCTraits<TC::B1> : public TCTraitsBase {
+  enum {IS_THREAD_MAPPING_FIELD_MAJOR = true}; // tuning param
   typedef int8_t GemmIn_t;
   typedef int32_t GemmOut_t;
 #if defined COMET_USE_CUDA
