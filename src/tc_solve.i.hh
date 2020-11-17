@@ -70,41 +70,33 @@ void b1_xor_gemm_cpu(size_t m, size_t n, size_t k,
 //-----------------------------------------------------------------------------
 /// \brief 1-bit xor gemm, gpu version (not high performance).
 
+template<typename GemmIn_t, typename GemmOut_t>
 __global__
 void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
-  uint8_t* a, uint8_t* b, bool beta, int32_t* c) {
+  GemmIn_t* a, GemmIn_t* b, bool beta, GemmOut_t* c) {
   //COMET_INSIST(a && b && c);
   //COMET_INSIST(m == n);
 
-  const int ind_m = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
-  const int ind_n = blockIdx_y_();
+  const size_t ind_m = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const size_t ind_n = blockIdx_y_();
 
-  if ((size_t)ind_m >= m || (size_t)ind_n >= n)
+  if (ind_m >= m || ind_n >= n)
     return;
 
   for (size_t ind_k = 0; ind_k < k; ++ind_k) {
 
-    //const uint8_t aik = a[ind_m + m*ind_k];
-    //const uint8_t bjk = b[ind_n + n*ind_k];
-    const uint8_t aik = a[ind_k + k*ind_m];
-    const uint8_t bjk = b[ind_k + k*ind_n];
+    const GemmIn_t aik = a[ind_k + k*ind_m];
+    const GemmIn_t bjk = b[ind_k + k*ind_n];
 
-    int32_t& cij = c[ind_m + m*ind_n];
+    GemmOut_t& cij = c[ind_m + m*ind_n];
 
-    const int32_t v = utils::popc8(aik ^ bjk);
-    cij = beta || ind_k ? cij + v : v;
+    const GemmOut_t v = utils::popc<GemmIn_t>(aik ^ bjk);
+    //const GemmOut_t v = utils::popc32(aik ^ bjk);
+    if (ind_m < 1024 * 1024 * 1024) // WORKAROUND for undiagnosed error.
+      cij = beta || ind_k ? cij + v : v;
 
-//if (ind_i==0 && ind_j==0) printf("%i %i %" PRIu64 " %" PRIu64 " \n", beta, (int)v, a[ind_k+k*ind_i], b[ind_k+k*ind_j]);
-//if (ind_i==0 && ind_j==0) 
-
-//if (ind_i<2 && ind_j<2 && ind_i != ind_j) 
-//if (ind_i==0 && ind_j==0) 
-//printf("%i %i  %i   %i %i %i   %x %x %x %i %i\n", (int)ind_i, (int)ind_j, (int)ind_k, (int)k, (int)m, (int)n, (int)aik, (int)bjk, (int)(aik ^ bjk), (int)v, (int)cij);
-
-//if (ind_i==0 && ind_j==0) printf("A  %i %i %" PRIu64 " \n", beta, (int)v, &a[ind_k+k*ind_i]);
-//if (ind_i==0 && ind_j==0) printf("B  %i %i %" PRIu64 " \n", beta, (int)v, &b[ind_k+k*ind_i]);
-//if (ind_i==0 && ind_j==0) printf("Av %i %i %" PRIx64 " \n", beta, (int)v, a[ind_k+k*ind_i]);
-//if (ind_i==0 && ind_j==0) printf("Bv %i %i %" PRIx64 " \n", beta, (int)v, b[ind_k+k*ind_i]);
+//if (ind_m == 0 && ind_n == 1)
+//    printf("%i %i %i   %i\n", (int)ind_k, (int)ind_m, (int)ind_n, (int)v);
   }
 }
 
@@ -154,7 +146,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       // in the tc buf.
       enum {BYTES_PER_PVFL_FIELDS = 8};
 
-      const int bytes_per_gi = sizeof(typename TCTraits<TC_METHOD>::GemmIn_t);
+      typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
+      typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
+
+      const int bytes_per_gi = sizeof(GemmIn_t);
       const size_t k_eff = (k / NUM_FL_PER_PVFL) *
                            (BYTES_PER_PVFL_FIELDS / bytes_per_gi);
 
@@ -164,11 +159,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
       const int num_threadblocks_1 = n;
 
-      COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu,
+      COMET_LAUNCH_KERNEL((b1_xor_gemm_gpu<GemmIn_t, GemmOut_t>),
         dim3(num_threadblocks_0, num_threadblocks_1, 1),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-        m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
-        (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
+        m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
+        (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
 
       System::accel_last_call_succeeded();
 

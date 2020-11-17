@@ -221,6 +221,30 @@ static int popc8(uint8_t x) {
          (!!(((int)x)&128));
 }
 
+template<typename In_t = uint8_t>
+__host__ __device__
+static int popc(In_t x) {return popc8(x);}
+
+//-----------------------------------------------------------------------------
+/// \brief Population count of 1-bits in 32-bit word.
+
+__host__ __device__
+static int popcs32(int32_t x) {
+
+  // Adapted from Hacker's Delight, 2nd ed.
+   x = x - ((x >> 1) & 0x55555555);
+   x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+   x = (x + (x >> 4)) & 0x0F0F0F0F;
+   x = x + (x >> 8);
+   x = x + (x >> 16);
+
+   return x & 0x0000003F;
+}
+
+template<>
+__host__ __device__
+int popc<int32_t>(int32_t x) {return popcs32(x);}
+
 //-----------------------------------------------------------------------------
 /// \brief Population count of 1-bits in 32-bit word.
 
@@ -236,6 +260,10 @@ static int popc32(uint32_t x) {
 
    return x & 0x0000003F;
 }
+
+template<>
+__host__ __device__
+int popc<uint32_t>(uint32_t x) {return popc32(x);}
 
 //-----------------------------------------------------------------------------
 /// \brief Population count of 1-bits in 64-bit word.
@@ -254,6 +282,10 @@ static int popc64(uint64_t x) {
 
   return (x * h01) >> 56;
 }
+
+template<>
+__host__ __device__
+int popc<uint64_t>(uint64_t x) {return popc64(x);}
 
 //-----------------------------------------------------------------------------
 /// \brief Fast sort of 3 values.
