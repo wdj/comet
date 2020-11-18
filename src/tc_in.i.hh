@@ -412,7 +412,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
         vic[fl/SNPW];
 
 #     pragma unroll
-      for (int i = 0; i < sizeof(TCWord_t)/sizeof(GemmIn_t); ++i) {
+      for (int i = 0; i < (int)(sizeof(TCWord_t)/sizeof(GemmIn_t)); ++i) {
 
         vo_value[i] = fl+i >= nfal ? 0 :
           tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(

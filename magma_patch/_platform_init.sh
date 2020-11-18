@@ -164,6 +164,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
 
   local USE_CPUBLAS=ON
   local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_ESSL_ROOT/include"
+  #COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"essl.h\""'
   COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"essl.h\""'
   local COMET_CPUBLAS_LINK_OPTS=""
   local XLF_DIR=$(module load xl 2>/dev/null ; echo $OLCF_XLF_ROOT)/lib
