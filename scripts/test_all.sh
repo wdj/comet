@@ -49,6 +49,7 @@ function repo_dir
 
 function main
 {
+  echo "Running test_all main"
   # Location of this script.
   #local SCRIPT_DIR=$(script_dir)
   local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
@@ -95,7 +96,9 @@ function main
   for DIR in $DIRS ; do
     printf -- '-%.0s' {1..79}; echo ""
     pushd $DIR
+    echo "Running cmd time make test ARGS=-V"
     time make test ARGS=-V 2>&1 | tee out_test.txt
+    echo "Done running cmd"
     if [ $? != 0 ] ; then
       exit $?
     fi
@@ -119,6 +122,7 @@ function main
   fi
 
   printf -- '-%.0s' {1..79}; echo ""
+  echo "Done running test_all main"
 } # main
 
 #==============================================================================

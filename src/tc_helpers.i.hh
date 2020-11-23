@@ -120,7 +120,9 @@ template<> struct TCTraits<TC::INT8> : public TCTraitsBase {
 //----------
 
 template<> struct TCTraits<TC::B1> : public TCTraitsBase {
-  typedef int8_t GemmIn_t;
+  enum {IS_THREAD_MAPPING_FIELD_MAJOR = true}; // tuning param
+  //typedef int8_t GemmIn_t;
+  typedef int32_t GemmIn_t;
   typedef int32_t GemmOut_t;
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
@@ -133,7 +135,9 @@ template<> struct TCTraits<TC::B1> : public TCTraitsBase {
    return rocblas_datatype_u32_r;
   }
 #endif
-  enum {NFPGI = 8};
+  enum {NUM_GEMMIN_T_PER_THREAD = 1}; // tuning param
+  enum {NGIPT = NUM_GEMMIN_T_PER_THREAD};
+  enum {NFPGI = 8 * sizeof(GemmIn_t)};
   enum {IS_B_FIELD_MAJOR = true};
 };
 
@@ -176,6 +180,15 @@ public:
   static __host__ __device__ uint32_t one() {return mycast(1);}
   static __host__ __device__ uint32_t two() {return mycast(2);}
   static __host__ __device__ uint32_t four() {return mycast(4);}
+};
+
+//----------
+
+template<> struct TCBufTraits<int32_t> {
+  static __host__ __device__ int32_t zero() {return 0;}
+  static __host__ __device__ int32_t one() {return 1;}
+  static __host__ __device__ int32_t two() {return 2;}
+  static __host__ __device__ int32_t four() {return 4;}
 };
 
 //----------

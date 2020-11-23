@@ -128,6 +128,9 @@ __device__ inline void combine_bits(int nn, int np, int pn, int pp, double &c0, 
   c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
 }
 
+//-----------------------------------------------------------------------------
+///
+
 template <int pM, int pK, int block_x, int block_y>
 __device__ inline void g2r(GMBits2x64 *gmem, int begin, int k, uint64_t frag[])
 {
@@ -413,7 +416,7 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
     if (l + pK < k) { __syncthreads(); }
   }
 
-  /*if (warp_id < warp_count_n * warp_count_m) {
+  if (warp_id < warp_count_n * warp_count_m) {
     // use "double2" instead of "GMTally2x2" to make sure compiler issue 128-bit store instructions.
     using output_type = double2;
 
@@ -434,7 +437,7 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
     // The following code does not translates into the most efficient instructions, even with 128-bit stores.
     // With current version of CUTLASS this is as far as we can go.
     iter_tally_C.store(accum_tally);
-  }*/
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -454,7 +457,7 @@ void set_max_shared_bytes(const void *func)
 
 void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const void *matB, void *matC)
 {
-#if 1
+#if defined COMET_USE_TURING
   // Use following for Turing
   constexpr int block_x = 8;
   constexpr int block_y = 16;
@@ -466,7 +469,8 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
   constexpr int warp_m = 32;
   constexpr int warp_n = 32;
   constexpr int warp_k = 512; // 64 * 8
-#else
+
+#elif defined COMET_USE_AMPERE
   // Use following for Ampere
   constexpr int block_x = 16;
   constexpr int block_y = 8;
@@ -488,9 +492,9 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
   int shared_bytes = (threadblock_m + threadblock_n) * threadblock_k / 8;
   set_max_shared_bytes((const void *)gemm_kernel);
 
-  //printf("Calling b1_comet_xor_gemm_gpu_tc_simple kernel gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d\n",
-  //  grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
-  //  warp_m, warp_n, warp_k, shared_bytes);
+  printf("Calling b1_comet_xor_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d\n",
+    m, n, k, grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
+    warp_m, warp_n, warp_k, shared_bytes);
 
   gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
     m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, (GMTally2x2 *)matC);

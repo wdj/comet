@@ -141,7 +141,7 @@ static void tc_gemm_start_impl_(
   // Get matX counts if needed.
 
   tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
-    (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs, step_2way, env);
+    (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
   if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
   tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
@@ -166,10 +166,10 @@ static void tc_gemm_start_impl_(
     enum {IS_LEFT = true};
     if(env.print_details()) printf("Calling tc_in with npvfl=%d pvfl_min=%d pvfl_max=%d npvfl_thisstep=%d\n",npvfl,pvfl_min,pvfl_max,npvfl_thisstep);
     tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
-      npvfl_thisstep, pvfl_min, nfal, (uint32_t*)matA1, (uint32_t*)matA2,
+      npvfl_thisstep, pvfl_min, nfal, (TCWord_t*)matA1, (TCWord_t*)matA2,
       tc_bufs, step_2way, env);
     tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
-      npvfl_thisstep, pvfl_min, nfal, (uint32_t*)matB, (uint32_t*)matB,
+      npvfl_thisstep, pvfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
       tc_bufs, step_2way, env);
     env.pregemmtime_inc(env.synced_time() - tbegin);
 
@@ -580,20 +580,24 @@ void TCBufs::malloc(int num_vector_local,
     utils::ceil(npvfl, (size_t)env.num_tc_steps());
 
   const int sizeof_gemm_in_t =
-     env.tc_eff() == TC::FP32 ?
-       sizeof(typename TCTraits<TC::FP32>::GemmIn_t) :
-     env.tc_eff() == TC::FP16 ?
-       sizeof(typename TCTraits<TC::FP16>::GemmIn_t) :
-     env.tc_eff() == TC::INT8 ?
-       sizeof(typename TCTraits<TC::INT8>::GemmIn_t) :
-     env.tc_eff() == TC::B1 ?
-       sizeof(typename TCTraits<TC::B1>::GemmIn_t) :
+     env.tc_eff() == TC::FP32 ? sizeof(typename TCTraits<TC::FP32>::GemmIn_t) :
+     env.tc_eff() == TC::FP16 ? sizeof(typename TCTraits<TC::FP16>::GemmIn_t) :
+     env.tc_eff() == TC::INT8 ? sizeof(typename TCTraits<TC::INT8>::GemmIn_t) :
+     env.tc_eff() == TC::B1 ? sizeof(typename TCTraits<TC::B1>::GemmIn_t) :
+     0;
+
+  const int nfpgi =
+     env.tc_eff() == TC::FP32 ? TCTraits<TC::FP32>::NFPGI :
+     env.tc_eff() == TC::FP16 ? TCTraits<TC::FP16>::NFPGI :
+     env.tc_eff() == TC::INT8 ? TCTraits<TC::INT8>::NFPGI :
+     env.tc_eff() == TC::B1 ? TCTraits<TC::B1>::NFPGI :
      0;
   COMET_INSIST(TC::is_valid(env.tc_eff())); // must be updated if new method
 
   const size_t nvlX2 = nvl * 2;
 
-  tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64) * sizeof_gemm_in_t;
+  tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64 / nfpgi) *
+                        sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 
   tc_bufs.matX_counts_size = env.is_using_xor() && env.num_way() == NumWay::_3 ?

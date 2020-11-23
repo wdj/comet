@@ -60,16 +60,21 @@ Have compile and run scripts. Run scripts have options to run accuracy tests and
 
 Modified setup to automically install Cutlass from tar file and setup CoMet to use Cutlass.
 
+Added test code to output input files to use for testing.
 
 ##########################################
 Planned changes:
-- Modify setup to allow user to set compute capability of GPUs and use this to automatically compile Magma and Cutlass with appropriate settings for GPU.
-- Add tests to driver_test.cc for various 1-bit and Cutlass kernels. Identify cases where they work correctly and when they do not, including checking corner cases.
 - Explore modifying warp-level Cutlass GEMM to use single mma call and store int result.
-- Explore approaches for developing faster tc_in/tc_out routines.
-- Explore 3-way duo methods using 3-way scaling test as example.
-- Use tester to generate some same input files.
 - Add additional performance analysis code for communication and i/o routines.
+
+In progress:
+- Add tests to driver_test.cc for various 1-bit and Cutlass kernels. Identify cases where they work correctly and when they do not, including checking corner cases.
+  - Nvidia warp-level GEMM fails to produce correct solution, however running standalone tests says the result is correct
+- Explore 3-way duo methods using 3-way scaling test as example
+  - Test code doesn't actually call 3-way duo method - uses !is_duo for all calls
+
+Potential changes:
+- Explore approaches for developing faster tc_in/tc_out routines.
 
 ##########################################
 

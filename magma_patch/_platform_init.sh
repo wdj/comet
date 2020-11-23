@@ -167,6 +167,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
 
   local USE_CPUBLAS=ON
   local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_ESSL_ROOT/include"
+  #COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"essl.h\""'
   COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"essl.h\""'
   local COMET_CPUBLAS_LINK_OPTS=""
   local XLF_DIR=$(module load xl 2>/dev/null ; echo $OLCF_XLF_ROOT)/lib
@@ -272,6 +273,7 @@ EOF
   local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
   local COMET_GPU_ARCH=75
+  #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_75,code=compute_75;-arch=sm_75"
 
   local USE_CUTLASS=ON
 

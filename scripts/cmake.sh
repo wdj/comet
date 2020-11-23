@@ -401,7 +401,8 @@ function main
     COMET_CUDA_COMPILE_OPTS+=" -Wno-strict-aliasing"
     COMET_CUDA_COMPILE_OPTS+=" -Wno-uninitialized"
     COMET_CUDA_COMPILE_OPTS+=" -DCOMET_USE_CUTLASS"
-    COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_${COMET_GPU_ARCH},code=compute_${COMET_GPU_ARCH}"
+    #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_${COMET_GPU_ARCH},code=compute_${COMET_GPU_ARCH}"
+    COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_${COMET_GPU_ARCH},code=compute_${COMET_GPU_ARCH};-arch=sm_${COMET_GPU_ARCH}"
   fi
 
   #----------------------------------------------------------------------------
@@ -518,6 +519,9 @@ function main
   CMAKE_CXX_FLAGS+=" ${COMET_TEST_COMPILE_OPTS:-}"
 
   [[ ${COMET_USE_INT128:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_INT128"
+
+  [[ ${COMET_GPU_ARCH} = 75 ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_TURING"
+  [[ ${COMET_GPU_ARCH} = 80 ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_AMPERE"
 
   CMAKE_CXX_FLAGS+=" ${COMET_EXTRA_COMPILE_OPTS:-}"
 

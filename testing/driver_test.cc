@@ -72,8 +72,10 @@ bool can_run(const char* options) {
 
   comet::CEnv env_nocomms(options, PROCS_MAX, 0);
 
-  if (env_nocomms.num_proc() > 1 && ! comet::BuildHas::MPI)
+  if (env_nocomms.num_proc() > 1 && ! comet::BuildHas::MPI) {
+    printf("Invalid MPI options num_proc=%d\n",env_nocomms.num_proc());
     return false;
+  }
 
   comet::CEnv env(options);
 
@@ -97,10 +99,13 @@ bool is_using_tc(const char* options) {
 bool compare_2runs(const char* options1, const char* options2) {
   COMET_INSIST(options1 && options2);
 
-  if (!(can_run(options1) && can_run(options2)))
+  if (!(can_run(options1) && can_run(options2))) {
+    printf("Invalid options for comparing two runs\n");
     return true;
+  }
 
   // Do runs.
+  //printf("Comparing two runs\n");
 
   const bool is_proc_num_0 = comet::System::is_proc_num_0();
 
@@ -2382,6 +2387,8 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       //"--problem_type analytic "
       "--compute_method %s --num_way 3";
 
+  //printf("Running cc3_duo3 tests is_duo=%d\n",is_duo);
+
   if (!is_duo) {
     sprintf(options1, options_template_3, metric_type, 2, 1, 3, "REF");
     sprintf(options2, options_template_3, metric_type, 2, 1, 3, "CPU");
@@ -2553,6 +2560,110 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
 
 //=============================================================================
 
+void DriverTest_duo2_b1_() {
+
+    char options1[1024];
+    char options2[1024];
+
+    printf("Running duo2 b1 test\n");
+
+    // Template for b1 kernels
+    char options_template[] =
+        "--metric_type duo --num_field %i --num_vector %i "
+        "--num_proc_vector 1 --compute_method %s --sparse yes "
+        "--problem_type random --verbosity 0 --tc 5 --num_way 2 "
+        "--num_tc_steps 1 --all2all yes --num_kernel %i";// --print_details yes";
+
+    // Magma kernel
+    char options_magma[] =
+        "--metric_type duo --num_field %i --num_vector %i "
+        "--num_proc_vector 1 --compute_method %s --sparse yes "
+        "--problem_type random --verbosity 0 --num_way 2 "
+        "--num_tc_steps 1 --all2all yes --num_kernel 0";// --print_details yes";
+
+    /*for(int nfields=1; nfields<=32; nfields++) {
+        for(int nvectors=2; nvectors<=32; nvectors++) {
+            sprintf(options1, options_magma, nfields, nvectors, "REF");
+            sprintf(options2, options_magma, nfields, nvectors, "GPU");
+            EXPECT_EQ(true, compare_2runs(options1, options2));
+        }
+    }*/
+
+    // Cutlass device-level GEMM
+    for(int nfields=128; nfields<=1024; nfields+=128) {
+        for(int nvectors=2; nvectors<=32; nvectors++) {
+            int num_kernel = 11;
+            //printf("Testing Cutlass device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+            sprintf(options1, options_magma, nfields, nvectors, "REF");
+            sprintf(options2, options_template, nfields, nvectors, "GPU", num_kernel);
+            EXPECT_EQ(true, compare_2runs(options1, options2));
+        }
+    }
+
+    // Simple WMMA TC GEMM
+    /*for(int nfields=65; nfields<=128; nfields++) {
+        for(int nvectors=2; nvectors<=32; nvectors++) {
+            int num_kernel = 1;
+            printf("Testing simple WMMA TC with nfields=%d nvectors=%d\n",nfields,nvectors);
+            sprintf(options1, options_magma, nfields, nvectors, "REF");
+            sprintf(options2, options_template, nfields, nvectors, "GPU", num_kernel);
+            EXPECT_EQ(true, compare_2runs(options1, options2));
+        }
+    }
+
+    for(int nfields=193; nfields<=256; nfields++) {
+        for(int nvectors=2; nvectors<=32; nvectors++) {
+            int num_kernel = 1;
+            printf("Testing simple WMMA TC with nfields=%d nvectors=%d\n",nfields,nvectors);
+            sprintf(options1, options_magma, nfields, nvectors, "REF");
+            sprintf(options2, options_template, nfields, nvectors, "GPU", num_kernel);
+            EXPECT_EQ(true, compare_2runs(options1, options2));
+        }
+    }
+
+    for(int nfields=128; nfields<=1024; nfields+=128) {
+        for(int nvectors=2; nvectors<=32; nvectors++) {
+            int num_kernel = 1;
+            printf("Testing simple WMMA TC with nfields=%d nvectors=%d\n",nfields,nvectors);
+            sprintf(options1, options_magma, nfields, nvectors, "REF");
+            sprintf(options2, options_template, nfields, nvectors, "GPU", num_kernel);
+            EXPECT_EQ(true, compare_2runs(options1, options2));
+        }
+    }*/
+    
+    // Optimized Warp-level Nvidia GEMM - Errors for all tests
+    /*for(int nfields=256; nfields<=2048; nfields+=256) {
+        for(int nvectors=256; nvectors<=1024; nvectors+=256) {
+            int num_kernel = 24;
+            printf("\nTesting Cutlass warp-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+            sprintf(options1, options_magma, nfields, nvectors, "REF");
+            sprintf(options2, options_template, nfields, nvectors, "GPU", num_kernel);
+            EXPECT_EQ(true, compare_2runs(options1, options2));
+        }
+    }*/
+
+    printf("Done running duo2 b1 test\n");
+} // DriverTest_duo2_b1_
+
+void DriverTest_create_input_files() {
+  //for (int num_vector = 8192; num_vector <= 8192; num_vector+=8192) {
+  //  for (int num_field = 81920; num_field <= 81920; num_field+=81920) {
+  for (int num_vector = 1024; num_vector <= 4096; num_vector+=1024) {
+    for (int num_field = 10240; num_field <= 40960; num_field+=10240) {
+      char filename[1024];
+      sprintf(filename,"duo_2way_in_analytic_f%d_v%d.bin",num_field,num_vector);
+      create_vectors_file(filename, num_field, num_vector,
+                          comet::MetricType::DUO, 2, comet::GM_PROBLEM_TYPE_ANALYTIC, 1);
+
+      sprintf(filename,"duo_2way_in_random_f%d_v%d.bin",num_field,num_vector);
+      create_vectors_file(filename, num_field, num_vector,
+                          comet::MetricType::DUO, 2, comet::GM_PROBLEM_TYPE_RANDOM, 1);
+    }
+  }
+}
+
+//=============================================================================
+
 void DriverTest_ccc2_() {
   DriverTest_ccc2_duo2_("ccc");
 }
@@ -2579,7 +2690,7 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-TEST(DriverTest, b1_xor_gemm) {
+/*TEST(DriverTest, b1_xor_gemm) {
   DriverTest_b1_xor_gemm_();
 }
 
@@ -2637,10 +2748,18 @@ TEST(DriverTest, ccc3) {
 
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
-}
+}*/
 
-TEST(DriverTest, duo3) {
+/*TEST(DriverTest, duo3) {
   DriverTest_duo3_();
+}*/
+
+/*TEST(DriverTest, duo2_tc) {
+  DriverTest_duo2_b1_();
+}*/
+
+TEST(DriverTest, create_input_files) {
+  DriverTest_create_input_files();
 }
 
 END_TESTS
