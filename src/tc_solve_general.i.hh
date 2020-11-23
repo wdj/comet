@@ -289,6 +289,9 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         // in the tc buf.
         enum {BYTES_PER_PVFL_FIELDS = 8};
 
+        typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
+        typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
+
         const int bytes_per_gi = sizeof(typename TCTraits<TC_METHOD>::GemmIn_t);
         const size_t k_eff = (k / NUM_FL_PER_PVFL) *
                              (BYTES_PER_PVFL_FIELDS / bytes_per_gi);

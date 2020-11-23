@@ -12,7 +12,7 @@ export COMET_INSTALLS_DIR=<path to comet installs directory>
 
 3. Configure CoMet and compile libraries:
 genomics_gpu/scripts/configure_all.sh
-CoMet should set correct platform by default, but can add option COMET_PLATFORM=<GPUSYS2,IBM_AC922,etc>
+CoMet sets correct platform by default using hostname
 
 4. Compile CoMet:
 Make - genomics_gpu/scripts/make_all.sh
