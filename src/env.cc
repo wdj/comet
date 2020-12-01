@@ -590,29 +590,30 @@ bool CEnv::can_run(int tc_try) const {
   // NOTE: MI60 is 906
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc_try) {
-    // TODO: check what is the right compute cpability here for cuda.
+    // ISSUE: may need to adjust CUDA compute capability here.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
                      || (BuildHas::HIP && System::compute_capability() >= 906));
   }
 
-  // TODO: determine, set correct values for HIP, if any.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc_try) {
+    // ISSUE: may need to adjust HIP compute capability here.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
                      || (BuildHas::HIP && System::compute_capability() >= 1000));
                      //|| (BuildHas::HIP && System::compute_capability() >= 908));
   }
 
-  // TODO: determine, set correct values for HIP, if any.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc_try) {
+    // ISSUE: may need to adjust HIP compute capability here.
+    // NOTE: pre-Turing can support INT8 but it is not necessarily most fast.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
                      //|| (BuildHas::HIP && System::compute_capability() >= 1000));
                      //|| (BuildHas::HIP && System::compute_capability() >= 908));
                      || (BuildHas::HIP && System::compute_capability() >= 906));
   }
 
-  // TODO: determine, set correct values for HIP, if any.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::B1 == tc_try) {
-    // Temporary code for testing xor mock code on summit.
+    // ISSUE: may need to adjust HIP compute capability here.
+    // FIX: Temporary code for testing xor mock code on summit.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
                      || (BuildHas::HIP && System::compute_capability() >= 1000))
                     && can_use_xor_(tc_try);
@@ -638,6 +639,7 @@ int CEnv::tc_eff_compute_() const {
     return tc_;
 
   // NOTE: order is important here: fastest first.
+  // TODO: move B1 to most favored status.
   //for (auto tc_try : {TC::B1, TC::INT8, TC::FP16, TC::FP32}) {
   for (auto tc_try : {TC::INT8, TC::FP16, TC::FP32, TC::B1}) {
     if (can_run(tc_try))

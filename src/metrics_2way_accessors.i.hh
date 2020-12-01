@@ -397,6 +397,7 @@ static bool Metrics_ccc_duo_threshold_detector_2(GMMetrics& metrics,
     return true;
   }
 
+  // If threshold_tc, then look for any prethresholded values not set to zero.
   if (env.is_threshold_tc()) {
     COMET_INSIST(!env.is_using_threshold_detector());
     typedef Tally2x2<MetricFormat::SINGLE> TTable_t;

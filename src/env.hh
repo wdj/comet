@@ -414,19 +414,23 @@ public:
 
   // CoMet Settings: threshold.
 
+  // Is the threshold value nontrivial, triggering the need to threshold.
   static bool is_threshold(double t) {return t >= 0;}
   bool is_threshold() const {return CEnv::is_threshold(threshold_);}
 
+  // Either the actual threshold, or - infinity if no thresholding.
   static double threshold_eff(double t) {
     return is_threshold(t) ? t : std::numeric_limits<double>::lowest();}
   double threshold_eff() const {return CEnv::threshold_eff(threshold_);}
 
+  // Does a value pass the threhold.
   template<typename T>
   static __host__ __device__
   bool pass_threshold(T value, double threshold_eff) {
    return value > threshold_eff;
  }
 
+  // Does a value pass the threhold.
   template<typename T>
   bool pass_threshold(T value) {
    //return CEnv::pass_threshold(value, threshold_eff());
@@ -435,6 +439,7 @@ public:
 
   // CoMet Settings: multiplier/param.
 
+  // Enable certain optimizations if using default settings.
   static double ccc_multiplier_default() {return 9e0 / 2e0;}
   static double duo_multiplier_default() {return 4e0; }
   static double ccc_param_default() {return 2e0 / 3e0;}
@@ -442,68 +447,92 @@ public:
 
   // CoMet Settings: derived settings.
 
+  // Convenience function.
   bool is_compute_method_gpu() const {
     return ComputeMethod::GPU == compute_method_;
   }
+
+  // Convenience function.
   bool is_metric_type_bitwise() const {
     return MetricType::CCC == metric_type_ || MetricType::DUO == metric_type_;
   }
+
+  // Metric table dimension along each axis (=1 if scalar).
   int ijkE_max() const {return is_metric_type_bitwise() ? 2 : 1;}
-  // Do we use TC package.
+
+  // Does tc value indicate a request to use the tc package.
   static bool is_try_tc_(int tc_try) {return TC::NO != tc_try;}
+
+  // Is it requested AND possible to use the tc package.
   bool is_using_tc() const {return is_try_tc_(tc_eff());}
-//  bool is_using_tc() const {
-//    return is_try_tc_(tc_eff()) && is_metric_type_bitwise();
-//  }
-  // Do we use either MAGMA or TC.
+
+  // Can we use the linalg package for requested tc value
+  // (enables MAGMA, CUTLASS, TC).  (= all GPU methods, or CPU via BLAS).
   bool can_use_linalg_(int tc_try) const {
     COMET_INSIST(TC::AUTO != tc_try);
     return ComputeMethod::GPU == compute_method_ ||
       (ComputeMethod::CPU == compute_method_ && is_metric_type_bitwise() &&
        is_try_tc_(tc_try));
   }
+
+  // Do we use the linalg packag.
   bool is_using_linalg() const {return can_use_linalg_(tc_eff());}
-//return ComputeMethod::GPU == compute_method_ ||
-//    (ComputeMethod::CPU == compute_method_ && is_using_tc());
-//  }
-  // Do we form the X matrix in the TC package.
+
+  // Do we form the X matrix (for 3-way) in the TC package.
+  // (otherwise we form it on the CPU).
   bool form_matX_tc() const {return is_using_tc();}
+
+  // Do 3-way bitwise methods use new faster method to
+  // compute in 2 (sub)steps instead of 3.
   bool is_bitwise_3way_2step() const {return is_using_tc();}
+
+  // How many (sub)steps actually needed for 3-way case.
   int num_step_2way_for_3way() const {
     return !(is_metric_type_bitwise() && is_using_linalg()) ? 1 :
            is_bitwise_3way_2step() ? 2 : 3;
   }
+
+  // Does 3-way require prior computation of several 2-way results.
   bool does_3way_need_2way() const {
     return metric_type_ == MetricType::CZEK && is_using_linalg();
   }
-  // CCC vs. DUO.
+
+  // Does each 2-bit value represent 2 (CCC) or 1 (DUO) bits counted.
   int counted_bits_per_elt() const {
     COMET_INSIST(is_metric_type_bitwise());
     return MetricType::CCC == metric_type_ ? 2 : 1;
   }
+
+  // Convenience function.
   double ccc_duo_multiplier() {
     return counted_bits_per_elt() == CBPE::DUO ?
       duo_multiplier() : ccc_multiplier();
   }
-  // Do we do final metrics calc and thresholding in TC package.
+
+  // Can we do metrics calc and thresholding in TC package for requested tc.
   bool can_threshold_tc_(int tc_try) const {
     COMET_INSIST(TC::AUTO != tc_try);
     return is_try_tc_(tc_try) && sparse() && num_proc_field() == 1 &&
            is_threshold()
       && !is_double_prec();
   }
+
+  // Do we do metrics calc and thresholding in TC package.
   bool is_threshold_tc() const {return can_threshold_tc_(tc_eff());}
-//    return is_using_tc() && sparse() && num_proc_field() == 1 && is_threshold()
-//      && !is_double_prec();
-//  }
+
   // Are 3-way metrics computed half block-plane at a time.
+  // (each substep computes all 8 table entries for half of results).
   bool is_vectors_halved() const {
     return NumWay::_3 == num_way() && is_threshold_tc() &&
           is_bitwise_3way_2step();
   }
 
+  // Can we enable metrics compression for requested tc value.
+  // (enable compression means it will compress the data if compressible).
+  // This is a lossless compression done right after thresholding.
   bool can_compress_enable_(int tc_try) const {
     COMET_INSIST(TC::AUTO != tc_try);
+    // Change this line to short circuit what follows, if desired.
     const bool try_compress = true;
     return
       try_compress &&
@@ -515,17 +544,25 @@ public:
       !do_reduce();
   }
 
+  // Do we enable metrics compression.
   bool is_compress_enabled() const {return can_compress_enable_(tc_eff());}
 
+  // Do we store 2X2 metrics tables a 4 ints or 2 packed doubles.
   int metric_format() const {return is_threshold_tc() ?
     MetricFormat::SINGLE : MetricFormat::PACKED_DOUBLE;}
 
   // Accessors pertaining to metric sizes.
 
+  // Nomenclature:
+  // "metric": a table of 4 or 8 entries (or trivially 1, if non-bitwise).
+  // "entry": one of the entries of this table.
+  // "metric item": an entry if using the "shrink" method, else a metric table.
+
   int num_entries_per_metric() const {
     return MetricType::CZEK == metric_type_ ? 1 : pow2_num_way();
   }
 
+  // sizeof for a single table.
   size_t metric_size() const {
     return MetricType::CZEK == metric_type_ ? sizeof(GMFloat) :
            NumWay::_2 == num_way_ ? sizeof(GMTally2x2) : sizeof(GMTally4x2);
@@ -533,24 +570,25 @@ public:
 
   // Shrink-related.
 
+  // Can we shrink metrics storage allocated on the CPU for the requested tc.
+  // This only makes sense if the tc package compresses the metrics.
+
   bool can_shrink_(int tc_try) const {
     COMET_INSIST(TC::AUTO != tc_try);
     const size_t storage_per_metric = metric_size() +
       sizeof(MetricItemCoords_t);
     const size_t storage_per_metric_shrink = metric_size() +
       sizeof(MetricItemCoords_t) * num_entries_per_metric();
+    const bool is_shrinking_helpful =
+      storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
     return can_threshold_tc_(tc_try) && can_compress_enable_(tc_try) &&
       is_try_tc_(tc_try) &&
       NumWay::_3 == num_way() && // TODO: implement 2-way
-      storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
+      is_shrinking_helpful;
   }
 
+  // Do we shrink metrics storage allocated on the CPU.
   bool is_shrink() const {return can_shrink_(tc_eff());}
-
-  //size_t metric_entry_size() const {
-  //  COMET_INSIST(metric_size() % num_entries_per_metric() == 0);
-  //  return metric_size() / num_entries_per_metric();
-  //}
 
   int num_entries_per_metric_item() const {
     return is_shrink() ? 1 : num_entries_per_metric();
@@ -560,57 +598,83 @@ public:
     return is_shrink() ? num_entries_per_metric() : 1;
   }
 
+  // sizeof for a metric item.
   size_t metric_item_size() const {
     COMET_INSIST(metric_size() % num_metric_items_per_metric() == 0);
     return metric_size() / num_metric_items_per_metric();
   }
 
+  // Compute shrunk value based on shrinking factor.
   size_t apply_shrink(size_t v) const {
     const double fuzz = 1.e-10;
     return is_shrink() ? (size_t)((v / metrics_shrink_) * (1.+fuzz)) : v;
   }
 
+  // Are metrics stored on CPU by metric or by metric table entry.
   int coords_type_compute_() const {
    return is_shrink() ? CoordsType::BY_ENTRY : CoordsType::BY_METRIC;
   }
+
   int coords_type() const {
    return coords_type_cache_;
    //return is_shrink() ? CoordsType::BY_ENTRY : CoordsType::BY_METRIC;
   }
 
+  // Cache precomputed coords_type value as performance optimization.
   bool coords_type_by_metric() const {
    return CoordsType::BY_METRIC == coords_type_cache_;
   }
 
-  bool is_using_threshold_detector(int tc_try) const {
-      return !(!is_threshold() || can_shrink_(tc_try) ||
+  // Can we use fast pre-check of all 4 (or 8) metric values for requested tc.
+  bool can_use_threshold_detector(int tc_try) const {
+      // Don't do if not doing thresholding at all.
+      // Won't make sense if shrink because not stored as table.
+      // Not done if thresholding is done early, in the tc package.
+      return !(!is_threshold() ||
+               can_shrink_(tc_try) ||
                can_threshold_tc_(tc_try));
   }
 
+  // Do we use fast pre-check of all 4 (or 8) metric values.
   bool is_using_threshold_detector() const {
-    return is_using_threshold_detector(tc_eff());
+    return can_use_threshold_detector(tc_eff());
   }
 
   // XOR GEMM-related.
 
+  // Can we use 1-bit xor gemm for requested tc value.
   bool can_use_xor_(int tc_try) const {
-    //return false;
+    COMET_INSIST(TC::AUTO != tc_try);
+    // Change this line to short circuit what follows, if desired.
     const bool try_use_xor_nonlinalg = true;
+    // Is xor method available outside of linalg package (i.e., on CPU).
     const bool can_use_xor_nonlinalg =
       try_use_xor_nonlinalg &&
+      // Currently only implemented in nonlinalg for 2-way method.
       NumWay::_2 == num_way_ &&
       ComputeMethod::CPU == compute_method_ &&
       !can_use_linalg_(tc_try);
+    // Change this line to short circuit what follows, if desired.
+    const bool try_use_xor = true;
     return
-      MetricType::DUO == metric_type_ && // THIS LINE CURRENTLY REQUIRED
-      sparse() && // THIS LINE CURRENTLY REQUIRED
-      !is_using_threshold_detector(tc_try) && // THIS LINE CURRENTLY REQUIRED
-      //num_way() == NumWay::_2 && // TODO: implement for 3-way
+      try_use_xor &&
+      // 1-bit xor gemm currently only implemented for duo.
+      MetricType::DUO == metric_type_ && 
+      // 1-bit xor gemm currently only implemented for sparse.
+      sparse() &&
+
+      //// THIS LINE CURRENTLY REQUIRED
+      //!can_use_threshold_detector(tc_try) &&
+      //// TODO: implement for 3-way
+
+      // xor 3-way requires is_vectors_halved, thus also can_threshold_tc.
       (num_way() == NumWay::_2 ||
        (num_way() == NumWay::_3 && can_threshold_tc_(tc_try))) &&
+      // Can only do if using 1-bit TC (check HW elsewhere) or if nonlinalg.
       (can_use_xor_nonlinalg || TC::B1 == tc_try);
   }
 
+  // Do we use 1-bit xor gemm.
   int is_using_xor() const {return can_use_xor_(tc_eff());}
 
   // Misc.
