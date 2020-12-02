@@ -1861,6 +1861,84 @@ void DriverTest_tc_() {
 
 void DriverTest_b1_xor_gemm_() {
 
+  char options1[1024];
+  char options2[1024];
+
+  {
+    char options_template[] =
+        "--metric_type %s "
+        "--num_field %i --num_vector %i "
+        "--compute_method %s --sparse yes --all2all yes"
+        "--problem_type random --verbosity %i --tc %i --num_way %i "
+        "--num_tc_steps %i";
+
+    typedef comet::TC TC;
+
+    const bool is_duo = true;
+    const bool gpu = true;
+    const int num_way = 2;
+    const int tc = TC::B1;
+    const int num_tc_steps = 1;
+    const int num_vector = 4;
+    const int num_field = 1;
+
+    //if (nv/num_proc_vector < num_way) continue;
+
+    sprintf(options1, options_template, is_duo ? "duo" : "ccc",
+            num_field, num_vector, "REF",
+            1, 0, num_way, 1);
+    sprintf(options2, options_template, is_duo ? "duo" : "ccc",
+            num_field, num_vector, gpu ? "GPU" : "CPU",
+            1, tc, num_way, num_tc_steps);
+    EXPECT_EQ(true, compare_2runs(options1, options2));
+
+  }
+
+} // DriverTest_b1_xor_gemm_
+
+#if 0
+void DriverTest_b1_xor_gemm_() {
+
+    char options1[1024];
+    char options2[1024];
+
+    char options_template[] =
+        "--metric_type %s "
+        //"--num_proc_vector %i --num_field 100 --num_vector %i "
+        "--num_proc_vector %i --num_field 71 --num_vector %i "
+        "--compute_method %s --sparse %s "
+        "--problem_type random --verbosity %i --tc %i --num_way %i "
+        "--num_tc_steps %i --all2all yes"
+        " --threshold .0001 --verbosity 1 ";
+
+    const int num_proc_vector = 1;
+
+    typedef comet::TC TC;
+
+    const bool is_duo = true;
+    const bool gpu = true;
+    const int num_tc_steps = 1;
+    const int nv = 17;
+    const int num_way = 3;
+    const bool sparse = true;
+    const int tc = TC::B1;
+
+    //if (nv/num_proc_vector < num_way) continue;
+
+    sprintf(options1, options_template, is_duo ? "duo" : "ccc",
+            num_proc_vector, nv, "GPU",
+            sparse ? "yes" : "no", 1, TC::FP16, num_way, num_tc_steps);
+    sprintf(options2, options_template, is_duo ? "duo" : "ccc",
+            num_proc_vector, nv, gpu ? "GPU" : "CPU",
+            sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
+    EXPECT_EQ(true, compare_2runs(options1, options2));
+} // DriverTest_b1_xor_gemm_
+#endif
+
+//=============================================================================
+
+void DriverTest_b1_xor_gemm_OLD_() {
+
     char options1[1024];
     char options2[1024];
 
@@ -1935,7 +2013,6 @@ void DriverTest_b1_xor_gemm_() {
 #endif
 
 //=============================================================================
-
 void DriverTest_threshold_() {
 
     char options1[1024];

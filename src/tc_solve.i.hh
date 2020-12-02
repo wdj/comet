@@ -42,40 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-#if 0
 //-----------------------------------------------------------------------------
-/// \brief 1-bit xor gemm, cpu version (not high performance).
-
-void b1_xor_gemm_cpu(size_t m, size_t n, size_t k,
-  uint8_t* a, uint8_t* b, bool beta, int32_t* c) {
-  COMET_INSIST(a && b && c);
-  //COMET_INSIST(m == n);
-
-  for (size_t ind_i = 0; ind_i < m; ++ind_i) {
-    for (size_t ind_j = 0; ind_j < n; ++ind_j) {
-      for (size_t ind_k = 0; ind_k < k; ++ind_k) {
-
-        const uint8_t ai = a[ind_i+m*ind_k];
-        const uint8_t bj = b[ind_j+n*ind_k];
-        int32_t& ci = c[ind_i+m*ind_j];
-
-        const int32_t v = utils::popc8(ai ^ bj);
-        ci = beta ? ci + v : v;
-      }
-    }
-  }
-}
-#endif
-
-//-----------------------------------------------------------------------------
-/// \brief 1-bit xor gemm, gpu version (not high performance).
+/// \brief 1-bit xor gemm, gpu version (mockup version, not high performance).
 
 template<typename GemmIn_t, typename GemmOut_t>
-__global__
-void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
+__global__ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
   GemmIn_t* a, GemmIn_t* b, bool beta, GemmOut_t* c) {
   //COMET_INSIST(a && b && c);
-  //COMET_INSIST(m == n);
+
+  // k axis serialized; m, n axes threaded.
 
   const size_t ind_m = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const size_t ind_n = blockIdx_y_();
@@ -90,14 +65,12 @@ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
 
     GemmOut_t& cij = c[ind_m + m*ind_n];
 
+    // Use xor; count 1-bits with popcount.
     const GemmOut_t v = utils::popc<GemmIn_t>(aik ^ bjk);
-    //const GemmOut_t v = utils::popc32(aik ^ bjk);
     if (ind_m < 1024 * 1024 * 1024) // WORKAROUND for undiagnosed error.
       cij = beta || ind_k ? cij + v : v;
 
-//if (ind_m == 0 && ind_n == 1)
-//    printf("%i %i %i   %i\n", (int)ind_k, (int)ind_m, (int)ind_n, (int)v);
-  }
+  } // for ind_k
 }
 
 //-----------------------------------------------------------------------------
@@ -115,6 +88,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
   // "GEMMs that do not satisfy the above rules will fall back
   //  to a non-Tensor Core implementation"
   // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
+  // NOTE: this may be relaxed for later versions of CUDA.
 
   // k (=nfl) is derived from padded-up npvfl (multiple of 64), so always ok.
   COMET_INSIST(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
@@ -123,7 +97,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
   // since nvl % 4 == 0; see tc_gemm_divisibility_required()
   COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
-  // Make BLAS call.
+  // Make the appropriate BLAS call.
 
   const bool is_timing_gemm = false; // true;
 
@@ -133,17 +107,22 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
 
+    //-------------------
+    // CASE: GPU, TC::B1.
+    //-------------------
+
 #   ifdef COMET_USE_ACCEL
 
       COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
       enum {NUM_FL_PER_PVFL = 64};
-      COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
+      COMET_INSIST(k % NUM_FL_PER_PVFL == 0 &&
+                   "Failed divisibility condition for tc gemm.");
 
       const bool beta = is_first ? 0 : 1;
 
-      // 8 == number of uint8_t values used to store NUM_FL_PER_PVFL fields
-      // in the tc buf.
+      // 8 == number of uint8_t values used to store each chunk of
+      // NUM_FL_PER_PVFL fields in the tc buf.
       enum {BYTES_PER_PVFL_FIELDS = 8};
 
       typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
@@ -174,6 +153,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 #   endif // COMET_USE_ACCEL
 
   } else if (env.is_compute_method_gpu()) { // && TC_METHOD != TC::B1
+
+    //-----------------------
+    // CASE: GPU, non-TC::B1.
+    //-----------------------
 
     // Make accelerator BLAS call.
 
@@ -281,6 +264,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   } else { // (!env.is_compute_method_gpu()) {
 
+    //-----------------------
+    // CASE: CPU.
+    //-----------------------
+
     if (env.tc_eff() == TC::FP32) {
 
 #     ifdef COMET_USE_CPUBLAS
@@ -299,21 +286,6 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         COMET_INSIST(false && "Failure to call GEMM function.");
 
 #     endif // COMET_USE_CPUBLAS
-
-#if 0
-    } else if (env.tc_eff() == TC::B1) {
-
-      enum {NUM_FL_PER_PVFL = 64};
-      COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
-
-      const bool beta = is_first ? 0 : 1;
-
-      const int size_gi = sizeof(typename TCTraits<TC_METHOD>::GemmIn_t);
-      const size_t k_eff = (k / NUM_FL_PER_PVFL) * (8 / size_gi);
-
-      b1_xor_gemm_cpu(m, n, k_eff, (uint8_t*)tc_bufs.tc_buf_left,
-        (uint8_t*)tc_bufs.tc_buf_right, beta, (int32_t*)matC);
-#endif
 
     } else { // if env.tc_eff()
 

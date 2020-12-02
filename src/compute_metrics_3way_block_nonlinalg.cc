@@ -404,15 +404,6 @@ static void compute_nonlinalg_ccc_duo_(
 
             } // if ! unknown
           } // for f
-          typename MFT::TypeIn r000, r001;
-          typename MFT::TypeIn r010, r011;
-          typename MFT::TypeIn r100, r101;
-          typename MFT::TypeIn r110, r111;
-
-          MFT::decode(r000, r001, sum.data[0]);
-          MFT::decode(r010, r011, sum.data[1]);
-          MFT::decode(r100, r101, sum.data[2]);
-          MFT::decode(r110, r111, sum.data[3]);
 
           // Get denom
 
@@ -447,7 +438,6 @@ static void compute_nonlinalg_ccc_duo_(
 
     // ----------------------------------
   } else if (env->compute_method() == ComputeMethod::CPU &&
-//             !env->is_using_linalg()) {
              !env->is_using_linalg() && !env->is_using_xor()) {
     // ----------------------------------
 
@@ -767,6 +757,12 @@ static void compute_nonlinalg_ccc_duo_(
   } else if (env->is_using_xor()) {
     // ----------------------------------
 
+    // Code to compute 3-way bitwise method result using xor operations,
+    // similar to the GPU version.  Currently supports DUO.
+    // The code is mainly for illustrative purposes, is not very efficient.
+    // A more efficient implementation would store and reuse the matX sums
+    // that are used to convert the xor gemm values to the actual gemm values.
+
     COMET_INSIST(env_.metric_type() == MetricType::DUO);
 
     COMET_INSIST_INTERFACE(env, ! env->do_reduce() &&
@@ -823,8 +819,8 @@ static void compute_nonlinalg_ccc_duo_(
             const uint64_t vk0 = vk.data[0];
             const uint64_t vk1 = vk.data[1];
 
-            // Compute masks to sample the single needed bit from each seminibble,
-            // and to ignore undefined vector entries.
+            // Compute masks to sample the needed bit from each seminibble,
+            // and to ignore undefined vector entries (= "10").
 
             const uint64_t oddbits = 0x5555555555555555;
 
@@ -864,7 +860,7 @@ static void compute_nonlinalg_ccc_duo_(
             const uint64_t nvk0 = ~vk0  & vk0mask;
             const uint64_t nvk1 = ~vk1  & vk1mask;
 
-            // Combine lower, upper words - each only uses odd bits - make packed.
+            // Combine lower, upper words; each only uses odd bits; make packed.
 
             const uint64_t pvi = pvi0 | (pvi1 << 1);
             const uint64_t pvj = pvj0 | (pvj1 << 1);
@@ -892,9 +888,10 @@ static void compute_nonlinalg_ccc_duo_(
             MFT::add(sum.data[2], r100, r101);
             MFT::add(sum.data[3], r110, r111);
 
-            // Update the xor adjustment factors.
-            // NOTE: this calculation is O(n^3 m) here, which is not efficient;
-            // GPU case efficiently computes matX_sums outside the GEMM loop.
+            // Update the xor adjustment factors (matX column sums).
+            // NOTE: the calculation is O(n^3 m) here, which is not efficient;
+            // however the GPU version efficiently computes matX_sums outside
+            // the GEMM loop.
 
             sum_nvinvj += utils::popc64(nvi & nvj);
             sum_nvipvj += utils::popc64(nvi & pvj);
@@ -905,15 +902,15 @@ static void compute_nonlinalg_ccc_duo_(
 
           } // for pvfl
 
-          // Adjust for pad
-          // NOTE this works differently from other cases because of xor
+          // Adjust for pad.
+          // NOTE this works differently from other cases because of xor.
 
           MFT::subtract(sum.data[0], 0, pad_adjustment);
           MFT::subtract(sum.data[1], pad_adjustment, 0);
           MFT::subtract(sum.data[2], pad_adjustment, 0);
           MFT::subtract(sum.data[3], pad_adjustment, 0);
 
-          // Apply xor adjustments.
+          // Apply xor adjustment factors.
 
           sum_nvinvj -= pad_adjustment;
           sum_nvk -= pad_adjustment;

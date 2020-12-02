@@ -266,64 +266,23 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
     const Float_t recip_cj = f_one / cj;
     const Float_t recip_ck = f_one / ck;
 
-#if 0
-    if (env.is_using_xor()) {
+    // NOTE: we are assuming here that xor gemm values have already been
+    // adjusted to true gemm values.  Changing this in the future would
+    // require computing and storing matX sum values somewhere and then using
+    // them here.
 
-      COMET_INSIST(false && "Unimplemented.");
-
-      // Make adjustment for xor gemm.
-      // See notes for 8x8 system solve to back out this result.
-      // Note i and k are the GEMM axes, j is fixed, hence the following.
-
-      // NOTE: this code is wrong, need sij instead of si.
-
-      const GMTally1 cijk = (si0 + sk0 - GMTally4x2_get(ttable, 0, 0, 0)) / 2 +
-                            (si0 + sk1 - GMTally4x2_get(ttable, 0, 0, 1)) / 2 +
-                            (si0 + sk0 - GMTally4x2_get(ttable, 0, 1, 0)) / 2 +
-                            (si0 + sk1 - GMTally4x2_get(ttable, 0, 1, 1)) / 2 +
-                            (si1 + sk0 - GMTally4x2_get(ttable, 1, 0, 0)) / 2 +
-                            (si1 + sk1 - GMTally4x2_get(ttable, 1, 0, 1)) / 2 +
-                            (si1 + sk0 - GMTally4x2_get(ttable, 1, 1, 0)) / 2 +
-                            (si1 + sk1 - GMTally4x2_get(ttable, 1, 1, 1)) / 2;
-      if (0 == cijk)
-        return (FloatResult_t)0;
-
-      const Float_t recip_sumcijk = f_one / cijk;
-
-      // Make adjustment for xor gemm.
-      // See notes for 8x8 system solve to back out this result.
-      // Note i and k are the GEMM axes, j is fixed, hence the following.
-
-      // NOTE: this code is wrong, need sij instead of si.
-
-      const GMTally1 rijk_true = (si + sk - rijk) / 2;
-      //const GMTally1 rijk_true = iE &&  kE ? (si1 + sk1 - rijk) / 2 :
-      //                           iE && !kE ? (si1 + sk0 - rijk) / 2 :
-      //                          !iE &&  kE ? (si0 + sk1 - rijk) / 2 :
-      //                                       (si0 + sk0 - rijk) / 2;
-
-      result_floatcalc = Metrics_ccc_duo_value<CBPE>(metrics,
-        rijk_true, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
-
-    } else { // if (!env.is_using_xor())
-#endif
-
-      const GMTally1 cijk =
+    const GMTally1 cijk =
            GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
-           GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
-           GMTally4x2_get(ttable, 1, 0, 0) + GMTally4x2_get(ttable, 1, 0, 1) +
-           GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1);
-      if (0 == cijk)
-        return (FloatResult_t)0;
+         GMTally4x2_get(ttable, 0, 1, 0) + GMTally4x2_get(ttable, 0, 1, 1) +
+         GMTally4x2_get(ttable, 1, 0, 0) + GMTally4x2_get(ttable, 1, 0, 1) +
+         GMTally4x2_get(ttable, 1, 1, 0) + GMTally4x2_get(ttable, 1, 1, 1);
+    if (0 == cijk)
+      return (FloatResult_t)0;
 
-      const Float_t recip_sumcijk = f_one / cijk;
+    const Float_t recip_sumcijk = f_one / cijk;
 
-      result_floatcalc = Metrics_ccc_duo_value<CBPE>(metrics,
-        rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
-
-#if 0
-    }  // if (env.is_using_xor())
-#endif
+    result_floatcalc = Metrics_ccc_duo_value<CBPE>(metrics,
+      rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
 
   } else { // !env.sparse
 

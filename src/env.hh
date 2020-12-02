@@ -660,15 +660,13 @@ public:
       MetricType::DUO == metric_type_ && 
       // 1-bit xor gemm currently only implemented for sparse.
       sparse() &&
-
-      //// THIS LINE CURRENTLY REQUIRED
-      //!can_use_threshold_detector(tc_try) &&
-
+      //// XXX THIS LINE CURRENTLY REQUIRED
+      //// XXX !can_use_threshold_detector(tc_try) &&
       // xor 3-way requires is_vectors_halved, thus also can_threshold_tc.
       (num_way() == NumWay::_2 ||
-        // TODO: implement more cases for 3-way
-       (num_way() == NumWay::_3 && (can_threshold_tc_(tc_try) ||
-                                    ComputeMethod::CPU == compute_method_))) &&
+        // TODO: (possibly) implement more cases for 3-way
+        (num_way() == NumWay::_3 && (can_threshold_tc_(tc_try) ||
+                                     ComputeMethod::CPU == compute_method_))) &&
       // Can only do if using 1-bit TC (check HW elsewhere) or if nonlinalg.
       (can_use_xor_nonlinalg || TC::B1 == tc_try);
   }
@@ -795,14 +793,6 @@ public:
     return ((MagmaQueue_t*)queue_fromgpu_.magma_queue)->queue();
   }
 
-#if 0
-  //----------------------------------------
-  // Accelerator handles
-
-  AccelBlasHandle_t blas_handle();
-  AccelSparseHandle_t sparse_handle();
-#endif
-
 //----------------------------------------
 private:
 
@@ -902,15 +892,6 @@ private:
   void streams_initialize_();
   void streams_terminate_();
   bool are_streams_initialized_;
-
-#if 0
-  // Accelerator handles
-  AccelBlasHandle_t blas_handle_;
-  AccelSparseHandle_t sparse_handle_;
-  void handles_initialize_();
-  void handles_terminate_();
-  bool are_handles_initialized_;
-#endif
 
 //FIX
 public:
