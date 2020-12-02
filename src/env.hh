@@ -650,8 +650,6 @@ public:
     // Is xor method available outside of linalg package (i.e., on CPU).
     const bool can_use_xor_nonlinalg =
       try_use_xor_nonlinalg &&
-      // Currently only implemented in nonlinalg for 2-way method.
-      NumWay::_2 == num_way_ &&
       ComputeMethod::CPU == compute_method_ &&
       !can_use_linalg_(tc_try);
     // Change this line to short circuit what follows, if desired.
@@ -665,11 +663,12 @@ public:
 
       //// THIS LINE CURRENTLY REQUIRED
       //!can_use_threshold_detector(tc_try) &&
-      //// TODO: implement for 3-way
 
       // xor 3-way requires is_vectors_halved, thus also can_threshold_tc.
       (num_way() == NumWay::_2 ||
-       (num_way() == NumWay::_3 && can_threshold_tc_(tc_try))) &&
+        // TODO: implement more cases for 3-way
+       (num_way() == NumWay::_3 && (can_threshold_tc_(tc_try) ||
+                                    ComputeMethod::CPU == compute_method_))) &&
       // Can only do if using 1-bit TC (check HW elsewhere) or if nonlinalg.
       (can_use_xor_nonlinalg || TC::B1 == tc_try);
   }

@@ -266,6 +266,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
     const Float_t recip_cj = f_one / cj;
     const Float_t recip_ck = f_one / ck;
 
+#if 0
     if (env.is_using_xor()) {
 
       COMET_INSIST(false && "Unimplemented.");
@@ -305,6 +306,7 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
         rijk_true, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
 
     } else { // if (!env.is_using_xor())
+#endif
 
       const GMTally1 cijk =
            GMTally4x2_get(ttable, 0, 0, 0) + GMTally4x2_get(ttable, 0, 0, 1) +
@@ -319,7 +321,9 @@ static FloatResult_t Metrics_ccc_duo_get_3_impl(GMMetrics& metrics,
       result_floatcalc = Metrics_ccc_duo_value<CBPE>(metrics,
         rijk, si, sj, sk, recip_ci, recip_cj, recip_ck, recip_sumcijk, env);
 
+#if 0
     }  // if (env.is_using_xor())
+#endif
 
   } else { // !env.sparse
 
