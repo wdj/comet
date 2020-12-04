@@ -413,7 +413,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
     const int fl_max = (flT+1) * SNPW;
 
     // How many inactive fields in this word.
-    const int fl_inactive = min(32, max(0, fl_max - nfal));
+    const int fl_inactive = utils::min(32, utils::max(0, fl_max - nfal));
 
     const TCWord_t allbits = ~(TCWord_t)0;
 
