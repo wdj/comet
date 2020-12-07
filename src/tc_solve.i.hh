@@ -303,6 +303,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
     const double t = t2 - t1;
     printf("%i %i %i   time %f TOP/s %f\n", (int)m, (int)n, (int)k, t,
            (2 * m * (double)n * (double)k) / (t * 1e12));
+    //printf("%i %i %i   time %f TOP/s %f   %f  %f\n", (int)m, (int)n, (int)k, t,
+    //       (2 * m * (double)n * (double)k) / (t * 1e12), t1, t2);
   }
 }
 
