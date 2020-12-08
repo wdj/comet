@@ -660,8 +660,8 @@ public:
       MetricType::DUO == metric_type_ && 
       // 1-bit xor gemm currently only implemented for sparse.
       sparse() &&
-      //// XXX THIS LINE CURRENTLY REQUIRED
-      //// XXX !can_use_threshold_detector(tc_try) &&
+      // Threshold detector currently doesn't support xor gemm.
+      !can_use_threshold_detector(tc_try) &&
       // xor 3-way requires is_vectors_halved, thus also can_threshold_tc.
       (num_way() == NumWay::_2 ||
         // TODO: (possibly) implement more cases for 3-way
