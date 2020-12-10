@@ -167,8 +167,15 @@ main()
   [[ -z "${debug:-}" ]] && debug=0
   [[ -z "${num_tc_steps:-}" ]] && num_tc_steps=4
 
-  [[ -z "$threshold" ]] && threshold=.63
-  [[ -z "$metrics_shrink" ]] && metrics_shrink=30
+  if [ $metric_type = ccc ] ; then
+    [[ -z "${threshold:-}" ]] && threshold=.65
+    [[ -z "${metrics_shrink:-}" ]] && metrics_shrink=10
+  fi
+
+  if [ $metric_type = duo ] ; then
+    [[ -z "$threshold" ]] && threshold=.85
+    [[ -z "$metrics_shrink" ]] && metrics_shrink=10
+  fi
 
   #----------------------------------------------------------------------------
   # Problem sizes
@@ -184,12 +191,14 @@ main()
     # Set number of fields along field axis, per proc.
     # When setting per-proc like this ("_local"), must be divisible by 6.
     # This is also set up to be divisible by num_stage (for performance).
-    [[ "$IBM_AC922" ]] && num_vector_local=$(( 72 * 16 * 6 ))
-    [[ "$CORI_GPU" ]] && num_vector_local=$(( 160 * 16 * 6 ))
+    [[ "$IBM_AC922" ]] && num_vector_local=$(( 18 * ( 64 * 6 ) ))
+    [[ "$CORI_GPU" ]] && num_vector_local=$(( 40 * ( 64 * 6 ) ))
 
     # Set number of stages. exact divisibility with nvl for performance.
-    [[ "$IBM_AC922" ]] && num_stage=$(( ( $num_vector_local / 6 ) / 16 ))
-    [[ "$CORI_GPU" ]] && num_stage=$(( ( $num_vector_local / 6 ) / 16 ))
+    if [ -z "${num_stage}" ] ; then
+      [[ "$IBM_AC922" ]] && num_stage=$(( $num_vector_local / ( 64 * 6 ) ))
+      [[ "$CORI_GPU" ]] && num_stage=$(( $num_vector_local / ( 64 * 6 ) ))
+    fi
 
   elif [ "$single" = 1 ] ; then
     # CZEK, single prec.
