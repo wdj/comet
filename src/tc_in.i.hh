@@ -49,8 +49,8 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Word type to be used for manipulating tc_in input (fields) values.
 
-typedef uint32_t TCWord_t;
-//typedef uint64_t TCWord_t;
+//typedef uint32_t TCWord_t;
+typedef uint64_t TCWord_t;
 
 //-----------------------------------------------------------------------------
 /// \brief Helper function: is a nonnegative integer a power of 2.
@@ -374,6 +374,77 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   const size_t nflG_dim = NGIPT * nflT_thread;
 
   //----------
+  // Special-case code for a B1 case.
+
+  if (TC_METHOD == TC::B1 && is_duo && NGIPT == 1 && sizeof(GemmIn_t) == 4 &&
+      sizeof(TCWord_t) == 8 && TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR) {
+
+    const int vl = is_vectors_halved && IS_LEFT ?
+                   vl_thread % nvleD2 + step_2way * nvleD2 :
+                   vl_thread;
+
+    const bool is_vector_inactive = vl >= nvlea;
+
+    const int kE = is_vectors_halved && IS_LEFT ?
+                   vl_thread / nvleD2 :
+                   step_2way;
+
+    const TCWord_t* const vim_col = vim + vl * (size_t)vi_dim0;
+
+    // Pick up fields value.
+    // Set to zero if outside of active range.
+
+    const TCWord_t m_word = is_vector_inactive ? 0 : vim_col[flT];
+
+    const bool num_way_3 = 3 == num_way;
+    const bool num_way_3_left = num_way_3 && IS_LEFT;
+
+    const TCWord_t c_word = is_vector_inactive ? 0 : !num_way_3_left ? 0 :
+      vic[flT];
+
+    // Calculate target result on odd bits.
+
+    const TCWord_t oddbits_mask = 0x5555555555555555;
+
+    enum {BPSN = 2}; // bits per seminibble (field)
+    enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles (fields) / word
+
+    // Upper bound on fields computed by this thread.
+    const int fl_max = (flT+1) * SNPW;
+
+    // How many inactive fields in this word.
+    const int fl_inactive = utils::min(32, utils::max(0, fl_max - nfal));
+
+    const TCWord_t allbits = ~(TCWord_t)0;
+
+    // NOTE: 64-bit word fills up the rightmost bits first - see vectors.hh.
+    const TCWord_t field_active_mask = fl_inactive >= 32 ?
+      ((TCWord_t)0) : allbits >> (2 * fl_inactive);
+
+    // Use odd bits to denote whether each field is undef or not.
+    const TCWord_t m_notundef_mask = (m_word | ~(m_word >> 1));
+    const TCWord_t c_notundef_mask = (c_word | ~(c_word >> 1));
+
+    const TCWord_t vo_value_64 = num_way_3_left ?
+      (kE ? m_word : ~m_word) & (jE ? c_word : ~c_word) &
+      oddbits_mask & field_active_mask & m_notundef_mask & c_notundef_mask :
+      (jE ? m_word : ~m_word) &
+      oddbits_mask & field_active_mask & m_notundef_mask;
+
+    // Store.
+
+    const size_t flG_index = 0 + NGIPT * flT_thread;
+
+    GemmIn_t& vo_value = vo[flG_index + nflG_dim * vlX2_index];
+
+    // Put odd bits of 64-bit word into 32-bit word.
+    const GemmIn_t* const vo_value_32 = (GemmIn_t*)&vo_value_64;
+    vo_value = vo_value_32[0] | (vo_value_32[1] << 1);
+
+    return;
+  }
+
+  //----------
   // Special-case code for a HIP case.
 
   if (BuildHas::HIP && TC_METHOD == TC::INT8) {
@@ -412,6 +483,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
       const TCWord_t sn_m_word = is_vector_inactive ? 0 : vim_col[fl/SNPW];
       const TCWord_t sn_c_word = is_vector_inactive ? 0 : !num_way_3_left ? 0 :
         vic[fl/SNPW];
+
+// TODO: check that this is properly unrolled.
 
 #     pragma unroll
       for (int i = 0; i < (int)(sizeof(TCWord_t)/sizeof(GemmIn_t)); ++i) {

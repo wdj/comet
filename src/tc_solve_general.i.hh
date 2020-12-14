@@ -3,7 +3,7 @@
  * \file   tc_solve_general.i.hh
  * \author Wayne Joubert
  * \date   Tue May 15 12:03:55 EDT 2018
- * \brief  CUDA code, tc package: gemm operation: top-level routines.
+ * \brief  CUDA code, tc package: gemm operation.
  */
 //-----------------------------------------------------------------------------
 /*-----------------------------------------------------------------------------
@@ -44,54 +44,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tc_solve_cutlass_general.i.hh"
 
-// Tensor core GEMM defines
-// 1-bit int/int tensor core blocks
-//#define WMMA1B_M   8
-//#define WMMA1B_N   8
-//#define WMMA1B_K 128
-
-// Number of bits in a uint8_t
-//#define NBITS      8
-
 //=============================================================================
 
 namespace comet {
 
-#if 0
 //-----------------------------------------------------------------------------
-/// \brief 1-bit xor gemm, cpu version (not high performance).
-
-void b1_xor_gemm_cpu(size_t m, size_t n, size_t k,
-  uint8_t* a, uint8_t* b, bool beta, int32_t* c) {
-  COMET_INSIST(a && b && c);
-  //COMET_INSIST(m == n);
-
-  for (size_t ind_i = 0; ind_i < m; ++ind_i) {
-    for (size_t ind_j = 0; ind_j < n; ++ind_j) {
-      for (size_t ind_k = 0; ind_k < k; ++ind_k) {
-
-        const uint8_t ai = a[ind_i+m*ind_k];
-        const uint8_t bj = b[ind_j+n*ind_k];
-        int32_t& ci = c[ind_i+m*ind_j];
-
-        const int32_t v = utils::popc8(ai ^ bj);
-        ci = beta ? ci + v : v;
-      }
-    }
-  }
-}
-#endif
-
-//-----------------------------------------------------------------------------
-/// \brief 1-bit xor gemm, gpu version (not high performance).
+/// \brief 1-bit xor gemm, gpu version (mockup version, not high performance).
 
 template<typename GemmIn_t, typename GemmOut_t>
-__global__
-void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
+__global__ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
   GemmIn_t* a, GemmIn_t* b, bool beta, GemmOut_t* c) {
   //COMET_INSIST(a && b && c);
-  //COMET_INSIST(m == n);
 
+  // k axis serialized; m, n axes threaded.
+  
   const size_t ind_m = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const size_t ind_n = blockIdx_y_();
 
@@ -105,8 +71,8 @@ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
 
     GemmOut_t& cij = c[ind_m + m*ind_n];
 
+    // Use xor; count 1-bits with popcount.
     const GemmOut_t v = utils::popc<GemmIn_t>(aik ^ bjk);
-    //const GemmOut_t v = utils::popc32(aik ^ bjk);
     if (ind_m < 1024 * 1024 * 1024) // WORKAROUND for undiagnosed error.
       cij = beta || ind_k ? cij + v : v;
 
@@ -273,6 +239,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
 
+    //-------------------
+    // CASE: GPU, TC::B1.
+    //-------------------
+
 #   ifdef COMET_USE_ACCEL
 
       COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
@@ -421,6 +391,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   } else if (env.is_compute_method_gpu()) { // && TC_METHOD != TC::B1
 
+    //-----------------------
+    // CASE: GPU, non-TC::B1.
+    //-----------------------
+
     // Make accelerator BLAS call.
 
 #   ifdef COMET_USE_ACCEL
@@ -530,6 +504,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
     //System::accel_last_call_succeeded();
 
   } else { // (!env.is_compute_method_gpu()) {
+
+    //-----------------------
+    // CASE: CPU.
+    //-----------------------
 
     if (env.tc_eff() == TC::FP32) {
 

@@ -104,7 +104,7 @@ bool compare_2runs(const char* options1, const char* options2) {
     return true;
   }
 
-  // Do runs.
+  // Do 2 runs.
   //printf("Comparing two runs\n");
 
   const bool is_proc_num_0 = comet::System::is_proc_num_0();
@@ -137,10 +137,21 @@ bool compare_3runs(const char* options1,
                    const char* options3) {
   COMET_INSIST(options1 && options2 && options3);
 
-  if (!(can_run(options1) && can_run(options2) && can_run(options3)))
-    return true;
+  // Test whatever is possible/supported.
 
-  // Do runs.
+  if (!can_run(options1))
+    return compare_2runs(options2, options3);
+
+  if (!can_run(options2))
+    return compare_2runs(options1, options3);
+
+  if (!can_run(options3))
+    return compare_2runs(options1, options2);
+
+  //if (!(can_run(options1) && can_run(options2) && can_run(options3)))
+  //  return true;
+
+  // Do 3 runs.
 
   const bool is_proc_num_0 = comet::System::is_proc_num_0();
 
@@ -330,7 +341,7 @@ void DriverTest_czek2_() {
                                 "--compute_method GPU --all2all yes"));
 
   //----------
-  //---num_repl, 2-way
+  //---num_proc_repl, 2-way
   //----------
 
   char options1[1024];
@@ -345,7 +356,7 @@ void DriverTest_czek2_() {
   for (int gpu=0; gpu<=1; ++gpu) {
     for (int num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
       for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-        for (int num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+        for (int num_proc_repl=1; num_proc_repl<=6; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
           if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
             continue;
@@ -557,7 +568,7 @@ void DriverTest_czek3_() {
                           " --compute_method GPU --num_way 3 --all2all yes"));
 
   //----------
-  //---num_repl, num_stage, 3-way
+  //---num_proc_repl, num_stage, 3-way
   //----------
 
   char options1[1024];
@@ -572,7 +583,7 @@ void DriverTest_czek3_() {
   for (int gpu=0; gpu<=1; ++gpu) {
     for (int num_vector_local=6; num_vector_local<=18; num_vector_local+=12) {
       for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-        for (int num_proc_repl=2; num_proc_repl<=6; ++num_proc_repl) {
+        for (int num_proc_repl=1; num_proc_repl<=6; ++num_proc_repl) {
           for (int num_stage=1; num_stage<=6; num_stage+=4) {
           const int num_proc_field = gpu ? 2 : 1;
             if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
@@ -594,7 +605,7 @@ void DriverTest_czek3_() {
   }
 
   //----------
-  //---num_repl, num_phase, 3-way
+  //---num_proc_repl, num_phase, 3-way
   //----------
 
   char options_template_2[] =
@@ -1866,78 +1877,40 @@ void DriverTest_tc_() {
 
 void DriverTest_b1_xor_gemm_() {
 
-    char options1[1024];
-    char options2[1024];
+  char options1[1024];
+  char options2[1024];
 
-    char options_template[] =
-        "--metric_type %s "
-        //"--num_proc_vector %i --num_field 100 --num_vector %i "
-        "--num_proc_vector %i --num_field 1 --num_vector %i "
-        "--compute_method %s --sparse %s "
-        "--problem_type random --verbosity %i --tc %i --num_way %i "
-        "--num_tc_steps %i --all2all yes";
+  char options_template[] =
+      "--metric_type duo --num_way %i --num_proc_vector 1 "
+      "--num_vector %i --num_field %i "
+      "--compute_method %s --sparse yes --all2all yes "
+      "--problem_type random --verbosity %i --tc %i "
+      "--num_tc_steps %i --threshold .5 --metrics_shrink 1.0 ";
 
-    const int num_proc_vector = 1;
+  typedef comet::TC TC;
 
-    typedef comet::TC TC;
+  for (int num_way : {2, 3})
+  for (int num_tc_steps : {1, 2})
+  for (int num_vector = num_way; num_vector < 6; ++num_vector) {
+    //if (num_vector < num_way)
+    //  continue;
+  // Examine num_field values nearby possible block boundaries.
+  int num_field_prev = 0;
+  for (int nfbdry : {1, 2, 4, 8, 16, 32, 64, 128})
+  for (int num_field = nfbdry - 2; num_field < nfbdry + 3; ++num_field) {
+    if (num_field <= num_field_prev)
+      continue;
 
-    const bool is_duo = true;
-    const bool gpu = true;
-    const int num_tc_steps = 1;
-    const int nv = 4;
-    const int num_way = 2;
-    const bool sparse = true;
-    const int tc = TC::B1;
-
-    //if (nv/num_proc_vector < num_way) continue;
-
-    sprintf(options1, options_template, is_duo ? "duo" : "ccc",
-            num_proc_vector, nv, "REF",
-            sparse ? "yes" : "no", 1, 0, num_way, 1);
-    sprintf(options2, options_template, is_duo ? "duo" : "ccc",
-            num_proc_vector, nv, gpu ? "GPU" : "CPU",
-            sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
+    sprintf(options1, options_template, num_way,
+            num_vector, num_field, "REF", 1, 0, 1);
+    sprintf(options2, options_template, num_way,
+            num_vector, num_field, "GPU", 1, TC::B1, num_tc_steps);
     EXPECT_EQ(true, compare_2runs(options1, options2));
+    num_field_prev = num_field;
+  }
+  }
+
 } // DriverTest_b1_xor_gemm_
-
-#if 0
-void DriverTest_b1_xor_gemm_() {
-
-    char options1[1024];
-    char options2[1024];
-
-    char options_template[] =
-        "--metric_type %s "
-        //"--num_proc_vector %i --num_field 100 --num_vector %i "
-        "--num_proc_vector %i --num_field 71 --num_vector %i "
-        "--compute_method %s --sparse %s "
-        "--problem_type random --verbosity %i --tc %i --num_way %i "
-        "--num_tc_steps %i --all2all yes"
-        " --threshold .0001 --verbosity 1 ";
-
-    const int num_proc_vector = 1;
-
-    typedef comet::TC TC;
-
-    const bool is_duo = true;
-    const bool gpu = true;
-    const int num_tc_steps = 1;
-    const int nv = 17;
-    const int num_way = 3;
-    const bool sparse = true;
-    const int tc = TC::B1;
-
-    //if (nv/num_proc_vector < num_way) continue;
-
-    sprintf(options1, options_template, is_duo ? "duo" : "ccc",
-            num_proc_vector, nv, "GPU",
-            sparse ? "yes" : "no", 1, TC::FP16, num_way, num_tc_steps);
-    sprintf(options2, options_template, is_duo ? "duo" : "ccc",
-            num_proc_vector, nv, gpu ? "GPU" : "CPU",
-            sparse ? "yes" : "no", 1, tc, num_way, num_tc_steps);
-    EXPECT_EQ(true, compare_2runs(options1, options2));
-} // DriverTest_b1_xor_gemm_
-#endif
 
 //=============================================================================
 
@@ -1952,7 +1925,7 @@ void DriverTest_threshold_() {
         "--metric_type %s "
         "--num_proc_vector %i "
         "--num_field 71 --num_vector 17 "
-        //"--num_field 8 --num_vector 4 "
+        //"--num_field 64 --num_vector 17 "
         "--num_way %i "
         "--all2all yes --sparse yes "
         "--problem_type analytic "
@@ -2000,7 +1973,8 @@ void DriverTest_file_output_() {
     char options1[1024];
     char options2[1024];
 
-    const int num_proc_vector = 5;
+    //const int num_proc_vector = 5;
+    const int num_proc_vector = comet::System::num_proc() >= 2 ? 5 : 1;
 
     char options_template[] =
         "--metric_type %s "
@@ -2028,7 +2002,7 @@ void DriverTest_file_output_() {
     for (int metric_type : {MT::CZEK, MT::CCC, MT::DUO})
     for (int compute_method : {CM::CPU, CM::GPU}) {
       const int num_stage = NumWay::_3 == num_way && all2all ? 2 : 1;
-      const int num_phase = all2all ? 2 : 1;
+      const int num_phase = 1 == num_proc_vector ? 1 : all2all ? 2 : 1;
 
       sprintf(options1, options_template,
         MT::str(metric_type), num_proc_vector, num_way, all2all ? "yes" : "no",
@@ -2200,7 +2174,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   }
 
   //----------
-  //---num_repl, 2-way
+  //---num_proc_repl, 2-way
   //----------
 
   char options_template_10[] =
@@ -2220,7 +2194,7 @@ void DriverTest_ccc2_duo2_(const char* const metric_type) {
   for (gpu=0; gpu<=1; ++gpu) {
     for (num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
       for (num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-        for (num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
+        for (num_proc_repl=1; num_proc_repl<=5; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
           const int num_way = 2;
           sprintf(options1, options_template_10, metric_type,
@@ -2374,7 +2348,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
   char options2[1024];
 #if 1
   char options3[1024];
-  const bool is_duo = 'd' == metric_type[0];
+//  const bool is_duo = 'd' == metric_type[0];
 
   //----------
   //---3-way, all2all no
@@ -2387,9 +2361,9 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       //"--problem_type analytic "
       "--compute_method %s --num_way 3";
 
-  //printf("Running cc3_duo3 tests is_duo=%d\n",is_duo);
+  //printf("Running cc3_duo3 tests\n");
 
-  if (!is_duo) {
+//  if (!is_duo) {
     sprintf(options1, options_template_3, metric_type, 2, 1, 3, "REF");
     sprintf(options2, options_template_3, metric_type, 2, 1, 3, "CPU");
     sprintf(options3, options_template_3, metric_type, 2, 1, 3, "GPU");
@@ -2409,7 +2383,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       sprintf(options3, options_template_3, metric_type, 0, i, 24, "GPU");
       EXPECT_EQ(true, compare_3runs(options1, options2, options3));
     }
-  }
+//  }
 
   //----------
   //---3-way, all2all yes, small
@@ -2422,7 +2396,7 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       //"--problem_type analytic "
       "--compute_method %s --all2all %s --num_way 3";
 
-  if (!is_duo) {
+//  if (!is_duo) {
     sprintf(options1, options_template_4, metric_type, 2, 1, 1, 3, "REF", "no");
     sprintf(options2, options_template_4, metric_type, 2, 1, 1, 3, "CPU", "yes");
     sprintf(options3, options_template_4, metric_type, 2, 1, 1, 3, "GPU", "yes");
@@ -2432,13 +2406,13 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
     sprintf(options2, options_template_4, metric_type, 1, 2, 1, 3, "CPU", "yes");
     sprintf(options3, options_template_4, metric_type, 1, 2, 1, 3, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
-  }
+//  }
 
   //----------
   //---3-way, all2all yes, large
   //----------
 
-  if (!is_duo) {
+//  if (!is_duo) {
     sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
     sprintf(options2, options_template_4, metric_type, 1, 1, 100, 48, "CPU", "yes");
     sprintf(options3, options_template_4, metric_type, 1, 1, 100, 48, "GPU", "yes");
@@ -2494,10 +2468,10 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
     sprintf(options1, options_template_4a2, metric_type);
     sprintf(options2, options_template_4b2, metric_type);
     EXPECT_EQ(true, compare_2runs(options1, options2));
-  }
+//  }
 
   //----------
-  //---num_repl, num_stage, 3-way
+  //---num_proc_repl, num_stage, 3-way
   //----------
 
   char options_template_10[] =
@@ -2508,11 +2482,11 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
       "--num_proc_vector %i --num_proc_repl %i "
       "--num_proc_field %i --num_way %i --num_stage %i";
 
-  if (!is_duo) {
+//  if (!is_duo) {
     for (int gpu=0; gpu<=1; ++gpu) {
       for (int num_vector_local=6; num_vector_local<=18; num_vector_local+=12) {
         for (int num_proc_vector=1; num_proc_vector<=4; ++num_proc_vector) {
-          for (int num_proc_repl=2; num_proc_repl<=5; ++num_proc_repl) {
+          for (int num_proc_repl=1; num_proc_repl<=5; ++num_proc_repl) {
             for (int num_stage=1; num_stage<=6; num_stage+=4) {
               const int num_proc_field = gpu ? 2 : 1;
               const int num_way = 3;
@@ -2530,30 +2504,30 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
         }
       }
     }
-  }
+//  }
 
   //----------
   //---3-way, all2all yes, large, sparse
   //----------
 
-  if (!is_duo) {
-    char options_template_4[] =
+//  if (!is_duo) {
+    char options_template_5[] =
         "--sparse yes "
         "--metric_type %s --verbosity %i "
         //"--problem_type analytic "
         "--num_proc_vector %i --num_field %i --num_vector_local %i "
         "--compute_method %s --all2all %s --num_way 3";
 
-    sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
-    sprintf(options2, options_template_4, metric_type, 1, 1, 100, 48, "CPU", "yes");
-    sprintf(options3, options_template_4, metric_type, 1, 1, 100, 48, "GPU", "yes");
+    sprintf(options1, options_template_5, metric_type, 1, 1, 100, 48, "REF", "no");
+    sprintf(options2, options_template_5, metric_type, 1, 1, 100, 48, "CPU", "yes");
+    sprintf(options3, options_template_5, metric_type, 1, 1, 100, 48, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
 
-    sprintf(options1, options_template_4, metric_type, 1, 1, 100, 48, "REF", "no");
-    sprintf(options2, options_template_4, metric_type, 1, 4, 100, 12, "CPU", "yes");
-    sprintf(options3, options_template_4, metric_type, 1, 4, 100, 12, "GPU", "yes");
+    sprintf(options1, options_template_5, metric_type, 1, 1, 100, 48, "REF", "no");
+    sprintf(options2, options_template_5, metric_type, 1, 4, 100, 12, "CPU", "yes");
+    sprintf(options3, options_template_5, metric_type, 1, 4, 100, 12, "GPU", "yes");
     EXPECT_EQ(true, compare_3runs(options1, options2, options3));
-  }
+//  }
 #endif
 
 } // DriverTest_ccc3_duo3_

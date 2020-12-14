@@ -579,6 +579,7 @@ int CEnv::data_type_metrics() const {
 
 bool CEnv::can_run(int tc_try) const {
 
+  // Using "auto" here is inadequate to determine whether can run.
   COMET_INSIST(TC::AUTO != tc_try);
 
   bool result = true;
@@ -586,82 +587,91 @@ bool CEnv::can_run(int tc_try) const {
 
   if(printdetails) printf("In can_run result=%d\n",(int)result);
 
-  if (compute_method_ == ComputeMethod::REF) {
-    result = result && !is_try_tc_(tc_try);
+  // Reference methods never use linalg or tc packages.
+  if (compute_method_ == ComputeMethod::REF)
+    result = result && !is_try_tc_(tc_try) && !is_using_linalg();
     if(printdetails) printf("ComputeMethod::REF result=%d\n",(int)result);
-  }
-  
+
+  // MPI requirements.
   if (make_comms_) {
     result = result && num_proc_ <= System::num_proc();
-
-    if (num_proc_ > 1) {
+    if (num_proc_ > 1)
       result = result && BuildHas::MPI;
-    }
     if(printdetails) printf("make_comms_ result=%d\n",(int)result);
   }
 
+  // Can use tc package only for bitwise methods.
   result = result && !(!is_metric_type_bitwise() && is_try_tc_(tc_try));
   if(printdetails) printf("metric_type_bitwise && try_tc result=%d\n",(int)result);
 
+  // CPU can use tc package only if have CPUBLAS and doing FP32 GEMM.
   if (is_metric_type_bitwise() && compute_method_ == ComputeMethod::CPU) {
     result = result && (!is_try_tc_(tc_try) ||
                         (TC::FP32 == tc_try && BuildHas::CPUBLAS));
     if(printdetails) printf("metric_type_bitwise && CPU result=%d\n",(int)result);
   }
 
+  // Use of GPU requires presence of GPU.
   if (is_compute_method_gpu()) {
     if(printdetails) printf("checking compute_method_gpu result=%d BuildHas::ACCEL=%d\n",(int)result,(int)BuildHas::ACCEL);
     result = result && BuildHas::ACCEL && System::compute_capability() > 0;
     if(printdetails) printf("compute_method_gpu result=%d\n",(int)result);
   }
 
-  if (can_use_linalg_(tc_try) && !is_try_tc_(tc_try) && num_way() == NumWay::_3 &&
-      metric_type() == MetricType::DUO) {
+  // 3-way DUO requires either tc package or non-linalg code path.
+  if (can_use_linalg_(tc_try) && !is_try_tc_(tc_try) &&
+      num_way() == NumWay::_3 && metric_type() == MetricType::DUO) {
     result = false; // currently unimplemented
   }
   if(printdetails) printf("At middle: result=%d\n",(int)result);
 
+  // If using GPU, must have MAGMA use if non-bitwise method OR
+  // if bitwise method and not using tc package.
+  if (is_compute_method_gpu() && (!is_metric_type_bitwise()
+      || (is_metric_type_bitwise() && !is_try_tc_(tc_try)))) {
+    result = result && BuildHas::MAGMA;
+  }
+
+  // Checks based on GPU compute capability.
+
+  // NOTE: choices for AMD/HIP:
   // /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802',
   // 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
   // NOTE: MI60 is 906
 
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP32 == tc_try) {
-    // TODO: check what is the right compute cpability here for cuda.
+  if (is_metric_type_bitwise() && is_compute_method_gpu() &&
+      TC::FP32 == tc_try) {
+    // ISSUE: may need to adjust CUDA compute capability here.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
                      || (BuildHas::HIP && System::compute_capability() >= 906));
   }
 
-  // TODO: determine, set correct values for HIP, if any.
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::FP16 == tc_try) {
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
-                     || (BuildHas::HIP && System::compute_capability() >= 1000));
-                     //|| (BuildHas::HIP && System::compute_capability() >= 908));
+  if (is_metric_type_bitwise() && is_compute_method_gpu() &&
+      TC::FP16 == tc_try) {
+    // ISSUE: may need to adjust HIP compute capability here.
+    result = result &&((BuildHas::CUDA && System::compute_capability() >= 700)
+                    || (BuildHas::HIP && System::compute_capability() >= 1000));
+                  //|| (BuildHas::HIP && System::compute_capability() >= 908));
   }
 
-  // TODO: determine, set correct values for HIP, if any.
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc_try) {
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-                     //|| (BuildHas::HIP && System::compute_capability() >= 1000));
-                     //|| (BuildHas::HIP && System::compute_capability() >= 908));
-                     || (BuildHas::HIP && System::compute_capability() >= 906));
+  if (is_metric_type_bitwise() && is_compute_method_gpu() &&
+      TC::INT8 == tc_try) {
+    // ISSUE: may need to adjust HIP compute capability here.
+    // NOTE: pre-Turing can support INT8 but it is not necessarily fastest.
+    result = result &&((BuildHas::CUDA && System::compute_capability() >= 750)
+                  //|| (BuildHas::HIP && System::compute_capability() >= 1000));
+                  //|| (BuildHas::HIP && System::compute_capability() >= 908));
+                    || (BuildHas::HIP && System::compute_capability() >= 906));
     if(printdetails) printf("Check INT8 result=%d\n",(int)result);
   }
 
-  // TODO: determine, set correct values for HIP, if any.
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::B1 == tc_try) {
-    // Temporary code for testing xor mock code on summit.
+    // ISSUE: may need to adjust HIP compute capability here.
+    // FIX: Temporary code below for testing xor mockup code on summit.
+//  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
                      || (BuildHas::HIP && System::compute_capability() >= 1000))
                     && can_use_xor_(tc_try);
-//    result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-//                     || (BuildHas::HIP && System::compute_capability() >= 1000))
-//                    && can_use_xor_(tc_try);
-    if(printdetails) printf("Check B1 use_xor=%d result=%d\n",(int)can_use_xor_(tc_try),(int)result);
-  }
-
-  if (is_compute_method_gpu() && (!is_metric_type_bitwise()
-      || (is_metric_type_bitwise() && !is_try_tc_(tc_try)))) {
-    result = result && BuildHas::MAGMA;
   }
   if(printdetails) printf("At end: result=%d\n",(int)result);
 
@@ -677,15 +687,14 @@ int CEnv::tc_eff_compute_() const {
     return tc_;
 
   // NOTE: order is important here: fastest first.
+  // TODO: move B1 to most favored status.
   //for (auto tc_try : {TC::B1, TC::INT8, TC::FP16, TC::FP32}) {
   for (auto tc_try : {TC::INT8, TC::FP16, TC::FP32, TC::B1}) {
     if (can_run(tc_try))
       return tc_try;
   }
 
-//  COMET_INSIST(false && "Suitable tc setting not found for this platform / build.");
-//  return 0;
-    return TC::NO;
+  return TC::NO;
 }
 
 //-----------------------------------------------------------------------------
@@ -693,13 +702,12 @@ int CEnv::tc_eff_compute_() const {
 
 MPI_Datatype CEnv::metrics_mpi_type() const {
 
-  if (metric_type() == MetricType::CZEK) {
+  if (metric_type() == MetricType::CZEK)
     return COMET_MPI_FLOAT;
-  } else if (metric_type() == MetricType::CCC) {
+  else if (metric_type() == MetricType::CCC)
     return MPI_DOUBLE_COMPLEX;
-  } else if (metric_type() == MetricType::DUO) {
+  else if (metric_type() == MetricType::DUO)
     return MPI_DOUBLE_COMPLEX;
-  }
 
   COMET_INSIST(false && "Invalid metric_type.");
   return MPI_DOUBLE_COMPLEX; // Should never get here.
@@ -964,124 +972,6 @@ void CEnv::stream_synchronize(AccelStream_t stream) const {
   COMET_INSIST(System::accel_last_call_succeeded() &&
            "Failure in call to stream synchronize.");
 }
-
-#if 0
-//=============================================================================
-// Accelerator handles.
-
-//-----------------------------------------------------------------------------
-/// \brief Allocate accelerator handles needed for computation.
-
-void CEnv::handles_initialize_() {
-
-  if (are_handles_initialized_)
-    return;
-
-  if (!is_compute_method_gpu())
-    return;
-
-  if (!are_streams_initialized_)
-    streams_initialize_();
-
-# if defined COMET_USE_CUDA
-    cublasStatus_t bstatus = cublasCreate(&blas_handle_);
-    COMET_INSIST(bstatus == CUBLAS_STATUS_SUCCESS && "Error in cublasCreate.");
-    COMET_INSIST(System::accel_last_call_succeeded());
-
-    bstatus = cublasSetStream(blas_handle_, stream_compute());
-    COMET_INSIST(bstatus == CUBLAS_STATUS_SUCCESS &&
-                 "Error in cublasSetStream.");
-
-    bstatus = cublasSetMathMode(blas_handle_, CUBLAS_TENSOR_OP_MATH);
-    COMET_INSIST(bstatus == CUBLAS_STATUS_SUCCESS &&
-                 "Error in cublasSetMathMode.");
-    COMET_INSIST(System::accel_last_call_succeeded());
-
-    cusparseStatus_t sstatus = cusparseCreate(&sparse_handle_);
-    COMET_INSIST(sstatus == CUSPARSE_STATUS_SUCCESS && "Error in cusparseCreate.");
-    COMET_INSIST(System::accel_last_call_succeeded());
-
-# elif defined COMET_USE_HIP
-    int bstatus = rocblas_create_handle(&blas_handle_);
-    COMET_INSIST(bstatus == rocblas_status_success &&
-             "Error in rocblas_create_handle.");
-    COMET_INSIST(System::accel_last_call_succeeded());
-
-    bstatus = rocblas_set_stream(blas_handle_, stream_compute());
-    COMET_INSIST(bstatus == rocblas_status_success &&
-             "Error in rocblas_set_stream.");
-    COMET_INSIST(System::accel_last_call_succeeded());
-
-    //FIX - will this be needed for AMD gpu?
-    //  status = cublasSetMathMode(tc_bufs.accelblas_handle,
-    //                             CUBLAS_TENSOR_OP_MATH);
-    //  COMET_INSIST(status == CUBLAS_STATUS_SUCCESS &&
-    //           "Error in cublasSetMathMode.");
-
-    int sstatus = rocsparse_create_handle(&sparse_handle_);
-    COMET_INSIST(sstatus == rocsparse_status_success &&
-             "Error in rocsparse_create_handle.");
-    COMET_INSIST(System::accel_last_call_succeeded());
-# endif
-
-  are_handles_initialized_ = true;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Dellocate previously allocated accelerator handles.
-
-void CEnv::handles_terminate_() {
-
-  if (! are_handles_initialized_)
-    return;
-
-# if defined COMET_USE_CUDA
-    cublasStatus_t bstatus = cublasDestroy(blas_handle_);
-    COMET_INSIST(bstatus == CUBLAS_STATUS_SUCCESS &&
-                 "Error in cublasDestroy.");
-    cublasStatus_t sstatus = cusparseDestroy(sparse_handle_);
-    COMET_INSIST(sstatus == CUSPARSE_STATUS_SUCCESS &&
-                 "Error in cusparseDestroy.");
-# elif defined COMET_USE_HIP
-    int bstatus = rocblas_destroy_handle(blas_handle_);
-    COMET_INSIST(bstatus == rocblas_status_success &&
-           "Error in rocblas_destroy_handle.");
-    int sstatus = rocsparse_destroy_handle(sparse_handle_);
-    COMET_INSIST(sstatus == rocsparse_status_success &&
-           "Error in rocsparse_destroy_handle.");
-# endif
-  COMET_INSIST(System::accel_last_call_succeeded());
-
-  are_handles_initialized_ = false;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Accelerator handle for blas operations.
-
-AccelBlasHandle_t CEnv::blas_handle() {
-  handles_initialize_(); // Lazy initialization.
-  return blas_handle_;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Accelerator handle for sparse operations.
-
-AccelSparseHandle_t CEnv::sparse_handle() {
-  handles_initialize_(); // Lazy initialization.
-  return sparse_handle_;
-}
-#endif
-
-//=============================================================================
-// Accelerator queues.
-
-
-
-
-
-
-
-
 
 //=============================================================================
 // MPI proc counts.

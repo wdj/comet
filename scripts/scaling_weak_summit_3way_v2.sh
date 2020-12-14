@@ -107,40 +107,53 @@ main()
   [ "$COMET_PLATFORM" = "IBM_AC922" ] && local IBM_AC922=1 || CORI_GPU=
   [ "$COMET_PLATFORM" = "CORI_GPU" ] && local CORI_GPU=1 || CORI_GPU=
 
+  [[ "$IBM_AC922" ]] && RANKS_PER_NODE=6
+  [[ "$CORI_GPU" ]] && RANKS_PER_NODE=1
+
   #----------------------------------------------------------------------------
   # Node counts etc.
 
+  # How many nodes are allocted by the scheduler.
   [[ "$IBM_AC922" ]] && num_node_job=$(( ( $(echo $LSB_MCPU_HOSTS | wc -w) - 2 ) / 2 ))
   [[ "$CORI_GPU" ]] && num_node_job="$SLURM_JOB_NUM_NODES"
 
-  [[ -z "${num_node_solve:-}" ]] && num_node_solve=$num_node_job
+  # How many nodes are to be used to launch comet.
   [[ -z "${num_node_launch:-}" ]] && num_node_launch=$num_node_job
 
-  [[ "$IBM_AC922" ]] && ranks_per_node=6
-  [[ "$CORI_GPU" ]] && ranks_per_node=1
+  # How many nodes to be used by comet to solve the actual problem.
+  # if num_node_solve < num_node_launch, then try to exclude slow nodes.
+  [[ -z "${num_node_solve:-}" ]] && num_node_solve=$num_node_job
 
-  load=6
+  # A measurement of amount of blocks of work per rank.
+  # Should not be too small, to avoid overheads.
+  LOAD=6
 
-  # Adjust procs to find largest problem that will fit.
+  # Adjust proc decomposition to find largest problem that will fit.
 
   num_proc_field=1
-
   for num_proc_vector_new in {1..100} ; do
+    # Find num_proc_repl associated with this num_proc_vector and load.
+    # Round this up.
     num_proc_repl_new=$(( ( ( $num_proc_vector_new + 1 ) * \
-      ( $num_proc_vector_new + 2 ) + $load - 1 ) / $load ))
+      ( $num_proc_vector_new + 2 ) + $LOAD - 1 ) / $LOAD ))
+    # Associated total num_proc.
     num_proc_new=$(( $num_proc_vector_new * $num_proc_field * \
       $num_proc_repl_new ))
-    if [ $num_proc_new -gt $(( $num_node_solve * $ranks_per_node )) ] ; then
+    # Stop if too many procs to be able to run.
+    if [ $num_proc_new -gt $(( $num_node_solve * $RANKS_PER_NODE )) ] ; then
       break
     fi
     num_proc_vector=$num_proc_vector_new
     num_proc_repl=$num_proc_repl_new
   done
 
+  # Total procs required.
   num_proc=$(( $num_proc_vector * $num_proc_field * $num_proc_repl ))
 
   #----------------------------------------------------------------------------
   # Algorithm settings
+
+  local num_way=3
 
   [[ "${ccc:-}" = 1 ]] && metric_type=ccc   # legacy settings
   [[ "${ccc:-}" = 0 ]] && metric_type=czekanowski   # legacy settings
@@ -150,38 +163,45 @@ main()
   [[ -z "${tc:-}" && $metric_type != czekanowski ]] && tc=1
   [[ -z "${tc:-}" && $metric_type = czekanowski ]] && tc=0
   [[ -z "${cksum:-}" ]] && cksum=yes # alt. cksum=no
-  [[ -z "${problem_type:-}" ]] && problem_type=random # alt. problem_type=analytic
+  [[ -z "${problem_type:-}" ]] && problem_type=random # problem_type=analytic
   [[ -z "${debug:-}" ]] && debug=0
   [[ -z "${num_tc_steps:-}" ]] && num_tc_steps=4
-    #[[ -z "${num_tc_steps:-}" ]] && num_tc_steps=2
-    #[[ -z "${num_tc_steps:-}" ]] && num_tc_steps=5
+
+  if [ $metric_type = ccc ] ; then
+    [[ -z "${threshold:-}" ]] && threshold=.65
+    [[ -z "${metrics_shrink:-}" ]] && metrics_shrink=10
+  fi
+
+  if [ $metric_type = duo ] ; then
+    [[ -z "$threshold" ]] && threshold=.85
+    [[ -z "$metrics_shrink" ]] && metrics_shrink=10
+  fi
 
   #----------------------------------------------------------------------------
   # Problem sizes
 
   if [ "$metric_type" != czekanowski ] ; then
+    # Bitwise methods CCC and DUO.
 
-    #num_field_local=$(( 100000 * $num_tc_steps ))
-    #num_field_local=$(( 100000 * $num_tc_steps ))
+    # Set number of fields along field axis, per proc (note num_proc_field=1).
+    # As a convenience, define this in terms of num_tc_steps.
     [[ "$IBM_AC922" ]] && num_field_local=$(( 100 * 1024 * $num_tc_steps ))
     [[ "$CORI_GPU" ]] && num_field_local=$(( 80 * 1024 * $num_tc_steps ))
 
-    #num_field_local=$(( 98304 * $num_tc_steps ))
-    #num_field_local=$(( 2 * 98304 * $num_tc_steps ))
-    #num_field_local=$(( 200000 * $num_tc_steps ))
-    #num_field_local=$(( 2 * 100352 * $num_tc_steps ))
-    #num_field_local=$(( 5 * 16384 * $num_tc_steps ))
-    #num_field_local=$(( 98304 * $num_tc_steps ))
+    # Set number of fields along field axis, per proc.
+    # When setting per-proc like this ("_local"), must be divisible by 6.
+    # This is also set up to be divisible by num_stage (for performance).
+    [[ "$IBM_AC922" ]] && num_vector_local=$(( 18 * ( 64 * 6 ) ))
+    [[ "$CORI_GPU" ]] && num_vector_local=$(( 40 * ( 64 * 6 ) ))
 
-    #num_vector_local=$(( 992 * 6 ))
-    [[ "$IBM_AC922" ]] && num_vector_local=$(( 36 * 32 * 6 ))
-    [[ "$CORI_GPU" ]] && num_vector_local=$(( 80 * 32 * 6 ))
-
-    #num_stage=$(( ( $num_vector_local / 6 ) / 4 ))
-    [[ "$IBM_AC922" ]] && num_stage=$(( ( $num_vector_local / 6 ) / 16 ))
-    [[ "$CORI_GPU" ]] && num_stage=$(( ( $num_vector_local / 6 ) / 16 ))
+    # Set number of stages. exact divisibility with nvl for performance.
+    if [ -z "${num_stage}" ] ; then
+      [[ "$IBM_AC922" ]] && num_stage=$(( $num_vector_local / ( 64 * 6 ) ))
+      [[ "$CORI_GPU" ]] && num_stage=$(( $num_vector_local / ( 64 * 6 ) ))
+    fi
 
   elif [ "$single" = 1 ] ; then
+    # CZEK, single prec.
 
     [[ "$IBM_AC922" ]] && num_field_local=$(( 7500 * $num_tc_steps ))
     [[ "$IBM_AC922" ]] && num_vector_local=$(( 768 * 6 ))
@@ -191,6 +211,7 @@ main()
     [[ "$CORI_GPU" ]] && num_stage=$(( 18 ))
 
   else
+    # CZEK, double prec.
 
     [[ "$IBM_AC922" ]] && num_field_local=$(( 7500 * $num_tc_steps ))
     [[ "$IBM_AC922" ]] && num_vector_local=$(( 480 * 6 ))
@@ -201,11 +222,12 @@ main()
 
   fi
 
+  # Total length of vectors axis across procs.
   num_vector=$(( $num_vector_local * $num_proc_vector ))
 
   # Compute one phase of results out of possibly many phases
-  #[[ -z "$num_phase_ratio" ]] && num_phase_ratio=$(( 30 * $num_proc_repl ))
-  #[[ -z "$num_phase" ]] && num_phase=$(( ( $num_proc_vector + $num_phase_ratio - 1 ) / $num_phase_ratio ))
+  ##[[ -z "$num_phase_ratio" ]] && num_phase_ratio=$(( 30 * $num_proc_repl ))
+  ##[[ -z "$num_phase" ]] && num_phase=$(( ( $num_proc_vector + $num_phase_ratio - 1 ) / $num_phase_ratio ))
   num_phase=1
   [[ -z "$phase_min" ]] && phase_min=$(( $num_phase - 4 ))
   [[ $phase_min < 0 ]] && phase_min=0
@@ -221,65 +243,76 @@ main()
 
   [[ "$IBM_AC922" ]] && local PROJECT="$(echo $LSB_PROJECT_NAME | tr A-Z a-z)"
   [[ "$CORI_GPU" ]] && local PROJECT="$SLURM_JOB_ACCOUNT"
-  #INSTALLS_DIR=/gpfs/alpine/$OLCF_PROJECT/scratch/$(whoami)/comet
   [[ "$IBM_AC922" ]] && local INSTALLS_DIR=$MEMBERWORK/$OLCF_PROJECT/comet_work
   [[ "$CORI_GPU" ]] && local INSTALLS_DIR=$HOME/genomics/installs
 
   [[ "$CORI_GPU" ]] && nompi=_nompi || nompi=""
 
+  # Location of executable.
+  local EXEC_DIR
   if [ $debug = 1 ] ; then
-    executable_double=$INSTALLS_DIR/install_test${nompi}_$COMET_HOST/bin/genomics_metric
-    executable_single=$INSTALLS_DIR/install_single_test${nompi}_$COMET_HOST/bin/genomics_metric
-  else
-    executable_double=$INSTALLS_DIR/install_release${nompi}_$COMET_HOST/bin/genomics_metric
-    executable_single=$INSTALLS_DIR/install_single_release${nompi}_$COMET_HOST/bin/genomics_metric
-  fi
-
-  if [ "$metric_type" != czekanowski ] ; then
     if [ "$single" = 1 ] ; then
-      executable=$executable_single
+      EXEC_DIR=$INSTALLS_DIR/install_single_test${nompi}_$COMET_HOST/bin
     else
-      executable=$executable_double
+      EXEC_DIR=$INSTALLS_DIR/install_test${nompi}_$COMET_HOST/bin
     fi
-    [[ "$sparse" == yes ]] && tag=${metric_type}_sparse \
-                           || tag=${metric_type}_nonsparse
-  elif [ "$single" = 1 ] ; then
-    executable=$executable_single
-    tag=czek_single
   else
-    executable=$executable_double
-    tag=czek_double
+    if [ "$single" = 1 ] ; then
+      EXEC_DIR=$INSTALLS_DIR/install_single_release${nompi}_$COMET_HOST/bin
+    else
+      EXEC_DIR=$INSTALLS_DIR/install_release${nompi}_$COMET_HOST/bin
+    fi
   fi
-  [[ $tc != 0 ]] && tag=${tag}_tc
+  local EXECUTABLE=$EXEC_DIR/genomics_metric
 
-  uid=${tag}_$(echo $(( 100000 + $num_proc_field )) | sed 's/.//')
-  uid=${uid}_$(echo $(( 100000 + $num_proc_vector )) | sed 's/.//')
-  uid=${uid}_$(echo $(( 100000 + $num_proc_repl )) | sed 's/.//')
-  uid=${uid}_$(echo $(( 100000 + $num_proc )) | sed 's/.//')
-  uid=${uid}_${num_field_local}_${num_vector}_${phase_min}_${phase_max}_${num_phase}_$$
+  # Tag for output filename.
+  local TAG
+  if [ "$metric_type" != czekanowski ] ; then
+    [[ "$sparse" == yes ]] && TAG=${metric_type}_sparse \
+                           || TAG=${metric_type}_nonsparse
+  elif [ "$single" = 1 ] ; then
+    TAG=czek_single
+  else
+    TAG=czek_double
+  fi
+  [[ $tc != 0 ]] && TAG=${TAG}_tc
+
+  # Unique ID used for output filename.
+  local UID_
+  UID_=${TAG}_$(echo $(( 100000 + $num_proc_field )) | sed 's/.//')
+  UID_=${UID_}_$(echo $(( 100000 + $num_proc_vector )) | sed 's/.//')
+  UID_=${UID_}_$(echo $(( 100000 + $num_proc_repl )) | sed 's/.//')
+  UID_=${UID_}_$(echo $(( 100000 + $num_proc )) | sed 's/.//')
+  UID_=${UID_}_${num_field_local}_${num_vector}_${phase_min}_${phase_max}_${num_phase}_$$
 
   # Output file stub
-  out_stub=out_3way_$uid
+  out_stub=out_${num_way}way_$UID_
   outfile=${out_stub}_log.txt
 
-    #ar_opts="PAMI_IBV_ENABLE_DCT=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ADAPTER_AFFINITY=0 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_OOO_AR=1"
-  ar_opts="PAMI_IBV_DEVICE_NAME=mlx5_0:1,mlx5_3:1 PAMI_IBV_DEVICE_NAME_1=mlx5_3:1,mlx5_0:1 PAMI_IBV_ADAPTER_AFFINITY=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ENABLE_OOO_AR=1 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_DCT=1"
+  # Command used to launch execution.
 
-  [[ "$IBM_AC922" ]] && launch_command="env OMP_NUM_THREADS=7 $ar_opts jsrun --smpiargs=-gpu --nrs $(( $num_node_launch * $ranks_per_node )) --bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 --rs_per_host $ranks_per_node --tasks_per_rs 1 -X 1"
-  [[ "$CORI_GPU" ]] && launch_command="env OMP_NUM_THREADS=32 srun --nodes=$num_node_launch --ntasks-per-node=$ranks_per_node"
+  #AR_OPTS="PAMI_IBV_ENABLE_DCT=1 PAMI_ENABLE_STRIPING=1 PAMI_IBV_ADAPTER_AFFINITY=0 PAMI_IBV_QP_SERVICE_LEVEL=8 PAMI_IBV_ENABLE_OOO_AR=1"
+  local AR_OPTS
+  AR_OPTS="PAMI_IBV_DEVICE_NAME=mlx5_0:1,mlx5_3:1"
+  AR_OPTS+=" PAMI_IBV_DEVICE_NAME_1=mlx5_3:1,mlx5_0:1"
+  AR_OPTS+=" PAMI_IBV_ADAPTER_AFFINITY=1 PAMI_ENABLE_STRIPING=1"
+  AR_OPTS+=" PAMI_IBV_ENABLE_OOO_AR=1 PAMI_IBV_QP_SERVICE_LEVEL=8"
+  AR_OPTS+=" PAMI_IBV_ENABLE_DCT=1"
+
+  local LAUNCH_COMMAND
+  [[ "$IBM_AC922" ]] && LAUNCH_COMMAND="env OMP_NUM_THREADS=7 $AR_OPTS jsrun --smpiargs=-gpu --nrs $(( $num_node_launch * $RANKS_PER_NODE )) --bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 --rs_per_host $RANKS_PER_NODE --tasks_per_rs 1 -X 1"
+  [[ "$CORI_GPU" ]] && LAUNCH_COMMAND="env OMP_NUM_THREADS=32 srun --nodes=$num_node_launch --ntasks-per-node=$RANKS_PER_NODE"
 
   #----------------------------------------------------------------------------
 
+  # If an excess of available nodes, then try to find fastest and run on those.
   [[ $num_node_solve == $num_node_launch ]] && fastnodes_arg="" \
                                             || fastnodes_arg="--fastnodes"
 
-  [[ -z "$threshold" ]] && threshold=.6
-  [[ -z "$metrics_shrink" ]] && metrics_shrink=30
-
   # Command to execute, with options
 
-  local comet_options_common="\
-      --num_way 3 \
+  local COMET_OPTIONS_COMMON="\
+      --num_way $num_way \
       --num_field_local $num_field_local \
       --num_vector_local $num_vector_local \
       --metric_type $metric_type \
@@ -294,21 +327,21 @@ main()
       --num_stage $num_stage --stage_min $(( $num_stage - 1 )) \
       --verbosity 1 $fastnodes_arg"
 
+  local EXEC_COMMAND="$LAUNCH_COMMAND $EXECUTABLE $COMET_OPTIONS_COMMON"
   if [ $metric_type != czekanowski ] ; then
-    exec_command="$launch_command $executable $comet_options_common \
+    # Additional options for cases of bitwise methods CCC, DUO.
+    EXEC_COMMAND+=" \
       --sparse $sparse \
       --threshold $threshold \
       --metrics_shrink $metrics_shrink \
-      --tc $tc --num_tc_steps $num_tc_steps "
-  else
-    exec_command="$launch_command $executable $comet_options_common"
+      --tc $tc --num_tc_steps $num_tc_steps"
   fi
 
   # Perform run
 
   date | tee -a $outfile
-  echo "$exec_command" | tee -a $outfile
-  time $exec_command 2>&1 | tee -a $outfile
+  echo "$EXEC_COMMAND" | tee -a $outfile
+  time $EXEC_COMMAND 2>&1 | tee -a $outfile
   date | tee -a $outfile
 
 } # main

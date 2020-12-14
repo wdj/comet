@@ -57,10 +57,10 @@ namespace utils {
 /// \brief Minimum of two scalars, native implementation for speed.
 
 template<typename T>
+__host__ __device__
 T min(const T& i, const T& j) {
 
   const T r = i < j ? i : j;
-  COMET_ASSERT(std::min(i, j) == r);
 
   return r;
 }
@@ -69,10 +69,10 @@ T min(const T& i, const T& j) {
 /// \brief Maximum of two scalars, native implementation for speed.
 
 template<typename T>
+__host__ __device__
 T max(const T& i, const T& j) {
 
   const T r = i > j ? i : j;
-  COMET_ASSERT(std::max(i, j) == r);
 
   return r;
 }
