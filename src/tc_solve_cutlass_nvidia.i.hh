@@ -372,6 +372,9 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
     // Operand B
     r2s<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);
 
+    //g2s<pM, pK, block_x, block_y, 1>(smem_buffer_A, a, aBegin+l, k, layout_A);
+    //g2s<pN, pK, block_x, block_y, 0>(smem_buffer_B, b, bBegin+l, k, layout_B);
+
     __syncthreads();
 
     //

@@ -2646,19 +2646,30 @@ void DriverTest_duo2_b1_() {
 } // DriverTest_duo2_b1_
 
 void DriverTest_create_input_files() {
-  //for (int num_vector = 8192; num_vector <= 8192; num_vector+=8192) {
-  //  for (int num_field = 81920; num_field <= 81920; num_field+=81920) {
   for (int num_vector = 1024; num_vector <= 4096; num_vector+=1024) {
-    for (int num_field = 10240; num_field <= 40960; num_field+=10240) {
-      char filename[1024];
-      sprintf(filename,"duo_2way_in_analytic_f%d_v%d.bin",num_field,num_vector);
-      create_vectors_file(filename, num_field, num_vector,
-                          comet::MetricType::DUO, 2, comet::GM_PROBLEM_TYPE_ANALYTIC, 1);
+    int num_field = num_vector * 10;
+    printf("Creating input files for num_vector=%d num_field=%d\n",num_vector,num_field);
+    char filename[1024];
+    sprintf(filename,"duo_2way_in_analytic_f%d_v%d.bin",num_field,num_vector);
+    create_vectors_file(filename, num_field, num_vector,
+                        comet::MetricType::DUO, 2, comet::GM_PROBLEM_TYPE_ANALYTIC, 1);
 
-      sprintf(filename,"duo_2way_in_random_f%d_v%d.bin",num_field,num_vector);
-      create_vectors_file(filename, num_field, num_vector,
-                          comet::MetricType::DUO, 2, comet::GM_PROBLEM_TYPE_RANDOM, 1);
-    }
+    sprintf(filename,"duo_2way_in_random_f%d_v%d.bin",num_field,num_vector);
+    create_vectors_file(filename, num_field, num_vector,
+                        comet::MetricType::DUO, 2, comet::GM_PROBLEM_TYPE_RANDOM, 1);
+  }
+
+  for (int num_vector = 6144; num_vector <= 14436; num_vector+=2048) {
+    int num_field = num_vector * 10;
+    printf("Creating input files for num_vector=%d num_field=%d\n",num_vector,num_field);
+    char filename[1024];
+    sprintf(filename,"duo_2way_in_analytic_f%d_v%d.bin",num_field,num_vector);
+    create_vectors_file(filename, num_field, num_vector,
+                        comet::MetricType::DUO, 2, comet::GM_PROBLEM_TYPE_ANALYTIC, 1);
+
+    sprintf(filename,"duo_2way_in_random_f%d_v%d.bin",num_field,num_vector);
+    create_vectors_file(filename, num_field, num_vector,
+                        comet::MetricType::DUO, 2, comet::GM_PROBLEM_TYPE_RANDOM, 1);
   }
 }
 
@@ -2754,13 +2765,13 @@ TEST(DriverTest, duo2) {
   DriverTest_duo3_();
 }*/
 
-/*TEST(DriverTest, duo2_tc) {
+TEST(DriverTest, duo2_tc) {
   DriverTest_duo2_b1_();
-}*/
-
-TEST(DriverTest, create_input_files) {
-  DriverTest_create_input_files();
 }
+
+/*TEST(DriverTest, create_input_files) {
+  DriverTest_create_input_files();
+}*/
 
 END_TESTS
 

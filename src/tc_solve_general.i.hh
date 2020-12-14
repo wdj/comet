@@ -113,6 +113,7 @@ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
     //if (ind_m == 0 && ind_n == 1)
     //    printf("%i %i %i   %i\n", (int)ind_k, (int)ind_m, (int)ind_n, (int)v);
   }
+  //printf("c[%d,%d=%d]=%d\n",(int)ind_m,(int)ind_n,(int)(ind_m+m*ind_n),(int)c[ind_m+m*ind_n]);
 }
 
 //-----------------------------------------------------------------------------
@@ -428,6 +429,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       const typename TCTraits<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
       enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
+
+      if(env.print_details())
+          printf("Launching Cublas/Rocblas GEMM kernel m=%d n=%d k=%d beta=%d\n",
+                 m,n,k,(int)beta);
 
       // GPU BLAS call.
 

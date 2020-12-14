@@ -263,18 +263,11 @@ __device__ inline void g2s_int(uint64_t *smem, GMBits2x64 *gmem, int begin, int 
 
 template <int bM, int bN, int bK, int wM, int wN, int wK, int block_x, int block_y>
 __global__ void __launch_bounds__(block_x *block_y, 1)
-b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b, GMTally2x2 *c)
+b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b, int *c)
 {
   /**
     bM, bN, bK - threadblock MMA shape: bK is expressed in bits
     pM, pN, pK - threadblock MMA shape: bK is expressed in uint64_t's, and pM and pN are the shapes for loading GMBits2x64
-
-    When loading data from gmem to smem, the "n" and "p" parts are stored to separate parts of smem, and then
-    each warp works on and accumulates on the "nn", "np", "pn" and "pp" results separately. At the end each
-    warp combines results stored in the 4 accumualtes and then write to gmem, which does not need to go through
-    smem anymore.
-
-    In other words, in each threadblock, this specific MMA problem is decomposed into 4 natural sub-problems.
     */
 
   // Block indices
@@ -306,9 +299,9 @@ b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64
   using InstructionShape = cutlass::gemm::GemmShape<16, 8, 256>;
 #endif
 
-  //static_assert(wK % alignment == 0, "alignment");
+  static_assert(wK % alignment == 0, "alignment");
 
-  using WarpShape = cutlass::gemm::GemmShape<wM, wN, wK>;
+  using WarpShape = cutlass::gemm::GemmShape<wM*2, wN*2, wK>;
   using ElementA = cutlass::uint1b_t;
   using ElementB = cutlass::uint1b_t;
   using ElementC = int;
@@ -327,8 +320,8 @@ b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64
   //
   // Distribute each sub-problem to the warps.
   //
-  constexpr int warp_count_m = pM / WarpShape::kM;
-  constexpr int warp_count_n = pN / WarpShape::kN;
+  constexpr int warp_count_m = pM * 2 / WarpShape::kM;
+  constexpr int warp_count_n = pN * 2 / WarpShape::kN;
 
   int warp_idx_mn = warp_id % (warp_count_m * warp_count_n);
   int warp_idx_m = warp_idx_mn % warp_count_m;
@@ -337,7 +330,7 @@ b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64
   extern __shared__ char smem_ptr[];
 
   char *smem_ptr_A = smem_ptr;
-  char *smem_ptr_B = &smem_ptr_A[ThreadblockShape::kM * ThreadblockShape::kK * 1 / 8];
+  char *smem_ptr_B = &smem_ptr_A[ThreadblockShape::kM*2 * ThreadblockShape::kK * 1 / 8];
 
   uint64_t *smem_buffer_A = reinterpret_cast<uint64_t *>(smem_ptr_A);
   uint64_t *smem_buffer_B = reinterpret_cast<uint64_t *>(smem_ptr_B);
@@ -346,9 +339,9 @@ b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64
   using FragmentB = typename Mma::FragmentB;
   using FragmentC = typename Mma::FragmentC;
 
-  typename Mma::LayoutA layout_A = Mma::LayoutA::packed({ThreadblockShape::kM, ThreadblockShape::kK});
-  typename Mma::LayoutB layout_B = Mma::LayoutB::packed({ThreadblockShape::kK, ThreadblockShape::kN});
-  typename Mma::LayoutC layout_C = Mma::LayoutC::packed({m, n});
+  typename Mma::LayoutA layout_A = Mma::LayoutA::packed({ThreadblockShape::kM*2, ThreadblockShape::kK});
+  typename Mma::LayoutB layout_B = Mma::LayoutB::packed({ThreadblockShape::kK,   ThreadblockShape::kN*2});
+  typename Mma::LayoutC layout_C = Mma::LayoutC::packed({m*2, n*2});
 
   FragmentC accum;
   accum.clear();
@@ -357,34 +350,17 @@ b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64
   static_assert(pN % block_y == 0, "block-global-memory-loader needs to be in shape.");
   static_assert(pK % block_x == 0, "block-global-memory-loader needs to be in shape.");
 
-  printf("b=%d,%d tid=%d Asize=%dx%d Bsize=%dx%d\n",
-         bx,by,thread_idx,ThreadblockShape::kM,ThreadblockShape::kK,
-         ThreadblockShape::kK,ThreadblockShape::kN);
+  printf("b=%d,%d tid=%d Asize=%dx%d Astart=0 aBegin=%d Bsize=%dx%d Bstart=%d bBegin=%d ABTotal=%d "
+         "warpshape=%d,%d warp_id=%d warp_count=%d,%d warp_idx=%d,%d=%d\n",
+         bx,by,thread_idx,ThreadblockShape::kM*2,ThreadblockShape::kK,aBegin,
+         ThreadblockShape::kK,ThreadblockShape::kN*2,ThreadblockShape::kM*2 * ThreadblockShape::kK * 1 / 8,bBegin,
+         (ThreadblockShape::kM*2 + ThreadblockShape::kN) * ThreadblockShape::kK / 8,
+         wM*2,wN*2,warp_id,warp_count_m,warp_count_n,warp_idx_m,warp_idx_n,warp_idx_mn);
 
-  /*constexpr int iter_x = pK / block_x;
-  constexpr int iter_y_a = pM / block_y;
-  constexpr int iter_xy_a = iter_x * iter_y_a;
-  constexpr int iter_y_b = pN / block_y;
-  constexpr int iter_xy_b = iter_x * iter_y_b;
-
-  uint64_t frag_a[2 * iter_xy_a];
-  uint64_t frag_b[2 * iter_xy_b];
-
-  printf("b=%d,%d tid=%d iter x=%d y_a=%d xy_a=%d y_b=%d xy_b=%d\n",
-         bx,by,thread_idx,iter_x,iter_y_a,iter_xy_a,iter_y_b,iter_xy_b);*/
-
-  for (int l = 0; l < k; l += pK) {
-    // Here gmem -> register == "g2r" and then register -> smem == "r2s".
+  /*for (int l = 0; l < k; l += pK) {
     // Operand A
-    /*g2r_int<pM, pK, block_x, block_y>(a, aBegin + l, k, frag_a);
-    // Operand B
-    g2r_int<pN, pK, block_x, block_y>(b, bBegin + l, k, frag_b);
-    // Operand A
-    r2s_int<pM, pK, block_x, block_y, 1>(frag_a, smem_buffer_A, layout_A);
-    // Operand B
-    r2s_int<pN, pK, block_x, block_y, 0>(frag_b, smem_buffer_B, layout_B);*/
-
     g2s_int<pM,pK,block_x,block_y,1>(smem_buffer_A, a, aBegin+l, k, layout_A);
+    // Operand B
     g2s_int<pN,pK,block_x,block_y,0>(smem_buffer_B, b, bBegin+l, k, layout_B);
 
     __syncthreads();
@@ -422,21 +398,29 @@ b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64
   }
 
   if (warp_id < warp_count_n * warp_count_m) {
-    // use "double2" instead of "GMTally2x2" to make sure compiler issue 128-bit store instructions.
     using output_type = int;
 
-    using IteratorTallyC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
+    using IteratorC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
       typename cutlass::MatrixShape<WarpShape::kM, WarpShape::kN>, output_type, LayoutC, InstructionShape,
       typename Mma::Policy::OpDelta>;
 
-    typename IteratorTallyC::Fragment accum_tally;
-    IteratorTallyC iter_tally_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
+    IteratorC iter_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
 
-    iter_tally_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
-    // The following code does not translates into the most efficient instructions, even with 128-bit stores.
-    // With current version of CUTLASS this is as far as we can go.
-    iter_tally_C.store(accum_tally);
+    iter_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
+    iter_C.store(accum);
+    printf("b=%d,%d tid=%d mnk=%d,%d,%d warp_id=%d warp_count_m=%d warp_count_n=%d offset=%d,%d warpshape=%d,%d c=%d\n",
+           bx,by,thread_idx,m,n,k,warp_id,warp_count_m,warp_count_n,
+           (pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n,
+           wM*2,wN*2,c[0]);
+  } else {
+    printf("b=%d,%d tid=%d warp_id=%d warp_count_m=%d warp_count_n=%d\n",
+           bx,by,thread_idx,warp_id,warp_count_m,warp_count_n);
   }
+  __syncthreads();
+  int cStart = bx*blockDim.x*n + blockDim.y*by;
+  printf("b=%d,%d t=%d,%d bD=%d,%d c[%d]=%d\n",bx,by,
+         threadIdx.x,threadIdx.y,blockDim.x,blockDim.y,
+         cStart+threadIdx.x*n+threadIdx.y,c[cStart+threadIdx.x*n+threadIdx.y]);*/
 }
 
 //-----------------------------------------------------------------------------
@@ -458,7 +442,7 @@ void tc_solve_comet_impl_cutlass_int(int m, int n, int k, const void *matA, cons
 {
 #if 1
   // Use following for Turing
-  constexpr int block_x = 8;
+  /*constexpr int block_x = 8;
   constexpr int block_y = 16;
 
   constexpr int threadblock_m = 128;
@@ -467,7 +451,7 @@ void tc_solve_comet_impl_cutlass_int(int m, int n, int k, const void *matA, cons
 
   constexpr int warp_m = 32;
   constexpr int warp_n = 32;
-  constexpr int warp_k = 512; // 64 * 8
+  constexpr int warp_k = 512;*/ // 64 * 8
 #else
   // Use following for Ampere
   constexpr int block_x = 16;
@@ -481,6 +465,31 @@ void tc_solve_comet_impl_cutlass_int(int m, int n, int k, const void *matA, cons
   constexpr int warp_n = 32;
   constexpr int warp_k = 1024; // 64 * 16
 #endif
+
+  // Smaller test settings
+  constexpr int block_x = 8;
+  constexpr int block_y = 8;
+
+  constexpr int threadblock_m = 16; // 4 blocks per thread block
+  constexpr int threadblock_n = 16;
+  constexpr int threadblock_k = 512; // 64 * 8
+
+  constexpr int warp_m = 8; // 64 threads per block
+  constexpr int warp_n = 8;
+  constexpr int warp_k = 512; // 64 * 8
+
+  // Smallest test settings
+  /*constexpr int block_x = 8;
+  constexpr int block_y = 8;
+
+  constexpr int threadblock_m = 8; // 1 block per thread block
+  constexpr int threadblock_n = 8;
+  constexpr int threadblock_k = 512; // 64 * 8
+
+  constexpr int warp_m = 8; // 64 threads per block
+  constexpr int warp_n = 8;
+  constexpr int warp_k = 512; // 64 * 8*/
+
   int grid_x = m / (threadblock_m / 2);
   int grid_y = n / (threadblock_n / 2);
 
@@ -495,7 +504,7 @@ void tc_solve_comet_impl_cutlass_int(int m, int n, int k, const void *matA, cons
     warp_m, warp_n, warp_k, shared_bytes);
 
   gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
-    m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, (GMTally2x2 *)matC);
+    m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, (int*)matC);
 }
 
 //=============================================================================

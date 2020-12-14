@@ -312,6 +312,13 @@ static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
         m, n, k, (GMBits2x64*)matA,
         (GMBits2x64*)matB, beta, (int32_t*)matC);
     } break;
+
+    // Optimized Cutlass GEMM that outputs ints
+    case 25: {
+      if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_int\n");     
+      tc_solve_comet_impl_cutlass_int(m,n,k,(GMBits2x64*)matA,
+        (GMBits2x64*)matB, (int32_t*)matC);
+    } break;
     default: {
       printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
          env.num_kernel());
@@ -898,13 +905,6 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
     case 24: {
       if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass\n");
       tc_solve_comet_impl_cutlass(m,n,k,(GMBits2x64*)matA,
-        (GMBits2x64*)matB, (GMTally2x2*)matC);
-    } break;
-
-    // Optimized Cutlass GEMM that outputs ints
-    case 25: {
-      if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_int\n");
-      tc_solve_comet_impl_cutlass_int(m,n,k,(GMBits2x64*)matA,
         (GMBits2x64*)matB, (GMTally2x2*)matC);
     } break;
 

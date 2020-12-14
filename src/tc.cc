@@ -501,13 +501,13 @@ void tc_gemm_start(
       }
       // CoMet 1-bit kernels
       else {
-        if(env.num_kernel()==20) {
+        if(env.num_kernel()==20 || env.num_kernel()==25) {
           tc_comet_int_gemm_start_impl_<TC::B1>(
             m, n, k, matA1, matA2, matB, matC, lddc,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             tc_bufs, nfal, step_2way, env);
         }
-        else if(env.num_kernel()>=21) {
+        else if(env.num_kernel()>=21 && env.num_kernel()<=24) {
           tc_gemm_comet_start_impl_<TC::B1>(
             m, n, k, matA1, matA2, matB, matC, lddc,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,

@@ -582,7 +582,7 @@ bool CEnv::can_run(int tc_try) const {
   COMET_INSIST(TC::AUTO != tc_try);
 
   bool result = true;
-  int printdetails = false;
+  int printdetails = true;
 
   if(printdetails) printf("In can_run result=%d\n",(int)result);
 
