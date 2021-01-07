@@ -332,7 +332,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   module load cmake
   module load openmpi
   module load rocm
-  module load hip
+  #module load hip
   #module load cray-libsci
   #module load rocblas
   (module list) 2>&1 | grep -v '^ *$'
@@ -364,6 +364,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   COMET_HIP_COMPILE_OPTS+=" -I$ROCM_PATH/include"
   COMET_HIP_COMPILE_OPTS+=" -I$HIP_PATH/include/hip"
   COMET_HIP_COMPILE_OPTS+=" -fno-gpu-rdc -Wno-unused-command-line-argument"
+  COMET_HIP_COMPILE_OPTS+=" --amdgpu-target=gfx906,gfx908"
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   #COMET_HIP_COMPILE_OPTS+=" -DCUBLAS_V2_H_ -DHAVE_HIP"
@@ -371,6 +372,7 @@ elif [ $COMET_PLATFORM = LYRA ] ; then
   #COMET_HIP_COMPILE_OPTS+=" -D__HIP_PLATFORM_HCC__"
   local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
   COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
 
   COMET_WERROR=OFF
