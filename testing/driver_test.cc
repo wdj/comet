@@ -1885,14 +1885,19 @@ void DriverTest_b1_xor_gemm_() {
   typedef comet::TC TC;
 
   for (int num_way : {2, 3})
+  //for (int num_way : {2})
   for (int num_tc_steps : {1, 2})
+  //for (int num_tc_steps : {1})
   for (int num_vector = num_way; num_vector < 6; ++num_vector) {
+  //for (int num_vector = 2; num_vector < 3; ++num_vector) {
     //if (num_vector < num_way)
     //  continue;
   // Examine num_field values nearby possible block boundaries.
   int num_field_prev = 0;
   for (int nfbdry : {1, 2, 4, 8, 16, 32, 64, 128})
+  //for (int nfbdry : {16})
   for (int num_field = nfbdry - 2; num_field < nfbdry + 3; ++num_field) {
+  //for (int num_field = nfbdry + 1; num_field < nfbdry + 2; ++num_field) {
     if (num_field <= num_field_prev)
       continue;
 
@@ -1900,6 +1905,7 @@ void DriverTest_b1_xor_gemm_() {
             num_vector, num_field, "REF", 1, 0, 1);
     sprintf(options2, options_template, num_way,
             num_vector, num_field, "GPU", 1, TC::B1, num_tc_steps);
+            //num_vector, num_field, "GPU", 1, TC::FP32, num_tc_steps);
     EXPECT_EQ(true, compare_2runs(options1, options2));
     num_field_prev = num_field;
   }
@@ -2557,6 +2563,7 @@ TEST(DriverTest, b1_xor_gemm) {
   DriverTest_b1_xor_gemm_();
 }
 
+#if 1
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
@@ -2616,6 +2623,7 @@ TEST(DriverTest, duo2) {
 TEST(DriverTest, duo3) {
   DriverTest_duo3_();
 }
+#endif
 
 END_TESTS
 

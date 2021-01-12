@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "env.hh"
 #include "linalg.hh"
 #include "mirrored_buf.hh"
+#include "compressed_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
@@ -52,9 +53,11 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Combine nums and denoms on CPU to get final result, 2-way Czek.
 
+template<int METRIC_FORMAT>
 static void finalize_czek_(
   GMMetrics* metrics,
-  MirroredBuf* metrics_buf,
+  //MirroredBuf* metrics_buf,
+  CompressedBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
@@ -197,14 +200,17 @@ static void finalize_czek_(
 //=============================================================================
 // Combine nums and denoms on CPU to get final result, 2-way CCC.
 
+template<int METRIC_FORMAT>
 static void finalize_ccc_(
   GMMetrics* metrics,
-  MirroredBuf* metrics_buf,
+  //MirroredBuf* metrics_buf,
+  CompressedBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
   CEnv* env) {
+
   COMET_INSIST(metrics && metrics_buf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
@@ -226,16 +232,20 @@ static void finalize_ccc_(
         for (int j = 0; j < nvl; ++j) {
           const int i_max = j;
           for (int i = 0; i < i_max; ++i) {
-            const GMTally2x2 value =
-              metrics_buf->elt_const<GMTally2x2>(i, j);
-            Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            const Tally2x2<METRIC_FORMAT> value =
+              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
+            Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, j_block, *env) = value;
             // ISSUE: this check may increase runtime nontrivially
-            if (! env->sparse()) {
+            if (! env->sparse() && ! env->is_threshold_tc()) {
               // 4-sum check.
-              const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-              const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-              const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-              const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              //const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+              //const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+              //const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+              //const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              const auto r00 = Tally2x2<METRIC_FORMAT>::get(value, 0, 0);
+              const auto r01 = Tally2x2<METRIC_FORMAT>::get(value, 0, 1);
+              const auto r10 = Tally2x2<METRIC_FORMAT>::get(value, 1, 0);
+              const auto r11 = Tally2x2<METRIC_FORMAT>::get(value, 1, 1);
               const bool error1 = (uint64_t)r00 + (uint64_t)r01 +
                                   (uint64_t)r10 + (uint64_t)r11 !=
                        (uint64_t)(4 * metrics->num_field_active);
@@ -286,12 +296,16 @@ static void finalize_ccc_(
               }
             }
 #ifdef COMET_ASSERTIONS_ON
-            if (! env->sparse()) {
+            if (! env->sparse() && ! env->is_threshold_tc()) {
               // 4-sum check.
-              const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-              const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-              const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-              const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              //const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+              //const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+              //const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+              //const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              const auto r00 = Tally2x2<METRIC_FORMAT>::get(value, 0, 0);
+              const auto r01 = Tally2x2<METRIC_FORMAT>::get(value, 0, 1);
+              const auto r10 = Tally2x2<METRIC_FORMAT>::get(value, 1, 0);
+              const auto r11 = Tally2x2<METRIC_FORMAT>::get(value, 1, 1);
               COMET_ASSERT((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
                            (uint64_t)r11 ==
                        (uint64_t)(4 * metrics->num_field_active));
@@ -310,16 +324,20 @@ static void finalize_ccc_(
         #pragma omp parallel for schedule(dynamic,1000)
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
-            const GMTally2x2 value =
-              metrics_buf->elt_const<GMTally2x2>(i, j);
-            Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            const Tally2x2<METRIC_FORMAT> value =
+              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
+            Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, j_block, *env) = value;
             // ISSUE: this check may increase runtime nontrivially
-            if (! env->sparse()) {
+            if (! env->sparse() && ! env->is_threshold_tc()) {
               // 4-sum check.
-              const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-              const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-              const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-              const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              //const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+              //const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+              //const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+              //const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              const auto r00 = Tally2x2<METRIC_FORMAT>::get(value, 0, 0);
+              const auto r01 = Tally2x2<METRIC_FORMAT>::get(value, 0, 1);
+              const auto r10 = Tally2x2<METRIC_FORMAT>::get(value, 1, 0);
+              const auto r11 = Tally2x2<METRIC_FORMAT>::get(value, 1, 1);
               const bool error1 = (uint64_t)r00 + (uint64_t)r01 +
                                   (uint64_t)r10 + (uint64_t)r11 !=
                        (uint64_t)(4 * metrics->num_field_active);
@@ -370,12 +388,16 @@ static void finalize_ccc_(
               }
             }
 #ifdef COMET_ASSERTIONS_ON
-            if (! env->sparse()) {
+            if (! env->sparse() && ! env->is_threshold_tc()) {
               // 4-sum check.
-              const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-              const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-              const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-              const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              //const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+              //const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+              //const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+              //const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+              const auto r00 = Tally2x2<METRIC_FORMAT>::get(value, 0, 0);
+              const auto r01 = Tally2x2<METRIC_FORMAT>::get(value, 0, 1);
+              const auto r10 = Tally2x2<METRIC_FORMAT>::get(value, 1, 0);
+              const auto r11 = Tally2x2<METRIC_FORMAT>::get(value, 1, 1);
               COMET_ASSERT((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
                            (uint64_t)r11 ==
                        (uint64_t)(4 * metrics->num_field_active));
@@ -397,16 +419,20 @@ static void finalize_ccc_(
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
-          const GMTally2x2 value =
-              metrics_buf->elt_const<GMTally2x2>(i, j);
-          Metrics_elt_2<GMTally2x2>(*metrics, i, j, env->proc_num_vector(), *env) = value;
+          const Tally2x2<METRIC_FORMAT> value =
+              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
+          Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, env->proc_num_vector(), *env) = value;
 #ifdef COMET_ASSERTIONS_ON
-          if (! env->sparse()) {
+          if (! env->sparse() && ! env->is_threshold_tc()) {
             // 4-sum check.
-            const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
-            const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
-            const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
-            const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+            //const GMTally1 r00 = GMTally2x2_get(value, 0, 0);
+            //const GMTally1 r01 = GMTally2x2_get(value, 0, 1);
+            //const GMTally1 r10 = GMTally2x2_get(value, 1, 0);
+            //const GMTally1 r11 = GMTally2x2_get(value, 1, 1);
+            const auto r00 = Tally2x2<METRIC_FORMAT>::get(value, 0, 0);
+            const auto r01 = Tally2x2<METRIC_FORMAT>::get(value, 0, 1);
+            const auto r10 = Tally2x2<METRIC_FORMAT>::get(value, 1, 0);
+            const auto r11 = Tally2x2<METRIC_FORMAT>::get(value, 1, 1);
             COMET_ASSERT((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
                          (uint64_t)r11 ==
                      (uint64_t)(4 * metrics->num_field_active));
@@ -509,9 +535,11 @@ static void finalize_ccc_(
 //=============================================================================
 // Combine nums and denoms on CPU to get final result, 2-way DUO.
 
+template<int METRIC_FORMAT>
 static void finalize_duo_(
   GMMetrics* metrics,
-  MirroredBuf* metrics_buf,
+  //MirroredBuf* metrics_buf,
+  CompressedBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
@@ -530,10 +558,6 @@ static void finalize_duo_(
   // Copy from metrics_buffer for GPU case.
 
   if (env->is_using_linalg()) {
-
-    // NOTE: this technically uses the wrong type for copying if env->is_threshold_tc(),
-    // but still works ok.
-
     // --------------
     if (env->all2all()) {
       // --------------
@@ -543,9 +567,9 @@ static void finalize_duo_(
         for (int j = 0; j < nvl; ++j) {
           const int i_max = j;
           for (int i = 0; i < i_max; ++i) {
-            const GMTally2x2 value =
-              metrics_buf->elt_const<GMTally2x2>(i, j);
-            Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            const Tally2x2<METRIC_FORMAT> value =
+              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
+            Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, j_block, *env) = value;
           } // for i
         }   // for j
       } else {
@@ -554,9 +578,9 @@ static void finalize_duo_(
         #pragma omp parallel for schedule(dynamic,1000)
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
-            const GMTally2x2 value =
-              metrics_buf->elt_const<GMTally2x2>(i, j);
-            Metrics_elt_2<GMTally2x2>(*metrics, i, j, j_block, *env) = value;
+            const Tally2x2<METRIC_FORMAT> value =
+              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
+            Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, j_block, *env) = value;
           } // for i
         }   // for j
      }
@@ -568,15 +592,15 @@ static void finalize_duo_(
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
-          const GMTally2x2 value =
-              metrics_buf->elt_const<GMTally2x2>(i, j);
-          Metrics_elt_2<GMTally2x2>(*metrics, i, j, env->proc_num_vector(), *env) = value;
+          const Tally2x2<METRIC_FORMAT> value =
+              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
+          Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, env->proc_num_vector(), *env) = value;
         } // for i
       }   // for j
       // --------------
     } // if
     // --------------
-  }
+  } // if (env->is_using_linalg())
 
   // Compute multipliers.
 
@@ -661,11 +685,13 @@ static void finalize_duo_(
 }
 
 //=============================================================================
-// Combine nums and denoms on CPU to get final result, 2-way generic.
+// Combine nums and denoms on CPU to get final result, 2-way generic, templated.
 
-void ComputeMetrics2WayBlock::finalize(
+template<int METRIC_FORMAT>
+static void finalize_(
   GMMetrics* metrics,
-  MirroredBuf* metrics_buf,
+  //MirroredBuf* metrics_buf,
+  CompressedBuf* metrics_buf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
@@ -677,24 +703,26 @@ void ComputeMetrics2WayBlock::finalize(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
+  // Select action based on metric_type.
+
   switch (env->metric_type()) {
     case MetricType::CZEK: {
 
-      finalize_czek_(metrics, metrics_buf,
+      finalize_czek_<METRIC_FORMAT>(metrics, metrics_buf,
                      vector_sums_left, vector_sums_right,
                      j_block, do_compute_triang_only, env);
 
     } break;
     case MetricType::CCC: {
 
-      finalize_ccc_(metrics, metrics_buf,
+      finalize_ccc_<METRIC_FORMAT>(metrics, metrics_buf,
                     vector_sums_left, vector_sums_right,
                     j_block, do_compute_triang_only, env);
 
     } break;
     case MetricType::DUO: {
 
-      finalize_duo_(metrics, metrics_buf,
+      finalize_duo_<METRIC_FORMAT>(metrics, metrics_buf,
                     vector_sums_left, vector_sums_right,
                     j_block, do_compute_triang_only, env);
 
@@ -703,6 +731,39 @@ void ComputeMetrics2WayBlock::finalize(
       COMET_INSIST_INTERFACE(env, false &&
         "Selected metric_type unimplemented.");
   } // case
+}
+
+//=============================================================================
+// Combine nums and denoms on CPU to get final result, 2-way generic.
+
+void ComputeMetrics2WayBlock::finalize(
+  GMMetrics* metrics,
+  //MirroredBuf* metrics_buf,
+  CompressedBuf* metrics_buf,
+  const VectorSums* const vector_sums_left,
+  const VectorSums* const vector_sums_right,
+  int j_block,
+  bool do_compute_triang_only,
+  CEnv* env) {
+
+  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(vector_sums_left && vector_sums_right && env);
+  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
+  COMET_INSIST(env->num_way() == NumWay::_2);
+
+  // Select action based on MetricFormat type.
+
+  if (env->is_threshold_tc())
+
+    finalize_<MetricFormat::SINGLE>(metrics, metrics_buf,
+      vector_sums_left, vector_sums_right,
+      j_block, do_compute_triang_only, env);
+
+  else // ! env->is_threshold_tc()
+
+    finalize_<MetricFormat::PACKED_DOUBLE>(metrics, metrics_buf,
+      vector_sums_left, vector_sums_right,
+      j_block, do_compute_triang_only, env);
 }
 
 //=============================================================================

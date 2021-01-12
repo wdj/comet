@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "env.hh"
 #include "mirrored_buf.hh"
+#include "compressed_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
@@ -84,7 +85,8 @@ public:
 
   static void finalize(
     GMMetrics* metrics,
-    MirroredBuf* metrics_buf,
+    //MirroredBuf* metrics_buf,
+    CompressedBuf* metrics_buf,
     const VectorSums* const vector_sums_left,
     const VectorSums* const vector_sums_right,
     int j_proc,

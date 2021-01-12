@@ -57,6 +57,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
 
 template<typename T> T CompressedBufAccessor_<T>::
 elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
+  COMET_ASSERT(!cbuf->do_compress());
   return CompressedBufAccessorUnspecialized_<T>::elt_const(ind0, ind1, cbuf);
   //return cbuf->buf_->elt_const<T>(ind0, ind1);
 }
@@ -110,6 +111,10 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
   reader_.ind1_recent = ind1;
 
   // Trap simple (uncompressed) case.
+  //if (!cbuf->do_compress_) {
+  //  auto i = buf_->elt_const<T>(ind0, ind1);
+  //  printf("%f\n", (double)*(float*)&i); //FIX
+  //}
   if (!cbuf->do_compress_)
     return buf_->elt_const<T>(ind0, ind1);
 
@@ -178,6 +183,7 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
       COMET_ASSERT(T::get(buf_->elt_const<T>(ind0, ind1), iE, jE) ==
                    T::get(result, iE, jE));
 # endif
+  //printf("%f\n", (double)*(float*)&result); //FIX
   return result;
 }
 
