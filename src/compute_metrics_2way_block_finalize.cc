@@ -56,15 +56,14 @@ namespace comet {
 template<int METRIC_FORMAT>
 static void finalize_czek_(
   GMMetrics* metrics,
-  //MirroredBuf* metrics_buf,
-  CompressedBuf* metrics_buf,
+  CompressedBuf* matB_cbuf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
    bool do_compute_triang_only,
    CEnv* env) {
 
-  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(metrics && matB_cbuf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
@@ -82,7 +81,7 @@ static void finalize_czek_(
 
   /*---For CPU case, copy numerator out of metrics struct which is temporarily
        holding numerators.
-       For GPU case, directly access the metrics_buf holding the numerators.
+       For GPU case, directly access the matB_cbuf holding the numerators.
   ---*/
 
   // ----------------------------------
@@ -137,7 +136,7 @@ static void finalize_czek_(
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
           const GMFloat numer =
-            metrics_buf->elt_const<GMFloat>(i, j);
+            matB_cbuf->elt_const<GMFloat>(i, j);
           const GMFloat vs_i = vs_l->sum(i);
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
@@ -157,7 +156,7 @@ static void finalize_czek_(
         for (int i = 0; i < nvl; ++i) {
           const GMFloat vs_j = vs_r->sum(j);
           const GMFloat numer =
-            metrics_buf->elt_const<GMFloat>(i, j);
+            matB_cbuf->elt_const<GMFloat>(i, j);
           const GMFloat vs_i = vs_l->sum(i);
           const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
           const GMFloat multiplier = (GMFloat)2;
@@ -178,7 +177,7 @@ static void finalize_czek_(
       const int i_max = j;
       for (int i = 0; i < i_max; ++i) {
         const GMFloat numer =
-          metrics_buf->elt_const<GMFloat>(i, j);
+          matB_cbuf->elt_const<GMFloat>(i, j);
         const GMFloat vs_i = vs_l->sum(i);
         const GMFloat denom = vs_i < vs_j ? vs_i + vs_j : vs_j + vs_i;
         const GMFloat multiplier = (GMFloat)2;
@@ -203,15 +202,14 @@ static void finalize_czek_(
 template<int METRIC_FORMAT>
 static void finalize_ccc_duo_(
   GMMetrics* metrics,
-  //MirroredBuf* metrics_buf,
-  CompressedBuf* metrics_buf,
+  CompressedBuf* matB_cbuf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
   CEnv* env) {
 
-  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(metrics && matB_cbuf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
@@ -222,22 +220,39 @@ static void finalize_ccc_duo_(
 
   enum {MF = METRIC_FORMAT};
 
-  // Copy from metrics_buffer for GPU case; perform checks.
+  matB_cbuf->elt_read_start();
 
-  if (env->is_using_linalg()) {
+  // Copy from matB_cbuf for linalg case; perform checks.
+
+  if (env->is_shrink()) { // && env->is_using_linalg() -- this always true here
+
+    // NOTE: this may be slight overestimate of amt of mem that will be needed.
+
+    COMET_INSIST(metrics->num_metric_items_local_computed +
+      matB_cbuf->num_entries() <=
+      metrics->num_metric_items_local_allocated && 
+      "Insufficient metrics memory; please decrease metrics_shrink.");
+
+
+
+
+
+
+
+  } else if (env->is_using_linalg()) { // && ! env->is_shrink()
+
     // --------------
-    if (env->all2all()) {
-      // --------------
+    if (env->all2all() && do_compute_triang_only) {
+    // --------------
 
-      if (do_compute_triang_only) {
-        // here and below don't use collapse because of overflow for large sizes
-        #pragma omp parallel for schedule(dynamic,1000)
-        for (int j = 0; j < nvl; ++j) {
-          const int i_max = j;
-          for (int i = 0; i < i_max; ++i) {
-            const auto value = metrics_buf->elt_const<Tally2x2<MF>>(i, j);
-            Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
-#ifdef COMET_ASSERTIONS_ON
+      // here and below don't use collapse because of overflow for large sizes
+#     pragma omp parallel for schedule(dynamic,1000)
+      for (int j = 0; j < nvl; ++j) {
+        const int i_max = j;
+        for (int i = 0; i < i_max; ++i) {
+          const auto value = matB_cbuf->elt_const<Tally2x2<MF>>(i, j);
+          Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
+#         ifdef COMET_ASSERTIONS_ON
             // ISSUE: this check may increase runtime nontrivially
             if (! env->sparse() && ! env->is_threshold_tc()) {
               const int cbpe = env->counted_bits_per_elt();
@@ -301,19 +316,21 @@ static void finalize_ccc_duo_(
                   "Violation of algorithm computational invariant.");
               }
             } // if (! env->sparse() && ! env->is_threshold_tc())
-#endif // COMET_ASSERTIONS_ON
-          } // for i
-        }   // for j
+#         endif // COMET_ASSERTIONS_ON
+        } // for i
+      }   // for j
 
-      } else { // do_compute_triang_only
+    // --------------
+    } else if (env->all2all()) { // && ! do_compute_triang_only
+    // --------------
 
-        #pragma omp parallel for schedule(dynamic,1000)
-        for (int j = 0; j < nvl; ++j) {
-          for (int i = 0; i < nvl; ++i) {
-            const Tally2x2<MF> value =
-              metrics_buf->elt_const<Tally2x2<MF>>(i, j);
-            Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
-#ifdef COMET_ASSERTIONS_ON
+#     pragma omp parallel for schedule(dynamic,1000)
+      for (int j = 0; j < nvl; ++j) {
+        for (int i = 0; i < nvl; ++i) {
+          const Tally2x2<MF> value =
+            matB_cbuf->elt_const<Tally2x2<MF>>(i, j);
+          Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
+#         ifdef COMET_ASSERTIONS_ON
             // ISSUE: this check may increase runtime nontrivially
             if (! env->sparse() && ! env->is_threshold_tc()) {
               const int cbpe = env->counted_bits_per_elt();
@@ -377,51 +394,50 @@ static void finalize_ccc_duo_(
                   "Violation of algorithm computational invariant.");
               }
             } // if (! env->sparse() && ! env->is_threshold_tc())
-#endif // COMET_ASSERTIONS_ON
-          } // for i
-        }   // for j
+#         endif // COMET_ASSERTIONS_ON
+        } // for i
+      }   // for j
 
-     } // do_compute_triang_only
-
-      // --------------
-    } else { // (! env->all2all())
-      // --------------
+    // --------------
+    } else { // if (! env->all2all())
+    // --------------
 
       const int j_block = env->proc_num_vector();
-      #pragma omp parallel for schedule(dynamic,1000)
+#     pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
           const Tally2x2<MF> value =
-              metrics_buf->elt_const<Tally2x2<MF>>(i, j);
+              matB_cbuf->elt_const<Tally2x2<MF>>(i, j);
           Metrics_elt_2<Tally2x2<MF>>(*metrics, i, j, j_block, *env) = value;
-#ifdef COMET_ASSERTIONS_ON
-          if (! env->sparse() && ! env->is_threshold_tc()) {
-            const int cbpe = env->counted_bits_per_elt();
-            //-----4-sum check.
-            const auto r00 = Tally2x2<MF>::get(value, 0, 0);
-            const auto r01 = Tally2x2<MF>::get(value, 0, 1);
-            const auto r10 = Tally2x2<MF>::get(value, 1, 0);
-            const auto r11 = Tally2x2<MF>::get(value, 1, 1);
-            COMET_ASSERT((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
-                         (uint64_t)r11 ==
-                     (uint64_t)(cbpe * cbpe * metrics->num_field_active));
-            //-----2-sum checks.
-            const GMTally1 si1 = vs_l->sum(i);
-            const GMTally1 sj1 = vs_r->sum(j);
-            COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 ==
-                         (uint64_t)(cbpe * si1));
-            COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 ==
-                         (uint64_t)(cbpe * sj1));
-          }
-#endif
+#         ifdef COMET_ASSERTIONS_ON
+            if (! env->sparse() && ! env->is_threshold_tc()) {
+              const int cbpe = env->counted_bits_per_elt();
+              //-----4-sum check.
+              const auto r00 = Tally2x2<MF>::get(value, 0, 0);
+              const auto r01 = Tally2x2<MF>::get(value, 0, 1);
+              const auto r10 = Tally2x2<MF>::get(value, 1, 0);
+              const auto r11 = Tally2x2<MF>::get(value, 1, 1);
+              COMET_ASSERT((uint64_t)r00 + (uint64_t)r01 + (uint64_t)r10 +
+                           (uint64_t)r11 ==
+                       (uint64_t)(cbpe * cbpe * metrics->num_field_active));
+              //-----2-sum checks.
+              const GMTally1 si1 = vs_l->sum(i);
+              const GMTally1 sj1 = vs_r->sum(j);
+              COMET_ASSERT((uint64_t)r10 + (uint64_t)r11 ==
+                           (uint64_t)(cbpe * si1));
+              COMET_ASSERT((uint64_t)r01 + (uint64_t)r11 ==
+                           (uint64_t)(cbpe * sj1));
+            }
+#         endif
         } // for i
       }   // for j
 
-      // --------------
-    } // if (env->all2all())
     // --------------
-  } // if (env->is_using_linalg())
+    } // if (env->all2all() && do_compute_triang_only)
+    // --------------
+
+  } // if (env->is_shrink()) // if (env->is_using_linalg())
 
   // Compute multipliers; update counts.
 
@@ -429,39 +445,40 @@ static void finalize_ccc_duo_(
   enum {C = MetricsArray::C};
 
   // --------------
-  if (env->all2all()) {
-    // --------------
+  if (env->all2all() && do_compute_triang_only) {
+  // --------------
 
-    if (do_compute_triang_only) {
-
-      if (!env->is_threshold_tc()) {
-        #pragma omp parallel for schedule(dynamic,1000)
-        for (int j = 0; j < nvl; ++j) {
-          const GMTally1 sj1 = vs_r->sum(j);
-          const int i_max = j;
-          for (int i = 0; i < i_max; ++i) {
-            const GMTally1 si1 = vs_l->sum(i);
-            const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-            Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
-            if (env->sparse()) {
-              const GMTally1 ci = vs_l->count(i);
-              const GMTally1 cj = vs_r->count(j);
-              const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-              Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
-            } // if sparse
-          }   // for i
-        }   // for j
-      } // if (!env->is_threshold_tc())
-      // Update counts..
+    if (!env->is_threshold_tc()) {
+#     pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
+        const GMTally1 sj1 = vs_r->sum(j);
         const int i_max = j;
-        metrics->num_metric_items_local_computed_inc(i_max);
+        for (int i = 0; i < i_max; ++i) {
+          const GMTally1 si1 = vs_l->sum(i);
+          const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
+          Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
+          if (env->sparse()) {
+            const GMTally1 ci = vs_l->count(i);
+            const GMTally1 cj = vs_r->count(j);
+            const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
+            Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
+          } // if sparse
+        }   // for i
       }   // for j
+    } // if (!env->is_threshold_tc())
 
-    } else { // if (! do_compute_triang_only)
+    // Update counts.
+    for (int j = 0; j < nvl; ++j) {
+      const int i_max = j;
+      metrics->num_metric_items_local_computed_inc(i_max);
+    }   // for j
+
+  // --------------
+  } else if (env->all2all()) { // && ! do_compute_triang_only
+  // --------------
 
       if (!env->is_threshold_tc()) {
-        #pragma omp parallel for schedule(dynamic,1000)
+#       pragma omp parallel for schedule(dynamic,1000)
         for (int j = 0; j < nvl; ++j) {
           for (int i = 0; i < nvl; ++i) {
             const GMTally1 si1 = vs_l->sum(i);
@@ -477,18 +494,17 @@ static void finalize_ccc_duo_(
           }   // for i
         }   // for j
       } // if (!env->is_threshold_tc())
-      // Update counts..
+
+      // Update counts.
       metrics->num_metric_items_local_computed_inc(nvl * (size_t)nvl);
 
-   } // if (do_compute_triang_only)
-
-    // --------------
-  } else { // (! env->all2all())
-    // --------------
+  // --------------
+  } else { // ! env->all2all()
+  // --------------
 
     if (!env->is_threshold_tc()) {
       const int j_block = env->proc_num_vector();
-      #pragma omp parallel for schedule(dynamic,1000)
+#     pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
         const int i_max = do_compute_triang_only ? j : nvl;
@@ -505,170 +521,17 @@ static void finalize_ccc_duo_(
         } // for i
       }   // for j
     } // if (!env->is_threshold_tc())
-    // Update counts..
+
+    // Update counts.
     for (int j = 0; j < nvl; ++j) {
       const int i_max = do_compute_triang_only ? j : nvl;
       metrics->num_metric_items_local_computed_inc(i_max);
     }   // for j
 
-    // --------------
-  } // if
+  // --------------
+  } // if (env->all2all() && do_compute_triang_only)
   // --------------
 }
-
-#if 0
-//=============================================================================
-// Combine nums and denoms on CPU to get final result, 2-way DUO.
-
-template<int METRIC_FORMAT>
-static void finalize_duo_(
-  GMMetrics* metrics,
-  //MirroredBuf* metrics_buf,
-  CompressedBuf* metrics_buf,
-  const VectorSums* const vector_sums_left,
-  const VectorSums* const vector_sums_right,
-  int j_block,
-  bool do_compute_triang_only,
-  CEnv* env) {
-
-  COMET_INSIST(metrics && metrics_buf);
-  COMET_INSIST(vector_sums_left && vector_sums_right && env);
-  COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
-  COMET_INSIST(env->num_way() == NumWay::_2);
-
-  const int nvl = metrics->num_vector_local;
-  const VectorSums* const vs_l = vector_sums_left;
-  const VectorSums* const vs_r = vector_sums_right;
-
-  // Copy from metrics_buffer for GPU case.
-
-  if (env->is_using_linalg()) {
-    // --------------
-    if (env->all2all()) {
-      // --------------
-
-      if (do_compute_triang_only) {
-        #pragma omp parallel for schedule(dynamic,1000)
-        for (int j = 0; j < nvl; ++j) {
-          const int i_max = j;
-          for (int i = 0; i < i_max; ++i) {
-            const Tally2x2<METRIC_FORMAT> value =
-              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
-            Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, j_block, *env) = value;
-          } // for i
-        }   // for j
-      } else {
-        // don't use collapse because of overflow for large sizes
-        //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-        #pragma omp parallel for schedule(dynamic,1000)
-        for (int j = 0; j < nvl; ++j) {
-          for (int i = 0; i < nvl; ++i) {
-            const Tally2x2<METRIC_FORMAT> value =
-              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
-            Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, j_block, *env) = value;
-          } // for i
-        }   // for j
-     }
-
-      // --------------
-    } else { // (! env->all2all())
-      // --------------
-      #pragma omp parallel for schedule(dynamic,1000)
-      for (int j = 0; j < nvl; ++j) {
-        const int i_max = do_compute_triang_only ? j : nvl;
-        for (int i = 0; i < i_max; ++i) {
-          const Tally2x2<METRIC_FORMAT> value =
-              metrics_buf->elt_const<Tally2x2<METRIC_FORMAT>>(i, j);
-          Metrics_elt_2<Tally2x2<METRIC_FORMAT>>(*metrics, i, j, env->proc_num_vector(), *env) = value;
-        } // for i
-      }   // for j
-      // --------------
-    } // if
-    // --------------
-  } // if (env->is_using_linalg())
-
-  // Compute multipliers.
-
-  // --------------
-  if (env->all2all()) {
-    // --------------
-
-    if (do_compute_triang_only) {
-      if (!env->is_threshold_tc()) {
-      #pragma omp parallel for schedule(dynamic,1000)
-      for (int j = 0; j < nvl; ++j) {
-        const GMTally1 sj1 = vs_r->sum(j);
-        const int i_max = j;
-        for (int i = 0; i < i_max; ++i) {
-          const GMTally1 si1 = vs_l->sum(i);
-          const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-          Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, j_block, *env) = si1_sj1;
-          if (env->sparse()) {
-            const GMTally1 ci = vs_l->count(i);
-            const GMTally1 cj = vs_r->count(j);
-            const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-            Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
-          } // if sparse
-        }   // for i
-      }   // for j
-      } // if (!env->is_threshold_tc())
-      for (int j = 0; j < nvl; ++j) {
-        const int i_max = j;
-        metrics->num_metric_items_local_computed_inc(i_max);
-      }   // for j
-    } else {
-      if (!env->is_threshold_tc()) {
-      // don't use collapse because of overflow for large sizes
-      //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
-      #pragma omp parallel for schedule(dynamic,1000)
-      for (int j = 0; j < nvl; ++j) {
-        for (int i = 0; i < nvl; ++i) {
-          const GMTally1 si1 = vs_l->sum(i);
-          const GMTally1 sj1 = vs_r->sum(j);
-          const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-          Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, j_block, *env) = si1_sj1;
-          if (env->sparse()) {
-            const GMTally1 ci = vs_l->count(i);
-            const GMTally1 cj = vs_r->count(j);
-            const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-            Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, j_block, *env) = ci_cj;
-          } // if sparse
-        }   // for i
-      }   // for j
-      } // if (!env->is_threshold_tc())
-      metrics->num_metric_items_local_computed_inc(nvl * (size_t)nvl);
-   }
-
-    // --------------
-  } else { // (! env->all2all())
-    // --------------
-    if (!env->is_threshold_tc()) {
-    #pragma omp parallel for schedule(dynamic,1000)
-    for (int j = 0; j < nvl; ++j) {
-      const GMTally1 sj1 = vs_r->sum(j);
-      const int i_max = do_compute_triang_only ? j : nvl;
-      for (int i = 0; i < i_max; ++i) {
-        const GMTally1 si1 = vs_l->sum(i);
-        const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-        Metrics_elt_2<GMFloat2, MetricsArray::S>(*metrics, i, j, env->proc_num_vector(), *env) = si1_sj1;
-        if (env->sparse()) {
-          const GMTally1 ci = vs_l->count(i);
-          const GMTally1 cj = vs_r->count(j);
-          const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-          Metrics_elt_2<GMFloat2, MetricsArray::C>(*metrics, i, j, env->proc_num_vector(), *env) = ci_cj;
-        } // if sparse
-      } // for i
-    }   // for j
-    } // if (!env->is_threshold_tc())
-    for (int j = 0; j < nvl; ++j) {
-      const int i_max = do_compute_triang_only ? j : nvl;
-      metrics->num_metric_items_local_computed_inc(i_max);
-    }   // for j
-    // --------------
-  } // if
-  // --------------
-}
-#endif
 
 //=============================================================================
 // Combine nums and denoms on CPU to get final result, 2-way generic, templated.
@@ -676,15 +539,14 @@ static void finalize_duo_(
 template<int METRIC_FORMAT>
 static void finalize_(
   GMMetrics* metrics,
-  //MirroredBuf* metrics_buf,
-  CompressedBuf* metrics_buf,
+  CompressedBuf* matB_cbuf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
   CEnv* env) {
 
-  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(metrics && matB_cbuf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
@@ -694,21 +556,21 @@ static void finalize_(
   switch (env->metric_type()) {
     case MetricType::CZEK: {
 
-      finalize_czek_<METRIC_FORMAT>(metrics, metrics_buf,
+      finalize_czek_<METRIC_FORMAT>(metrics, matB_cbuf,
          vector_sums_left, vector_sums_right,
          j_block, do_compute_triang_only, env);
 
     } break;
     case MetricType::CCC: {
 
-      finalize_ccc_duo_<METRIC_FORMAT>(metrics, metrics_buf,
+      finalize_ccc_duo_<METRIC_FORMAT>(metrics, matB_cbuf,
         vector_sums_left, vector_sums_right,
         j_block, do_compute_triang_only, env);
 
     } break;
     case MetricType::DUO: {
 
-      finalize_ccc_duo_<METRIC_FORMAT>(metrics, metrics_buf,
+      finalize_ccc_duo_<METRIC_FORMAT>(metrics, matB_cbuf,
         vector_sums_left, vector_sums_right,
         j_block, do_compute_triang_only, env);
 
@@ -724,15 +586,14 @@ static void finalize_(
 
 void ComputeMetrics2WayBlock::finalize(
   GMMetrics* metrics,
-  //MirroredBuf* metrics_buf,
-  CompressedBuf* metrics_buf,
+  CompressedBuf* matB_cbuf,
   const VectorSums* const vector_sums_left,
   const VectorSums* const vector_sums_right,
   int j_block,
   bool do_compute_triang_only,
   CEnv* env) {
 
-  COMET_INSIST(metrics && metrics_buf);
+  COMET_INSIST(metrics && matB_cbuf);
   COMET_INSIST(vector_sums_left && vector_sums_right && env);
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
@@ -741,13 +602,13 @@ void ComputeMetrics2WayBlock::finalize(
 
   if (env->is_threshold_tc())
 
-    finalize_<MetricFormat::SINGLE>(metrics, metrics_buf,
+    finalize_<MetricFormat::SINGLE>(metrics, matB_cbuf,
       vector_sums_left, vector_sums_right,
       j_block, do_compute_triang_only, env);
 
   else // ! env->is_threshold_tc()
 
-    finalize_<MetricFormat::PACKED_DOUBLE>(metrics, metrics_buf,
+    finalize_<MetricFormat::PACKED_DOUBLE>(metrics, matB_cbuf,
       vector_sums_left, vector_sums_right,
       j_block, do_compute_triang_only, env);
 }

@@ -210,7 +210,7 @@ static void finalize_czek_(
   MirroredBuf* const matM_IJ_buf,
   MirroredBuf* const matM_JK_buf,
   MirroredBuf* const matM_KIK_buf,
-  CompressedBuf* const matB_buf,
+  CompressedBuf* const matB_cbuf,
   GMMetrics* metrics,
   int nvl, int J, int step_2way,
   int I_min, int I_max, int K_min, int K_max,
@@ -225,7 +225,7 @@ static void finalize_czek_(
   COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_tc()) &&
                "Case currently unimplemented.");
 
-  matB_buf->lock_h();
+  matB_cbuf->lock_h();
 
   const VectorSums* const vs_I = si->perm0(vs_i, vs_j, vs_k);
   const VectorSums* const vs_J = si->perm1(vs_i, vs_j, vs_k);
@@ -245,7 +245,7 @@ static void finalize_czek_(
         const GMFloat min_JK = matM_JK_buf->elt_const<GMFloat>(J, K);
         const GMFloat min_KIK = matM_KIK_buf->elt_const<GMFloat>(K, I);
         // sum of mins vectors i, j, and k is matB(k,i).
-        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);
+        const GMFloat min_IJK = matB_cbuf->elt_const<GMFloat>(I, K);
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         const int i = I;
         const int j = J;
@@ -276,7 +276,7 @@ static void finalize_czek_(
           matM_KIK_buf->elt_const<GMFloat>(K, I) :
           matM_KIK_buf->elt_const<GMFloat>(I, K);
         // sum of mins vectors i, j, and k is matB(k,i).
-        const GMFloat min_IJK = matB_buf->elt_const<GMFloat>(I, K);
+        const GMFloat min_IJK = matB_cbuf->elt_const<GMFloat>(I, K);
         const GMFloat numer = min_IJ + min_JK + min_KIK - min_IJK;
         // Make arithmetic order-independent.
         GMFloat smin, smid, smax;
@@ -295,7 +295,7 @@ static void finalize_czek_(
 
   metrics->num_metric_items_local_computed_inc((I_max - I_min) * (size_t)
                                                (K_max - K_min));
-  matB_buf->unlock_h();
+  matB_cbuf->unlock_h();
 }
 
 //-----------------------------------------------------------------------------
@@ -306,7 +306,7 @@ static void finalize_ccc_duo_(
   MirroredBuf* const matM_IJ_buf,
   MirroredBuf* const matM_JK_buf,
   MirroredBuf* const matM_KIK_buf,
-  CompressedBuf* const matB_buf,
+  CompressedBuf* const matB_cbuf,
   GMMetrics* metrics,
   int nvl, int J, int step_2way,
   int I_min, int I_max, int K_min, int K_max,
@@ -321,7 +321,7 @@ static void finalize_ccc_duo_(
   COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_tc()) &&
                "Case currently unimplemented.");
 
-  matB_buf->lock_h();
+  matB_cbuf->lock_h();
 
   //--------------------
   // Compute numerators using ijk piece and (if needed) 2-way pieces.
@@ -340,38 +340,48 @@ static void finalize_ccc_duo_(
   const int is_halved = env.is_vectors_halved();
   const int num_halves = is_halved ? 2 : 1;
 
-  matB_buf->elt_read_start();
+  matB_cbuf->elt_read_start();
 
   //--------------------
   if (env.is_shrink()) {
   //--------------------
 
-    // NOTE: this may be a slight overestimate of the amount of mem needed.
+    // NOTE: this may be slight overestimate of amt of mem that will be needed.
 
     COMET_INSIST(metrics->num_metric_items_local_computed +
-                 matB_buf->num_entries() <=
-                 metrics->num_metric_items_local_allocated &&
-                 "Insufficient metrics memory; "
-                 "please decrease metrics_shrink.");
+      matB_cbuf->num_entries() <=
+      metrics->num_metric_items_local_allocated &&
+      "Insufficient metrics memory; please decrease metrics_shrink.");
 
     const int i_block = env.proc_num_vector();
 
-    for (size_t ind_entry = 0; ind_entry < matB_buf->num_entries();
+    // Loop over all table entries stored in compressed buffer.
+
+    for (size_t ind_entry = 0; ind_entry < matB_cbuf->num_entries();
          ++ind_entry) {
 
-      const MFTypeIn metric_item = matB_buf->elt_const<MFTypeIn>(ind_entry);
+      // Read current item (i.e., entry).
+      const MFTypeIn metric_item = matB_cbuf->elt_const<MFTypeIn>(ind_entry);
 
+      // Location to store it - item number.
       const size_t index = metrics->num_metric_items_local_computed;
+      COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
+
+
+
 
       Metrics_elt<MFTypeIn>(*metrics, index, env) = metric_item;
 
-      const size_t K = matB_buf->ind1_recent();
-      const size_t I_mapped = matB_buf->ind0_recent();
+      // Get I, K of item just read.
+
+      const size_t K = matB_cbuf->ind1_recent();
+      const size_t I_mapped = matB_cbuf->ind0_recent();
 
       const int half_num = I_mapped / nvleD2;
 
-      //const size_t I = I_mapped % nvleD2;
       const size_t I = I_mapped % nvleD2 + step_2way * nvleD2;
+
+      // It was computed by GEMM, but is it an entry we need.
 
       const bool is_in_range = I >= (size_t)I_min && I < (size_t)I_max &&
                                K >= (size_t)K_min && K < (size_t)K_max;
@@ -389,13 +399,14 @@ static void finalize_ccc_duo_(
       const size_t kG = k + nvl * k_block;
 
       const int IE = half_num;
-      const int JE = matB_buf->iE_recent();
-      const int KE = matB_buf->jE_recent();
+      const int JE = matB_cbuf->iE_recent();
+      const int KE = matB_cbuf->jE_recent();
 
       const int iE = si->unperm0(IE, JE, KE);
       const int jE = si->unperm1(IE, JE, KE);
       const int kE = si->unperm2(IE, JE, KE);
 
+      // Store the coords information for this metric item.
       // TODO: accessor function
       metrics->data_coords_values_[index] =
         CoordsInfo::set(iG, jG, kG, iE, jE, kE, *metrics, env);
@@ -411,7 +422,7 @@ static void finalize_ccc_duo_(
     MetricsIndexCache index_cache = {};
 
     // don't use collapse because of overflow for large sizes
-    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000) if (!matB_buf->do_compress())
+    #pragma omp parallel for firstprivate(index_cache) schedule(dynamic,1000) if (!matB_cbuf->do_compress())
     for (int K = K_min; K < K_max; ++K) {
 
       for (int half_num = 0; half_num < num_halves; ++half_num) {
@@ -483,7 +494,7 @@ static void finalize_ccc_duo_(
               // thus has permuted 001 etc. table entries.
 
               const auto matB_perm =
-                matB_buf->elt_const<Tally2x2<MF>>(I_mapped_lo, K);
+                matB_cbuf->elt_const<Tally2x2<MF>>(I_mapped_lo, K);
               MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
               MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
               MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
@@ -498,7 +509,7 @@ static void finalize_ccc_duo_(
 
             if (1 == half_num) {
               const Tally2x2<MF> matB_perm =
-                matB_buf->elt_const<Tally2x2<MF>>(I_mapped_hi, K);
+                matB_cbuf->elt_const<Tally2x2<MF>>(I_mapped_hi, K);
 
               MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
               MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
@@ -513,7 +524,7 @@ static void finalize_ccc_duo_(
           } else if (env.is_bitwise_3way_2step()) { // && ! is_halved
 
             const auto matB_perm =
-              matB_buf->elt_const<Tally2x2<MF>>(I, K);
+              matB_cbuf->elt_const<Tally2x2<MF>>(I, K);
             MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
             MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
             MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
@@ -533,7 +544,7 @@ static void finalize_ccc_duo_(
           } else { // if (! env.is_bitwise_3way_2step() && ! is_halved)
 
             const auto matB_perm =
-            matB_buf->elt_const<Tally2x2<MF>>(I, K);
+            matB_cbuf->elt_const<Tally2x2<MF>>(I, K);
             MFTypeIn matB00_perm, matB01_perm, matB10_perm, matB11_perm;
             MFT::decode(matB00_perm, matB01_perm, matB_perm.data[0]);
             MFT::decode(matB10_perm, matB11_perm, matB_perm.data[1]);
@@ -623,7 +634,7 @@ static void finalize_ccc_duo_(
   } // if (env.is_shrink())
   //--------------------
 
-  matB_buf->unlock_h();
+  matB_cbuf->unlock_h();
 }
 
 //-----------------------------------------------------------------------------
@@ -633,8 +644,7 @@ static void finalize_(
   MirroredBuf* const matM_IJ_buf,
   MirroredBuf* const matM_JK_buf,
   MirroredBuf* const matM_KIK_buf,
-  //MirroredBuf* const matB_buf,
-  CompressedBuf* const matB_buf,
+  CompressedBuf* const matB_cbuf,
   GMMetrics* metrics,
   int nvl, int J, int step_2way,
   int I_min, int I_max, int K_min, int K_max,
@@ -647,28 +657,28 @@ static void finalize_(
   if (env.metric_type() == MetricType::CZEK && env.is_threshold_tc()) {
 
     finalize_czek_<MetricFormat::SINGLE>(
-      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_buf, metrics,
+      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_cbuf, metrics,
       nvl, J, step_2way, I_min, I_max, K_min, K_max, I_max_dim,
       j_block, k_block, si, vs_i, vs_j, vs_k, env);
 
   } else if (env.metric_type() == MetricType::CZEK && !env.is_threshold_tc()) {
 
     finalize_czek_<MetricFormat::PACKED_DOUBLE>(
-      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_buf, metrics,
+      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_cbuf, metrics,
       nvl, J, step_2way, I_min, I_max, K_min, K_max, I_max_dim,
       j_block, k_block, si, vs_i, vs_j, vs_k, env);
 
   } else if (env.is_threshold_tc()) { // && env.is_metric_type_bitwise()
 
     finalize_ccc_duo_<MetricFormat::SINGLE>(
-      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_buf, metrics,
+      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_cbuf, metrics,
       nvl, J, step_2way, I_min, I_max, K_min, K_max, I_max_dim,
       j_block, k_block, si, vs_i, vs_j, vs_k, env);
 
   } else { // !env.is_threshold_tc()) && env.is_metric_type_bitwise()
 
     finalize_ccc_duo_<MetricFormat::PACKED_DOUBLE>(
-      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_buf, metrics,
+      matM_IJ_buf, matM_JK_buf, matM_KIK_buf, matB_cbuf, metrics,
       nvl, J, step_2way, I_min, I_max, K_min, K_max, I_max_dim,
       j_block, k_block, si, vs_i, vs_j, vs_k, env);
 
@@ -868,7 +878,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   LoopVars* const vars_buf[num_buf] =
     {&vars_buf0, &vars_buf1, &vars_buf2, &vars_buf3};
 
-  CompressedBuf matB_buf_compressed(*matB_buf_[0], env_);
+  CompressedBuf matB_cbuf(*matB_buf_[0], env_);
 
   const int first_step = 0 - extra_step;
 
@@ -927,8 +937,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
           vars_prev.J, vars_prev.step_2way, *dm, env_);
-      matB_buf_compressed.attach(*vars_prev.matB_buf_ptr());
-      matB_buf_compressed.compress();
+      matB_cbuf.attach(*vars_prev.matB_buf_ptr());
+      matB_cbuf.compress();
     }
 
     //========== Calculate matXitem
@@ -950,7 +960,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     if (vars_prev.do_compute) {
       //vars_prev.matB_buf_ptr()->from_accel_start();
-      matB_buf_compressed.from_accel_start();
+      matB_cbuf.from_accel_start();
     }
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
@@ -968,7 +978,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     if (vars_prev.do_compute) {
       //vars_prev.matB_buf_ptr()->from_accel_wait();
-      matB_buf_compressed.from_accel_wait();
+      matB_cbuf.from_accel_wait();
       if (vars_prev.step_2way == 0) {
         gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_,
           //CHECK
@@ -982,7 +992,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_prevprev.do_compute && env_.do_reduce()) {
       gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]),
           &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), &env_);
-      matB_buf_compressed.attach(vars_prevprev.matB_buf);
+      matB_cbuf.attach(vars_prevprev.matB_buf);
     }
 
     //========== Reduce along field procs - START
@@ -1002,7 +1012,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_tail.do_compute) {
       finalize_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
-          &matB_buf_compressed,
+          &matB_cbuf,
           //&vars_tail.matB_buf,
           &metrics, nvl, vars_tail.J, vars_tail.step_2way,
           vars_tail.I_min, vars_tail.I_max,
