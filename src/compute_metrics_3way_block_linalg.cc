@@ -363,14 +363,9 @@ static void finalize_ccc_duo_(
       // Read current item (i.e., entry).
       const MFTypeIn metric_item = matB_cbuf->elt_const<MFTypeIn>(ind_entry);
 
-      // Location to store it - item number.
+      // Location to store it (item number in metrics array).
       const size_t index = metrics->num_metric_items_local_computed;
       COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
-
-
-
-
-      Metrics_elt<MFTypeIn>(*metrics, index, env) = metric_item;
 
       // Get I, K of item just read.
 
@@ -381,7 +376,7 @@ static void finalize_ccc_duo_(
 
       const size_t I = I_mapped % nvleD2 + step_2way * nvleD2;
 
-      // It was computed by GEMM, but is it an entry we need.
+      // It was computed by GEMM, check is it an entry we need.
 
       const bool is_in_range = I >= (size_t)I_min && I < (size_t)I_max &&
                                K >= (size_t)K_min && K < (size_t)K_max;
@@ -405,6 +400,10 @@ static void finalize_ccc_duo_(
       const int iE = si->unperm0(IE, JE, KE);
       const int jE = si->unperm1(IE, JE, KE);
       const int kE = si->unperm2(IE, JE, KE);
+
+      // Store metric item.
+
+      Metrics_elt<MFTypeIn>(*metrics, index, env) = metric_item;
 
       // Store the coords information for this metric item.
       // TODO: accessor function
