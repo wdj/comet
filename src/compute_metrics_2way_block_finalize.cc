@@ -219,6 +219,8 @@ static void finalize_ccc_duo_(
   const VectorSums* const vs_r = vector_sums_right;
 
   enum {MF = METRIC_FORMAT};
+  typedef MetricFormatTraits<MF> MFT;
+  typedef typename MFT::TypeIn MFTypeIn;
 
   matB_cbuf->elt_read_start();
 
@@ -228,16 +230,66 @@ static void finalize_ccc_duo_(
 
     // NOTE: this may be slight overestimate of amt of mem that will be needed.
 
+//printf("========== computed %i this %i allocated %i\n", (int)metrics->num_metric_items_local_computed, (int)matB_cbuf->num_entries(), (int)metrics->num_metric_items_local_allocated); //FIX
+
     COMET_INSIST(metrics->num_metric_items_local_computed +
       matB_cbuf->num_entries() <=
       metrics->num_metric_items_local_allocated && 
       "Insufficient metrics memory; please decrease metrics_shrink.");
 
+    const int i_block = env->proc_num_vector();
 
+    // Loop over all table entries stored in compressed buffer.
 
+    for (size_t ind_entry = 0; ind_entry < matB_cbuf->num_entries();
+         ++ind_entry) {
 
+      // Read current item (i.e., entry).
+      const MFTypeIn metric_item = matB_cbuf->elt_const<MFTypeIn>(ind_entry);
 
+      // Location to store it (item number in metrics array).
+      const size_t index = metrics->num_metric_items_local_computed;
+      COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
 
+      // Get row, col nums of item just read.
+
+      const size_t j = matB_cbuf->ind1_recent();
+      const size_t i = matB_cbuf->ind0_recent();
+
+      // It was computed by GEMM; check is it an entry we need.
+
+      const bool is_in_range = do_compute_triang_only ?
+        j >= 0 && j < (size_t)nvl && i >= 0 && i < j :
+        j >= 0 && j < (size_t)nvl && i >= 0 && i < (size_t)nvl;
+
+      if (!is_in_range)
+        continue;
+
+      // TODO: accessor functions
+      const size_t iG = i + nvl * i_block;
+      const size_t jG = j + nvl * j_block;
+
+      const int iE = matB_cbuf->iE_recent();
+      const int jE = matB_cbuf->jE_recent();
+
+      // Store metric item.
+
+      Metrics_elt<MFTypeIn>(*metrics, index, *env) = metric_item;
+
+      // Store the coords information for this metric item.
+      // TODO: accessor function
+      metrics->data_coords_values_[index] =
+        CoordsInfo::set(iG, jG, iE, jE, *metrics, *env);
+
+      metrics->num_metric_items_local_computed_inc(1);
+
+//      MFTypeIn metric_item_ = metric_item;
+//      float* f_ = (float*)&metric_item_;
+//      float f = *f_;
+
+//printf("%i %i %f\n", (int)index, (int)metrics->num_metric_items_local_computed, f);
+
+    } // for ind_entry
 
   } else if (env->is_using_linalg()) { // && ! env->is_shrink()
 
@@ -468,35 +520,39 @@ static void finalize_ccc_duo_(
     } // if (!env->is_threshold_tc())
 
     // Update counts.
-    for (int j = 0; j < nvl; ++j) {
-      const int i_max = j;
-      metrics->num_metric_items_local_computed_inc(i_max);
-    }   // for j
+    if (!env->is_shrink()) {
+      for (int j = 0; j < nvl; ++j) {
+        const int i_max = j;
+        metrics->num_metric_items_local_computed_inc(i_max);
+      }   // for j
+    }
 
   // --------------
   } else if (env->all2all()) { // && ! do_compute_triang_only
   // --------------
 
-      if (!env->is_threshold_tc()) {
-#       pragma omp parallel for schedule(dynamic,1000)
-        for (int j = 0; j < nvl; ++j) {
-          for (int i = 0; i < nvl; ++i) {
-            const GMTally1 si1 = vs_l->sum(i);
-            const GMTally1 sj1 = vs_r->sum(j);
-            const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
-            Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
-            if (env->sparse()) {
-              const GMTally1 ci = vs_l->count(i);
-              const GMTally1 cj = vs_r->count(j);
-              const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
-              Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
-            } // if sparse
-          }   // for i
-        }   // for j
-      } // if (!env->is_threshold_tc())
+    if (!env->is_threshold_tc()) {
+#     pragma omp parallel for schedule(dynamic,1000)
+      for (int j = 0; j < nvl; ++j) {
+        for (int i = 0; i < nvl; ++i) {
+          const GMTally1 si1 = vs_l->sum(i);
+          const GMTally1 sj1 = vs_r->sum(j);
+          const GMFloat2 si1_sj1 = GMFloat2_encode(si1, sj1);
+          Metrics_elt_2<GMFloat2, S>(*metrics, i, j, j_block, *env) = si1_sj1;
+          if (env->sparse()) {
+            const GMTally1 ci = vs_l->count(i);
+            const GMTally1 cj = vs_r->count(j);
+            const GMFloat2 ci_cj = GMFloat2_encode(ci, cj);
+            Metrics_elt_2<GMFloat2, C>(*metrics, i, j, j_block, *env) = ci_cj;
+          } // if sparse
+        }   // for i
+      }   // for j
+    } // if (!env->is_threshold_tc())
 
-      // Update counts.
+    // Update counts.
+    if (!env->is_shrink()) {
       metrics->num_metric_items_local_computed_inc(nvl * (size_t)nvl);
+    }
 
   // --------------
   } else { // ! env->all2all()
@@ -523,10 +579,12 @@ static void finalize_ccc_duo_(
     } // if (!env->is_threshold_tc())
 
     // Update counts.
-    for (int j = 0; j < nvl; ++j) {
-      const int i_max = do_compute_triang_only ? j : nvl;
-      metrics->num_metric_items_local_computed_inc(i_max);
-    }   // for j
+    if (!env->is_shrink()) {
+      for (int j = 0; j < nvl; ++j) {
+        const int i_max = do_compute_triang_only ? j : nvl;
+        metrics->num_metric_items_local_computed_inc(i_max);
+      }   // for j
+    }
 
   // --------------
   } // if (env->all2all() && do_compute_triang_only)

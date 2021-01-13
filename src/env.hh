@@ -583,7 +583,7 @@ public:
       storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
     return can_threshold_tc_(tc_try) && can_compress_enable_(tc_try) &&
       is_try_tc_(tc_try) &&
-      NumWay::_3 == num_way() && // TODO: implement 2-way
+      //NumWay::_3 == num_way() && // TODO: implement 2-way
       is_shrinking_helpful;
   }
 

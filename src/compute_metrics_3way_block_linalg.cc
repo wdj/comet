@@ -367,7 +367,7 @@ static void finalize_ccc_duo_(
       const size_t index = metrics->num_metric_items_local_computed;
       COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
 
-      // Get I, K of item just read.
+      // Get row, col nums of item just read.
 
       const size_t K = matB_cbuf->ind1_recent();
       const size_t I_mapped = matB_cbuf->ind0_recent();
@@ -376,13 +376,16 @@ static void finalize_ccc_duo_(
 
       const size_t I = I_mapped % nvleD2 + step_2way * nvleD2;
 
-      // It was computed by GEMM, check is it an entry we need.
+      // It was computed by GEMM; check is it an entry we need.
 
       const bool is_in_range = I >= (size_t)I_min && I < (size_t)I_max &&
                                K >= (size_t)K_min && K < (size_t)K_max;
 
       if (!is_in_range)
+        // [check: is this statement is ever executed.]
         continue;
+
+      // Get indexing info.
 
       const size_t i = si->unperm0(I, (size_t)J, K);
       const size_t j = si->unperm1(I, (size_t)J, K);
