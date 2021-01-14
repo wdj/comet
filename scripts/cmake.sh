@@ -401,6 +401,7 @@ function main
     COMET_CUDA_COMPILE_OPTS+=" -Wno-strict-aliasing"
     COMET_CUDA_COMPILE_OPTS+=" -Wno-uninitialized"
     COMET_CUDA_COMPILE_OPTS+=" -DCOMET_USE_CUTLASS"
+    COMET_CUDA_COMPILE_OPTS+=" -DCOMET_CUTLASS_ARCH=$COMET_CUTLASS_ARCH"
   fi
 
   #----------------------------------------------------------------------------

@@ -371,6 +371,10 @@ void print_output(bool do_print,
     printf(" tc_eff %i", env.tc_eff());
   }
 
+  if (env.is_shrink()) {
+    printf(" is_shrink %s", "yes");
+  }
+
   printf("\n");
 }
 

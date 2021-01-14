@@ -274,6 +274,7 @@ EOF
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_75,code=compute_75;-arch=sm_75"
 
   local USE_CUTLASS=ON
+  local COMET_CUTLASS_ARCH=Sm75
   #COMET_WERROR=OFF
 
   local USE_MAGMA=ON
@@ -843,6 +844,7 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80"
 
   local USE_CUTLASS=ON
+  local COMET_CUTLASS_ARCH=Sm80
   #COMET_WERROR=OFF
 
   #local USE_MAGMA=OFF
