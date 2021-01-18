@@ -61,7 +61,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
   const int step_2way,
   const int I_min,
   const int I_max,
-  const int npvfl,
+  const int npfl,
   CEnv& env) {
 
   matXitem_buf->lock_h();
@@ -76,7 +76,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
     #pragma omp parallel for schedule(dynamic,1000)
     for (int I = I_min; I < I_max; ++I) {
       // Operate on columns x_i and x_j elementwise.
-      for (int f = 0; f < npvfl; ++f) {
+      for (int f = 0; f < npfl; ++f) {
         const GMFloat a = vectors_I_buf->elt_const<GMFloat>(f, I);
         const GMFloat b = vectors_J_buf->elt_const<GMFloat>(f, J);
         matXitem_buf->elt<GMFloat>(f, I) = a < b ? a : b;
@@ -90,10 +90,10 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
     // Extract column J of vectors_J, later use this to form matX.
 
     for (int word = 0; word<2; ++word) {
-      for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+      for (int pfl = 0; pfl < npfl; ++pfl) {
 
-        matXitem_buf->elt<GMBits2x64>(pvfl, 0).data[word] =
-          vectors_J_buf->elt_const<GMBits2x64>(pvfl, J).data[word];
+        matXitem_buf->elt<GMBits2x64>(pfl, 0).data[word] =
+          vectors_J_buf->elt_const<GMBits2x64>(pfl, J).data[word];
 
       }
     }
@@ -115,15 +115,15 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
       const uint64_t oddbits = 0x5555555555555555;
 
       // Operate on columns v_i and v_j elementwise.
-      for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+      for (int pfl = 0; pfl < npfl; ++pfl) {
 
         const bool sparse = env.sparse();
 
         for (int word = 0; word<2; ++word) {
           const uint64_t vI = vectors_I_buf->elt_const<GMBits2x64>(
-                                           pvfl, I).data[word];
+                                           pfl, I).data[word];
           const uint64_t vJ = vectors_J_buf->elt_const<GMBits2x64>(
-                                           pvfl, J).data[word];
+                                           pfl, J).data[word];
 
           // Create word whose odd bits sample the lo (denoted here "..._0")
           // or hi ("..._1") bit of the seminibble.  Also create the
@@ -184,7 +184,7 @@ static void compute_metrics_3way_block_linalg_form_matXitem_(
 
           // Store result
 
-          matXitem_buf->elt<GMBits2x64>(pvfl, I).data[word] = r;
+          matXitem_buf->elt<GMBits2x64>(pfl, I).data[word] = r;
         } // word
       }  // f
     }    // I
@@ -707,7 +707,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // Initializations.
 
   const int nvl = metrics.num_vector_local;
-  const int npvfl = vdata_i.vectors->num_packedval_field_local;
+  const int npfl = vdata_i.vectors->num_packedfield_local;
   const int i_block = env_.proc_num_vector();
 
   GMSectionInfo si_value, *si = &si_value;
@@ -732,7 +732,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   if (need_mat_ij) {
     MirroredBuf* matM_ij_buf_ptr = env_.do_reduce() ? tmp_buf_[0] : matM_ij_buf;
 
-    LinAlg::gemm(nvl, nvl, npvfl,
+    LinAlg::gemm(nvl, nvl, npfl,
                  vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
                  vdata_i.sums->sums(), vdata_j.sums->sums(),
                  vdata_i.sums->counts(), vdata_j.sums->counts(),
@@ -755,7 +755,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   if (need_mat_jk) {
     MirroredBuf* matM_jk_buf_ptr = env_.do_reduce() ? tmp_buf_[0] : matM_jk_buf;
 
-    LinAlg::gemm(nvl, nvl, npvfl,
+    LinAlg::gemm(nvl, nvl, npfl,
                  vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
                  vdata_j.sums->sums(), vdata_k.sums->sums(),
                  vdata_j.sums->counts(), vdata_k.sums->counts(),
@@ -781,7 +781,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     MirroredBuf* matM_kik_buf_ptr =
         env_.do_reduce() ? tmp_buf_[0] : matM_kik_buf;
 
-    LinAlg::gemm(nvl, nvl, npvfl,
+    LinAlg::gemm(nvl, nvl, npfl,
                  vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
                  vdata_k.sums->sums(), vdata_i.sums->sums(),
                  vdata_k.sums->counts(), vdata_i.sums->counts(),
@@ -901,7 +901,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     vars_next.J = J_min + utils::trunc(vars_next.step_num, num_step_2way);
     vars_next.I_min = 0;
     vars_next.I_max = si->is_part1 ? vars_next.J : nvl;
-    vars_next.I_max_dim = tc_gemm_size_required(vars_next.I_max, env_);
+    vars_next.I_max_dim = tc_gemm_vaxis_size_required(vars_next.I_max, env_);
     vars_next.K_min = si->is_part3 ? 0 : vars_next.J + 1;
     vars_next.K_max = nvl;
     vars_next.empty = vars_next.I_min >= vars_next.I_max ||
@@ -933,7 +933,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
-      LinAlg::gemm_wait(vars_prev.I_max, nvl, npvfl,
+      LinAlg::gemm_wait(vars_prev.I_max, nvl, npfl,
           matXitem_buf_[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
           vars_prev.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
@@ -949,7 +949,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
       compute_metrics_3way_block_linalg_form_matXitem_(
           vectors_I_buf, vectors_J_buf, matXitem_buf_[vars_next.index_01],
           vars_next.J, vars_next.step_2way,
-          vars_next.I_min, vars_next.I_max, npvfl, env_);
+          vars_next.I_min, vars_next.I_max, npfl, env_);
     }
 
     //========== Send matrix matXitem to GPU - START
@@ -968,7 +968,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
     if (vars.do_compute) {
-      LinAlg::gemm_start(vars.I_max, nvl, npvfl,
+      LinAlg::gemm_start(vars.I_max, nvl, npfl,
           matXitem_buf_[vars.index_01], vectors_I_buf, vectors_K_buf,
           vars.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),

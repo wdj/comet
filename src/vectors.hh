@@ -55,7 +55,7 @@ typedef struct {
   int num_vector;
   int num_vector_local;
   // Stored sizes.
-  int num_packedval_field_local;
+  int num_packedfield_local;
   size_t num_packedfield_vector_local;
   // Other.
   int data_type_id;
@@ -208,7 +208,7 @@ static GMBits2 GMVectors_bits2_get(const GMVectors* vectors,
 
   GMBits1_2x64* const __restrict__ address =
       &(((GMBits2x64*)(vectors->data))[field_index2 +
-                                       vectors->num_packedval_field_local *
+                                       vectors->num_packedfield_local *
                                        (size_t)vector_local]
             .data[field_index1]);
 
@@ -247,7 +247,7 @@ static void GMVectors_bits2_set(GMVectors* vectors,
 
   GMBits1_2x64* const __restrict__ address =
       &(((GMBits2x64*)(vectors->data))[field_index2 +
-                                       vectors->num_packedval_field_local *
+                                       vectors->num_packedfield_local *
                                        (size_t)vector_local]
             .data[field_index1]);
 
@@ -261,19 +261,19 @@ static void GMVectors_bits2_set(GMVectors* vectors,
 //-----------------------------------------------------------------------------
 
 static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
-                                          int packedval_field_local,
+                                          int packedfield_local,
                                           int vector_local,
                                           CEnv* env) {
   // This function accesses an entire packed value containing 2-bit values.
   COMET_ASSERT(vectors);
-  COMET_ASSERT(packedval_field_local >= 0);
-  COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);
+  COMET_ASSERT(packedfield_local >= 0);
+  COMET_ASSERT(packedfield_local < vectors->num_packedfield_local);
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
   COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
 
-  const size_t index = packedval_field_local +
-    vectors->num_packedval_field_local*(size_t)vector_local;
+  const size_t index = packedfield_local +
+    vectors->num_packedfield_local*(size_t)vector_local;
 
   return ((GMBits2x64*)(vectors->data)) + index;
 }
@@ -281,20 +281,20 @@ static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
 //-----------------------------------------------------------------------------
 
 static void GMVectors_bits2x64_set(GMVectors* vectors,
-                                   int packedval_field_local,
+                                   int packedfield_local,
                                    int vector_local,
                                    GMBits2x64 value,
                                    CEnv* env) {
   // This function sets an entire packed value containing 2-bit values.
   COMET_ASSERT(vectors);
-  COMET_ASSERT(packedval_field_local >= 0);
-  COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);
+  COMET_ASSERT(packedfield_local >= 0);
+  COMET_ASSERT(packedfield_local < vectors->num_packedfield_local);
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
   COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
 
-  const size_t index = packedval_field_local +
-    vectors->num_packedval_field_local*(size_t)vector_local;
+  const size_t index = packedfield_local +
+    vectors->num_packedfield_local*(size_t)vector_local;
 
   ((GMBits2x64*)(vectors->data))[index].data[0] = value.data[0];
   ((GMBits2x64*)(vectors->data))[index].data[1] = value.data[1];
@@ -303,19 +303,19 @@ static void GMVectors_bits2x64_set(GMVectors* vectors,
 //-----------------------------------------------------------------------------
 
 static GMBits2x64 GMVectors_bits2x64_get(const GMVectors* vectors,
-                                         int packedval_field_local,
+                                         int packedfield_local,
                                          int vector_local,
                                          CEnv* env) {
   // This function gets an entire packed value containing 2-bit values.
   COMET_ASSERT(vectors);
-  COMET_ASSERT(packedval_field_local >= 0);
-  COMET_ASSERT(packedval_field_local < vectors->num_packedval_field_local);
+  COMET_ASSERT(packedfield_local >= 0);
+  COMET_ASSERT(packedfield_local < vectors->num_packedfield_local);
   COMET_ASSERT(vector_local >= 0);
   COMET_ASSERT(vector_local < vectors->num_vector_local);
   COMET_ASSERT(env->data_type_vectors() == GM_DATA_TYPE_BITS2);
 
-  const size_t index = packedval_field_local +
-    vectors->num_packedval_field_local*(size_t)vector_local;
+  const size_t index = packedfield_local +
+    vectors->num_packedfield_local*(size_t)vector_local;
 
   const GMBits2x64 value = ((GMBits2x64*)(vectors->data))[index];
 

@@ -1901,11 +1901,13 @@ void DriverTest_b1_xor_gemm_() {
     if (num_field <= num_field_prev)
       continue;
 
+    //const int num_vector_ = 256; // 256;
+    //const int num_field_ = 256;
+
     sprintf(options1, options_template, num_way,
             num_vector, num_field, "REF", 1, 0, 1);
     sprintf(options2, options_template, num_way,
             num_vector, num_field, "GPU", 1, TC::B1, num_tc_steps);
-            //num_vector, num_field, "GPU", 1, TC::FP32, num_tc_steps);
     EXPECT_EQ(true, compare_2runs(options1, options2));
     num_field_prev = num_field;
   }

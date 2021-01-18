@@ -68,6 +68,52 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Divisibility requirement for GEMM.
+
+// The units are "vector"s (as counted by num_vectors_local)..
+
+size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
+
+  const size_t result = env.tc_eff() == TC::NO ? 1 :
+    env.tc_eff() == TC::B1 ? 256 : 4;
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Divisibility requirement for GEMM.
+
+size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
+
+  // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
+
+  const size_t result = !env.is_metric_type_bitwise() ? 1 :
+    !(env.tc_eff() == TC::B1) ? 1 : 2;
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM.
+
+size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env) {
+
+  const size_t factor = tc_gemm_vaxis_divisibility_required(env);
+
+  return utils::ceil(size_requested, factor)*factor;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM.
+
+size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env) {
+
+  const size_t factor = tc_gemm_faxis_divisibility_required(env);
+
+  return utils::ceil(size_requested, factor)*factor;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Set matrix to zero, possibly asynchronously.
 //
 // This is needed because GEMM functions with beta=0 can fail to initialize
@@ -121,7 +167,9 @@ static void tc_gemm_start_impl_(
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
   const int nvl = n;
-  const int npvfl = k;
+  const int npfl = k;
+  const int d = tc_gemm_faxis_divisibility_required(env);
+  COMET_INSIST(npfl % d == 0);
   const int I_max = m;
   const int I_max_dim = lddc;
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
@@ -130,11 +178,11 @@ static void tc_gemm_start_impl_(
   // to satisfy cublas divisibility requirements.
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
-  COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
+  COMET_INSIST((size_t)nvll == tc_gemm_vaxis_size_required(nvll, env));
 
   // Get matX counts if needed.
 
-  tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
+  tc_compute_matX_counts(I_max, I_max_dim, nvl, npfl, nfal,
     (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
   tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
@@ -145,27 +193,27 @@ static void tc_gemm_start_impl_(
   for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
 
     // Select the block row of the left and right matrices for this step.
-    const int pvfl_min = ((tc_step_num+0) * npvfl) / num_tc_steps;
-    const int pvfl_max = ((tc_step_num+1) * npvfl) / num_tc_steps;
-    const int npvfl_thisstep = pvfl_max - pvfl_min;
+    const int pfl_min = (((tc_step_num+0) * (npfl/d)) / num_tc_steps) * d;
+    const int pfl_max = (((tc_step_num+1) * (npfl/d)) / num_tc_steps) * d;
+    const int npfl_thisstep = pfl_max - pfl_min;
 
-    const bool is_empty_block_row = 0 == npvfl_thisstep;
+    const bool is_empty_block_row = 0 == npfl_thisstep;
     if (is_empty_block_row)
       continue;
 
     // Convert the input matrices of packed bit values into matrices
     // of a type suitable for the GEMM.
     enum {IS_LEFT = true};
-    tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
-      npvfl_thisstep, pvfl_min, nfal, (TCWord_t*)matA1, (TCWord_t*)matA2,
+    tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npfl,
+      npfl_thisstep, pfl_min, nfal, (TCWord_t*)matA1, (TCWord_t*)matA2,
       tc_bufs, step_2way, env);
-    tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
-      npvfl_thisstep, pvfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
+    tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npfl,
+      npfl_thisstep, pfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
       tc_bufs, step_2way, env);
 
     // Perform the GEMM for this pair of block rows; accumulate.
-    const bool is_first = 0 == pvfl_min;
-    tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
+    const bool is_first = 0 == pfl_min;
+    tc_solve_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matC, tc_bufs, env);
 
   } // for
@@ -250,26 +298,6 @@ void tc_gemm_start(
   } // switch
 }
 
-//-----------------------------------------------------------------------------
-/// \brief Divisibility requirement for GEMM.
-
-size_t tc_gemm_divisibility_required(const CEnv& env) {
-
-  const bool need_divisible_by_4 = env.tc_eff() != TC::NO;
-
-  return need_divisible_by_4 ? 4 : 1;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Size requirement for GEMM.
-
-size_t tc_gemm_size_required(size_t size_requested, const CEnv& env) {
-
-  const size_t factor = tc_gemm_divisibility_required(env);
-
-  return utils::ceil(size_requested, factor)*factor;
-}
-
 //=============================================================================
 // EXTERNALLY VISIBLE FUNCTIONS: BUFFER MANAGEMENT
 //=============================================================================
@@ -278,12 +306,12 @@ size_t tc_gemm_size_required(size_t size_requested, const CEnv& env) {
 /// \brief Initialize TCBufs object by allocating memory etc.
 
 void TCBufs::malloc(int num_vector_local,
-                    int num_field_local,
-                    int num_packedval_field_local,
+                    //int num_field_local,
+                    int num_packedfield_local,
                     TCBufs& tc_bufs,
                     CEnv& env) {
   COMET_INSIST(num_vector_local >= 0);
-  COMET_INSIST(num_packedval_field_local >= 0);
+  COMET_INSIST(num_packedfield_local >= 0);
   COMET_INSIST(!tc_bufs.tc_buf_left);
   COMET_INSIST(!tc_bufs.tc_buf_right);
 
@@ -293,9 +321,10 @@ void TCBufs::malloc(int num_vector_local,
   // Calculate sizes.
 
   const size_t nvl = num_vector_local;
-  const size_t npvfl = num_packedval_field_local;
-  const size_t npvfl_thisstep_max =
-    utils::ceil(npvfl, (size_t)env.num_tc_steps());
+  const size_t npfl = num_packedfield_local;
+  const int d = tc_gemm_faxis_divisibility_required(env);
+  const size_t npfl_thisstep_max =
+    utils::ceil(npfl/d, (size_t)env.num_tc_steps()) * d;
 
   const int sizeof_gemm_in_t =
      env.tc_eff() == TC::FP32 ? sizeof(typename TCTraits<TC::FP32>::GemmIn_t) :
@@ -314,7 +343,7 @@ void TCBufs::malloc(int num_vector_local,
 
   const size_t nvlX2 = nvl * 2;
 
-  tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64 / nfpgi) *
+  tc_bufs.tc_buf_size = nvlX2 * (npfl_thisstep_max * 64 / nfpgi) *
                         sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 

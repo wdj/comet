@@ -235,14 +235,14 @@ static void compute_nums_nonlinalg_ccc_start_(
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        const int npvfl = vectors_left->num_packedval_field_local;
-        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+        const int npfl = vectors_left->num_packedfield_local;
+        for (int pfl = 0; pfl < npfl; ++pfl) {
 
           // Extract input values to process.
 
-          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pvfl, i,
+          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pfl, i,
                                                        env);
-          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pvfl, j,
+          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pfl, j,
                                                        env);
           const uint64_t vi0 = vi.data[0];
           const uint64_t vi1 = vi.data[1];
@@ -328,7 +328,7 @@ static void compute_nums_nonlinalg_ccc_start_(
           MFT::add(sum.data[0], r00, r01);
           MFT::add(sum.data[1], r10, r11);
 
-        } // for pvfl
+        } // for pfl
 
         // Adjust for pad
 
@@ -448,14 +448,14 @@ static void compute_nums_nonlinalg_duo_start_(
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        const int npvfl = vectors_left->num_packedval_field_local;
-        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+        const int npfl = vectors_left->num_packedfield_local;
+        for (int pfl = 0; pfl < npfl; ++pfl) {
 
           // Extract input values to process.
 
-          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pvfl, i,
+          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pfl, i,
                                                        env);
-          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pvfl, j,
+          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pfl, j,
                                                        env);
           const uint64_t vi0 = vi.data[0];
           const uint64_t vi1 = vi.data[1];
@@ -509,7 +509,7 @@ static void compute_nums_nonlinalg_duo_start_(
           MFT::add(sum.data[0], r00, r01);
           MFT::add(sum.data[1], r10, r11);
 
-        } // for pvfl
+        } // for pfl
 
         // Adjust for pad
 
@@ -551,14 +551,14 @@ static void compute_nums_nonlinalg_duo_start_(
       int i = 0;
       for (i = 0; i < i_max; ++i) {
         GMTally2x2 sum = GMTally2x2_null();
-        const int npvfl = vectors_left->num_packedval_field_local;
-        for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+        const int npfl = vectors_left->num_packedfield_local;
+        for (int pfl = 0; pfl < npfl; ++pfl) {
 
           // Extract input values to process.
 
-          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pvfl, i,
+          const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_left, pfl, i,
                                                        env);
-          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pvfl, j,
+          const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_right, pfl, j,
                                                        env);
           const uint64_t vi0 = vi.data[0];
           const uint64_t vi1 = vi.data[1];
@@ -616,7 +616,7 @@ static void compute_nums_nonlinalg_duo_start_(
           MFT::add(sum.data[0], r00, r01);
           MFT::add(sum.data[1], r10, r11);
 
-        } // for pvfl
+        } // for pfl
 
         // Adjust for pad
         // NOTE this works differently from other cases because of xor
@@ -667,7 +667,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
     LinAlg::gemm_start(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
-      vectors_left->num_packedval_field_local,
+      vectors_left->num_packedfield_local,
       vectors_left_buf,
       vectors_right_buf,
       metrics_buf,
@@ -729,7 +729,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
     LinAlg::gemm_wait(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
-      vectors_left->num_packedval_field_local,
+      vectors_left->num_packedfield_local,
       vectors_left_buf,
       vectors_right_buf,
       metrics_buf,

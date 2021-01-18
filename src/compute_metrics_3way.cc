@@ -102,11 +102,11 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
   {
 
   const int nvl = vectors.num_vector_local;
-  const int npvfl = vectors.num_packedval_field_local;
+  const int npfl = vectors.num_packedfield_local;
 
   // Allocate magma CPU memory for vectors and for result
 
-  MirroredBuf vectors_buf(npvfl, nvl, env_);
+  MirroredBuf vectors_buf(npfl, nvl, env_);
 
   // Copy in vectors
 
@@ -124,7 +124,7 @@ void ComputeMetrics3Way::compute_notall2all_(GMMetrics& metrics,
 
   {
 
-  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npvfl, env_);
+  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npfl, env_);
 
   compute_metrics_3way_block.compute(
     VData(&vectors, &vectors_buf, &vector_sums),
@@ -159,7 +159,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   {
 
   const int nvl = metrics.num_vector_local;
-  const int npvfl = vectors.num_packedval_field_local;
+  const int npfl = vectors.num_packedfield_local;
 
   const int data_type = env->data_type_vectors();
 
@@ -185,7 +185,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   GMVectors* const vectors_i = &vectors;
 
-  MirroredBuf vectors_i_buf_value(npvfl, nvl, env_);
+  MirroredBuf vectors_i_buf_value(npfl, nvl, env_);
   MirroredBuf* const vectors_i_buf = &vectors_i_buf_value;
 
   // ------------------
@@ -201,7 +201,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_create(vectors_j[0], data_type, vectors.dm, env);
   GMVectors_create(vectors_j[1], data_type, vectors.dm, env);
 
-  MirroredBuf vectors_j_buf_value(npvfl, nvl,env_);
+  MirroredBuf vectors_j_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_j_buf = &vectors_j_buf_value;
 
   // ------------------
@@ -217,7 +217,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_create(vectors_k[0], data_type, vectors.dm, env);
   GMVectors_create(vectors_k[1], data_type, vectors.dm, env);
 
-  MirroredBuf vectors_k_buf_value(npvfl, nvl,env_);
+  MirroredBuf vectors_k_buf_value(npfl, nvl,env_);
   MirroredBuf* const vectors_k_buf = &vectors_k_buf_value;
 
   // ------------------
@@ -240,7 +240,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   bool have_unprocessed_section_block = false;
 
-  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npvfl, env_);
+  ComputeMetrics3WayBlock compute_metrics_3way_block(nvl, npfl, env_);
 
   // Counter for quantum of work:
   //   for part 1 or part 2: 1/6 section of work needed for block

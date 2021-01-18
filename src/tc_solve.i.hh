@@ -43,10 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/// \brief 1-bit xor gemm, gpu version (mockup version, not high performance).
+
+//=============================================================================
+/// \brief 1-bit xor gemm kernel (mockup version, not high performance).
 
 template<typename GemmIn_t, typename GemmOut_t>
-__global__ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
+__global__ void tc_solve_impl_b1_kernel(size_t m, size_t n, size_t k,
   GemmIn_t* a, GemmIn_t* b, bool beta, GemmOut_t* c) {
   //COMET_INSIST(a && b && c);
 
@@ -74,44 +76,15 @@ __global__ void b1_xor_gemm_gpu(size_t m, size_t n, size_t k,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Perform required GEMM.
+/// \brief 1-bit xor gemm.
 
 template<int TC_METHOD>
-static void tc_solve_impl(bool is_first, int m, int n, int k,
+static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
   void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
-  // NOTE: from https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
-  // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
-  //  and m is a multiple of 4"
-  // "GEMMs that do not satisfy the above rules will fall back
-  //  to a non-Tensor Core implementation"
-  // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
-  // NOTE: this may be relaxed for later versions of CUDA.
-
-  // k (=nfl) is derived from padded-up npvfl (multiple of 64), so always ok.
-  COMET_INSIST(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
-  // since I_max_dim % 4 == 0; see tc_gemm_divisibility_required()
-  COMET_INSIST(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
-  // since nvl % 4 == 0; see tc_gemm_divisibility_required()
-  COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
-
-  // Make the appropriate BLAS call.
-
-  const bool is_timing_gemm = false; // true;
-
-  if (is_timing_gemm)
-    env.stream_synchronize(env.stream_compute());
-  double t1 = !is_timing_gemm ? 0 : System::time();
-
-  if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
-
-    //-------------------
-    // CASE: GPU, TC::B1.
-    //-------------------
-
-#   ifdef COMET_USE_ACCEL
+  if (true) {
 
       COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
@@ -138,13 +111,43 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
       const int num_threadblocks_1 = n;
 
-      COMET_LAUNCH_KERNEL((b1_xor_gemm_gpu<GemmIn_t, GemmOut_t>),
+      COMET_LAUNCH_KERNEL((tc_solve_impl_b1_kernel<GemmIn_t, GemmOut_t>),
         dim3(num_threadblocks_0, num_threadblocks_1, 1),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
         (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
 
       System::accel_last_call_succeeded();
+
+  } // if
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Perform required GEMM.
+
+template<int TC_METHOD>
+static void tc_solve_impl(bool is_first, int m, int n, int k,
+  void* matC, TCBufs& tc_bufs, CEnv& env) {
+  COMET_INSIST(matC);
+  COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
+
+  // Make the appropriate BLAS call.
+
+  const bool is_timing_gemm = false; // true;
+
+  if (is_timing_gemm)
+    env.stream_synchronize(env.stream_compute());
+  double t1 = !is_timing_gemm ? 0 : System::time();
+
+  if (env.is_compute_method_gpu() && TC_METHOD == TC::B1) {
+
+    //-------------------
+    // CASE: GPU, TC::B1.
+    //-------------------
+
+#   ifdef COMET_USE_ACCEL
+
+      tc_solve_impl_b1<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
 
 #   else // COMET_USE_ACCEL
 
@@ -161,6 +164,21 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
     // Make accelerator BLAS call.
 
 #   ifdef COMET_USE_ACCEL
+
+      // NOTE: from https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
+      // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
+      //  and m is a multiple of 4"
+      // "GEMMs that do not satisfy the above rules will fall back
+      //  to a non-Tensor Core implementation"
+      // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
+      // NOTE: this may be relaxed for later versions of CUDA.
+
+      // k (=nfl) is derived from padded-up npfl (multiple of 64), so always ok.
+      COMET_INSIST(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
+      // since I_max_dim % 4 == 0; see tc_gemm_vaxis_divisibility_required()
+      COMET_INSIST(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
+      // since nvl % 4 == 0; see tc_gemm_vaxis_divisibility_required()
+      COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
       const typename TCTraits<TC_METHOD>::GemmOut_t alpha = 1;
       const typename TCTraits<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
@@ -311,14 +329,14 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 /// \brief Call to perform required GEMM.
 
 template<int TC_METHOD>
-void tc_solve_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
+void tc_solve_(bool is_first, int nvll, int nvl, int npfl_thisstep,
                void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
-  COMET_INSIST(npvfl_thisstep >= 0);
+  COMET_INSIST(npfl_thisstep >= 0);
   COMET_INSIST(env.tc_eff() != TC::NO);
 
-  const int nfl_thisstep = npvfl_thisstep * 64;
+  const int nfl_thisstep = npfl_thisstep * 64;
 
   const int m = 2 * nvll; // metrics array dim
   const int n = 2 * nvl; // metrics array dim

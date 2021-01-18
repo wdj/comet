@@ -133,11 +133,11 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   {
 
   const int nvl = vectors.num_vector_local;
-  const int npvfl = vectors.num_packedval_field_local;
+  const int npfl = vectors.num_packedfield_local;
 
   // Allocate memory for vectors and for result 
 
-  MirroredBuf vectors_buf(npvfl, nvl, env_);
+  MirroredBuf vectors_buf(npfl, nvl, env_);
 
   MirroredBuf metrics_buf(nvl, nvl, env_);
 

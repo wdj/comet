@@ -181,10 +181,10 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   // Allocation size for vector storage
 
-  vectors->num_packedval_field_local = dm->num_packedfield_local;
+  vectors->num_packedfield_local = dm->num_packedfield_local;
 
   vectors->num_packedfield_vector_local =
-      vectors->num_packedval_field_local * dm->num_vector_local;
+      vectors->num_packedfield_local * dm->num_vector_local;
 
   vectors->data_size = vectors->num_packedfield_vector_local *
                        (dm->num_bit_per_packedfield / bits_per_byte);
@@ -194,7 +194,7 @@ void GMVectors_create_imp_(GMVectors* vectors,
   vectors->buf = new MirroredBuf(*env);
 
   if (vectors->has_buf) {
-    vectors->buf->allocate(vectors->num_packedval_field_local,
+    vectors->buf->allocate(vectors->num_packedfield_local,
                            vectors->num_vector_local);
     vectors->data = vectors->buf->h; // alias vector storage to buf
   } else {
@@ -295,7 +295,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
-        for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
+        for (int fl = 0; fl < vectors->num_packedfield_local; ++fl) {
           vectors_buf->elt<GMBits2x64>(fl, i) =
             GMVectors_bits2x64_get(vectors, fl, i, env);
         }
@@ -306,7 +306,7 @@ void gm_vectors_to_buf(MirroredBuf* vectors_buf,
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
       for (int i = 0; i < vectors->num_vector_local; ++i) {
-        for (int fl = 0; fl < vectors->num_packedval_field_local; ++fl) {
+        for (int fl = 0; fl < vectors->num_packedfield_local; ++fl) {
           vectors_buf->elt<GMBits2x64>(fl, i) =
             GMVectors_bits2x64_get(vectors, fl, i, env);
         }
