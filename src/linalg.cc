@@ -78,7 +78,7 @@ void LinAlg::gemm_start(
   if (!m || !n || !k)
     return;
 
-  if(env.print_details()) printf("In LinAlg::gemm_start\n");
+  if(env.print_details()) printf("In LinAlg::gemm_start A matrix+column case\n");
 
   // Lock.
 
@@ -153,6 +153,7 @@ void LinAlg::gemm_wait(
   if (env.is_using_tc()) {
     if (!env.is_compute_method_gpu()) {
       // Lock
+      if(env.print_details()) printf("Locking matrices CPU\n");
       matA1->lock_h();
       if (matA2 != matA1 && matA2 != matB)
         matA2->lock_h();
@@ -160,6 +161,7 @@ void LinAlg::gemm_wait(
         matB->lock_h();
       matC->lock_h();
       // GEMM call, tc case.
+      if(env.print_details()) printf("Calling tc_gemm_start\n");
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
@@ -167,6 +169,7 @@ void LinAlg::gemm_wait(
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
         dm.num_field_active_local, step_2way, dm.tc_bufs, env);
       // Unlock
+      if(env.print_details()) printf("Unlocking matrices CPU\n");
       matA1->unlock_h();
       if (matA2 != matA1 && matA2 != matB)
         matA2->unlock_h();
@@ -176,12 +179,14 @@ void LinAlg::gemm_wait(
     }
   }
 
+  if(env.print_details()) printf("Calling stream synchronize\n");
   env.stream_synchronize(env.stream_compute());
   if(env.print_details()) printf("Stream synchronized in wait\n");
 
   // Unlock.
 
   if (env.is_compute_method_gpu()) {
+    if(env.print_details()) printf("Unlocking matrices GPU\n");
     matA1->unlock_d();
     if (matB != matA1)
       matB->unlock_d();
@@ -199,7 +204,7 @@ void LinAlg::gemm_start(
   MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
 
-  if(env.print_details()) printf("Calling gemm_start with A,A,B,C\n");
+  if(env.print_details()) printf("Calling gemm_start with standard A case\n");
   gemm_start(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm,
     magma_wrapper, env);

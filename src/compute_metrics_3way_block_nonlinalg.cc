@@ -210,7 +210,6 @@ static void compute_nonlinalg_ccc_duo_(
   VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& numerators,
   int j_block, int k_block, int section_step, CEnv& env_) {
 
-
   GMMetrics* metrics = &numerators;
   CEnv* env = &env_;
   GMVectors* vectors_i = vdata_i.vectors;
@@ -223,8 +222,7 @@ static void compute_nonlinalg_ccc_duo_(
   VectorSums* vector_sums_j = vdata_j.sums;
   VectorSums* vector_sums_k = vdata_k.sums;
 
-
-
+  if(env->print_details()) printf("In compute_nonlinalg_ccc_duo_\n");
 
   COMET_INSIST(metrics && env);
   COMET_INSIST(vectors_i && vectors_j && vectors_k);
@@ -989,6 +987,8 @@ static void compute_nonlinalg_ccc_duo_(
 void ComputeMetrics3WayBlock::compute_nonlinalg_(
   VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& numerators,
   int j_block, int k_block, int section_step) {
+
+  if(env_.print_details()) printf("In compute_nonlinalg_\n");
 
   COMET_INSIST(!env_.is_using_linalg());
 

@@ -863,6 +863,8 @@ void tc_compute_matX_counts(
   COMET_INSIST(env.is_bitwise_3way_2step());
   COMET_INSIST(env.is_vectors_halved());
 
+  if(env.print_details()) printf("In tc_compute_matX_counts\n");
+
 #ifdef COMET_USE_ACCEL
 
   // num_vector-related dimensions.
@@ -917,6 +919,7 @@ void tc_compute_matX_counts(
 
   System::accel_last_call_succeeded();
 
+  if(env.print_details()) printf("Done in tc_compute_matX_counts\n");
 #endif //COMET_USE_ACCEL
 }
 

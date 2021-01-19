@@ -234,6 +234,8 @@ void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
     return;
   }
 
+  if(env.print_details()) printf("In GMMetrics_3way_set_num_metrics_\n");
+
   metrics.num_metrics_local = 0;
 
   //---Fused counter for section_num and block_num, same across all procs.
@@ -260,11 +262,16 @@ void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
         COMET_INSIST(elts_local >= 0 && "Error in sizes calculation.");
         metrics.num_metrics_local += elts_local;
         metrics.is_section_num_valid_part1_[section_num] = (elts_local != 0);
+        if(env.print_details()) printf("elts_local=%ld trap_size_hi=%ld trap_size_lo=%ld J_hi=%d J_lo=%d nvl=%d\n",
+          elts_local,trap_size_hi,trap_size_lo,J_hi,J_lo,nvl);
       } // if
     } // if
     ++section_block_num;
   } // section_step
   metrics.index_offset_part2_ = metrics.num_metrics_local;
+
+  if(env.print_details()) printf("Part 1 tetrahedron: section_steps_1=%d num_metrics=%lu\n",
+    num_section_steps_1,metrics.num_metrics_local);
 
   //---Compute size part 2: (triang prisms) i_block!=j_block==k_block part.
 
@@ -305,6 +312,9 @@ void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
   } // section_step
   metrics.index_offset_part3_ = metrics.num_metrics_local;
 
+  if(env.print_details()) printf("Part 2 triang: section_steps_2=%d num_metrics=%lu\n",
+    num_section_steps_2,metrics.num_metrics_local);
+
   //---Compute size part 3: (block sections) i_block!=j_block!=k_block part.
 
   //---Loop over block for part3.
@@ -342,6 +352,9 @@ void GMMetrics_3way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
       }
     }
   } // section_step
+
+  if(env.print_details()) printf("Part 3 block: section_steps_3=%d num_metrics=%lu\n",
+    num_section_steps_3,metrics.num_metrics_local);
 }
 
 //=============================================================================
@@ -367,6 +380,8 @@ void GMMetrics_create(GMMetrics* metrics,
 
   if (! env->is_proc_active())
     return;
+
+  if(env->print_details()) printf("In GMMetrics_create\n");
 
   //--------------------
   // Perform checks.
@@ -486,6 +501,8 @@ void GMMetrics_create(GMMetrics* metrics,
   //data_size = metrics->num_metrics_local * metrics->data_elt_size;
 
   metrics->data = metrics_mem->malloc_data(data_size);
+  if(env->print_details()) printf("num_metrics=%lu items_per_metric=%d item_local=%lu items_local_allocated=%lu item_size=%lu data_size=%lu\n",
+    metrics->num_metrics_local,env->num_metric_items_per_metric(),metrics->num_metric_items_local,metrics->num_metric_items_local_allocated,env->metric_item_size(), data_size);
 
   //--------------------
   // Allocations: coords.

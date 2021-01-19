@@ -513,6 +513,8 @@ public:
   // Can we do metrics calc and thresholding in TC package for requested tc.
   bool can_threshold_tc_(int tc_try) const {
     COMET_INSIST(TC::AUTO != tc_try);
+    //printf("can_threshold_tc tc_try=%d is_try_tc=%d sparse=%d num_proc_field=%d is_threshold=%d !is_double_prec=%d\n",
+    //       tc_try,is_try_tc_(tc_try),sparse(),num_proc_field(),is_threshold(),!is_double_prec());
     return is_try_tc_(tc_try) && sparse() && num_proc_field() == 1 &&
            is_threshold()
       && !is_double_prec();
@@ -588,8 +590,28 @@ public:
       is_shrinking_helpful;
   }
 
+  bool can_shrink_output_(int tc_try) const {
+    COMET_INSIST(TC::AUTO != tc_try);
+    const size_t storage_per_metric = metric_size() +
+      sizeof(MetricItemCoords_t);
+    const size_t storage_per_metric_shrink = metric_size() +
+      sizeof(MetricItemCoords_t) * num_entries_per_metric();
+    const bool is_shrinking_helpful =
+      storage_per_metric_shrink < metrics_shrink_ * storage_per_metric;
+    printf("can_shrink can_threshold=%d can_compress=%d is_try_tc=%d  is_shrink_helpful=%d %zu < %lf*%zu metric_size=%zu num_entries=%d\n",
+      can_threshold_tc_(tc_try),can_compress_enable_(tc_try),is_try_tc_(tc_try),
+      is_shrinking_helpful,storage_per_metric_shrink,metrics_shrink_,storage_per_metric,
+      metric_size(),num_entries_per_metric());
+    return can_threshold_tc_(tc_try) && can_compress_enable_(tc_try) &&
+      is_try_tc_(tc_try) &&
+      NumWay::_3 == num_way() && // TODO: implement 2-way
+      is_shrinking_helpful;
+  }
+
   // Do we shrink metrics storage allocated on the CPU.
   bool is_shrink() const {return can_shrink_(tc_eff());}
+
+  bool is_shrink_output() const {return can_shrink_output_(tc_eff());}
 
   int num_entries_per_metric_item() const {
     return is_shrink() ? 1 : num_entries_per_metric();
@@ -659,6 +681,8 @@ public:
       !can_use_linalg_(tc_try);
     // Change this line to short circuit what follows, if desired.
     const bool try_use_xor = true;
+    //printf("can_use_xor tc_try=%d num_way=%d can_threshold=%d can_uxe_xor_nonlinalg=%d\n",
+    //       tc_try,num_way(),can_threshold_tc_(tc_try),can_use_xor_nonlinalg);
     return
       try_use_xor &&
       // 1-bit xor gemm currently only implemented for duo.
@@ -712,6 +736,7 @@ public:
   void combinetime_inc(double t) {combinetime_ += t;}
 
   double synced_time();
+  double get_time();
   size_t cpu_mem_local() const {return cpu_mem_local_;}
   size_t gpu_mem_local() const {return gpu_mem_local_;}
   void cpu_mem_local_inc(size_t n);
@@ -863,6 +888,7 @@ private:
   int coords_type_cache_;
 
   bool print_details_;
+  bool use_sync_time_;
 
   // Counters
   void accel_sync_() const;

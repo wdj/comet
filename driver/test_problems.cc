@@ -380,6 +380,9 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     return;
   }
 
+  bool print_soln = true; //false;
+  if(env->print_details()) printf("In check_metrics_analytic_\n");
+
   const size_t nfa = metrics->num_field_active;
   const size_t nva = metrics->num_vector_active;
 
@@ -668,8 +671,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 
           num_total++;
           const bool is_incorrect = value_expected != value;
-          //printf("index=%zu entry_num=%d value_expected=%e value=%e correct=%d\n",
-          //       index,entry_num,value_expected,value,!is_incorrect);
+          if(env->print_details() && print_soln) printf("index=%zu coords %zu %zu %i %i entry_num=%d value_expected=%e value=%e correct=%d\n",
+                 index,iG,jG,iE,jE,entry_num,value_expected,value,!is_incorrect);
           if (is_incorrect) {
             const double diff = value - value_expected;
             max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
@@ -830,6 +833,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
 #endif
 
           const bool is_incorrect = value_expected != value;
+          if(env->print_details() && print_soln) printf("index=%zu coords=%zu %zu %zu %i %i %i entry_num=%d value_expected=%e value=%e correct=%d\n",
+                 index,iG,jG,kG,iE,jE,kE,entry_num,value_expected,value,!is_incorrect);
           if (is_incorrect) {
             const double diff = value - value_expected;
             max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
@@ -864,7 +869,10 @@ void check_metrics(GMMetrics* metrics, DriverOptions* do_, CEnv* env) {
     return;
   }
 
+  if(env->print_details()) printf("In check_metrics\n");
+
   if (GM_PROBLEM_TYPE_ANALYTIC == do_->problem_type) {
+    if(env->print_details()) printf("Calling check_metrics_analytic_\n");
     check_metrics_analytic_(metrics, do_, env);
   }
 }

@@ -64,6 +64,8 @@ Added test code to output input files to use for testing.
 
 ##########################################
 Planned changes:
+- Add option to choose between sync and unsync timers
+- Setup code to compute min/avg/max across all processes for timings
 - Explore modifying warp-level Cutlass GEMM to use single mma call and store int result.
 - Add additional performance analysis code for communication and i/o routines.
 

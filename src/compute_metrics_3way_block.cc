@@ -112,6 +112,8 @@ void ComputeMetrics3WayBlock::compute(
   COMET_INSIST(! (env_.proc_num_vector() == k_block &&
                   env_.proc_num_vector() != j_block));
 
+  if(env_.print_details()) printf("In ComputeMetrics3WayBlock::compute\n");
+
   if (env_.is_using_linalg()) {
 
     compute_linalg_(vdata_i, vdata_j, vdata_k, numerators, j_block, k_block,

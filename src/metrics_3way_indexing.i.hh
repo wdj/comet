@@ -162,7 +162,8 @@ static int gm_J_lo(int section_num, int nvl, int part_num, CEnv* env) {
 
   const int result = ((env->stage_num() + env->num_stage() * section_num)*nvl) /
                      (num_sections * env->num_stage());
-
+  if(env->print_details()) printf("gm_J_lo result=%d stage_num=%d num_stage=%d section_num=%d nvl=%d num_sections=%d num=%d denom=%d\n",
+    result,env->stage_num(),env->num_stage(),section_num,nvl,num_sections,(env->stage_num() + env->num_stage() * section_num)*nvl,(num_sections * env->num_stage()));
   return result;
 }
 
@@ -180,7 +181,8 @@ static int gm_J_hi(int section_num, int nvl, int part_num, CEnv* env) {
 
   const int result = ((env->stage_num() + 1 + env->num_stage() * section_num)*nvl) /
                      (num_sections * env->num_stage());
-
+  if(env->print_details()) printf("gm_J_hi result=%d stage_num=%d num_stage=%d section_num=%d nvl=%d num_sections=%d num=%d denom=%d\n",
+    result,env->stage_num(),env->num_stage(),section_num,nvl,num_sections,(env->stage_num() + 1 + env->num_stage() * section_num)*nvl,(num_sections * env->num_stage()));
   return result;
 }
 

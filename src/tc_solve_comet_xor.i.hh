@@ -290,7 +290,7 @@ static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
   if(env.print_details()) printf("In tc_solve_comet_int_impl mnk=%d,%d,%d\n",m,n,k);
-  double tbegin = env.synced_time();
+  double tbegin = env.get_time();
 
   const bool beta = 1;
   const int threadblockx = BLOCK_SIZE, threadblocky = BLOCK_SIZE;
@@ -328,7 +328,7 @@ static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
   System::accel_last_call_succeeded();
   env.ops_local_inc(2 * m * (double)n * (double)k);
 
-  env.gemmtime_inc(env.synced_time() - tbegin);
+  env.gemmtime_inc(env.get_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------
@@ -361,6 +361,8 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   // Block and thread indices
   int tx = threadIdx.x, ty = threadIdx.y;
   int bx = blockIdx.x, by = blockIdx.y;
+
+  //if(tx==0 && ty==0 && bx==0 && by==0) printf("In b1_comet_xor_gemm_gpu_simple\n");
 
   int gridx = bx*BLOCK_SIZE + tx;
   int gridy = by*BLOCK_SIZE + ty;
@@ -461,9 +463,8 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   c[cInd].data[0] = c0;
   c[cInd].data[1] = c1;
 
-  printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
-         bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
-
+  //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
+  //       bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
 
   // Each thread writes one element of block sub-matrix to memory
   // Assume c is row major
@@ -852,14 +853,16 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
-  if(env.print_details()) printf("In tc_solve_comet_impl mnk=%d,%d,%d\n",m,n,k);
-  double tbegin = env.synced_time();
+  if(env.print_details()) printf("\nIn tc_solve_comet_impl mnk=%d,%d,%d num_kernel=%d\n",
+    m,n,k,env.num_kernel());
+  double tbegin = env.get_time();
 
   const bool beta = 1;
   int threadblockx, threadblocky, gridblockx, gridblocky;
 
   if(env.print_details())
-    printf("Launching 1-bit GEMM kernel mnk=%d,%d,%d beta=%d\n",m,n,k,(int)beta);
+    printf("Launching 1-bit GEMM kernel mnk=%d,%d,%d beta=%d num_kernel=%d\n",
+           m,n,k,(int)beta,env.num_kernel());
 
   switch(env.num_kernel()) {
     // Basic GEMM
@@ -908,10 +911,6 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
         (GMBits2x64*)matB, (GMTally2x2*)matC);
     } break;
 
-    /*case 30: {
-      
-    } break;*/
-
     // Output error for invalid choice
     default: {
       printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
@@ -919,10 +918,14 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
       COMET_INSIST(false && "Failure to call GEMM function.");
     }
   }
+
+  int err = cudaGetLastError();
+  if(env.print_details()) printf("Called 1-bit GPU GEMM err=%d\n",err);
+  env.stream_synchronize(env.stream_compute());
   System::accel_last_call_succeeded();
   env.ops_local_inc(2 * m * (double)n * (double)k);
 
-  env.gemmtime_inc(env.synced_time() - tbegin);
+  env.gemmtime_inc(env.get_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------

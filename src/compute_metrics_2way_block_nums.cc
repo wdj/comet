@@ -671,7 +671,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
   COMET_INSIST(env->num_way() == NumWay::_2);
 
   if(env->print_details()) printf("In ComputeMetrics2WayBlock::compute_nums_start\n");
-  double tbegin = env->synced_time();
+  double tbegin = env->get_time();
 
   if (env->is_using_linalg()) {
 
@@ -715,7 +715,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
         "Selected metric_type unimplemented.");
 
   } // if
-  env->numsstarttime_inc(env->synced_time() - tbegin);
+  env->numsstarttime_inc(env->get_time() - tbegin);
 }
 
 //=============================================================================
@@ -739,7 +739,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
   COMET_INSIST(env->num_way() == NumWay::_2);
 
   if(env->print_details()) printf("In ComputeMetrics2WayBlock::compute_nums_wait\n");
-  double tbegin = env->synced_time();
+  double tbegin = env->get_time();
 
   if (env->is_using_linalg()) {
 
@@ -756,7 +756,7 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
 
   } // if
 
-  env->numswaittime_inc(env->synced_time() - tbegin);
+  env->numswaittime_inc(env->get_time() - tbegin);
 }
 
 //=============================================================================

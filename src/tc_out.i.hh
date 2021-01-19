@@ -649,7 +649,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
       } else if (CBPE::DUO == cbpe) { // && (3 == env.num_way())
 
         enum {CBPE = CBPE::DUO};
-
+        if(env.print_details()) printf("Calling 3-way DUO threshold on GPU\n");
         COMET_LAUNCH_KERNEL((tc_threshold_3way_kernel_<CBPE, MF>),
           dim3(vll_threadblocks, num_threads_c, 1),
           dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
@@ -703,7 +703,7 @@ void tc_threshold_(int nvll, int nvl, void* vo,
     } else if (CBPE::DUO == cbpe) { // && (NumWay::_3 == env.num_way())
 
       enum {CBPE = CBPE::DUO};
-
+      if(env.print_details()) printf("Calling 3-way DUO threshold on CPU\n");
       for (int thread_c=0; thread_c<num_threads_c; ++thread_c) {
         for (int thread_r=0; thread_r<num_threads_r; ++thread_r) {
           tc_threshold_3way_kernel_elt_<CBPE, MF>(
@@ -731,6 +731,8 @@ void tc_threshold_(int nvll, int nvl, void* vo,
     } // if cbpe, env.num_way()
 
   } // if compute_method
+
+  if(env.print_details()) printf("Done calling tc_threshold\n");
 }
 
 //-----------------------------------------------------------------------------

@@ -685,7 +685,7 @@ void ComputeMetrics2WayBlock::finalize(
   COMET_INSIST(env->num_way() == NumWay::_2);
 
   if(env->print_details()) printf("In ComputeMetrics2WayBlock::finalize\n");
-  double tbegin = env->synced_time();
+  double tbegin = env->get_time();
 
   switch (env->metric_type()) {
     case MetricType::CZEK: {
@@ -714,7 +714,7 @@ void ComputeMetrics2WayBlock::finalize(
         "Selected metric_type unimplemented.");
   } // case
 
-  env->combinetime_inc(env->synced_time() - tbegin);
+  env->combinetime_inc(env->get_time() - tbegin);
 }
 
 //=============================================================================

@@ -273,6 +273,9 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
   // Block indices
   int bx = blockIdx.x, by = blockIdx.y;
 
+  if(bx==0 && by==0 && threadIdx.x==0 && threadIdx.y==0)
+    printf("In b1_comet_xor_gemm_gpu_cutlass\n");
+
   int thread_idx = threadIdx.y * blockDim.x + threadIdx.x;
 
   int warp_id = thread_idx / 32;

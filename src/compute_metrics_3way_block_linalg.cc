@@ -316,6 +316,8 @@ static void finalize_ccc_duo_(
   VectorSums* vs_i, VectorSums* vs_j, VectorSums* vs_k,
   CEnv& env) {
 
+  if(env.print_details()) printf("In finalize_ccc_duo_\n");
+
   COMET_INSIST(vs_i && vs_j && vs_k);
 
   COMET_INSIST( ! (env.is_bitwise_3way_2step() && !env.form_matX_tc()) &&
@@ -342,12 +344,19 @@ static void finalize_ccc_duo_(
 
   matB_buf->elt_read_start();
 
+  bool use_shrink = 0;
+  if(env.print_details()) use_shrink = env.is_shrink_output();
+  else                    use_shrink = env.is_shrink(); 
   //--------------------
-  if (env.is_shrink()) {
+  if (use_shrink) {
   //--------------------
 
     // NOTE: this may be a slight overestimate of the amount of mem needed.
 
+    if(env.print_details()) printf("Shrinking local_computed=%ld num_entries=%ld total_needed=%ld local_allocated=%ld\n",
+      metrics->num_metric_items_local_computed,matB_buf->num_entries(),
+      metrics->num_metric_items_local_computed+matB_buf->num_entries(),
+      metrics->num_metric_items_local_allocated);
     COMET_INSIST(metrics->num_metric_items_local_computed +
                  matB_buf->num_entries() <=
                  metrics->num_metric_items_local_allocated &&
@@ -407,6 +416,8 @@ static void finalize_ccc_duo_(
   //--------------------
   } else { // if (!env.is_shrink())
   //--------------------
+
+    if(env.print_details()) printf("Not shrinking\n");
 
     MetricsIndexCache index_cache = {};
 
@@ -624,6 +635,8 @@ static void finalize_ccc_duo_(
   //--------------------
 
   matB_buf->unlock_h();
+
+  if(env.print_details()) printf("Done in finalize_ccc_duo_\n");
 }
 
 //-----------------------------------------------------------------------------
@@ -682,6 +695,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   VData vdata_i, VData vdata_j, VData vdata_k, GMMetrics& metrics,
   int j_block, int k_block, int section_step, MagmaWrapper& magma_wrapper) {
 
+  if(env_.print_details()) printf("In compute_linalg_\n");
+
   COMET_INSIST(env_.is_using_linalg());
   COMET_INSIST(j_block >= 0 && j_block < env_.num_block_vector());
   COMET_INSIST(k_block >= 0 && k_block < env_.num_block_vector());
@@ -704,6 +719,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const bool need_mat_ij = env_.does_3way_need_2way();
   const bool need_mat_jk = env_.does_3way_need_2way() && ! si->is_part1;
   const bool need_mat_kik = env_.does_3way_need_2way() && si->is_part3;
+  if(env_.print_details()) printf("Need mat ij=%d jk=%d kik=%d\n",need_mat_ij,need_mat_jk,need_mat_kik);
 
   GMDecompMgr* const dm = vdata_i.vectors->dm;
 
@@ -719,6 +735,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   if (need_mat_ij) {
     MirroredBuf* matM_ij_buf_ptr = env_.do_reduce() ? tmp_buf_[0] : matM_ij_buf;
+
+    if(env_.print_details()) printf("Calling ij GEMM\n");
 
     LinAlg::gemm(nvl, nvl, npvfl,
                  vdata_i.buf, vdata_j.buf, matM_ij_buf_ptr,
@@ -742,6 +760,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   if (need_mat_jk) {
     MirroredBuf* matM_jk_buf_ptr = env_.do_reduce() ? tmp_buf_[0] : matM_jk_buf;
+
+    if(env_.print_details()) printf("Calling jk GEMM\n");
 
     LinAlg::gemm(nvl, nvl, npvfl,
                  vdata_j.buf, vdata_k.buf, matM_jk_buf_ptr,
@@ -768,6 +788,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   if (need_mat_kik) {
     MirroredBuf* matM_kik_buf_ptr =
         env_.do_reduce() ? tmp_buf_[0] : matM_kik_buf;
+
+    if(env_.print_details()) printf("Calling kik GEMM\n");
 
     LinAlg::gemm(nvl, nvl, npvfl,
                  vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
@@ -877,6 +899,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
        ++step_num) {
   //========================================
 
+    if(env_.print_details()) printf("Step_num=%d/%d\n",step_num,num_step+extra_step*2);
+
     // Set per-step variables.
 
     LoopVars& vars_prevprev = *vars_buf[(step_num - first_step + 0) % num_buf];
@@ -921,6 +945,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
+      if(env_.print_details()) printf("Calling gemm_wait\n");
       LinAlg::gemm_wait(vars_prev.I_max, nvl, npvfl,
           matXitem_buf_[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
           vars_prev.matB_buf_ptr(),
@@ -956,6 +981,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
     if (vars.do_compute) {
+      if(env_.print_details()) printf("Calling gemm_start with Imax=%d nvl=%d npvfl=%d\n",vars.I_max,nvl,npvfl);
       LinAlg::gemm_start(vars.I_max, nvl, npvfl,
           matXitem_buf_[vars.index_01], vectors_I_buf, vectors_K_buf,
           vars.matB_buf_ptr(),
@@ -1000,6 +1026,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     LoopVars& vars_tail = env_.do_reduce() ? vars_prevprev : vars_prev;
 
     if (vars_tail.do_compute) {
+      if(env_.print_details()) printf("Calling finalize_\n");
       finalize_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
           &matB_buf_compressed,

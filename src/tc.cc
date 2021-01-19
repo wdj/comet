@@ -162,7 +162,7 @@ static void tc_gemm_start_impl_(
 
     // Convert the input matrices of packed bit values into matrices
     // of a type suitable for the GEMM.
-    tbegin = env.synced_time();
+    tbegin = env.get_time();
     enum {IS_LEFT = true};
     if(env.print_details()) printf("Calling tc_in with npvfl=%d pvfl_min=%d pvfl_max=%d npvfl_thisstep=%d\n",npvfl,pvfl_min,pvfl_max,npvfl_thisstep);
     tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
@@ -171,11 +171,12 @@ static void tc_gemm_start_impl_(
     tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
       npvfl_thisstep, pvfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
       tc_bufs, step_2way, env);
-    env.pregemmtime_inc(env.synced_time() - tbegin);
+    env.pregemmtime_inc(env.get_time() - tbegin);
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pvfl_min;
-    if(env.print_details()) printf("Calling tc_solve with is_first=%d nvll=%d nvl=%d npvfl_thisstep=%d\n",is_first,nvll,nvl,npvfl_thisstep);
+    if(env.print_details()) printf("Calling tc_solve with step=%d is_first=%d mnk=%d,%d,%d nvll=%d nvl=%d npvfl_thisstep=%d pvfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
+      tc_step_num,is_first,m,n,k,nvll,nvl,npvfl_thisstep,pvfl_min,pvfl_max,I_max_dim,lddc);
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
       matC, tc_bufs, env);
 
@@ -183,7 +184,7 @@ static void tc_gemm_start_impl_(
 
   // Postprocess GEMM results.
 
-  tbegin = env.synced_time();
+  tbegin = env.get_time();
   if (env.is_threshold_tc()) {
 
     if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
@@ -199,7 +200,7 @@ static void tc_gemm_start_impl_(
       J, step_2way, env);
 
   }
-  env.postgemmtime_inc(env.synced_time() - tbegin);
+  env.postgemmtime_inc(env.get_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------
@@ -246,7 +247,7 @@ static void tc_comet_int_gemm_start_impl_(
   // Get matX counts if needed.
 
   tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
-    (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs, step_2way, env);
+    (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
   if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
   tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
@@ -275,7 +276,7 @@ static void tc_comet_int_gemm_start_impl_(
 
   // Postprocess GEMM results.
 
-  tbegin = env.synced_time();
+  tbegin = env.get_time();
   if (env.is_threshold_tc()) {
 
     if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
@@ -291,7 +292,7 @@ static void tc_comet_int_gemm_start_impl_(
       J, step_2way, env);
 
   }
-  env.postgemmtime_inc(env.synced_time() - tbegin);
+  env.postgemmtime_inc(env.get_time() - tbegin);
 }   
 
 //-----------------------------------------------------------------------------
@@ -317,12 +318,11 @@ static void tc_gemm_comet_start_impl_(
   const int nvll = I_max_dim;
   COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
 
-  if(env.print_details()) printf("In tc_gemm_comet_start_impl\n");
+  if(env.print_details()) printf("In tc_gemm_comet_start_impl num_tc_steps=%d\n",env.num_tc_steps());
 
-  // Get matX counts if needed.
-
-  tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
-    (uint32_t*)matA1, (uint32_t*)matA2, tc_bufs, step_2way, env);
+  // Get matX counts if needed. - This is causing errors for 3-way 
+  //tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
+  //  (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
   if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
   tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
@@ -343,11 +343,13 @@ static void tc_gemm_comet_start_impl_(
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pvfl_min;
-    if(env.print_details()) printf("mnk=%d,%d,%d nvll=%d nvl=%d npvfl_thisstep=%d pvfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",m,n,k,nvll,nvl,npvfl_thisstep,pvfl_min,pvfl_max,I_max_dim,lddc);
+    if(env.print_details()) printf("step=%d mnk=%d,%d,%d nvll=%d nvl=%d npvfl_thisstep=%d pvfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
+      tc_step_num,m,n,k,nvll,nvl,npvfl_thisstep,pvfl_min,pvfl_max,I_max_dim,lddc);
     tc_solve_comet_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
       matA1, matB, matC, tc_bufs, env);
 
   } // for
+  if(env.print_details()) printf("Done in tc_gemm_comet_start_impl\n");
 }
 
 //-----------------------------------------------------------------------------
@@ -464,6 +466,8 @@ void tc_gemm_start(
 
   // Select required template function instance.
 
+  if(env.print_details()) printf("In tc_gemm_start\n");
+
   switch (env.tc_eff()) {
     // --------------
     case TC::FP32: {
@@ -513,12 +517,12 @@ void tc_gemm_start(
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             tc_bufs, nfal, step_2way, env);
         }
-        /*else if(env.num_kernel()>=30) {
-          tc_gemm_general_start_impl_<TC::B1>(
-            m, n, k, matA1, matA2, matB, matC, lddc,
-            sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
-            tc_bufs, nfal, step_2way, env);
-        }*/
+        //else if(env.num_kernel()>=30) {
+        //  tc_gemm_general_start_impl_<TC::B1>(
+        //    m, n, k, matA1, matA2, matB, matC, lddc,
+        //    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+        //    tc_bufs, nfal, step_2way, env);
+        //}
       }
     } break;
     // --------------

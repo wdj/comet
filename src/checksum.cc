@@ -268,6 +268,8 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
     return;
   }
 
+  if(env.print_details()) printf("In checksum compute\n");
+
   // Check for NaNs if appropriate
 
   // TODO: put this in metrics class - a heavyweight validity check function
@@ -520,6 +522,9 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   double result_d = cksum.data_[0] / ((double)(one64 << (2 * w))) +
                     cksum.data_[1] +
                     cksum.data_[2] * ((double)(one64 << (2 * w)));
+
+  if(env.print_details()) printf("Done in checksum compute result_d=%lf\n",result_d);
+
   COMET_INSIST(fabs(cksum.sum_d_ - result_d) <= cksum.sum_d_ * 1.e-10 &&
            "Error in checksum calculation");
 } // Checksum::compute

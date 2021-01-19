@@ -334,6 +334,8 @@ void MirroredBuf::to_accel_wait() {
   if (!env_.is_compute_method_gpu())
     return;
 
+  if(env_.print_details()) printf("Calling stream sync from to_accel_wait\n");
+
   if (use_linalg_)
     MagmaWrapper::set_matrix_wait(env_);
   else
@@ -377,6 +379,8 @@ void MirroredBuf::from_accel_wait(AccelStream_t stream) {
 
   if (!env_.is_compute_method_gpu())
     return;
+
+  if(env_.print_details()) printf("Calling stream sync from from_accel_wait\n");
 
   if (use_linalg_) {
     COMET_INSIST(env_.stream_fromgpu() == stream);

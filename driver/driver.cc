@@ -259,6 +259,8 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i; // optionally processed by caller.
     } else if (strcmp(argv[i], "--print_details") == 0) {
       ++i; // optionally processed by caller.
+    } else if (strcmp(argv[i], "--sync_time") == 0) {
+      ++i; // optionally processed by caller.
     } else {
     //----------
       if (env->proc_num() == 0) {

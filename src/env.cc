@@ -276,6 +276,7 @@ void CEnv::set_defaults_() {
   metrics_shrink_ = 1;
   coords_type_cache_ = 0;
   print_details_ = false;
+  use_sync_time_ = true;
 
   ctime_ = 0;
   gemmtime_ = 0;
@@ -503,6 +504,15 @@ void CEnv::parse_args_(int argc, char** argv) {
       } else if (strcmp(argv[i], "no") == 0) {
         print_details_ = false;
       }
+      //--------------------
+    } else if (strcmp(argv[i], "--sync_time") == 0) {
+      //--------------------
+      ++i;
+      if (strcmp(argv[i], "yes") == 0) {
+        use_sync_time_ = true;
+      } else if (strcmp(argv[i], "no") == 0) {
+        use_sync_time_ = false;
+      }
     } // if/else
   }   // for i
 
@@ -583,14 +593,15 @@ bool CEnv::can_run(int tc_try) const {
   COMET_INSIST(TC::AUTO != tc_try);
 
   bool result = true;
-  int printdetails = true;
+  int printdetails = false;
 
   if(printdetails) printf("In can_run result=%d\n",(int)result);
 
   // Reference methods never use linalg or tc packages.
-  if (compute_method_ == ComputeMethod::REF)
+  if (compute_method_ == ComputeMethod::REF) {
     result = result && !is_try_tc_(tc_try) && !is_using_linalg();
     if(printdetails) printf("ComputeMethod::REF result=%d\n",(int)result);
+  }
 
   // MPI requirements.
   if (make_comms_) {
@@ -622,6 +633,8 @@ bool CEnv::can_run(int tc_try) const {
   if (can_use_linalg_(tc_try) && !is_try_tc_(tc_try) &&
       num_way() == NumWay::_3 && metric_type() == MetricType::DUO) {
     result = false; // currently unimplemented
+    if(printdetails) printf("3-way DUO with these settings isn't implemented result=%d can_use_linalg=%d !is_try_tc=%d\n",
+      (int)result, can_use_linalg_(tc_try), !is_try_tc_(tc_try));
   }
   if(printdetails) printf("At middle: result=%d\n",(int)result);
 
@@ -630,6 +643,7 @@ bool CEnv::can_run(int tc_try) const {
   if (is_compute_method_gpu() && (!is_metric_type_bitwise()
       || (is_metric_type_bitwise() && !is_try_tc_(tc_try)))) {
     result = result && BuildHas::MAGMA;
+    if(printdetails) printf("GPU Magma using non-bitwise method or bitwise method without tc result=%d\n",(int)result);
   }
 
   // Checks based on GPU compute capability.
@@ -644,6 +658,7 @@ bool CEnv::can_run(int tc_try) const {
     // ISSUE: may need to adjust CUDA compute capability here.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
                      || (BuildHas::HIP && System::compute_capability() >= 906));
+    if(printdetails) printf("Check FP32 result=%d\n",(int)result);
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() &&
@@ -652,6 +667,7 @@ bool CEnv::can_run(int tc_try) const {
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 700)
                     || (BuildHas::HIP && System::compute_capability() >= 1000));
                   //|| (BuildHas::HIP && System::compute_capability() >= 908));
+    if(printdetails) printf("Check FP16 result=%d\n",(int)result);
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() &&
@@ -672,6 +688,8 @@ bool CEnv::can_run(int tc_try) const {
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
                      || (BuildHas::HIP && System::compute_capability() >= 1000))
                     && can_use_xor_(tc_try);
+    if(printdetails) printf("Check Int1 result=%d compute_capability=%d can_use_xor=%d\n",
+                            (int)result,System::compute_capability(),can_use_xor_(tc_try)); 
   }
   if(printdetails) printf("At end: result=%d\n",(int)result);
 
@@ -749,6 +767,14 @@ double CEnv::synced_time() {
   COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
 
   return System::time();
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Get system time on each active processes.
+
+double CEnv::get_time() {
+  if(use_sync_time_) return synced_time();
+  else               return System::time();
 }
 
 //-----------------------------------------------------------------------------
@@ -890,20 +916,27 @@ void CEnv::streams_initialize_() {
   if (!is_compute_method_gpu())
     return;
 
+  if(print_details()) printf("Calling streams initialize\n");
+
   for (AccelStream_t* const stream : {&stream_compute_, &stream_togpu_,
                                       &stream_fromgpu_}) {
+    int err;
 #   if defined COMET_USE_CUDA
-      cudaStreamCreate(stream);
+      err = cudaStreamCreate(stream);
 #   elif defined COMET_USE_HIP
       hipStreamCreate(stream);
 #   else
       if (stream) {}
 #   endif
+    if(print_details()) printf("Creating a stream err=%d\n",err);
+
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to stream create.");
   }
 
   are_streams_initialized_ = true;
+
+  if(print_details()) printf("Done initializing streams\n");
 }
 
 //-----------------------------------------------------------------------------
@@ -914,6 +947,8 @@ void CEnv::streams_terminate_() {
   if (! are_streams_initialized_)
     return;
 
+  if(print_details()) printf("Calling streams terminate\n");
+
   for (const AccelStream_t stream : {stream_compute_, stream_togpu_,
                                      stream_fromgpu_}) {
 #   if defined COMET_USE_CUDA
@@ -923,11 +958,15 @@ void CEnv::streams_terminate_() {
 #   else
       if (stream) {}
 #   endif
+    if(print_details()) printf("Terminating a stream\n");
+
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to stream destroy.");
   }
 
   are_streams_initialized_ = false;
+
+  if(print_details()) printf("Done calling streams terminate\n");
 }
 
 //-----------------------------------------------------------------------------
@@ -964,11 +1003,14 @@ void CEnv::stream_synchronize(AccelStream_t stream) const {
 
   COMET_INSIST(are_streams_initialized_);
 
+  int err;
 # if defined COMET_USE_CUDA
-    cudaStreamSynchronize(stream);
+    err = cudaStreamSynchronize(stream);
 # elif defined COMET_USE_HIP
     hipStreamSynchronize(stream);
 # endif
+  if(print_details()) printf("Called cudaStreamSync err=%d\n",err);
+
   COMET_INSIST(System::accel_last_call_succeeded() &&
            "Failure in call to stream synchronize.");
 }

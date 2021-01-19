@@ -151,6 +151,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
                                           GMVectors& vectors) {
   CEnv* const env = &env_;
 
+  if(env->print_details()) printf("In ComputeMetrics3Way::compute_all2all_\n");
+
   // Initializations.
 
   //MagmaWrapper::initialize(env_);
@@ -262,6 +264,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Part 1 Computation: tetrahedron.
   // ------------------
 
+  if(env->print_details()) printf("Computing tetrahedron\n");
+
   // Denominator.
   vector_sums_i->compute(*vectors_i);
 
@@ -307,6 +311,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // ------------------
   // Part 2 Computation: triangular prisms.
   // ------------------
+
+  if(env->print_details()) printf("Computing triangular prisms\n");
 
   GMVectors* vectors_j_this = 0;
   MPI_Request req_send_j;
@@ -386,6 +392,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // ------------------
   // Part 3 Computation: block sections.
   // ------------------
+
+  if(env->print_details()) printf("Computing block sections\n");
 
   GMVectors* vectors_k_this = 0;
   MPI_Request req_send_k;
@@ -537,6 +545,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_destroy(vectors_j[1], env);
 
   }
+
+  if(env->print_details()) printf("Done in ComputeMetrics3Way::compute_all2all_\n");
 
   //MagmaWrapper::finalize(env_);
 }
