@@ -49,8 +49,12 @@ namespace comet {
 //-----------------------------------------------------------------------------
 /// \brief Word type to be used for manipulating tc_in input (fields) values.
 
+//#ifdef COMET_USE_HIP
+//typedef uint32_t TCWord_t;
+//#else
 //typedef uint32_t TCWord_t;
 typedef uint64_t TCWord_t;
+//#endif
 
 //-----------------------------------------------------------------------------
 /// \brief Helper function: is a nonnegative integer a power of 2.
@@ -404,7 +408,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
     // Calculate target result on odd bits.
 
-    const TCWord_t oddbits_mask = 0x5555555555555555;
+    const TCWord_t oddbits_mask = (TCWord_t)0x5555555555555555;
 
     enum {BPSN = 2}; // bits per seminibble (field)
     enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles (fields) / word
@@ -464,11 +468,11 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
     enum {BPSN = 2}; // bits per seminibble
     enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles / word
 
-    for (int igipt = 0; igipt < NGIPT; igipt+=4) {
+    const int nb = 4;
+
+    for (int igipt = 0; igipt < NGIPT; igipt+=nb) {
 
       const size_t flG_index = igipt + NGIPT * flT_thread;
-
-      const int nb = 4;
 
       GemmIn_t* vo_value =
         &(vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))]);
@@ -485,7 +489,8 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 // TODO: check that this is properly unrolled.
 
 #     pragma unroll
-      for (int i = 0; i < (int)(sizeof(TCWord_t)/sizeof(GemmIn_t)); ++i) {
+      for (int i = 0; i < nb; ++i) {
+      //for (int i = 0; i < (int)(sizeof(TCWord_t)/sizeof(GemmIn_t)); ++i) {
 
         vo_value[i] = fl+i >= nfal ? 0 :
           tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
@@ -501,6 +506,82 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
     return;
 
   } // if (BuildHas::HIP && TC_METHOD == TC::INT8)
+
+#if 0
+  //----------
+
+  if (BuildHas::HIP && TC_METHOD == TC::INT8) {
+
+    const int vl = is_vectors_halved && IS_LEFT ?
+                   vl_thread % nvleD2 + step_2way * nvleD2 :
+                   vl_thread;
+
+    const bool is_vector_inactive = vl >= nvlea;
+
+    const int kE = is_vectors_halved && IS_LEFT ?
+                   vl_thread / nvleD2 :
+                   step_2way;
+
+    const TCWord_t* const vim_col = vim + vl * (size_t)vi_dim0;
+
+    //enum {BITS_PER_BYTE = 8};
+    //enum {SNPW = 16}; // seminibbles per 32-bit word
+    enum {BPSN = 2}; // bits per seminibble
+    enum {SNPW = sizeof(TCWord_t) * BITS_PER_BYTE / BPSN}; // seminibbles / word
+
+    for (int igipt = 0; igipt < NGIPT; igipt+=4) {
+
+      const size_t flG_index = igipt + NGIPT * flT_thread;
+
+      const int nb = 4;
+
+      GemmIn_t* vo_value =
+        &(vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))]);
+
+      const int fl = igipt + NGIPT * flT;
+
+      const uint32_t sn_m32 = is_vector_inactive ? 0 : vim_col[fl/SNPW];
+      const uint32_t sn_c32 = is_vector_inactive ? 0 : !IS_LEFT ? 0 : vic[fl/SNPW];
+
+      vo_value[0] = fl+0 >= nfal ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+          ( sn_m32 >> (BPSN*((fl+0)%SNPW)) ) & 3,
+          ( sn_c32 >> (BPSN*((fl+0)%SNPW)) ) & 3,
+          jE, kE, step_2way,
+          num_way, is_sparse, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+
+      vo_value[1] = fl+1 >= nfal ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+          ( sn_m32 >> (BPSN*((fl+1)%SNPW)) ) & 3,
+          ( sn_c32 >> (BPSN*((fl+1)%SNPW)) ) & 3,
+          jE, kE, step_2way,
+          num_way, is_sparse, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+
+      vo_value[2] = fl+2 >= nfal ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+          ( sn_m32 >> (BPSN*((fl+2)%SNPW)) ) & 3,
+          ( sn_c32 >> (BPSN*((fl+2)%SNPW)) ) & 3,
+          jE, kE, step_2way,
+          num_way, is_sparse, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+
+      vo_value[3] = fl+3 >= nfal ? 0 :
+        tc_buf_write_kernel_value_<GemmIn_t, IS_LEFT>(
+          ( sn_m32 >> (BPSN*((fl+3)%SNPW)) ) & 3,
+          ( sn_c32 >> (BPSN*((fl+3)%SNPW)) ) & 3,
+          jE, kE, step_2way,
+          num_way, is_sparse, is_duo, form_matX_tc,
+          is_bitwise_3way_2step);
+    } // igipt
+
+    return;
+
+  } // if (BuildHas::HIP && TC_METHOD == TC::INT8)
+
+  //----------
+#endif
 
   //----------
 
@@ -640,11 +721,11 @@ void tc_buf_write_(
   // num_field-related dimensions.
 
   enum {NUM_FIELD_PER_PACKEDVAL_FIELD = 64};
-  enum {NUM_FL_PER_PVFL = NUM_FIELD_PER_PACKEDVAL_FIELD};
+  enum {NUM_FL_PER_PFL = NUM_FIELD_PER_PACKEDVAL_FIELD};
 
-  const int nfl = npfl * NUM_FL_PER_PVFL;
-  const int nfl_thisstep = npfl_thisstep * NUM_FL_PER_PVFL;
-  const int fl_min = pfl_min * NUM_FL_PER_PVFL;
+  const int nfl = npfl * NUM_FL_PER_PFL;
+  const int nfl_thisstep = npfl_thisstep * NUM_FL_PER_PFL;
+  const int fl_min = pfl_min * NUM_FL_PER_PFL;
 
   enum {NGIPT = TCTraits<TC_METHOD>::NGIPT};
   enum {NFPGI = TCTraits<TC_METHOD>::NFPGI};
@@ -859,8 +940,8 @@ void tc_compute_matX_counts(
   const int nvleX2 = nvle * 2;
   const int nvlea = I_max; // num active nvle; others zeroed
 
-  enum {NUM_FL_PER_PVFL = 64};
-  const int nfl = npfl * NUM_FL_PER_PVFL;
+  enum {NUM_FL_PER_PFL = 64};
+  const int nfl = npfl * NUM_FL_PER_PFL;
   COMET_INSIST(nfal <= nfl);
 
   const TCWord_t* vim = vi2; // matrix

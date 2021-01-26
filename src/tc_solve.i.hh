@@ -88,22 +88,22 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
 
       COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
-      enum {NUM_FL_PER_PVFL = 64};
-      COMET_INSIST(k % NUM_FL_PER_PVFL == 0 &&
+      enum {NUM_FL_PER_PFL = 64};
+      COMET_INSIST(k % NUM_FL_PER_PFL == 0 &&
                    "Failed divisibility condition for tc gemm.");
 
       const bool beta = is_first ? 0 : 1;
 
       // 8 == number of uint8_t values used to store each chunk of
-      // NUM_FL_PER_PVFL fields in the tc buf.
-      enum {BYTES_PER_PVFL_FIELDS = 8};
+      // NUM_FL_PER_PFL fields in the tc buf.
+      enum {BYTES_PER_PFL_FIELDS = 8};
 
       typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
       typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
 
       const int bytes_per_gi = sizeof(GemmIn_t);
-      const size_t k_eff = (k / NUM_FL_PER_PVFL) *
-                           (BYTES_PER_PVFL_FIELDS / bytes_per_gi);
+      const size_t k_eff = (k / NUM_FL_PER_PFL) *
+                           (BYTES_PER_PFL_FIELDS / bytes_per_gi);
 
       const int threadblocksize = 256;
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&

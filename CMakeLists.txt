@@ -180,15 +180,13 @@ if(TESTING)
     if("${TEST_TARGET}" STREQUAL "perf_test")
       if(NOT "${TEST_COMMAND_PERF}" STREQUAL "")
       if("${FP_PRECISION}" STREQUAL "DOUBLE")
-
         add_test(${TEST_TARGET} bash -c
-          "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND_PERF} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
-
+          "date; cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND_PERF} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}; date")
       endif()
       endif()
     else()
       add_test(${TEST_TARGET} bash -c
-        "cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}")
+        "date; cd ${CMAKE_INSTALL_PREFIX}; ${TEST_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET}; date")
       set(UNUSED_NO_WARN_1, ${FP_PRECISION})
     endif()
 

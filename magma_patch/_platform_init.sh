@@ -20,6 +20,10 @@ COMET_HOST="$(echo $(hostname -f) | \
               sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' \
                   -e 's/[.-].*//' -e 's/[0-9]*$//')"
 
+if [ "$COMET_HOST" = "node" ] ; then
+  COMET_HOST="${SLURM_SUBMIT_HOST:-}"
+fi
+
 local COMET_PLATFORM=""
 [[ -n "${CRAYOS_VERSION:-}" ]] && COMET_PLATFORM=CRAY_XK7 # OLCF Titan, Chester
 [[ -n "${LSF_BINDIR:-}" ]] && COMET_PLATFORM=IBM_AC922 # OLCF Summit. Peak
@@ -488,7 +492,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     module use /home/users/twhite/share/modulefiles
     #module load ompi # Trey's ompi includes rocm/3.5.0
     #module load ompi/4.0.4-rocm-3.7
-    module load ompi/4.0.4-rocm-3.8
+    #module load ompi/4.0.4-rocm-3.8
+    module load ompi/4.0.4-rocm-4.0
   else
     #module load rocm-alt/2.7
     #module load rocm-alt/2.9
@@ -500,7 +505,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     #module load gcc/8.1.0
     #module load rocm/3.7.0
     module load gcc/8.1.0
-    module load rocm/3.8.0
+    #module load rocm/3.8.0
+    module load rocm/4.0.0
   fi
   (module list) 2>&1 | grep -v '^ *$'
 

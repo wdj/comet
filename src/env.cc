@@ -602,20 +602,23 @@ bool CEnv::can_run(int tc_try) const {
   // /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802',
   // 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
   // NOTE: MI60 is 906
+  const int cc_mi60 = 900; // 906;
+  const int cc_mi100 = 900; // 908;
+  const int cc_minone = 1000;
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() &&
       TC::FP32 == tc_try) {
     // ISSUE: may need to adjust CUDA compute capability here.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
-                     || (BuildHas::HIP && System::compute_capability() >= 906));
+                     || (BuildHas::HIP && System::compute_capability() >= cc_mi60));
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() &&
       TC::FP16 == tc_try) {
     // ISSUE: may need to adjust HIP compute capability here.
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 700)
-                    || (BuildHas::HIP && System::compute_capability() >= 1000));
-                  //|| (BuildHas::HIP && System::compute_capability() >= 908));
+                  || (BuildHas::HIP && System::compute_capability() >= cc_minone));
+                  //|| (BuildHas::HIP && System::compute_capability() >= cc_mi100));
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() &&
@@ -625,7 +628,7 @@ bool CEnv::can_run(int tc_try) const {
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 750)
                   //|| (BuildHas::HIP && System::compute_capability() >= 1000));
                   //|| (BuildHas::HIP && System::compute_capability() >= 908));
-                    || (BuildHas::HIP && System::compute_capability() >= 906));
+                    || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::B1 == tc_try) {
@@ -633,7 +636,7 @@ bool CEnv::can_run(int tc_try) const {
     // FIX: Temporary code below for testing xor mockup code on summit.
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
-                     || (BuildHas::HIP && System::compute_capability() >= 1000))
+                     || (BuildHas::HIP && System::compute_capability() >= cc_minone))
                     && can_use_xor_(tc_try);
   }
 
