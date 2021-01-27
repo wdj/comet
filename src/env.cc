@@ -102,8 +102,9 @@ int System::compute_capability() {
 #elif defined COMET_USE_HIP
   hipDeviceProp_t deviceProp;
   hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-//FIX this to work for an appropriate way for AMD gpu
-  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  //const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  // This seems more stable than major/minor.
+  const int compute_capability = deviceProp.gcnArch;
 #else
   const int compute_capability = 0;
 #endif
@@ -273,7 +274,9 @@ void CEnv::set_defaults_() {
   coords_type_cache_ = 0;
 
   ctime_ = 0;
+  gemmtime_ = 0;
   ops_local_ = 0;
+  ops_gemm_local_ = 0;
   cpu_mem_local_ = 0;
   gpu_mem_local_ = 0;
   cpu_mem_max_local_ = 0;
@@ -602,8 +605,8 @@ bool CEnv::can_run(int tc_try) const {
   // /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802',
   // 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
   // NOTE: MI60 is 906
-  const int cc_mi60 = 900; // 906;
-  const int cc_mi100 = 900; // 908;
+  const int cc_mi60 = 906; // 900;
+  const int cc_mi100 = 908; // 900;
   const int cc_minone = 1000;
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() &&
@@ -858,6 +861,17 @@ void CEnv::streams_initialize_() {
              "Failure in call to stream create.");
   }
 
+# if defined COMET_USE_CUDA
+    cudaEventCreate(&start_event_);
+    cudaEventCreate(&end_event_);
+# elif defined COMET_USE_HIP
+    hipEventCreate(&start_event_);
+    hipEventCreate(&end_event_);
+# endif
+  is_event_active_ = false;
+  COMET_INSIST(System::accel_last_call_succeeded() &&
+           "Failure in call to event create.");
+
   are_streams_initialized_ = true;
 }
 
@@ -881,6 +895,17 @@ void CEnv::streams_terminate_() {
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to stream destroy.");
   }
+
+# if defined COMET_USE_CUDA
+    cudaEventDestroy(start_event_);
+    cudaEventDestroy(end_event_);
+# elif defined COMET_USE_HIP
+    hipEventDestroy(start_event_);
+    hipEventDestroy(end_event_);
+# endif
+  COMET_INSIST(System::accel_last_call_succeeded() &&
+           "Failure in call to event destroy.");
+  COMET_INSIST(!is_event_active_);
 
   are_streams_initialized_ = false;
 }
@@ -907,6 +932,22 @@ AccelStream_t CEnv::stream_togpu() {
 AccelStream_t CEnv::stream_fromgpu() {
   streams_initialize_(); // Lazy initialization.
   return stream_fromgpu_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator event for timing start.
+
+AccelEvent_t CEnv::start_event() {
+  streams_initialize_(); // Lazy initialization.
+  return start_event_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator event for timing end.
+
+AccelEvent_t CEnv::end_event() {
+  streams_initialize_(); // Lazy initialization.
+  return end_event_;
 }
 
 //-----------------------------------------------------------------------------

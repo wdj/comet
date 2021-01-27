@@ -108,14 +108,17 @@ namespace comet {
 
 # if defined COMET_USE_CUDA
     typedef cudaStream_t AccelStream_t;
+    typedef cudaEvent_t AccelEvent_t;
 //    typedef cublasHandle_t AccelBlasHandle_t;
 //    typedef cusparseHandle_t AccelSparseHandle_t;
 # elif defined COMET_USE_HIP
     typedef hipStream_t AccelStream_t;
+    typedef hipEvent_t AccelEvent_t;
 //    typedef rocblas_handle AccelBlasHandle_t;
 //    typedef rocsparse_handle AccelSparseHandle_t;
 # else
     typedef int AccelStream_t;
+    typedef int AccelEvent_t;
 //    typedef int AccelBlasHandle_t;
 //    typedef int AccelSparseHandle_t;
 # endif
@@ -692,7 +695,9 @@ public:
   // Counters
 
   double ctime() const {return ctime_;}
+  double gemmtime() const {return gemmtime_;}
   void ctime_inc(double t) {ctime_ += t;}
+  void gemmtime_inc(double t) {gemmtime_ += t;}
   double synced_time();
   size_t cpu_mem_local() const {return cpu_mem_local_;}
   size_t gpu_mem_local() const {return gpu_mem_local_;}
@@ -703,6 +708,7 @@ public:
   size_t cpu_mem_max() const;
   size_t gpu_mem_max() const;
   void ops_local_inc(double n) {ops_local_ += n;}
+  void ops_gemm_local_inc(double n) {ops_gemm_local_ += n;}
   double ops() const;
   double entry_compares() const {return entry_compares_;}
   double metric_compares() const {return metric_compares_;}
@@ -750,6 +756,10 @@ public:
   AccelStream_t stream_compute();
   AccelStream_t stream_togpu();
   AccelStream_t stream_fromgpu();
+  AccelEvent_t start_event();
+  AccelEvent_t end_event();
+  bool is_event_active() const {return is_event_active_;}
+  void is_event_active(bool value) {is_event_active_ = value;}
   void stream_synchronize(AccelStream_t stream) const;
 
   //----------------------------------------
@@ -844,7 +854,9 @@ private:
   // Counters
   void accel_sync_() const;
   double ctime_;
+  double gemmtime_;
   double ops_local_;
+  double ops_gemm_local_;
   size_t cpu_mem_local_;
   size_t gpu_mem_local_;
   size_t cpu_mem_max_local_;
@@ -889,6 +901,9 @@ private:
   AccelStream_t stream_compute_;
   AccelStream_t stream_togpu_;
   AccelStream_t stream_fromgpu_;
+  AccelEvent_t start_event_;
+  AccelEvent_t end_event_;
+  bool is_event_active_;
   void streams_initialize_();
   void streams_terminate_();
   bool are_streams_initialized_;
