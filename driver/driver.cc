@@ -301,6 +301,8 @@ void print_output(bool do_print,
                   double tottime) {
 
   const double ops = env.ops();
+  const double ops_gemm = env.ops_gemm();
+  const double gemmtime_sum = env.gemmtime_sum();
   const size_t cpu_mem_max = env.cpu_mem_max();
   const size_t gpu_mem_max = env.gpu_mem_max();
 
@@ -319,6 +321,10 @@ void print_output(bool do_print,
   if (env.ctime() > 0) {
     printf(" ops_rate %e", ops / env.ctime());
     printf(" ops_rate/proc %e", ops / (env.ctime() * env.num_proc()) );
+  }
+
+  if (gemmtime_sum > 0) {
+    printf(" gemmrate/proc %e", ops_gemm / gemmtime_sum);
   }
 
   printf(" vcmp %e", env.vec_compares());

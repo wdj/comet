@@ -152,20 +152,8 @@ void LinAlg::gemm_wait(
   }
 
   env.stream_synchronize(env.stream_compute());
-  if (env.is_event_active()) {
-#   if defined COMET_USE_CUDA
-      cudaEventSynchronize(env.end_event());
-      float time = 0;
-      cudaEventElapsedTime(&time, env.start_event(), env.end_event());
-      env.gemmtime_inc(time / 1000.);
-#   elif defined COMET_USE_HIP
-      hipEventSynchronize(env.end_event());
-      float time = 0;
-      hipEventElapsedTime(&time, env.start_event(), env.end_event());
-      env.gemmtime_inc(time / 1000.);
-#   endif
-    env.is_event_active(false);
-  }
+
+  env.gemmtime_record();
 
   // Unlock.
 

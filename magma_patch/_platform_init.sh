@@ -20,9 +20,8 @@ COMET_HOST="$(echo $(hostname -f) | \
               sed -e 's/^login[0-9]\.//' -e 's/^batch[0-9]\.//' \
                   -e 's/[.-].*//' -e 's/[0-9]*$//')"
 
-if [ "$COMET_HOST" = "node" ] ; then
-  COMET_HOST="${SLURM_SUBMIT_HOST:-}"
-fi
+[[ "$COMET_HOST" = "node" ]] && COMET_HOST="${SLURM_SUBMIT_HOST:-}"
+[[ "$COMET_HOST" = "cori" ]] && COMET_HOST="cgpu"
 
 local COMET_PLATFORM=""
 [[ -n "${CRAYOS_VERSION:-}" ]] && COMET_PLATFORM=CRAY_XK7 # OLCF Titan, Chester

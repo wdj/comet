@@ -781,6 +781,69 @@ double CEnv::ops() const {
   return result;
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Compute and return (global) number of GEMM operations performed.
+
+double CEnv::ops_gemm() const {
+  double result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&ops_gemm_local_, &result, 1, MPI_DOUBLE,
+    MPI_SUM, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute and return (global) sum GEMM timings.
+
+double CEnv::gemmtime_sum() const {
+  double result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&gemmtime_, &result, 1, MPI_DOUBLE,
+    MPI_SUM, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer start.
+
+void CEnv::gemmtime_start() {
+# if defined COMET_USE_CUDA
+    cudaEventRecord(start_event(), stream_compute());
+# elif defined COMET_USE_HIP
+    hipEventRecord(start_event(), stream_compute());
+# endif
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer end.
+
+void CEnv::gemmtime_end() {
+# if defined COMET_USE_CUDA
+    cudaEventRecord(end_event(), stream_compute());
+# elif defined COMET_USE_HIP
+    hipEventRecord(end_event(), stream_compute());
+# endif
+  is_event_active(true);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer record.
+
+void CEnv::gemmtime_record() {
+  if (is_event_active()) {
+#   if defined COMET_USE_CUDA
+      cudaEventSynchronize(end_event());
+      float time = 0;
+      cudaEventElapsedTime(&time, start_event(), end_event());
+      gemmtime_inc(time / 1000.);
+#   elif defined COMET_USE_HIP
+      hipEventSynchronize(end_event());
+      float time = 0;
+      hipEventElapsedTime(&time, start_event(), end_event());
+      gemmtime_inc(time / 1000.);
+#   endif
+    is_event_active(false);
+  }
+}
+
 //=============================================================================
 // MPI comms
 

@@ -695,7 +695,10 @@ public:
   // Counters
 
   double ctime() const {return ctime_;}
-  double gemmtime() const {return gemmtime_;}
+  double gemmtime_sum() const;
+  void gemmtime_start();
+  void gemmtime_end();
+  void gemmtime_record();
   void ctime_inc(double t) {ctime_ += t;}
   void gemmtime_inc(double t) {gemmtime_ += t;}
   double synced_time();
@@ -710,6 +713,7 @@ public:
   void ops_local_inc(double n) {ops_local_ += n;}
   void ops_gemm_local_inc(double n) {ops_gemm_local_ += n;}
   double ops() const;
+  double ops_gemm() const;
   double entry_compares() const {return entry_compares_;}
   double metric_compares() const {return metric_compares_;}
   double vec_compares() const {return vec_compares_;}

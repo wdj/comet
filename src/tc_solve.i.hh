@@ -42,13 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-//-----------------------------------------------------------------------------
-
 //=============================================================================
 /// \brief 1-bit xor gemm kernel (mockup version, not high performance).
 
 template<typename GemmIn_t, typename GemmOut_t>
-__global__ void tc_solve_impl_b1_kernel(size_t m, size_t n, size_t k,
+__global__ void tc_solve_impl_b1_mockup_kernel(size_t m, size_t n, size_t k,
   GemmIn_t* a, GemmIn_t* b, bool beta, GemmOut_t* c) {
   //COMET_INSIST(a && b && c);
 
@@ -78,13 +76,20 @@ __global__ void tc_solve_impl_b1_kernel(size_t m, size_t n, size_t k,
 //-----------------------------------------------------------------------------
 /// \brief 1-bit xor gemm.
 
+static bool tc_solve_b1_use_mockup(const CEnv& env) {
+  return env.tc_eff() == TC::B1 &&
+    ! (BuildHas::CUDA && System::compute_capability() > 700);
+}
+
+//-----------------------------------------------------------------------------
+
 template<int TC_METHOD>
 static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
   void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
-  if (true) {
+  if (tc_solve_b1_use_mockup(env)) {
 
       COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
@@ -111,13 +116,17 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
       const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
       const int num_threadblocks_1 = n;
 
-      COMET_LAUNCH_KERNEL((tc_solve_impl_b1_kernel<GemmIn_t, GemmOut_t>),
+      COMET_LAUNCH_KERNEL((tc_solve_impl_b1_mockup_kernel<GemmIn_t, GemmOut_t>),
         dim3(num_threadblocks_0, num_threadblocks_1, 1),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
         (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
 
       System::accel_last_call_succeeded();
+
+  } else { // if (!tc_solve_b1_use_mockup(env))
+
+    COMET_INSIST(false && "TODO: implement.");
 
   } // if
 }
@@ -147,35 +156,13 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #   ifdef COMET_USE_ACCEL
 
-      if (env.is_event_active()) {
-#       if defined COMET_USE_CUDA
-          cudaEventSynchronize(env.end_event());
-          float time = 0;
-          cudaEventElapsedTime(&time, env.start_event(), env.end_event());
-          env.gemmtime_inc(time / 1000.);
-#       elif defined COMET_USE_HIP
-          hipEventSynchronize(env.end_event());
-          float time = 0;
-          hipEventElapsedTime(&time, env.start_event(), env.end_event());
-          env.gemmtime_inc(time / 1000.);
-#       endif
-        env.is_event_active(false);
-      }
+      env.gemmtime_record();
 
-#     if defined COMET_USE_CUDA
-        cudaEventRecord(env.start_event(), env.stream_compute());
-#     elif defined COMET_USE_HIP
-        hipEventRecord(env.start_event(), env.stream_compute());
-#     endif
+      env.gemmtime_start();
 
       tc_solve_impl_b1<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
 
-#     if defined COMET_USE_CUDA
-        cudaEventRecord(env.end_event(), env.stream_compute());
-#     elif defined COMET_USE_HIP
-        hipEventRecord(env.end_event(), env.stream_compute());
-#     endif
-      env.is_event_active(true);
+      env.gemmtime_end();
 
 #   else // COMET_USE_ACCEL
 
@@ -213,27 +200,9 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
 
-      if (env.is_event_active()) {
-#       if defined COMET_USE_CUDA
-          cudaEventSynchronize(env.end_event());
-          float time = 0;
-          cudaEventElapsedTime(&time, env.start_event(), env.end_event());
-          env.gemmtime_inc(time / 1000.);
-#       elif defined COMET_USE_HIP
-          hipEventSynchronize(env.end_event());
-          float time = 0;
-          hipEventElapsedTime(&time, env.start_event(), env.end_event());
-          env.gemmtime_inc(time / 1000.);
-#       endif
-        env.is_event_active(false);
-      }
+      env.gemmtime_record();
 
-      COMET_INSIST(!env.is_event_active());
-#     if defined COMET_USE_CUDA
-        cudaEventRecord(env.start_event(), env.stream_compute());
-#     elif defined COMET_USE_HIP
-        hipEventRecord(env.start_event(), env.stream_compute());
-#     endif
+      env.gemmtime_start();
 
       // GPU BLAS call.
 
@@ -272,12 +241,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         );
         // TODO: use CUDA 10 autotuning capability here (later).
 
-#     if defined COMET_USE_CUDA
-        cudaEventRecord(env.end_event(), env.stream_compute());
-#     elif defined COMET_USE_HIP
-        hipEventRecord(env.end_event(), env.stream_compute());
-#     endif
-      env.is_event_active(true);
+      env.gemmtime_end();
 
 #     ifdef COMET_USE_CUDA
         if (CUBLAS_STATUS_SUCCESS != status)

@@ -488,7 +488,9 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 
 // TODO: check that this is properly unrolled.
 
-#     pragma unroll
+#     ifdef __clang__
+#       pragma unroll
+#     endif
       for (int i = 0; i < nb; ++i) {
       //for (int i = 0; i < (int)(sizeof(TCWord_t)/sizeof(GemmIn_t)); ++i) {
 
