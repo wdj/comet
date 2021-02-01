@@ -54,16 +54,23 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
   // NOTE: this function should receive the same num_vector_active_local
   // and give the same result independent of MPI rank.
 
-  const size_t factor = tc_gemm_vaxis_divisibility_required(*env);
+//  const size_t factor_gemm = tc_gemm_vaxis_divisibility_required(*env);
+
+  // tc methods require 2 columns per vector, exploit this if possible..
+//  const size_t factor = env->tc_eff() == 0 ? factor_gemm :
+//                        factor_gemm % 2 == 0 ? factor_gemm / 2 :
+//                        factor_gemm;
+
+  const size_t size_for_gemm =
+    tc_nvl_size_required_for_gemm(num_vector_active_local, *env);
 
   const bool need_divisible_by_6 = env->num_way() == NumWay::_3 &&
                                    env->all2all() &&
                                    env->num_proc_vector() > 2;
 
-  const size_t lcm = (! need_divisible_by_6) ? factor :
-                     factor % 2 == 0 ? 3 * factor : 6 * factor;
+  const size_t factor = need_divisible_by_6 ? 6 : 1;
 
-  return utils::ceil(num_vector_active_local, lcm) * lcm;
+  return utils::ceil(size_for_gemm, factor) * factor;
 }
 
 //-----------------------------------------------------------------------------

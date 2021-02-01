@@ -115,6 +115,21 @@ size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM.
+
+size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env) {
+
+  const size_t factor_gemm = tc_gemm_vaxis_divisibility_required(env);
+
+  // tc methods require 2 columns per vector, exploit this if possible..
+  const size_t factor = env.tc_eff() == 0 ? factor_gemm :
+                        factor_gemm % 2 == 0 ? factor_gemm / 2 :
+                        factor_gemm;
+
+  return utils::ceil(size_requested, factor)*factor;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Set matrix to zero, possibly asynchronously.
 //
 // This is needed because GEMM functions with beta=0 can fail to initialize
@@ -179,7 +194,7 @@ static void tc_gemm_start_impl_(
   // to satisfy cublas divisibility requirements.
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
-  COMET_INSIST((size_t)nvll == tc_gemm_vaxis_size_required(nvll, env));
+  COMET_INSIST((size_t)nvll == tc_nvl_size_required_for_gemm(nvll, env));
 
   // Get matX counts if needed.
 
