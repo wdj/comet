@@ -75,8 +75,8 @@ namespace comet {
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
 
   const size_t result = env.tc_eff() == TC::NO ? 1 :
-    tc_solve_b1_use_mockup(env) ? 4 :
-    env.tc_eff() == TC::B1 ? 256 : 4;
+    tc_solve_b1_use_mockup(env) ? 4 : // Curent requirement - see tc_in.
+    env.tc_eff() == TC::B1 ? 256 : 8;
 
   return result;
 }

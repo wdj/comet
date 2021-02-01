@@ -717,6 +717,7 @@ void tc_buf_write_(
   // num_vector_active_local may be strictly less than num_vector_local;
   // doesn't matter: just compute on fake values that will later be ignored.
 
+  // Curent implementation requirement.
   COMET_INSIST(nvle % 2 == 0 && nvl % 2 == 0 &&
                "tc method here requires num_vector_local multiple of 2.");
 
