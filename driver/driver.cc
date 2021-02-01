@@ -220,6 +220,17 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       } else {
         COMET_INSIST_INTERFACE(env, false && "Invalid setting for problem_type.");
       }
+      //--------------------
+    } else if (strcmp(argv[i], "--detailed_output") == 0) {
+      //--------------------
+      ++i;
+      if (strcmp(argv[i], "yes") == 0) {
+        do_->detailed_output = true;
+      } else if (strcmp(argv[i], "no") == 0) {
+        do_->detailed_output = false;
+      } else {
+        COMET_INSIST_INTERFACE(env, false && "Invalid setting for detailed_output.");
+      }
      //----------
     } else if (strcmp(argv[i], "--threshold") == 0) {
       ++i; // processed elsewhere by CEnv.
@@ -295,6 +306,7 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
 //-----------------------------------------------------------------------------
 
 void print_output(bool do_print,
+                  bool do_detailed,
                   Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub,
@@ -316,8 +328,8 @@ void print_output(bool do_print,
   if (!do_print)
     return;
 
-  printf("\nOutput:\n");
-
+  if(do_detailed) printf("\nOutput:\n");
+  
   if (cksum.computing_checksum()) {
     printf("metrics checksum ");
     cksum.print(env);
@@ -381,58 +393,65 @@ void print_output(bool do_print,
   if (env.tc() != env.tc_eff()) {
     printf(" tc_eff %i", env.tc_eff());
   }
-  printf("\n");
 
-  // More readable runtime output
-  printf("\nDetailed Output:\n");
-  printf("GEMM:\n"
-         "Pre-GEMM time:        %.6f\n"
-         "GEMM time:            %.6f\n"
-         "Post-GEMM time:       %.6f\n",
-          env.pregemmtime(), env.gemmtime(), env.postgemmtime());
+  if (env.is_shrink()) {
+    printf(" is_shrink %s", "yes");
+  }
 
-  printf("\nComputeMetrics:\n"
-         "Nums start time:      %.6f\n"
-         "Nums wait time:       %.6f\n"
-         "Combine time:         %.6f\n",
-         env.numsstarttime(), env.numswaittime(), env.combinetime());
+  if(do_detailed) printf("\n");
 
-  printf("\nDriver:\n"
-         "Input time:           %.6f\n"
-         "Compute metric time:  %.6f\n"
-         "Output time:          %.6f\n"
-         "Compute metric total: %.6f\n"
-         "Loop time:            %.6f\n"
-         "Total time:           %.6f\n",
-         intime, cmtime, outtime, env.ctime(), looptime, tottime);
+  if(do_detailed) {
+    // More readable runtime output
+    printf("\nDetailed Output:\n");
+    printf("GEMM:\n"
+           "Pre-GEMM time:        %.6f\n"
+           "GEMM time:            %.6f\n"
+           "Post-GEMM time:       %.6f\n",
+            env.pregemmtime(), env.gemmtime(), env.postgemmtime());
 
-  double tops = ops/(1024.0*1024.0*1024.0*1024.0);
-  double gemmops = 0.0, cmops = 0.0, cops = 0.0;
-  if(env.gemmtime()>0.0) gemmops = tops/env.gemmtime();
-  if(cmtime>0.0)         cmops   = tops/cmtime;
-  if(env.ctime()>0.0)    cops    = tops/env.ctime();
+    printf("\nComputeMetrics:\n"
+           "Nums start time:      %.6f\n"
+           "Nums wait time:       %.6f\n"
+           "Combine time:         %.6f\n",
+           env.numsstarttime(), env.numswaittime(), env.combinetime());
 
-  printf("\nOps (Algorithm per Byte):\n"
-         "Ops:                  %e\n"
-         "TOps:                 %.2f\n"
-         "GEMM TOps:            %.2f\n"
-         "Metric TOps:          %.2f\n"
-         "Metric total TOps:    %.2f\n\n",
-         ops, tops, gemmops, cmops, cops);
+    printf("\nDriver:\n"
+           "Input time:           %.6f\n"
+           "Compute metric time:  %.6f\n"
+           "Output time:          %.6f\n"
+           "Compute metric total: %.6f\n"
+           "Loop time:            %.6f\n"
+           "Total time:           %.6f\n",
+           intime, cmtime, outtime, env.ctime(), looptime, tottime);
 
-  double tsimops = simops/(1024.0*1024.0*1024.0*1024.0);
-  gemmops = 0.0; cmops = 0.0; cops = 0.0;
-  if(env.gemmtime()>0.0) gemmops = tsimops/env.gemmtime();
-  if(cmtime>0.0)         cmops   = tsimops/cmtime;
-  if(env.ctime()>0.0)    cops    = tsimops/env.ctime();
+    double tops = ops/(1024.0*1024.0*1024.0*1024.0);
+    double gemmops = 0.0, cmops = 0.0, cops = 0.0;
+    if(env.gemmtime()>0.0) gemmops = tops/env.gemmtime();
+    if(cmtime>0.0)         cmops   = tops/cmtime;
+    if(env.ctime()>0.0)    cops    = tops/env.ctime();
 
-  printf("\nSimulation Ops (Simulation per Bit):\n"
-         "SimOps:               %e\n"
-         "TSimOps:              %.2f\n"
-         "GEMM TSimOps:         %.2f\n"
-         "Metric TSimOps:       %.2f\n"
-         "Metric total TSimOps: %.2f\n\n",
-         simops, tsimops, gemmops, cmops, cops);
+    printf("\nOps (Algorithm per Byte):\n"
+           "Ops:                  %e\n"
+           "TOps:                 %.2f\n"
+           "GEMM TOps:            %.2f\n"
+           "Metric TOps:          %.2f\n"
+           "Metric total TOps:    %.2f\n\n",
+           ops, tops, gemmops, cmops, cops);
+
+    double tsimops = simops/(1024.0*1024.0*1024.0*1024.0);
+    gemmops = 0.0; cmops = 0.0; cops = 0.0;
+    if(env.gemmtime()>0.0) gemmops = tsimops/env.gemmtime();
+    if(cmtime>0.0)         cmops   = tsimops/cmtime;
+    if(env.ctime()>0.0)    cops    = tsimops/env.ctime();
+
+    printf("\nSimulation Ops (Simulation per Bit):\n"
+           "SimOps:               %e\n"
+           "TSimOps:              %.2f\n"
+           "GEMM TSimOps:         %.2f\n"
+           "Metric TSimOps:       %.2f\n"
+           "Metric total TSimOps: %.2f\n\n",
+           simops, tsimops, gemmops, cmops, cops);
+  }
 }
 
 //=============================================================================
@@ -560,6 +579,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   const bool do_print = env->is_proc_active() &&
      env->proc_num() == 0 && do_.verbosity > 0;
+  const bool do_detailed = do_print && do_.detailed_output;
 
   // Allocate vectors.
 
@@ -751,7 +771,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
   // Output run information.
 
-  print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
+  print_output(do_print, do_detailed, cksum, *env, do_.metrics_file_path_stub, num_written,
     vctime, mctime, cmtime, cktime, intime, outtime, looptime, tottime);
     
   // Output a local checksum, for testing purposes.

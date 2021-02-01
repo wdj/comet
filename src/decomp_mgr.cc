@@ -54,17 +54,19 @@ size_t gm_num_vector_local_required(size_t num_vector_active_local,
   // NOTE: this function should receive the same num_vector_active_local
   // and give the same result independent of MPI rank.
 
-  const size_t factor_4 = tc_gemm_divisibility_required(*env);
+  const size_t factor = tc_gemm_vaxis_divisibility_required(*env);
 
   const bool need_divisible_by_6 = env->num_way() == NumWay::_3 &&
                                    env->all2all() &&
                                    env->num_proc_vector() > 2;
 
-  const size_t lcm = (! need_divisible_by_6) ? factor_4 :
-                     factor_4 % 2 == 0 ? 3 * factor_4 : 6 * factor_4;
+  const size_t lcm = (! need_divisible_by_6) ? factor :
+                     factor % 2 == 0 ? 3 * factor : 6 * factor;
 
-  if(env->print_details()) printf("factor_4=%zu lcm=%zu total=%zu\n",factor_4,lcm,utils::ceil(num_vector_active_local, lcm)*lcm);
-  return utils::ceil(num_vector_active_local, lcm)*lcm;
+  if(env->print_details()) printf("factor=%zu lcm=%zu need_divis_by_6=%d total=%zu\n",
+    factor,lcm,need_divisible_by_6,
+    utils::ceil(num_vector_active_local, lcm)*lcm);
+  return utils::ceil(num_vector_active_local, lcm) * lcm;
 }
 
 //-----------------------------------------------------------------------------
@@ -276,9 +278,11 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   // Packedfield counts
   //--------------------
 
+  const size_t d = tc_gemm_faxis_divisibility_required(*env);
+
   dm->num_packedfield_local =
-      utils::ceil(dm->num_field_local * dm->num_bit_per_field,
-                  (size_t)dm->num_bit_per_packedfield);
+    utils::ceil(utils::ceil(dm->num_field_local * dm->num_bit_per_field,
+                            (size_t)dm->num_bit_per_packedfield), d) * d;
   if(env->print_details())
     printf("num_packedfield_local = ceil(%zu*%d,%d)=%zu\n",dm->num_field_local,
            dm->num_bit_per_field, dm->num_bit_per_packedfield,dm->num_packedfield_local);
@@ -299,7 +303,7 @@ void GMDecompMgr_create(GMDecompMgr* dm,
   // tc memory
   //--------------------
   if(env->print_details()) printf("Calling TCBufs malloc\n");
-  TCBufs::malloc(dm->num_vector_local, dm->num_field_local,
+  TCBufs::malloc(dm->num_vector_local, //dm->num_field_local,
                  dm->num_packedfield_local, dm->tc_bufs, *env);
 
   if(env->print_details()) printf("Done in DecompManager\n");

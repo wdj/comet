@@ -200,7 +200,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
       if (env_.sparse()) {
         const uint64_t oddbits = 0x5555555555555555;
         Float_t count = 0;
-        for (int f = 0; f < vectors.num_packedval_field_local; ++f) {
+        for (int f = 0; f < vectors.num_packedfield_local; ++f) {
           // Fast way: sum all 64 bits of each word immediately
           const GMBits2x64 v = GMVectors_bits2x64_get(&vectors, f, i, &env_);
           const uint64_t data0 = v.data[0];
@@ -228,7 +228,7 @@ void VectorSums::compute_bits2_(const GMVectors& vectors) {
         elt_ref_(counts_local, i) = count;
       } else { // ! sparse
         const uint64_t oddbits = 0x5555555555555555;
-        for (int f = 0; f < vectors.num_packedval_field_local; ++f) {
+        for (int f = 0; f < vectors.num_packedfield_local; ++f) {
           // Fast way: sum all 64 bits of each word immediately
           const GMBits2x64 v = GMVectors_bits2x64_get(&vectors, f, i, &env_);
           sum += is_cbpe_2 ? utils::popc64(v.data[0])

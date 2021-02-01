@@ -617,17 +617,17 @@ __global__ static void tc_buf_write_kernel_(
 template<int TC_METHOD, bool IS_LEFT>
 void tc_buf_write_(
   int I_max, int I_max_dim, int nvl,
-  int npvfl, int npvfl_thisstep, int pvfl_min, int nfal,
+  int npfl, int npfl_thisstep, int pfl_min, int nfal,
   const TCWord_t* vi1, const TCWord_t* vi2, TCBufs& tc_bufs,
   int step_2way, CEnv& env) {
 
   COMET_INSIST(vi1 && vi2);
   COMET_INSIST(I_max_dim >= 0 && I_max_dim <= nvl);
   COMET_INSIST(I_max >= 0 && I_max <= I_max_dim);
-  COMET_INSIST(nvl >= 0 && npvfl >= 0);
+  COMET_INSIST(nvl >= 0 && npfl >= 0);
   COMET_INSIST(tc_bufs.tc_buf_left && tc_bufs.tc_buf_right);
-  COMET_INSIST(npvfl_thisstep >= 0 && npvfl_thisstep <= npvfl);
-  COMET_INSIST(pvfl_min >= 0 && pvfl_min + npvfl_thisstep <= npvfl);
+  COMET_INSIST(npfl_thisstep >= 0 && npfl_thisstep <= npfl);
+  COMET_INSIST(pfl_min >= 0 && pfl_min + npfl_thisstep <= npfl);
 
   if(env.print_details()) printf("In tc_buf_write_\n");
 
@@ -649,9 +649,9 @@ void tc_buf_write_(
   enum {NUM_FIELD_PER_PACKEDVAL_FIELD = 64};
   enum {NUM_FL_PER_PVFL = NUM_FIELD_PER_PACKEDVAL_FIELD};
 
-  const int nfl = npvfl * NUM_FL_PER_PVFL;
-  const int nfl_thisstep = npvfl_thisstep * NUM_FL_PER_PVFL;
-  const int fl_min = pvfl_min * NUM_FL_PER_PVFL;
+  const int nfl = npfl * NUM_FL_PER_PVFL;
+  const int nfl_thisstep = npfl_thisstep * NUM_FL_PER_PVFL;
+  const int fl_min = pfl_min * NUM_FL_PER_PVFL;
 
   enum {NGIPT = TCTraits<TC_METHOD>::NGIPT};
   enum {NFPGI = TCTraits<TC_METHOD>::NFPGI};
@@ -673,8 +673,8 @@ void tc_buf_write_(
 
   typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
 
-  const int vi_dim0 = npvfl * (2*sizeof(double)) / sizeof(TCWord_t);
-  //const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
+  const int vi_dim0 = npfl * (2*sizeof(double)) / sizeof(TCWord_t);
+  //const int vi_dim0 = npfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
 
   GemmIn_t* const tc_buf = IS_LEFT ? (GemmIn_t*)tc_bufs.tc_buf_left :
                                      (GemmIn_t*)tc_bufs.tc_buf_right;
@@ -841,7 +841,7 @@ void tc_compute_matX_counts(
   int I_max,
   int I_max_dim,
   int nvl,
-  int npvfl,
+  int npfl,
   int nfal,
   const TCWord_t* vi1,
   const TCWord_t* vi2,
@@ -875,7 +875,7 @@ void tc_compute_matX_counts(
   const int nvlea = I_max; // num active nvle; others zeroed
 
   enum {NUM_FL_PER_PVFL = 64};
-  const int nfl = npvfl * NUM_FL_PER_PVFL;
+  const int nfl = npfl * NUM_FL_PER_PVFL;
   COMET_INSIST(nfal <= nfl);
 
   const TCWord_t* vim = vi2; // matrix
@@ -885,8 +885,8 @@ void tc_compute_matX_counts(
 
   const int nvleX2_thread = nvleX2;
   const int nfl_thread = nfl / NUM_FL_PER_UINT32;
-  const int vi_dim0 = npvfl * (2*sizeof(double)) / sizeof(TCWord_t);
-  //const int vi_dim0 = npvfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
+  const int vi_dim0 = npfl * (2*sizeof(double)) / sizeof(TCWord_t);
+  //const int vi_dim0 = npfl * 4; // 4 = sizeof(doublecomplex) / sizeof(int32)
 
   typedef TCTraits<TC::B1>::GemmIn_t GemmIn_t;
 

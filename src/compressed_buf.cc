@@ -200,6 +200,7 @@ void CompressedBuf::compress() {
 
   do_compress_ = estimated_storage_compressed <
     compression_factor_required_() * storage_uncompressed;
+//printf("///////////////////// %i   %i %i\n", (int)num_nonzeros_approx_, (int)estimated_storage_compressed, (int)storage_uncompressed);
 
   if (!do_compress_)
     return;

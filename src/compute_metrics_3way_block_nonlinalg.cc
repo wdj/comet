@@ -467,16 +467,16 @@ static void compute_nonlinalg_ccc_duo_(
           const int k = si->unperm2(I, J, K);
 
           GMTally4x2 sum = GMTally4x2_null();
-          const int npvfl = vectors_i->num_packedval_field_local;
-          for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+          const int npfl = vectors_i->num_packedfield_local;
+          for (int pfl = 0; pfl < npfl; ++pfl) {
 
             // Extract input values to process.
 
-            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pvfl, i,
+            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pfl, i,
                                                          env);
-            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, pvfl, j,
+            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, pfl, j,
                                                           env);
-            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pvfl, k,
+            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pfl, k,
                                                           env);
 
             const uint64_t vi0 = vi.data[0];
@@ -707,7 +707,7 @@ static void compute_nonlinalg_ccc_duo_(
 
             } // if (env->metric_type() == MetricType::CCC)
 
-          } // for pvfl
+          } // for pfl
 
           // Adjust for pad
 
@@ -798,16 +798,16 @@ static void compute_nonlinalg_ccc_duo_(
           uint64_t sum_pvk = 0;
 
           GMTally4x2 sum = GMTally4x2_null();
-          const int npvfl = vectors_i->num_packedval_field_local;
-          for (int pvfl = 0; pvfl < npvfl; ++pvfl) {
+          const int npfl = vectors_i->num_packedfield_local;
+          for (int pfl = 0; pfl < npfl; ++pfl) {
 
             // Extract input values to process.
 
-            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pvfl, i,
+            const GMBits2x64 vi = GMVectors_bits2x64_get(vectors_i, pfl, i,
                                                          env);
-            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, pvfl, j,
+            const GMBits2x64 vj = GMVectors_bits2x64_get(vectors_j, pfl, j,
                                                           env);
-            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pvfl, k,
+            const GMBits2x64 vk = GMVectors_bits2x64_get(vectors_k, pfl, k,
                                                           env);
 
             const uint64_t vi0 = vi.data[0];
@@ -898,7 +898,7 @@ static void compute_nonlinalg_ccc_duo_(
             sum_nvk += utils::popc64(nvk);
             sum_pvk += utils::popc64(pvk);
 
-          } // for pvfl
+          } // for pfl
 
           // Adjust for pad.
           // NOTE this works differently from other cases because of xor.

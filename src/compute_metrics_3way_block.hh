@@ -58,7 +58,7 @@ class ComputeMetrics3WayBlock {
 
 public:
 
-  ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env);
+  ComputeMetrics3WayBlock(int nvl, int npfl, CEnv& env);
   ~ComputeMetrics3WayBlock();
 
   void compute(VData vdata_i, VData vdata_j, VData vdata_k,

@@ -87,8 +87,7 @@ struct TCBufs {
 
   static void malloc(
     int num_vector_local,
-    int num_field_local,
-    int num_packedval_field_local,
+    int num_packedfield_local,
     TCBufs& tc_bufs,
     CEnv& env);
 
@@ -110,8 +109,10 @@ void tc_gemm_start(
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   int nfal, int step_2way, TCBufs& tc_bufs, CEnv& env);
 
-size_t tc_gemm_divisibility_required(const CEnv& env);
-size_t tc_gemm_size_required(size_t size_requested, const CEnv& env);
+size_t tc_gemm_vaxis_divisibility_required(const CEnv& env);
+size_t tc_gemm_faxis_divisibility_required(const CEnv& env);
+size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env);
+size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env);
 
 //=============================================================================
 

@@ -156,6 +156,8 @@ private:
   bool is_started_;
   bool computing_checksum_;
 
+  static double entry_min_() {return 0;} //  -DBL_MAX
+
   //---------------------------------------------------------------------------
   /// \brief Checksum helper: return largest value in metrics object.
 

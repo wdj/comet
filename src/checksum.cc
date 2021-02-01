@@ -53,7 +53,7 @@ namespace comet {
 
 Checksum::Checksum(bool computing_checksum)
   : is_overflowed_(false)
-  , value_max_(-DBL_MAX)
+  , value_max_(Checksum::entry_min_())
   , sum_d_(0)
   , num_(0)
   , num_zero_(0)
@@ -210,7 +210,7 @@ double Checksum::metrics_elt(
 
 double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
 
-  double result = -DBL_MAX;
+  double result = Checksum::entry_min_();
 
   // TODO: make this unnecessary.
   if (! env.is_proc_active()) {
@@ -229,7 +229,7 @@ double Checksum::metrics_max_value(GMMetrics& metrics, CEnv& env) {
         env);
       is_active = is_active && coord < metrics.num_vector_active;
     }
-    double value_max = -DBL_MAX;
+    double value_max = Checksum::entry_min_();
     if (is_active) {
       for (int entry_num = 0; entry_num < env.num_entries_per_metric_item();
            ++entry_num) {

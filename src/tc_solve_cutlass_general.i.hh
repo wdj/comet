@@ -48,11 +48,11 @@ namespace comet {
 
 template <typename Gemm>
 cudaError_t CutlassGemmRun(int M, int N, int K, cutlass::uint1b_t const *A,
-  int lda, cutlass::uint1b_t const *B, int ldb, int32_t *C, int ldc) {
+  int lda, cutlass::uint1b_t const *B, int ldb, int32_t beta, int32_t *C, int ldc) {
 
   // Define a CUTLASS GEMM type
   Gemm gemm_operator;
-  int32_t alpha = 1, beta = 0;
+  int32_t alpha = 1;
 
   // Construct the CUTLASS GEMM arguments object.
   typename Gemm::Arguments args({M, N, K},      // Gemm Problem dimensions
@@ -76,7 +76,7 @@ cudaError_t CutlassGemmRun(int M, int N, int K, cutlass::uint1b_t const *A,
 /// \brief 1-bit Int GEMM with 256 x 128 blocks
 
 cudaError_t CutlassTCGemm1B_256x128(int M, int N, int K, uint8_t const *A,
-  int lda, uint8_t const *B, int ldb, int32_t *C, int ldc) {
+  int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc) {
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
@@ -99,7 +99,8 @@ cudaError_t CutlassTCGemm1B_256x128(int M, int N, int K, uint8_t const *A,
                                            cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
                                            2, 128, 128, false, cutlass::arch::OpXorPopc>;
 
-  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,ldb,(accprec*)C,ldc);
+  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,
+                                            ldb,beta,(accprec*)C,ldc);
   return result;
 }
 
@@ -107,7 +108,7 @@ cudaError_t CutlassTCGemm1B_256x128(int M, int N, int K, uint8_t const *A,
 /// \brief 1-bit Int GEMM with 128 x 256 blocks
 
 cudaError_t CutlassTCGemm1B_128x256(int M, int N, int K, uint8_t const *A,
-  int lda, uint8_t const *B, int ldb, int32_t *C, int ldc) {
+  int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc) {
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
@@ -130,7 +131,8 @@ cudaError_t CutlassTCGemm1B_128x256(int M, int N, int K, uint8_t const *A,
                                            cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
                                            2, 128, 128, false, cutlass::arch::OpXorPopc>;
 
-  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,ldb,(accprec*)C,ldc);
+  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,
+                                            ldb,beta,(accprec*)C,ldc);
   return result;
 }
 
@@ -138,7 +140,7 @@ cudaError_t CutlassTCGemm1B_128x256(int M, int N, int K, uint8_t const *A,
 /// \brief 1-bit Int GEMM with 128 x 128 blocks
 
 cudaError_t CutlassTCGemm1B_128x128(int M, int N, int K, uint8_t const *A,
-  int lda, uint8_t const *B, int ldb, int32_t *C, int ldc) {
+  int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc) {
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
@@ -161,7 +163,8 @@ cudaError_t CutlassTCGemm1B_128x128(int M, int N, int K, uint8_t const *A,
                                            cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
                                            2, 128, 128, false, cutlass::arch::OpXorPopc>;
 
-  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,ldb,(accprec*)C,ldc);
+  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,
+                                            ldb,beta,(accprec*)C,ldc);
   return result;
 }
 
@@ -169,7 +172,7 @@ cudaError_t CutlassTCGemm1B_128x128(int M, int N, int K, uint8_t const *A,
 /// \brief 1-bit Int GEMM with 128 x 64 blocks
 
 cudaError_t CutlassTCGemm1B_128x64(int M, int N, int K, uint8_t const *A,
-  int lda, uint8_t const *B, int ldb, int32_t *C, int ldc) {
+  int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc) {
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
@@ -192,7 +195,8 @@ cudaError_t CutlassTCGemm1B_128x64(int M, int N, int K, uint8_t const *A,
                                            cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
                                            2, 128, 128, false, cutlass::arch::OpXorPopc>;
 
-  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,ldb,(accprec*)C,ldc);
+  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,
+                                            ldb,beta,(accprec*)C,ldc);
   return result;
 }
 
@@ -200,7 +204,7 @@ cudaError_t CutlassTCGemm1B_128x64(int M, int N, int K, uint8_t const *A,
 /// \brief 1-bit Int GEMM with 64 x 128 blocks
 
 cudaError_t CutlassTCGemm1B_64x128(int M, int N, int K, uint8_t const *A,
-  int lda, uint8_t const *B, int ldb, int32_t *C, int ldc) {
+  int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc) {
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
@@ -223,7 +227,8 @@ cudaError_t CutlassTCGemm1B_64x128(int M, int N, int K, uint8_t const *A,
                                            cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
                                            2, 128, 128, false, cutlass::arch::OpXorPopc>;
 
-  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,ldb,(accprec*)C,ldc);
+  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,
+                                            ldb,beta,(accprec*)C,ldc);
   return result;
 }
 
@@ -231,7 +236,7 @@ cudaError_t CutlassTCGemm1B_64x128(int M, int N, int K, uint8_t const *A,
 /// \brief 1-bit Int GEMM with 64 x 64 blocks
 
 cudaError_t CutlassTCGemm1B_64x64(int M, int N, int K, uint8_t const *A,
-  int lda, uint8_t const *B, int ldb, int32_t *C, int ldc) {
+  int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc) {
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
@@ -254,7 +259,8 @@ cudaError_t CutlassTCGemm1B_64x64(int M, int N, int K, uint8_t const *A,
                                            cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
                                            2, 128, 128, false, cutlass::arch::OpXorPopc>;
 
-  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,ldb,(accprec*)C,ldc);
+  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,
+                                            ldb,beta,(accprec*)C,ldc);
   return result;
 }
 
@@ -262,7 +268,7 @@ cudaError_t CutlassTCGemm1B_64x64(int M, int N, int K, uint8_t const *A,
 /// \brief 1-bit Int WMMA GEMM with 64 x 64 blocks
 
 cudaError_t CutlassTCGemm1BWmma_64x64(int M, int N, int K, uint8_t const *A,
-  int lda, uint8_t const *B, int ldb, int32_t *C, int ldc) {
+  int lda, uint8_t const *B, int ldb, int32_t beta, int32_t *C, int ldc) {
 
   using prec             = cutlass::uint1b_t;
   using accprec          = int32_t;
@@ -285,7 +291,8 @@ cudaError_t CutlassTCGemm1BWmma_64x64(int M, int N, int K, uint8_t const *A,
                                            cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
                                            2, 128, 128, false, cutlass::arch::OpXorPopc>;
 
-  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,ldb,(accprec*)C,ldc);
+  cudaError_t result = CutlassGemmRun<Gemm>(M,N,K,(prec const*)A,lda,(prec const*)B,
+                                            ldb,beta,(accprec*)C,ldc);
   return result;
 }
 

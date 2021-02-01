@@ -616,8 +616,8 @@ void perform_run_preflight(int argc, char** argv, int print_details) {
 
     // Simple duo preflight run
     const char* options_template_1 =
-          "--num_field 128 --num_vector_local 4 "
-          "--metric_type duo --sparse yes --tc 5 "
+          "--num_field 512 --num_vector_local 256 "
+          "--metric_type duo --sparse yes --tc 5 --num_kernel 0 "
           "--num_proc_vector %i --all2all no --num_way 2 "
           "--compute_method GPU --verbosity 0";
 

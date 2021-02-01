@@ -222,7 +222,7 @@ void tc_repair_metrics_( int nvll, int nvl, void* vo, CEnv& env) {
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
-  // always true, because of tc_gemm_divisibility_required()
+  // always true, because of tc_gemm_vaxis_divisibility_required()
   COMET_INSIST(nvll % 2 == 0 && "Failed divisibility condition for tc gemm.");
   const int nvllD2 = nvll / 2; // For B1
 

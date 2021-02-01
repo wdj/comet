@@ -735,7 +735,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  print_output(env->is_proc_active(), false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
@@ -860,7 +860,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  print_output(env->is_proc_active(), false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
@@ -1026,7 +1026,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  print_output(env->is_proc_active(), false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
@@ -1209,7 +1209,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  print_output(env->is_proc_active(), false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
@@ -1386,7 +1386,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  print_output(env->is_proc_active(), false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
@@ -1658,7 +1658,7 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), cksum, *env);
+  print_output(env->is_proc_active(), false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
@@ -1890,16 +1890,24 @@ void DriverTest_b1_xor_gemm_() {
   typedef comet::TC TC;
 
   for (int num_way : {2, 3})
+  //for (int num_way : {2})
   for (int num_tc_steps : {1, 2})
+  //for (int num_tc_steps : {1})
   for (int num_vector = num_way; num_vector < 6; ++num_vector) {
+  //for (int num_vector = 2; num_vector < 3; ++num_vector) {
     //if (num_vector < num_way)
     //  continue;
   // Examine num_field values nearby possible block boundaries.
   int num_field_prev = 0;
   for (int nfbdry : {1, 2, 4, 8, 16, 32, 64, 128})
+  //for (int nfbdry : {16})
   for (int num_field = nfbdry - 2; num_field < nfbdry + 3; ++num_field) {
+  //for (int num_field = nfbdry + 1; num_field < nfbdry + 2; ++num_field) {
     if (num_field <= num_field_prev)
       continue;
+
+    //const int num_vector_ = 256; // 256;
+    //const int num_field_ = 256;
 
     sprintf(options1, options_template, num_way,
             num_vector, num_field, "REF", 1, 0, 1);
@@ -1921,13 +1929,17 @@ void DriverTest_threshold_() {
 
     const int num_proc_vector = comet::System::num_proc() >= 3 ? 3 : 1;
 
+    // NOTE: --problem_type analytic can give high (nonphysical)
+    // values of the metrics compared to --problem_type random.
+
     char options_template[] =
         "--metric_type %s "
         "--num_proc_vector %i "
-        "--num_field 71 --num_vector 17 "
-        //"--num_field 64 --num_vector 17 "
+         "--num_field 71 --num_vector 17 "
+        //"--num_field 71 --num_vector 20 "
         "--num_way %i "
         "--all2all yes --sparse yes "
+        //"--problem_type random "
         "--problem_type analytic "
         "--threshold %f "
         "--tc %i "
@@ -1939,22 +1951,30 @@ void DriverTest_threshold_() {
     typedef comet::MetricType MT;
     typedef comet::TC TC;
 
-    for (double metrics_shrink : {1., 3.35})
-    //for (double metrics_shrink : {3.35})
-    for (int num_way : {2, 3})
-    //for (int num_way : {3})
+    // To help avoid problems with comparing floating point values.
+    const double fuzz = .001;
+
+    for (double metrics_shrink : {1., 2.4+fuzz})
+    for (int num_way : {2, 3}) {
+    //for (int num_way : {3}) {
+      const double threshold_max = 2 == num_way ? .99 : .65;
     for (int metric_type : {MT::CCC, MT::DUO})
-    //for (int metric_type : {MT::DUO})
-    for (double threshold : {.65, .50, .25, .001, 0.})
-    //for (double threshold : {.65})
+    //for (double threshold : {.65, .50, .25, .01, 0.})
+    for (double threshold : {threshold_max, threshold_max*.8,
+      threshold_max*.5, .01, 0.})
     for (int compute_method : {CM::CPU, CM::GPU})
     //for (int compute_method : {CM::GPU})
-     for (int tc=1; tc<TC::NUM; ++tc) {
-    //for (int tc : {1, 5}) {
+    for (int tc=1; tc<TC::NUM; ++tc) {
     //for (int tc=3; tc<=3; ++tc) {
-      if (metrics_shrink > 1.1 && (CM::GPU != compute_method ||
-           threshold < .4 || comet::BuildHas::DOUBLE_PREC))
+      // Some cases have too many thresholded values to be able to shrink.
+      const bool is_trying_shrink = metrics_shrink > 1.+fuzz;
+      if (is_trying_shrink && 2 == num_way &&
+          threshold < threshold_max-fuzz && threshold > 0+fuzz)
         continue;
+      if (is_trying_shrink && (CM::GPU != compute_method ||
+           threshold < .6 * threshold_max || comet::BuildHas::DOUBLE_PREC))
+        continue;
+      // Unimplemented.
       if (MT::CCC == metric_type && TC::B1 == tc) continue;
 
       sprintf(options1, options_template, MT::str(metric_type),
@@ -1963,6 +1983,7 @@ void DriverTest_threshold_() {
         num_proc_vector, num_way, threshold, tc, CM::str(compute_method),
         metrics_shrink);
       test_2runs(options1, options2);
+    } 
     } 
 } // DriverTest_tc_
 
@@ -2538,22 +2559,41 @@ void DriverTest_duo2_b1_() {
 
     char options1[1024];
     char options2[1024];
+    int nf1, nf2, nfskip, nv1, nv2, nvskip;
 
     printf("Running duo2 b1 test\n");
 
-    // Template for b1 kernels
-    char options_template[] =
+    int use_test = 1; // 0=skip, 1=low detail, 2=high detail
+
+    // Template for 2-way b1 kernels
+    char options_2way_template[] =
         "--metric_type duo --num_field %i --num_vector %i "
         "--num_proc_vector 1 --compute_method %s --sparse yes "
         "--problem_type random --verbosity 0 --tc 5 --num_way 2 "
         "--num_tc_steps 1 --all2all yes --num_kernel %i";// --print_details yes";
 
-    // Magma kernel
-    char options_magma[] =
+    // Template 2-way Magma reference kernel
+    char options_2way_ref[] =
         "--metric_type duo --num_field %i --num_vector %i "
         "--num_proc_vector 1 --compute_method %s --sparse yes "
         "--problem_type random --verbosity 0 --num_way 2 "
         "--num_tc_steps 1 --all2all yes --num_kernel 0";// --print_details yes";
+
+    // Template for 3-way b1 kernels
+    char options_3way_template[] =
+        "--num_way 3 --num_field_local %i --num_vector_local %i --metric_type duo "
+        "--all2all yes --compute_method %s --problem_type random --num_proc_vector 1 "
+        "--num_proc_field 1 --num_proc_repl 1 --num_phase 1 --phase_min 0 --phase_max 0 "
+        "--num_stage 640 --stage_min 639 --verbosity 0 --sparse yes --threshold 0.0 "
+        "--metrics_shrink 2 --num_tc_steps 4 --tc 5 --num_kernel %i";// --print_details yes";
+
+    // Template 3-way Cublas reference kernel
+    char options_3way_ref[] =
+        "--num_way 3 --num_field_local %i --num_vector_local %i --metric_type duo "
+        "--all2all yes --compute_method %s --problem_type random --num_proc_vector 1 "
+        "--num_proc_field 1 --num_proc_repl 1 --num_phase 1 --phase_min 0 --phase_max 0 "
+        "--num_stage 640 --stage_min 639 --verbosity 0 --sparse yes --threshold 0.0 "
+        "--metrics_shrink 2 --num_tc_steps 4 --tc 1 --num_kernel 0";// --print_details yes";
 
     /*for(int nfields=1; nfields<=32; nfields++) {
         for(int nvectors=2; nvectors<=32; nvectors++) {
@@ -2563,17 +2603,87 @@ void DriverTest_duo2_b1_() {
         }
     }*/
 
-    // Cutlass device-level GEMM
-    for(int nfields=128; nfields<=1024; nfields+=128) {
-        for(int nvectors=2; nvectors<=32; nvectors++) {
-            int num_kernel = 11;
-            //printf("Testing Cutlass device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
-            sprintf(options1, options_magma, nfields, nvectors, "REF");
-            sprintf(options2, options_template, nfields, nvectors, "GPU", num_kernel);
-            EXPECT_EQ(true, compare_2runs(options1, options2));
+    // 2-way Cutlass device-level GEMM
+    if(use_test==2) {
+      nf1 = 1; nf2 = 2048; nfskip = 1; // Should work for larger values
+      nv1 = 2; nv2 = 256; nvskip = 1;  // Should work for larger values
+    } else {
+      nf1 = 128; nf2 = 2048; nfskip = 128;
+      nv1 = 16;  nv2 = 1024; nvskip = 16;
+    }
+    if(use_test) {
+        for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
+            for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
+                int num_kernel = 11;
+                //printf("Testing Cutlass 2-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+                sprintf(options1, options_2way_ref, nfields, nvectors, "REF");
+                sprintf(options2, options_2way_template, nfields, nvectors, "GPU", num_kernel);
+                EXPECT_EQ(true, compare_2runs(options1, options2));
+            }
         }
     }
 
+    // 3-way Cutlass device-level GEMM
+    if(use_test==2) {
+      nf1 = 512; nf2 = 2048; nfskip = 1;   // Should work for larger values
+      nv1 = 1024; nv2 =2048; nvskip = 256; // Only works for multiples of 256 right now
+    } else {
+      nf1 = 512; nf2 = 2048; nfskip = 1;
+      nv1 = 1024; nv2 = 2048; nvskip = 256;
+    }
+    if(use_test) {
+        for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
+            for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
+                int num_kernel = 11;
+                //printf("Testing Cutlass 3-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+                sprintf(options1, options_3way_ref, nfields, nvectors, "GPU");
+                sprintf(options2, options_3way_template, nfields, nvectors, "GPU", num_kernel);
+                EXPECT_EQ(true, compare_2runs(options1, options2));
+            }
+        }
+    }
+
+    // 2-way Cutlass warp-level GEMM
+    if(use_test==2) {
+      nf1 = 512; nf2 = 4096; nfskip = 512; // Only works for multiples of 512 right now
+      nv1 = 2; nv2 = 256; nvskip = 1;      // Should work for larger values
+    } else {
+      nf1 = 512; nf2 = 4096; nfskip = 512;
+      nv1 = 128;  nv2 = 1024; nvskip = 128;
+    }
+    if(use_test) {
+        for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
+            for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
+                int num_kernel = 24;
+                //printf("Testing Cutlass 2-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+                sprintf(options1, options_2way_ref, nfields, nvectors, "REF");
+                sprintf(options2, options_2way_template, nfields, nvectors, "GPU", num_kernel);
+                EXPECT_EQ(true, compare_2runs(options1, options2));
+            }
+        }
+    }
+
+    // 3-way Cutlass warp-level GEMM - Doesn't work correctly yet
+    /*if(use_test==2) {
+      nf1 = 512; nf2 = 2048; nfskip = 1;
+      nv1 = 1024; nv2 =2048; nvskip = 256;
+    } else {
+      nf1 = 512; nf2 = 512; nfskip = 1;
+      nv1 = 1024; nv2 = 1024; nvskip = 256; 
+    }
+    if(use_test) {
+        for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
+            for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
+                int num_kernel = 24;
+                //printf("Testing Cutlass 3-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+                sprintf(options1, options_3way_ref, nfields, nvectors, "GPU");
+                sprintf(options2, options_3way_template, nfields, nvectors, "GPU", num_kernel);
+                EXPECT_EQ(true, compare_2runs(options1, options2));
+            }
+        }
+    }*/
+
+    // Older tests
     // Simple WMMA TC GEMM
     /*for(int nfields=65; nfields<=128; nfields++) {
         for(int nvectors=2; nvectors<=32; nvectors++) {
@@ -2675,14 +2785,17 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-/*TEST(DriverTest, b1_xor_gemm) {
+/*#if 1
+TEST(DriverTest, b1_xor_gemm) {
   DriverTest_b1_xor_gemm_();
 }
+#endif
 
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
 
+#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2742,6 +2855,7 @@ TEST(DriverTest, duo2) {
 TEST(DriverTest, duo2_tc) {
   DriverTest_duo2_b1_();
 }
+//#endif
 
 /*TEST(DriverTest, create_input_files) {
   DriverTest_create_input_files();

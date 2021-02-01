@@ -353,9 +353,9 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel
+/// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel - Col major version
 
-__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
+/*__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
 
   // Block and thread indices
@@ -381,7 +381,6 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
 
   // Stores element of block sub-matrix computed by thread
   double c0 = 0, c1 = 0;
-  int32_t ci0 = 0, ci1 = 0, ci2 = 0, ci3 = 0;
 
   // Each thread computes one element of block sub-matrix
   for (int l=0; l<k; ++l) {
@@ -449,8 +448,260 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
     //---Accumulate---              
     c0 += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
     c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);  
-    ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
- 
+
+    //printf("b=%d,%d t=%d,%d r=%ld %ld %ld %ld c=%d %d %d %d\n",
+    //       bx,by,tx,ty,r00,r01,r10,r11,ci0,ci1,ci2,ci3);
+    //printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld c0=%lf c1=%lf\n",
+    //       bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1);
+  }
+
+  // Each thread writes one element of block sub-matrix to memory
+  //int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
+  //int cInd   = cBegin + tx*n + ty;
+  int cBegin = n*by*BLOCK_SIZE+bx*BLOCK_SIZE;
+  int cInd   = cBegin + ty*n + tx;
+  if(beta) {
+    //printf("cInd=%d cdata0=%f cdata1=%f c0=%f c1=%f\n",cInd,c[cInd].data[0],c[cInd].data[1],c0,c1); 
+    c[cInd].data[0] += c0;
+    c[cInd].data[1] += c1;
+  } else {
+    c[cInd].data[0] = c0;
+    c[cInd].data[1] = c1;
+  }
+  //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
+  //       bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
+}*/
+
+//-----------------------------------------------------------------------------
+/// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel
+
+__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
+  GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
+
+  // Block and thread indices
+  int tx = threadIdx.x, ty = threadIdx.y;
+  int bx = blockIdx.x, by = blockIdx.y;
+
+  //if(tx==0 && ty==0 && bx==0 && by==0) printf("In b1_comet_xor_gemm_gpu_simple\n");
+
+  int gridx = bx*BLOCK_SIZE + tx;
+  int gridy = by*BLOCK_SIZE + ty;
+  //int gridx = by*BLOCK_SIZE + ty;
+  //int gridy = bx*BLOCK_SIZE + tx;
+
+  //if(bx==0 && by==0 && tx==0 && ty==0)
+  //  printf("In b1_comet_xor_gemm_gpu_simple mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",
+  //         m,n,k,m,k,k,n,m,n,gridx,gridy);
+
+  if(gridx>=m || gridy>=n) return;
+
+  enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
+
+  // Matrix block location
+  int aBegin = k * BLOCK_SIZE * bx;
+  int bBegin = k * BLOCK_SIZE * by;
+  //int aBegin = k * BLOCK_SIZE * by;
+  //int bBegin = k * BLOCK_SIZE * bx;
+
+  // Stores element of block sub-matrix computed by thread
+  double c0 = 0, c1 = 0;
+  //int32_t ci0 = 0, ci1 = 0, ci2 = 0, ci3 = 0;
+
+  // Each thread computes one element of block sub-matrix
+  for (int l=0; l<k; ++l) {
+
+    // A row major and B col major
+    int aInd = aBegin + k*tx + l;
+    int bInd = bBegin + k*ty + l;
+    //int aInd = aBegin + k*ty + l;
+    //int bInd = bBegin + k*tx + l;
+
+    //---Extract input values to process---
+    const GMBits2x64 vi = a[aInd];
+    const GMBits2x64 vj = b[bInd];
+    //printf("b=%d,%d t=%d,%d k=%d l=%d a=%d=%d b=%d=%d\n",bx,by,tx,ty,k,l,aBegin,aInd,bBegin,bInd);
+
+    //--------------------
+    // Nomenclature:
+    //
+    // ( )v(i)(0)_(0)
+    // (n)v(j)(1)_(1)
+    //  ^   ^  ^   ^
+    //  |   |  |   |--- lower or upper bit of each seminibble
+    //  |   |  |--- lower or upper word
+    //  |   |--- left or right vector
+    //  |---test for value or for its negative/complement
+    //--------------------
+    const uint64_t vi0 = vi.data[0];
+    const uint64_t vi1 = vi.data[1];
+    const uint64_t vj0 = vj.data[0];
+    const uint64_t vj1 = vj.data[1];
+
+    // Compute masks to sample the single needed bit from each seminibble,
+    // and to ignore undefined vector entries.
+
+    const uint64_t oddbits = 0x5555555555555555;
+    const uint64_t vi0mask = (vi0 | ~(vi0 >> 1)) & oddbits;
+    const uint64_t vi1mask = (vi1 | ~(vi1 >> 1)) & oddbits;
+    const uint64_t vj0mask = (vj0 | ~(vj0 >> 1)) & oddbits;
+    const uint64_t vj1mask = (vj1 | ~(vj1 >> 1)) & oddbits;
+
+    // Extract elts that are a "1" bit (=01).
+
+    const uint64_t pvi0 =  vi0  & vi0mask;
+    const uint64_t pvi1 =  vi1  & vi1mask;
+    const uint64_t pvj0 =  vj0  & vj0mask;
+    const uint64_t pvj1 =  vj1  & vj1mask;
+
+    // Extract elts that are an "0" bit (=00).
+
+    const uint64_t nvi0 = ~vi0  & vi0mask;
+    const uint64_t nvi1 = ~vi1  & vi1mask;
+    const uint64_t nvj0 = ~vj0  & vj0mask;
+    const uint64_t nvj1 = ~vj1  & vj1mask;
+
+    // Combine lower, upper words - each only uses odd bits - make packed.
+
+    const uint64_t pvi = pvi0 | (pvi1 << 1);
+    const uint64_t pvj = pvj0 | (pvj1 << 1);
+    const uint64_t nvi = nvi0 | (nvi1 << 1);
+    const uint64_t nvj = nvj0 | (nvj1 << 1);
+
+    const uint64_t r00 = gm_popcount64(nvi ^ nvj);
+    const uint64_t r01 = gm_popcount64(nvi ^ pvj);
+    const uint64_t r10 = gm_popcount64(pvi ^ nvj);
+    const uint64_t r11 = gm_popcount64(pvi ^ pvj);
+
+    //---Accumulate---              
+    c0 += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
+    c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);  
+    //c0 += r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
+    //c1 += r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+    //ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
+
+    //printf("b=%d,%d t=%d,%d r=%ld %ld %ld %ld c=%d %d %d %d\n",
+    //       bx,by,tx,ty,r00,r01,r10,r11,ci0,ci1,ci2,ci3);
+    //printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld c0=%lf c1=%lf\n",
+    //       bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1);
+  }
+
+  // Each thread writes one element of block sub-matrix to memory
+  int cBegin = m*by*BLOCK_SIZE+bx*BLOCK_SIZE;
+  int cInd   = cBegin + ty*m + tx;
+  if(beta) {
+    c[cInd].data[0] += c0;
+    c[cInd].data[1] += c1;
+  } else {
+    c[cInd].data[0] = c0;
+    c[cInd].data[1] = c1;
+  }
+  //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
+  //       bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel - 2nd Attempt
+
+/*__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
+  GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
+
+  // Block and thread indices
+  int tx = threadIdx.x, ty = threadIdx.y;
+  int bx = blockIdx.x, by = blockIdx.y;
+
+  //if(tx==0 && ty==0 && bx==0 && by==0) printf("In b1_comet_xor_gemm_gpu_simple\n");
+
+  int gridx = bx*BLOCK_SIZE + tx;
+  int gridy = by*BLOCK_SIZE + ty;
+
+  //if(bx==0 && by==0 && tx==0 && ty==0)
+  //  printf("In b1_comet_xor_gemm_gpu_simple mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",
+  //         m,n,k,m,k,k,n,m,n,gridx,gridy);
+
+  if(gridx>=m || gridy>=n) return;
+
+  enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
+
+  // Matrix block location
+  int aBegin = k * BLOCK_SIZE * by;
+  int bBegin = k * BLOCK_SIZE * bx;
+
+  // Stores element of block sub-matrix computed by thread
+  double c0 = 0, c1 = 0;
+  //int32_t ci0 = 0, ci1 = 0, ci2 = 0, ci3 = 0;
+
+  // Each thread computes one element of block sub-matrix
+  for (int l=0; l<k; ++l) {
+
+    // A row major and B col major
+    //int aInd = aBegin + k*tx + l;
+    //int bInd = bBegin + k*ty + l;
+    int aInd = aBegin + k*ty + l;
+    int bInd = bBegin + k*tx + l;
+
+    //---Extract input values to process---
+    const GMBits2x64 vi = a[aInd];
+    const GMBits2x64 vj = b[bInd];
+    //printf("b=%d,%d t=%d,%d k=%d l=%d a=%d=%d b=%d=%d\n",bx,by,tx,ty,k,l,aBegin,aInd,bBegin,bInd);
+
+    //--------------------
+    // Nomenclature:
+    //
+    // ( )v(i)(0)_(0)
+    // (n)v(j)(1)_(1)
+    //  ^   ^  ^   ^
+    //  |   |  |   |--- lower or upper bit of each seminibble
+    //  |   |  |--- lower or upper word
+    //  |   |--- left or right vector
+    //  |---test for value or for its negative/complement
+    //--------------------
+    const uint64_t vi0 = vi.data[0];
+    const uint64_t vi1 = vi.data[1];
+    const uint64_t vj0 = vj.data[0];
+    const uint64_t vj1 = vj.data[1];
+
+    // Compute masks to sample the single needed bit from each seminibble,
+    // and to ignore undefined vector entries.
+
+    const uint64_t oddbits = 0x5555555555555555;
+    const uint64_t vi0mask = (vi0 | ~(vi0 >> 1)) & oddbits;
+    const uint64_t vi1mask = (vi1 | ~(vi1 >> 1)) & oddbits;
+    const uint64_t vj0mask = (vj0 | ~(vj0 >> 1)) & oddbits;
+    const uint64_t vj1mask = (vj1 | ~(vj1 >> 1)) & oddbits;
+
+    // Extract elts that are a "1" bit (=01).
+
+    const uint64_t pvi0 =  vi0  & vi0mask;
+    const uint64_t pvi1 =  vi1  & vi1mask;
+    const uint64_t pvj0 =  vj0  & vj0mask;
+    const uint64_t pvj1 =  vj1  & vj1mask;
+
+    // Extract elts that are an "0" bit (=00).
+
+    const uint64_t nvi0 = ~vi0  & vi0mask;
+    const uint64_t nvi1 = ~vi1  & vi1mask;
+    const uint64_t nvj0 = ~vj0  & vj0mask;
+    const uint64_t nvj1 = ~vj1  & vj1mask;
+
+    // Combine lower, upper words - each only uses odd bits - make packed.
+
+    const uint64_t pvi = pvi0 | (pvi1 << 1);
+    const uint64_t pvj = pvj0 | (pvj1 << 1);
+    const uint64_t nvi = nvi0 | (nvi1 << 1);
+    const uint64_t nvj = nvj0 | (nvj1 << 1);
+
+    const uint64_t r00 = gm_popcount64(nvi ^ nvj);
+    const uint64_t r01 = gm_popcount64(nvi ^ pvj);
+    const uint64_t r10 = gm_popcount64(pvi ^ nvj);
+    const uint64_t r11 = gm_popcount64(pvi ^ pvj);
+
+    //---Accumulate---              
+    c0 += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
+    c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+    //c0 += r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
+    //c1 += r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+    //ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
+
     //printf("b=%d,%d t=%d,%d r=%ld %ld %ld %ld c=%d %d %d %d\n",
     //       bx,by,tx,ty,r00,r01,r10,r11,ci0,ci1,ci2,ci3);
     //printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld c0=%lf c1=%lf\n",
@@ -460,22 +711,19 @@ __global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   // Each thread writes one element of block sub-matrix to memory
   int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
   int cInd   = cBegin + tx*n + ty;
-  c[cInd].data[0] = c0;
-  c[cInd].data[1] = c1;
-
+  //int cBegin = n*by*BLOCK_SIZE+bx*BLOCK_SIZE;
+  //int cInd   = cBegin + ty*n + tx;
+  if(beta) {
+    //printf("cInd=%d cdata0=%f cdata1=%f c0=%f c1=%f\n",cInd,c[cInd].data[0],c[cInd].data[1],c0,c1); 
+    c[cInd].data[0] += c0;
+    c[cInd].data[1] += c1;
+  } else {
+    c[cInd].data[0] = c0;
+    c[cInd].data[1] = c1;
+  }
   //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
   //       bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
-
-  // Each thread writes one element of block sub-matrix to memory
-  // Assume c is row major
-  /*int cBegin = n*bx*BLOCK_SIZE*4+by*BLOCK_SIZE*4;
-  int cInd   = cBegin + tx*n*4 + ty*4;
-  printf("b=%d,%d t=%d,%d c=%d c0123=%d,%d,%d,%d\n",bx,by,tx,ty,cInd,c0,c1,c2,c3);
-  c[cInd]   = c0;
-  c[cInd+1] = c1;
-  c[cInd+2] = c2;
-  c[cInd+3] = c3;*/
-}
+}*/
 
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel for custom 1-bit tensor core WMMA GEMM
@@ -617,21 +865,29 @@ __global__ void b1_comet_xor_gemm_gpu_tc_simple(int m, int n, int k,
     //---Accumulate---
     int crow = tx*2;
     int ccol = ty*4 + kk*2;
+    //int crow = ty*2;
+    //int ccol = tx*4 + kk*2;
     double c0 = 0, c1 = 0; 
     const uint64_t r00 = Cs[crow][ccol];
     const uint64_t r01 = Cs[crow][ccol+1];
     const uint64_t r10 = Cs[crow+1][ccol];
     const uint64_t r11 = Cs[crow+1][ccol+1];
 
-    c0 = r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
-    c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+    c0 = r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
+    c1 = r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
 
     // Each thread writes one element of block sub-matrix to memory
     int cBegin = n*bx*COMET_BLOCK_SIZE+by*COMET_BLOCK_SIZE;
     int cInd   = cBegin + tx * 8 * gridDim.x + ty * 2 + kk;
-    c[cInd].data[0] = c0;
-    c[cInd].data[1] = c1;
-
+    //int cBegin = m*by*COMET_BLOCK_SIZE+bx*COMET_BLOCK_SIZE;
+    //int cInd   = cBegin + ty * 8 * gridDim.y + tx * 2 + kk;
+    if(beta) {
+      c[cInd].data[0] += c0;
+      c[cInd].data[1] += c1;
+    } else {
+      c[cInd].data[0] = c0;
+      c[cInd].data[1] = c1;
+    }
     /*printf("b=%d,%d t=%d,%d crow=%d ccol=%d Cs[%d,%d]=%ld %ld %ld %ld cInd=%d c0=%f c1=%f\n",
            bx,by,tx,ty,crow,ccol,crow/2,ccol/2,
            r00,r01,r10,r11,cInd,c0,c1);*/
@@ -857,7 +1113,7 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
     m,n,k,env.num_kernel());
   double tbegin = env.get_time();
 
-  const bool beta = 1;
+  const bool beta = is_first ? 0 : 1;
   int threadblockx, threadblocky, gridblockx, gridblocky;
 
   if(env.print_details())
@@ -871,6 +1127,11 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
       gridblockx = (int)ceil((double)m/threadblockx);
       gridblocky = (int)ceil((double)n/threadblocky);
       if(env.print_details()) printf("Calling b1_comet_xor_gemm_gpu_simple kernel gridDim=%d,%d threadDim=%d,%d\n",gridblockx,gridblocky,threadblockx,threadblocky);
+      /*COMET_LAUNCH_KERNEL(b1_comet_xor_gemm_gpu_simple,
+        dim3(gridblockx, gridblocky, 1),
+        dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
+        n, m, k, (GMBits2x64*)matB,
+        (GMBits2x64*)matA, beta, (GMTally2x2*)matC);*/
       COMET_LAUNCH_KERNEL(b1_comet_xor_gemm_gpu_simple,
         dim3(gridblockx, gridblocky, 1),
         dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
@@ -889,7 +1150,13 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
         dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
         m, n, k, (GMBits2x64*)matA,
         (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
-    } break;
+      /*COMET_LAUNCH_KERNEL(b1_comet_xor_gemm_gpu_tc_simple,
+        dim3(gridblockx, gridblocky, 1),
+        dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
+        n, m, k, (GMBits2x64*)matB,
+        (GMBits2x64*)matA, beta, (GMTally2x2*)matC);*/
+ 
+   } break;
 
     // Optimized tensor core GEMM
     case 23: {
@@ -908,7 +1175,9 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
     case 24: {
       if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass\n");
       tc_solve_comet_impl_cutlass(m,n,k,(GMBits2x64*)matA,
-        (GMBits2x64*)matB, (GMTally2x2*)matC);
+        (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
+      //tc_solve_comet_impl_cutlass(n,m,k,(GMBits2x64*)matB,
+      //  (GMBits2x64*)matA, beta, (GMTally2x2*)matC);
     } break;
 
     // Output error for invalid choice
@@ -940,12 +1209,15 @@ void tc_solve_comet_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
   COMET_INSIST(env.tc_eff() != TC::NO);
 
   const int nfl_thisstep = npvfl_thisstep;
+  //const int nfl_thisstep = npvfl_thisstep * 64;
 
   const int m = nvll; // metrics array dim
   const int n = nvl; // metrics array dim
+  //const int m = 2*nvll; // metrics array dim
+  //const int n = 2*nvl; // metrics array dim
   const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
 
-  if(env.print_details()) printf("Calling tc_solve_comet_impl with mnk=%d,%d,%d\n",m,n,k);
+  if(env.print_details()) printf("In tc_solve_comet_ calling tc_solve_comet_impl with mnk=%d,%d,%d nvll=%d nvl=%d\n",m,n,k,nvll,nvl);
   tc_solve_comet_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
 }
 

@@ -50,7 +50,7 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env)
+ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npfl, CEnv& env)
   : env_(env)
   , matM_ij_buf_(env)
   , matM_jk_buf_(env)
@@ -66,7 +66,7 @@ ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env)
   , matB_buf_{&matB_buf0_, &matB_buf1_}
 
  {
-  COMET_INSIST(nvl >= 0 && npvfl >= 0);
+  COMET_INSIST(nvl >= 0 && npfl >= 0);
 
   if (!env_.is_using_linalg())
     return;
@@ -75,7 +75,7 @@ ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npvfl, CEnv& env)
     if (env_.do_reduce())
       tmp_buf_[i]->allocate(nvl, nvl);
     const int matXitem_buf_num_cols = env_.form_matX_tc() ? 1 : nvl;
-    matXitem_buf_[i]->allocate(npvfl, matXitem_buf_num_cols);
+    matXitem_buf_[i]->allocate(npfl, matXitem_buf_num_cols);
     matB_buf_[i]->allocate(nvl, nvl);
     // ensure determinism
     matXitem_buf_[i]->set_zero_h();

@@ -62,8 +62,10 @@ void b1_comet_gemm_gpu_simple_(int m, int n, int k, GMBits2x64* a,
   int tx = threadIdx.x, ty = threadIdx.y;
   int bx = blockIdx.x, by = blockIdx.y;
 
-  int gridx = bx*BLOCK_SIZE + tx;
-  int gridy = by*BLOCK_SIZE + ty;
+  //int gridx = bx*BLOCK_SIZE + tx;
+  //int gridy = by*BLOCK_SIZE + ty;
+  int gridx = by*BLOCK_SIZE + ty;
+  int gridy = bx*BLOCK_SIZE + tx;
 
   //if(bx==0 && by==0 && tx==0 && ty==0) printf("In b1_comet_gemm_gpu_simple_ mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",m,n,k,m,k,k,n,m,n,gridx,gridy);
 
@@ -72,19 +74,23 @@ void b1_comet_gemm_gpu_simple_(int m, int n, int k, GMBits2x64* a,
   enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 
   // Matrix block location
-  int aBegin = k * BLOCK_SIZE * bx;
-  int bBegin = k * BLOCK_SIZE * by;
+  //int aBegin = k * BLOCK_SIZE * bx;
+  //int bBegin = k * BLOCK_SIZE * by;
+  int aBegin = k * BLOCK_SIZE * by;
+  int bBegin = k * BLOCK_SIZE * bx;
 
   // Stores element of block sub-matrix computed by thread
   double c0 = 0, c1 = 0;
-  int32_t ci0 = 0, ci1 = 0, ci2 = 0, ci3 = 0;
+  //int32_t ci0 = 0, ci1 = 0, ci2 = 0, ci3 = 0;
 
   // Each thread computes one element of block sub-matrix
   for (int l=0; l<k; ++l) {
 
     // A row major and B col major
-    int aInd = aBegin + k*tx + l;
-    int bInd = bBegin + k*ty + l;
+    //int aInd = aBegin + k*tx + l;
+    //int bInd = bBegin + k*ty + l;
+    int aInd = aBegin + k*ty + l;
+    int bInd = bBegin + k*tx + l;
 
     /*---Extract input values to process---*/
     const GMBits2x64 vi = a[aInd];
@@ -114,9 +120,9 @@ void b1_comet_gemm_gpu_simple_(int m, int n, int k, GMBits2x64* a,
     /*---NOTE: check that this handles pad properly---*/
     const uint64_t oddbits = 0x5555555555555555;
     const uint64_t vij0_10mask = (vi0 | ~(vi0 >> 1)) &
-                                  (vj0 | ~(vj0 >> 1)) & oddbits;
+                                 (vj0 | ~(vj0 >> 1)) & oddbits;
     const uint64_t vij1_10mask = (vi1 | ~(vi1 >> 1)) &
-                                  (vj1 | ~(vj1 >> 1)) & oddbits;
+                                 (vj1 | ~(vj1 >> 1)) & oddbits;
 
     /*---Get even, odd bits for each semi-nibble, then mask---*/
     const uint64_t vi0_0 =    vi0 & vij0_10mask;
@@ -131,19 +137,19 @@ void b1_comet_gemm_gpu_simple_(int m, int n, int k, GMBits2x64* a,
     const uint64_t nvj1_0 = ~ vj1 & vij1_10mask;
 
     const uint64_t r00 = gm_popcount64((nvi0_0 & nvj0_0) |
-                                      ( (nvi1_0 & nvj1_0) << 1 ));
+                                      ((nvi1_0 & nvj1_0) << 1 ));
     const uint64_t r01 = gm_popcount64((nvi0_0 &  vj0_0) |
-                                      ( (nvi1_0 &  vj1_0) << 1 ));
+                                      ((nvi1_0 &  vj1_0) << 1 ));
     const uint64_t r10 = gm_popcount64(( vi0_0 & nvj0_0) |
-                                      ( ( vi1_0 & nvj1_0) << 1 ));
+                                      (( vi1_0 & nvj1_0) << 1 ));
     const uint64_t r11 = gm_popcount64(( vi0_0 &  vj0_0) |
-                                      ( ( vi1_0 &  vj1_0) << 1 ));
+                                      (( vi1_0 &  vj1_0) << 1 ));
 
     /*---Accumulate---*/
     c0 += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
     c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
 
-    ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
+    //ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
     //printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld sum0=%lf sum1=%lfi c0123=%d,%d,%d,%d\n",
     //       bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,ci0,ci1,ci2,ci3);
   }
@@ -170,8 +176,8 @@ void tc_solve_comet_(size_t m, size_t n, size_t k,
   int gridblockx = (int)ceil((double)m/threadblockx);
   int gridblocky = (int)ceil((double)n/threadblocky);
 
-  if(env.print_details()) printf("Launching kernel with mnk=%zu,%zu,%zu threads=%d,%d grid=%d,%d\n",m,n,k,
-         threadblockx,threadblocky,gridblockx,gridblocky);
+  if(env.print_details()) printf("Launching kernel with mnk=%zu,%zu,%zu threads=%d,%d grid=%d,%d lddabc=%zu,%zu,%zu\n",m,n,k,
+         threadblockx,threadblocky,gridblockx,gridblocky,ldda,lddb,lddc);
 
   double tbegin = env.get_time();
 

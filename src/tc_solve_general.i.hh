@@ -117,8 +117,9 @@ void b1_xor_gemm_gpu_tc_simple(size_t m, size_t n, size_t k, uint8_t* a,
   wmma::fragment<wmma::matrix_b, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
                  wmma::col_major> b_frag;
 
+  wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> acc_frag;
   wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> c_frag;
-  wmma::fill_fragment(c_frag, 0);
+  wmma::fill_fragment(acc_frag, 0);
 
   // Loop over all sub-matrices of A and B to compute block sub-matrix
   int nblocks=((k*NBITS)+WMMA1B_K-1)/WMMA1B_K;
@@ -129,12 +130,26 @@ void b1_xor_gemm_gpu_tc_simple(size_t m, size_t n, size_t k, uint8_t* a,
     wmma::load_matrix_sync(b_frag, b+bBegin+block*bStep, k*NBITS);
 
     // Perform the matrix multiplication
-    wmma::bmma_sync(c_frag, a_frag, b_frag, c_frag);
+    wmma::bmma_sync(acc_frag, a_frag, b_frag, acc_frag);
   }
 
-  // Store the output
   int cBegin = n*WMMA1B_M*bx + WMMA1B_N*by;
-  wmma::store_matrix_sync(c+cBegin, c_frag, n, wmma::mem_row_major);
+  if(beta) {
+    // Load C fragment
+    wmma::load_matrix_sync(c_frag, c+cBegin, n, wmma::mem_row_major);
+
+    // Add acc_frag to c_frag
+    for(int i=0; i<c_frag.num_elements; i++) {
+      c_frag.x[i] += acc_frag.x[i];
+    }
+
+    // Store the output
+    wmma::store_matrix_sync(c+cBegin, c_frag, n, wmma::mem_row_major);
+  }
+  else {
+    // Store the output
+    wmma::store_matrix_sync(c+cBegin, acc_frag, n, wmma::mem_row_major);
+  }
 
   // Print individual c values
   //__syncthreads();
@@ -250,7 +265,6 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       // Original test 1-bit GEMM kernel
       if(env.num_kernel()==0) {
         // Original b1 xor GEMM
-        if(env.print_details()) printf("Launching b1_xor_gemm_gpu\n");
         enum {NUM_FL_PER_PVFL = 64};
         COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
@@ -272,6 +286,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
                      "Current HIP limitation.");
         const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
         const int num_threadblocks_1 = n;
+
+        if(env.print_details()) printf("Launching b1_xor_gemm_gpu m=%d n=%d k_eff=%zu k=%d beta=%d "
+          "bytes_per_gi=%d NUM_FL_PER_PVFL=%d gridDim=%d,%d threadDim=%d,1\n",
+          m,n,k_eff,k,(int)beta,bytes_per_gi,NUM_FL_PER_PVFL,
+          num_threadblocks_0,num_threadblocks_1,threadblocksize);
 
         COMET_LAUNCH_KERNEL((b1_xor_gemm_gpu<GemmIn_t, GemmOut_t>),
           dim3(num_threadblocks_0, num_threadblocks_1, 1),
@@ -331,37 +350,37 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
           case 10: {
             if(env.print_details()) printf("Using Cutlass kernel 256x128\n");
             CutlassTCGemm1B_256x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+              (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
           } break;
           case 11: {
             if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
             CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+              (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
           } break;
           case 12: {
             if(env.print_details()) printf("Using Cutlass kernel 128x128\n");
             CutlassTCGemm1B_128x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+              (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
           } break;
           case 13: {
             if(env.print_details()) printf("Using Cutlass kernel 128x64\n");
             CutlassTCGemm1B_128x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+              (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
           } break;
           case 14: {
             if(env.print_details()) printf("Using Cutlass kernel 64x128\n");
             CutlassTCGemm1B_64x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+              (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
           } break;
           case 15: {
             if(env.print_details()) printf("Using Cutlass kernel 64x64\n");
             CutlassTCGemm1B_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+              (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
           } break;
           case 16: {
             if(env.print_details()) printf("Using Cutlass WMMA kernel 64x64\n");
             CutlassTCGemm1BWmma_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-              (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+              (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
           } break;
           /*case 30: {
             if(env.print_details()) printf("Using Cutlass kernel 128x256\n");

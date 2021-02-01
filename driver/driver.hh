@@ -69,6 +69,7 @@ typedef struct {
   double max_incorrect_diff;
   //double threshold;
   bool checksum;
+  bool detailed_output;
 } DriverOptions;
 
 enum {
@@ -81,6 +82,7 @@ enum {
 //void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env);
 
 void print_output(bool do_print,
+                  bool do_detailed,
                   Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub = 0,

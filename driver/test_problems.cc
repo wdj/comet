@@ -380,7 +380,8 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     return;
   }
 
-  bool print_soln = true; //false;
+  //bool print_soln = true; 
+  bool print_soln = false;
   if(env->print_details()) printf("In check_metrics_analytic_\n");
 
   const size_t nfa = metrics->num_field_active;
@@ -676,7 +677,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           if (is_incorrect) {
             const double diff = value - value_expected;
             max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
-            if (num_incorrect < max_to_print)
+            if (env->print_details() && num_incorrect < max_to_print)
               fprintf(stderr, "Error: incorrect result detected.  "
                      "coords %zu %zu  %i %i  "
                      "expected %.20e  actual %.20e  diff %.20e\n",
@@ -691,7 +692,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     //--------------------
     case GM_DATA_TYPE_TALLY4X2: {
     //--------------------
-      if(env->print_details()) printf("Checking solution for TALLY4X2\n");
+      if(env->print_details()) printf("Checking solution for TALLY4X2 nmetricitems=%zu nentriespermetric=%d\n",metrics->num_metric_items_local_computed,env->num_entries_per_metric_item());
       const int cbpe = env->counted_bits_per_elt();
 
 #     pragma omp parallel for reduction(+:num_incorrect) reduction(max:max_incorrect_diff)
@@ -832,13 +833,14 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
           }
 #endif
 
+          num_total++;
           const bool is_incorrect = value_expected != value;
           if(env->print_details() && print_soln) printf("index=%zu coords=%zu %zu %zu %i %i %i entry_num=%d value_expected=%e value=%e correct=%d\n",
                  index,iG,jG,kG,iE,jE,kE,entry_num,value_expected,value,!is_incorrect);
           if (is_incorrect) {
             const double diff = value - value_expected;
             max_incorrect_diff = utils::max(fabs(diff), max_incorrect_diff);
-            if (num_incorrect < max_to_print)
+            if (env->print_details() && num_incorrect < max_to_print)
               fprintf(stderr, "Error: incorrect result detected.  "
                      "coords %zu %zu %zu  %i %i %i  "
                      "expected %.20e  actual %.20e  diff %.20e\n",
@@ -854,7 +856,7 @@ void check_metrics_analytic_(GMMetrics* metrics, DriverOptions* do_,
     default:
       COMET_INSIST(false && "Invalid data type.");
   } // switch
-  //printf("Correct: %zu/%zu\n",num_total-num_incorrect,num_total);
+  if(env->print_details()) printf("Correct: %zu/%zu\n",num_total-num_incorrect,num_total);
   do_->num_incorrect += num_incorrect;
   do_->max_incorrect_diff = utils::max(max_incorrect_diff,
                                        do_->max_incorrect_diff);

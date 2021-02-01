@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "linalg.hh"
 #include "magma_wrapper.hh"
 #include "mirrored_buf.hh"
+#include "compressed_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
@@ -136,11 +137,11 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   {
 
   const int nvl = vectors.num_vector_local;
-  const int npvfl = vectors.num_packedval_field_local;
+  const int npfl = vectors.num_packedfield_local;
 
   // Allocate memory for vectors and for result 
 
-  MirroredBuf vectors_buf(npvfl, nvl, env_);
+  MirroredBuf vectors_buf(npfl, nvl, env_);
 
   MirroredBuf metrics_buf(nvl, nvl, env_);
 
@@ -186,7 +187,9 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Combine
 
-  ComputeMetrics2WayBlock::finalize(&metrics, &metrics_buf,
+//>>>
+  CompressedBuf matB_buf_compressed(metrics_buf, env_);
+  ComputeMetrics2WayBlock::finalize(&metrics, &matB_buf_compressed,
                                     &vector_sums_onproc_, &vector_sums_onproc_,
                                     env_.proc_num_vector(), true, &env_);
 
@@ -309,6 +312,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   bool lock_vectors_buf_d = false;
   //bool lock_metrics_tmp_buf_d = false; // Not needed
   bool lock_metrics_tmp_buf_h = false;
+
+//>>>
+  CompressedBuf matB_buf_compressed(*metrics_buf_01_[0], env_);
 
   //========================================
   for (int step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num){
@@ -463,16 +469,20 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     if (env_.is_using_linalg()) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
-        vars_prev.metrics_buf->from_accel_wait();
+        //vars_prev.metrics_buf->from_accel_wait();
+//>>>
+        matB_buf_compressed.from_accel_wait();
         unlock(lock_metrics_buf_ptr_d_prev);
         unlock(lock_metrics_buf_ptr_h_prev);
         lock(lock_metrics_buf_ptr_h_prev);
         gm_metrics_pad_adjust(&metrics, vars_prev.metrics_buf, &env_);
+//>>>
         unlock(lock_metrics_buf_ptr_h_prev);
 
         //TODO: remove need to allocate metrics_tmp_buf device array
         MirroredBuf* metrics_buf_prev_ptr =
             env_.do_reduce() ?  &metrics_tmp_buf_ : vars_prev.metrics_buf;
+//>>>
 
         lock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
 
@@ -480,11 +490,16 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
           lock(lock_metrics_tmp_buf_h);
           gm_reduce_metrics(&metrics, metrics_buf_prev_ptr,
                             vars_prev.metrics_buf, &env_);
+//>>>
+          matB_buf_compressed.attach(*metrics_buf_prev_ptr);
         }
 
         if(env_.print_details()) printf("Calling Block::finalize\n");
         ComputeMetrics2WayBlock::finalize(
-          &metrics, metrics_buf_prev_ptr,
+          &metrics,
+          //metrics_buf_prev_ptr,
+//>>>
+        &matB_buf_compressed, 
           vector_sums_left, vars_prev.vector_sums_right,
           vars_prev.j_block,
           vars_prev.is_main_diag, &env_);
@@ -543,9 +558,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
+//>>>
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, &env_);
+
       if(env_.print_details()) printf("Done calling compute_nums_wait\n");
+        matB_buf_compressed.attach(*vars.metrics_buf);
+        matB_buf_compressed.compress();
       unlock(lock_vectors_left_buf_d);
       if (! vars.is_right_aliased) {
         unlock(lock_vectors_right_buf_d);
@@ -558,7 +577,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     if (vars.is_compute_step && vars.do_compute_block) {
       lock(lock_metrics_buf_ptr_h);
       lock(lock_metrics_buf_ptr_d);
-      vars.metrics_buf->from_accel_start();
+      //vars.metrics_buf->from_accel_start();
+//>>>
+      matB_buf_compressed.from_accel_start();
     }
 
     // Compute sums for denominators
@@ -579,13 +600,19 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     if (!env_.is_using_linalg()) {
       if (vars.is_compute_step && vars.do_compute_block) {
-        vars.metrics_buf->from_accel_wait(); // NO-OP
+        //vars.metrics_buf->from_accel_wait(); // NO-OP
+//>>>
+        matB_buf_compressed.from_accel_wait();
         unlock(lock_metrics_buf_ptr_d);
         unlock(lock_metrics_buf_ptr_h);
         lock(lock_metrics_buf_ptr_h);
         if(env_.print_details()) printf("Calling 2nd Block::finalize\n");
         ComputeMetrics2WayBlock::finalize(
-          &metrics, vars.metrics_buf, vector_sums_left,
+          &metrics,
+          //vars.metrics_buf,
+//>>>
+          &matB_buf_compressed,
+          vector_sums_left,
           vars.vector_sums_right, vars.j_block,
           vars.is_main_diag, &env_);
         if(env_.print_details()) printf("Done calling 2nd Block::finalize\n");

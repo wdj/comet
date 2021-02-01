@@ -124,8 +124,32 @@ __device__ inline void combine_bits(int nn, int np, int pn, int pp, double &c0, 
   const uint64_t r10 = pn;
   const uint64_t r11 = pp;
 
-  c0 = r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
-  c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+  c0 = r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
+  c1 = r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+  //c0 = r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
+  //c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+}
+
+//-----------------------------------------------------------------------------
+/// 
+
+__device__ inline void combine_bits_sum(int nn, int np, int pn, int pp, double &c0, double &c1,
+                                        double &cc0, double &cc1)
+{
+  enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
+
+  const uint64_t r00 = nn;
+  const uint64_t r01 = np;
+  const uint64_t r10 = pn;
+  const uint64_t r11 = pp;
+
+  c0 = r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
+  c1 = r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+  //c0 = r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
+  //c1 = r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+
+  cc0 += c0;
+  cc1 += c1;
 }
 
 //-----------------------------------------------------------------------------
@@ -256,7 +280,7 @@ __device__ inline void g2s(uint64_t *smem, GMBits2x64 *gmem, int begin, int k, L
 
 template <int bM, int bN, int bK, int wM, int wN, int wK, int block_x, int block_y>
 __global__ void __launch_bounds__(block_x *block_y, 1)
-b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b, GMTally2x2 *c)
+b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b, bool beta, GMTally2x2 *c)
 {
   /**
     bM, bN, bK - threadblock MMA shape: bK is expressed in bits
@@ -273,8 +297,8 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
   // Block indices
   int bx = blockIdx.x, by = blockIdx.y;
 
-  if(bx==0 && by==0 && threadIdx.x==0 && threadIdx.y==0)
-    printf("In b1_comet_xor_gemm_gpu_cutlass\n");
+  //if(bx==0 && by==0 && threadIdx.x==0 && threadIdx.y==0)
+  //  printf("In b1_comet_xor_gemm_gpu_cutlass\n");
 
   int thread_idx = threadIdx.y * blockDim.x + threadIdx.x;
 
@@ -433,16 +457,39 @@ b1_comet_xor_gemm_gpu_cutlass(int m, int n, int k, GMBits2x64 *a, GMBits2x64 *b,
     typename IteratorTallyC::Fragment accum_tally;
     IteratorTallyC iter_tally_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
 
+    if(!beta) {
 #pragma unroll
-    for (int idx = 0; idx < FragmentC::kElements; idx++) {
-      // Combine the results in the sub-problems.
-      combine_bits(accum_nn[idx], accum_np[idx], accum_pn[idx], accum_pp[idx], accum_tally[idx].x, accum_tally[idx].y);
-    }
+      for (int idx = 0; idx < FragmentC::kElements; idx++) {
+        // Combine the results in the sub-problems.
+        combine_bits(accum_nn[idx], accum_np[idx], accum_pn[idx], accum_pp[idx], accum_tally[idx].x, accum_tally[idx].y);
+      }
 
-    iter_tally_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
-    // The following code does not translates into the most efficient instructions, even with 128-bit stores.
-    // With current version of CUTLASS this is as far as we can go.
-    iter_tally_C.store(accum_tally);
+      iter_tally_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
+      //iter_tally_C.add_tile_offset({(pN / wN) * by + warp_idx_n, (pM / wM) * bx + warp_idx_m});
+      // The following code does not translates into the most efficient instructions, even with 128-bit stores.
+      // With current version of CUTLASS this is as far as we can go.
+      iter_tally_C.store(accum_tally);
+    }
+    else {
+      // Add Accum to C then store
+      using IteratorC = typename cutlass::gemm::warp::MmaTensorOpAccumulatorTileIterator<
+        typename cutlass::MatrixShape<WarpShape::kM, WarpShape::kN>, output_type, LayoutC, InstructionShape,
+        typename Mma::Policy::OpDelta>;
+
+      typename IteratorC::Fragment frag_C;
+      IteratorC iter_C({reinterpret_cast<output_type *>(c), layout_C}, lane_id);
+      iter_C.add_tile_offset({(pM / wM) * bx + warp_idx_m, (pN / wN) * by + warp_idx_n});
+      iter_C.load(frag_C);
+
+#pragma unroll
+      for (int idx = 0; idx < FragmentC::kElements; idx++) {
+        // Combine the results in the sub-problems.
+        combine_bits_sum(accum_nn[idx], accum_np[idx], accum_pn[idx], accum_pp[idx],
+                         accum_tally[idx].x, accum_tally[idx].y, frag_C[idx].x, frag_C[idx].y);
+      }
+
+      iter_C.store(frag_C);
+    }
   }
 }
 
@@ -461,7 +508,7 @@ void set_max_shared_bytes(const void *func)
 //-----------------------------------------------------------------------------
 /// \brief Perform required GEMM.
 
-void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const void *matB, void *matC)
+void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const void *matB, bool beta, void *matC)
 {
 #if defined COMET_USE_TURING
   // Use following for Turing
@@ -498,12 +545,12 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
   int shared_bytes = (threadblock_m + threadblock_n) * threadblock_k / 8;
   set_max_shared_bytes((const void *)gemm_kernel);
 
-  printf("Calling b1_comet_xor_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d\n",
+  /*printf("Calling b1_comet_xor_gemm_gpu_cutlass kernel mnk = (%d,%d,%d) gridDim = (%d,%d,1) threadDim = (%d,%d,1) threadblock = (%d,%d,%d) warp = (%d,%d,%d) shared_bytes = %d beta=%d\n",
     m, n, k, grid_x, grid_y, block_x, block_y, threadblock_m, threadblock_n, threadblock_k,
-    warp_m, warp_n, warp_k, shared_bytes);
+    warp_m, warp_n, warp_k, shared_bytes, beta);*/
 
   gemm_kernel<<<dim3(grid_x, grid_y, 1), dim3(block_x, block_y, 1), shared_bytes>>>(
-    m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, (GMTally2x2 *)matC);
+    m, n, k, (GMBits2x64 *)matA, (GMBits2x64 *)matB, beta, (GMTally2x2 *)matC);
 }
 
 //=============================================================================

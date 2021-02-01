@@ -70,6 +70,52 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Divisibility requirement for GEMM.
+
+// The units are "vector"s (as counted by num_vectors_local)..
+
+size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
+
+  const size_t result = env.tc_eff() == TC::NO ? 1 :
+    env.tc_eff() == TC::B1 ? 256 : 4;
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Divisibility requirement for GEMM.
+
+size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
+
+  // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
+
+  const size_t result = !env.is_metric_type_bitwise() ? 1 :
+    !(env.tc_eff() == TC::B1) ? 1 : 2;
+
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM.
+
+size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env) {
+
+  const size_t factor = tc_gemm_vaxis_divisibility_required(env);
+
+  return utils::ceil(size_requested, factor)*factor;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM.
+
+size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env) {
+
+  const size_t factor = tc_gemm_faxis_divisibility_required(env);
+
+  return utils::ceil(size_requested, factor)*factor;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Set matrix to zero, possibly asynchronously.
 //
 // This is needed because GEMM functions with beta=0 can fail to initialize
@@ -82,7 +128,8 @@ static void tc_set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
   typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
 
   const size_t size = lddc * (size_t)m * sizeof(GemmOut_t) * 4;
-  if(env.print_details()) printf("Zeroing matrix of size %d*%d*%zu*4=%zu\n",lddc,m,sizeof(GemmOut_t),size);
+  if(env.print_details()) printf("Zeroing matrix of size %d*%d*%zu*4=%zu with lddc=%d m=%d\n",
+    lddc,m,sizeof(GemmOut_t),size,lddc,m);
 
   if (env.is_compute_method_gpu()) {
 #   ifdef COMET_USE_CUDA
@@ -95,6 +142,7 @@ static void tc_set_matrix_zero_start(void* matC, int lddc, int m, CEnv& env) {
   } else {
     memset(matC, 0, size);
   }
+  if(env.print_details()) printf("Done calling tc_set_matrix_zero_start\n");
 }
 
 //-----------------------------------------------------------------------------
@@ -125,7 +173,9 @@ static void tc_gemm_start_impl_(
 
   double tbegin;
   const int nvl = n;
-  const int npvfl = k;
+  const int npfl = k;
+  const int d = tc_gemm_faxis_divisibility_required(env);
+  COMET_INSIST(npfl % d == 0);
   const int I_max = m;
   const int I_max_dim = lddc;
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
@@ -134,13 +184,13 @@ static void tc_gemm_start_impl_(
   // to satisfy cublas divisibility requirements.
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
-  COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
+  COMET_INSIST((size_t)nvll == tc_gemm_vaxis_size_required(nvll, env));
 
   if(env.print_details()) printf("In tc_gemm_start_impl\n");
 
   // Get matX counts if needed.
 
-  tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
+  tc_compute_matX_counts(I_max, I_max_dim, nvl, npfl, nfal,
     (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
   if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
@@ -152,11 +202,11 @@ static void tc_gemm_start_impl_(
   for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
 
     // Select the block row of the left and right matrices for this step.
-    const int pvfl_min = ((tc_step_num+0) * npvfl) / num_tc_steps;
-    const int pvfl_max = ((tc_step_num+1) * npvfl) / num_tc_steps;
-    const int npvfl_thisstep = pvfl_max - pvfl_min;
+    const int pfl_min = (((tc_step_num+0) * (npfl/d)) / num_tc_steps) * d;
+    const int pfl_max = (((tc_step_num+1) * (npfl/d)) / num_tc_steps) * d;
+    const int npfl_thisstep = pfl_max - pfl_min;
 
-    const bool is_empty_block_row = 0 == npvfl_thisstep;
+    const bool is_empty_block_row = 0 == npfl_thisstep;
     if (is_empty_block_row)
       continue;
 
@@ -164,20 +214,21 @@ static void tc_gemm_start_impl_(
     // of a type suitable for the GEMM.
     tbegin = env.get_time();
     enum {IS_LEFT = true};
-    if(env.print_details()) printf("Calling tc_in with npvfl=%d pvfl_min=%d pvfl_max=%d npvfl_thisstep=%d\n",npvfl,pvfl_min,pvfl_max,npvfl_thisstep);
-    tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
-      npvfl_thisstep, pvfl_min, nfal, (TCWord_t*)matA1, (TCWord_t*)matA2,
+    if(env.print_details()) printf("Calling tc_buf_write with I_max=%d I_max_dim=%d nvl=%d npfl=%d npfl_thisstep=%d pfl_min=%d pfl_max=%d nfal=%d step_2way=%d\n",
+                                   I_max,I_max_dim,nvl,npfl,npfl_thisstep,pfl_min,pfl_max,nfal,step_2way);
+    tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npfl,
+      npfl_thisstep, pfl_min, nfal, (TCWord_t*)matA1, (TCWord_t*)matA2,
       tc_bufs, step_2way, env);
-    tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npvfl,
-      npvfl_thisstep, pvfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
+    tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npfl,
+      npfl_thisstep, pfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
       tc_bufs, step_2way, env);
     env.pregemmtime_inc(env.get_time() - tbegin);
 
     // Perform the GEMM for this pair of block rows; accumulate.
-    const bool is_first = 0 == pvfl_min;
-    if(env.print_details()) printf("Calling tc_solve with step=%d is_first=%d mnk=%d,%d,%d nvll=%d nvl=%d npvfl_thisstep=%d pvfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
-      tc_step_num,is_first,m,n,k,nvll,nvl,npvfl_thisstep,pvfl_min,pvfl_max,I_max_dim,lddc);
-    tc_solve_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
+    const bool is_first = 0 == pfl_min;
+    if(env.print_details()) printf("Calling tc_solve with step=%d is_first=%d mnk=%d,%d,%d nvll=%d nvl=%d npfl_thisstep=%d pfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
+      tc_step_num,is_first,m,n,k,nvll,nvl,npfl_thisstep,pfl_min,pfl_max,I_max_dim,lddc);
+    tc_solve_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matC, tc_bufs, env);
 
   } // for
@@ -240,7 +291,7 @@ static void tc_comet_int_gemm_start_impl_(
   // to satisfy cublas divisibility requirements.
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
-  COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
+  COMET_INSIST((size_t)nvll == tc_gemm_vaxis_size_required(nvll, env));
 
   if(env.print_details()) printf("In tc_comet_int_gemm_start_impl\n");
 
@@ -307,7 +358,8 @@ static void tc_gemm_comet_start_impl_(
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
   const int nvl = n;
-  const int npvfl = k;
+  const int npfl = k;
+  const int d = tc_gemm_faxis_divisibility_required(env);
   const int I_max = m;
   const int I_max_dim = lddc;
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
@@ -316,12 +368,13 @@ static void tc_gemm_comet_start_impl_(
   // to satisfy cublas divisibility requirements.
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
-  COMET_INSIST((size_t)nvll == tc_gemm_size_required(nvll, env));
+  COMET_INSIST((size_t)nvll == tc_gemm_vaxis_size_required(nvll, env));
 
   if(env.print_details()) printf("In tc_gemm_comet_start_impl num_tc_steps=%d\n",env.num_tc_steps());
 
-  // Get matX counts if needed. - This is causing errors for 3-way 
-  //tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
+  // Get matX counts if needed.
+
+  //tc_compute_matX_counts(I_max, I_max_dim, nvl, npfl, nfal,
   //  (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
   if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
@@ -333,20 +386,21 @@ static void tc_gemm_comet_start_impl_(
   for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
 
     // Select the block row of the left and right matrices for this step.
-    const int pvfl_min = ((tc_step_num+0) * npvfl) / num_tc_steps;
-    const int pvfl_max = ((tc_step_num+1) * npvfl) / num_tc_steps;
-    const int npvfl_thisstep = pvfl_max - pvfl_min;
+    const int pfl_min = (((tc_step_num+0) * (npfl/d)) / num_tc_steps) * d;
+    const int pfl_max = (((tc_step_num+1) * (npfl/d)) / num_tc_steps) * d;
+    const int npfl_thisstep = pfl_max - pfl_min;
 
-    const bool is_empty_block_row = 0 == npvfl_thisstep;
+    const bool is_empty_block_row = 0 == npfl_thisstep;
     if (is_empty_block_row)
       continue;
 
     // Perform the GEMM for this pair of block rows; accumulate.
-    const bool is_first = 0 == pvfl_min;
-    if(env.print_details()) printf("step=%d mnk=%d,%d,%d nvll=%d nvl=%d npvfl_thisstep=%d pvfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
-      tc_step_num,m,n,k,nvll,nvl,npvfl_thisstep,pvfl_min,pvfl_max,I_max_dim,lddc);
-    tc_solve_comet_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
+    const bool is_first = 0 == pfl_min;
+    if(env.print_details()) printf("Calling tc_solve_comet_ step=%d mnk=%d,%d,%d nvll=%d nvl=%d npfl_thisstep=%d pfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
+      tc_step_num,m,n,k,nvll,nvl,npfl_thisstep,pfl_min,pfl_max,I_max_dim,lddc);
+    tc_solve_comet_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matA1, matB, matC, tc_bufs, env);
+    if(env.print_details()) printf("Done calling tc_solve_comet_ step=%d\n",tc_step_num);
 
   } // for
   if(env.print_details()) printf("Done in tc_gemm_comet_start_impl\n");
@@ -531,26 +585,6 @@ void tc_gemm_start(
   } // switch
 }
 
-//-----------------------------------------------------------------------------
-/// \brief Divisibility requirement for GEMM.
-
-size_t tc_gemm_divisibility_required(const CEnv& env) {
-
-  const bool need_divisible_by_4 = (env.tc_eff() != TC::NO) || (env.num_kernel() >= 20);
-  if(env.print_details()) printf("tc divisibility required = %d\n",need_divisible_by_4);
-  return need_divisible_by_4 ? 4 : 1;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Size requirement for GEMM.
-
-size_t tc_gemm_size_required(size_t size_requested, const CEnv& env) {
-
-  const size_t factor = tc_gemm_divisibility_required(env);
-
-  return utils::ceil(size_requested, factor)*factor;
-}
-
 //=============================================================================
 // EXTERNALLY VISIBLE FUNCTIONS: BUFFER MANAGEMENT
 //=============================================================================
@@ -559,12 +593,12 @@ size_t tc_gemm_size_required(size_t size_requested, const CEnv& env) {
 /// \brief Initialize TCBufs object by allocating memory etc.
 
 void TCBufs::malloc(int num_vector_local,
-                    int num_field_local,
-                    int num_packedval_field_local,
+                    //int num_field_local,
+                    int num_packedfield_local,
                     TCBufs& tc_bufs,
                     CEnv& env) {
   COMET_INSIST(num_vector_local >= 0);
-  COMET_INSIST(num_packedval_field_local >= 0);
+  COMET_INSIST(num_packedfield_local >= 0);
   COMET_INSIST(!tc_bufs.tc_buf_left);
   COMET_INSIST(!tc_bufs.tc_buf_right);
 
@@ -573,15 +607,16 @@ void TCBufs::malloc(int num_vector_local,
     return;
   }
 
-  if(env.print_details()) printf("Mallocing TCBufs with num_vector_local=%d num_field_local=%d num_packedval_field_local=%d bitwise=%d tc_eff=%d\n",
-    num_vector_local,num_field_local,num_packedval_field_local,env.is_metric_type_bitwise(),env.tc_eff());
+  if(env.print_details()) printf("Mallocing TCBufs with num_vector_local=%d num_packedfield_local=%d bitwise=%d tc_eff=%d\n",
+    num_vector_local,num_packedfield_local,env.is_metric_type_bitwise(),env.tc_eff());
 
   // Calculate sizes.
 
   const size_t nvl = num_vector_local;
-  const size_t npvfl = num_packedval_field_local;
-  const size_t npvfl_thisstep_max =
-    utils::ceil(npvfl, (size_t)env.num_tc_steps());
+  const size_t npfl = num_packedfield_local;
+  const int d = tc_gemm_faxis_divisibility_required(env);
+  const size_t npfl_thisstep_max =
+    utils::ceil(npfl/d, (size_t)env.num_tc_steps()) * d;
 
   const int sizeof_gemm_in_t =
      env.tc_eff() == TC::FP32 ? sizeof(typename TCTraits<TC::FP32>::GemmIn_t) :
@@ -600,7 +635,7 @@ void TCBufs::malloc(int num_vector_local,
 
   const size_t nvlX2 = nvl * 2;
 
-  tc_bufs.tc_buf_size = nvlX2 * (npvfl_thisstep_max * 64 / nfpgi) *
+  tc_bufs.tc_buf_size = nvlX2 * (npfl_thisstep_max * 64 / nfpgi) *
                         sizeof_gemm_in_t;
   tc_bufs.tc_buf_size = tc_bufs.tc_buf_size ? tc_bufs.tc_buf_size : 1;
 
