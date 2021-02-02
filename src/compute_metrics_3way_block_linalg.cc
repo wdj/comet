@@ -925,7 +925,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     vars_next.J = J_min + utils::trunc(vars_next.step_num, num_step_2way);
     vars_next.I_min = 0;
     vars_next.I_max = si->is_part1 ? vars_next.J : nvl;
-    vars_next.I_max_dim = tc_gemm_vaxis_size_required(vars_next.I_max, env_);
+    vars_next.I_max_dim = tc_nvl_size_required_for_gemm(vars_next.I_max, env_);
     vars_next.K_min = si->is_part3 ? 0 : vars_next.J + 1;
     vars_next.K_max = nvl;
     vars_next.empty = vars_next.I_min >= vars_next.I_max ||

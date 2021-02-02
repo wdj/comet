@@ -42,13 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
-//-----------------------------------------------------------------------------
-
 //=============================================================================
 /// \brief 1-bit xor gemm kernel (mockup version, not high performance).
 
 template<typename GemmIn_t, typename GemmOut_t>
-__global__ void tc_solve_impl_b1_kernel(size_t m, size_t n, size_t k,
+__global__ void tc_solve_impl_b1_mockup_kernel(size_t m, size_t n, size_t k,
   GemmIn_t* a, GemmIn_t* b, bool beta, GemmOut_t* c) {
   //COMET_INSIST(a && b && c);
 
@@ -78,32 +76,39 @@ __global__ void tc_solve_impl_b1_kernel(size_t m, size_t n, size_t k,
 //-----------------------------------------------------------------------------
 /// \brief 1-bit xor gemm.
 
+static bool tc_solve_b1_use_mockup(const CEnv& env) {
+  return env.tc_eff() == TC::B1 &&
+    ! (BuildHas::CUDA && System::compute_capability() > 700);
+}
+
+//-----------------------------------------------------------------------------
+
 template<int TC_METHOD>
 static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
   void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
-  if (true) {
+  if (tc_solve_b1_use_mockup(env)) {
 
       COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
-      enum {NUM_FL_PER_PVFL = 64};
-      COMET_INSIST(k % NUM_FL_PER_PVFL == 0 &&
+      enum {NUM_FL_PER_PFL = 64};
+      COMET_INSIST(k % NUM_FL_PER_PFL == 0 &&
                    "Failed divisibility condition for tc gemm.");
 
       const bool beta = is_first ? 0 : 1;
 
       // 8 == number of uint8_t values used to store each chunk of
-      // NUM_FL_PER_PVFL fields in the tc buf.
-      enum {BYTES_PER_PVFL_FIELDS = 8};
+      // NUM_FL_PER_PFL fields in the tc buf.
+      enum {BYTES_PER_PFL_FIELDS = 8};
 
       typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
       typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
 
       const int bytes_per_gi = sizeof(GemmIn_t);
-      const size_t k_eff = (k / NUM_FL_PER_PVFL) *
-                           (BYTES_PER_PVFL_FIELDS / bytes_per_gi);
+      const size_t k_eff = (k / NUM_FL_PER_PFL) *
+                           (BYTES_PER_PFL_FIELDS / bytes_per_gi);
 
       const int threadblocksize = 256;
       COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&
@@ -111,13 +116,17 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
       const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
       const int num_threadblocks_1 = n;
 
-      COMET_LAUNCH_KERNEL((tc_solve_impl_b1_kernel<GemmIn_t, GemmOut_t>),
+      COMET_LAUNCH_KERNEL((tc_solve_impl_b1_mockup_kernel<GemmIn_t, GemmOut_t>),
         dim3(num_threadblocks_0, num_threadblocks_1, 1),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
         m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
         (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
 
       System::accel_last_call_succeeded();
+
+  } else { // if (!tc_solve_b1_use_mockup(env))
+
+    COMET_INSIST(false && "TODO: implement.");
 
   } // if
 }
@@ -147,7 +156,13 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #   ifdef COMET_USE_ACCEL
 
+      env.gemmtime_record();
+
+      env.gemmtime_start();
+
       tc_solve_impl_b1<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
+
+      env.gemmtime_end();
 
 #   else // COMET_USE_ACCEL
 
@@ -185,6 +200,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
 
+      env.gemmtime_record();
+
+      env.gemmtime_start();
+
       // GPU BLAS call.
 
 #     ifdef COMET_USE_CUDA
@@ -221,6 +240,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 #     endif
         );
         // TODO: use CUDA 10 autotuning capability here (later).
+
+      env.gemmtime_end();
 
 #     ifdef COMET_USE_CUDA
         if (CUBLAS_STATUS_SUCCESS != status)
@@ -295,9 +316,15 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
         // Make CPU BLAS call.
 
+        const double t1 = System::time();
+
         cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
           m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
           (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
+
+        const double t2 = System::time();
+        const double t = t2 < t1 ? 0. : t2 - t1;
+        env.gemmtime_inc(t);
 
 #     else // COMET_USE_CPUBLAS
 
@@ -313,7 +340,10 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   } // if compute_method
 
-  env.ops_local_inc(2 * m * (double)n * (double)k);
+  const double ops = 2 * m * (double)n * (double)k;
+
+  env.ops_gemm_local_inc(ops);
+  env.ops_local_inc(ops);
 
   if (is_timing_gemm) {
     env.stream_synchronize(env.stream_compute());

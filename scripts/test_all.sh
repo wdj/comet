@@ -50,6 +50,7 @@ function repo_dir
 function main
 {
   echo "Running test_all main"
+  date
   # Location of this script.
   #local SCRIPT_DIR=$(script_dir)
   local REPO_DIR="${COMET_REPO_DIR:-$(repo_dir)}"
@@ -121,6 +122,7 @@ function main
     echo "!!! Some tests FAILED !!!"
   fi
 
+  date
   printf -- '-%.0s' {1..79}; echo ""
   echo "Done running test_all main"
 } # main

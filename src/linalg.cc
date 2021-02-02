@@ -183,6 +183,8 @@ void LinAlg::gemm_wait(
   env.stream_synchronize(env.stream_compute());
   if(env.print_details()) printf("Stream synchronized in wait\n");
 
+  env.gemmtime_record();
+
   // Unlock.
 
   if (env.is_compute_method_gpu()) {

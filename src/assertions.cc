@@ -55,7 +55,7 @@ namespace comet {
 
 void trigger_test_harness_failure() {
 # ifdef TESTING
-#   ifdef COMET_USING_GTEST
+#   ifdef COMET_USE_GTEST
       ASSERT_TRUE(0);
 #   endif
 # endif

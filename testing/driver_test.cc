@@ -1893,16 +1893,18 @@ void DriverTest_b1_xor_gemm_() {
   //for (int num_way : {2})
   for (int num_tc_steps : {1, 2})
   //for (int num_tc_steps : {1})
-  for (int num_vector = num_way; num_vector < 6; ++num_vector) {
+  for (int num_vector = num_way; num_vector < 5; ++num_vector) {
   //for (int num_vector = 2; num_vector < 3; ++num_vector) {
     //if (num_vector < num_way)
     //  continue;
   // Examine num_field values nearby possible block boundaries.
   int num_field_prev = 0;
-  for (int nfbdry : {1, 2, 4, 8, 16, 32, 64, 128})
-  //for (int nfbdry : {16})
-  for (int num_field = nfbdry - 2; num_field < nfbdry + 3; ++num_field) {
-  //for (int num_field = nfbdry + 1; num_field < nfbdry + 2; ++num_field) {
+  for (int nfbdry : {1, 2, 4, 8, 16, 32, 64, 128}) {
+    const int range = 1;
+  for (int nf = nfbdry - range; nf <= nfbdry + range; ++nf) {
+  //for (int nf = nfbdry + 1; nf < nfbdry + 2; ++nf) {
+    const int num_field = nf;
+    // Skip if this num_field already visited.
     if (num_field <= num_field_prev)
       continue;
 
@@ -1915,6 +1917,7 @@ void DriverTest_b1_xor_gemm_() {
             num_vector, num_field, "GPU", 1, TC::B1, num_tc_steps);
     EXPECT_EQ(true, compare_2runs(options1, options2));
     num_field_prev = num_field;
+  }
   }
   }
 
@@ -2789,13 +2792,11 @@ BEGIN_TESTS
 TEST(DriverTest, b1_xor_gemm) {
   DriverTest_b1_xor_gemm_();
 }
-#endif
 
 TEST(DriverTest, threshold) {
   DriverTest_threshold_();
 }
 
-#if 1
 TEST(DriverTest, file_output) {
   DriverTest_file_output_();
 }
@@ -2827,6 +2828,7 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();

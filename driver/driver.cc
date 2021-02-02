@@ -322,6 +322,8 @@ void print_output(bool do_print,
 
   const double ops = env.ops();
   const double simops = env.simops();
+  const double ops_gemm = env.ops_gemm();
+  const double gemmtime_sum = env.gemmtime_sum();
   const size_t cpu_mem_max = env.cpu_mem_max();
   const size_t gpu_mem_max = env.gpu_mem_max();
 
@@ -342,6 +344,10 @@ void print_output(bool do_print,
   if (env.ctime() > 0) {
     printf(" ops_rate %e", ops / env.ctime());
     printf(" ops_rate/proc %e", ops / (env.ctime() * env.num_proc()) );
+  }
+
+  if (gemmtime_sum > 0) {
+    printf(" gemmrate/proc %e", ops_gemm / gemmtime_sum);
   }
 
   printf(" vcmp %e", env.vec_compares());
@@ -403,11 +409,15 @@ void print_output(bool do_print,
   if(do_detailed) {
     // More readable runtime output
     printf("\nDetailed Output:\n");
+    double gemmrate = 0.0;
+    if(gemmtime_sum!=0.0) gemmrate = ops_gemm / gemmtime_sum;
     printf("GEMM:\n"
            "Pre-GEMM time:        %.6f\n"
            "GEMM time:            %.6f\n"
-           "Post-GEMM time:       %.6f\n",
-            env.pregemmtime(), env.gemmtime(), env.postgemmtime());
+           "Post-GEMM time:       %.6f\n"
+           "GEMM ops:             %.6f\n"
+           "GEMM rate/proc:       %.6f\n",
+            env.pregemmtime(), env.gemmtime(), env.postgemmtime(), ops_gemm, gemmrate);
 
     printf("\nComputeMetrics:\n"
            "Nums start time:      %.6f\n"
@@ -561,8 +571,8 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_vector_active = do_.num_vector;
   } else {
     // Pad up so that every proc has same number of vectors.
-    do_.num_vector_local = gm_num_vector_local_required(
-      utils::ceil(do_.num_vector_active, (size_t)env->num_proc_vector()), env);
+    do_.num_vector_local = gm_nvl_size_required(
+      utils::ceil(do_.num_vector_active, (size_t)env->num_proc_vector()), *env);
     do_.num_vector = do_.num_vector_local *
       (size_t)env->num_proc_vector();
   }

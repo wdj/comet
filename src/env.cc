@@ -103,8 +103,9 @@ int System::compute_capability() {
 #elif defined COMET_USE_HIP
   hipDeviceProp_t deviceProp;
   hipGetDeviceProperties(&deviceProp, 0); // Assume only one GPU per rank.
-//FIX this to work for an appropriate way for AMD gpu
-  const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  //const int compute_capability = deviceProp.major * 100 + deviceProp.minor;
+  // This seems more stable than major/minor.
+  const int compute_capability = deviceProp.gcnArch;
   //printf("COMET_USE_HIP compute_capability=%d\n",compute_capability);
 #else
   const int compute_capability = 0;
@@ -286,6 +287,7 @@ void CEnv::set_defaults_() {
   numswaittime_ = 0;
   combinetime_ = 0;
   ops_local_ = 0;
+  ops_gemm_local_ = 0;
   simops_local_ = 0;
   cpu_mem_local_ = 0;
   gpu_mem_local_ = 0;
@@ -652,12 +654,15 @@ bool CEnv::can_run(int tc_try) const {
   // /opt/rocm/hip/bin/hipcc:@knownTargets = ('gfx701', 'gfx801', 'gfx802',
   // 'gfx803', 'gfx900', 'gfx906', 'gfx908', 'gfx1010', 'gfx1011', 'gfx1012');
   // NOTE: MI60 is 906
+  const int cc_mi60 = 906; // 900;
+  const int cc_mi100 = 908; // 900;
+  const int cc_minone = 1000;
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() &&
       TC::FP32 == tc_try) {
     // ISSUE: may need to adjust CUDA compute capability here.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
-                     || (BuildHas::HIP && System::compute_capability() >= 906));
+                     || (BuildHas::HIP && System::compute_capability() >= cc_mi60));
     if(printdetails) printf("Check FP32 result=%d\n",(int)result);
   }
 
@@ -665,8 +670,8 @@ bool CEnv::can_run(int tc_try) const {
       TC::FP16 == tc_try) {
     // ISSUE: may need to adjust HIP compute capability here.
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 700)
-                    || (BuildHas::HIP && System::compute_capability() >= 1000));
-                  //|| (BuildHas::HIP && System::compute_capability() >= 908));
+                  || (BuildHas::HIP && System::compute_capability() >= cc_minone));
+                  //|| (BuildHas::HIP && System::compute_capability() >= cc_mi100));
     if(printdetails) printf("Check FP16 result=%d\n",(int)result);
   }
 
@@ -677,7 +682,7 @@ bool CEnv::can_run(int tc_try) const {
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 750)
                   //|| (BuildHas::HIP && System::compute_capability() >= 1000));
                   //|| (BuildHas::HIP && System::compute_capability() >= 908));
-                    || (BuildHas::HIP && System::compute_capability() >= 906));
+                    || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
     if(printdetails) printf("Check INT8 result=%d\n",(int)result);
   }
 
@@ -686,7 +691,7 @@ bool CEnv::can_run(int tc_try) const {
     // FIX: Temporary code below for testing xor mockup code on summit.
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
-                     || (BuildHas::HIP && System::compute_capability() >= 1000))
+                     || (BuildHas::HIP && System::compute_capability() >= cc_minone))
                     && can_use_xor_(tc_try);
     if(printdetails) printf("Check Int1 result=%d compute_capability=%d can_use_xor=%d\n",
                             (int)result,System::compute_capability(),can_use_xor_(tc_try)); 
@@ -849,6 +854,69 @@ double CEnv::simops() const {
   return result;
 }
 
+//-----------------------------------------------------------------------------
+/// \brief Compute and return (global) number of GEMM operations performed.
+
+double CEnv::ops_gemm() const {
+  double result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&ops_gemm_local_, &result, 1, MPI_DOUBLE,
+    MPI_SUM, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Compute and return (global) sum GEMM timings.
+
+double CEnv::gemmtime_sum() const {
+  double result = 0;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(&gemmtime_, &result, 1, MPI_DOUBLE,
+    MPI_SUM, comm()));
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer start.
+
+void CEnv::gemmtime_start() {
+# if defined COMET_USE_CUDA
+    cudaEventRecord(start_event(), stream_compute());
+# elif defined COMET_USE_HIP
+    hipEventRecord(start_event(), stream_compute());
+# endif
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer end.
+
+void CEnv::gemmtime_end() {
+# if defined COMET_USE_CUDA
+    cudaEventRecord(end_event(), stream_compute());
+# elif defined COMET_USE_HIP
+    hipEventRecord(end_event(), stream_compute());
+# endif
+  is_event_active(true);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief GEMM timer record.
+
+void CEnv::gemmtime_record() {
+  if (is_event_active()) {
+#   if defined COMET_USE_CUDA
+      cudaEventSynchronize(end_event());
+      float time = 0;
+      cudaEventElapsedTime(&time, start_event(), end_event());
+      gemmtime_inc(time / 1000.);
+#   elif defined COMET_USE_HIP
+      hipEventSynchronize(end_event());
+      float time = 0;
+      hipEventElapsedTime(&time, start_event(), end_event());
+      gemmtime_inc(time / 1000.);
+#   endif
+    is_event_active(false);
+  }
+}
+
 //=============================================================================
 // MPI comms
 
@@ -934,6 +1002,17 @@ void CEnv::streams_initialize_() {
              "Failure in call to stream create.");
   }
 
+# if defined COMET_USE_CUDA
+    cudaEventCreate(&start_event_);
+    cudaEventCreate(&end_event_);
+# elif defined COMET_USE_HIP
+    hipEventCreate(&start_event_);
+    hipEventCreate(&end_event_);
+# endif
+  is_event_active_ = false;
+  COMET_INSIST(System::accel_last_call_succeeded() &&
+           "Failure in call to event create.");
+
   are_streams_initialized_ = true;
 
   if(print_details()) printf("Done initializing streams\n");
@@ -964,6 +1043,17 @@ void CEnv::streams_terminate_() {
              "Failure in call to stream destroy.");
   }
 
+# if defined COMET_USE_CUDA
+    cudaEventDestroy(start_event_);
+    cudaEventDestroy(end_event_);
+# elif defined COMET_USE_HIP
+    hipEventDestroy(start_event_);
+    hipEventDestroy(end_event_);
+# endif
+  COMET_INSIST(System::accel_last_call_succeeded() &&
+           "Failure in call to event destroy.");
+  COMET_INSIST(!is_event_active_);
+
   are_streams_initialized_ = false;
 
   if(print_details()) printf("Done calling streams terminate\n");
@@ -991,6 +1081,22 @@ AccelStream_t CEnv::stream_togpu() {
 AccelStream_t CEnv::stream_fromgpu() {
   streams_initialize_(); // Lazy initialization.
   return stream_fromgpu_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator event for timing start.
+
+AccelEvent_t CEnv::start_event() {
+  streams_initialize_(); // Lazy initialization.
+  return start_event_;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Accelerator event for timing end.
+
+AccelEvent_t CEnv::end_event() {
+  streams_initialize_(); // Lazy initialization.
+  return end_event_;
 }
 
 //-----------------------------------------------------------------------------
