@@ -91,6 +91,7 @@ void tc_gemm_start(
 
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env);
 size_t tc_gemm_faxis_divisibility_required(const CEnv& env);
+size_t tc_nvl_divisibility_required_for_gemm(const CEnv& env);
 size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env);
 size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env);
 size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env);

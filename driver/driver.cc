@@ -490,8 +490,8 @@ env->stream_compute(); //FIX
     do_.num_vector_active = do_.num_vector;
   } else {
     // Pad up so that every proc has same number of vectors.
-    do_.num_vector_local = gm_num_vector_local_required(
-      utils::ceil(do_.num_vector_active, (size_t)env->num_proc_vector()), env);
+    do_.num_vector_local = gm_nvl_size_required(
+      utils::ceil(do_.num_vector_active, (size_t)env->num_proc_vector()), *env);
     do_.num_vector = do_.num_vector_local *
       (size_t)env->num_proc_vector();
   }
