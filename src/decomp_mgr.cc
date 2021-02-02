@@ -47,29 +47,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
+/// \brief Divisibility requirement for num_vector_local, due to sections.
 
-size_t gm_num_vector_local_required(size_t num_vector_active_local,
-                                    CEnv* const env) {
-  COMET_INSIST(env);
-  // NOTE: this function should receive the same num_vector_active_local
-  // and give the same result independent of MPI rank.
+size_t gm_nvl_divisibility_required_for_section(const CEnv& env) {
 
-//  const size_t factor_gemm = tc_gemm_vaxis_divisibility_required(*env);
-
-  // tc methods require 2 columns per vector, exploit this if possible..
-//  const size_t factor = env->tc_eff() == 0 ? factor_gemm :
-//                        factor_gemm % 2 == 0 ? factor_gemm / 2 :
-//                        factor_gemm;
-
-  const size_t size_for_gemm =
-    tc_nvl_size_required_for_gemm(num_vector_active_local, *env);
-
-  const bool need_divisible_by_6 = env->num_way() == NumWay::_3 &&
-                                   env->all2all() &&
-                                   env->num_proc_vector() > 2;
+  const bool need_divisible_by_6 = env.num_way() == NumWay::_3 &&
+                                   env.all2all() &&
+                                   env.num_proc_vector() > 2;
 
   const size_t factor = need_divisible_by_6 ? 6 : 1;
 
+  return factor;
+}
+
+//-----------------------------------------------------------------------------
+
+size_t gm_nvl_size_required(size_t size_requested, const CEnv& env) {
+
+  // NOTE: this function will in practice receive the same size_requested
+  // on every rank and thus give the same result independent of MPI rank.
+
+  // GEMMs on tensor cores sometimes impose divisibility conditions.
+  const size_t factor_gemm = tc_nvl_divisibility_required_for_gemm(env);
+
+  // For 3-way, the 6 sections of a block must all be the same size.
+  const size_t factor_section = gm_nvl_divisibility_required_for_section(env);
+
+  // Find LCM.  // (LATER: use std::lcm)
+
+  COMET_ASSERT(factor_section == 1 || factor_section == 6);
+  const size_t factor = factor_gemm % factor_section == 0 ? factor_gemm :
+                        factor_gemm % 2 == 0 ? factor_gemm * 3 :
+                        factor_gemm % 3 == 0 ? factor_gemm * 2 :
+                                               factor_gemm * 6;
+
+  const size_t size_for_gemm =
+    tc_nvl_size_required_for_gemm(size_requested, env);
+
+  // Pad up.
   return utils::ceil(size_for_gemm, factor) * factor;
 }
 
@@ -105,9 +120,9 @@ void GMDecompMgr_create(GMDecompMgr* dm,
 
   if (vectors_by_local) {
     dm->num_vector_local = num_vector_specifier;
-    const size_t num_vector_local_required = gm_num_vector_local_required(
-                                              dm->num_vector_local, env);
-    COMET_INSIST_INTERFACE(env, dm->num_vector_local == num_vector_local_required &&
+    const size_t nvl_required =
+      gm_nvl_size_required(dm->num_vector_local, *env);
+    COMET_INSIST_INTERFACE(env, dm->num_vector_local == nvl_required &&
          "Manual selection of nvl requires divisibility condition");
     // All vectors active on every proc.
     dm->num_vector_active_local = dm->num_vector_local;
@@ -125,8 +140,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     const int num_proc = env->num_proc_vector();
     const int proc_num = env->proc_num_vector();
     //dm->num_vector_local = utils::ceil(dm->num_vector_active, (size_t)num_proc);
-    dm->num_vector_local = gm_num_vector_local_required(
-      utils::ceil(dm->num_vector_active, (size_t)env->num_proc_vector()), env);
+    dm->num_vector_local = gm_nvl_size_required(
+      utils::ceil(dm->num_vector_active, (size_t)env->num_proc_vector()), *env);
     dm->num_vector = dm->num_vector_local * num_proc;
     // Lower procs fully packed with active values
     // Upper procs fully inactive

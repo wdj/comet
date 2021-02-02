@@ -68,7 +68,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 //-----------------------------------------------------------------------------
-/// \brief Divisibility requirement for GEMM.
+/// \brief Divisibility requirement for GEMM: vector axis.
 
 // The units are "vector"s (as counted by num_vectors_local)..
 
@@ -82,7 +82,7 @@ size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Divisibility requirement for GEMM.
+/// \brief Divisibility requirement for GEMM: field axis.
 
 size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
 
@@ -95,29 +95,9 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Size requirement for GEMM.
+/// \brief Divisibility requirement for num_vector_local, due to GEMMs.
 
-size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env) {
-
-  const size_t factor = tc_gemm_vaxis_divisibility_required(env);
-
-  return utils::ceil(size_requested, factor)*factor;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Size requirement for GEMM.
-
-size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env) {
-
-  const size_t factor = tc_gemm_faxis_divisibility_required(env);
-
-  return utils::ceil(size_requested, factor)*factor;
-}
-
-//-----------------------------------------------------------------------------
-/// \brief Size requirement for GEMM.
-
-size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env) {
+size_t tc_nvl_divisibility_required_for_gemm(const CEnv& env) {
 
   const size_t factor_gemm = tc_gemm_vaxis_divisibility_required(env);
 
@@ -126,6 +106,39 @@ size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env) {
                         factor_gemm % 2 == 0 ? factor_gemm / 2 :
                         factor_gemm;
 
+  return factor;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM: vector axis.
+
+size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env) {
+
+  const size_t factor = tc_gemm_vaxis_divisibility_required(env);
+
+  // Pad up.
+  return utils::ceil(size_requested, factor)*factor;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for GEMM: field axis.
+
+size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env) {
+
+  const size_t factor = tc_gemm_faxis_divisibility_required(env);
+
+  // Pad up.
+  return utils::ceil(size_requested, factor)*factor;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Size requirement for num_vectror_loca, due to GEMMs.
+
+size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env) {
+
+  const size_t factor = tc_nvl_divisibility_required_for_gemm(env);
+
+  // Pad up.
   return utils::ceil(size_requested, factor)*factor;
 }
 

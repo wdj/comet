@@ -71,8 +71,7 @@ typedef struct {
 
 //-----------------------------------------------------------------------------
 
-size_t gm_num_vector_local_required(size_t num_vector_active,
-                                    CEnv* const env);
+size_t gm_nvl_size_required(size_t size_requested, const CEnv& env);
 
 //-----------------------------------------------------------------------------
 // Set to null
