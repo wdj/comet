@@ -178,12 +178,12 @@ elt_const(size_t ind0, size_t ind1, const CompressedBuf* cbuf) {
 //# define _COMET_COMPRESSED_BUF_CHECK_RESULT
 
 # ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
-  for (int iE=0; iE<2; ++iE)
-    for (int jE=0; jE<2; ++jE)
-      COMET_ASSERT(T::get(buf_->elt_const<T>(ind0, ind1), iE, jE) ==
-                   T::get(result, iE, jE));
+    for (int iE=0; iE<2; ++iE)
+      for (int jE=0; jE<2; ++jE)
+        COMET_INSIST(T::get(buf_->elt_const<T>(ind0, ind1), iE, jE) ==
+                     T::get(result, iE, jE));
 # endif
-  //printf("%f\n", (double)*(float*)&result); //FIX
+  //printf("%f\n", (double)*(float*)&result);
   return result;
 }
 

@@ -874,34 +874,55 @@ __global__ static void tc_compute_matX_counts_kernel_(
   sdata[fl_ind0] = 0;
   int fl = fl_thread;
 
+  const bool is_serialized = false; // for testing.
+
   // Reduce across threadblocks along fl direction.
 
-  while (fl < nfal) {
-    const GemmIn_t elt = 
-      tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vim, vic, vi_dim0,
-        num_way, is_sparse, is_duo, form_matX_tc, step_2way,
-        is_bitwise_3way_2step, is_vectors_halved,
-        nvle, nvleD2, nvleX2_thread, nvlea,
-        nfl, nfal, 
-        jE, vl_thread, fl);
+  if (!is_serialized) {
 
-    sdata[fl_ind0] += elt;
-    fl += fl_dim1 * fl_dim0;
-  }
+    while (fl < nfal) {
+      const GemmIn_t elt = 
+        tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vim, vic, vi_dim0,
+          num_way, is_sparse, is_duo, form_matX_tc, step_2way,
+          is_bitwise_3way_2step, is_vectors_halved,
+          nvle, nvleD2, nvleX2_thread, nvlea,
+          nfl, nfal, 
+          jE, vl_thread, fl);
 
-  // Reduce within threadblock.
+      sdata[fl_ind0] += elt;
+      fl += fl_dim1 * fl_dim0;
+    }
 
-  for (unsigned int s = fl_dim0/2; s > 0; s >>= 1) {
-    __syncthreads();
-    if (fl_ind0 < s) // parallel sweep reduction
-      sdata[fl_ind0] += sdata[fl_ind0 + s];
-  }
+    // Reduce within threadblock.
 
-  // First thread of threadblock adds in its contribution.
+    for (unsigned int s = fl_dim0/2; s > 0; s >>= 1) {
+      __syncthreads();
+      if (fl_ind0 < s) // parallel sweep reduction
+        sdata[fl_ind0] += sdata[fl_ind0 + s];
+    }
 
-  if (fl_ind0 == 0) {
-    atomicAdd(&(matX_counts[vlX2_thread]), sdata[0]);
-  }
+    // First thread of threadblock adds in its contribution.
+
+    if (fl_ind0 == 0) {
+      atomicAdd(&(matX_counts[vlX2_thread]), sdata[0]);
+    }
+
+  } else { // is_serialized
+
+    if(fl_thread == 0) {
+      for (int fl=0; fl<nfal; ++fl) {
+        const GemmIn_t elt = 
+          tc_buf_write_kernel_get_field_<GemmIn_t, IS_LEFT>(vim, vic, vi_dim0,
+            num_way, is_sparse, is_duo, form_matX_tc, step_2way,
+            is_bitwise_3way_2step, is_vectors_halved,
+            nvle, nvleD2, nvleX2_thread, nvlea,
+            nfl, nfal, 
+            jE, vl_thread, fl);
+        matX_counts[vlX2_thread] += elt;
+      }
+    }
+
+  } // if (!is_serialized)
 #endif
 }
 
@@ -980,7 +1001,7 @@ void tc_compute_matX_counts(
   COMET_LAUNCH_KERNEL((tc_compute_matX_counts_kernel_<GemmIn_t>),
     dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
     dim3(threadblocksize, 1, 1),
-    threadblocksize * sizeof(int32_t),
+    threadblocksize * sizeof(uint32_t),
     env.stream_compute(),
     matX_counts, vim, vic, vi_dim0, step_2way,
     nvle, nvleD2, nvleX2_thread, nvlea,
