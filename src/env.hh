@@ -916,7 +916,6 @@ private:
   double ops_local_;
   double ops_gemm_local_;
   double simops_local_;
-  double ops_local_;
 
   size_t cpu_mem_local_;
   size_t gpu_mem_local_;

@@ -61,7 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tc_helpers.i.hh"
 #include "tc_in.i.hh"
 #include "tc_solve_comet.i.hh"
-#include "tc_solve_general.i.hh"
+#include "tc_solve.i.hh"
 #include "tc_solve_comet_xor.i.hh"
 #include "tc_out.i.hh"
 
@@ -79,6 +79,9 @@ size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
   const size_t result = env.tc_eff() == TC::NO ? 1 :
     tc_solve_b1_use_mockup(env) ? 4 : // Curent requirement - see tc_in.
     env.tc_eff() == TC::B1 ? 256 : 8;
+
+  if(env.print_details()) printf("In vaxis_divis_req result=%zu tc_eff=%d use_mockup=%d\n",
+    result,env.tc_eff(),tc_solve_b1_use_mockup(env));
 
   return result;
 }
@@ -108,6 +111,9 @@ size_t tc_nvl_divisibility_required_for_gemm(const CEnv& env) {
                         factor_gemm % 2 == 0 ? factor_gemm / 2 :
                         factor_gemm;
 
+  if(env.print_details()) printf("In nvl_divis_req_gemm result=%zu factor_gemm=%zu tc_eff=%d use_mockup=%d\n",
+    factor,factor_gemm,env.tc_eff(),tc_solve_b1_use_mockup(env));
+
   return factor;
 }
 
@@ -117,6 +123,9 @@ size_t tc_nvl_divisibility_required_for_gemm(const CEnv& env) {
 size_t tc_gemm_vaxis_size_required(size_t size_requested, const CEnv& env) {
 
   const size_t factor = tc_gemm_vaxis_divisibility_required(env);
+
+  if(env.print_details()) printf("In vaxis_size_req factor=%zu pad=%zu\n",
+    factor,utils::ceil(size_requested, factor)*factor);
 
   // Pad up.
   return utils::ceil(size_requested, factor)*factor;
@@ -139,6 +148,9 @@ size_t tc_gemm_faxis_size_required(size_t size_requested, const CEnv& env) {
 size_t tc_nvl_size_required_for_gemm(size_t size_requested, const CEnv& env) {
 
   const size_t factor = tc_nvl_divisibility_required_for_gemm(env);
+
+  if(env.print_details()) printf("In nvl_size_req_gemm factor=%zu pad=%zu\n",
+    factor,utils::ceil(size_requested, factor)*factor);
 
   // Pad up.
   return utils::ceil(size_requested, factor)*factor;
@@ -207,6 +219,10 @@ static void tc_gemm_start_impl_(
   COMET_INSIST(npfl % d == 0);
   const int I_max = m;
   const int I_max_dim = lddc;
+
+  if(env.print_details()) printf("In tc_gemm_start_impl num_tc_steps=%d nvl=%d npfl=%d d=%d I_max=%d I_max_dim=%d vaxis_req=%zu\n",
+    env.num_tc_steps(),nvl,npfl,d,I_max,I_max_dim,tc_gemm_vaxis_size_required(I_max_dim, env));
+
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
   // nvll is the effective nvl (column dim) for the left matrix
   // We only really only need up to I_max, but must compute to I_max_dim
@@ -214,8 +230,6 @@ static void tc_gemm_start_impl_(
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
   COMET_INSIST((size_t)nvll == tc_nvl_size_required_for_gemm(nvll, env));
-
-  if(env.print_details()) printf("In tc_gemm_start_impl\n");
 
   // Get matX counts if needed.
 
@@ -389,17 +403,20 @@ static void tc_gemm_comet_start_impl_(
   const int nvl = n;
   const int npfl = k;
   const int d = tc_gemm_faxis_divisibility_required(env);
+  COMET_INSIST(npfl % d == 0);
   const int I_max = m;
   const int I_max_dim = lddc;
+
+  if(env.print_details()) printf("In tc_gemm_comet_start_impl num_tc_steps=%d nvl=%d npfl=%d d=%d I_max=%d I_max_dim=%d vaxis_req=%zu\n",
+    env.num_tc_steps(),nvl,npfl,d,I_max,I_max_dim,tc_gemm_vaxis_size_required(I_max_dim, env));
+
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
   // nvll is the effective nvl (column dim) for the left matrix
   // We only really only need up to I_max, but must compute to I_max_dim
   // to satisfy cublas divisibility requirements.
   // Note nvl is always the column dim for the right matrix (CHECK).
   const int nvll = I_max_dim;
-  COMET_INSIST((size_t)nvll == tc_gemm_vaxis_size_required(nvll, env));
-
-  if(env.print_details()) printf("In tc_gemm_comet_start_impl num_tc_steps=%d\n",env.num_tc_steps());
+  COMET_INSIST((size_t)nvll == tc_nvl_size_required_for_gemm(nvll, env));
 
   // Get matX counts if needed.
 
@@ -515,7 +532,8 @@ static void tc_gemm_general_start_impl_(
 //=============================================================================
 
 //-----------------------------------------------------------------------------
-/// \brief Use CoMet GEMM kernels to compute solution
+/// \brief Use CoMet GEMM kernels to compute solution. Called by 
+///        LinAlg::gemm_start as alternative to Magma
 
 void tc_gemm_comet_start(size_t m, size_t n, size_t k,
   const void* matA, size_t ldda, const void* matB, size_t lddb,

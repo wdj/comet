@@ -329,11 +329,11 @@ b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64
 
   extern __shared__ char smem_ptr[];
 
-  char *smem_ptr_A = smem_ptr;
-  char *smem_ptr_B = &smem_ptr_A[ThreadblockShape::kM*2 * ThreadblockShape::kK * 1 / 8];
+  //char *smem_ptr_A = smem_ptr;
+  //char *smem_ptr_B = &smem_ptr_A[ThreadblockShape::kM*2 * ThreadblockShape::kK * 1 / 8];
 
-  uint64_t *smem_buffer_A = reinterpret_cast<uint64_t *>(smem_ptr_A);
-  uint64_t *smem_buffer_B = reinterpret_cast<uint64_t *>(smem_ptr_B);
+  //uint64_t *smem_buffer_A = reinterpret_cast<uint64_t *>(smem_ptr_A);
+  //uint64_t *smem_buffer_B = reinterpret_cast<uint64_t *>(smem_ptr_B);
 
   using FragmentA = typename Mma::FragmentA;
   using FragmentB = typename Mma::FragmentB;

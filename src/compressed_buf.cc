@@ -123,7 +123,7 @@ void CompressedBuf::compute_num_nonzeros_() {
 
       cub::DeviceReduce::Reduce(NULL,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-        buf_length_(), reduction_op, initial_value, env_.stream_compute());
+        buf_length_(), reduction_op, initial_value, env_.stream_fromgpu());
 
 #   elif defined COMET_USE_HIP
 
@@ -131,11 +131,11 @@ void CompressedBuf::compute_num_nonzeros_() {
 
       rocprim::reduce(NULL,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-        initial_value, buf_length_(), reduction_op, env_.stream_compute());
+        initial_value, buf_length_(), reduction_op, env_.stream_fromgpu());
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
 
-    num_nonzeros_buf_.from_accel(env_.stream_compute());
+    num_nonzeros_buf_.from_accel(env_.stream_fromgpu());
 
     // Re/allocate temp storage as needed.
 
@@ -155,20 +155,20 @@ void CompressedBuf::compute_num_nonzeros_() {
 
       cub::DeviceReduce::Reduce((Workspace_t*)reduce_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-        buf_length_(), reduction_op, initial_value, env_.stream_compute());
+        buf_length_(), reduction_op, initial_value, env_.stream_fromgpu());
 
 #   elif defined COMET_USE_HIP
 
       rocprim::reduce((Workspace_t*)reduce_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)num_nonzeros_buf_.d,
-        initial_value, buf_length_(), reduction_op, env_.stream_compute());
+        initial_value, buf_length_(), reduction_op, env_.stream_fromgpu());
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
 
     // Retrieve nonzeros count.
     // NOTE: this value may be approximate, since reduction is over floats.
 
-    num_nonzeros_buf_.from_accel(env_.stream_compute());
+    num_nonzeros_buf_.from_accel(env_.stream_fromgpu());
 
     num_nonzeros_approx_ = (size_t)
       -(num_nonzeros_buf_.elt_const<MFTTypeIn>(0, 0) - initial_value);
@@ -220,7 +220,7 @@ void CompressedBuf::compress() {
       cub::DeviceRunLengthEncode::Encode(NULL,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
         (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
-        env_.stream_compute());
+        env_.stream_fromgpu());
 
 #   elif defined COMET_USE_HIP
 
@@ -230,11 +230,11 @@ void CompressedBuf::compress() {
         temp_storage_bytes, (MFTTypeIn*)buf_->d, buf_length_(),
         (MFTTypeIn*)keys_buf_.d, (Lengths_t*)lengths_buf_.d,
         (size_t*)num_runs_buf_.d,
-        env_.stream_compute());
+        env_.stream_fromgpu());
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
 
-    num_runs_buf_.from_accel(env_.stream_compute());
+    num_runs_buf_.from_accel(env_.stream_fromgpu());
 
     // Re/allocate temp storage as needed.
 
@@ -255,7 +255,7 @@ void CompressedBuf::compress() {
       cub::DeviceRunLengthEncode::Encode((Workspace_t*)rle_workspace_buf_.d,
         temp_storage_bytes, (MFTTypeIn*)buf_->d, (MFTTypeIn*)keys_buf_.d,
         (Lengths_t*)lengths_buf_.d, (size_t*)num_runs_buf_.d, buf_length_(),
-        env_.stream_compute());
+        env_.stream_fromgpu());
 
 #   elif defined COMET_USE_HIP
 
@@ -263,13 +263,13 @@ void CompressedBuf::compress() {
         temp_storage_bytes, (MFTTypeIn*)buf_->d, buf_length_(),
         (MFTTypeIn*)keys_buf_.d, (Lengths_t*)lengths_buf_.d,
         (size_t*)num_runs_buf_.d,
-        env_.stream_compute());
+        env_.stream_fromgpu());
 
 #   endif // COMET_USE_CUDA || COMET_USE_HIP
 
     // Retrieve number of runs.
 
-    num_runs_buf_.from_accel(env_.stream_compute());
+    num_runs_buf_.from_accel(env_.stream_fromgpu());
 
     num_runs_ = num_runs_buf_.elt_const<size_t>(0, 0);
 
@@ -300,11 +300,9 @@ void CompressedBuf::from_accel_start() {
 
     state_ = State::TRANSFER_STARTED;
 
-# ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
-#   ifdef COMET_ASSERTIONS_ON
-      buf_->from_accel_start();
+#   ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
+        buf_->from_accel_start();
 #   endif
-# endif
 
   } else {
 
@@ -353,11 +351,9 @@ void CompressedBuf::from_accel_wait() {
 
     state_ = State::IDLE;
 
-# ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
-#   ifdef COMET_ASSERTIONS_ON
+#   ifdef _COMET_COMPRESSED_BUF_CHECK_RESULT
       buf_->from_accel_wait();
 #   endif
-# endif
 
 //    for (size_t i=0; i<64; ++i) {
 //      if ((double)(((MFTTypeIn*)(buf_->h))[i]))

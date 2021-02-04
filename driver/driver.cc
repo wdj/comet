@@ -409,15 +409,22 @@ void print_output(bool do_print,
   if(do_detailed) {
     // More readable runtime output
     printf("\nDetailed Output:\n");
-    double gemmrate = 0.0;
-    if(gemmtime_sum!=0.0) gemmrate = ops_gemm / gemmtime_sum;
     printf("GEMM:\n"
            "Pre-GEMM time:        %.6f\n"
            "GEMM time:            %.6f\n"
-           "Post-GEMM time:       %.6f\n"
-           "GEMM ops:             %.6f\n"
-           "GEMM rate/proc:       %.6f\n",
-            env.pregemmtime(), env.gemmtime(), env.postgemmtime(), ops_gemm, gemmrate);
+           "Post-GEMM time:       %.6f\n",
+            env.pregemmtime(), env.gemmtime(), env.postgemmtime());
+
+    double tops_gemm = 0.0, gemmrate = 0.0, tgemmrate = 0.0;
+    if(gemmtime_sum>0.0) gemmrate = ops_gemm / gemmtime_sum;
+    tops_gemm = ops_gemm/(1024.0*1024.0*1024.0*1024.0);
+    if(gemmtime_sum>0.0) tgemmrate = tops_gemm/gemmtime_sum;
+    printf("\nGEMM rate:\n"
+           "GEMM Ops:             %e\n"
+           "GEMM rate/proc:       %e\n"
+           "GEMM TOps:            %.2f\n"
+           "GEMM TOps rate/proc   %.2f\n",
+           ops_gemm, gemmrate, tops_gemm, tgemmrate);
 
     printf("\nComputeMetrics:\n"
            "Nums start time:      %.6f\n"

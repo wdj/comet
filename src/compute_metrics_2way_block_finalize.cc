@@ -130,6 +130,7 @@ static void finalize_czek_(
     // ----------------------------------
 
     if (do_compute_triang_only) {
+      COMET_INSIST(!matB_cbuf->do_compress());
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMFloat vs_j = vs_r->sum(j);
@@ -151,6 +152,7 @@ static void finalize_czek_(
     } else {
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
+      COMET_INSIST(!matB_cbuf->do_compress());
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
@@ -171,6 +173,7 @@ static void finalize_czek_(
   } else { // !env->all2all()) && env->is_compute_method_gpu()
     // ----------------------------------
 
+    COMET_INSIST(!matB_cbuf->do_compress());
     #pragma omp parallel for schedule(dynamic,1000)
     for (int j = 0; j < nvl; ++j) {
       const GMFloat vs_j = vs_r->sum(j);
@@ -304,7 +307,7 @@ static void finalize_ccc_duo_(
       if(env->print_details()) printf("Copying metrics_buffer all2all do_compute_triang_only=%d\n",do_compute_triang_only);
 
       // here and below don't use collapse because of overflow for large sizes
-#     pragma omp parallel for schedule(dynamic,1000)
+#     pragma omp parallel for schedule(dynamic,1000) if (!matB_cbuf->do_compress())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = j;
         for (int i = 0; i < i_max; ++i) {
@@ -383,8 +386,7 @@ static void finalize_ccc_duo_(
     // --------------
 
       if(env->print_details()) printf("Copying metrics_buffer all2all !do_compute_triang_only\n");
-
-#     pragma omp parallel for schedule(dynamic,1000)
+#     pragma omp parallel for schedule(dynamic,1000) if (!matB_cbuf->do_compress())
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
           const Tally2x2<MF> value =
@@ -465,7 +467,7 @@ static void finalize_ccc_duo_(
       if(env->print_details()) printf("Copying metrics_buffer !all2all\n");
 
       const int j_block = env->proc_num_vector();
-#     pragma omp parallel for schedule(dynamic,1000)
+#     pragma omp parallel for schedule(dynamic,1000) if (!matB_cbuf->do_compress())
       for (int j = 0; j < nvl; ++j) {
         const int i_max = do_compute_triang_only ? j : nvl;
         for (int i = 0; i < i_max; ++i) {
@@ -513,6 +515,7 @@ static void finalize_ccc_duo_(
     if(env->print_details()) printf("Computing multipliers all2all do_compute_triang_only=%d\n",do_compute_triang_only);
 
     if (!env->is_threshold_tc()) {
+      COMET_INSIST(!matB_cbuf->do_compress());
 #     pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);
@@ -547,6 +550,7 @@ static void finalize_ccc_duo_(
     if(env->print_details()) printf("Computing multipliers all2all !do_compute_triang_only\n");
 
     if (!env->is_threshold_tc()) {
+      COMET_INSIST(!matB_cbuf->do_compress());
 #     pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
@@ -577,6 +581,7 @@ static void finalize_ccc_duo_(
 
     if (!env->is_threshold_tc()) {
       const int j_block = env->proc_num_vector();
+      COMET_INSIST(!matB_cbuf->do_compress());
 #     pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
         const GMTally1 sj1 = vs_r->sum(j);

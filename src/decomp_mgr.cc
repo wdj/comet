@@ -84,8 +84,8 @@ size_t gm_nvl_size_required(size_t size_requested, const CEnv& env) {
   const size_t size_for_gemm =
     tc_nvl_size_required_for_gemm(size_requested, env);
 
-  if(env->print_details()) printf("factor=%zu lcm=%zu need_divis_by_6=%d total=%zu\n",
-    factor,lcm,need_divisible_by_6,
+  if(env.print_details()) printf("factor_gemm=%zu factor_section=%zu factor=%zu size_for_gemm=%zu size_req=%zu\n",
+    factor_gemm,factor_section,factor,size_for_gemm,
     utils::ceil(size_for_gemm, factor)*factor);
   // Pad up.
   return utils::ceil(size_for_gemm, factor) * factor;

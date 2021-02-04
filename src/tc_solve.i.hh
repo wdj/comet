@@ -36,7 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMET_TC_SOLVE_I_HH_
 #define _COMET_TC_SOLVE_I_HH_
 
-//#include <inttypes.h>
+#include "cstdlib"
+#include <cuda_runtime.h>
+#include <cuda_fp16.h>
+#include <mma.h>
+
+#include "tc_solve_cutlass_general.i.hh"
 
 //=============================================================================
 
@@ -51,7 +56,7 @@ __global__ void tc_solve_impl_b1_mockup_kernel(size_t m, size_t n, size_t k,
   //COMET_INSIST(a && b && c);
 
   // k axis serialized; m, n axes threaded.
-
+  
   const size_t ind_m = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
   const size_t ind_n = blockIdx_y_();
 
@@ -82,6 +87,142 @@ static bool tc_solve_b1_use_mockup(const CEnv& env) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Simple WMMA tensor core 1-bit xor gemm
+
+__global__
+void b1_xor_gemm_gpu_tc_simple(size_t m, size_t n, size_t k, uint8_t* a,
+                               uint8_t* b, bool beta, int32_t* c) {
+
+  using namespace nvcuda;
+
+  // Block and thread indices
+  //int tx = threadIdx.x, ty = threadIdx.y;
+  int bx = blockIdx.x, by = blockIdx.y;
+
+  // Index of the first sub-matrix of A processed by the block
+  // Index of the last sub-matrix of A processed by the block
+  // Step size used to iterate through the sub-matrices of A
+  // Loop over each block in a row
+  int aBegin = k * WMMA1B_M * bx;
+  int aStep  = WMMA1B_K/NBITS;
+
+  // Index of the first sub-matrix of B processed by the block
+  // Step size used to iterate through the sub-matrices of B
+  // Loop over each block in a column
+  int bBegin = k * WMMA1B_N * by;
+  int bStep  = WMMA1B_K/NBITS;
+
+  //printf("b=%d,%d t=%d,%d mnk=%u,%u,%u\n",bx,by,tx,ty,(unsigned int)m,
+  //       (unsigned int)n,(unsigned int)k);
+
+  // Declare fragments
+  wmma::fragment<wmma::matrix_a, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
+                 wmma::row_major> a_frag;
+  wmma::fragment<wmma::matrix_b, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
+                 wmma::col_major> b_frag;
+
+  wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> acc_frag;
+  wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> c_frag;
+  wmma::fill_fragment(acc_frag, 0);
+
+  // Loop over all sub-matrices of A and B to compute block sub-matrix
+  int nblocks=((k*NBITS)+WMMA1B_K-1)/WMMA1B_K;
+  for(int block=0; block<nblocks; block++) {
+
+    // Load the inputs
+    wmma::load_matrix_sync(a_frag, a+aBegin+block*aStep, k*NBITS);
+    wmma::load_matrix_sync(b_frag, b+bBegin+block*bStep, k*NBITS);
+
+    // Perform the matrix multiplication
+    wmma::bmma_sync(acc_frag, a_frag, b_frag, acc_frag);
+  }
+
+  int cBegin = n*WMMA1B_M*bx + WMMA1B_N*by;
+  if(beta) {
+    // Load C fragment
+    wmma::load_matrix_sync(c_frag, c+cBegin, n, wmma::mem_row_major);
+
+    // Add acc_frag to c_frag
+    for(int i=0; i<c_frag.num_elements; i++) {
+      c_frag.x[i] += acc_frag.x[i];
+    }
+
+    // Store the output
+    wmma::store_matrix_sync(c+cBegin, c_frag, n, wmma::mem_row_major);
+  }
+  else {
+    // Store the output
+    wmma::store_matrix_sync(c+cBegin, acc_frag, n, wmma::mem_row_major);
+  }
+
+  // Print individual c values
+  //__syncthreads();
+  //int cShift = tx*n+ty;
+  //int cInd = cBegin + cShift;
+  //printf("b=%d,%d t=%d,%d mnk=%u,%u,%u cBegin=%d cShift=%d cInd=%d val=%d\n",
+  //       bx,by,tx,ty,(unsigned int)m,(unsigned int)n,(unsigned int)k,cBegin,cShift,cInd,c[cInd]);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Simple WMMA tensor core 1-bit xor gemm that first loads data into
+///        shared memory
+
+__global__
+void b1_xor_gemm_gpu_tc_sm(size_t m, size_t n, size_t k, uint8_t* a,
+                           uint8_t *b, bool beta, int32_t* c) {
+  using namespace nvcuda;
+
+  // Block and thread indices
+  int tx = threadIdx.x, ty = threadIdx.y;
+  int bx = blockIdx.x, by = blockIdx.y;
+
+  // Index of the first sub-matrix of A processed by the block
+  // Index of the last sub-matrix of A processed by the block
+  // Step size used to iterate through the sub-matrices of A
+  // Loop over each block in a row
+  int aBegin = k * WMMA1B_M * bx;
+  int aStep  = WMMA1B_K/NBITS;
+
+  // Index of the first sub-matrix of B processed by the block
+  // Step size used to iterate through the sub-matrices of B
+  // Loop over each block in a column
+  int bBegin = k * WMMA1B_N * by;
+  int bStep  = WMMA1B_K/NBITS;
+
+  // Declare fragments
+  wmma::fragment<wmma::matrix_a, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
+                 wmma::row_major> a_frag;
+  wmma::fragment<wmma::matrix_b, WMMA1B_M, WMMA1B_N, WMMA1B_K, wmma::experimental::precision::b1,
+                 wmma::col_major> b_frag;
+  wmma::fragment<wmma::accumulator, WMMA1B_M, WMMA1B_N, WMMA1B_K, int> c_frag;
+  wmma::fill_fragment(c_frag, 0);
+
+  // Loop over all sub-matrices of A and B to compute block sub-matrix
+  int nblocks=((k*NBITS)+WMMA1B_K-1)/WMMA1B_K;
+  for(int block=0; block<nblocks; block++) {
+
+    // Load into shared memory
+    __shared__ uint8_t As[WMMA1B_M][WMMA1B_K/NBITS];
+    __shared__ uint8_t Bs[WMMA1B_N][WMMA1B_K/NBITS];
+    for(int i=0; i<2; i++) As[tx][ty*2+i] = a[aBegin+block*aStep+tx*k+ty*2+i];
+    for(int i=0; i<2; i++) Bs[ty][tx*2+i] = b[bBegin+block*bStep+ty*k+tx*2+i];
+    __syncthreads();
+
+    // Load the inputs
+    wmma::load_matrix_sync(a_frag, *As, WMMA1B_K);
+    wmma::load_matrix_sync(b_frag, *Bs, WMMA1B_K);
+
+    // Perform the matrix multiplication
+    wmma::bmma_sync(c_frag, a_frag, b_frag, c_frag);
+    __syncthreads();
+  }
+
+  // Store the output
+  int cBegin = n*WMMA1B_M*bx + WMMA1B_N*by;
+  wmma::store_matrix_sync(c+cBegin, c_frag, n, wmma::mem_row_major);
+}
+
+//-----------------------------------------------------------------------------
 
 template<int TC_METHOD>
 static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
@@ -89,7 +230,9 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
-  if (tc_solve_b1_use_mockup(env)) {
+  if(env.print_details()) printf("In tc_solve_impl_b1 num_kernel=%d use_mockup=%d\n",
+    env.num_kernel(),tc_solve_b1_use_mockup(env));
+  if (env.num_kernel()==0) { // && tc_solve_b1_use_mockup(env)) {
 
       COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
@@ -116,6 +259,10 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
       const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
       const int num_threadblocks_1 = n;
 
+      if(env.print_details()) printf("Launching b1_xor_gemm_gpu m=%d n=%d k_eff=%zu k=%d beta=%d "
+          "bytes_per_gi=%d NUM_FL_PER_PVFL=%d gridDim=%d,%d threadDim=%d,1\n",
+          m,n,k_eff,k,(int)beta,bytes_per_gi,NUM_FL_PER_PFL,
+          num_threadblocks_0,num_threadblocks_1,threadblocksize);
       COMET_LAUNCH_KERNEL((tc_solve_impl_b1_mockup_kernel<GemmIn_t, GemmOut_t>),
         dim3(num_threadblocks_0, num_threadblocks_1, 1),
         dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
@@ -124,10 +271,106 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
 
       System::accel_last_call_succeeded();
 
-  } else { // if (!tc_solve_b1_use_mockup(env))
+  }
+  // Call WMMA 1-bit GEMM kernels
+  else if(env.num_kernel()>=1 && env.num_kernel()<20) {
+      enum {NUM_FL_PER_PVFL = 64};
+      COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
-    COMET_INSIST(false && "TODO: implement.");
+      const bool beta = is_first ? 0 : 1;
 
+      // 8 == number of uint8_t values used to store NUM_FL_PER_PVFL fields
+      // in the tc buf.
+      enum {BYTES_PER_PVFL_FIELDS = 8};
+
+      const int bytes_per_gi = sizeof(typename TCTraits<TC_METHOD>::GemmIn_t);
+      const size_t k_eff = (k / NUM_FL_PER_PVFL) *
+                           (BYTES_PER_PVFL_FIELDS / bytes_per_gi);
+
+      const int threadblockx = 8, threadblocky = 8;
+
+      int gridblockx = m/threadblockx;
+      int gridblocky = n/threadblocky;
+
+      if(env.print_details())
+        printf("Launching 1-bit general GEMM kernel m=%d n=%d k_eff=%zu k=%d beta=%d "
+               "bytes_per_gi=%d NUM_FL_PER_PVFL=%d gridDim=%d,%d threadDim=%d,%d\n",
+               m,n,k_eff,k,(int)beta,bytes_per_gi,NUM_FL_PER_PVFL,
+               gridblockx,gridblocky,threadblockx,threadblocky);
+
+      switch(env.num_kernel()) {
+        // Basic GEMM
+        case 1: {
+          if(env.print_details()) printf("Using simple tensor core kernel\n");
+          COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu_tc_simple,
+            dim3(gridblockx, gridblocky, 1),
+            dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
+            n, m, k_eff, (uint8_t*)tc_bufs.tc_buf_right,
+            (uint8_t*)tc_bufs.tc_buf_left, beta, (int32_t*)matC);
+        } break;
+        // Simple shared memory GEMM
+        case 2: {
+          if(env.print_details()) printf("Using shared memory tensor core kernel\n");
+          COMET_LAUNCH_KERNEL(b1_xor_gemm_gpu_tc_sm,
+            dim3(gridblockx, gridblocky, 1),
+            dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
+            n, m, k_eff, (uint8_t*)tc_bufs.tc_buf_right,
+            (uint8_t*)tc_bufs.tc_buf_left, beta, (int32_t*)matC);
+        } break;
+        // Cutlass kernels
+        case 10: {
+          if(env.print_details()) printf("Using Cutlass kernel 256x128\n");
+          CutlassTCGemm1B_256x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+        } break;
+        case 11: {
+          if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
+          CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+        } break;
+        case 12: {
+          if(env.print_details()) printf("Using Cutlass kernel 128x128\n");
+          CutlassTCGemm1B_128x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+        } break;
+        case 13: {
+          if(env.print_details()) printf("Using Cutlass kernel 128x64\n");
+          CutlassTCGemm1B_128x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+        } break;
+        case 14: {
+          if(env.print_details()) printf("Using Cutlass kernel 64x128\n");
+          CutlassTCGemm1B_64x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+        } break;
+        case 15: {
+          if(env.print_details()) printf("Using Cutlass kernel 64x64\n");
+          CutlassTCGemm1B_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+        } break;
+        case 16: {
+          if(env.print_details()) printf("Using Cutlass WMMA kernel 64x64\n");
+          CutlassTCGemm1BWmma_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+        } break;
+        /*case 30: {
+          if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
+          CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+        } break;*/
+        default: {
+          printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
+             env.num_kernel());
+          COMET_INSIST(false && "Failure to call GEMM function.");
+        }
+      }
+      System::accel_last_call_succeeded();
+      env.ops_local_inc(2 * m * (double)n * (double)k_eff);
+  }
+  else {
+    printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
+               env.num_kernel());
+    COMET_INSIST(false && "Failure to call GEMM function.");
   } // if
 }
 
@@ -139,6 +382,23 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
   void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
+
+  // NOTE: from https://devblogs.nvidia.com/programming-tensor-cores-cuda-9/
+  // "Invoke the GEMM, ensuring k, lda, ldb, and ldc are all multiples of 8, 
+  //  and m is a multiple of 4"
+  // "GEMMs that do not satisfy the above rules will fall back
+  //  to a non-Tensor Core implementation"
+  // See also https://docs.nvidia.com/cuda/cublas/index.html#cublas-gemmEx
+
+  // k (=nfl) is derived from padded-up npvfl (multiple of 64), so always ok.
+  COMET_INSIST(k % 8 == 0 && "Failed divisibility condition for tc gemm.");
+  // since I_max_dim % 4 == 0; see tc_gemm_divisibility_required()
+  COMET_INSIST(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
+  // since nvl % 4 == 0; see tc_gemm_divisibility_required()
+  COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
+
+  if(env.print_details()) printf("\nIn tc_solve_impl mnk=%d,%d,%d num_kernel=%d\n",m,n,k,env.num_kernel());
+  double tbegin = env.get_time();
 
   // Make the appropriate BLAS call.
 
@@ -200,8 +460,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
 
-      env.gemmtime_record();
+      if(env.print_details())
+          printf("Launching Cublas/Rocblas GEMM kernel m=%d n=%d k=%d beta=%d\n",
+                 m,n,k,(int)beta);
 
+      env.gemmtime_record();
       env.gemmtime_start();
 
       // GPU BLAS call.
@@ -316,15 +579,9 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
         // Make CPU BLAS call.
 
-        const double t1 = System::time();
-
         cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
           m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
           (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
-
-        const double t2 = System::time();
-        const double t = t2 < t1 ? 0. : t2 - t1;
-        env.gemmtime_inc(t);
 
 #     else // COMET_USE_CPUBLAS
 
@@ -340,10 +597,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   } // if compute_method
 
-  const double ops = 2 * m * (double)n * (double)k;
+  const double ops = 2.0 * (double)m * (double)n * (double)k;
 
   env.ops_gemm_local_inc(ops);
   env.ops_local_inc(ops);
+  env.gemmtime_inc(env.get_time() - tbegin);
 
   if (is_timing_gemm) {
     env.stream_synchronize(env.stream_compute());
@@ -372,6 +630,9 @@ void tc_solve_(bool is_first, int nvll, int nvl, int npfl_thisstep,
   const int n = 2 * nvl; // metrics array dim
   const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
 
+  if(env.print_details())
+    printf("Calling tc_solve_impl with m=2*nvll=2*%d=%d n=2*nvl=2*%d=%d "
+           "k=npfl_thisstep*64=%d*64=%d\n",nvll,m,nvl,n,npfl_thisstep,k);
   tc_solve_impl<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
 }
 
