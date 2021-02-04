@@ -321,42 +321,48 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
         case 10: {
           if(env.print_details()) printf("Using Cutlass kernel 256x128\n");
           CutlassTCGemm1B_256x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 11: {
           if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
-          CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+          CutlassTCGemm1B_128x256<TCTBlockType::_128_256_512,TCWarpType::_64_64_512,TCInstType::_8_8_128,2>(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 12: {
           if(env.print_details()) printf("Using Cutlass kernel 128x128\n");
           CutlassTCGemm1B_128x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 13: {
           if(env.print_details()) printf("Using Cutlass kernel 128x64\n");
           CutlassTCGemm1B_128x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 14: {
           if(env.print_details()) printf("Using Cutlass kernel 64x128\n");
           CutlassTCGemm1B_64x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 15: {
           if(env.print_details()) printf("Using Cutlass kernel 64x64\n");
           CutlassTCGemm1B_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 16: {
           if(env.print_details()) printf("Using Cutlass WMMA kernel 64x64\n");
           CutlassTCGemm1BWmma_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n);
+            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
+        } break;
+        case 17: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256 W=64x64x1024 I=16x8x256\n");
+          CutlassTCGemm1B_128x256<TCTBlockType::_128_256_1024,TCWarpType::_64_64_1024,TCInstType::_16_8_256,2>(n, m, k,
+            (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
         } break;
         /*case 30: {
           if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
           CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n);
+            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n, env.stream_compute());
         } break;*/
         default: {
           printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
@@ -365,7 +371,8 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
         }
       }
       System::accel_last_call_succeeded();
-      env.ops_local_inc(2 * m * (double)n * (double)k_eff);
+      if(env.print_details()) printf("Number of ops = 2*%d*%d*%d\n",m,n,k);
+      env.ops_local_inc(2 * m * (double)n * (double)k);
   }
   else {
     printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
@@ -402,7 +409,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   // Make the appropriate BLAS call.
 
-  const bool is_timing_gemm = false; // true;
+  const bool is_timing_gemm = false; //true;
 
   if (is_timing_gemm)
     env.stream_synchronize(env.stream_compute());
