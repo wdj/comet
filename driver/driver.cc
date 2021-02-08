@@ -579,6 +579,7 @@ env->stream_compute(); //FIX
 
       // Output results.
 
+
       time_beg = env->synced_time();
       metrics_io.write(*metrics);
       if (BuildHas::DEBUG) {
@@ -597,6 +598,7 @@ env->stream_compute(); //FIX
       }
 
       // Compute checksum.
+
 
       if (do_.checksum) {
         time_beg = env->synced_time();

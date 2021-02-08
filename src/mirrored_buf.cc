@@ -243,6 +243,7 @@ void MirroredBuf::allocate(MirroredBuf& buf, size_t dim0_) {
 void MirroredBuf::set_zero_h() {
   COMET_INSIST(is_allocated);
 
+//# pragma omp parallel for schedule(dynamic,1000)
   for (size_t i=0; i<size_allocated_; ++i)
     ((char*)h)[i] = 0;
 }

@@ -60,6 +60,28 @@ struct TCSubmethod {
   };
 };
 
+struct TCGemmOpXorPopc {
+  template<typename GemmIn_t>
+  __host__ __device__
+  static GemmIn_t op(GemmIn_t a, GemmIn_t b) {return a ^ b;}
+# ifdef COMET_USE_CUTLASS
+  typedef cutlass::arch::OpXorPopc Value; 
+#else
+  typedef int Value; 
+#endif
+};
+
+struct TCGemmOpMultiplyAdd {
+  template<typename GemmIn_t>
+  __host__ __device__
+  static GemmIn_t op(GemmIn_t a, GemmIn_t b) {return a & b;}
+# ifdef COMET_USE_CUTLASS
+  typedef cutlass::arch::OpMultiplyAdd Value; 
+#else
+  typedef int Value; 
+#endif
+};
+
 // Mixin class.
 struct CutlassOpClassTensorOp {
 # ifdef COMET_USE_CUTLASS
@@ -141,7 +163,7 @@ template<> struct CutlassSettings<TCSubmethod::_64_64_WMMA>
 
 //-----------------------------------------------------------------------------
 
-template<int TC_SUBMETHOD>
+template<int TC_SUBMETHOD, typename TCGemmOp>
 void tc_solve_impl_b1_cutlass(
   bool is_first, int m, int n, int k,
   uint8_t const *A, int lda,
@@ -200,7 +222,9 @@ void tc_solve_impl_b1_cutlass(
       128, // AlignmentA
       128, // AlignmentB
       false, // SplitKSerial
-      cutlass::arch::OpXorPopc>;
+      typename TCGemmOp::Value>;
+      //cutlass::arch::OpXorPopc>;
+      //cutlass::arch::OpMultiplyAdd>;
 
   Gemm gemm_operator;
 
@@ -229,10 +253,45 @@ void tc_solve_impl_b1_cutlass(
 }
 
 //=============================================================================
+/// \brief 1-bit gemm kernel (mockup version, not high performance).
+
+template<typename GemmIn_t, typename GemmOut_t, typename TCGemmOp>
+__global__ void tc_solve_b1_gemm_mockup_kernel(
+  size_t m, size_t n, size_t k,
+  GemmIn_t* a, GemmIn_t* b, bool beta, GemmOut_t* c) {
+  //COMET_INSIST(a && b && c);
+
+  // k axis serialized; m, n axes threaded.
+
+  const size_t ind_m = threadIdx_x_() + blockIdx_x_() * blockDim_x_();
+  const size_t ind_n = blockIdx_y_();
+
+  if (ind_m >= m || ind_n >= n)
+    return;
+
+  for (size_t ind_k = 0; ind_k < k; ++ind_k) {
+
+    const GemmIn_t aik = a[ind_k + k*ind_m];
+    const GemmIn_t bjk = b[ind_k + k*ind_n];
+
+    GemmOut_t& cij = c[ind_m + m*ind_n];
+
+    // Use "xor" or "bitwise and"; count 1-bits with popcount.
+    const GemmOut_t v = utils::popc<GemmIn_t>(TCGemmOp::op(aik, bjk));
+    //const GemmOut_t v = utils::popc<GemmIn_t>(aik & bjk);
+    if (ind_m < 1024 * 1024 * 1024) // WORKAROUND for undiagnosed error.
+      cij = beta || ind_k ? cij + v : v;
+
+  } // for ind_k
+}
+
+#if 0
+//=============================================================================
 /// \brief 1-bit xor gemm kernel (mockup version, not high performance).
 
 template<typename GemmIn_t, typename GemmOut_t>
-__global__ void tc_solve_impl_b1_mockup_kernel(size_t m, size_t n, size_t k,
+__global__ void tc_solve_b1_xor_gemm_mockup_kernel(
+  size_t m, size_t n, size_t k,
   GemmIn_t* a, GemmIn_t* b, bool beta, GemmOut_t* c) {
   //COMET_INSIST(a && b && c);
 
@@ -258,11 +317,13 @@ __global__ void tc_solve_impl_b1_mockup_kernel(size_t m, size_t n, size_t k,
 
   } // for ind_k
 }
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief 1-bit xor gemm.
 
 static bool tc_solve_b1_use_mockup(const CEnv& env) {
+  //return true;
   return env.tc_eff() == TC::B1 &&
     ! (BuildHas::CUDA && System::compute_capability() > 700);
 }
@@ -302,11 +363,25 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
     const int num_threadblocks_0 = utils::ceil(m, threadblocksize);
     const int num_threadblocks_1 = n;
 
-    COMET_LAUNCH_KERNEL((tc_solve_impl_b1_mockup_kernel<GemmIn_t, GemmOut_t>),
-      dim3(num_threadblocks_0, num_threadblocks_1, 1),
-      dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-      m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
-      (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
+    if (env.is_using_xor()) {
+
+      COMET_LAUNCH_KERNEL((tc_solve_b1_gemm_mockup_kernel
+                           <GemmIn_t, GemmOut_t, TCGemmOpXorPopc>),
+        dim3(num_threadblocks_0, num_threadblocks_1, 1),
+        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+        m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
+        (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
+
+    } else { // !env.is_using_xor()
+
+      COMET_LAUNCH_KERNEL((tc_solve_b1_gemm_mockup_kernel
+                           <GemmIn_t, GemmOut_t, TCGemmOpMultiplyAdd>),
+        dim3(num_threadblocks_0, num_threadblocks_1, 1),
+        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+        m, n, k_eff, (GemmIn_t*)tc_bufs.tc_buf_left,
+        (GemmIn_t*)tc_bufs.tc_buf_right, beta, (GemmOut_t*)matC);
+
+    } // if (env.is_using_xor())
 
     System::accel_last_call_succeeded();
 
@@ -314,12 +389,26 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
 
     //COMET_INSIST(false && "TODO: implement.");
 
-    tc_solve_impl_b1_cutlass<TCSubmethod::_128_256>(
-      is_first, n, m, k, // NOTE: switching order of A, B.
-      (uint8_t*)tc_bufs.tc_buf_right, k,
-      (uint8_t*)tc_bufs.tc_buf_left, k,
-      (int32_t*)matC, m,
-      env.stream_compute());
+    if (env.is_using_xor()) {
+
+      tc_solve_impl_b1_cutlass<TCSubmethod::_128_256, TCGemmOpXorPopc>(
+        is_first, n, m, k, // NOTE: switching order of A, B.
+        (uint8_t*)tc_bufs.tc_buf_right, k,
+        (uint8_t*)tc_bufs.tc_buf_left, k,
+        (int32_t*)matC, m,
+        env.stream_compute());
+
+    } else { // !env.is_using_xor()
+
+      tc_solve_impl_b1_cutlass<TCSubmethod::_128_256, TCGemmOpMultiplyAdd>(
+        is_first, n, m, k, // NOTE: switching order of A, B.
+        (uint8_t*)tc_bufs.tc_buf_right, k,
+        (uint8_t*)tc_bufs.tc_buf_left, k,
+        (int32_t*)matC, m,
+        env.stream_compute());
+
+
+    } // if (env.is_using_xor())
 
     System::accel_last_call_succeeded(); // extra precaution.
 
