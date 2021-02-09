@@ -825,22 +825,18 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   MirroredBuf* const matM_KIK_buf =
                         si->perm2(matM_ij_buf, matM_jk_buf, matM_kik_buf);
 
-  if (env_.form_matX_tc())
-    vectors_I_buf->to_accel();
-
-  //--------------------
-  // Collapsed loops over J and over 2-way steps.
-  //--------------------
-
   const int J_min = si->J_lb;
   const int J_max = si->J_ub;
   const int J_count = J_max - J_min;
 
-  const int num_step_2way = env_.num_step_2way_for_3way();
-  const int num_step = J_count * num_step_2way;
-  const int extra_step = 1;
-
   MPI_Request mpi_requests[NUM_BUF] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+
+  // Make left vectors resident on GPU to repeatedly form matX.
+
+  if (env_.form_matX_tc())
+    vectors_I_buf->to_accel();
+
+  // Convenience struct to remember loop state across cycles.
 
   struct LoopVars {
     int step_num;
@@ -880,13 +876,26 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   LoopVars* const vars_buf[num_buf] =
     {&vars_buf0, &vars_buf1, &vars_buf2, &vars_buf3};
 
+  // Optionally compress the result data on the GPU.
+
   CompressedBuf matB_cbuf(*matB_buf_[0], env_);
 
+  // Num steps to take to compute the blocks
+
+  const int num_step_2way = env_.num_step_2way_for_3way();
+  const int num_step = J_count * num_step_2way;
+
+  // Add extra step/s at begin/end, to fill/drain pipeline.
+
+  const int extra_step = 1;
   const int first_step = 0 - extra_step;
 
+  //--------------------
+  // Collapsed loops over J and over 2-way steps.
+  //--------------------
+
   //========================================
-  for (int step_num = first_step; step_num < num_step+extra_step*2;
-       ++step_num) {
+  for (int step_num = first_step; step_num < num_step+extra_step*2; ++step_num){
   //========================================
 
     // Set per-step variables.
@@ -926,9 +935,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     //========== Send matrix matXitem to GPU - WAIT
 
-    if (vars.do_compute) {
+    if (vars.do_compute)
       matXitem_buf_[vars.index_01]->to_accel_wait();
-    }
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
@@ -954,16 +962,13 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     //========== Send matrix matXitem to GPU - START
 
-    if (vars_next.do_compute) {
+    if (vars_next.do_compute)
       matXitem_buf_[vars_next.index_01]->to_accel_start();
-    }
 
     //========== Copy result matrix matB from GPU - START
 
-    if (vars_prev.do_compute) {
-      //vars_prev.matB_buf_ptr()->from_accel_start();
+    if (vars_prev.do_compute)
       matB_cbuf.from_accel_start();
-    }
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
@@ -999,10 +1004,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     //========== Reduce along field procs - START
 
-    if (vars_prev.do_compute && env_.do_reduce()) {
+    if (vars_prev.do_compute && env_.do_reduce())
       mpi_requests[vars_prev.index_01] = gm_reduce_metrics_start(&metrics,
           &vars_prev.matB_buf, vars_prev.matB_buf_ptr(), &env_);
-    }
 
     //========== Compute numerators using ijk piece and (if needed) 2-way pieces
 
