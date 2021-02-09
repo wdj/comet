@@ -359,7 +359,19 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
             (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;
-        /*case 30: {
+        case 18: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256 W=64x64x1024 I=16x8x256\n");
+          CutlassTCGemm1B_128x256<TCTBlockType::_128_256_1024,TCWarpType::_64_64_1024,TCInstType::_16_8_256,3>(n, m, k,
+            (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	case 19: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256 W=64x64x1024 I=16x8x256\n");
+          CutlassTCGemm1B_128x256<TCTBlockType::_128_256_1024,TCWarpType::_64_64_1024,TCInstType::_16_8_256,4>(n, m, k,
+            (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	 /*case 30: {
           if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
           CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n, env.stream_compute());
@@ -371,8 +383,8 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
         }
       }
       System::accel_last_call_succeeded();
-      if(env.print_details()) printf("Number of ops = 2*%d*%d*%d\n",m,n,k);
-      env.ops_local_inc(2 * m * (double)n * (double)k);
+      //if(env.print_details()) printf("Number of ops = 2*%d*%d*%d\n",m,n,k);
+      //env.ops_local_inc(2 * m * (double)n * (double)k);
   }
   else {
     printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
@@ -423,13 +435,13 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #   ifdef COMET_USE_ACCEL
 
-      env.gemmtime_record();
+      //env.gemmtime_record();
 
-      env.gemmtime_start();
+      //env.gemmtime_start();
 
       tc_solve_impl_b1<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
 
-      env.gemmtime_end();
+      //env.gemmtime_end();
 
 #   else // COMET_USE_ACCEL
 

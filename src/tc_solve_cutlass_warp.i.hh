@@ -299,7 +299,7 @@ b1_comet_xor_gemm_gpu_cutlass_int(int m, int n, int k, GMBits2x64 *a, GMBits2x64
   using InstructionShape = cutlass::gemm::GemmShape<16, 8, 256>;
 #endif
 
-  static_assert(wK % alignment == 0, "alignment");
+  //static_assert(wK % alignment == 0, "alignment");
 
   using WarpShape = cutlass::gemm::GemmShape<wM*2, wN*2, wK>;
   using ElementA = cutlass::uint1b_t;
