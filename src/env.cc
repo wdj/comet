@@ -300,6 +300,7 @@ void CEnv::set_defaults_() {
   metric_entries_computed_ = 0;
   shrink_achieved_ = DBL_MAX;
 
+  compute_capability_cache_ = System::compute_capability();
 
 //FIX
   queue_compute_.is_initialized = false;
@@ -692,7 +693,7 @@ bool CEnv::can_run(int tc_try) const {
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
                      || (BuildHas::HIP && System::compute_capability() >= cc_minone))
-                    && can_use_xor_(tc_try);
+                    ; // && can_use_xor_(tc_try);
     if(printdetails) printf("Check Int1 result=%d compute_capability=%d can_use_xor=%d\n",
                             (int)result,System::compute_capability(),can_use_xor_(tc_try)); 
   }
@@ -787,6 +788,7 @@ double CEnv::get_time() {
 
 void CEnv::cpu_mem_local_inc(size_t n) {
  cpu_mem_local_ += n;
+//printf("CPU %zu %zu\n", n, cpu_mem_local_); //FIX
  cpu_mem_max_local_ = utils::max(cpu_mem_max_local_, cpu_mem_local_);
 }
 
@@ -795,6 +797,7 @@ void CEnv::cpu_mem_local_inc(size_t n) {
 
 void CEnv::gpu_mem_local_inc(size_t n) {
  gpu_mem_local_ += n;
+//printf("                             GPU %zu %zu\n", n, gpu_mem_local_); //FIX
  gpu_mem_max_local_ = utils::max(gpu_mem_max_local_, gpu_mem_local_);
 }
 

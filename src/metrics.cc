@@ -497,6 +497,9 @@ void GMMetrics_create(GMMetrics* metrics,
 
   const size_t data_size = metrics->num_metric_items_local_allocated *
     env->metric_item_size();
+//printf("metrics->num_metric_items_local %zu\n", metrics->num_metric_items_local);
+//printf("metrics->num_metric_items_local_allocated %zu\n", metrics->num_metric_items_local_allocated);
+//printf("data_size %zu\n", data_size);
 
   //data_size = metrics->num_metrics_local * metrics->data_elt_size;
 

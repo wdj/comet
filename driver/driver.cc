@@ -677,6 +677,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
 
       // Output results.
       if(env->print_details()) printf("Outputting results\n");
+
       time_beg = env->synced_time();
       metrics_io.write(*metrics);
       if (BuildHas::DEBUG) {
@@ -695,6 +696,7 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
       }
 
       // Compute checksum.
+
       if (do_.checksum) {
         if(env->print_details()) printf("Computing checksum\n");
         time_beg = env->synced_time();

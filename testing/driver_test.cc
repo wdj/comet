@@ -1875,7 +1875,7 @@ void DriverTest_tc_() {
 
 //=============================================================================
 
-void DriverTest_b1_xor_gemm_() {
+void DriverTest_b1_gemm_() {
 
   char options1[1024];
   char options2[1024];
@@ -1885,7 +1885,7 @@ void DriverTest_b1_xor_gemm_() {
       "--num_vector %i --num_field %i "
       "--compute_method %s --sparse yes --all2all yes "
       "--problem_type random --verbosity %i --tc %i "
-      "--num_tc_steps %i --threshold .5 --metrics_shrink 1.0 ";
+      "--num_tc_steps %i --threshold .05 --metrics_shrink 1.0 ";
 
   typedef comet::TC TC;
 
@@ -1921,7 +1921,7 @@ void DriverTest_b1_xor_gemm_() {
   }
   }
 
-} // DriverTest_b1_xor_gemm_
+} // DriverTest_b1_gemm_
 
 //=============================================================================
 
@@ -2788,9 +2788,9 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-/*#if 1
-TEST(DriverTest, b1_xor_gemm) {
-  DriverTest_b1_xor_gemm_();
+#if 1
+TEST(DriverTest, b1_gemm) {
+  DriverTest_b1_gemm_();
 }
 
 TEST(DriverTest, threshold) {
@@ -2828,7 +2828,6 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
-#endif
 
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
@@ -2845,19 +2844,21 @@ TEST(DriverTest, ccc2) {
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
+#endif
 
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
-}*/
+}
 
-/*TEST(DriverTest, duo3) {
+#if 1
+TEST(DriverTest, duo3) {
   DriverTest_duo3_();
-}*/
+}
 
 TEST(DriverTest, duo2_tc) {
   DriverTest_duo2_b1_();
 }
-//#endif
+#endif
 
 /*TEST(DriverTest, create_input_files) {
   DriverTest_create_input_files();

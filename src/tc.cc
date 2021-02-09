@@ -77,7 +77,8 @@ namespace comet {
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
 
   const size_t result = env.tc_eff() == TC::NO ? 1 :
-    tc_solve_b1_use_mockup(env) ? 4 : // Curent requirement - see tc_in.
+    // Curent requirement >= 4 - see tc_in.
+    tc_solve_b1_use_mockup(env) && env.tc_eff() == TC::B1 ? 4 :
     env.tc_eff() == TC::B1 ? 256 : 8;
 
   if(env.print_details()) printf("In vaxis_divis_req result=%zu tc_eff=%d use_mockup=%d\n",
@@ -94,7 +95,7 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
   // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
 
   const size_t result = !env.is_metric_type_bitwise() ? 1 :
-    !(env.tc_eff() == TC::B1) ? 1 : 2;
+    !(env.tc_eff() == TC::B1) ? 1 : 4;
 
   return result;
 }
