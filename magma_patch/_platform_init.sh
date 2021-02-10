@@ -56,6 +56,7 @@ local COMET_TEST_PROCS_MAX=64
 local COMET_WERROR=ON
 local COMET_USE_GTEST=ON
 local COMET_USE_INT128=OFF
+local COMET_COMPUTE_CAPABILITY=0
 
 #----------------------------------------
 if [ $COMET_PLATFORM = EXPERIMENTAL ] ; then
@@ -277,7 +278,8 @@ EOF
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_75,code=compute_75;-arch=sm_75"
 
   local USE_CUTLASS=ON
-  local COMET_CUTLASS_ARCH=Sm75
+  #local COMET_CUTLASS_ARCH=Sm75
+  local COMET_COMPUTE_CAPABILITY=750
   #COMET_WERROR=OFF
 
   local USE_MAGMA=ON
@@ -849,7 +851,8 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80"
 
   local USE_CUTLASS=ON
-  local COMET_CUTLASS_ARCH=Sm80
+  #local COMET_CUTLASS_ARCH=Sm80
+  local COMET_COMPUTE_CAPABILITY=800
   #COMET_WERROR=OFF
 
   #local USE_MAGMA=OFF
