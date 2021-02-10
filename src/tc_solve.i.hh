@@ -361,6 +361,7 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
                  "Failed divisibility condition for tc gemm.");
 
     const bool beta = is_first ? 0 : 1;
+    no_unused_variable_warning(beta);
 
     // 8 == number of uint8_t values used to store each chunk of
     // NUM_FL_PER_PFL fields in the tc buf.
@@ -368,10 +369,12 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
 
     typedef typename TCTraits<TC_METHOD>::GemmIn_t GemmIn_t;
     typedef typename TCTraits<TC_METHOD>::GemmOut_t GemmOut_t;
+    no_unused_type_warning<GemmOut_t>();
 
     const int bytes_per_gi = sizeof(GemmIn_t);
     const size_t k_eff = (k / NUM_FL_PER_PFL) *
                          (BYTES_PER_PFL_FIELDS / bytes_per_gi);
+    no_unused_variable_warning(k_eff);
 
     const int threadblocksize = 256;
     COMET_INSIST((threadblocksize <= 256 || ! BuildHas::HIP) &&

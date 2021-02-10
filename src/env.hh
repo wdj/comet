@@ -961,6 +961,9 @@ private:
 template<typename T>
 static void no_unused_variable_warning(T& v) {}
 
+template<typename T>
+static void no_unused_type_warning() {}
+
 //-----------------------------------------------------------------------------
 /// \brief Templatized access to CCC or DUO front multiplier.
 
