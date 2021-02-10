@@ -739,6 +739,9 @@ public:
   MPI_Comm comm_repl_vector() const {return comm_repl_vector_;}
   MPI_Comm comm_field() const {return comm_field_;}
 
+  //bool is_comm_ring() const {return NumWay::_2 == num_way();}
+  bool is_comm_ring() const {return false;}
+
   //----------------------------------------
   // MPI proc counts
 
@@ -753,11 +756,26 @@ public:
   //----------------------------------------
   // MPI proc numbers
 
-  int proc_num_vector() const {return proc_num_vector_;}
-  int proc_num_field() const {return proc_num_field_;}
-  int proc_num_repl() const {return proc_num_repl_;}
   int proc_num() const {return proc_num_;}
   bool is_proc_active() const {return is_proc_active_;}
+
+  // This is FVR-order mapping of proc axes to MPI_COMM_WORLD ranks.
+
+  int proc_num_field() const {return proc_num_ % num_proc_field_;}
+
+  int proc_num_vector() const {
+    return (proc_num_ / num_proc_field_) % num_proc_vector_;}
+
+  int proc_num_repl() const {
+    return (proc_num_ / num_proc_field_) / num_proc_vector_;}
+
+  // This is a virtualized mapping, ordering is indep of map to HW (above).
+
+  int proc_num_repl_vector(int proc_num_repl, int proc_num_vector) const {
+    return proc_num_repl + num_proc_repl_ * proc_num_vector;}
+
+  int proc_num_repl_vector() const {
+    return proc_num_repl_vector(proc_num_repl(), proc_num_vector());}
 
   //----------------------------------------
   // Accelerator streams
@@ -900,10 +918,10 @@ private:
   // MPI proc numbers
   int proc_num_base_;
   int proc_num_;
-  int proc_num_field_;
-  int proc_num_repl_;
-  int proc_num_vector_;
-  int proc_num_repl_vector_;
+  //int proc_num_field_;
+  //int proc_num_repl_;
+  //int proc_num_vector_;
+  //int proc_num_repl_vector_;
   bool is_proc_active_;
 
   // Accelerator streams

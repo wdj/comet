@@ -223,13 +223,16 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   // For even number of vector blocks, block rows of lower half of matrix
   //  have one less block to make correct count.
 
-  const int num_proc_r = env_.num_proc_repl();
-  const int proc_num_r = env_.proc_num_repl();
+  const int num_proc_repl = env_.num_proc_repl();
+  const int proc_num_repl = env_.proc_num_repl();
+
+//  const int num_proc_vector = env_.num_proc_vector();
+//  const int proc_num_vector = env_.proc_num_vector();
 
   // Flatten the proc_vector and proc_repl indices into a single index.
 
-  const int num_proc_rv = num_block * num_proc_r;
-  const int proc_num_rv = proc_num_r + num_proc_r * i_block;
+  //const int num_proc_rv = num_block * num_proc_repl;
+  //const int proc_num_rv = proc_num_repl + num_proc_repl * i_block;
 
   MPI_Request mpi_requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
@@ -290,10 +293,10 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   CompressedBuf matB_buf_compressed(*metrics_buf_01_[0], env_);
 
   // Num steps to take to compute the blocks
-  // (note: at each step, num_proc_r processors each compute a block)
+  // (note: at each step, num_proc_repl processors each compute a block)
   // NOTE: num_step should be consistent within same proc_r.
 
-  const int num_step = utils::ceil(num_bdiag_computed, num_proc_r);
+  const int num_step = utils::ceil(num_bdiag_computed, num_proc_repl);
 
   // Add extra step/ at begin/end to fill/drain pipeline.
 
@@ -314,10 +317,24 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                                 vars_next.step_num < num_step;
     vars_next.is_first_compute_step = vars_next.step_num == 0;
     vars_next.index_01 = utils::mod_i(vars_next.step_num, 2);
-    vars_next.j_i_offset = j_i_offset_min + vars_next.step_num * num_proc_r
-                           + proc_num_r;
-    vars_next.is_main_diag = vars_next.j_i_offset == 0;
+
+    // Which matrix block (block column num) we compute this proc this step.
+    // The block row num is proc_num_vector.
+    // So blocks in the block row are round robin assigned across num_proc_repl.
+    vars_next.j_i_offset = j_i_offset_min +
+       proc_num_repl + num_proc_repl * vars_next.step_num;
+
+// TODO:
+//    vars_next.j_i_offset = j_i_offset_min +
+//       (env_.is_comm_ring() ? vars_next.step_num + num_step * proc_num_repl :
+//                              proc_num_repl + num_proc_repl * vars_next.step_num);
+// (roughly)
+// look at gm_bdiag_computed_max_allphase
+// need to convert vars_next.step_num to a bdiag num of some type
+
     vars_next.j_block = utils::mod_i(i_block + vars_next.j_i_offset, num_block);
+    vars_next.is_main_diag = vars_next.j_i_offset == 0;
+
     vars_next.do_compute_block = vars_next.is_compute_step &&
                    vars_next.j_i_offset < j_i_offset_this_row_max;
 
@@ -342,27 +359,53 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     vars_next.metrics_buf = metrics_buf_01_[vars_next.index_01];
 
-    // Prepare for sends/recvs: procs for communication
-
-    const int proc_send = utils::mod_i(proc_num_rv
-        - vars_next.j_i_offset*num_proc_r, num_proc_rv);
-
-    const int proc_recv = utils::mod_i(proc_num_rv
-        + vars_next.j_i_offset*num_proc_r, num_proc_rv);
-
-    const bool comm_with_self = vars_next.is_main_diag;
-
     //========== MPI sends, receives - START
 
-    if (vars_next.is_compute_step && ! comm_with_self) {
+//    const int proc_send = utils::mod_i(proc_num_rv
+//      - vars_next.j_i_offset * num_proc_repl,
+//       num_proc_rv);
+
+//    const int proc_recv = utils::mod_i(proc_num_rv
+//      + vars_next.j_i_offset * num_proc_repl,
+//      num_proc_rv);
+
+// TODO:
+//    const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
+//      utils::mod_i(i_block - env_.is_comm_ring() ? 1 : vars_next.j_i_offset, num_block));
+//    const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
+//      utils::mod_i(i_block + env_.is_comm_ring() ? 1 : vars_next.j_i_offset, num_block));
+// ISSUE: does metrics storage depend on this.
+// probably need to revise gm_proc_r_active
+// also Metrics_index_2_part2 ...
+
+    const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
+      utils::mod_i(i_block - vars_next.j_i_offset, num_block));
+
+    const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
+      utils::mod_i(i_block + vars_next.j_i_offset, num_block));
+
+//if (env_.num_proc() > 1)
+//if (env_.proc_num_vector() == 0)
+//printf("pn %i pnr %i step %i step_next %i ji %i ps %i pr %i  \n", env_.proc_num(), proc_num_repl, step_num, vars_next.step_num, vars_next.j_i_offset, proc_send, proc_recv );
+
+    const bool do_comm = vars_next.j_i_offset < num_block &&
+      ! vars_next.is_main_diag;
+
+    if (vars_next.is_compute_step && do_comm) {
       const int mpi_tag = step_num + 1;
-      // NOTE: the following order helps performance
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
+      // NOTE: the following order seems to help performance.
       mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
                                               proc_recv, mpi_tag, &env_);
       mpi_requests[0] = gm_send_vectors_start(vectors_left,
                                               proc_send, mpi_tag, &env_);
+// TODO:
+//      mpi_requests[0] = gm_send_vectors_start(
+//        vars_next.step_num == 0 || !env_.is_comm_ring() ?
+//          vectors_left : vars.vectors_right,
+//                                              proc_send, mpi_tag, &env_);
+
     }
 
     //========== Send right matrix to GPU - WAIT.
@@ -457,7 +500,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     //========== MPI receives - WAIT
 
-    if (vars_next.is_compute_step && ! comm_with_self) {
+    if (vars_next.is_compute_step && do_comm) {
       gm_recv_vectors_wait(&(mpi_requests[1]), &env_);
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
@@ -518,7 +561,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     //========== MPI sends - WAIT
 
-    if (vars_next.is_compute_step && ! comm_with_self)
+    if (vars_next.is_compute_step && do_comm)
       gm_send_vectors_wait(&(mpi_requests[0]), &env_);
 
   //========================================

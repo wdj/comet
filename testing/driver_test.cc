@@ -334,6 +334,7 @@ void DriverTest_czek2_() {
                                 "--num_proc_vector 2 --num_proc_field "
                                 "2 --num_field 2 --num_vector_local 2 "
                                 "--compute_method GPU --all2all yes"));
+#endif
 
   //----------
   //---num_proc_repl, 2-way
@@ -349,9 +350,13 @@ void DriverTest_czek2_() {
       "--num_proc_field %i --num_way %i --num_stage %i";
 
   for (int gpu=0; gpu<=1; ++gpu) {
+  //for (int gpu=0; gpu<=0; ++gpu) {
     for (int num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
+    //for (int num_vector_local=4; num_vector_local<=4; ++num_vector_local) {
       for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
+      //for (int num_proc_vector=6; num_proc_vector<=6; ++num_proc_vector) {
         for (int num_proc_repl=1; num_proc_repl<=6; ++num_proc_repl) {
+        //for (int num_proc_repl=2; num_proc_repl<=2; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
           if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
             continue;
@@ -424,7 +429,6 @@ void DriverTest_czek2_() {
       }
     }
   }
-#endif
 
   //----------
   //---Misc options
@@ -561,6 +565,7 @@ void DriverTest_czek3_() {
                           "--num_proc_vector 3 --num_proc_field 2 --num_field "
                           "2 --num_vector_local 6 "
                           " --compute_method GPU --num_way 3 --all2all yes"));
+#endif
 
   //----------
   //---num_proc_repl, num_stage, 3-way
@@ -640,7 +645,6 @@ void DriverTest_czek3_() {
       }
     }
   }
-#endif
 
 //  //----------
 //  //---file output, 3-way
@@ -2621,11 +2625,13 @@ TEST(DriverTest, duo2_simple_sparse) {
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
+#endif
 
 TEST(DriverTest, czek3) {
   DriverTest_czek3_();
 }
 
+#if 1
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }
@@ -2633,13 +2639,11 @@ TEST(DriverTest, ccc2) {
 TEST(DriverTest, ccc3) {
   DriverTest_ccc3_();
 }
-#endif
 
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }
 
-#if 1
 TEST(DriverTest, duo3) {
   DriverTest_duo3_();
 }

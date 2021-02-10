@@ -57,6 +57,12 @@ function main
   # Perform initializations pertaining to platform of build.
   . $SCRIPT_DIR/_platform_init.sh
 
+  # Workaround
+
+  if [ $COMET_HOST = peak ] ; then
+    export HWLOC_KEEP_NVIDIA_GPU_NUMA_NODES=1
+  fi
+
   # Pick up builds directory.
   local BUILDS_DIR="${COMET_BUILDS_DIR:-$PWD}"
 

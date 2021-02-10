@@ -202,11 +202,11 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
   ---*/
 
   /*===PART A: CALCULATE INDEX SIZE===*/
-  const int proc_num_r = env.proc_num_repl();
-  const int num_proc_r = env.num_proc_repl();
+  const int proc_num_repl = env.proc_num_repl();
+  const int num_proc_repl = env.num_proc_repl();
 
   // PART A.1: (triangle) i_block==j_block part.
-  const bool have_main_diag = proc_num_r == 0 &&
+  const bool have_main_diag = proc_num_repl == 0 &&
                               gm_bdiag_computed_min(&env) == 0;
   metrics.num_metrics_local += have_main_diag ? nchoosek : 0;
   metrics.index_offset_part2_ = have_main_diag ? nchoosek - nvlsq : 0;
@@ -215,7 +215,7 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
 
   // PART A.2: (wrapped rect) i_block!=j_block part.
   const int num_computed_blocks_this_row = gm_blocks_computed_this_row(&env);
-  const int num_computed_blocks_this_proc = rr_pack_(proc_num_r, num_proc_r,
+  const int num_computed_blocks_this_proc = rr_pack_(proc_num_repl, num_proc_repl,
                                              num_computed_blocks_this_row);
   const int num_computed_offdiag_blocks_this_proc =
     num_computed_blocks_this_proc - (have_main_diag ? 1 : 0);
@@ -570,8 +570,8 @@ void GMMetrics_create(GMMetrics* metrics,
   if (env->num_way() == NumWay::_2 && env->all2all()) {
   /*==================================================*/
 
-    const int proc_num_r = env->proc_num_repl();
-    const bool have_main_diag = proc_num_r == 0 &&
+    const int proc_num_repl = env->proc_num_repl();
+    const bool have_main_diag = proc_num_repl == 0 &&
                                 gm_bdiag_computed_min(env) == 0;
 
     const int num_computed_blocks_this_row = gm_blocks_computed_this_row(env);

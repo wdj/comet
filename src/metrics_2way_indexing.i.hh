@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+// Assumed ordering of block diagonals is RSP  - proc_repl axis varies fastest,
+// then serial step axis, then phase axis.
+
 //-----------------------------------------------------------------------------
 // Helper functions for 2-way case.
 
