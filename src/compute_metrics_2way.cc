@@ -260,11 +260,14 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   // measured from (block) main diag.
   // For all repl procs.
 
-  const int j_i_offset_min = gm_bdiag_computed_min(&env_);
-  const int j_i_offset_max = gm_bdiag_computed_max(&env_);
-  const int j_i_offset_this_row_max = gm_block_computed_this_row_max(&env_);
+  //const int j_i_offset_min = gm_bdiag_computed_min(&env_);
+  //const int j_i_offset_max = gm_bdiag_computed_max(&env_);
+  const int j_i_offset_min = metrics_bdiag_thisphase_min(env_);
+  //const int j_i_offset_max = metrics_bdiag_thisphase_max(env_);
+  //const int j_i_offset_this_row_max = gm_block_computed_this_row_max(&env_);
+  const int j_i_offset_this_row_max = metrics_bdiag_thisphase_thisbrow_max(env_);
 
-  const int num_bdiag_computed = j_i_offset_max - j_i_offset_min;
+  //const int num_bdiag_computed = j_i_offset_max - j_i_offset_min;
 
   // Convenience struct to remember loop state across cycles.
 
@@ -296,7 +299,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   // (note: at each step, num_proc_repl processors each compute a block)
   // NOTE: num_step should be consistent within same proc_r.
 
-  const int num_step = utils::ceil(num_bdiag_computed, num_proc_repl);
+  //const int num_step = utils::ceil(num_bdiag_computed, num_proc_repl);
+  const int num_step = metrics_2way_num_steps(env_);
 
   // Add extra step/ at begin/end to fill/drain pipeline.
 
@@ -318,22 +322,22 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     vars_next.is_first_compute_step = vars_next.step_num == 0;
     vars_next.index_01 = utils::mod_i(vars_next.step_num, 2);
 
-    // Which matrix block (block column num) we compute this proc this step.
-    // The block row num is proc_num_vector.
-    // So blocks in the block row are round robin assigned across num_proc_repl.
-    vars_next.j_i_offset = j_i_offset_min +
-       proc_num_repl + num_proc_repl * vars_next.step_num;
+    // Find bdiag number being computed.
 
-// TODO:
 //    vars_next.j_i_offset = j_i_offset_min +
-//       (env_.is_comm_ring() ? vars_next.step_num + num_step * proc_num_repl :
-//                              proc_num_repl + num_proc_repl * vars_next.step_num);
-// (roughly)
-// look at gm_bdiag_computed_max_allphase
-// need to convert vars_next.step_num to a bdiag num of some type
+//       proc_num_repl + num_proc_repl * vars_next.step_num;
+    vars_next.j_i_offset = j_i_offset_min + (
+       env_.is_comm_ring() ?
+       vars_next.step_num + num_step * proc_num_repl :
+       proc_num_repl + num_proc_repl * vars_next.step_num);
 
     vars_next.j_block = utils::mod_i(i_block + vars_next.j_i_offset, num_block);
     vars_next.is_main_diag = vars_next.j_i_offset == 0;
+
+    // Ensure that the respective block is in the range of what is
+    // to be computed in this phase.
+    // This may be an issue if num_step * num_proc_repl doesn't equal
+    // num computed this phase - due to divisibility.
 
     vars_next.do_compute_block = vars_next.is_compute_step &&
                    vars_next.j_i_offset < j_i_offset_this_row_max;
@@ -369,7 +373,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 //      + vars_next.j_i_offset * num_proc_repl,
 //      num_proc_rv);
 
-// TODO:
+//FIXRING
 //    const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
 //      utils::mod_i(i_block - env_.is_comm_ring() ? 1 : vars_next.j_i_offset, num_block));
 //    const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
@@ -400,7 +404,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                                               proc_recv, mpi_tag, &env_);
       mpi_requests[0] = gm_send_vectors_start(vectors_left,
                                               proc_send, mpi_tag, &env_);
-// TODO:
+//FIXRING
 //      mpi_requests[0] = gm_send_vectors_start(
 //        vars_next.step_num == 0 || !env_.is_comm_ring() ?
 //          vectors_left : vars.vectors_right,

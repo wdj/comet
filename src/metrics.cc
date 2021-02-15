@@ -159,7 +159,7 @@ MetricItemCoords_t* MetricsMem::malloc_data_coords_values(
 }
 
 //=============================================================================
-// Helper: round-robin-pack m values into n bins, return ith bin size.
+/// \brief Helper: round-robin-pack m values into n bins, return ith bin size.
 
 static int rr_pack_(int i, int n, int m) {
   return m/n + (i < m % n ? 1 : 0);
@@ -175,8 +175,10 @@ GMMetrics GMMetrics_null() {
 }
 
 //=============================================================================
+/// \brief Calc num metrics to store on this proc (w/o shrink), 2-way case.
 
-void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
+void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl,
+  const CEnv& env) {
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(env.num_way() == NumWay::_2);
 
@@ -188,9 +190,7 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
   metrics.num_metrics_local = 0;
 
   const int i_block = env.proc_num_vector();
-
   const size_t nchoosek = utils::nchoosek(nvl, env.num_way());
-
   const size_t nvlsq = nvl * (size_t)nvl;
 
   /*---Store the following in this block-row:
@@ -206,20 +206,24 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl, CEnv& env) {
   const int num_proc_repl = env.num_proc_repl();
 
   // PART A.1: (triangle) i_block==j_block part.
-  const bool have_main_diag = proc_num_repl == 0 &&
-                              gm_bdiag_computed_min(&env) == 0;
-  metrics.num_metrics_local += have_main_diag ? nchoosek : 0;
-  metrics.index_offset_part2_ = have_main_diag ? nchoosek - nvlsq : 0;
-  metrics.block_min_part2_ = (i_block + gm_bdiag_computed_min(&env)) %
+  const bool have_main_bdiag = proc_num_repl == 0 &&
+//                              gm_bdiag_computed_min(&env) == 0;
+                              metrics_bdiag_thisphase_min(env) == 0;
+  metrics.num_metrics_local += have_main_bdiag ? nchoosek : 0;
+  metrics.index_offset_part2_ = have_main_bdiag ? nchoosek - nvlsq : 0;
+//  metrics.block_min_part2_ = (i_block + gm_bdiag_computed_min(&env)) %
+  metrics.block_min_part2_ = (i_block + metrics_bdiag_thisphase_min(env)) %
     env.num_block_vector();
 
   // PART A.2: (wrapped rect) i_block!=j_block part.
-  const int num_computed_blocks_this_row = gm_blocks_computed_this_row(&env);
+  //const int num_computed_blocks_this_row = gm_blocks_computed_this_row(&env);
+  const int num_computed_blocks_this_row = metrics_num_bdiag_thisphase_thisbrow(env);
+//FIXRING
   const int num_computed_blocks_this_proc = rr_pack_(proc_num_repl, num_proc_repl,
                                              num_computed_blocks_this_row);
-  const int num_computed_offdiag_blocks_this_proc =
-    num_computed_blocks_this_proc - (have_main_diag ? 1 : 0);
-  metrics.num_metrics_local += num_computed_offdiag_blocks_this_proc * nvlsq;
+  const int num_computed_offbdiag_blocks_this_proc =
+    num_computed_blocks_this_proc - (have_main_bdiag ? 1 : 0);
+  metrics.num_metrics_local += num_computed_offbdiag_blocks_this_proc * nvlsq;
 }
 
 //=============================================================================
@@ -571,16 +575,22 @@ void GMMetrics_create(GMMetrics* metrics,
   /*==================================================*/
 
     const int proc_num_repl = env->proc_num_repl();
-    const bool have_main_diag = proc_num_repl == 0 &&
-                                gm_bdiag_computed_min(env) == 0;
+    const bool have_main_bdiag = proc_num_repl == 0 &&
+//                                gm_bdiag_computed_min(env) == 0;
+                                metrics_bdiag_thisphase_min(*env) == 0;
 
-    const int num_computed_blocks_this_row = gm_blocks_computed_this_row(env);
+    //const int num_computed_blocks_this_row = gm_blocks_computed_this_row(env);
+    const int num_computed_blocks_this_row = metrics_num_bdiag_thisphase_thisbrow(*env);
 
     // PART C.1: (triangle) i_block==j_block part.
     size_t index = 0;
-    if (have_main_diag) {
+    if (have_main_bdiag) {
+      const int bdiag = 0;
+      no_unused_variable_warning(bdiag);
       COMET_ASSERT(env->proc_num_repl() == 0);
-      COMET_ASSERT(gm_proc_r_active(0, env));
+//FIXRING
+      COMET_ASSERT(gm_proc_r_active(bdiag, env));
+      // WARNING: no omp pragma here because index++ is sequential.
       for (int j = 0; j < nvl; ++j) {
         const size_t jG = j + nvl * i_block;
         for (int i = 0; i < j; ++i) {
@@ -596,14 +606,16 @@ void GMMetrics_create(GMMetrics* metrics,
 
     // PART C.2: (wrapped rectangle) i_block!=j_block part.
 
-    const int beg = gm_bdiag_computed_min(env);
-    const int end = beg + num_computed_blocks_this_row;
-    for (int diag=beg; diag<end; ++diag) {
-      const int diag_offset = diag - beg;
-      if (diag == 0 || ! gm_proc_r_active(diag_offset, env)) {
+//    const int bdiag_beg = gm_bdiag_computed_min(env);
+    const int bdiag_beg = metrics_bdiag_thisphase_min(*env);
+    const int bdiag_end = bdiag_beg + num_computed_blocks_this_row;
+    for (int bdiag = bdiag_beg; bdiag < bdiag_end; ++bdiag) {
+      const int bdiag_offset = bdiag - bdiag_beg;
+      // NOTE bdiag == 0 case already handled (above).
+//FIXRING
+      if (bdiag == 0 || ! gm_proc_r_active(bdiag_offset, env))
         continue;
-      }
-      const int j_block_unwrapped = i_block + diag;
+      const int j_block_unwrapped = i_block + bdiag;
       // don't use collapse because of overflow for large sizes
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
@@ -620,7 +632,7 @@ void GMMetrics_create(GMMetrics* metrics,
         }
       }
       index += nvlsq;
-    } // for diag
+    } // for bdiag
 
     // Final check.
     COMET_INSIST(index == metrics->num_metrics_local &&

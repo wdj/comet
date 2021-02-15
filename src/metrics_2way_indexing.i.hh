@@ -44,55 +44,98 @@ namespace comet {
 // then serial step axis, then phase axis.
 
 //-----------------------------------------------------------------------------
-// Helper functions for 2-way case.
+/// \brief Num nonzero/stored block diags of full metrics matrix.
 
-static int gm_bdiag_computed_max_allphase(CEnv* env) {
+//static int gm_bdiag_computed_max_allphase(const CEnv* env) {
+//  COMET_ASSERT(env);
+//  COMET_ASSERT(env->num_way() == NumWay::_2);
+//  COMET_ASSERT(env->all2all());
+//
+//  // Max number of blocks of any block row computed on all phases.
+//  const int num_block = env->num_block_vector();
+//  return 1 + num_block / 2;
+//}
+
+static int metrics_num_bdiag_(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
+
+  // Assuming here the full matrix has a circulant sparsity pattern that stores
+  // all unique blocks, under assumption of symmetry of the full matrix.
+
+  // = max (across block rows) of num blocks to be computed for all phases.
+  return 1 + env.num_block_vector() / 2;
+}
+
+
+//-----------------------------------------------------------------------------
+/// \brief Min limit of block diags to be computed this phase.
+
+//static int gm_bdiag_computed_min(const CEnv* env) {
+//  COMET_ASSERT(env);
+//  COMET_ASSERT(env->num_way() == NumWay::_2);
+//  COMET_ASSERT(env->all2all());
+//
+//  // First block diag computed for this phase (min across vec procs)
+//  const int max_rectangle_width = metrics_num_bdiag_(*env);
+//  return (max_rectangle_width*env->phase_num()) / env->num_phase();
+//}
+
+static int metrics_bdiag_thisphase_min(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
+
+  // First block diag computed for this phase (min across vec procs).
+  const int num_bdiag = metrics_num_bdiag_(env);
+  return (num_bdiag * env.phase_num()) / env.num_phase();
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Max limit of block diags to be computed this phase.
+
+//static int gm_bdiag_computed_max(const CEnv* env) {
+//  COMET_ASSERT(env);
+//  COMET_ASSERT(env->num_way() == NumWay::_2);
+//  COMET_ASSERT(env->all2all());
+//
+//  // (1 + ) last block diag computed for this phase (max across vec procs).
+//  const int max_rectangle_width = metrics_num_bdiag_(*env);
+//  return (max_rectangle_width*(env->phase_num()+1)) / env->num_phase();
+//}
+
+static int metrics_bdiag_thisphase_max(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
+
+  // (1 + ) last block diag computed for this phase (max across vec procs).
+  const int num_bdiag = metrics_num_bdiag_(env);
+  return (num_bdiag * (env.phase_num()+1)) / env.num_phase();
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Min limit of block diags (blocks) to compute this phase & block row.
+
+static int gm_block_computed_this_row_min(const CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(env->all2all());
 
-  // Max number of blocks of any block row computed on all phases.
-  const int num_block = env->num_block_vector();
-  return 1 + num_block / 2;
+  //return gm_bdiag_computed_min(env);
+  return metrics_bdiag_thisphase_min(*env);
+}
+
+
+static int metrics_bdiag_thisphase_thisbrow_min(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
+
+  return metrics_bdiag_thisphase_min(env);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Max limit of block diags (blocks) to compute this phase & block row.
 
-static int gm_bdiag_computed_min(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
-
-  // First block diag computed for this phase (min across vec procs)
-  const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
-  return (max_rectangle_width*env->phase_num()) / env->num_phase();
-}
-
-//-----------------------------------------------------------------------------
-
-static int gm_bdiag_computed_max(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
-
-  // 1 + last block diag computed for this phase (max across vec procs)
-  const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
-  return (max_rectangle_width*(env->phase_num()+1)) / env->num_phase();
-}
-
-//-----------------------------------------------------------------------------
-
-static int gm_block_computed_this_row_min(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
-
-  return gm_bdiag_computed_min(env);
-}
-
-//-----------------------------------------------------------------------------
-
-static int gm_block_computed_this_row_max(CEnv* env) {
+static int gm_block_computed_this_row_max(const CEnv* env) {
   COMET_ASSERT(env);
   COMET_ASSERT(env->num_way() == NumWay::_2);
   COMET_ASSERT(env->all2all());
@@ -103,7 +146,8 @@ static int gm_block_computed_this_row_max(CEnv* env) {
   const bool is_row_short_by_1 = num_block % 2 == 0 && 2*i_block >= num_block;
   const bool is_last_phase = env->phase_num() == env->num_phase() - 1;
 
-  const int diag_max = gm_bdiag_computed_max(env);
+  //const int diag_max = gm_bdiag_computed_max(env);
+  const int diag_max = metrics_bdiag_thisphase_max(*env);
 
   // 1 + last block diag computed for this phase, all repl procs (this vec proc)
   const int n = is_last_phase && is_row_short_by_1 ? diag_max - 1 : diag_max;
@@ -112,19 +156,70 @@ static int gm_block_computed_this_row_max(CEnv* env) {
   return n;
 }
 
+
+static int metrics_bdiag_thisphase_thisbrow_max(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
+
+  const int num_block = env.num_block_vector();
+  const int i_block = env.proc_num_vector();
+
+  // The block in the last block diag may be in fact be zero, in consideration
+  // of the set of blocks needed to cover all unique under symmetry. This would
+  // potentially be encountered in the last phase, so account for this.
+
+  const bool is_row_short_by_1 = num_block % 2 == 0 && 2 * i_block >= num_block;
+  const bool is_last_phase = env.phase_num() == env.num_phase() - 1;
+
+  //const int diag_max = gm_bdiag_computed_max(env);
+  const int diag_max = metrics_bdiag_thisphase_max(env);
+
+  // 1 + last block diag computed for this phase, all repl procs (this vec proc)
+  const int result = is_last_phase && is_row_short_by_1 ?
+     diag_max - 1 : diag_max;
+  COMET_ASSERT(result >= 0 && result <= num_block);
+  return result;
+}
+
 //-----------------------------------------------------------------------------
+/// \brief Number of block diags (blocks) to compute this phase & block row.
 
-static int gm_blocks_computed_this_row(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
+//static int gm_blocks_computed_this_row(const CEnv* env) {
+//  COMET_ASSERT(env);
+//  COMET_ASSERT(env->num_way() == NumWay::_2);
+//  COMET_ASSERT(env->all2all());
+//
+//  // num block diags computed for this phase, all repl procs (this vec proc)
+//  const int n = gm_block_computed_this_row_max(env) -
+//                gm_block_computed_this_row_min(env);
+//  COMET_ASSERT(n >= 0);
+//  COMET_ASSERT(n <= env->num_block_vector());
+//  return n;
+//}
 
-  // num block diags computed for this phase, all repl procs (this vec proc)
-  const int n = gm_block_computed_this_row_max(env) -
-                gm_block_computed_this_row_min(env);
-  COMET_ASSERT(n >= 0);
-  COMET_ASSERT(n <= env->num_block_vector());
-  return n;
+static int metrics_num_bdiag_thisphase_thisbrow(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
+
+  const int result = metrics_bdiag_thisphase_thisbrow_max(env) -
+                     metrics_bdiag_thisphase_thisbrow_min(env);
+  COMET_ASSERT(result >= 0 && result <= env.num_block_vector());
+  return result;
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Number of steps needed fror 2-way methods.
+
+static int metrics_2way_num_steps(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all()); // assume this for now.
+
+  const int num_bdiag_thisphase = metrics_bdiag_thisphase_max(env) -
+                                  metrics_bdiag_thisphase_min(env);
+
+  const int result = utils::ceil(num_bdiag_thisphase, env.num_proc_repl());
+
+  return result;
 }
 
 //=============================================================================
@@ -169,13 +264,17 @@ static size_t Metrics_index_2_part2(GMMetrics& metrics,
 
   const int num_block = env.num_block_vector();
   const int num_proc_r = env.num_proc_repl();
-  const int block_min_part2_ = metrics.block_min_part2_;
+  const int block_min_part2 = metrics.block_min_part2_;
+
+//FIXRING
+  const int block_part_2 =
+    ((j_block - block_min_part2 + num_block) % num_block) / num_proc_r;
 
   /* clang-format off */
   return metrics.index_offset_part2_ +
       i + metrics.num_vector_local * (size_t)(
       j + metrics.num_vector_local * (
-      ((j_block - block_min_part2_ + num_block) % num_block) / num_proc_r ));
+      block_part_2));
   /* clang-format on */
 }
 
