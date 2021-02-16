@@ -137,6 +137,13 @@ T mod_i(const T& i, const T& n) {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Faster version of true mod, needed for special situation.
+
+static int mod_fast(int i, int n) {
+  return (i + n) % n;
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Upper bound of random numbers from generator.
 
 static size_t randomize_max() {

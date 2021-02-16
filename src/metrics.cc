@@ -159,10 +159,17 @@ MetricItemCoords_t* MetricsMem::malloc_data_coords_values(
 }
 
 //=============================================================================
-/// \brief Helper: round-robin-pack m values into n bins, return ith bin size.
+/// \brief Round-robin-pack m values into n bins, return ith bin size.
 
-static int rr_pack_(int i, int n, int m) {
+static int elt_count_rr_decomp_(int i, int n, int m) {
   return m/n + (i < m % n ? 1 : 0);
+}
+
+//=============================================================================
+/// \brief Block-pack m values into n bins, return ith bin size.
+
+static int elt_count_block_decomp_(int i, int n, int m) {
+  return m / n + (i < m % n);
 }
 
 //=============================================================================
@@ -182,15 +189,17 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl,
   COMET_INSIST(nvl >= 0);
   COMET_INSIST(env.num_way() == NumWay::_2);
 
+  const size_t nchoosek = utils::nchoosek(nvl, env.num_way());
+
   if (!env.all2all()) {
-    metrics.num_metrics_local = utils::nchoosek(nvl, env.num_way());
+    // Triangle of values.
+    metrics.num_metrics_local = nchoosek;
     return;
   }
 
   metrics.num_metrics_local = 0;
 
   const int i_block = env.proc_num_vector();
-  const size_t nchoosek = utils::nchoosek(nvl, env.num_way());
   const size_t nvlsq = nvl * (size_t)nvl;
 
   /*---Store the following in this block-row:
@@ -202,28 +211,42 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl,
   ---*/
 
   /*===PART A: CALCULATE INDEX SIZE===*/
+
   const int proc_num_repl = env.proc_num_repl();
   const int num_proc_repl = env.num_proc_repl();
 
   // PART A.1: (triangle) i_block==j_block part.
+
   const bool have_main_bdiag = proc_num_repl == 0 &&
-//                              gm_bdiag_computed_min(&env) == 0;
                               metrics_bdiag_thisphase_min(env) == 0;
+
   metrics.num_metrics_local += have_main_bdiag ? nchoosek : 0;
   metrics.index_offset_part2_ = have_main_bdiag ? nchoosek - nvlsq : 0;
-//  metrics.block_min_part2_ = (i_block + gm_bdiag_computed_min(&env)) %
+
+  // Block number in this block row where part2 starts (stored
+  // off-block-diag blocks).
   metrics.block_min_part2_ = (i_block + metrics_bdiag_thisphase_min(env)) %
     env.num_block_vector();
 
   // PART A.2: (wrapped rect) i_block!=j_block part.
-  //const int num_computed_blocks_this_row = gm_blocks_computed_this_row(&env);
-  const int num_computed_blocks_this_row = metrics_num_bdiag_thisphase_thisbrow(env);
-//FIXRING
-  const int num_computed_blocks_this_proc = rr_pack_(proc_num_repl, num_proc_repl,
-                                             num_computed_blocks_this_row);
-  const int num_computed_offbdiag_blocks_this_proc =
-    num_computed_blocks_this_proc - (have_main_bdiag ? 1 : 0);
-  metrics.num_metrics_local += num_computed_offbdiag_blocks_this_proc * nvlsq;
+
+  // Num blocks computed this block row, this phase, all proc_repl.
+  const int num_computed_blocks_thisrow = metrics_num_bdiag_thisphase_thisbrow(env);
+
+//FIXRING - DONE
+
+  // Num blocks computed this block row, this phase, this proc_repl.
+  const int num_computed_blocks_thisproc = env.is_comm_ring() ?
+//    num_computed_blocks_thisrow / num_proc_repl +
+//      (proc_num_repl < num_computed_blocks_thisrow % num_proc_repl) :
+   elt_count_block_decomp_(proc_num_repl, num_proc_repl,
+     num_computed_blocks_thisrow) :
+   elt_count_rr_decomp_(proc_num_repl, num_proc_repl,
+     num_computed_blocks_thisrow);
+
+  const int num_computed_offbdiag_blocks_thisproc =
+    num_computed_blocks_thisproc - (have_main_bdiag ? 1 : 0);
+  metrics.num_metrics_local += num_computed_offbdiag_blocks_thisproc * nvlsq;
 }
 
 //=============================================================================
@@ -458,6 +481,9 @@ void GMMetrics_create(GMMetrics* metrics,
     metrics->phase_block_start_part2_[i] = 0;
   }
   metrics->phase_block_start_part3_ = 0;
+  // TODO: make this better.
+  metrics->num_steps_2way =
+    env->num_way() == NumWay::_2 ? metrics_num_steps_2way(*env) : 0;
 
   metrics->num_vector = dm->num_vector;
 
@@ -564,9 +590,7 @@ void GMMetrics_create(GMMetrics* metrics,
   // TODO: put the following in its own function.
 
   const int num_block = env->num_block_vector();
-
   const int i_block = env->proc_num_vector();
-
   const int nvl = metrics->num_vector_local;
   const size_t nvlsq = nvl * (size_t)nvl;
 
@@ -579,17 +603,19 @@ void GMMetrics_create(GMMetrics* metrics,
 //                                gm_bdiag_computed_min(env) == 0;
                                 metrics_bdiag_thisphase_min(*env) == 0;
 
-    //const int num_computed_blocks_this_row = gm_blocks_computed_this_row(env);
-    const int num_computed_blocks_this_row = metrics_num_bdiag_thisphase_thisbrow(*env);
+    const int num_computed_blocks_thisrow = metrics_num_bdiag_thisphase_thisbrow(*env);
 
     // PART C.1: (triangle) i_block==j_block part.
+
+    // Running tally of index into metrics array.
     size_t index = 0;
+
     if (have_main_bdiag) {
       const int bdiag = 0;
       no_unused_variable_warning(bdiag);
       COMET_ASSERT(env->proc_num_repl() == 0);
-//FIXRING
-      COMET_ASSERT(gm_proc_r_active(bdiag, env));
+//FIXRING - DONE
+      COMET_ASSERT(metrics_is_proc_repl_active(*metrics, bdiag, *env));
       // WARNING: no omp pragma here because index++ is sequential.
       for (int j = 0; j < nvl; ++j) {
         const size_t jG = j + nvl * i_block;
@@ -597,26 +623,28 @@ void GMMetrics_create(GMMetrics* metrics,
           const size_t iG = i + nvl * i_block;
           COMET_ASSERT(Metrics_index_2_part1(*metrics, i, j, i_block, *env) ==
                        index);
-          //metrics->data_coords_values_[index++] = iG + metrics->num_vector * jG;
           metrics->data_coords_values_[index++] =
             CoordsInfo::set(iG, jG, *metrics, *env);
         }
       }
-    }
+    } // if
 
     // PART C.2: (wrapped rectangle) i_block!=j_block part.
 
-//    const int bdiag_beg = gm_bdiag_computed_min(env);
+    // NOTE: this loops over all proc_repl cases, not just this
+    // one (= "active"), could be inefficient.
     const int bdiag_beg = metrics_bdiag_thisphase_min(*env);
-    const int bdiag_end = bdiag_beg + num_computed_blocks_this_row;
+    const int bdiag_end = bdiag_beg + num_computed_blocks_thisrow;
     for (int bdiag = bdiag_beg; bdiag < bdiag_end; ++bdiag) {
       const int bdiag_offset = bdiag - bdiag_beg;
+//FIXRING - DONE
       // NOTE bdiag == 0 case already handled (above).
-//FIXRING
-      if (bdiag == 0 || ! gm_proc_r_active(bdiag_offset, env))
+      if (bdiag == 0 ||
+          ! metrics_is_proc_repl_active(*metrics, bdiag_offset, *env))
         continue;
+      // "unwrapped" is without circulant pattern wrapping.
       const int j_block_unwrapped = i_block + bdiag;
-      // don't use collapse because of overflow for large sizes
+      // don't use collapse because overflow for large sizes; could use size_t j
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
       for (int j = 0; j < nvl; ++j) {
@@ -626,7 +654,6 @@ void GMMetrics_create(GMMetrics* metrics,
           const size_t iG = i + nvl * i_block;
           const size_t index_this = index + i + j * (size_t)nvl;
           COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
-          //metrics->data_coords_values_[index_this] = iG + metrics->num_vector * jG;
           metrics->data_coords_values_[index_this] =
             CoordsInfo::set(iG, jG, *metrics, *env);
         }
