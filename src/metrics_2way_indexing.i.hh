@@ -228,8 +228,10 @@ static size_t Metrics_index_2_part2(GMMetrics& metrics,
 
 //FIXRING - DONE
   const int block_part2 = env.is_comm_ring() ?
-    j_part2_offset + metrics.num_steps_2way * env.proc_num_repl() :
+    j_part2_offset - metrics.num_steps_2way * env.proc_num_repl() :
     j_part2_offset / env.num_proc_repl();
+
+//printf("  <<<<< %i %i\n", j_part2_offset, block_part2);
 
   /* clang-format off */
   return metrics.index_offset_part2_ +
@@ -258,6 +260,19 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
   const int64_t index = is_part1(i_block, j_block)
            ? Metrics_index_2_part1(metrics, i, j, j_block, env)
            : Metrics_index_2_part2(metrics, i, j, j_block, env);
+
+//  const int num_block = env.num_block_vector();
+//  const int j_part2_offset =
+//    utils::mod_fast(j_block - metrics.block_min_part2_, num_block);
+//  const int block_part2 = env.is_comm_ring() ?
+//    j_part2_offset - metrics.num_steps_2way * env.proc_num_repl() :
+//    j_part2_offset / env.num_proc_repl();
+//if(i_block==0)
+//if (!(index >= 0 && index < (int64_t)metrics.num_metrics_local))
+//  printf("%i %i  %i %i  %i  %i  %i  %i %i %i   %i %i\n", i_block, j_block, i, j, is_part1(i_block, j_block), (int)index, (int)metrics.num_metrics_local, env.phase_num(), env.proc_num_vector(), env.proc_num_repl(),
+//j_part2_offset, block_part2
+//); //FIX
+
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_metrics_local);
 

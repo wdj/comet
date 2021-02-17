@@ -322,8 +322,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     vars_next.j_i_offset = j_i_offset_min + (
 //FIXRING
-//       env_.is_comm_ring() ?
-//       vars_next.step_num + num_step * proc_num_repl :
+       env_.is_comm_ring() ?
+       vars_next.step_num + num_step * proc_num_repl :
        proc_num_repl + num_proc_repl * vars_next.step_num);
 
     vars_next.j_block = utils::mod_i(i_block + vars_next.j_i_offset, num_block);
@@ -557,6 +557,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     if (!env_.is_using_linalg()) {
       if (vars.is_compute_step && vars.do_compute_block) {
         matB_buf_compressed.from_accel_wait();
+//fprintf(stderr,"%i %i  %i\n", env_.proc_num_vector(), env_.proc_num_repl(), (int)vars.j_block);
         ComputeMetrics2WayBlock::finalize(
           &metrics,
           &matB_buf_compressed,

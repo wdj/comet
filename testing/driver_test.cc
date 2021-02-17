@@ -354,10 +354,11 @@ void DriverTest_czek2_() {
     for (int num_vector_local=4; num_vector_local<=5; ++num_vector_local) {
     //for (int num_vector_local=4; num_vector_local<=4; ++num_vector_local) {
       for (int num_proc_vector=1; num_proc_vector<=6; ++num_proc_vector) {
-      //for (int num_proc_vector=6; num_proc_vector<=6; ++num_proc_vector) {
+      //for (int num_proc_vector=4; num_proc_vector<=4; ++num_proc_vector) {
         for (int num_proc_repl=1; num_proc_repl<=6; ++num_proc_repl) {
-        //for (int num_proc_repl=2; num_proc_repl<=2; ++num_proc_repl) {
+        //for (int num_proc_repl=4; num_proc_repl<=4; ++num_proc_repl) {
           const int num_proc_field = gpu ? 2 : 1;
+          //const int num_proc_field = 1;
           if (num_proc_vector * num_proc_field * num_proc_repl > PROCS_MAX) {
             continue;
           }
@@ -2621,17 +2622,17 @@ TEST(DriverTest, ccc2_simple_sparse) {
 TEST(DriverTest, duo2_simple_sparse) {
   DriverTest_duo2_simple_sparse_();
 }
+#endif
 
 TEST(DriverTest, czek2) {
   DriverTest_czek2_();
 }
-#endif
 
+#if 1
 TEST(DriverTest, czek3) {
   DriverTest_czek3_();
 }
 
-#if 1
 TEST(DriverTest, ccc2) {
   DriverTest_ccc2_();
 }

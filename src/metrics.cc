@@ -168,8 +168,18 @@ static int elt_count_rr_decomp_(int i, int n, int m) {
 //=============================================================================
 /// \brief Block-pack m values into n bins, return ith bin size.
 
-static int elt_count_block_decomp_(int i, int n, int m) {
-  return m / n + (i < m % n);
+static int elt_count_block_decomp_(int i, int n, int m, int k) {
+
+  const int result = utils::max(0, utils::min((i+1)*k, m) - (i)*k);
+
+//if(!(result >= 0 && result <= k)) fprintf(stderr, "%i %i %i %i  %i %i %i %i  %i   %i\n", i, n, m, k, env.num_proc_vector(), env.num_proc_repl(), env.proc_num_vector(), env.proc_num_repl(), metrics_bdiag_thisphase_thisbrow_max(env), result);
+
+  COMET_ASSERT(result >= 0 && result <= k);
+  return result;
+
+//  return m / n + (i < m % n);
+
+
 }
 
 //=============================================================================
@@ -227,26 +237,36 @@ void GMMetrics_2way_set_num_metrics_(GMMetrics& metrics, int nvl,
   // off-block-diag blocks).
   metrics.block_min_part2_ = (i_block + metrics_bdiag_thisphase_min(env)) %
     env.num_block_vector();
+//printf(">>>  %i %i  %i\n", (int)i_block, (int)metrics_bdiag_thisphase_min(env), metrics.num_steps_2way);
 
   // PART A.2: (wrapped rect) i_block!=j_block part.
 
   // Num blocks computed this block row, this phase, all proc_repl.
   const int num_computed_blocks_thisrow = metrics_num_bdiag_thisphase_thisbrow(env);
+//printf("%i\n", (int)metrics.num_metrics_local);
 
+//if (env.proc_num_vector()==0 && env.num_proc() > 1)
+//printf("%i - %i %i %i %i   %i %i %i %i   %i\n", (int)metrics.num_metrics_local, have_main_bdiag,  metrics_bdiag_thisphase_min(env), proc_num_repl, env.proc_num(), env.num_proc_vector(), env.num_proc_repl(), env.num_proc_field(), env.num_proc(), (int)metrics.block_min_part2_);
 //FIXRING - DONE
 
   // Num blocks computed this block row, this phase, this proc_repl.
   const int num_computed_blocks_thisproc = env.is_comm_ring() ?
 //    num_computed_blocks_thisrow / num_proc_repl +
 //      (proc_num_repl < num_computed_blocks_thisrow % num_proc_repl) :
+
+   //elt_count_block_decomp_(proc_num_repl, num_proc_repl,
+   //  num_computed_blocks_thisrow) :
+
    elt_count_block_decomp_(proc_num_repl, num_proc_repl,
-     num_computed_blocks_thisrow) :
+     num_computed_blocks_thisrow, metrics_num_steps_2way(env)) :
+
    elt_count_rr_decomp_(proc_num_repl, num_proc_repl,
      num_computed_blocks_thisrow);
 
   const int num_computed_offbdiag_blocks_thisproc =
     num_computed_blocks_thisproc - (have_main_bdiag ? 1 : 0);
   metrics.num_metrics_local += num_computed_offbdiag_blocks_thisproc * nvlsq;
+//printf("%i\n", (int)metrics.num_metrics_local);
 }
 
 //=============================================================================
@@ -644,6 +664,9 @@ void GMMetrics_create(GMMetrics* metrics,
         continue;
       // "unwrapped" is without circulant pattern wrapping.
       const int j_block_unwrapped = i_block + bdiag;
+
+//if(i_block==0) fprintf(stderr, ">> %i %i %i %i  %i  %i\n", env->num_proc_vector(), env->num_proc_repl(), env->proc_num_vector(), env->proc_num_repl(), (int)metrics->num_metrics_local, num_computed_blocks_thisrow);
+
       // don't use collapse because overflow for large sizes; could use size_t j
       //#pragma omp parallel for collapse(2) schedule(dynamic,1000)
       #pragma omp parallel for schedule(dynamic,1000)
@@ -653,6 +676,7 @@ void GMMetrics_create(GMMetrics* metrics,
         const size_t jG = jG_unwrapped % metrics->num_vector;
           const size_t iG = i + nvl * i_block;
           const size_t index_this = index + i + j * (size_t)nvl;
+//if(!(index_this>=0 && index_this<metrics->num_metrics_local)) fprintf(stderr, ">> %i %i %i %i  %i %i  %i\n", env->num_proc_vector(), env->num_proc_repl(), env->proc_num_vector(), env->proc_num_repl(), (int)index_this, (int)metrics->num_metrics_local, num_computed_blocks_thisrow);
           COMET_ASSERT(index_this>=0 && index_this<metrics->num_metrics_local);
           metrics->data_coords_values_[index_this] =
             CoordsInfo::set(iG, jG, *metrics, *env);
