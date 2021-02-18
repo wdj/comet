@@ -41,26 +41,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace comet {
 
 /*
-For this code, "block diagonal" is a key concept, counted starting at zero
-for the main block diagonal and increasing index as moving higher above this
-main block diag.
+For this code, "block diagonal" corresponds to the row (and corresponding
+column) blocking indiced by the proc_num_vector decomposition. Block diagonals
+are counted starting at zero for the main block diagonal and increasing index
+as moving through the block upper triangular part above the main block diag.
 
-Each block diag is considered to have a "circulant" pattern, wrapping around
-to the lower block diag part of the matrix as appropriate.
+Each block diag is considered to have a (block) "circulant" pattern, wrapping
+around to the lower block diag part of the matrix as appropriate.
 
-Block rows of the matrix are decomposed via num_proc_vector.  This block row
+Block rows of the matrix are decomposed via num_proc_vector.  A block row
 intersected with the block diags yields the series of blocks ot be computed.
 
-This series is decomposed by pase_num, by proc_num_repl, and step num
-associated with the serial pipeline loop that does the actual computation.
+This series of blocks is decomposed by phase_num, by proc_num_repl, and
+step num, the latter associated with the serial pipeline loop that does the
+actual computation.
 
 If is_comm_ring is not set, the decomposition of this partial block row is
 by RSP order - proc_repl axis varies fastest, then serial step axis, then phase
-axis.
+axis - resulting in comm pattern like the mpiGraph benchmark.
 
 Otherwise, SRP orderinbg is used.  This associates the blocks from
 consecutive steps with consecutive (hardware) MPI ranks, enabling the ring
-comm.
+comm pattern.
 */
 
 //-----------------------------------------------------------------------------
@@ -178,6 +180,12 @@ static int metrics_num_steps_2way(const CEnv& env) {
 //=============================================================================
 // Accessors: indexing: (contig) index from coord, 2-way.
 
+/*
+Metrics are stored as a sequence of blocks: first, the main diag block
+(if being processed by this phase and this proc_num_repl) (triangular)
+(= part1), then, the off-diagonal blocka (square) (= part2).
+*/
+
 //-----------------------------------------------------------------------------
 /// \brief Number of elements in triangle.
 
@@ -186,14 +194,14 @@ static size_t triangle_index(int i) {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Is the block on the main block diag.
+/// \brief Is the block on the main block diag, 2-way case.
 
 static bool is_part1(int i_block, int j_block) {
   return i_block == j_block;
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Is the block not on the main block diag.
+/// \brief Is the block not on the main block diag, 2-way case.
 
 static bool is_part2(int i_block, int j_block) {
   return !is_part1(i_block, j_block);
@@ -206,7 +214,9 @@ static size_t Metrics_index_2_part1(GMMetrics& metrics,
   int i, int j, int j_block, CEnv& env) {
   COMET_ASSERT(is_part1(env.proc_num_vector(), j_block));
 
-  return triangle_index(j) + i;
+  const int64_t index_offset_part1_ = 0;
+
+  return index_offset_part1_ + triangle_index(j) + i;
 }
 
 //-----------------------------------------------------------------------------
@@ -219,19 +229,19 @@ static size_t Metrics_index_2_part2(GMMetrics& metrics,
 
   const int num_block = env.num_block_vector();
 
-  // Distance of j_block from the starting block of part2.
+  // Distance of j_block from the starting block of this phase.
+  // The unit of measure is number of blocks in the full matrix.
 
   const int j_part2_offset =
     utils::mod_fast(j_block - metrics.block_min_part2_, num_block);
 
-  // Stored block number in the metrics array, part2 (off-diag blocks).
+  // Stored block number in the metrics array (part1 + part2).
+  // The unit of measure is number of blocks stored in the metrics array
+  // (whether part1 or part2).
 
-//FIXRING - DONE
   const int block_part2 = env.is_comm_ring() ?
     j_part2_offset - metrics.num_steps_2way * env.proc_num_repl() :
     j_part2_offset / env.num_proc_repl();
-
-//printf("  <<<<< %i %i\n", j_part2_offset, block_part2);
 
   /* clang-format off */
   return metrics.index_offset_part2_ +
@@ -261,20 +271,9 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
            ? Metrics_index_2_part1(metrics, i, j, j_block, env)
            : Metrics_index_2_part2(metrics, i, j, j_block, env);
 
-//  const int num_block = env.num_block_vector();
-//  const int j_part2_offset =
-//    utils::mod_fast(j_block - metrics.block_min_part2_, num_block);
-//  const int block_part2 = env.is_comm_ring() ?
-//    j_part2_offset - metrics.num_steps_2way * env.proc_num_repl() :
-//    j_part2_offset / env.num_proc_repl();
-//if(i_block==0)
-//if (!(index >= 0 && index < (int64_t)metrics.num_metrics_local))
-//  printf("%i %i  %i %i  %i  %i  %i  %i %i %i   %i %i\n", i_block, j_block, i, j, is_part1(i_block, j_block), (int)index, (int)metrics.num_metrics_local, env.phase_num(), env.proc_num_vector(), env.proc_num_repl(),
-//j_part2_offset, block_part2
-//); //FIX
-
-
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_metrics_local);
+
+  // Map back from index to coords to ensure consistency.
 
   COMET_ASSERT(CoordsInfo::getiG(metrics.coords_value(index), metrics, env) ==
            i + i_block * (size_t)metrics.num_vector_local);

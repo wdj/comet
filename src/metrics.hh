@@ -379,20 +379,23 @@ void gm_metrics_pad_adjust(GMMetrics* metrics,
 //=============================================================================
 /// \brief  Is this (section_)block_num to be processed by current proc_repl.
 
-static bool gm_proc_r_active(int section_block_num, const CEnv* const env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(section_block_num >= 0);
-  return section_block_num % env->num_proc_repl()
-         == env->proc_num_repl();
-}
+//static bool gm_proc_r_active(int section_block_num, const CEnv* const env) {
+//  COMET_ASSERT(env);
+//  COMET_ASSERT(section_block_num >= 0);
+//  return section_block_num % env->num_proc_repl() == env->proc_num_repl();
+//}
 
 static bool metrics_is_proc_repl_active(const GMMetrics& metrics,
   int section_block_num, const CEnv& env) {
   COMET_ASSERT(section_block_num >= 0);
+  COMET_ASSERT((!(env.is_comm_ring() && env.num_way() != NumWay::_2)) &&
+               "Unimplemented.");
   // NOTE section_block_num is based on a numbering within current phase.
 
-  return env.is_comm_ring() && env.num_way() == NumWay::_2 ?
+  return env.is_comm_ring() ?
+    // SRP ordering of axes for block diags.
     section_block_num / metrics.num_steps_2way == env.proc_num_repl() :
+    // RSP ordering of axes for block diags.
     section_block_num % env.num_proc_repl() == env.proc_num_repl();
 }
 

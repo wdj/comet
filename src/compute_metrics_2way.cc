@@ -273,6 +273,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     bool is_compute_step;
     bool is_first_compute_step;
     bool do_compute_block;
+    bool needs_comm;
     bool is_main_diag;
     bool is_right_aliased;
     int step_num;
@@ -321,7 +322,6 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // Find bdiag number being computed.
 
     vars_next.j_i_offset = j_i_offset_min + (
-//FIXRING
        env_.is_comm_ring() ?
        vars_next.step_num + num_step * proc_num_repl :
        proc_num_repl + num_proc_repl * vars_next.step_num);
@@ -342,6 +342,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     vars_next.is_right_aliased = vars_next.is_main_diag;
 
+    vars_next.needs_comm = vars_next.j_i_offset < num_block &&
+      ! vars_next.is_main_diag;
+
     GMVectors* vectors_left = &vectors;
     vars_next.vectors_right = vars_next.is_right_aliased ?
       vectors_left : &vectors_01_[vars_next.index_01];
@@ -358,31 +361,16 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     vars_next.metrics_buf = metrics_buf_01_[vars_next.index_01];
 
-    //if (vars_next.is_first_compute_step && env_.is_comm_ring()) {
-
     //========== MPI sends, receives - START
 
+    if (vars_next.is_compute_step && vars_next.needs_comm) {
 
+      const bool is_first_comm_step = ! vars.needs_comm; // && vars_next.needs_comm
 
-    const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
-      utils::mod_i(i_block - vars_next.j_i_offset, num_block));
-
-    const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
-      utils::mod_i(i_block + vars_next.j_i_offset, num_block));
-
-
-
-
-    const bool do_comm = vars_next.j_i_offset < num_block &&
-      ! vars_next.is_main_diag;
-
-    if (vars_next.is_compute_step && do_comm) {
-    // Select send/recv procs to use.
-//FIXRING
-#if 0
+      // Select send/recv procs to use.
       // if ring comm step, shift by 1; else shift vectors_left by offset.
 
-      const int proc_offset = env_.is_comm_ring() && step_num >= 0 ?
+      const int proc_offset = env_.is_comm_ring() && ! is_first_comm_step ?
         1 : vars_next.j_i_offset;
     
       const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
@@ -390,29 +378,33 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
       const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
         utils::mod_i(i_block + proc_offset, num_block));
-#endif
+
+      //const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
+      //  utils::mod_i(i_block - vars_next.j_i_offset, num_block));
+      //const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
+      //  utils::mod_i(i_block + vars_next.j_i_offset, num_block));
+
       const int mpi_tag = step_num + 1;
 
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
-      // NOTE: the following order seems to help performance.
-      mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
-                                              proc_recv, mpi_tag, &env_);
-      mpi_requests[0] = gm_send_vectors_start(vectors_left,
-                                              proc_send, mpi_tag, &env_);
-//FIXRING
-#if 0
-      GMVectors* vectors_send = env_.is_comm_ring() && step_num >= 0 ?
+
+      GMVectors* vectors_send = env_.is_comm_ring() && ! is_first_comm_step ?
         &vectors_01_[1-vars_next.index_01] :
         vectors_left;
 
       GMVectors* vectors_recv = vars_next.vectors_right;
 
+      // NOTE: the following order seems to help performance.
       mpi_requests[1] = gm_recv_vectors_start(vectors_recv,
                                               proc_recv, mpi_tag, &env_);
       mpi_requests[0] = gm_send_vectors_start(vectors_send,
                                               proc_send, mpi_tag, &env_);
-#endif
+
+      //mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
+      //                                        proc_recv, mpi_tag, &env_);
+      //mpi_requests[0] = gm_send_vectors_start(vectors_left,
+      //                                        proc_send, mpi_tag, &env_);
     }
 
     //========== Send right matrix to GPU - WAIT.
@@ -507,7 +499,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     //========== MPI receives - WAIT
 
-    if (vars_next.is_compute_step && do_comm) {
+    if (vars_next.is_compute_step && vars_next.needs_comm) {
       gm_recv_vectors_wait(&(mpi_requests[1]), &env_);
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
@@ -569,7 +561,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     //========== MPI sends - WAIT
 
-    if (vars_next.is_compute_step && do_comm)
+    if (vars_next.is_compute_step && vars_next.needs_comm)
       gm_send_vectors_wait(&(mpi_requests[0]), &env_);
 
   //========================================

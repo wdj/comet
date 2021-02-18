@@ -273,7 +273,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   const int num_section_steps_1 = gm_num_section_steps(env, 1);
   for (int section_step=0; section_step<num_section_steps_1; ++section_step) {
-    if (gm_proc_r_active(section_block_num, env)) {
+    //if (gm_proc_r_active(section_block_num, env)) {
+    if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
       if (have_unprocessed_section_block) {
         // Compute numerators.
@@ -331,7 +332,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 //      const int proc_recv_j = utils::mod_i(proc_num_rv + j_i_offset*num_proc_repl,
 //                                       num_proc_rv);
 
-      if (gm_proc_r_active(section_block_num, env)) {
+      //if (gm_proc_r_active(section_block_num, env)) {
+      if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
         if (gm_is_section_block_in_phase(env, section_block_num)) {
           // Communicate vectors start.
@@ -438,7 +440,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
         }
         COMET_INSIST((j_block == k_block) == (j_i_offset == k_i_offset) &&
                   "Error in block indexing for communication.");
-        if (gm_proc_r_active(section_block_num, env)) {
+        //if (gm_proc_r_active(section_block_num, env)) {
+        if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
           const bool do_k_comm = k_block != k_block_currently_resident;
 
