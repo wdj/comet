@@ -210,7 +210,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                                           GMVectors& vectors) {
   COMET_INSIST(env_.all2all());
 
-  if(env_.print_details()) printf("In compute_all2all\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  if(env_.print_details()) printf("rank=%d In compute_all2all\n",rank);
 
   // Initializations
 
@@ -316,9 +318,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 //>>>
   CompressedBuf matB_buf_compressed(*metrics_buf_01_[0], env_);
 
+  //if(env_.print_details()) printf("rank=%d Starting for loop %d-%d\n",rank,0-extra_step,num_step+extra_step);
+
   //========================================
   for (int step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num){
   //========================================
+
+    //if(env_.print_details()) printf("rank=%d In loop step_num=%d\n",rank,step_num);
 
     // Set per-step variables
 
@@ -394,7 +400,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     const bool comm_with_self = vars_next.is_main_diag;
 
     // Initiate sends/recvs for vecs needed on next step
-
+    //if(env_.print_details()) printf("rank=%d Initiating sends/recvs\n",rank);
     if (vars_next.is_compute_step && ! comm_with_self) {
       const int mpi_tag = step_num + 1;
       // NOTE: the following order helps performance
@@ -408,7 +414,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     }
 
     // Send right vectors to GPU end
-
+    //if(env_.print_details()) printf("rank=%d Sending right vectors to GPU end\n",rank);
     if (vars.is_compute_step && vars.do_compute_block &&
         ! vars.is_right_aliased) {
       vars.vectors_right_buf->to_accel_wait();
@@ -417,7 +423,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     }
 
     // First step (for any repl or phase): send (left) vecs to GPU
-
+    //if(env_.print_details()) printf("rank=%d Sending left vecs to GPU\n",rank);
     if (vars_next.is_first_compute_step) {
       lock(lock_vectors_left_buf_h);
       gm_vectors_to_buf(vectors_left_buf, vectors_left, &env_);
@@ -431,7 +437,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     }
 
     // Compute sums for denominators
-
+    //if(env_.print_details()) printf("rank=%d Computing sums for denominators\n",rank);
     //const int compute_sums_this = CEnv_is_ppc64() ? 1 : 2;
     const int compute_sums_this = 0; //FIX env_.is_threshold_tc() ? 0 : 1;
 
@@ -448,25 +454,25 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     }
 
     // Commence numerators computation
-
+    //if(env_.print_details()) printf("rank=%d Computing numerators\n",rank);
     if (vars.is_compute_step && vars.do_compute_block) {
       lock(lock_vectors_left_buf_d);
       if (! vars.is_right_aliased) {
         lock(lock_vectors_right_buf_d);
       }
       lock(lock_metrics_buf_ptr_d);
-      if(env_.print_details()) printf("Calling proc_nums_start\n");
+      if(env_.print_details()) printf("rank=%d Calling ComputeMetrics2WayBlock::compute_nums_start\n",rank);
       ComputeMetrics2WayBlock::compute_nums_start(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, magma_wrapper, &env_);
-      if(env_.print_details()) printf("Done calling proc_nums_start\n");
+      if(env_.print_details()) printf("rank=%d Done calling ComputeMetrics2WayBlock::compute_nums_start\n",rank);
     }
 
     // GPU case: wait for prev step get metrics to complete, then combine.
     // Note this is hidden under GPU computation
-
+    //if(env_.print_details()) printf("rank=%d waiting for prev step get metrics to complete\n",rank);
     if (env_.is_using_linalg()) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
         //vars_prev.metrics_buf->from_accel_wait();
@@ -494,7 +500,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
           matB_buf_compressed.attach(*metrics_buf_prev_ptr);
         }
 
-        if(env_.print_details()) printf("Calling Block::finalize\n");
+        if(env_.print_details()) printf("rank=%d Calling ComputeMetrics2WayBlock::finalize\n",rank);
         ComputeMetrics2WayBlock::finalize(
           &metrics,
           //metrics_buf_prev_ptr,
@@ -503,7 +509,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
           vector_sums_left, vars_prev.vector_sums_right,
           vars_prev.j_block,
           vars_prev.is_main_diag, &env_);
-        if(env_.print_details()) printf("Done calling Block::finalize\n");
+        if(env_.print_details()) printf("Done calling ComputeMetrics2WayBlock::finalize\n");
 
         unlock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
 
@@ -519,7 +525,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // CPU threads, then it wouldn't matter.
 
     // Compute sums for denominators
-
+    //if(env_.print_details()) printf("rank=%d computing sums for denominators\n",rank);
     if (1 == compute_sums_this) { // put it here for speed on this arch
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
@@ -533,7 +539,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     }
 
     // Wait for recvs to complete
-
+    //if(env_.print_details()) printf("rank=%d Waiting for recvs to complete\n",rank);
     if (vars_next.is_compute_step && ! comm_with_self) {
       gm_recv_vectors_wait(&(mpi_requests[1]), &env_);
       COMET_INSIST((!vars_next.is_right_aliased) &&
@@ -554,7 +560,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // Wait for numerators computation to complete
 
     if (vars.is_compute_step && vars.do_compute_block) {
-      if(env_.print_details()) printf("Calling compute_nums_wait\n");
+      if(env_.print_details()) printf("rank=%d Calling compute_nums_wait\n",rank);
       ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
@@ -562,7 +568,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, &env_);
 
-      if(env_.print_details()) printf("Done calling compute_nums_wait\n");
+      if(env_.print_details()) printf("rank=%d Done calling compute_nums_wait\n",rank);
         matB_buf_compressed.attach(*vars.metrics_buf);
         matB_buf_compressed.compress();
       unlock(lock_vectors_left_buf_d);
@@ -597,7 +603,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     }
 
     // CPU case: combine numerators, denominators to obtain final result
-
+    //if(env_.print_details()) printf("rank=%d Combining numerators and denominators\n",rank);
     if (!env_.is_using_linalg()) {
       if (vars.is_compute_step && vars.do_compute_block) {
         //vars.metrics_buf->from_accel_wait(); // NO-OP
@@ -606,7 +612,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         unlock(lock_metrics_buf_ptr_d);
         unlock(lock_metrics_buf_ptr_h);
         lock(lock_metrics_buf_ptr_h);
-        if(env_.print_details()) printf("Calling 2nd Block::finalize\n");
+        if(env_.print_details()) printf("rank=%d Calling 2nd Block::finalize\n",rank);
         ComputeMetrics2WayBlock::finalize(
           &metrics,
           //vars.metrics_buf,
@@ -615,7 +621,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
           vector_sums_left,
           vars.vector_sums_right, vars.j_block,
           vars.is_main_diag, &env_);
-        if(env_.print_details()) printf("Done calling 2nd Block::finalize\n");
+        if(env_.print_details()) printf("rank=%d Done calling 2nd Block::finalize\n",rank);
         unlock(lock_metrics_buf_ptr_h);
       }
     }
@@ -625,6 +631,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     if (vars_next.is_compute_step && ! comm_with_self) {
       gm_send_vectors_wait(&(mpi_requests[0]), &env_);
     }
+
+    //if(env_.print_details()) printf("rank=%d Done with loop step_num=%d\n",rank,step_num);
 
   //========================================
   } // step_num
@@ -645,7 +653,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   COMET_INSIST(!lock_metrics_tmp_buf_h);
 
   //MagmaWrapper::finalize(env_);
-  if(env_.print_details()) printf("Done in compute_all2all\n");
+  if(env_.print_details()) printf("rank=%d Done in compute_all2all\n",rank);
 }
 
 //=============================================================================

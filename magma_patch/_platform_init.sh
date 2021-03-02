@@ -848,6 +848,7 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   #local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
   local COMET_GPU_ARCH=80
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_80,code=compute_80;-arch=sm_80"
 
   local USE_CUTLASS=ON
   local COMET_CUTLASS_ARCH=Sm80
@@ -857,11 +858,19 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   local USE_MAGMA=ON
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
-  local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
+
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    #local MPI_HOME=$(echo $PATH | sed 's,\(^\|.*:\)\([^:]*mvapich2[^:]*\)/bin.*,\2,')
+    local MPI_HOME=/usr/common/software/sles15_cgpu/openmpi/4.0.3/gcc
+    local COMET_MPI_COMPILE_OPTS="-I$MPI_HOME/include"
+    local COMET_MPI_LINK_OPTS="-L$MPI_HOME/lib -lmpi"
+    #local COMET_MPI_CMAKE_OPTS=""
+  fi
 
   #---Testing.
 
-  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=32 srun -n 1"
+  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n 1"
 
 #----------------------------------------
 else

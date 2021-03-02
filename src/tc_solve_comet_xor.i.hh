@@ -1189,10 +1189,11 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
   }
 
   int err = cudaGetLastError();
-  if(env.print_details()) printf("Called 1-bit GPU GEMM err=%d\n",err);
+  if(env.print_details()) printf("tc_solve_comet_impl computed 1-bit GEMM with 2x%dx%dx%d=%lf operations\n",
+    2*m,2*n,k*64,2.0*(double)m*2.0*(double)n*2.0*(double)k*64.0);
   env.stream_synchronize(env.stream_compute());
   System::accel_last_call_succeeded();
-  env.ops_local_inc(2 * m * (double)n * (double)k);
+  env.ops_local_inc(2.0 * (double)m*2.0 * (double)n*2.0 * (double)k*64.0);
 
   env.gemmtime_inc(env.get_time() - tbegin);
 }

@@ -2558,15 +2558,86 @@ void DriverTest_ccc3_duo3_(const char* const metric_type) {
 
 //=============================================================================
 
-void DriverTest_duo2_b1_() {
+void DriverTest_b1_gemm_nk(int num_kernel, int num_way) {
+
+  char options1[1024];
+  char options2[1024];
+
+  char options_template[] =
+      "--metric_type duo --num_way %i --num_proc_vector 1 "
+      "--num_vector %i --num_field %i "
+      "--compute_method %s --sparse yes --all2all yes "
+      "--problem_type random --verbosity %i --tc %i "
+      "--num_tc_steps %i --threshold .05 --metrics_shrink 1.0 ";
+
+  char options_nk_template[] =
+      "--metric_type duo --num_way %i --num_proc_vector 1 "
+      "--num_vector %i --num_field %i "
+      "--compute_method %s --sparse yes --all2all yes "
+      "--problem_type random --verbosity %i --tc %i "
+      "--num_tc_steps %i --threshold .05 --metrics_shrink 1.0 --num_kernel %i ";
+
+  int nerrs=0, ntests=0;
+  bool result;
+
+  typedef comet::TC TC;
+
+  for (int num_tc_steps : {1, 2})
+  //for (int num_tc_steps : {1})
+  for (int num_vector = num_way; num_vector < 5; ++num_vector) {
+  //for (int num_vector = 2; num_vector < 3; ++num_vector) {
+    //if (num_vector < num_way)
+    //  continue;
+  // Examine num_field values nearby possible block boundaries.
+  int num_field_prev = 0;
+  for (int nfbdry : {1, 2, 4, 8, 16, 32, 64, 128}) {
+    const int range = 1;
+  for (int nf = nfbdry - range; nf <= nfbdry + range; ++nf) {
+  //for (int nf = nfbdry + 1; nf < nfbdry + 2; ++nf) {
+    const int num_field = nf;
+    // Skip if this num_field already visited.
+    if (num_field <= num_field_prev)
+      continue;
+
+    //const int num_vector_ = 256; // 256;
+    //const int num_field_ = 256;
+
+    sprintf(options1, options_template, num_way,
+            num_vector, num_field, "REF", 0, 0, 1);
+    sprintf(options2, options_nk_template, num_way,
+            num_vector, num_field, "GPU", 0, TC::B1, num_tc_steps, num_kernel);
+    result = compare_2runs(options1, options2);
+    if(!result) nerrs++;
+    ntests++;
+    EXPECT_EQ(true, result);
+    num_field_prev = num_field;
+  }
+  }
+  }
+
+  printf("Found %d/%d errors for b1_gemm num_kernel=%d num_way=%d\n",
+    nerrs,ntests,num_kernel,num_way);
+
+} // DriverTest_b1_gemm_
+
+//=============================================================================
+
+void DriverTest_duo_b1_detailed_() {
 
     char options1[1024];
     char options2[1024];
-    int nf1, nf2, nfskip, nv1, nv2, nvskip;
+    int nf1, nf2, nfskip, nv1, nv2, nvskip, num_kernel;
 
     printf("Running duo2 b1 test\n");
 
-    int use_test = 1; // 0=skip, 1=low detail, 2=high detail
+    int use_test = 2; // 0=skip, 1=low detail, 2=high detail, 3=selective detail
+
+    // Template for 2-way b1 kernels
+    char options_2way_cublas[] =
+        "--metric_type duo --num_field %i --num_vector %i "
+        "--num_proc_vector 1 --compute_method %s --sparse yes "
+        "--problem_type random --verbosity 0 --tc 1 --num_way 2 "
+        "--num_tc_steps 1 --all2all yes --num_kernel 0";// --print_details yes";
 
     // Template for 2-way b1 kernels
     char options_2way_template[] =
@@ -2584,7 +2655,7 @@ void DriverTest_duo2_b1_() {
 
     // Template for 3-way b1 kernels
     char options_3way_template[] =
-        "--num_way 3 --num_field_local %i --num_vector_local %i --metric_type duo "
+        "--num_way 3 --num_field %i --num_vector %i --metric_type duo "
         "--all2all yes --compute_method %s --problem_type random --num_proc_vector 1 "
         "--num_proc_field 1 --num_proc_repl 1 --num_phase 1 --phase_min 0 --phase_max 0 "
         "--num_stage 640 --stage_min 639 --verbosity 0 --sparse yes --threshold 0.0 "
@@ -2592,23 +2663,16 @@ void DriverTest_duo2_b1_() {
 
     // Template 3-way Cublas reference kernel
     char options_3way_ref[] =
-        "--num_way 3 --num_field_local %i --num_vector_local %i --metric_type duo "
+        "--num_way 3 --num_field %i --num_vector %i --metric_type duo "
         "--all2all yes --compute_method %s --problem_type random --num_proc_vector 1 "
         "--num_proc_field 1 --num_proc_repl 1 --num_phase 1 --phase_min 0 --phase_max 0 "
         "--num_stage 640 --stage_min 639 --verbosity 0 --sparse yes --threshold 0.0 "
         "--metrics_shrink 2 --num_tc_steps 4 --tc 1 --num_kernel 0";// --print_details yes";
 
-    /*for(int nfields=1; nfields<=32; nfields++) {
-        for(int nvectors=2; nvectors<=32; nvectors++) {
-            sprintf(options1, options_magma, nfields, nvectors, "REF");
-            sprintf(options2, options_magma, nfields, nvectors, "GPU");
-            EXPECT_EQ(true, compare_2runs(options1, options2));
-        }
-    }*/
-
-    // 2-way Cutlass device-level GEMM
+    // 2-way Cublas device-level GEMM
+    use_test = 0;
     if(use_test==2) {
-      nf1 = 1; nf2 = 2048; nfskip = 1; // Should work for larger values
+      nf1 = 1; nf2 = 1024; nfskip = 1; // Should work for larger values
       nv1 = 2; nv2 = 256; nvskip = 1;  // Should work for larger values
     } else {
       nf1 = 128; nf2 = 2048; nfskip = 128;
@@ -2618,23 +2682,78 @@ void DriverTest_duo2_b1_() {
         for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
             for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
                 int num_kernel = 11;
+                //printf("Testing Cublas 2-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+                sprintf(options1, options_2way_ref, nfields, nvectors, "REF");
+                sprintf(options2, options_2way_cublas, nfields, nvectors, "GPU", num_kernel);
+                EXPECT_EQ(true, compare_2runs(options1, options2));
+            }
+        }
+    }
+
+    // 2-way Cutlass device-level Xor GEMM - Turing - Works
+    use_test = 3;
+    num_kernel = 11;
+    if(use_test==3) {
+      DriverTest_b1_gemm_nk(num_kernel,2);
+    } else {
+      if(use_test==2) {
+        nf1 = 1; nf2 = 512; nfskip = 1; // Should work for larger values
+        nv1 = 2; nv2 = 256; nvskip = 1;  // Should work for larger values
+      } else {
+        nf1 = 128; nf2 = 128; nfskip = 128;
+        nv1 = 512;  nv2 = 512; nvskip = 128;
+      }
+      if(use_test) {
+        for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
+            for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
                 //printf("Testing Cutlass 2-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
                 sprintf(options1, options_2way_ref, nfields, nvectors, "REF");
                 sprintf(options2, options_2way_template, nfields, nvectors, "GPU", num_kernel);
                 EXPECT_EQ(true, compare_2runs(options1, options2));
             }
         }
+      }
     }
 
-    // 3-way Cutlass device-level GEMM
-    if(use_test==2) {
-      nf1 = 512; nf2 = 2048; nfskip = 1;   // Should work for larger values
-      nv1 = 1024; nv2 =2048; nvskip = 256; // Only works for multiples of 256 right now
+    // 2-way Cutlass device-level Xor GEMM - Ampere - Works
+    use_test = 3;
+    num_kernel = 18;
+    if(use_test==3) {
+      DriverTest_b1_gemm_nk(num_kernel,2);
     } else {
-      nf1 = 512; nf2 = 2048; nfskip = 1;
-      nv1 = 1024; nv2 = 2048; nvskip = 256;
+      if(use_test==2) {
+        nf1 = 1; nf2 = 512; nfskip = 1; // Should work for larger values
+        nv1 = 2; nv2 = 256; nvskip = 1;  // Should work for larger values
+      } else {
+        nf1 = 128; nf2 = 128; nfskip = 128;
+        nv1 = 512;  nv2 = 512; nvskip = 128;
+      }
+      if(use_test) {
+        for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
+            for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
+                //printf("Testing Cutlass 2-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+                sprintf(options1, options_2way_ref, nfields, nvectors, "REF");
+                sprintf(options2, options_2way_template, nfields, nvectors, "GPU", num_kernel);
+                EXPECT_EQ(true, compare_2runs(options1, options2));
+            }
+        }
+      }
     }
-    if(use_test) {
+
+    // 3-way Cutlass device-level Xor GEMM - Turing - Works
+    use_test = 3;
+    num_kernel = 11;
+    if(use_test==3) {
+      DriverTest_b1_gemm_nk(num_kernel,3);
+    } else {
+      if(use_test==2) {
+        nf1 = 1; nf2 = 512; nfskip = 1;   // Should work for larger values
+        nv1 = 3; nv2 = 256; nvskip = 1; // Only works for multiples of 256 right now
+      } else {
+        nf1 = 512; nf2 = 2048; nfskip = 1;
+        nv1 = 1024; nv2 = 2048; nvskip = 256;
+      }
+      if(use_test) {
         for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
             for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
                 int num_kernel = 11;
@@ -2644,26 +2763,58 @@ void DriverTest_duo2_b1_() {
                 EXPECT_EQ(true, compare_2runs(options1, options2));
             }
         }
+      }
+    }
+
+    // 3-way Cutlass device-level GEMM - Ampere - Works
+    use_test = 3;
+    num_kernel = 18;
+    if(use_test==3) {
+      DriverTest_b1_gemm_nk(num_kernel,3);
+    } else {
+      if(use_test==2) {
+        nf1 = 1; nf2 = 512; nfskip = 1;   // Should work for larger values
+        nv1 = 3; nv2 = 256; nvskip = 1; // Only works for multiples of 256 right now
+      } else {
+        nf1 = 512; nf2 = 2048; nfskip = 1;
+        nv1 = 1024; nv2 = 2048; nvskip = 256;
+      }
+      if(use_test) {
+        for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
+            for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
+                int num_kernel = 11;
+                //printf("Testing Cutlass 3-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
+                sprintf(options1, options_3way_ref, nfields, nvectors, "GPU");
+                sprintf(options2, options_3way_template, nfields, nvectors, "GPU", num_kernel);
+                EXPECT_EQ(true, compare_2runs(options1, options2));
+            }
+        }
+      }
     }
 
     // 2-way Cutlass warp-level GEMM
-    if(use_test==2) {
-      nf1 = 512; nf2 = 4096; nfskip = 512; // Only works for multiples of 512 right now
-      nv1 = 2; nv2 = 256; nvskip = 1;      // Should work for larger values
+    use_test = 0;
+    num_kernel = 24;
+    if(use_test==3) {
+      DriverTest_b1_gemm_nk(num_kernel,2);
     } else {
-      nf1 = 512; nf2 = 4096; nfskip = 512;
-      nv1 = 128;  nv2 = 1024; nvskip = 128;
-    }
-    if(use_test) {
+      if(use_test==2) {
+        nf1 = 512; nf2 = 4096; nfskip = 512; // Only works for multiples of 512 right now
+        nv1 = 2; nv2 = 256; nvskip = 1;      // Should work for larger values
+      } else {
+        nf1 = 2048; nf2 = 2048; nfskip = 512;
+        nv1 = 1024;  nv2 = 1024; nvskip = 128;
+      }
+      if(use_test) {
         for(int nfields=nf1; nfields<=nf2; nfields+=nfskip) {
             for(int nvectors=nv1; nvectors<=nv2; nvectors+=nvskip) {
-                int num_kernel = 24;
                 //printf("Testing Cutlass 2-way device-level with nfields=%d nvectors=%d\n",nfields,nvectors);
                 sprintf(options1, options_2way_ref, nfields, nvectors, "REF");
                 sprintf(options2, options_2way_template, nfields, nvectors, "GPU", num_kernel);
                 EXPECT_EQ(true, compare_2runs(options1, options2));
             }
         }
+      }
     }
 
     // 3-way Cutlass warp-level GEMM - Doesn't work correctly yet
@@ -2788,7 +2939,7 @@ void DriverTest_duo3_() {
 
 BEGIN_TESTS
 
-#if 1
+#if 0
 TEST(DriverTest, b1_gemm) {
   DriverTest_b1_gemm_();
 }
@@ -2846,19 +2997,21 @@ TEST(DriverTest, ccc3) {
 }
 #endif
 
+#if 0
 TEST(DriverTest, duo2) {
   DriverTest_duo2_();
 }
+#endif
 
-#if 1
+#if 0
 TEST(DriverTest, duo3) {
   DriverTest_duo3_();
 }
+#endif
 
 TEST(DriverTest, duo2_tc) {
-  DriverTest_duo2_b1_();
+  DriverTest_duo_b1_detailed_();
 }
-#endif
 
 /*TEST(DriverTest, create_input_files) {
   DriverTest_create_input_files();
@@ -2871,6 +3024,7 @@ END_TESTS
 GTEST_API_ int main(int argc, char** argv) {
 
 # ifdef COMET_USE_GTEST
+    printf("In driver_test using GTEST\n");
     ::testing::InitGoogleTest(&argc, argv);
 # endif
 
@@ -2879,15 +3033,19 @@ GTEST_API_ int main(int argc, char** argv) {
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
+  if(comm_rank==0) printf("Running tests in driver_test\n");
+
   if (comm_rank != 0) {
 #   ifdef COMET_USE_GTEST
-      ::testing::TestEventListeners& listeners =
+        ::testing::TestEventListeners& listeners =
         ::testing::UnitTest::GetInstance()->listeners();
       delete listeners.Release(listeners.default_result_printer());
 #   endif
   }
 
   int result = RUN_ALL_TESTS();
+
+  if(comm_rank==0) printf("Done running tests in driver_test\n");
 
   int result_g = 11;
 

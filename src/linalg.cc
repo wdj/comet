@@ -78,7 +78,9 @@ void LinAlg::gemm_start(
   if (!m || !n || !k)
     return;
 
-  if(env.print_details()) printf("In LinAlg::gemm_start A matrix+column case\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  if(env.print_details()) printf("rank=%d In LinAlg::gemm_start A matrix+column case\n",rank);
 
   // Lock.
 
@@ -93,7 +95,7 @@ void LinAlg::gemm_start(
 
   if (env.is_using_tc()) {
     if (env.is_compute_method_gpu()) {
-      if(env.print_details()) printf("Calling tc_gemm_start with mnk=%zu,%zu,%zu\n",m,n,k);
+      if(env.print_details()) printf("rank=%d Calling tc_gemm_start with mnk=%zu,%zu,%zu\n",rank,m,n,k);
       // GEMM call, tc case.
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
@@ -106,7 +108,7 @@ void LinAlg::gemm_start(
     switch(env.num_kernel()) {
       // Magma GEMM
       case 0: {
-        if(env.print_details()) printf("Calling MagmaWrapper::gemm_start with mnk=%zu,%zu,%zu\n",m,n,k);
+        if(env.print_details()) printf("rank=%d Calling MagmaWrapper::gemm_start with mnk=%zu,%zu,%zu\n",rank,m,n,k);
         // apparently needed by magma.
         MagmaWrapper::set_matrix_zero_start(matC, env);
         // GEMM call, non-tc case.
@@ -115,7 +117,7 @@ void LinAlg::gemm_start(
       } break;
       // General GEMMs
       case 1: {
-        if(env.print_details()) printf("Calling CoMet GEMM kernel with mnk=%zu,%zu,%zu\n",m,n,k);
+        if(env.print_details()) printf("rank=%d Calling CoMet GEMM kernel with mnk=%zu,%zu,%zu\n",rank,m,n,k);
         tc_gemm_comet_start(m, n, k, matA1->active, matA1->dim0,
           matB->active, matB->dim0, matC->active, matC->dim0, env);
       } break;
@@ -125,9 +127,10 @@ void LinAlg::gemm_start(
       }
     }
   }
-  if(env.print_details()) printf("Setting simops=2*128*mnk=2*128*%zu*%zu*%zu=%lf\n",
-         m,n,k,2*m*(double)n*(double)k*128);
+  if(env.print_details()) printf("rank=%d Setting simops=2*128*mnk=2*128*%zu*%zu*%zu=%lf\n",
+         rank,m,n,k,2*m*(double)n*(double)k*128);
   env.simops_local_inc(2*m*(double)n*(double)k*128);
+  if(env.print_details()) printf("rank=%d Done in LingAlg::gemm_start\n",rank);
 }
 
 //-----------------------------------------------------------------------------
@@ -146,14 +149,16 @@ void LinAlg::gemm_wait(
   if (!m || !n || !k)
     return;
 
-  if(env.print_details()) printf("In LinAlg::gemm_wait\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  if(env.print_details()) printf("rank=%d In LinAlg::gemm_wait\n",rank);
 
   // CPU case.
 
   if (env.is_using_tc()) {
     if (!env.is_compute_method_gpu()) {
       // Lock
-      if(env.print_details()) printf("Locking matrices CPU\n");
+      if(env.print_details()) printf("rank=%d Locking matrices CPU\n",rank);
       matA1->lock_h();
       if (matA2 != matA1 && matA2 != matB)
         matA2->lock_h();
@@ -161,7 +166,7 @@ void LinAlg::gemm_wait(
         matB->lock_h();
       matC->lock_h();
       // GEMM call, tc case.
-      if(env.print_details()) printf("Calling tc_gemm_start\n");
+      if(env.print_details()) printf("rank=%d Calling tc_gemm_start\n",rank);
       tc_gemm_start(m, n, k,
         matA1->active, matA1->dim0, matA2->active, matA2->dim0,
         matB->active, matB->dim0, matC->active, matC->dim0,
@@ -169,7 +174,7 @@ void LinAlg::gemm_wait(
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
         dm.num_field_active_local, step_2way, dm.tc_bufs, env);
       // Unlock
-      if(env.print_details()) printf("Unlocking matrices CPU\n");
+      if(env.print_details()) printf("rank=%d Unlocking matrices CPU\n",rank);
       matA1->unlock_h();
       if (matA2 != matA1 && matA2 != matB)
         matA2->unlock_h();
@@ -179,21 +184,22 @@ void LinAlg::gemm_wait(
     }
   }
 
-  if(env.print_details()) printf("Calling stream synchronize\n");
+  if(env.print_details()) printf("rank=%d Calling stream synchronize\n",rank);
   env.stream_synchronize(env.stream_compute());
-  if(env.print_details()) printf("Stream synchronized in wait\n");
+  if(env.print_details()) printf("rank=%d Stream synchronized in wait\n",rank);
 
   env.gemmtime_record();
 
   // Unlock.
 
   if (env.is_compute_method_gpu()) {
-    if(env.print_details()) printf("Unlocking matrices GPU\n");
+    if(env.print_details()) printf("rank=%d Unlocking matrices GPU\n",rank);
     matA1->unlock_d();
     if (matB != matA1)
       matB->unlock_d();
     matC->unlock_d();
   }
+  if(env.print_details()) printf("rank=%d Done in LinAlg::gemm_wait\n",rank);
 }
 
 //-----------------------------------------------------------------------------
@@ -206,7 +212,9 @@ void LinAlg::gemm_start(
   MirroredBuf* counts_I, MirroredBuf* counts_J,
   GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
 
-  if(env.print_details()) printf("Calling gemm_start with standard A case\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  if(env.print_details()) printf("rank=%d Calling gemm_start with standard A case\n",rank);
   gemm_start(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm,
     magma_wrapper, env);
@@ -237,12 +245,14 @@ void LinAlg::gemm(
   GMDecompMgr& dm, MagmaWrapper& magma_wrapper, CEnv& env) {
   COMET_INSIST(matA && matB && matC);
 
-  if(env.print_details()) printf("Starting LinAlg::gemm\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  if(env.print_details()) printf("rank=%d Starting LinAlg::gemm\n",rank);
   gemm_start(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, magma_wrapper, env);
   gemm_wait(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, env);
-  if(env.print_details()) printf("Done with LinAlg::gemm\n");
+  if(env.print_details()) printf("rank=%d Done with LinAlg::gemm\n",rank);
 }
 
 //=============================================================================

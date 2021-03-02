@@ -662,8 +662,10 @@ int main(int argc, char** argv) {
 
   setbuf(stdout, NULL);
 
-  int rank = 0;
+  int rank = 0, size = 1;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  COMET_MPI_SAFE_CALL(MPI_Comm_size(MPI_COMM_WORLD, &size));
+  print_details = print_details && rank==0;
 
   if (argc == 1) {
     if (rank == 0) {
@@ -673,7 +675,8 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  if(print_details) printf("Starting CoMet in genomics_metric\n");
+  if(print_details) printf("Starting CoMet in genomics_metric with %d processes print_details=%d\n",
+    size,print_details);
 
   //install_handler();
 

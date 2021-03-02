@@ -532,11 +532,11 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
 
     System::accel_last_call_succeeded();
 
-  } else if(env.num_kernel()==100) {
-    //COMET_INSIST(false && "TODO: implement.");
+  } else if(env.num_kernel()==10) {
 
     if (env.is_using_xor()) {
 
+      if(env.print_details()) printf("Using Xor Cutlass GEMM\n");
       tc_solve_impl_b1_cutlass<TCSubmethod::_128_256, TCGemmOpXorPopc>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
@@ -546,6 +546,7 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
 
     } else { // !env.is_using_xor()
 
+      if(env.print_details()) printf("Using MultAdd Cutlass GEMM\n");
       tc_solve_impl_b1_cutlass<TCSubmethod::_128_256, TCGemmOpMultiplyAdd>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
@@ -565,32 +566,6 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
       COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
       const bool beta = is_first ? 0 : 1;
-
-  
-      //COMET_INSIST(false && "TODO: implement.");
-
-    if (env.is_using_xor()) {
-
-      tc_solve_impl_b1_cutlass<TCSubmethod::_128_256, TCGemmOpXorPopc>(
-        is_first, n, m, k, // NOTE: switching order of A, B.
-        (uint8_t*)tc_bufs.tc_buf_right, k,
-        (uint8_t*)tc_bufs.tc_buf_left, k,
-        (int32_t*)matC, m,
-        env.stream_compute());
-
-    } else { // !env.is_using_xor()
-
-      tc_solve_impl_b1_cutlass<TCSubmethod::_128_256, TCGemmOpMultiplyAdd>(
-        is_first, n, m, k, // NOTE: switching order of A, B.
-        (uint8_t*)tc_bufs.tc_buf_right, k,
-        (uint8_t*)tc_bufs.tc_buf_left, k,
-        (int32_t*)matC, m,
-        env.stream_compute());
-
-
-    } // if (env.is_using_xor())
-
-    System::accel_last_call_succeeded(); // extra precaution.
 
       // 8 == number of uint8_t values used to store NUM_FL_PER_PVFL fields
       // in the tc buf.
@@ -631,60 +606,64 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
             (uint8_t*)tc_bufs.tc_buf_left, beta, (int32_t*)matC);
         } break;
         // Cutlass kernels
-        case 10: {
-          if(env.print_details()) printf("Using Cutlass kernel 256x128\n");
-          CutlassTCGemm1B_256x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
-        } break;
         case 11: {
-          if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
-          CutlassTCGemm1B_128x256<TCTBlockType::_128_256_512,TCWarpType::_64_64_512,TCInstType::_8_8_128,2>(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+          if(env.print_details()) printf("Using Cutlass kernel 128x256x512\n");
+          CutlassTCGemm1B<TCTBlockType::_128_256_512,
+                          TCWarpType::_64_64_512,
+			  TCInstType::_8_8_128,2>(
+	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
-        case 12: {
-          if(env.print_details()) printf("Using Cutlass kernel 128x128\n");
-          CutlassTCGemm1B_128x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+	case 12: {
+          if(env.print_details()) printf("Using Cutlass kernel 256x128x512\n");
+          CutlassTCGemm1B<TCTBlockType::_256_128_512,
+		          TCWarpType::_64_64_512,
+			  TCInstType::_8_8_128,2>(
+	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 13: {
-          if(env.print_details()) printf("Using Cutlass kernel 128x64\n");
-          CutlassTCGemm1B_128x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+          if(env.print_details()) printf("Using Cutlass kernel 128x128\n");
+          CutlassTCGemm1B<TCTBlockType::_128_128_512,
+		          TCWarpType::_64_64_512,
+			  TCInstType::_8_8_128,2>(
+	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 14: {
-          if(env.print_details()) printf("Using Cutlass kernel 64x128\n");
-          CutlassTCGemm1B_64x128(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
-        } break;
-        case 15: {
-          if(env.print_details()) printf("Using Cutlass kernel 64x64\n");
-          CutlassTCGemm1B_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
-        } break;
-        case 16: {
           if(env.print_details()) printf("Using Cutlass WMMA kernel 64x64\n");
-          CutlassTCGemm1BWmma_64x64(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
+          CutlassTCGemm1BWmma<TCTBlockType::_64_64_512,
+		              TCWarpType::_32_32_512,
+			      TCInstType::_8_8_128,2>(
+	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
         case 17: {
-          if(env.print_details()) printf("Using Cutlass kernel TB=128x256 W=64x64x1024 I=16x8x256\n");
-          CutlassTCGemm1B_128x256<TCTBlockType::_128_256_1024,TCWarpType::_64_64_1024,TCInstType::_16_8_256,2>(n, m, k,
-            (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=2\n");
+          CutlassTCGemm1B<TCTBlockType::_128_256_1024,
+		          TCWarpType::_64_64_1024,
+			  TCInstType::_16_8_256,2>(
+	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;
         case 18: {
-          if(env.print_details()) printf("Using Cutlass kernel TB=128x256 W=64x64x1024 I=16x8x256\n");
-          CutlassTCGemm1B_128x256<TCTBlockType::_128_256_1024,TCWarpType::_64_64_1024,TCInstType::_16_8_256,3>(n, m, k,
-            (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=3\n");
+          CutlassTCGemm1B<TCTBlockType::_128_256_1024,
+		          TCWarpType::_64_64_1024,
+			  TCInstType::_16_8_256,3>(
+	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;
-	case 19: {
-          if(env.print_details()) printf("Using Cutlass kernel TB=128x256 W=64x64x1024 I=16x8x256\n");
-          CutlassTCGemm1B_128x256<TCTBlockType::_128_256_1024,TCWarpType::_64_64_1024,TCInstType::_16_8_256,4>(n, m, k,
-            (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+	// Stages = 4 is invalid argument
+	/*case 19: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=4\n");
+          CutlassTCGemm1B<TCTBlockType::_128_256_1024,
+		          TCWarpType::_64_64_1024,
+			  TCInstType::_16_8_256,4>(
+	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
-        } break;
-	 /*case 30: {
+        } break;*/
+	/*case 30: {
           if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
           CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n, env.stream_compute());
@@ -729,8 +708,13 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
   // since nvl % 4 == 0; see tc_gemm_divisibility_required()
   COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
 
-  if(env.print_details()) printf("\nIn tc_solve_impl mnk=%d,%d,%d num_kernel=%d\n",m,n,k,env.num_kernel());
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+
+  if(env.print_details()) printf("\nrank=%d In tc_solve_impl mnk=%d,%d,%d num_kernel=%d\n",
+    rank,m,n,k,env.num_kernel());
   double tbegin = env.get_time();
+  if(env.print_details()) printf("rank=%d Starting timer\n",rank);
 
   // Make the appropriate BLAS call.
 
@@ -751,8 +735,9 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       //env.gemmtime_record();
 
       //env.gemmtime_start();
-
+      if(env.print_details()) printf("rank=%d Calling tc_solve_impl_b1\n",rank);
       tc_solve_impl_b1<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
+      if(env.print_details()) printf("rank=%d Done calling tc_solve_impl_b1\n",rank);
 
       //env.gemmtime_end();
 
@@ -943,6 +928,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
            (int)m, (int)n, (int)k, t,
            (2 * m * (double)n * (double)k) / (t * 1e12), t1, t2);
   }
+
+  if(env.print_details()) printf("rank=%d Done in tc_solve_impl\n",rank);  
 }
 
 //-----------------------------------------------------------------------------

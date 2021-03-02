@@ -95,7 +95,11 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
   // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
 
   const size_t result = !env.is_metric_type_bitwise() ? 1 :
-    !(env.tc_eff() == TC::B1) ? 1 : 4;
+    !(env.tc_eff() == TC::B1) ? 1 :
+    env.num_kernel()==24 ? 32 : 4;
+
+  if(env.print_details()) printf("In faxis_divis_req result=%zu tc_eff=%d !env.is_metric_type_bitwise=%d num_kernel=%d\n",
+    result,env.tc_eff(),!env.is_metric_type_bitwise(),env.num_kernel());
 
   return result;
 }
@@ -407,6 +411,7 @@ static void tc_gemm_comet_start_impl_(
   COMET_INSIST(npfl % d == 0);
   const int I_max = m;
   const int I_max_dim = lddc;
+  //double tbegin;
 
   if(env.print_details()) printf("In tc_gemm_comet_start_impl num_tc_steps=%d nvl=%d npfl=%d d=%d I_max=%d I_max_dim=%d vaxis_req=%zu\n",
     env.num_tc_steps(),nvl,npfl,d,I_max,I_max_dim,tc_gemm_vaxis_size_required(I_max_dim, env));
@@ -421,8 +426,8 @@ static void tc_gemm_comet_start_impl_(
 
   // Get matX counts if needed.
 
-  //tc_compute_matX_counts(I_max, I_max_dim, nvl, npfl, nfal,
-  //  (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
+  tc_compute_matX_counts(I_max, I_max_dim, nvl, npfl, nfal,
+    (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
   if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
   tc_set_matrix_zero_start<TC_METHOD>(matC, lddc, m, env);
@@ -450,6 +455,27 @@ static void tc_gemm_comet_start_impl_(
     if(env.print_details()) printf("Done calling tc_solve_comet_ step=%d\n",tc_step_num);
 
   } // for
+
+  // Postprocess GEMM results.
+  /*if(env.print_details()) printf("Calling postprocessing routine\n");
+  tbegin = env.get_time();
+  if (env.is_threshold_tc()) {
+
+    if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
+    tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
+      J, step_2way, env);
+
+  } else {
+
+    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE\n");
+    tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
+      sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
+      J, step_2way, env);
+
+  }
+  env.postgemmtime_inc(env.get_time() - tbegin);*/
+
   if(env.print_details()) printf("Done in tc_gemm_comet_start_impl\n");
 }
 
@@ -568,12 +594,14 @@ void tc_gemm_start(
 
   // Select required template function instance.
 
-  if(env.print_details()) printf("In tc_gemm_start\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  if(env.print_details()) printf("rank=%d In tc_gemm_start\n",rank);
 
   switch (env.tc_eff()) {
     // --------------
     case TC::FP32: {
-      if(env.print_details()) printf("Calling TC::FP32 GEMM\n");
+      if(env.print_details()) printf("rank=%d Calling TC::FP32 GEMM\n",rank);
       tc_gemm_start_impl_<TC::FP32>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -581,7 +609,7 @@ void tc_gemm_start(
     } break;
     // --------------
     case TC::FP16: {
-      if(env.print_details()) printf("Calling TC::FP16 GEMM\n");
+      if(env.print_details()) printf("rank=%d Calling TC::FP16 GEMM\n",rank);
       tc_gemm_start_impl_<TC::FP16>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -589,7 +617,7 @@ void tc_gemm_start(
     } break;
     // --------------
     case TC::INT8: {
-      if(env.print_details()) printf("Calling TC::INT8 GEMM\n");
+      if(env.print_details()) printf("rank=%d Calling TC::INT8 GEMM\n",rank);
       tc_gemm_start_impl_<TC::INT8>(
         m, n, k, matA1, matA2, matB, matC, lddc,
         sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -597,7 +625,7 @@ void tc_gemm_start(
     } break;
     // --------------
     case TC::B1: {
-      if(env.print_details()) printf("Calling TC::B1 GEMM num_kernel=%d mnk=%d,%d,%d\n",env.num_kernel(),m,n,k);
+      if(env.print_details()) printf("rank=%d Calling TC::B1 GEMM num_kernel=%d mnk=%d,%d,%d\n",rank,env.num_kernel(),m,n,k);
       // General 1-bit kernels
       if(env.num_kernel()<20) {
         tc_gemm_start_impl_<TC::B1>(

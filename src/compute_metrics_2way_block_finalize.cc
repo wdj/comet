@@ -217,7 +217,10 @@ static void finalize_ccc_duo_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
-  if(env->print_details()) printf("In finalize_ccc_duo_\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+
+  if(env->print_details()) printf("rank=%d In finalize_ccc_duo_\n",rank);
 
   const int nvl = metrics->num_vector_local;
   const VectorSums* const vs_l = vector_sums_left;
@@ -233,7 +236,7 @@ static void finalize_ccc_duo_(
 
   if (env->is_shrink()) { // && env->is_using_linalg() -- this always true here
 
-    if(env->print_details()) printf("Copying metrics_buffer is_shrink=%d",env->is_shrink());
+    if(env->print_details()) printf("rank=%d Copying metrics_buffer is_shrink=%d",rank,env->is_shrink());
 
     // NOTE: this may be slight overestimate of amt of mem that will be needed.
 
@@ -304,7 +307,7 @@ static void finalize_ccc_duo_(
     if (env->all2all() && do_compute_triang_only) {
     // --------------
 
-      if(env->print_details()) printf("Copying metrics_buffer all2all do_compute_triang_only=%d\n",do_compute_triang_only);
+      if(env->print_details()) printf("rank=%d Copying metrics_buffer all2all do_compute_triang_only=%d\n",rank,do_compute_triang_only);
 
       // here and below don't use collapse because of overflow for large sizes
 #     pragma omp parallel for schedule(dynamic,1000) if (!matB_cbuf->do_compress())
@@ -385,7 +388,7 @@ static void finalize_ccc_duo_(
     } else if (env->all2all()) { // && ! do_compute_triang_only
     // --------------
 
-      if(env->print_details()) printf("Copying metrics_buffer all2all !do_compute_triang_only\n");
+      if(env->print_details()) printf("rank=%d Copying metrics_buffer all2all !do_compute_triang_only\n",rank);
 #     pragma omp parallel for schedule(dynamic,1000) if (!matB_cbuf->do_compress())
       for (int j = 0; j < nvl; ++j) {
         for (int i = 0; i < nvl; ++i) {
@@ -464,7 +467,7 @@ static void finalize_ccc_duo_(
     } else { // if (! env->all2all())
     // --------------
 
-      if(env->print_details()) printf("Copying metrics_buffer !all2all\n");
+      if(env->print_details()) printf("rank=%d Copying metrics_buffer !all2all\n",rank);
 
       const int j_block = env->proc_num_vector();
 #     pragma omp parallel for schedule(dynamic,1000) if (!matB_cbuf->do_compress())
@@ -512,7 +515,7 @@ static void finalize_ccc_duo_(
   if (env->all2all() && do_compute_triang_only) {
   // --------------
 
-    if(env->print_details()) printf("Computing multipliers all2all do_compute_triang_only=%d\n",do_compute_triang_only);
+    if(env->print_details()) printf("rank=%d Computing multipliers all2all do_compute_triang_only=%d\n",rank,do_compute_triang_only);
 
     if (!env->is_threshold_tc()) {
       COMET_INSIST(!matB_cbuf->do_compress());
@@ -547,7 +550,7 @@ static void finalize_ccc_duo_(
   } else if (env->all2all()) { // && ! do_compute_triang_only
   // --------------
 
-    if(env->print_details()) printf("Computing multipliers all2all !do_compute_triang_only\n");
+    if(env->print_details()) printf("rank=%d Computing multipliers all2all !do_compute_triang_only\n",rank);
 
     if (!env->is_threshold_tc()) {
       COMET_INSIST(!matB_cbuf->do_compress());
@@ -573,7 +576,7 @@ static void finalize_ccc_duo_(
       metrics->num_metric_items_local_computed_inc(nvl * (size_t)nvl);
     }
 
-    if(env->print_details()) printf("Done computing multipliers all2all\n");
+    if(env->print_details()) printf("rank=%d Done computing multipliers all2all\n",rank);
 
   // --------------
   } else { // ! env->all2all()
@@ -611,7 +614,7 @@ static void finalize_ccc_duo_(
   // --------------
   } // if (env->all2all() && do_compute_triang_only)
   // --------------
-  if(env->print_details()) printf("Done in finalize_duo\n");
+  if(env->print_details()) printf("rank=%d Done in finalize_duo\n",rank);
 }
 
 //=============================================================================
@@ -632,7 +635,10 @@ static void finalize_(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
-  if(env->print_details()) printf("In ComputeMetrics2WayBlock::finalize\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+
+  if(env->print_details()) printf("rank=%d In ComputeMetrics2WayBlock::finalize\n",rank);
   double tbegin = env->get_time();
 
   // Select action based on metric_type.
@@ -664,6 +670,7 @@ static void finalize_(
   } // case
 
   env->combinetime_inc(env->get_time() - tbegin);
+  if(env->print_details()) printf("rank=%d Done in ComputeMetrics2WayBlock::finalize\n",rank);
 }
 
 //=============================================================================

@@ -670,12 +670,15 @@ void ComputeMetrics2WayBlock::compute_nums_start(
   COMET_INSIST(j_block >= 0 && j_block < env->num_block_vector());
   COMET_INSIST(env->num_way() == NumWay::_2);
 
-  if(env->print_details()) printf("In ComputeMetrics2WayBlock::compute_nums_start\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+
+  if(env->print_details()) printf("rank=%d In ComputeMetrics2WayBlock::compute_nums_start\n",rank);
   double tbegin = env->get_time();
 
   if (env->is_using_linalg()) {
 
-    if(env->print_details()) printf("Calling LinAlg::gemm_start\n");
+    if(env->print_details()) printf("rank=%d Calling LinAlg::gemm_start\n",rank);
     LinAlg::gemm_start(
       vectors_left->num_vector_local,
       vectors_left->num_vector_local,
@@ -686,6 +689,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
       vector_sums_left->sums(), vector_sums_right->sums(),
       vector_sums_left->counts(), vector_sums_right->counts(),
       *(vectors_left->dm), magma_wrapper, *env);
+    if(env->print_details()) printf("rank=%d Done calling LinAlg::gemm_start\n",rank);
 
   } else if(env->metric_type() == MetricType::CZEK) {
 
@@ -703,7 +707,7 @@ void ComputeMetrics2WayBlock::compute_nums_start(
 
   } else if(env->metric_type() == MetricType::DUO) {
 
-      if(env->print_details()) printf("Calling gm_compute_nums_nonlinalg_duo_start\n");
+      if(env->print_details()) printf("rank=%d Calling gm_compute_nums_nonlinalg_duo_start\n",rank);
       compute_nums_nonlinalg_duo_start_(
           vectors_left, vectors_right, metrics, vectors_left_buf,
           vectors_right_buf, metrics_buf, j_block, do_compute_triang_only,
@@ -716,6 +720,8 @@ void ComputeMetrics2WayBlock::compute_nums_start(
 
   } // if
   env->numsstarttime_inc(env->get_time() - tbegin);
+
+  if(env->print_details()) printf("rank=%d Done in ComputeMetrics2WayBlock::compute_nums_start\n",rank);
 }
 
 //=============================================================================

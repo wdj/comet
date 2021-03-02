@@ -141,6 +141,8 @@ GTEST_API_ int main(int argc, char** argv) {
   int comm_rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &comm_rank));
 
+  if(comm_rank==0) printf("Running tests in metrics_test\n");
+
   if (comm_rank != 0) {
 #   ifdef COMET_USE_GTEST
       ::testing::TestEventListeners& listeners =
@@ -150,6 +152,8 @@ GTEST_API_ int main(int argc, char** argv) {
   }
 
   int result = RUN_ALL_TESTS();
+
+  if(comm_rank==0) printf("Done running tests in metrics_test\n");
 
   int result_g = 11;
 

@@ -502,10 +502,13 @@ void CEnv::parse_args_(int argc, char** argv) {
     } else if (strcmp(argv[i], "--print_details") == 0) {
       //--------------------
       ++i;
-      if (strcmp(argv[i], "yes") == 0) {
+      print_details_ = false;
+      int rank = 0;
+      COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+      if (strcmp(argv[i], "yes") == 0 && rank == 0) {
         print_details_ = true;
-      } else if (strcmp(argv[i], "no") == 0) {
-        print_details_ = false;
+      } else if(strcmp(argv[i], "all") == 0) {
+	print_details_ = true;
       }
       //--------------------
     } else if (strcmp(argv[i], "--sync_time") == 0) {
@@ -768,10 +771,10 @@ double CEnv::synced_time() {
   if (! is_proc_active())
     return 0;
 
-  accel_sync_();
-
-  COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
-
+  if(use_sync_time_) {
+    accel_sync_();
+    COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
+  }
   return System::time();
 }
 
@@ -779,8 +782,12 @@ double CEnv::synced_time() {
 /// \brief Get system time on each active processes.
 
 double CEnv::get_time() {
-  if(use_sync_time_) return synced_time();
-  else               return System::time();
+  if (! is_proc_active())
+    return 0;
+
+  if(use_sync_time_) accel_sync_();
+
+  return System::time();
 }
 
 //-----------------------------------------------------------------------------
@@ -987,7 +994,9 @@ void CEnv::streams_initialize_() {
   if (!is_compute_method_gpu())
     return;
 
-  if(print_details()) printf("Calling streams initialize\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  if(print_details()) printf("rank=%d Calling streams initialize\n",rank);
 
   for (AccelStream_t* const stream : {&stream_compute_, &stream_togpu_,
                                       &stream_fromgpu_}) {
@@ -999,7 +1008,7 @@ void CEnv::streams_initialize_() {
 #   else
       if (stream) {}
 #   endif
-    if(print_details()) printf("Creating a stream err=%d\n",err);
+    if(print_details()) printf("rank=%d Creating a stream err=%d\n",rank,err);
 
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to stream create.");
@@ -1018,7 +1027,7 @@ void CEnv::streams_initialize_() {
 
   are_streams_initialized_ = true;
 
-  if(print_details()) printf("Done initializing streams\n");
+  if(print_details()) printf("rank=%d Done initializing streams\n",rank);
 }
 
 //-----------------------------------------------------------------------------
@@ -1029,7 +1038,9 @@ void CEnv::streams_terminate_() {
   if (! are_streams_initialized_)
     return;
 
-  if(print_details()) printf("Calling streams terminate\n");
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  if(print_details()) printf("rank=%d Calling streams terminate\n",rank);
 
   for (const AccelStream_t stream : {stream_compute_, stream_togpu_,
                                      stream_fromgpu_}) {
@@ -1040,7 +1051,7 @@ void CEnv::streams_terminate_() {
 #   else
       if (stream) {}
 #   endif
-    if(print_details()) printf("Terminating a stream\n");
+    if(print_details()) printf("rank=%d Terminating a stream\n",rank);
 
     COMET_INSIST(System::accel_last_call_succeeded() &&
              "Failure in call to stream destroy.");
@@ -1059,7 +1070,7 @@ void CEnv::streams_terminate_() {
 
   are_streams_initialized_ = false;
 
-  if(print_details()) printf("Done calling streams terminate\n");
+  if(print_details()) printf("rank=%d Done calling streams terminate\n",rank);
 }
 
 //-----------------------------------------------------------------------------
@@ -1112,13 +1123,16 @@ void CEnv::stream_synchronize(AccelStream_t stream) const {
 
   COMET_INSIST(are_streams_initialized_);
 
+  int rank = 0;
+  COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+
   int err;
 # if defined COMET_USE_CUDA
     err = cudaStreamSynchronize(stream);
 # elif defined COMET_USE_HIP
     hipStreamSynchronize(stream);
 # endif
-  if(print_details()) printf("Called cudaStreamSync err=%d\n",err);
+  if(print_details()) printf("rank=%d Called cudaStreamSync err=%d\n",rank,err);
 
   COMET_INSIST(System::accel_last_call_succeeded() &&
            "Failure in call to stream synchronize.");

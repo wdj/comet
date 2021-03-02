@@ -417,14 +417,15 @@ void print_output(bool do_print,
 
     double tops_gemm = 0.0, gemmrate = 0.0, tgemmrate = 0.0;
     if(gemmtime_sum>0.0) gemmrate = ops_gemm / gemmtime_sum;
-    tops_gemm = ops_gemm/(1024.0*1024.0*1024.0*1024.0);
+    tops_gemm = ops_gemm/(1000.0*1000.0*1000.0*1000.0);
     if(gemmtime_sum>0.0) tgemmrate = tops_gemm/gemmtime_sum;
     printf("\nGEMM rate:\n"
            "GEMM Ops:             %e\n"
+	   "GEMM Sum:             %e\n"
            "GEMM rate/proc:       %e\n"
            "GEMM TOps:            %.2f\n"
            "GEMM TOps rate/proc   %.2f\n",
-           ops_gemm, gemmrate, tops_gemm, tgemmrate);
+           ops_gemm, gemmtime_sum, gemmrate, tops_gemm, tgemmrate);
 
     printf("\nComputeMetrics:\n"
            "Nums start time:      %.6f\n"
@@ -441,7 +442,7 @@ void print_output(bool do_print,
            "Total time:           %.6f\n",
            intime, cmtime, outtime, env.ctime(), looptime, tottime);
 
-    double tops = ops/(1024.0*1024.0*1024.0*1024.0);
+    double tops = ops/(1000.0*1000.0*1000.0*1000.0);
     double gemmops = 0.0, cmops = 0.0, cops = 0.0;
     if(env.gemmtime()>0.0) gemmops = tops/env.gemmtime();
     if(cmtime>0.0)         cmops   = tops/cmtime;
@@ -455,7 +456,7 @@ void print_output(bool do_print,
            "Metric total TOps:    %.2f\n\n",
            ops, tops, gemmops, cmops, cops);
 
-    double tsimops = simops/(1024.0*1024.0*1024.0*1024.0);
+    double tsimops = simops/(1000.0*1000.0*1000.0*1000.0);
     gemmops = 0.0; cmops = 0.0; cops = 0.0;
     if(env.gemmtime()>0.0) gemmops = tsimops/env.gemmtime();
     if(cmtime>0.0)         cmops   = tsimops/cmtime;
