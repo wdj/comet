@@ -815,11 +815,15 @@ elif [ $COMET_PLATFORM = MURPHY ] ; then
 elif [ $COMET_PLATFORM = CORI_GPU ] ; then
 #----------------------------------------
 
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
+
   #---Modules etc.
 
   module load gcc # 8.3.0
   module load cuda/11.0.2
   module load cmake
+  module load openmpi
   module list
 
   #---Compiler.
@@ -860,11 +864,20 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   local COMET_MAGMA_GPU_ARCH=80
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
-  local COMET_CAN_USE_MPI=OFF
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    local COMET_MPI_COMPILE_OPTS="-I$OPENMPI_DIR/include"
+    local COMET_MPI_LINK_OPTS="-L$OPENMPI_DIR/lib -Wl,-rpath=$OPENMPI_DIR/lib -lmpi"
+  fi
 
   #---Testing.
 
-  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=32 srun -n 1"
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    # salloc -C dgx -N 1 --ntasks-per-node=64 --cpus-per-task=1 -G 8 -t 240 -A m1759
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=16 OMP_PROC_BIND=spread OMP_PLACES=cores srun -n 64 -G 1"
+  else
+    # salloc -C dgx -N 1 --ntasks-per-node=1 --cpus-per-task=16 -G 8 -t 240 -A m1759
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=16 OMP_PROC_BIND=spread OMP_PLACES=cores srun -n 1"
+  fi
 
 #----------------------------------------
 else

@@ -56,7 +56,8 @@ struct TCSubmethod {
         _128_64 = 4,
         _64_128 = 5,
         _64_64 = 6,
-        _64_64_WMMA = 7
+        _64_64_WMMA = 7,
+        _128_256_1024 = 8
   };
 };
 
@@ -120,8 +121,10 @@ template<> struct CutlassSettings<TCSubmethod::_256_128>
   : public CutlassArch, CutlassOpClassTensorOp {
   enum {ThreadBlockShape0 = 256,
         ThreadBlockShape1 = 128,
+        ThreadBlockShape2 = 512,
         WarpShape0 = 64,
-        WarpShape1 = 64
+        WarpShape1 = 64,
+        WarpShape2 = 512
   };
 };
 
@@ -129,8 +132,21 @@ template<> struct CutlassSettings<TCSubmethod::_128_256>
   : public CutlassArch, CutlassOpClassTensorOp {
   enum {ThreadBlockShape0 = 128,
         ThreadBlockShape1 = 256,
+        ThreadBlockShape2 = 512,
         WarpShape0 = 64,
-        WarpShape1 = 64
+        WarpShape1 = 64,
+        WarpShape2 = 512
+  };
+};
+
+template<> struct CutlassSettings<TCSubmethod::_128_256_1024>
+  : public CutlassArch, CutlassOpClassTensorOp {
+  enum {ThreadBlockShape0 = 128,
+        ThreadBlockShape1 = 256,
+        ThreadBlockShape2 = 1024,
+        WarpShape0 = 64,
+        WarpShape1 = 64,
+        WarpShape2 = 1024
   };
 };
 
@@ -138,8 +154,10 @@ template<> struct CutlassSettings<TCSubmethod::_128_128>
   : public CutlassArch, CutlassOpClassTensorOp {
   enum {ThreadBlockShape0 = 128,
         ThreadBlockShape1 = 128,
+        ThreadBlockShape2 = 512,
         WarpShape0 = 64,
-        WarpShape1 = 64
+        WarpShape1 = 64,
+        WarpShape2 = 512
   };
 };
 
@@ -147,8 +165,10 @@ template<> struct CutlassSettings<TCSubmethod::_128_64>
   : public CutlassArch, CutlassOpClassTensorOp {
   enum {ThreadBlockShape0 = 128,
         ThreadBlockShape1 = 64,
+        ThreadBlockShape2 = 512,
         WarpShape0 = 64,
-        WarpShape1 = 32
+        WarpShape1 = 32,
+        WarpShape2 = 512
   };
 };
 
@@ -156,8 +176,10 @@ template<> struct CutlassSettings<TCSubmethod::_64_128>
   : public CutlassArch, CutlassOpClassTensorOp {
   enum {ThreadBlockShape0 = 64,
         ThreadBlockShape1 = 128,
+        ThreadBlockShape2 = 512,
         WarpShape0 = 32,
-        WarpShape1 = 64
+        WarpShape1 = 64,
+        WarpShape2 = 512
   };
 };
 
@@ -165,8 +187,10 @@ template<> struct CutlassSettings<TCSubmethod::_64_64>
   : public CutlassArch, CutlassOpClassTensorOp {
   enum {ThreadBlockShape0 = 64,
         ThreadBlockShape1 = 64,
+        ThreadBlockShape2 = 512,
         WarpShape0 = 32,
-        WarpShape1 = 32
+        WarpShape1 = 32,
+        WarpShape2 = 512
   };
 };
 
@@ -174,8 +198,10 @@ template<> struct CutlassSettings<TCSubmethod::_64_64_WMMA>
   : public CutlassArch, CutlassOpClassWmmaTensorOp {
   enum {ThreadBlockShape0 = 64,
         ThreadBlockShape1 = 64,
+        ThreadBlockShape2 = 512,
         WarpShape0 = 32,
-        WarpShape1 = 32
+        WarpShape1 = 32,
+        WarpShape2 = 512
   };
 };
 
@@ -219,11 +245,11 @@ void tc_solve_impl_b1_cutlass(
       cutlass::gemm::GemmShape< // ThreadblockShape_
         CutlassSettings<TC_SUBMETHOD>::ThreadBlockShape0,
         CutlassSettings<TC_SUBMETHOD>::ThreadBlockShape1,
-        512>,
+        CutlassSettings<TC_SUBMETHOD>::ThreadBlockShape2>,
       cutlass::gemm::GemmShape< // WarpShape_
         CutlassSettings<TC_SUBMETHOD>::WarpShape0,
         CutlassSettings<TC_SUBMETHOD>::WarpShape1,
-        512>,
+        CutlassSettings<TC_SUBMETHOD>::WarpShape2>,
       //cutlass::gemm::GemmShape<8, 8, 128>, // InstructionShape_
       cutlass::gemm::GemmShape<16, 8, 256>, // InstructionShape_
       cutlass::epilogue::thread::LinearCombination<
@@ -409,7 +435,8 @@ static void tc_solve_impl_b1(bool is_first, int m, int n, int k,
     //COMET_INSIST(false && "TODO: implement.");
 
 #   if COMET_COMPUTE_CAPABILITY != 750
-      enum {TC_SUBMETHOD = TCSubmethod::_128_256};
+      //enum {TC_SUBMETHOD = TCSubmethod::_128_256};
+      enum {TC_SUBMETHOD = TCSubmethod::_128_256_1024};
 #   else
       enum {TC_SUBMETHOD = TCSubmethod::_128_128};
 #   endif
