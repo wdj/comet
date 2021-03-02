@@ -219,7 +219,6 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   const int num_block = env_.num_block_vector();
   const int i_block = env_.proc_num_vector();
 
-  //MagmaWrapper::initialize(env_);
   MagmaWrapper magma_wrapper(env_);
 
   // Create double buffer of vectors objects for send/recv
@@ -233,13 +232,16 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   // For even number of vector blocks, block rows of lower half of matrix
   //  have one less block to make correct count.
 
-  const int num_proc_r = env_.num_proc_repl();
-  const int proc_num_r = env_.proc_num_repl();
+  const int num_proc_repl = env_.num_proc_repl();
+  const int proc_num_repl = env_.proc_num_repl();
+
+//  const int num_proc_vector = env_.num_proc_vector();
+//  const int proc_num_vector = env_.proc_num_vector();
 
   // Flatten the proc_vector and proc_repl indices into a single index.
 
-  const int num_proc_rv = num_block * num_proc_r;
-  const int proc_num_rv = proc_num_r + num_proc_r * i_block;
+  //const int num_proc_rv = num_block * num_proc_repl;
+  //const int proc_num_rv = proc_num_repl + num_proc_repl * i_block;
 
   MPI_Request mpi_requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
@@ -263,27 +265,16 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
   */
 
-  // Add extra step at begin/end to fill/drain pipeline.
-
-  const int extra_step = 1;
-
   // Lowest/highest (block) diag to be computed for this phase,
   // measured from (block) main diag.
   // For all repl procs.
 
-  const int j_i_offset_min = gm_bdiag_computed_min(&env_);
-  const int j_i_offset_max = gm_bdiag_computed_max(&env_);
-  const int j_i_offset_this_row_max = gm_block_computed_this_row_max(&env_);
+  const int j_i_offset_min = metrics_bdiag_thisphase_min(env_);
+  const int j_i_offset_this_row_max = metrics_bdiag_thisphase_thisbrow_max(env_);
 
-  const int num_bdiag_computed = j_i_offset_max - j_i_offset_min;
+  // Convenience struct to remember loop state across cycles.
 
-  // Num steps to take to compute blocks
-  // (note: at each step, num_proc_r processors each compute a block)
-  // NOTE: num_step should be consistent within same proc_r.
-
-  const int num_step = utils::ceil(num_bdiag_computed, num_proc_r);
-
-  typedef struct {
+  struct LoopVars {
     GMVectors* vectors_right;
     MirroredBuf* vectors_right_buf;
     MirroredBuf* metrics_buf;
@@ -291,37 +282,41 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     bool is_compute_step;
     bool is_first_compute_step;
     bool do_compute_block;
+    bool needs_comm;
     bool is_main_diag;
     bool is_right_aliased;
     int step_num;
     int index_01;
     int j_i_offset;
     int j_block;
-  } LoopVars;
+  };
 
   LoopVars vars = {};
   LoopVars vars_prev = {};
   LoopVars vars_next = {};
 
-  // Use locks to verify no race condition on a buffer.
-  // Lock buffer when in use for read or write, unlock when done.
+  // Optionally compress the result data on the GPU.
 
-  bool lock_vectors_01_buf_h[2] = {false, false};
-  bool lock_vectors_01_buf_d[2] = {false, false};
-  bool lock_metrics_buf_01_h[2] = {false, false};
-  bool lock_metrics_buf_01_d[2] = {false, false};
-  bool lock_vectors_buf_h = false;
-  bool lock_vectors_buf_d = false;
-  //bool lock_metrics_tmp_buf_d = false; // Not needed
-  bool lock_metrics_tmp_buf_h = false;
-
-//>>>
   CompressedBuf matB_buf_compressed(*metrics_buf_01_[0], env_);
+
+  // Num steps to take to compute the blocks
+  // Note: at each step, proc_repl procs each compute a block
+  // (except for a few cases when it could be less)
+  // NOTE: num_step is consistent across procs.
+  // This is to ensure all communication is the same, even if some
+  // procs don't need to compute on a step.
+
+  const int num_step = metrics_num_steps_2way(env_);
+
+  // Add extra step at begin/end to fill/drain pipeline.
+
+  const int extra_step = 1;
+  const int first_step = 0 - extra_step;
 
   //if(env_.print_details()) printf("rank=%d Starting for loop %d-%d\n",rank,0-extra_step,num_step+extra_step);
 
   //========================================
-  for (int step_num = 0-extra_step; step_num < num_step+extra_step; ++step_num){
+  for (int step_num = first_step; step_num < num_step+extra_step; ++step_num) {
   //========================================
 
     //if(env_.print_details()) printf("rank=%d In loop step_num=%d\n",rank,step_num);
@@ -336,17 +331,32 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                                 vars_next.step_num < num_step;
     vars_next.is_first_compute_step = vars_next.step_num == 0;
     vars_next.index_01 = utils::mod_i(vars_next.step_num, 2);
-    vars_next.j_i_offset = j_i_offset_min + vars_next.step_num * num_proc_r
-                           + proc_num_r;
-    vars_next.is_main_diag = vars_next.j_i_offset == 0;
+
+    // Find bdiag number being computed.
+
+    vars_next.j_i_offset = j_i_offset_min + (
+       env_.is_comm_ring() ?
+       vars_next.step_num + num_step * proc_num_repl :
+       proc_num_repl + num_proc_repl * vars_next.step_num);
+
     vars_next.j_block = utils::mod_i(i_block + vars_next.j_i_offset, num_block);
+    vars_next.is_main_diag = 0 == vars_next.j_i_offset;
+
+    // Ensure that the respective block is in the range of what is
+    // to be computed in this phase, this block row.
+    // This is to handle the issue when num_step * num_proc_repl doesn't equal
+    // num computed this phase - due to divisibility.
+
     vars_next.do_compute_block = vars_next.is_compute_step &&
-                   vars_next.j_i_offset < j_i_offset_this_row_max;
+      vars_next.j_i_offset < j_i_offset_this_row_max;
 
     // Pointers to left/right-side vecs.
     // Here we are computing V^T W, for V, W containing column vectors.
 
     vars_next.is_right_aliased = vars_next.is_main_diag;
+
+    vars_next.needs_comm = vars_next.j_i_offset < num_block &&
+      ! vars_next.is_main_diag;
 
     GMVectors* vectors_left = &vectors;
     vars_next.vectors_right = vars_next.is_right_aliased ?
@@ -364,103 +374,92 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     vars_next.metrics_buf = metrics_buf_01_[vars_next.index_01];
 
-    // Set up lock aliases
+    //========== MPI sends, receives - START
 
-    bool& lock_metrics_buf_ptr_h_prev
-                                  = lock_metrics_buf_01_h[vars_prev.index_01];
-    bool& lock_metrics_buf_ptr_d_prev
-                                  = lock_metrics_buf_01_d[vars_prev.index_01];
+    if (vars_next.is_compute_step && vars_next.needs_comm) {
 
-    bool& lock_metrics_buf_ptr_h = lock_metrics_buf_01_h[vars.index_01];
-    bool& lock_metrics_buf_ptr_d = lock_metrics_buf_01_d[vars.index_01];
+      const bool is_first_comm_step = ! vars.needs_comm; // && vars_next.needs_comm
 
-    bool& lock_vectors_left_buf_h = lock_vectors_buf_h;
-    bool& lock_vectors_left_buf_d = lock_vectors_buf_d;
+      // Select send/recv procs to use.
+      // if ring comm step, shift by 1; else shift vectors_left by offset.
 
-    bool& lock_vectors_right_buf_h_next = vars_next.is_right_aliased ?
-      lock_vectors_left_buf_h : lock_vectors_01_buf_h[vars_next.index_01];
+      const int proc_offset = env_.is_comm_ring() && ! is_first_comm_step ?
+        1 : vars_next.j_i_offset;
+    
+      const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
+        utils::mod_i(i_block - proc_offset, num_block));
 
-    bool& lock_vectors_right_buf_d_next = vars_next.is_right_aliased ?
-      lock_vectors_left_buf_d : lock_vectors_01_buf_d[vars_next.index_01];
+      const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
+        utils::mod_i(i_block + proc_offset, num_block));
 
-    bool& lock_vectors_right_buf_h = vars.is_right_aliased ?
-      lock_vectors_left_buf_h : lock_vectors_01_buf_h[vars.index_01];
+      //const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
+      //  utils::mod_i(i_block - vars_next.j_i_offset, num_block));
+      //const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
+      //  utils::mod_i(i_block + vars_next.j_i_offset, num_block));
 
-    bool& lock_vectors_right_buf_d = vars.is_right_aliased ?
-      lock_vectors_left_buf_d : lock_vectors_01_buf_d[vars.index_01];
-
-    // Prepare for sends/recvs: procs for communication
-
-    const int proc_send = utils::mod_i(proc_num_rv
-        - vars_next.j_i_offset*num_proc_r, num_proc_rv);
-
-    const int proc_recv = utils::mod_i(proc_num_rv
-        + vars_next.j_i_offset*num_proc_r, num_proc_rv);
-
-    const bool comm_with_self = vars_next.is_main_diag;
-
-    // Initiate sends/recvs for vecs needed on next step
-    //if(env_.print_details()) printf("rank=%d Initiating sends/recvs\n",rank);
-    if (vars_next.is_compute_step && ! comm_with_self) {
       const int mpi_tag = step_num + 1;
-      // NOTE: the following order helps performance
+
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
-      lock(lock_vectors_right_buf_h_next);
-      mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
+
+      GMVectors* vectors_send = env_.is_comm_ring() && ! is_first_comm_step ?
+        &vectors_01_[1-vars_next.index_01] :
+        vectors_left;
+
+      // Initiate sends/recvs for vecs needed on next step
+      //if(env_.print_details()) printf("rank=%d Initiating sends/recvs\n",rank);
+      GMVectors* vectors_recv = vars_next.vectors_right;
+
+      // NOTE: the following order seems to help performance.
+      mpi_requests[1] = gm_recv_vectors_start(vectors_recv,
                                               proc_recv, mpi_tag, &env_);
-      mpi_requests[0] = gm_send_vectors_start(vectors_left,
+      mpi_requests[0] = gm_send_vectors_start(vectors_send,
                                               proc_send, mpi_tag, &env_);
+
+      //mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
+      //                                        proc_recv, mpi_tag, &env_);
+      //mpi_requests[0] = gm_send_vectors_start(vectors_left,
+      //                                        proc_send, mpi_tag, &env_);
     }
 
-    // Send right vectors to GPU end
+    //========== Send right matrix to GPU - WAIT.
+
     //if(env_.print_details()) printf("rank=%d Sending right vectors to GPU end\n",rank);
-    if (vars.is_compute_step && vars.do_compute_block &&
-        ! vars.is_right_aliased) {
-      vars.vectors_right_buf->to_accel_wait();
-      unlock(lock_vectors_right_buf_h);
-      unlock(lock_vectors_right_buf_d);
-    }
 
-    // First step (for any repl or phase): send (left) vecs to GPU
+    if (vars.is_compute_step && vars.do_compute_block &&
+        ! vars.is_right_aliased)
+      vars.vectors_right_buf->to_accel_wait();
+
+    //========== Send left matrix to GPU on first step.
     //if(env_.print_details()) printf("rank=%d Sending left vecs to GPU\n",rank);
+
     if (vars_next.is_first_compute_step) {
-      lock(lock_vectors_left_buf_h);
       gm_vectors_to_buf(vectors_left_buf, vectors_left, &env_);
-      lock(lock_vectors_left_buf_d);
       vectors_left_buf->to_accel_start();
       // TODO: examine whether overlap possible.
       // May not be possible for general repl and phase (??).
       vectors_left_buf->to_accel_wait();
-      unlock(lock_vectors_left_buf_h);
-      unlock(lock_vectors_left_buf_d);
     }
 
-    // Compute sums for denominators
+    //========== Compute sums for denominators
     //if(env_.print_details()) printf("rank=%d Computing sums for denominators\n",rank);
+
     //const int compute_sums_this = CEnv_is_ppc64() ? 1 : 2;
     const int compute_sums_this = 0; //FIX env_.is_threshold_tc() ? 0 : 1;
 
     if (0 == compute_sums_this) { // needed here for is_threshold_tc
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
-        if (vars.is_first_compute_step) {
+        if (vars.is_first_compute_step)
           vector_sums_left->compute(*vectors_left);
-        }
-        if (! vars.is_main_diag) {
+        if (! vars.is_main_diag)
           vars.vector_sums_right->compute(*vars.vectors_right);
-        }
       }
     }
 
-    // Commence numerators computation
-    //if(env_.print_details()) printf("rank=%d Computing numerators\n",rank);
+    //========== Perform pseudo GEMM - START
+
     if (vars.is_compute_step && vars.do_compute_block) {
-      lock(lock_vectors_left_buf_d);
-      if (! vars.is_right_aliased) {
-        lock(lock_vectors_right_buf_d);
-      }
-      lock(lock_metrics_buf_ptr_d);
       if(env_.print_details()) printf("rank=%d Calling ComputeMetrics2WayBlock::compute_nums_start\n",rank);
       ComputeMetrics2WayBlock::compute_nums_start(
         vectors_left, vars.vectors_right, &metrics,
@@ -470,52 +469,36 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       if(env_.print_details()) printf("rank=%d Done calling ComputeMetrics2WayBlock::compute_nums_start\n",rank);
     }
 
-    // GPU case: wait for prev step get metrics to complete, then combine.
-    // Note this is hidden under GPU computation
-    //if(env_.print_details()) printf("rank=%d waiting for prev step get metrics to complete\n",rank);
+    //========== Copy result matrix from GPU - WAIT
+    if(env_.print_details()) printf("rank=%d Copying result matrix from GPU\n",rank);
+
     if (env_.is_using_linalg()) {
       if (vars_prev.is_compute_step && vars_prev.do_compute_block) {
-        //vars_prev.metrics_buf->from_accel_wait();
-//>>>
         matB_buf_compressed.from_accel_wait();
-        unlock(lock_metrics_buf_ptr_d_prev);
-        unlock(lock_metrics_buf_ptr_h_prev);
-        lock(lock_metrics_buf_ptr_h_prev);
         gm_metrics_pad_adjust(&metrics, vars_prev.metrics_buf, &env_);
-//>>>
-        unlock(lock_metrics_buf_ptr_h_prev);
 
         //TODO: remove need to allocate metrics_tmp_buf device array
         MirroredBuf* metrics_buf_prev_ptr =
             env_.do_reduce() ?  &metrics_tmp_buf_ : vars_prev.metrics_buf;
-//>>>
 
-        lock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
+        //========== Reduce along field procs
 
         if (env_.do_reduce()) {
-          lock(lock_metrics_tmp_buf_h);
           gm_reduce_metrics(&metrics, metrics_buf_prev_ptr,
                             vars_prev.metrics_buf, &env_);
-//>>>
           matB_buf_compressed.attach(*metrics_buf_prev_ptr);
         }
 
-        if(env_.print_details()) printf("rank=%d Calling ComputeMetrics2WayBlock::finalize\n",rank);
+        //========== Combine numerators, denominators: CPU case
+
+	if(env_.print_details()) printf("rank=%d Calling ComputeMetrics2WayBlock::finalize\n",rank);
         ComputeMetrics2WayBlock::finalize(
           &metrics,
-          //metrics_buf_prev_ptr,
-//>>>
-        &matB_buf_compressed, 
+          &matB_buf_compressed, 
           vector_sums_left, vars_prev.vector_sums_right,
           vars_prev.j_block,
           vars_prev.is_main_diag, &env_);
         if(env_.print_details()) printf("Done calling ComputeMetrics2WayBlock::finalize\n");
-
-        unlock(lock_metrics_buf_ptr_h_prev); // semantics not perfect but ok
-
-        if (env_.do_reduce()) {
-          unlock(lock_metrics_tmp_buf_h);
-        }
       }
     }
 
@@ -524,8 +507,9 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     // on the relative speeds.  If these would be put in two different
     // CPU threads, then it wouldn't matter.
 
-    // Compute sums for denominators
+    //========== Compute sums for denominators: case 1
     //if(env_.print_details()) printf("rank=%d computing sums for denominators\n",rank);
+
     if (1 == compute_sums_this) { // put it here for speed on this arch
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
@@ -538,57 +522,44 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       }
     }
 
-    // Wait for recvs to complete
+    //========== MPI receives - WAIT
     //if(env_.print_details()) printf("rank=%d Waiting for recvs to complete\n",rank);
-    if (vars_next.is_compute_step && ! comm_with_self) {
+
+    if (vars_next.is_compute_step && vars_next.needs_comm) {
       gm_recv_vectors_wait(&(mpi_requests[1]), &env_);
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
-      unlock(lock_vectors_right_buf_h_next);
     }
 
-    // Send right vectors for next step to GPU start
+    //========== Send right matrix to GPU - START.
 
     if (vars_next.is_compute_step && vars_next.do_compute_block &&
         ! vars_next.is_right_aliased) {
       // ISSUE: make sure not necessary if vars_next.is_right_aliased
-      lock(lock_vectors_right_buf_h_next);
-      lock(lock_vectors_right_buf_d_next);
       vars_next.vectors_right_buf->to_accel_start();
     }
 
-    // Wait for numerators computation to complete
+    //========== Perform pseudo GEMM - WAIT
 
     if (vars.is_compute_step && vars.do_compute_block) {
       if(env_.print_details()) printf("rank=%d Calling compute_nums_wait\n",rank);
       ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
-//>>>
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, &env_);
 
       if(env_.print_details()) printf("rank=%d Done calling compute_nums_wait\n",rank);
         matB_buf_compressed.attach(*vars.metrics_buf);
         matB_buf_compressed.compress();
-      unlock(lock_vectors_left_buf_d);
-      if (! vars.is_right_aliased) {
-        unlock(lock_vectors_right_buf_d);
-      }
-      unlock(lock_metrics_buf_ptr_d);
     }
 
-    // Commence copy of completed numerators back from GPU
+    //========== Copy result matrix from GPU - START
 
-    if (vars.is_compute_step && vars.do_compute_block) {
-      lock(lock_metrics_buf_ptr_h);
-      lock(lock_metrics_buf_ptr_d);
-      //vars.metrics_buf->from_accel_start();
-//>>>
+    if (vars.is_compute_step && vars.do_compute_block)
       matB_buf_compressed.from_accel_start();
-    }
 
-    // Compute sums for denominators
+    //========== Compute sums for denominators: case 2
 
     if (2 == compute_sums_this) { // put it here for speed on this arch
       if (vars.is_compute_step && vars.do_compute_block) {
@@ -602,55 +573,34 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       }
     }
 
-    // CPU case: combine numerators, denominators to obtain final result
+    //========== Combine numerators, denominators: CPU case
     //if(env_.print_details()) printf("rank=%d Combining numerators and denominators\n",rank);
+
     if (!env_.is_using_linalg()) {
       if (vars.is_compute_step && vars.do_compute_block) {
-        //vars.metrics_buf->from_accel_wait(); // NO-OP
-//>>>
         matB_buf_compressed.from_accel_wait();
-        unlock(lock_metrics_buf_ptr_d);
-        unlock(lock_metrics_buf_ptr_h);
-        lock(lock_metrics_buf_ptr_h);
         if(env_.print_details()) printf("rank=%d Calling 2nd Block::finalize\n",rank);
+//fprintf(stderr,"%i %i  %i\n", env_.proc_num_vector(), env_.proc_num_repl(), (int)vars.j_block);
         ComputeMetrics2WayBlock::finalize(
           &metrics,
-          //vars.metrics_buf,
-//>>>
           &matB_buf_compressed,
           vector_sums_left,
           vars.vector_sums_right, vars.j_block,
           vars.is_main_diag, &env_);
         if(env_.print_details()) printf("rank=%d Done calling 2nd Block::finalize\n",rank);
-        unlock(lock_metrics_buf_ptr_h);
       }
     }
 
-    // Wait for sends to complete
+    //========== MPI sends - WAIT
 
-    if (vars_next.is_compute_step && ! comm_with_self) {
+    if (vars_next.is_compute_step && vars_next.needs_comm)
       gm_send_vectors_wait(&(mpi_requests[0]), &env_);
-    }
 
     //if(env_.print_details()) printf("rank=%d Done with loop step_num=%d\n",rank,step_num);
 
   //========================================
   } // step_num
   //========================================
-
-  //---------------
-  // Terminations
-  //---------------
-
-  for (int i=0; i<2; ++i) {
-    COMET_INSIST(!lock_vectors_01_buf_h[i]);
-    COMET_INSIST(!lock_vectors_01_buf_d[i]);
-    COMET_INSIST(!lock_metrics_buf_01_h[i]);
-    COMET_INSIST(!lock_metrics_buf_01_d[i]);
-  }
-  COMET_INSIST(!lock_vectors_buf_h);
-  COMET_INSIST(!lock_vectors_buf_d);
-  COMET_INSIST(!lock_metrics_tmp_buf_h);
 
   //MagmaWrapper::finalize(env_);
   if(env_.print_details()) printf("rank=%d Done in compute_all2all\n",rank);

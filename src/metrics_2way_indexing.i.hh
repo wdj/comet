@@ -40,107 +40,168 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace comet {
 
+/*
+For this code, "block diagonal" corresponds to the row (and corresponding
+column) blocking indiced by the proc_num_vector decomposition. Block diagonals
+are counted starting at zero for the main block diagonal and increasing index
+as moving through the block upper triangular part above the main block diag.
+
+Each block diag is considered to have a (block) "circulant" pattern, wrapping
+around to the lower block diag part of the matrix as appropriate.
+
+Block rows of the matrix are decomposed via num_proc_vector.  A block row
+intersected with the block diags yields the series of blocks ot be computed.
+
+This series of blocks is decomposed by phase_num, by proc_num_repl, and
+step num, the latter associated with the serial pipeline loop that does the
+actual computation.
+
+If is_comm_ring is not set, the decomposition of this partial block row is
+by RSP order - proc_repl axis varies fastest, then serial step axis, then phase
+axis - resulting in comm pattern like the mpiGraph benchmark.
+
+Otherwise, SRP orderinbg is used.  This associates the blocks from
+consecutive steps with consecutive (hardware) MPI ranks, enabling the ring
+comm pattern.
+*/
+
 //-----------------------------------------------------------------------------
-// Helper functions for 2-way case.
+/// \brief Num nonzero/stored block diags of full metrics matrix.
 
-static int gm_bdiag_computed_max_allphase(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
+static int metrics_num_bdiag_(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
 
-  // Max number of blocks of any block row computed on all phases.
-  const int num_block = env->num_block_vector();
-  return 1 + num_block / 2;
+  // Assuming here the full matrix has a circulant sparsity pattern that stores
+  // all unique blocks, under assumption of symmetry of the full matrix.
+
+  // = max count (across block rows) of num blocks to be computed along a
+  // block row for all phases.
+  return 1 + env.num_block_vector() / 2;
+}
+
+
+//-----------------------------------------------------------------------------
+/// \brief Min limit of block diags to be computed this phase.
+
+static int metrics_bdiag_thisphase_min(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
+
+  // First block diag computed for this phase (min across all proc_num_vec).
+  const int num_bdiag = metrics_num_bdiag_(env);
+  return (num_bdiag * env.phase_num()) / env.num_phase();
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Max limit of block diags to be computed this phase.
 
-static int gm_bdiag_computed_min(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
+static int metrics_bdiag_thisphase_max(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
 
-  // First block diag computed for this phase (min across vec procs)
-  const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
-  return (max_rectangle_width*env->phase_num()) / env->num_phase();
+  // (1 + ) last block diag computed for this phase (max across all
+  // proc_num_vec).
+  const int num_bdiag = metrics_num_bdiag_(env);
+  return (num_bdiag * (env.phase_num()+1)) / env.num_phase();
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Min limit of block diags (blocks) to compute this phase & block row.
 
-static int gm_bdiag_computed_max(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
+static int metrics_bdiag_thisphase_thisbrow_min(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
 
-  // 1 + last block diag computed for this phase (max across vec procs)
-  const int max_rectangle_width = gm_bdiag_computed_max_allphase(env);
-  return (max_rectangle_width*(env->phase_num()+1)) / env->num_phase();
+  // Same as above, restricted to this proc_num_vec's block row.
+
+  return metrics_bdiag_thisphase_min(env);
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Max limit of block diags (blocks) to compute this phase & block row.
 
-static int gm_block_computed_this_row_min(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
+static int metrics_bdiag_thisphase_thisbrow_max(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
 
-  return gm_bdiag_computed_min(env);
+  // Same as above, restricted to this proc_num_vec's block row.
+
+  const int num_block = env.num_block_vector();
+  const int i_block = env.proc_num_vector();
+
+  // The block in the last block diag may be in fact be zero, in consideration
+  // of the set of blocks needed to cover all unique under symmetry. This would
+  // potentially be encountered in the last phase; thewrefore account for this.
+
+  const bool is_row_short_by_1 = num_block % 2 == 0 && 2 * i_block >= num_block;
+  const bool is_last_phase = env.phase_num() == env.num_phase() - 1;
+
+  const int diag_max = metrics_bdiag_thisphase_max(env);
+
+  // 1 + last block diag computed for this phase, all repl procs (this
+  // proc_num_vec)
+  const int result = is_last_phase && is_row_short_by_1 ?
+     diag_max - 1 : diag_max;
+  COMET_ASSERT(result >= 0 && result <= num_block);
+  return result;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Number of block diags (blocks) to compute this phase & block row.
 
-static int gm_block_computed_this_row_max(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
+static int metrics_num_bdiag_thisphase_thisbrow(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
+  COMET_ASSERT(env.all2all());
 
-  const int num_block = env->num_block_vector();
-  const int i_block = env->proc_num_vector();
-
-  const bool is_row_short_by_1 = num_block % 2 == 0 && 2*i_block >= num_block;
-  const bool is_last_phase = env->phase_num() == env->num_phase() - 1;
-
-  const int diag_max = gm_bdiag_computed_max(env);
-
-  // 1 + last block diag computed for this phase, all repl procs (this vec proc)
-  const int n = is_last_phase && is_row_short_by_1 ? diag_max - 1 : diag_max;
-  COMET_ASSERT(n >= 0);
-  COMET_ASSERT(n <= num_block);
-  return n;
+  const int result = metrics_bdiag_thisphase_thisbrow_max(env) -
+                     metrics_bdiag_thisphase_thisbrow_min(env);
+  COMET_ASSERT(result >= 0 && result <= env.num_block_vector());
+  return result;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Number of steps needed for 2-way methods.
 
-static int gm_blocks_computed_this_row(CEnv* env) {
-  COMET_ASSERT(env);
-  COMET_ASSERT(env->num_way() == NumWay::_2);
-  COMET_ASSERT(env->all2all());
+static int metrics_num_steps_2way(const CEnv& env) {
+  COMET_ASSERT(env.num_way() == NumWay::_2);
 
-  // num block diags computed for this phase, all repl procs (this vec proc)
-  const int n = gm_block_computed_this_row_max(env) -
-                gm_block_computed_this_row_min(env);
-  COMET_ASSERT(n >= 0);
-  COMET_ASSERT(n <= env->num_block_vector());
-  return n;
+  if (!env.all2all())
+    return 1;
+
+  const int num_bdiag_thisphase = metrics_bdiag_thisphase_max(env) -
+                                  metrics_bdiag_thisphase_min(env);
+
+  const int result = utils::ceil(num_bdiag_thisphase, env.num_proc_repl());
+
+  return result;
 }
 
 //=============================================================================
 // Accessors: indexing: (contig) index from coord, 2-way.
 
+/*
+Metrics are stored as a sequence of blocks: first, the main diag block
+(if being processed by this phase and this proc_num_repl) (triangular)
+(= part1), then, the off-diagonal blocka (square) (= part2).
+*/
+
 //-----------------------------------------------------------------------------
-/// \brief Helper: number of elements in triangle.
+/// \brief Number of elements in triangle.
 
 static size_t triangle_index(int i) {
   return (i * (size_t)(i-1)) >> 1;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Is the block on the main block diag, 2-way case.
 
 static bool is_part1(int i_block, int j_block) {
   return i_block == j_block;
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Is the block not on the main block diag, 2-way case.
 
 static bool is_part2(int i_block, int j_block) {
   return !is_part1(i_block, j_block);
@@ -153,7 +214,9 @@ static size_t Metrics_index_2_part1(GMMetrics& metrics,
   int i, int j, int j_block, CEnv& env) {
   COMET_ASSERT(is_part1(env.proc_num_vector(), j_block));
 
-  return triangle_index(j) + i;
+  const int64_t index_offset_part1_ = 0;
+
+  return index_offset_part1_ + triangle_index(j) + i;
 }
 
 //-----------------------------------------------------------------------------
@@ -165,14 +228,26 @@ static size_t Metrics_index_2_part2(GMMetrics& metrics,
   COMET_ASSERT(j_block != env.proc_num_vector());
 
   const int num_block = env.num_block_vector();
-  const int num_proc_r = env.num_proc_repl();
-  const int block_min_part2_ = metrics.block_min_part2_;
+
+  // Distance of j_block from the starting block of this phase.
+  // The unit of measure is number of blocks in the full matrix.
+
+  const int j_part2_offset =
+    utils::mod_fast(j_block - metrics.block_min_part2_, num_block);
+
+  // Stored block number in the metrics array (part1 + part2).
+  // The unit of measure is number of blocks stored in the metrics array
+  // (whether part1 or part2).
+
+  const int block_part2 = env.is_comm_ring() ?
+    j_part2_offset - metrics.num_steps_2way * env.proc_num_repl() :
+    j_part2_offset / env.num_proc_repl();
 
   /* clang-format off */
   return metrics.index_offset_part2_ +
       i + metrics.num_vector_local * (size_t)(
       j + metrics.num_vector_local * (
-      ((j_block - block_min_part2_ + num_block) % num_block) / num_proc_r ));
+      block_part2));
   /* clang-format on */
 }
 
@@ -197,6 +272,8 @@ static size_t Metrics_index_2(GMMetrics& metrics, int i, int j, int j_block,
            : Metrics_index_2_part2(metrics, i, j, j_block, env);
 
   COMET_ASSERT(index >= 0 && index < (int64_t)metrics.num_metrics_local);
+
+  // Map back from index to coords to ensure consistency.
 
   COMET_ASSERT(CoordsInfo::getiG(metrics.coords_value(index), metrics, env) ==
            i + i_block * (size_t)metrics.num_vector_local);

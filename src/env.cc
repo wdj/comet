@@ -949,15 +949,15 @@ void CEnv::comms_initialize_() {
   // Communicator along repl / vector axis.
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_,
-      is_proc_active_ ? proc_num_field_ : num_proc_,
-      is_proc_active_ ? proc_num_repl_vector_ : proc_num_,
+      is_proc_active_ ? proc_num_field() : num_proc_,
+      is_proc_active_ ? proc_num_repl_vector() : proc_num_,
       &comm_repl_vector_));
 
   // Communicator along field axis.
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(comm_base_,
-      is_proc_active_ ? proc_num_repl_vector_ : num_proc_,
-      is_proc_active_ ? proc_num_field_ : proc_num_,
+      is_proc_active_ ? proc_num_repl_vector() : num_proc_,
+      is_proc_active_ ? proc_num_field() : proc_num_,
       &comm_field_));
 
   are_comms_initialized_ = true;
@@ -1179,6 +1179,7 @@ void CEnv::set_num_proc_(int num_proc_vector,
 
   is_proc_active_ = proc_num_ < num_proc_;
 
+#if 0
   // Choose axis ordering for proc axes.
 
   enum {ORDER_FRV = 0,
@@ -1205,15 +1206,15 @@ void CEnv::set_num_proc_(int num_proc_vector,
   }
 
   if (order == ORDER_FVR) {
-    proc_num_field_ = proc_num_ % num_proc_field_;
-    proc_num_vector_ = (proc_num_ / num_proc_field_)
-                                              % num_proc_vector_;
-    proc_num_repl_ = (proc_num_ / num_proc_field_)
-                                          / num_proc_vector_;
+#endif
+//    proc_num_field_ = proc_num_ % num_proc_field_;
+//    proc_num_vector_ = (proc_num_ / num_proc_field_) % num_proc_vector_;
+//    proc_num_repl_ = (proc_num_ / num_proc_field_) / num_proc_vector_;
+#if 0
   }
+#endif
 
-  proc_num_repl_vector_ = proc_num_repl_ + num_proc_repl_ *
-                               proc_num_vector_;
+//  proc_num_repl_vector_ = proc_num_repl_ + num_proc_repl_ * proc_num_vector_;
 
   // Destroy old communicators if necessary
 

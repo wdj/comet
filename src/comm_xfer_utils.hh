@@ -47,7 +47,7 @@ namespace comet {
 
 //-----------------------------------------------------------------------------
 
-MPI_Request gm_send_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,
+MPI_Request gm_send_vectors_start(const GMVectors* vectors, int proc_num, int mpi_tag,
                                   CEnv* env);
 
 MPI_Request gm_recv_vectors_start(GMVectors* vectors, int proc_num, int mpi_tag,

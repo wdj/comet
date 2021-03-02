@@ -392,13 +392,6 @@ static size_t Metrics_index_3_part1(GMMetrics& metrics,
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Faster version of true mod, needed for special situation.
-
-static int mod_fast(int i, int n) {
-  return (i + n) % n;
-}
-
-//-----------------------------------------------------------------------------
 /// \brief Convert elt coords to index, 3-way case, diag plane block.
 
 static size_t Metrics_index_3_part2(GMMetrics& metrics,
@@ -413,7 +406,7 @@ static size_t Metrics_index_3_part2(GMMetrics& metrics,
   const int64_t elts_offset = metrics.index_offset_section_part2_[section_num];
 
   const int num_block = env.num_block_vector();
-  const int j_i_offset = mod_fast(j_block - i_block, num_block);
+  const int j_i_offset = utils::mod_fast(j_block - i_block, num_block);
   const int block_num_part2 = j_i_offset - 1
       - metrics.phase_block_start_part2_[section_num];
 
@@ -452,8 +445,8 @@ static size_t Metrics_index_3_part3(GMMetrics& metrics,
   const int64_t elts_offset = metrics.index_offset_part3_;
 
   const int num_block = env.num_block_vector();
-  const int j_i_offset = mod_fast(j_block - i_block, num_block);
-  const int k_i_offset = mod_fast(k_block - i_block, num_block);
+  const int j_i_offset = utils::mod_fast(j_block - i_block, num_block);
+  const int k_i_offset = utils::mod_fast(k_block - i_block, num_block);
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
     (j_i_offset - 1 - (j_i_offset > k_i_offset))
@@ -582,8 +575,8 @@ static size_t Metrics_index_3_part3_permuted(GMMetrics& metrics,
   const int64_t elts_offset = metrics.index_offset_part3_;
 
   const int num_block = env.num_block_vector();
-  const int j_i_offset = mod_fast(j_block - i_block, num_block);
-  const int k_i_offset = mod_fast(k_block - i_block, num_block);
+  const int j_i_offset = utils::mod_fast(j_block - i_block, num_block);
+  const int k_i_offset = utils::mod_fast(k_block - i_block, num_block);
   const int block_num_part3 =
     ((num_block-2) * (k_i_offset - 1)) +
     (j_i_offset - 1 - (j_i_offset > k_i_offset))
