@@ -490,11 +490,17 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   module load cmake
   #module load PrgEnv-cray
   if [ $COMET_CAN_USE_MPI = ON ] ; then
-    module use /home/users/twhite/share/modulefiles
+    #module use /home/users/twhite/share/modulefiles
     #module load ompi # Trey's ompi includes rocm/3.5.0
     #module load ompi/4.0.4-rocm-3.7
     #module load ompi/4.0.4-rocm-3.8
-    module load ompi/4.0.4-rocm-4.0
+    #module load ompi/4.0.4-rocm-4.0
+    # see https://frontier-coe.atlassian.net/wiki/spaces/FCOE/pages/109346837/Getting+Started+Guide#MPI-with-GPUs
+    module load gcc/8.1.0
+    module load rocm/4.1.0
+    module use /home/groups/coegroup/share/coe/modulefiles
+    #module load ompi/4.1.0/gnu/rocm/4.1.0
+    module load ompi/4.1.0/gnu/rocm
   else
     #module load rocm-alt/2.7
     #module load rocm-alt/2.9
@@ -507,7 +513,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     #module load rocm/3.7.0
     module load gcc/8.1.0
     #module load rocm/3.8.0
-    module load rocm/4.0.0
+    #module load rocm/4.0.0
+    module load rocm/4.1.0
   fi
   (module list) 2>&1 | grep -v '^ *$'
 
@@ -541,8 +548,11 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
-  local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
-  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  #local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -Wl,-rpath,$ROCBLAS_PATH/lib -lrocblas"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -Wl,-rpath,$ROCM_PATH/lib -L$ROCM_PATH/hipsparse/lib -Wl,-rpath,$ROCM_PATH/hipsparse/lib -lrocsparse"
+  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -Wl,-rpath,$ROCM_PATH/lib -L$ROCM_PATH/hipsparse/lib -Wl,-rpath,$ROCM_PATH/hipsparse/lib -L$ROCM_PATH/hipblas/lib -Wl,-rpath,$ROCM_PATH/hipblas/lib  $ROCM_PATH/lib/librocsparse.so  $ROCM_PATH/lib/libhipsparse.so $ROCM_PATH/hipblas/lib/libhipblas.so"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
   COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   # https://llvm.org/docs/AMDGPUUsage.html

@@ -621,8 +621,8 @@ bool CEnv::can_run(int tc_try) const {
       TC::FP16 == tc_try) {
     // ISSUE: may need to adjust HIP compute capability here.
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 700)
-                  || (BuildHas::HIP && System::compute_capability() >= cc_minone));
-                  //|| (BuildHas::HIP && System::compute_capability() >= cc_mi100));
+                  //|| (BuildHas::HIP && System::compute_capability() >= cc_minone));
+                  || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
   }
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() &&
