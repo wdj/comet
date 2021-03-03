@@ -76,7 +76,8 @@ size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
 
   const size_t result = env.tc_eff() == TC::NO ? 1 :
     // Curent requirement >= 4 - see tc_in.
-    tc_solve_use_mockup(env) && env.tc_eff() == TC::B1 ? 4 :
+    tc_solve_use_mockup(env) &&
+      (env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 4 :
     env.tc_eff() == TC::B1 ? 256 :
     env.tc_eff() == TC::INT4 ? 256 : 8;
 

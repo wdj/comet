@@ -1948,7 +1948,8 @@ void DriverTest_threshold_() {
     char options_template[] =
         "--metric_type %s "
         "--num_proc_vector %i "
-         "--num_field 71 --num_vector 17 "
+         //"--num_field 71 --num_vector 17 " // takes too long for some cases.
+         "--num_field 23 --num_vector 13 "
         //"--num_field 71 --num_vector 20 "
         "--num_way %i "
         "--all2all yes --sparse yes "
