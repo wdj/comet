@@ -637,7 +637,16 @@ bool CEnv::can_run(int tc_try) const {
 
   if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::B1 == tc_try) {
     // ISSUE: may need to adjust HIP compute capability here.
-    // FIX: Temporary code below for testing xor mockup code on summit.
+    // FIX: Temporary code below for testing mockup code on summit.
+//  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
+    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
+                     || (BuildHas::HIP && System::compute_capability() >= cc_minone))
+                    ; // && can_use_xor_(tc_try);
+  }
+
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc_try) {
+    // ISSUE: may need to adjust HIP compute capability here.
+    // FIX: Temporary code below for testing mockup code on summit.
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
                      || (BuildHas::HIP && System::compute_capability() >= cc_minone))
@@ -658,7 +667,7 @@ int CEnv::tc_eff_compute_() const {
   // NOTE: order is important here: fastest first.
   // TODO: move B1 to most favored status.
   //for (auto tc_try : {TC::B1, TC::INT8, TC::FP16, TC::FP32}) {
-  for (auto tc_try : {TC::INT8, TC::FP16, TC::FP32, TC::B1}) {
+  for (auto tc_try : {TC::INT8, TC::FP16, TC::FP32, TC::B1, TC::INT4}) {
     if (can_run(tc_try))
       return tc_try;
   }

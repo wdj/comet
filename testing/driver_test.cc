@@ -1884,7 +1884,7 @@ void DriverTest_tc_() {
 
 //=============================================================================
 
-void DriverTest_b1_gemm_() {
+void DriverTest_subbyte_gemm_() {
 
   char options1[1024];
   char options2[1024];
@@ -1898,6 +1898,7 @@ void DriverTest_b1_gemm_() {
 
   typedef comet::TC TC;
 
+  for (int tc_method : {TC::INT4, TC::B1})
   for (int num_way : {2, 3})
   //for (int num_way : {2})
   for (int num_tc_steps : {1, 2})
@@ -1923,14 +1924,14 @@ void DriverTest_b1_gemm_() {
     sprintf(options1, options_template, num_way,
             num_vector, num_field, "REF", 1, 0, 1);
     sprintf(options2, options_template, num_way,
-            num_vector, num_field, "GPU", 1, TC::B1, num_tc_steps);
+            num_vector, num_field, "GPU", 1, tc_method, num_tc_steps);
     EXPECT_EQ(true, compare_2runs(options1, options2));
     num_field_prev = num_field;
   }
   }
   }
 
-} // DriverTest_b1_gemm_
+} // DriverTest_subbyte_gemm_
 
 //=============================================================================
 
@@ -2592,8 +2593,8 @@ void DriverTest_duo3_() {
 BEGIN_TESTS
 
 #if 1
-TEST(DriverTest, b1_gemm) {
-  DriverTest_b1_gemm_();
+TEST(DriverTest, subbyte_gemm) {
+  DriverTest_subbyte_gemm_();
 }
 
 TEST(DriverTest, threshold) {
