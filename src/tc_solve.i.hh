@@ -68,8 +68,6 @@ struct TCGemmOpXorPopc {
   static GemmIn_t op(GemmIn_t a, GemmIn_t b) {return a ^ b;}
 # ifdef COMET_USE_CUTLASS
     typedef cutlass::arch::OpXorPopc Value; 
-#else
-    typedef int Value; 
 #endif
 };
 
@@ -81,11 +79,23 @@ struct TCGemmOpMultiplyAdd {
 #   if COMET_COMPUTE_CAPABILITY != 750
       typedef cutlass::arch::OpMultiplyAdd Value; 
 #   else
+      // UNUSED - fix for template compilation problem on Turing.
+      typedef cutlass::arch::OpXorPopc Value; 
+#   endif
+# endif
+};
+
+struct TCGemmOpMultiplyAddSaturate {
+  template<typename GemmIn_t>
+  __host__ __device__
+  static GemmIn_t op(GemmIn_t a, GemmIn_t b) {return a & b;}
+# ifdef COMET_USE_CUTLASS
+#   if COMET_COMPUTE_CAPABILITY != 750
+      typedef cutlass::arch::OpMultiplyAddSaturate Value; 
+#   else
       // Fix for template compilation problem on Turing.
       typedef cutlass::arch::OpXorPopc Value; 
 #   endif
-# else
-    typedef int Value; 
 # endif
 };
 
@@ -117,132 +127,116 @@ struct CutlassArch {
 };
 
 // Mixin class.
-struct CutlassWarpShape_64_64_512 {
-  enum {WarpShape0 = 64,
-        WarpShape1 = 64,
-        WarpShape2 = 512
+template<int _0, int _1, int _2>
+struct CutlassThreadblockShape {
+  enum {ThreadBlockShape0 = _0,
+        ThreadBlockShape1 = _1,
+        ThreadBlockShape2 = _2
   };
 };
 
 // Mixin class.
-struct CutlassWarpShape_64_64_1024 {
-  enum {WarpShape0 = 64,
-        WarpShape1 = 64,
-        WarpShape2 = 1024
+template<int _0, int _1, int _2>
+struct CutlassWarpShape {
+  enum {WarpShape0 = _0,
+        WarpShape1 = _1,
+        WarpShape2 = _2
   };
 };
 
 // Mixin class.
-struct CutlassInstructionShape_16_8_64 {
-  enum {InstructionShape0 = 16,
-        InstructionShape1 = 8,
-        InstructionShape2 = 64 
+template<int _0, int _1, int _2>
+struct CutlassInstructionShape {
+  enum {InstructionShape0 = _0,
+        InstructionShape1 = _1,
+        InstructionShape2 = _2
   };
 };
 
-// Mixin class.
-struct CutlassInstructionShape_16_8_256 {
-  enum {InstructionShape0 = 16,
-        InstructionShape1 = 8,
-        InstructionShape2 = 256 
-  };
-};
-
-//----------
+//-----------------------------------------------------------------------------
 
 template<int TC_SUBMETHOD> struct CutlassSettings;
 
 template<> struct CutlassSettings<TCSubmethod::_256_128>
-  : public CutlassArch, CutlassOpClassTensorOp,
-           CutlassInstructionShape_16_8_256,
-           CutlassWarpShape_64_64_512 {
-  enum {ThreadBlockShape0 = 256,
-        ThreadBlockShape1 = 128,
-        ThreadBlockShape2 = 512
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<256,128,512>,
+           CutlassWarpShape<64,64,512>,
+           CutlassInstructionShape<16,8,256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_128_256>
-  : public CutlassArch, CutlassOpClassTensorOp,
-           CutlassInstructionShape_16_8_256,
-           CutlassWarpShape_64_64_512 {
-  enum {ThreadBlockShape0 = 128,
-        ThreadBlockShape1 = 256,
-        ThreadBlockShape2 = 512
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<128,256,512>,
+           CutlassWarpShape<64,64,512>,
+           CutlassInstructionShape<16,8,256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_128_256_1024>
-  : public CutlassArch, CutlassOpClassTensorOp,
-           CutlassInstructionShape_16_8_256,
-           CutlassWarpShape_64_64_1024 {
-  enum {ThreadBlockShape0 = 128,
-        ThreadBlockShape1 = 256,
-        ThreadBlockShape2 = 1024
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<128,256,1024>,
+           CutlassWarpShape<64,64,1024>,
+           CutlassInstructionShape<16,8,256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_128_128>
-  : public CutlassArch, CutlassOpClassTensorOp,
-           CutlassInstructionShape_16_8_256,
-           CutlassWarpShape_64_64_512 {
-  enum {ThreadBlockShape0 = 128,
-        ThreadBlockShape1 = 128,
-        ThreadBlockShape2 = 512
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<128,128,512>,
+           CutlassWarpShape<64,64,512>,
+           CutlassInstructionShape<16,8,256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_128_64>
-  : public CutlassArch, CutlassOpClassTensorOp,
-           CutlassInstructionShape_16_8_256,
-           CutlassWarpShape_64_64_512 {
-  enum {ThreadBlockShape0 = 128,
-        ThreadBlockShape1 = 64,
-        ThreadBlockShape2 = 512
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<128,64,512>,
+           CutlassWarpShape<64,64,512>,
+           CutlassInstructionShape<16,8,256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_64_128>
-  : public CutlassArch, CutlassOpClassTensorOp,
-           CutlassInstructionShape_16_8_256,
-           CutlassWarpShape_64_64_512 {
-  enum {ThreadBlockShape0 = 64,
-        ThreadBlockShape1 = 128,
-        ThreadBlockShape2 = 512
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<64,128,512>,
+           CutlassWarpShape<64,64,512>,
+           CutlassInstructionShape<16,8,256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_64_64>
-  : public CutlassArch, CutlassOpClassTensorOp,
-           CutlassInstructionShape_16_8_256,
-           CutlassWarpShape_64_64_512 {
-  enum {ThreadBlockShape0 = 64,
-        ThreadBlockShape1 = 64,
-        ThreadBlockShape2 = 512
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<64,64,512>,
+           CutlassWarpShape<64,64,512>,
+           CutlassInstructionShape<16,8,256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_64_64_WMMA>
-  : public CutlassArch, CutlassOpClassWmmaTensorOp,
-           CutlassInstructionShape_16_8_256,
-           CutlassWarpShape_64_64_512 {
-  enum {ThreadBlockShape0 = 64,
-        ThreadBlockShape1 = 64,
-        ThreadBlockShape2 = 512
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassWmmaTensorOp,
+           CutlassThreadblockShape<64,64,512>,
+           CutlassWarpShape<64,64,512>,
+           CutlassInstructionShape<16,8,256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_INT4>
-  : public CutlassArch, CutlassOpClassTensorOp,
-           CutlassInstructionShape_16_8_64 {
-  enum {ThreadBlockShape0 = 128,
-        ThreadBlockShape1 = 256,
-        ThreadBlockShape2 = 256,
-        WarpShape0 = 64,
-        WarpShape1 = 64,
-        WarpShape2 = 256
-  };
-};
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<128,256,256>,
+           CutlassWarpShape<64,64,256>,
+           CutlassInstructionShape<16,8,64> {};
+
+           //CutlassThreadblockShape<128,256,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 959 TOps
+           //CutlassThreadblockShape<256,128,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 575 TOps
+           //CutlassThreadblockShape<128,128,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 600 TOps
+           //CutlassThreadblockShape<256,64,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 316 TOps
+           //CutlassThreadblockShape<64,256,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 849 TOps
+           //CutlassThreadblockShape<64,128,256>, CutlassWarpShape<32,64,256>, CutlassInstructionShape<16,8,64> {}; // 549 TOps
+           //CutlassThreadblockShape<128,64,256>, CutlassWarpShape<64,32,256>, CutlassInstructionShape<16,8,64> {}; // 309 TOps
+           //CutlassThreadblockShape<64,64,256>, CutlassWarpShape<32,32,256>, CutlassInstructionShape<16,8,64> {}; // 307 TOps
+
+           //CutlassThreadblockShape<128,256,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 560 TOps
+           //CutlassThreadblockShape<256,128,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 362 TOps
+           //CutlassThreadblockShape<128,128,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 344 TOps
+           //CutlassThreadblockShape<256,64,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 198 TOps
+           //CutlassThreadblockShape<64,256,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 460 TOps
+           //CutlassThreadblockShape<64,128,128>, CutlassWarpShape<32,64,128>, CutlassInstructionShape<16,8,64> {}; // 319 TOps
+           //CutlassThreadblockShape<128,64,128>, CutlassWarpShape<64,32,128>, CutlassInstructionShape<16,8,64> {}; // 191 TOps
+           //CutlassThreadblockShape<64,64,128>, CutlassWarpShape<32,32,128>, CutlassInstructionShape<16,8,64> {}; // 189 TOps
 
 //-----------------------------------------------------------------------------
 
@@ -266,7 +260,7 @@ struct CutlassElementInputType<TC::INT4> {
 //-----------------------------------------------------------------------------
 
 template<int TC_METHOD, int TC_SUBMETHOD, typename TCGemmOp>
-void tc_solve_impl_b1_cutlass(
+void tc_solve_impl_subbyte_cutlass(
   bool is_first, int m, int n, int k,
   uint8_t const *A, int lda,
   uint8_t const *B, int ldb,
@@ -321,95 +315,12 @@ void tc_solve_impl_b1_cutlass(
           ElementCompute>,
       cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
       CutlassSettings<TC_SUBMETHOD>::STAGES, // Stages
-      128, // AlignmentA
-      128, // AlignmentB
+      //128, // AlignmentA
+      //128, // AlignmentB
+      128 / cutlass::sizeof_bits<typename CutlassElementInputType<TC_METHOD>::Value>::value, // AlignmentA
+      128 / cutlass::sizeof_bits<typename CutlassElementInputType<TC_METHOD>::Value>::value, // AlignmentB
       false, // SplitKSerial
       typename TCGemmOp::Value>;
-
-  Gemm gemm_operator;
-
-  const int32_t alpha = 1;
-  const int32_t beta = is_first ? 0 : 1;
-
-  typename Gemm::Arguments args(
-    {m, n, k}, // Gemm Problem dimensions
-    {(ElementInput const*)A, lda}, // Tensor-ref for source matrix A
-    {(ElementInput const*)B, ldb}, // Tensor-ref for source matrix B
-    {(ElementOutput *)C, ldc}, // Tensor-ref for source matrix C
-    {(ElementOutput *)C, ldc}, // Tensor-ref for destination matrix C
-    {alpha,beta}); // Scalars used in the Epilogue
-
-
-  // Perform GEMM.
-  const cutlass::Status status = gemm_operator(args, nullptr, accel_stream);
-  COMET_INSIST(status == cutlass::Status::kSuccess);
-  System::accel_last_call_succeeded();
-
-# else
-
-  COMET_INSIST(false && "Failure to call GEMM function.");
-
-# endif
-}
-
-//-----------------------------------------------------------------------------
-
-template<int TC_METHOD, int TC_SUBMETHOD, typename TCGemmOp>
-void tc_solve_impl_int4_cutlass(
-  bool is_first, int m, int n, int k,
-  uint8_t const *A, int lda,
-  uint8_t const *B, int ldb,
-  int32_t *C, int ldc,
-  AccelStream_t accel_stream) {
-
-# ifdef COMET_USE_CUTLASS
-
-  // Extra checks, may be too strict - dimensions, alignment.
-
-  COMET_INSIST(m % 256 == 0);
-  COMET_INSIST(n % 256 == 0);
-  COMET_INSIST(k % 256 == 0);
-
-  COMET_INSIST(((size_t)A) % 256 == 0);
-  COMET_INSIST(((size_t)B) % 256 == 0);
-  COMET_INSIST(((size_t)C) % 256 == 0);
-
-  using ElementInput = typename CutlassElementInputType<TC_METHOD>::Value;
-  using ElementOutput = int32_t;
-  using ElementAccumulator = int32_t;
-  using ElementCompute = int32_t;
-
-  // see https://github.com/NVIDIA/cutlass/blob/master/include/cutlass/gemm/device/gemm.h
-  // https://github.com/NVIDIA/cutlass/blob/master/include/cutlass/gemm/device/default_gemm_configuration.h
-  // https://github.com/NVIDIA/cutlass/blob/master/test/unit/gemm/device/gemm_b1t_b1n_s32t_tensor_op_s32_sm80.cu
-  // https://github.com/NVIDIA/cutlass/blob/master/test/unit/gemm/device/gemm_s4t_s4n_s32t_tensor_op_s32_sm80.cu
-
-  using Gemm = cutlass::gemm::device::Gemm<
-      ElementInput, cutlass::layout::RowMajor,
-      ElementInput, cutlass::layout::ColumnMajor,
-      ElementOutput, cutlass::layout::RowMajor,
-      ElementAccumulator,
-      typename CutlassSettings<TC_SUBMETHOD>::OpClass_t,
-      typename CutlassSettings<TC_SUBMETHOD>::CutlassArch_t,
-      cutlass::gemm::GemmShape< // ThreadblockShape_
-        CutlassSettings<TC_SUBMETHOD>::ThreadBlockShape0,
-        CutlassSettings<TC_SUBMETHOD>::ThreadBlockShape1,
-        CutlassSettings<TC_SUBMETHOD>::ThreadBlockShape2>,
-      cutlass::gemm::GemmShape< // WarpShape_
-        CutlassSettings<TC_SUBMETHOD>::WarpShape0,
-        CutlassSettings<TC_SUBMETHOD>::WarpShape1,
-        CutlassSettings<TC_SUBMETHOD>::WarpShape2>,
-      cutlass::gemm::GemmShape< // InstructionShape_
-        CutlassSettings<TC_SUBMETHOD>::InstructionShape0,
-        CutlassSettings<TC_SUBMETHOD>::InstructionShape1,
-        CutlassSettings<TC_SUBMETHOD>::InstructionShape2>,
-      cutlass::epilogue::thread::LinearCombinationClamp<
-          ElementOutput,
-          128 / cutlass::sizeof_bits<ElementOutput>::value,
-          ElementAccumulator,
-          ElementCompute>,
-      cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
-      CutlassSettings<TC_SUBMETHOD>::STAGES>; // Stages
 
   Gemm gemm_operator;
 
@@ -509,9 +420,7 @@ __global__ void tc_solve_int4_gemm_mockup_kernel(
 
 static bool tc_solve_use_mockup(const CEnv& env) {
   //return true;
-  return (env.tc_eff() == TC::B1 &&
-    ! (BuildHas::CUDA && System::compute_capability() > 700)) ||
-         (env.tc_eff() == TC::INT4 &&
+  return ((env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) &&
     ! (BuildHas::CUDA && System::compute_capability() > 700));
 }
 
@@ -596,7 +505,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
     if (TC_METHOD == TC::INT4) {
 
-      tc_solve_impl_int4_cutlass<TC::INT4, TCSubmethod::_INT4, TCGemmOpMultiplyAdd>(
+      tc_solve_impl_subbyte_cutlass<TC::INT4, TCSubmethod::_INT4, TCGemmOpMultiplyAddSaturate>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
         (uint8_t*)tc_bufs.tc_buf_left, k,
@@ -605,7 +514,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
     } else if (env.is_using_xor()) { // && TC_METHOD == TC::B1
 
-      tc_solve_impl_b1_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpXorPopc>(
+      tc_solve_impl_subbyte_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpXorPopc>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
         (uint8_t*)tc_bufs.tc_buf_left, k,
@@ -614,7 +523,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
     } else { // !env.is_using_xor() // && TC_METHOD == TC::B1
 
-      tc_solve_impl_b1_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpMultiplyAdd>(
+      tc_solve_impl_subbyte_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpMultiplyAdd>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
         (uint8_t*)tc_bufs.tc_buf_left, k,
