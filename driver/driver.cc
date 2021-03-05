@@ -116,7 +116,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
     //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for verbosity.");
-      const long verbosity = strtol(argv[i], NULL, 10);
+      const double verbosity = strtod(argv[i], NULL);
       COMET_INSIST_INTERFACE(env, 0 == errno && verbosity >= 0 &&
                     "Invalid setting for verbosity.");
       do_->verbosity = verbosity;
@@ -289,6 +289,7 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
 //-----------------------------------------------------------------------------
 
 void print_output(bool do_print,
+		  bool do_detailed,
                   Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub,
@@ -298,13 +299,38 @@ void print_output(bool do_print,
                   double cktime,
                   double intime,
                   double outtime,
-                  double tottime) {
+                  double tottime,
+		  double cmtime,
+		  double looptime) {
 
   const double ops = env.ops();
   const double ops_gemm = env.ops_gemm();
-  const double gemmtime_sum = env.gemmtime_sum();
+  const double gemmtime_sum = env.gemm_timer.sum_time();
   const size_t cpu_mem_max = env.cpu_mem_max();
   const size_t gpu_mem_max = env.gpu_mem_max();
+
+  // Compute averages
+  double vctime_avg = 0.0, mctime_avg = 0.0, cktime_avg = 0.0, intime_avg = 0.0;
+  double outtime_avg = 0.0, tottime_avg = 0.0, cmtime_avg = 0.0, looptime_avg = 0.0;
+  double cmtime_sum = 0.0, tottime_sum = 0.0;
+  double extra_avg = 0.0, input_avg = 0.0, cmwogemm_avg = 0.0, nonloop_avg = 0.0;
+  double vals[12];
+
+  vals[0]=vctime; vals[1]=mctime; vals[2]=cktime; vals[3]=intime;
+  vals[4]=outtime; vals[5]=tottime; vals[6]=cmtime; vals[7]=looptime;
+  vals[8]=tottime-(vctime+intime+mctime+cmtime+outtime);
+  vals[9]=vctime+intime;
+  vals[10]=cmtime - env.gemm_timer.time();
+  vals[11]=tottime-looptime;
+
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(MPI_IN_PLACE, vals, 12, MPI_DOUBLE, MPI_SUM, env.comm()));
+
+  vctime_avg=vals[0]/env.num_proc(); mctime_avg=vals[1]/env.num_proc();
+  cktime_avg=vals[2]/env.num_proc(); intime_avg=vals[3]/env.num_proc();
+  outtime_avg=vals[4]/env.num_proc(); tottime_avg=vals[5]/env.num_proc();
+  cmtime_avg=vals[6]/env.num_proc(); looptime_avg=vals[7]/env.num_proc();
+  tottime_sum=vals[5]; cmtime_sum=vals[6];
+  extra_avg=vals[8]; input_avg=vals[9]; cmwogemm_avg=vals[10]; nonloop_avg=vals[11];
 
   if (!do_print)
     return;
@@ -382,6 +408,69 @@ void print_output(bool do_print,
   }
 
   printf("\n");
+
+  if(do_detailed) {
+    // Compute general values
+    double tops = ops/(1000.0*1000.0*1000.0*1000.0);
+    double tops_gemm = ops_gemm/(1000.0*1000.0*1000.0*1000.0);
+
+    // More readable runtime output
+    printf("\nDetailed Output:\n");
+    printf("Num processes/GPUs:            %d\n",
+      env.num_proc());
+
+    double total_gemm_sum = env.pre_gemm_timer.sum_time() +
+      env.gemm_timer.sum_time() + env.post_gemm_timer.sum_time();
+    double cpu_total_gemm_sum = env.pre_gemm_timer.cpu_sum_time() +
+      env.gemm_timer.cpu_sum_time() + env.post_gemm_timer.cpu_sum_time();
+    printf("\nGEMM (GPU CPU):\n"
+           "Pre-GEMM time:                 %.6f %.6f\n"
+           "GEMM time:                     %.6f %.6f\n"
+           "Post-GEMM time:                %.6f %.6f\n"
+           "Total GEMM time:               %.6f %.6f\n",
+           env.pre_gemm_timer.avg_time(), env.pre_gemm_timer.cpu_avg_time(),
+           env.gemm_timer.avg_time(), env.gemm_timer.cpu_avg_time(),
+           env.post_gemm_timer.avg_time(), env.post_gemm_timer.cpu_avg_time(),
+           total_gemm_sum/env.num_proc(),cpu_total_gemm_sum/env.num_proc());
+
+    double tgemmrate = 0.0, tgemmtotalrate = 0.0, cmopsrate = 0.0, totopsrate = 0.0;
+    double gemmtotal_sum = env.gemm_timer.sum_time() +
+      env.pre_gemm_timer.sum_time() + env.post_gemm_timer.sum_time();
+    if(gemmtime_sum>0.0) tgemmrate = tops_gemm/gemmtime_sum;
+    if(gemmtotal_sum>0.0) tgemmtotalrate = tops_gemm/gemmtotal_sum;
+    if(cmtime_sum>0.0)  cmopsrate  = tops/cmtime_sum;
+    if(tottime_sum>0.0) totopsrate = tops/tottime_sum;
+
+    printf("\nGEMM rate:\n"
+           "Ops:                           %e\n"
+           "GEMM Ops:                      %e\n"
+           "GEMM TOps:                     %.2f\n"
+           "GEMM TOps rate/proc            %.2f\n"
+           "Total GEMM TOps rate/proc:     %.2f\n"
+	   "Compute Metric TOps rate/proc: %.2f\n"
+	   "Total TOps rate/proc:          %.2f\n",
+           ops, ops_gemm, tops_gemm, tgemmrate, tgemmtotalrate,
+           cmopsrate, totopsrate);
+
+    printf("\nDriver:\n"
+           "Vec Creation time:             %.6f\n"
+           "Vec Set time:                  %.6f\n"
+           "Create metrics time:           %.6f\n"
+           "Compute metric time:           %.6f\n"
+           "Checksum time:                 %.6f\n"
+           "Output time:                   %.6f\n"
+           "Extra time:                    %.6f\n",
+           vctime_avg, intime_avg, mctime_avg, cmtime_avg, cktime_avg, outtime_avg,
+           extra_avg);
+
+    printf("\nCombined Driver Runtimes:\n"
+           "Input Total:                   %.6f\n"
+           "Compute Metrics without GEMM:  %.6f\n"
+           "Loop time:                     %.6f\n"
+           "Non-loop time:                 %.6f\n"
+           "Total time:                    %.6f\n",
+           input_avg, cmwogemm_avg, looptime_avg, nonloop_avg, tottime_avg);  
+  }
 }
 
 //=============================================================================
@@ -479,9 +568,11 @@ void perform_run(comet::Checksum& cksum_result, int argc, char** argv,
     do_.num_vector_local_initialized ? do_.num_vector_local
                                      : do_.num_vector_active,
     env->data_type_vectors(), env);
-env->stream_compute(); //FIX
+  env->stream_compute(); //FIX
   double time_end = env->synced_time();
   vctime += time_end - time_beg;
+
+  env->init_timers();
 
 //TODO: possibly replace this with stuff from dm
   if (do_.num_vector_local_initialized) {
@@ -508,6 +599,8 @@ env->stream_compute(); //FIX
 
   const bool do_print = env->is_proc_active() &&
      env->proc_num() == 0 && do_.verbosity > 0;
+  const bool do_detailed = env->is_proc_active() &&
+     env->proc_num() == 0 && do_.verbosity > 1;
 
   // Allocate vectors.
 
@@ -535,6 +628,9 @@ env->stream_compute(); //FIX
   double outtime = 0;
   double mctime = 0;
   double cktime = 0;
+  double cmtime = 0;
+  double looptime = 0;
+  double time_beg_loop = 0, time_end_loop = 0;
 
   size_t num_metric_items_local_computed = 0;
   size_t num_local_written = 0;
@@ -554,6 +650,7 @@ env->stream_compute(); //FIX
 
   // Loops over phases, stages.
 
+  time_beg_loop = env->synced_time();
   for (int phase_num=do_.phase_min_0based; phase_num<=do_.phase_max_0based;
        ++phase_num) {
       env->phase_num(phase_num);
@@ -564,51 +661,52 @@ env->stream_compute(); //FIX
 
       // Set up metrics container for results.
 
-      time_beg = env->synced_time();
+      time_beg = env->get_cpu_time();
       GMMetrics metrics_value = GMMetrics_null(), *metrics = &metrics_value;
       GMMetrics_create(metrics, env->data_type_metrics(), dm,
                        &metrics_mem, env);
-      time_end = env->synced_time();
+      time_end = env->get_cpu_time();
       mctime += time_end - time_beg;
 
       // Calculate metrics.
 
+      time_beg = env->get_cpu_time();
       compute_metrics.compute(*metrics, *vectors);
+      time_end = env->get_cpu_time();
+      cmtime += time_end - time_beg;
 
       num_metric_items_local_computed += metrics->num_metric_items_local_computed;
 
       // Output results.
 
-
-      time_beg = env->synced_time();
+      time_beg = env->get_cpu_time();
       metrics_io.write(*metrics);
       if (BuildHas::DEBUG) {
         metrics_io.check_file(*metrics);
       }
-      time_end = env->synced_time();
+      time_end = env->get_cpu_time();
       outtime += time_end - time_beg;
 
       // Check correctness.
 
       if (do_.checksum) {
-        time_beg = env->synced_time();
+        time_beg = env->get_cpu_time();
         check_metrics(metrics, &do_, env);
-        time_end = env->synced_time();
+        time_end = env->get_cpu_time();
         cktime += time_end - time_beg;
       }
 
       // Compute checksum.
 
-
       if (do_.checksum) {
-        time_beg = env->synced_time();
+        time_beg = env->get_cpu_time();
         comet::Checksum::compute(cksum, cksum_local, *metrics, *env);
-        time_end = env->synced_time();
+        time_end = env->get_cpu_time();
         cktime += time_end - time_beg;
       }
-      time_beg = env->synced_time();
+      time_beg = env->get_cpu_time();
       GMMetrics_destroy(metrics, env);
-      time_end = env->synced_time();
+      time_end = env->get_cpu_time();
       mctime += time_end - time_beg;
 
       if (do_print) {
@@ -627,6 +725,8 @@ env->stream_compute(); //FIX
     } // for stage
 
   } // for phase
+  time_end_loop = env->synced_time();
+  looptime = time_end_loop - time_beg_loop;
 
   // Finalize metrics mem.
 
@@ -684,13 +784,16 @@ env->stream_compute(); //FIX
     }
   }
 
+  // Finalize timers
+  env->finalize_timers();
+
   double total_time_end = env->synced_time();
   double tottime = total_time_end - total_time_beg;
 
   // Output run information.
 
-  print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
-    vctime, mctime, cktime, intime, outtime, tottime);
+  print_output(do_print, do_detailed, cksum, *env, do_.metrics_file_path_stub, num_written,
+    vctime, mctime, cktime, intime, outtime, tottime, cmtime, looptime);
     
   // Output a local checksum, for testing purposes.
 

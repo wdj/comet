@@ -236,12 +236,15 @@ static void tc_gemm_start_impl_(
     // Convert the input matrices of packed bit values into matrices
     // of a type suitable for the GEMM.
     enum {IS_LEFT = true};
+    env.pre_gemm_timer.record();
+    env.pre_gemm_timer.start();
     tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npfl,
       npfl_thisstep, pfl_min, nfal, (TCWord_t*)matA1, (TCWord_t*)matA2,
       tc_bufs, step_2way, env);
     tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npfl,
       npfl_thisstep, pfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
       tc_bufs, step_2way, env);
+    env.pre_gemm_timer.end();
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
@@ -252,6 +255,8 @@ static void tc_gemm_start_impl_(
 
   // Postprocess GEMM results.
 
+  env.post_gemm_timer.record();
+  env.post_gemm_timer.start();
   if (env.is_threshold_tc()) {
 
     tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
@@ -265,6 +270,7 @@ static void tc_gemm_start_impl_(
       J, step_2way, env);
 
   }
+  env.post_gemm_timer.end();
 }
 
 //=============================================================================

@@ -274,7 +274,6 @@ void CEnv::set_defaults_() {
   coords_type_cache_ = 0;
 
   ctime_ = 0;
-  gemmtime_ = 0;
   ops_local_ = 0;
   ops_gemm_local_ = 0;
   cpu_mem_local_ = 0;
@@ -730,6 +729,15 @@ double CEnv::synced_time() {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Get system time for MPI routines on each active processes.
+
+double CEnv::get_cpu_time() {
+  if (! is_proc_active())
+    return 0;
+  return System::time();
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Increment byte count of per-rank CPU memory used.
 
 void CEnv::cpu_mem_local_inc(size_t n) {
@@ -804,58 +812,41 @@ double CEnv::ops_gemm() const {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Compute and return (global) sum GEMM timings.
+/// \brief Initialize Timers
 
-double CEnv::gemmtime_sum() const {
-  double result = 0;
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&gemmtime_, &result, 1, MPI_DOUBLE,
-    MPI_SUM, comm()));
-  return result;
+void CEnv::init_timers() {
+  pre_gemm_timer.init(stream_compute(),num_proc());
+  gemm_timer.init(stream_compute(),num_proc());
+  post_gemm_timer.init(stream_compute(),num_proc());
 }
 
 //-----------------------------------------------------------------------------
-/// \brief GEMM timer start.
+/// \brief Finalize Timers
 
-void CEnv::gemmtime_start() {
-# if defined COMET_USE_CUDA
-    cudaEventRecord(start_event(), stream_compute());
-# elif defined COMET_USE_HIP
-    hipEventRecord(start_event(), stream_compute());
-# endif
+void CEnv::finalize_timers() {
+  // Make sure last timings are recorded
+  pre_gemm_timer.record();
+  gemm_timer.record();
+  post_gemm_timer.record();
+
+  // Compute sum timings
+  double vals[6];
+  vals[0] = pre_gemm_timer.time();
+  vals[1] = pre_gemm_timer.cpu_time();
+  vals[2] = gemm_timer.time();
+  vals[3] = gemm_timer.cpu_time();
+  vals[4] = post_gemm_timer.time();
+  vals[5] = post_gemm_timer.cpu_time();
+
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(MPI_IN_PLACE, vals, 6, MPI_DOUBLE, MPI_SUM, comm()));
+
+  pre_gemm_timer.set_sum(vals[0]);
+  pre_gemm_timer.set_cpu_sum(vals[1]);
+  gemm_timer.set_sum(vals[2]);
+  gemm_timer.set_cpu_sum(vals[3]);
+  post_gemm_timer.set_sum(vals[4]);
+  post_gemm_timer.set_cpu_sum(vals[5]);
 }
-
-//-----------------------------------------------------------------------------
-/// \brief GEMM timer end.
-
-void CEnv::gemmtime_end() {
-# if defined COMET_USE_CUDA
-    cudaEventRecord(end_event(), stream_compute());
-# elif defined COMET_USE_HIP
-    hipEventRecord(end_event(), stream_compute());
-# endif
-  is_event_active(true);
-}
-
-//-----------------------------------------------------------------------------
-/// \brief GEMM timer record.
-
-void CEnv::gemmtime_record() {
-  if (is_event_active()) {
-#   if defined COMET_USE_CUDA
-      cudaEventSynchronize(end_event());
-      float time = 0;
-      cudaEventElapsedTime(&time, start_event(), end_event());
-      gemmtime_inc(time / 1000.);
-#   elif defined COMET_USE_HIP
-      hipEventSynchronize(end_event());
-      float time = 0;
-      hipEventElapsedTime(&time, start_event(), end_event());
-      gemmtime_inc(time / 1000.);
-#   endif
-    is_event_active(false);
-  }
-}
-
 //=============================================================================
 // MPI comms
 
