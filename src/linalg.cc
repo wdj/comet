@@ -153,7 +153,7 @@ void LinAlg::gemm_wait(
 
   env.stream_synchronize(env.stream_compute());
 
-  //env.gemmtime_record();
+  env.gemmtime_record();
 
   // Unlock.
 

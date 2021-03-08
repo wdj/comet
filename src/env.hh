@@ -358,166 +358,6 @@ struct CoordsType {
   };
 };
 
-//-----------------------------------------------------------------------------
-/// \brief Class for timing CPU routines
-
-class CPUTimer {
-
-public:
-
-  CPUTimer() {
-    is_init_ = false;
-  }
-  ~CPUTimer() {
-  }
-
-  void init() {
-    runtime_ = 0.0;
-    is_init_ = true;
-  }
-
-  void start() {
-    if(is_init_) start_time_ = System::time();
-  }
-
-  void end() {
-    if(is_init_) {
-      end_time_ = System::time();
-      runtime_ += (end_time_ - start_time_);
-    }
-  }
-
-  double time() {
-    return runtime_;
-  }
-
-private:
-  bool is_init_;
-  double start_time_;
-  double end_time_;
-  double runtime_;
-}; // CPUTimer
-
-//-----------------------------------------------------------------------------
-/// \brief Class for timing GPU routines
-
-class GPUTimer {
-
-public:
-
-  GPUTimer() {
-    is_init_ = false;
-  }
-  ~GPUTimer() {
-    if(is_init_) {
-      cudaEventDestroy(start_time_);
-      cudaEventDestroy(end_time_);
-    }
-  }
-
-  void init(AccelStream_t stream, int nprocs) {
-    is_active_ = false;
-    nprocs_ = nprocs;
-    stream_ = stream;
-    cudaEventCreate(&start_time_);
-    cudaEventCreate(&end_time_);
-    runtime_ = 0.0;
-    runtime_sum_ = 0.0;
-    cpu_runtime_ = 0.0;
-    cpu_runtime_sum_ = 0.0;
-    is_init_ = true;
-  }
-
-  void start() {
-    if(is_init_) {
-      cpu_start_time_ = System::time();
-      cudaEventRecord(start_time_, stream_);
-# if defined COMET_USE_CUDA
-      cudaEventRecord(start_time_, stream_);
-# elif defined COMET_USE_HIP
-      hipEventRecord(start_time_, stream_);
-# endif
-    }
-  }
-
-  void end() {
-    if(is_init_) {
-# if defined COMET_USE_CUDA
-      cudaEventRecord(end_time_, stream_);
-# elif defined COMET_USE_HIP
-      hipEventRecord(end_time_, stream_);
-# endif
-      cpu_end_time_ = System::time();
-      cpu_runtime_ += (cpu_end_time_ - cpu_start_time_);
-      is_active_ = true;
-    }
-  }
-
-  void record() {
-    float time = 0;
-    if(is_init_ && is_active_) {
-#   if defined COMET_USE_CUDA
-      cudaEventSynchronize(end_time_);
-      cudaEventElapsedTime(&time, start_time_, end_time_);
-#   elif defined COMET_USE_HIP
-      hipEventSynchronize(end_time_);
-      hipEventElapsedTime(&time, start_time_, end_time_);
-#   endif
-      time = time / 1000.;
-    }
-    is_active_ = false;
-    runtime_ += (double)time;
-  }
-
-  double time() {
-    return runtime_;
-  }
-
-  double cpu_time() {
-    return cpu_runtime_;
-  }
-
-  void set_sum(double time) {
-    runtime_sum_ = time;
-  }
-
-  double sum_time() {
-    return runtime_sum_;
-  }
-
-  void set_cpu_sum(double time) {
-    cpu_runtime_sum_ = time;
-  }
-
-  double cpu_sum_time() {
-    return cpu_runtime_sum_;
-  }
-
-  double avg_time() {
-    return runtime_sum_/nprocs_;
-  }
-
-  double cpu_avg_time() {
-    return cpu_runtime_sum_/nprocs_;
-  }
-
-private:
-  bool is_init_;
-  bool is_active_;
-  int nprocs_;
-  AccelStream_t stream_;
-
-  AccelEvent_t start_time_;
-  AccelEvent_t end_time_;
-  double runtime_;
-  double runtime_sum_;
-
-  double cpu_start_time_;
-  double cpu_end_time_;
-  double cpu_runtime_;
-  double cpu_runtime_sum_;
-}; // GPUTimer
-
 //=============================================================================
 
 class CEnv {
@@ -859,16 +699,14 @@ public:
   //----------------------------------------
   // Counters
 
-  GPUTimer pre_gemm_timer;
-  GPUTimer gemm_timer;
-  GPUTimer post_gemm_timer;
-  void init_timers();
-  void finalize_timers();
-
   double ctime() const {return ctime_;}
+  double gemmtime_sum() const;
+  void gemmtime_start();
+  void gemmtime_end();
+  void gemmtime_record();
   void ctime_inc(double t) {ctime_ += t;}
+  void gemmtime_inc(double t) {gemmtime_ += t;}
   double synced_time();
-  double get_cpu_time();
   size_t cpu_mem_local() const {return cpu_mem_local_;}
   size_t gpu_mem_local() const {return gpu_mem_local_;}
   void cpu_mem_local_inc(size_t n);
@@ -1043,6 +881,7 @@ private:
   // Counters
   void accel_sync_() const;
   double ctime_;
+  double gemmtime_;
   double ops_local_;
   double ops_gemm_local_;
   size_t cpu_mem_local_;

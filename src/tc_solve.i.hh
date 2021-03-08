@@ -563,13 +563,13 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #   ifdef COMET_USE_ACCEL
 
-      env.gemm_timer.record();
+      env.gemmtime_record();
 
-      env.gemm_timer.start();
+      env.gemmtime_start();
 
       tc_solve_impl_subbyte<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
 
-      env.gemm_timer.end();
+      env.gemmtime_end();
 
 #   else // COMET_USE_ACCEL
 
@@ -607,9 +607,9 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
       enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
 
-      env.gemm_timer.record();
+      env.gemmtime_record();
 
-      env.gemm_timer.start();
+      env.gemmtime_start();
 
       // GPU BLAS call.
 
@@ -648,7 +648,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         );
         // TODO: use CUDA 10 autotuning capability here (later).
 
-      env.gemm_timer.end();
+      env.gemmtime_end();
 
 #     ifdef COMET_USE_CUDA
         if (CUBLAS_STATUS_SUCCESS != status)
@@ -723,19 +723,15 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
         // Make CPU BLAS call.
 
-        //const double t1 = System::time();
-        env.gemm_timer.record();
-	env.gemm_timer.start();
+        const double t1 = System::time();
 
         cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
           m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
           (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
 
-        env.gemm_timer.end();
-
-        //const double t2 = System::time();
-        //const double t = t2 < t1 ? 0. : t2 - t1;
-        //env.gemmtime_inc(t);
+        const double t2 = System::time();
+        const double t = t2 < t1 ? 0. : t2 - t1;
+        env.gemmtime_inc(t);
 
 #     else // COMET_USE_CPUBLAS
 
