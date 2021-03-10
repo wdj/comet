@@ -604,11 +604,11 @@ void perform_run_preflight(int argc, char** argv) {
 
     const char* options_template_1 =
         env.metric_type() == MetricType::CZEK ?
-          "--num_field 768 --num_vector 768 "
+          "--num_field 768 --num_vector_local 768 "
           "--metric_type czekanowski "
           "--num_proc_vector %i --all2all no --num_way 2 "
           "--compute_method GPU --verbosity 0" :
-          "--num_field 768 --num_vector 768 "
+          "--num_field 768 --num_vector_local 768 "
           "--metric_type ccc "
           "--num_proc_vector %i --all2all no --num_way 2 "
           "--compute_method GPU --tc 4 --verbosity 0";

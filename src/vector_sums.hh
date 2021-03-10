@@ -58,6 +58,12 @@ public:
 
   void compute(const GMVectors& vectors);
 
+  void to_accel() {
+    sums_.to_accel();
+    if (env_.sparse() && env_.is_metric_type_bitwise())
+      counts_.to_accel();
+  }
+
   Float_t sum(size_t i) const {
     COMET_ASSERT(i < sums_.dim0); // && i >= 0
     return ((Float_t*)sums_.h)[i];

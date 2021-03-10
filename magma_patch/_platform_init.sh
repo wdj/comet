@@ -634,27 +634,42 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
 
   #---Modules etc.
 
-  module load openmpi
-  module load cuda
-  (module list) 2>&1 | grep -v '^ *$'
+  #module load gcc/git_master_5abe05b4
+  module load cuda/11.2.1
+  module load cmake
 
   #---Compiler.
 
-  local USE_GCC=ON
   #local COMET_C_COMPILER=$(which gcc)
   #local COMET_CXX_COMPILER=$(which g++)
   #local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
-  local USE_PGI=NO
-  if [ $USE_PGI = YES ] ; then
-    local COMET_C_COMPILER=$(which pgcc)
-    local COMET_CXX_COMPILER=$(which pgc++)
+  #local USE_PGI=NO
+  #if [ $USE_PGI = YES ] ; then
+  #  local COMET_C_COMPILER=$(which pgcc)
+  #  local COMET_CXX_COMPILER=$(which pgc++)
+  #local USE_CLANG=ON
+  local USE_CLANG=OFF
+  if [ $USE_CLANG = ON ] ; then
+    # SEGFAULTS
+    local USE_GCC=OFF
+    module load ARM_Compiler_For_HPC/20.3_TX2
+    module load openmpi/4.0.5_armclang
+    local COMET_C_COMPILER=$OMPI_CC
+    local COMET_CXX_COMPILER=$OMPI_CXX
+    local COMET_CXX_SERIAL_COMPILER=armclang++
+    local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
   else
+    local USE_GCC=ON
+    module load gcc/10.2.0
+    module load openmpi/4.0.5_gcc
     local COMET_C_COMPILER=$(which mpicc)
     local COMET_CXX_COMPILER=$(which mpiCC)
+    local COMET_CXX_SERIAL_COMPILER=g++
+    #local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++11"
+    local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++14"
   fi
-  local COMET_CXX_SERIAL_COMPILER=g++
-  local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++11"
   COMET_EXTRA_COMPILE_OPTS+=" -I$(dirname $(which mpiCC))/../include"
+  (module list) 2>&1 | grep -v '^ *$'
 
   local USE_OPENMP=ON
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
@@ -664,18 +679,22 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   #---Libraries.
 
   local USE_CUDA=ON
-  CUDA_ROOT=/usr/local/cuda
+  CUDA_ROOT=$CUDA_HOME
   export PATH=${PATH}:$CUDA_ROOT/bin
   local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
   local COMET_CUDA_LINK_OPTS="-L$CUDA_ROOT/lib64"
+  #COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/sbsa-linux/lib/ -lcublas -lcudart"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
+  COMET_CUDA_LINK_OPTS+=" -rdynamic"
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
-  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$(which $COMET_CXX_SERIAL_COMPILER)"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_70,code=compute_70;-arch=sm_70"
 
-  local USE_MAGMA=ON
+  #local USE_MAGMA=ON
+  local USE_MAGMA=OFF
   local COMET_MAGMA_GPU_ARCH=70
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
@@ -685,7 +704,14 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   #---Testing.
 
   #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=224"
-  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+  #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    # salloc -N1 -pgpu
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+  else
+    # salloc -N1 -pgpu
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1"
+  fi
 
 #----------------------------------------
 elif [ $COMET_PLATFORM = MACOS ] ; then
