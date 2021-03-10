@@ -57,7 +57,7 @@ typedef struct {
   bool num_field_active_initialized;
   bool num_vector_local_initialized;
   bool num_vector_active_initialized;
-  int verbosity;
+  float verbosity;
   int stage_min_0based;
   int stage_max_0based;
   int phase_min_0based;
@@ -81,16 +81,22 @@ enum {
 //void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env);
 
 void print_output(bool do_print,
-                  Checksum& cksum,
+                  bool do_detailed,
+		  bool do_expert,
+		  Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub = 0,
                   size_t num_written = 0,
+		  size_t metric_size = 0,
+		  size_t vector_size = 0,
                   double vctime = 0,
                   double mctime = 0,
                   double cktime = 0,
                   double intime = 0,
                   double outtime = 0,
-                  double tottime = 0);
+                  double tottime = 0,
+		  double cmtime = 0,
+		  double looptime = 0);
 
 void perform_run(int argc, char** argv, const char* const description,
                  MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);

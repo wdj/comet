@@ -700,6 +700,7 @@ public:
   // Counters
 
   double ctime() const {return ctime_;}
+  double gemmtime() const {return gemmtime_;}
   double gemmtime_sum() const;
   void gemmtime_start();
   void gemmtime_end();

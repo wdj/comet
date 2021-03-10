@@ -116,7 +116,7 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
     //----------
       ++i;
       COMET_INSIST_INTERFACE(env, i < argc && "Missing value for verbosity.");
-      const long verbosity = strtol(argv[i], NULL, 10);
+      const float verbosity = strtof(argv[i], NULL);
       COMET_INSIST_INTERFACE(env, 0 == errno && verbosity >= 0 &&
                     "Invalid setting for verbosity.");
       do_->verbosity = verbosity;
@@ -289,22 +289,45 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
 //-----------------------------------------------------------------------------
 
 void print_output(bool do_print,
+		  bool do_detailed,
+		  bool do_expert,
                   Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub,
                   size_t num_written,
+		  size_t metric_size,
+		  size_t vector_size,
                   double vctime,
                   double mctime,
                   double cktime,
                   double intime,
                   double outtime,
-                  double tottime) {
+                  double tottime,
+		  double cmtime,
+		  double looptime) {
 
   const double ops = env.ops();
   const double ops_gemm = env.ops_gemm();
   const double gemmtime_sum = env.gemmtime_sum();
   const size_t cpu_mem_max = env.cpu_mem_max();
   const size_t gpu_mem_max = env.gpu_mem_max();
+
+  double vals[5];
+  vals[0] = env.ctime();
+  vals[1] = tottime;
+  vals[2] = vctime+intime;
+  vals[3] = outtime;
+  vals[4] = (double)vector_size;
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(MPI_IN_PLACE, vals, 5, MPI_DOUBLE, MPI_SUM, env.comm()));
+  double ctime_sum = vals[0];
+  double tottime_sum = vals[1];
+  double input_sum = vals[2];
+  double outtime_sum = vals[3];
+  double vector_size_sum = vals[4];
+
+  double gemm_min = env.gemmtime(), gemm_max = env.gemmtime();
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(MPI_IN_PLACE, &gemm_min, 1, MPI_DOUBLE, MPI_MIN, env.comm()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(MPI_IN_PLACE, &gemm_max, 1, MPI_DOUBLE, MPI_MAX, env.comm()));
 
   if (!do_print)
     return;
@@ -382,6 +405,132 @@ void print_output(bool do_print,
   }
 
   printf("\n");
+
+  if(do_detailed) {
+    // Compute general values
+    double tops = ops/(1000.0*1000.0*1000.0*1000.0);
+    double tops_gemm = ops_gemm/(1000.0*1000.0*1000.0*1000.0);
+
+    // More readable runtime output
+    printf("\nDetailed Output:\n");
+    printf("Num processes/GPUs:            %d\n"
+           "Precision:                     %s\n"
+           "Build:                         %s\n"
+           "TC:                            %i\n"
+           "TC Effective:                  %i\n"
+           "Using Shrink:                  %s\n"
+	   "Checksum:                      %s\n"
+           "Runtime Stats:                 %s\n",
+           env.num_proc(),
+           env.is_double_prec() ? "double" : "single",
+           BuildHas::DEBUG ? "debug" : "release",
+           env.tc(), env.tc_eff(),
+           env.is_shrink() ? "yes" : "no",
+	   cksum.computing_checksum() ? "yes" : "no",
+           do_expert ? "Expert" : "Detailed" );
+
+    printf("\nComparisons:\n"
+           "Vector:                        %e\n"
+           "Vector Compares Written:       %e\n"
+           "Entry:                         %e\n"
+           "Metric:                        %e\n"
+           "Metric Rate:                   %e\n"
+           "Metric Rate/Proc:              %e\n",
+           env.vec_compares(), (double)num_written, env.entry_compares(), env.metric_compares(),
+           env.metric_compares()/env.ctime(), env.metric_compares()/(env.ctime() * env.num_proc()));
+
+    printf("\nThresholding/Shrink:\n"
+           "Metric Entries:                %e\n"
+           "Metric Entries Computed:       %e\n"
+           "Shrink Achieved:               %e\n",
+           (double)env.metric_entries(), (double)env.metric_entries_computed(),
+           env.shrink_achieved());
+
+    printf("\nMax Memory Usage:\n"
+           "CPU:                           %e\n"
+           "GPU:                           %e\n",
+           (double)cpu_mem_max, (double)gpu_mem_max);
+
+    if (cksum.computing_checksum()) {
+      double fracnonzero = 0;
+      if(cksum.num()>0) fracnonzero = (cksum.num()-cksum.num_zero()) / cksum.num();
+      printf("\nChecksum Results:\n"
+             "Metrics Checksum:              ");
+      cksum.print(env);
+      printf("\nNumber:                        %.0f\n"
+             "Number of Zeros:               %.0f\n"
+             "Fraction Nonzero:              %.9f\n",
+             cksum.num(),cksum.num_zero(),fracnonzero);
+    }
+
+    double tgemmrate = 0.0, cmopsrate = 0.0, totopsrate = 0.0;
+    if(gemmtime_sum>0.0) tgemmrate = tops_gemm/gemmtime_sum;
+    if(ctime_sum>0.0) cmopsrate = tops/ctime_sum;
+    if(tottime_sum>0.0) totopsrate = tops/tottime_sum;
+    double gemm_avg = gemmtime_sum/env.num_proc();
+    if(do_expert) {
+      printf("\nGEMM:\n"
+           "Runtime (Min Avg Max):         %.6f %.6f %.6f\n"
+           "Ops:                           %e\n"
+           "GEMM Ops:                      %e\n"
+           "GEMM TOps rate/proc            %.2f\n"
+           "Compute Metric TOps rate/proc: %.2f\n"
+           "Total TOps rate/proc:          %.2f\n",
+           gemm_min, gemm_avg, gemm_max, ops, ops_gemm, tgemmrate,
+           cmopsrate, totopsrate);
+    } else {
+      printf("\nGEMM:\n"
+             "Runtime (Avg):                 %.6f\n"
+             "Ops:                           %e\n"
+             "GEMM Ops:                      %e\n"
+             "GEMM TOps rate/proc            %.2f\n"
+             "Compute Metric TOps rate/proc: %.2f\n"
+             "Total TOps rate/proc:          %.2f\n",
+             gemm_avg, ops, ops_gemm, tgemmrate,
+	     cmopsrate, totopsrate);
+    }
+
+    double ctimeovhd = cmtime - env.ctime();
+    double extra = tottime - (vctime+intime+mctime+env.ctime()+cktime+outtime);
+    printf("\nDriver:\n"
+           "Vec Creation time:             %.6f\n"
+           "Vec Set time:                  %.6f\n"
+           "Create metrics time:           %.6f\n"
+           "Compute metric time:           %.6f\n"
+           "Compute metric overhead:       %.6f\n"
+	   "Checksum time:                 %.6f\n"
+           "Output time:                   %.6f\n"
+           "Extra time:                    %.6f\n"
+	   "Total time:                    %.6f\n",
+           vctime, intime, mctime, env.ctime(), ctimeovhd, cktime, outtime, extra, tottime);
+
+    double file_size = (double)num_written*metric_size;
+    printf("\nI/O:\n"
+           "Input:\n"
+           "Vector Size:                   %e\n"
+           "Input Bandwidth:               %e\n"
+           "Output:\n"
+           "Number of Metrics:             %e\n"
+           "Metric Size:                   %zu\n"
+           "File Size:                     %e\n"
+           "Output Bandwidth:              %e\n",
+           vector_size_sum,vector_size_sum/input_sum,
+           (double)num_written, metric_size, file_size,
+           file_size/outtime_sum);
+
+    double input = vctime+intime;
+    double cmwogemm = cmtime - gemm_avg;
+    double nonloop = tottime-looptime;
+    printf("\nCombined Driver Runtimes:\n"
+           "Input Total:                   %.6f\n"
+           "Compute Metrics without GEMM:  %.6f\n"
+	   "Compute Metrics Total:         %.6f\n"
+           "Loop time:                     %.6f\n"
+           "Non-loop time:                 %.6f\n",
+           input, cmwogemm, cmtime, looptime, nonloop);
+
+    printf("\n");
+  }
 }
 
 //=============================================================================
@@ -508,6 +657,8 @@ env->stream_compute(); //FIX
 
   const bool do_print = env->is_proc_active() &&
      env->proc_num() == 0 && do_.verbosity > 0;
+  const bool do_detailed = do_print && do_.verbosity >= 1.5;
+  const bool do_expert = do_print && do_.verbosity >= 1.79;
 
   // Allocate vectors.
 
@@ -535,9 +686,12 @@ env->stream_compute(); //FIX
   double outtime = 0;
   double mctime = 0;
   double cktime = 0;
+  double cmtime = 0;
+  double looptime = 0;
+  double time_beg_loop = 0, time_end_loop = 0;
 
   size_t num_metric_items_local_computed = 0;
-  size_t num_local_written = 0;
+  size_t num_local_written = 0, metric_size = 0, vector_size = 0;
 
   // Open output files.
 
@@ -548,12 +702,16 @@ env->stream_compute(); //FIX
   outtime += time_end - time_beg;
 
   {
+  time_beg = env->synced_time();
   MetricsMem metrics_mem(env);
 
   ComputeMetrics compute_metrics(*dm, *env);
+  time_end = env->synced_time();
+  cmtime += time_end - time_beg;
 
   // Loops over phases, stages.
 
+  time_beg_loop = env->synced_time();
   for (int phase_num=do_.phase_min_0based; phase_num<=do_.phase_max_0based;
        ++phase_num) {
       env->phase_num(phase_num);
@@ -573,7 +731,10 @@ env->stream_compute(); //FIX
 
       // Calculate metrics.
 
+      time_beg = env->synced_time();
       compute_metrics.compute(*metrics, *vectors);
+      time_end = env->synced_time();
+      cmtime += time_end - time_beg;
 
       num_metric_items_local_computed += metrics->num_metric_items_local_computed;
 
@@ -627,16 +788,20 @@ env->stream_compute(); //FIX
     } // for stage
 
   } // for phase
+  time_end_loop = env->synced_time();
+  looptime = time_end_loop - time_beg_loop;
 
   // Finalize metrics mem.
 
   time_beg = env->synced_time();
   }
   time_end = env->synced_time();
-  mctime += time_end - time_beg;
+  cmtime += time_end - time_beg;
   // Close output files.
 
   num_local_written += metrics_io.num_written();
+  metric_size = metrics_io.metric_size();
+  vector_size = vectors->data_size;
   time_beg = env->synced_time();
   }
   time_end = env->synced_time();
@@ -689,8 +854,8 @@ env->stream_compute(); //FIX
 
   // Output run information.
 
-  print_output(do_print, cksum, *env, do_.metrics_file_path_stub, num_written,
-    vctime, mctime, cktime, intime, outtime, tottime);
+  print_output(do_print, do_detailed, do_expert, cksum, *env, do_.metrics_file_path_stub, num_written,
+    metric_size, vector_size, vctime, mctime, cktime, intime, outtime, tottime, cmtime, looptime);
     
   // Output a local checksum, for testing purposes.
 
