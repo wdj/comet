@@ -126,12 +126,13 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
   //---------------
 
   vector_sums_onproc_.compute(vectors);
+  if (env_.is_threshold_tc())
+    vector_sums_onproc_.to_accel();
 
   //---------------
   // Numerator
   //---------------
 
-  //MagmaWrapper::initialize(env_);
   MagmaWrapper magma_wrapper(env_);
 
   {
@@ -191,7 +192,6 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   // Combine
 
-//>>>
   CompressedBuf matB_buf_compressed(metrics_buf, env_);
   env_.finalize_timer.start();
   ComputeMetrics2WayBlock::finalize(&metrics, &matB_buf_compressed,
@@ -205,7 +205,6 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   }
 
-  //MagmaWrapper::finalize(env_);
   if(env_.print_details()) printf("Done in compute_notall2all\n");
 }
 
@@ -380,6 +379,8 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     vars_next.metrics_buf = metrics_buf_01_[vars_next.index_01];
 
+// TODO: move "Send left matrix to GPU" here if gpu direct.
+
     //========== MPI sends, receives - START
 
     if (vars_next.is_compute_step && vars_next.needs_comm) {
@@ -397,11 +398,6 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
       const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
         utils::mod_i(i_block + proc_offset, num_block));
-
-      //const int proc_send = env_.proc_num_repl_vector(proc_num_repl,
-      //  utils::mod_i(i_block - vars_next.j_i_offset, num_block));
-      //const int proc_recv = env_.proc_num_repl_vector(proc_num_repl,
-      //  utils::mod_i(i_block + vars_next.j_i_offset, num_block));
 
       const int mpi_tag = step_num + 1;
 
@@ -421,11 +417,6 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
                                               proc_recv, mpi_tag, &env_);
       mpi_requests[0] = gm_send_vectors_start(vectors_send,
                                               proc_send, mpi_tag, &env_);
-
-      //mpi_requests[1] = gm_recv_vectors_start(vars_next.vectors_right,
-      //                                        proc_recv, mpi_tag, &env_);
-      //mpi_requests[0] = gm_send_vectors_start(vectors_left,
-      //                                        proc_send, mpi_tag, &env_);
     }
 
     //========== Send right matrix to GPU - WAIT.
@@ -466,10 +457,16 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     if (0 == compute_sums_this) { // needed here for is_threshold_tc
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
-        if (vars.is_first_compute_step)
+        if (vars.is_first_compute_step) {
           vector_sums_left->compute(*vectors_left);
-        if (! vars.is_main_diag)
+          if (env_.is_threshold_tc())
+            vector_sums_left->to_accel();;
+        }
+        if (! vars.is_main_diag) {
           vars.vector_sums_right->compute(*vars.vectors_right);
+          if (env_.is_threshold_tc())
+            vars.vector_sums_right->to_accel();
+        }
       }
     }
 
@@ -535,9 +532,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
           vector_sums_left->compute(*vectors_left);
+          if (env_.is_threshold_tc())
+            vector_sums_left->to_accel();
         }
         if (! vars.is_main_diag) {
           vars.vector_sums_right->compute(*vars.vectors_right);
+          if (env_.is_threshold_tc())
+            vars.vector_sums_right->to_accel();
         }
       }
     }
@@ -590,9 +591,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
           vector_sums_left->compute(*vectors_left);
+          if (env_.is_threshold_tc())
+            vector_sums_left->to_accel();
         }
         if (! vars.is_main_diag) {
           vars.vector_sums_right->compute(*vars.vectors_right);
+          if (env_.is_threshold_tc())
+            vars.vector_sums_right->to_accel();
         }
       }
     }
@@ -604,7 +609,6 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       if (vars.is_compute_step && vars.do_compute_block) {
         matB_buf_compressed.from_accel_wait();
         if(env_.print_details()) printf("rank=%d Calling 2nd Block::finalize\n",rank);
-//fprintf(stderr,"%i %i  %i\n", env_.proc_num_vector(), env_.proc_num_repl(), (int)vars.j_block);
         env_.finalize_timer.start();
 	ComputeMetrics2WayBlock::finalize(
           &metrics,
@@ -628,7 +632,6 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
   } // step_num
   //========================================
 
-  //MagmaWrapper::finalize(env_);
   if(env_.print_details()) printf("rank=%d Done in compute_all2all\n",rank);
 }
 

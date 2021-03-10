@@ -78,8 +78,10 @@ size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
 
   const size_t result = env.tc_eff() == TC::NO ? 1 :
     // Curent requirement >= 4 - see tc_in.
-    tc_solve_b1_use_mockup(env) && env.tc_eff() == TC::B1 ? 4 :
-    env.tc_eff() == TC::B1 ? 256 : 8;
+    tc_solve_use_mockup(env) &&
+      (env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 4 :
+    env.tc_eff() == TC::B1 ? 256 :
+    env.tc_eff() == TC::INT4 ? 256 : 8;
 
   if(env.print_details()) printf("In vaxis_divis_req result=%zu tc_eff=%d use_mockup=%d\n",
     result,env.tc_eff(),tc_solve_b1_use_mockup(env));
@@ -654,6 +656,13 @@ void tc_gemm_start(
       }
     } break;
     // --------------
+    case TC::INT4: {
+      tc_gemm_start_impl_<TC::INT4>(
+        m, n, k, matA1, matA2, matB, matC, lddc,
+        sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
+        tc_bufs, nfal, step_2way, env);
+    } break;
+    // --------------
     default:
       COMET_INSIST(false && "Invalid tc type.");
   } // switch
@@ -697,6 +706,7 @@ void TCBufs::malloc(int num_vector_local,
      env.tc_eff() == TC::FP16 ? sizeof(typename TCTraits<TC::FP16>::GemmIn_t) :
      env.tc_eff() == TC::INT8 ? sizeof(typename TCTraits<TC::INT8>::GemmIn_t) :
      env.tc_eff() == TC::B1 ? sizeof(typename TCTraits<TC::B1>::GemmIn_t) :
+     env.tc_eff() == TC::INT4 ? sizeof(typename TCTraits<TC::INT4>::GemmIn_t) :
      0;
 
   const int nfpgi =
@@ -704,6 +714,7 @@ void TCBufs::malloc(int num_vector_local,
      env.tc_eff() == TC::FP16 ? TCTraits<TC::FP16>::NFPGI :
      env.tc_eff() == TC::INT8 ? TCTraits<TC::INT8>::NFPGI :
      env.tc_eff() == TC::B1 ? TCTraits<TC::B1>::NFPGI :
+     env.tc_eff() == TC::INT4 ? TCTraits<TC::INT4>::NFPGI :
      0;
   COMET_INSIST(TC::is_valid(env.tc_eff())); // must be updated if new method
 

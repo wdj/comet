@@ -101,13 +101,6 @@ void VectorSums::compute(const GMVectors& vectors) {
   } else {
     compute_float_(vectors);
   }
-
-  // Put on accelerator in case needed later.
-
-  sums_.to_accel();
-
-  if (env_.sparse() && env_.is_metric_type_bitwise())
-    counts_.to_accel();
 }
 
 //-----------------------------------------------------------------------------

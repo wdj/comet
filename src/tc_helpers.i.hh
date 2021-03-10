@@ -68,6 +68,7 @@ template<> struct TCTraits<TC::FP32> : public TCTraitsBase {
   //typedef BasicTypes::FP32 GemmIn_t; // don't use, harder to access bits.
   typedef uint32_t GemmIn_t;
   typedef BasicTypes::FP32 GemmOut_t;
+  enum {NUM_BITS_PER_FIELD = 8 * sizeof(GemmIn_t)};
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_32F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
@@ -86,6 +87,7 @@ template<> struct TCTraits<TC::FP32> : public TCTraitsBase {
 template<> struct TCTraits<TC::FP16> : public TCTraitsBase {
   typedef uint16_t GemmIn_t;
   typedef BasicTypes::FP32 GemmOut_t;
+  enum {NUM_BITS_PER_FIELD = 8 * sizeof(GemmIn_t)};
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_16F;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32F;}
@@ -104,6 +106,7 @@ template<> struct TCTraits<TC::FP16> : public TCTraitsBase {
 template<> struct TCTraits<TC::INT8> : public TCTraitsBase {
   typedef int8_t GemmIn_t;
   typedef int32_t GemmOut_t;
+  enum {NUM_BITS_PER_FIELD = 8 * sizeof(GemmIn_t)};
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;}
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
@@ -124,6 +127,7 @@ template<> struct TCTraits<TC::B1> : public TCTraitsBase {
   //typedef int8_t GemmIn_t;
   typedef int32_t GemmIn_t;
   typedef int32_t GemmOut_t;
+  enum {NUM_BITS_PER_FIELD = 1};
 #if defined COMET_USE_CUDA
   static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
   static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
@@ -138,6 +142,31 @@ template<> struct TCTraits<TC::B1> : public TCTraitsBase {
   enum {NUM_GEMMIN_T_PER_THREAD = 1}; // tuning param
   enum {NGIPT = NUM_GEMMIN_T_PER_THREAD};
   enum {NFPGI = 8 * sizeof(GemmIn_t)};
+  enum {IS_B_FIELD_MAJOR = true};
+};
+
+//----------
+
+template<> struct TCTraits<TC::INT4> : public TCTraitsBase {
+  enum {IS_THREAD_MAPPING_FIELD_MAJOR = true}; // tuning param
+  //typedef int8_t GemmIn_t;
+  typedef int32_t GemmIn_t;
+  typedef int32_t GemmOut_t;
+  enum {NUM_BITS_PER_FIELD = 4};
+#if defined COMET_USE_CUDA
+  static cudaDataType __host__ __device__ gemm_type_in() {return CUDA_R_8I;} // UNUSED
+  static cudaDataType __host__ __device__ gemm_type_out() {return CUDA_R_32I;}
+#elif defined COMET_USE_HIP
+  static rocblas_datatype __host__ __device__ gemm_type_in() {
+   return rocblas_datatype_u8_r; // UNUSED
+  }
+  static rocblas_datatype __host__ __device__ gemm_type_out() {
+   return rocblas_datatype_u32_r;
+  }
+#endif
+  enum {NUM_GEMMIN_T_PER_THREAD = 1}; // tuning param
+  enum {NGIPT = NUM_GEMMIN_T_PER_THREAD};
+  enum {NFPGI = (8/4) * sizeof(GemmIn_t)};
   enum {IS_B_FIELD_MAJOR = true};
 };
 

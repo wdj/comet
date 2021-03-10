@@ -491,11 +491,17 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   module load cmake
   #module load PrgEnv-cray
   if [ $COMET_CAN_USE_MPI = ON ] ; then
-    module use /home/users/twhite/share/modulefiles
+    #module use /home/users/twhite/share/modulefiles
     #module load ompi # Trey's ompi includes rocm/3.5.0
     #module load ompi/4.0.4-rocm-3.7
     #module load ompi/4.0.4-rocm-3.8
-    module load ompi/4.0.4-rocm-4.0
+    #module load ompi/4.0.4-rocm-4.0
+    # see https://frontier-coe.atlassian.net/wiki/spaces/FCOE/pages/109346837/Getting+Started+Guide#MPI-with-GPUs
+    module load gcc/8.1.0
+    module load rocm/4.1.0
+    module use /home/groups/coegroup/share/coe/modulefiles
+    #module load ompi/4.1.0/gnu/rocm/4.1.0
+    module load ompi/4.1.0/gnu/rocm
   else
     #module load rocm-alt/2.7
     #module load rocm-alt/2.9
@@ -508,7 +514,8 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
     #module load rocm/3.7.0
     module load gcc/8.1.0
     #module load rocm/3.8.0
-    module load rocm/4.0.0
+    #module load rocm/4.0.0
+    module load rocm/4.1.0
   fi
   (module list) 2>&1 | grep -v '^ *$'
 
@@ -542,8 +549,11 @@ elif [ $COMET_PLATFORM = POPLAR ] ; then
   COMET_HIP_COMPILE_OPTS+=" -Wno-c99-designator"
   COMET_HIP_COMPILE_OPTS+=" -Wno-duplicate-decl-specifier -Wno-unused-variable" # FIX this later after compiler headers fixed
   COMET_HIP_COMPILE_OPTS+=" -DHAVE_HIP"
-  local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
-  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  #local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -lrocblas"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lrocsparse"
+  local COMET_HIP_LINK_OPTS="-L$ROCBLAS_PATH/lib -Wl,-rpath,$ROCBLAS_PATH/lib -lrocblas"
+  #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -Wl,-rpath,$ROCM_PATH/lib -L$ROCM_PATH/hipsparse/lib -Wl,-rpath,$ROCM_PATH/hipsparse/lib -lrocsparse"
+  COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -Wl,-rpath,$ROCM_PATH/lib -L$ROCM_PATH/hipsparse/lib -Wl,-rpath,$ROCM_PATH/hipsparse/lib -L$ROCM_PATH/hipblas/lib -Wl,-rpath,$ROCM_PATH/hipblas/lib  $ROCM_PATH/lib/librocsparse.so  $ROCM_PATH/lib/libhipsparse.so $ROCM_PATH/hipblas/lib/libhipblas.so"
   #COMET_HIP_LINK_OPTS+=" -L$ROCM_PATH/lib -lhip_hcc"
   COMET_HIP_LINK_OPTS+=" --amdgpu-target=gfx906,gfx908"
   # https://llvm.org/docs/AMDGPUUsage.html
@@ -625,27 +635,42 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
 
   #---Modules etc.
 
-  module load openmpi
-  module load cuda
-  (module list) 2>&1 | grep -v '^ *$'
+  #module load gcc/git_master_5abe05b4
+  module load cuda/11.2.1
+  module load cmake
 
   #---Compiler.
 
-  local USE_GCC=ON
   #local COMET_C_COMPILER=$(which gcc)
   #local COMET_CXX_COMPILER=$(which g++)
   #local COMET_CXX_SERIAL_COMPILER=$COMET_CXX_COMPILER
-  local USE_PGI=NO
-  if [ $USE_PGI = YES ] ; then
-    local COMET_C_COMPILER=$(which pgcc)
-    local COMET_CXX_COMPILER=$(which pgc++)
+  #local USE_PGI=NO
+  #if [ $USE_PGI = YES ] ; then
+  #  local COMET_C_COMPILER=$(which pgcc)
+  #  local COMET_CXX_COMPILER=$(which pgc++)
+  #local USE_CLANG=ON
+  local USE_CLANG=OFF
+  if [ $USE_CLANG = ON ] ; then
+    # SEGFAULTS
+    local USE_GCC=OFF
+    module load ARM_Compiler_For_HPC/20.3_TX2
+    module load openmpi/4.0.5_armclang
+    local COMET_C_COMPILER=$OMPI_CC
+    local COMET_CXX_COMPILER=$OMPI_CXX
+    local COMET_CXX_SERIAL_COMPILER=armclang++
+    local COMET_EXTRA_COMPILE_OPTS=" -std=c++14"
   else
+    local USE_GCC=ON
+    module load gcc/10.2.0
+    module load openmpi/4.0.5_gcc
     local COMET_C_COMPILER=$(which mpicc)
     local COMET_CXX_COMPILER=$(which mpiCC)
+    local COMET_CXX_SERIAL_COMPILER=g++
+    #local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++11"
+    local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++14"
   fi
-  local COMET_CXX_SERIAL_COMPILER=g++
-  local COMET_EXTRA_COMPILE_OPTS=" -std=gnu++11"
   COMET_EXTRA_COMPILE_OPTS+=" -I$(dirname $(which mpiCC))/../include"
+  (module list) 2>&1 | grep -v '^ *$'
 
   local USE_OPENMP=ON
   local COMET_OPENMP_COMPILE_OPTS="-fopenmp"
@@ -655,19 +680,25 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   #---Libraries.
 
   local USE_CUDA=ON
-  CUDA_ROOT=/usr/local/cuda
+  CUDA_ROOT=$CUDA_HOME
   export PATH=${PATH}:$CUDA_ROOT/bin
   local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
   local COMET_CUDA_LINK_OPTS="-L$CUDA_ROOT/lib64"
+  #COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/sbsa-linux/lib/ -lcublas -lcudart"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
+  COMET_CUDA_LINK_OPTS+=" -rdynamic"
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
-  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
   local COMET_GPU_ARCH=70
 
-  local USE_MAGMA=ON
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$(which $COMET_CXX_SERIAL_COMPILER)"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_70,code=compute_70;-arch=sm_70"
+
+  #local USE_MAGMA=ON
+  local USE_MAGMA=OFF
+  local COMET_MAGMA_GPU_ARCH=70
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
   #local COMET_CAN_USE_MPI=ON
@@ -676,7 +707,14 @@ elif [ $COMET_PLATFORM = WOMBAT ] ; then
   #---Testing.
 
   #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=224"
-  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+  #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    # salloc -N1 -pgpu
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
+  else
+    # salloc -N1 -pgpu
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1"
+  fi
 
 #----------------------------------------
 elif [ $COMET_PLATFORM = MACOS ] ; then
@@ -816,11 +854,15 @@ elif [ $COMET_PLATFORM = MURPHY ] ; then
 elif [ $COMET_PLATFORM = CORI_GPU ] ; then
 #----------------------------------------
 
+  #local COMET_CAN_USE_MPI=OFF
+  local COMET_CAN_USE_MPI=ON
+
   #---Modules etc.
 
   module load gcc # 8.3.0
   module load cuda/11.0.2
   module load cmake
+  module load openmpi
   module list
 
   #---Compiler.
@@ -861,19 +903,22 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   local USE_MAGMA=ON
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
-  local COMET_CAN_USE_MPI=ON
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
-    #local MPI_HOME=$(echo $PATH | sed 's,\(^\|.*:\)\([^:]*mvapich2[^:]*\)/bin.*,\2,')
-    local MPI_HOME=/usr/common/software/sles15_cgpu/openmpi/4.0.3/gcc
-    local COMET_MPI_COMPILE_OPTS="-I$MPI_HOME/include"
-    local COMET_MPI_LINK_OPTS="-L$MPI_HOME/lib -lmpi"
-    #local COMET_MPI_CMAKE_OPTS=""
+    local COMET_MPI_COMPILE_OPTS="-I$OPENMPI_DIR/include"
+    local COMET_MPI_LINK_OPTS="-L$OPENMPI_DIR/lib -Wl,-rpath=$OPENMPI_DIR/lib -lmpi"
   fi
 
   #---Testing.
 
-  local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n 1"
+  #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n 1"
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    # salloc -C dgx -N 1 --ntasks-per-node=64 --cpus-per-task=1 -G 8 -t 240 -A m1759
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=16 OMP_PROC_BIND=spread OMP_PLACES=cores srun -n 64 -G 1"
+  else
+    # salloc -C dgx -N 1 --ntasks-per-node=1 --cpus-per-task=16 -G 8 -t 240 -A m1759
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=16 OMP_PROC_BIND=spread OMP_PLACES=cores srun -n 1"
+  fi
 
 #----------------------------------------
 else

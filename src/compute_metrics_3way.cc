@@ -155,7 +155,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   // Initializations.
 
-  //MagmaWrapper::initialize(env_);
   MagmaWrapper magma_wrapper(env_);
 
   {
@@ -170,13 +169,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   const int i_block = env->proc_num_vector();
 
   const int proc_num_repl = env->proc_num_repl();
-//  const int num_proc_repl = env->num_proc_repl();
-
-  /*---Create flattened index within space of procs assigned to
-       vectors (non-field procs) - i.e., vector_i (=block) X repl ---*/
-
-//  const int proc_num_rv = proc_num_repl + num_proc_repl * i_block;
-//  const int num_proc_rv = num_block * num_proc_repl;
 
   // ------------------
   // Allocations: Part 1.
@@ -268,6 +260,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   // Denominator.
   vector_sums_i->compute(*vectors_i);
+  if (env_.is_threshold_tc())
+    vector_sums_i->to_accel();
 
   // Copy in vectors.
   gm_vectors_to_buf(vectors_i_buf, vectors_i, env);
@@ -280,7 +274,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   const int num_section_steps_1 = gm_num_section_steps(env, 1);
   for (int section_step=0; section_step<num_section_steps_1; ++section_step) {
-    //if (gm_proc_r_active(section_block_num, env)) {
     if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
       if (have_unprocessed_section_block) {
@@ -334,14 +327,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
       const int proc_recv_j = env_.proc_num_repl_vector(proc_num_repl,
         utils::mod_i(i_block + j_i_offset, num_block));
 
-//      //TODO: can possibly simplify this - mod by num_proc_i instead
-//
-//      const int proc_send_j = utils::mod_i(proc_num_rv - j_i_offset*num_proc_repl,
-//                                       num_proc_rv);
-//      const int proc_recv_j = utils::mod_i(proc_num_rv + j_i_offset*num_proc_repl,
-//                                       num_proc_rv);
-
-      //if (gm_proc_r_active(section_block_num, env)) {
       if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
         if (gm_is_section_block_in_phase(env, section_block_num)) {
@@ -381,6 +366,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
           // Denominator.
           vector_sums_j->compute(*vectors_j_this);
+          if (env_.is_threshold_tc())
+            vector_sums_j->to_accel();
 
           // Send vectors to GPU wait.
 	  env->vec2_wait_timer.record();
@@ -430,11 +417,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
       const int proc_recv_k = env_.proc_num_repl_vector(proc_num_repl,
         utils::mod_i(i_block + k_i_offset, num_block));
 
-//      const int proc_send_k = utils::mod_i(proc_num_rv - k_i_offset*num_proc_repl,
-//                                       num_proc_rv);
-//      const int proc_recv_k = utils::mod_i(proc_num_rv + k_i_offset*num_proc_repl,
-//                                       num_proc_rv);
-
       for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
 
         const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
@@ -445,10 +427,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
         const int proc_recv_j = env_.proc_num_repl_vector(proc_num_repl,
           utils::mod_i(i_block + j_i_offset, num_block));
 
-//        const int proc_send_j = utils::mod_i(proc_num_rv-j_i_offset*num_proc_repl,
-//                                         num_proc_rv);
-//        const int proc_recv_j = utils::mod_i(proc_num_rv+j_i_offset*num_proc_repl,
-//                                         num_proc_rv);
         if (j_block == k_block) {
           /*---NOTE: this condition occurs on all procs at exactly the same
                j/k iteration in lockstep, so there is no chance the immediately
@@ -457,7 +435,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
         }
         COMET_INSIST((j_block == k_block) == (j_i_offset == k_i_offset) &&
                   "Error in block indexing for communication.");
-        //if (gm_proc_r_active(section_block_num, env)) {
         if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
           const bool do_k_comm = k_block != k_block_currently_resident;
@@ -512,6 +489,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
               // Denominator.
               vector_sums_k->compute(*vectors_k_this);
+              if (env_.is_threshold_tc())
+                vector_sums_k->to_accel();
 
               // Send vectors to GPU wait.
 	      env->vec3_wait_timer.record();
@@ -541,6 +520,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
             // Denominator.
             vector_sums_j->compute(*vectors_j_this);
+            if (env_.is_threshold_tc())
+              vector_sums_j->to_accel();
 
             // Send vectors to GPU wait.
 	    env->vec2_wait_timer.record();
@@ -590,8 +571,6 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   }
 
   if(env->print_details()) printf("Done in ComputeMetrics3Way::compute_all2all_\n");
-
-  //MagmaWrapper::finalize(env_);
 }
 
 //=============================================================================
