@@ -639,7 +639,6 @@ static void finalize_(
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
   if(env->print_details()) printf("rank=%d In ComputeMetrics2WayBlock::finalize\n",rank);
-  double tbegin = env->get_time();
 
   // Select action based on metric_type.
   switch (env->metric_type()) {
@@ -669,7 +668,6 @@ static void finalize_(
         "Selected metric_type unimplemented.");
   } // case
 
-  env->combinetime_inc(env->get_time() - tbegin);
   if(env->print_details()) printf("rank=%d Done in ComputeMetrics2WayBlock::finalize\n",rank);
 }
 

@@ -738,7 +738,6 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   if(env.print_details()) printf("\nrank=%d In tc_solve_impl mnk=%d,%d,%d num_kernel=%d\n",
     rank,m,n,k,env.num_kernel());
-  double tbegin = env.get_time();
   if(env.print_details()) printf("rank=%d Starting timer\n",rank);
 
   // Make the appropriate BLAS call.
@@ -757,14 +756,12 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #   ifdef COMET_USE_ACCEL
 
-      //env.gemmtime_record();
-
-      //env.gemmtime_start();
+      env.gemm_timer.record();
+      env.gemm_timer.start();
       if(env.print_details()) printf("rank=%d Calling tc_solve_impl_b1\n",rank);
       tc_solve_impl_b1<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
       if(env.print_details()) printf("rank=%d Done calling tc_solve_impl_b1\n",rank);
-
-      //env.gemmtime_end();
+      env.gemm_timer.end();
 
 #   else // COMET_USE_ACCEL
 
@@ -806,8 +803,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
           printf("Launching Cublas/Rocblas GEMM kernel m=%d n=%d k=%d beta=%d\n",
                  m,n,k,(int)beta);
 
-      env.gemmtime_record();
-      env.gemmtime_start();
+      env.gemm_timer.record();
+      env.gemm_timer.start();
 
       // GPU BLAS call.
 
@@ -846,7 +843,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
         );
         // TODO: use CUDA 10 autotuning capability here (later).
 
-      env.gemmtime_end();
+      env.gemm_timer.end();
 
 #     ifdef COMET_USE_CUDA
         if (CUBLAS_STATUS_SUCCESS != status)
@@ -921,9 +918,14 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
         // Make CPU BLAS call.
 
+        env.gemm_timer.record();
+	env.gemm_timer.start();
+
         cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans,
           m, n, k, alpha, (float*)tc_bufs.tc_buf_left, m,
           (float*)tc_bufs.tc_buf_right, n, beta, (float*)matC, m);
+
+	env.gemm_timer.end();
 
 #     else // COMET_USE_CPUBLAS
 
@@ -943,8 +945,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   env.ops_gemm_local_inc(ops);
   env.ops_local_inc(ops);
-  env.gemmtime_inc(env.get_time() - tbegin);
-
+  
   if (is_timing_gemm) {
     env.stream_synchronize(env.stream_compute());
     double t2 = System::time();

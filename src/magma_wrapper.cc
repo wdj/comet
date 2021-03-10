@@ -680,7 +680,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
   COMET_INSIST(env.is_compute_method_gpu());
 
   if(env.print_details()) printf("In MagmaWrapper gemm_block_start\n");
-  double tbegin = env.get_time();
+  //double tbegin = env.get_cpu_time();
 
 #ifdef COMET_USE_MAGMA
 
@@ -911,7 +911,7 @@ void MagmaWrapper::gemm_block_start(size_t m, size_t n, size_t k,
 
 #endif // COMET_USE_MAGMA
 
-  env.gemmtime_inc(env.get_time() - tbegin);
+  //env.gemmtime_inc(env.get_cpu_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------

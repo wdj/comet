@@ -160,6 +160,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
   vectors_buf.to_accel();
 
+  env_.gemm_start_timer.start();
   ComputeMetrics2WayBlock::compute_nums_start(
     &vectors, &vectors, &metrics, &vectors_buf,
      &vectors_buf, metrics_buf_ptr,
@@ -167,7 +168,9 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
      &vector_sums_onproc_,
      env_.proc_num_vector(),
      true, magma_wrapper, &env_);
+  env_.gemm_start_timer.end();
 
+  env_.gemm_wait_timer.start();
   ComputeMetrics2WayBlock::compute_nums_wait(
     &vectors, &vectors, &metrics, &vectors_buf,
     &vectors_buf, metrics_buf_ptr,
@@ -175,6 +178,7 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
     &vector_sums_onproc_,
     env_.proc_num_vector(),
     true, &env_);
+  env_.gemm_wait_timer.end();
 
   // Copy result from GPU
 
@@ -189,9 +193,11 @@ void ComputeMetrics2Way::compute_notall2all_(GMMetrics& metrics,
 
 //>>>
   CompressedBuf matB_buf_compressed(metrics_buf, env_);
+  env_.finalize_timer.start();
   ComputeMetrics2WayBlock::finalize(&metrics, &matB_buf_compressed,
                                     &vector_sums_onproc_, &vector_sums_onproc_,
                                     env_.proc_num_vector(), true, &env_);
+  env_.finalize_timer.end();
 
   //---------------
   // Terminations
@@ -427,18 +433,28 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //if(env_.print_details()) printf("rank=%d Sending right vectors to GPU end\n",rank);
 
     if (vars.is_compute_step && vars.do_compute_block &&
-        ! vars.is_right_aliased)
+        ! vars.is_right_aliased) {
+      env_.vec2_wait_timer.record();
+      env_.vec2_wait_timer.start();
       vars.vectors_right_buf->to_accel_wait();
+      env_.vec2_wait_timer.end();
+    }
 
     //========== Send left matrix to GPU on first step.
     //if(env_.print_details()) printf("rank=%d Sending left vecs to GPU\n",rank);
 
     if (vars_next.is_first_compute_step) {
       gm_vectors_to_buf(vectors_left_buf, vectors_left, &env_);
+      env_.vec1_to_gpu_timer.record();
+      env_.vec1_to_gpu_timer.start();
       vectors_left_buf->to_accel_start();
+      env_.vec1_to_gpu_timer.end();
       // TODO: examine whether overlap possible.
       // May not be possible for general repl and phase (??).
+      env_.vec1_wait_timer.record();
+      env_.vec1_wait_timer.start();
       vectors_left_buf->to_accel_wait();
+      env_.vec1_wait_timer.end();
     }
 
     //========== Compute sums for denominators
@@ -461,11 +477,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     if (vars.is_compute_step && vars.do_compute_block) {
       if(env_.print_details()) printf("rank=%d Calling ComputeMetrics2WayBlock::compute_nums_start\n",rank);
+      env_.gemm_start_timer.start();
       ComputeMetrics2WayBlock::compute_nums_start(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, magma_wrapper, &env_);
+      env_.gemm_start_timer.end();
       if(env_.print_details()) printf("rank=%d Done calling ComputeMetrics2WayBlock::compute_nums_start\n",rank);
     }
 
@@ -492,12 +510,14 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         //========== Combine numerators, denominators: CPU case
 
 	if(env_.print_details()) printf("rank=%d Calling ComputeMetrics2WayBlock::finalize\n",rank);
-        ComputeMetrics2WayBlock::finalize(
+        env_.finalize_timer.start();
+	ComputeMetrics2WayBlock::finalize(
           &metrics,
           &matB_buf_compressed, 
           vector_sums_left, vars_prev.vector_sums_right,
           vars_prev.j_block,
           vars_prev.is_main_diag, &env_);
+	env_.finalize_timer.end();
         if(env_.print_details()) printf("Done calling ComputeMetrics2WayBlock::finalize\n");
       }
     }
@@ -536,22 +556,26 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     if (vars_next.is_compute_step && vars_next.do_compute_block &&
         ! vars_next.is_right_aliased) {
       // ISSUE: make sure not necessary if vars_next.is_right_aliased
+      env_.vec2_to_gpu_timer.record();
+      env_.vec2_to_gpu_timer.start();
       vars_next.vectors_right_buf->to_accel_start();
+      env_.vec2_to_gpu_timer.end();
     }
 
     //========== Perform pseudo GEMM - WAIT
 
     if (vars.is_compute_step && vars.do_compute_block) {
       if(env_.print_details()) printf("rank=%d Calling compute_nums_wait\n",rank);
+      env_.gemm_wait_timer.start();
       ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
         vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, &env_);
-
+      env_.gemm_wait_timer.end();
       if(env_.print_details()) printf("rank=%d Done calling compute_nums_wait\n",rank);
-        matB_buf_compressed.attach(*vars.metrics_buf);
-        matB_buf_compressed.compress();
+      matB_buf_compressed.attach(*vars.metrics_buf);
+      matB_buf_compressed.compress();
     }
 
     //========== Copy result matrix from GPU - START
@@ -581,13 +605,15 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         matB_buf_compressed.from_accel_wait();
         if(env_.print_details()) printf("rank=%d Calling 2nd Block::finalize\n",rank);
 //fprintf(stderr,"%i %i  %i\n", env_.proc_num_vector(), env_.proc_num_repl(), (int)vars.j_block);
-        ComputeMetrics2WayBlock::finalize(
+        env_.finalize_timer.start();
+	ComputeMetrics2WayBlock::finalize(
           &metrics,
           &matB_buf_compressed,
           vector_sums_left,
           vars.vector_sums_right, vars.j_block,
           vars.is_main_diag, &env_);
-        if(env_.print_details()) printf("rank=%d Done calling 2nd Block::finalize\n",rank);
+        env_.finalize_timer.end();
+	if(env_.print_details()) printf("rank=%d Done calling 2nd Block::finalize\n",rank);
       }
     }
 

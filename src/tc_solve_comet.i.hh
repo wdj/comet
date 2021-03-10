@@ -179,7 +179,7 @@ void tc_solve_comet_(size_t m, size_t n, size_t k,
   if(env.print_details()) printf("Launching kernel with mnk=%zu,%zu,%zu threads=%d,%d grid=%d,%d lddabc=%zu,%zu,%zu\n",m,n,k,
          threadblockx,threadblocky,gridblockx,gridblocky,ldda,lddb,lddc);
 
-  double tbegin = env.get_time();
+  //double tbegin = env.get_cpu_time();
 
   switch(env.num_kernel()) {
     case 1: {
@@ -194,7 +194,7 @@ void tc_solve_comet_(size_t m, size_t n, size_t k,
       COMET_INSIST(false && "Invalid num_kernel type.");
   }
   env.ops_local_inc(2 * m * (double)n * (double)k * 16); // 16 bytes per doublecomplex
-  env.gemmtime_inc(env.get_time() - tbegin);
+  //env.gemmtime_inc(env.get_cpu_time() - tbegin);
 }
 
 //=============================================================================

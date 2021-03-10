@@ -273,7 +273,10 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   gm_vectors_to_buf(vectors_i_buf, vectors_i, env);
 
   // Send vectors to GPU.
+  env->vec1_to_gpu_timer.record();
+  env->vec1_to_gpu_timer.start();
   vectors_i_buf->to_accel();
+  env->vec1_to_gpu_timer.end();
 
   const int num_section_steps_1 = gm_num_section_steps(env, 1);
   for (int section_step=0; section_step<num_section_steps_1; ++section_step) {
@@ -371,13 +374,19 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
 
           // Send vectors to GPU start.
+	  env->vec2_to_gpu_timer.record();
+	  env->vec2_to_gpu_timer.start();
           vectors_j_buf->to_accel_start();
+          env->vec2_to_gpu_timer.end();
 
           // Denominator.
           vector_sums_j->compute(*vectors_j_this);
 
           // Send vectors to GPU wait.
+	  env->vec2_wait_timer.record();
+	  env->vec2_wait_timer.start();
           vectors_j_buf->to_accel_wait();
+          env->vec2_wait_timer.end();
 
           // Remember processing to do next time.
           vectors_j_prev = vectors_j_this;
@@ -496,13 +505,19 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
               gm_vectors_to_buf(vectors_k_buf, vectors_k_this, env);
 
               // Send vectors to GPU start.
+	      env->vec3_to_gpu_timer.record();
+	      env->vec3_to_gpu_timer.start();
               vectors_k_buf->to_accel_start();
+              env->vec3_to_gpu_timer.end();
 
               // Denominator.
               vector_sums_k->compute(*vectors_k_this);
 
               // Send vectors to GPU wait.
+	      env->vec3_wait_timer.record();
+	      env->vec3_wait_timer.start();
               vectors_k_buf->to_accel_wait();
+              env->vec3_wait_timer.end();
 
               // Remember processing to do next time.
               vectors_k_prev = vectors_k_this;
@@ -519,13 +534,19 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
             gm_vectors_to_buf(vectors_j_buf, vectors_j_this, env);
 
             // Send vectors to GPU start.
+	    env->vec2_to_gpu_timer.record();
+	    env->vec2_to_gpu_timer.start();
             vectors_j_buf->to_accel_start();
+            env->vec2_to_gpu_timer.end();
 
             // Denominator.
             vector_sums_j->compute(*vectors_j_this);
 
             // Send vectors to GPU wait.
+	    env->vec2_wait_timer.record();
+	    env->vec2_wait_timer.start();
             vectors_j_buf->to_accel_wait();
+	    env->vec2_wait_timer.end();
 
             // Remember processing to do next time.
             vectors_j_prev = vectors_j_this;

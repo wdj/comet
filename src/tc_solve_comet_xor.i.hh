@@ -290,7 +290,7 @@ static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
   if(env.print_details()) printf("In tc_solve_comet_int_impl mnk=%d,%d,%d\n",m,n,k);
-  double tbegin = env.get_time();
+  //double tbegin = env.get_cpu_time();
 
   const bool beta = 1;
   const int threadblockx = BLOCK_SIZE, threadblocky = BLOCK_SIZE;
@@ -328,7 +328,7 @@ static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
   System::accel_last_call_succeeded();
   env.ops_local_inc(2 * m * (double)n * (double)k);
 
-  env.gemmtime_inc(env.get_time() - tbegin);
+  //env.gemmtime_inc(env.get_cpu_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------
@@ -1111,7 +1111,7 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
 
   if(env.print_details()) printf("\nIn tc_solve_comet_impl mnk=%d,%d,%d num_kernel=%d\n",
     m,n,k,env.num_kernel());
-  double tbegin = env.get_time();
+  //double tbegin = env.get_cpu_time();
 
   const bool beta = is_first ? 0 : 1;
   int threadblockx, threadblocky, gridblockx, gridblocky;
@@ -1195,7 +1195,7 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
   System::accel_last_call_succeeded();
   env.ops_local_inc(2.0 * (double)m*2.0 * (double)n*2.0 * (double)k*64.0);
 
-  env.gemmtime_inc(env.get_time() - tbegin);
+  //env.gemmtime_inc(env.get_cpu_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------

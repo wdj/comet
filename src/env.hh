@@ -358,6 +358,193 @@ struct CoordsType {
   };
 };
 
+//-----------------------------------------------------------------------------
+/// \brief Class for timing CPU routines
+
+class CPUTimer {
+
+public:
+
+  CPUTimer() {
+    is_init_ = false;
+  }
+
+  ~CPUTimer() {
+  }
+
+  void init() {
+    runtime_ = 0.0;
+    is_init_ = true;
+  }
+
+  void start() {
+    if(is_init_) start_time_ = System::time();
+  }
+
+  void end() {
+    if(is_init_) {
+      end_time_ = System::time();
+      runtime_ += (end_time_ - start_time_); 
+    }
+  }
+
+  double time() {
+    return runtime_;
+  }
+
+private:
+  bool is_init_;
+  double start_time_;
+  double end_time_;
+  double runtime_;
+}; // CPUTimer
+
+//-----------------------------------------------------------------------------
+/// \brief Class for timing GPU routines
+
+class GPUTimer {
+
+public:
+
+  GPUTimer() {
+    is_init_ = false;
+  }
+
+  ~GPUTimer() {
+    if(is_init_) {
+      cudaEventDestroy(start_time_);
+      cudaEventDestroy(end_time_);
+    }
+  }
+
+  void init(AccelStream_t stream, int nprocs) {
+    is_active_ = false;
+    nprocs_ = nprocs;
+    stream_ = stream;
+    cudaEventCreate(&start_time_);
+    cudaEventCreate(&end_time_);
+    runtime_ = 0.0;
+    runtime_sum_ = 0.0;
+    cpu_runtime_ = 0.0;
+    cpu_runtime_sum_ = 0.0;
+    is_init_ = true;
+  }
+
+  void start() {
+    if(is_init_) {
+      cpu_start_time_ = System::time();
+# if defined COMET_USE_CUDA
+      cudaEventRecord(start_time_, stream_);
+# elif defined COMET_USE_HIP
+      hipEventRecord(start_time_, stream_);
+# endif
+    }
+  }
+
+  void end() {
+    if(is_init_) {
+# if defined COMET_USE_CUDA
+      cudaEventRecord(end_time_, stream_);
+# elif defined COMET_USE_HIP
+      hipEventRecord(end_time_, stream_);
+# endif
+      cpu_end_time_ = System::time();
+      cpu_runtime_ += (cpu_end_time_ - cpu_start_time_);
+      is_active_ = true;
+    }
+  }
+
+  void record() {
+    float time = 0.0;
+    if(is_init_ && is_active_) {
+#   if defined COMET_USE_CUDA
+      cudaEventSynchronize(end_time_);
+      cudaEventElapsedTime(&time, start_time_, end_time_);
+#   elif defined COMET_USE_HIP
+      hipEventSynchronize(end_time_);
+      hipEventElapsedTime(&time, start_time_, end_time_);
+#   endif
+      time = time / 1000.0;
+    }
+    is_active_ = false;
+    runtime_ += (double)time;
+  }
+
+  double time() {
+    return runtime_;
+  }
+
+  double cpu_time() {
+    return cpu_runtime_;
+  }
+
+  void add_to_array(double *vals, int index) {
+    vals[2*index] = runtime_;
+    vals[2*index+1] = cpu_runtime_;
+  }
+
+  void set_stats(double *min, double *sum, double *max, int index) {
+    runtime_min_ = min[2*index];
+    runtime_sum_ = sum[2*index];
+    runtime_max_ = max[2*index];
+    cpu_runtime_min_ = min[2*index+1];
+    cpu_runtime_sum_ = sum[2*index+1];
+    cpu_runtime_max_ = max[2*index+1];
+  }
+
+  double min() {
+    return runtime_min_;
+  }
+
+  double cpu_min() {
+    return cpu_runtime_min_;
+  }
+
+  double sum() {
+    return runtime_sum_;
+  }
+
+  double cpu_sum() {
+    return cpu_runtime_sum_;
+  }
+
+  double avg() {
+    return runtime_sum_/nprocs_;
+  }
+
+  double cpu_avg() {
+    return cpu_runtime_sum_/nprocs_;
+  }
+
+  double max() {
+    return runtime_max_;
+  }
+
+  double cpu_max() {
+    return cpu_runtime_max_;
+  }
+
+private:
+  bool is_init_;
+  bool is_active_;
+  int nprocs_;
+  AccelStream_t stream_;
+
+  AccelEvent_t start_time_;
+  AccelEvent_t end_time_;
+  double runtime_;
+  double runtime_min_;
+  double runtime_sum_;
+  double runtime_max_;
+
+  double cpu_start_time_;
+  double cpu_end_time_;
+  double cpu_runtime_;
+  double cpu_runtime_min_;
+  double cpu_runtime_sum_;
+  double cpu_runtime_max_;
+}; // GPUTimer
+
 //=============================================================================
 
 class CEnv {
@@ -734,21 +921,29 @@ public:
   void gemmtime_end();
   void gemmtime_record();
   void ctime_inc(double t) {ctime_ += t;}
-  double gemmtime() const {return gemmtime_;}
-  void gemmtime_inc(double t) {gemmtime_ += t;}
-  double pregemmtime() const {return pregemmtime_;}
-  void pregemmtime_inc(double t) {pregemmtime_ += t;}
-  double postgemmtime() const {return postgemmtime_;}
-  void postgemmtime_inc(double t) {postgemmtime_ += t;}
-  double numsstarttime() const {return numsstarttime_;}
-  void numsstarttime_inc(double t) {numsstarttime_ += t;}
-  double numswaittime() const {return numswaittime_;}
-  void numswaittime_inc(double t) {numswaittime_ += t;}
-  double combinetime() const {return combinetime_;}
-  void combinetime_inc(double t) {combinetime_ += t;}
 
   double synced_time();
-  double get_time();
+  double get_cpu_time();
+  
+  CPUTimer gemm_start_timer;
+  CPUTimer gemm_wait_timer;
+  CPUTimer finalize_timer;
+
+  GPUTimer pre_gemm_timer;
+  GPUTimer gemm_timer;
+  GPUTimer post_gemm_timer;
+  GPUTimer vec1_to_gpu_timer;
+  GPUTimer vec1_wait_timer;
+  GPUTimer vec2_to_gpu_timer;
+  GPUTimer vec2_wait_timer;
+  GPUTimer vec3_to_gpu_timer;
+  GPUTimer vec3_wait_timer;
+  GPUTimer vec4_to_gpu_timer;
+  GPUTimer vec4_wait_timer;
+
+  void init_timers();
+  void finalize_timers();
+
   size_t cpu_mem_local() const {return cpu_mem_local_;}
   size_t gpu_mem_local() const {return gpu_mem_local_;}
   void cpu_mem_local_inc(size_t n);
@@ -761,8 +956,6 @@ public:
   void ops_gemm_local_inc(double n) {ops_gemm_local_ += n;}
   double ops() const;
   double ops_gemm() const;
-  void simops_local_inc(double n) {simops_local_ += n;}
-  double simops() const;
   double entry_compares() const {return entry_compares_;}
   double metric_compares() const {return metric_compares_;}
   double vec_compares() const {return vec_compares_;}
@@ -924,21 +1117,14 @@ private:
   int coords_type_cache_;
 
   bool print_details_;
-  bool use_sync_time_;
+  int use_sync_time_;
 
   // Counters
   void accel_sync_() const;
   double ctime_;
-  double gemmtime_;
-  double pregemmtime_;
-  double postgemmtime_;
-  double numsstarttime_;
-  double numswaittime_;
-  double combinetime_;
 
   double ops_local_;
   double ops_gemm_local_;
-  double simops_local_;
 
   size_t cpu_mem_local_;
   size_t gpu_mem_local_;

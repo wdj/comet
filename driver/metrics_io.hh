@@ -160,6 +160,7 @@ public:
   void check_file(GMMetrics& metrics);
 
   size_t num_written() const {return num_written_;}
+  size_t metric_size() const {return MetricIO::num_bytes_written_per_metric(env_);}
 
   static FILE* open(const char* path_stub, CEnv& env, const char* mode = "wb");
 

@@ -855,8 +855,12 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   // Make left vectors resident on GPU to repeatedly form matX.
 
-  if (env_.form_matX_tc())
+  if (env_.form_matX_tc()) {
+    env_.vec4_to_gpu_timer.record();
+    env_.vec4_to_gpu_timer.start();
     vectors_I_buf->to_accel();
+    env_.vec4_to_gpu_timer.end();
+  }
 
   // Convenience struct to remember loop state across cycles.
 
@@ -961,19 +965,25 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     //========== Send matrix matXitem to GPU - WAIT
 
-    if (vars.do_compute)
+    if (vars.do_compute) {
+      env_.vec4_wait_timer.record();
+      env_.vec4_wait_timer.start();
       matXitem_buf_[vars.index_01]->to_accel_wait();
+      env_.vec4_wait_timer.end();
+    }
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - WAIT
 
     if (vars_prev.do_compute) {
       if(env_.print_details()) printf("Calling gemm_wait\n");
+      env_.gemm_wait_timer.start();
       LinAlg::gemm_wait(vars_prev.I_max, nvl, npfl,
           matXitem_buf_[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
           vars_prev.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
           vars_prev.J, vars_prev.step_2way, *dm, env_);
+      env_.gemm_wait_timer.end();
       matB_cbuf.attach(*vars_prev.matB_buf_ptr());
       matB_cbuf.compress();
     }
@@ -989,8 +999,12 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     //========== Send matrix matXitem to GPU - START
 
-    if (vars_next.do_compute)
+    if (vars_next.do_compute) {
+      env_.vec4_to_gpu_timer.record();
+      env_.vec4_to_gpu_timer.start();
       matXitem_buf_[vars_next.index_01]->to_accel_start();
+      env_.vec4_to_gpu_timer.end();
+    }
 
     //========== Copy result matrix matB from GPU - START
 
@@ -1002,12 +1016,14 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars.do_compute) {
       if(env_.print_details()) printf("Calling gemm_start step_num=%d with Imax=%d nvl=%d npvfl=%d\n",
         step_num,vars.I_max,nvl,npfl);
+      env_.gemm_start_timer.start();
       LinAlg::gemm_start(vars.I_max, nvl, npfl,
           matXitem_buf_[vars.index_01], vectors_I_buf, vectors_K_buf,
           vars.matB_buf_ptr(),
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
           vars.J, vars.step_2way, *dm, magma_wrapper, env_);
+      env_.gemm_start_timer.end();
       if(env_.print_details()) printf("Done calling gemm_start step_num=%d with Imax=%d nvl=%d npvfl=%d\n",
         step_num,vars.I_max,nvl,npfl); 
     }
@@ -1048,6 +1064,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     if (vars_tail.do_compute) {
       if(env_.print_details()) printf("Calling finalize_\n");
+      env_.finalize_timer.start();
       finalize_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
           &matB_cbuf,
@@ -1059,6 +1076,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           j_block, k_block, si,
           vdata_i.sums, vdata_j.sums, vdata_k.sums,
           env_);
+      env_.finalize_timer.end();
     }
 
     if(env_.print_details()) printf("Completed compute_linalg_ step_num=%d/%d\n",step_num,num_step+extra_step*2);

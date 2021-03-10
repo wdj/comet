@@ -277,18 +277,11 @@ void CEnv::set_defaults_() {
   metrics_shrink_ = 1;
   coords_type_cache_ = 0;
   print_details_ = false;
-  use_sync_time_ = true;
+  use_sync_time_ = 0;
 
   ctime_ = 0;
-  gemmtime_ = 0;
-  pregemmtime_ = 0;
-  postgemmtime_ = 0;
-  numsstarttime_ = 0;
-  numswaittime_ = 0;
-  combinetime_ = 0;
   ops_local_ = 0;
   ops_gemm_local_ = 0;
-  simops_local_ = 0;
   cpu_mem_local_ = 0;
   gpu_mem_local_ = 0;
   cpu_mem_max_local_ = 0;
@@ -514,11 +507,8 @@ void CEnv::parse_args_(int argc, char** argv) {
     } else if (strcmp(argv[i], "--sync_time") == 0) {
       //--------------------
       ++i;
-      if (strcmp(argv[i], "yes") == 0) {
-        use_sync_time_ = true;
-      } else if (strcmp(argv[i], "no") == 0) {
-        use_sync_time_ = false;
-      }
+      long use_sync_time = (int) strtol(argv[i], NULL, 10);
+      use_sync_time_ = use_sync_time;
     } // if/else
   }   // for i
 
@@ -771,22 +761,19 @@ double CEnv::synced_time() {
   if (! is_proc_active())
     return 0;
 
-  if(use_sync_time_) {
-    accel_sync_();
-    COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
-  }
+  accel_sync_();
+
+  COMET_MPI_SAFE_CALL(MPI_Barrier(comm_));
+
   return System::time();
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Get system time on each active processes.
+/// \brief Get system time for MPI routines on each active processes.
 
-double CEnv::get_time() {
+double CEnv::get_cpu_time() {
   if (! is_proc_active())
     return 0;
-
-  if(use_sync_time_) accel_sync_();
-
   return System::time();
 }
 
@@ -855,16 +842,6 @@ double CEnv::ops() const {
 }
 
 //-----------------------------------------------------------------------------
-/// \brief Compute and return (global) number of simulation operations performed.
-
-double CEnv::simops() const {
-  double result = 0;
-  COMET_MPI_SAFE_CALL(MPI_Allreduce(&simops_local_, &result, 1, MPI_DOUBLE,
-    MPI_SUM, comm()));
-  return result;
-}
-
-//-----------------------------------------------------------------------------
 /// \brief Compute and return (global) number of GEMM operations performed.
 
 double CEnv::ops_gemm() const {
@@ -875,42 +852,118 @@ double CEnv::ops_gemm() const {
 }
 
 //-----------------------------------------------------------------------------
+/// \brief Initialize Timers
+
+void CEnv::init_timers() {
+  // CPU Timers
+  gemm_start_timer.init();
+  gemm_wait_timer.init();
+  finalize_timer.init();
+
+  // GPU Timers
+  pre_gemm_timer.init(stream_compute(),num_proc());
+  gemm_timer.init(stream_compute(),num_proc());
+  post_gemm_timer.init(stream_compute(),num_proc());
+
+  vec1_to_gpu_timer.init(stream_togpu(),num_proc());
+  vec1_wait_timer.init(stream_togpu(),num_proc());
+  vec2_to_gpu_timer.init(stream_togpu(),num_proc());
+  vec2_wait_timer.init(stream_togpu(),num_proc());
+  vec3_to_gpu_timer.init(stream_togpu(),num_proc());
+  vec3_wait_timer.init(stream_togpu(),num_proc());
+  vec4_to_gpu_timer.init(stream_togpu(),num_proc());
+  vec4_wait_timer.init(stream_togpu(),num_proc());
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Finalize Timers
+
+void CEnv::finalize_timers() {
+  // Make sure last timings are recorded
+  pre_gemm_timer.record();
+  gemm_timer.record();
+  post_gemm_timer.record();
+  pre_gemm_timer.record();
+  gemm_timer.record();
+  post_gemm_timer.record();
+  vec1_to_gpu_timer.record();
+  vec1_wait_timer.record();
+  vec2_to_gpu_timer.record();
+  vec2_wait_timer.record();
+  vec3_to_gpu_timer.record();
+  vec3_wait_timer.record();
+  vec4_to_gpu_timer.record();
+  vec4_wait_timer.record();
+
+  // Compute sum timings
+  double vals[22], min_vals[22], sum_vals[22], max_vals[22];
+
+  pre_gemm_timer.add_to_array(vals,0);
+  gemm_timer.add_to_array(vals,1);
+  post_gemm_timer.add_to_array(vals,2);
+  vec1_to_gpu_timer.add_to_array(vals,3);
+  vec1_wait_timer.add_to_array(vals,4);
+  vec2_to_gpu_timer.add_to_array(vals,5);
+  vec2_wait_timer.add_to_array(vals,6);
+  vec3_to_gpu_timer.add_to_array(vals,7);
+  vec3_wait_timer.add_to_array(vals,8);
+  vec4_to_gpu_timer.add_to_array(vals,9);
+  vec4_wait_timer.add_to_array(vals,10);
+
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(vals, min_vals, 22, MPI_DOUBLE, MPI_MIN, comm()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(vals, sum_vals, 22, MPI_DOUBLE, MPI_SUM, comm()));
+  COMET_MPI_SAFE_CALL(MPI_Allreduce(vals, max_vals, 22, MPI_DOUBLE, MPI_MAX, comm()));
+
+  pre_gemm_timer.set_stats(min_vals,sum_vals,max_vals,0);
+  gemm_timer.set_stats(min_vals,sum_vals,max_vals,1);
+  post_gemm_timer.set_stats(min_vals,sum_vals,max_vals,2);
+  vec1_to_gpu_timer.set_stats(min_vals,sum_vals,max_vals,3);
+  vec1_wait_timer.set_stats(min_vals,sum_vals,max_vals,4);
+  vec2_to_gpu_timer.set_stats(min_vals,sum_vals,max_vals,5);
+  vec2_wait_timer.set_stats(min_vals,sum_vals,max_vals,6);
+  vec3_to_gpu_timer.set_stats(min_vals,sum_vals,max_vals,7);
+  vec3_wait_timer.set_stats(min_vals,sum_vals,max_vals,8);
+  vec4_to_gpu_timer.set_stats(min_vals,sum_vals,max_vals,9);
+  vec4_wait_timer.set_stats(min_vals,sum_vals,max_vals,10);
+}
+
+//-----------------------------------------------------------------------------
 /// \brief Compute and return (global) sum GEMM timings.
 
-double CEnv::gemmtime_sum() const {
+/*double CEnv::gemmtime_sum() const {
   double result = 0;
   COMET_MPI_SAFE_CALL(MPI_Allreduce(&gemmtime_, &result, 1, MPI_DOUBLE,
     MPI_SUM, comm()));
   return result;
-}
+}*/
 
 //-----------------------------------------------------------------------------
 /// \brief GEMM timer start.
 
-void CEnv::gemmtime_start() {
+/*void CEnv::gemmtime_start() {
 # if defined COMET_USE_CUDA
     cudaEventRecord(start_event(), stream_compute());
 # elif defined COMET_USE_HIP
     hipEventRecord(start_event(), stream_compute());
 # endif
-}
+}*/
 
 //-----------------------------------------------------------------------------
 /// \brief GEMM timer end.
 
-void CEnv::gemmtime_end() {
+/*void CEnv::gemmtime_end() {
 # if defined COMET_USE_CUDA
     cudaEventRecord(end_event(), stream_compute());
 # elif defined COMET_USE_HIP
     hipEventRecord(end_event(), stream_compute());
 # endif
   is_event_active(true);
-}
+}*/
 
 //-----------------------------------------------------------------------------
 /// \brief GEMM timer record.
 
-void CEnv::gemmtime_record() {
+/*void CEnv::gemmtime_record() {
   if (is_event_active()) {
 #   if defined COMET_USE_CUDA
       cudaEventSynchronize(end_event());
@@ -925,7 +978,7 @@ void CEnv::gemmtime_record() {
 #   endif
     is_event_active(false);
   }
-}
+}*/
 
 //=============================================================================
 // MPI comms

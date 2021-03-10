@@ -615,11 +615,18 @@ void perform_run_preflight(int argc, char** argv, int print_details) {
           "--compute_method GPU --verbosity 0";*/
 
     // Simple duo preflight run
-    const char* options_template_1 =
+    /*const char* options_template_1 =
           "--num_field 512 --num_vector_local 256 "
           "--metric_type duo --sparse yes --tc 5 --num_kernel 0 "
           "--num_proc_vector %i --all2all no --num_way 2 "
-          "--compute_method GPU --verbosity 0";
+          "--compute_method GPU --verbosity 0";*/
+
+    // Smaller 3-way DUO preflight run
+    const char* options_template_1 = 
+	  "--num_way 3 --num_field 4096 --num_vector_local 1536 --metric_type duo "
+	  "--all2all yes --compute_method GPU --num_proc_field 1 --num_proc_repl 1 "
+	  "--num_phase 10 --phase_min 9 --num_stage 256 --stage_min 255 --verbosity 0 --print_details no "
+	  "--sparse yes --threshold 0.5 --metrics_shrink 1 --num_tc_steps 1 --problem_type random --num_kernel 18 --tc 5";
 
     char options1[1024];
     sprintf(options1, options_template_1, num_proc);

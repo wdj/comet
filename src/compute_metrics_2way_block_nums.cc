@@ -674,8 +674,6 @@ void ComputeMetrics2WayBlock::compute_nums_start(
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
   if(env->print_details()) printf("rank=%d In ComputeMetrics2WayBlock::compute_nums_start\n",rank);
-  double tbegin = env->get_time();
-
   if (env->is_using_linalg()) {
 
     if(env->print_details()) printf("rank=%d Calling LinAlg::gemm_start\n",rank);
@@ -719,8 +717,6 @@ void ComputeMetrics2WayBlock::compute_nums_start(
         "Selected metric_type unimplemented.");
 
   } // if
-  env->numsstarttime_inc(env->get_time() - tbegin);
-
   if(env->print_details()) printf("rank=%d Done in ComputeMetrics2WayBlock::compute_nums_start\n",rank);
 }
 
@@ -745,8 +741,6 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
   COMET_INSIST(env->num_way() == NumWay::_2);
 
   if(env->print_details()) printf("In ComputeMetrics2WayBlock::compute_nums_wait\n");
-  double tbegin = env->get_time();
-
   if (env->is_using_linalg()) {
 
     LinAlg::gemm_wait(
@@ -761,8 +755,6 @@ void ComputeMetrics2WayBlock::compute_nums_wait(
       *(vectors_left->dm), *env);
 
   } // if
-
-  env->numswaittime_inc(env->get_time() - tbegin);
 }
 
 //=============================================================================

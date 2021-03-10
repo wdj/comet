@@ -127,9 +127,6 @@ void LinAlg::gemm_start(
       }
     }
   }
-  if(env.print_details()) printf("rank=%d Setting simops=2*128*mnk=2*128*%zu*%zu*%zu=%lf\n",
-         rank,m,n,k,2*m*(double)n*(double)k*128);
-  env.simops_local_inc(2*m*(double)n*(double)k*128);
   if(env.print_details()) printf("rank=%d Done in LingAlg::gemm_start\n",rank);
 }
 
@@ -188,7 +185,7 @@ void LinAlg::gemm_wait(
   env.stream_synchronize(env.stream_compute());
   if(env.print_details()) printf("rank=%d Stream synchronized in wait\n",rank);
 
-  env.gemmtime_record();
+  //env.gemmtime_record();
 
   // Unlock.
 

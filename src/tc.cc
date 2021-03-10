@@ -217,7 +217,6 @@ static void tc_gemm_start_impl_(
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
-  double tbegin;
   const int nvl = n;
   const int npfl = k;
   const int d = tc_gemm_faxis_divisibility_required(env);
@@ -260,17 +259,18 @@ static void tc_gemm_start_impl_(
 
     // Convert the input matrices of packed bit values into matrices
     // of a type suitable for the GEMM.
-    tbegin = env.get_time();
     enum {IS_LEFT = true};
     if(env.print_details()) printf("Calling tc_buf_write with I_max=%d I_max_dim=%d nvl=%d npfl=%d npfl_thisstep=%d pfl_min=%d pfl_max=%d nfal=%d step_2way=%d\n",
                                    I_max,I_max_dim,nvl,npfl,npfl_thisstep,pfl_min,pfl_max,nfal,step_2way);
+    env.pre_gemm_timer.record();
+    env.pre_gemm_timer.start();
     tc_buf_write_<TC_METHOD, IS_LEFT>(I_max, I_max_dim, nvl, npfl,
       npfl_thisstep, pfl_min, nfal, (TCWord_t*)matA1, (TCWord_t*)matA2,
       tc_bufs, step_2way, env);
     tc_buf_write_<TC_METHOD, !IS_LEFT>(I_max, I_max_dim, nvl, npfl,
       npfl_thisstep, pfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
       tc_bufs, step_2way, env);
-    env.pregemmtime_inc(env.get_time() - tbegin);
+    env.pre_gemm_timer.end();
 
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
@@ -283,7 +283,8 @@ static void tc_gemm_start_impl_(
 
   // Postprocess GEMM results.
 
-  tbegin = env.get_time();
+  env.post_gemm_timer.record();
+  env.post_gemm_timer.start();
   if (env.is_threshold_tc()) {
 
     if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
@@ -299,7 +300,7 @@ static void tc_gemm_start_impl_(
       J, step_2way, env);
 
   }
-  env.postgemmtime_inc(env.get_time() - tbegin);
+  env.post_gemm_timer.end();
 }
 
 //-----------------------------------------------------------------------------
@@ -328,7 +329,6 @@ static void tc_comet_int_gemm_start_impl_(
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
-  double tbegin;
   const int nvl = n;
   const int npvfl = k;
   const int I_max = m;
@@ -375,7 +375,6 @@ static void tc_comet_int_gemm_start_impl_(
 
   // Postprocess GEMM results.
 
-  tbegin = env.get_time();
   if (env.is_threshold_tc()) {
 
     if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
@@ -391,7 +390,6 @@ static void tc_comet_int_gemm_start_impl_(
       J, step_2way, env);
 
   }
-  env.postgemmtime_inc(env.get_time() - tbegin);
 }   
 
 //-----------------------------------------------------------------------------
@@ -458,7 +456,7 @@ static void tc_gemm_comet_start_impl_(
 
   // Postprocess GEMM results.
   /*if(env.print_details()) printf("Calling postprocessing routine\n");
-  tbegin = env.get_time();
+  tbegin = env.get_gpu_time();
   if (env.is_threshold_tc()) {
 
     if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
@@ -474,7 +472,7 @@ static void tc_gemm_comet_start_impl_(
       J, step_2way, env);
 
   }
-  env.postgemmtime_inc(env.get_time() - tbegin);*/
+  env.postgemmtime_inc(env.get_gpu_time() - tbegin);*/
 
   if(env.print_details()) printf("Done in tc_gemm_comet_start_impl\n");
 }
