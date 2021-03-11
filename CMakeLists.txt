@@ -51,6 +51,7 @@ SET(LIB_SOURCES
 SET(ACCEL_SOURCES
   src/tc.cc
   src/compressed_buf.cc
+  src/vector_sums.cc
 )
 
 SET(LIB_INCLUDES

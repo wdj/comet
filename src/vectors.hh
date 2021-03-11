@@ -280,6 +280,20 @@ static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
 
 //-----------------------------------------------------------------------------
 
+__host__ __device__
+static size_t GMVectors_index(int packedfield_local,
+                              int vector_local,
+                              int num_packedfield_local) {
+  // This function accesses an entire packed value.
+
+  const size_t index = packedfield_local +
+    num_packedfield_local*(size_t)vector_local;
+
+  return index;
+}
+
+//-----------------------------------------------------------------------------
+
 static void GMVectors_bits2x64_set(GMVectors* vectors,
                                    int packedfield_local,
                                    int vector_local,

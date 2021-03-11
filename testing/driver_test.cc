@@ -1941,6 +1941,7 @@ void DriverTest_threshold_() {
     char options2[1024];
 
     const int num_proc_vector = comet::System::num_proc() >= 3 ? 3 : 1;
+    //const int num_proc_vector = 1;
 
     // NOTE: --problem_type analytic can give high (nonphysical)
     // values of the metrics compared to --problem_type random.
@@ -1948,8 +1949,9 @@ void DriverTest_threshold_() {
     char options_template[] =
         "--metric_type %s "
         "--num_proc_vector %i "
-         //"--num_field 71 --num_vector 17 " // takes too long for some cases.
-         "--num_field 23 --num_vector 13 "
+        //"--num_field 71 --num_vector 17 " // takes too long for some cases.
+        "--num_field 23 --num_vector 13 "
+        //"--num_field 1 --num_vector 2 "
         //"--num_field 71 --num_vector 20 "
         "--num_way %i "
         "--all2all yes --sparse yes "
@@ -1973,13 +1975,15 @@ void DriverTest_threshold_() {
     //for (int num_way : {3}) {
       const double threshold_max = 2 == num_way ? .99 : .65;
     for (int metric_type : {MT::CCC, MT::DUO})
-    //for (double threshold : {.65, .50, .25, .01, 0.})
+    //for (int metric_type : {MT::DUO})
     for (double threshold : {threshold_max, threshold_max*.8,
       threshold_max*.5, .01, 0.})
+    //for (double threshold : {0.})
+    //for (double threshold : {.65, .50, .25, .01, 0.})
     for (int compute_method : {CM::CPU, CM::GPU})
     //for (int compute_method : {CM::GPU})
     for (int tc=1; tc<TC::NUM; ++tc) {
-    //for (int tc=3; tc<=3; ++tc) {
+    //for (int tc=0; tc<=0; ++tc) {
       // Some cases have too many thresholded values to be able to shrink.
       const bool is_trying_shrink = metrics_shrink > 1.+fuzz;
       if (is_trying_shrink && 2 == num_way &&

@@ -424,7 +424,10 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
         if (vars.is_first_compute_step) {
           vector_sums_left->compute(*vectors_left);
           if (env_.is_threshold_tc())
-            vector_sums_left->to_accel();;
+            vector_sums_left->to_accel();
+//vector_sums_left->to_accel();
+//vector_sums_left->compute_accel(*vectors_left, env_.stream_fromgpu());
+//vector_sums_left->from_accel();
         }
         if (! vars.is_main_diag) {
           vars.vector_sums_right->compute(*vars.vectors_right);
