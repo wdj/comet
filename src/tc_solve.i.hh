@@ -574,8 +574,8 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
   if(env.print_details()) printf("In tc_solve_impl_b1 num_kernel=%d use_mockup=%d\n",
-    env.num_kernel(),tc_solve_b1_use_mockup(env));
-  if (env.num_kernel()==0) { // && tc_solve_b1_use_mockup(env)) {
+    env.num_kernel(),tc_solve_use_mockup(env));
+  if (env.num_kernel()==0) { // && tc_solve_use_mockup(env)) {
 
     COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
@@ -858,13 +858,13 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 #   ifdef COMET_USE_ACCEL
 
       if(env.print_details()) printf("rank=%d Calling tc_solve_impl_subbyte B1\n",rank);
-      env.gemmtime_record();
+      env.gemm_timer.record();
 
-      env.gemmtime_start();
+      env.gemm_timer.start();
 
       tc_solve_impl_subbyte<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
 
-      env.gemmtime_end();
+      env.gemm_timer.end();
       if(env.print_details()) printf("rank=%d Done calling tc_solve_impl_subbyte B1\n",rank);
 
 #   else // COMET_USE_ACCEL

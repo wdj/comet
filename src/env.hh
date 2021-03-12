@@ -916,10 +916,10 @@ public:
   // Counters
 
   double ctime() const {return ctime_;}
-  double gemmtime_sum() const;
+  /*double gemmtime_sum() const;
   void gemmtime_start();
   void gemmtime_end();
-  void gemmtime_record();
+  void gemmtime_record();*/
   void ctime_inc(double t) {ctime_ += t;}
 
   double synced_time();

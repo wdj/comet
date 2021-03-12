@@ -84,7 +84,7 @@ size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
     env.tc_eff() == TC::INT4 ? 256 : 8;
 
   if(env.print_details()) printf("In vaxis_divis_req result=%zu tc_eff=%d use_mockup=%d\n",
-    result,env.tc_eff(),tc_solve_b1_use_mockup(env));
+    result,env.tc_eff(),tc_solve_use_mockup(env));
 
   return result;
 }
@@ -118,8 +118,8 @@ size_t tc_nvl_divisibility_required_for_gemm(const CEnv& env) {
                         factor_gemm % 2 == 0 ? factor_gemm / 2 :
                         factor_gemm;
 
-  if(env.print_details()) printf("In nvl_divis_req_gemm result=%zu factor_gemm=%zu tc_eff=%d use_mockup=%d\n",
-    factor,factor_gemm,env.tc_eff(),tc_solve_b1_use_mockup(env));
+  if(env.print_details()) printf("In nvl_divis_req_gemm result=%zu factor_gemm=%zu tc_eff=%d\n",
+    factor,factor_gemm,env.tc_eff());
 
   return factor;
 }
