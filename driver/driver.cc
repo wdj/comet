@@ -413,23 +413,80 @@ void print_output(bool do_print,
 
     // More readable runtime output
     printf("\nDetailed Output:\n");
-    printf("Num processes/GPUs:            %d\n"
-           "Precision:                     %s\n"
-           "Build:                         %s\n"
-           "TC:                            %i\n"
-           "TC Effective:                  %i\n"
-           "Using Shrink:                  %s\n"
-	   "Checksum:                      %s\n"
-           "Runtime Stats:                 %s\n",
-           env.num_proc(),
-           env.is_double_prec() ? "double" : "single",
-           BuildHas::DEBUG ? "debug" : "release",
-           env.tc(), env.tc_eff(),
-           env.is_shrink() ? "yes" : "no",
-	   cksum.computing_checksum() ? "yes" : "no",
-           do_expert ? "Expert" : "Detailed" );
 
-    printf("\nComparisons:\n"
+    // Runtime breakdowns
+    printf("\n------------------------ Runtimes -------------------------\n");
+    double ctimeovhd = cmtime - env.ctime();
+    double extra = tottime - (vctime+intime+mctime+env.ctime()+cktime+outtime);
+    printf("Driver Runtimes:\n"
+           "Vec Creation:                  %.6f\n"
+           "Vec Set:                       %.6f\n"
+           "Create metrics:                %.6f\n"
+           "Compute metric:                %.6f\n"
+           "Compute metric overhead:       %.6f\n"
+           "Checksum:                      %.6f\n"
+           "Output:                        %.6f\n"
+           "Extra:                         %.6f\n"
+           "Total:                         %.6f\n",
+           vctime, intime, mctime, env.ctime(), ctimeovhd, cktime, outtime, extra, tottime);
+
+    double tgemmrate = 0.0, cmopsrate = 0.0, totopsrate = 0.0;
+    if(gemmtime_sum>0.0) tgemmrate = tops_gemm/gemmtime_sum;
+    if(ctime_sum>0.0) cmopsrate = tops/ctime_sum;
+    if(tottime_sum>0.0) totopsrate = tops/tottime_sum;
+    double gemm_avg = gemmtime_sum/env.num_proc();
+    if(do_expert) {
+      printf("\nGEMM Runtimes:\n"
+           "Runtime (Min Avg Max):         %.6f %.6f %.6f\n"
+           "Ops:                           %e\n"
+           "GEMM Ops:                      %e\n"
+           "GEMM TOps rate/proc            %.2f\n"
+           "Compute Metric TOps rate/proc: %.2f\n"
+           "Total TOps rate/proc:          %.2f\n",
+           gemm_min, gemm_avg, gemm_max, ops, ops_gemm, tgemmrate,
+           cmopsrate, totopsrate);
+    } else {
+      printf("\nGEMM Runtimes:\n"
+             "Runtime (Avg):                 %.6f\n"
+             "Ops:                           %e\n"
+             "GEMM Ops:                      %e\n"
+             "GEMM TOps rate/proc            %.2f\n"
+             "Compute Metric TOps rate/proc: %.2f\n"
+             "Total TOps rate/proc:          %.2f\n",
+             gemm_avg, ops, ops_gemm, tgemmrate,
+             cmopsrate, totopsrate);
+    }
+
+    double input = vctime+intime;
+    double cmwogemm = cmtime - gemm_avg;
+    double nonloop = tottime-looptime;
+    printf("\nCombined Driver Runtimes:\n"
+           "Input Total:                   %.6f\n"
+           "Compute Metrics Without GEMM:  %.6f\n"
+           "Compute Metrics Total:         %.6f\n"
+           "Phase+Stage Loop:              %.6f\n"
+           "Outside Phase+Stage Loop:      %.6f\n",
+           input, cmwogemm, cmtime, looptime, nonloop);
+
+    // I/O Costs
+    printf("\n------------------------ I/O Costs ------------------------\n");
+    double file_size = (double)num_written*metric_size;
+    printf("Input:\n"
+           "Vector Size:                   %e\n"
+           "Input Bandwidth:               %e\n"
+	   "\n"
+           "Output:\n"
+           "Number of Metrics:             %e\n"
+           "Metric Size:                   %zu\n"
+           "File Size:                     %e\n"
+           "Output Bandwidth:              %e\n",
+           vector_size_sum,vector_size_sum/input_sum,
+           (double)num_written, metric_size, file_size,
+           file_size/outtime_sum);
+
+    // CoMet metric costs
+    printf("\n----------------------- Metric Costs ----------------------\n");
+    printf("Comparisons:\n"
            "Vector:                        %e\n"
            "Vector Compares Written:       %e\n"
            "Entry:                         %e\n"
@@ -445,6 +502,25 @@ void print_output(bool do_print,
            "Shrink Achieved:               %e\n",
            (double)env.metric_entries(), (double)env.metric_entries_computed(),
            env.shrink_achieved());
+
+    // General CoMet Information
+    printf("\n----------------- General Run Information -----------------\n");
+    printf("Run Settings:\n"
+           "Num processes/GPUs:            %d\n"
+           "Precision:                     %s\n"
+           "Build:                         %s\n"
+           "TC:                            %i\n"
+           "TC Effective:                  %i\n"
+           "Using Shrink:                  %s\n"
+	   "Checksum:                      %s\n"
+           "Runtime Stats:                 %s\n",
+           env.num_proc(),
+           env.is_double_prec() ? "double" : "single",
+           BuildHas::DEBUG ? "debug" : "release",
+           env.tc(), env.tc_eff(),
+           env.is_shrink() ? "yes" : "no",
+	   cksum.computing_checksum() ? "yes" : "no",
+           do_expert ? "Expert" : "Detailed" );
 
     printf("\nMax Memory Usage:\n"
            "CPU:                           %e\n"
@@ -462,72 +538,6 @@ void print_output(bool do_print,
              "Fraction Nonzero:              %.9f\n",
              cksum.num(),cksum.num_zero(),fracnonzero);
     }
-
-    double tgemmrate = 0.0, cmopsrate = 0.0, totopsrate = 0.0;
-    if(gemmtime_sum>0.0) tgemmrate = tops_gemm/gemmtime_sum;
-    if(ctime_sum>0.0) cmopsrate = tops/ctime_sum;
-    if(tottime_sum>0.0) totopsrate = tops/tottime_sum;
-    double gemm_avg = gemmtime_sum/env.num_proc();
-    if(do_expert) {
-      printf("\nGEMM:\n"
-           "Runtime (Min Avg Max):         %.6f %.6f %.6f\n"
-           "Ops:                           %e\n"
-           "GEMM Ops:                      %e\n"
-           "GEMM TOps rate/proc            %.2f\n"
-           "Compute Metric TOps rate/proc: %.2f\n"
-           "Total TOps rate/proc:          %.2f\n",
-           gemm_min, gemm_avg, gemm_max, ops, ops_gemm, tgemmrate,
-           cmopsrate, totopsrate);
-    } else {
-      printf("\nGEMM:\n"
-             "Runtime (Avg):                 %.6f\n"
-             "Ops:                           %e\n"
-             "GEMM Ops:                      %e\n"
-             "GEMM TOps rate/proc            %.2f\n"
-             "Compute Metric TOps rate/proc: %.2f\n"
-             "Total TOps rate/proc:          %.2f\n",
-             gemm_avg, ops, ops_gemm, tgemmrate,
-	     cmopsrate, totopsrate);
-    }
-
-    double ctimeovhd = cmtime - env.ctime();
-    double extra = tottime - (vctime+intime+mctime+env.ctime()+cktime+outtime);
-    printf("\nDriver:\n"
-           "Vec Creation time:             %.6f\n"
-           "Vec Set time:                  %.6f\n"
-           "Create metrics time:           %.6f\n"
-           "Compute metric time:           %.6f\n"
-           "Compute metric overhead:       %.6f\n"
-	   "Checksum time:                 %.6f\n"
-           "Output time:                   %.6f\n"
-           "Extra time:                    %.6f\n"
-	   "Total time:                    %.6f\n",
-           vctime, intime, mctime, env.ctime(), ctimeovhd, cktime, outtime, extra, tottime);
-
-    double file_size = (double)num_written*metric_size;
-    printf("\nI/O:\n"
-           "Input:\n"
-           "Vector Size:                   %e\n"
-           "Input Bandwidth:               %e\n"
-           "Output:\n"
-           "Number of Metrics:             %e\n"
-           "Metric Size:                   %zu\n"
-           "File Size:                     %e\n"
-           "Output Bandwidth:              %e\n",
-           vector_size_sum,vector_size_sum/input_sum,
-           (double)num_written, metric_size, file_size,
-           file_size/outtime_sum);
-
-    double input = vctime+intime;
-    double cmwogemm = cmtime - gemm_avg;
-    double nonloop = tottime-looptime;
-    printf("\nCombined Driver Runtimes:\n"
-           "Input Total:                   %.6f\n"
-           "Compute Metrics without GEMM:  %.6f\n"
-	   "Compute Metrics Total:         %.6f\n"
-           "Loop time:                     %.6f\n"
-           "Non-loop time:                 %.6f\n",
-           input, cmwogemm, cmtime, looptime, nonloop);
 
     printf("\n");
   }
