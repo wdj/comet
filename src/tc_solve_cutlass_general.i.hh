@@ -111,9 +111,11 @@ template<> struct TBlockType<TCTBlockType::_64_64_512> {
 };
 
 // Ampere Settings
+#if defined COMET_USE_AMPERE
 template<> struct TBlockType<TCTBlockType::_128_256_1024> {
   enum {t0 = 128, t1 = 256, t2 = 1024};
 };
+#endif
 
 struct TCWarpType {
   enum {_64_64_512  = 0,
@@ -144,9 +146,11 @@ template<> struct WarpType<TCWarpType::_32_32_512> {
 };
 
 // Ampere Settings
+#if defined COMET_USE_AMPERE
 template<> struct WarpType<TCWarpType::_64_64_1024> {
   enum {w0 = 64, w1 = 64, w2 = 1024};
 };
+#endif
 
 struct TCInstType {
   enum{_8_8_128 = 0,
@@ -162,9 +166,11 @@ template<> struct InstType<TCInstType::_8_8_128> {
 };
 
 // Ampere Settings
+#if defined COMET_USE_AMPERE
 template<> struct InstType<TCInstType::_16_8_256> {
   enum {i0 = 16, i1 = 8, i2 = 256};
 };
+#endif
 
 //-----------------------------------------------------------------------------
 /// \brief 1-bit Int Tensor Core GEMM

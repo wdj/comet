@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "unistd.h"
 
+#include "mpi.h"
+
 #include "env.hh"
 #include "decomp_mgr.hh"
 #include "vectors.hh"
@@ -447,10 +449,165 @@ void print_output(bool do_print,
     // Compute general values
     double tops = ops/(1000.0*1000.0*1000.0*1000.0);
     double tops_gemm = ops_gemm/(1000.0*1000.0*1000.0*1000.0);
-      
+
     // More readable runtime output
     printf("\nDetailed Output:\n");
-    printf("Num processes/GPUs:            %d\n"
+
+    // Runtime breakdowns
+    printf("\n------------------------ Runtimes -------------------------\n");
+    printf("\nDriver Runtimes:\n"
+           "Vec Creation:                  %.6f\n"
+           "Vec Set:                       %.6f\n"
+           "Create metrics:                %.6f\n"
+           "Compute metric:                %.6f\n"
+           "Compute metric overhead:       %.6f\n"
+           "Checksum:                      %.6f\n"
+           "Output:                        %.6f\n"
+           "Extra:                         %.6f\n"
+           "Total:                         %.6f\n",
+           vctime_avg, intime_avg, mctime_avg, ctime_avg, ctimeovhd_avg, cktime_avg, outtime_avg,
+           extra_avg,tottime_avg);
+
+    double total_gemm_sum = env.pre_gemm_timer.sum() +
+      env.gemm_timer.sum() + env.post_gemm_timer.sum();
+    double cpu_total_gemm_sum = env.pre_gemm_timer.cpu_sum() +
+      env.gemm_timer.cpu_sum() + env.post_gemm_timer.cpu_sum();
+    double total_gemm_avg = total_gemm_sum/env.num_proc();
+    double cpu_total_gemm_avg = cpu_total_gemm_sum/env.num_proc();
+
+    if(do_expert) {
+      printf("\nGEMM Runtimes (GPU | CPU) (Min Avg Max):\n"
+             "Pre-GEMM:                      %.6f %.6f %.6f | %.6f %.6f %.6f\n"
+             "GEMM:                          %.6f %.6f %.6f | %.6f %.6f %.6f\n"
+             "Post-GEMM:                     %.6f %.6f %.6f | %.6f %.6f %.6f\n"
+             "Total GEMM:                    %.6f %.6f\n",
+              env.pre_gemm_timer.min(),env.pre_gemm_timer.avg(), env.pre_gemm_timer.max(),
+              env.pre_gemm_timer.cpu_min(),env.pre_gemm_timer.cpu_avg(), env.pre_gemm_timer.cpu_max(),
+              env.gemm_timer.min(), env.gemm_timer.avg(), env.gemm_timer.max(),
+              env.gemm_timer.cpu_min(), env.gemm_timer.cpu_avg(), env.gemm_timer.cpu_max(),
+              env.post_gemm_timer.min(), env.post_gemm_timer.avg(), env.post_gemm_timer.max(),
+              env.post_gemm_timer.cpu_min(), env.post_gemm_timer.cpu_avg(), env.post_gemm_timer.cpu_max(),
+              total_gemm_avg, cpu_total_gemm_avg);
+    } else {
+      printf("\nGEMM Runtimes (GPU CPU):\n"
+             "Pre-GEMM:                      %.6f %.6f\n"
+             "GEMM:                          %.6f %.6f\n"
+             "Post-GEMM:                     %.6f %.6f\n"
+             "Total GEMM:                    %.6f %.6f\n",
+              env.pre_gemm_timer.avg(), env.pre_gemm_timer.cpu_avg(),
+              env.gemm_timer.avg(), env.gemm_timer.cpu_avg(),
+              env.post_gemm_timer.avg(), env.post_gemm_timer.cpu_avg(),
+              total_gemm_avg, cpu_total_gemm_avg);
+    }
+
+    double tgemmrate = 0, tgemmtotalrate = 0, cmops = 0, cmopsrate = 0, totopsrate = 0;
+    double gemmtotal_sum = env.gemm_timer.sum() +
+      env.pre_gemm_timer.sum() + env.post_gemm_timer.sum();
+    if(gemmtime_sum>0.0) tgemmrate = tops_gemm/gemmtime_sum;
+    if(gemmtotal_sum>0.0) tgemmtotalrate = tops_gemm/gemmtotal_sum;
+    if(env.ctime()>0.0) cmops = ops/env.ctime();
+    if(ctime_sum>0.0)  cmopsrate  = tops/ctime_sum;
+    if(tottime_sum>0.0) totopsrate = tops/tottime_sum;
+
+    printf("\nGEMM rate:\n"
+           "Ops:                           %e\n"
+           "GEMM Ops:                      %e\n"
+           "GEMM TOps rate/proc            %.2f\n"
+           "Total GEMM TOps rate/proc:     %.2f\n"
+           "Compute Metric Ops:            %e\n"
+           "Compute Metric TOps rate/proc: %.2f\n"
+           "Total TOps rate/proc:          %.2f\n",
+           ops, ops_gemm, tgemmrate, tgemmtotalrate,
+           cmops, cmopsrate, totopsrate);
+
+    printf("\nComputeMetrics Runtimes:\n"
+           "GEMM start:                    %.6f\n"
+           "GEMM wait:                     %.6f\n"
+           "Finalize:                      %.6f\n"
+           "Extra:                         %.6f\n"
+           "Total:                         %.6f\n"
+           "Total All (Inc Overheads):     %.6f\n",
+           env.gemm_start_timer.time(), env.gemm_wait_timer.time(), env.finalize_timer.time(),
+           cmtime-(env.gemm_start_timer.time()+env.gemm_wait_timer.time()+env.finalize_timer.time()),
+           env.ctime(),cmtime);
+
+    printf("\nCombined Driver Runtimes:\n"
+           "Input Total:                   %.6f\n"
+           "Compute Metrics without GEMM:  %.6f\n"
+           "Compute Metrics Total:         %.6f\n"
+           "Phase+Stage Loop:              %.6f\n"
+           "Outside Phase+Stage Loop:      %.6f\n",
+           input_avg, cmwogemm_avg, cmtime_avg, looptime_avg, nonloop_avg);
+
+    // Communication Runtimes
+    printf("\n----------------- Communication Runtimes ------------------\n");
+    printf("\nData Transfers (GPU CPU):\n"
+           "Vector 1 to GPU:               %.6f %.6f\n"
+           "Vector 1 Wait:                 %.6f %.6f\n"
+           "Vector 2 to GPU:               %.6f %.6f\n"
+           "Vector 2 Wait:                 %.6f %.6f\n"
+           "Vector 3 to GPU:               %.6f %.6f\n"
+           "Vector 3 Wait:                 %.6f %.6f\n"
+           "Vector 4 to GPU:               %.6f %.6f\n"
+           "Vector 4 Wait:                 %.6f %.6f\n"
+           "Total:                         %.6f %.6f\n",
+           env.vec1_to_gpu_timer.time(), env.vec1_to_gpu_timer.cpu_time(),
+           env.vec1_wait_timer.time(), env.vec1_wait_timer.cpu_time(),
+           env.vec2_to_gpu_timer.time(), env.vec2_to_gpu_timer.cpu_time(),
+           env.vec2_wait_timer.time(), env.vec2_wait_timer.cpu_time(),
+           env.vec3_to_gpu_timer.time(), env.vec3_to_gpu_timer.cpu_time(),
+           env.vec3_wait_timer.time(), env.vec3_wait_timer.cpu_time(),
+           env.vec4_to_gpu_timer.time(), env.vec4_to_gpu_timer.cpu_time(),
+           env.vec4_wait_timer.time(), env.vec4_wait_timer.cpu_time(),
+           env.vec1_to_gpu_timer.time()+env.vec2_to_gpu_timer.time()+
+           env.vec3_to_gpu_timer.time()+env.vec4_to_gpu_timer.time()+
+           env.vec1_wait_timer.time()+env.vec2_wait_timer.time()+
+           env.vec3_wait_timer.time()+env.vec4_wait_timer.time(),
+           env.vec1_to_gpu_timer.cpu_time()+env.vec2_to_gpu_timer.cpu_time()+
+           env.vec3_to_gpu_timer.cpu_time()+env.vec4_to_gpu_timer.cpu_time()+
+           env.vec1_wait_timer.cpu_time()+env.vec2_wait_timer.cpu_time()+
+           env.vec3_wait_timer.cpu_time()+env.vec4_wait_timer.cpu_time());
+
+    // I/O Costs
+    printf("\n------------------------ I/O Costs ------------------------\n");
+    double file_size = (double)num_written*metric_size;
+    printf("\nI/O:\n"
+           "Input:\n"
+           "Vector Size:                   %e\n"
+           "Input Bandwidth:               %e\n"
+	   "\n"
+           "Output:\n"
+           "Number of Metrics:             %e\n"
+           "Metric Size:                   %zu\n"
+           "File Size:                     %e\n"
+           "Output Bandwidth:              %e\n",
+           vector_size_sum,vector_size_sum/input_sum,
+           (double)num_written, metric_size, file_size,
+           file_size/outtime_sum);
+
+    // CoMet metric costs
+    printf("\n----------------------- Metric Costs ----------------------\n");
+    printf("\nComparisons:\n"
+           "Vector:                        %e\n"
+           "Vector Compares Written:       %e\n"
+           "Entry:                         %e\n"
+           "Metric:                        %e\n"
+           "Metric Rate:                   %e\n"
+           "Metric Rate/Proc:              %e\n",
+           env.vec_compares(), (double)num_written, env.entry_compares(), env.metric_compares(),
+           env.metric_compares()/env.ctime(), env.metric_compares()/(env.ctime() * env.num_proc()));
+
+    printf("\nThresholding/Shrink:\n"
+           "Metric Entries:                %e\n"
+           "Metric Entries Computed:       %e\n"
+           "Shrink Achieved:               %e\n",
+           (double)env.metric_entries(), (double)env.metric_entries_computed(),
+           env.shrink_achieved());
+
+    // General CoMet Information
+    printf("\n----------------- General Run Information -----------------\n");
+    printf("Run Settings:\n"
+           "Num processes/GPUs:            %d\n"
            "Precision:                     %s\n"
 	   "Build:                         %s\n"
 	   "TC:                            %i\n"
@@ -465,23 +622,6 @@ void print_output(bool do_print,
 	   env.is_shrink() ? "yes" : "no",
 	   cksum.computing_checksum() ? "yes" : "no",
 	   do_expert ? "Expert" : "Detailed" );
-
-    printf("\nComparisons:\n"
-           "Vector:                        %e\n"
-           "Vector Compares Written:       %e\n"
-	   "Entry:                         %e\n"
-	   "Metric:                        %e\n"
-           "Metric Rate:                   %e\n"
-	   "Metric Rate/Proc:              %e\n",
-	   env.vec_compares(), (double)num_written, env.entry_compares(), env.metric_compares(),
-	   env.metric_compares()/env.ctime(), env.metric_compares()/(env.ctime() * env.num_proc()));
-
-    printf("\nThresholding/Shrink:\n"
-	   "Metric Entries:                %e\n"
-	   "Metric Entries Computed:       %e\n"
-           "Shrink Achieved:               %e\n",
-	   (double)env.metric_entries(), (double)env.metric_entries_computed(),
-	   env.shrink_achieved());
 
     printf("\nMax Memory Usage:\n"
 	   "CPU:                           %e\n"
@@ -499,131 +639,6 @@ void print_output(bool do_print,
              "Fraction Nonzero:              %.9f\n",
 	     cksum.num(),cksum.num_zero(),fracnonzero);
     }
-
-    double total_gemm_sum = env.pre_gemm_timer.sum() + 
-      env.gemm_timer.sum() + env.post_gemm_timer.sum(); 
-    double cpu_total_gemm_sum = env.pre_gemm_timer.cpu_sum() +
-      env.gemm_timer.cpu_sum() + env.post_gemm_timer.cpu_sum();
-    double total_gemm_avg = total_gemm_sum/env.num_proc();
-    double cpu_total_gemm_avg = cpu_total_gemm_sum/env.num_proc();
-
-    if(do_expert) {
-      printf("\nGEMM (GPU | CPU) (Min Avg Max):\n"
-             "Pre-GEMM time:                 %.6f %.6f %.6f | %.6f %.6f %.6f\n"
-             "GEMM time:                     %.6f %.6f %.6f | %.6f %.6f %.6f\n"
-             "Post-GEMM time:                %.6f %.6f %.6f | %.6f %.6f %.6f\n"
-             "Total GEMM time:               %.6f %.6f\n",
-              env.pre_gemm_timer.min(),env.pre_gemm_timer.avg(), env.pre_gemm_timer.max(),
-	      env.pre_gemm_timer.cpu_min(),env.pre_gemm_timer.cpu_avg(), env.pre_gemm_timer.cpu_max(),
-              env.gemm_timer.min(), env.gemm_timer.avg(), env.gemm_timer.max(),
-	      env.gemm_timer.cpu_min(), env.gemm_timer.cpu_avg(), env.gemm_timer.cpu_max(),
-              env.post_gemm_timer.min(), env.post_gemm_timer.avg(), env.post_gemm_timer.max(),
-	      env.post_gemm_timer.cpu_min(), env.post_gemm_timer.cpu_avg(), env.post_gemm_timer.cpu_max(),
-              total_gemm_avg, cpu_total_gemm_avg);
-    } else {
-      printf("\nGEMM (GPU CPU):\n"
-             "Pre-GEMM time:                 %.6f %.6f\n"
-	     "GEMM time:                     %.6f %.6f\n"
-             "Post-GEMM time:                %.6f %.6f\n"
-	     "Total GEMM time:               %.6f %.6f\n",
-              env.pre_gemm_timer.avg(), env.pre_gemm_timer.cpu_avg(),
-	      env.gemm_timer.avg(), env.gemm_timer.cpu_avg(),
-	      env.post_gemm_timer.avg(), env.post_gemm_timer.cpu_avg(),
-	      total_gemm_avg, cpu_total_gemm_avg);
-    }
-
-    double tgemmrate = 0, tgemmtotalrate = 0, cmops = 0, cmopsrate = 0, totopsrate = 0;
-    double gemmtotal_sum = env.gemm_timer.sum() +
-      env.pre_gemm_timer.sum() + env.post_gemm_timer.sum();
-    if(gemmtime_sum>0.0) tgemmrate = tops_gemm/gemmtime_sum;
-    if(gemmtotal_sum>0.0) tgemmtotalrate = tops_gemm/gemmtotal_sum;
-    if(env.ctime()>0.0) cmops = ops/env.ctime();
-    if(ctime_sum>0.0)  cmopsrate  = tops/ctime_sum;
-    if(tottime_sum>0.0) totopsrate = tops/tottime_sum;
-
-    printf("\nGEMM rate:\n"
-           "Ops:                           %e\n"
-           "GEMM Ops:                      %e\n"
-           "GEMM TOps rate/proc            %.2f\n"
-           "Total GEMM TOps rate/proc:     %.2f\n"
-	   "Compute Metric Ops:            %e\n"
-           "Compute Metric TOps rate/proc: %.2f\n"
-	   "Total TOps rate/proc:          %.2f\n",
-           ops, ops_gemm, tgemmrate, tgemmtotalrate,
-           cmops, cmopsrate, totopsrate);
-
-    printf("\nData Transfers (GPU CPU):\n"
-           "Vector 1 to GPU:               %.6f %.6f\n"
-           "Vector 1 Wait:                 %.6f %.6f\n"
-	   "Vector 2 to GPU:               %.6f %.6f\n"
-           "Vector 2 Wait:                 %.6f %.6f\n"
-	   "Vector 3 to GPU:               %.6f %.6f\n"
-           "Vector 3 Wait:                 %.6f %.6f\n"
-	   "Vector 4 to GPU:               %.6f %.6f\n"
-           "Vector 4 Wait:                 %.6f %.6f\n"
-	   "Total:                         %.6f %.6f\n",
-	   env.vec1_to_gpu_timer.time(), env.vec1_to_gpu_timer.cpu_time(),
-	   env.vec1_wait_timer.time(), env.vec1_wait_timer.cpu_time(),
-	   env.vec2_to_gpu_timer.time(), env.vec2_to_gpu_timer.cpu_time(),
-           env.vec2_wait_timer.time(), env.vec2_wait_timer.cpu_time(),
-	   env.vec3_to_gpu_timer.time(), env.vec3_to_gpu_timer.cpu_time(),
-           env.vec3_wait_timer.time(), env.vec3_wait_timer.cpu_time(),
-           env.vec4_to_gpu_timer.time(), env.vec4_to_gpu_timer.cpu_time(),
-           env.vec4_wait_timer.time(), env.vec4_wait_timer.cpu_time(),
-	   env.vec1_to_gpu_timer.time()+env.vec2_to_gpu_timer.time()+
-	   env.vec3_to_gpu_timer.time()+env.vec4_to_gpu_timer.time()+
-	   env.vec1_wait_timer.time()+env.vec2_wait_timer.time()+
-	   env.vec3_wait_timer.time()+env.vec4_wait_timer.time(),
-	   env.vec1_to_gpu_timer.cpu_time()+env.vec2_to_gpu_timer.cpu_time()+
-           env.vec3_to_gpu_timer.cpu_time()+env.vec4_to_gpu_timer.cpu_time()+
-	   env.vec1_wait_timer.cpu_time()+env.vec2_wait_timer.cpu_time()+
-	   env.vec3_wait_timer.cpu_time()+env.vec4_wait_timer.cpu_time());
-
-    printf("\nComputeMetrics:\n"
-           "GEMM start time:               %.6f\n"
-           "GEMM wait time:                %.6f\n"
-           "Finalize time:                 %.6f\n"
-	   "Extra time:                    %.6f\n"
-           "Total:                         %.6f\n"
-           "Total All (Inc Overheads):     %.6f\n",
-	   env.gemm_start_timer.time(), env.gemm_wait_timer.time(), env.finalize_timer.time(),
-	   cmtime-(env.gemm_start_timer.time()+env.gemm_wait_timer.time()+env.finalize_timer.time()),
-	   env.ctime(),cmtime);
-
-    printf("\nDriver:\n"
-           "Vec Creation time:             %.6f\n"
-           "Vec Set time:                  %.6f\n"
-	   "Create metrics time:           %.6f\n"
-           "Compute metric time:           %.6f\n"
-           "Compute metric overhead:       %.6f\n"
-	   "Checksum time:                 %.6f\n"
-           "Output time:                   %.6f\n"
-	   "Extra time:                    %.6f\n"
-	   "Total time:                    %.6f\n",
-	   vctime_avg, intime_avg, mctime_avg, ctime_avg, ctimeovhd_avg, cktime_avg, outtime_avg,
-           extra_avg,tottime_avg);
-
-    double file_size = (double)num_written*metric_size;
-    printf("\nI/O:\n"
-           "Input:\n"
-	   "Vector Size:                   %e\n"
-	   "Input Bandwidth:               %e\n"
-	   "Output:\n"
-	   "Number of Metrics:             %e\n"
-	   "Metric Size:                   %zu\n"
-	   "File Size:                     %e\n"
-	   "Output Bandwidth:              %e\n",
-	   vector_size_sum,vector_size_sum/input_sum,
-	   (double)num_written, metric_size, file_size,
-	   file_size/outtime_sum);
-
-    printf("\nCombined Driver Runtimes:\n"
-           "Input Total:                   %.6f\n"
-           "Compute Metrics without GEMM:  %.6f\n"
-           "Compute Metrics Total:         %.6f\n"
-	   "Loop time:                     %.6f\n"
-           "Non-loop time:                 %.6f\n",
-	   input_avg, cmwogemm_avg, cmtime_avg, looptime_avg, nonloop_avg);
 
     printf("\n");
   }

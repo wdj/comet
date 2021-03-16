@@ -1120,6 +1120,10 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
     printf("Launching 1-bit GEMM kernel mnk=%d,%d,%d beta=%d num_kernel=%d\n",
            m,n,k,(int)beta,env.num_kernel());
 
+  env.gemm_timer.record();
+
+  env.gemm_timer.start();
+
   switch(env.num_kernel()) {
     // Basic GEMM
     case 21: {
@@ -1188,11 +1192,14 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
     }
   }
 
+  env.gemm_timer.end();
+
   int err = cudaGetLastError();
   if(env.print_details()) printf("tc_solve_comet_impl computed 1-bit GEMM with 2x%dx%dx%d=%lf operations\n",
     2*m,2*n,k*64,2.0*(double)m*2.0*(double)n*2.0*(double)k*64.0);
-  env.stream_synchronize(env.stream_compute());
+  //env.stream_synchronize(env.stream_compute());
   System::accel_last_call_succeeded();
+  env.ops_gemm_local_inc(2.0 * (double)m*2.0 * (double)n*2.0 * (double)k*64.0);
   env.ops_local_inc(2.0 * (double)m*2.0 * (double)n*2.0 * (double)k*64.0);
 
   //env.gemmtime_inc(env.get_cpu_time() - tbegin);

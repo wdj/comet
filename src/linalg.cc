@@ -212,6 +212,11 @@ void LinAlg::gemm_start(
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
   if(env.print_details()) printf("rank=%d Calling gemm_start with standard A case\n",rank);
+
+  env.gemm_timer.record();
+
+  env.gemm_timer.start();
+
   gemm_start(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm,
     magma_wrapper, env);
@@ -229,6 +234,13 @@ void LinAlg::gemm_wait(
 
   gemm_wait(m, n, k, matA, matA, matB, matC,
     sums_I, sums_J, sums_J, counts_I, counts_J, counts_J, 0, 0, dm, env);
+
+  env.gemm_timer.end();
+
+  const double ops = 2.0 * (double)m * (double)n * (double)k;
+
+  env.ops_gemm_local_inc(ops);
+  env.ops_local_inc(ops);
 }
 
 //-----------------------------------------------------------------------------

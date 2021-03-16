@@ -763,6 +763,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
+#if defined COMET_USE_AMPERE
         case 17: {
           if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=2\n");
           CutlassTCGemm1B<TCTBlockType::_128_256_1024,
@@ -779,6 +780,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;
+#endif
 	// Stages = 4 is invalid argument
 	/*case 19: {
           if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=4\n");
