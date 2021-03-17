@@ -62,8 +62,13 @@ typedef struct {
   int pad1;
   void* __restrict__ data;
   size_t data_size;
-  bool has_buf;
-  MirroredBuf* buf;
+  bool has_buf_;
+  bool has_buf() const {return has_buf_;}
+  MirroredBuf* buf_;
+  MirroredBuf* buf() const {
+    COMET_INSIST(has_buf_);
+    return buf_;
+  };
   GMDecompMgr* dm;
 } GMVectors;
 

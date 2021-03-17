@@ -383,6 +383,7 @@ function main
 
   if [ ${USE_CUTLASS:-OFF} = ON ] ; then
     echo "Copying CUTLASS ..."
+    #local CUTLASS_VERSION=2.5.0
     local CUTLASS_VERSION=2.3.0
     local CUTLASS_DIR=$BUILD_DIR/cutlass
     mkdir -p $CUTLASS_DIR
@@ -390,7 +391,7 @@ function main
       cp $REPO_DIR/tpls/cutlass-v${CUTLASS_VERSION}.tar.gz $CUTLASS_DIR/
     else
       wget -nv -O $CUTLASS_DIR/cutlass-v${CUTLASS_VERSION}.tar.gz \
-        https://github.com/NVIDIA/cutlass/archive/v2.3.0.tar.gz
+        https://github.com/NVIDIA/cutlass/archive/v${CUTLASS_VERSION}.tar.gz
     fi
     pushd $CUTLASS_DIR
     gunzip <cutlass-v${CUTLASS_VERSION}.tar.gz | tar xf -

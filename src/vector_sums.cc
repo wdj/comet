@@ -309,6 +309,7 @@ static void VectorSums_compute_float_accel_kernel_(
   while (pfl < npfl_thread) {
 
     const VectorSums::Float_t v = vectors_data[GMVectors_index(pfl, vl, npfl)];
+//printf("%f\n", (double)v);
 
     const Out_t sum = v;
 
@@ -330,6 +331,7 @@ static void VectorSums_compute_float_accel_kernel_(
 
   if (pfl_ind0 == 0)
     atomicAdd(&(sums[vl]), sdata[0]);
+//if (pfl_ind0 == 0) printf("%f\n", (double)sums[vl]);
 
 #endif // COMET_USE_ACCEL
 }
@@ -498,7 +500,8 @@ void VectorSums::compute_float_accel_(const GMVectors& vectors,
     threadblocksize * sizeof(Float_t),
     accel_stream,
     (Float_t*)sums_local.d,
-    (Float_t*)vectors.data,
+    //(Float_t*)vectors.data,
+    (Float_t*)vectors.buf()->d,
     nvl_thread,
     npfl_thread);
 
@@ -556,7 +559,8 @@ void VectorSums::compute_bits2_accel_(const GMVectors& vectors,
     accel_stream,
     (Float_t*)sums_local.d,
     (Float_t*)counts_local.d,
-    (GMBits2x64*)vectors.data,
+    //(GMBits2x64*)vectors.data,
+    (GMBits2x64*)vectors.buf()->d,
     nvl_thread,
     npfl_thread,
     cbpe,
