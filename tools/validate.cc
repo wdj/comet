@@ -8,7 +8,7 @@
 #include <string.h>
 #include <assert.h>
 
-enum{MAX_LABEL_LEN = 11};
+enum{MAX_LABEL_LEN = 27};
 
 //-----------------------------------------------------------------------------
 
@@ -18,10 +18,10 @@ int process_line(int argc, char** argv, const bool is_duo,
   // Process args.
 
   if (argc != 1+4 && argc != 1+6) {
-    //// Input format expectd from each line of stdin:
-    //printf("Usage: "
-    //  "ccc_duo_validate lineno0 bitno0 lineno1 bitno1 [lineno2 bitno2]\n");
-    //printf("Line and bit numbers are 0-based\n");
+    // Input format expectd from each line of stdin:
+    printf("Usage: "
+      "validate_ccc_duo lineno0 bitno0 lineno1 bitno1 [lineno2 bitno2]\n");
+    printf("Line and bit numbers are 0-based\n");
     return 1;
   }
 
@@ -105,7 +105,6 @@ int process_line(int argc, char** argv, const bool is_duo,
     elts[i] = (AlleleLabel_t*)malloc(num_field_max * NUM_ALLELE_LABELS_PER_FIELD_MAX * sizeof(AlleleLabel_t));
   }
 
-
   int num_field = 0;
 
   // Loop over num_way to input the required vectors.
@@ -138,7 +137,7 @@ int process_line(int argc, char** argv, const bool is_duo,
     }
 
     const int num_frontmatter_fields = 4;
-    int num_sep = 0;
+    int num_delim = 0;
     int index = 0;
 
     // Loop to read the line from snptxtfile - loop up to newline.
@@ -148,13 +147,13 @@ int process_line(int argc, char** argv, const bool is_duo,
       // Skip tab or space (these are separators).
 
       if (c == '\t' || c == ' ') {
-        num_sep++;
+        num_delim++;
         continue;
       }
 
       // Get line label
 
-      if (num_sep == 1) {
+      if (num_delim == 1) {
         // Append character to label.
         line_label[way_num][index++] = c; //check
         continue;
@@ -162,12 +161,12 @@ int process_line(int argc, char** argv, const bool is_duo,
 
       // If finished with frontmatter then reset char index.
 
-      if (num_sep == num_frontmatter_fields - 1)
+      if (num_delim == num_frontmatter_fields - 1)
         index = 0;
 
       // Finished processing frontmatter.
 
-      if (num_sep < num_frontmatter_fields)
+      if (num_delim < num_frontmatter_fields)
         continue;
 
       // Store allele bit.
@@ -182,25 +181,20 @@ int process_line(int argc, char** argv, const bool is_duo,
       // Record allele label. Normalize into alphabetical order.
 
       if (c != '0') {
-        if (is_duo) {
-          // Store first of 1.
+        if (allele_labels[way_num][0] == allele_label_null) {
+          // Store first of 2.
           allele_labels[way_num][0] = c;
-        } else {
-          if (allele_labels[way_num][0] == allele_label_null) {
-            // Store first of 2.
+        } else if (allele_labels[way_num][1] == allele_label_null) {
+          // Store second of 2.
+          if (allele_labels[way_num][0] < c) {
+            // No alpha sort.
+            allele_labels[way_num][1] = c;
+          } else if (allele_labels[way_num][0] > c) {
+            // Alpha sort.
+            allele_labels[way_num][1] = allele_labels[way_num][0];
             allele_labels[way_num][0] = c;
-          } else if (allele_labels[way_num][1] == allele_label_null) {
-            // Store second of 2.
-            if (allele_labels[way_num][0] < c) {
-              // No alpha sort.
-              allele_labels[way_num][1] = c;
-            } else if (allele_labels[way_num][0] > c) {
-              // Alpha sort.
-              allele_labels[way_num][1] = allele_labels[way_num][0];
-              allele_labels[way_num][0] = c;
-            }
           }
-        } // if is_duo
+        }
       } // if c
 
     } // while c
@@ -257,11 +251,6 @@ int process_line(int argc, char** argv, const bool is_duo,
 
   } // for way_num
 
-
-
-
-
-
   // Now get sum_{ij}'s (or sum_{ijk}'s if 3-way)
 
   int countijk = 0;
@@ -312,10 +301,13 @@ int process_line(int argc, char** argv, const bool is_duo,
 
       countijk += 1;
 
-      const int rho0 = (e00 == allele_labels[0][bitno[0]]) + (e01 == allele_labels[0][bitno[0]]);
-      const int rho1 = (e10 == allele_labels[1][bitno[1]]) + (e11 == allele_labels[1][bitno[1]]);
+      const int rho0 = (e00 == allele_labels[0][bitno[0]]) +
+                       (e01 == allele_labels[0][bitno[0]]);
+      const int rho1 = (e10 == allele_labels[1][bitno[1]]) +
+                       (e11 == allele_labels[1][bitno[1]]);
       const int rho2 = num_way == 2 ? 1 :
-                       (e20 == allele_labels[2][bitno[2]]) + (e21 == allele_labels[2][bitno[2]]);
+                       (e20 == allele_labels[2][bitno[2]]) +
+                       (e21 == allele_labels[2][bitno[2]]);
 
       sumijk += rho0 * rho1 * rho2;
     } // for f
@@ -328,8 +320,9 @@ int process_line(int argc, char** argv, const bool is_duo,
   const int cbpe_n = 2 == num_way ? cbpe * cbpe : cbpe * cbpe * cbpe;
 
   double f1[NUM_WAY_MAX];
-  for (int i=0; i<num_way; ++i)
-    f1[i] = 0 == count1[i] ? 0 : sum1[i] * 1. / (double)( cbpe * count1[i] );
+  for (int way_num=0; way_num<num_way; ++way_num)
+    f1[way_num] = 0 == count1[way_num] ? 0 :
+      sum1[way_num] * 1. / (double)( cbpe * count1[way_num] );
 
   const double fijk = 0 == countijk ? 0 :
                      sumijk * 1. / (double)( cbpe_n * countijk );
@@ -340,9 +333,9 @@ int process_line(int argc, char** argv, const bool is_duo,
   const double param = 2. / (double)3.;
 
   const double value = 2 == num_way ?
-    multiplier * fijk * (1 - param*f1[0]) *  (1 - param*f1[1]) :
-    multiplier * fijk * (1 - param*f1[0]) *  (1 - param*f1[1])
-                      * (1 - param*f1[2]);
+    multiplier * fijk * (1 - param * f1[0]) *  (1 - param * f1[1]) :
+    multiplier * fijk * (1 - param * f1[0]) *  (1 - param * f1[1])
+                      * (1 - param * f1[2]);
 
   // Sort lines to output each result in a uniform order
 
@@ -412,8 +405,8 @@ int main(int argc, char** argv) {
   // Help message.
 
   if (argc < 4) {
-    printf("ccc_duo_validate: create validation data for CCC calculations\n");
-    printf("Usage: ccc_duo_validate <metric_type> <num_way> <snptxtfile> <line_index_file>\n");
+    printf("validate_ccc_duo: create validation data for calculations\n");
+    printf("Usage: validate_ccc_duo <metric_type> <num_way> <snptxtfile> <line_index_file>\n");
     printf("Here stdin is composed of metric entries, one per line.\n");
     return 0;
   }
@@ -442,12 +435,39 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Error: unable to open file. %s\n", snptxtfilepath);
     return 1;
   }
+//  int fseek_success = fseek(snptxtfile, 0, SEEK_SET);
+//  if (0 != fseek_success) {
+//    fprintf(stderr, "xxxError: error reading SNP data file (0).\n");
+//    return 1;
+//  }
 
   FILE* lifile = fopen(lifilepath, "rb");
   if (!lifile) {
     fprintf(stderr, "Error: unable to open file. %s\n", lifilepath);
     return 1;
   }
+
+#if 0
+for (size_t line_num=0; line_num<10 ; ++line_num) {
+
+    int fseek_success = fseek(lifile, line_num*sizeof(size_t), SEEK_SET);
+    if (0 != fseek_success) {
+      fprintf(stderr, "Error: error reading line_indices file (1).\n");
+      return 1;
+    }
+
+    // Get the index to the required line in the snptxtfile.
+
+    size_t line_index = 0;
+    int num_read = fread(&line_index, sizeof(size_t), 1, lifile);
+    if (1 != num_read) {
+      fprintf(stderr, "Error: error reading line_indices file (xx).\n");
+      return 1;
+    }
+
+printf("%zu %zu\n", line_num, line_index);
+}
+#endif
 
   // Prepare to read from stdin.
 
