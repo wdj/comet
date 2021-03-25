@@ -161,6 +161,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+  #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_70,code=compute_70;-arch=sm_70"
 
   local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=70
@@ -169,7 +170,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   local USE_CPUBLAS=ON
   local COMET_CPUBLAS_COMPILE_OPTS="-I$OLCF_ESSL_ROOT/include"
   #COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"essl.h\""'
-  COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS="-DBLAS_H=\"essl.h\""'
+  COMET_CUDA_CMAKE_OPTS+=' -DCUDA_NVCC_FLAGS:STRING="-gencode;arch=compute_70,code=compute_70;-arch=sm_70;-DBLAS_H=\"essl.h\""'
   local COMET_CPUBLAS_LINK_OPTS=""
   local XLF_DIR=$(module load xl 2>/dev/null ; echo $OLCF_XLF_ROOT)/lib
   local XLF_DIR2=$(module load xl 2>/dev/null ; echo $OLCF_XL_ROOT)/lib
@@ -184,11 +185,11 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   #---Testing.
 
   local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 jsrun --nrs 2 --rs_per_host 1"
-  COMET_TEST_COMMAND+=" --cpu_per_rs 32 -g 6 --tasks_per_rs 32 -X 1"
+  COMET_TEST_COMMAND+=" --cpu_per_rs 32 -g 6 --tasks_per_rs 32 -X 1 --smpiargs=\"-gpu\""
 
   local COMET_TEST_COMMAND_PERF="env OMP_NUM_THREADS=7 jsrun --nrs 12 "
   COMET_TEST_COMMAND_PERF+="--bind packed:7 --cpu_per_rs 7 --gpu_per_rs 1 "
-  COMET_TEST_COMMAND_PERF+="--rs_per_host 6 --tasks_per_rs 1 -X 1"
+  COMET_TEST_COMMAND_PERF+="--rs_per_host 6 --tasks_per_rs 1 -X 1 --smpiargs=\"-gpu\""
 
   #COMET_TEST_COMMAND+=" -E LD_PRELOAD=${OLCF_SPECTRUM_MPI_ROOT}/lib/pami_451/libpami.so"
 
@@ -220,6 +221,7 @@ elif [ $COMET_PLATFORM = DGX2 ] ; then
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_70,code=compute_70;-arch=sm_70"
 
   local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=70
@@ -810,6 +812,7 @@ elif [ $COMET_PLATFORM = MURPHY ] ; then
   local _COMPILER_DIR_TMP_=$(dirname $COMET_CXX_SERIAL_COMPILER)
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_ROOT"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_37,code=compute_37;-arch=sm_37"
 
   export PATH="${PATH}:$CUDA_ROOT/bin"
 

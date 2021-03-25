@@ -1029,6 +1029,11 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           env_);
     }
 
+    //if (env_.verbosity() > 0 && System::proc_num() == 0)
+//    if (System::proc_num() == 0)
+//      printf("    Completing compute pipeline step %i of %i active steps\n",
+//        step_num, num_step);
+
   //========================================
   } // step_num
   //========================================

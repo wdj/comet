@@ -48,9 +48,9 @@ namespace comet {
 
 class VectorSums {
 
-  typedef GMFloat Float_t;
-
 public:
+
+  typedef GMFloat Float_t;
 
   VectorSums(size_t num_vector_local, CEnv& env_);
   VectorSums(const GMVectors& vectors, CEnv& env);
@@ -58,10 +58,18 @@ public:
 
   void compute(const GMVectors& vectors);
 
+  void compute_accel(const GMVectors& vectors, AccelStream_t accel_stream);
+
   void to_accel() {
     sums_.to_accel();
-    if (env_.sparse() && env_.is_metric_type_bitwise())
+    if (need_counts_())
       counts_.to_accel();
+  }
+
+  void from_accel() {
+    sums_.from_accel();
+    if (need_counts_())
+      counts_.from_accel();
   }
 
   Float_t sum(size_t i) const {
@@ -70,6 +78,7 @@ public:
   }
 
   Float_t count(size_t i) const {
+    COMET_ASSERT(need_counts_());
     COMET_ASSERT(i < counts_.dim0); // && i >= 0
     return ((Float_t*)counts_.h)[i];
   }
@@ -90,6 +99,10 @@ private:
 
   void compute_float_(const GMVectors& vectors);
   void compute_bits2_(const GMVectors& vectors);
+  void compute_float_accel_(const GMVectors& vectors,
+    AccelStream_t accel_stream);
+  void compute_bits2_accel_(const GMVectors& vectors,
+    AccelStream_t accel_stream);
 
   Float_t& elt_ref_(MirroredBuf& b, size_t i) {
     COMET_ASSERT(i < b.dim0); // && i >= 0
@@ -97,6 +110,10 @@ private:
   }
 
   void allocate_();
+
+  bool need_counts_() const {
+    return env_.sparse() && env_.is_metric_type_bitwise();
+  }
 
   // Disallowed methods.
 
