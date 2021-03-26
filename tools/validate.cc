@@ -8,7 +8,8 @@
 #include <string.h>
 #include <assert.h>
 
-enum{MAX_LABEL_LEN = 27};
+//enum{MAX_LABEL_LEN = 27};
+enum{MAX_LABEL_LEN = 255};
 
 //-----------------------------------------------------------------------------
 
@@ -471,8 +472,14 @@ printf("%zu %zu\n", line_num, line_index);
 
   // Prepare to read from stdin.
 
-  enum{LINE_LEN_MAX = 4096};
+  enum {LINE_LEN_MAX = 4096};
   unsigned char line[LINE_LEN_MAX];
+  //enum {LINE_LEN_MAX = 2000000};
+  //unsigned char* line = (unsigned char*)malloc(LINE_LEN_MAX * sizeof(*line));
+  //if (!line) {
+  //  fprintf(stderr, "Error in malloc");
+  //  return 1;
+  //}
 
   int lineptr = 0;
   int argc_ = 1;
@@ -499,7 +506,7 @@ printf("%zu %zu\n", line_num, line_index);
     line[lineptr] = 0;
     argv_[0] = (char*)&line[lineptr];
     for (int i=0; i<lineptr; ++i) {
-      if (line[i] == ' ') {
+      if (line[i] == ' ' || line[i] == '\t') {
         line[i] = 0;
       }
     }
@@ -529,6 +536,7 @@ printf("%zu %zu\n", line_num, line_index);
 
   // Finalize.
 
+  //free(line);
   fclose(snptxtfile);
   fclose(lifile);
 
