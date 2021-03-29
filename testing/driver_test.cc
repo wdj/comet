@@ -744,7 +744,7 @@ void DriverTest_ccc2_simple_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), false, false, cksum, *env);
+  print_output(env->is_proc_active(), false, false, false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
@@ -869,7 +869,7 @@ void DriverTest_ccc2_simple_sparse_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), false, false, cksum, *env);
+  print_output(env->is_proc_active(), false, false, false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
@@ -1035,7 +1035,7 @@ void DriverTest_duo2_simple_sparse_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), false, false, cksum, *env);
+  print_output(env->is_proc_active(), false, false, false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result00 = Metrics_ccc_duo_get_2(*metrics, 0, 0, 0, *env);
@@ -1218,7 +1218,7 @@ void DriverTest_ccc3_simple_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), false, false, cksum, *env);
+  print_output(env->is_proc_active(), false, false, false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
@@ -1395,7 +1395,7 @@ void DriverTest_ccc3_simple_sparse_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), false, false, cksum, *env);
+  print_output(env->is_proc_active(), false, false, false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);
@@ -1667,7 +1667,7 @@ void DriverTest_duo3_simple_sparse_compute_method(int compute_method) {
   Checksum cksum;
   Checksum cksum_local;
   Checksum::compute(cksum, cksum_local, *metrics, *env);
-  print_output(env->is_proc_active(), false, false, cksum, *env);
+  print_output(env->is_proc_active(), false, false, false, cksum, *env);
 
   if (env->is_proc_active()) {
     const double result000 = Metrics_ccc_duo_get_3(*metrics, 0, 0, 0, 0, *env);

@@ -728,6 +728,7 @@ public:
   void ops_gemm_local_inc(double n) {ops_gemm_local_ += n;}
   double ops() const;
   double ops_gemm() const;
+  double ops_gemm_local() const {return ops_gemm_local_;}
   double entry_compares() const {return entry_compares_;}
   double metric_compares() const {return metric_compares_;}
   double vec_compares() const {return vec_compares_;}

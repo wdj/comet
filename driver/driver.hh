@@ -83,6 +83,7 @@ enum {
 void print_output(bool do_print,
                   bool do_detailed,
 		  bool do_expert,
+		  bool do_expert_all,
 		  Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub = 0,
@@ -96,7 +97,8 @@ void print_output(bool do_print,
                   double outtime = 0,
                   double tottime = 0,
 		  double cmtime = 0,
-		  double looptime = 0);
+		  double looptime = 0,
+		  int nvl = 0);
 
 void perform_run(int argc, char** argv, const char* const description,
                  MPI_Comm base_comm = MPI_COMM_WORLD, CEnv* env = 0);

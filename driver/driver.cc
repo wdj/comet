@@ -291,7 +291,8 @@ void set_vectors(GMVectors* vectors, DriverOptions* do_, CEnv* env) {
 void print_output(bool do_print,
 		  bool do_detailed,
 		  bool do_expert,
-                  Checksum& cksum,
+                  bool do_expert_all,
+		  Checksum& cksum,
                   CEnv& env,
                   char* metrics_file_path_stub,
                   size_t num_written,
@@ -304,13 +305,19 @@ void print_output(bool do_print,
                   double outtime,
                   double tottime,
 		  double cmtime,
-		  double looptime) {
+		  double looptime,
+		  int nvl) {
 
   const double ops = env.ops();
   const double ops_gemm = env.ops_gemm();
+  const double ops_gemm_local = env.ops_gemm_local();
   const double gemmtime_sum = env.gemmtime_sum();
   const size_t cpu_mem_max = env.cpu_mem_max();
   const size_t gpu_mem_max = env.gpu_mem_max();
+
+  double tops = ops/(1000.0*1000.0*1000.0*1000.0);
+  double tops_gemm = ops_gemm/(1000.0*1000.0*1000.0*1000.0);
+  double tops_gemm_local = ops_gemm_local/(1000.0*1000.0*1000.0*1000.0);
 
   double vals[5];
   vals[0] = env.ctime();
@@ -329,87 +336,84 @@ void print_output(bool do_print,
   COMET_MPI_SAFE_CALL(MPI_Allreduce(MPI_IN_PLACE, &gemm_min, 1, MPI_DOUBLE, MPI_MIN, env.comm()));
   COMET_MPI_SAFE_CALL(MPI_Allreduce(MPI_IN_PLACE, &gemm_max, 1, MPI_DOUBLE, MPI_MAX, env.comm()));
 
-  if (!do_print)
-    return;
+  if (do_print) {
 
-  if (cksum.computing_checksum()) {
-    printf("metrics checksum ");
-    cksum.print(env);
-    printf(" ");
-  }
-
-  printf("ctime %.6f", env.ctime());
-
-  printf(" ops %e", ops);
-  if (env.ctime() > 0) {
-    printf(" ops_rate %e", ops / env.ctime());
-    printf(" ops_rate/proc %e", ops / (env.ctime() * env.num_proc()) );
-  }
-
-  if (gemmtime_sum > 0) {
-    printf(" gemmrate/proc %e", ops_gemm / gemmtime_sum);
-  }
-
-  printf(" vcmp %e", env.vec_compares());
-  if (metrics_file_path_stub) {
-    printf(" vcmpout %e", (double)num_written);
-  }
-
-  printf(" cmp %e", env.entry_compares());
-
-  printf(" ecmp %e", env.metric_compares());
-  if (env.ctime() > 0) {
-    printf(" ecmp_rate %e", env.metric_compares() / env.ctime());
-    printf(" ecmp_rate/proc %e", env.metric_compares() /
-      (env.ctime() * env.num_proc()) );
-  }
-
-  printf(" ment %e", (double)env.metric_entries());
-  printf(" mentc %e", (double)env.metric_entries_computed());
-
-  if (cksum.computing_checksum()) {
-    printf(" me %.0f", cksum.num());
-    printf(" mezero %.0f", cksum.num_zero());
-    if (cksum.num() > 0) {
-      printf(" fracnonzero %.9f",
-        (cksum.num()-cksum.num_zero()) / cksum.num());
+    if (cksum.computing_checksum()) {
+      printf("metrics checksum ");
+      cksum.print(env);
+      printf(" ");
     }
+
+    printf("ctime %.6f", env.ctime());
+
+    printf(" ops %e", ops);
+    if (env.ctime() > 0) {
+      printf(" ops_rate %e", ops / env.ctime());
+      printf(" ops_rate/proc %e", ops / (env.ctime() * env.num_proc()) );
+    }
+
+    if (gemmtime_sum > 0) {
+      printf(" gemmrate/proc %e", ops_gemm / gemmtime_sum);
+    }
+
+    printf(" vcmp %e", env.vec_compares());
+    if (metrics_file_path_stub) {
+      printf(" vcmpout %e", (double)num_written);
+    }
+
+    printf(" cmp %e", env.entry_compares());
+
+    printf(" ecmp %e", env.metric_compares());
+    if (env.ctime() > 0) {
+      printf(" ecmp_rate %e", env.metric_compares() / env.ctime());
+      printf(" ecmp_rate/proc %e", env.metric_compares() /
+        (env.ctime() * env.num_proc()) );
+    }
+
+    printf(" ment %e", (double)env.metric_entries());
+    printf(" mentc %e", (double)env.metric_entries_computed());
+
+    if (cksum.computing_checksum()) {
+      printf(" me %.0f", cksum.num());
+      printf(" mezero %.0f", cksum.num_zero());
+      if (cksum.num() > 0) {
+        printf(" fracnonzero %.9f",
+          (cksum.num()-cksum.num_zero()) / cksum.num());
+      }
+    }
+
+    if (env.is_shrink())
+      printf(" shrink %e", env.shrink_achieved());
+
+    printf(" vctime %.6f", vctime);
+    printf(" mctime %.6f", mctime);
+    if (cksum.computing_checksum()) {
+      printf(" cktime %.6f", cktime);
+    }
+    printf(" intime %.6f", intime);
+    printf(" outtime %.6f", outtime);
+
+    printf(" cpumem %e", (double)cpu_mem_max);
+    printf(" gpumem %e", (double)gpu_mem_max);
+
+    printf(" tottime %.6f", tottime);
+
+    printf(" prec %s", env.is_double_prec() ? "double" : "single");
+
+    printf(" build %s", BuildHas::DEBUG ? "debug" : "release");
+
+    if (env.tc() != env.tc_eff()) {
+      printf(" tc_eff %i", env.tc_eff());
+    }
+
+    if (env.is_shrink()) {
+      printf(" is_shrink %s", "yes");
+    }
+
+    printf("\n");
   }
-
-  if (env.is_shrink())
-    printf(" shrink %e", env.shrink_achieved());
-
-  printf(" vctime %.6f", vctime);
-  printf(" mctime %.6f", mctime);
-  if (cksum.computing_checksum()) {
-    printf(" cktime %.6f", cktime);
-  }
-  printf(" intime %.6f", intime);
-  printf(" outtime %.6f", outtime);
-
-  printf(" cpumem %e", (double)cpu_mem_max);
-  printf(" gpumem %e", (double)gpu_mem_max);
-
-  printf(" tottime %.6f", tottime);
-
-  printf(" prec %s", env.is_double_prec() ? "double" : "single");
-
-  printf(" build %s", BuildHas::DEBUG ? "debug" : "release");
-
-  if (env.tc() != env.tc_eff()) {
-    printf(" tc_eff %i", env.tc_eff());
-  }
-
-  if (env.is_shrink()) {
-    printf(" is_shrink %s", "yes");
-  }
-
-  printf("\n");
 
   if(do_detailed) {
-    // Compute general values
-    double tops = ops/(1000.0*1000.0*1000.0*1000.0);
-    double tops_gemm = ops_gemm/(1000.0*1000.0*1000.0*1000.0);
 
     // More readable runtime output
     printf("\nDetailed Output:\n");
@@ -541,6 +545,25 @@ void print_output(bool do_print,
 
     printf("\n");
   }
+
+  if(do_expert_all) {
+    MPI_Barrier(env.comm());
+
+    int rank, size;
+    COMET_MPI_SAFE_CALL(MPI_Comm_rank(env.comm(),&rank));
+    COMET_MPI_SAFE_CALL(MPI_Comm_size(env.comm(),&size));
+    if(rank==0) printf("Outputting per rank information:\n");
+    MPI_Barrier(env.comm());
+
+    double local_gemmrate = ops_gemm_local/env.gemmtime();
+    double local_tgemmrate = tops_gemm_local/env.gemmtime();
+    printf("Rank=%d Num vectors=%d Gemm=%e Compute metric=%e Total=%e "
+           "TOps Gemmrate=%.2f Ops Gemmrate=%e Ops=%e\n",
+           rank,nvl,env.gemmtime(),env.ctime(),tottime,local_tgemmrate,
+           local_gemmrate,ops_gemm_local);
+
+    MPI_Barrier(env.comm());
+  }
 }
 
 //=============================================================================
@@ -669,6 +692,7 @@ env->stream_compute(); //FIX
      env->proc_num() == 0 && do_.verbosity > 0;
   const bool do_detailed = do_print && do_.verbosity >= 1.5;
   const bool do_expert = do_print && do_.verbosity >= 1.79;
+  const bool do_expert_all = env->is_proc_active() && do_.verbosity > 1.89;
 
   // Allocate vectors.
 
@@ -864,8 +888,9 @@ env->stream_compute(); //FIX
 
   // Output run information.
 
-  print_output(do_print, do_detailed, do_expert, cksum, *env, do_.metrics_file_path_stub, num_written,
-    metric_size, vector_size, vctime, mctime, cktime, intime, outtime, tottime, cmtime, looptime);
+  print_output(do_print, do_detailed, do_expert, do_expert_all, cksum, *env, do_.metrics_file_path_stub, num_written,
+    metric_size, vector_size, vctime, mctime, cktime, intime, outtime, tottime, cmtime, looptime,
+    do_.num_vector_local);
     
   // Output a local checksum, for testing purposes.
 
