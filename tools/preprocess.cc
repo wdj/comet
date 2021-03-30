@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
 
   // Initializations.
 
-  const int max_line_len = 1000000;
+  const int max_line_len = 2000000;
   int* line = (int*)malloc(max_line_len * sizeof(*line));
 
   const int num_frontmatter_fields = 4;

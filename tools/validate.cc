@@ -8,7 +8,10 @@
 #include <string.h>
 #include <assert.h>
 
-enum{MAX_LABEL_LEN = 27};
+//enum{MAX_LABEL_LEN = 27};
+enum{MAX_LABEL_LEN = 255};
+
+enum {MAX_FIELDS = 2000000};
 
 //-----------------------------------------------------------------------------
 
@@ -79,14 +82,15 @@ int process_line(int argc, char** argv, const bool is_duo,
 
   // Read first line of snptxtfile to get upper bound on num fields per line.
 
-  int num_read = 0;
-  while ((c = fgetc(snptxtfile)) != '\n') {
-    if (c == EOF) {
-      fprintf(stderr, "Error snp file has no newlines.");
-      return 1;
-    }
-    num_read++;
-  }
+//  int num_read = 0;
+//  while ((c = fgetc(snptxtfile)) != '\n') {
+//    if (c == EOF) {
+//      fprintf(stderr, "Error snp file has no newlines.");
+//      return 1;
+//    }
+//    num_read++;
+//  }
+  const int num_read = 2 * MAX_FIELDS + 256 + 10;
 
   const int num_allele_labels_per_field = is_duo ? 1 : 2;
 
@@ -107,6 +111,11 @@ int process_line(int argc, char** argv, const bool is_duo,
 
   int num_field = 0;
 
+  // For speed set up memory for reading a full line.
+
+  size_t linesize = num_read;
+  unsigned char* linep = (unsigned char*)malloc(linesize);;
+
   // Loop over num_way to input the required vectors.
 
   for (int way_num=0; way_num<num_way; ++way_num) {
@@ -122,7 +131,7 @@ int process_line(int argc, char** argv, const bool is_duo,
     // Get the index to the required line in the snptxtfile.
 
     size_t line_index = 0;
-    num_read = fread(&line_index, sizeof(size_t), 1, lifile);
+    size_t num_read = fread(&line_index, sizeof(size_t), 1, lifile);
     if (1 != num_read) {
       fprintf(stderr, "Error: error reading line_indices file (2).\n");
       return 1;
@@ -142,7 +151,16 @@ int process_line(int argc, char** argv, const bool is_duo,
 
     // Loop to read the line from snptxtfile - loop up to newline.
 
-    while ((c = fgetc(snptxtfile)) != '\n') {
+    const size_t num_read_line = getline((char**)&linep, &linesize, snptxtfile) - 1;
+    if (!linep || num_read_line > num_read) {
+      printf("Error: memory\n");
+      return 1;
+    }
+
+    //while ((c = fgetc(snptxtfile)) != '\n') {
+    for (size_t ii=0; ii<num_read_line; ++ii) {
+
+      c = linep[ii];
 
       // Skip tab or space (these are separators).
 
@@ -201,6 +219,8 @@ int process_line(int argc, char** argv, const bool is_duo,
 
   } // for way_num
 
+  free(linep);
+
   num_field /= num_allele_labels_per_field;
 
   // Now we have all 2 (or 3) vectors and their associated data.
@@ -217,6 +237,7 @@ int process_line(int argc, char** argv, const bool is_duo,
     sum1[way_num] = 0;
     if (is_duo) {
 
+      #pragma omp parallel for reduction(+:sum1[way_num]) reduction(+:count1[way_num])
       for (int f=0; f<num_field; ++f) {
         const int e0 = elts[way_num][f];
 
@@ -258,6 +279,7 @@ int process_line(int argc, char** argv, const bool is_duo,
 
   if (is_duo) {
 
+    #pragma omp parallel for reduction(+:sumijk) reduction(+:countijk)
     for (int f=0; f<num_field; ++f) {
       const int e00 = elts[0][f];
       if (e00 == '0')
@@ -471,8 +493,14 @@ printf("%zu %zu\n", line_num, line_index);
 
   // Prepare to read from stdin.
 
-  enum{LINE_LEN_MAX = 4096};
+  enum {LINE_LEN_MAX = 4096};
   unsigned char line[LINE_LEN_MAX];
+  //enum {LINE_LEN_MAX = 2000000};
+  //unsigned char* line = (unsigned char*)malloc(LINE_LEN_MAX * sizeof(*line));
+  //if (!line) {
+  //  fprintf(stderr, "Error in malloc");
+  //  return 1;
+  //}
 
   int lineptr = 0;
   int argc_ = 1;
@@ -499,7 +527,7 @@ printf("%zu %zu\n", line_num, line_index);
     line[lineptr] = 0;
     argv_[0] = (char*)&line[lineptr];
     for (int i=0; i<lineptr; ++i) {
-      if (line[i] == ' ') {
+      if (line[i] == ' ' || line[i] == '\t') {
         line[i] = 0;
       }
     }
@@ -529,6 +557,7 @@ printf("%zu %zu\n", line_num, line_index);
 
   // Finalize.
 
+  //free(line);
   fclose(snptxtfile);
   fclose(lifile);
 

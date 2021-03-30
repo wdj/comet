@@ -21,9 +21,12 @@ function main
     sort -n | \
     tail -n1)
 
-  cut -f2 -d' ' < "$infile" \
-    | awk '{printf("%-'$MAX_LABEL_LEN's\n", $0)}' \
-    > "$outfile"
+  #echo $MAX_LABEL_LEN
+
+  tr ' ' '\t' < "$infile" | \
+    cut -f2 | \
+    awk '{printf("%-'$MAX_LABEL_LEN's\n", $0)}' > \
+    "$outfile"
 
   # Check.
 

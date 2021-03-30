@@ -103,7 +103,7 @@ postprocess $num_way Area-0-Sector-10074_shuf_allele_labels.txt \
   Area-0-Sector-10074_shuf-comet_0.bin \
   Area-0-Sector-10074_shuf-comet_0.txt
 
-cat Area-0-Sector-10074-comet_shuf_0.txt | \
-cut -f1-$(( 2 * $num_way )) -d' ' | \
+tr ' ' '\t' < Area-0-Sector-10074-comet_shuf_0.txt | \
+cut -f1-$(( 2 * $num_way )) | \
 validate duo $num_way Area-0-Sector-10074_shuf.txt Area-0-Sector-10074_shuf_line_indices.bin > Area-0-Sector-10074_shuf_validate.txt
 
