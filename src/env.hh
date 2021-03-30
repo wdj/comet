@@ -187,6 +187,12 @@ struct BuildHas {
     enum {CUDA = false};
 # endif
 
+# ifdef COMET_USE_CUTLASS
+    enum {CUTLASS = true};
+# else
+    enum {CUTLASS = false};
+# endif
+
 # ifdef COMET_USE_HIP
     enum {HIP = true};
 # else

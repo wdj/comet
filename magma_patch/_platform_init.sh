@@ -22,7 +22,8 @@ COMET_HOST="$(echo $(hostname -f) | \
 
 [[ "$COMET_HOST" = "node" ]] && COMET_HOST="${SLURM_SUBMIT_HOST:-}"
 [[ "$COMET_HOST" = "cori" ]] && COMET_HOST="cgpu"
-[[ $(echo "$COMET_HOST" | sed -e 's/.*\.//') = "juwels" ]] && COMET_HOST="juwels"
+[[ $(hostname -f | sed -e 's/.*\.//') = "juwels" ]] && COMET_HOST="juwels"
+# [[ $(echo "$COMET_HOST" | sed -e 's/.*\.//') = "jwlogin" ]] && COMET_HOST="jwlogin"
 
 local COMET_PLATFORM=""
 [[ -n "${CRAYOS_VERSION:-}" ]] && COMET_PLATFORM=CRAY_XK7 # OLCF Titan, Chester
@@ -932,7 +933,7 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
   module load GCC # 9.3.0
   module load CUDA # 11.??
   module load CMake
-  #module load OpenMPI # 4.1.0rc1
+  module load OpenMPI # 4.1.0rc1
   module list
 
   #---Compiler.
@@ -965,6 +966,7 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80"
 
   local USE_CUTLASS=ON
+  #local USE_CUTLASS=OFF
   #local COMET_CUTLASS_ARCH=Sm80
   local COMET_COMPUTE_CAPABILITY=800
   #COMET_WERROR=OFF
@@ -983,10 +985,10 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
   #---Testing.
 
   if [ $COMET_CAN_USE_MPI = ON ] ; then
-    # salloc -N 2 --ntasks-per-node=32 --cpus-per-task=1 -G 8 -t 240 -A ???
+    # salloc -N 2 --ntasks-per-node=32 --cpus-per-task=1 -G 8 -t 240 -A gronor -p booster
     local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -N 2 -n 64 -G 8"
   else
-    # salloc -N 1 --ntasks-per-node=1 --cpus-per-task=24 -G 1 -t 240 -A ???
+    # salloc -N 1 --ntasks-per-node=1 --cpus-per-task=24 -G 1 -t 240 -A gronor -p booster
     local COMET_TEST_COMMAND="env OMP_NUM_THREADS=24 srun -n 1 -G 1"
   fi
 
