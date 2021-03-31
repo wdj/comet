@@ -490,7 +490,6 @@ static void MetricsIO_write_(
 
     MetricIO writer(file, *metrics, *env);
 
-    //size_t index = 0;
     for (size_t index = 0; index < metrics->num_metric_items_local_computed;
          ++index) {
       const MetricItemCoords_t coords = metrics->coords_value(index);
@@ -569,6 +568,8 @@ static void MetricsIO_write_(
 
         const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
           index, entry_num, *env);
+
+//if(iG==4 && jG==5 && kG==7) printf("%zu %i %.20e  %i   %i\n", index, entry_num, (double)value, env->pass_threshold(value), (int)writer.num_written());
 
         if (!env->pass_threshold(value))
           continue;
@@ -728,8 +729,8 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
       if (num_incorrect < 10 && !is_correct)
         fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu actual %.17e expected %.17e pass_threshold %i\n",
-          iG, jG, (double)metric_value, (double)metric.value, pass_threshold);
+          "element %zu %zu  %i %i actual %.17e expected %.17e pass_threshold %i\n",
+          iG, jG, iE, jE, (double)metric_value, (double)metric.value, pass_threshold);
 
     } else { // if (env_.num_way() == NumWay::_3)
 
@@ -769,9 +770,10 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       num_incorrect += !is_correct;
 
       if (!is_correct && num_incorrect < 10)
+//fprintf(stderr, ">>> %i %.20e\n", (int)index, (double)metric_value);
         fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu %zu actual %.17e expected %.17e pass_threshold %i\n",
-          iG, jG, kG, (double)metric_value, (double)metric.value, pass_threshold);
+          "element %zu %zu %zu  %i %i %i actual %.17e expected %.17e pass_threshold %i\n",
+          iG, jG, kG, iE, jE, kE, (double)metric_value, (double)metric.value, pass_threshold);
 
     } // if (env_.num_way() == NumWay::_2)
 
