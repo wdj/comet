@@ -152,8 +152,8 @@ int process_line(int argc, char** argv, const bool is_duo,
     // Loop to read the line from snptxtfile - loop up to newline.
 
     const size_t num_read_line = getline((char**)&linep, &linesize, snptxtfile) - 1;
-    if (!linep || num_read_line > num_read) {
-      printf("Error: memory\n");
+    if (!linep || num_read_line > linesize) {
+      fprintf(stderr, "Error: memory %zu %zu\n", num_read_line, linesize);
       return 1;
     }
 

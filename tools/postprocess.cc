@@ -157,11 +157,13 @@ int main(int argc, char** argv) {
         return 1;
       }
 
+      //fprintf(stderr, "%i %i\n", num_way, lineno[way_num]);
+
       num_read = fread(&allele_label[way_num], sizeof(unsigned char),
         allele_label_len, allele_label_file);
       if (allele_label_len != num_read) {
-        fprintf(stderr, "Error: error reading file. 5 %s\n",
-                metricsbinfilename);
+        fprintf(stderr, "Error: error reading file. 5 %s  %i\n",
+                metricsbinfilename, lineno[way_num]);
         return 1;
       }
 
