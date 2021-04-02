@@ -332,6 +332,8 @@ double bad_node_penalty() {
 
   return false ? 1
 
+       : strcmp(name, "h41n17") == 0 ? 1e3 - .01 // nonfunctioning burst buffer
+
        : strcmp(name, "a04n08") == 0 ? 1e3 - .01
        : strcmp(name, "a07n16") == 0 ? 1e3 - .02
        : strcmp(name, "a13n10") == 0 ? 1e3 - .03

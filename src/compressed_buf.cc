@@ -200,7 +200,8 @@ void CompressedBuf::compress() {
 
   do_compress_ = estimated_storage_compressed <
     compression_factor_required_() * storage_uncompressed;
-//printf("///////////////////// %i   %i %i\n", (int)num_nonzeros_approx_, (int)estimated_storage_compressed, (int)storage_uncompressed);
+//printf("///////////////////// %i   %i %i   %i\n", (int)num_nonzeros_approx_, (int)estimated_storage_compressed, (int)storage_uncompressed, do_compress_);
+//  do_compress_ = true; //FIX
 
   if (!do_compress_)
     return;
@@ -304,11 +305,11 @@ void CompressedBuf::from_accel_start() {
         buf_->from_accel_start();
 #   endif
 
-  } else {
+  } else { // ! do_compress_
 
     buf_->from_accel_start();
 
-  }
+  } // if (do_compress_)
 }
 
 //-----------------------------------------------------------------------------
@@ -361,12 +362,12 @@ void CompressedBuf::from_accel_wait() {
 //          (double)(((MFTTypeIn*)(buf_->h))[i]));
 //    }
 
-  } else {
+  } else { // ! do_compress_
 
     buf_->from_accel_wait();
 
 
-  }
+  } // if (do_compress_)
 }
 
 //-----------------------------------------------------------------------------
@@ -377,9 +378,9 @@ void CompressedBuf::lock_h() {
   if (do_compress_) {
     keys_alias_buf_.lock_h();
     lengths_alias_buf_.lock_h();
-  } else {
+  } else { // ! do_compress_
     buf_->lock_h();
-  }
+  } // if (do_compress_)
 }
 
 //-----------------------------------------------------------------------------
@@ -390,9 +391,9 @@ void CompressedBuf::unlock_h() {
   if (do_compress_) {
     keys_alias_buf_.unlock_h();
     lengths_alias_buf_.unlock_h();
-  } else {
+  } else { // ! do_compress_
     buf_->unlock_h();
-  }
+  } // if (do_compress_)
 }
 
 //=============================================================================

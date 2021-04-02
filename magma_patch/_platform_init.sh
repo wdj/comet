@@ -894,7 +894,7 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   #local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
-  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80;-arch=sm_80"
 
   local USE_CUTLASS=ON
   #local COMET_CUTLASS_ARCH=Sm80
@@ -932,8 +932,14 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
 
   module load GCC # 9.3.0
   module load CUDA # 11.??
+  #module use /p/scratch/share/cuda-share/modulefiles
+  #module load CUDA # 11.2
   module load CMake
-  module load OpenMPI # 4.1.0rc1
+  if [ $COMET_CAN_USE_MPI = ON ] ; then
+    module load OpenMPI # 4.1.0rc1
+    #module use /p/project/gronor/joubert1/modulefiles
+    #module load OpenMPI/4.1.0rc1_modified
+  fi
   module list
 
   #---Compiler.
@@ -955,6 +961,10 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
   #local USE_CUDA=OFF
   local USE_CUDA=ON
   #local CUDA_ROOT=$EBROOTCUDA
+  #local CUDA_ROOT=/p/project/gronor/joubert1/cuda-11.2
+  # see https://stackoverflow.com/questions/19980412/how-to-let-cmake-find-cuda
+  #export CUDA_BIN_PATH=$CUDA_ROOT
+  #export PATH=${PATH}:CUDA_ROOT/bin
   local COMET_CUDA_COMPILE_OPTS="-I$CUDA_ROOT/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/CUPTI/include"
   COMET_CUDA_COMPILE_OPTS+="-I$CUDA_ROOT/extras/Debugger/include"
@@ -963,7 +973,7 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   #local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"
-  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80"
+  COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-gencode;arch=compute_80,code=compute_80;-arch=sm_80"
 
   local USE_CUTLASS=ON
   #local USE_CUTLASS=OFF
