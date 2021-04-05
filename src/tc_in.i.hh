@@ -889,7 +889,7 @@ __global__ static void tc_compute_matX_counts_kernel_(
 
   const bool is_serialized = false; // for testing.
 
-  // Reduce across threadblocks along fl direction.
+  // Serially reduce across (threadblock+grid)-sized blocks along fl direction.
 
   if (!is_serialized) {
 
@@ -903,7 +903,7 @@ __global__ static void tc_compute_matX_counts_kernel_(
           jE, vl_thread, fl);
 
       sdata[fl_ind0] += elt;
-      fl += fl_dim1 * fl_dim0;
+      fl += fl_dim0 * fl_dim1;
     }
 
     // Reduce within threadblock.
@@ -914,7 +914,7 @@ __global__ static void tc_compute_matX_counts_kernel_(
         sdata[fl_ind0] += sdata[fl_ind0 + s];
     }
 
-    // First thread of threadblock adds in its contribution.
+    // First thread of each threadblock adds in its contribution.
 
     if (fl_ind0 == 0) {
       atomicAdd(&(matX_counts[vlX2_thread]), sdata[0]);

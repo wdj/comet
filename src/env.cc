@@ -684,16 +684,16 @@ bool CEnv::can_run(int tc_try) const {
     // ISSUE: may need to adjust HIP compute capability here.
     // FIX: Temporary code below for testing mockup code on summit.
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
+    result = result && ((BuildHas::CUDA && (BuildHas::CUTLASS && System::compute_capability() >= 700))
                      || (BuildHas::HIP && System::compute_capability() >= cc_minone))
                     ; // && can_use_xor_(tc_try);
   }
 
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT8 == tc_try) {
+  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT4 == tc_try) {
     // ISSUE: may need to adjust HIP compute capability here.
     // FIX: Temporary code below for testing mockup code on summit.
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
-    result = result && ((BuildHas::CUDA && System::compute_capability() >= 700)
+    result = result && ((BuildHas::CUDA && (BuildHas::CUTLASS && System::compute_capability() >= 700))
                      || (BuildHas::HIP && System::compute_capability() >= cc_minone))
                     ; // && can_use_xor_(tc_try);
     if(printdetails) printf("Check Int1 result=%d compute_capability=%d can_use_xor=%d\n",

@@ -62,8 +62,13 @@ typedef struct {
   int pad1;
   void* __restrict__ data;
   size_t data_size;
-  bool has_buf;
-  MirroredBuf* buf;
+  bool has_buf_;
+  bool has_buf() const {return has_buf_;}
+  MirroredBuf* buf_;
+  MirroredBuf* buf() const {
+    COMET_INSIST(has_buf_);
+    return buf_;
+  };
   GMDecompMgr* dm;
 } GMVectors;
 
@@ -276,6 +281,20 @@ static GMBits2x64* GMVectors_bits2x64_ptr(GMVectors* vectors,
     vectors->num_packedfield_local*(size_t)vector_local;
 
   return ((GMBits2x64*)(vectors->data)) + index;
+}
+
+//-----------------------------------------------------------------------------
+
+__host__ __device__
+static size_t GMVectors_index(int packedfield_local,
+                              int vector_local,
+                              int num_packedfield_local) {
+  // This function accesses an entire packed value.
+
+  const size_t index = packedfield_local +
+    num_packedfield_local*(size_t)vector_local;
+
+  return index;
 }
 
 //-----------------------------------------------------------------------------

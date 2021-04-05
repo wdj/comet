@@ -57,6 +57,16 @@ function main
 
   time make -j4 VERBOSE=1
 
+  #pushd ./install_dir/bin
+  #local FILE
+  #for FILE in $(cd $REPO_DIR/tools; ls *.cc) ; do
+  #  g++ -o $(basename $FILE .cc) $REPO_DIR/tools/$FILE
+  #done
+  #for FILE in $(cd $REPO_DIR/tools; ls *.sh) ; do
+  #  cp $REPO_DIR/tools/$FILE .
+  #done
+  #popd
+
   if [ $? != 0 ] ; then
     exit $?
   fi

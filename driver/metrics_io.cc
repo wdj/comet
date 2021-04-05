@@ -420,16 +420,19 @@ static void MetricsIO_write_(
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active)
         continue;
+
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
 
       if (!env->pass_threshold(value))
         continue;
+
       /// Output the value.
       if (stdout == file)
         fprintf(file, "element (%li,%li): value: %.17e\n",
           iG, jG, value);
       else
         writer.write(iG, jG, value);
+
     } // for index
 
     num_written_ += writer.num_written();
@@ -449,7 +452,9 @@ static void MetricsIO_write_(
           jG >= metrics->num_vector_active ||
           kG >= metrics->num_vector_active)
         continue;
+
       const auto value = Metrics_elt_const<GMFloat>(*metrics, index, *env);
+
       if (!env->pass_threshold(value))
         continue;
 
@@ -459,10 +464,12 @@ static void MetricsIO_write_(
           iG, jG, kG, value);
       else
         writer.write(iG, jG, kG, value);
+
     } // for index
 
     num_written_ += writer.num_written();
 
+#if 0
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2 &&
              stdout != file) {
@@ -473,6 +480,7 @@ static void MetricsIO_write_(
     // Special code to handle this faster.
 
     MetricsIO_write_tally2x2_bin_(metrics, file, num_written_, env);
+#endif
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY2X2) {
@@ -480,19 +488,17 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NumWay::_2);
     COMET_INSIST(env->is_metric_type_bitwise());
 
-    //MetricIO writer(file, *metrics, *env);
+    MetricIO writer(file, *metrics, *env);
 
-    size_t index = 0;
-    for (index = 0; index < metrics->num_metrics_local; ++index) {
+    for (size_t index = 0; index < metrics->num_metric_items_local_computed;
+         ++index) {
       const MetricItemCoords_t coords = metrics->coords_value(index);
       const size_t iG = CoordsInfo::getiG(coords, *metrics, *env);
       const size_t jG = CoordsInfo::getjG(coords, *metrics, *env);
-//      const size_t iG = Metrics_coords_getG(*metrics, index, 0, *env);
-//      const size_t jG = Metrics_coords_getG(*metrics, index, 1, *env);
       if (iG >= metrics->num_vector_active ||
           jG >= metrics->num_vector_active)
         continue;
-      int num_out_this_line = 0;
+      //int num_out_this_line = 0;
       for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
            ++entry_num) {
         const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
@@ -502,25 +508,27 @@ static void MetricsIO_write_(
         //  index, iE, jE, *env);
         const GMFloat value = Metrics_ccc_duo_get_2(*metrics,
           index, entry_num, *env);
+
         if (!env->pass_threshold(value))
           continue;
 
         // Output the value.
+        if (stdout == file)
+          fprintf(file, "element (%li,%li) (%i,%i): value: %.17e\n",
+            iG, jG, iE, jE, value);
+        else
+          writer.write(iG, jG, iE, jE, value);
 
-        if (num_out_this_line == 0)
-          fprintf(file, "element (%li,%li): values:", iG, jG);
-
-        fprintf(file, " %i %i %.17e", iE, jE, value);
-
-        num_out_this_line++;
+        //num_out_this_line++;
 
       } // for entry_num
-      if (num_out_this_line > 0)
-        fprintf(file, "\n");
+      //if (num_out_this_line > 0)
+      //  fprintf(file, "\n");
     } // for index
 
-    //num_written_ += writer.num_written();
+    num_written_ += writer.num_written();
 
+#if 0
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2 &&
              stdout != file) {
@@ -531,6 +539,7 @@ static void MetricsIO_write_(
     // Special code to handle this faster.
 
     MetricsIO_write_tally4x2_bin_(metrics, file, num_written_, env);
+#endif
 
   //----------
   } else if (env->data_type_metrics() == GM_DATA_TYPE_TALLY4X2) {
@@ -538,7 +547,7 @@ static void MetricsIO_write_(
     COMET_INSIST(env->num_way() == NumWay::_3);
     COMET_INSIST(env->is_metric_type_bitwise());
 
-    //MetricIO writer(file, *metrics, *env);
+    MetricIO writer(file, *metrics, *env);
 
     for (size_t index = 0; index < metrics->num_metric_items_local_computed;
          ++index) {
@@ -550,37 +559,42 @@ static void MetricsIO_write_(
           jG >= metrics->num_vector_active ||
           kG >= metrics->num_vector_active)
         continue;
-      int num_out_this_line = 0;
+      //int num_out_this_line = 0;
       for (int entry_num = 0; entry_num < env->num_entries_per_metric_item();
            ++entry_num) {
         const int iE = CoordsInfo::getiE(coords, entry_num, *metrics, *env);
         const int jE = CoordsInfo::getjE(coords, entry_num, *metrics, *env);
         const int kE = CoordsInfo::getkE(coords, entry_num, *metrics, *env);
 
-        //const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
-        //  index, iE, jE, kE, *env);
         const GMFloat value = Metrics_ccc_duo_get_3(*metrics,
           index, entry_num, *env);
+
+//if(iG==4 && jG==5 && kG==7) printf("%zu %i %.20e  %i   %i\n", index, entry_num, (double)value, env->pass_threshold(value), (int)writer.num_written());
 
         if (!env->pass_threshold(value))
           continue;
 
         // Output the value.
+        if (stdout == file)
+          fprintf(file, "element (%li,%li,%li) (%i,%i,%i): value: %.17e\n",
+            iG, jG, kG, iE, jE, kE, value);
+        else
+          writer.write(iG, jG, kG, iE, jE, kE, value);
 
-        if (num_out_this_line == 0)
-          fprintf(file, "element (%li,%li,%li): values:",
-            iG, jG, kG);
+        //if (num_out_this_line == 0)
+        //  fprintf(file, "element (%li,%li,%li): values:",
+        //    iG, jG, kG);
 
-        fprintf(file, " %i %i %i %.17e", iE, jE, kE, value);
+        //fprintf(file, " %i %i %i %.17e", iE, jE, kE, value);
 
-        num_out_this_line++;
+        //num_out_this_line++;
 
       } // for entry_num
-      if (num_out_this_line > 0)
-        fprintf(file, "\n");
+      //if (num_out_this_line > 0)
+      //  fprintf(file, "\n");
     } // for index
 
-    //num_written_ += writer.num_written();
+    num_written_ += writer.num_written();
 
   //----------
   } else {
@@ -715,8 +729,8 @@ void MetricsIO::check_file(GMMetrics& metrics) {
 
       if (num_incorrect < 10 && !is_correct)
         fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu actual %.17e expected %.17e pass_threshold %i\n",
-          iG, jG, (double)metric_value, (double)metric.value, pass_threshold);
+          "element %zu %zu  %i %i actual %.17e expected %.17e pass_threshold %i\n",
+          iG, jG, iE, jE, (double)metric_value, (double)metric.value, pass_threshold);
 
     } else { // if (env_.num_way() == NumWay::_3)
 
@@ -756,9 +770,10 @@ void MetricsIO::check_file(GMMetrics& metrics) {
       num_incorrect += !is_correct;
 
       if (!is_correct && num_incorrect < 10)
+//fprintf(stderr, ">>> %i %.20e\n", (int)index, (double)metric_value);
         fprintf(stderr, "Incorrect metric value: "
-          "element %zu %zu %zu actual %.17e expected %.17e pass_threshold %i\n",
-          iG, jG, kG, (double)metric_value, (double)metric.value, pass_threshold);
+          "element %zu %zu %zu  %i %i %i actual %.17e expected %.17e pass_threshold %i\n",
+          iG, jG, kG, iE, jE, kE, (double)metric_value, (double)metric.value, pass_threshold);
 
     } // if (env_.num_way() == NumWay::_2)
 

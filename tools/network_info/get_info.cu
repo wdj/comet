@@ -258,14 +258,18 @@ int main(int argc, char *argv[])
   memset(clbuf, 0, sizeof(clbuf));
   memset(hnbuf, 0, sizeof(hnbuf));
   (void)gethostname(hnbuf, sizeof(hnbuf));
-  #pragma omp parallel private(thread, coremask, clbuf)
+
+  int nthreads = omp_get_max_threads();
+  printf("rank=%d nthreads=%d\n",commRank,nthreads);
+
+#pragma omp parallel private(thread, coremask, clbuf)
   {
     thread = omp_get_thread_num();
     (void)sched_getaffinity(0, sizeof(coremask), &coremask);
     cpuset_to_cstr(&coremask, clbuf);
-    #pragma omp barrier
-    printf("Hello from rank %d, thread %d, on %s. (core affinity = %s)\n",
-            commRank, thread, hnbuf, clbuf);
+#pragma omp barrier
+    printf("Hello from rank %d, thread %d/%d, on %s. (core affinity = %s)\n",
+            commRank, thread, nthreads, hnbuf, clbuf);
   }
   MPI_Barrier(MPI_COMM_WORLD);
 

@@ -181,6 +181,7 @@ double Checksum::metrics_elt(
       // ensure result independent of is_threshold_tc
       if (!env.is_double_prec())
         value = (double)(float)value;
+//if (!!value) printf("%f\n", value); //FIX
     } break;
     // --------------
     case GM_DATA_TYPE_TALLY4X2: {
