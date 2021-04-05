@@ -548,7 +548,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
   // Make the appropriate BLAS call.
 
-  const bool is_timing_gemm = false; // true;
+  const bool is_timing_gemm = false; //System::is_proc_num_0(); //false; // true;
 
   if (is_timing_gemm)
     env.stream_synchronize(env.stream_compute());

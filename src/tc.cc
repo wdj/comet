@@ -92,7 +92,9 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
   // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
 
   const size_t result = !env.is_metric_type_bitwise() ? 1 :
-    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4;
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4;
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 256;
+    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64;
 
   return result;
 }
@@ -221,8 +223,11 @@ static void tc_gemm_start_impl_(
 
   const int num_tc_steps = env.num_tc_steps();
 
+//double t1, t2;
   // Loop over steps of algorithm.
   for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
+
+//t1 = env.synced_time();
 
     // Select the block row of the left and right matrices for this step.
     const int pfl_min = (((tc_step_num+0) * (npfl/d)) / num_tc_steps) * d;
@@ -243,15 +248,22 @@ static void tc_gemm_start_impl_(
       npfl_thisstep, pfl_min, nfal, (TCWord_t*)matB, (TCWord_t*)matB,
       tc_bufs, step_2way, env);
 
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("1 %.20f %.20f\n", (t2-t1), (double)t2);
+//t1 = env.synced_time();
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
+//for (int i=0; i<10; ++i)
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matC, tc_bufs, env);
 
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("2 %.20f %.20f\n", (t2-t1), (double)t2);
   } // for
 
   // Postprocess GEMM results.
 
+//t1 = env.synced_time();
   if (env.is_threshold_tc()) {
 
     tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
@@ -265,6 +277,8 @@ static void tc_gemm_start_impl_(
       J, step_2way, env);
 
   }
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("3 %.20f %.20f\n", (t2-t1), (double)t2);
 }
 
 //=============================================================================
