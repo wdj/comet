@@ -686,7 +686,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
   }
   // Call WMMA 1-bit GEMM kernels
-  else if(env.num_kernel()>=1 && env.num_kernel()<20) {
+  else if(env.num_kernel()>=1 && env.num_kernel()<100) {
       enum {NUM_FL_PER_PVFL = 64};
       COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
@@ -731,11 +731,12 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
             (uint8_t*)tc_bufs.tc_buf_left, beta, (int32_t*)matC);
         } break;
         // Cutlass kernels
-        case 11: {
+        /*case 11: {
           if(env.print_details()) printf("Using Cutlass kernel 128x256x512\n");
           CutlassTCGemm1B<TCTBlockType::_128_256_512,
                           TCWarpType::_64_64_512,
-			  TCInstType::_8_8_128,2>(
+			  TCInstType::_8_8_128,
+			  TCOpType::Xor, 2>(
 	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
@@ -743,7 +744,8 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
           if(env.print_details()) printf("Using Cutlass kernel 256x128x512\n");
           CutlassTCGemm1B<TCTBlockType::_256_128_512,
 		          TCWarpType::_64_64_512,
-			  TCInstType::_8_8_128,2>(
+			  TCInstType::_8_8_128,
+			  TCOpType::Xor, 2>(
 	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
@@ -751,7 +753,8 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
           if(env.print_details()) printf("Using Cutlass kernel 128x128\n");
           CutlassTCGemm1B<TCTBlockType::_128_128_512,
 		          TCWarpType::_64_64_512,
-			  TCInstType::_8_8_128,2>(
+			  TCInstType::_8_8_128,
+			  TCOpType::Xor, 2>(
 	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
         } break;
@@ -759,43 +762,200 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
           if(env.print_details()) printf("Using Cutlass WMMA kernel 64x64\n");
           CutlassTCGemm1BWmma<TCTBlockType::_64_64_512,
 		              TCWarpType::_32_32_512,
-			      TCInstType::_8_8_128,2>(
+			      TCInstType::_8_8_128,
+			      TCOpType::Xor, 2>(
 	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
             (uint8_t*)tc_bufs.tc_buf_left, k, beta, (int32_t*)matC, n, env.stream_compute());
-        } break;
+        } break;*/
 #if defined COMET_USE_AMPERE
-        case 17: {
+        // Stages=2
+	/*case 15: {
           if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=2\n");
           CutlassTCGemm1B<TCTBlockType::_128_256_1024,
-		          TCWarpType::_64_64_1024,
-			  TCInstType::_16_8_256,2>(
-	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+			  TCOpType::Xor, 2>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;
-        case 18: {
+        case 16: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=256x128x1024 W=64x64x1024 I=16x8x256 NStages=2\n");
+          CutlassTCGemm1B<TCTBlockType::_256_128_1024,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+			  TCOpType::Xor, 2>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;*/
+	// Stages=3
+	case 17: {
           if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=3\n");
           CutlassTCGemm1B<TCTBlockType::_128_256_1024,
-		          TCWarpType::_64_64_1024,
-			  TCInstType::_16_8_256,3>(
-	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+			  TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	/*case 18: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=256x128x1024 W=64x64x1024 I=16x8x256 NStages=3\n");
+          CutlassTCGemm1B<TCTBlockType::_256_128_1024,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+			  TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	case 19: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=32x64x1024 I=16x8x256 NStages=3\n");
+          CutlassTCGemm1B<TCTBlockType::_128_256_1024,
+                          TCWarpType::_64_32_1024,
+                          TCInstType::_16_8_256,
+			  TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	case 20: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=32x32x1024 I=16x8x256 NStages=3\n");
+          CutlassTCGemm1B<TCTBlockType::_128_128_1024,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+			  TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	// Stages=4
+	case 21: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=64x64x1024 W=32x32x1024 I=16x8x256 NStages=4\n");
+          CutlassTCGemm1B<TCTBlockType::_64_64_1024,
+                          TCWarpType::_32_32_1024,
+                          TCInstType::_16_8_256,
+			  TCOpType::Xor, 4>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	// Stages=6
+	case 22: {
+	  if(env.print_details()) printf("Using Cutlass xor kernel TB=64x64x512 W=32x32x512 I=16x8x256 NStages=6\n");
+          CutlassTCGemm1B<TCTBlockType::_64_64_512,
+                          TCWarpType::_32_32_512,
+                          TCInstType::_16_8_256,
+			  TCOpType::Xor, 6>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	// Larger unlisted sizes
+	case 23: {
+	  if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x128x1024\n");
+          CutlassTCGemm1BTest<TCTBlockType::_128_256_1024,
+                          TCWarpType::_64_128_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	case 24: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=128x64x1024\n");
+          CutlassTCGemm1BTest<TCTBlockType::_128_256_1024,
+                          TCWarpType::_128_64_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	case 25: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=128x128x1024\n");
+          CutlassTCGemm1BTest<TCTBlockType::_128_256_1024,
+                          TCWarpType::_128_128_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	case 26: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x288x1024 W=64x96x1024\n");
+          CutlassTCGemm1BTest<TCTBlockType::_128_288_1024,
+                          TCWarpType::_64_96_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;*/
+        // Reasonable performance but not as good for large problems
+	/*case 27: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=160x256x1024 W=80x64x1024\n");
+          CutlassTCGemm1BTest<TCTBlockType::_160_256_1024,
+                          TCWarpType::_80_64_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+	case 28: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=160x288x1024 W=80x72x1024\n");
+          CutlassTCGemm1BTest<TCTBlockType::_192_224_1024,
+                          TCWarpType::_96_56_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;*/
+	case 29: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=160x288x1024 W=80x72x1024\n");
+          CutlassTCGemm1BTest<TCTBlockType::_128_256_1024,
+                          TCWarpType::_32_128_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+
+	// Other settings
+	/*case 48: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=3 Alt\n");
+          CutlassTCGemm1BTest<TCTBlockType::_128_256_1024,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+        case 49: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=3 Alt\n");
+          CutlassTCGemm1BSplitK<TCTBlockType::_128_256_1024,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Xor, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;*/
+#endif
+        // Multiply GEMMs
+#if defined COMET_USE_AMPERE
+	// Stages=3
+        case 50: {
+          if(env.print_details()) printf("Using Cutlass mult kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=3\n");
+          CutlassTCGemm1B<TCTBlockType::_128_256_1024,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Mult, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
+            (int32_t*)matC, n, env.stream_compute());
+        } break;
+
+	case 51: {
+          if(env.print_details()) printf("Using Cutlass kernel TB=256x128x1024 W=64x64x1024 I=16x8x256 NStages=3\n");
+          CutlassTCGemm1B<TCTBlockType::_256_128_1024,
+                          TCWarpType::_64_64_1024,
+                          TCInstType::_16_8_256,
+                          TCOpType::Mult, 3>(
+            n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;
 #endif
-	// Stages = 4 is invalid argument
-	/*case 19: {
-          if(env.print_details()) printf("Using Cutlass kernel TB=128x256x1024 W=64x64x1024 I=16x8x256 NStages=4\n");
-          CutlassTCGemm1B<TCTBlockType::_128_256_1024,
-		          TCWarpType::_64_64_1024,
-			  TCInstType::_16_8_256,4>(
-	    n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
-            (int32_t*)matC, n, env.stream_compute());
-        } break;*/
-	/*case 30: {
-          if(env.print_details()) printf("Using Cutlass kernel 128x256\n");
-          CutlassTCGemm1B_128x256(n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k,
-            (uint8_t*)tc_bufs.tc_buf_left, k, (int32_t*)matC, n, env.stream_compute());
-        } break;*/
-        default: {
+
+
+	default: {
           printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
              env.num_kernel());
           COMET_INSIST(false && "Failure to call GEMM function.");

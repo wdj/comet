@@ -285,7 +285,6 @@ EOF
   #COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_75,code=compute_75;-arch=sm_75"
 
   local USE_CUTLASS=ON
-  #local COMET_CUTLASS_ARCH=Sm75
   local COMET_COMPUTE_CAPABILITY=750
   #COMET_WERROR=OFF
 
@@ -866,7 +865,8 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   #---Modules etc.
 
   module load gcc # 8.3.0
-  module load cuda/11.0.2
+  #module load cuda/11.0.2
+  module load cuda/11.0.3
   module load cmake
   module load openmpi
   module list
@@ -901,12 +901,11 @@ elif [ $COMET_PLATFORM = CORI_GPU ] ; then
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_NVCC_FLAGS:STRING=-res-usage;--ptxas-options=-v;-Xptxas;-v;-gencode;arch=compute_80,code=compute_80;-arch=sm_80"
 
   local USE_CUTLASS=ON
-  #local COMET_CUTLASS_ARCH=Sm80
   local COMET_COMPUTE_CAPABILITY=800
   #COMET_WERROR=OFF
 
-  #local USE_MAGMA=OFF
-  local USE_MAGMA=ON
+  local USE_MAGMA=OFF
+  #local USE_MAGMA=ON
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
 

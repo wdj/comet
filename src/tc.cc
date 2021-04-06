@@ -98,7 +98,7 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
 
   const size_t result = !env.is_metric_type_bitwise() ? 1 :
     !(env.tc_eff() == TC::B1) ? 1 :
-    env.num_kernel()==24 ? 32 : 4;
+    (env.num_kernel()==104 || env.num_kernel()==151) ? 32 : 4;
 
   if(env.print_details()) printf("In faxis_divis_req result=%zu tc_eff=%d !env.is_metric_type_bitwise=%d num_kernel=%d\n",
     result,env.tc_eff(),!env.is_metric_type_bitwise(),env.num_kernel());
@@ -588,7 +588,7 @@ void tc_gemm_start(
   COMET_INSIST(env.is_metric_type_bitwise());
   COMET_INSIST(nfal <= 64 * k);
 
-  COMET_INSIST(env.num_kernel()>=20 || tc_bufs.tc_buf_left);
+  COMET_INSIST(env.num_kernel()>=100 || tc_bufs.tc_buf_left);
 
   COMET_INSIST(ldda1 == k && ldda2 == k && lddb == k); // always true here
 
@@ -627,7 +627,7 @@ void tc_gemm_start(
     case TC::B1: {
       if(env.print_details()) printf("rank=%d Calling TC::B1 GEMM num_kernel=%d mnk=%d,%d,%d\n",rank,env.num_kernel(),m,n,k);
       // General 1-bit kernels
-      if(env.num_kernel()<20) {
+      if(env.num_kernel()<100) {
         tc_gemm_start_impl_<TC::B1>(
           m, n, k, matA1, matA2, matB, matC, lddc,
           sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -635,19 +635,19 @@ void tc_gemm_start(
       }
       // CoMet 1-bit kernels
       else {
-        if(env.num_kernel()==20 || env.num_kernel()==25) {
+        if(env.num_kernel()==100 || env.num_kernel()==105) {
           tc_comet_int_gemm_start_impl_<TC::B1>(
             m, n, k, matA1, matA2, matB, matC, lddc,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             tc_bufs, nfal, step_2way, env);
         }
-        else if(env.num_kernel()>=21 && env.num_kernel()<=24) {
+        else if(env.num_kernel()>=101 && env.num_kernel()<=104) {
           tc_gemm_comet_start_impl_<TC::B1>(
             m, n, k, matA1, matA2, matB, matC, lddc,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             tc_bufs, nfal, step_2way, env);
         }
-        //else if(env.num_kernel()>=30) {
+        //else if(env.num_kernel()>=130) {
         //  tc_gemm_general_start_impl_<TC::B1>(
         //    m, n, k, matA1, matA2, matB, matC, lddc,
         //    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -685,7 +685,7 @@ void TCBufs::malloc(int num_vector_local,
   COMET_INSIST(!tc_bufs.tc_buf_left);
   COMET_INSIST(!tc_bufs.tc_buf_right);
 
-  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO || env.num_kernel() >= 20) {
+  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO || env.num_kernel() >= 100) {
     if(env.print_details()) printf("Skipping TCBufs malloc bitwise=%d tc_eff=%d\n",env.is_metric_type_bitwise(),env.tc_eff());
     return;
   }

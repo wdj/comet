@@ -891,14 +891,15 @@ public:
         // TODO: (possibly) implement more cases for 3-way
         (num_way() == NumWay::_3 && (can_threshold_tc_(tc_try) ||
                                      ComputeMethod::CPU == compute_method_))) &&
-        // Have Ampere use standard GEMM.
-        ((BuildHas::CUDA && compute_capability_cache_ <= 750) ||
-        //((BuildHas::CUDA && compute_capability_cache_ <= 800) ||
-         (ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try)) &&
-	//!(ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try)) &&
-        // Can only do if using 1-bit TC (check HW elsewhere) or if nonlinalg.
-        (can_use_xor_nonlinalg || TC::B1 == tc_try);
-     //printf("metric_type_=%d can_use_xor sparse=%d !can_use_threshold_detector=%d num_way=%d can_threshold_tc=%d can_use_xor_nonlinalg=%d TC::B1=%d tc_try=%d result=%d\n",
+      // Have Ampere use standard GEMM.
+      ((BuildHas::CUDA && compute_capability_cache_ <= 750) ||
+      //((BuildHas::CUDA && compute_capability_cache_ <= 800) ||
+       (ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try && 
+       ((num_kernel()>0 && num_kernel()<50) || (num_kernel()>=100 && num_kernel()<150)) )) &&
+      // !(ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try)) &&
+      // Can only do if using 1-bit TC (check HW elsewhere) or if nonlinalg.
+      (can_use_xor_nonlinalg || TC::B1 == tc_try);
+    //printf("metric_type_=%d can_use_xor sparse=%d !can_use_threshold_detector=%d num_way=%d can_threshold_tc=%d can_use_xor_nonlinalg=%d TC::B1=%d tc_try=%d result=%d\n",
     //       metric_type_,sparse(),!can_use_threshold_detector(tc_try),num_way(),can_threshold_tc_(tc_try),
     //     can_use_xor_nonlinalg,TC::B1,tc_try,result);
 
