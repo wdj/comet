@@ -438,7 +438,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //if(env_.print_details()) printf("rank=%d Sending right vectors to GPU end\n",rank);
 
     if (vars.is_compute_step && vars.do_compute_block &&
-        ! vars.is_right_aliased && ! env_.is_comm_gpu())
+        ! vars.is_right_aliased && ! env_.is_comm_gpu()) {
       env_.vec2_wait_timer.record();
       env_.vec2_wait_timer.start();
       vars.vectors_right_buf->to_accel_wait();
