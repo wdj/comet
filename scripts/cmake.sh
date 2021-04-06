@@ -383,7 +383,8 @@ function main
 
   if [ ${USE_CUTLASS:-OFF} = ON ] ; then
     echo "Copying CUTLASS ..."
-    local CUTLASS_VERSION=2.3.0
+    #local CUTLASS_VERSION=2.3.0
+    local CUTLASS_VERSION=2.5.0
     local CUTLASS_DIR=$BUILD_DIR/cutlass
     mkdir -p $CUTLASS_DIR
     if [ -e $REPO_DIR/tpls/cutlass-v${CUTLASS_VERSION}.tar.gz ] ; then
@@ -401,7 +402,6 @@ function main
     COMET_CUDA_COMPILE_OPTS+=" -Wno-strict-aliasing"
     COMET_CUDA_COMPILE_OPTS+=" -Wno-uninitialized"
     COMET_CUDA_COMPILE_OPTS+=" -DCOMET_USE_CUTLASS"
-    #COMET_CUDA_COMPILE_OPTS+=" -DCOMET_CUTLASS_ARCH=$COMET_CUTLASS_ARCH"
     COMET_CUDA_COMPILE_OPTS+=" -DCOMET_COMPUTE_CAPABILITY=$COMET_COMPUTE_CAPABILITY"
   fi
 

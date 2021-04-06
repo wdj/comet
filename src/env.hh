@@ -885,7 +885,8 @@ public:
         (num_way() == NumWay::_3 && (can_threshold_tc_(tc_try) ||
                                      ComputeMethod::CPU == compute_method_))) &&
       ((BuildHas::CUDA && compute_capability_cache_ <= 750) ||
-       (ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try)) &&
+       (ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try && 
+       ((num_kernel()>0 && num_kernel()<50) || (num_kernel()>=100 && num_kernel()<150)) )) &&
       // !(ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try)) &&
       // Can only do if using 1-bit TC (check HW elsewhere) or if nonlinalg.
       (can_use_xor_nonlinalg || TC::B1 == tc_try);
