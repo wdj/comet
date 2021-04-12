@@ -101,7 +101,7 @@ static size_t GMDecompMgr_get_vector_local_from_vector_active(
   GMDecompMgr* dm,
   size_t vector_active,
   CEnv* env) {
-  COMET_ASSERT(vector_active >= 0 && vector_active < dm->num_vector_active);
+  COMET_ASSERT(vector_active+1 >= 0+1 && vector_active < dm->num_vector_active);
 
   return vector_active % dm->num_vector_local;
 }
@@ -113,7 +113,7 @@ static size_t GMDecompMgr_get_proc_vector_from_vector_active(
   GMDecompMgr* dm,
   size_t vector_active,
   CEnv* env) {
-  COMET_ASSERT(vector_active >= 0 && vector_active < dm->num_vector_active);
+  COMET_ASSERT(vector_active+1 >= 0+1 && vector_active < dm->num_vector_active);
 
   return vector_active / dm->num_vector_local;
 }

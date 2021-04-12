@@ -53,10 +53,16 @@ MPI_Request gm_send_vectors_start(const GMVectors* vectors,
                                   CEnv* env) {
   COMET_INSIST(vectors && env);
   COMET_INSIST(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
+  COMET_INSIST(!(env->is_comm_gpu() && !vectors->has_buf()));
 
   MPI_Request mpi_request;
+//fprintf(stderr, "HEY1 %i %i %i\n", env->is_comm_gpu(), !!(void*)vectors->buf()->d, (int)vectors->num_packedfield_vector_local);
+//fprintf(stderr, "HEY1 %e\n", (double)(((float*)vectors->data)[0]));
 
-  COMET_MPI_SAFE_CALL(MPI_Isend((void*)vectors->data,
+  COMET_MPI_SAFE_CALL(MPI_Isend(
+    env->is_comm_gpu() ?
+      (void*)vectors->buf()->d :
+      (void*)vectors->data,
     vectors->num_packedfield_vector_local, env->metrics_mpi_type(), proc_num,
     mpi_tag, env->comm_repl_vector(), &mpi_request));
 
@@ -71,10 +77,15 @@ MPI_Request gm_recv_vectors_start(GMVectors* vectors,
                                   CEnv* env) {
   COMET_INSIST(vectors && env);
   COMET_INSIST(proc_num >= 0 && proc_num < env->num_proc_repl_vector());
+  COMET_INSIST(!(env->is_comm_gpu() && !vectors->has_buf()));
 
   MPI_Request mpi_request;
 
-  COMET_MPI_SAFE_CALL(MPI_Irecv((void*)vectors->data,
+//fprintf(stderr, "HEY2 %i %i %i\n", env->is_comm_gpu(), !!(void*)vectors->buf()->d, (int)vectors->num_packedfield_vector_local);
+  COMET_MPI_SAFE_CALL(MPI_Irecv(
+    env->is_comm_gpu() ?
+      (void*)vectors->buf()->d :
+      (void*)vectors->data,
     vectors->num_packedfield_vector_local, env->metrics_mpi_type(), proc_num,
     mpi_tag, env->comm_repl_vector(), &mpi_request));
 

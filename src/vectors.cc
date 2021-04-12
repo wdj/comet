@@ -191,15 +191,15 @@ void GMVectors_create_imp_(GMVectors* vectors,
 
   // Set up vector storage, mirrored buffer
 
-  vectors->buf = new MirroredBuf(*env);
+  vectors->buf_ = new MirroredBuf(*env);
 
-  if (vectors->has_buf) {
+  if (vectors->has_buf_) {
     if(env->print_details())
       printf("Allocating vectors with buf %dx%d\n",vectors->num_packedfield_local,
              vectors->num_vector_local);
-    vectors->buf->allocate(vectors->num_packedfield_local,
-                           vectors->num_vector_local);
-    vectors->data = vectors->buf->h; // alias vector storage to buf
+    vectors->buf_->allocate(vectors->num_packedfield_local,
+                            vectors->num_vector_local);
+    vectors->data = vectors->buf_->h; // alias vector storage to buf
   } else {
     if(env->print_details())
       printf("Allocating vectors size=%zu = %zu*%zu * (%d/%d)\n",vectors->data_size,
@@ -228,7 +228,7 @@ void GMVectors_create(GMVectors* vectors,
     return;
   }
 
-  vectors->has_buf = false;
+  vectors->has_buf_ = false;
 
   GMVectors_create_imp_(vectors, data_type_id, dm, env);
 }
@@ -248,7 +248,8 @@ void GMVectors_create_with_buf(GMVectors* vectors,
     return;
   }
 
-  vectors->has_buf = env->is_using_linalg();
+  //vectors->has_buf_ = env->is_using_linalg();
+  vectors->has_buf_ = true;
 
   GMVectors_create_imp_(vectors, data_type_id, dm, env);
 }
@@ -264,11 +265,11 @@ void GMVectors_destroy(GMVectors* vectors, CEnv* env) {
     return;
   }
 
-  if (!vectors->has_buf) {
+  if (!vectors->has_buf_) {
     gm_free(vectors->data, vectors->data_size, env);
   }
 
-  delete vectors->buf;
+  delete vectors->buf_;
 
   *vectors = GMVectors_null();
 }

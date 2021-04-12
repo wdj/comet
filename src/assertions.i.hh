@@ -76,6 +76,7 @@ static void insist(const char* condition_string, const char* file, int line,
               condition_string, file, line);
 #   endif
   }
+  //abort();
 
 # ifndef COMET_DEVICE_COMPILE
     trigger_test_harness_failure();

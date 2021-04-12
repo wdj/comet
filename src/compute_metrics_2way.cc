@@ -57,10 +57,12 @@ namespace comet {
 ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
   : env_(env) 
   , vectors_01_{}
+  , vectors_left_alt_{}
   , metrics_buf_0_(env)
   , metrics_buf_1_(env)
   , metrics_buf_01_{&metrics_buf_0_, &metrics_buf_1_}
-  , vectors_buf_(env)
+  //, vectors_left_buf_(env)
+  , vectors_left_alt_buf_(NULL)
   , metrics_tmp_buf_(env)
   , vector_sums_onproc_(dm.num_vector_local, env)
   , vector_sums_offproc_0_(env.all2all() ? dm.num_vector_local : 0, env)
@@ -79,7 +81,10 @@ ComputeMetrics2Way::ComputeMetrics2Way(GMDecompMgr& dm, CEnv& env)
     metrics_buf_01_[i]->allocate(dm.num_vector_local, dm.num_vector_local);
   }
 
-  vectors_buf_.allocate(dm.num_packedfield_local, dm.num_vector_local);
+  GMVectors_create_with_buf(&vectors_left_alt_, env_.data_type_vectors(),
+    &dm, &env_);
+  vectors_left_alt_buf_ = vectors_left_alt_.buf();
+  //vectors_left_buf_.allocate(dm.num_packedfield_local, dm.num_vector_local);
 
   if (env_.do_reduce())
     metrics_tmp_buf_.allocate(dm.num_vector_local, dm.num_vector_local);
@@ -97,6 +102,7 @@ ComputeMetrics2Way::~ComputeMetrics2Way() {
   for (int i = 0; i < NUM_BUF; ++i) {
     GMVectors_destroy(&vectors_01_[i], &env_);
   }
+  GMVectors_destroy(&vectors_left_alt_, &env_);
 }
 
 //-----------------------------------------------------------------------------
@@ -367,9 +373,10 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     vars_next.vectors_right = vars_next.is_right_aliased ?
       vectors_left : &vectors_01_[vars_next.index_01];
 
-    MirroredBuf* vectors_left_buf = &vectors_buf_;
+    //MirroredBuf* vectors_left_buf = &vectors_left_buf_;
+    MirroredBuf* vectors_left_alt_buf = vectors_left_alt_buf_;
     vars_next.vectors_right_buf = vars_next.is_right_aliased ?
-      vectors_left_buf : vectors_01_[vars_next.index_01].buf;
+      vectors_left_alt_buf : vectors_01_[vars_next.index_01].buf();
 
     VectorSums* vector_sums_left = &vector_sums_onproc_;
     vars_next.vector_sums_right = vars_next.is_right_aliased ?
@@ -379,7 +386,13 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
     vars_next.metrics_buf = metrics_buf_01_[vars_next.index_01];
 
-// TODO: move "Send left matrix to GPU" here if gpu direct.
+    //========== Send left matrix to GPU on first step - is_comm_gpu.
+
+    if (vars_next.is_first_compute_step && env_.is_comm_gpu()) {
+      gm_vectors_to_buf(vectors_left_alt_buf, vectors_left, &env_);
+      vectors_left_alt_buf->to_accel_start();
+      vectors_left_alt_buf->to_accel_wait();
+    }
 
     //========== MPI sends, receives - START
 
@@ -406,6 +419,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
 
       GMVectors* vectors_send = env_.is_comm_ring() && ! is_first_comm_step ?
         &vectors_01_[1-vars_next.index_01] :
+        env_.is_comm_gpu() ? &vectors_left_alt_ :
         vectors_left;
 
       // Initiate sends/recvs for vecs needed on next step
@@ -424,27 +438,27 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //if(env_.print_details()) printf("rank=%d Sending right vectors to GPU end\n",rank);
 
     if (vars.is_compute_step && vars.do_compute_block &&
-        ! vars.is_right_aliased) {
+        ! vars.is_right_aliased && ! env_.is_comm_gpu()) {
       env_.vec2_wait_timer.record();
       env_.vec2_wait_timer.start();
       vars.vectors_right_buf->to_accel_wait();
       env_.vec2_wait_timer.end();
     }
 
-    //========== Send left matrix to GPU on first step.
+    //========== Send left matrix to GPU on first step - ! is_comm_gpu.
     //if(env_.print_details()) printf("rank=%d Sending left vecs to GPU\n",rank);
-
-    if (vars_next.is_first_compute_step) {
-      gm_vectors_to_buf(vectors_left_buf, vectors_left, &env_);
+    //
+    if (vars_next.is_first_compute_step && !env_.is_comm_gpu()) {
+      gm_vectors_to_buf(vectors_left_alt_buf, vectors_left, &env_);
       env_.vec1_to_gpu_timer.record();
       env_.vec1_to_gpu_timer.start();
-      vectors_left_buf->to_accel_start();
+      vectors_left_alt_buf->to_accel_start();
       env_.vec1_to_gpu_timer.end();
       // TODO: examine whether overlap possible.
       // May not be possible for general repl and phase (??).
       env_.vec1_wait_timer.record();
       env_.vec1_wait_timer.start();
-      vectors_left_buf->to_accel_wait();
+      vectors_left_alt_buf->to_accel_wait();
       env_.vec1_wait_timer.end();
     }
 
@@ -455,19 +469,34 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     const int compute_sums_this = 0; //FIX env_.is_threshold_tc() ? 0 : 1;
 
     if (0 == compute_sums_this) { // needed here for is_threshold_tc
-      if (vars.is_compute_step && vars.do_compute_block) {
-        //TODO: possibly move this
-        if (vars.is_first_compute_step) {
-          vector_sums_left->compute(*vectors_left);
-          if (env_.is_threshold_tc())
-            vector_sums_left->to_accel();;
+      if (env_.is_comm_gpu()) {
+        if (vars.is_compute_step && vars.do_compute_block) {
+          if (vars.is_first_compute_step) {
+            vector_sums_left->compute_accel(vectors_left_alt_, env_.stream_fromgpu());
+            vector_sums_left->from_accel();
+          }
+          if (! vars.is_main_diag) {
+            //env_.stream_synchronize(env_.stream_fromgpu());
+            vars.vector_sums_right->compute_accel(*vars.vectors_right, env_.stream_fromgpu());
+            vars.vector_sums_right->from_accel();
+//fprintf(stderr, "HEY20 %e  %i\n", (double) vars.vector_sums_right->sum(0), step_num);
+          }
         }
-        if (! vars.is_main_diag) {
-          vars.vector_sums_right->compute(*vars.vectors_right);
-          if (env_.is_threshold_tc())
-            vars.vector_sums_right->to_accel();
+      } else { // ! env_.is_comm_gpu()
+        if (vars.is_compute_step && vars.do_compute_block) {
+          //TODO: possibly move this
+          if (vars.is_first_compute_step) {
+            vector_sums_left->compute(*vectors_left);
+            if (env_.is_threshold_tc())
+              vector_sums_left->to_accel();
+          }
+          if (! vars.is_main_diag) {
+            vars.vector_sums_right->compute(*vars.vectors_right);
+            if (env_.is_threshold_tc())
+              vars.vector_sums_right->to_accel();
+          }
         }
-      }
+      } // if (env_.is_comm_gpu())
     }
 
     //========== Perform pseudo GEMM - START
@@ -477,7 +506,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       env_.gemm_start_timer.start();
       ComputeMetrics2WayBlock::compute_nums_start(
         vectors_left, vars.vectors_right, &metrics,
-        vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
+        vectors_left_alt_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, magma_wrapper, &env_);
       env_.gemm_start_timer.end();
@@ -528,6 +557,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //if(env_.print_details()) printf("rank=%d computing sums for denominators\n",rank);
 
     if (1 == compute_sums_this) { // put it here for speed on this arch
+      COMET_INSIST(! env_.is_comm_gpu());
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {
@@ -550,12 +580,15 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       gm_recv_vectors_wait(&(mpi_requests[1]), &env_);
       COMET_INSIST((!vars_next.is_right_aliased) &&
                "Next step should always compute off-diag block.");
+//vars_next.vectors_right->buf()->from_accel_start();
+//vars_next.vectors_right->buf()->from_accel_wait();
+//fprintf(stderr, "%e\n", (double)(((float*)vars_next.vectors_right->data)[0]));
     }
 
     //========== Send right matrix to GPU - START.
 
     if (vars_next.is_compute_step && vars_next.do_compute_block &&
-        ! vars_next.is_right_aliased) {
+        ! vars_next.is_right_aliased && ! env_.is_comm_gpu()) {
       // ISSUE: make sure not necessary if vars_next.is_right_aliased
       env_.vec2_to_gpu_timer.record();
       env_.vec2_to_gpu_timer.start();
@@ -570,7 +603,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
       env_.gemm_wait_timer.start();
       ComputeMetrics2WayBlock::compute_nums_wait(
         vectors_left, vars.vectors_right, &metrics,
-        vectors_left_buf, vars.vectors_right_buf, vars.metrics_buf,
+        vectors_left_alt_buf, vars.vectors_right_buf, vars.metrics_buf,
         vector_sums_left, vars.vector_sums_right,
         vars.j_block, vars.is_main_diag, &env_);
       env_.gemm_wait_timer.end();
@@ -587,6 +620,7 @@ void ComputeMetrics2Way::compute_all2all_(GMMetrics& metrics,
     //========== Compute sums for denominators: case 2
 
     if (2 == compute_sums_this) { // put it here for speed on this arch
+      COMET_INSIST(! env_.is_comm_gpu());
       if (vars.is_compute_step && vars.do_compute_block) {
         //TODO: possibly move this
         if (vars.is_first_compute_step) {

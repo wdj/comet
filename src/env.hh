@@ -187,6 +187,12 @@ struct BuildHas {
     enum {CUDA = false};
 # endif
 
+# ifdef COMET_USE_CUTLASS
+    enum {CUTLASS = true};
+# else
+    enum {CUTLASS = false};
+# endif
+
 # ifdef COMET_USE_HIP
     enum {HIP = true};
 # else
@@ -881,22 +887,34 @@ public:
       !can_use_threshold_detector(tc_try) &&
       // xor 3-way requires is_vectors_halved, thus also can_threshold_tc.
       (num_way() == NumWay::_2 ||
+        // Implementation limits.
         // TODO: (possibly) implement more cases for 3-way
         (num_way() == NumWay::_3 && (can_threshold_tc_(tc_try) ||
                                      ComputeMethod::CPU == compute_method_))) &&
+      // Have Ampere use standard GEMM.
       ((BuildHas::CUDA && compute_capability_cache_ <= 750) ||
-       (ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try)) &&
+      //((BuildHas::CUDA && compute_capability_cache_ <= 800) ||
+       (ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try && 
+       ((num_kernel()>0 && num_kernel()<50) || (num_kernel()>=100 && num_kernel()<150)) )) &&
       // !(ComputeMethod::GPU == compute_method_ && TC::B1 == tc_try)) &&
       // Can only do if using 1-bit TC (check HW elsewhere) or if nonlinalg.
       (can_use_xor_nonlinalg || TC::B1 == tc_try);
     //printf("metric_type_=%d can_use_xor sparse=%d !can_use_threshold_detector=%d num_way=%d can_threshold_tc=%d can_use_xor_nonlinalg=%d TC::B1=%d tc_try=%d result=%d\n",
     //       metric_type_,sparse(),!can_use_threshold_detector(tc_try),num_way(),can_threshold_tc_(tc_try),
-    //	   can_use_xor_nonlinalg,TC::B1,tc_try,result);
+    //     can_use_xor_nonlinalg,TC::B1,tc_try,result);
+
     return result;
   }
 
   // Do we use 1-bit xor gemm.
   int is_using_xor() const {return can_use_xor_(tc_eff());}
+
+  // Do we use GPUDirect or similar.
+  int is_comm_gpu() const {
+    const bool try_comm_gpu = false; // true; // change this to en/disable.
+    return try_comm_gpu && ComputeMethod::GPU == compute_method_ &&
+           num_way() == NumWay::_2 && !do_reduce();
+  }
 
   // Misc.
 

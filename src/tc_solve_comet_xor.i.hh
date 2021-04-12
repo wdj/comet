@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tc_solve_cutlass_nvidia.i.hh"
 #include "tc_solve_cutlass_warp.i.hh"
+#include "tc_solve_comet_mult.i.hh"
 
 // GPU bit count routine
 #define gm_popcount64(x) __popcll(x)
@@ -306,7 +307,7 @@ static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
 
   switch(env.num_kernel()) {
     // Basic GEMM
-    case 20: {
+    case 100: {
       if(env.print_details()) printf("Calling b1_comet_xor_gemm_gpu_int_simple kernel\n");
       COMET_LAUNCH_KERNEL(b1_comet_xor_gemm_gpu_int_simple,
         dim3(gridblockx, gridblocky, 1),
@@ -316,7 +317,7 @@ static void tc_solve_comet_int_impl(bool is_first, int m, int n, int k,
     } break;
 
     // Optimized Cutlass GEMM that outputs ints
-    case 25: {
+    case 105: {
       if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass_int\n");     
       tc_solve_comet_impl_cutlass_int(m,n,k,(GMBits2x64*)matA,
         (GMBits2x64*)matB, (int32_t*)matC);
@@ -357,7 +358,7 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel - Col major version
 
-/*__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
+__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
 
   // Block and thread indices
@@ -458,10 +459,10 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
   }
 
   // Each thread writes one element of block sub-matrix to memory
-  //int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
-  //int cInd   = cBegin + tx*n + ty;
-  int cBegin = n*by*BLOCK_SIZE+bx*BLOCK_SIZE;
-  int cInd   = cBegin + ty*n + tx;
+  int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
+  int cInd   = cBegin + tx*n + ty;
+  //int cBegin = n*by*BLOCK_SIZE+bx*BLOCK_SIZE;
+  //int cInd   = cBegin + ty*n + tx;
   if(beta) {
     //printf("cInd=%d cdata0=%f cdata1=%f c0=%f c1=%f\n",cInd,c[cInd].data[0],c[cInd].data[1],c0,c1); 
     c[cInd].data[0] += c0;
@@ -472,12 +473,12 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
   }
   //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
   //       bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
-}*/
+}
 
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel
 
-__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
+__global__ void b1_comet_xor_gemm_gpu_simple2(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
 
   // Block and thread indices
@@ -1106,14 +1107,13 @@ __global__ void b1_comet_xor_gemm_gpu_tc_opt(int m, int n, int k,
 /// \brief Perform required GEMM.
 
 template<int TC_METHOD>
-static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
+static void tc_solve_comet_xor_impl(bool is_first, int m, int n, int k,
   const void *matA, const void *matB, void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
-  if(env.print_details()) printf("\nIn tc_solve_comet_impl mnk=%d,%d,%d num_kernel=%d\n",
+  if(env.print_details()) printf("\nIn tc_solve_comet_xor_impl mnk=%d,%d,%d num_kernel=%d\n",
     m,n,k,env.num_kernel());
-  //double tbegin = env.get_cpu_time();
 
   const bool beta = is_first ? 0 : 1;
   int threadblockx, threadblocky, gridblockx, gridblocky;
@@ -1128,7 +1128,7 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
 
   switch(env.num_kernel()) {
     // Basic GEMM
-    case 21: {
+    case 101: {
       threadblockx = BLOCK_SIZE; threadblocky = BLOCK_SIZE;
       gridblockx = (int)ceil((double)m/threadblockx);
       gridblocky = (int)ceil((double)n/threadblocky);
@@ -1146,7 +1146,7 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
     } break;
 
     // Simple tensor core GEMM
-    case 22: {
+    case 102: {
       threadblockx = 8; threadblocky = 4;
       gridblockx = (int)ceil((double)m/threadblockx);
       gridblocky = (int)ceil((double)n/threadblockx);
@@ -1165,7 +1165,7 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
    } break;
 
     // Optimized tensor core GEMM
-    case 23: {
+    case 103: {
       threadblockx = 8; threadblocky = 4;
       gridblockx = (int)ceil((double)m/threadblockx);
       gridblocky = (int)ceil((double)n/threadblockx);
@@ -1178,12 +1178,12 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
     } break;
 
     // Nvidia optimized Cutlass GEMM
-    case 24: {
+    case 104: {
       if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass\n");
-      tc_solve_comet_impl_cutlass(m,n,k,(GMBits2x64*)matA,
-        (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
-      //tc_solve_comet_impl_cutlass(n,m,k,(GMBits2x64*)matB,
-      //  (GMBits2x64*)matA, beta, (GMTally2x2*)matC);
+      //tc_solve_comet_impl_cutlass(m,n,k,(GMBits2x64*)matA,
+      //  (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
+      tc_solve_comet_impl_cutlass(n,m,k,(GMBits2x64*)matB,
+        (GMBits2x64*)matA, beta, (GMTally2x2*)matC);
     } break;
 
     // Output error for invalid choice
@@ -1197,14 +1197,13 @@ static void tc_solve_comet_impl(bool is_first, int m, int n, int k,
   env.gemm_timer.end();
 
   int err = cudaGetLastError();
-  if(env.print_details()) printf("tc_solve_comet_impl computed 1-bit GEMM with 2x%dx%dx%d=%lf operations\n",
+  if(env.print_details()) printf("tc_solve_comet_xor_impl computed 1-bit GEMM with 2x%dx%dx%d=%lf operations\n",
     2*m,2*n,k*64,2.0*(double)m*2.0*(double)n*2.0*(double)k*64.0);
-  //env.stream_synchronize(env.stream_compute());
+  env.stream_synchronize(env.stream_compute());
   System::accel_last_call_succeeded();
   env.ops_gemm_local_inc(2.0 * (double)m*2.0 * (double)n*2.0 * (double)k*64.0);
   env.ops_local_inc(2.0 * (double)m*2.0 * (double)n*2.0 * (double)k*64.0);
 
-  //env.gemmtime_inc(env.get_cpu_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------
@@ -1228,7 +1227,11 @@ void tc_solve_comet_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
   const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
 
   if(env.print_details()) printf("In tc_solve_comet_ calling tc_solve_comet_impl with mnk=%d,%d,%d nvll=%d nvl=%d\n",m,n,k,nvll,nvl);
-  tc_solve_comet_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+  if(env.num_kernel() < 150) {
+    tc_solve_comet_xor_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+  } else {
+    tc_solve_comet_mult_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+  }
 }
 
 //=============================================================================

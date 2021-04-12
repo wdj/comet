@@ -302,28 +302,32 @@ int get_node_id() {
 
   for (size_t i=len-1; i>=0; --i) {
     int c = name[i];
-    if (c >= '0' && c <= '9') {
+    if (c >= '0' && c <= '9')
       break;
-    }
     name[i] = 0;
   }
 
   int node_id = 1;
   for (size_t i=0; i<len; ++i) {
-    if (! name[i]) {
+    if (! name[i])
       break;
-    }
     int c = name[i];
-    if (c >= '0' && c <= '9') {
+#ifdef COMET_PLATFORM_JUWELS_BOOSTER
+    if (!(c >= '0' && c <= '9'))
+      continue;
+#endif
+    if (c >= '0' && c <= '9')
       node_id = node_id * 10 + (c - '0');
-    }
-    if (c >= 'a' && c <= 'z') {
+    if (c >= 'a' && c <= 'z')
       node_id = node_id * 26 + (c - 'a');
-    }
   }
+//printf("%i %s\n", node_id, name);
 
   return node_id;
 }
+
+
+
 
 //=============================================================================
 
@@ -333,6 +337,8 @@ double bad_node_penalty() {
   gethostname(name, len);
 
   return false ? 1
+
+       : strcmp(name, "h41n17") == 0 ? 1e3 - .01 // nonfunctioning burst buffer
 
        : strcmp(name, "a04n08") == 0 ? 1e3 - .01
        : strcmp(name, "a07n16") == 0 ? 1e3 - .02
@@ -498,10 +504,17 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     "--num_proc_vector %i --num_proc_field 1 "
     "--num_phase 1 --phase_min 0 --phase_max 0 --checksum no --verbosity 0"
     :
+#ifdef COMET_PLATFORM_JUWELS_BOOSTER
+          "--num_field 262144 --num_vector_local 12288 "
+          "--metric_type duo --sparse yes "
+          "--num_proc_vector %i --all2all no --num_way 2 "
+          "--compute_method GPU --tc 4 --verbosity 0";
+#else
     "--num_field 1280000 --num_vector_local 4000 --metric_type ccc --sparse no "
     "--all2all yes --compute_method GPU --num_proc_vector %i "
     "--num_proc_field 1 --num_phase 1 --phase_min 0 --phase_max 0 "
     "--checksum no --verbosity 0";
+#endif
 
   char options[1024];
   sprintf(options, options_template, ranks_in_node);
@@ -611,8 +624,14 @@ void perform_run_preflight(int argc, char** argv, int print_details) {
           "--metric_type czekanowski "
           "--num_proc_vector %i --all2all no --num_way 2 "
           "--compute_method GPU --verbosity 0" :
+
+#ifdef COMET_PLATFORM_JUWELS_BOOSTER
+          "--metric_type duo "
+          "--num_field 262144 --num_vector_local 12288 "
+#else
           "--num_field 768 --num_vector_local 768 "
           "--metric_type ccc "
+#endif
           "--num_proc_vector %i --all2all no --num_way 2 "
           "--compute_method GPU --tc 4 --verbosity 0";
 

@@ -64,10 +64,12 @@ private:
   CEnv& env_;
 
   GMVectors vectors_01_[NUM_BUF];
+  GMVectors vectors_left_alt_;
   MirroredBuf metrics_buf_0_;
   MirroredBuf metrics_buf_1_;
   MirroredBuf* metrics_buf_01_[NUM_BUF];
-  MirroredBuf vectors_buf_;
+  MirroredBuf* vectors_left_alt_buf_;
+  //MirroredBuf vectors_left_buf_;
   MirroredBuf metrics_tmp_buf_;
   VectorSums vector_sums_onproc_;
   VectorSums vector_sums_offproc_0_;

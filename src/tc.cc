@@ -97,8 +97,11 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
   // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
 
   const size_t result = !env.is_metric_type_bitwise() ? 1 :
-    !(env.tc_eff() == TC::B1) ? 1 :
-    env.num_kernel()==24 ? 32 : 4;
+    ////!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4;
+    ////!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 256;
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64;
+    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 :
+    (env.num_kernel()==104 || env.num_kernel()==151) ? 32 : 64;
 
   if(env.print_details()) printf("In faxis_divis_req result=%zu tc_eff=%d !env.is_metric_type_bitwise=%d num_kernel=%d\n",
     result,env.tc_eff(),!env.is_metric_type_bitwise(),env.num_kernel());
@@ -247,8 +250,11 @@ static void tc_gemm_start_impl_(
 
   const int num_tc_steps = env.num_tc_steps();
 
+//double t1, t2;
   // Loop over steps of algorithm.
   for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
+
+//t1 = env.synced_time();
 
     // Select the block row of the left and right matrices for this step.
     const int pfl_min = (((tc_step_num+0) * (npfl/d)) / num_tc_steps) * d;
@@ -274,19 +280,27 @@ static void tc_gemm_start_impl_(
       tc_bufs, step_2way, env);
     env.pre_gemm_timer.end();
 
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("1 %.20f %.20f\n", (t2-t1), (double)t2);
+//t1 = env.synced_time();
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
     if(env.print_details()) printf("Calling tc_solve with step=%d is_first=%d mnk=%d,%d,%d nvll=%d nvl=%d npfl_thisstep=%d pfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
       tc_step_num,is_first,m,n,k,nvll,nvl,npfl_thisstep,pfl_min,pfl_max,I_max_dim,lddc);
+    //for (int i=0; i<10; ++i)
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matC, tc_bufs, env);
 
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("2 %.20f %.20f\n", (t2-t1), (double)t2);
   } // for
 
   // Postprocess GEMM results.
 
   env.post_gemm_timer.record();
   env.post_gemm_timer.start();
+  //t1 = env.synced_time();
+
   if (env.is_threshold_tc()) {
 
     if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
@@ -303,6 +317,8 @@ static void tc_gemm_start_impl_(
 
   }
   env.post_gemm_timer.end();
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("3 %.20f %.20f\n", (t2-t1), (double)t2);
 }
 
 //-----------------------------------------------------------------------------
@@ -388,7 +404,7 @@ static void tc_comet_int_gemm_start_impl_(
 
   } else {
 
-    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE\n");
+    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE with MF=%d\n",MetricFormat::PACKED_DOUBLE);
     tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
@@ -464,24 +480,22 @@ static void tc_gemm_comet_start_impl_(
   } // for
 
   // Postprocess GEMM results.
-  /*if(env.print_details()) printf("Calling postprocessing routine\n");
-  tbegin = env.get_gpu_time();
+  if(env.print_details()) printf("Calling postprocessing routine\n");
   if (env.is_threshold_tc()) {
 
-    if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
+    if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE MF=%d\n",MetricFormat::SINGLE);
     tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
 
   } else {
 
-    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE\n");
+    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE MF=%d\n",MetricFormat::PACKED_DOUBLE);
     tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
 
   }
-  env.postgemmtime_inc(env.get_gpu_time() - tbegin);*/
 
   if(env.print_details()) printf("Done in tc_gemm_comet_start_impl\n");
 
@@ -598,7 +612,7 @@ void tc_gemm_start(
   COMET_INSIST(env.is_metric_type_bitwise());
   COMET_INSIST(nfal <= 64 * k);
 
-  COMET_INSIST(env.num_kernel()>=20 || tc_bufs.tc_buf_left);
+  COMET_INSIST(env.num_kernel()>=100 || tc_bufs.tc_buf_left);
 
   COMET_INSIST(ldda1 == k && ldda2 == k && lddb == k); // always true here
 
@@ -606,7 +620,7 @@ void tc_gemm_start(
 
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-  if(env.print_details()) printf("rank=%d In tc_gemm_start\n",rank);
+  if(env.print_details()) printf("rank=%d In tc_gemm_start is_using_xor=%d\n",rank,env.is_using_xor());
 
   //NT_ITER_INIT();
 
@@ -639,7 +653,7 @@ void tc_gemm_start(
     case TC::B1: {
       if(env.print_details()) printf("rank=%d Calling TC::B1 GEMM num_kernel=%d mnk=%d,%d,%d\n",rank,env.num_kernel(),m,n,k);
       // General 1-bit kernels
-      if(env.num_kernel()<20) {
+      if(env.num_kernel()<100) {
         tc_gemm_start_impl_<TC::B1>(
           m, n, k, matA1, matA2, matB, matC, lddc,
           sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -647,19 +661,19 @@ void tc_gemm_start(
       }
       // CoMet 1-bit kernels
       else {
-        if(env.num_kernel()==20 || env.num_kernel()==25) {
+        if(env.num_kernel()==100 || env.num_kernel()==105) {
           tc_comet_int_gemm_start_impl_<TC::B1>(
             m, n, k, matA1, matA2, matB, matC, lddc,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             tc_bufs, nfal, step_2way, env);
         }
-        else if(env.num_kernel()>=21 && env.num_kernel()<=24) {
+        else if(env.num_kernel()>=101 && env.num_kernel()<=104) {
           tc_gemm_comet_start_impl_<TC::B1>(
             m, n, k, matA1, matA2, matB, matC, lddc,
             sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
             tc_bufs, nfal, step_2way, env);
         }
-        //else if(env.num_kernel()>=30) {
+        //else if(env.num_kernel()>=130) {
         //  tc_gemm_general_start_impl_<TC::B1>(
         //    m, n, k, matA1, matA2, matB, matC, lddc,
         //    sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, J,
@@ -700,7 +714,7 @@ void TCBufs::malloc(int num_vector_local,
   COMET_INSIST(!tc_bufs.tc_buf_left);
   COMET_INSIST(!tc_bufs.tc_buf_right);
 
-  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO || env.num_kernel() >= 20) {
+  if (!env.is_metric_type_bitwise() || env.tc_eff() == TC::NO || env.num_kernel() >= 100) {
     if(env.print_details()) printf("Skipping TCBufs malloc bitwise=%d tc_eff=%d\n",env.is_metric_type_bitwise(),env.tc_eff());
     return;
   }

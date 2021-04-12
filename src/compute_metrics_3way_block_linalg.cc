@@ -374,9 +374,12 @@ static void finalize_ccc_duo_(
       // Read current item (i.e., entry).
       const MFTypeIn metric_item = matB_cbuf->elt_const<MFTypeIn>(ind_entry);
 
-      // Location to store it (item number in metrics array).
-      const size_t index = metrics->num_metric_items_local_computed;
-      COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
+      // If this buf did not do_compress, may actually have zeros.
+      // Will make assumption that if is_shrink, all zeros
+      // (i.e., failed-threshold) removed.
+
+      if (!env.pass_threshold(metric_item))
+        continue;
 
       // Get row, col nums of item just read.
 
@@ -393,8 +396,13 @@ static void finalize_ccc_duo_(
                                K >= (size_t)K_min && K < (size_t)K_max;
 
       if (!is_in_range)
-        // [check: is this statement is ever executed.]
         continue;
+
+      // Location to store it (item number in metrics array).
+      const size_t index = metrics->num_metric_items_local_computed;
+      COMET_ASSERT(index < metrics->num_metric_items_local_allocated);
+
+//if (index < 8) printf("%zu %zu %.20e    %i\n", ind_entry, index, (double)metric_item, is_in_range);
 
       // Get indexing info.
 
@@ -414,6 +422,7 @@ static void finalize_ccc_duo_(
       const int iE = si->unperm0(IE, JE, KE);
       const int jE = si->unperm1(IE, JE, KE);
       const int kE = si->unperm2(IE, JE, KE);
+//if (iG==4 && jG==5 && kG==7) printf("    %zu %zu %zu   %i %i %i   %.20e\n", iG, jG, kG, iE, jE, kE, (double)metric_item);
 
       // Store metric item.
 
@@ -921,6 +930,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // Collapsed loops over J and over 2-way steps.
   //--------------------
 
+//const double t1 = env_.synced_time();
+//if (System::is_proc_num_0()) printf("T1\n");
+
   //========================================
   for (int step_num = first_step; step_num < num_step+extra_step*2; ++step_num){
   //========================================
@@ -1085,10 +1097,17 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     }
 
     if(env_.print_details()) printf("Completed compute_linalg_ step_num=%d/%d\n",step_num,num_step+extra_step*2);
+    //if (env_.verbosity() > 0 && System::proc_num() == 0)
+//    if (System::proc_num() == 0)
+//      printf("    Completing compute pipeline step %i of %i active steps\n",
+//        step_num, num_step);
 
   //========================================
   } // step_num
   //========================================
+
+//const double t2 = env_.synced_time();
+//if (System::is_proc_num_0()) printf("T2   %i   %.20f  %.20f\n", num_step, (t2-t1), (t2 - t1) / num_step);
 
   // Terminations
   if(env_.print_details()) printf("Done in compute_linalg_\n");

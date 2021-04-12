@@ -51,6 +51,7 @@ SET(LIB_SOURCES
 SET(ACCEL_SOURCES
   src/tc.cc
   src/compressed_buf.cc
+  src/vector_sums.cc
 )
 
 SET(LIB_INCLUDES
@@ -71,6 +72,7 @@ SET(LIB_INCLUDES
   src/tc_solve.i.hh
   src/tc_solve_cutlass_general.i.hh
   src/tc_solve_comet_xor.i.hh
+  src/tc_solve_comet_mult.i.hh
   src/tc_out.i.hh
   src/decomp_mgr.hh
   src/linalg.hh
