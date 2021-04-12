@@ -356,7 +356,7 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel - Col major version
 
-/*__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
+__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
 
   // Block and thread indices
@@ -457,10 +457,10 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
   }
 
   // Each thread writes one element of block sub-matrix to memory
-  //int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
-  //int cInd   = cBegin + tx*n + ty;
-  int cBegin = n*by*BLOCK_SIZE+bx*BLOCK_SIZE;
-  int cInd   = cBegin + ty*n + tx;
+  int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
+  int cInd   = cBegin + tx*n + ty;
+  //int cBegin = n*by*BLOCK_SIZE+bx*BLOCK_SIZE;
+  //int cInd   = cBegin + ty*n + tx;
   if(beta) {
     //printf("cInd=%d cdata0=%f cdata1=%f c0=%f c1=%f\n",cInd,c[cInd].data[0],c[cInd].data[1],c0,c1); 
     c[cInd].data[0] += c0;
@@ -471,12 +471,12 @@ void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
   }
   //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
   //       bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
-}*/
+}
 
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel for simple 1-bit xor CoMet GEMM kernel
 
-__global__ void b1_comet_xor_gemm_gpu_simple(int m, int n, int k,
+__global__ void b1_comet_xor_gemm_gpu_simple2(int m, int n, int k,
   GMBits2x64* a, GMBits2x64* b, bool beta, GMTally2x2* c) {
 
   // Block and thread indices
@@ -1112,7 +1112,6 @@ static void tc_solve_comet_xor_impl(bool is_first, int m, int n, int k,
 
   if(env.print_details()) printf("\nIn tc_solve_comet_xor_impl mnk=%d,%d,%d num_kernel=%d\n",
     m,n,k,env.num_kernel());
-  //double tbegin = env.get_cpu_time();
 
   const bool beta = is_first ? 0 : 1;
   int threadblockx, threadblocky, gridblockx, gridblocky;
@@ -1179,10 +1178,10 @@ static void tc_solve_comet_xor_impl(bool is_first, int m, int n, int k,
     // Nvidia optimized Cutlass GEMM
     case 104: {
       if(env.print_details()) printf("Calling tc_solve_comet_impl_cutlass\n");
-      tc_solve_comet_impl_cutlass(m,n,k,(GMBits2x64*)matA,
-        (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
-      //tc_solve_comet_impl_cutlass(n,m,k,(GMBits2x64*)matB,
-      //  (GMBits2x64*)matA, beta, (GMTally2x2*)matC);
+      //tc_solve_comet_impl_cutlass(m,n,k,(GMBits2x64*)matA,
+      //  (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
+      tc_solve_comet_impl_cutlass(n,m,k,(GMBits2x64*)matB,
+        (GMBits2x64*)matA, beta, (GMTally2x2*)matC);
     } break;
 
     // Output error for invalid choice
@@ -1198,12 +1197,11 @@ static void tc_solve_comet_xor_impl(bool is_first, int m, int n, int k,
   int err = cudaGetLastError();
   if(env.print_details()) printf("tc_solve_comet_xor_impl computed 1-bit GEMM with 2x%dx%dx%d=%lf operations\n",
     2*m,2*n,k*64,2.0*(double)m*2.0*(double)n*2.0*(double)k*64.0);
-  //env.stream_synchronize(env.stream_compute());
+  env.stream_synchronize(env.stream_compute());
   System::accel_last_call_succeeded();
   env.ops_gemm_local_inc(2.0 * (double)m*2.0 * (double)n*2.0 * (double)k*64.0);
   env.ops_local_inc(2.0 * (double)m*2.0 * (double)n*2.0 * (double)k*64.0);
 
-  //env.gemmtime_inc(env.get_cpu_time() - tbegin);
 }
 
 //-----------------------------------------------------------------------------

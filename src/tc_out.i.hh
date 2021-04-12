@@ -746,7 +746,7 @@ void tc_out_( int nvll, int nvl, void* vo,
   COMET_INSIST(vo);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
 
-  if(env.print_details()) printf("In tc_out_\n");
+  if(env.print_details()) printf("In tc_out_ MF=%d\n",METRIC_FORMAT);
 
   // Perform (1) swizzle and (2) reformatting to packed double format.
 

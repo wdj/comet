@@ -900,7 +900,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
             n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
         } break;*/
-	case 29: {
+	/*case 29: {
           if(env.print_details()) printf("Using Cutlass kernel TB=160x288x1024 W=80x72x1024\n");
           CutlassTCGemm1BTest<TCTBlockType::_128_256_1024,
                           TCWarpType::_32_128_1024,
@@ -908,7 +908,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
                           TCOpType::Xor, 3>(
             n, m, k, (uint8_t*)tc_bufs.tc_buf_right, k, (uint8_t*)tc_bufs.tc_buf_left, k, beta,
             (int32_t*)matC, n, env.stream_compute());
-        } break;
+        } break;*/
 
 	// Other settings
 	/*case 48: {

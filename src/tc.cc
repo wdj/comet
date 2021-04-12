@@ -386,7 +386,7 @@ static void tc_comet_int_gemm_start_impl_(
 
   } else {
 
-    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE\n");
+    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE with MF=%d\n",MetricFormat::PACKED_DOUBLE);
     tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
@@ -457,24 +457,22 @@ static void tc_gemm_comet_start_impl_(
   } // for
 
   // Postprocess GEMM results.
-  /*if(env.print_details()) printf("Calling postprocessing routine\n");
-  tbegin = env.get_gpu_time();
+  if(env.print_details()) printf("Calling postprocessing routine\n");
   if (env.is_threshold_tc()) {
 
-    if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
+    if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE MF=%d\n",MetricFormat::SINGLE);
     tc_out_<TC_METHOD, MetricFormat::SINGLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
 
   } else {
 
-    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE\n");
+    if(env.print_details()) printf("Postprocessing MetricFormat::PACKED_DOUBLE MF=%d\n",MetricFormat::PACKED_DOUBLE);
     tc_out_<TC_METHOD, MetricFormat::PACKED_DOUBLE>(nvll, nvl, matC,
       sums_I, sums_J, sums_K, counts_I, counts_J, counts_K, tc_bufs.matX_counts,
       J, step_2way, env);
 
   }
-  env.postgemmtime_inc(env.get_gpu_time() - tbegin);*/
 
   if(env.print_details()) printf("Done in tc_gemm_comet_start_impl\n");
 }
@@ -596,7 +594,7 @@ void tc_gemm_start(
 
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-  if(env.print_details()) printf("rank=%d In tc_gemm_start\n",rank);
+  if(env.print_details()) printf("rank=%d In tc_gemm_start is_using_xor=%d\n",rank,env.is_using_xor());
 
   switch (env.tc_eff()) {
     // --------------

@@ -189,8 +189,10 @@ __global__ void b1_comet_mult_gemm_gpu_simple(int m, int n, int k,
   }
 
   // Each thread writes one element of block sub-matrix to memory
-  int cBegin = m*by*BLOCK_SIZE+bx*BLOCK_SIZE;
-  int cInd   = cBegin + ty*m + tx;
+  int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
+  int cInd   = cBegin + tx*n + ty;
+  //int cBegin = m*by*BLOCK_SIZE+bx*BLOCK_SIZE;
+  //int cInd   = cBegin + ty*m + tx;
   if(beta) {
     c[cInd].data[0] += c0;
     c[cInd].data[1] += c1;
