@@ -58,6 +58,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "magma_wrapper.hh"
 #include "linalg.hh"
 
+#include "sa_app.h"
+
 //=============================================================================
 
 namespace comet {
@@ -257,10 +259,14 @@ void LinAlg::gemm(
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
   if(env.print_details()) printf("rank=%d Starting LinAlg::gemm\n",rank);
+  NT_ITER_START(NTD_MM_CPU);
   gemm_start(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, magma_wrapper, env);
+  NT_ITER_END(NTD_MM_CPU);
+  NT_ITER_START(NTD_MMWAIT_CPU);
   gemm_wait(m, n, k, matA, matB, matC,
     sums_I, sums_J, counts_I, counts_J, dm, env);
+  NT_ITER_END(NTD_MMWAIT_CPU);
   if(env.print_details()) printf("rank=%d Done with LinAlg::gemm\n",rank);
 }
 

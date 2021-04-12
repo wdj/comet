@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMET_TC_SOLVE_CUTLASS_WARP_I_HH_
 #define _COMET_TC_SOLVE_CUTLASS_WARP_I_HH_
 
+#ifdef COMET_USE_CUTLASS
+
 #define WMMA1B_M 8
 #define WMMA1B_N 8
 #define WMMA1B_K 128
@@ -512,6 +514,8 @@ void tc_solve_comet_impl_cutlass_int(int m, int n, int k, const void *matA, cons
 } // namespace comet
 
 //-----------------------------------------------------------------------------
+
+#endif
 
 #endif
 

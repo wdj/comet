@@ -941,6 +941,11 @@ public:
   GPUTimer vec4_to_gpu_timer;
   GPUTimer vec4_wait_timer;
 
+  int ngemms() const {return ngemms_;}
+  void ngemms_inc() {ngemms_++;}
+  int ncomputes() const {return ncomputes_;}
+  void ncomputes_inc() {ncomputes_++;}
+
   void init_timers();
   void finalize_timers();
 
@@ -1136,6 +1141,9 @@ private:
   size_t metric_entries_;
   size_t metric_entries_computed_;
   double shrink_achieved_;
+
+  int ngemms_;
+  int ncomputes_;
 
   // MPI comms
   bool make_comms_;

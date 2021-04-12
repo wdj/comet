@@ -44,6 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "compute_metrics_3way_block.hh"
 #include "compute_metrics_3way.hh"
 
+#include "sa_app.h"
+
 //=============================================================================
 
 namespace comet {
@@ -153,6 +155,13 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
   if(env->print_details()) printf("In ComputeMetrics3Way::compute_all2all_\n");
 
+  int err;
+  if(env->print_details()) printf("\n\nSTARTING SA APP TEST\n\n");
+  err = SA_App_Start_Test(NTG_GEMM);SA_CHKERRM(err);
+
+  NT_TEST_INIT();
+  NT_TEST_START(NTD_TOTAL);
+
   // Initializations.
 
   MagmaWrapper magma_wrapper(env_);
@@ -256,7 +265,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Part 1 Computation: tetrahedron.
   // ------------------
 
-  if(env->print_details()) printf("Computing tetrahedron\n");
+  if(env->print_details()) printf("\nStarting to compute tetrahedron\n");
 
   // Denominator.
   vector_sums_i->compute(*vectors_i);
@@ -273,17 +282,23 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   env->vec1_to_gpu_timer.end();
 
   const int num_section_steps_1 = gm_num_section_steps(env, 1);
+  if(env->print_details()) printf("Computing tetrahedron with section_step=0-%d\n",num_section_steps_1);
   for (int section_step=0; section_step<num_section_steps_1; ++section_step) {
     if (metrics_is_proc_repl_active(metrics, section_block_num, env_)) {
 
       if (have_unprocessed_section_block) {
         // Compute numerators.
+        NT_ITER_INIT();
+        NT_ITER_START(NTD_METRIC_COMPUTE);
         compute_metrics_3way_block.compute(
           VData(vectors_i, vectors_i_buf, vector_sums_i),
           VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
           VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
           metrics, j_block_prev, k_block_prev, section_step_prev,
           magma_wrapper);
+        NT_ITER_END(NTD_METRIC_COMPUTE);
+        NT_ITER_FINISH();
+        env->ncomputes_inc();
         have_unprocessed_section_block = false;
       }
 
@@ -309,13 +324,15 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Part 2 Computation: triangular prisms.
   // ------------------
 
-  if(env->print_details()) printf("Computing triangular prisms\n");
+  if(env->print_details()) printf("\nStarting to compute triangular prisms\n");
 
   GMVectors* vectors_j_this = 0;
   MPI_Request req_send_j;
   MPI_Request req_recv_j;
 
   const int num_section_steps_2 = gm_num_section_steps(env, 2);
+  if(env->print_details()) printf("Computing traingular prisms with section_step=0-%d j_i_offset=1-%d\n",
+    num_section_steps_2,num_block);
   for (int section_step=0; section_step<num_section_steps_2; ++section_step) {
     for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
 
@@ -341,12 +358,17 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   
         if (have_unprocessed_section_block) {
           // Compute numerators.
+          NT_ITER_INIT();
+          NT_ITER_START(NTD_METRIC_COMPUTE);
           compute_metrics_3way_block.compute(
             VData(vectors_i, vectors_i_buf, vector_sums_i),
             VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
             VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
             metrics, j_block_prev, k_block_prev, section_step_prev,
             magma_wrapper);
+          NT_ITER_END(NTD_METRIC_COMPUTE);
+          NT_ITER_FINISH();
+          env->ncomputes_inc();
           have_unprocessed_section_block = false;
         }
 
@@ -397,7 +419,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Part 3 Computation: block sections.
   // ------------------
 
-  if(env->print_details()) printf("Computing block sections\n");
+  if(env->print_details()) printf("\nStarting to compute block sections\n");
 
   GMVectors* vectors_k_this = 0;
   MPI_Request req_send_k;
@@ -406,6 +428,8 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   int k_block_currently_resident = -1;
 
   const int num_section_steps_3 = gm_num_section_steps(env, 3); // = 1
+  if(env->print_details()) printf("Computing block sections with section_step=0-%d k_i_offset=1-%d j_i_offset=1-%d\n",
+    num_section_steps_3,num_block,num_block);
   for (int section_step=0; section_step<num_section_steps_3; ++section_step) {
     for (int k_i_offset = 1; k_i_offset < num_block; ++k_i_offset) {
 
@@ -462,12 +486,17 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
 
           if (have_unprocessed_section_block) {
             // Compute numerators.
+            NT_ITER_INIT();
+            NT_ITER_START(NTD_METRIC_COMPUTE);
             compute_metrics_3way_block.compute(
               VData(vectors_i, vectors_i_buf, vector_sums_i),
               VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
               VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
               metrics, j_block_prev, k_block_prev, section_step_prev,
               magma_wrapper);
+            NT_ITER_END(NTD_METRIC_COMPUTE);
+            NT_ITER_FINISH();
+            env->ncomputes_inc();
             have_unprocessed_section_block = false;
           }
 
@@ -548,14 +577,21 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   // Cleanup.
   // ------------------
 
+  if(env->print_details()) printf("\nComputing unprocessed section block\n");
+
   if (have_unprocessed_section_block) {
     // Compute numerators.
+    NT_ITER_INIT();
+    NT_ITER_START(NTD_METRIC_COMPUTE);
     compute_metrics_3way_block.compute(
       VData(vectors_i, vectors_i_buf, vector_sums_i),
       VData(vectors_j_prev, vectors_j_buf_prev, vector_sums_j_prev),
       VData(vectors_k_prev, vectors_k_buf_prev, vector_sums_k_prev),
       metrics, j_block_prev, k_block_prev, section_step_prev,
       magma_wrapper);
+    NT_ITER_END(NTD_METRIC_COMPUTE);
+    NT_ITER_FINISH();
+    env->ncomputes_inc();
     have_unprocessed_section_block = false;
   }
 
@@ -569,6 +605,12 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
   GMVectors_destroy(vectors_j[1], env);
 
   }
+
+  NT_TEST_END(NTD_TOTAL);
+  NT_TEST_FINISH();
+
+  if(env->print_details()) printf("\n\nENDING SA APP TEST\n\n");
+  err = SA_App_End_Test(NTG_GEMM);SA_CHKERRM(err);
 
   if(env->print_details()) printf("Done in ComputeMetrics3Way::compute_all2all_\n");
 }

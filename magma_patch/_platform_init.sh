@@ -143,7 +143,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   local COMET_C_COMPILER=$(which mpicc)
   local COMET_CXX_COMPILER=$(which mpiCC)
   local COMET_CXX_SERIAL_COMPILER=g++
-  local COMET_EXTRA_COMPILE_OPTS="-mcpu=power9 -mtune=power9"
+  local COMET_EXTRA_COMPILE_OPTS="-mcpu=power9 -mtune=power9 -DUSE_NT -I/ccs/home/peller/sa-testbed -I/ccs/home/peller/sa-testbed/NoiseTimer -I/ccs/home/peller/sa-testbed/network -I/ccs/home/peller/sa-testbed/noise_injection"
   COMET_EXTRA_COMPILE_OPTS+=" -mcmodel=large -m64"
 
   local USE_OPENMP=ON
@@ -161,6 +161,7 @@ elif [ $COMET_PLATFORM = IBM_AC922 ] ; then
   local COMET_CUDA_LINK_OPTS="-L$CUDA_ROOT/targets/ppc64le-linux/lib"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/targets/ppc64le-linux/lib"
   COMET_CUDA_LINK_OPTS+=" -Wl,-rpath=$CUDA_ROOT/lib64 -lcublas -lcudart"
+  COMET_CUDA_LINK_OPTS+=" -L/ccs/home/peller/sa-testbed/ -lsacore -L/ccs/home/peller/sa-testbed/NoiseTimer -lnoisetimer"
   local COMET_CUDA_CMAKE_OPTS="-DCUDA_PROPAGATE_HOST_FLAGS:BOOL=ON"
   local _COMPILER_DIR_TMP_=$(dirname $(which $COMET_CXX_SERIAL_COMPILER))
   COMET_CUDA_CMAKE_OPTS+=" -DCUDA_HOST_COMPILER:STRING=$_COMPILER_DIR_TMP_"

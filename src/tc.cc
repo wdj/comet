@@ -331,6 +331,8 @@ static void tc_comet_int_gemm_start_impl_(
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
+#if defined COMET_USE_TURING || COMET_USE_AMPERE
+
   const int nvl = n;
   const int npvfl = k;
   const int I_max = m;
@@ -392,6 +394,9 @@ static void tc_comet_int_gemm_start_impl_(
       J, step_2way, env);
 
   }
+
+#endif
+
 }   
 
 //-----------------------------------------------------------------------------
@@ -404,6 +409,8 @@ static void tc_gemm_comet_start_impl_(
   GMFloat* sums_I, GMFloat* sums_J, GMFloat* sums_K,
   GMFloat* counts_I, GMFloat* counts_J, GMFloat* counts_K, int J,
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
+
+#if defined COMET_USE_TURING || COMET_USE_AMPERE
 
   const int nvl = n;
   const int npfl = k;
@@ -477,6 +484,9 @@ static void tc_gemm_comet_start_impl_(
   env.postgemmtime_inc(env.get_gpu_time() - tbegin);*/
 
   if(env.print_details()) printf("Done in tc_gemm_comet_start_impl\n");
+
+#endif
+
 }
 
 //-----------------------------------------------------------------------------
@@ -598,6 +608,8 @@ void tc_gemm_start(
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
   if(env.print_details()) printf("rank=%d In tc_gemm_start\n",rank);
 
+  //NT_ITER_INIT();
+
   switch (env.tc_eff()) {
     // --------------
     case TC::FP32: {
@@ -666,6 +678,9 @@ void tc_gemm_start(
     default:
       COMET_INSIST(false && "Invalid tc type.");
   } // switch
+  env.ngemms_inc();
+
+  //NT_ITER_FINISH();
 }
 
 //=============================================================================

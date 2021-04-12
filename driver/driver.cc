@@ -274,6 +274,9 @@ void finish_parsing(int argc, char** argv, DriverOptions* do_, CEnv* env) {
       ++i; // optionally processed by caller.
     } else if (strcmp(argv[i], "--sync_time") == 0) {
       ++i; // optionally processed by caller.
+    } else if (strcmp(argv[i], "comet_app.algs") == 0) {
+    } else if (strcmp(argv[i], "comet_app.probs") == 0) {
+    } else if (strcmp(argv[i], "summit.sys") == 0) {
     } else {
     //----------
       if (env->proc_num() == 0) {
@@ -481,23 +484,25 @@ void print_output(bool do_print,
              "GEMM:                          %.6f %.6f %.6f | %.6f %.6f %.6f\n"
              "Post-GEMM:                     %.6f %.6f %.6f | %.6f %.6f %.6f\n"
              "Total GEMM:                    %.6f %.6f\n",
-              env.pre_gemm_timer.min(),env.pre_gemm_timer.avg(), env.pre_gemm_timer.max(),
-              env.pre_gemm_timer.cpu_min(),env.pre_gemm_timer.cpu_avg(), env.pre_gemm_timer.cpu_max(),
-              env.gemm_timer.min(), env.gemm_timer.avg(), env.gemm_timer.max(),
-              env.gemm_timer.cpu_min(), env.gemm_timer.cpu_avg(), env.gemm_timer.cpu_max(),
-              env.post_gemm_timer.min(), env.post_gemm_timer.avg(), env.post_gemm_timer.max(),
-              env.post_gemm_timer.cpu_min(), env.post_gemm_timer.cpu_avg(), env.post_gemm_timer.cpu_max(),
-              total_gemm_avg, cpu_total_gemm_avg);
+             env.pre_gemm_timer.min(),env.pre_gemm_timer.avg(), env.pre_gemm_timer.max(),
+             env.pre_gemm_timer.cpu_min(),env.pre_gemm_timer.cpu_avg(), env.pre_gemm_timer.cpu_max(),
+             env.gemm_timer.min(), env.gemm_timer.avg(), env.gemm_timer.max(),
+             env.gemm_timer.cpu_min(), env.gemm_timer.cpu_avg(), env.gemm_timer.cpu_max(),
+             env.post_gemm_timer.min(), env.post_gemm_timer.avg(), env.post_gemm_timer.max(),
+             env.post_gemm_timer.cpu_min(), env.post_gemm_timer.cpu_avg(), env.post_gemm_timer.cpu_max(),
+             total_gemm_avg, cpu_total_gemm_avg);
     } else {
       printf("\nGEMM Runtimes (GPU CPU):\n"
              "Pre-GEMM:                      %.6f %.6f\n"
              "GEMM:                          %.6f %.6f\n"
              "Post-GEMM:                     %.6f %.6f\n"
-             "Total GEMM:                    %.6f %.6f\n",
-              env.pre_gemm_timer.avg(), env.pre_gemm_timer.cpu_avg(),
-              env.gemm_timer.avg(), env.gemm_timer.cpu_avg(),
-              env.post_gemm_timer.avg(), env.post_gemm_timer.cpu_avg(),
-              total_gemm_avg, cpu_total_gemm_avg);
+             "Total GEMM:                    %.6f %.6f\n"
+             "Number of local GEMMs:         %d\n"
+             "Number of Metric Computes:     %d\n",
+             env.pre_gemm_timer.avg(), env.pre_gemm_timer.cpu_avg(),
+             env.gemm_timer.avg(), env.gemm_timer.cpu_avg(),
+             env.post_gemm_timer.avg(), env.post_gemm_timer.cpu_avg(),
+             total_gemm_avg, cpu_total_gemm_avg, env.ngemms(), env.ncomputes());
     }
 
     double tgemmrate = 0, tgemmtotalrate = 0, cmops = 0, cmopsrate = 0, totopsrate = 0;

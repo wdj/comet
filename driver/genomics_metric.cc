@@ -53,6 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "driver.hh"
 #include "metrics_io.hh"
 
+#include "sa_app.h"
+
 //=============================================================================
 
 namespace comet {
@@ -732,9 +734,17 @@ int main(int argc, char** argv) {
 
     // Perform actual run.
     if(print_details) printf("Calling perform_run\n");
+    int err, ntests=100;
+    err = SA_App_Init(argc, argv, ntests, NTD_MAX_TIMERS);SA_CHKERR(err);
+    if(print_details) printf("Inited SA_App\n");
     perform_run(argc, (char**)argv, NULL, MPI_COMM_WORLD);
-
+    if(print_details) printf("Processing results with SA_App\n");
+    err = SA_App_Process_Results();SA_CHKERR(err);
+    if(print_details) printf("Destroying SA_App\n");
+    SA_App_Destroy();SA_CHKERR(err);
   }
+
+  if(print_details) printf("Ending run\n");
 
   COMET_MPI_SAFE_CALL(MPI_Finalize());
   return 0;

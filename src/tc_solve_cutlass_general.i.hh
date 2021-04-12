@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMET_TC_SOLVE_CUTLASS_GENERAL_I_HH_
 #define _COMET_TC_SOLVE_CUTLASS_GENERAL_I_HH_
 
+#ifdef COMET_USE_CUTLASS
+
 // Defines cutlass::gemm::device::Gemm, the generic Gemm computation template class.
 #include "cutlass/gemm/device/gemm.h"
 
@@ -267,6 +269,8 @@ void CutlassTCGemm1BWmma(int M, int N, int K, uint8_t const *A,
 } // namespace comet
 
 //-----------------------------------------------------------------------------
+
+#endif
 
 #endif // _COMET_TC_SOLVE_CUTLASS_GENERAL_I_HH_
 

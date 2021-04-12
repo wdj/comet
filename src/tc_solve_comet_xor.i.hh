@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMET_TC_SOLVE_XOR_I_HH_
 #define _COMET_TC_SOLVE_XOR_I_HH_
 
+#if defined COMET_USE_TURING || COMET_USE_AMPERE
+
 // Includes
 #include "cstdlib"
 //#include <stdlib.h>
@@ -1234,6 +1236,8 @@ void tc_solve_comet_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 } // namespace comet
 
 //-----------------------------------------------------------------------------
+
+#endif
 
 #endif // _COMET_TC_SOLVE_XOR_I_HH_
 

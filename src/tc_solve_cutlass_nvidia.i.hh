@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _COMET_TC_SOLVE_CUTLASS_NVIDIA_I_HH_
 #define _COMET_TC_SOLVE_CUTLASS_NVIDIA_I_HH_
 
+#ifdef COMET_USE_CUTLASS
+
 #define WMMA1B_M 8
 #define WMMA1B_N 8
 #define WMMA1B_K 128
@@ -558,6 +560,8 @@ void tc_solve_comet_impl_cutlass(int m, int n, int k, const void *matA, const vo
 } // namespace comet
 
 //-----------------------------------------------------------------------------
+
+#endif
 
 #endif // _COMET_TC_SOLVE_CUTLASS_NVIDIA_I_HH_
 

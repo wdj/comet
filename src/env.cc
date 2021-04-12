@@ -293,6 +293,9 @@ void CEnv::set_defaults_() {
   metric_entries_computed_ = 0;
   shrink_achieved_ = DBL_MAX;
 
+  ngemms_ = 0;
+  ncomputes_ = 0;
+
   compute_capability_cache_ = System::compute_capability();
 
 //FIX

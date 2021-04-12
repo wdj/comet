@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "comm_xfer_utils.hh"
 #include "compute_metrics_3way_block.hh"
 
+#include "sa_app.h"
+
 //=============================================================================
 
 namespace comet {
@@ -725,7 +727,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   const int npfl = vdata_i.vectors->num_packedfield_local;
   const int i_block = env_.proc_num_vector();
 
-  GMSectionInfo si_value, *si = &si_value;
+  GMSectionInfo si_value_comet, *si = &si_value_comet;
   GMSectionInfo_create(si, i_block, j_block, k_block, section_step, nvl, &env_);
 
   const bool need_mat_ij = env_.does_3way_need_2way();
@@ -802,7 +804,6 @@ void ComputeMetrics3WayBlock::compute_linalg_(
         env_.do_reduce() ? tmp_buf_[0] : matM_kik_buf;
 
     if(env_.print_details()) printf("Calling kik GEMM\n");
-
     LinAlg::gemm(nvl, nvl, npfl,
                  vdata_k.buf, vdata_i.buf, matM_kik_buf_ptr,
                  vdata_k.sums->sums(), vdata_i.sums->sums(),
@@ -976,6 +977,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     if (vars_prev.do_compute) {
       if(env_.print_details()) printf("Calling gemm_wait\n");
+      NT_ITER_START(NTD_MMWAIT_CPU);
       env_.gemm_wait_timer.start();
       LinAlg::gemm_wait(vars_prev.I_max, nvl, npfl,
           matXitem_buf_[vars_prev.index_01], vectors_I_buf, vectors_K_buf,
@@ -984,6 +986,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
           vars_prev.J, vars_prev.step_2way, *dm, env_);
       env_.gemm_wait_timer.end();
+      NT_ITER_END(NTD_MMWAIT_CPU);
       matB_cbuf.attach(*vars_prev.matB_buf_ptr());
       matB_cbuf.compress();
     }
@@ -1016,6 +1019,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars.do_compute) {
       if(env_.print_details()) printf("Calling gemm_start step_num=%d with Imax=%d nvl=%d npvfl=%d\n",
         step_num,vars.I_max,nvl,npfl);
+      NT_ITER_START(NTD_MM_CPU);
       env_.gemm_start_timer.start();
       LinAlg::gemm_start(vars.I_max, nvl, npfl,
           matXitem_buf_[vars.index_01], vectors_I_buf, vectors_K_buf,
@@ -1024,6 +1028,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
           vars.J, vars.step_2way, *dm, magma_wrapper, env_);
       env_.gemm_start_timer.end();
+      NT_ITER_END(NTD_MM_CPU);
       if(env_.print_details()) printf("Done calling gemm_start step_num=%d with Imax=%d nvl=%d npvfl=%d\n",
         step_num,vars.I_max,nvl,npfl); 
     }

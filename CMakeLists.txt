@@ -88,6 +88,7 @@ SET(LIB_INCLUDES
   src/compute_metrics_2way.hh
   src/compute_metrics_3way.hh
   src/compute_metrics.cc
+  src/nt_data.h
 )
 
 SET(DRIVER_SOURCES

@@ -41,11 +41,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_fp16.h>
 #include <mma.h>
 
-#include "tc_solve_cutlass_general.i.hh"
-
 #ifdef COMET_USE_CUTLASS
+#include "tc_solve_cutlass_general.i.hh"
 #include "cutlass/gemm/device/gemm.h"
 #endif
+
+#include "sa_app.h"
 
 //=============================================================================
 
@@ -429,6 +430,8 @@ static bool tc_solve_use_mockup(const CEnv& env) {
     ! (BuildHas::CUDA && System::compute_capability() > 700));
 }
 
+#if defined COMET_USE_TURING || COMET_USE_AMPERE
+
 //-----------------------------------------------------------------------------
 /// \brief Simple WMMA tensor core 1-bit xor gemm
 
@@ -565,6 +568,8 @@ void b1_xor_gemm_gpu_tc_sm(size_t m, size_t n, size_t k, uint8_t* a,
   wmma::store_matrix_sync(c+cBegin, c_frag, n, wmma::mem_row_major);
 }
 
+#endif
+
 //-----------------------------------------------------------------------------
 
 template<int TC_METHOD>
@@ -687,6 +692,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
   }
   // Call WMMA 1-bit GEMM kernels
   else if(env.num_kernel()>=1 && env.num_kernel()<20) {
+#if defined COMET_USE_TURING || COMET_USE_AMPERE
       enum {NUM_FL_PER_PVFL = 64};
       COMET_INSIST(k % NUM_FL_PER_PVFL == 0 && "Failed divisibility condition for tc gemm.");
 
@@ -804,6 +810,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
       System::accel_last_call_succeeded();
       //if(env.print_details()) printf("Number of ops = 2*%d*%d*%d\n",m,n,k);
       //env.ops_local_inc(2 * m * (double)n * (double)k);
+#endif
   }
   else {
     printf("Failed to call appropriate 1-bit GEMM kernel for num_kernel=%d\n",
@@ -834,6 +841,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
   COMET_INSIST(m % 8 == 0 && "Failed divisibility condition for tc gemm.");
   // since nvl % 4 == 0; see tc_gemm_divisibility_required()
   COMET_INSIST(n % 8 == 0 && "Failed divisibility condition for tc gemm.");
+
+  //NT_ITER_START(NTD_MM_CPU);
 
   int rank = 0;
   COMET_MPI_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
@@ -1062,6 +1071,8 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
   }
 
   if(env.print_details()) printf("rank=%d Done in tc_solve_impl\n",rank);  
+
+  //NT_ITER_END(NTD_MM_CPU);
 }
 
 //-----------------------------------------------------------------------------
