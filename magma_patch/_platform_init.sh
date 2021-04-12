@@ -937,19 +937,25 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
   module load Stages/Devel-2020
 
   module load GCC # 9.3.0
-  module load CUDA/11.0
+
+  # WAY 1: standard CUDA build.
+  #module load CUDA # 11.0.2
+  #if [ $COMET_CAN_USE_MPI = ON ] ; then
+  #  module load OpenMPI # 4.1.0rc1
+  #fi
+
+  # WAY 2: custom CUDA build.
   #module use /p/scratch/share/cuda-share/modulefiles
   #module load CUDA # 11.2
-  module load CMake
-  if [ $COMET_CAN_USE_MPI = ON ] ; then
-    module load OpenMPI # 4.1.0rc1
-    module load mpi-settings/CUDA
-    #module use /p/project/gronor/joubert1/modulefiles
-    #module load OpenMPI/4.1.0rc1_modified
-  fi
 
+  # WAY 3: custom CUDA and matching OpenMPI build.
+  module use $OTHERSTAGES
+  module load Stages/Devel-2020
+  module load GCC CUDA/11.0 load OpenMPI
+  module load mpi-settings/CUDA
   module load CUDA/11.2
 
+  module load CMake
   module list
 
   #---Compiler.

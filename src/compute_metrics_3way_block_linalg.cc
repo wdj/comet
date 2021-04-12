@@ -929,6 +929,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   // Collapsed loops over J and over 2-way steps.
   //--------------------
 
+//const double t1 = env_.synced_time();
+//if (System::is_proc_num_0()) printf("T1\n");
+
   //========================================
   for (int step_num = first_step; step_num < num_step+extra_step*2; ++step_num){
   //========================================
@@ -1097,6 +1100,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
   //========================================
   } // step_num
   //========================================
+
+//const double t2 = env_.synced_time();
+//if (System::is_proc_num_0()) printf("T2   %i   %.20f  %.20f\n", num_step, (t2-t1), (t2 - t1) / num_step);
 
   // Terminations
   if(env_.print_details()) printf("Done in compute_linalg_\n");

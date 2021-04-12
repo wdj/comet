@@ -97,8 +97,11 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
   // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
 
   const size_t result = !env.is_metric_type_bitwise() ? 1 :
-    !(env.tc_eff() == TC::B1) ? 1 :
-    (env.num_kernel()==104 || env.num_kernel()==151) ? 32 : 4;
+    ////!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4;
+    ////!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 256;
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64;
+    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 :
+    (env.num_kernel()==104 || env.num_kernel()==151) ? 32 : 64;
 
   if(env.print_details()) printf("In faxis_divis_req result=%zu tc_eff=%d !env.is_metric_type_bitwise=%d num_kernel=%d\n",
     result,env.tc_eff(),!env.is_metric_type_bitwise(),env.num_kernel());
@@ -247,8 +250,11 @@ static void tc_gemm_start_impl_(
 
   const int num_tc_steps = env.num_tc_steps();
 
+//double t1, t2;
   // Loop over steps of algorithm.
   for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
+
+//t1 = env.synced_time();
 
     // Select the block row of the left and right matrices for this step.
     const int pfl_min = (((tc_step_num+0) * (npfl/d)) / num_tc_steps) * d;
@@ -274,19 +280,27 @@ static void tc_gemm_start_impl_(
       tc_bufs, step_2way, env);
     env.pre_gemm_timer.end();
 
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("1 %.20f %.20f\n", (t2-t1), (double)t2);
+//t1 = env.synced_time();
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
     if(env.print_details()) printf("Calling tc_solve with step=%d is_first=%d mnk=%d,%d,%d nvll=%d nvl=%d npfl_thisstep=%d pfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
       tc_step_num,is_first,m,n,k,nvll,nvl,npfl_thisstep,pfl_min,pfl_max,I_max_dim,lddc);
+    //for (int i=0; i<10; ++i)
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matC, tc_bufs, env);
 
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("2 %.20f %.20f\n", (t2-t1), (double)t2);
   } // for
 
   // Postprocess GEMM results.
 
   env.post_gemm_timer.record();
   env.post_gemm_timer.start();
+  //t1 = env.synced_time();
+
   if (env.is_threshold_tc()) {
 
     if(env.print_details()) printf("Postprossesing MetricFormat::SINGLE\n");
@@ -303,6 +317,8 @@ static void tc_gemm_start_impl_(
 
   }
   env.post_gemm_timer.end();
+//t2 = env.synced_time();
+//if (System::is_proc_num_0()) printf("3 %.20f %.20f\n", (t2-t1), (double)t2);
 }
 
 //-----------------------------------------------------------------------------
