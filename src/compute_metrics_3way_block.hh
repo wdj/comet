@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "env.hh"
 #include "mirrored_buf.hh"
+#include "compressed_buf.hh"
 #include "vectors.hh"
 #include "metrics.hh"
 #include "vector_sums.hh"
@@ -82,6 +83,8 @@ private:
   MirroredBuf* tmp_buf_[NUM_BUF];
   MirroredBuf* matXitem_buf_[NUM_BUF];
   MirroredBuf* matB_buf_[NUM_BUF];
+
+  CompressedBuf* matB_cbuf_;
 
   void compute_linalg_(VData vdata_i, VData vdata_j, VData vdata_k,
     GMMetrics& metrics, int j_block, int k_block, int section_step,

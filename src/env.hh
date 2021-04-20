@@ -753,8 +753,8 @@ public:
   MPI_Comm comm_repl_vector() const {return comm_repl_vector_;}
   MPI_Comm comm_field() const {return comm_field_;}
 
-  bool is_comm_ring() const {return NumWay::_2 == num_way();}
-  //bool is_comm_ring() const {return false;}
+  //bool is_comm_ring() const {return NumWay::_2 == num_way();}
+  bool is_comm_ring() const {return false;}
 
   //----------------------------------------
   // MPI proc counts

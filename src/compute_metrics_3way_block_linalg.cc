@@ -887,7 +887,9 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
   // Optionally compress the result data on the GPU.
 
-  CompressedBuf matB_cbuf(*matB_buf_[0], env_);
+  //CompressedBuf matB_cbuf_(*matB_buf_[0], env_);
+  //CompressedBuf* matB_cbuf = &matB_cbuf_;
+  CompressedBuf* matB_cbuf = matB_cbuf_;
 
   // Num steps to take to compute the blocks
 
@@ -959,8 +961,8 @@ void ComputeMetrics3WayBlock::compute_linalg_(
           vsums_I->sums(), vsums_J->sums(), vsums_K->sums(),
           vsums_I->counts(), vsums_J->counts(), vsums_K->counts(),
           vars_prev.J, vars_prev.step_2way, *dm, env_);
-      matB_cbuf.attach(*vars_prev.matB_buf_ptr());
-      matB_cbuf.compress();
+      matB_cbuf->attach(*vars_prev.matB_buf_ptr());
+      matB_cbuf->compress();
     }
 
     //========== Calculate matXitem
@@ -980,7 +982,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     //========== Copy result matrix matB from GPU - START
 
     if (vars_prev.do_compute)
-      matB_cbuf.from_accel_start();
+      matB_cbuf->from_accel_start();
 
     //========== Perform pseudo GEMM matB = matX^T PROD V - START
 
@@ -997,7 +999,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
 
     if (vars_prev.do_compute) {
       //vars_prev.matB_buf_ptr()->from_accel_wait();
-      matB_cbuf.from_accel_wait();
+      matB_cbuf->from_accel_wait();
       if (vars_prev.step_2way == 0) {
         gm_metrics_pad_adjust(&metrics, vars_prev.matB_buf_ptr(), &env_,
           //CHECK
@@ -1011,7 +1013,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_prevprev.do_compute && env_.do_reduce()) {
       gm_reduce_metrics_wait(&(mpi_requests[vars_prevprev.index_01]),
           &vars_prevprev.matB_buf, vars_prevprev.matB_buf_ptr(), &env_);
-      matB_cbuf.attach(vars_prevprev.matB_buf);
+      matB_cbuf->attach(vars_prevprev.matB_buf);
     }
 
     //========== Reduce along field procs - START
@@ -1030,7 +1032,7 @@ void ComputeMetrics3WayBlock::compute_linalg_(
     if (vars_tail.do_compute) {
       finalize_(
           matM_IJ_buf, matM_JK_buf, matM_KIK_buf,
-          &matB_cbuf,
+          matB_cbuf,
           //&vars_tail.matB_buf,
           &metrics, nvl, vars_tail.J, vars_tail.step_2way,
           vars_tail.I_min, vars_tail.I_max,

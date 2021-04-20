@@ -305,7 +305,7 @@ int get_node_id() {
     name[i] = 0;
   }
 
-  int node_id = 1;
+  int node_id = 0;
   for (size_t i=0; i<len; ++i) {
     if (! name[i])
       break;
@@ -338,6 +338,7 @@ double bad_node_penalty() {
 
        : strcmp(name, "h41n17") == 0 ? 1e3 - .01 // nonfunctioning burst buffer
 
+#if 1
        : strcmp(name, "a04n08") == 0 ? 1e3 - .01
        : strcmp(name, "a07n16") == 0 ? 1e3 - .02
        : strcmp(name, "a13n10") == 0 ? 1e3 - .03
@@ -381,6 +382,7 @@ double bad_node_penalty() {
 
        : strcmp(name, "a12n18") == 0 ? 1e4 - 1 // to help workaround: ERROR:  One or more process terminated with signal 9
        : strcmp(name, "a03n12") == 0 ? 1e4 - 1 // ditto
+#endif
 
        //: strcmp(name, "a03n10") == 0 ? 1e3 - 1 // one of these 5 nodes causes
        //: strcmp(name, "a03n11") == 0 ? 1e3 - 1 // ERROR:  One or more process terminated with signal 9
@@ -503,10 +505,10 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     "--num_phase 1 --phase_min 0 --phase_max 0 --checksum no --verbosity 0"
     :
 #ifdef COMET_PLATFORM_JUWELS_BOOSTER
-          "--num_field 262144 --num_vector_local 12288 "
-          "--metric_type duo --sparse yes "
-          "--num_proc_vector %i --all2all no --num_way 2 "
-          "--compute_method GPU --tc 4 --verbosity 0";
+    "--num_field 262144 --num_vector_local 12288 "
+    "--metric_type duo --sparse yes "
+    "--num_proc_vector %i --all2all no --num_way 2 "
+    "--compute_method GPU --tc 4 --verbosity 0";
 #else
     "--num_field 1280000 --num_vector_local 4000 --metric_type ccc --sparse no "
     "--all2all yes --compute_method GPU --num_proc_vector %i "
@@ -584,13 +586,26 @@ void perform_run_preflight_2(int argc, char** argv, MPI_Comm* fast_comm) {
     }
   }
 
+#ifdef COMET_PLATFORM_JUWELS_BOOSTER
+  const int num_node_requested = (num_rank_requested + max_ranks_in_node - 1)
+    / max_ranks_in_node;
+  const int proc_ranking_this = node_ranking_this >= num_node_requested ?
+    ( 1 << 29 ) :
+    rank_in_node + max_ranks_in_node * node_id;
+#else
   const int proc_ranking_this = rank_in_node +
     max_ranks_in_node * node_ranking_this;
+#endif
 
   // Create world communicator with this ranking
 
   COMET_MPI_SAFE_CALL(MPI_Comm_split(MPI_COMM_WORLD, 0, proc_ranking_this,
     fast_comm));
+
+  //int rank_fast = 0;
+  //COMET_MPI_SAFE_CALL(MPI_Comm_rank(*fast_comm, &rank_fast));
+  //printf("node_id %i node_ranking_this %i proc_ranking_this %i rank_fast %i num_node_requested %i\n",
+  //       node_id, node_ranking_this, proc_ranking_this, rank_fast, num_node_requested);
 
   // Cleanup
 
