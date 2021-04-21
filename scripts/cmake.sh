@@ -616,6 +616,7 @@ function main
    \
     $CMAKE_EXTRA_OPTIONS \
     -DUSE_MPI:BOOL=${USE_MPI:-OFF} \
+    -DUSE_MPI:BOOL=${COMET_CMAKE_USE_MPI:-${USE_MPI:-OFF}} \
     -DUSE_CUDA:BOOL=${USE_CUDA:-OFF} \
     -DUSE_HIP:BOOL=${USE_HIP:-OFF} \
    \
