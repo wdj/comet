@@ -610,23 +610,23 @@ bool CEnv::can_run(int tc_try) const {
   const int cc_mi100 = 908; // 900;
   const int cc_minone = 1000;
 
-  if (is_metric_type_bitwise() && is_compute_method_gpu() &&
-      TC::FP32 == tc_try) {
+  const bool is_bitwise_gpu = is_metric_type_bitwise() &&
+    is_compute_method_gpu();
+
+  if (TC::FP32 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust CUDA compute capability here.
     result = result && ((BuildHas::CUDA && System::compute_capability() >= 400)
                      || (BuildHas::HIP && System::compute_capability() >= cc_mi60));
   }
 
-  if (is_metric_type_bitwise() && is_compute_method_gpu() &&
-      TC::FP16 == tc_try) {
+  if (TC::FP16 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust HIP compute capability here.
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 700)
                   //|| (BuildHas::HIP && System::compute_capability() >= cc_minone));
                   || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
   }
 
-  if (is_metric_type_bitwise() && is_compute_method_gpu() &&
-      TC::INT8 == tc_try) {
+  if (TC::INT8 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust HIP compute capability here.
     // NOTE: pre-Turing can support INT8 but it is not necessarily fastest.
     result = result &&((BuildHas::CUDA && System::compute_capability() >= 750)
@@ -635,7 +635,7 @@ bool CEnv::can_run(int tc_try) const {
                     || (BuildHas::HIP && System::compute_capability() >= cc_mi100));
   }
 
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::B1 == tc_try) {
+  if (TC::INT4 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust HIP compute capability here.
     // FIX: Temporary code below for testing mockup code on summit.
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
@@ -644,7 +644,7 @@ bool CEnv::can_run(int tc_try) const {
                     ; // && can_use_xor_(tc_try);
   }
 
-  if (is_metric_type_bitwise() && is_compute_method_gpu() && TC::INT4 == tc_try) {
+  if (TC::B1 == tc_try && is_bitwise_gpu) {
     // ISSUE: may need to adjust HIP compute capability here.
     // FIX: Temporary code below for testing mockup code on summit.
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
@@ -664,15 +664,24 @@ int CEnv::tc_eff_compute_() const {
   if (TC::AUTO != tc_)
     return tc_;
 
+  return
+    can_run(TC::B1) && can_use_cutlass(TC::B1) ? TC::B1 :
+    can_run(TC::INT4) && can_use_cutlass(TC::INT4) ? TC::INT4 :
+    can_run(TC::INT8) && can_use_cutlass(TC::INT8) ? TC::INT8 :
+    can_run(TC::FP16) ? TC::FP16 :
+    can_run(TC::INT8) ? TC::INT8 :
+    can_run(TC::FP32) ? TC::FP32 :
+    TC::NO;
+
   // NOTE: order is important here: fastest first.
   // TODO: move B1 to most favored status.
   //for (auto tc_try : {TC::B1, TC::INT8, TC::FP16, TC::FP32}) {
-  for (auto tc_try : {TC::INT8, TC::FP16, TC::FP32, TC::B1, TC::INT4}) {
-    if (can_run(tc_try))
-      return tc_try;
-  }
+  //for (auto tc_try : {TC::INT8, TC::FP16, TC::FP32, TC::B1, TC::INT4}) {
+  //  if (can_run(tc_try))
+  //    return tc_try;
+  //}
 
-  return TC::NO;
+  //return TC::NO;
 }
 
 //-----------------------------------------------------------------------------

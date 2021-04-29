@@ -75,11 +75,19 @@ namespace comet {
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
 
   const size_t result = env.tc_eff() == TC::NO ? 1 :
+    // NOTE: for tc, must be >= 2 -- see tc_in.
+    //!env.is_compute_method_gpu() ? 1 :
+    //!env.is_metric_type_bitwise() ? 1 :
+    env.is_using_cutlass() ? 256 :
     // Curent requirement >= 4 - see tc_in.
-    tc_solve_use_mockup(env) &&
-      (env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 4 :
-    env.tc_eff() == TC::B1 ? 256 :
-    env.tc_eff() == TC::INT4 ? 256 : 8;
+    env.is_using_cutlass_mockup() ? 4 :
+    8; // cuBLAS/rocBLAS
+
+    //// Curent requirement >= 4 - see tc_in.
+    //tc_solve_use_mockup(env) &&
+    //  (env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 4 :
+    //env.tc_eff() == TC::B1 ? 256 :
+    //env.tc_eff() == TC::INT4 ? 256 : 8;
 
   return result;
 }
@@ -91,10 +99,15 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
 
   // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
 
-  const size_t result = !env.is_metric_type_bitwise() ? 1 :
+  const size_t result = env.tc_eff() == TC::NO ? 1 :
+    //!env.is_compute_method_gpu() ? 1 :
+    //!env.is_metric_type_bitwise() ? 1 :
+    env.is_using_cutlass() ? 64 :
+    1;
+
     //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4;
     //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 256;
-    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64;
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64;
 
   return result;
 }

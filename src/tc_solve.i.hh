@@ -58,7 +58,8 @@ struct TCSubmethod {
         _64_64 = 6,
         _64_64_WMMA = 7,
         _128_256_1024 = 8,
-        _INT4 = 9
+        _INT4 = 9,
+        _INT8 = 10
   };
 };
 
@@ -220,6 +221,13 @@ template<> struct CutlassSettings<TCSubmethod::_INT4>
            CutlassWarpShape<64,64,256>,
            CutlassInstructionShape<16,8,64> {};
 
+template<> struct CutlassSettings<TCSubmethod::_INT8>
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           CutlassThreadblockShape<128,256,64>,
+           CutlassWarpShape<64,64,64>,
+           CutlassInstructionShape<16,8,32> {};
+
            //CutlassThreadblockShape<128,256,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 959 TOps
            //CutlassThreadblockShape<256,128,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 575 TOps
            //CutlassThreadblockShape<128,128,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 600 TOps
@@ -257,10 +265,17 @@ struct CutlassElementInputType<TC::INT4> {
 # endif
 };
 
+template<>
+struct CutlassElementInputType<TC::INT8> {
+# ifdef COMET_USE_CUTLASS
+  typedef uint8_t Value;
+# endif
+};
+
 //-----------------------------------------------------------------------------
 
 template<int TC_METHOD, int TC_SUBMETHOD, typename TCGemmOp>
-void tc_solve_impl_subbyte_cutlass(
+void tc_solve_impl_cutlass(
   bool is_first, int m, int n, int k,
   uint8_t const *A, int lda,
   uint8_t const *B, int ldb,
@@ -280,9 +295,9 @@ void tc_solve_impl_subbyte_cutlass(
   COMET_INSIST(((size_t)C) % 256 == 0);
 
   using ElementInput = typename CutlassElementInputType<TC_METHOD>::Value;
-  using ElementOutput = int32_t;
-  using ElementAccumulator = int32_t;
   using ElementCompute = int32_t;
+  using ElementAccumulator = int32_t;
+  using ElementOutput = int32_t;
 
   // see https://github.com/NVIDIA/cutlass/blob/master/include/cutlass/gemm/device/gemm.h
   // https://github.com/NVIDIA/cutlass/blob/master/include/cutlass/gemm/device/default_gemm_configuration.h
@@ -308,24 +323,22 @@ void tc_solve_impl_subbyte_cutlass(
         CutlassSettings<TC_SUBMETHOD>::InstructionShape0,
         CutlassSettings<TC_SUBMETHOD>::InstructionShape1,
         CutlassSettings<TC_SUBMETHOD>::InstructionShape2>,
-      cutlass::epilogue::thread::LinearCombination<
+      cutlass::epilogue::thread::LinearCombinationClamp<
           ElementOutput,
           128 / cutlass::sizeof_bits<ElementOutput>::value,
           ElementAccumulator,
           ElementCompute>,
       cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
       CutlassSettings<TC_SUBMETHOD>::STAGES, // Stages
-      //128, // AlignmentA
-      //128, // AlignmentB
-      128 / cutlass::sizeof_bits<typename CutlassElementInputType<TC_METHOD>::Value>::value, // AlignmentA
-      128 / cutlass::sizeof_bits<typename CutlassElementInputType<TC_METHOD>::Value>::value, // AlignmentB
+      128 / cutlass::sizeof_bits<ElementInput>::value, // AlignmentA
+      128 / cutlass::sizeof_bits<ElementInput>::value, // AlignmentB
       false, // SplitKSerial
       typename TCGemmOp::Value>;
 
   Gemm gemm_operator;
 
-  const int32_t alpha = 1;
-  const int32_t beta = is_first ? 0 : 1;
+  const ElementCompute alpha = 1;
+  const ElementCompute beta = is_first ? 0 : 1;
 
   typename Gemm::Arguments args(
     {m, n, k}, // Gemm Problem dimensions
@@ -415,14 +428,15 @@ __global__ void tc_solve_int4_gemm_mockup_kernel(
   } // for ind_k
 }
 
-//-----------------------------------------------------------------------------
-/// \brief 1-bit xor gemm.
-
-static bool tc_solve_use_mockup(const CEnv& env) {
-  //return true;
-  return ((env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) &&
-    ! (BuildHas::CUDA && System::compute_capability() > 700));
-}
+////-----------------------------------------------------------------------------
+///// \brief 1-bit xor gemm.
+//
+//static bool tc_solve_use_mockup(const CEnv& env) {
+//  //return true;
+//  return ((env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) &&
+//    ! (BuildHas::CUDA && BuildHas::CUTLASS &&
+//       System::compute_capability() > 700));
+//}
 
 //-----------------------------------------------------------------------------
 
@@ -432,9 +446,10 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
   COMET_INSIST(matC);
   COMET_INSIST(m >= 0 && n >= 0 && k >= 0);
 
-  if (tc_solve_use_mockup(env)) {
+  if (env.is_using_cutlass_mockup()) {
+  //if (tc_solve_use_mockup(env)) {
 
-    COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
+    //COMET_INSIST(TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR);
 
     enum {NUM_FL_PER_PFL = 64};
     COMET_INSIST(k % NUM_FL_PER_PFL == 0 &&
@@ -495,7 +510,10 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
     System::accel_last_call_succeeded();
 
-  } else { // if (!tc_solve_use_mockup(env))
+  //} else { // if (!tc_solve_use_mockup(env))
+  } else { // if (!env.is_using_cutlass_mockup()
+
+    COMET_INSIST(env.is_using_cutlass());
 
 #   if COMET_COMPUTE_CAPABILITY != 750
       enum {TC_SUBMETHOD_B1 = TCSubmethod::_128_256_1024};
@@ -503,9 +521,18 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
       enum {TC_SUBMETHOD_B1 = TCSubmethod::_128_128};
 #   endif
 
-    if (TC_METHOD == TC::INT4) {
+    if (TC_METHOD == TC::INT8) {
 
-      tc_solve_impl_subbyte_cutlass<TC::INT4, TCSubmethod::_INT4, TCGemmOpMultiplyAddSaturate>(
+      tc_solve_impl_cutlass<TC::INT8, TCSubmethod::_INT8, TCGemmOpMultiplyAddSaturate>(
+        is_first, n, m, k, // NOTE: switching order of A, B.
+        (uint8_t*)tc_bufs.tc_buf_right, k,
+        (uint8_t*)tc_bufs.tc_buf_left, k,
+        (int32_t*)matC, m,
+        env.stream_compute());
+
+    } else if (TC_METHOD == TC::INT4) {
+
+      tc_solve_impl_cutlass<TC::INT4, TCSubmethod::_INT4, TCGemmOpMultiplyAddSaturate>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
         (uint8_t*)tc_bufs.tc_buf_left, k,
@@ -514,7 +541,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
     } else if (env.is_using_xor()) { // && TC_METHOD == TC::B1
 
-      tc_solve_impl_subbyte_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpXorPopc>(
+      tc_solve_impl_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpXorPopc>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
         (uint8_t*)tc_bufs.tc_buf_left, k,
@@ -523,7 +550,7 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
     } else { // !env.is_using_xor() // && TC_METHOD == TC::B1
 
-      tc_solve_impl_subbyte_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpMultiplyAdd>(
+      tc_solve_impl_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpMultiplyAdd>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
         (uint8_t*)tc_bufs.tc_buf_left, k,
@@ -554,12 +581,19 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
     env.stream_synchronize(env.stream_compute());
   double t1 = !is_timing_gemm ? 0 : System::time();
 
-  if (env.is_compute_method_gpu() &&
-    (TC_METHOD == TC::B1 || TC_METHOD == TC::INT4)) {
+  //if (env.is_compute_method_gpu() &&
+  //  (TC_METHOD == TC::B1 || TC_METHOD == TC::INT4 ||
+  //   (TC_METHOD == TC::INT8 && BuildHas::CUDA && BuildHas::CUTLASS &&
+  //    System::compute_capability() > 700))) {
 
-    //-------------------
-    // CASE: GPU, TC::B1.
-    //-------------------
+  if (env.is_using_cutlass() || env.is_using_cutlass_mockup()) {
+
+    //------------------------------
+    // CASE: GPU, CUTLASS OR MOCKUP.
+    //------------------------------
+
+    enum {IS_B_FIELD_MAJOR = true};
+    COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
 
 #   ifdef COMET_USE_ACCEL
 
@@ -577,11 +611,11 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
 
 #   endif // COMET_USE_ACCEL
 
-  } else if (env.is_compute_method_gpu()) { // && TC_METHOD != TC::B1
+  } else if (env.is_compute_method_gpu()) { // && not cutlass or mockup
 
-    //-----------------------
-    // CASE: GPU, non-TC::B1.
-    //-----------------------
+    //---------------------------
+    // CASE: GPU, CUBLAS/ROCBLAS.
+    //---------------------------
 
     // Make accelerator BLAS call.
 
@@ -605,7 +639,9 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
       const typename TCTraits<TC_METHOD>::GemmOut_t alpha = 1;
       const typename TCTraits<TC_METHOD>::GemmOut_t beta = is_first ? 0 : 1;
 
-      enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
+      //enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
+      enum {IS_B_FIELD_MAJOR = false};
+      COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
 
       env.gemmtime_record();
 
@@ -708,7 +744,7 @@ static void tc_solve_impl(bool is_first, int m, int n, int k,
     COMET_INSIST(System::accel_last_call_succeeded());
     //System::accel_last_call_succeeded();
 
-  } else { // (!env.is_compute_method_gpu()) {
+  } else { // (!env.is_compute_method_gpu() ...) {
 
     //-----------------------
     // CASE: CPU.
