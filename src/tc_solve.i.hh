@@ -161,90 +161,93 @@ template<int TC_SUBMETHOD> struct CutlassSettings;
 template<> struct CutlassSettings<TCSubmethod::_256_128>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<256,128,512>,
-           CutlassWarpShape<64,64,512>,
-           CutlassInstructionShape<16,8,256> {};
+           CutlassThreadblockShape<256, 128, 512>,
+           CutlassWarpShape<64, 64, 512>,
+           CutlassInstructionShape<16, 8, 256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_128_256>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<128,256,512>,
-           CutlassWarpShape<64,64,512>,
-           CutlassInstructionShape<16,8,256> {};
+           CutlassThreadblockShape<128, 256, 512>,
+           CutlassWarpShape<64, 64, 512>,
+           CutlassInstructionShape<16, 8, 256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_128_256_1024>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<128,256,1024>,
-           CutlassWarpShape<64,64,1024>,
-           CutlassInstructionShape<16,8,256> {};
+           CutlassThreadblockShape<128, 256, 1024>,
+           CutlassWarpShape<64, 64, 1024>,
+           CutlassInstructionShape<16, 8, 256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_128_128>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<128,128,512>,
-           CutlassWarpShape<64,64,512>,
-           CutlassInstructionShape<16,8,256> {};
+           CutlassThreadblockShape<128, 128, 512>,
+           CutlassWarpShape<64, 64, 512>,
+           CutlassInstructionShape<16, 8, 256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_128_64>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<128,64,512>,
-           CutlassWarpShape<64,64,512>,
-           CutlassInstructionShape<16,8,256> {};
+           CutlassThreadblockShape<128, 64, 512>,
+           CutlassWarpShape<64, 64, 512>,
+           CutlassInstructionShape<16, 8, 256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_64_128>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<64,128,512>,
-           CutlassWarpShape<64,64,512>,
-           CutlassInstructionShape<16,8,256> {};
+           CutlassThreadblockShape<64, 128, 512>,
+           CutlassWarpShape<64, 64, 512>,
+           CutlassInstructionShape<16, 8, 256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_64_64>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<64,64,512>,
-           CutlassWarpShape<64,64,512>,
-           CutlassInstructionShape<16,8,256> {};
+           CutlassThreadblockShape<64, 64, 512>,
+           CutlassWarpShape<64, 64, 512>,
+           CutlassInstructionShape<16, 8, 256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_64_64_WMMA>
   : public CutlassArch,
            CutlassOpClassWmmaTensorOp,
-           CutlassThreadblockShape<64,64,512>,
-           CutlassWarpShape<64,64,512>,
-           CutlassInstructionShape<16,8,256> {};
+           CutlassThreadblockShape<64, 64, 512>,
+           CutlassWarpShape<64, 64, 512>,
+           CutlassInstructionShape<16, 8, 256> {};
 
 template<> struct CutlassSettings<TCSubmethod::_INT4>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<128,256,256>,
-           CutlassWarpShape<64,64,256>,
-           CutlassInstructionShape<16,8,64> {};
+           CutlassThreadblockShape<128, 256, 256>,
+           CutlassWarpShape<64, 64, 256>,
+           CutlassInstructionShape<16, 8, 64> {};
 
 template<> struct CutlassSettings<TCSubmethod::_INT8>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<128,256,64>,
-           CutlassWarpShape<64,64,64>,
-           CutlassInstructionShape<16,8,32> {};
+           //CutlassThreadblockShape<128, 256, 64>,
+           //CutlassWarpShape<64, 64, 64>,
+           //CutlassInstructionShape<16, 8, 32> {};
+           CutlassThreadblockShape<128, 256, 128>,
+           CutlassWarpShape<64, 64, 128>,
+           CutlassInstructionShape<16, 8, 32> {};
 
-           //CutlassThreadblockShape<128,256,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 959 TOps
-           //CutlassThreadblockShape<256,128,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 575 TOps
-           //CutlassThreadblockShape<128,128,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 600 TOps
-           //CutlassThreadblockShape<256,64,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 316 TOps
-           //CutlassThreadblockShape<64,256,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 849 TOps
-           //CutlassThreadblockShape<64,128,256>, CutlassWarpShape<32,64,256>, CutlassInstructionShape<16,8,64> {}; // 549 TOps
-           //CutlassThreadblockShape<128,64,256>, CutlassWarpShape<64,32,256>, CutlassInstructionShape<16,8,64> {}; // 309 TOps
-           //CutlassThreadblockShape<64,64,256>, CutlassWarpShape<32,32,256>, CutlassInstructionShape<16,8,64> {}; // 307 TOps
+           //CutlassThreadblockShape<128, 256, 256>, CutlassWarpShape<64, 64, 256>, CutlassInstructionShape<16, 8, 64> {}; // 959 TOps
+           //CutlassThreadblockShape<256, 128, 256>, CutlassWarpShape<64, 64, 256>, CutlassInstructionShape<16, 8, 64> {}; // 575 TOps
+           //CutlassThreadblockShape<128, 128, 256>, CutlassWarpShape<64, 64, 256>, CutlassInstructionShape<16, 8, 64> {}; // 600 TOps
+           //CutlassThreadblockShape<256, 64, 256>, CutlassWarpShape<64, 64, 256>, CutlassInstructionShape<16, 8, 64> {}; // 316 TOps
+           //CutlassThreadblockShape<64, 256, 256>, CutlassWarpShape<64, 64, 256>, CutlassInstructionShape<16, 8, 64> {}; // 849 TOps
+           //CutlassThreadblockShape<64, 128, 256>, CutlassWarpShape<32, 64, 256>, CutlassInstructionShape<16, 8, 64> {}; // 549 TOps
+           //CutlassThreadblockShape<128, 64, 256>, CutlassWarpShape<64, 32, 256>, CutlassInstructionShape<16, 8, 64> {}; // 309 TOps
+           //CutlassThreadblockShape<64, 64, 256>, CutlassWarpShape<32, 32, 256>, CutlassInstructionShape<16, 8, 64> {}; // 307 TOps
 
-           //CutlassThreadblockShape<128,256,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 560 TOps
-           //CutlassThreadblockShape<256,128,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 362 TOps
-           //CutlassThreadblockShape<128,128,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 344 TOps
-           //CutlassThreadblockShape<256,64,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 198 TOps
-           //CutlassThreadblockShape<64,256,128>, CutlassWarpShape<64,64,128>, CutlassInstructionShape<16,8,64> {}; // 460 TOps
-           //CutlassThreadblockShape<64,128,128>, CutlassWarpShape<32,64,128>, CutlassInstructionShape<16,8,64> {}; // 319 TOps
-           //CutlassThreadblockShape<128,64,128>, CutlassWarpShape<64,32,128>, CutlassInstructionShape<16,8,64> {}; // 191 TOps
-           //CutlassThreadblockShape<64,64,128>, CutlassWarpShape<32,32,128>, CutlassInstructionShape<16,8,64> {}; // 189 TOps
+           //CutlassThreadblockShape<128, 256, 128>, CutlassWarpShape<64, 64, 128>, CutlassInstructionShape<16, 8, 64> {}; // 560 TOps
+           //CutlassThreadblockShape<256, 128, 128>, CutlassWarpShape<64, 64, 128>, CutlassInstructionShape<16, 8, 64> {}; // 362 TOps
+           //CutlassThreadblockShape<128, 128, 128>, CutlassWarpShape<64, 64, 128>, CutlassInstructionShape<16, 8, 64> {}; // 344 TOps
+           //CutlassThreadblockShape<256, 64, 128>, CutlassWarpShape<64, 64, 128>, CutlassInstructionShape<16, 8, 64> {}; // 198 TOps
+           //CutlassThreadblockShape<64, 256, 128>, CutlassWarpShape<64, 64, 128>, CutlassInstructionShape<16, 8, 64> {}; // 460 TOps
+           //CutlassThreadblockShape<64, 128, 128>, CutlassWarpShape<32, 64, 128>, CutlassInstructionShape<16, 8, 64> {}; // 319 TOps
+           //CutlassThreadblockShape<128, 64, 128>, CutlassWarpShape<64, 32, 128>, CutlassInstructionShape<16, 8, 64> {}; // 191 TOps
+           //CutlassThreadblockShape<64, 64, 128>, CutlassWarpShape<32, 32, 128>, CutlassInstructionShape<16, 8, 64> {}; // 189 TOps
 
 //-----------------------------------------------------------------------------
 
@@ -268,7 +271,7 @@ struct CutlassElementInputType<TC::INT4> {
 template<>
 struct CutlassElementInputType<TC::INT8> {
 # ifdef COMET_USE_CUTLASS
-  typedef uint8_t Value;
+  typedef int8_t Value;
 # endif
 };
 
@@ -303,6 +306,7 @@ void tc_solve_impl_cutlass(
   // https://github.com/NVIDIA/cutlass/blob/master/include/cutlass/gemm/device/default_gemm_configuration.h
   // https://github.com/NVIDIA/cutlass/blob/master/test/unit/gemm/device/gemm_b1t_b1n_s32t_tensor_op_s32_sm80.cu
   // https://github.com/NVIDIA/cutlass/blob/master/test/unit/gemm/device/gemm_s4t_s4n_s32t_tensor_op_s32_sm80.cu
+  // https://github.com/NVIDIA/cutlass/blob/master/test/unit/gemm/device/gemm_s8t_s8n_s32t_tensor_op_s32_sm80.cu
 
   using Gemm = cutlass::gemm::device::Gemm<
       ElementInput, cutlass::layout::RowMajor,
@@ -346,7 +350,7 @@ void tc_solve_impl_cutlass(
     {(ElementInput const*)B, ldb}, // Tensor-ref for source matrix B
     {(ElementOutput *)C, ldc}, // Tensor-ref for source matrix C
     {(ElementOutput *)C, ldc}, // Tensor-ref for destination matrix C
-    {alpha,beta}); // Scalars used in the Epilogue
+    {alpha, beta}); // Scalars used in the Epilogue
 
 
   // Perform GEMM.

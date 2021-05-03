@@ -992,8 +992,8 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
   local COMET_COMPUTE_CAPABILITY=800
   #COMET_WERROR=OFF
 
-  local USE_MAGMA=OFF
-  #local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
+  local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=80
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 

@@ -638,7 +638,7 @@ void perform_run_preflight(int argc, char** argv) {
           "--compute_method GPU --verbosity 0" :
 
 #ifdef COMET_PLATFORM_JUWELS_BOOSTER
-          "--metric_type duo "
+          "--metric_type duo --sparse yes "
           "--num_field 262144 --num_vector_local 12288 "
 #else
           "--num_field 768 --num_vector_local 768 "
