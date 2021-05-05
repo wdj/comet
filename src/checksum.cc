@@ -268,7 +268,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
   if (! env.is_proc_active()) {
     return;
   }
-
+  bool print_details=true;
   if(env.print_details()) printf("In checksum compute\n");
 
   // Check for NaNs if appropriate
@@ -365,6 +365,7 @@ void Checksum::compute(Checksum& cksum, Checksum& cksum_local,
         const double value = Checksum::metrics_elt(metrics, index, entry_num,
                                                    env);
 
+	if(print_details && env.print_details()) printf("Checksum index=%zu entry=%d value=%lf\n",index,entry_num,value);
         num_private += true && is_active;
         num_zero_private += (double)0 == value && is_active;
 

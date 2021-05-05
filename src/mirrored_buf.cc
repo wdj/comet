@@ -145,7 +145,8 @@ void MirroredBuf::allocate(size_t dim0_, size_t dim1_, int elt_size) {
   elt_size_ = elt_size;
   size_allocated_ = num_elts_ * elt_size_;
 # if defined COMET_USE_CUDA
-#ifdef COMET_PLATFORM_CORI_GPU
+//#ifdef COMET_PLATFORM_CORI_GPU
+#if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
     // WORKAROUND
     h = malloc(size_allocated_);
 #else
@@ -266,7 +267,8 @@ void MirroredBuf::deallocate() {
     } else {
 
 #     if defined COMET_USE_CUDA
-#ifdef COMET_PLATFORM_CORI_GPU
+//#ifdef COMET_PLATFORM_CORI_GPU
+#if defined(COMET_PLATFORM_CORI_GPU) || defined(COMET_PLATFORM_JUWELS_BOOSTER)
         // WORKAROUND
         free(h);
 #else

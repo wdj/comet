@@ -105,26 +105,20 @@ void LinAlg::gemm_start(
         dm.num_field_active_local, step_2way, dm.tc_bufs, env);
     }
   } else {
-    switch(env.num_kernel()) {
-      // Magma GEMM
-      case 0: {
-        if(env.print_details()) printf("rank=%d Calling MagmaWrapper::gemm_start with mnk=%zu,%zu,%zu\n",rank,m,n,k);
-        // apparently needed by magma.
-        MagmaWrapper::set_matrix_zero_start(matC, env);
-        // GEMM call, non-tc case.
-        MagmaWrapper::gemm_start(m, n, k, matA1->active, matA1->dim0,
+    // Magma GEMM
+    if(env.num_kernel()==0) {
+      if(env.print_details()) printf("rank=%d Calling MagmaWrapper::gemm_start with mnk=%zu,%zu,%zu\n",rank,m,n,k);
+      // apparently needed by magma.
+      MagmaWrapper::set_matrix_zero_start(matC, env);
+      // GEMM call, non-tc case.
+      MagmaWrapper::gemm_start(m, n, k, matA1->active, matA1->dim0,
           matB->active, matB->dim0, matC->active, matC->dim0, env);
-      } break;
-      // General GEMMs
-      case 1: {
-        if(env.print_details()) printf("rank=%d Calling CoMet GEMM kernel with mnk=%zu,%zu,%zu\n",rank,m,n,k);
-        tc_gemm_comet_start(m, n, k, matA1->active, matA1->dim0,
-          matB->active, matB->dim0, matC->active, matC->dim0, env);
-      } break;
-      default: {
-        if(env.print_details()) printf("ERROR: Need to set num_kernel=%d to valid kernel\n",env.num_kernel());
-        COMET_INSIST(false && "Invalid tc type and num_kernel.");
-      }
+    }
+    // General GEMMs
+    else {
+      if(env.print_details()) printf("rank=%d Calling CoMet GEMM kernel with mnk=%zu,%zu,%zu\n",rank,m,n,k);
+      tc_gemm_comet_start(m, n, k, matA1->active, matA1->dim0,
+        matB->active, matB->dim0, matC->active, matC->dim0, env);
     }
   }
   if(env.print_details()) printf("rank=%d Done in LingAlg::gemm_start\n",rank);

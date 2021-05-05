@@ -83,6 +83,9 @@ ComputeMetrics3WayBlock::ComputeMetrics3WayBlock(int nvl, int npfl, CEnv& env)
     matB_buf_[i]->set_zero_h();
     matB_buf_[i]->to_accel();
   }
+
+  matB_cbuf_ = new CompressedBuf(*matB_buf_[0], env_);
+
   if (env_.does_3way_need_2way()) {
     matM_ij_buf_.allocate(nvl, nvl);
     matM_jk_buf_.allocate(nvl, nvl);
@@ -97,6 +100,7 @@ ComputeMetrics3WayBlock::~ComputeMetrics3WayBlock() {
   if (!env_.is_using_linalg())
     return;
 
+  delete matB_cbuf_;
 }
 
 //-----------------------------------------------------------------------------

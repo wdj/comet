@@ -30,13 +30,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Includes
 #include "cstdlib"
-//#include <stdlib.h>
 #include <cuda_runtime.h>
 #include "cuda_fp16.h"
 #include "types.hh"
-
-#include "tc_solve_cutlass_nvidia.i.hh"
-#include "tc_solve_cutlass_warp.i.hh"
 
 // GPU bit count routine
 #define gm_popcount64(x) __popcll(x)
@@ -60,10 +56,10 @@ __global__ void b1_comet_mult_gemm_gpu_simple(int m, int n, int k,
 
   //if(tx==0 && ty==0 && bx==0 && by==0) printf("In b1_comet_mult_gemm_gpu_simple\n");
 
-  int gridx = bx*BLOCK_SIZE + tx;
-  int gridy = by*BLOCK_SIZE + ty;
-  //int gridx = by*BLOCK_SIZE + ty;
-  //int gridy = bx*BLOCK_SIZE + tx;
+  //int gridx = bx*BLOCK_SIZE + tx;
+  //int gridy = by*BLOCK_SIZE + ty;
+  int gridx = by*BLOCK_SIZE + ty;
+  int gridy = bx*BLOCK_SIZE + tx;
 
   //if(bx==0 && by==0 && tx==0 && ty==0)
   //  printf("In b1_comet_xor_gemm_gpu_simple mnk=%d,%d,%d a=%dx%d * b=%dx%d = c=%dx%d gxy=%d,%d\n",
@@ -74,10 +70,10 @@ __global__ void b1_comet_mult_gemm_gpu_simple(int m, int n, int k,
   enum { GM_TALLY1_MAX_VALUE_BITS = 26 };
 
   // Matrix block location
-  int aBegin = k * BLOCK_SIZE * bx;
-  int bBegin = k * BLOCK_SIZE * by;
-  //int aBegin = k * BLOCK_SIZE * by;
-  //int bBegin = k * BLOCK_SIZE * bx;
+  //int aBegin = k * BLOCK_SIZE * bx;
+  //int bBegin = k * BLOCK_SIZE * by;
+  int aBegin = k * BLOCK_SIZE * by;
+  int bBegin = k * BLOCK_SIZE * bx;
 
   // Stores element of block sub-matrix computed by thread
   double c0 = 0, c1 = 0;
@@ -87,10 +83,10 @@ __global__ void b1_comet_mult_gemm_gpu_simple(int m, int n, int k,
   for (int l=0; l<k; ++l) {
 
     // A row major and B col major
-    int aInd = aBegin + k*tx + l;
-    int bInd = bBegin + k*ty + l;
-    //int aInd = aBegin + k*ty + l;
-    //int bInd = bBegin + k*tx + l;
+    //int aInd = aBegin + k*tx + l;
+    //int bInd = bBegin + k*ty + l;
+    int aInd = aBegin + k*ty + l;
+    int bInd = bBegin + k*tx + l;
 
     //---Extract input values to process---
     const GMBits2x64 vi = a[aInd];
@@ -180,6 +176,8 @@ __global__ void b1_comet_mult_gemm_gpu_simple(int m, int n, int k,
     //---Accumulate---
     c0 += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
     c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
+    //c0 += r00 | (r10 << GM_TALLY1_MAX_VALUE_BITS);
+    //c1 += r01 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
     //ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
 
     //printf("b=%d,%d t=%d,%d r=%ld %ld %ld %ld c=%d %d %d %d\n",
@@ -193,13 +191,13 @@ __global__ void b1_comet_mult_gemm_gpu_simple(int m, int n, int k,
   int cInd   = cBegin + tx*n + ty;
   //int cBegin = m*by*BLOCK_SIZE+bx*BLOCK_SIZE;
   //int cInd   = cBegin + ty*m + tx;
-  if(beta) {
-    c[cInd].data[0] += c0;
-    c[cInd].data[1] += c1;
-  } else {
-    c[cInd].data[0] = c0;
-    c[cInd].data[1] = c1;
-  }
+  //if(beta) {
+  //  c[cInd].data[0] += c0;
+  //  c[cInd].data[1] += c1;
+  //} else {
+  c[cInd].data[0] = c0;
+  c[cInd].data[1] = c1;
+  //}
   //printf("b=%d,%d t=%d,%d c=%d %d %d %d cInd=%d c0=%f c1=%f\n",
   //       bx,by,tx,ty,ci0,ci1,ci2,ci3,cInd,c0,c1);
 }
@@ -230,21 +228,21 @@ static void tc_solve_comet_mult_impl(bool is_first, int m, int n, int k,
 
   switch(env.num_kernel()) {
     // Basic GEMM
-    case 151: {
+    case 150: {
       threadblockx = BLOCK_SIZE; threadblocky = BLOCK_SIZE;
       gridblockx = (int)ceil((double)m/threadblockx);
       gridblocky = (int)ceil((double)n/threadblocky);
       if(env.print_details()) printf("Calling b1_comet_xor_gemm_gpu_simple kernel gridDim=%d,%d threadDim=%d,%d\n",gridblockx,gridblocky,threadblockx,threadblocky);
-      COMET_LAUNCH_KERNEL(b1_comet_mult_gemm_gpu_simple,
-        dim3(gridblockx, gridblocky, 1),
-        dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
-        n, m, k, (GMBits2x64*)matB,
-        (GMBits2x64*)matA, beta, (GMTally2x2*)matC);
       /*COMET_LAUNCH_KERNEL(b1_comet_mult_gemm_gpu_simple,
         dim3(gridblockx, gridblocky, 1),
         dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
+        n, m, k, (GMBits2x64*)matB,
+        (GMBits2x64*)matA, beta, (GMTally2x2*)matC);*/
+      COMET_LAUNCH_KERNEL(b1_comet_mult_gemm_gpu_simple,
+        dim3(gridblockx, gridblocky, 1),
+        dim3(threadblockx, threadblocky, 1), 0, env.stream_compute(),
         m, n, k, (GMBits2x64*)matA,
-        (GMBits2x64*)matB, beta, (GMTally2x2*)matC);*/
+        (GMBits2x64*)matB, beta, (GMTally2x2*)matC);
     } break;
     // Output error for invalid choice
     default: {
@@ -257,9 +255,7 @@ static void tc_solve_comet_mult_impl(bool is_first, int m, int n, int k,
   env.gemm_timer.end();
 
   int err = cudaGetLastError();
-  if(env.print_details()) printf("tc_solve_comet_mult_impl new formula computed 1-bit GEMM with 2x%dx%dx%d=%lf operations\n",
-    m,n,k,2.0*(double)m*(double)n*(double)k);
-  if(env.print_details()) printf("tc_solve_comet_mult_impl old formula computed 1-bit GEMM with 2x%dx%dx%d=%lf operations\n",
+  if(env.print_details()) printf("tc_solve_comet_mult_impl computed 1-bit GEMM with 2x%dx%dx%d=%lf operations\n",
     2*m,2*n,k*64,2.0*(double)m*2.0*(double)n*2.0*(double)k*64.0);
   //env.stream_synchronize(env.stream_compute());
   System::accel_last_call_succeeded();

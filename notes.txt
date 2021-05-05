@@ -13,10 +13,88 @@ Input options:
 GEMMs:
 no tc:
   * CoMet GEMM kernels with original approach:
-    0: Default Magma kernel (magma_wrapper.cc - magma_mgemm*5blas_zgemm)
-    1: Simple WMMA CoMet kernel (tc_solve_comet.i.hh - b1_comet_gemm_gpu_simple)
+    0: Default Magma kernel - Doesn't call due to invalid problem for this system and build:
+       linalg.cc        - gemm_start (Calls different non-tc GEMMs)
+       magma_wrapper.cc - gemm_start
+                        - gemm_block_start
+                          * magma_mgemm5blas_zgemm
+
+    1: Simple WMMA CoMet kernel:
+       linalg.cc           - gemm_start (Calls different non-tc GEMMs)
+       tc.cc               - tc_gemm_comet_start
+       tc_solve_comet.i.hh - tc_solve_comet_ (Calls non-tc non-magma GEMMs)
+                             * b1_comet_gemm_gpu_simple
+
+tc 1:
+  * Non-B1 GEMMs
+    0: Cublas - Works:
+       linalg.cc     - gemm_start
+       tc.cc         - tc_gemm_start
+                     - tc_gemm_start_impl_ (Calls tc_in/tc_out)
+       tc_solve.i.hh - tc_solve_
+                     - tc_solve_impl (Calls different TC GEMMs)
+                       * cublasGemmEx
 
 tc 5:
+  * Cutlass device-level Xor B1 GEMMs
+    11-49: Various different template parameters - Works (17):
+      linalg.cc     - gemm_start
+      tc.cc         - tc_gemm_start
+                    - tc_gemm_start_impl_ (Calls tc_in/tc_out)
+      tc_solve.i.hh - tc_solve_
+                    - tc_solve_impl
+                    - tc_solve_impl_subbyte (Calls different b1 solves)
+                      * CutlassTCGemm1B (Different template parameter options)
+                      
+  * Cutlass device-level Mult B1 GEMMs
+    50-99: Various different template parameters - Works (50)
+      linalg.cc     - gemm_start
+      tc.cc         - tc_gemm_start
+                    - tc_gemm_start_impl_ (Calls tc_in/tc_out)
+      tc_solve.i.hh - tc_solve_
+                    - tc_solve_impl
+                    - tc_solve_impl_subbyte (Calls different b1 solves)
+                      * CutlassTCGemm1B (Different template parameter options)
+
+  * Cutlass warp-level Xor B1 GEMMs
+    100-124: Various different warp-level xor double GEMMs - Errors (100, 103)
+      linalg.cc               - gemm_start
+      tc.cc                   - tc_gemm_start
+                              - tc_gemm_comet_start_impl_ (Call tc_out)
+                              - tc_solve_comet_ (Call xor or mult)
+      tc_solve_comet_xor.i.hh - tc_solve_comet_xor_impl (Calls different warp-level xor double GEMMs)
+                                * 100 - b1_comet_xor_gemm_gpu_simple
+                                * 101 - b1_comet_xor_gemm_gpu_tc_simple
+                                * 102 - b1_comet_xor_gemm_gpu_tc_opt
+                                * 103 - tc_solve_comet_impl_cutlass
+
+    125-149: Various different warp-level xor int GEMMs
+      linalg.cc                   - gemm_start
+      tc.cc                       - tc_gemm_start
+                                  - tc_gemm_comet_start_int_impl_ (Call tc_out)
+                                  - tc_solve_comet_int_ (Call xor or mult)
+      tc_solve_comet_xor_int.i.hh - tc_solve_comet_int_impl (Calls different warp-level xor int GEMMs)
+                                    * 125 - b1_comet_xor_gemm_gpu_int_simple
+                                    * 126 - tc_solve_comet_impl_cutlass_int
+
+  * Cutlass warp-level Mult B1 GEMMs
+    150-174: Various different warp-level mult double GEMMs
+      linalg.cc               - gemm_start
+      tc.cc                   - tc_gemm_start
+                              - tc_gemm_comet_start_impl_ (Call tc_out)
+                              - tc_solve_comet_ (Call xor or mult)
+      tc_solve_comet_xor.i.hh - tc_solve_comet_mult_int_impl (Calls different warp-level mult double GEMMs)
+                                * 150 - b1_comet_mult_gemm_gpu_simple
+
+    175-199: Various different warp-level mult int GEMMs
+      linalg.cc                    - gemm_start
+      tc.cc                        - tc_gemm_start
+                                   - tc_gemm_comet_start_int_impl_ (Call tc_out)
+                                   - tc_solve_comet_int_ (Call xor or mult)
+      tc_solve_comet_mult_int.i.hh - tc_solve_comet_mult_int_impl (Calls different warp-level mult int GEMMs)
+                                     * 175 - Placeholder      
+
+
   * 1-bit WMMA xor general GEMM kernels (tc_solve_general.i.hh):
     0: Very simple 1-bit GEMM (b1_xor_gemm_gpu)
       - Basic approach to develop CoMet 1-bit xor GEMM code
@@ -26,17 +104,6 @@ tc 5:
       - Simple approach to demonstrate tensor cores can use shared memory
       - Needs to read larger blocks and loop over them to actually improve performance
     30: Place holder to experiment with different pre and post processing routines
-
-  * Cutlass device-level kernels (tc_solve_cutlass_general.i.hh):
-    10: Cutlass kernel with 256x128 blocks
-    11: Cutlass kernel with 128x256 blocks
-      - Fastest Cutlass kernel on GTX 2060
-    12: Cutlass kernel with 128x128 blocks
-    13: Cutlass kernel with 128x64 blocks
-    14: Cutlass kernel with 64x128 blocks
-    15: Cutlass kernel with 64x64 blocks
-    16: Cutlass WMMA kernel with 64x64 blocks
-      - Another Cutlass kernel approach, but not sure what is different about it
 
   * 1-bit WMMA xor CoMet GEMM kernels (tc_solve_comet_xor.i.hh)
     20: Simple GEMM that returns int array (b1_comet_xor_gemm_gpu_int_simple)

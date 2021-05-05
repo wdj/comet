@@ -42,6 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mma.h>
 
 #include "tc_solve_cutlass_general.i.hh"
+#include "tc_solve_comet_xor.i.hh"
+#include "tc_solve_comet_xor_int.i.hh"
+#include "tc_solve_comet_mult.i.hh"
+#include "tc_solve_comet_mult_int.i.hh"
 
 #ifdef COMET_USE_CUTLASS
 #include "cutlass/gemm/device/gemm.h"
@@ -1245,6 +1249,67 @@ void tc_solve_(bool is_first, int nvll, int nvl, int npfl_thisstep,
     printf("Calling tc_solve_impl with m=2*nvll=2*%d=%d n=2*nvl=2*%d=%d "
            "k=npfl_thisstep*64=%d*64=%d\n",nvll,m,nvl,n,npfl_thisstep,k);
   tc_solve_impl<TC_METHOD>(is_first, m, n, k, matC, tc_bufs, env);
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Call to perform required GEMM.
+
+template<int TC_METHOD>
+void tc_solve_comet_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
+                     const void *matA, const void *matB,void* matC, TCBufs& tc_bufs, CEnv& env) {
+  COMET_INSIST(matC);
+  COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
+  COMET_INSIST(npvfl_thisstep >= 0);
+  COMET_INSIST(env.tc_eff() != TC::NO);
+
+  const int nfl_thisstep = npvfl_thisstep;
+  //const int nfl_thisstep = npvfl_thisstep * 64;
+
+  const int m = nvll; // metrics array dim
+  const int n = nvl; // metrics array dim
+  //const int m = 2*nvll; // metrics array dim
+  //const int n = 2*nvl; // metrics array dim
+  const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
+
+  if(env.print_details()) printf("In tc_solve_comet_ calling tc_solve_comet_impl with mnk=%d,%d,%d nvll=%d nvl=%d\n",m,n,k,nvll,nvl);
+  if(env.num_kernel() >= 100 && env.num_kernel() < 125) {
+    tc_solve_comet_xor_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+  } else if(env.num_kernel() >= 150 && env.num_kernel() < 175) {
+    tc_solve_comet_mult_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+  } else {
+    printf("Failed to call appropriate 1-bit CoMet double GEMM kernel for num_kernel=%d\n",
+         env.num_kernel());
+      COMET_INSIST(false && "Failure to call GEMM function.");
+  }
+}
+
+//-----------------------------------------------------------------------------
+/// \brief Call to perform required GEMM.
+
+template<int TC_METHOD>
+void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
+                         const void *matA, const void *matB,void* matC, TCBufs& tc_bufs, CEnv& env) {
+  COMET_INSIST(matC);
+  COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
+  COMET_INSIST(npvfl_thisstep >= 0);
+  COMET_INSIST(env.tc_eff() != TC::NO);
+
+  const int nfl_thisstep = npvfl_thisstep;
+
+  const int m = nvll; // metrics array dim
+  const int n = nvl; // metrics array dim
+  const int k = nfl_thisstep; // vectors array (as GemmIn_t) dim
+
+  if(env.num_kernel() >= 125 && env.num_kernel() < 150) {
+    if(env.print_details()) printf("Calling tc_solve_comet_int_impl with mnk=%d,%d,%d\n",m,n,k);
+    tc_solve_comet_int_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+  } else if(env.num_kernel() >= 175 && env.num_kernel() < 200) {
+    tc_solve_comet_mult_int_impl<TC_METHOD>(is_first, m, n, k, matA, matB, matC, tc_bufs, env);
+  } else {
+    printf("Failed to call appropriate 1-bit CoMet int GEMM kernel for num_kernel=%d\n",
+         env.num_kernel());
+      COMET_INSIST(false && "Failure to call GEMM function.");
+  }
 }
 
 //=============================================================================
