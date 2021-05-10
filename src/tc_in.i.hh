@@ -797,7 +797,8 @@ void tc_buf_write_(
       const int num_threadblocks_1 = utils::min(thread_dim1, blockdim_y);
       const int num_threadblocks_2 = utils::ceil(thread_dim1, blockdim_y);
 
-      if(env.print_details()) printf("Launching tc_buf_write_kernel_ with blocks=%d,%d,%d and threads=%d,1,1\n",num_threadblocks_0,num_threadblocks_1,num_threadblocks_2,threadblocksize);
+      if(env.print_details()) printf("Launching tc_buf_write_kernel_ with blocks=%d,%d,%d and threads=%d,1,1 form_matX_tc=%d\n",
+        num_threadblocks_0,num_threadblocks_1,num_threadblocks_2,threadblocksize,form_matX_tc);
 
       COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<TC_METHOD, IS_LEFT>),
         dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),

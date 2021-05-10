@@ -1287,14 +1287,14 @@ void tc_solve_comet_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
 /// \brief Call to perform required GEMM.
 
 template<int TC_METHOD>
-void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npvfl_thisstep,
+void tc_solve_comet_int_(bool is_first, int nvll, int nvl, int npfl_thisstep,
                          const void *matA, const void *matB,void* matC, TCBufs& tc_bufs, CEnv& env) {
   COMET_INSIST(matC);
   COMET_INSIST(nvll >= 0 && nvl >= 0 && nvll <= nvl);
-  COMET_INSIST(npvfl_thisstep >= 0);
+  COMET_INSIST(npfl_thisstep >= 0);
   COMET_INSIST(env.tc_eff() != TC::NO);
 
-  const int nfl_thisstep = npvfl_thisstep;
+  const int nfl_thisstep = npfl_thisstep/2;
 
   const int m = nvll; // metrics array dim
   const int n = nvl; // metrics array dim

@@ -318,7 +318,7 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
     const uint64_t vj0 = vj.data[0];
     const uint64_t vj1 = vj.data[1];
 
-    if(tx==0 && ty==0)
+    //if(tx==0 && ty==0)
       printf("b=%d,%d t=%d,%d g=%d,%d a=%d=%d b=%d=%d mnk=%d,%d,%d vi0=%lu vi1=%lu vj0=%lu vj1=%lu\n",
              bx,by,tx,ty,gridDim.x,gridDim.y,aBegin,aInd,bBegin,bInd,m,n,k,vi0,vi1,vj0,vj1);
 
@@ -361,7 +361,7 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
     c0 += r00 | (r01 << GM_TALLY1_MAX_VALUE_BITS);
     c1 += r10 | (r11 << GM_TALLY1_MAX_VALUE_BITS);
     ci0 += r00; ci1 += r01; ci2 += r10; ci3 += r11;
-    if(tx==0 && ty==0)
+    //if(tx==0 && ty==0)
       printf("b=%d,%d t=%d,%d a=%d b=%d r00=%ld r01=%ld r10=%ld r11=%ld sum0=%lf sum1=%lf c0123=%d,%d,%d,%d\n",
              bx,by,tx,ty,aInd,bInd,r00,r01,r10,r11,c0,c1,ci0,ci1,ci2,ci3);
   }
@@ -371,8 +371,8 @@ void b1_comet_gemm_gpu_simple3_(int m, int n, int k, GMBits2x64* a,
   int cBegin = n*bx*BLOCK_SIZE+by*BLOCK_SIZE;
   int cInd   = cBegin + tx*n + ty;
   //if(tx==0 && ty==0)
-    printf("b=%d,%d t=%d,%d cb=%d=%d,%d ci=%d c01=%lf,%lf ci0123=%d,%d,%d,%d\n",
-           bx,by,tx,ty,cBegin,n*bx*BLOCK_SIZE,by*BLOCK_SIZE,cInd,c0,c1,ci0,ci1,ci2,ci3);
+  //  printf("b=%d,%d t=%d,%d cb=%d=%d,%d ci=%d c01=%lf,%lf ci0123=%d,%d,%d,%d\n",
+  //         bx,by,tx,ty,cBegin,n*bx*BLOCK_SIZE,by*BLOCK_SIZE,cInd,c0,c1,ci0,ci1,ci2,ci3);
   c[cInd].data[0] = c0;
   c[cInd].data[1] = c1;
 }

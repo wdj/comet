@@ -99,9 +99,9 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
   // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
 
   const size_t result = !env.is_metric_type_bitwise() ? 1 :
-    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4; // Helpful for debugging smaller problems
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4; // Helpful for debugging smaller problems
     //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 256;
-    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64; // Best for performance
+    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64; // Best for performance
     
   if(env.print_details()) printf("In faxis_divis_req result=%zu tc_eff=%d !env.is_metric_type_bitwise=%d num_kernel=%d\n",
     result,env.tc_eff(),!env.is_metric_type_bitwise(),env.num_kernel());
@@ -285,8 +285,8 @@ static void tc_gemm_start_impl_(
 //t1 = env.synced_time();
     // Perform the GEMM for this pair of block rows; accumulate.
     const bool is_first = 0 == pfl_min;
-    if(env.print_details()) printf("Calling tc_solve with step=%d is_first=%d mnk=%d,%d,%d nvll=%d nvl=%d npfl_thisstep=%d pfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",
-      tc_step_num,is_first,m,n,k,nvll,nvl,npfl_thisstep,pfl_min,pfl_max,I_max_dim,lddc);
+    if(env.print_details()) printf("Calling tc_solve with step=%d is_first=%d mnk=%d,%d,%d nvll=%d nvl=%d npfl=%d npfl_thisstep=%d pfl_min/max=%d/%d d=%d I_max_dim=%d lddc=%d tc_step_num=%d num_tc_steps=%d\n",
+      tc_step_num,is_first,m,n,k,nvll,nvl,npfl,npfl_thisstep,pfl_min,pfl_max,d,I_max_dim,lddc,tc_step_num,num_tc_steps);
     //for (int i=0; i<10; ++i)
     tc_solve_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matC, tc_bufs, env);
@@ -348,9 +348,12 @@ static void tc_gemm_comet_start_int_impl_(
   TCBufs& tc_bufs, int nfal, int step_2way, CEnv& env) {
 
   const int nvl = n;
-  const int npvfl = k;
+  const int npfl = k;
+  const int d = tc_gemm_faxis_divisibility_required(env);
+  COMET_INSIST(npfl % d == 0);
   const int I_max = m;
   const int I_max_dim = lddc;
+
   COMET_INSIST(I_max <= I_max_dim && I_max_dim <= nvl);
   // nvll is the effective nvl (column dim) for the left matrix
   // We only really only need up to I_max, but must compute to I_max_dim
@@ -363,7 +366,7 @@ static void tc_gemm_comet_start_int_impl_(
 
   // Get matX counts if needed.
 
-  tc_compute_matX_counts(I_max, I_max_dim, nvl, npvfl, nfal,
+  tc_compute_matX_counts(I_max, I_max_dim, nvl, npfl, nfal,
     (TCWord_t*)matA1, (TCWord_t*)matA2, tc_bufs, step_2way, env);
 
   if(env.print_details()) printf("Allocating matC with lddc=%d m=%d\n",lddc,m);
@@ -375,18 +378,19 @@ static void tc_gemm_comet_start_int_impl_(
   for (int tc_step_num = 0; tc_step_num < num_tc_steps; ++tc_step_num) {
 
     // Select the block row of the left and right matrices for this step.
-    const int pvfl_min = ((tc_step_num+0) * npvfl) / num_tc_steps;
-    const int pvfl_max = ((tc_step_num+1) * npvfl) / num_tc_steps;
-    const int npvfl_thisstep = pvfl_max - pvfl_min;
+    const int pfl_min = (((tc_step_num+0) * (npfl/d)) / num_tc_steps) * d;
+    const int pfl_max = (((tc_step_num+1) * (npfl/d)) / num_tc_steps) * d;
+    const int npfl_thisstep = pfl_max - pfl_min;
 
-    const bool is_empty_block_row = 0 == npvfl_thisstep;
+    const bool is_empty_block_row = 0 == npfl_thisstep;
     if (is_empty_block_row)
       continue;
 
     // Perform the GEMM for this pair of block rows; accumulate.
-    const bool is_first = 0 == pvfl_min;
-    if(env.print_details()) printf("mnk=%d,%d,%d nvll=%d nvl=%d npvfl_thisstep=%d pvfl_min/max=%d/%d I_max_dim=%d lddc=%d\n",m,n,k,nvll,nvl,npvfl_thisstep,pvfl_min,pvfl_max,I_max_dim,lddc);
-    tc_solve_comet_int_<TC_METHOD>(is_first, nvll, nvl, npvfl_thisstep,
+    const bool is_first = 0 == pfl_min;
+    if(env.print_details()) printf("mnk=%d,%d,%d nvll=%d nvl=%d npfl_thisstep=%d npfl=%d pfl_min/max=%d/%d d=%d I_max_dim=%d lddc=%d tc_step_num=%d num_tc_steps=%d\n",
+      m,n,k,nvll,nvl,npfl_thisstep,npfl,pfl_min,pfl_max,d,I_max_dim,lddc,tc_step_num,num_tc_steps);
+    tc_solve_comet_int_<TC_METHOD>(is_first, nvll, nvl, npfl_thisstep,
       matA1, matB, matC, tc_bufs, env);
 
   } // for

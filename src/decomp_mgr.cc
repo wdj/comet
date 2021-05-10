@@ -306,8 +306,8 @@ void GMDecompMgr_create(GMDecompMgr* dm,
     utils::ceil(utils::ceil(dm->num_field_local * dm->num_bit_per_field,
                             (size_t)dm->num_bit_per_packedfield), d) * d;
   if(env->print_details())
-    printf("num_packedfield_local = ceil(%zu*%d,%d)=%zu\n",dm->num_field_local,
-           dm->num_bit_per_field, dm->num_bit_per_packedfield,dm->num_packedfield_local);
+    printf("num_packedfield_local = ceil(ceil(%zu*%d,%d),%zu)*%zu=%zu\n",dm->num_field_local,
+           dm->num_bit_per_field, dm->num_bit_per_packedfield, d, d, dm->num_packedfield_local);
 
   //--------------------
   // Number of non-active fields on proc.
