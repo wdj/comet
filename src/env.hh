@@ -907,13 +907,42 @@ public:
   }
 
   // Do we use 1-bit xor gemm.
-  int is_using_xor() const {return can_use_xor_(tc_eff());}
+  bool is_using_xor() const {return can_use_xor_(tc_eff());}
 
   // Do we use GPUDirect or similar.
-  int is_comm_gpu() const {
+  bool is_comm_gpu() const {
     const bool try_comm_gpu = false; // true; // change this to en/disable.
     return try_comm_gpu && ComputeMethod::GPU == compute_method_ &&
            num_way() == NumWay::_2 && !do_reduce();
+  }
+
+  // Do we use CUTLASS.
+
+  bool can_use_cutlass(int tc_try) const {
+    const bool use_b1 = tc_try == TC::B1 &&
+      System::compute_capability() > 700 && MetricType::DUO == metric_type_;
+    const bool use_int4 = tc_try == TC::INT4 &&
+      System::compute_capability() > 700;
+    //const bool use_int8 = false;
+    const bool use_int8 = tc_try == TC::INT8 &&
+      System::compute_capability() > 700;
+    return BuildHas::CUDA && BuildHas::CUTLASS &&
+      ComputeMethod::GPU == compute_method_ &&
+      is_metric_type_bitwise() &&
+      (use_b1 || use_int4 || use_int8);
+  }
+
+  bool is_using_cutlass() const {return can_use_cutlass(tc_eff());}
+
+  bool can_use_cutlass_mockup(int tc_try) const {
+    //return true;
+    return (tc_try == TC::B1 || tc_try == TC::INT4) &&
+      BuildHas::CUDA && BuildHas::CUTLASS &&
+      System::compute_capability() <= 700;
+  }
+
+  bool is_using_cutlass_mockup() const {
+    return can_use_cutlass_mockup(tc_eff());
   }
 
   // Misc.
@@ -994,8 +1023,8 @@ public:
   MPI_Comm comm_repl_vector() const {return comm_repl_vector_;}
   MPI_Comm comm_field() const {return comm_field_;}
 
-  //bool is_comm_ring() const {return NumWay::_2 == num_way();}
-  bool is_comm_ring() const {return false;}
+  bool is_comm_ring() const {return NumWay::_2 == num_way();}
+  //bool is_comm_ring() const {return false;}
 
   //----------------------------------------
   // MPI proc counts

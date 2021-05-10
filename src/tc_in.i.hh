@@ -308,7 +308,7 @@ __host__ __device__ static GemmIn_t tc_buf_write_kernel_get_field_(
 /// \brief Write individual elements to buf.
 ///
 
-template<int TC_METHOD, bool IS_LEFT>
+template<int TC_METHOD, bool IS_LEFT, int IS_B_FIELD_MAJOR>
 __host__ __device__ static void tc_buf_write_kernel_elt_(
   typename TCTraits<TC_METHOD>::GemmIn_t* vo,
   const TCWord_t* vim,
@@ -381,7 +381,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
   // Special-case code for a B1 case.
 
   if (TC_METHOD == TC::B1 && is_duo && NGIPT == 1 && sizeof(GemmIn_t) == 4 &&
-      sizeof(TCWord_t) == 8 && TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR) {
+      sizeof(TCWord_t) == 8 && IS_B_FIELD_MAJOR) {
 
     const int vl = is_vectors_halved && IS_LEFT ?
                    vl_thread % nvleD2 + step_2way * nvleD2 :
@@ -598,7 +598,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
     // see https://rocblas.readthedocs.io/en/latest/functions.html?highlight=rocblas_gemm_ex#blas-extensions
 
     GemmIn_t& vo_value =
-      TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR ?
+      IS_B_FIELD_MAJOR ?
         vo[flG_index + nflG_dim * vlX2_index] :
       (BuildHas::HIP && TC_METHOD == TC::INT8) ?
         vo[flG_index % nb + nb * (vlX2_index + vlX2_dim * (flG_index / nb))] :
@@ -645,7 +645,7 @@ __host__ __device__ static void tc_buf_write_kernel_elt_(
 //-----------------------------------------------------------------------------
 /// \brief GPU kernel to support tc_buf_write_.
 
-template<int TC_METHOD, bool IS_LEFT>
+template<int TC_METHOD, bool IS_LEFT, int IS_B_FIELD_MAJOR>
 __global__ static void tc_buf_write_kernel_(
   typename TCTraits<TC_METHOD>::GemmIn_t* vo,
   const TCWord_t* vim,
@@ -687,8 +687,8 @@ __global__ static void tc_buf_write_kernel_(
     return;
 
   //printf("Calling write_elt with t=%d,%d vlX2_thread=%d flT_thread=%d\n",thread_dim0,thread_dim1,vlX2_thread,flT_thread);
-  tc_buf_write_kernel_elt_<TC_METHOD, IS_LEFT>(vo, vim, vic, vi_dim0,
-    num_way, is_sparse, is_duo, form_matX_tc, step_2way,
+  tc_buf_write_kernel_elt_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>(vo, vim, vic,
+    vi_dim0, num_way, is_sparse, is_duo, form_matX_tc, step_2way,
     is_bitwise_3way_2step, is_vectors_halved,
     nvle, nvleD2, nvleX2_thread, nvlea, nfl, nflT, nflT_thread, flT_min, nfal,
     vlX2_thread, flT_thread);
@@ -800,22 +800,51 @@ void tc_buf_write_(
       if(env.print_details()) printf("Launching tc_buf_write_kernel_ with blocks=%d,%d,%d and threads=%d,1,1 form_matX_tc=%d\n",
         num_threadblocks_0,num_threadblocks_1,num_threadblocks_2,threadblocksize,form_matX_tc);
 
-      COMET_LAUNCH_KERNEL((tc_buf_write_kernel_<TC_METHOD, IS_LEFT>),
-        dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
-        dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
-        tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(),
-        is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
-        env.is_vectors_halved(),
-        nvle, nvleD2, nvleX2_thread, nvlea,
-        nfl, nflT, nflT_thread, flT_min, nfal);
+      //enum {IS_B_FIELD_MAJOR = TCTraits<TC_METHOD>::IS_B_FIELD_MAJOR};
 
-      System::accel_last_call_succeeded();
+      if (env.is_using_cutlass() || env.is_using_cutlass_mockup()) {
+
+        enum {IS_B_FIELD_MAJOR = true};
+        COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
+
+        COMET_LAUNCH_KERNEL(
+          (tc_buf_write_kernel_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>),
+          dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(),
+          is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
+          env.is_vectors_halved(),
+          nvle, nvleD2, nvleX2_thread, nvlea,
+          nfl, nflT, nflT_thread, flT_min, nfal);
+
+        System::accel_last_call_succeeded();
+
+    } else {
+
+        enum {IS_B_FIELD_MAJOR = false};
+        COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
+
+        COMET_LAUNCH_KERNEL(
+          (tc_buf_write_kernel_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>),
+          dim3(num_threadblocks_0, num_threadblocks_1, num_threadblocks_2),
+          dim3(threadblocksize, 1, 1), 0, env.stream_compute(),
+          tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(),
+          is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
+          env.is_vectors_halved(),
+          nvle, nvleD2, nvleX2_thread, nvlea,
+          nfl, nflT, nflT_thread, flT_min, nfal);
+
+        System::accel_last_call_succeeded();
+
+    }
 
       if(env.print_details()) printf("Done with tc_buf_write_\n");
 
   } else { // (!env.is_compute_method_gpu())
 
     if(env.print_details()) printf("Calling tc_buf_write_kernel_elt non-gpu kernel\n");
+    enum {IS_B_FIELD_MAJOR = false};
+    COMET_INSIST(IS_B_FIELD_MAJOR == tc_is_b_field_major(env));
 
     for (int i1 = 0; i1 < thread_dim1; ++i1) {
       for (int i0 = 0; i0 < thread_dim0; ++i0) {
@@ -823,7 +852,7 @@ void tc_buf_write_(
         const int flT_thread = IS_THREAD_MAPPING_FIELD_MAJOR ? i0 : i1;
         const int vlX2_thread = IS_THREAD_MAPPING_FIELD_MAJOR ? i1 : i0;
 
-        tc_buf_write_kernel_elt_<TC_METHOD, IS_LEFT>(
+        tc_buf_write_kernel_elt_<TC_METHOD, IS_LEFT, IS_B_FIELD_MAJOR>(
           tc_buf, vim, vic, vi_dim0, env.num_way(), env.sparse(),
           is_duo, form_matX_tc, step_2way, is_bitwise_3way_2step,
           env.is_vectors_halved(),

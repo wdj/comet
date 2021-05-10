@@ -76,17 +76,37 @@ namespace comet {
 
 size_t tc_gemm_vaxis_divisibility_required(const CEnv& env) {
 
-  const size_t result = env.tc_eff() == TC::NO ? 1 :
+  /*const size_t result = env.tc_eff() == TC::NO ? 1 :
+    // NOTE: for tc, must be >= 2 -- see tc_in.
+    //!env.is_compute_method_gpu() ? 1 :
+    //!env.is_metric_type_bitwise() ? 1 :
+    env.is_using_cutlass() ? 256 :
     // Curent requirement >= 4 - see tc_in.
     tc_solve_use_mockup(env) &&
       (env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 4 :
     env.tc_eff() == TC::B1 ? 4 : // Use for debugging
     env.tc_eff() == TC::INT4 ? 4 : 4;
     //env.tc_eff() == TC::B1 ? 256 :
+    //env.tc_eff() == TC::INT4 ? 256 : 8;*/
+
+  const size_t result = env.tc_eff() == TC::NO ? 1 :
+    // NOTE: for tc, must be >= 2 -- see tc_in.
+    //!env.is_compute_method_gpu() ? 1 :
+    //!env.is_metric_type_bitwise() ? 1 :
+    //env.is_using_cutlass() ? 256 : // Use for performance
+    env.is_using_cutlass() ? 4 : // Use for debugging
+    // Curent requirement >= 4 - see tc_in.
+    env.is_using_cutlass_mockup() ? 4 :
+    8; // cuBLAS/rocBLAS
+
+    //// Curent requirement >= 4 - see tc_in.
+    //tc_solve_use_mockup(env) &&
+    //  (env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 4 :
+    //env.tc_eff() == TC::B1 ? 256 :
     //env.tc_eff() == TC::INT4 ? 256 : 8;
 
-  if(env.print_details()) printf("In vaxis_divis_req result=%zu tc_eff=%d use_mockup=%d\n",
-    result,env.tc_eff(),tc_solve_use_mockup(env));
+  if(env.print_details()) printf("In vaxis_divis_req result=%zu tc_eff=%d is_using_cutlass=%d\n",
+    result,env.tc_eff(),env.is_using_cutlass());
 
   return result;
 }
@@ -98,13 +118,24 @@ size_t tc_gemm_faxis_divisibility_required(const CEnv& env) {
 
   // The units here are "packed field"s -- sizeof = sizeof(double[2]) = 16.
 
-  const size_t result = !env.is_metric_type_bitwise() ? 1 :
+  /*const size_t result = !env.is_metric_type_bitwise() ? 1 :
     //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4; // Helpful for debugging smaller problems
     //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 256;
-    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64; // Best for performance
+    !(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64;*/ // Best for performance
     
-  if(env.print_details()) printf("In faxis_divis_req result=%zu tc_eff=%d !env.is_metric_type_bitwise=%d num_kernel=%d\n",
-    result,env.tc_eff(),!env.is_metric_type_bitwise(),env.num_kernel());
+  const size_t result = env.tc_eff() == TC::NO ? 1 :
+    //!env.is_compute_method_gpu() ? 1 :
+    //!env.is_metric_type_bitwise() ? 1 :
+    //env.is_using_cutlass() ? 64 : // Use for performance
+    env.is_using_cutlass() ? 4 : // Use for debugging
+    1;
+
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 4;
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 256;
+    //!(env.tc_eff() == TC::B1 || env.tc_eff() == TC::INT4) ? 1 : 64;
+
+  if(env.print_details()) printf("In faxis_divis_req result=%zu tc_eff=%d env.is_using_cutlass=%d num_kernel=%d\n",
+    result,env.tc_eff(),env.is_using_cutlass(),env.num_kernel());
 
   return result;
 }

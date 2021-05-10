@@ -47,7 +47,7 @@ namespace comet {
 //-----------------------------------------------------------------------------
 // Struct declaration.
 
-typedef struct {
+struct GMVectors {
   // Logical sizes.
   int num_field;
   int num_field_local;
@@ -70,7 +70,7 @@ typedef struct {
     return buf_;
   };
   GMDecompMgr* dm;
-} GMVectors;
+};
 
 //=============================================================================
 // Null object.
