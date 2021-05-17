@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "stdio.h"
 #include "stdlib.h"
 #include "errno.h"
+#include "unistd.h"
 
 #include "assertions.hh"
 
@@ -72,8 +73,11 @@ static void insist(const char* condition_string, const char* file, int line,
       printf("%s: \"%s\". At file %s, line %i.\n", "Assertion error",
              condition_string, file, line);
 #   else
-      fprintf(stderr, "%s: \"%s\". At file %s, line %i.\n", "Assertion error",
-              condition_string, file, line);
+      const size_t hnlen = 256;
+      char hn[hnlen];
+      gethostname(hn, hnlen);
+      fprintf(stderr, "%s: \"%s\". At file %s, line %i, host \"%s\".\n", "Assertion error",
+              condition_string, file, line, hn);
 #   endif
   }
   //abort();
