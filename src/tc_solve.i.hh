@@ -59,7 +59,8 @@ struct TCSubmethod {
         _64_64_WMMA = 7,
         _128_256_1024 = 8,
         _INT4 = 9,
-        _INT8 = 10
+        _INT8 = 10,
+        _B1_75 = 11
   };
 };
 
@@ -77,6 +78,15 @@ struct TCGemmOpMultiplyAdd {
   __host__ __device__
   static GemmIn_t op(GemmIn_t a, GemmIn_t b) {return a & b;}
 # ifdef COMET_USE_CUTLASS
+    typedef cutlass::arch::OpMultiplyAdd Value; 
+# endif
+};
+
+struct TCGemmOpMultiplyAddTry {
+  template<typename GemmIn_t>
+  __host__ __device__
+  static GemmIn_t op(GemmIn_t a, GemmIn_t b) {return a & b;}
+# ifdef COMET_USE_CUTLASS
 #   if COMET_COMPUTE_CAPABILITY != 750
       typedef cutlass::arch::OpMultiplyAdd Value; 
 #   else
@@ -87,6 +97,15 @@ struct TCGemmOpMultiplyAdd {
 };
 
 struct TCGemmOpMultiplyAddSaturate {
+  template<typename GemmIn_t>
+  __host__ __device__
+  static GemmIn_t op(GemmIn_t a, GemmIn_t b) {return a & b;}
+# ifdef COMET_USE_CUTLASS
+    typedef cutlass::arch::OpMultiplyAddSaturate Value; 
+# endif
+};
+
+struct TCGemmOpMultiplyAddSaturateTry {
   template<typename GemmIn_t>
   __host__ __device__
   static GemmIn_t op(GemmIn_t a, GemmIn_t b) {return a & b;}
@@ -217,9 +236,15 @@ template<> struct CutlassSettings<TCSubmethod::_64_64_WMMA>
 template<> struct CutlassSettings<TCSubmethod::_INT4>
   : public CutlassArch,
            CutlassOpClassTensorOp,
-           CutlassThreadblockShape<128,256,256>,
-           CutlassWarpShape<64,64,256>,
-           CutlassInstructionShape<16,8,64> {};
+#          if COMET_COMPUTE_CAPABILITY != 750
+             CutlassThreadblockShape<128,256,256>,
+             CutlassWarpShape<64,64,256>,
+             CutlassInstructionShape<16,8,64> {};
+#          else
+             CutlassThreadblockShape<128,256,128>,
+             CutlassWarpShape<64,64,128>,
+             CutlassInstructionShape<8,8,32> {};
+#          endif
 
 template<> struct CutlassSettings<TCSubmethod::_INT8>
   : public CutlassArch,
@@ -227,6 +252,16 @@ template<> struct CutlassSettings<TCSubmethod::_INT8>
            CutlassThreadblockShape<128,256,64>,
            CutlassWarpShape<64,64,64>,
            CutlassInstructionShape<16,8,32> {};
+
+template<> struct CutlassSettings<TCSubmethod::_B1_75>
+  : public CutlassArch,
+           CutlassOpClassTensorOp,
+           //CutlassThreadblockShape<128,256,512>,
+           //CutlassWarpShape<64,64,512>,
+           //CutlassOpClassTensorOp,
+           CutlassThreadblockShape<64,64,512>,
+           CutlassWarpShape<32,32,512>,
+           CutlassInstructionShape<8,8,128> {};
 
            //CutlassThreadblockShape<128,256,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 959 TOps
            //CutlassThreadblockShape<256,128,256>, CutlassWarpShape<64,64,256>, CutlassInstructionShape<16,8,64> {}; // 575 TOps
@@ -518,7 +553,8 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 #   if COMET_COMPUTE_CAPABILITY != 750
       enum {TC_SUBMETHOD_B1 = TCSubmethod::_128_256_1024};
 #   else
-      enum {TC_SUBMETHOD_B1 = TCSubmethod::_128_128};
+      //enum {TC_SUBMETHOD_B1 = TCSubmethod::_B1_75};
+      enum {TC_SUBMETHOD_B1 = TCSubmethod::_128_256};
 #   endif
 
     if (TC_METHOD == TC::INT8) {
@@ -550,14 +586,14 @@ static void tc_solve_impl_subbyte(bool is_first, int m, int n, int k,
 
     } else { // !env.is_using_xor() // && TC_METHOD == TC::B1
 
-      tc_solve_impl_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpMultiplyAdd>(
+      tc_solve_impl_cutlass<TC::B1, TC_SUBMETHOD_B1, TCGemmOpMultiplyAddTry>(
         is_first, n, m, k, // NOTE: switching order of A, B.
         (uint8_t*)tc_bufs.tc_buf_right, k,
         (uint8_t*)tc_bufs.tc_buf_left, k,
         (int32_t*)matC, m,
         env.stream_compute());
 
-    } // if (TC_METHOD == TC::INT4)
+    } // if (TC_METHOD == TC::INT8)
 
     System::accel_last_call_succeeded(); // extra precaution.
 

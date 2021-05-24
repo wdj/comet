@@ -650,7 +650,7 @@ bool CEnv::can_run(int tc_try) const {
 //  result = result && ((BuildHas::CUDA && System::compute_capability() >= 750)
     result = result && ((BuildHas::CUDA && (BuildHas::CUTLASS && System::compute_capability() >= 700))
                      || (BuildHas::HIP && System::compute_capability() >= cc_minone))
-                    ; // && can_use_xor_(tc_try);
+                     && (can_use_xor_(tc_try) && System::compute_capability() >= 800);
   }
 
   return result;
