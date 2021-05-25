@@ -99,11 +99,28 @@ void LinAlg::gemm_start(
         (GMFloat*)counts_I->active, (GMFloat*)counts_J->active, (GMFloat*)counts_K->active, J,
         dm.num_field_active_local, step_2way, dm.tc_bufs, env);
   } else {
+
+    const bool is_timing_gemm = false; //System::is_proc_num_0(); //false; // true;
+ 
+    if (is_timing_gemm)
+      env.stream_synchronize(env.stream_compute());
+    double t1 = !is_timing_gemm ? 0 : System::time();
+
     // apparently needed by magma.
     MagmaWrapper::set_matrix_zero_start(matC, env);
     // GEMM call, non-tc case.
     MagmaWrapper::gemm_start(m, n, k, matA1->active, matA1->dim0,
       matB->active, matB->dim0, matC->active, matC->dim0, env);
+
+    if (is_timing_gemm) {
+      env.stream_synchronize(env.stream_compute());
+      double t2 = System::time();
+      const double t = t2 - t1;
+      printf("%i %i %i   time %f TOP/s %f   tbeg %f tend %f\n",
+             (int)m, (int)n, (int)k, t,
+             (2 * m * (double)n * (double)k) / (t * 1e12), t1, t2);
+    }
+
   }
 }
 

@@ -992,8 +992,8 @@ elif [ $COMET_PLATFORM = JUWELS_BOOSTER ] ; then
   local COMET_COMPUTE_CAPABILITY=800
   #COMET_WERROR=OFF
 
-  local USE_MAGMA=OFF
-  #local USE_MAGMA=ON
+  #local USE_MAGMA=OFF
+  local USE_MAGMA=ON
   local COMET_MAGMA_GPU_ARCH=80
   local COMET_MAGMA_MAKE_INC=make.inc.summit
 
@@ -1140,7 +1140,7 @@ elif [ $COMET_PLATFORM = SPOCK ] ; then
     local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n64"
   else
     #local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1"
-    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1"
+    local COMET_TEST_COMMAND="env OMP_NUM_THREADS=1 srun -n1 --cpus-per-task=16 --ntasks-per-node=4 --gpu-bind=map_gpu:0,1,2,3"
   fi
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 2 --ntasks-per-node=48"
   #XXX local COMET_TEST_COMMAND="env OMP_NUM_THREADS=2 srun -N 1 --ntasks-per-node=1"

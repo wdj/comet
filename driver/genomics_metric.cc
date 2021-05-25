@@ -382,6 +382,10 @@ double bad_node_penalty() {
 
        : strcmp(name, "a12n18") == 0 ? 1e4 - 1 // to help workaround: ERROR:  One or more process terminated with signal 9
        : strcmp(name, "a03n12") == 0 ? 1e4 - 1 // ditto
+
+       : strcmp(name, "c11n16") == 0 ? 1e4 - 1 // ? low memory
+       : strcmp(name, "d21n10") == 0 ? 1e4 - 1 // ? low memory
+
 #endif
 
        //: strcmp(name, "a03n10") == 0 ? 1e3 - 1 // one of these 5 nodes causes
@@ -638,7 +642,7 @@ void perform_run_preflight(int argc, char** argv) {
           "--compute_method GPU --verbosity 0" :
 
 #ifdef COMET_PLATFORM_JUWELS_BOOSTER
-          "--metric_type duo "
+          "--metric_type duo --sparse yes "
           "--num_field 262144 --num_vector_local 12288 "
 #else
           "--num_field 768 --num_vector_local 768 "
