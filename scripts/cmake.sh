@@ -504,6 +504,8 @@ function main
   if [ $USE_GCC = ON ] ; then
       CMAKE_CXX_FLAGS+=" -rdynamic" # for stack trace
       CMAKE_CXX_FLAGS+=" -fmax-errors=5"
+  else
+      CMAKE_CXX_FLAGS+=" -Wno-constant-logical-operand"
   fi
 
   [[ ${USE_OPENMP:-OFF} = ON ]] && CMAKE_CXX_FLAGS+=" -DCOMET_USE_OPENMP"

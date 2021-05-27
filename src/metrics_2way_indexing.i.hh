@@ -42,7 +42,7 @@ namespace comet {
 
 /*
 For this code, "block diagonal" corresponds to the row (and corresponding
-column) blocking indiced by the proc_num_vector decomposition. Block diagonals
+column) blocking indexed by the proc_num_vector decomposition. Block diagonals
 are counted starting at zero for the main block diagonal and increasing index
 as moving through the block upper triangular part above the main block diag.
 
@@ -60,7 +60,7 @@ If is_comm_ring is not set, the decomposition of this partial block row is
 by RSP order - proc_repl axis varies fastest, then serial step axis, then phase
 axis - resulting in comm pattern like the mpiGraph benchmark.
 
-Otherwise, SRP orderinbg is used.  This associates the blocks from
+Otherwise, SRP ordering is used.  This associates the blocks from
 consecutive steps with consecutive (hardware) MPI ranks, enabling the ring
 comm pattern.
 */

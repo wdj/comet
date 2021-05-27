@@ -328,7 +328,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
                                              0+3*section_block_num, env);
           req_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
                                              0+3*section_block_num, env);
-        }
+        } // if (gm_is_section_block_in_phase ...)
   
         if (have_unprocessed_section_block) {
           // Compute numerators.
@@ -371,9 +371,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
           k_block_prev = j_block;
           section_step_prev = section_step;
           have_unprocessed_section_block = true;
-        } // if
+        } // if (gm_is_section_block_in_phase ...)
 
-      } // if (section_block_num ...)
+      } // if (metrics_is_proc_repl_active ...)
       ++section_block_num;
     } // j_i_offset
   } // section_step
@@ -400,7 +400,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
       const int proc_recv_k = env_.proc_num_repl_vector(proc_num_repl,
         utils::mod_i(i_block + k_i_offset, num_block));
 
-      for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset){
+      for (int j_i_offset = 1; j_i_offset < num_block; ++j_i_offset) {
 
         const int j_block = utils::mod_i(i_block + j_i_offset, num_block);
 
@@ -441,7 +441,7 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
                                                2+3*section_block_num, env);
             req_send_j = gm_send_vectors_start(vectors_i, proc_send_j,
                                                 2+3*section_block_num, env);
-          } // if
+          } // if (gm_is_section_block_in_phase ...)
 
           if (have_unprocessed_section_block) {
             // Compute numerators.
@@ -507,9 +507,9 @@ void ComputeMetrics3Way::compute_all2all_(GMMetrics& metrics,
             j_block_prev = j_block;
             section_step_prev = section_step;
             have_unprocessed_section_block = true;
-          } // if
+          } // if (gm_is_section_block_in_phase ...)
 
-        } // if (section_block_num ...)
+        } // if (metrics_is_proc_repl_active ...)
         ++section_block_num;
       } // k_i_offset
     }   // j_i_offset
